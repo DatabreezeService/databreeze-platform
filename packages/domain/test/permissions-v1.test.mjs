@@ -139,6 +139,14 @@ test('[IAM-004] maps exactly six immutable initial role bundles', async () => {
     assert.ok(Object.isFrozen(bundle));
     assert.ok(Object.isFrozen(bundle.permissions));
   }
+
+  for (const permission of api.INITIAL_ROLE_BUNDLES_V1.admin.permissions) {
+    assert.equal(
+      api.INITIAL_ROLE_BUNDLES_V1.owner.permissions.includes(permission),
+      true,
+      `Owner must retain the Admin permission ${permission}`,
+    );
+  }
 });
 
 test('[IAM-004] role lookup denies unknown roles and permissions', async () => {

@@ -1,13 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-async function loadAuthorization() {
-  try {
-    return await import('../src/authorization/v1.ts');
-  } catch {
-    return undefined;
-  }
-}
+import { createScopedAuthorizationEvaluatorV1 } from '../src/authorization/v1.ts';
 
 const ids = Object.freeze({
   principal: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
@@ -18,6 +12,7 @@ const ids = Object.freeze({
   projectA: '22222222-2222-4222-8222-222222222222',
   projectB: '33333333-3333-4333-8333-333333333333',
   resourceA: '44444444-4444-4444-8444-444444444444',
+  resourceB: '55555555-5555-4555-8555-555555555555',
 });
 
 const organizationA = Object.freeze({
@@ -51,329 +46,280 @@ const projectB = Object.freeze({
   projectId: ids.projectB,
 });
 
-function expectAccepted(result) {
-  assert.equal(result.accepted, true);
-  return result.value;
-}
-
-function trustedResource(evaluator, tenantScope, resourceType) {
-  const filter = expectAccepted(evaluator.verifyTenantFilterV1(tenantScope, tenantScope));
-  return expectAccepted(
-    evaluator.acceptTrustedResourceLookupV1(filter, {
-      resourceType,
-      resourceId: ids.resourceA,
-      tenantScope,
-    }),
-  );
-}
-
-function evaluatedContext(
-  evaluator,
-  {
-    roleId,
-    membershipScope,
-    resourceScope,
-    resourceType,
-    channel = 'api',
-    membershipActive = true,
-    policyConditionsSatisfied = true,
-  },
-) {
-  return expectAccepted(
-    evaluator.createEvaluatedContextV1({
-      principalId: ids.principal,
-      roleId,
-      membershipScope,
-      membershipActive,
-      channel,
-      policyConditionsSatisfied,
-      evaluatedAt: '2026-08-01T12:34:56Z',
-      resource: trustedResource(evaluator, resourceScope, resourceType),
-    }),
-  );
-}
-
-test('[IAM-009, IAM-019] exact required tenant filters gate trusted lookup results', async () => {
-  const api = await loadAuthorization();
-  assert.ok(api, 'the authorization/v1 module must exist');
-  const evaluator = api.createScopedAuthorizationEvaluatorV1();
-
-  assert.deepEqual(evaluator.verifyTenantFilterV1(projectA, undefined), {
-    accepted: false,
-    code: 'TENANT_FILTER_REQUIRED',
-  });
-  assert.deepEqual(evaluator.verifyTenantFilterV1(projectA, { ...projectA, extra: true }), {
-    accepted: false,
-    code: 'TENANT_FILTER_INVALID',
-  });
-  assert.deepEqual(evaluator.verifyTenantFilterV1(projectA, workspaceA), {
-    accepted: false,
-    code: 'TENANT_FILTER_MISMATCH',
-  });
-  assert.deepEqual(
-    evaluator.verifyTenantFilterV1(projectA, { ...projectA, organizationId: ids.organizationB }),
-    { accepted: false, code: 'TENANT_FILTER_MISMATCH' },
-  );
-
-  const verified = expectAccepted(evaluator.verifyTenantFilterV1(projectA, projectA));
-  assert.ok(Object.isFrozen(verified));
-  assert.deepEqual(
-    evaluator.acceptTrustedResourceLookupV1(projectA, {
+function resourceFor(resourceType, overrides = {}) {
+  const defaults = {
+    organization: {
+      resourceType: 'organization',
+      resourceId: ids.organizationA,
+      tenantScope: organizationA,
+    },
+    workspace: {
+      resourceType: 'workspace',
+      resourceId: ids.workspaceA,
+      tenantScope: workspaceA,
+    },
+    project: {
+      resourceType: 'project',
+      resourceId: ids.projectA,
+      tenantScope: projectA,
+    },
+    artifact: {
       resourceType: 'artifact',
       resourceId: ids.resourceA,
       tenantScope: projectA,
-    }),
-    { accepted: false, code: 'UNVERIFIED_TENANT_FILTER' },
-  );
-
-  const foreignEvaluator = api.createScopedAuthorizationEvaluatorV1();
-  assert.deepEqual(
-    foreignEvaluator.acceptTrustedResourceLookupV1(verified, {
-      resourceType: 'artifact',
+    },
+    job: {
+      resourceType: 'job',
+      resourceId: ids.resourceA,
+      tenantScope: workspaceA,
+    },
+    'approval-request': {
+      resourceType: 'approval-request',
       resourceId: ids.resourceA,
       tenantScope: projectA,
-    }),
-    { accepted: false, code: 'UNVERIFIED_TENANT_FILTER' },
-  );
-});
-
-test('[IAM-009, IAM-019] trusted lookup rejects cross-tenant and incomplete ownership', async () => {
-  const api = await loadAuthorization();
-  assert.ok(api);
-  const evaluator = api.createScopedAuthorizationEvaluatorV1();
-  const verified = expectAccepted(evaluator.verifyTenantFilterV1(projectA, projectA));
-
-  for (const tenantScope of [organizationB, workspaceB, projectB]) {
-    assert.deepEqual(
-      evaluator.acceptTrustedResourceLookupV1(verified, {
-        resourceType: 'artifact',
-        resourceId: ids.resourceA,
-        tenantScope,
-      }),
-      { accepted: false, code: 'RESOURCE_OWNERSHIP_MISMATCH' },
-    );
-  }
-
-  assert.deepEqual(
-    evaluator.acceptTrustedResourceLookupV1(verified, {
-      resourceType: 'artifact',
+    },
+    'billing-account': {
+      resourceType: 'billing-account',
       resourceId: ids.resourceA,
-      tenantScope: {
-        scopeType: 'project',
-        organizationId: ids.organizationA,
-        projectId: ids.projectA,
-      },
-    }),
-    { accepted: false, code: 'INVALID_RESOURCE_OWNERSHIP' },
-  );
-});
-
-test('[IAM-009, IAM-019] resource types require their complete applicable scope', async () => {
-  const api = await loadAuthorization();
-  assert.ok(api);
-
-  const cases = [
-    ['artifact', organizationA],
-    ['job', organizationA],
-    ['approval-request', organizationA],
-    ['workspace', projectA],
-    ['project', workspaceA],
-    ['billing-account', workspaceA],
-    ['device', workspaceA],
-    ['future-resource', projectA],
-  ];
-
-  for (const [resourceType, tenantScope] of cases) {
-    const evaluator = api.createScopedAuthorizationEvaluatorV1();
-    const verified = expectAccepted(evaluator.verifyTenantFilterV1(tenantScope, tenantScope));
-    assert.deepEqual(
-      evaluator.acceptTrustedResourceLookupV1(verified, {
-        resourceType,
-        resourceId: ids.resourceA,
-        tenantScope,
-      }),
-      { accepted: false, code: 'INVALID_RESOURCE_OWNERSHIP' },
-    );
-  }
-});
-
-test('[IAM-002, IAM-003] plain or foreign client claims never become authorization context', async () => {
-  const api = await loadAuthorization();
-  assert.ok(api);
-  const evaluator = api.createScopedAuthorizationEvaluatorV1();
-  const foreignEvaluator = api.createScopedAuthorizationEvaluatorV1();
-  const rawResourceClaim = {
-    resourceType: 'artifact',
-    resourceId: ids.resourceA,
-    tenantScope: projectA,
+      tenantScope: organizationA,
+    },
+    device: {
+      resourceType: 'device',
+      resourceId: ids.resourceA,
+      tenantScope: organizationA,
+    },
   };
-  const contextInput = {
-    principalId: ids.principal,
-    roleId: 'owner',
-    membershipScope: organizationA,
-    membershipActive: true,
-    channel: 'api',
-    policyConditionsSatisfied: true,
-    evaluatedAt: '2026-08-01T12:34:56Z',
-    resource: rawResourceClaim,
+  return Object.freeze({ ...defaults[resourceType], ...overrides });
+}
+
+function requestFor(permission, channel, resource, overrides = {}) {
+  return {
+    permission,
+    channel,
+    tenantFilter: resource.tenantScope,
+    resource: {
+      resourceType: resource.resourceType,
+      resourceId: resource.resourceId,
+    },
+    ...overrides,
+  };
+}
+
+function authorityProvider({
+  principalId = ids.principal,
+  resource = resourceFor('artifact'),
+  roleId = 'viewer',
+  membershipScope = resource.tenantScope,
+  membershipActive = true,
+  policyConditionsSatisfied = true,
+  principalResult,
+  membershipResult,
+  policyResult,
+  throwFrom,
+} = {}) {
+  const calls = {
+    principal: 0,
+    lookup: 0,
+    membership: 0,
+    policy: 0,
+    lookupQuery: undefined,
   };
 
-  assert.deepEqual(evaluator.createEvaluatedContextV1(contextInput), {
-    accepted: false,
-    code: 'UNTRUSTED_RESOURCE_OWNERSHIP',
-  });
-  assert.deepEqual(
-    evaluator.createEvaluatedContextV1({
-      ...contextInput,
-      resource: trustedResource(evaluator, projectA, 'artifact'),
-      clientTenantClaim: projectA,
-    }),
-    { accepted: false, code: 'INVALID_EVALUATED_CONTEXT' },
-  );
-  assert.deepEqual(evaluator.authorizeV1(contextInput, 'artifact.record.read'), {
-    allowed: false,
-    code: 'UNTRUSTED_CONTEXT',
+  const provider = Object.freeze({
+    async resolveAuthenticatedPrincipalV1() {
+      calls.principal += 1;
+      if (throwFrom === 'principal') throw new Error('principal unavailable');
+      return principalResult ?? { principalId };
+    },
+    async lookupResourceV1(query) {
+      calls.lookup += 1;
+      calls.lookupQuery = query;
+      if (throwFrom === 'lookup') throw new Error('lookup unavailable');
+      return resource;
+    },
+    async resolveMembershipV1() {
+      calls.membership += 1;
+      if (throwFrom === 'membership') throw new Error('membership unavailable');
+      return membershipResult ?? { roleId, membershipScope, membershipActive };
+    },
+    async evaluatePolicyV1() {
+      calls.policy += 1;
+      if (throwFrom === 'policy') throw new Error('policy unavailable');
+      return policyResult ?? { satisfied: policyConditionsSatisfied };
+    },
   });
 
-  const foreignResource = trustedResource(foreignEvaluator, projectA, 'artifact');
+  return { provider, calls };
+}
+
+test('[IAM-002, IAM-003] evaluator owns authority and exposes no caller minting API', async () => {
+  const billing = resourceFor('billing-account');
+  const { provider, calls } = authorityProvider({ resource: billing, roleId: 'owner' });
+  const evaluator = createScopedAuthorizationEvaluatorV1(provider);
+
+  assert.deepEqual(Object.keys(evaluator), ['authorizeV1']);
   assert.deepEqual(
-    evaluator.createEvaluatedContextV1({ ...contextInput, resource: foreignResource }),
+    await evaluator.authorizeV1(requestFor('billing.account.manage', 'web', billing)),
     {
-      accepted: false,
-      code: 'UNTRUSTED_RESOURCE_OWNERSHIP',
+      allowed: true,
+      permission: 'billing.account.manage',
+      tenantScope: organizationA,
     },
   );
+
+  const callsBeforeExploit = { ...calls };
+  const fabricatedOwnerRequest = requestFor('billing.account.manage', 'web', billing, {
+    roleId: 'owner',
+    membershipActive: true,
+    membershipScope: organizationA,
+    policyConditionsSatisfied: true,
+    resourceOwnership: billing,
+  });
+  assert.deepEqual(await evaluator.authorizeV1(fabricatedOwnerRequest), {
+    allowed: false,
+    code: 'INVALID_AUTHORIZATION_REQUEST',
+  });
+  assert.deepEqual(calls, callsBeforeExploit);
 });
 
-test('[IAM-002, IAM-003, IAM-004] authorizes the representative six-role matrix only in scope', async () => {
-  const api = await loadAuthorization();
-  assert.ok(api);
+test('[IAM-002, IAM-003] provider facts cannot be overridden by request claims', async () => {
+  const billing = resourceFor('billing-account');
+  const viewerAuthority = authorityProvider({ resource: billing, roleId: 'viewer' });
+  const viewerEvaluator = createScopedAuthorizationEvaluatorV1(viewerAuthority.provider);
+  assert.deepEqual(
+    await viewerEvaluator.authorizeV1(requestFor('billing.account.manage', 'web', billing)),
+    { allowed: false, code: 'ROLE_PERMISSION_MISSING' },
+  );
 
+  const blockedOwnerAuthority = authorityProvider({
+    resource: billing,
+    roleId: 'owner',
+    policyConditionsSatisfied: false,
+  });
+  const blockedOwnerEvaluator = createScopedAuthorizationEvaluatorV1(
+    blockedOwnerAuthority.provider,
+  );
+  assert.deepEqual(
+    await blockedOwnerEvaluator.authorizeV1(requestFor('billing.account.manage', 'web', billing)),
+    { allowed: false, code: 'POLICY_CONDITIONS_REQUIRED' },
+  );
+});
+
+test('[IAM-009, IAM-019] exact tenant filters are enforced before authoritative lookup', async () => {
+  const artifact = resourceFor('artifact');
+  const { provider, calls } = authorityProvider({ resource: artifact });
+  const evaluator = createScopedAuthorizationEvaluatorV1(provider);
+
+  const missingFilter = requestFor('artifact.record.read', 'web', artifact);
+  delete missingFilter.tenantFilter;
+  assert.deepEqual(await evaluator.authorizeV1(missingFilter), {
+    allowed: false,
+    code: 'TENANT_FILTER_REQUIRED',
+  });
+  assert.equal(calls.lookup, 0);
+
+  assert.deepEqual(
+    await evaluator.authorizeV1(
+      requestFor('artifact.record.read', 'web', artifact, {
+        tenantFilter: { ...projectA, optionalWorkspaceId: undefined },
+      }),
+    ),
+    { allowed: false, code: 'TENANT_FILTER_INVALID' },
+  );
+  assert.equal(calls.lookup, 0);
+
+  assert.deepEqual(
+    await evaluator.authorizeV1(
+      requestFor('artifact.record.read', 'web', artifact, { tenantFilter: projectB }),
+    ),
+    { allowed: false, code: 'RESOURCE_OWNERSHIP_MISMATCH' },
+  );
+  assert.equal(calls.lookup, 1);
+  assert.ok(Object.isFrozen(calls.lookupQuery));
+  assert.deepEqual(calls.lookupQuery.tenantScope, projectB);
+});
+
+test('[IAM-009, IAM-019] organization, workspace, and project identities match their ancestry', async () => {
   const cases = [
-    ['owner', organizationA, organizationA, 'organization', 'organization.settings.manage'],
-    ['owner', organizationA, organizationA, 'billing-account', 'billing.account.manage'],
-    ['owner', organizationA, organizationA, 'device', 'device.identity.revoke'],
-    ['admin', organizationA, workspaceA, 'workspace', 'workspace.settings.manage'],
-    ['admin', workspaceA, projectA, 'project', 'project.record.manage'],
-    ['analyst', workspaceA, projectA, 'artifact', 'artifact.original.download'],
-    ['analyst', workspaceA, workspaceA, 'job', 'job.execution.create'],
-    ['operator', workspaceA, workspaceA, 'job', 'job.execution.run'],
-    ['approver', workspaceA, projectA, 'approval-request', 'approval.decision.create'],
-    ['viewer', workspaceA, projectA, 'artifact', 'artifact.record.read'],
+    resourceFor('organization', { resourceId: ids.resourceB }),
+    resourceFor('workspace', { resourceId: ids.resourceB }),
+    resourceFor('project', { resourceId: ids.resourceB }),
   ];
 
-  for (const [roleId, membershipScope, resourceScope, resourceType, permission] of cases) {
-    const evaluator = api.createScopedAuthorizationEvaluatorV1();
-    const context = evaluatedContext(evaluator, {
-      roleId,
-      membershipScope,
-      resourceScope,
-      resourceType,
-    });
-    assert.deepEqual(evaluator.authorizeV1(context, permission), {
-      allowed: true,
-      permission,
-      tenantScope: resourceScope,
+  for (const resource of cases) {
+    const { provider } = authorityProvider({ resource, roleId: 'viewer' });
+    const evaluator = createScopedAuthorizationEvaluatorV1(provider);
+    const permission = {
+      organization: 'organization.profile.read',
+      workspace: 'workspace.settings.read',
+      project: 'project.record.read',
+    }[resource.resourceType];
+    assert.deepEqual(await evaluator.authorizeV1(requestFor(permission, 'web', resource)), {
+      allowed: false,
+      code: 'RESOURCE_IDENTITY_MISMATCH',
     });
   }
 });
 
-test('[IAM-002, IAM-003] deny-by-default covers role, action, channel, membership, and policy', async () => {
-  const api = await loadAuthorization();
-  assert.ok(api);
-
+test('[IAM-002, IAM-003] unknown and inactive authoritative facts deny by default', async () => {
+  const artifact = resourceFor('artifact');
   const cases = [
-    ['custom-admin', 'api', true, true, 'artifact.record.read', 'UNKNOWN_ROLE'],
-    ['viewer', 'api', true, true, 'future.resource.read', 'UNKNOWN_PERMISSION'],
-    ['viewer', 'carrier-pigeon', true, true, 'artifact.record.read', 'UNKNOWN_CHANNEL'],
-    ['viewer', 'api', false, true, 'artifact.record.read', 'INACTIVE_MEMBERSHIP'],
-    ['viewer', 'api', true, false, 'artifact.record.read', 'POLICY_CONDITIONS_REQUIRED'],
-    ['viewer', 'api', true, true, 'artifact.original.download', 'ROLE_PERMISSION_MISSING'],
-    ['owner', 'api', true, true, 'approval.decision.create', 'ROLE_PERMISSION_MISSING'],
+    [{ roleId: 'custom-admin' }, 'artifact.record.read', 'web', 'UNKNOWN_ROLE'],
+    [{}, 'future.resource.read', 'web', 'UNKNOWN_PERMISSION'],
+    [{}, 'artifact.record.read', 'carrier-pigeon', 'UNKNOWN_CHANNEL'],
+    [{ membershipActive: false }, 'artifact.record.read', 'web', 'INACTIVE_MEMBERSHIP'],
   ];
 
-  for (const [
-    roleId,
-    channel,
-    membershipActive,
-    policyConditionsSatisfied,
-    permission,
-    code,
-  ] of cases) {
-    const evaluator = api.createScopedAuthorizationEvaluatorV1();
-    const context = evaluatedContext(evaluator, {
-      roleId,
-      membershipScope: workspaceA,
-      resourceScope: projectA,
-      resourceType: permission.startsWith('billing.') ? 'billing-account' : 'artifact',
-      channel,
-      membershipActive,
-      policyConditionsSatisfied,
-    });
-    assert.deepEqual(evaluator.authorizeV1(context, permission), { allowed: false, code });
-  }
-});
-
-test('[IAM-002, IAM-009, IAM-019] rejects cross-scope and wrong-resource authorization', async () => {
-  const api = await loadAuthorization();
-  assert.ok(api);
-
-  const cases = [
-    [organizationB, projectA, 'TENANT_SCOPE_MISMATCH'],
-    [workspaceB, projectA, 'TENANT_SCOPE_MISMATCH'],
-    [projectA, projectB, 'TENANT_SCOPE_MISMATCH'],
-  ];
-  for (const [membershipScope, resourceScope, code] of cases) {
-    const evaluator = api.createScopedAuthorizationEvaluatorV1();
-    const context = evaluatedContext(evaluator, {
-      roleId: 'viewer',
-      membershipScope,
-      resourceScope,
-      resourceType: 'artifact',
-    });
-    assert.deepEqual(evaluator.authorizeV1(context, 'artifact.record.read'), {
+  for (const [authorityOverrides, permission, channel, code] of cases) {
+    const { provider } = authorityProvider({ resource: artifact, ...authorityOverrides });
+    const evaluator = createScopedAuthorizationEvaluatorV1(provider);
+    assert.deepEqual(await evaluator.authorizeV1(requestFor(permission, channel, artifact)), {
       allowed: false,
       code,
     });
   }
-
-  for (const [membershipScope, resourceScope] of [
-    [organizationA, workspaceB],
-    [organizationA, projectB],
-    [workspaceA, projectB],
-  ]) {
-    const evaluator = api.createScopedAuthorizationEvaluatorV1();
-    const context = evaluatedContext(evaluator, {
-      roleId: 'viewer',
-      membershipScope,
-      resourceScope,
-      resourceType: 'artifact',
-    });
-    assert.deepEqual(evaluator.authorizeV1(context, 'artifact.record.read'), {
-      allowed: true,
-      permission: 'artifact.record.read',
-      tenantScope: resourceScope,
-    });
-  }
-
-  const evaluator = api.createScopedAuthorizationEvaluatorV1();
-  const wrongResource = evaluatedContext(evaluator, {
-    roleId: 'analyst',
-    membershipScope: workspaceA,
-    resourceScope: workspaceA,
-    resourceType: 'job',
-  });
-  assert.deepEqual(evaluator.authorizeV1(wrongResource, 'artifact.record.read'), {
-    allowed: false,
-    code: 'RESOURCE_TYPE_MISMATCH',
-  });
 });
 
-test('[IAM-002, IAM-003] known channels and evaluator surface are immutable', async () => {
-  const api = await loadAuthorization();
-  assert.ok(api);
-
-  assert.deepEqual(api.AUTHORIZATION_CHANNELS_V1, [
+test('[IAM-002, IAM-003] every permission is restricted to its explicit channels', async () => {
+  const cases = {
+    'organization.profile.read': ['viewer', 'organization', ['api', 'web', 'desktop', 'android']],
+    'organization.settings.manage': ['admin', 'organization', ['api', 'web']],
+    'organization.ownership.transfer': ['owner', 'organization', ['api', 'web']],
+    'workspace.settings.read': [
+      'viewer',
+      'workspace',
+      ['api', 'web', 'desktop', 'android', 'worker'],
+    ],
+    'workspace.settings.manage': ['admin', 'workspace', ['api', 'web']],
+    'project.record.read': [
+      'viewer',
+      'project',
+      ['api', 'web', 'desktop', 'android', 'worker', 'sync'],
+    ],
+    'project.record.manage': ['admin', 'project', ['api', 'web']],
+    'artifact.record.read': [
+      'viewer',
+      'artifact',
+      ['api', 'web', 'desktop', 'android', 'worker', 'sync', 'shared-link'],
+    ],
+    'artifact.original.download': ['analyst', 'artifact', ['api', 'web', 'desktop', 'android']],
+    'artifact.derived.create': ['analyst', 'artifact', ['api', 'web', 'desktop', 'worker']],
+    'job.execution.read': [
+      'viewer',
+      'job',
+      ['api', 'web', 'desktop', 'android', 'worker', 'sync', 'stream'],
+    ],
+    'job.execution.create': ['analyst', 'job', ['api', 'web', 'desktop', 'worker']],
+    'job.execution.run': ['operator', 'job', ['api', 'web', 'desktop', 'worker']],
+    'job.execution.cancel': ['analyst', 'job', ['api', 'web', 'desktop']],
+    'approval.request.read': ['approver', 'approval-request', ['api', 'web', 'desktop', 'android']],
+    'approval.decision.create': ['approver', 'approval-request', ['api', 'web', 'android']],
+    'billing.account.read': ['owner', 'billing-account', ['api', 'web']],
+    'billing.account.manage': ['owner', 'billing-account', ['api', 'web']],
+    'device.identity.read': ['admin', 'device', ['api', 'web']],
+    'device.identity.revoke': ['admin', 'device', ['api', 'web']],
+  };
+  const allChannels = [
     'api',
     'web',
     'desktop',
@@ -382,7 +328,107 @@ test('[IAM-002, IAM-003] known channels and evaluator surface are immutable', as
     'sync',
     'stream',
     'shared-link',
-  ]);
-  assert.ok(Object.isFrozen(api.AUTHORIZATION_CHANNELS_V1));
-  assert.ok(Object.isFrozen(api.createScopedAuthorizationEvaluatorV1()));
+  ];
+
+  for (const [permission, [roleId, resourceType, allowedChannels]] of Object.entries(cases)) {
+    for (const channel of allChannels) {
+      const resource = resourceFor(resourceType);
+      const { provider } = authorityProvider({
+        resource,
+        roleId,
+        membershipScope: organizationA,
+      });
+      const evaluator = createScopedAuthorizationEvaluatorV1(provider);
+      const decision = await evaluator.authorizeV1(requestFor(permission, channel, resource));
+
+      if (allowedChannels.includes(channel)) {
+        assert.deepEqual(decision, {
+          allowed: true,
+          permission,
+          tenantScope: resource.tenantScope,
+        });
+      } else {
+        assert.deepEqual(decision, { allowed: false, code: 'CHANNEL_NOT_ALLOWED' });
+      }
+    }
+  }
+});
+
+test('[IAM-002, IAM-003, IAM-004] representative actions use the six authoritative roles', async () => {
+  const cases = [
+    ['owner', 'organization', 'organization.settings.manage'],
+    ['owner', 'billing-account', 'billing.account.manage'],
+    ['owner', 'device', 'device.identity.revoke'],
+    ['admin', 'workspace', 'workspace.settings.manage'],
+    ['admin', 'project', 'project.record.manage'],
+    ['analyst', 'artifact', 'artifact.original.download'],
+    ['analyst', 'job', 'job.execution.create'],
+    ['operator', 'job', 'job.execution.run'],
+    ['approver', 'approval-request', 'approval.decision.create'],
+    ['viewer', 'artifact', 'artifact.record.read'],
+  ];
+
+  for (const [roleId, resourceType, permission] of cases) {
+    const resource = resourceFor(resourceType);
+    const { provider } = authorityProvider({
+      resource,
+      roleId,
+      membershipScope: organizationA,
+    });
+    const evaluator = createScopedAuthorizationEvaluatorV1(provider);
+    assert.deepEqual(await evaluator.authorizeV1(requestFor(permission, 'web', resource)), {
+      allowed: true,
+      permission,
+      tenantScope: resource.tenantScope,
+    });
+  }
+});
+
+test('[IAM-002, IAM-009, IAM-019] authoritative memberships cannot expand tenant scope', async () => {
+  const artifact = resourceFor('artifact');
+  const deniedScopes = [organizationB, workspaceB, projectB];
+  for (const membershipScope of deniedScopes) {
+    const { provider } = authorityProvider({ resource: artifact, membershipScope });
+    const evaluator = createScopedAuthorizationEvaluatorV1(provider);
+    assert.deepEqual(
+      await evaluator.authorizeV1(requestFor('artifact.record.read', 'web', artifact)),
+      { allowed: false, code: 'TENANT_SCOPE_MISMATCH' },
+    );
+  }
+
+  for (const membershipScope of [organizationA, workspaceA, projectA]) {
+    const { provider } = authorityProvider({ resource: artifact, membershipScope });
+    const evaluator = createScopedAuthorizationEvaluatorV1(provider);
+    assert.equal(
+      (await evaluator.authorizeV1(requestFor('artifact.record.read', 'web', artifact))).allowed,
+      true,
+    );
+  }
+});
+
+test('[IAM-002, IAM-003] authority failures and malformed results fail closed', async () => {
+  const artifact = resourceFor('artifact');
+  for (const throwFrom of ['principal', 'lookup', 'membership', 'policy']) {
+    const { provider } = authorityProvider({ resource: artifact, throwFrom });
+    const evaluator = createScopedAuthorizationEvaluatorV1(provider);
+    assert.deepEqual(
+      await evaluator.authorizeV1(requestFor('artifact.record.read', 'web', artifact)),
+      { allowed: false, code: 'AUTHORITY_UNAVAILABLE' },
+    );
+  }
+
+  const malformedAuthorities = [
+    { principalResult: { principalId: 'request-user' } },
+    { resource: { ...artifact, clientSuppliedOwner: true } },
+    { membershipResult: { roleId: 'viewer', membershipScope: projectA } },
+    { policyResult: { satisfied: 'yes' } },
+  ];
+  for (const overrides of malformedAuthorities) {
+    const { provider } = authorityProvider({ ...overrides, roleId: 'viewer' });
+    const evaluator = createScopedAuthorizationEvaluatorV1(provider);
+    assert.deepEqual(
+      await evaluator.authorizeV1(requestFor('artifact.record.read', 'web', artifact)),
+      { allowed: false, code: 'AUTHORITY_INVALID' },
+    );
+  }
 });

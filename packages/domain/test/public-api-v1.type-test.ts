@@ -1,42 +1,53 @@
 import { createScopedAuthorizationEvaluatorV1 } from '@databreeze/domain/authorization/v1';
 import type {
-  EvaluatedAuthorizationContextV1,
-  TrustedResourceOwnershipV1,
-  VerifiedTenantFilterV1,
+  AuthorizationAuthorityProviderV1,
+  AuthorizationRequestV1,
+  ScopedResourceLookupQueryV1,
 } from '@databreeze/domain/authorization/v1';
-import type {
-  StableIdentifierV1,
-  StrictUtcTimestampV1,
-  TenantScopeV1,
-} from '@databreeze/domain/tenant-scope/v1';
+import type { StableIdentifierV1, TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
 declare const scope: TenantScopeV1;
 declare const stableId: StableIdentifierV1;
-declare const evaluatedAt: StrictUtcTimestampV1;
 
-// These failures prove that a structurally matching client claim cannot satisfy a trusted API type.
-// @ts-expect-error -- verified filters are minted only by an evaluator instance.
-const forgedFilter: VerifiedTenantFilterV1 = { scope };
-// @ts-expect-error -- trusted ownership includes a private nominal brand.
-const forgedResource: TrustedResourceOwnershipV1 = {
-  resourceType: 'artifact',
-  resourceId: stableId,
-  tenantScope: scope,
+const provider: AuthorizationAuthorityProviderV1 = {
+  resolveAuthenticatedPrincipalV1() {
+    return { principalId: stableId };
+  },
+  lookupResourceV1(query: ScopedResourceLookupQueryV1) {
+    return {
+      resourceType: query.resourceType,
+      resourceId: query.resourceId,
+      tenantScope: query.tenantScope,
+    };
+  },
+  resolveMembershipV1() {
+    return { roleId: 'viewer', membershipScope: scope, membershipActive: true };
+  },
+  evaluatePolicyV1() {
+    return { satisfied: true };
+  },
 };
-// @ts-expect-error -- evaluated contexts include a private nominal brand.
-const forgedContext: EvaluatedAuthorizationContextV1 = {
-  schemaVersion: 1,
-  principalId: stableId,
+
+const evaluator = createScopedAuthorizationEvaluatorV1(provider);
+const request: AuthorizationRequestV1 = {
+  permission: 'artifact.record.read',
+  channel: 'web',
+  tenantFilter: scope,
+  resource: { resourceType: 'artifact', resourceId: stableId },
+};
+
+void evaluator.authorizeV1(request);
+
+const fabricatedAuthority: AuthorizationRequestV1 = {
+  ...request,
+  // @ts-expect-error -- request consumers cannot provide authoritative role facts.
   roleId: 'owner',
-  membershipScope: scope,
-  membershipActive: true,
-  channel: 'api',
-  policyConditionsSatisfied: true,
-  evaluatedAt,
-  resource: forgedResource,
 };
 
-const evaluator = createScopedAuthorizationEvaluatorV1();
-void evaluator;
-void forgedFilter;
-void forgedContext;
+const allowedEvaluatorKey: keyof typeof evaluator = 'authorizeV1';
+// @ts-expect-error -- the evaluator does not expose authority-minting methods.
+const forbiddenEvaluatorKey: keyof typeof evaluator = 'createEvaluatedContextV1';
+
+void allowedEvaluatorKey;
+void forbiddenEvaluatorKey;
+void fabricatedAuthority;

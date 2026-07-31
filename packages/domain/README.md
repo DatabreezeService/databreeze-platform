@@ -8,13 +8,13 @@ service-implementation dependencies.
 All imports are explicitly versioned. There is intentionally no unversioned package root.
 
 - `@databreeze/domain/permissions/v1` publishes the closed version-1 permission vocabulary,
-  the six initial immutable role bundles, and deny-by-default lookup helpers.
+  the six initial immutable role bundles, explicit resource/channel applicability, and
+  deny-by-default lookup helpers.
 - `@databreeze/domain/tenant-scope/v1` publishes branded UUIDv4/UUIDv7 and UTC values,
   complete organization/workspace/project scopes, and equality, containment, and narrowing
   helpers.
-- `@databreeze/domain/authorization/v1` publishes an instance-scoped evaluator for exact
-  tenant filters, trusted resource-lookup results, evaluated contexts, and authorization
-  decisions.
+- `@databreeze/domain/authorization/v1` publishes a provider-bound evaluator for exact tenant
+  filters, authoritative resource/membership/policy resolution, and authorization decisions.
 - `@databreeze/domain/v1` aggregates the three version-1 interfaces.
 
 The package uses the public `@databreeze/contracts/v1` validator. It does not deep-import
@@ -30,37 +30,40 @@ authorization decision.
 Owner materializes every Admin permission plus ownership-transfer and billing permissions.
 Neither Owner nor Admin receives `approval.decision.create`. Approval, retention, legal-hold,
 data-mode, device, entitlement, separation-of-duties, and recent-MFA conditions remain
-independent policy gates. Callers must set `policyConditionsSatisfied` only after those
-applicable policies have been authoritatively evaluated.
+independent policy gates. Request consumers cannot submit those results; the authority provider
+evaluates applicable policy from trusted application state.
 
 ## Trusted authorization flow
 
-1. Parse a complete tenant scope from trusted application state.
-2. Call `verifyTenantFilterV1` with that authority scope and the required request/repository
-   filter. Missing, optional, malformed, broader, narrower, or mismatched filters are rejected.
-3. Perform the repository lookup with the verified exact filter. Pass only its minimal
-   server-side ownership tuple to `acceptTrustedResourceLookupV1`; never pass a request body,
-   route claim, cached UI value, or client-provided ownership object to this trust boundary.
-4. Create an evaluated context from the trusted resource token, current membership result,
-   channel, role identifier, evaluation time, and policy outcome.
-5. Call `authorizeV1`. Unknown roles, permissions, channels, foreign evaluator tokens,
-   inactive memberships, unmet policies, resource-type mismatch, and tenant-scope mismatch all
-   deny.
+1. At server composition, inject an `AuthorizationAuthorityProviderV1` whose methods are backed
+   by the authenticated principal, scoped repositories, membership store, and policy engine.
+2. Give request handling only the frozen evaluator. Its sole method is `authorizeV1`; it has no
+   public filter, resource, membership, role, or policy minting API.
+3. Submit only the permission, channel, complete tenant filter, and resource selector. Extra
+   request fields are rejected before any authority lookup.
+4. The evaluator validates the permission's explicit resource/channel applicability, resolves
+   the authenticated principal, and sends the exact frozen tenant filter to the provider's
+   scoped resource lookup.
+5. It validates the returned resource and intrinsic organization/workspace/project identity,
+   then resolves membership and policy internally. Unknown or inactive roles, unavailable or
+   malformed authority results, unmet policy, scope mismatch, and identity mismatch all deny.
 
-Tokens are bound to the evaluator instance that created them. A structurally identical object
-or a token created by another evaluator cannot establish trust. Clients may use published
-permission bundles as display hints, but authoritative enforcement belongs to the server or
-trusted worker using results from its own lookups.
+Provider methods are captured when the evaluator is created, so later mutation cannot replace
+its authority. Provider results are always runtime-validated even when an adapter is typed.
+Clients may use published permission bundles and applicability as display hints, but
+authoritative enforcement belongs to a server or trusted worker with its own provider-backed
+evaluator.
 
 ## Requirement traceability
 
 This package and its tests provide partial foundation coverage only:
 
 - `IAM-001`: branded UUIDv4/UUIDv7 identifiers and strict UTC timestamp parsing.
-- `IAM-002`: pure action, channel, resource, and scope decision primitives.
-- `IAM-003`: default denial and runtime/type-level rejection of untrusted claims.
+- `IAM-002`: pure action, explicit channel/resource applicability, and scoped decision
+  primitives.
+- `IAM-003`: default denial and runtime/type-level rejection of caller-supplied authority facts.
 - `IAM-004`: versioned permissions and exactly six immutable initial role bundles.
-- `IAM-009`: exact scoped-lookup and trusted resource-ownership gates.
+- `IAM-009`: exact provider-owned scoped lookup and resource-identity gates.
 - `IAM-019`: complete scope parsing, exact filters, ancestry containment, and non-broadening
   narrowing.
 

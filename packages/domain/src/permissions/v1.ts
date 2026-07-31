@@ -31,6 +31,124 @@ export const PERMISSIONS_V1 = Object.freeze({
 
 export type PermissionV1 = (typeof PERMISSIONS_V1)[keyof typeof PERMISSIONS_V1];
 
+export const AUTHORIZATION_CHANNELS_V1 = Object.freeze([
+  'api',
+  'web',
+  'desktop',
+  'android',
+  'worker',
+  'sync',
+  'stream',
+  'shared-link',
+] as const);
+
+export type AuthorizationChannelV1 = (typeof AUTHORIZATION_CHANNELS_V1)[number];
+
+export const RESOURCE_TYPES_V1 = Object.freeze([
+  'approval-request',
+  'artifact',
+  'billing-account',
+  'device',
+  'job',
+  'organization',
+  'project',
+  'workspace',
+] as const);
+
+export type ResourceTypeV1 = (typeof RESOURCE_TYPES_V1)[number];
+
+export interface PermissionApplicabilityV1 {
+  readonly resourceType: ResourceTypeV1;
+  readonly allowedChannels: readonly AuthorizationChannelV1[];
+}
+
+function immutableApplicability(
+  resourceType: ResourceTypeV1,
+  allowedChannels: readonly AuthorizationChannelV1[],
+): PermissionApplicabilityV1 {
+  return Object.freeze({ resourceType, allowedChannels: Object.freeze([...allowedChannels]) });
+}
+
+/**
+ * Closed transport applicability for every v1 permission.
+ *
+ * A permission being present in a role bundle never implies that it is valid on every channel.
+ * New permissions and channels require a new versioned entry instead of inheriting access.
+ */
+export const PERMISSION_APPLICABILITY_V1: Readonly<
+  Record<PermissionV1, PermissionApplicabilityV1>
+> = Object.freeze({
+  'organization.profile.read': immutableApplicability('organization', [
+    'api',
+    'web',
+    'desktop',
+    'android',
+  ]),
+  'organization.settings.manage': immutableApplicability('organization', ['api', 'web']),
+  'organization.ownership.transfer': immutableApplicability('organization', ['api', 'web']),
+  'workspace.settings.read': immutableApplicability('workspace', [
+    'api',
+    'web',
+    'desktop',
+    'android',
+    'worker',
+  ]),
+  'workspace.settings.manage': immutableApplicability('workspace', ['api', 'web']),
+  'project.record.read': immutableApplicability('project', [
+    'api',
+    'web',
+    'desktop',
+    'android',
+    'worker',
+    'sync',
+  ]),
+  'project.record.manage': immutableApplicability('project', ['api', 'web']),
+  'artifact.record.read': immutableApplicability('artifact', [
+    'api',
+    'web',
+    'desktop',
+    'android',
+    'worker',
+    'sync',
+    'shared-link',
+  ]),
+  'artifact.original.download': immutableApplicability('artifact', [
+    'api',
+    'web',
+    'desktop',
+    'android',
+  ]),
+  'artifact.derived.create': immutableApplicability('artifact', [
+    'api',
+    'web',
+    'desktop',
+    'worker',
+  ]),
+  'job.execution.read': immutableApplicability('job', [
+    'api',
+    'web',
+    'desktop',
+    'android',
+    'worker',
+    'sync',
+    'stream',
+  ]),
+  'job.execution.create': immutableApplicability('job', ['api', 'web', 'desktop', 'worker']),
+  'job.execution.run': immutableApplicability('job', ['api', 'web', 'desktop', 'worker']),
+  'job.execution.cancel': immutableApplicability('job', ['api', 'web', 'desktop']),
+  'approval.request.read': immutableApplicability('approval-request', [
+    'api',
+    'web',
+    'desktop',
+    'android',
+  ]),
+  'approval.decision.create': immutableApplicability('approval-request', ['api', 'web', 'android']),
+  'billing.account.read': immutableApplicability('billing-account', ['api', 'web']),
+  'billing.account.manage': immutableApplicability('billing-account', ['api', 'web']),
+  'device.identity.read': immutableApplicability('device', ['api', 'web']),
+  'device.identity.revoke': immutableApplicability('device', ['api', 'web']),
+});
+
 export const INITIAL_ROLE_IDS_V1 = Object.freeze([
   'owner',
   'admin',
@@ -74,22 +192,19 @@ const adminPermissions = [
   PERMISSIONS_V1.DEVICE_IDENTITY_REVOKE,
 ] as const;
 
+const ownerPermissionSet = new Set<PermissionV1>([
+  ...adminPermissions,
+  PERMISSIONS_V1.ORGANIZATION_OWNERSHIP_TRANSFER,
+  PERMISSIONS_V1.BILLING_ACCOUNT_READ,
+  PERMISSIONS_V1.BILLING_ACCOUNT_MANAGE,
+]);
+const ownerPermissions = Object.freeze(
+  Object.values(PERMISSIONS_V1).filter((permission) => ownerPermissionSet.has(permission)),
+);
+
 export const INITIAL_ROLE_BUNDLES_V1: Readonly<Record<InitialRoleIdV1, InitialRoleBundleV1>> =
   Object.freeze({
-    owner: immutableBundle('owner', 'Owner', [
-      PERMISSIONS_V1.ORGANIZATION_PROFILE_READ,
-      PERMISSIONS_V1.ORGANIZATION_SETTINGS_MANAGE,
-      PERMISSIONS_V1.ORGANIZATION_OWNERSHIP_TRANSFER,
-      PERMISSIONS_V1.WORKSPACE_SETTINGS_READ,
-      PERMISSIONS_V1.WORKSPACE_SETTINGS_MANAGE,
-      PERMISSIONS_V1.PROJECT_RECORD_READ,
-      PERMISSIONS_V1.PROJECT_RECORD_MANAGE,
-      PERMISSIONS_V1.JOB_EXECUTION_READ,
-      PERMISSIONS_V1.BILLING_ACCOUNT_READ,
-      PERMISSIONS_V1.BILLING_ACCOUNT_MANAGE,
-      PERMISSIONS_V1.DEVICE_IDENTITY_READ,
-      PERMISSIONS_V1.DEVICE_IDENTITY_REVOKE,
-    ]),
+    owner: immutableBundle('owner', 'Owner', ownerPermissions),
     admin: immutableBundle('admin', 'Admin', adminPermissions),
     analyst: immutableBundle('analyst', 'Analyst', [
       PERMISSIONS_V1.ORGANIZATION_PROFILE_READ,
