@@ -36,6 +36,21 @@ importers:
         specifier: 3.0.1
         version: 3.0.1(ajv@8.17.1)
 
+  packages/test-fixtures: {}
+
+  tools/fixture-validation:
+    dependencies:
+      ajv:
+        specifier: 8.17.1
+        version: 8.17.1
+      ajv-formats:
+        specifier: 3.0.1
+        version: 3.0.1(ajv@8.17.1)
+    devDependencies:
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
+
 packages:
 
   '@eslint-community/eslint-utils@4.10.1':

@@ -1,0 +1,12 @@
+{
+  "name": "@databreeze/test-fixtures",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./contracts/v1": "./contracts/v1/manifest.json"
+  },
+  "scripts": {
+    "test": "node --test test/**/*.test.mjs"
+  }
+}

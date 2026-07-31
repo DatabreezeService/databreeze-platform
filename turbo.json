@@ -1,6 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": [".node-version", ".npmrc", ".tool-versions"],
+  "globalPassThroughEnv": ["DATABREEZE_JAVA", "DATABREEZE_UV", "JAVA_HOME"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

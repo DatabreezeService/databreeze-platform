@@ -1,0 +1,10 @@
+{
+  "policyVersion": 1,
+  "versions": [
+    {
+      "contractVersion": 1,
+      "baseline": "compatibility/v1/baseline.json",
+      "sha256": "5307743b430a27ff7aa894a09c15b3920f36459a04ae9bb29100f2b164c9dcfe"
+    }
+  ]
+}

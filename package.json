@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "turbo run build",
-    "contracts:check": "corepack pnpm --filter @databreeze/contracts generate:check",
+    "contracts:check": "corepack pnpm --filter @databreeze/contracts contract:check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . && node tools/repo-cli/src/check-dependency-boundaries.mjs",

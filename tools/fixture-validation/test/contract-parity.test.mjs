@@ -1,0 +1,145 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
+import test from 'node:test';
+
+const toolRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const repositoryRoot = resolve(toolRoot, '../..');
+const comparatorPath = resolve(toolRoot, 'src/compare-contract-results.mjs');
+const orchestratorPath = resolve(toolRoot, 'src/run-contract-parity.mjs');
+const fixtureManifestPath = resolve(
+  repositoryRoot,
+  'packages/test-fixtures/contracts/v1/manifest.json',
+);
+const generatedContractsRoot = resolve(repositoryRoot, 'packages/contracts/generated');
+
+function snapshotDirectory(root, directory = root) {
+  return readdirSync(directory, { withFileTypes: true })
+    .flatMap((entry) => {
+      const path = resolve(directory, entry.name);
+      return entry.isDirectory()
+        ? snapshotDirectory(root, path)
+        : [
+            [
+              path.slice(root.length + 1).replaceAll('\\', '/'),
+              createHash('sha256').update(readFileSync(path)).digest('hex'),
+            ],
+          ];
+    })
+    .sort(([left], [right]) => left.localeCompare(right, 'en'));
+}
+
+function writeJson(path, value) {
+  writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+}
+
+function runComparator(manifestPath, resultPaths) {
+  return spawnSync(
+    process.execPath,
+    [
+      comparatorPath,
+      '--fixture-manifest',
+      manifestPath,
+      ...resultPaths.flatMap((resultPath) => ['--result', resultPath]),
+    ],
+    { cwd: repositoryRoot, encoding: 'utf8' },
+  );
+}
+
+function withComparisonFixture(callback) {
+  const root = mkdtempSync(resolve(tmpdir(), 'databreeze-parity-comparison-'));
+  try {
+    const manifestPath = resolve(root, 'manifest.json');
+    writeJson(manifestPath, {
+      fixtureVersion: 1,
+      cases: [
+        {
+          id: 'v1.identifier.valid-uuid',
+          schemaId: 'https://schemas.databreeze.dev/contracts/v1/identifier',
+          expectedAcceptance: true,
+          source: 'payload.json',
+        },
+      ],
+    });
+    callback(root, manifestPath);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+test('fails when a runtime disagrees with another consumer', () => {
+  withComparisonFixture((root, manifestPath) => {
+    const results = [
+      ['typescript', true],
+      ['python', false],
+      ['kotlin', true],
+    ].map(([runtime, accepted]) => {
+      const path = resolve(root, `${runtime}.json`);
+      writeJson(path, {
+        runtime,
+        results: [{ caseId: 'v1.identifier.valid-uuid', accepted }],
+      });
+      return path;
+    });
+
+    const run = runComparator(manifestPath, results);
+    assert.equal(run.status, 1, `${run.stdout}\n${run.stderr}`);
+    assert.match(run.stderr, /Runtime disagreement for v1\.identifier\.valid-uuid/u);
+  });
+});
+
+test('fails when every runtime disagrees with the fixture manifest', () => {
+  withComparisonFixture((root, manifestPath) => {
+    const results = ['typescript', 'python', 'kotlin'].map((runtime) => {
+      const path = resolve(root, `${runtime}.json`);
+      writeJson(path, {
+        runtime,
+        results: [{ caseId: 'v1.identifier.valid-uuid', accepted: false }],
+      });
+      return path;
+    });
+
+    const run = runComparator(manifestPath, results);
+    assert.equal(run.status, 1, `${run.stdout}\n${run.stderr}`);
+    assert.match(
+      run.stderr,
+      /Manifest disagreement for v1\.identifier\.valid-uuid: expected accepted/u,
+    );
+  });
+});
+
+test('the real TypeScript Python and Kotlin consumers agree on every shared fixture', () => {
+  const generatedBefore = snapshotDirectory(generatedContractsRoot);
+  const run = spawnSync(
+    process.execPath,
+    [orchestratorPath, '--fixture-manifest', fixtureManifestPath],
+    {
+      cwd: repositoryRoot,
+      encoding: 'utf8',
+      env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1', UV_NO_CACHE: '1' },
+      timeout: 300_000,
+    },
+  );
+  assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
+  assert.deepEqual(JSON.parse(run.stdout), {
+    caseCount: 28,
+    expectedAccepted: 14,
+    expectedRejected: 14,
+    runtimes: ['typescript', 'python', 'kotlin'],
+  });
+  assert.deepEqual(
+    snapshotDirectory(generatedContractsRoot),
+    generatedBefore,
+    'consumer parity must not mutate checked-in generated contracts',
+  );
+});
+
+test('fixture expectations stay independently balanced', () => {
+  const manifest = JSON.parse(readFileSync(fixtureManifestPath, 'utf8'));
+  assert.equal(manifest.cases.filter((fixtureCase) => fixtureCase.expectedAcceptance).length, 14);
+  assert.equal(manifest.cases.filter((fixtureCase) => !fixtureCase.expectedAcceptance).length, 14);
+});

@@ -1,0 +1,89 @@
+{
+  "baselineFormat": 1,
+  "contractVersion": 1,
+  "schemaIdPrefix": "https://schemas.databreeze.dev/contracts/v1/",
+  "schemas": [
+    {
+      "name": "actor-metadata",
+      "id": "https://schemas.databreeze.dev/contracts/v1/actor-metadata",
+      "path": "schemas/v1/actor-metadata.schema.json",
+      "sha256": "fb9d12675478ae805bbe0163866c1cf8e4bb810dbe32ac780b1c1bf4975c856c"
+    },
+    {
+      "name": "command-envelope",
+      "id": "https://schemas.databreeze.dev/contracts/v1/command-envelope",
+      "path": "schemas/v1/command-envelope.schema.json",
+      "sha256": "4bf310647800d038bfdaae8f6d89722862f89200589fe4e5e08a764b16b80002"
+    },
+    {
+      "name": "correlation-metadata",
+      "id": "https://schemas.databreeze.dev/contracts/v1/correlation-metadata",
+      "path": "schemas/v1/correlation-metadata.schema.json",
+      "sha256": "3e0b490036d2c709b0398cb7d3dcb2618d8e67bc6c64e90f62650b8b79d87b79"
+    },
+    {
+      "name": "cursor-page",
+      "id": "https://schemas.databreeze.dev/contracts/v1/cursor-page",
+      "path": "schemas/v1/cursor-page.schema.json",
+      "sha256": "8d009cb3b0e2232e5efdc297dfdd7b89f697410438d610c92414c014a5d44b19"
+    },
+    {
+      "name": "event-envelope",
+      "id": "https://schemas.databreeze.dev/contracts/v1/event-envelope",
+      "path": "schemas/v1/event-envelope.schema.json",
+      "sha256": "54780e954b80a07de08d428a03c972cb9fcfe6682691521fe6d6c357b45753dd"
+    },
+    {
+      "name": "identifier",
+      "id": "https://schemas.databreeze.dev/contracts/v1/identifier",
+      "path": "schemas/v1/identifier.schema.json",
+      "sha256": "a4892d0fd11473356f53638758ae7017ff4b816765de65b2463ce8483fc699bb"
+    },
+    {
+      "name": "problem-details",
+      "id": "https://schemas.databreeze.dev/contracts/v1/problem-details",
+      "path": "schemas/v1/problem-details.schema.json",
+      "sha256": "c1209d3d234e75b13a84e7cfbbd2bec9f6d9f1daa3602ec2443f682770892272"
+    },
+    {
+      "name": "revision",
+      "id": "https://schemas.databreeze.dev/contracts/v1/revision",
+      "path": "schemas/v1/revision.schema.json",
+      "sha256": "6319ea8d21627cf73eb8d49b93e7529b87018e9e8ae5cd982fd70b419e0c7bb1"
+    },
+    {
+      "name": "tenant-scope",
+      "id": "https://schemas.databreeze.dev/contracts/v1/tenant-scope",
+      "path": "schemas/v1/tenant-scope.schema.json",
+      "sha256": "a08f7d59f2fcd9c675298dc11f1fb05ba1c1f18757040980c6b214c3d9fff327"
+    },
+    {
+      "name": "utc-timestamp",
+      "id": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp",
+      "path": "schemas/v1/utc-timestamp.schema.json",
+      "sha256": "904b8736592d6c1e527f084daf0fa452447ada75dbfee8e9395ea55cf7c07dc5"
+    }
+  ],
+  "generatedPublicOutputs": [
+    {
+      "path": "kotlin/src/main/kotlin/com/databreeze/contracts/v1/Models.kt",
+      "sha256": "cd60b56f750e382ada6a9bbaba1baefef3a43e8fdb41ee6a12c89e1b8e1f9487"
+    },
+    {
+      "path": "python/databreeze_contracts/v1/__init__.py",
+      "sha256": "785ff1b0fde763730070345f43b494203f149b10879683364fcbec0fcc35cb7e"
+    },
+    {
+      "path": "python/databreeze_contracts/v1/_validation.py",
+      "sha256": "843bf675e577d3e9197e3e263a95bd483dac2d2d93c0987dc1b0785cb6a111cf"
+    },
+    {
+      "path": "python/databreeze_contracts/v1/models.py",
+      "sha256": "435a3af5a513fd14fbf232c0f289b901f4b3722a12b9f3a559d59df404fee4ab"
+    },
+    {
+      "path": "typescript/v1/index.ts",
+      "sha256": "5794700e965202973a0056d68368d090a83ad04e6157d17e59a91432653d446d"
+    }
+  ]
+}

@@ -21,6 +21,10 @@
   },
   "scripts": {
     "build": "node scripts/build.mjs && node scripts/generate-models.mjs --check",
+    "compatibility:baseline": "node scripts/contract-compatibility.mjs update",
+    "compatibility:check": "node scripts/contract-compatibility.mjs check",
+    "contract:check": "node scripts/generate-models.mjs --check && node scripts/contract-compatibility.mjs check && node ../../tools/fixture-validation/src/run-contract-parity.mjs",
+    "fixtures:check": "node ../../tools/fixture-validation/src/run-contract-parity.mjs",
     "generate": "node scripts/generate-models.mjs",
     "generate:check": "node scripts/generate-models.mjs --check",
     "test": "node --test test/**/*.test.mjs",
