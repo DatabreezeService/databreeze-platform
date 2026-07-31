@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
@@ -16,6 +17,7 @@ const fixtureManifestPath = resolve(
   'packages/test-fixtures/contracts/v1/manifest.json',
 );
 const generatedContractsRoot = resolve(repositoryRoot, 'packages/contracts/generated');
+const require = createRequire(import.meta.url);
 
 function snapshotDirectory(root, directory = root) {
   return readdirSync(directory, { withFileTypes: true })
@@ -110,6 +112,64 @@ test('fails when every runtime disagrees with the fixture manifest', () => {
       /Manifest disagreement for v1\.identifier\.valid-uuid: expected accepted/u,
     );
   });
+});
+
+test('fails when a required consumer result is missing', () => {
+  withComparisonFixture((root, manifestPath) => {
+    const results = ['typescript', 'python'].map((runtime) => {
+      const path = resolve(root, `${runtime}.json`);
+      writeJson(path, {
+        runtime,
+        results: [{ caseId: 'v1.identifier.valid-uuid', accepted: true }],
+      });
+      return path;
+    });
+
+    const run = runComparator(manifestPath, results);
+    assert.equal(run.status, 1, `${run.stdout}\n${run.stderr}`);
+    assert.match(run.stderr, /Missing runtime result: kotlin/u);
+  });
+});
+
+test('the supported TypeScript v1 export serves generated types and runtime validation', () => {
+  const typecheck = spawnSync(
+    process.execPath,
+    [
+      require.resolve('typescript/bin/tsc'),
+      '--project',
+      resolve(toolRoot, 'typescript/tsconfig.json'),
+    ],
+    { cwd: repositoryRoot, encoding: 'utf8' },
+  );
+  assert.equal(typecheck.status, 0, `${typecheck.stdout}\n${typecheck.stderr}`);
+
+  const schemaId = 'https://schemas.databreeze.dev/contracts/v1/identifier';
+  const acceptedPath = resolve(
+    repositoryRoot,
+    'packages/test-fixtures/contracts/v1/payloads/identifier/valid-uuid.json',
+  );
+  const rejectedPath = resolve(
+    repositoryRoot,
+    'packages/test-fixtures/contracts/v1/payloads/identifier/malformed.json',
+  );
+  const program = [
+    "import { readFileSync } from 'node:fs';",
+    "import { parseV1Contract } from '@databreeze/contracts/v1';",
+    'const [schemaId, acceptedPath, rejectedPath] = process.argv.slice(1);',
+    "const readPayload = (path) => JSON.parse(readFileSync(path, 'utf8'));",
+    'const results = [acceptedPath, rejectedPath].map((path) =>',
+    '  parseV1Contract(schemaId, readPayload(path)).accepted,',
+    ');',
+    'process.stdout.write(`${JSON.stringify(results)}\\n`);',
+  ].join('\n');
+  const runtime = spawnSync(
+    process.execPath,
+    ['--input-type=module', '--eval', program, schemaId, acceptedPath, rejectedPath],
+    { cwd: toolRoot, encoding: 'utf8' },
+  );
+
+  assert.equal(runtime.status, 0, `${runtime.stdout}\n${runtime.stderr}`);
+  assert.deepEqual(JSON.parse(runtime.stdout), [true, false]);
 });
 
 test('the real TypeScript Python and Kotlin consumers agree on every shared fixture', () => {

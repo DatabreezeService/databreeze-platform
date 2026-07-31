@@ -6,7 +6,8 @@
   "exports": {
     ".": "./manifest.json",
     "./v1": {
-      "types": "./generated/typescript/v1/index.ts"
+      "types": "./generated/typescript/v1/index.ts",
+      "import": "./generated/typescript/v1/validation.mjs"
     },
     "./v1/actor-metadata": "./schemas/v1/actor-metadata.schema.json",
     "./v1/command-envelope": "./schemas/v1/command-envelope.schema.json",
@@ -30,7 +31,7 @@
     "test": "node --test test/**/*.test.mjs",
     "test:python-formats": "node test/python-format-runtime-probe.mjs"
   },
-  "devDependencies": {
+  "dependencies": {
     "ajv": "8.17.1",
     "ajv-formats": "3.0.1"
   }

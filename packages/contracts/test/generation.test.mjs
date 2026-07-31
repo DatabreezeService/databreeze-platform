@@ -24,6 +24,7 @@ const fixtureRoot = resolve(packageRoot, 'test/fixtures/generator');
 const generatedRoot = resolve(packageRoot, 'generated');
 const expectedFiles = [
   'kotlin/src/main/kotlin/com/databreeze/contracts/v1/Models.kt',
+  'kotlin/src/main/kotlin/com/databreeze/contracts/v1/Validation.kt',
   'python/databreeze_contracts/__init__.py',
   'python/databreeze_contracts/py.typed',
   'python/databreeze_contracts/v1/__init__.py',
@@ -31,6 +32,7 @@ const expectedFiles = [
   'python/databreeze_contracts/v1/models.py',
   'python/pyproject.toml',
   'typescript/v1/index.ts',
+  'typescript/v1/validation.mjs',
 ];
 
 function runGenerator(...args) {

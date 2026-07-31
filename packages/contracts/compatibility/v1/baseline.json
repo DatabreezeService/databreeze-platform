@@ -1,5 +1,5 @@
 {
-  "baselineFormat": 1,
+  "baselineFormat": 2,
   "contractVersion": 1,
   "schemaIdPrefix": "https://schemas.databreeze.dev/contracts/v1/",
   "schemas": [
@@ -64,26 +64,88 @@
       "sha256": "904b8736592d6c1e527f084daf0fa452447ada75dbfee8e9395ea55cf7c07dc5"
     }
   ],
+  "publicOutputInventory": {
+    "path": "public-outputs.json",
+    "versionEntrySha256": "786630d0f58b04485efedf643f4d9ffce09c2d0e4a3a5bf61f74f7046a1f731a"
+  },
   "generatedPublicOutputs": [
     {
-      "path": "kotlin/src/main/kotlin/com/databreeze/contracts/v1/Models.kt",
+      "path": "generated/kotlin/src/main/kotlin/com/databreeze/contracts/v1/Models.kt",
       "sha256": "cd60b56f750e382ada6a9bbaba1baefef3a43e8fdb41ee6a12c89e1b8e1f9487"
     },
     {
-      "path": "python/databreeze_contracts/v1/__init__.py",
+      "path": "generated/kotlin/src/main/kotlin/com/databreeze/contracts/v1/Validation.kt",
+      "sha256": "f4c98e5f568968160687ffaf9ddbba4db51e25266c5baf927cde8b24e6a2442a"
+    },
+    {
+      "path": "generated/python/databreeze_contracts/__init__.py",
+      "sha256": "36705a639b307e118392bd5000315e13aeecc0d605d5afab10c13f35cd79787b"
+    },
+    {
+      "path": "generated/python/databreeze_contracts/py.typed",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "generated/python/databreeze_contracts/v1/__init__.py",
       "sha256": "785ff1b0fde763730070345f43b494203f149b10879683364fcbec0fcc35cb7e"
     },
     {
-      "path": "python/databreeze_contracts/v1/_validation.py",
+      "path": "generated/python/databreeze_contracts/v1/_validation.py",
       "sha256": "843bf675e577d3e9197e3e263a95bd483dac2d2d93c0987dc1b0785cb6a111cf"
     },
     {
-      "path": "python/databreeze_contracts/v1/models.py",
+      "path": "generated/python/databreeze_contracts/v1/models.py",
       "sha256": "435a3af5a513fd14fbf232c0f289b901f4b3722a12b9f3a559d59df404fee4ab"
     },
     {
-      "path": "typescript/v1/index.ts",
-      "sha256": "5794700e965202973a0056d68368d090a83ad04e6157d17e59a91432653d446d"
+      "path": "generated/python/pyproject.toml",
+      "sha256": "1492e96a4ccb035f17ed777c853cbdbc0bca427bc808e269bbe3917c67c83c0f"
+    },
+    {
+      "path": "generated/typescript/v1/index.ts",
+      "sha256": "59e3b40f806d91a6d82b81a59e8937e6e0716d4eab44dbd5d2740e8eeb14912b"
+    },
+    {
+      "path": "generated/typescript/v1/validation.mjs",
+      "sha256": "0d48072b7dbc919e7ac1d9a3fbd8b864137594a98cf33e900d239564851fda7e"
+    }
+  ],
+  "publicPackageSurfaces": [
+    {
+      "path": "package.json",
+      "values": [
+        {
+          "pointer": "/dependencies",
+          "value": {
+            "ajv": "8.17.1",
+            "ajv-formats": "3.0.1"
+          }
+        },
+        {
+          "pointer": "/exports",
+          "value": {
+            ".": "./manifest.json",
+            "./v1": {
+              "types": "./generated/typescript/v1/index.ts",
+              "import": "./generated/typescript/v1/validation.mjs"
+            },
+            "./v1/actor-metadata": "./schemas/v1/actor-metadata.schema.json",
+            "./v1/command-envelope": "./schemas/v1/command-envelope.schema.json",
+            "./v1/correlation-metadata": "./schemas/v1/correlation-metadata.schema.json",
+            "./v1/cursor-page": "./schemas/v1/cursor-page.schema.json",
+            "./v1/event-envelope": "./schemas/v1/event-envelope.schema.json",
+            "./v1/identifier": "./schemas/v1/identifier.schema.json",
+            "./v1/problem-details": "./schemas/v1/problem-details.schema.json",
+            "./v1/revision": "./schemas/v1/revision.schema.json",
+            "./v1/tenant-scope": "./schemas/v1/tenant-scope.schema.json",
+            "./v1/utc-timestamp": "./schemas/v1/utc-timestamp.schema.json"
+          }
+        },
+        {
+          "pointer": "/name",
+          "value": "@databreeze/contracts"
+        }
+      ]
     }
   ]
 }

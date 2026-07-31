@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
@@ -394,7 +395,53 @@ function renderTypeScript(context) {
       );
     }
   }
+  const schemaIds = context.entries.map(({ id }) => quoted(id));
+  lines.push(
+    `export type ContractV1SchemaId = ${schemaIds.join(' | ')};`,
+    '',
+    'export type ContractV1ParseResult<TValue = unknown> =',
+    '  | { readonly accepted: true; readonly value: TValue }',
+    '  | { readonly accepted: false };',
+    '',
+    'export declare function parseV1Contract<TValue = unknown>(',
+    '  schemaId: ContractV1SchemaId,',
+    '  payload: unknown,',
+    '): ContractV1ParseResult<TValue>;',
+    '',
+  );
   return `${lines.join('\n').trimEnd()}\n`;
+}
+
+function renderTypeScriptValidation(context) {
+  const schemas = context.entries.map(({ schema }) => `  ${JSON.stringify(schema)},`);
+  return `${[
+    `// ${HEADER}`,
+    '',
+    "import Ajv2020 from 'ajv/dist/2020.js';",
+    "import addFormats from 'ajv-formats';",
+    '',
+    'const schemas = [',
+    ...schemas,
+    '];',
+    '',
+    'const ajv = new Ajv2020({ allErrors: true, strict: true });',
+    'addFormats(ajv);',
+    'for (const schema of schemas) ajv.addSchema(schema);',
+    '',
+    'const validators = new Map(',
+    '  schemas.map((schema) => {',
+    '    const validate = ajv.getSchema(schema.$id);',
+    '    if (!validate) throw new Error(`No generated validator for ${schema.$id}`);',
+    '    return [schema.$id, validate];',
+    '  }),',
+    ');',
+    '',
+    'export function parseV1Contract(schemaId, payload) {',
+    '  const validate = validators.get(schemaId);',
+    '  if (!validate) throw new TypeError(`Unknown v1 contract schema: ${schemaId}`);',
+    '  return validate(payload) ? { accepted: true, value: payload } : { accepted: false };',
+    '}',
+  ].join('\n')}\n`;
 }
 
 function renderTypeScriptGenericDeclaration(parameters) {
@@ -541,6 +588,166 @@ function renderKotlin(context) {
     }
   }
   return `${lines.join('\n').trimEnd()}\n`;
+}
+
+function renderKotlinModelExpression(entry, context) {
+  const node = entry.schema;
+  if (node.oneOf) {
+    const discriminator = unionDiscriminator(node, entry, context);
+    const alternatives = node.oneOf.map((alternative) => {
+      const target = resolveReference(alternative.$ref, entry, context);
+      return {
+        literal: target.node.properties[discriminator].const,
+        modelName: target.name,
+      };
+    });
+    return [
+      `when (payload.required(${quoted(discriminator)}).asText()) {`,
+      ...alternatives.map(
+        ({ literal, modelName }) =>
+          `        ${quoted(literal)} -> mapper.treeToValue(payload, ${modelName}::class.java)`,
+      ),
+      `        else -> error("Unknown ${discriminator} discriminator")`,
+      '    }',
+    ];
+  }
+  if (node.type === 'string') return ['mapper.treeToValue(payload, String::class.java)'];
+  if (node.type === 'integer') return ['payload.longValue()'];
+  if (node.type === 'boolean') return ['payload.booleanValue()'];
+  if (node.type !== 'object') fail(`Cannot render Kotlin parser for ${entry.path}`);
+
+  const parameters = genericParameters(node);
+  if (!parameters.length) {
+    return [`mapper.treeToValue(payload, ${entry.modelName}::class.java)`];
+  }
+  const argumentsList = parameters.map(({ kind }) =>
+    kind === 'object' ? 'JsonObject' : 'JsonNode',
+  );
+  return [
+    'mapper.convertValue(',
+    '        payload,',
+    `        object : TypeReference<${entry.modelName}<${argumentsList.join(', ')}>>() {},`,
+    '    )',
+  ];
+}
+
+function renderKotlinValidation(context) {
+  const schemaEntries = context.entries.map(({ id, schema }) => {
+    const encoded = Buffer.from(JSON.stringify(schema), 'utf8').toString('base64');
+    return `    ${quoted(id)} to decodeSchema(${quoted(encoded)}),`;
+  });
+  const modelCases = context.entries.flatMap((entry) => {
+    const [first, ...rest] = renderKotlinModelExpression(entry, context);
+    return [`    ${quoted(entry.id)} -> ${first}`, ...rest.map((line) => `    ${line}`)];
+  });
+  const unions = [...context.nodesByName.entries()]
+    .filter(([, node]) => node.oneOf)
+    .sort(compareEntries)
+    .map(([name, node]) => {
+      const entry = context.entryByNode.get(node);
+      const discriminator = unionDiscriminator(node, entry, context);
+      const alternatives = node.oneOf.map((alternative) => {
+        const target = resolveReference(alternative.$ref, entry, context);
+        return {
+          literal: target.node.properties[discriminator].const,
+          modelName: target.name,
+        };
+      });
+      return { alternatives, discriminator, name };
+    });
+  const unionImports = unions.length
+    ? [
+        'import com.fasterxml.jackson.annotation.JsonSubTypes',
+        'import com.fasterxml.jackson.annotation.JsonTypeInfo',
+      ]
+    : [];
+  const unionMixins = unions.flatMap(({ alternatives, discriminator, name }) => [
+    '@JsonTypeInfo(',
+    '    use = JsonTypeInfo.Id.NAME,',
+    '    include = JsonTypeInfo.As.EXISTING_PROPERTY,',
+    `    property = ${quoted(discriminator)},`,
+    '    visible = false,',
+    ')',
+    '@JsonSubTypes(',
+    ...alternatives.map(
+      ({ literal, modelName }) =>
+        `    JsonSubTypes.Type(value = ${modelName}::class, name = ${quoted(literal)}),`,
+    ),
+    ')',
+    `private interface ${name}Mixin`,
+    '',
+  ]);
+  const mapperMixins = unions.map(
+    ({ name }) => `    .addMixIn(${name}::class.java, ${name}Mixin::class.java)`,
+  );
+  return `${[
+    `// ${HEADER}`,
+    '',
+    'package com.databreeze.contracts.v1',
+    '',
+    ...unionImports,
+    'import com.fasterxml.jackson.core.type.TypeReference',
+    'import com.fasterxml.jackson.databind.DeserializationFeature',
+    'import com.fasterxml.jackson.databind.JsonNode',
+    'import com.fasterxml.jackson.databind.ObjectMapper',
+    'import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper',
+    'import com.networknt.schema.InputFormat',
+    'import com.networknt.schema.SchemaLocation',
+    'import com.networknt.schema.SchemaRegistry',
+    'import com.networknt.schema.SpecificationVersion',
+    'import java.util.Base64',
+    '',
+    ...unionMixins,
+    'public sealed interface ContractV1ParseResult {',
+    '    public val accepted: Boolean',
+    '}',
+    '',
+    'public data class AcceptedV1Contract(public val value: Any) : ContractV1ParseResult {',
+    '    public override val accepted: Boolean = true',
+    '}',
+    '',
+    'public data object RejectedV1Contract : ContractV1ParseResult {',
+    '    public override val accepted: Boolean = false',
+    '}',
+    '',
+    'private val mapper: ObjectMapper = jacksonObjectMapper()',
+    '    .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)',
+    ...mapperMixins,
+    '',
+    'private fun decodeSchema(encoded: String): String =',
+    '    String(Base64.getDecoder().decode(encoded), Charsets.UTF_8)',
+    '',
+    'private val schemaSources: Map<String, String> = mapOf(',
+    ...schemaEntries,
+    ')',
+    '',
+    'private val schemaRegistry: SchemaRegistry =',
+    '    SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12) { builder ->',
+    '        builder.schemas(schemaSources)',
+    '    }',
+    '',
+    'private fun constructGeneratedModel(schemaId: String, payload: JsonNode): Any = when (schemaId) {',
+    ...modelCases,
+    '    else -> error("No generated Kotlin model for $schemaId")',
+    '}',
+    '',
+    'public fun parseV1Contract(schemaId: String, payloadSource: String): ContractV1ParseResult {',
+    '    require(schemaId in schemaSources) { "Unknown v1 contract schema: $schemaId" }',
+    '    return try {',
+    '        val payload = mapper.readTree(payloadSource)',
+    '        val model = constructGeneratedModel(schemaId, payload)',
+    '        val schema = schemaRegistry.getSchema(SchemaLocation.of(schemaId))',
+    '        val errors = schema.validate(payloadSource, InputFormat.JSON) { executionContext ->',
+    '            executionContext.executionConfig { configuration ->',
+    '                configuration.formatAssertionsEnabled(true)',
+    '            }',
+    '        }',
+    '        if (errors.isEmpty()) AcceptedV1Contract(model) else RejectedV1Contract',
+    '    } catch (_: Exception) {',
+    '        RejectedV1Contract',
+    '    }',
+    '}',
+  ].join('\n')}\n`;
 }
 
 function kotlinType(node, entry, context, parameters) {
@@ -910,6 +1117,10 @@ export function generateContractFiles(sourceRoot) {
   const { packageInit, versionInit } = renderPythonPackage(context);
   return new Map([
     ['kotlin/src/main/kotlin/com/databreeze/contracts/v1/Models.kt', renderKotlin(context)],
+    [
+      'kotlin/src/main/kotlin/com/databreeze/contracts/v1/Validation.kt',
+      renderKotlinValidation(context),
+    ],
     ['python/databreeze_contracts/__init__.py', packageInit],
     ['python/databreeze_contracts/py.typed', ''],
     ['python/databreeze_contracts/v1/__init__.py', versionInit],
@@ -917,6 +1128,7 @@ export function generateContractFiles(sourceRoot) {
     ['python/databreeze_contracts/v1/models.py', renderPython(context)],
     ['python/pyproject.toml', renderPythonProject()],
     ['typescript/v1/index.ts', renderTypeScript(context)],
+    ['typescript/v1/validation.mjs', renderTypeScriptValidation(context)],
   ]);
 }
 

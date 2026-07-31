@@ -115,3 +115,14 @@ export interface WorkspaceScope {
   readonly scopeType: "workspace";
   readonly workspaceId: Identifier;
 }
+
+export type ContractV1SchemaId = "https://schemas.databreeze.dev/contracts/v1/actor-metadata" | "https://schemas.databreeze.dev/contracts/v1/command-envelope" | "https://schemas.databreeze.dev/contracts/v1/correlation-metadata" | "https://schemas.databreeze.dev/contracts/v1/cursor-page" | "https://schemas.databreeze.dev/contracts/v1/event-envelope" | "https://schemas.databreeze.dev/contracts/v1/identifier" | "https://schemas.databreeze.dev/contracts/v1/problem-details" | "https://schemas.databreeze.dev/contracts/v1/revision" | "https://schemas.databreeze.dev/contracts/v1/tenant-scope" | "https://schemas.databreeze.dev/contracts/v1/utc-timestamp";
+
+export type ContractV1ParseResult<TValue = unknown> =
+  | { readonly accepted: true; readonly value: TValue }
+  | { readonly accepted: false };
+
+export declare function parseV1Contract<TValue = unknown>(
+  schemaId: ContractV1SchemaId,
+  payload: unknown,
+): ContractV1ParseResult<TValue>;

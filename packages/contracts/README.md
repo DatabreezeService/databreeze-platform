@@ -6,9 +6,13 @@ Canonical OpenAPI, JSON Schema, event, typed-job, and compatibility definitions 
 
 - `manifest.json` is the deterministic registry for canonical source schemas.
 - `schemas/v1/*.schema.json` contains closed JSON Schema 2020-12 definitions with stable absolute IDs and references.
-- `generated/typescript/v1/index.ts` exports structural TypeScript contracts for Web, Desktop, and API consumers.
-- `generated/kotlin/src/main/kotlin/com/databreeze/contracts/v1/Models.kt` provides standard Kotlin models in `com.databreeze.contracts.v1`.
+- `@databreeze/contracts/v1` exports structural TypeScript contracts plus the generated
+  `parseV1Contract` runtime validator backed by the canonical schema registry.
+- `generated/kotlin/src/main/kotlin/com/databreeze/contracts/v1` provides standard Kotlin models
+  and a public `parseV1Contract` model/validation entry point.
 - `generated/python/databreeze_contracts/v1` is the Pydantic v2 model package for Python consumers.
+- `public-outputs.json` explicitly inventories every version-relevant generated file and selected
+  package export surface.
 - `compatibility/` contains immutable reviewed hashes for published schema bytes and generated
   version-specific public outputs; see [COMPATIBILITY.md](COMPATIBILITY.md).
 - Consumers import only the entry points declared in `package.json#exports`.
@@ -28,8 +32,10 @@ corepack pnpm --filter @databreeze/contracts fixtures:check
 
 `generate` is the only supported way to update checked-in language models. Do not edit files below `generated/` by hand. `generate:check` regenerates into a temporary directory, byte-compares the complete expected file set, and reports missing, stale, or unexpected files without changing checked-in output. `test` compiles the real schemas with Ajv's JSON Schema 2020-12 validator and exercises generator behavior plus hand-authored protocol payloads. `build` compiles every manifest entry and checks generated-file drift.
 
-`compatibility:check` rejects in-place changes to a published contract baseline.
-`fixtures:check` runs the shared payloads through the real TypeScript, Python, and Kotlin consumers.
+`compatibility:check` rejects in-place changes to a published contract baseline, public-output
+inventory, generated package metadata, or package export surface. `fixtures:check` runs every
+shared payload through the public generated TypeScript and Kotlin parsers and the generated
+Pydantic models.
 Root `pnpm contracts:check` runs generation drift, compatibility, and cross-runtime fixture parity.
 
 ## Forbidden dependencies

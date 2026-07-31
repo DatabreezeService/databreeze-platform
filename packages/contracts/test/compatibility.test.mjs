@@ -1,5 +1,13 @@
 import assert from 'node:assert/strict';
-import { appendFileSync, cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import {
+  appendFileSync,
+  cpSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -62,8 +70,73 @@ test('compatibility check rejects changed generated public output in place', () 
     assert.equal(run.status, 1, `${run.stdout}\n${run.stderr}`);
     assert.match(
       run.stderr,
-      /Published generated output changed in place: typescript\/v1\/index\.ts/u,
+      /Published public output changed in place: generated\/typescript\/v1\/index\.ts/u,
     );
+  });
+});
+
+test('compatibility check covers Python package metadata and root package markers', () => {
+  for (const path of [
+    'generated/python/pyproject.toml',
+    'generated/python/databreeze_contracts/__init__.py',
+    'generated/python/databreeze_contracts/py.typed',
+  ]) {
+    withPackageCopy((copyRoot) => {
+      appendFileSync(resolve(copyRoot, path), '# changed\n', 'utf8');
+
+      const run = runCompatibility(copyRoot, 'check');
+      assert.equal(run.status, 1, `${path}\n${run.stdout}\n${run.stderr}`);
+      assert.match(run.stderr, /Published public output changed in place/u);
+    });
+  }
+});
+
+test('compatibility check rejects added and removed public outputs', () => {
+  withPackageCopy((copyRoot) => {
+    writeFileSync(
+      resolve(copyRoot, 'generated/python/databreeze_contracts/public_api.py'),
+      '# unexpected public output\n',
+      'utf8',
+    );
+
+    const run = runCompatibility(copyRoot, 'check');
+    assert.equal(run.status, 1, `${run.stdout}\n${run.stderr}`);
+    assert.match(run.stderr, /Generated output is not declared in public-output inventory/u);
+  });
+
+  withPackageCopy((copyRoot) => {
+    rmSync(resolve(copyRoot, 'generated/python/databreeze_contracts/py.typed'));
+
+    const run = runCompatibility(copyRoot, 'check');
+    assert.equal(run.status, 1, `${run.stdout}\n${run.stderr}`);
+    assert.match(run.stderr, /Published public output is missing/u);
+  });
+});
+
+test('compatibility check rejects public package export mapping drift', () => {
+  withPackageCopy((copyRoot) => {
+    const packagePath = resolve(copyRoot, 'package.json');
+    const packageManifest = JSON.parse(readFileSync(packagePath, 'utf8'));
+    packageManifest.exports['./v1'].import = './generated/typescript/v1/not-public.mjs';
+    writeFileSync(packagePath, `${JSON.stringify(packageManifest, null, 2)}\n`, 'utf8');
+
+    const run = runCompatibility(copyRoot, 'check');
+    assert.equal(run.status, 1, `${run.stdout}\n${run.stderr}`);
+    assert.match(run.stderr, /Published package surface changed in place/u);
+  });
+});
+
+test('compatibility check rejects a changed public-output inventory', () => {
+  withPackageCopy((copyRoot) => {
+    writeFileSync(
+      resolve(copyRoot, 'public-outputs.json'),
+      `${JSON.stringify({ inventoryFormat: 1, versions: [] }, null, 2)}\n`,
+      'utf8',
+    );
+
+    const run = runCompatibility(copyRoot, 'check');
+    assert.equal(run.status, 1, `${run.stdout}\n${run.stderr}`);
+    assert.match(run.stderr, /Published public-output inventory changed in place/u);
   });
 });
 

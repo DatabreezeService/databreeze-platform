@@ -11,7 +11,7 @@ import type {
   Revision,
   UtcTimestamp,
   WorkspaceScope,
-} from '../../../packages/contracts/generated/typescript/v1/index.js';
+} from '@databreeze/contracts/v1';
 
 import actorPayload from '../../../packages/test-fixtures/contracts/v1/payloads/actor-metadata/valid-user.json' with { type: 'json' };
 import commandPayload from '../../../packages/test-fixtures/contracts/v1/payloads/command-envelope/valid-idempotent.json' with { type: 'json' };

@@ -2,11 +2,16 @@
 
 Cross-runtime fixture parity for generated contract consumers.
 
-`src/run-contract-parity.mjs` type-checks the valid fixtures against generated TypeScript types,
-validates every shared payload with the canonical Ajv registry, runs the generated Pydantic v2
-models under the frozen uv environment, and compiles/runs the generated standard-Kotlin models
-under the checksummed Gradle/JDK 21 harness. Kotlin rejects invalid JSON with NetworkNT JSON Schema
-2020-12 validation before generated model construction.
+`src/run-contract-parity.mjs` type-checks valid fixtures through the supported
+`@databreeze/contracts/v1` export and sends every valid and invalid payload through that export's
+generated TypeScript parser. It also runs the generated Pydantic v2 models under the frozen uv
+environment and compiles/runs the generated Kotlin public parser under the checksummed
+Gradle/JDK 21 harness.
+
+The TypeScript parser owns its generated Ajv registry. The Kotlin parser embeds the same canonical
+schemas, attempts generated-model construction for every parsed fixture, then applies NetworkNT
+JSON Schema 2020-12 validation with format assertions. The fixture harness contains no separate
+TypeScript or Kotlin acceptance pre-filter.
 
 Run from the repository root:
 
