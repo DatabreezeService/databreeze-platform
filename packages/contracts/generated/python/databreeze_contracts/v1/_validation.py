@@ -35,6 +35,7 @@ def validate_utc_timestamp(value: Any) -> str:
         prefix, separator, seconds = value.rpartition(":")
         valid = bool(
             separator
+            and prefix.endswith(("T23:59", "t23:59"))
             and seconds.startswith("60")
             and validate_rfc3339(f"{prefix}:59{seconds[2:]}")
         )

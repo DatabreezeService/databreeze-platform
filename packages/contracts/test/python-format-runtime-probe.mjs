@@ -24,6 +24,7 @@ const cases = [
   { format: 'uri-reference', value: 'http://example.com/[]' },
   { format: 'uri-reference', value: 'foo#bar#baz' },
   { format: 'date-time', value: '2016-12-31T23:59:60Z' },
+  { format: 'date-time', value: '2016-12-31T12:34:60Z' },
   { format: 'date-time', value: '2016-12-31T23:60:00Z' },
   { format: 'uuid', value: 'urn:uuid:018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc01' },
 ];
@@ -40,7 +41,7 @@ const expected = cases.map(({ format, value }) => ({
 }));
 assert.deepEqual(
   expected.map(({ accepted }) => accepted),
-  [false, false, false, true, false, true],
+  [false, false, false, true, false, false, true],
   'canonical Ajv expectations changed',
 );
 
