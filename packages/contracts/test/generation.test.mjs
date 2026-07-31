@@ -25,6 +25,7 @@ const expectedFiles = [
   'python/databreeze_contracts/__init__.py',
   'python/databreeze_contracts/py.typed',
   'python/databreeze_contracts/v1/__init__.py',
+  'python/databreeze_contracts/v1/_validation.py',
   'python/databreeze_contracts/v1/models.py',
   'typescript/v1/index.ts',
 ];
@@ -63,6 +64,15 @@ function withTemporaryDirectory(run) {
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
+}
+
+function runPythonValidationProgram(program) {
+  const source = resolve(generatedRoot, 'python/databreeze_contracts/v1/_validation.py');
+  assert.equal(existsSync(source), true, 'generated Python validation helpers are missing');
+  return spawnSync('python', ['-c', program, source], {
+    cwd: packageRoot,
+    encoding: 'utf8',
+  });
 }
 
 test('generates byte-stable language packages from a controlled registry', () => {
@@ -131,6 +141,23 @@ test('fails loudly when a schema uses an unsupported construct', () => {
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Unsupported JSON Schema keyword "enum"/);
     assert.match(result.stderr, /alpha\.schema\.json/);
+  });
+});
+
+test('fails loudly when a schema contains the unsatisfiable false schema', () => {
+  withTemporaryDirectory((directory) => {
+    const source = resolve(directory, 'source');
+    cpSync(fixtureRoot, source, { recursive: true });
+    const schemaPath = resolve(source, 'schemas/v1/sample-envelope.schema.json');
+    const schema = JSON.parse(readFileSync(schemaPath, 'utf8'));
+    schema.properties.labels.items = false;
+    writeFileSync(schemaPath, `${JSON.stringify(schema, null, 2)}\n`);
+
+    const result = runGenerator('--source', source, '--output', resolve(directory, 'output'));
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Unsupported boolean JSON Schema false/);
+    assert.match(result.stderr, /sample-envelope\.schema\.json#\/properties\/labels\/items/);
   });
 });
 
@@ -238,6 +265,131 @@ test('the checked-in Python package compiles with the available interpreter', ()
   });
 
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+});
+
+test('generated Pydantic models reject explicit nulls and omit absent properties by default', () => {
+  const models = readFileSync(
+    resolve(generatedRoot, 'python/databreeze_contracts/v1/models.py'),
+    'utf8',
+  );
+  assert.match(
+    models,
+    /return reject_explicit_null_properties\(value, frozenset\(cls\.model_fields\)\)/,
+  );
+  assert.match(
+    models,
+    /return super\(\)\.model_dump\(\*args, \*\*serialization_options\(kwargs\)\)/,
+  );
+  assert.match(
+    models,
+    /return super\(\)\.model_dump_json\(\*args, \*\*serialization_options\(kwargs\)\)/,
+  );
+
+  const program = [
+    'import json',
+    'import runpy',
+    'import sys',
+    'helpers = runpy.run_path(sys.argv[1])',
+    'reject = helpers["reject_explicit_null_properties"]',
+    'options = helpers["serialization_options"]',
+    'missing = reject({"status": 400}, frozenset({"status", "detail"}))',
+    'try:',
+    '    reject({"status": 400, "detail": None}, frozenset({"status", "detail"}))',
+    '    explicit_null_rejected = False',
+    'except ValueError:',
+    '    explicit_null_rejected = True',
+    'print(json.dumps([missing, explicit_null_rejected, options({}), options({"exclude_unset": False})], sort_keys=True))',
+  ].join('\n');
+  const result = runPythonValidationProgram(program);
+
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  assert.equal(
+    result.stdout.trim(),
+    '[{"status": 400}, true, {"exclude_unset": true}, {"exclude_unset": false}]',
+  );
+});
+
+test('generated Python helpers preserve formats and strict primitive declarations', () => {
+  const models = readFileSync(
+    resolve(generatedRoot, 'python/databreeze_contracts/v1/models.py'),
+    'utf8',
+  );
+  assert.match(
+    models,
+    /Identifier: TypeAlias = Annotated\[StrictStr, AfterValidator\(validate_uuid\)\]/,
+  );
+  assert.match(
+    models,
+    /UtcTimestamp: TypeAlias = Annotated\[StrictStr, AfterValidator\(validate_utc_timestamp\)\]/,
+  );
+  assert.match(models, /status: Annotated\[int, Field\(strict=True, ge=100, le=599\)\]/);
+  assert.match(models, /retryable: StrictBool/);
+  assert.match(models, /type: Annotated\[StrictStr, AfterValidator\(validate_uri_reference\)\]/);
+  assert.match(
+    models,
+    /instance: Annotated\[StrictStr, AfterValidator\(validate_uri_reference\)\] \| None = None/,
+  );
+
+  const program = [
+    'import json',
+    'import runpy',
+    'import sys',
+    'helpers = runpy.run_path(sys.argv[1])',
+    'utc = helpers["validate_utc_timestamp"]',
+    'uri = helpers["validate_uri_reference"]',
+    'uuid = helpers["validate_uuid"]',
+    'def rejects(function, value):',
+    '    try:',
+    '        function(value)',
+    '        return False',
+    '    except (TypeError, ValueError):',
+    '        return True',
+    'results = [',
+    '    utc("2026-08-01T01:30:00.125Z"),',
+    '    rejects(utc, "2026-08-01T08:30:00+07:00"),',
+    '    rejects(utc, "2026-02-30T01:30:00Z"),',
+    '    rejects(utc, 123),',
+    '    uri("about:blank"),',
+    '    uri("/problems/conflict?source=api#field"),',
+    '    rejects(uri, "/problems/has space"),',
+    '    rejects(uri, "/problems/%GG"),',
+    '    uuid("018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc01"),',
+    '    rejects(uuid, "not-a-uuid"),',
+    ']',
+    'print(json.dumps(results))',
+  ].join('\n');
+  const result = runPythonValidationProgram(program);
+
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  assert.equal(
+    result.stdout.trim(),
+    '["2026-08-01T01:30:00.125Z", true, true, true, "about:blank", "/problems/conflict?source=api#field", true, true, "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc01", true]',
+  );
+});
+
+test('generated Pydantic tenant discriminators remain required', () => {
+  const models = readFileSync(
+    resolve(generatedRoot, 'python/databreeze_contracts/v1/models.py'),
+    'utf8',
+  );
+
+  assert.match(models, /scopeType: Literal\["organization"\]\n/);
+  assert.match(models, /scopeType: Literal\["workspace"\]\n/);
+  assert.match(models, /scopeType: Literal\["project"\]\n/);
+  assert.doesNotMatch(models, /scopeType: Literal\[[^\]]+\] =/);
+});
+
+test('generated Kotlin models preserve cursor and problem constructor invariants', () => {
+  const kotlin = readFileSync(
+    resolve(generatedRoot, 'kotlin/src/main/kotlin/com/databreeze/contracts/v1/Models.kt'),
+    'utf8',
+  );
+
+  assert.match(
+    kotlin,
+    /require\(if \(hasMore\) !nextCursor\.isNullOrBlank\(\) else nextCursor == null\)/,
+  );
+  assert.match(kotlin, /require\(titleKey != null \|\| messageKey != null\)/);
 });
 
 test('the checked-in Kotlin models have a deterministic standard-Kotlin structure', () => {

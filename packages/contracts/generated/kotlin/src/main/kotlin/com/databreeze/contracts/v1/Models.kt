@@ -42,7 +42,13 @@ public data class CursorPage<TItem>(
     public val hasMore: Boolean,
     public val nextCursor: String? = null,
     public val snapshotAt: UtcTimestamp,
-)
+) {
+    init {
+        require(if (hasMore) !nextCursor.isNullOrBlank() else nextCursor == null) {
+            "nextCursor must match hasMore"
+        }
+    }
+}
 
 public data class EventEnvelope<TData>(
     public val actor: ActorMetadata,
@@ -85,7 +91,13 @@ public data class ProblemDetails(
     public val title: String? = null,
     public val titleKey: String? = null,
     public val type: String,
-)
+) {
+    init {
+        require(titleKey != null || messageKey != null) {
+            "at least one required schema alternative must be present"
+        }
+    }
+}
 
 public data class ProblemDetailsFieldErrorsItem(
     public val code: String,

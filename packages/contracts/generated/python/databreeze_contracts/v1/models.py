@@ -3,9 +3,25 @@
 from __future__ import annotations
 
 from typing import Annotated, Any, Generic, Literal, Self, TypeAlias, TypeVar
-from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    StrictStr,
+    StringConstraints,
+    model_validator,
+)
+
+from ._validation import (
+    reject_explicit_null_properties,
+    serialization_options,
+    validate_uri_reference,
+    validate_utc_timestamp,
+    validate_uuid,
+)
 
 JsonObject: TypeAlias = dict[str, Any]
 TData = TypeVar("TData")
@@ -15,25 +31,36 @@ TItem = TypeVar("TItem")
 class ClosedModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-Identifier: TypeAlias = UUID
+    @model_validator(mode="before")
+    @classmethod
+    def reject_explicit_nulls(cls, value: Any) -> Any:
+        return reject_explicit_null_properties(value, frozenset(cls.model_fields))
 
-Revision: TypeAlias = Annotated[int, Field(ge=1)]
+    def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        return super().model_dump(*args, **serialization_options(kwargs))
 
-UtcTimestamp: TypeAlias = Annotated[str, StringConstraints(pattern=r"Z$")]
+    def model_dump_json(self, *args: Any, **kwargs: Any) -> str:
+        return super().model_dump_json(*args, **serialization_options(kwargs))
+
+Identifier: TypeAlias = Annotated[StrictStr, AfterValidator(validate_uuid)]
+
+Revision: TypeAlias = Annotated[int, Field(strict=True, ge=1)]
+
+UtcTimestamp: TypeAlias = Annotated[StrictStr, AfterValidator(validate_utc_timestamp)]
 
 class ActorMetadata(ClosedModel):
     actorId: Identifier
-    actorType: Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{0,62}$")]
+    actorType: Annotated[StrictStr, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{0,62}$")]
 
 class CommandEnvelope(ClosedModel, Generic[TData]):
     actor: ActorMetadata
     commandId: Identifier
-    commandType: Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_-]*(\.[a-z][a-z0-9_-]*)+$")]
+    commandType: Annotated[StrictStr, StringConstraints(pattern=r"^[a-z][a-z0-9_-]*(\.[a-z][a-z0-9_-]*)+$")]
     correlation: CorrelationMetadata
     data: TData
-    idempotencyKey: Annotated[str, StringConstraints(min_length=1, max_length=255)]
+    idempotencyKey: Annotated[StrictStr, StringConstraints(min_length=1, max_length=255)]
     issuedAt: UtcTimestamp
-    schemaVersion: Annotated[int, Field(ge=1)]
+    schemaVersion: Annotated[int, Field(strict=True, ge=1)]
     tenantScope: TenantScope
 
 class CorrelationMetadata(ClosedModel):
@@ -43,8 +70,8 @@ class CorrelationMetadata(ClosedModel):
 
 class CursorPage(ClosedModel, Generic[TItem]):
     data: list[TItem]
-    hasMore: bool
-    nextCursor: Annotated[str, StringConstraints(min_length=1, max_length=4096)] | None = None
+    hasMore: StrictBool
+    nextCursor: Annotated[StrictStr, StringConstraints(min_length=1, max_length=4096)] | None = None
     snapshotAt: UtcTimestamp
 
     @model_validator(mode="after")
@@ -61,37 +88,37 @@ class EventEnvelope(ClosedModel, Generic[TData]):
     data: TData
     entity: EventEnvelopeEntity
     eventId: Identifier
-    eventType: Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_-]*(\.[a-z][a-z0-9_-]*)+$")]
+    eventType: Annotated[StrictStr, StringConstraints(pattern=r"^[a-z][a-z0-9_-]*(\.[a-z][a-z0-9_-]*)+$")]
     occurredAt: UtcTimestamp
-    schemaVersion: Annotated[int, Field(ge=1)]
-    sourceComponent: Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{0,62}$")]
+    schemaVersion: Annotated[int, Field(strict=True, ge=1)]
+    sourceComponent: Annotated[StrictStr, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{0,62}$")]
     tenantScope: TenantScope
 
 class EventEnvelopeEntity(ClosedModel):
     entityId: Identifier
-    entityType: Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{0,62}$")]
+    entityType: Annotated[StrictStr, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{0,62}$")]
     revision: Revision
 
 class OrganizationScope(ClosedModel):
     organizationId: Identifier
-    scopeType: Literal["organization"] = "organization"
+    scopeType: Literal["organization"]
 
 class ProblemDetails(ClosedModel):
-    code: Annotated[str, StringConstraints(pattern=r"^[A-Z][A-Z0-9_]{0,127}$")]
+    code: Annotated[StrictStr, StringConstraints(pattern=r"^[A-Z][A-Z0-9_]{0,127}$")]
     correlationId: Identifier
     currentRevision: Revision | None = None
-    detail: str | None = None
+    detail: StrictStr | None = None
     fieldErrors: Annotated[list[ProblemDetailsFieldErrorsItem], Field(max_length=100)] | None = None
-    instance: str | None = None
-    messageKey: Annotated[str, StringConstraints(min_length=1, max_length=255)] | None = None
+    instance: Annotated[StrictStr, AfterValidator(validate_uri_reference)] | None = None
+    messageKey: Annotated[StrictStr, StringConstraints(min_length=1, max_length=255)] | None = None
     rateLimit: ProblemDetailsRateLimit | None = None
-    remediationAction: Annotated[str, StringConstraints(min_length=1, max_length=255)] | None = None
-    retryAfterSeconds: Annotated[int, Field(ge=0)] | None = None
-    retryable: bool
-    status: Annotated[int, Field(ge=100, le=599)]
-    title: Annotated[str, StringConstraints(min_length=1)] | None = None
-    titleKey: Annotated[str, StringConstraints(min_length=1, max_length=255)] | None = None
-    type: str
+    remediationAction: Annotated[StrictStr, StringConstraints(min_length=1, max_length=255)] | None = None
+    retryAfterSeconds: Annotated[int, Field(strict=True, ge=0)] | None = None
+    retryable: StrictBool
+    status: Annotated[int, Field(strict=True, ge=100, le=599)]
+    title: Annotated[StrictStr, StringConstraints(min_length=1)] | None = None
+    titleKey: Annotated[StrictStr, StringConstraints(min_length=1, max_length=255)] | None = None
+    type: Annotated[StrictStr, AfterValidator(validate_uri_reference)]
 
     @model_validator(mode="after")
     def require_schema_alternative(self) -> Self:
@@ -100,24 +127,24 @@ class ProblemDetails(ClosedModel):
         return self
 
 class ProblemDetailsFieldErrorsItem(ClosedModel):
-    code: Annotated[str, StringConstraints(pattern=r"^[A-Z][A-Z0-9_]{0,127}$")]
-    field: Annotated[str, StringConstraints(min_length=1, max_length=255)]
+    code: Annotated[StrictStr, StringConstraints(pattern=r"^[A-Z][A-Z0-9_]{0,127}$")]
+    field: Annotated[StrictStr, StringConstraints(min_length=1, max_length=255)]
 
 class ProblemDetailsRateLimit(ClosedModel):
-    limit: Annotated[int, Field(ge=0)] | None = None
-    remaining: Annotated[int, Field(ge=0)] | None = None
+    limit: Annotated[int, Field(strict=True, ge=0)] | None = None
+    remaining: Annotated[int, Field(strict=True, ge=0)] | None = None
     resetAt: UtcTimestamp
-    scope: Annotated[str, StringConstraints(min_length=1, max_length=255)]
+    scope: Annotated[StrictStr, StringConstraints(min_length=1, max_length=255)]
 
 class ProjectScope(ClosedModel):
     organizationId: Identifier
     projectId: Identifier
-    scopeType: Literal["project"] = "project"
+    scopeType: Literal["project"]
     workspaceId: Identifier
 
 class WorkspaceScope(ClosedModel):
     organizationId: Identifier
-    scopeType: Literal["workspace"] = "workspace"
+    scopeType: Literal["workspace"]
     workspaceId: Identifier
 
 TenantScope: TypeAlias = Annotated[OrganizationScope | WorkspaceScope | ProjectScope, Field(discriminator="scopeType")]

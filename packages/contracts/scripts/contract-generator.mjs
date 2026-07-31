@@ -55,7 +55,10 @@ function assertPlainObject(value, label) {
 }
 
 function validateSchemaNode(node, sourcePath, location = '#') {
-  if (typeof node === 'boolean') return;
+  if (node === true) return;
+  if (node === false) {
+    fail(`Unsupported boolean JSON Schema false in ${sourcePath}${location}`);
+  }
   assertPlainObject(node, `${sourcePath}${location}`);
 
   for (const keyword of Object.keys(node)) {
@@ -495,10 +498,44 @@ function renderKotlin(context) {
         `    public val ${propertyName}: ${kotlinType(property, entry, context, parameterMap)}${optional}${defaultValue},`,
       );
     }
+    const body = [];
     if (parent) {
-      lines.push(`) : ${parent} {`);
       const literal = node.properties[discriminator].const;
-      lines.push(`    public override val ${discriminator}: String = ${quoted(literal)}`, '}', '');
+      body.push(`    public override val ${discriminator}: String = ${quoted(literal)}`);
+    }
+    if (node.anyOf) {
+      const alternatives = requiredAlternatives(node, entry.path).map((requiredProperties) =>
+        requiredProperties.map((property) => `${property} != null`).join(' && '),
+      );
+      if (body.length) body.push('');
+      body.push(
+        '    init {',
+        `        require(${alternatives.join(' || ')}) {`,
+        '            "at least one required schema alternative must be present"',
+        '        }',
+        '    }',
+      );
+    }
+    if (node.allOf) {
+      const conditional = conditionalConstraint(node, entry.path);
+      const present =
+        node.properties[conditional.dependent].type === 'string'
+          ? `!${conditional.dependent}.isNullOrBlank()`
+          : `${conditional.dependent} != null`;
+      const discriminator = conditional.value
+        ? conditional.discriminator
+        : `!${conditional.discriminator}`;
+      if (body.length) body.push('');
+      body.push(
+        '    init {',
+        `        require(if (${discriminator}) ${present} else ${conditional.dependent} == null) {`,
+        `            "${conditional.dependent} must match ${conditional.discriminator}"`,
+        '        }',
+        '    }',
+      );
+    }
+    if (body.length) {
+      lines.push(parent ? `) : ${parent} {` : ') {', ...body, '}', '');
     } else {
       lines.push(')', '');
     }
@@ -550,9 +587,25 @@ function renderPython(context) {
     'from __future__ import annotations',
     '',
     'from typing import Annotated, Any, Generic, Literal, Self, TypeAlias, TypeVar',
-    'from uuid import UUID',
     '',
-    'from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator',
+    'from pydantic import (',
+    '    AfterValidator,',
+    '    BaseModel,',
+    '    ConfigDict,',
+    '    Field,',
+    '    StrictBool,',
+    '    StrictStr,',
+    '    StringConstraints,',
+    '    model_validator,',
+    ')',
+    '',
+    'from ._validation import (',
+    '    reject_explicit_null_properties,',
+    '    serialization_options,',
+    '    validate_uri_reference,',
+    '    validate_utc_timestamp,',
+    '    validate_uuid,',
+    ')',
     '',
     'JsonObject: TypeAlias = dict[str, Any]',
   ];
@@ -565,6 +618,17 @@ function renderPython(context) {
     '',
     'class ClosedModel(BaseModel):',
     '    model_config = ConfigDict(extra="forbid")',
+    '',
+    '    @model_validator(mode="before")',
+    '    @classmethod',
+    '    def reject_explicit_nulls(cls, value: Any) -> Any:',
+    '        return reject_explicit_null_properties(value, frozenset(cls.model_fields))',
+    '',
+    '    def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]:',
+    '        return super().model_dump(*args, **serialization_options(kwargs))',
+    '',
+    '    def model_dump_json(self, *args: Any, **kwargs: Any) -> str:',
+    '        return super().model_dump_json(*args, **serialization_options(kwargs))',
     '',
   );
 
@@ -590,9 +654,7 @@ function renderPython(context) {
     } else {
       for (const [propertyName, property] of properties) {
         const optional = required.has(propertyName) ? '' : ' | None';
-        let defaultValue = required.has(propertyName) ? '' : ' = None';
-        if ('const' in property && required.has(propertyName))
-          defaultValue = ` = ${quoted(property.const)}`;
+        const defaultValue = required.has(propertyName) ? '' : ' = None';
         lines.push(
           `    ${propertyName}: ${pythonType(property, entry, context, parameterMap)}${optional}${defaultValue}`,
         );
@@ -654,22 +716,30 @@ function pythonType(node, entry, context, parameters) {
   if ('const' in node) return `Literal[${quoted(node.const)}]`;
   if (node.oneOf) return context.nameByNode.get(node);
   if (node.type === 'string') {
-    if (node.format === 'uuid') return 'UUID';
+    if (node.format === 'uuid') {
+      return 'Annotated[StrictStr, AfterValidator(validate_uuid)]';
+    }
+    if (node.format === 'date-time') {
+      return 'Annotated[StrictStr, AfterValidator(validate_utc_timestamp)]';
+    }
+    if (node.format === 'uri-reference') {
+      return 'Annotated[StrictStr, AfterValidator(validate_uri_reference)]';
+    }
     const argumentsList = [];
     if (node.minLength !== undefined) argumentsList.push(`min_length=${node.minLength}`);
     if (node.maxLength !== undefined) argumentsList.push(`max_length=${node.maxLength}`);
     if (node.pattern !== undefined) argumentsList.push(`pattern=${pythonRawString(node.pattern)}`);
     return argumentsList.length
-      ? `Annotated[str, StringConstraints(${argumentsList.join(', ')})]`
-      : 'str';
+      ? `Annotated[StrictStr, StringConstraints(${argumentsList.join(', ')})]`
+      : 'StrictStr';
   }
   if (node.type === 'integer') {
-    const argumentsList = [];
+    const argumentsList = ['strict=True'];
     if (node.minimum !== undefined) argumentsList.push(`ge=${node.minimum}`);
     if (node.maximum !== undefined) argumentsList.push(`le=${node.maximum}`);
-    return argumentsList.length ? `Annotated[int, Field(${argumentsList.join(', ')})]` : 'int';
+    return `Annotated[int, Field(${argumentsList.join(', ')})]`;
   }
-  if (node.type === 'boolean') return 'bool';
+  if (node.type === 'boolean') return 'StrictBool';
   if (node.type === 'array') {
     const list = `list[${pythonType(node.items, entry, context, parameters)}]`;
     return node.maxItems !== undefined
@@ -739,6 +809,82 @@ function renderPythonPackage(context) {
   return { packageInit, versionInit };
 }
 
+function renderPythonValidation() {
+  return `${[
+    `# ${HEADER}`,
+    '',
+    'from __future__ import annotations',
+    '',
+    'import re',
+    'from collections.abc import Mapping',
+    'from datetime import datetime',
+    'from typing import Any',
+    'from urllib.parse import urlsplit',
+    '',
+    '_UTC_TIMESTAMP = re.compile(r"^\\d{4}-\\d{2}-\\d{2}[Tt]\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$")',
+    '_UUID = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")',
+    '_INVALID_PERCENT_ENCODING = re.compile(r"%(?![0-9a-fA-F]{2})")',
+    "_INVALID_URI_CHARACTER = re.compile(r'[\\x00-\\x20\\x7f<>\"{}|\\\\^`]')",
+    '',
+    '',
+    'def _require_string(value: Any, format_name: str) -> str:',
+    '    if not isinstance(value, str):',
+    '        raise TypeError(f"{format_name} must be a string")',
+    '    return value',
+    '',
+    '',
+    'def validate_uuid(value: Any) -> str:',
+    '    value = _require_string(value, "uuid")',
+    '    if _UUID.fullmatch(value) is None:',
+    '        raise ValueError("value must be a UUID string")',
+    '    return value',
+    '',
+    '',
+    'def validate_utc_timestamp(value: Any) -> str:',
+    '    value = _require_string(value, "date-time")',
+    '    if _UTC_TIMESTAMP.fullmatch(value) is None:',
+    '        raise ValueError("value must be an RFC 3339 date-time ending in uppercase Z")',
+    '    try:',
+    '        datetime.fromisoformat(f"{value[:-1]}+00:00")',
+    '    except ValueError as error:',
+    '        raise ValueError("value must be a valid RFC 3339 date-time") from error',
+    '    return value',
+    '',
+    '',
+    'def validate_uri_reference(value: Any) -> str:',
+    '    value = _require_string(value, "uri-reference")',
+    '    if _INVALID_URI_CHARACTER.search(value) or _INVALID_PERCENT_ENCODING.search(value):',
+    '        raise ValueError("value must be an RFC 3986 URI reference")',
+    '    try:',
+    '        urlsplit(value)',
+    '    except ValueError as error:',
+    '        raise ValueError("value must be an RFC 3986 URI reference") from error',
+    '    return value',
+    '',
+    '',
+    'def reject_explicit_null_properties(',
+    '    value: Any, field_names: frozenset[str]',
+    ') -> Any:',
+    '    if isinstance(value, Mapping):',
+    '        null_fields = sorted(',
+    '            field_name',
+    '            for field_name in field_names',
+    '            if field_name in value and value[field_name] is None',
+    '        )',
+    '        if null_fields:',
+    '            raise ValueError(f"null is not allowed for: {\', \'.join(null_fields)}")',
+    '    return value',
+    '',
+    '',
+    'def serialization_options(options: dict[str, Any]) -> dict[str, Any]:',
+    '    result = dict(options)',
+    '    result.setdefault("exclude_unset", True)',
+    '    return result',
+  ]
+    .join('\n')
+    .trimEnd()}\n`;
+}
+
 export function generateContractFiles(sourceRoot) {
   const context = buildModelContext(loadRegistry(sourceRoot));
   const { packageInit, versionInit } = renderPythonPackage(context);
@@ -747,6 +893,7 @@ export function generateContractFiles(sourceRoot) {
     ['python/databreeze_contracts/__init__.py', packageInit],
     ['python/databreeze_contracts/py.typed', ''],
     ['python/databreeze_contracts/v1/__init__.py', versionInit],
+    ['python/databreeze_contracts/v1/_validation.py', renderPythonValidation()],
     ['python/databreeze_contracts/v1/models.py', renderPython(context)],
     ['typescript/v1/index.ts', renderTypeScript(context)],
   ]);
