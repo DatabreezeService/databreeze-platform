@@ -1,0 +1,16 @@
+{
+  "draft": "https://json-schema.org/draft/2020-12/schema",
+  "version": 1,
+  "schemas": [
+    {
+      "name": "sample-envelope",
+      "id": "https://schemas.example.test/contracts/v1/sample-envelope",
+      "path": "schemas/v1/sample-envelope.schema.json"
+    },
+    {
+      "name": "alpha",
+      "id": "https://schemas.example.test/contracts/v1/alpha",
+      "path": "schemas/v1/alpha.schema.json"
+    }
+  ]
+}

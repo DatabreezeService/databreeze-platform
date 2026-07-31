@@ -93,11 +93,12 @@ test('publishes the complete deterministic v1 registry and compiles every real s
   }
 });
 
-test('exports only declared registry and versioned schema entry points', () => {
+test('exports only declared registry schema and generated TypeScript entry points', () => {
   const packageJson = JSON.parse(readFileSync(resolve(packageRoot, 'package.json'), 'utf8'));
 
   assert.deepEqual(Object.keys(packageJson.exports), [
     '.',
+    './v1',
     './v1/actor-metadata',
     './v1/command-envelope',
     './v1/correlation-metadata',
@@ -110,11 +111,14 @@ test('exports only declared registry and versioned schema entry points', () => {
     './v1/utc-timestamp',
   ]);
   for (const target of Object.values(packageJson.exports)) {
-    assert.equal(
-      existsSync(resolve(packageRoot, target)),
-      true,
-      `export target must exist: ${target}`,
-    );
+    const paths = typeof target === 'string' ? [target] : Object.values(target);
+    for (const path of paths) {
+      assert.equal(
+        existsSync(resolve(packageRoot, path)),
+        true,
+        `export target must exist: ${path}`,
+      );
+    }
   }
 });
 
