@@ -1,0 +1,27 @@
+{
+  "name": "@databreeze/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./manifest.json",
+    "./v1/actor-metadata": "./schemas/v1/actor-metadata.schema.json",
+    "./v1/command-envelope": "./schemas/v1/command-envelope.schema.json",
+    "./v1/correlation-metadata": "./schemas/v1/correlation-metadata.schema.json",
+    "./v1/cursor-page": "./schemas/v1/cursor-page.schema.json",
+    "./v1/event-envelope": "./schemas/v1/event-envelope.schema.json",
+    "./v1/identifier": "./schemas/v1/identifier.schema.json",
+    "./v1/problem-details": "./schemas/v1/problem-details.schema.json",
+    "./v1/revision": "./schemas/v1/revision.schema.json",
+    "./v1/tenant-scope": "./schemas/v1/tenant-scope.schema.json",
+    "./v1/utc-timestamp": "./schemas/v1/utc-timestamp.schema.json"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test test/**/*.test.mjs"
+  },
+  "devDependencies": {
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1"
+  }
+}

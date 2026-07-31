@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/revision",
+  "$comment": "Supports optimistic-concurrency revisions described by the domain and data model.",
+  "title": "Entity Revision",
+  "description": "A positive, monotonically increasing entity revision.",
+  "type": "integer",
+  "minimum": 1
+}

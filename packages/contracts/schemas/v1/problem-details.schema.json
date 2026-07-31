@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/problem-details",
+  "$comment": "RFC 7807-compatible base with the safe public error metadata required by INT-021 and WEB-021.",
+  "title": "Problem Details",
+  "description": "A closed RFC 7807-compatible problem document with DataBreeze public error extensions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["type", "title", "status", "code", "correlationId", "retryable", "messageKey"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "format": "uri-reference"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 599
+    },
+    "detail": {
+      "type": "string"
+    },
+    "instance": {
+      "type": "string",
+      "format": "uri-reference"
+    },
+    "code": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]{0,127}$"
+    },
+    "correlationId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "retryable": {
+      "type": "boolean"
+    },
+    "messageKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "fieldErrors": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["field", "code"],
+        "properties": {
+          "field": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]{0,127}$"
+          }
+        }
+      }
+    },
+    "retryAfterSeconds": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

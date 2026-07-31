@@ -1,0 +1,242 @@
+import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import test from 'node:test';
+
+import Ajv2020 from 'ajv/dist/2020.js';
+import addFormats from 'ajv-formats';
+
+// Partial foundation coverage: IAM-001, IAM-019, AUD-004, AUD-006,
+// INT-004, INT-005, INT-008, and INT-021.
+const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const manifestPath = resolve(packageRoot, 'manifest.json');
+const schemaBase = 'https://schemas.databreeze.dev/contracts/v1';
+
+const ids = {
+  actorMetadata: `${schemaBase}/actor-metadata`,
+  commandEnvelope: `${schemaBase}/command-envelope`,
+  correlationMetadata: `${schemaBase}/correlation-metadata`,
+  cursorPage: `${schemaBase}/cursor-page`,
+  eventEnvelope: `${schemaBase}/event-envelope`,
+  identifier: `${schemaBase}/identifier`,
+  problemDetails: `${schemaBase}/problem-details`,
+  revision: `${schemaBase}/revision`,
+  tenantScope: `${schemaBase}/tenant-scope`,
+  utcTimestamp: `${schemaBase}/utc-timestamp`,
+};
+
+const organizationId = '018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc01';
+const workspaceId = '018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc02';
+const projectId = '018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc03';
+const actorId = '018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc04';
+const correlationId = '018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc05';
+
+function loadContracts() {
+  assert.equal(existsSync(manifestPath), true, 'canonical schema manifest must exist');
+
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  const schemas = manifest.schemas.map((entry) => {
+    const schemaPath = resolve(packageRoot, entry.path);
+    assert.equal(existsSync(schemaPath), true, `schema source must exist: ${entry.path}`);
+    return JSON.parse(readFileSync(schemaPath, 'utf8'));
+  });
+
+  const ajv = new Ajv2020({ allErrors: true, strict: true });
+  addFormats(ajv);
+  for (const schema of schemas) {
+    ajv.addSchema(schema);
+  }
+
+  return { ajv, manifest, schemas };
+}
+
+function validatorFor(id) {
+  const { ajv } = loadContracts();
+  const validate = ajv.getSchema(id);
+  assert.ok(validate, `manifest must register ${id}`);
+  return validate;
+}
+
+test('publishes the complete deterministic v1 registry and compiles every real schema', () => {
+  const { ajv, manifest, schemas } = loadContracts();
+  const expectedNames = [
+    'actor-metadata',
+    'command-envelope',
+    'correlation-metadata',
+    'cursor-page',
+    'event-envelope',
+    'identifier',
+    'problem-details',
+    'revision',
+    'tenant-scope',
+    'utc-timestamp',
+  ];
+
+  assert.equal(manifest.draft, 'https://json-schema.org/draft/2020-12/schema');
+  assert.equal(manifest.version, 1);
+  assert.deepEqual(
+    manifest.schemas.map((entry) => entry.name),
+    expectedNames,
+  );
+  assert.deepEqual(
+    manifest.schemas.map((entry) => entry.id),
+    expectedNames.map((name) => `${schemaBase}/${name}`),
+  );
+  assert.deepEqual(
+    schemas.map((schema) => schema.$id),
+    manifest.schemas.map((entry) => entry.id),
+  );
+
+  for (const entry of manifest.schemas) {
+    assert.ok(ajv.getSchema(entry.id), `schema must compile: ${entry.name}`);
+  }
+});
+
+test('exports only declared registry and versioned schema entry points', () => {
+  const packageJson = JSON.parse(readFileSync(resolve(packageRoot, 'package.json'), 'utf8'));
+
+  assert.deepEqual(Object.keys(packageJson.exports), [
+    '.',
+    './v1/actor-metadata',
+    './v1/command-envelope',
+    './v1/correlation-metadata',
+    './v1/cursor-page',
+    './v1/event-envelope',
+    './v1/identifier',
+    './v1/problem-details',
+    './v1/revision',
+    './v1/tenant-scope',
+    './v1/utc-timestamp',
+  ]);
+  for (const target of Object.values(packageJson.exports)) {
+    assert.equal(
+      existsSync(resolve(packageRoot, target)),
+      true,
+      `export target must exist: ${target}`,
+    );
+  }
+});
+
+test('rejects a malformed UUID identifier', () => {
+  const validate = validatorFor(ids.identifier);
+
+  assert.equal(validate('not-a-uuid'), false);
+  assert.equal(validate(organizationId), true);
+});
+
+test('rejects a timestamp that is not expressed with UTC Z', () => {
+  const validate = validatorFor(ids.utcTimestamp);
+
+  assert.equal(validate('2026-08-01T08:30:00+07:00'), false);
+  assert.equal(validate('2026-08-01T01:30:00.125Z'), true);
+});
+
+test('accepts only positive entity revisions', () => {
+  const validate = validatorFor(ids.revision);
+
+  assert.equal(validate(0), false);
+  assert.equal(validate(1), true);
+});
+
+test('accepts explicit organization, workspace, and project tenant ancestry', () => {
+  const validate = validatorFor(ids.tenantScope);
+
+  assert.equal(validate({ scopeType: 'organization', organizationId }), true);
+  assert.equal(validate({ scopeType: 'workspace', organizationId, workspaceId }), true);
+  assert.equal(validate({ scopeType: 'project', organizationId, workspaceId, projectId }), true);
+});
+
+test('rejects incomplete or discriminator-mismatched tenant ancestry', () => {
+  const validate = validatorFor(ids.tenantScope);
+
+  assert.equal(validate({ scopeType: 'project', organizationId, projectId }), false);
+  assert.equal(validate({ scopeType: 'workspace', organizationId, workspaceId, projectId }), false);
+});
+
+test('accepts closed correlation metadata and rejects undeclared context', () => {
+  const validate = validatorFor(ids.correlationMetadata);
+
+  assert.equal(validate({ correlationId }), true);
+  assert.equal(validate({ correlationId, customerEmail: 'sensitive@example.test' }), false);
+});
+
+test('rejects RFC problem details with an invalid HTTP status', () => {
+  const validate = validatorFor(ids.problemDetails);
+  const problem = {
+    type: 'https://api.databreeze.dev/problems/validation-failed',
+    title: 'Request validation failed',
+    status: 422,
+    detail: 'One or more request fields are invalid.',
+    instance: '/requests/018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc09',
+    code: 'VALIDATION_FAILED',
+    correlationId,
+    retryable: false,
+    messageKey: 'errors.validationFailed',
+    fieldErrors: [{ field: 'name', code: 'REQUIRED' }],
+  };
+
+  assert.equal(validate(problem), true);
+  assert.equal(validate({ ...problem, status: 99 }), false);
+  assert.equal(validate({ ...problem, status: 600 }), false);
+});
+
+test('rejects a command envelope with no idempotency key', () => {
+  const validate = validatorFor(ids.commandEnvelope);
+  const command = {
+    commandId: '018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc06',
+    commandType: 'iam.workspace.rename',
+    schemaVersion: 1,
+    tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+    actor: { actorType: 'user', actorId },
+    correlation: { correlationId },
+    issuedAt: '2026-08-01T01:30:00.125Z',
+    idempotencyKey: 'rename-workspace-018f47f2',
+    data: { displayName: 'Operations' },
+  };
+
+  assert.equal(validate(command), true);
+  const withoutIdempotency = { ...command };
+  delete withoutIdempotency.idempotencyKey;
+  assert.equal(validate(withoutIdempotency), false);
+});
+
+test('rejects invalid and internally inconsistent cursor page shapes', () => {
+  const validate = validatorFor(ids.cursorPage);
+
+  assert.equal(
+    validate({
+      items: [{ id: workspaceId }],
+      pageInfo: { hasNextPage: true, nextCursor: 'opaque-cursor' },
+    }),
+    true,
+  );
+  assert.equal(validate({ items: [], pageInfo: { hasNextPage: false, nextCursor: null } }), true);
+  assert.equal(validate({ items: [], pageInfo: { hasNextPage: true, nextCursor: null } }), false);
+  assert.equal(validate({ items: [], pageInfo: { hasNextPage: false, nextCursor: 42 } }), false);
+});
+
+test('requires event type and positive entity revision in the canonical event envelope', () => {
+  const validate = validatorFor(ids.eventEnvelope);
+  const event = {
+    eventId: '018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc07',
+    eventType: 'iam.workspace.renamed',
+    schemaVersion: 1,
+    tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+    entity: { entityType: 'workspace', entityId: workspaceId, revision: 2 },
+    actor: { actorType: 'user', actorId },
+    correlation: { correlationId },
+    sourceComponent: 'iam',
+    occurredAt: '2026-08-01T01:30:00.125Z',
+    data: { changedFields: ['displayName'] },
+  };
+
+  assert.equal(validate(event), true);
+  const withoutEventType = { ...event };
+  delete withoutEventType.eventType;
+  assert.equal(validate(withoutEventType), false);
+  assert.equal(
+    validate({ ...event, entity: { entityType: 'workspace', entityId: workspaceId } }),
+    false,
+  );
+});

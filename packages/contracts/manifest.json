@@ -1,0 +1,56 @@
+{
+  "draft": "https://json-schema.org/draft/2020-12/schema",
+  "version": 1,
+  "schemas": [
+    {
+      "name": "actor-metadata",
+      "id": "https://schemas.databreeze.dev/contracts/v1/actor-metadata",
+      "path": "schemas/v1/actor-metadata.schema.json"
+    },
+    {
+      "name": "command-envelope",
+      "id": "https://schemas.databreeze.dev/contracts/v1/command-envelope",
+      "path": "schemas/v1/command-envelope.schema.json"
+    },
+    {
+      "name": "correlation-metadata",
+      "id": "https://schemas.databreeze.dev/contracts/v1/correlation-metadata",
+      "path": "schemas/v1/correlation-metadata.schema.json"
+    },
+    {
+      "name": "cursor-page",
+      "id": "https://schemas.databreeze.dev/contracts/v1/cursor-page",
+      "path": "schemas/v1/cursor-page.schema.json"
+    },
+    {
+      "name": "event-envelope",
+      "id": "https://schemas.databreeze.dev/contracts/v1/event-envelope",
+      "path": "schemas/v1/event-envelope.schema.json"
+    },
+    {
+      "name": "identifier",
+      "id": "https://schemas.databreeze.dev/contracts/v1/identifier",
+      "path": "schemas/v1/identifier.schema.json"
+    },
+    {
+      "name": "problem-details",
+      "id": "https://schemas.databreeze.dev/contracts/v1/problem-details",
+      "path": "schemas/v1/problem-details.schema.json"
+    },
+    {
+      "name": "revision",
+      "id": "https://schemas.databreeze.dev/contracts/v1/revision",
+      "path": "schemas/v1/revision.schema.json"
+    },
+    {
+      "name": "tenant-scope",
+      "id": "https://schemas.databreeze.dev/contracts/v1/tenant-scope",
+      "path": "schemas/v1/tenant-scope.schema.json"
+    },
+    {
+      "name": "utc-timestamp",
+      "id": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp",
+      "path": "schemas/v1/utc-timestamp.schema.json"
+    }
+  ]
+}

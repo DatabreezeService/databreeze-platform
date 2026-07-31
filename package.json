@@ -19,7 +19,7 @@
     "repo:test": "corepack pnpm test",
     "requirements:check": "node tools/repo-cli/src/generate-requirement-index.mjs --check",
     "requirements:generate": "node tools/repo-cli/src/generate-requirement-index.mjs",
-    "test": "node --test tools/repo-cli/test/**/*.test.mjs",
+    "test": "node --test tools/repo-cli/test/**/*.test.mjs && turbo run test",
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },
   "devDependencies": {

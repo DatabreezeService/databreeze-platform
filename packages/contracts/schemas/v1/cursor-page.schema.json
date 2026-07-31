@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/cursor-page",
+  "$comment": "Shared pagination shape supporting INT-005.",
+  "title": "Cursor Page Envelope",
+  "description": "A closed list envelope with an opaque continuation cursor.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["items", "pageInfo"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {}
+    },
+    "pageInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hasNextPage", "nextCursor"],
+      "properties": {
+        "hasNextPage": {
+          "type": "boolean"
+        },
+        "nextCursor": {
+          "type": ["string", "null"]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "hasNextPage": {
+                "const": true
+              }
+            },
+            "required": ["hasNextPage"]
+          },
+          "then": {
+            "properties": {
+              "nextCursor": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "nextCursor": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
