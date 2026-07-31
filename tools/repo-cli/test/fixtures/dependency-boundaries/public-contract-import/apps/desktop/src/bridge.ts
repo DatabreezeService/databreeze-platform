@@ -1,3 +1,3 @@
-import { contractVersion } from '@fixture/contracts';
+import { contractVersion } from '@fixture/contracts/schema';
 
 export const bridgeVersion = contractVersion;

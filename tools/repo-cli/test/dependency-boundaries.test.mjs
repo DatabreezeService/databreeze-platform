@@ -29,8 +29,24 @@ test('rejects a client import of a service implementation', () => {
   assert.match(result.stderr, /rule=clients-must-not-import-service-implementations/);
 });
 
+test('rejects a client import of the API directory itself', () => {
+  const result = checkFixture('client-imports-service-directory');
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /apps[\\/]web[\\/]src[\\/]client\.ts/);
+  assert.match(result.stderr, /rule=clients-must-not-import-service-implementations/);
+});
+
 test('rejects a feature import of another feature persistence adapter', () => {
   const result = checkFixture('feature-imports-feature-persistence');
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /features[\\/]inbox[\\/]application[\\/]handler\.ts/);
+  assert.match(result.stderr, /rule=features-must-not-import-other-feature-persistence/);
+});
+
+test('rejects a feature import of another feature persistence directory', () => {
+  const result = checkFixture('feature-imports-persistence-directory');
 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /features[\\/]inbox[\\/]application[\\/]handler\.ts/);
@@ -65,4 +81,12 @@ test('accepts a client import of a shared contract through its public package', 
 
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stderr, '');
+});
+
+test('rejects a client import of a private workspace-package subpath', () => {
+  const result = checkFixture('private-deep-import');
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /apps[\\/]web[\\/]src[\\/]client\.ts/);
+  assert.match(result.stderr, /rule=workspace-packages-must-not-import-private-subpaths/);
 });

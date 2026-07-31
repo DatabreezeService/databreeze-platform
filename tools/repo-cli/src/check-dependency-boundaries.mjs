@@ -89,7 +89,9 @@ function importedModules(filePath) {
 
 function isWithin(candidatePath, parentPath) {
   const relativePath = path.relative(parentPath, candidatePath);
-  return relativePath !== '' && !relativePath.startsWith(`..${path.sep}`) && relativePath !== '..';
+  return (
+    relativePath === '' || (!relativePath.startsWith(`..${path.sep}`) && relativePath !== '..')
+  );
 }
 
 function featureName(filePath, apiDirectory) {
@@ -172,8 +174,9 @@ function checkFeaturePersistenceImports(repositoryRoot, apiDirectory) {
       const importsOtherFeaturePersistence =
         importedFeature !== undefined &&
         importedFeature !== importingFeature &&
-        relativePath(apiDirectory, resolvedTarget).includes(
-          `/features/${importedFeature}/persistence/`,
+        isWithin(
+          resolvedTarget,
+          path.join(apiDirectory, 'src', 'features', importedFeature, 'persistence'),
         );
       const aliasedFeaturePersistence = /(?:^|\/)features\/([^/]+)\/persistence(?:\/|$)/.exec(
         moduleSpecifier,
@@ -192,6 +195,89 @@ function checkFeaturePersistenceImports(repositoryRoot, apiDirectory) {
             `import=${moduleSpecifier}`,
           ),
         );
+      }
+    }
+  }
+
+  return diagnostics;
+}
+
+function workspacePackages(repositoryRoot) {
+  return listPackageManifests(path.join(repositoryRoot, 'packages'))
+    .map((manifestPath) => readPackageManifest(manifestPath))
+    .filter((manifest) => typeof manifest.name === 'string');
+}
+
+function workspacePackageImport(moduleSpecifier, packages) {
+  return packages
+    .map((manifest) => ({
+      manifest,
+      subpath:
+        moduleSpecifier === manifest.name
+          ? '.'
+          : `./${moduleSpecifier.slice(manifest.name.length + 1)}`,
+    }))
+    .find(({ manifest }) => matchesPackageSpecifier(moduleSpecifier, manifest.name));
+}
+
+function escapesForRegularExpression(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function exportsSubpath(exportsField, subpath) {
+  if (typeof exportsField === 'string') {
+    return subpath === '.';
+  }
+  if (exportsField === null || typeof exportsField !== 'object' || Array.isArray(exportsField)) {
+    return false;
+  }
+
+  const exportKeys = Object.keys(exportsField);
+  const publicSubpaths = exportKeys.filter((key) => key.startsWith('.'));
+  if (publicSubpaths.length === 0) {
+    return subpath === '.';
+  }
+
+  return publicSubpaths.some((exportedSubpath) => {
+    if (exportedSubpath === subpath) {
+      return true;
+    }
+    if (!exportedSubpath.includes('*')) {
+      return false;
+    }
+    return new RegExp(
+      `^${escapesForRegularExpression(exportedSubpath).replace('\\*', '.+')}$`,
+    ).test(subpath);
+  });
+}
+
+function checkPrivateWorkspacePackageImports(repositoryRoot) {
+  const diagnostics = [];
+  const packages = workspacePackages(repositoryRoot);
+  const consumerDirectories = [
+    path.join(repositoryRoot, 'apps', 'web'),
+    path.join(repositoryRoot, 'apps', 'desktop'),
+    path.join(repositoryRoot, 'services', 'api'),
+    path.join(repositoryRoot, 'packages'),
+  ];
+
+  for (const consumerDirectory of consumerDirectories) {
+    for (const filePath of listFiles(consumerDirectory)) {
+      for (const moduleSpecifier of importedModules(filePath)) {
+        const workspaceImport = workspacePackageImport(moduleSpecifier, packages);
+        if (
+          workspaceImport !== undefined &&
+          !exportsSubpath(workspaceImport.manifest.exports, workspaceImport.subpath)
+        ) {
+          diagnostics.push(
+            diagnostic(
+              'workspace-packages-must-not-import-private-subpaths',
+              repositoryRoot,
+              filePath,
+              `import=${moduleSpecifier}`,
+            ),
+          );
+        }
       }
     }
   }
@@ -229,6 +315,7 @@ function checkRepository(repositoryRoot) {
     ...checkClientImports(repositoryRoot, apiDirectory),
     ...checkFeaturePersistenceImports(repositoryRoot, apiDirectory),
     ...checkPackageExports(repositoryRoot),
+    ...checkPrivateWorkspacePackageImports(repositoryRoot),
   ].sort();
 }
 
