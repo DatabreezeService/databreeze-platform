@@ -3,7 +3,14 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['**/build/**', '**/coverage/**', '**/dist/**', '**/node_modules/**', '**/out/**'],
+    ignores: [
+      '**/build/**',
+      '**/coverage/**',
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/out/**',
+      'tools/repo-cli/test/fixtures/**',
+    ],
   },
   eslint.configs.recommended,
   {

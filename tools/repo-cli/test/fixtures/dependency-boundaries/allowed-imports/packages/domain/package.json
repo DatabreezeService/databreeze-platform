@@ -1,0 +1,5 @@
+{
+  "name": "@fixture/domain",
+  "private": true,
+  "exports": "./src/index.ts"
+}

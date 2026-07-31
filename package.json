@@ -11,7 +11,7 @@
     "build": "turbo run build",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "eslint .",
+    "lint": "eslint . && node tools/repo-cli/src/check-dependency-boundaries.mjs",
     "repo:bootstrap": "corepack pnpm install --frozen-lockfile",
     "repo:build": "corepack pnpm build",
     "repo:check": "corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test",

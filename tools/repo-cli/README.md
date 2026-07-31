@@ -1,3 +1,8 @@
 # Repository CLI
 
-Future TypeScript orchestration for consistent bootstrap, check, test, build, and development commands across Windows and CI.
+Cross-platform repository checks for Windows and CI.
+
+`node tools/repo-cli/src/check-dependency-boundaries.mjs` scans the repository for
+client-to-service implementation imports, cross-feature persistence imports, and
+workspace packages without public `exports` declarations. Root `pnpm lint` runs this
+checker after ESLint.
