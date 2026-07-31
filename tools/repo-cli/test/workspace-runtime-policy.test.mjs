@@ -12,6 +12,8 @@ const expectedRuntimeVersions = {
   pnpm: '11.9.0',
   python: '3.13.0',
   java: 'temurin-21',
+  postgres: '17',
+  redis: '7.4',
 };
 
 function run(command, args) {
