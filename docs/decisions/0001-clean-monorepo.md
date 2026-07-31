@@ -63,10 +63,24 @@ Rejected because the invalid Git state and nested histories create migration ris
 
 ## Documentation Migration Gate
 
-Before implementation planning begins:
+The gate was completed before implementation planning:
 
-1. Create `databreeze-platform` once, with the directory shape in the architecture document.
-2. Copy the accepted `docs/` tree without semantic edits and verify a file manifest and SHA-256 digest list.
-3. Record the source staging commit and destination commit in this ADR.
-4. Make `databreeze-platform/docs` authoritative and replace this staging copy with a frozen pointer or archive reference.
-5. Do not begin product implementation from the legacy backend or frontend histories.
+1. `databreeze-platform` was created with the directory shape in the architecture document.
+2. The accepted 49-file `docs/` suite was copied without semantic edits and every source/destination SHA-256 digest was verified before destination-only authority and provenance edits.
+3. The immutable source-copy digest list is stored in [`docs/MIGRATION_MANIFEST.sha256`](../MIGRATION_MANIFEST.sha256).
+4. `databreeze-platform/docs` is authoritative; the legacy staging branch is retained only as a frozen historical review archive that points to this repository.
+5. Product implementation must not begin from the legacy backend or frontend histories.
+
+### Migration record
+
+| Field | Value |
+|---|---|
+| Completed | 2026-07-31 |
+| Source repository | `DatabreezeService/BE_DataBreeze` |
+| Source reviewed commit | `b97f864e699a50b59ff64e1337270b0770a371c8` |
+| Destination repository | `DatabreezeService/databreeze-platform` |
+| Destination initial migration commit | `150c310437214ff1f98370385aa52f7100ea4e90` |
+| Verified copied files | 49 of 49 |
+| Integrity algorithm | SHA-256 |
+
+The destination initial commit identifies the imported suite and clean repository skeleton. This later provenance edit is intentionally separate so a commit is never required to contain its own hash.

@@ -1,8 +1,8 @@
 # DataBreeze reviewed-documentation migration manifest
 # Source: DatabreezeService/BE_DataBreeze
 # Source commit: b97f864e699a50b59ff64e1337270b0770a371c8
+# Destination initial migration commit: 150c310437214ff1f98370385aa52f7100ea4e90
 # Scope: the 49 reviewed files copied before destination-only authority/provenance edits.
-# Destination initial commit is recorded in docs/decisions/0001-clean-monorepo.md.
 # Format: SHA-256, two spaces, repository-relative path.
 
 9aed504dd210d3f5a4aff57ff8d98ff06e9b02a8b039b83b79af53efc5352eb8  docs/architecture/domain-and-data-model.md
