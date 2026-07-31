@@ -82,6 +82,12 @@ function isRequirementHeader(cells) {
   );
 }
 
+function isTableSeparator(cells) {
+  return (
+    cells !== undefined && cells.length === 3 && cells.every((cell) => /^:?-{3,}:?$/.test(cell))
+  );
+}
+
 function parseRequirements(repositoryRoot, filePath) {
   const requirements = [];
   const diagnostics = [];
@@ -90,6 +96,14 @@ function parseRequirements(repositoryRoot, filePath) {
 
   for (let index = 0; index < lines.length; index += 1) {
     if (!isRequirementHeader(tableCells(lines[index]))) {
+      continue;
+    }
+
+    const separatorLineNumber = index + 2;
+    if (!isTableSeparator(tableCells(lines[index + 1] ?? ''))) {
+      diagnostics.push(
+        `${relativeFilePath}:${separatorLineNumber}: malformed requirement table separator; expected | --- | --- | --- |`,
+      );
       continue;
     }
 

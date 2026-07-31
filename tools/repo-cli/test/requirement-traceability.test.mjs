@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
@@ -10,9 +10,10 @@ const testDirectory = path.dirname(fileURLToPath(import.meta.url));
 const indexerPath = path.join(testDirectory, '..', 'src', 'generate-requirement-index.mjs');
 const fixturesDirectory = path.join(testDirectory, 'fixtures', 'requirement-traceability');
 
-function runIndexer(fixtureName, extraArguments = []) {
+function runIndexer(fixtureName, extraArguments = [], prepareOutput) {
   const outputDirectory = mkdtempSync(path.join(os.tmpdir(), 'databreeze-requirements-'));
   const outputPath = path.join(outputDirectory, 'requirements-index.json');
+  prepareOutput?.(outputPath);
   const result = spawnSync(
     process.execPath,
     [
@@ -100,6 +101,20 @@ test('rejects gaps in a requirement prefix', () => {
   }
 });
 
+test('rejects a requirement table with a missing separator before any row is skipped', () => {
+  const result = runIndexer('malformed-separator');
+
+  try {
+    assert.equal(result.status, 1);
+    assert.equal(
+      result.stderr,
+      'docs/specs/foundation/foo.md:4: malformed requirement table separator; expected | --- | --- | --- |\n',
+    );
+  } finally {
+    result.cleanup();
+  }
+});
+
 test('rejects malformed priorities and malformed requirement rows', () => {
   const result = runIndexer('malformed');
 
@@ -108,7 +123,8 @@ test('rejects malformed priorities and malformed requirement rows', () => {
     assert.equal(
       result.stderr,
       'docs/specs/foundation/foo.md:5: malformed priority P3 for requirement FOO-001; expected P0, P1, or P2\n' +
-        'docs/specs/foundation/foo.md:6: malformed requirement row; expected | ID | Priority | Requirement |\n',
+        'docs/specs/foundation/foo.md:6: malformed requirement row; expected | ID | Priority | Requirement |\n' +
+        'docs/specs/foundation/foo.md:7: malformed requirement ID FOO-01; expected PREFIX-NNN\n',
     );
   } finally {
     result.cleanup();
@@ -124,6 +140,24 @@ test('reports output drift without rewriting the checked index', () => {
       result.stderr,
       `requirement index drift: ${result.outputPath} is missing or differs; run node tools/repo-cli/src/generate-requirement-index.mjs --output ${result.outputPath}\n`,
     );
+  } finally {
+    result.cleanup();
+  }
+});
+
+test('reports stale index drift without rewriting the existing bytes', () => {
+  const staleContents = '{\n  "version": 0\n}\n';
+  const result = runIndexer('valid', ['--check'], (outputPath) => {
+    writeFileSync(outputPath, staleContents);
+  });
+
+  try {
+    assert.equal(result.status, 1);
+    assert.equal(
+      result.stderr,
+      `requirement index drift: ${result.outputPath} is missing or differs; run node tools/repo-cli/src/generate-requirement-index.mjs --output ${result.outputPath}\n`,
+    );
+    assert.equal(readFileSync(result.outputPath, 'utf8'), staleContents);
   } finally {
     result.cleanup();
   }
