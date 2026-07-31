@@ -1,0 +1,32 @@
+{
+  "name": "@databreeze/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./v1": {
+      "types": "./src/v1.ts",
+      "import": "./dist/v1.js"
+    },
+    "./permissions/v1": {
+      "types": "./src/permissions/v1.ts",
+      "import": "./dist/permissions/v1.js"
+    },
+    "./tenant-scope/v1": {
+      "types": "./src/tenant-scope/v1.ts",
+      "import": "./dist/tenant-scope/v1.js"
+    },
+    "./authorization/v1": {
+      "types": "./src/authorization/v1.ts",
+      "import": "./dist/authorization/v1.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json && node test/built-public-api-smoke.mjs",
+    "test": "node --test test/**/*.test.mjs",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  },
+  "dependencies": {
+    "@databreeze/contracts": "workspace:*"
+  }
+}

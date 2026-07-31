@@ -36,6 +36,12 @@ importers:
         specifier: 3.0.1
         version: 3.0.1(ajv@8.17.1)
 
+  packages/domain:
+    dependencies:
+      '@databreeze/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+
   packages/test-fixtures: {}
 
   tools/fixture-validation:
