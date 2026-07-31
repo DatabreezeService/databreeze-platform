@@ -6,7 +6,21 @@
   "description": "A closed RFC 7807-compatible problem document with DataBreeze public error extensions.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["type", "title", "status", "code", "correlationId", "retryable", "messageKey"],
+  "required": ["type", "status", "code", "correlationId", "retryable"],
+  "anyOf": [
+    {
+      "properties": {
+        "titleKey": true
+      },
+      "required": ["titleKey"]
+    },
+    {
+      "properties": {
+        "messageKey": true
+      },
+      "required": ["messageKey"]
+    }
+  ],
   "properties": {
     "type": {
       "type": "string",
@@ -15,6 +29,11 @@
     "title": {
       "type": "string",
       "minLength": 1
+    },
+    "titleKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
     },
     "status": {
       "type": "integer",
@@ -66,6 +85,37 @@
     "retryAfterSeconds": {
       "type": "integer",
       "minimum": 0
+    },
+    "currentRevision": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/revision"
+    },
+    "remediationAction": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "rateLimit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "resetAt"],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "remaining": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resetAt": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+        }
+      }
     }
   }
 }

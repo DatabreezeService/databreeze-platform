@@ -181,6 +181,81 @@ test('rejects RFC problem details with an invalid HTTP status', () => {
   assert.equal(validate({ ...problem, status: 600 }), false);
 });
 
+test('accepts the documented Web problem shape with title localization and revision recovery', () => {
+  const validate = validatorFor(ids.problemDetails);
+  const webProblem = {
+    type: 'https://api.databreeze.dev/problems/revision-conflict',
+    titleKey: 'errors.revisionConflict.title',
+    status: 409,
+    code: 'REVISION_CONFLICT',
+    correlationId,
+    retryable: false,
+    currentRevision: 7,
+    remediationAction: 'refresh-and-retry',
+  };
+
+  assert.equal(validate(webProblem), true);
+});
+
+test('accepts the documented rate-limit problem shape with message localization', () => {
+  const validate = validatorFor(ids.problemDetails);
+  const rateLimitProblem = {
+    type: 'https://api.databreeze.dev/problems/rate-limit-exceeded',
+    messageKey: 'errors.rateLimitExceeded',
+    status: 429,
+    code: 'RATE_LIMIT_EXCEEDED',
+    correlationId,
+    retryable: true,
+    retryAfterSeconds: 30,
+    rateLimit: {
+      scope: 'principal',
+      limit: 100,
+      remaining: 0,
+      resetAt: '2026-08-01T01:31:00Z',
+    },
+  };
+
+  assert.equal(validate(rateLimitProblem), true);
+});
+
+test('requires at least one problem localization key', () => {
+  const validate = validatorFor(ids.problemDetails);
+  const problem = {
+    type: 'https://api.databreeze.dev/problems/access-denied',
+    status: 403,
+    code: 'ACCESS_DENIED',
+    correlationId,
+    retryable: false,
+  };
+
+  assert.equal(validate(problem), false);
+});
+
+test('rejects unknown outer and nested problem fields', () => {
+  const validate = validatorFor(ids.problemDetails);
+  const problem = {
+    type: 'https://api.databreeze.dev/problems/access-denied',
+    status: 403,
+    code: 'ACCESS_DENIED',
+    correlationId,
+    retryable: false,
+  };
+
+  assert.equal(validate({ ...problem, titleKey: 'errors.accessDenied', stack: 'secret' }), false);
+  assert.equal(
+    validate({
+      ...problem,
+      messageKey: 'errors.accessDenied',
+      rateLimit: {
+        scope: 'principal',
+        resetAt: '2026-08-01T01:31:00Z',
+        credential: 'secret',
+      },
+    }),
+    false,
+  );
+});
+
 test('rejects a command envelope with no idempotency key', () => {
   const validate = validatorFor(ids.commandEnvelope);
   const command = {
@@ -201,19 +276,57 @@ test('rejects a command envelope with no idempotency key', () => {
   assert.equal(validate(withoutIdempotency), false);
 });
 
-test('rejects invalid and internally inconsistent cursor page shapes', () => {
+test('accepts the authoritative continuing and terminal cursor page shapes', () => {
   const validate = validatorFor(ids.cursorPage);
 
   assert.equal(
     validate({
-      items: [{ id: workspaceId }],
-      pageInfo: { hasNextPage: true, nextCursor: 'opaque-cursor' },
+      data: [{ id: workspaceId }],
+      nextCursor: 'opaque-cursor',
+      snapshotAt: '2026-08-01T01:30:00Z',
+      hasMore: true,
     }),
     true,
   );
-  assert.equal(validate({ items: [], pageInfo: { hasNextPage: false, nextCursor: null } }), true);
-  assert.equal(validate({ items: [], pageInfo: { hasNextPage: true, nextCursor: null } }), false);
-  assert.equal(validate({ items: [], pageInfo: { hasNextPage: false, nextCursor: 42 } }), false);
+  assert.equal(validate({ data: [], snapshotAt: '2026-08-01T01:30:00Z', hasMore: false }), true);
+});
+
+test('requires a continuation cursor only while more data exists', () => {
+  const validate = validatorFor(ids.cursorPage);
+
+  assert.equal(validate({ data: [], snapshotAt: '2026-08-01T01:30:00Z', hasMore: true }), false);
+  assert.equal(
+    validate({
+      data: [],
+      nextCursor: 'stale-cursor',
+      snapshotAt: '2026-08-01T01:30:00Z',
+      hasMore: false,
+    }),
+    false,
+  );
+});
+
+test('rejects a cursor page with a non-UTC snapshot', () => {
+  const validate = validatorFor(ids.cursorPage);
+
+  assert.equal(
+    validate({ data: [], snapshotAt: '2026-08-01T08:30:00+07:00', hasMore: false }),
+    false,
+  );
+});
+
+test('rejects unknown cursor page fields', () => {
+  const validate = validatorFor(ids.cursorPage);
+
+  assert.equal(
+    validate({
+      data: [],
+      snapshotAt: '2026-08-01T01:30:00Z',
+      hasMore: false,
+      pageInfo: {},
+    }),
+    false,
+  );
 });
 
 test('requires event type and positive entity revision in the canonical event envelope', () => {
