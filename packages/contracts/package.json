@@ -23,7 +23,8 @@
     "build": "node scripts/build.mjs && node scripts/generate-models.mjs --check",
     "generate": "node scripts/generate-models.mjs",
     "generate:check": "node scripts/generate-models.mjs --check",
-    "test": "node --test test/**/*.test.mjs"
+    "test": "node --test test/**/*.test.mjs",
+    "test:python-formats": "node test/python-format-runtime-probe.mjs"
   },
   "devDependencies": {
     "ajv": "8.17.1",

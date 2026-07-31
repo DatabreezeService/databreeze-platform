@@ -2,16 +2,8 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Mapping
-from datetime import datetime
 from typing import Any
-from urllib.parse import urlsplit
-
-_UTC_TIMESTAMP = re.compile(r"^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$")
-_UUID = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
-_INVALID_PERCENT_ENCODING = re.compile(r"%(?![0-9a-fA-F]{2})")
-_INVALID_URI_CHARACTER = re.compile(r'[\x00-\x20\x7f<>"{}|\\^`]')
 
 
 def _require_string(value: Any, format_name: str) -> str:
@@ -21,31 +13,42 @@ def _require_string(value: Any, format_name: str) -> str:
 
 
 def validate_uuid(value: Any) -> str:
+    from uuid import UUID
+
     value = _require_string(value, "uuid")
-    if _UUID.fullmatch(value) is None:
+    candidate = value[9:] if value.lower().startswith("urn:uuid:") else value
+    try:
+        parsed = UUID(candidate)
+    except ValueError as error:
+        raise ValueError("value must be a UUID string") from error
+    if str(parsed) != candidate.lower():
         raise ValueError("value must be a UUID string")
     return value
 
 
 def validate_utc_timestamp(value: Any) -> str:
+    from rfc3339_validator import validate_rfc3339
+
     value = _require_string(value, "date-time")
-    if _UTC_TIMESTAMP.fullmatch(value) is None:
+    valid = bool(validate_rfc3339(value))
+    if not valid:
+        prefix, separator, seconds = value.rpartition(":")
+        valid = bool(
+            separator
+            and seconds.startswith("60")
+            and validate_rfc3339(f"{prefix}:59{seconds[2:]}")
+        )
+    if not value.endswith("Z") or not valid:
         raise ValueError("value must be an RFC 3339 date-time ending in uppercase Z")
-    try:
-        datetime.fromisoformat(f"{value[:-1]}+00:00")
-    except ValueError as error:
-        raise ValueError("value must be a valid RFC 3339 date-time") from error
     return value
 
 
 def validate_uri_reference(value: Any) -> str:
+    from rfc3986_validator import validate_rfc3986
+
     value = _require_string(value, "uri-reference")
-    if _INVALID_URI_CHARACTER.search(value) or _INVALID_PERCENT_ENCODING.search(value):
+    if validate_rfc3986(value, rule="URI_reference") is None:
         raise ValueError("value must be an RFC 3986 URI reference")
-    try:
-        urlsplit(value)
-    except ValueError as error:
-        raise ValueError("value must be an RFC 3986 URI reference") from error
     return value
 
 

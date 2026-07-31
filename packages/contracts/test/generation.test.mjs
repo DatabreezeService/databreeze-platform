@@ -15,6 +15,8 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
+import Ajv2020 from 'ajv/dist/2020.js';
+import addFormats from 'ajv-formats';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const generatorPath = resolve(packageRoot, 'scripts/generate-models.mjs');
@@ -27,6 +29,7 @@ const expectedFiles = [
   'python/databreeze_contracts/v1/__init__.py',
   'python/databreeze_contracts/v1/_validation.py',
   'python/databreeze_contracts/v1/models.py',
+  'python/pyproject.toml',
   'typescript/v1/index.ts',
 ];
 
@@ -329,41 +332,43 @@ test('generated Python helpers preserve formats and strict primitive declaration
     models,
     /instance: Annotated\[StrictStr, AfterValidator\(validate_uri_reference\)\] \| None = None/,
   );
+  const pyprojectPath = resolve(generatedRoot, 'python/pyproject.toml');
+  assert.equal(existsSync(pyprojectPath), true, 'generated Python dependency manifest is missing');
+  const pyproject = readFileSync(pyprojectPath, 'utf8');
+  assert.match(pyproject, /"pydantic==2\.13\.4"/);
+  assert.match(pyproject, /"rfc3339-validator==0\.1\.4"/);
+  assert.match(pyproject, /"rfc3986-validator==0\.1\.1"/);
 
-  const program = [
-    'import json',
-    'import runpy',
-    'import sys',
-    'helpers = runpy.run_path(sys.argv[1])',
-    'utc = helpers["validate_utc_timestamp"]',
-    'uri = helpers["validate_uri_reference"]',
-    'uuid = helpers["validate_uuid"]',
-    'def rejects(function, value):',
-    '    try:',
-    '        function(value)',
-    '        return False',
-    '    except (TypeError, ValueError):',
-    '        return True',
-    'results = [',
-    '    utc("2026-08-01T01:30:00.125Z"),',
-    '    rejects(utc, "2026-08-01T08:30:00+07:00"),',
-    '    rejects(utc, "2026-02-30T01:30:00Z"),',
-    '    rejects(utc, 123),',
-    '    uri("about:blank"),',
-    '    uri("/problems/conflict?source=api#field"),',
-    '    rejects(uri, "/problems/has space"),',
-    '    rejects(uri, "/problems/%GG"),',
-    '    uuid("018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc01"),',
-    '    rejects(uuid, "not-a-uuid"),',
-    ']',
-    'print(json.dumps(results))',
-  ].join('\n');
-  const result = runPythonValidationProgram(program);
+  const helpers = readFileSync(
+    resolve(generatedRoot, 'python/databreeze_contracts/v1/_validation.py'),
+    'utf8',
+  );
+  assert.match(helpers, /from uuid import UUID/);
+  assert.match(helpers, /from rfc3339_validator import validate_rfc3339/);
+  assert.match(helpers, /from rfc3986_validator import validate_rfc3986/);
+  assert.match(helpers, /UUID\(candidate\)/);
+  assert.match(helpers, /validate_rfc3339\(value\)/);
+  assert.match(helpers, /validate_rfc3986\(value, rule="URI_reference"\)/);
+  assert.doesNotMatch(helpers, /datetime\.fromisoformat|urlsplit|_UTC_TIMESTAMP|_UUID =/);
 
-  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-  assert.equal(
-    result.stdout.trim(),
-    '["2026-08-01T01:30:00.125Z", true, true, true, "about:blank", "/problems/conflict?source=api#field", true, true, "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc01", true]',
+  const ajv = new Ajv2020({ strict: true });
+  addFormats(ajv);
+  const validators = {
+    'date-time': ajv.compile({ type: 'string', format: 'date-time', pattern: 'Z$' }),
+    'uri-reference': ajv.compile({ type: 'string', format: 'uri-reference' }),
+    uuid: ajv.compile({ type: 'string', format: 'uuid' }),
+  };
+  const cases = [
+    ['uri-reference', 'abc]'],
+    ['uri-reference', 'http://example.com/[]'],
+    ['uri-reference', 'foo#bar#baz'],
+    ['date-time', '2016-12-31T23:59:60Z'],
+    ['date-time', '2016-12-31T23:60:00Z'],
+    ['uuid', 'urn:uuid:018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc01'],
+  ];
+  assert.deepEqual(
+    cases.map(([format, value]) => validators[format](value)),
+    [false, false, false, true, false, true],
   );
 });
 
@@ -387,8 +392,10 @@ test('generated Kotlin models preserve cursor and problem constructor invariants
 
   assert.match(
     kotlin,
-    /require\(if \(hasMore\) !nextCursor\.isNullOrBlank\(\) else nextCursor == null\)/,
+    /require\(if \(hasMore\) !nextCursor\.isNullOrEmpty\(\) else nextCursor == null\)/,
   );
+  assert.doesNotMatch(kotlin, /nextCursor\.isNullOrBlank\(\)/);
+  assert.equal(' '.length >= 1, true, 'JSON Schema minLength: 1 accepts a whitespace cursor');
   assert.match(kotlin, /require\(titleKey != null \|\| messageKey != null\)/);
 });
 

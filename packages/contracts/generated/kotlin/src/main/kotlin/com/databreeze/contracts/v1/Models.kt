@@ -44,7 +44,7 @@ public data class CursorPage<TItem>(
     public val snapshotAt: UtcTimestamp,
 ) {
     init {
-        require(if (hasMore) !nextCursor.isNullOrBlank() else nextCursor == null) {
+        require(if (hasMore) !nextCursor.isNullOrEmpty() else nextCursor == null) {
             "nextCursor must match hasMore"
         }
     }
