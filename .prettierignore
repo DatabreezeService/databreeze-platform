@@ -1,0 +1,7 @@
+.github/workflows/README.md
+.superpowers/
+AGENTS.md
+README.md
+docs/
+**/README.md
+pnpm-lock.yaml
