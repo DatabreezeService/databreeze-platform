@@ -40,6 +40,7 @@ local.properties
 # IDE and operating system
 .idea/
 .vscode/
+.worktrees/
 *.iml
 .DS_Store
 Thumbs.db
