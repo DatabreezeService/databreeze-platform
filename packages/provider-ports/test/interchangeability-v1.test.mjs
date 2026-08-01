@@ -137,6 +137,34 @@ test('begin rejects reuse of an idempotency key for a different multipart plan',
   );
 });
 
+test('distinct begin requests get unique upload references while replays reuse the receipt', async () => {
+  const plan = defineObjectStorageMultipartPlanV1({
+    objectKey: 'workspace/distinct-upload-references',
+    expectedSha256: 'a'.repeat(64),
+    expectedByteLength: 3,
+    partSizeBytes: 8 * 1024 * 1024,
+  });
+
+  for (const [backing, port] of [
+    ['map', storageFakeV1('map-upload-ref-memory-v1', 'map', sha256)],
+    ['record', storageFakeV1('record-upload-ref-memory-v1', 'record', sha256)],
+  ]) {
+    const firstRequest = {
+      context: context('begin-multipart-upload', `idem-upload-ref-${backing}-first`),
+      plan,
+    };
+    const first = await port.beginMultipartUpload(firstRequest);
+    const replay = await port.beginMultipartUpload(firstRequest);
+    const second = await port.beginMultipartUpload({
+      context: context('begin-multipart-upload', `idem-upload-ref-${backing}-second`),
+      plan,
+    });
+
+    assert.equal(replay, first);
+    assert.notEqual(second.uploadRef, first.uploadRef);
+  }
+});
+
 test('upload rejects reuse of an idempotency key for another upload or part integrity tuple', async () => {
   const port = storageFakeV1('upload-conflict-memory-v1', 'map', sha256);
   const plan = defineObjectStorageMultipartPlanV1({

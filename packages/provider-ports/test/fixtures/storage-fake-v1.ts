@@ -127,6 +127,7 @@ export function storageFakeV1(
   const objects = createBackingV1<Uint8Array>(backingKind);
   const objectIds = new WeakMap<object, number>();
   let nextObjectId = 1;
+  let nextUploadRef = 1;
 
   const objectId = (value: object): number => {
     const existing = objectIds.get(value);
@@ -166,9 +167,10 @@ export function storageFakeV1(
       const prior = replayV1(beginReceipts, key, fingerprint, 'begin-multipart-upload');
       if (prior !== undefined) return prior;
       const upload = defineObjectStorageMultipartUploadV1({
-        uploadRef: `upload:${request.plan.objectKey}`,
+        uploadRef: `upload:${nextUploadRef}`,
         plan: request.plan,
       });
+      nextUploadRef += 1;
       beginReceipts.set(key, Object.freeze({ fingerprint, result: upload }));
       await Promise.resolve();
       return upload;
