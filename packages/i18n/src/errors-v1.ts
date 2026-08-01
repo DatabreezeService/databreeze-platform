@@ -16,7 +16,7 @@ const ERROR_MESSAGES_V1: Readonly<Record<I18nErrorCodeV1, string>> = Object.free
   INVALID_CURRENCY: 'The currency code is not supported.',
   INVALID_DATE: 'The date value is invalid.',
   INVALID_LOCALE: 'The locale is not supported.',
-  INVALID_NUMBER: 'The numeric value must be finite.',
+  INVALID_NUMBER: 'The numeric value is invalid or outside the supported range.',
   INVALID_PARAMETER: 'The message parameter has an invalid value.',
   INVALID_TIME_ZONE: 'An explicit supported time zone is required.',
   MISSING_MESSAGE: 'The message key is not present in the catalog.',

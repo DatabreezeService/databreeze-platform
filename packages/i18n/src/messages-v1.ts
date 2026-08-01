@@ -6,6 +6,7 @@ import {
   type SupportedLocaleV1,
 } from './catalogs-v1.ts';
 import { I18nErrorV1 } from './errors-v1.ts';
+import { selectPluralIntrinsicV1 } from './intrinsics-v1.ts';
 import { assertSupportedLocaleV1 } from './locale-v1.ts';
 import { readClosedDataObjectV1 } from './safe-input-v1.ts';
 import { sanitizeTextParameterV1 } from './text-v1.ts';
@@ -81,7 +82,12 @@ export function formatRetryAfterSecondsV1(locale: SupportedLocaleV1, seconds: nu
   if (!Number.isFinite(seconds) || !Number.isSafeInteger(seconds) || seconds < 0) {
     throw new I18nErrorV1('INVALID_NUMBER');
   }
-  const category = new Intl.PluralRules(locale).select(seconds);
+  let category: Intl.LDMLPluralRule;
+  try {
+    category = selectPluralIntrinsicV1(locale, {}, seconds);
+  } catch {
+    throw new I18nErrorV1('INVALID_ARGUMENT');
+  }
   const key = category === 'one' ? 'retry.afterSeconds.one' : 'retry.afterSeconds.other';
   return formatMessageV1(locale, key, { seconds });
 }

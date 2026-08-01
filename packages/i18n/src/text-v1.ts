@@ -1,4 +1,5 @@
 import { I18nErrorV1 } from './errors-v1.ts';
+import { normalizeStringIntrinsicV1, stringCodeUnitAtIntrinsicV1 } from './intrinsics-v1.ts';
 
 const MAX_IDENTIFIER_LENGTH_V1 = 128;
 const MAX_TEXT_LENGTH_V1 = 512;
@@ -7,9 +8,12 @@ const IDENTIFIER_V1 = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/u;
 
 function hasUnpairedSurrogate(value: string): boolean {
   for (let index = 0; index < value.length; index += 1) {
-    const codeUnit = value.charCodeAt(index);
+    const codeUnit = stringCodeUnitAtIntrinsicV1(value, index);
     if (codeUnit >= 0xd800 && codeUnit <= 0xdbff) {
-      const next = value.charCodeAt(index + 1);
+      if (index + 1 >= value.length) {
+        return true;
+      }
+      const next = stringCodeUnitAtIntrinsicV1(value, index + 1);
       if (next < 0xdc00 || next > 0xdfff) {
         return true;
       }
@@ -28,7 +32,7 @@ export function sanitizeTextParameterV1(value: unknown, kind: 'identifier' | 'te
 
   let normalized: string;
   try {
-    normalized = value.normalize('NFC');
+    normalized = normalizeStringIntrinsicV1(value);
   } catch {
     throw new I18nErrorV1('INVALID_PARAMETER');
   }

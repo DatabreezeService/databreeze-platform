@@ -1,11 +1,15 @@
 import { DEFAULT_LOCALE_V1, SUPPORTED_LOCALES_V1, type SupportedLocaleV1 } from './catalogs-v1.ts';
 import { I18nErrorV1 } from './errors-v1.ts';
+import {
+  canonicalizeLocalesIntrinsicV1,
+  localeLanguageIntrinsicV1,
+  splitStringIntrinsicV1,
+  trimStringIntrinsicV1,
+} from './intrinsics-v1.ts';
 import { readClosedDataObjectV1 } from './safe-input-v1.ts';
 
 const NEGOTIATION_KEYS_V1 = new Set(['acceptLanguage', 'userLocale']);
 const Q_VALUE_V1 = /^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/u;
-const canonicalizeLocalesV1 = Intl.getCanonicalLocales.bind(Intl);
-const LocaleV1 = Intl.Locale;
 
 interface CanonicalRangeV1 {
   readonly canonical: string;
@@ -22,30 +26,32 @@ interface CandidateV1 {
 }
 
 function canonicalSupportedRange(tag: string): CanonicalRangeV1 | undefined {
-  const trimmed = tag.trim();
+  const trimmed = trimStringIntrinsicV1(tag);
   if (trimmed === '' || trimmed.length > 255) {
     return undefined;
   }
 
   try {
-    const canonicalLocales = canonicalizeLocalesV1([trimmed]);
+    const canonicalLocales = canonicalizeLocalesIntrinsicV1([trimmed]);
     if (canonicalLocales.length !== 1 || canonicalLocales[0] === undefined) {
       return undefined;
     }
     const canonical = canonicalLocales[0];
-    const language = new LocaleV1(canonical).language.toLowerCase();
+    const language = localeLanguageIntrinsicV1(canonical);
     const locale = language === 'vi' ? 'vi-VN' : language === 'en' ? 'en' : undefined;
     if (locale === undefined) {
       return undefined;
     }
-    return { canonical, locale, specificity: canonical.split('-').length };
+    return { canonical, locale, specificity: splitStringIntrinsicV1(canonical, '-').length };
   } catch {
     return undefined;
   }
 }
 
 function parseCandidate(part: string, order: number): CandidateV1 | undefined {
-  const sections = part.split(';').map((section) => section.trim());
+  const sections = splitStringIntrinsicV1(part, ';').map((section) =>
+    trimStringIntrinsicV1(section),
+  );
   if (sections.length > 2 || sections[0] === '') {
     return undefined;
   }
@@ -107,8 +113,7 @@ function negotiateHeader(header: unknown): SupportedLocaleV1 {
   }
 
   const candidates = consolidateDuplicateRanges(
-    header
-      .split(',')
+    splitStringIntrinsicV1(header, ',')
       .slice(0, 64)
       .map(parseCandidate)
       .filter((candidate): candidate is CandidateV1 => candidate !== undefined),
