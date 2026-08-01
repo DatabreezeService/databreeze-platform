@@ -52,6 +52,8 @@ test('AWS sources expose encryption, private data, and OIDC boundaries without s
     'aws_iam_openid_connect_provider',
     'RegionalServiceEncryption',
     'kms:GenerateDataKey',
+    'execution_secrets',
+    'master_user_secret_kms_key_id',
     'block_public_policy',
     'storage_encrypted',
     'manage_master_user_password = true',
