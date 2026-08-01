@@ -12,7 +12,9 @@
   },
   "include": [
     "e2e/**/*.ts",
+    "e2e-dev/**/*.ts",
     "playwright.config.ts",
+    "playwright.dev.config.ts",
     "security-headers.ts",
     "vite.config.ts",
     "vitest.config.ts"

@@ -33,19 +33,23 @@ corepack pnpm --filter @databreeze/web test
 corepack pnpm --filter @databreeze/web typecheck
 corepack pnpm --filter @databreeze/web build
 corepack pnpm web:test:e2e
+corepack pnpm web:test:e2e:dev
+corepack pnpm web:test:e2e:preview
 corepack pnpm web:browser:install:ci
 corepack pnpm web:test:e2e:ci
 ```
 
-The root `web:test:e2e` command builds public workspace dependencies first, starts the production
-preview, and runs desktop plus mobile Chromium smoke coverage. Local Windows Application Control
-may block Playwright's downloaded browser; the local configuration uses installed Chrome while CI
-uses Playwright Chromium. The build fails when initial JavaScript exceeds 250 KiB gzip.
+The root `web:test:e2e` command builds public workspace dependencies first, runs the production
+preview desktop/mobile suite, and then starts the Vite development server for its browser
+regression. `web:test:e2e:preview` and `web:test:e2e:dev` expose those lanes independently. Local
+Windows Application Control may block Playwright's downloaded browser; local configurations use
+installed Chrome while CI uses Playwright Chromium. The build fails when initial JavaScript exceeds
+250 KiB gzip.
 
 `web:browser:install:ci` runs `playwright install --with-deps chromium`, so a clean Linux runner
 receives both Chromium and its system libraries. `web:test:e2e:ci` provisions that browser before
-the browser suite. Task 21 must invoke this CI command when it adds the repository workflow; Task
-13 intentionally does not add or change workflow files.
+the preview and development browser suites. Task 21 must invoke this CI command when it adds the
+repository workflow; Task 13 intentionally does not add or change workflow files.
 
 ## Localization routing
 
@@ -60,10 +64,12 @@ the browser suite. Task 21 must invoke this CI command when it adds the reposito
 
 - One canonical response-header policy in `security-headers.ts` supplies CSP (including
   `frame-ancestors 'none'`), `Referrer-Policy: no-referrer`, and
-  `X-Content-Type-Options: nosniff` to Vite development and preview responses. The HTML does not
-  attempt to set unsupported `frame-ancestors` through a CSP meta element. Task 19 must configure
-  the AWS/CloudFront hosting response headers with this same policy before production deployment;
-  Task 13 does not claim that production hosting is configured yet.
+  `X-Content-Type-Options: nosniff` to Vite preview responses. Vite development intentionally omits
+  CSP because its local-only HMR/React Refresh preamble is inline; it does not weaken or fork the
+  preview policy with unsafe script directives. The HTML does not attempt to set unsupported
+  `frame-ancestors` through a CSP meta element. Task 19 must configure the AWS/CloudFront hosting
+  response headers with this same strict preview policy before production deployment; Task 13 does
+  not claim that production hosting is configured yet.
 - Query cache lifetime and retry behavior are bounded. No query persistence plugin is installed.
 - The current retry policy uses short bounded defaults only. Reading RFC 7807 responses and
   honoring `Retry-After` is deferred until the typed control-plane HTTP adapter is available.

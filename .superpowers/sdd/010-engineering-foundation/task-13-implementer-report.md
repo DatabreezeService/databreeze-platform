@@ -123,10 +123,11 @@ This is partial foundation coverage only; no `WEB-*` requirement is complete.
 
 - Foundation APIs and authentication do not yet exist. All organization/workspace/project,
   notifications, rows, permissions, and entitlements are typed content-minimized placeholders.
-- The canonical Vite development/preview response-header CSP permits inline styles for
-  Vite/Tailwind compatibility; script, object, frame, base, form, image, font, and connect sources
-  remain restricted. Task 19 must apply the same response-header policy at AWS/CloudFront before
-  production deployment; this task does not claim that production hosting is configured.
+- The canonical Vite preview response-header CSP permits inline styles for Tailwind compatibility;
+  script, object, frame, base, form, image, font, and connect sources remain restricted. Vite
+  development intentionally omits CSP because its HMR/React Refresh preamble is inline. Task 19
+  must apply the strict preview response-header policy at AWS/CloudFront before production
+  deployment; this task does not claim that production hosting is configured.
 - Windows Application Control blocks downloaded Playwright Chromium in this environment. Installed
   Chrome passed the same suite locally. The repository now provides explicit clean-runner Chromium
   provisioning; Task 21 must wire the documented CI command into the repository workflow.
@@ -136,8 +137,8 @@ This is partial foundation coverage only; no `WEB-*` requirement is complete.
 Independent review identified five important and three minor gaps. Fix round 1 corrected all of
 them test-first where production behavior changed:
 
-1. Replaced meta-delivered CSP with one committed response-header policy used by Vite development
-   and preview, verified the header, removed unsupported meta `frame-ancestors`, and proved an
+1. Replaced meta-delivered CSP with one committed response-header policy used by Vite preview,
+   verified the header, removed unsupported meta `frame-ancestors`, and proved an
    embedding attempt is blocked. AWS/CloudFront enforcement remains explicitly assigned to Task 19.
 2. Made `ApplicationBoundary` derive its recovery locale from canonical router state; the English
    crash regression no longer injects a locale manually.
@@ -153,3 +154,15 @@ them test-first where production behavior changed:
 Final fix-round evidence is recorded in `task-13-fix-round-1-report.md`. The final Web unit result
 is 5 files and 18 tests; the browser matrix is 17 passed and 3 intentional cross-project skips; the
 initial JavaScript remains within budget at 108,251/256,000 gzip bytes.
+
+## Fix round 2 addendum
+
+Re-review found that applying the strict preview CSP unchanged to Vite development blocked the
+inline React Refresh preamble and produced a blank shell. Fix round 2 removed only the development
+server header application; `WEB_SECURITY_HEADERS` and preview enforcement remain unchanged.
+
+A dedicated Playwright development-server configuration now starts Vite on strict port 5173 and
+asserts that the English workspace renders, the response has no development CSP header, and the
+browser reports no CSP/React Refresh preamble error. Separate root commands expose preview and
+development lanes; the combined `web:test:e2e` and provisioned `web:test:e2e:ci` paths run both.
+Final evidence is recorded in `task-13-fix-round-2-report.md`.

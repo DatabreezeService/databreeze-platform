@@ -30,6 +30,8 @@
     "test": "node --test tools/repo-cli/test/**/*.test.mjs && turbo run test",
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "web:browser:install:ci": "corepack pnpm --filter @databreeze/web browser:install:ci",
+    "web:test:e2e:dev": "corepack pnpm --filter @databreeze/web test:e2e:dev",
+    "web:test:e2e:preview": "corepack pnpm turbo run build --filter=@databreeze/web && corepack pnpm --filter @databreeze/web test:e2e:preview",
     "web:test:e2e:ci": "corepack pnpm web:browser:install:ci && corepack pnpm web:test:e2e",
     "web:test:e2e": "corepack pnpm turbo run build --filter=@databreeze/web && corepack pnpm --filter @databreeze/web test:e2e"
   },

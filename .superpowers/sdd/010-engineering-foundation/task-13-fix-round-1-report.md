@@ -3,7 +3,7 @@
 ## Outcome
 
 Addressed every important finding and each low-risk minor finding in the independent review. The
-shell now enforces clickjacking protection in Vite development/preview response headers, localizes
+shell now enforces clickjacking protection in Vite preview response headers, localizes
 outer recovery from the canonical route, exposes a visible 44px search submit, keeps governed
 actions behaviorally honest, provisions CI Chromium explicitly, uses neutral metadata, guards the
 no-persistence boundary more broadly, and records the `Retry-After` deferral.
@@ -14,8 +14,9 @@ no-persistence boundary more broadly, and records the `Retry-After` deferral.
    - RED: `playwright test e2e/security-policy.spec.ts --project=chromium` failed 3/3: no CSP
      response header, meta CSP still advertised `frame-ancestors`, and the iframe loaded the English
      workspace.
-   - GREEN: the same command passed 3/3 after `WEB_SECURITY_HEADERS` was shared by Vite development
-     and preview and the CSP meta element was removed.
+   - GREEN: the same command passed 3/3 after Vite preview adopted `WEB_SECURITY_HEADERS` and the CSP
+     meta element was removed. Fix round 2 subsequently removed the incompatible development-server
+     application without changing the preview policy.
 2. Production-composition recovery locale:
    - RED: the focused recovery test could not find `The workspace could not start` when an English
      router and crash child were supplied without a locale override.

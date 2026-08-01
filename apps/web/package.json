@@ -10,7 +10,9 @@
     "dev": "vite",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:e2e": "playwright test",
+    "test:e2e": "corepack pnpm test:e2e:preview && corepack pnpm test:e2e:dev",
+    "test:e2e:dev": "playwright test --config playwright.dev.config.ts",
+    "test:e2e:preview": "playwright test",
     "test:watch": "vitest",
     "typecheck": "tsc --build --pretty false"
   },

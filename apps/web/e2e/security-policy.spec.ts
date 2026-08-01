@@ -2,8 +2,10 @@ import { expect, test } from '@playwright/test';
 
 test('preview serves clickjacking protection as a response header', async ({ page }) => {
   const response = await page.goto('/en/workspace');
+  const policy = response?.headers()['content-security-policy'];
 
-  expect(response?.headers()['content-security-policy']).toContain("frame-ancestors 'none'");
+  expect(policy).toContain("frame-ancestors 'none'");
+  expect(policy?.split(';').map((directive) => directive.trim())).toContain("script-src 'self'");
 });
 
 test('the document does not advertise unsupported frame ancestors through meta CSP', async ({

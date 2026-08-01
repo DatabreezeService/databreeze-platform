@@ -6,9 +6,6 @@ import { WEB_SECURITY_HEADERS } from './security-headers.ts';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  server: {
-    headers: WEB_SECURITY_HEADERS,
-  },
   preview: {
     headers: WEB_SECURITY_HEADERS,
   },
