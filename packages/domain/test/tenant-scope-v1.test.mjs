@@ -3,7 +3,7 @@ import test from 'node:test';
 
 async function loadTenantScope() {
   try {
-    return await import('../src/tenant-scope/v1.ts');
+    return await import('../dist/tenant-scope/v1.js');
   } catch {
     return undefined;
   }

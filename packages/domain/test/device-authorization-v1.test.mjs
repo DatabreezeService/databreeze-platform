@@ -7,7 +7,7 @@ import {
   createAuthorizationSnapshotV1,
   createOpaqueDeviceGrantV1,
   verifyAuthorizationSnapshotV1,
-} from '../src/device-authorization/v1.ts';
+} from '../dist/device-authorization/v1.js';
 
 const id = (tail) => `00000000-0000-4000-8000-${tail.padStart(12, '0')}`;
 const scope = { scopeType: 'organization', organizationId: id('1') };

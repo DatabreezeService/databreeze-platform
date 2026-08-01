@@ -7,7 +7,7 @@ import {
   createAuditSealV1,
   sanitizeAuditSummaryV1,
   verifyAuditChainV1,
-} from '../src/audit/v1.ts';
+} from '../dist/audit/v1.js';
 
 const id = (tail) => `00000000-0000-4000-8000-${tail.padStart(12, '0')}`;
 const scope = { scopeType: 'organization', organizationId: id('1') };

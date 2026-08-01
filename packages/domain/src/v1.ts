@@ -1,5 +1,6 @@
 export * from './authorization/v1.js';
 export * from './audit/v1.js';
+export * from './artifact/v1.js';
 export * from './identity/v1.js';
 export * from './entitlements/v1.js';
 export * from './mfa/v1.js';
