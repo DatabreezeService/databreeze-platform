@@ -7,6 +7,8 @@ rotation](secret-rotation.md), [provider adapters](provider-adapters.md),
 [backup and restoration](backup-and-restoration.md), [release channels](release-channels.md),
 and [support diagnostics](support-diagnostics.md).
 
+Foundation evidence is tracked in [engineering-foundation-verification](engineering-foundation-verification.md).
+
 Every production deployable requires:
 
 - ownership and escalation
