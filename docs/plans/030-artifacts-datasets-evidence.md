@@ -59,4 +59,3 @@ Public interface / Giao di?n: versioned OpenAPI and JSON Schema v1; commands car
 ## Release evidence / B?ng ch?ng ph?t h?nh
 
 The manifest docs/plans/requirement-traceability.json is authoritative. A record becomes verified only after evidence paths exist, linked tests pass and the release gate is approved. All P2 IDs are exclusively owned by 500.
-
