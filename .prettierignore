@@ -6,3 +6,4 @@ docs/
 **/README.md
 pnpm-lock.yaml
 packages/contracts/generated/
+packages/design-tokens/brand/derivatives.json

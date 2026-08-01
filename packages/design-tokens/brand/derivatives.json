@@ -1,0 +1,884 @@
+{
+  "schemaVersion": 1,
+  "generator": {
+    "engine": "sharp",
+    "engineVersion": "0.35.3",
+    "icoContainer": "png-frame-ico-v1",
+    "png": {
+      "adaptiveFiltering": false,
+      "compressionLevel": 9,
+      "effort": 10,
+      "palette": false
+    }
+  },
+  "sourceManifestSha256": "78F718C9B32303F5C2C746BFF5F7698740CCC1565F5D0242AF0E4B83263BF7A0",
+  "assets": [
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 84,
+        "y": 84,
+        "width": 264,
+        "height": 264
+      },
+      "file": "android/adaptive-foreground-432.png",
+      "fittedBox": {
+        "x": 84,
+        "y": 84,
+        "width": 264,
+        "height": 264
+      },
+      "height": 432,
+      "mediaType": "image/png",
+      "platform": "android",
+      "purpose": "Adaptive launcher foreground source",
+      "safeZone": "android-adaptive-66dp-within-108dp",
+      "sha256": "2342B1B56C9D16E009EFA5D285D030C8BD37DBB2135223A9D819DB098B86732B",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "C16B2F8154035627EE4BC1970B6BFC21C557AE8D44F1A33F85DE3C3377A7E645",
+      "width": 432
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 7,
+        "y": 7,
+        "width": 58,
+        "height": 58
+      },
+      "file": "android/launcher-hdpi-72.png",
+      "fittedBox": {
+        "x": 7,
+        "y": 7,
+        "width": 58,
+        "height": 58
+      },
+      "height": 72,
+      "mediaType": "image/png",
+      "platform": "android",
+      "purpose": "Legacy launcher source (hdpi)",
+      "safeZone": "10-percent-minimum",
+      "sha256": "37FB331CA337961A759DF4D937D780CA291305B3B0FB0DDC9A61306127278448",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "C850208368B49DD40EB5206145DC8044A0AD97AD5A15222B5AAA14458ACBD626",
+      "width": 72
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 5,
+        "y": 5,
+        "width": 38,
+        "height": 38
+      },
+      "file": "android/launcher-mdpi-48.png",
+      "fittedBox": {
+        "x": 5,
+        "y": 5,
+        "width": 38,
+        "height": 38
+      },
+      "height": 48,
+      "mediaType": "image/png",
+      "platform": "android",
+      "purpose": "Legacy launcher source (mdpi)",
+      "safeZone": "10-percent-minimum",
+      "sha256": "DCF3ACFC20775B7F23EB70383032AEC11B0CFAC9D7149B6CE3E945EC570AB295",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "2249A9C233228CDF3E7CD648AD7E011F1369837C00BA34F4407B71FA2C134216",
+      "width": 48
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 10,
+        "y": 10,
+        "width": 76,
+        "height": 76
+      },
+      "file": "android/launcher-xhdpi-96.png",
+      "fittedBox": {
+        "x": 10,
+        "y": 10,
+        "width": 76,
+        "height": 76
+      },
+      "height": 96,
+      "mediaType": "image/png",
+      "platform": "android",
+      "purpose": "Legacy launcher source (xhdpi)",
+      "safeZone": "10-percent-minimum",
+      "sha256": "7F03E51CD277518B9DBA1BEAC381F68E29B9385BBCF76630E8C373249DC12961",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "D8C304EDE847F7F8B370F3477EBE155E951644F7406FE77FA44596CBB4497EBB",
+      "width": 96
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 14,
+        "y": 14,
+        "width": 116,
+        "height": 116
+      },
+      "file": "android/launcher-xxhdpi-144.png",
+      "fittedBox": {
+        "x": 14,
+        "y": 14,
+        "width": 116,
+        "height": 116
+      },
+      "height": 144,
+      "mediaType": "image/png",
+      "platform": "android",
+      "purpose": "Legacy launcher source (xxhdpi)",
+      "safeZone": "10-percent-minimum",
+      "sha256": "25FDB53E6BDF4E433B8F9A4036E86A94BE457BE6BDD65BDD06B83037395CF93A",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "56AAE8DD4F4DDA38B333325F56D2CF0064E7866DF22C15C7564D294B8E08377E",
+      "width": 144
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 19,
+        "y": 19,
+        "width": 154,
+        "height": 154
+      },
+      "file": "android/launcher-xxxhdpi-192.png",
+      "fittedBox": {
+        "x": 19,
+        "y": 19,
+        "width": 154,
+        "height": 154
+      },
+      "height": 192,
+      "mediaType": "image/png",
+      "platform": "android",
+      "purpose": "Legacy launcher source (xxxhdpi)",
+      "safeZone": "10-percent-minimum",
+      "sha256": "8AD6B9B8D6441E24A97F28ED8B6492779AAB24639DBAB972CF67A04F05170C2B",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "B83E179BC03B00A0C6B9ED6CD14B89BDBB792730799FD1890DC1B6769DE1367B",
+      "width": 192
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 6,
+        "y": 6,
+        "width": 24,
+        "height": 24
+      },
+      "file": "android/notification-hdpi-36.png",
+      "fittedBox": {
+        "x": 6,
+        "y": 6,
+        "width": 24,
+        "height": 24
+      },
+      "height": 36,
+      "mediaType": "image/png",
+      "platform": "android",
+      "purpose": "Full-color notification reference source (hdpi); platform tint asset is created in the Android shell",
+      "safeZone": "one-sixth-per-edge",
+      "sha256": "703BCC1E42F25D5AA205DB7612AB4E17E9CED5057A8992E29E54F21449C092D0",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "52210F51643C72E92152F2DA156CC8B18EA0C215BE49452C4E1F905B05A944B3",
+      "width": 36
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 4,
+        "y": 4,
+        "width": 16,
+        "height": 16
+      },
+      "file": "android/notification-mdpi-24.png",
+      "fittedBox": {
+        "x": 4,
+        "y": 4,
+        "width": 16,
+        "height": 16
+      },
+      "height": 24,
+      "mediaType": "image/png",
+      "platform": "android",
+      "purpose": "Full-color notification reference source (mdpi); platform tint asset is created in the Android shell",
+      "safeZone": "one-sixth-per-edge",
+      "sha256": "F64E241F0B86D328A10C616F933066CBFADDBB7AF41C29C91C3F8662477A8410",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "1FAB0BBDBE6BB698871E7CC7A53F67309C430800AF8A67DA8145C6A0E080A629",
+      "width": 24
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 8,
+        "y": 8,
+        "width": 32,
+        "height": 32
+      },
+      "file": "android/notification-xhdpi-48.png",
+      "fittedBox": {
+        "x": 8,
+        "y": 8,
+        "width": 32,
+        "height": 32
+      },
+      "height": 48,
+      "mediaType": "image/png",
+      "platform": "android",
+      "purpose": "Full-color notification reference source (xhdpi); platform tint asset is created in the Android shell",
+      "safeZone": "one-sixth-per-edge",
+      "sha256": "7BC721DDBD0F1D18E6039F06F01F2CB5585B1DCC1A24E1FF0D8A11CDC1E5564B",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "C2A801F109B8819723F889AD3D37A64CA9CE88EAE3C1C19E74A79AA0443F4842",
+      "width": 48
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 12,
+        "y": 12,
+        "width": 48,
+        "height": 48
+      },
+      "file": "android/notification-xxhdpi-72.png",
+      "fittedBox": {
+        "x": 12,
+        "y": 12,
+        "width": 48,
+        "height": 48
+      },
+      "height": 72,
+      "mediaType": "image/png",
+      "platform": "android",
+      "purpose": "Full-color notification reference source (xxhdpi); platform tint asset is created in the Android shell",
+      "safeZone": "one-sixth-per-edge",
+      "sha256": "C369CB8CB832B282F8878E650141C46F3C32D3E9FCDDDEB2FDCBF6ED015E1EF6",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "72DBB2A440698170F2FCA82C15C1F21CB6A0A5DD754B16F301B467234540A7ED",
+      "width": 72
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 16,
+        "y": 16,
+        "width": 64,
+        "height": 64
+      },
+      "file": "android/notification-xxxhdpi-96.png",
+      "fittedBox": {
+        "x": 16,
+        "y": 16,
+        "width": 64,
+        "height": 64
+      },
+      "height": 96,
+      "mediaType": "image/png",
+      "platform": "android",
+      "purpose": "Full-color notification reference source (xxxhdpi); platform tint asset is created in the Android shell",
+      "safeZone": "one-sixth-per-edge",
+      "sha256": "6145C0AF5B8BEBA206CCDF2948A560402570EE044199C75AA0A979C1071AC227",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "2B5CB8E94058FE42C45B43D9E21933A41816FBB91A82F123E2AF460BFA405477",
+      "width": 96
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 13,
+        "y": 13,
+        "width": 230,
+        "height": 230
+      },
+      "file": "desktop/application-256.png",
+      "fittedBox": {
+        "x": 13,
+        "y": 13,
+        "width": 230,
+        "height": 230
+      },
+      "height": 256,
+      "mediaType": "image/png",
+      "platform": "desktop",
+      "purpose": "Windows application icon PNG",
+      "safeZone": "5-percent-minimum",
+      "sha256": "E8E5118585FCAC39C63A85A537B6F6930F5675D0F2960CD9186197FD7CBC417E",
+      "source": {
+        "file": "databreeze-mark-dark.png",
+        "sha256": "5EE10842AD090F2BB980B51DDCF8BB4F8738C87B9659BE10387FE0B2D845B7A4"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "E38BD7B30191F57F9399D39972649B252AD8C30708FCB476A77C77A0A4E4E373",
+      "width": 256
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 26,
+        "y": 26,
+        "width": 204,
+        "height": 204
+      },
+      "file": "desktop/application.ico",
+      "fittedBox": {
+        "x": 26,
+        "y": 26,
+        "width": 204,
+        "height": 204
+      },
+      "frames": [
+        16,
+        24,
+        32,
+        48,
+        64,
+        128,
+        256
+      ],
+      "height": 256,
+      "mediaType": "image/x-icon",
+      "platform": "desktop",
+      "purpose": "Windows application multi-resolution icon",
+      "safeZone": "10-percent-minimum",
+      "sha256": "01151CE213CEF964112854C3E09195A38C6AA4457359B89F90EE63ECD62DB00C",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "DFE2F8828A981E686B2EAF8BB7E2C960AB7575B88081D59B79469374021B0058",
+      "width": 256
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 26,
+        "y": 26,
+        "width": 204,
+        "height": 204
+      },
+      "file": "desktop/installer.ico",
+      "fittedBox": {
+        "x": 26,
+        "y": 26,
+        "width": 204,
+        "height": 204
+      },
+      "frames": [
+        16,
+        24,
+        32,
+        48,
+        64,
+        128,
+        256
+      ],
+      "height": 256,
+      "mediaType": "image/x-icon",
+      "platform": "desktop",
+      "purpose": "Windows installer multi-resolution icon",
+      "safeZone": "10-percent-minimum",
+      "sha256": "01151CE213CEF964112854C3E09195A38C6AA4457359B89F90EE63ECD62DB00C",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "DFE2F8828A981E686B2EAF8BB7E2C960AB7575B88081D59B79469374021B0058",
+      "width": 256
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 5,
+        "y": 5,
+        "width": 22,
+        "height": 22
+      },
+      "file": "desktop/notification-32.png",
+      "fittedBox": {
+        "x": 5,
+        "y": 5,
+        "width": 22,
+        "height": 22
+      },
+      "height": 32,
+      "mediaType": "image/png",
+      "platform": "desktop",
+      "purpose": "Windows notification icon PNG",
+      "safeZone": "15-percent-minimum",
+      "sha256": "F6A0FC62CBD49DEDC1702F17D42B2D65448A8FDE98770069A5A6D312802246A4",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "38903201463667946F1232BF5235841B937208520E39568C564F0BC2E3F64ADD",
+      "width": 32
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 26,
+        "y": 26,
+        "width": 204,
+        "height": 204
+      },
+      "file": "desktop/updater.ico",
+      "fittedBox": {
+        "x": 26,
+        "y": 26,
+        "width": 204,
+        "height": 204
+      },
+      "frames": [
+        16,
+        24,
+        32,
+        48,
+        64,
+        128,
+        256
+      ],
+      "height": 256,
+      "mediaType": "image/x-icon",
+      "platform": "desktop",
+      "purpose": "Windows updater multi-resolution icon",
+      "safeZone": "10-percent-minimum",
+      "sha256": "01151CE213CEF964112854C3E09195A38C6AA4457359B89F90EE63ECD62DB00C",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "DFE2F8828A981E686B2EAF8BB7E2C960AB7575B88081D59B79469374021B0058",
+      "width": 256
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 18,
+        "y": 18,
+        "width": 144,
+        "height": 144
+      },
+      "file": "web/apple-touch-icon-180.png",
+      "fittedBox": {
+        "x": 18,
+        "y": 18,
+        "width": 144,
+        "height": 144
+      },
+      "height": 180,
+      "mediaType": "image/png",
+      "platform": "web",
+      "purpose": "Apple touch install icon",
+      "safeZone": "10-percent-minimum",
+      "sha256": "2809E173878DB399BCFB974799F05B4930F85DFE6C198E64F7A2117DD20E0927",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "4049EC9E808406AB767E07EC5F11A37021453D1ED601E04ED2C910612B8248CB",
+      "width": 180
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 2,
+        "y": 2,
+        "width": 12,
+        "height": 12
+      },
+      "file": "web/favicon-16.png",
+      "fittedBox": {
+        "x": 2,
+        "y": 2,
+        "width": 12,
+        "height": 12
+      },
+      "height": 16,
+      "mediaType": "image/png",
+      "platform": "web",
+      "purpose": "Browser favicon (16px)",
+      "safeZone": "12.5-percent-minimum",
+      "sha256": "F471D3E2CA6BF8A3ACA2E95A3FBA5FA97E6ABF56E713D280361A7B15993600E9",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "A7DC5A14885ABC87316C39E803D9C8BEE2FB560189C1096F2CC3E323CE175327",
+      "width": 16
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 4,
+        "y": 4,
+        "width": 24,
+        "height": 24
+      },
+      "file": "web/favicon-32.png",
+      "fittedBox": {
+        "x": 4,
+        "y": 4,
+        "width": 24,
+        "height": 24
+      },
+      "height": 32,
+      "mediaType": "image/png",
+      "platform": "web",
+      "purpose": "Browser favicon (32px)",
+      "safeZone": "12.5-percent-minimum",
+      "sha256": "267894B71A948F7673004ACF910D7673AEE925635E84078BB5967161EC2FFE39",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "C01AA26FD1B9DDC0CAE0175EB7AC7A16E0CF802C354AB1DE7A76D922EB17702C",
+      "width": 32
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 19,
+        "y": 19,
+        "width": 154,
+        "height": 154
+      },
+      "file": "web/install-icon-192.png",
+      "fittedBox": {
+        "x": 19,
+        "y": 19,
+        "width": 154,
+        "height": 154
+      },
+      "height": 192,
+      "mediaType": "image/png",
+      "platform": "web",
+      "purpose": "Web application install icon (192px)",
+      "safeZone": "10-percent-minimum",
+      "sha256": "8AD6B9B8D6441E24A97F28ED8B6492779AAB24639DBAB972CF67A04F05170C2B",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "B83E179BC03B00A0C6B9ED6CD14B89BDBB792730799FD1890DC1B6769DE1367B",
+      "width": 192
+    },
+    {
+      "adjacentProductNamePolicy": "accessible-context-only",
+      "containsWordmark": false,
+      "contentBox": {
+        "x": 51,
+        "y": 51,
+        "width": 410,
+        "height": 410
+      },
+      "file": "web/install-icon-512.png",
+      "fittedBox": {
+        "x": 51,
+        "y": 51,
+        "width": 410,
+        "height": 410
+      },
+      "height": 512,
+      "mediaType": "image/png",
+      "platform": "web",
+      "purpose": "Web application install icon (512px)",
+      "safeZone": "10-percent-minimum",
+      "sha256": "8ED8E34F3D7867B028485FF75F23802B23200DEC2AB2823C5A0C9C4082BF36C6",
+      "source": {
+        "crop": {
+          "height": 1155,
+          "left": 0,
+          "top": 0,
+          "width": 1155
+        },
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "F3FC6E0C0F32F40C26961A5570321D025540313693793C44B58B7B8718621792",
+      "width": 512
+    },
+    {
+      "adjacentProductNamePolicy": "forbidden",
+      "containsWordmark": true,
+      "contentBox": {
+        "x": 0,
+        "y": 0,
+        "width": 204,
+        "height": 50
+      },
+      "file": "web/navigation-wordmark-black-204x50.png",
+      "fittedBox": {
+        "x": 0,
+        "y": 0,
+        "width": 204,
+        "height": 50
+      },
+      "height": 50,
+      "mediaType": "image/png",
+      "platform": "web",
+      "purpose": "Black navigation wordmark for light surfaces",
+      "safeZone": "source-clear-space-only",
+      "sha256": "7A77C7D071DFD45D73A9782F7BEC69407D06CAD99D9E08D1B289D48C25E28625",
+      "source": {
+        "file": "databreeze-wordmark-black.png",
+        "sha256": "4F37835E9648E7035DE9BCB6ADA05C1203A1C05A1D0DB81DF1D1AEA01D46FC98"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "AD5EE9CB6E4738BE1EDF118B2DB3BC7ADEA4785373E0D053E5822E733B8D40B5",
+      "width": 204
+    },
+    {
+      "adjacentProductNamePolicy": "forbidden",
+      "containsWordmark": true,
+      "contentBox": {
+        "x": 0,
+        "y": 0,
+        "width": 204,
+        "height": 50
+      },
+      "file": "web/navigation-wordmark-blue-204x50.png",
+      "fittedBox": {
+        "x": 0,
+        "y": 0,
+        "width": 204,
+        "height": 50
+      },
+      "height": 50,
+      "mediaType": "image/png",
+      "platform": "web",
+      "purpose": "Primary blue navigation wordmark for light surfaces",
+      "safeZone": "source-clear-space-only",
+      "sha256": "18FBE61BD29BF5D43A93A041A0493908B7E1E22AF1912652B1461D551CDE2A13",
+      "source": {
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "F0A731AF0F0366BE5A9ABED49913EDE32B67A67D333496B04B68BDAB54DC5FEC",
+      "width": 204
+    },
+    {
+      "adjacentProductNamePolicy": "forbidden",
+      "containsWordmark": true,
+      "contentBox": {
+        "x": 120,
+        "y": 126,
+        "width": 960,
+        "height": 378
+      },
+      "file": "web/social-card-1200x630.png",
+      "fittedBox": {
+        "x": 120,
+        "y": 197,
+        "width": 960,
+        "height": 235
+      },
+      "height": 630,
+      "mediaType": "image/png",
+      "platform": "web",
+      "purpose": "Social metadata image without adjacent duplicate product text",
+      "safeZone": "10-percent-horizontal-and-20-percent-vertical",
+      "sha256": "97B2323193D284D3DD4750276B3939B4EA6F5123E31DB7E00E5241D7FD9391CF",
+      "source": {
+        "file": "databreeze-wordmark-blue.png",
+        "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+      },
+      "transform": "aspect-preserving-contain",
+      "visualSha256": "EC86B2F83795CBD4F6267A704B87A47EA672702E615661CCC0DECB16455DCD96",
+      "width": 1200
+    }
+  ]
+}

@@ -4,10 +4,18 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./brand/derivatives.json": "./brand/derivatives.json",
+    "./brand/generated/*": "./brand/generated/*",
     "./brand/manifest.json": "./brand/manifest.json",
     "./brand/source/*": "./brand/source/*"
   },
   "scripts": {
+    "brand:check": "node scripts/generate-brand-derivatives.mjs --check",
+    "brand:generate": "node scripts/generate-brand-derivatives.mjs",
+    "build": "corepack pnpm brand:check",
     "test": "node --test test/**/*.test.mjs"
+  },
+  "devDependencies": {
+    "sharp": "0.35.3"
   }
 }
