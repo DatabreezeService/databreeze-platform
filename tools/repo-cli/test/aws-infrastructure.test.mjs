@@ -51,6 +51,8 @@ test('AWS sources expose encryption, private data, and OIDC boundaries without s
     'aws_secretsmanager_secret',
     'aws_iam_openid_connect_provider',
     'RegionalServiceEncryption',
+    'CloudFrontOriginAccess',
+    'cloudfront.amazonaws.com',
     'kms:GenerateDataKey',
     'execution_secrets',
     'master_user_secret_kms_key_id',
@@ -75,4 +77,5 @@ test('AWS validation script is non-applying and reports missing OpenTofu clearly
   const source = read('tools/repo-cli/src/check-aws-infrastructure.mjs');
   assert.match(source, /init', '-backend=false/);
   assert.match(source, /validate', '-no-color/);
+  assert.match(source, /process\.exitCode \?\? 0/);
 });

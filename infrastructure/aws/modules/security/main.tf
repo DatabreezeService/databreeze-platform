@@ -44,6 +44,27 @@ data "aws_iam_policy_document" "platform_key" {
       ]
     }
   }
+
+  statement {
+    sid       = "CloudFrontOriginAccess"
+    effect    = "Allow"
+    actions   = ["kms:Decrypt", "kms:DescribeKey"]
+    resources = ["*"]
+    principals {
+      type        = "Service"
+      identifiers = ["cloudfront.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "AWS:SourceAccount"
+      values   = [data.aws_caller_identity.current.account_id]
+    }
+    condition {
+      test     = "ArnLike"
+      variable = "AWS:SourceArn"
+      values   = ["arn:aws:cloudfront::${data.aws_caller_identity.current.account_id}:distribution/*"]
+    }
+  }
 }
 
 resource "aws_kms_key" "platform" {

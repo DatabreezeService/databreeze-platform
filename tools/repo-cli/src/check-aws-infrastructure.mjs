@@ -93,5 +93,5 @@ if (tofu.error?.code === 'ENOENT') {
   }
 }
 
-if (process.exitCode !== 1 && !tofu.error)
+if (!tofu.error && (process.exitCode ?? 0) === 0)
   console.log('AWS infrastructure baseline is ready for plan-only validation.');
