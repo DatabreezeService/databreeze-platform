@@ -1,0 +1,51 @@
+name: security
+
+on:
+  pull_request:
+  push:
+    branches: [dev, main]
+  schedule:
+    - cron: '17 3 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scans:
+    name: Dependency, license, secret, SAST, and container scans
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - name: Enable pinned pnpm
+        run: corepack enable && corepack prepare pnpm@11.18.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Dependency vulnerability scan
+        run: pnpm audit --audit-level=high
+      - name: Secret pattern scan
+        run: node tools/repo-cli/src/check-secret-patterns.mjs
+      - name: License policy scan
+        run: node tools/repo-cli/src/check-license-policy.mjs
+      - name: SAST and dependency-boundary scan
+        run: pnpm lint
+      - name: Container image policy scan
+        run: node tools/repo-cli/src/check-container-policy.mjs
+      - name: Generate source SBOM
+        run: node tools/repo-cli/src/generate-sbom.mjs --output "$RUNNER_TEMP/databreeze-sbom.json"
+      - name: Upload SBOM
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: databreeze-sbom-${{ github.sha }}
+          path: ${{ runner.temp }}/databreeze-sbom.json
+          if-no-files-found: error

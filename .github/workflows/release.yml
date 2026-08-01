@@ -1,0 +1,48 @@
+name: release-provenance
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  provenance:
+    name: Build and record release provenance
+    runs-on: ubuntu-24.04
+    environment: release
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - name: Enable pinned pnpm
+        run: corepack enable && corepack prepare pnpm@11.18.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify release gates
+        run: pnpm repo:check && pnpm repo:build
+      - name: Generate SBOM
+        run: node tools/repo-cli/src/generate-sbom.mjs --output "$RUNNER_TEMP/databreeze-sbom.json"
+      - name: Generate build provenance
+        run:
+          node tools/repo-cli/src/generate-provenance.mjs --output
+          "$RUNNER_TEMP/databreeze-provenance.json" --artifact "$RUNNER_TEMP/databreeze-sbom.json"
+      - name: Upload release evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: databreeze-release-${{ github.ref_name }}
+          path: |
+            ${{ runner.temp }}/databreeze-sbom.json
+            ${{ runner.temp }}/databreeze-provenance.json
+          if-no-files-found: error
