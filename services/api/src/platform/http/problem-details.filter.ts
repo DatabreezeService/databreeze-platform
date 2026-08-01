@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
+import { AuthenticationProblemError } from '../../features/iam/application/authentication-problem.error.js';
 import { NotReadyError } from '../../features/system/application/not-ready.error.js';
 import { InputValidationException } from './input-validation.exception.js';
 import { createProblem, type ProblemInput } from './problem-details.js';
@@ -19,6 +20,18 @@ function frameworkStatus(error: unknown): number | undefined {
 }
 
 function describe(error: unknown, correlationId: string): ProblemInput {
+  if (error instanceof AuthenticationProblemError) {
+    const unavailable = error.code === 'AUTHENTICATION_UNAVAILABLE';
+    return {
+      code: unavailable ? 'AUTHENTICATION_UNAVAILABLE' : 'AUTHENTICATION_FAILED',
+      correlationId,
+      messageKey: unavailable
+        ? 'api.error.authentication_unavailable'
+        : 'api.error.authentication_failed',
+      retryable: unavailable,
+      status: unavailable ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.UNAUTHORIZED,
+    };
+  }
   if (error instanceof InputValidationException) {
     return {
       code: 'VALIDATION_FAILED',
