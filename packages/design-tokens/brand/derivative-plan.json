@@ -3,6 +3,8 @@
   "pipeline": {
     "engine": "sharp",
     "engineVersion": "0.35.3",
+    "libvipsVersion": "8.18.3",
+    "pngVersion": "1.6.58",
     "pixelPolicy": "sRGB source colors are preserved; only crop, aspect-preserving contain resize, transparent padding, and PNG/ICO container conversion are allowed",
     "png": {
       "adaptiveFiltering": false,

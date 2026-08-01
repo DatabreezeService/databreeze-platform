@@ -228,34 +228,39 @@ test('visual signatures match the separately approved golden fixture', async () 
 
 test('plan validation blocks unsafe paths, invalid safe zones, and duplicate wordmark text policy', async () => {
   const { validateDerivativePlan } = await import('../scripts/generate-brand-derivatives.mjs');
-  const plan = JSON.parse(await readFile(join(brandDirectory, 'derivative-plan.json'), 'utf8'));
+  const [plan, sourceManifest] = await Promise.all([
+    readFile(join(brandDirectory, 'derivative-plan.json'), 'utf8').then(JSON.parse),
+    readFile(join(brandDirectory, 'manifest.json'), 'utf8').then(JSON.parse),
+  ]);
 
   const traversal = cloneJson(plan);
   traversal.assets[0].file = '../source/changed.png';
-  assert.throws(() => validateDerivativePlan(traversal), /Unsafe derivative output path/);
+  assert.throws(() => validateDerivativePlan(traversal, { sourceManifest }), /portable.*path/i);
 
   const unsafeGeometry = cloneJson(plan);
   unsafeGeometry.assets[0].contentBox.width = unsafeGeometry.assets[0].width;
-  assert.throws(() => validateDerivativePlan(unsafeGeometry), /Content box exceeds output bounds/);
+  assert.throws(
+    () => validateDerivativePlan(unsafeGeometry, { sourceManifest }),
+    /Content box exceeds output bounds/,
+  );
 
   const duplicateText = cloneJson(plan);
   const wordmark = duplicateText.assets.find((asset) => asset.containsWordmark);
   wordmark.adjacentProductNamePolicy = 'allowed';
   assert.throws(
-    () => validateDerivativePlan(duplicateText),
-    /must forbid adjacent duplicate product text/,
+    () => validateDerivativePlan(duplicateText, { sourceManifest }),
+    /invalid adjacent product name policy|must forbid adjacent duplicate product text/i,
   );
 });
 
 test('output target validation prevents any generated write beneath immutable sources', async () => {
   const { validateOutputTargets } = await import('../scripts/generate-brand-derivatives.mjs');
   assert.equal(typeof validateOutputTargets, 'function');
-  assert.throws(
-    () =>
-      validateOutputTargets({
-        manifestPath: join(brandDirectory, 'source', 'derivatives.json'),
-        outputDirectory: join(brandDirectory, 'generated'),
-      }),
+  await assert.rejects(
+    validateOutputTargets({
+      manifestPath: join(brandDirectory, 'source', 'derivatives.json'),
+      outputDirectory: join(brandDirectory, 'generated'),
+    }),
     /must not contain or overwrite immutable brand sources/,
   );
 });

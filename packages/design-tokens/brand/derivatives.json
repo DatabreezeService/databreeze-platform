@@ -9,6 +9,11 @@
       "compressionLevel": 9,
       "effort": 10,
       "palette": false
+    },
+    "runtime": {
+      "libvips": "8.18.3",
+      "png": "1.6.58",
+      "sharp": "0.35.3"
     }
   },
   "sourceManifestSha256": "78F718C9B32303F5C2C746BFF5F7698740CCC1565F5D0242AF0E4B83263BF7A0",
