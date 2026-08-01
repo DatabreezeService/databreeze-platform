@@ -26,7 +26,16 @@ const defaultOutputDirectory = join(brandDirectory, 'generated');
 const defaultManifestPath = join(brandDirectory, 'derivatives.json');
 
 const PIXEL_POLICY =
-  'sRGB source colors are preserved; only crop, aspect-preserving contain resize, transparent padding, and PNG/ICO container conversion are allowed';
+  'sRGB brand colors are preserved; allowed operations are approved cropping, aspect-preserving contain resize, transparent padding, approved-source-color background compositing, Android alpha-mask extraction, and PNG/ICO container conversion';
+const APPROVAL_METADATA = {
+  cropRationale:
+    'The blue mark is the left 1155x1155 square of the approved blue wordmark; cropping removes only the adjacent DataBreeze letters and does not redraw geometry.',
+  reviewSource: 'approved Task 11 plan and DataBreeze brand specification',
+  reviewedOn: '2026-08-01',
+  specReference: 'docs/product/brand-and-experience.md#1-brand-continuity',
+  status: 'plan-approved',
+  taskReference: 'docs/plans/010-engineering-foundation.md#task-11-reproducible-brand-derivatives',
+};
 const REQUIRED_SOURCE_DEFINITIONS = {
   blackWordmark: { file: 'databreeze-wordmark-black.png' },
   blueMark: {
@@ -213,8 +222,36 @@ function validateSources(sources, approvedSources) {
   }
 }
 
+function validateApproval(approval, approvedSources) {
+  assertExactKeys(
+    approval,
+    [
+      'cropRationale',
+      'reviewSource',
+      'reviewedOn',
+      'sourceHashes',
+      'specReference',
+      'status',
+      'taskReference',
+    ],
+    'approval',
+  );
+  for (const [field, expected] of Object.entries(APPROVAL_METADATA)) {
+    if (approval[field] !== expected)
+      throw new Error(`Approval ${field} must match plan provenance`);
+  }
+  assertExactKeys(approval.sourceHashes, [...approvedSources.keys()], 'approval sourceHashes');
+  for (const [file, approved] of approvedSources) {
+    if (approval.sourceHashes[file] !== approved.sha256) {
+      throw new Error(`Approval source hash must match ${file}`);
+    }
+  }
+}
+
 function validateAsset(asset, sources, seenFiles) {
   const hasFrames = Object.prototype.hasOwnProperty.call(asset, 'frames');
+  const hasOutputMode = Object.prototype.hasOwnProperty.call(asset, 'outputMode');
+  const hasBackground = Object.prototype.hasOwnProperty.call(asset, 'backgroundColor');
   assertExactKeys(
     asset,
     [
@@ -223,7 +260,9 @@ function validateAsset(asset, sources, seenFiles) {
       'contentBox',
       'file',
       ...(hasFrames ? ['frames'] : []),
+      ...(hasBackground ? ['backgroundColor'] : []),
       'height',
+      ...(hasOutputMode ? ['outputMode'] : []),
       'platform',
       'purpose',
       'safeZone',
@@ -240,6 +279,30 @@ function validateAsset(asset, sources, seenFiles) {
   if (!PLATFORM_VALUES.has(asset.platform)) throw new Error(`Invalid platform for ${asset.file}`);
   if (!asset.file.startsWith(`${asset.platform}/`)) {
     throw new Error(`Asset path must begin with its platform for ${asset.file}`);
+  }
+  const isAndroidNotification = asset.file.startsWith('android/notification-');
+  if (isAndroidNotification) {
+    if (asset.outputMode !== 'android-alpha-mask') {
+      throw new Error(`${asset.file} outputMode must be android-alpha-mask`);
+    }
+  } else if (hasOutputMode) {
+    throw new Error(`outputMode is not allowed for ${asset.file}`);
+  }
+  const isSocialCard = asset.file === 'web/social-card-1200x630.png';
+  if (isSocialCard) {
+    assertExactKeys(
+      asset.backgroundColor,
+      ['alpha', 'blue', 'green', 'red'],
+      `${asset.file} backgroundColor`,
+    );
+    const expectedBackground = { alpha: 1, blue: 32, green: 9, red: 4 };
+    for (const [channel, expected] of Object.entries(expectedBackground)) {
+      if (asset.backgroundColor[channel] !== expected) {
+        throw new Error(`${asset.file} backgroundColor must use the approved dark mark color`);
+      }
+    }
+  } else if (hasBackground) {
+    throw new Error(`backgroundColor is not allowed for ${asset.file}`);
   }
   assertNonEmptyString(asset.purpose, `${asset.file} purpose`);
   assertNonEmptyString(asset.safeZone, `${asset.file} safeZone`);
@@ -295,10 +358,11 @@ function validateAsset(asset, sources, seenFiles) {
 }
 
 export function validateDerivativePlan(plan, { sourceManifest } = {}) {
-  assertExactKeys(plan, ['assets', 'pipeline', 'schemaVersion', 'sources'], 'plan');
+  assertExactKeys(plan, ['approval', 'assets', 'pipeline', 'schemaVersion', 'sources'], 'plan');
   if (plan.schemaVersion !== 1) throw new Error('Unsupported brand derivative plan schema');
   validatePipeline(plan.pipeline);
   const approvedSources = approvedSourceMap(sourceManifest);
+  validateApproval(plan.approval, approvedSources);
   validateSources(plan.sources, approvedSources);
   if (!Array.isArray(plan.assets) || plan.assets.length === 0) {
     throw new Error('Derivative plan must contain the complete platform inventory');
@@ -350,15 +414,40 @@ async function renderPng(sourceBytes, source, output, pngOptions) {
     .png(pngOptions)
     .toBuffer();
 
+  const background = output.backgroundColor
+    ? {
+        r: output.backgroundColor.red,
+        g: output.backgroundColor.green,
+        b: output.backgroundColor.blue,
+        alpha: output.backgroundColor.alpha,
+      }
+    : { r: 0, g: 0, b: 0, alpha: 0 };
   return sharp({
     create: {
       width: output.width,
       height: output.height,
       channels: 4,
-      background: { r: 0, g: 0, b: 0, alpha: 0 },
+      background,
     },
   })
     .composite([{ input: resized, left: output.contentBox.x, top: output.contentBox.y }])
+    .png(pngOptions)
+    .toBuffer();
+}
+
+async function convertToAndroidAlphaMask(pngBytes, pngOptions) {
+  const { data, info } = await sharp(pngBytes)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  for (let offset = 0; offset < data.length; offset += 4) {
+    data[offset] = 255;
+    data[offset + 1] = 255;
+    data[offset + 2] = 255;
+  }
+  return sharp(data, {
+    raw: { channels: 4, height: info.height, width: info.width },
+  })
     .png(pngOptions)
     .toBuffer();
 }
@@ -388,6 +477,16 @@ function fittedBoxFor(source, approvedSource, contentBox) {
     y: contentBox.y + Math.floor((contentBox.height - height) / 2),
     width,
     height,
+  };
+}
+
+function visibleBoundsFor(source, approvedSource, contentBox) {
+  const box = fittedBoxFor(source, approvedSource, contentBox);
+  return {
+    maxX: box.x + box.width - 1,
+    maxY: box.y + box.height - 1,
+    minX: box.x,
+    minY: box.y,
   };
 }
 
@@ -610,6 +709,9 @@ export async function generateBrandDerivatives({ outputDirectory, manifestPath }
       visualBytes = frames.at(-1).bytes;
     } else {
       outputBytes = await renderPng(bytes, source, asset, plan.pipeline.png);
+      if (asset.outputMode === 'android-alpha-mask') {
+        outputBytes = await convertToAndroidAlphaMask(outputBytes, plan.pipeline.png);
+      }
       visualBytes = outputBytes;
     }
 
@@ -622,7 +724,9 @@ export async function generateBrandDerivatives({ outputDirectory, manifestPath }
       contentBox: asset.contentBox,
       file: asset.file,
       fittedBox: fittedBoxFor(source, approvedSource, asset.contentBox),
+      visibleBounds: visibleBoundsFor(source, approvedSource, asset.contentBox),
       ...(asset.frames ? { frames: asset.frames } : {}),
+      ...(asset.backgroundColor ? { backgroundColor: asset.backgroundColor } : {}),
       height: asset.height,
       mediaType: asset.frames ? 'image/x-icon' : 'image/png',
       platform: asset.platform,
@@ -634,7 +738,11 @@ export async function generateBrandDerivatives({ outputDirectory, manifestPath }
         file: source.file,
         sha256: approvedSource.sha256,
       },
-      transform: 'aspect-preserving-contain',
+      transform:
+        asset.outputMode === 'android-alpha-mask'
+          ? 'alpha-mask-from-approved-geometry'
+          : 'aspect-preserving-contain',
+      ...(asset.outputMode ? { outputMode: asset.outputMode } : {}),
       visualSha256: await visualHash(visualBytes),
       width: asset.width,
     });
@@ -642,6 +750,7 @@ export async function generateBrandDerivatives({ outputDirectory, manifestPath }
 
   const manifest = {
     schemaVersion: 1,
+    approval: plan.approval,
     generator: {
       engine: plan.pipeline.engine,
       engineVersion: plan.pipeline.engineVersion,

@@ -1,11 +1,24 @@
 {
   "schemaVersion": 1,
+  "approval": {
+    "status": "plan-approved",
+    "reviewedOn": "2026-08-01",
+    "reviewSource": "approved Task 11 plan and DataBreeze brand specification",
+    "specReference": "docs/product/brand-and-experience.md#1-brand-continuity",
+    "taskReference": "docs/plans/010-engineering-foundation.md#task-11-reproducible-brand-derivatives",
+    "cropRationale": "The blue mark is the left 1155x1155 square of the approved blue wordmark; cropping removes only the adjacent DataBreeze letters and does not redraw geometry.",
+    "sourceHashes": {
+      "databreeze-mark-dark.png": "5EE10842AD090F2BB980B51DDCF8BB4F8738C87B9659BE10387FE0B2D845B7A4",
+      "databreeze-wordmark-black.png": "4F37835E9648E7035DE9BCB6ADA05C1203A1C05A1D0DB81DF1D1AEA01D46FC98",
+      "databreeze-wordmark-blue.png": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+    }
+  },
   "pipeline": {
     "engine": "sharp",
     "engineVersion": "0.35.3",
     "libvipsVersion": "8.18.3",
     "pngVersion": "1.6.58",
-    "pixelPolicy": "sRGB source colors are preserved; only crop, aspect-preserving contain resize, transparent padding, and PNG/ICO container conversion are allowed",
+    "pixelPolicy": "sRGB brand colors are preserved; allowed operations are approved cropping, aspect-preserving contain resize, transparent padding, approved-source-color background compositing, Android alpha-mask extraction, and PNG/ICO container conversion",
     "png": {
       "adaptiveFiltering": false,
       "compressionLevel": 9,
@@ -98,8 +111,9 @@
     {
       "file": "android/notification-hdpi-36.png",
       "platform": "android",
-      "purpose": "Full-color notification reference source (hdpi); platform tint asset is created in the Android shell",
+      "purpose": "Android runtime-tinted notification alpha mask (hdpi)",
       "source": "blueMark",
+      "outputMode": "android-alpha-mask",
       "width": 36,
       "height": 36,
       "contentBox": { "x": 6, "y": 6, "width": 24, "height": 24 },
@@ -110,8 +124,9 @@
     {
       "file": "android/notification-mdpi-24.png",
       "platform": "android",
-      "purpose": "Full-color notification reference source (mdpi); platform tint asset is created in the Android shell",
+      "purpose": "Android runtime-tinted notification alpha mask (mdpi)",
       "source": "blueMark",
+      "outputMode": "android-alpha-mask",
       "width": 24,
       "height": 24,
       "contentBox": { "x": 4, "y": 4, "width": 16, "height": 16 },
@@ -122,8 +137,9 @@
     {
       "file": "android/notification-xhdpi-48.png",
       "platform": "android",
-      "purpose": "Full-color notification reference source (xhdpi); platform tint asset is created in the Android shell",
+      "purpose": "Android runtime-tinted notification alpha mask (xhdpi)",
       "source": "blueMark",
+      "outputMode": "android-alpha-mask",
       "width": 48,
       "height": 48,
       "contentBox": { "x": 8, "y": 8, "width": 32, "height": 32 },
@@ -134,8 +150,9 @@
     {
       "file": "android/notification-xxhdpi-72.png",
       "platform": "android",
-      "purpose": "Full-color notification reference source (xxhdpi); platform tint asset is created in the Android shell",
+      "purpose": "Android runtime-tinted notification alpha mask (xxhdpi)",
       "source": "blueMark",
+      "outputMode": "android-alpha-mask",
       "width": 72,
       "height": 72,
       "contentBox": { "x": 12, "y": 12, "width": 48, "height": 48 },
@@ -146,8 +163,9 @@
     {
       "file": "android/notification-xxxhdpi-96.png",
       "platform": "android",
-      "purpose": "Full-color notification reference source (xxxhdpi); platform tint asset is created in the Android shell",
+      "purpose": "Android runtime-tinted notification alpha mask (xxxhdpi)",
       "source": "blueMark",
+      "outputMode": "android-alpha-mask",
       "width": 96,
       "height": 96,
       "contentBox": { "x": 16, "y": 16, "width": 64, "height": 64 },
@@ -285,8 +303,8 @@
       "source": "blackWordmark",
       "width": 204,
       "height": 50,
-      "contentBox": { "x": 0, "y": 0, "width": 204, "height": 50 },
-      "safeZone": "source-clear-space-only",
+      "contentBox": { "x": 10, "y": 5, "width": 184, "height": 40 },
+      "safeZone": "minimum-5px-vertical-and-20px-fitted-horizontal",
       "containsWordmark": true,
       "adjacentProductNamePolicy": "forbidden"
     },
@@ -297,8 +315,8 @@
       "source": "blueWordmark",
       "width": 204,
       "height": 50,
-      "contentBox": { "x": 0, "y": 0, "width": 204, "height": 50 },
-      "safeZone": "source-clear-space-only",
+      "contentBox": { "x": 10, "y": 5, "width": 184, "height": 40 },
+      "safeZone": "minimum-5px-vertical-and-20px-fitted-horizontal",
       "containsWordmark": true,
       "adjacentProductNamePolicy": "forbidden"
     },
@@ -307,6 +325,7 @@
       "platform": "web",
       "purpose": "Social metadata image without adjacent duplicate product text",
       "source": "blueWordmark",
+      "backgroundColor": { "red": 4, "green": 9, "blue": 32, "alpha": 1 },
       "width": 1200,
       "height": 630,
       "contentBox": { "x": 120, "y": 126, "width": 960, "height": 378 },

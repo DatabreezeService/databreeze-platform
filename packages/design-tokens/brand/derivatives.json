@@ -1,5 +1,18 @@
 {
   "schemaVersion": 1,
+  "approval": {
+    "status": "plan-approved",
+    "reviewedOn": "2026-08-01",
+    "reviewSource": "approved Task 11 plan and DataBreeze brand specification",
+    "specReference": "docs/product/brand-and-experience.md#1-brand-continuity",
+    "taskReference": "docs/plans/010-engineering-foundation.md#task-11-reproducible-brand-derivatives",
+    "cropRationale": "The blue mark is the left 1155x1155 square of the approved blue wordmark; cropping removes only the adjacent DataBreeze letters and does not redraw geometry.",
+    "sourceHashes": {
+      "databreeze-mark-dark.png": "5EE10842AD090F2BB980B51DDCF8BB4F8738C87B9659BE10387FE0B2D845B7A4",
+      "databreeze-wordmark-black.png": "4F37835E9648E7035DE9BCB6ADA05C1203A1C05A1D0DB81DF1D1AEA01D46FC98",
+      "databreeze-wordmark-blue.png": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
+    }
+  },
   "generator": {
     "engine": "sharp",
     "engineVersion": "0.35.3",
@@ -33,6 +46,12 @@
         "y": 84,
         "width": 264,
         "height": 264
+      },
+      "visibleBounds": {
+        "maxX": 347,
+        "maxY": 347,
+        "minX": 84,
+        "minY": 84
       },
       "height": 432,
       "mediaType": "image/png",
@@ -70,6 +89,12 @@
         "width": 58,
         "height": 58
       },
+      "visibleBounds": {
+        "maxX": 64,
+        "maxY": 64,
+        "minX": 7,
+        "minY": 7
+      },
       "height": 72,
       "mediaType": "image/png",
       "platform": "android",
@@ -105,6 +130,12 @@
         "y": 5,
         "width": 38,
         "height": 38
+      },
+      "visibleBounds": {
+        "maxX": 42,
+        "maxY": 42,
+        "minX": 5,
+        "minY": 5
       },
       "height": 48,
       "mediaType": "image/png",
@@ -142,6 +173,12 @@
         "width": 76,
         "height": 76
       },
+      "visibleBounds": {
+        "maxX": 85,
+        "maxY": 85,
+        "minX": 10,
+        "minY": 10
+      },
       "height": 96,
       "mediaType": "image/png",
       "platform": "android",
@@ -177,6 +214,12 @@
         "y": 14,
         "width": 116,
         "height": 116
+      },
+      "visibleBounds": {
+        "maxX": 129,
+        "maxY": 129,
+        "minX": 14,
+        "minY": 14
       },
       "height": 144,
       "mediaType": "image/png",
@@ -214,6 +257,12 @@
         "width": 154,
         "height": 154
       },
+      "visibleBounds": {
+        "maxX": 172,
+        "maxY": 172,
+        "minX": 19,
+        "minY": 19
+      },
       "height": 192,
       "mediaType": "image/png",
       "platform": "android",
@@ -250,12 +299,18 @@
         "width": 24,
         "height": 24
       },
+      "visibleBounds": {
+        "maxX": 29,
+        "maxY": 29,
+        "minX": 6,
+        "minY": 6
+      },
       "height": 36,
       "mediaType": "image/png",
       "platform": "android",
-      "purpose": "Full-color notification reference source (hdpi); platform tint asset is created in the Android shell",
+      "purpose": "Android runtime-tinted notification alpha mask (hdpi)",
       "safeZone": "one-sixth-per-edge",
-      "sha256": "703BCC1E42F25D5AA205DB7612AB4E17E9CED5057A8992E29E54F21449C092D0",
+      "sha256": "451F41912F10904EBF98DE21406A64A1560F3B513A2EB5C71A9605D4447B7B98",
       "source": {
         "crop": {
           "height": 1155,
@@ -266,8 +321,9 @@
         "file": "databreeze-wordmark-blue.png",
         "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
       },
-      "transform": "aspect-preserving-contain",
-      "visualSha256": "52210F51643C72E92152F2DA156CC8B18EA0C215BE49452C4E1F905B05A944B3",
+      "transform": "alpha-mask-from-approved-geometry",
+      "outputMode": "android-alpha-mask",
+      "visualSha256": "73F2DA8D89A22CEEDF5CFC85303FE80114A5F7158AB5BC585FDCF0BFC5D885C7",
       "width": 36
     },
     {
@@ -286,12 +342,18 @@
         "width": 16,
         "height": 16
       },
+      "visibleBounds": {
+        "maxX": 19,
+        "maxY": 19,
+        "minX": 4,
+        "minY": 4
+      },
       "height": 24,
       "mediaType": "image/png",
       "platform": "android",
-      "purpose": "Full-color notification reference source (mdpi); platform tint asset is created in the Android shell",
+      "purpose": "Android runtime-tinted notification alpha mask (mdpi)",
       "safeZone": "one-sixth-per-edge",
-      "sha256": "F64E241F0B86D328A10C616F933066CBFADDBB7AF41C29C91C3F8662477A8410",
+      "sha256": "330D591C013421A0B158C95FEFDC97B8A87028CE8DDEA2D01D705DB7A3B14E13",
       "source": {
         "crop": {
           "height": 1155,
@@ -302,8 +364,9 @@
         "file": "databreeze-wordmark-blue.png",
         "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
       },
-      "transform": "aspect-preserving-contain",
-      "visualSha256": "1FAB0BBDBE6BB698871E7CC7A53F67309C430800AF8A67DA8145C6A0E080A629",
+      "transform": "alpha-mask-from-approved-geometry",
+      "outputMode": "android-alpha-mask",
+      "visualSha256": "3B6BFDF2EB3696325AD644F268CD7DE9F8014B19C0DA2698BD19BE6E5984F717",
       "width": 24
     },
     {
@@ -322,12 +385,18 @@
         "width": 32,
         "height": 32
       },
+      "visibleBounds": {
+        "maxX": 39,
+        "maxY": 39,
+        "minX": 8,
+        "minY": 8
+      },
       "height": 48,
       "mediaType": "image/png",
       "platform": "android",
-      "purpose": "Full-color notification reference source (xhdpi); platform tint asset is created in the Android shell",
+      "purpose": "Android runtime-tinted notification alpha mask (xhdpi)",
       "safeZone": "one-sixth-per-edge",
-      "sha256": "7BC721DDBD0F1D18E6039F06F01F2CB5585B1DCC1A24E1FF0D8A11CDC1E5564B",
+      "sha256": "B02A36C9E1690F54B68E91C1D0E24A8596CCC7797D7DB62A4C56B1178C8A7CA3",
       "source": {
         "crop": {
           "height": 1155,
@@ -338,8 +407,9 @@
         "file": "databreeze-wordmark-blue.png",
         "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
       },
-      "transform": "aspect-preserving-contain",
-      "visualSha256": "C2A801F109B8819723F889AD3D37A64CA9CE88EAE3C1C19E74A79AA0443F4842",
+      "transform": "alpha-mask-from-approved-geometry",
+      "outputMode": "android-alpha-mask",
+      "visualSha256": "BEEDF672DC8861EB6BAE1C47A5B669205C5B46B27B6870C7F78EAD6715519E56",
       "width": 48
     },
     {
@@ -358,12 +428,18 @@
         "width": 48,
         "height": 48
       },
+      "visibleBounds": {
+        "maxX": 59,
+        "maxY": 59,
+        "minX": 12,
+        "minY": 12
+      },
       "height": 72,
       "mediaType": "image/png",
       "platform": "android",
-      "purpose": "Full-color notification reference source (xxhdpi); platform tint asset is created in the Android shell",
+      "purpose": "Android runtime-tinted notification alpha mask (xxhdpi)",
       "safeZone": "one-sixth-per-edge",
-      "sha256": "C369CB8CB832B282F8878E650141C46F3C32D3E9FCDDDEB2FDCBF6ED015E1EF6",
+      "sha256": "51B1EFEC750833CC2BCBB3B5C5319CDA3348B471BA23D7A4301E5CF6FD2866A5",
       "source": {
         "crop": {
           "height": 1155,
@@ -374,8 +450,9 @@
         "file": "databreeze-wordmark-blue.png",
         "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
       },
-      "transform": "aspect-preserving-contain",
-      "visualSha256": "72DBB2A440698170F2FCA82C15C1F21CB6A0A5DD754B16F301B467234540A7ED",
+      "transform": "alpha-mask-from-approved-geometry",
+      "outputMode": "android-alpha-mask",
+      "visualSha256": "DFE4ED9EB98092732874F42629A5359259D9D8B4EC9307131EC625C991891290",
       "width": 72
     },
     {
@@ -394,12 +471,18 @@
         "width": 64,
         "height": 64
       },
+      "visibleBounds": {
+        "maxX": 79,
+        "maxY": 79,
+        "minX": 16,
+        "minY": 16
+      },
       "height": 96,
       "mediaType": "image/png",
       "platform": "android",
-      "purpose": "Full-color notification reference source (xxxhdpi); platform tint asset is created in the Android shell",
+      "purpose": "Android runtime-tinted notification alpha mask (xxxhdpi)",
       "safeZone": "one-sixth-per-edge",
-      "sha256": "6145C0AF5B8BEBA206CCDF2948A560402570EE044199C75AA0A979C1071AC227",
+      "sha256": "9539808522823869BE44BA3AE079A603E94E4AD95AFB2F0206F71CBADC8160F4",
       "source": {
         "crop": {
           "height": 1155,
@@ -410,8 +493,9 @@
         "file": "databreeze-wordmark-blue.png",
         "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
       },
-      "transform": "aspect-preserving-contain",
-      "visualSha256": "2B5CB8E94058FE42C45B43D9E21933A41816FBB91A82F123E2AF460BFA405477",
+      "transform": "alpha-mask-from-approved-geometry",
+      "outputMode": "android-alpha-mask",
+      "visualSha256": "B555B71BBBC56556AA0B650D1BE63296A2EF7CCFB3528D88FEE23F6EE6D708BF",
       "width": 96
     },
     {
@@ -429,6 +513,12 @@
         "y": 13,
         "width": 230,
         "height": 230
+      },
+      "visibleBounds": {
+        "maxX": 242,
+        "maxY": 242,
+        "minX": 13,
+        "minY": 13
       },
       "height": 256,
       "mediaType": "image/png",
@@ -459,6 +549,12 @@
         "y": 26,
         "width": 204,
         "height": 204
+      },
+      "visibleBounds": {
+        "maxX": 229,
+        "maxY": 229,
+        "minX": 26,
+        "minY": 26
       },
       "frames": [
         16,
@@ -505,6 +601,12 @@
         "width": 204,
         "height": 204
       },
+      "visibleBounds": {
+        "maxX": 229,
+        "maxY": 229,
+        "minX": 26,
+        "minY": 26
+      },
       "frames": [
         16,
         24,
@@ -550,6 +652,12 @@
         "width": 22,
         "height": 22
       },
+      "visibleBounds": {
+        "maxX": 26,
+        "maxY": 26,
+        "minX": 5,
+        "minY": 5
+      },
       "height": 32,
       "mediaType": "image/png",
       "platform": "desktop",
@@ -585,6 +693,12 @@
         "y": 26,
         "width": 204,
         "height": 204
+      },
+      "visibleBounds": {
+        "maxX": 229,
+        "maxY": 229,
+        "minX": 26,
+        "minY": 26
       },
       "frames": [
         16,
@@ -631,6 +745,12 @@
         "width": 144,
         "height": 144
       },
+      "visibleBounds": {
+        "maxX": 161,
+        "maxY": 161,
+        "minX": 18,
+        "minY": 18
+      },
       "height": 180,
       "mediaType": "image/png",
       "platform": "web",
@@ -666,6 +786,12 @@
         "y": 2,
         "width": 12,
         "height": 12
+      },
+      "visibleBounds": {
+        "maxX": 13,
+        "maxY": 13,
+        "minX": 2,
+        "minY": 2
       },
       "height": 16,
       "mediaType": "image/png",
@@ -703,6 +829,12 @@
         "width": 24,
         "height": 24
       },
+      "visibleBounds": {
+        "maxX": 27,
+        "maxY": 27,
+        "minX": 4,
+        "minY": 4
+      },
       "height": 32,
       "mediaType": "image/png",
       "platform": "web",
@@ -738,6 +870,12 @@
         "y": 19,
         "width": 154,
         "height": 154
+      },
+      "visibleBounds": {
+        "maxX": 172,
+        "maxY": 172,
+        "minX": 19,
+        "minY": 19
       },
       "height": 192,
       "mediaType": "image/png",
@@ -775,6 +913,12 @@
         "width": 410,
         "height": 410
       },
+      "visibleBounds": {
+        "maxX": 460,
+        "maxY": 460,
+        "minX": 51,
+        "minY": 51
+      },
       "height": 512,
       "mediaType": "image/png",
       "platform": "web",
@@ -799,60 +943,72 @@
       "adjacentProductNamePolicy": "forbidden",
       "containsWordmark": true,
       "contentBox": {
-        "x": 0,
-        "y": 0,
-        "width": 204,
-        "height": 50
+        "x": 10,
+        "y": 5,
+        "width": 184,
+        "height": 40
       },
       "file": "web/navigation-wordmark-black-204x50.png",
       "fittedBox": {
-        "x": 0,
-        "y": 0,
-        "width": 204,
-        "height": 50
+        "x": 20,
+        "y": 5,
+        "width": 163,
+        "height": 40
+      },
+      "visibleBounds": {
+        "maxX": 182,
+        "maxY": 44,
+        "minX": 20,
+        "minY": 5
       },
       "height": 50,
       "mediaType": "image/png",
       "platform": "web",
       "purpose": "Black navigation wordmark for light surfaces",
-      "safeZone": "source-clear-space-only",
-      "sha256": "7A77C7D071DFD45D73A9782F7BEC69407D06CAD99D9E08D1B289D48C25E28625",
+      "safeZone": "minimum-5px-vertical-and-20px-fitted-horizontal",
+      "sha256": "658DFFF140DC5BE0E18D37B845656A9B9C5C2C6E1150EC8BB79FD93B9987B2F3",
       "source": {
         "file": "databreeze-wordmark-black.png",
         "sha256": "4F37835E9648E7035DE9BCB6ADA05C1203A1C05A1D0DB81DF1D1AEA01D46FC98"
       },
       "transform": "aspect-preserving-contain",
-      "visualSha256": "AD5EE9CB6E4738BE1EDF118B2DB3BC7ADEA4785373E0D053E5822E733B8D40B5",
+      "visualSha256": "468507ED94F13BABE083361984247E177C92C4514D03536862A2F0D102FD5688",
       "width": 204
     },
     {
       "adjacentProductNamePolicy": "forbidden",
       "containsWordmark": true,
       "contentBox": {
-        "x": 0,
-        "y": 0,
-        "width": 204,
-        "height": 50
+        "x": 10,
+        "y": 5,
+        "width": 184,
+        "height": 40
       },
       "file": "web/navigation-wordmark-blue-204x50.png",
       "fittedBox": {
-        "x": 0,
-        "y": 0,
-        "width": 204,
-        "height": 50
+        "x": 20,
+        "y": 5,
+        "width": 163,
+        "height": 40
+      },
+      "visibleBounds": {
+        "maxX": 182,
+        "maxY": 44,
+        "minX": 20,
+        "minY": 5
       },
       "height": 50,
       "mediaType": "image/png",
       "platform": "web",
       "purpose": "Primary blue navigation wordmark for light surfaces",
-      "safeZone": "source-clear-space-only",
-      "sha256": "18FBE61BD29BF5D43A93A041A0493908B7E1E22AF1912652B1461D551CDE2A13",
+      "safeZone": "minimum-5px-vertical-and-20px-fitted-horizontal",
+      "sha256": "905FA49ADC0810A57067728615658AF00DDD47A6653733FA485BF2246C122DBF",
       "source": {
         "file": "databreeze-wordmark-blue.png",
         "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
       },
       "transform": "aspect-preserving-contain",
-      "visualSha256": "F0A731AF0F0366BE5A9ABED49913EDE32B67A67D333496B04B68BDAB54DC5FEC",
+      "visualSha256": "CD44FB5AD502B125863C26331FF3BB0C6E88804D6B6FC0261DE05E66400AFC62",
       "width": 204
     },
     {
@@ -871,18 +1027,30 @@
         "width": 960,
         "height": 235
       },
+      "visibleBounds": {
+        "maxX": 1079,
+        "maxY": 431,
+        "minX": 120,
+        "minY": 197
+      },
+      "backgroundColor": {
+        "red": 4,
+        "green": 9,
+        "blue": 32,
+        "alpha": 1
+      },
       "height": 630,
       "mediaType": "image/png",
       "platform": "web",
       "purpose": "Social metadata image without adjacent duplicate product text",
       "safeZone": "10-percent-horizontal-and-20-percent-vertical",
-      "sha256": "97B2323193D284D3DD4750276B3939B4EA6F5123E31DB7E00E5241D7FD9391CF",
+      "sha256": "34AE6C90BFD7FF1AC72E82244AEC77AF1105FA3179EE9E35D5D4D63244C4E800",
       "source": {
         "file": "databreeze-wordmark-blue.png",
         "sha256": "B2BB9353A2E2C42DAC8F68EC5BC30A9EB366F3C8139A46D4FDEC686264590D3D"
       },
       "transform": "aspect-preserving-contain",
-      "visualSha256": "EC86B2F83795CBD4F6267A704B87A47EA672702E615661CCC0DECB16455DCD96",
+      "visualSha256": "C890808C04E3A41315B7471C2BA25B7F0438D26E37367308525D29F0AD1AF531",
       "width": 1200
     }
   ]

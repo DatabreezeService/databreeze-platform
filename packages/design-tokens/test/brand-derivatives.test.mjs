@@ -140,7 +140,12 @@ test('the derivative manifest links every output to an approved source and recor
     const source = approved.get(asset.source.file);
     assert.ok(source, `${asset.file} must use an approved source`);
     assert.equal(asset.source.sha256, source.sha256);
-    assert.equal(asset.transform, 'aspect-preserving-contain');
+    assert.equal(
+      asset.transform,
+      asset.outputMode === 'android-alpha-mask'
+        ? 'alpha-mask-from-approved-geometry'
+        : 'aspect-preserving-contain',
+    );
     assert.ok(asset.safeZone.length > 0);
     assert.ok(asset.fittedBox.x >= asset.contentBox.x);
     assert.ok(asset.fittedBox.y >= asset.contentBox.y);
@@ -206,9 +211,17 @@ test('PNG and ICO outputs have declared dimensions, transparent clear space, and
         if (data[offset + 3] > 0)
           visibleColors.add(`${data[offset]},${data[offset + 1]},${data[offset + 2]}`);
       }
-      assert.ok(transparentPixelFound, `${asset.file} must retain transparent clear space`);
+      if (asset.file === 'web/social-card-1200x630.png') {
+        assert.equal(transparentPixelFound, false, `${asset.file} must be fully opaque`);
+      } else {
+        assert.ok(transparentPixelFound, `${asset.file} must retain transparent clear space`);
+      }
+      const expectedColors =
+        asset.outputMode === 'android-alpha-mask'
+          ? [[255, 255, 255]]
+          : sourceColors[asset.source.file];
       assert.ok(
-        sourceColors[asset.source.file].some((color) => visibleColors.has(color.join(','))),
+        expectedColors.some((color) => visibleColors.has(color.join(','))),
         `${asset.file} must retain an approved source color`,
       );
     }
