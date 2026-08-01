@@ -62,6 +62,23 @@ test('Gradle application arguments preserve whitespace, slashes, and embedded qu
   assert.deepEqual(splitLikeGradle(encoded), expected);
 });
 
+test('the Kotlin validator pins the patched Jackson 2.21 line consistently', () => {
+  const kotlinRoot = resolve(toolRoot, 'kotlin');
+  const build = readFileSync(resolve(kotlinRoot, 'build.gradle.kts'), 'utf8');
+  const lock = readFileSync(resolve(kotlinRoot, 'gradle.lockfile'), 'utf8');
+
+  assert.match(build, /jackson-module-kotlin:2\.21\.5/u);
+  for (const artifact of [
+    'jackson-core',
+    'jackson-databind',
+    'jackson-dataformat-yaml',
+    'jackson-module-kotlin',
+    'jackson-bom',
+  ]) {
+    assert.match(lock, new RegExp(`${artifact}:2\\.21\\.5(?:=|\\n)`, 'u'));
+  }
+});
+
 function snapshotDirectory(root, directory = root) {
   return readdirSync(directory, { withFileTypes: true })
     .flatMap((entry) => {

@@ -9,7 +9,7 @@ group = "com.databreeze.fixturevalidation"
 version = "1.0.0"
 
 dependencies {
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.0")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.5")
     implementation("com.networknt:json-schema-validator:2.0.4")
     runtimeOnly("org.slf4j:slf4j-nop:2.0.17")
 }
