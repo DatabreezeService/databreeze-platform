@@ -299,6 +299,23 @@ for (const [name, port] of [
   });
 }
 
+test('map and record storage fakes both report an absent delete as false', async () => {
+  const results = await Promise.all(
+    [
+      ['map', storageFakeV1('map-delete-memory-v1', 'map', sha256)],
+      ['record', storageFakeV1('record-delete-memory-v1', 'record', sha256)],
+    ].map(([backing, port]) =>
+      port.deleteVerified({
+        context: context('delete-verified', `idem-delete-missing-${backing}`),
+        objectRef: 'object:missing',
+        expectedSha256: 'a'.repeat(64),
+      }),
+    ),
+  );
+
+  assert.deepEqual(results, [{ deleted: false }, { deleted: false }]);
+});
+
 test('declares only the canonical contracts dependency and no provider SDK', () => {
   const manifest = JSON.parse(readFileSync(path.join(packageDirectory, 'package.json'), 'utf8'));
   assert.deepEqual(manifest.dependencies, { '@databreeze/contracts': 'workspace:*' });

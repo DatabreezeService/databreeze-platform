@@ -67,7 +67,10 @@ function createBackingV1<T>(kind: BackingKindV1): BackingV1<T> {
     set: (key, value) => {
       values[key] = value;
     },
-    delete: (key) => delete values[key],
+    delete: (key) => {
+      if (!Object.hasOwn(values, key)) return false;
+      return delete values[key];
+    },
   };
 }
 
