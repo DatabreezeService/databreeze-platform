@@ -1,9 +1,17 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { builtinModules } from 'node:module';
 import path from 'node:path';
 import process from 'node:process';
 import ts from 'typescript';
 
 const sourceExtensions = new Set(['.ts', '.tsx', '.mts', '.cts']);
+const desktopRendererSourceExtensions = new Set([
+  ...sourceExtensions,
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+]);
 const ignoredDirectories = new Set(['node_modules', 'dist', 'build', 'coverage', 'out']);
 
 function parseRoot(argumentsList) {
@@ -21,7 +29,7 @@ function parseRoot(argumentsList) {
   return path.resolve(specifiedRoot);
 }
 
-function listFiles(directory) {
+function listFiles(directory, extensions = sourceExtensions) {
   if (!existsSync(directory)) {
     return [];
   }
@@ -31,9 +39,9 @@ function listFiles(directory) {
     const entryPath = path.join(directory, entry.name);
     if (entry.isDirectory()) {
       if (!ignoredDirectories.has(entry.name)) {
-        files.push(...listFiles(entryPath));
+        files.push(...listFiles(entryPath, extensions));
       }
-    } else if (entry.isFile() && sourceExtensions.has(path.extname(entry.name))) {
+    } else if (entry.isFile() && extensions.has(path.extname(entry.name))) {
       files.push(entryPath);
     }
   }
@@ -56,10 +64,18 @@ function readPackageManifest(manifestPath) {
 }
 
 function sourceFileKind(filePath) {
-  if (filePath.endsWith('.tsx')) {
-    return ts.ScriptKind.TSX;
+  switch (path.extname(filePath)) {
+    case '.tsx':
+      return ts.ScriptKind.TSX;
+    case '.jsx':
+      return ts.ScriptKind.JSX;
+    case '.js':
+    case '.mjs':
+    case '.cjs':
+      return ts.ScriptKind.JS;
+    default:
+      return ts.ScriptKind.TS;
   }
-  return ts.ScriptKind.TS;
 }
 
 function importedModules(filePath) {
@@ -204,6 +220,48 @@ function checkClientImports(repositoryRoot, apiDirectory) {
     }
   }
 
+  return diagnostics;
+}
+
+const nodeBuiltins = new Set([
+  ...builtinModules,
+  ...builtinModules.map((moduleName) => `node:${moduleName}`),
+]);
+
+function checkDesktopRendererBoundary(repositoryRoot) {
+  const diagnostics = [];
+  const desktopSource = path.join(repositoryRoot, 'apps', 'desktop', 'src');
+  const rendererDirectory = path.join(desktopSource, 'renderer');
+  const privilegedDirectories = ['application', 'main', 'preload'].map((name) =>
+    path.join(desktopSource, name),
+  );
+
+  for (const filePath of listFiles(rendererDirectory, desktopRendererSourceExtensions)) {
+    for (const moduleSpecifier of importedModules(filePath)) {
+      const relativeTarget = moduleSpecifier.startsWith('.')
+        ? path.resolve(path.dirname(filePath), moduleSpecifier)
+        : undefined;
+      const importsPrivilegedRelativeTarget =
+        relativeTarget !== undefined &&
+        privilegedDirectories.some((directory) => isWithin(relativeTarget, directory));
+      const importsPrivilegedAlias = /(?:^|\/)(?:application|main|preload)(?:\/|$)/.test(
+        moduleSpecifier,
+      );
+      const importsPrivilegedRuntime =
+        matchesPackageSpecifier(moduleSpecifier, 'electron') || nodeBuiltins.has(moduleSpecifier);
+
+      if (importsPrivilegedRelativeTarget || importsPrivilegedAlias || importsPrivilegedRuntime) {
+        diagnostics.push(
+          diagnostic(
+            'desktop-renderer-must-remain-unprivileged',
+            repositoryRoot,
+            filePath,
+            `import=${moduleSpecifier}`,
+          ),
+        );
+      }
+    }
+  }
   return diagnostics;
 }
 
@@ -421,6 +479,7 @@ function checkRepository(repositoryRoot) {
   const apiDirectory = path.join(repositoryRoot, 'services', 'api');
   return [
     ...checkClientImports(repositoryRoot, apiDirectory),
+    ...checkDesktopRendererBoundary(repositoryRoot),
     ...checkFeaturePersistenceImports(repositoryRoot, apiDirectory),
     ...checkFeatureLayerImports(repositoryRoot, apiDirectory),
     ...checkPackageExports(repositoryRoot),

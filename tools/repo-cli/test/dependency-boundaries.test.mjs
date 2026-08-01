@@ -140,3 +140,25 @@ test('uses exact and most-specific export entries before broader patterns, inclu
     2,
   );
 });
+
+test('accepts the Desktop renderer depending only on shared types and public UI packages', () => {
+  const result = checkFixture('desktop-trust-boundary-allowed');
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stderr, '');
+});
+
+test('rejects privileged Desktop renderer imports across TypeScript and JavaScript modules', () => {
+  const result = checkFixture('desktop-renderer-trust-boundary');
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /electron\.ts/);
+  assert.match(result.stderr, /node\.ts/);
+  assert.match(result.stderr, /main\.ts/);
+  assert.match(result.stderr, /preload\.ts/);
+  assert.match(result.stderr, /electron\.js/);
+  assert.match(result.stderr, /node\.jsx/);
+  assert.match(result.stderr, /main\.mjs/);
+  assert.match(result.stderr, /preload\.cjs/);
+  assert.equal(result.stderr.match(/rule=desktop-renderer-must-remain-unprivileged/g)?.length, 8);
+});
