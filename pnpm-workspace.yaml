@@ -5,5 +5,11 @@ packages:
   - 'services/api'
   - 'tools/*'
 
+allowBuilds:
+  '@prisma/engines': true
+  '@scarf/scarf': false
+  esbuild: true
+  prisma: true
+
 engineStrict: true
 pmOnFail: download
