@@ -38,19 +38,24 @@ function effectiveStyle(window, element, property) {
 }
 
 function activateMedia(document, condition) {
-  const activeRules = [];
-  for (const styleSheet of document.styleSheets) {
+  const replacements = [];
+  let matchCount = 0;
+  for (const style of document.querySelectorAll('style')) {
+    const styleSheet = style.sheet;
+    assert.notEqual(styleSheet, null, 'style element has no stylesheet');
+    const rulesInOriginalOrder = [];
     for (const rule of styleSheet.cssRules) {
       if (rule.type === 4 && rule.conditionText === condition) {
-        activeRules.push(...[...rule.cssRules].map((nestedRule) => nestedRule.cssText));
+        matchCount += 1;
+        rulesInOriginalOrder.push(...[...rule.cssRules].map((nestedRule) => nestedRule.cssText));
+      } else {
+        rulesInOriginalOrder.push(rule.cssText);
       }
     }
+    replacements.push([style, rulesInOriginalOrder.join('\n')]);
   }
-  assert.notEqual(activeRules.length, 0, `no rules matched ${condition}`);
-  const activeStyle = document.createElement('style');
-  activeStyle.dataset.activeMedia = condition;
-  activeStyle.textContent = activeRules.join('\n');
-  document.head.append(activeStyle);
+  assert.notEqual(matchCount, 0, `no rules matched ${condition}`);
+  for (const [style, css] of replacements) style.textContent = css;
 }
 
 test('[WEB-014, DSK-021 partial] rendered Button has effective focus, size, and reduced motion', () => {
@@ -70,4 +75,16 @@ test('[WEB-014, DSK-021 partial] rendered Button has effective focus, size, and 
   assert.equal(effectiveStyle(dom.window, root, '--db-motion-duration-normal'), '0ms');
   assert.equal(effectiveStyle(dom.window, root, '--db-motion-duration-slow'), '0ms');
   assert.equal(effectiveStyle(dom.window, button, 'transition-duration'), '0ms');
+});
+
+test('reduced-motion activation preserves a later applicable cascade override', () => {
+  const dom = new JSDOM(
+    `<!doctype html><html><head><style>${tokenCss}\n${uiCss}</style><style>.db-button { transition-duration: 999ms; }</style></head><body><button class="db-button">Kiá»ƒm tra</button></body></html>`,
+    { pretendToBeVisual: true, url: 'https://app.databreeze.test/' },
+  );
+  const button = dom.window.document.querySelector('button');
+
+  activateMedia(dom.window.document, '(prefers-reduced-motion: reduce)');
+
+  assert.equal(effectiveStyle(dom.window, button, 'transition-duration'), '999ms');
 });
