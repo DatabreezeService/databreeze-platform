@@ -7,3 +7,4 @@ docs/
 pnpm-lock.yaml
 packages/contracts/generated/
 packages/design-tokens/brand/derivatives.json
+services/engine/test/fixtures/fake-uv-prefix
