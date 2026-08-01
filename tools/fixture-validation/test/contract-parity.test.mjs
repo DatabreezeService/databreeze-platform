@@ -8,6 +8,8 @@ import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 
+import { quoteGradleApplicationArgument } from '../src/gradle-application-arguments.mjs';
+
 const toolRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repositoryRoot = resolve(toolRoot, '../..');
 const comparatorPath = resolve(toolRoot, 'src/compare-contract-results.mjs');
@@ -18,6 +20,47 @@ const fixtureManifestPath = resolve(
 );
 const generatedContractsRoot = resolve(repositoryRoot, 'packages/contracts/generated');
 const require = createRequire(import.meta.url);
+
+function splitLikeGradle(value) {
+  const argumentsList = [];
+  let current = '';
+  let hasArgument = false;
+  let quote;
+  for (const character of value) {
+    if (quote === undefined && /\s/u.test(character)) {
+      if (hasArgument) {
+        argumentsList.push(current);
+        current = '';
+        hasArgument = false;
+      }
+    } else if (quote === undefined && (character === '"' || character === "'")) {
+      quote = character;
+      hasArgument = true;
+    } else if (character === quote) {
+      quote = undefined;
+    } else {
+      current += character;
+      hasArgument = true;
+    }
+  }
+  if (hasArgument) argumentsList.push(current);
+  return argumentsList;
+}
+
+test('Gradle application arguments preserve whitespace, slashes, and embedded quotes', () => {
+  const expected = [
+    '',
+    'plain',
+    'with spaces',
+    'double"quote',
+    "single'quote",
+    `both"'quotes`,
+    'C:\\folder with spaces\\fixture.json',
+  ];
+  const encoded = expected.map(quoteGradleApplicationArgument).join(' ');
+
+  assert.deepEqual(splitLikeGradle(encoded), expected);
+});
 
 function snapshotDirectory(root, directory = root) {
   return readdirSync(directory, { withFileTypes: true })

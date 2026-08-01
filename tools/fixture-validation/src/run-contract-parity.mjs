@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 import { compareContractResults } from './compare-contract-results.mjs';
+import { quoteGradleApplicationArgument } from './gradle-application-arguments.mjs';
 
 const toolRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repositoryRoot = resolve(toolRoot, '../..');
@@ -45,10 +46,6 @@ function runCommand(command, argumentsList, options = {}) {
     fail(`${command} exited with status ${run.status}${output ? `:\n${output}` : ''}`);
   }
   return run;
-}
-
-function quoteApplicationArgument(value) {
-  return `"${value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
 }
 
 function runTypeScript(fixtureManifest, output) {
@@ -110,9 +107,9 @@ function runKotlin(fixtureManifest, output) {
   const wrapperJar = resolve(kotlinRoot, 'gradle/wrapper/gradle-wrapper.jar');
   const applicationArguments = [
     '--fixture-manifest',
-    quoteApplicationArgument(fixtureManifest),
+    quoteGradleApplicationArgument(fixtureManifest),
     '--output',
-    quoteApplicationArgument(output),
+    quoteGradleApplicationArgument(output),
   ].join(' ');
   runCommand(
     javaCommand,
