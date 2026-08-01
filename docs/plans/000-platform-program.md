@@ -41,6 +41,8 @@ The program covers all 611 normative requirements. P0 requirements are release g
 
 Child plans are written and approved before their product slice begins. Each names exact requirement IDs, paths, contract changes, migrations, tests, telemetry, failure behavior, rollback, and intentionally deferred requirements.
 
+docs/plans/requirement-traceability.json records all 611 IDs with requested trace fields, one primary plan/task, release status, and verified paths only after evidence exists.
+
 ## Branch, commit, and review policy
 
 - `main` contains stable releases. `dev` is the integration branch.
