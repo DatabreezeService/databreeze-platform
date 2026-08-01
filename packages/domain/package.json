@@ -19,6 +19,10 @@
     "./authorization/v1": {
       "types": "./src/authorization/v1.ts",
       "import": "./dist/authorization/v1.js"
+    },
+    "./identity/v1": {
+      "types": "./src/identity/v1.ts",
+      "import": "./dist/identity/v1.js"
     }
   },
   "scripts": {

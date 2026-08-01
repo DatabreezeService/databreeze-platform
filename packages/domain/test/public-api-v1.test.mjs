@@ -13,6 +13,7 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
     './permissions/v1',
     './tenant-scope/v1',
     './authorization/v1',
+    './identity/v1',
   ]);
 
   for (const entry of Object.values(manifest.exports)) {
@@ -29,6 +30,7 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
   assert.ok(aggregate, 'the source v1 aggregate must exist');
   assert.equal(aggregate.PERMISSION_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.AUTHORIZATION_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.IDENTITY_SCHEMA_VERSION_V1, 1);
   assert.equal(typeof aggregate.parseTenantScopeV1, 'function');
   assert.equal(typeof aggregate.createScopedAuthorizationEvaluatorV1, 'function');
 });
