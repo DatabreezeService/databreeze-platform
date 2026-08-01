@@ -5,7 +5,7 @@
   "type": "module",
   "exports": {
     "./v1": {
-      "types": "./dist/v1.d.ts",
+      "types": "./src/v1.ts",
       "import": "./dist/v1.js"
     },
     "./schema/v1": "./schemas/v1.json"
