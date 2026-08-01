@@ -1,0 +1,13 @@
+{
+  "name": "@databreeze/design-tokens",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./brand/manifest.json": "./brand/manifest.json",
+    "./brand/source/*": "./brand/source/*"
+  },
+  "scripts": {
+    "test": "node --test test/**/*.test.mjs"
+  }
+}

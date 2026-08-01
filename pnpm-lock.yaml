@@ -42,6 +42,8 @@ importers:
         specifier: 3.0.1
         version: 3.0.1(ajv@8.17.1)
 
+  packages/design-tokens: {}
+
   packages/domain:
     dependencies:
       '@databreeze/contracts':
