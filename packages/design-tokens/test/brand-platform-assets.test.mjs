@@ -27,6 +27,9 @@ function visibleBounds(data, width, height) {
       bounds.maxY = Math.max(bounds.maxY, y);
     }
   }
+  if (bounds.maxX < 0 || bounds.maxY < 0) {
+    throw new Error('Image must contain visible pixels');
+  }
   return bounds;
 }
 
@@ -65,6 +68,10 @@ function contrast(left, right) {
   const values = [luminance(left), luminance(right)].sort((a, b) => b - a);
   return (values[0] + 0.05) / (values[1] + 0.05);
 }
+
+test('visible bounds reject an image with no visible pixels', () => {
+  assert.throws(() => visibleBounds(Buffer.alloc(4 * 4 * 4), 4, 4), /visible pixels/i);
+});
 
 test('navigation wordmarks have documented transparent clear space on every edge', async () => {
   const [plan, manifest] = await Promise.all([

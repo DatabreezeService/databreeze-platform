@@ -249,6 +249,7 @@ function validateApproval(approval, approvedSources) {
 }
 
 function validateAsset(asset, sources, seenFiles) {
+  assertPlainObject(asset, 'asset');
   const hasFrames = Object.prototype.hasOwnProperty.call(asset, 'frames');
   const hasOutputMode = Object.prototype.hasOwnProperty.call(asset, 'outputMode');
   const hasBackground = Object.prototype.hasOwnProperty.call(asset, 'backgroundColor');
@@ -894,8 +895,8 @@ export async function compareBrandDerivatives({
   }
 }
 
-export async function checkBrandDerivatives() {
-  await compareBrandDerivatives();
+export async function checkBrandDerivatives(options) {
+  await compareBrandDerivatives(options);
 }
 
 function parseArguments(argv) {
@@ -924,7 +925,10 @@ function parseArguments(argv) {
 async function main() {
   const options = parseArguments(process.argv.slice(2));
   if (options.check) {
-    await checkBrandDerivatives();
+    await checkBrandDerivatives({
+      expectedManifestPath: options.manifestPath,
+      expectedOutputDirectory: options.outputDirectory,
+    });
     process.stdout.write('Brand derivatives are reproducible and current.\n');
   } else {
     await generateBrandDerivatives(options);

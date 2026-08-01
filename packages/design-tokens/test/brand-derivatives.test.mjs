@@ -125,6 +125,29 @@ test('committed derivatives reproduce byte-for-byte and a changed output is dete
   }
 });
 
+test('--check validates the output and manifest paths supplied by the caller', async () => {
+  const temporaryRoot = await mkdtemp(join(tmpdir(), 'databreeze-brand-custom-check-'));
+  const outputDirectory = join(temporaryRoot, 'generated');
+  const manifestPath = join(temporaryRoot, 'derivatives.json');
+
+  try {
+    await runGenerator(['--output', outputDirectory, '--manifest', manifestPath]);
+    await runGenerator(['--check', '--output', outputDirectory, '--manifest', manifestPath]);
+
+    const faviconPath = join(outputDirectory, 'web', 'favicon-16.png');
+    const changed = Buffer.from(await readFile(faviconPath));
+    changed[changed.length - 1] ^= 0xff;
+    await import('node:fs/promises').then(({ writeFile }) => writeFile(faviconPath, changed));
+
+    await assert.rejects(
+      runGenerator(['--check', '--output', outputDirectory, '--manifest', manifestPath]),
+      /Brand derivative drift detected: web\/favicon-16\.png/,
+    );
+  } finally {
+    await rm(temporaryRoot, { force: true, recursive: true });
+  }
+});
+
 test('the derivative manifest links every output to an approved source and records safe fitted geometry', async () => {
   const [manifest, sourceManifest] = await Promise.all([
     readFile(committedManifestPath, 'utf8').then(JSON.parse),

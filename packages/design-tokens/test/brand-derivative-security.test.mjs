@@ -59,6 +59,7 @@ test('the derivative plan is a closed, typed, complete portable contract', async
       /crop.*bounds/i,
     ],
     ['unknown asset field', (value) => (value.assets[0].extra = true), /unknown key/i],
+    ['non-object asset', (value) => (value.assets[0] = null), /asset.*object/i],
     ['invalid platform', (value) => (value.assets[0].platform = 'ios'), /platform/i],
     ['empty purpose', (value) => (value.assets[0].purpose = ''), /purpose/i],
     ['empty safe zone', (value) => (value.assets[0].safeZone = ''), /safeZone/i],
