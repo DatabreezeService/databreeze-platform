@@ -135,7 +135,7 @@ const allowedFeatureLayerImports = {
 
 function featureLocation(filePath, apiDirectory) {
   const relativePath = path.relative(apiDirectory, filePath).split(path.sep).join('/');
-  const match = /^src\/features\/([^/]+)\/([^/]+)\//.exec(relativePath);
+  const match = /^src\/features\/([^/]+)\/([^/]+)(?:\/|$)/.exec(relativePath);
   if (match?.[1] === undefined || match[2] === undefined || !featureLayers.has(match[2])) {
     return undefined;
   }

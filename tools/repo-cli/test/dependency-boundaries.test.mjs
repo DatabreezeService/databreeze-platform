@@ -81,6 +81,15 @@ test('rejects a domain import of its feature application layer', () => {
   assert.match(result.stderr, /rule=feature-layers-must-depend-inward/);
 });
 
+test('rejects a domain import of its feature application barrel directory', () => {
+  const result = checkFixture('feature-domain-imports-application-barrel');
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /features[\\/]system[\\/]domain[\\/]decision\.ts/);
+  assert.match(result.stderr, /rule=feature-layers-must-depend-inward/);
+  assert.match(result.stderr, /import=\.\.\/application/);
+});
+
 test('accepts feature layers that depend inward', () => {
   const result = checkFixture('feature-layers-depend-inward');
 
