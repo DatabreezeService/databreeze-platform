@@ -1,25 +1,18 @@
 import { normalizeEmailAddressV1 } from '@databreeze/domain/identity/v1';
 
-import type { AuthenticatedPrincipalV1, AuthenticationPortV1 } from './authentication.port.js';
+import type {
+  AuthenticationInputV1,
+  AuthenticationPortV1,
+  AuthenticationResultV1,
+  AuthenticationUseCaseV1,
+} from './authentication.port.js';
 
-export type AuthenticationFailureCodeV1 = 'INVALID_CREDENTIALS' | 'AUTHENTICATION_UNAVAILABLE';
-export type AuthenticationResultV1<TValue> =
-  | { readonly accepted: true; readonly value: TValue }
-  | { readonly accepted: false; readonly code: AuthenticationFailureCodeV1 };
+export type { AuthenticationFailureCodeV1 } from './authentication.port.js';
 
-export class AuthenticationService {
+export class AuthenticationService implements AuthenticationUseCaseV1 {
   constructor(private readonly ports: AuthenticationPortV1) {}
 
-  async signIn(input: {
-    readonly email: unknown;
-    readonly password: unknown;
-    readonly clientPlatform: 'android' | 'desktop' | 'web';
-  }): Promise<
-    AuthenticationResultV1<{
-      readonly principal: AuthenticatedPrincipalV1;
-      readonly session: Awaited<ReturnType<AuthenticationPortV1['sessions']['issue']>>;
-    }>
-  > {
+  async signIn(input: AuthenticationInputV1): Promise<AuthenticationResultV1> {
     const email = normalizeEmailAddressV1(input.email);
     if (!email.accepted) return { accepted: false, code: 'INVALID_CREDENTIALS' };
     try {
