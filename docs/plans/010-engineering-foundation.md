@@ -1,7 +1,7 @@
 # Engineering Foundation Implementation Plan
 
-**Status:** Approved  
-**Parent:** `000-platform-program.md`  
+**Status:** Approved<br>
+**Parent:** `000-platform-program.md`<br>
 **Branch:** `feat/platform-foundation`
 
 ## Outcome
@@ -127,4 +127,3 @@ Run the complete root verification from a clean worktree, build each deployable,
 ## Deferred requirements
 
 All business workflows and persistent IAM/IAE/DSM/JRA/DSO/NCO/INT/BUA/AUD behavior beyond the explicitly named primitives remain deferred to the subsequent child plans. A passing engineering-foundation build does not mark those requirements implemented.
-

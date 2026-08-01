@@ -1,7 +1,7 @@
 # DataBreeze Platform Implementation Program
 
-**Status:** Approved  
-**Implementation branch:** `dev` through short-lived `feat/*` and `fix/*` branches  
+**Status:** Approved<br>
+**Implementation branch:** `dev` through short-lived `feat/*` and `fix/*` branches<br>
 **Primary specifications:** `docs/product/`, `docs/architecture/`, `docs/specs/`, and accepted ADRs
 
 ## Goal
@@ -59,4 +59,3 @@ Child plans are written and approved before their product slice begins. Each nam
 - Relevant unit, integration, contract, end-to-end, security, accessibility, recovery, and performance tests pass.
 - Migrations, observability, operations, rollback, and release evidence are present.
 - No critical or high security finding remains unresolved for a production release.
-
