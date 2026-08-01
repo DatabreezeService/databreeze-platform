@@ -115,6 +115,7 @@ function authorityProvider({
   principalResult,
   membershipResult,
   policyResult,
+  hangFrom,
   throwFrom,
 } = {}) {
   const calls = {
@@ -128,28 +129,49 @@ function authorityProvider({
   const provider = Object.freeze({
     async resolveAuthenticatedPrincipalV1() {
       calls.principal += 1;
+      if (hangFrom === 'principal') return new Promise(() => {});
       if (throwFrom === 'principal') throw new Error('principal unavailable');
       return principalResult ?? { principalId };
     },
     async lookupResourceV1(query) {
       calls.lookup += 1;
       calls.lookupQuery = query;
+      if (hangFrom === 'lookup') return new Promise(() => {});
       if (throwFrom === 'lookup') throw new Error('lookup unavailable');
       return resource;
     },
     async resolveMembershipV1() {
       calls.membership += 1;
+      if (hangFrom === 'membership') return new Promise(() => {});
       if (throwFrom === 'membership') throw new Error('membership unavailable');
       return membershipResult ?? { roleId, membershipScope, membershipActive };
     },
     async evaluatePolicyV1() {
       calls.policy += 1;
+      if (hangFrom === 'policy') return new Promise(() => {});
       if (throwFrom === 'policy') throw new Error('policy unavailable');
       return policyResult ?? { satisfied: policyConditionsSatisfied };
     },
   });
 
   return { provider, calls };
+}
+
+async function settleWithin(promise, timeoutMs) {
+  let guard;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        guard = globalThis.setTimeout(
+          () => reject(new Error('authorization did not settle')),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    globalThis.clearTimeout(guard);
+  }
 }
 
 test('[IAM-002, IAM-003] evaluator owns authority and exposes no caller minting API', async () => {
@@ -430,5 +452,98 @@ test('[IAM-002, IAM-003] authority failures and malformed results fail closed', 
       await evaluator.authorizeV1(requestFor('artifact.record.read', 'web', artifact)),
       { allowed: false, code: 'AUTHORITY_INVALID' },
     );
+  }
+});
+
+for (const [hangFrom, expectedCalls] of [
+  ['principal', { principal: 1, lookup: 0, membership: 0, policy: 0 }],
+  ['lookup', { principal: 1, lookup: 1, membership: 0, policy: 0 }],
+  ['membership', { principal: 1, lookup: 1, membership: 1, policy: 0 }],
+  ['policy', { principal: 1, lookup: 1, membership: 1, policy: 1 }],
+]) {
+  test(`[IAM-002, IAM-003] ${hangFrom} authority timeout fails closed`, async () => {
+    const artifact = resourceFor('artifact');
+    const { provider, calls } = authorityProvider({ resource: artifact, hangFrom });
+    const evaluator = createScopedAuthorizationEvaluatorV1(provider, {
+      providerCallTimeoutMs: 10,
+    });
+
+    assert.deepEqual(
+      await settleWithin(
+        evaluator.authorizeV1(requestFor('artifact.record.read', 'web', artifact)),
+        250,
+      ),
+      { allowed: false, code: 'AUTHORITY_UNAVAILABLE' },
+    );
+    assert.deepEqual(
+      {
+        principal: calls.principal,
+        lookup: calls.lookup,
+        membership: calls.membership,
+        policy: calls.policy,
+      },
+      expectedCalls,
+    );
+  });
+}
+
+test('[IAM-002, IAM-003] authority deadline timers are cleared after settle', async () => {
+  const nativeSetTimeout = globalThis.setTimeout;
+  const nativeClearTimeout = globalThis.clearTimeout;
+  const activeTimers = new Set();
+  let scheduled = 0;
+  let cleared = 0;
+
+  globalThis.setTimeout = (callback, delay, ...arguments_) => {
+    scheduled += 1;
+    const handle = nativeSetTimeout(() => {
+      activeTimers.delete(handle);
+      callback(...arguments_);
+    }, delay);
+    activeTimers.add(handle);
+    return handle;
+  };
+  globalThis.clearTimeout = (handle) => {
+    cleared += 1;
+    activeTimers.delete(handle);
+    return nativeClearTimeout(handle);
+  };
+
+  try {
+    const artifact = resourceFor('artifact');
+    for (const [throwFrom, expectedDecision] of [
+      [undefined, { allowed: true, permission: 'artifact.record.read', tenantScope: projectA }],
+      ['membership', { allowed: false, code: 'AUTHORITY_UNAVAILABLE' }],
+    ]) {
+      const { provider } = authorityProvider({ resource: artifact, throwFrom });
+      const evaluator = createScopedAuthorizationEvaluatorV1(provider, {
+        providerCallTimeoutMs: 1_000,
+      });
+      assert.deepEqual(
+        await evaluator.authorizeV1(requestFor('artifact.record.read', 'web', artifact)),
+        expectedDecision,
+      );
+    }
+
+    assert.equal(scheduled, 7);
+    assert.equal(cleared, 7);
+    assert.equal(activeTimers.size, 0);
+  } finally {
+    globalThis.setTimeout = nativeSetTimeout;
+    globalThis.clearTimeout = nativeClearTimeout;
+    for (const handle of activeTimers) nativeClearTimeout(handle);
+  }
+});
+
+test('[IAM-002, IAM-003] unsafe authority timeout configuration fails at composition', () => {
+  const { provider } = authorityProvider();
+  for (const options of [
+    {},
+    { providerCallTimeoutMs: 0 },
+    { providerCallTimeoutMs: 1.5 },
+    { providerCallTimeoutMs: 60_001 },
+    { providerCallTimeoutMs: 1_000, extra: true },
+  ]) {
+    assert.throws(() => createScopedAuthorizationEvaluatorV1(provider, options), TypeError);
   }
 });

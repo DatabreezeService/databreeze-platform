@@ -112,6 +112,11 @@ export interface ScopedAuthorizationEvaluatorV1 {
   readonly authorizeV1: (request: unknown) => Promise<AuthorizationDecisionV1>;
 }
 
+export interface ScopedAuthorizationEvaluatorOptionsV1 {
+  /** Maximum time allowed for each call to the provider bound to this evaluator. */
+  readonly providerCallTimeoutMs: number;
+}
+
 interface ParsedMembershipV1 {
   readonly roleId: string;
   readonly membershipScope: TenantScopeV1;
@@ -124,6 +129,13 @@ type ParsedValueV1<TValue> =
 
 const authorizationChannelSet = new Set<string>(AUTHORIZATION_CHANNELS_V1);
 const resourceTypeSet = new Set<string>(RESOURCE_TYPES_V1);
+const DEFAULT_PROVIDER_CALL_TIMEOUT_MS_V1 = 1_000;
+const MAX_PROVIDER_CALL_TIMEOUT_MS_V1 = 60_000;
+
+interface AuthorizationTimerRuntimeV1 {
+  readonly setTimeout: (callback: () => void, delayMs: number) => unknown;
+  readonly clearTimeout: (handle: unknown) => void;
+}
 
 const resourceScopeTypes: Readonly<Record<ResourceTypeV1, readonly TenantScopeV1['scopeType'][]>> =
   Object.freeze({
@@ -148,6 +160,58 @@ function hasExactKeys(input: Record<string, unknown>, expectedKeys: readonly str
     actualKeys.length === sortedExpected.length &&
     actualKeys.every((key, index) => key === sortedExpected[index])
   );
+}
+
+function providerCallTimeoutMsV1(input: unknown): number {
+  if (input === undefined) {
+    return DEFAULT_PROVIDER_CALL_TIMEOUT_MS_V1;
+  }
+  if (!isRecord(input) || !hasExactKeys(input, ['providerCallTimeoutMs'])) {
+    throw new TypeError('Invalid authorization evaluator options');
+  }
+
+  const timeoutMs = input['providerCallTimeoutMs'];
+  if (
+    typeof timeoutMs !== 'number' ||
+    !Number.isInteger(timeoutMs) ||
+    timeoutMs < 1 ||
+    timeoutMs > MAX_PROVIDER_CALL_TIMEOUT_MS_V1
+  ) {
+    throw new TypeError('Invalid authorization provider call timeout');
+  }
+  return timeoutMs;
+}
+
+function timerRuntimeV1(): AuthorizationTimerRuntimeV1 {
+  const runtime = globalThis as unknown as Partial<AuthorizationTimerRuntimeV1>;
+  if (typeof runtime.setTimeout !== 'function' || typeof runtime.clearTimeout !== 'function') {
+    throw new TypeError('Authorization evaluator requires timer support');
+  }
+  return Object.freeze({
+    setTimeout: runtime.setTimeout.bind(globalThis),
+    clearTimeout: runtime.clearTimeout.bind(globalThis),
+  });
+}
+
+async function withProviderCallTimeoutV1<TValue>(
+  operation: () => AwaitableV1<TValue>,
+  timeoutMs: number,
+  timers: AuthorizationTimerRuntimeV1,
+): Promise<TValue> {
+  let scheduled = false;
+  let timeoutHandle: unknown;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timeoutHandle = timers.setTimeout(() => reject(new Error('AUTHORITY_TIMEOUT')), timeoutMs);
+    scheduled = true;
+  });
+
+  try {
+    return await Promise.race([Promise.resolve().then(operation), timeout]);
+  } finally {
+    if (scheduled) {
+      timers.clearTimeout(timeoutHandle);
+    }
+  }
 }
 
 function isAuthorizationChannelV1(input: unknown): input is AuthorizationChannelV1 {
@@ -284,7 +348,10 @@ function bindAuthorityMethodV1<TKey extends keyof AuthorizationAuthorityProvider
 
 export function createScopedAuthorizationEvaluatorV1(
   provider: AuthorizationAuthorityProviderV1,
+  options?: ScopedAuthorizationEvaluatorOptionsV1,
 ): ScopedAuthorizationEvaluatorV1 {
+  const providerCallTimeoutMs = providerCallTimeoutMsV1(options);
+  const timers = timerRuntimeV1();
   const resolveAuthenticatedPrincipalV1 = bindAuthorityMethodV1(
     provider,
     'resolveAuthenticatedPrincipalV1',
@@ -333,7 +400,13 @@ export function createScopedAuthorizationEvaluatorV1(
     }
 
     try {
-      const principal = parsePrincipalV1(await resolveAuthenticatedPrincipalV1());
+      const principal = parsePrincipalV1(
+        await withProviderCallTimeoutV1(
+          () => resolveAuthenticatedPrincipalV1(),
+          providerCallTimeoutMs,
+          timers,
+        ),
+      );
       if (!principal.accepted) {
         return deny('AUTHORITY_INVALID');
       }
@@ -343,7 +416,13 @@ export function createScopedAuthorizationEvaluatorV1(
         resourceId: resourceSelector.value.resourceId,
         tenantScope: tenantFilter.value,
       });
-      const resource = parseAuthoritativeResourceV1(await lookupResourceV1(lookupQuery));
+      const resource = parseAuthoritativeResourceV1(
+        await withProviderCallTimeoutV1(
+          () => lookupResourceV1(lookupQuery),
+          providerCallTimeoutMs,
+          timers,
+        ),
+      );
       if (!resource.accepted) {
         return deny('AUTHORITY_INVALID');
       }
@@ -362,7 +441,13 @@ export function createScopedAuthorizationEvaluatorV1(
         principalId: principal.value,
         resource: resource.value,
       });
-      const membership = parseMembershipV1(await resolveMembershipV1(membershipQuery));
+      const membership = parseMembershipV1(
+        await withProviderCallTimeoutV1(
+          () => resolveMembershipV1(membershipQuery),
+          providerCallTimeoutMs,
+          timers,
+        ),
+      );
       if (!membership.accepted) {
         return deny('AUTHORITY_INVALID');
       }
@@ -391,7 +476,13 @@ export function createScopedAuthorizationEvaluatorV1(
         membership: evaluatedMembership,
         resource: resource.value,
       });
-      const policy = parsePolicyResultV1(await evaluatePolicyV1(policyQuery));
+      const policy = parsePolicyResultV1(
+        await withProviderCallTimeoutV1(
+          () => evaluatePolicyV1(policyQuery),
+          providerCallTimeoutMs,
+          timers,
+        ),
+      );
       if (!policy.accepted) {
         return deny('AUTHORITY_INVALID');
       }

@@ -50,6 +50,10 @@ evaluates applicable policy from trusted application state.
 
 Provider methods are captured when the evaluator is created, so later mutation cannot replace
 its authority. Provider results are always runtime-validated even when an adapter is typed.
+Each provider call has an independently cleaned-up deadline: 1 second by default, configurable
+per evaluator from 1 millisecond through 60 seconds with `providerCallTimeoutMs`. A provider
+timeout or exception fails closed as `AUTHORITY_UNAVAILABLE`; late provider settlement cannot
+resume the authorization flow.
 Clients may use published permission bundles and applicability as display hints, but
 authoritative enforcement belongs to a server or trusted worker with its own provider-backed
 evaluator.

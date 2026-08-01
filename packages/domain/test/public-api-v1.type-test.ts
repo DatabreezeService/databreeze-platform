@@ -3,6 +3,7 @@ import type {
   AuthorizationAuthorityProviderV1,
   AuthorizationRequestV1,
   ScopedResourceLookupQueryV1,
+  ScopedAuthorizationEvaluatorOptionsV1,
 } from '@databreeze/domain/authorization/v1';
 import type { StableIdentifierV1, TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
@@ -28,7 +29,8 @@ const provider: AuthorizationAuthorityProviderV1 = {
   },
 };
 
-const evaluator = createScopedAuthorizationEvaluatorV1(provider);
+const evaluatorOptions: ScopedAuthorizationEvaluatorOptionsV1 = { providerCallTimeoutMs: 1_000 };
+const evaluator = createScopedAuthorizationEvaluatorV1(provider, evaluatorOptions);
 const request: AuthorizationRequestV1 = {
   permission: 'artifact.record.read',
   channel: 'web',
