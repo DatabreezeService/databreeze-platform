@@ -20,6 +20,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . && node tools/repo-cli/src/check-dependency-boundaries.mjs",
+    "local:smoke": "node tools/repo-cli/src/local-services-smoke.mjs",
     "repo:bootstrap": "corepack pnpm install --frozen-lockfile",
     "repo:build": "corepack pnpm build",
     "repo:check": "corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm requirements:check && corepack pnpm contracts:check && corepack pnpm test",

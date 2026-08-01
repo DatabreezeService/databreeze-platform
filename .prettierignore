@@ -8,3 +8,6 @@ pnpm-lock.yaml
 packages/contracts/generated/
 packages/design-tokens/brand/derivatives.json
 services/engine/test/fixtures/fake-uv-prefix
+infrastructure/local/.env.example
+infrastructure/local/**/*.sql
+infrastructure/local/**/*.sh
