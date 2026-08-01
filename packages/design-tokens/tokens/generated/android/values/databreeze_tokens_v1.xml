@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <color name="db_color_background">#FFFFFF</color>
+  <color name="db_color_border">#8A93A5</color>
+  <color name="db_color_focus">#1D4ED8</color>
+  <color name="db_color_on_primary">#FFFFFF</color>
+  <color name="db_color_primary">#344EF8</color>
+  <color name="db_color_primary_hover">#263BCF</color>
+  <color name="db_color_status_danger_surface">#FDEDEF</color>
+  <color name="db_color_status_danger_text">#A61B2B</color>
+  <color name="db_color_status_info_surface">#EAF3FF</color>
+  <color name="db_color_status_info_text">#15579A</color>
+  <color name="db_color_status_success_surface">#E9F8F0</color>
+  <color name="db_color_status_success_text">#146C43</color>
+  <color name="db_color_status_warning_surface">#FFF4D6</color>
+  <color name="db_color_status_warning_text">#754500</color>
+  <color name="db_color_surface">#F7F8FC</color>
+  <color name="db_color_surface_strong">#ECEFF6</color>
+  <color name="db_color_text">#171B2A</color>
+  <color name="db_color_text_muted">#4B5568</color>
+  <dimen name="db_elevation_level0">0dp</dimen>
+  <dimen name="db_elevation_level1">1dp</dimen>
+  <dimen name="db_elevation_level2">3dp</dimen>
+  <dimen name="db_elevation_level3">8dp</dimen>
+  <dimen name="db_focus_ring_offset">2dp</dimen>
+  <dimen name="db_focus_ring_width">3dp</dimen>
+  <string name="db_logo_mark_accessible_name_policy" translatable="false">required</string>
+  <bool name="db_logo_preserve_aspect_ratio">true</bool>
+  <string name="db_logo_recolor_policy" translatable="false">forbidden</string>
+  <string name="db_logo_wordmark_adjacent_product_name_policy" translatable="false">forbidden</string>
+  <dimen name="db_logo_wordmark_clear_space">10dp</dimen>
+  <dimen name="db_logo_wordmark_minimum_width">120dp</dimen>
+  <integer name="db_motion_duration_fast">120</integer>
+  <integer name="db_motion_duration_instant">0</integer>
+  <integer name="db_motion_duration_normal">180</integer>
+  <integer name="db_motion_duration_slow">240</integer>
+  <string name="db_motion_easing_emphasized" translatable="false">cubic-bezier(0.2, 0, 0, 1)</string>
+  <string name="db_motion_easing_standard" translatable="false">cubic-bezier(0.2, 0, 0, 1)</string>
+  <dimen name="db_radius_large">12dp</dimen>
+  <dimen name="db_radius_medium">8dp</dimen>
+  <dimen name="db_radius_pill">999dp</dimen>
+  <dimen name="db_radius_small">4dp</dimen>
+  <dimen name="db_sizing_control_minimum">44dp</dimen>
+  <dimen name="db_sizing_icon_large">24dp</dimen>
+  <dimen name="db_sizing_icon_medium">20dp</dimen>
+  <dimen name="db_sizing_icon_small">16dp</dimen>
+  <dimen name="db_sizing_touch_target_minimum">44dp</dimen>
+  <dimen name="db_spacing_0">0dp</dimen>
+  <dimen name="db_spacing_1">4dp</dimen>
+  <dimen name="db_spacing_12">48dp</dimen>
+  <dimen name="db_spacing_2">8dp</dimen>
+  <dimen name="db_spacing_3">12dp</dimen>
+  <dimen name="db_spacing_4">16dp</dimen>
+  <dimen name="db_spacing_6">24dp</dimen>
+  <dimen name="db_spacing_8">32dp</dimen>
+  <string name="db_status_danger_icon" translatable="false">error</string>
+  <string name="db_status_info_icon" translatable="false">info</string>
+  <string name="db_status_success_icon" translatable="false">check-circle</string>
+  <string name="db_status_warning_icon" translatable="false">warning</string>
+  <string name="db_typography_font_family_body" translatable="false">Be Vietnam Pro, Noto Sans, Segoe UI, ui-sans-serif, system-ui, sans-serif</string>
+  <dimen name="db_typography_font_size_body">16sp</dimen>
+  <dimen name="db_typography_font_size_caption">12sp</dimen>
+  <dimen name="db_typography_font_size_heading_large">30sp</dimen>
+  <dimen name="db_typography_font_size_heading_medium">24sp</dimen>
+  <dimen name="db_typography_font_size_heading_small">20sp</dimen>
+  <dimen name="db_typography_font_size_label">14sp</dimen>
+  <integer name="db_typography_font_weight_medium">500</integer>
+  <integer name="db_typography_font_weight_regular">400</integer>
+  <integer name="db_typography_font_weight_semibold">600</integer>
+  <string name="db_typography_line_height_body" translatable="false">1.5</string>
+  <string name="db_typography_line_height_compact" translatable="false">1.25</string>
+  <string name="db_typography_numeric_feature" translatable="false">tabular-nums</string>
+</resources>

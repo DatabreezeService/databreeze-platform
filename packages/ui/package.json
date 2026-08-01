@@ -1,0 +1,33 @@
+{
+  "name": "@databreeze/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./v1": {
+      "types": "./src/v1.ts",
+      "import": "./dist/v1.js"
+    },
+    "./styles/v1": "./src/styles-v1.css"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json && node test/built-public-api-smoke.mjs",
+    "test": "corepack pnpm build && node --test test/**/*.test.mjs",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  },
+  "dependencies": {
+    "@databreeze/design-tokens": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "19.2.8"
+  },
+  "devDependencies": {
+    "@testing-library/react": "16.3.0",
+    "@testing-library/user-event": "14.6.1",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "jsdom": "30.0.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  }
+}

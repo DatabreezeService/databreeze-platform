@@ -1,0 +1,81 @@
+:root {
+  --db-color-background: #ffffff;
+  --db-color-border: #8a93a5;
+  --db-color-focus: #1d4ed8;
+  --db-color-on-primary: #ffffff;
+  --db-color-primary: #344ef8;
+  --db-color-primary-hover: #263bcf;
+  --db-color-status-danger-surface: #fdedef;
+  --db-color-status-danger-text: #a61b2b;
+  --db-color-status-info-surface: #eaf3ff;
+  --db-color-status-info-text: #15579a;
+  --db-color-status-success-surface: #e9f8f0;
+  --db-color-status-success-text: #146c43;
+  --db-color-status-warning-surface: #fff4d6;
+  --db-color-status-warning-text: #754500;
+  --db-color-surface: #f7f8fc;
+  --db-color-surface-strong: #eceff6;
+  --db-color-text: #171b2a;
+  --db-color-text-muted: #4b5568;
+  --db-elevation-level0: 0px;
+  --db-elevation-level1: 1px;
+  --db-elevation-level2: 3px;
+  --db-elevation-level3: 8px;
+  --db-focus-ring-offset: 2px;
+  --db-focus-ring-width: 3px;
+  --db-logo-mark-accessible-name-policy: 'required';
+  --db-logo-preserve-aspect-ratio: true;
+  --db-logo-recolor-policy: 'forbidden';
+  --db-logo-wordmark-adjacent-product-name-policy: 'forbidden';
+  --db-logo-wordmark-clear-space: 10px;
+  --db-logo-wordmark-minimum-width: 120px;
+  --db-motion-duration-fast: 120ms;
+  --db-motion-duration-instant: 0ms;
+  --db-motion-duration-normal: 180ms;
+  --db-motion-duration-slow: 240ms;
+  --db-motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --db-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --db-radius-large: 12px;
+  --db-radius-medium: 8px;
+  --db-radius-pill: 999px;
+  --db-radius-small: 4px;
+  --db-sizing-control-minimum: 44px;
+  --db-sizing-icon-large: 24px;
+  --db-sizing-icon-medium: 20px;
+  --db-sizing-icon-small: 16px;
+  --db-sizing-touch-target-minimum: 44px;
+  --db-spacing-0: 0px;
+  --db-spacing-1: 4px;
+  --db-spacing-12: 48px;
+  --db-spacing-2: 8px;
+  --db-spacing-3: 12px;
+  --db-spacing-4: 16px;
+  --db-spacing-6: 24px;
+  --db-spacing-8: 32px;
+  --db-status-danger-icon: 'error';
+  --db-status-info-icon: 'info';
+  --db-status-success-icon: 'check-circle';
+  --db-status-warning-icon: 'warning';
+  --db-typography-font-family-body:
+    Be Vietnam Pro, Noto Sans, Segoe UI, ui-sans-serif, system-ui, sans-serif;
+  --db-typography-font-size-body: 16px;
+  --db-typography-font-size-caption: 12px;
+  --db-typography-font-size-heading-large: 30px;
+  --db-typography-font-size-heading-medium: 24px;
+  --db-typography-font-size-heading-small: 20px;
+  --db-typography-font-size-label: 14px;
+  --db-typography-font-weight-medium: 500;
+  --db-typography-font-weight-regular: 400;
+  --db-typography-font-weight-semibold: 600;
+  --db-typography-line-height-body: 1.5;
+  --db-typography-line-height-compact: 1.25;
+  --db-typography-numeric-feature: 'tabular-nums';
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --db-motion-duration-fast: 0ms;
+    --db-motion-duration-normal: 0ms;
+    --db-motion-duration-slow: 0ms;
+  }
+}
