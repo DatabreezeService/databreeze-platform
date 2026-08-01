@@ -11,3 +11,5 @@ services/engine/test/fixtures/fake-uv-prefix
 infrastructure/local/.env.example
 infrastructure/local/**/*.sql
 infrastructure/local/**/*.sh
+infrastructure/aws/**/*.tf
+infrastructure/aws/**/*.tfvars*

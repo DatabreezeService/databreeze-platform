@@ -54,6 +54,8 @@ Desktop.ini
 
 # Customer/runtime data and generated artifacts
 data/
+!infrastructure/aws/modules/data/
+!infrastructure/aws/modules/data/**
 runtime/
 uploads/
 artifacts/
