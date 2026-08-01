@@ -11,7 +11,7 @@
     "runtime": {
       "name": "node",
       "version": "24.17.0",
-      "onFail": "error"
+      "onFail": "download"
     }
   },
   "scripts": {

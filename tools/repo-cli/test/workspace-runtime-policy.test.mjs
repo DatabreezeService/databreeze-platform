@@ -64,7 +64,7 @@ test('discovers the root workspace and enforces the repository runtime policy', 
   assert.deepEqual(packageManifest.devEngines?.runtime, {
     name: 'node',
     version: expectedRuntimeVersions.nodejs,
-    onFail: 'error',
+    onFail: 'download',
   });
   assert.equal(run('corepack', ['pnpm', 'config', 'get', 'engineStrict']), 'true');
   assert.equal(run('corepack', ['pnpm', 'config', 'get', 'pmOnFail']), 'download');
