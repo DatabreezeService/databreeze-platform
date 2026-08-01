@@ -20,6 +20,7 @@
     "@databreeze/design-tokens": "workspace:*",
     "@databreeze/domain": "workspace:*",
     "@databreeze/i18n": "workspace:*",
+    "@databreeze/telemetry": "workspace:*",
     "@databreeze/ui": "workspace:*",
     "@tanstack/react-query": "5.101.4",
     "react": "19.2.8",

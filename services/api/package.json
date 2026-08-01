@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@databreeze/contracts": "workspace:*",
+    "@databreeze/telemetry": "workspace:*",
     "@nestjs/common": "11.1.28",
     "@nestjs/core": "11.1.28",
     "@nestjs/platform-fastify": "11.1.28",
