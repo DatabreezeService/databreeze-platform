@@ -10,26 +10,25 @@ const testDirectory = path.dirname(fileURLToPath(import.meta.url));
 const indexerPath = path.join(testDirectory, '..', 'src', 'generate-requirement-index.mjs');
 const fixturesDirectory = path.join(testDirectory, 'fixtures', 'requirement-traceability');
 
+function quoteCommandArgument(value) {
+  return process.platform === 'win32' ? `"${value}"` : `'${value.replaceAll("'", "'\\''")}'`;
+}
+
 function runIndexer(fixtureName, extraArguments = [], prepareOutput) {
   const outputDirectory = mkdtempSync(path.join(os.tmpdir(), 'databreeze-requirements-'));
   const outputPath = path.join(outputDirectory, 'requirements-index.json');
+  const rootPath = path.join(fixturesDirectory, fixtureName);
   prepareOutput?.(outputPath);
   const result = spawnSync(
     process.execPath,
-    [
-      indexerPath,
-      '--root',
-      path.join(fixturesDirectory, fixtureName),
-      '--output',
-      outputPath,
-      ...extraArguments,
-    ],
+    [indexerPath, '--root', rootPath, '--output', outputPath, ...extraArguments],
     { encoding: 'utf8' },
   );
 
   return {
     ...result,
     outputPath,
+    rootPath,
     cleanup() {
       rmSync(outputDirectory, { force: true, recursive: true });
     },
@@ -138,7 +137,7 @@ test('reports output drift without rewriting the checked index', () => {
     assert.equal(result.status, 1);
     assert.equal(
       result.stderr,
-      `requirement index drift: ${result.outputPath} is missing or differs; run node tools/repo-cli/src/generate-requirement-index.mjs --output ${result.outputPath}\n`,
+      `requirement index drift: ${result.outputPath} is missing or differs; run node tools/repo-cli/src/generate-requirement-index.mjs --root ${quoteCommandArgument(result.rootPath)} --output ${quoteCommandArgument(result.outputPath)}\n`,
     );
   } finally {
     result.cleanup();
@@ -155,7 +154,7 @@ test('reports stale index drift without rewriting the existing bytes', () => {
     assert.equal(result.status, 1);
     assert.equal(
       result.stderr,
-      `requirement index drift: ${result.outputPath} is missing or differs; run node tools/repo-cli/src/generate-requirement-index.mjs --output ${result.outputPath}\n`,
+      `requirement index drift: ${result.outputPath} is missing or differs; run node tools/repo-cli/src/generate-requirement-index.mjs --root ${quoteCommandArgument(result.rootPath)} --output ${quoteCommandArgument(result.outputPath)}\n`,
     );
     assert.equal(readFileSync(result.outputPath, 'utf8'), staleContents);
   } finally {

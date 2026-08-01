@@ -36,6 +36,10 @@ function parseOptions(argumentsList) {
   return options;
 }
 
+function quoteCommandArgument(value) {
+  return process.platform === 'win32' ? `"${value}"` : `'${value.replaceAll("'", "'\\''")}'`;
+}
+
 function listMarkdownFiles(directory) {
   if (!existsSync(directory)) {
     return [];
@@ -233,7 +237,7 @@ function run(argumentsList) {
   if (options.check) {
     if (!existsSync(options.output) || readFileSync(options.output, 'utf8') !== contents) {
       process.stderr.write(
-        `requirement index drift: ${options.output} is missing or differs; run node tools/repo-cli/src/generate-requirement-index.mjs --output ${options.output}\n`,
+        `requirement index drift: ${options.output} is missing or differs; run node tools/repo-cli/src/generate-requirement-index.mjs --root ${quoteCommandArgument(options.root)} --output ${quoteCommandArgument(options.output)}\n`,
       );
       return 1;
     }
