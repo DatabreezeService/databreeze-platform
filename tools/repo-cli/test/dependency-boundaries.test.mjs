@@ -73,6 +73,21 @@ test('accepts a feature import of its own persistence adapter', () => {
   assert.equal(result.stderr, '');
 });
 
+test('rejects a domain import of its feature application layer', () => {
+  const result = checkFixture('feature-domain-imports-application');
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /features[\\/]system[\\/]domain[\\/]decision\.ts/);
+  assert.match(result.stderr, /rule=feature-layers-must-depend-inward/);
+});
+
+test('accepts feature layers that depend inward', () => {
+  const result = checkFixture('feature-layers-depend-inward');
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stderr, '');
+});
+
 test('rejects a workspace package that omits its public exports map', () => {
   const result = checkFixture('package-without-exports');
 

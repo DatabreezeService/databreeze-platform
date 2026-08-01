@@ -6,8 +6,9 @@
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "lint": "eslint .",
-    "openapi:check": "tsc --project tsconfig.build.json && node scripts/generate-openapi.mjs --check",
+    "openapi:check": "tsc --project tsconfig.build.json && node scripts/generate-openapi.mjs --check && pnpm openapi:validate",
     "openapi:generate": "tsc --project tsconfig.build.json && node scripts/generate-openapi.mjs",
+    "openapi:validate": "redocly lint openapi/v1.json --extends spec",
     "start": "node dist/main.js",
     "prisma:generate": "prisma generate --config prisma.config.ts",
     "prisma:validate": "prisma validate --config prisma.config.ts",
@@ -28,6 +29,7 @@
     "rxjs": "7.8.2"
   },
   "devDependencies": {
+    "@redocly/cli": "2.43.2",
     "@types/node": "24.13.3",
     "prettier": "3.6.2",
     "prisma": "7.9.1",

@@ -11,16 +11,18 @@ closed validation, safe problems, and OpenAPI. A feature slice lives under `src/
 
 ```text
 api -> application -> domain
-api -> application ports <- adapter or persistence implementation
-composition root -> every layer
+adapter or persistence -> application ports and domain
+feature module/composition root -> every layer
 ```
 
 The real `system` reference slice contains `api`, `application`, `domain`, and `adapter` layers.
-It has no persistence adapter because API boot is deliberately database-free. A feature may import
-its own persistence implementation, but never another feature's persistence. Features expose typed
+It has no persistence adapter because API boot is deliberately database-free. Domain code imports
+only its own domain layer; application code may depend on domain but not transport or adapter code.
+Adapters implement inward-facing application ports, while feature module composition may wire its
+own persistence implementation but never another feature's persistence. Features expose typed
 application contracts for cross-feature composition; they do not call another feature's domain
 service or read another feature's tables. Clients must never import this service package. The root
-dependency-boundary checker enforces those rules.
+dependency-boundary checker enforces these layer-direction and repository-wide rules.
 
 ## Commands
 
@@ -75,12 +77,14 @@ text, provider detail, tenant existence, and customer content.
 
 ## OpenAPI
 
-`openapi/v1.json` is generated from the configured application and checked in. The generator is
-deterministic, the drift command byte-compares a fresh generation, and the same document is served
-at `GET /v1/openapi.json`. Public paths use `/v1`; operational health exceptions are marked
+`openapi/v1.json` is generated from the configured application and checked in as OpenAPI 3.1 with
+the JSON Schema 2020-12 dialect. The generator is deterministic, the drift command byte-compares a
+fresh generation, and `openapi:check` runs Redocly's standards validator. The same document is
+served at `GET /v1/openapi.json`. Public paths use `/v1`; operational health exceptions are marked
 consistently. The document includes correlation/request headers, closed compatibility input,
-representative Problem responses, and the closed shared v1 Problem schema. Edit controllers or
-contracts, then run `openapi:generate`; never hand-edit the artifact.
+representative Problem responses, and the closed shared v1 Problem schema with local component
+references. Edit controllers or contracts, then run `openapi:generate`; never hand-edit the
+artifact.
 
 ## Prisma schema ownership and migrations
 

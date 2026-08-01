@@ -128,6 +128,12 @@ void test('validates declared compatibility query fields and rejects unknown que
     assert.deepEqual(valid.json(), { apiMajorVersion: 1, status: 'supported' });
     assertResponseIdentifiers(valid);
 
+    const suffixGarbage = await app.inject({
+      method: 'GET',
+      url: '/v1/system/compatibility?clientPlatform=web&clientVersion=1.2.3garbage',
+    });
+    assertProblem(suffixGarbage, 400, 'VALIDATION_FAILED');
+
     const unknown = await app.inject({
       method: 'GET',
       url: `/v1/system/compatibility?clientPlatform=web&${leakedMarker}=secret`,

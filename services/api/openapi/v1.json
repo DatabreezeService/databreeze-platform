@@ -1,5 +1,5 @@
 {
-  "openapi": "3.0.0",
+  "openapi": "3.1.0",
   "paths": {
     "/health/live": {
       "get": {
@@ -193,7 +193,7 @@
             "in": "query",
             "schema": {
               "maxLength": 32,
-              "pattern": "^\\d+\\.\\d+\\.\\d+",
+              "pattern": "^(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(?:-(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
               "example": "1.2.3",
               "type": "string"
             }
@@ -387,11 +387,30 @@
             "type": "string",
             "example": "1.2.3",
             "maxLength": 32,
-            "pattern": "^\\d+\\.\\d+\\.\\d+"
+            "pattern": "^(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(?:-(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
           }
         },
         "required": ["clientPlatform", "clientVersion"],
         "additionalProperties": false
+      },
+      "Identifier": {
+        "title": "Stable UUID Identifier",
+        "description": "An opaque stable UUID identifier.",
+        "type": "string",
+        "format": "uuid"
+      },
+      "Revision": {
+        "title": "Entity Revision",
+        "description": "A positive, monotonically increasing entity revision.",
+        "type": "integer",
+        "minimum": 1
+      },
+      "UtcTimestamp": {
+        "title": "UTC Timestamp",
+        "description": "An RFC 3339 date-time normalized to UTC and terminated by uppercase Z.",
+        "type": "string",
+        "format": "date-time",
+        "pattern": "Z$"
       },
       "ProblemDetails": {
         "title": "Problem Details",
@@ -411,9 +430,7 @@
           "detail": { "type": "string" },
           "instance": { "type": "string", "format": "uri-reference" },
           "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{0,127}$" },
-          "correlationId": {
-            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
-          },
+          "correlationId": { "$ref": "#/components/schemas/Identifier" },
           "retryable": { "type": "boolean" },
           "messageKey": { "type": "string", "minLength": 1, "maxLength": 255 },
           "fieldErrors": {
@@ -433,9 +450,7 @@
             }
           },
           "retryAfterSeconds": { "type": "integer", "minimum": 0 },
-          "currentRevision": {
-            "$ref": "https://schemas.databreeze.dev/contracts/v1/revision"
-          },
+          "currentRevision": { "$ref": "#/components/schemas/Revision" },
           "remediationAction": {
             "type": "string",
             "minLength": 1,
@@ -449,13 +464,12 @@
               "scope": { "type": "string", "minLength": 1, "maxLength": 255 },
               "limit": { "type": "integer", "minimum": 0 },
               "remaining": { "type": "integer", "minimum": 0 },
-              "resetAt": {
-                "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
-              }
+              "resetAt": { "$ref": "#/components/schemas/UtcTimestamp" }
             }
           }
         }
       }
     }
-  }
+  },
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema"
 }

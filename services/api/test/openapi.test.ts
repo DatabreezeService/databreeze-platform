@@ -4,6 +4,7 @@ import test from 'node:test';
 import type { OpenAPIObject } from '@nestjs/swagger';
 
 import { createApiApplication } from '../src/bootstrap.js';
+import { CLIENT_VERSION_PATTERN_SOURCE } from '../src/features/system/api/client-compatibility.dto.js';
 
 const httpMethods = ['delete', 'get', 'head', 'options', 'patch', 'post', 'put', 'trace'] as const;
 
@@ -51,6 +52,11 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
     const firstDocument = first.openApi as OpenAPIObject;
     const secondDocument = second.openApi as OpenAPIObject;
     assert.equal(stableJson(firstDocument), stableJson(secondDocument));
+    assert.equal(firstDocument.openapi, '3.1.0');
+    assert.equal(
+      (firstDocument as OpenAPIObject & { jsonSchemaDialect?: string }).jsonSchemaDialect,
+      'https://json-schema.org/draft/2020-12/schema',
+    );
     assert.equal(firstDocument.info.version, '1.0.0');
 
     const paths = Object.keys(firstDocument.paths).sort();
@@ -81,6 +87,14 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       unknown
     >;
     assert.equal(compatibility['additionalProperties'], false);
+    const clientVersion = (compatibility['properties'] as Record<string, Record<string, unknown>>)[
+      'clientVersion'
+    ];
+    assert.equal(clientVersion?.['pattern'], CLIENT_VERSION_PATTERN_SOURCE);
+    const documentedClientVersion = new RegExp(String(clientVersion?.['pattern']));
+    assert.equal(documentedClientVersion.test('1.2.3'), true);
+    assert.equal(documentedClientVersion.test('1.2.3-beta.1'), true);
+    assert.equal(documentedClientVersion.test('1.2.3garbage'), false);
 
     for (const operation of operations(firstDocument)) {
       const headerNames = (operation.parameters ?? [])

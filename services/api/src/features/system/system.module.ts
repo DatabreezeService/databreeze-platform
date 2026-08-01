@@ -5,10 +5,10 @@ import {
   type ClientCompatibilityPort,
 } from './application/client-compatibility.port.js';
 import { READINESS_PORT, type ReadinessPort } from './application/readiness.port.js';
+import { SupportedClientCompatibilityService } from './application/supported-client-compatibility.service.js';
 import { HealthController } from './api/health.controller.js';
 import { SystemController } from './api/system.controller.js';
 import { ProcessReadinessAdapter } from './adapter/process-readiness.adapter.js';
-import { SupportedClientCompatibilityService } from './domain/client-compatibility.js';
 
 export interface SystemModuleOptions {
   readonly compatibilityPort?: ClientCompatibilityPort;
