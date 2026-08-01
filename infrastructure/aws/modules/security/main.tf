@@ -48,7 +48,7 @@ data "aws_iam_policy_document" "platform_key" {
   statement {
     sid       = "CloudFrontOriginAccess"
     effect    = "Allow"
-    actions   = ["kms:Decrypt", "kms:DescribeKey"]
+    actions   = ["kms:Decrypt", "kms:DescribeKey", "kms:Encrypt", "kms:GenerateDataKey*"]
     resources = ["*"]
     principals {
       type        = "Service"

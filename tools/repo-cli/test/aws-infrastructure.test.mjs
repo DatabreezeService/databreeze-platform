@@ -53,6 +53,7 @@ test('AWS sources expose encryption, private data, and OIDC boundaries without s
     'RegionalServiceEncryption',
     'CloudFrontOriginAccess',
     'cloudfront.amazonaws.com',
+    'kms:Encrypt',
     'kms:GenerateDataKey',
     'execution_secrets',
     'master_user_secret_kms_key_id',
