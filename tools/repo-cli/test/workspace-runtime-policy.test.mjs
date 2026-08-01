@@ -9,7 +9,7 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 
 const expectedRuntimeVersions = {
   nodejs: '24.17.0',
-  pnpm: '11.9.0',
+  pnpm: '11.19.0',
   python: '3.13.0',
   java: 'temurin-21',
   postgres: '17',
@@ -61,6 +61,14 @@ test('discovers the root workspace and enforces the repository runtime policy', 
   );
   assert.equal(run('corepack', ['pnpm', '--version']), expectedRuntimeVersions.pnpm);
   assert.equal(packageManifest.packageManager, `pnpm@${expectedRuntimeVersions.pnpm}`);
+  assert.deepEqual(packageManifest.devEngines?.runtime, {
+    name: 'node',
+    version: expectedRuntimeVersions.nodejs,
+    onFail: 'error',
+  });
+  assert.equal(run('corepack', ['pnpm', 'config', 'get', 'engineStrict']), 'true');
+  assert.equal(run('corepack', ['pnpm', 'config', 'get', 'pmOnFail']), 'download');
+  assert.equal(existsSync(path.join(repositoryRoot, '.npmrc')), false);
   assert.equal(
     readFileSync(path.join(repositoryRoot, '.node-version'), 'utf8').trim(),
     expectedRuntimeVersions.nodejs,

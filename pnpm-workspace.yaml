@@ -4,3 +4,6 @@ packages:
   - 'packages/*'
   - 'services/api'
   - 'tools/*'
+
+engineStrict: true
+pmOnFail: download
