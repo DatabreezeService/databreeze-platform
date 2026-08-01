@@ -175,6 +175,7 @@ export function storageFakeV1(
       const fingerprint = JSON.stringify([
         'upload',
         ...uploadFingerprint(request.upload),
+        objectId(request.part),
         request.part.partNumber,
         request.part.sha256,
         request.part.byteLength,

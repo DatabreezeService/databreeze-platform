@@ -188,6 +188,55 @@ test('upload rejects reuse of an idempotency key for another upload or part inte
   }
 });
 
+test('upload binds an idempotency key to the exact immutable part object', async () => {
+  const port = storageFakeV1('upload-part-identity-memory-v1', 'map', sha256);
+  const content = new Uint8Array([1, 2, 3]);
+  const declaredSha256 = sha256(content);
+  const plan = defineObjectStorageMultipartPlanV1({
+    objectKey: 'workspace/upload-part-identity',
+    expectedSha256: declaredSha256,
+    expectedByteLength: content.byteLength,
+    partSizeBytes: 8 * 1024 * 1024,
+  });
+  const upload = await port.beginMultipartUpload({
+    context: context('begin-multipart-upload', 'idem-upload-part-identity-begin'),
+    plan,
+  });
+  const originalPart = defineObjectStoragePartV1({
+    partNumber: 1,
+    content,
+    sha256: declaredSha256,
+  });
+  const originalRequest = defineObjectStorageUploadPartRequestV1({
+    context: context('upload-part', 'idem-upload-part-identity'),
+    upload,
+    part: originalPart,
+  });
+  const receipt = await port.uploadPart(originalRequest);
+  assert.equal(await port.uploadPart(originalRequest), receipt);
+
+  for (const replacementPart of [
+    defineObjectStoragePartV1({ partNumber: 1, content, sha256: declaredSha256 }),
+    defineObjectStoragePartV1({
+      partNumber: 1,
+      content: new Uint8Array([9, 8, 7]),
+      sha256: declaredSha256,
+    }),
+  ]) {
+    await assert.rejects(
+      () =>
+        port.uploadPart(
+          defineObjectStorageUploadPartRequestV1({
+            context: context('upload-part', 'idem-upload-part-identity'),
+            upload,
+            part: replacementPart,
+          }),
+        ),
+      isIdempotencyConflict,
+    );
+  }
+});
+
 test('complete rejects reuse of an idempotency key for another bound upload and receipt list', async () => {
   const port = storageFakeV1('complete-conflict-memory-v1', 'map', sha256);
   const content = new Uint8Array([1, 2, 3]);
