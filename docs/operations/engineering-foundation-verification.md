@@ -1,6 +1,7 @@
 # Engineering Foundation Verification
 
-**Evidence date:** 2026-08-02  
+**Evidence date:** 2026-08-02
+
 **Scope:** clean `dev` checkout plus the Task 23 contract-drift correction
 
 This record is a reproducible engineering-foundation check, not a claim that
