@@ -1,3 +1,4 @@
+import { ProviderOperationErrorV1 } from '@databreeze/provider-ports/v1';
 import type {
   AiProviderPortV1,
   EmailProviderPortV1,
@@ -7,7 +8,58 @@ import type {
   PushProviderPortV1,
   SecretsProviderPortV1,
   TelemetryProviderPortV1,
+  SecretReferenceV1,
 } from '@databreeze/provider-ports/v1';
+
+const unavailable = (): Promise<never> => Promise.reject(new Error('compile-only adapter'));
+
+const completeObjectStorageAdapter = {
+  descriptor: (): never => {
+    throw new Error('compile-only adapter');
+  },
+  checkHealth: unavailable,
+  beginMultipartUpload: unavailable,
+  uploadPart: unavailable,
+  completeMultipartUpload: unavailable,
+  abortMultipartUpload: unavailable,
+  readRange: unavailable,
+  verifyDigest: unavailable,
+  applyRetention: unavailable,
+  deleteVerified: unavailable,
+  createReadGrant: unavailable,
+  exportObjectManifest: unavailable,
+} satisfies ObjectStorageProviderPortV1;
+
+const completeEmailAdapter = {
+  descriptor: (): never => {
+    throw new Error('compile-only adapter');
+  },
+  checkHealth: unavailable,
+  sendTemplate: unavailable,
+  verifyDeliveryWebhook: unavailable,
+  suppressRecipient: unavailable,
+  exportSuppressionManifest: unavailable,
+} satisfies EmailProviderPortV1;
+
+void completeObjectStorageAdapter;
+void completeEmailAdapter;
+
+// @ts-expect-error -- secret references are branded values created by the validated factory.
+const structurallyForgedSecretReference: SecretReferenceV1 = {
+  kind: 'secret-reference',
+  namespace: 'production',
+  pathSegments: ['email'],
+  toString: () => '[REDACTED_SECRET_REFERENCE]',
+  toJSON: () => '[REDACTED_SECRET_REFERENCE]',
+};
+void structurallyForgedSecretReference;
+
+// @ts-expect-error -- provider operation errors are created only by createProviderFailureV1.
+new ProviderOperationErrorV1({
+  code: 'UNKNOWN',
+  operation: 'contract-validation',
+  retryable: false,
+});
 
 declare const objectStorage: ObjectStorageProviderPortV1;
 declare const email: EmailProviderPortV1;
@@ -18,16 +70,24 @@ declare const payments: PaymentsProviderPortV1;
 declare const telemetry: TelemetryProviderPortV1;
 declare const secrets: SecretsProviderPortV1;
 
-void objectStorage.putImmutable;
+void objectStorage.beginMultipartUpload;
+void objectStorage.uploadPart;
+void objectStorage.completeMultipartUpload;
+void objectStorage.abortMultipartUpload;
 void objectStorage.readRange;
 void objectStorage.verifyDigest;
 void objectStorage.applyRetention;
 void objectStorage.deleteVerified;
 void objectStorage.createReadGrant;
+void objectStorage.exportObjectManifest;
 void email.sendTemplate;
 void email.verifyDeliveryWebhook;
+void email.suppressRecipient;
+void email.exportSuppressionManifest;
 void push.send;
 void push.verifyDeliveryWebhook;
+void push.suppressRecipient;
+void push.exportSuppressionManifest;
 void ocr.extract;
 void ai.generateStructured;
 void payments.createHostedSubscriptionCheckout;
@@ -35,15 +95,21 @@ void payments.createSubscriptionPortal;
 void payments.upsertDatabreezeSubscription;
 void payments.verifySubscriptionWebhook;
 void payments.reconcileDatabreezeSubscription;
+void payments.exportSubscriptionMigration;
 void telemetry.exportBatch;
 void secrets.resolveHandle;
 void secrets.revokeHandle;
+void secrets.describePortability;
 
 for (const port of [objectStorage, email, push, ocr, ai, payments, telemetry, secrets]) {
   void port.descriptor;
   void port.checkHealth;
-  void port.exportState;
 }
+
+// @ts-expect-error -- provider families expose only their content-safe, typed exit contract.
+void objectStorage.exportState;
+// @ts-expect-error -- immutable storage is streamed in bounded parts, never a whole-object buffer.
+void objectStorage.putImmutable;
 
 // @ts-expect-error -- the billing port cannot charge customer funds.
 void payments.chargeCustomer;

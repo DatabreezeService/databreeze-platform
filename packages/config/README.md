@@ -13,8 +13,9 @@ itself, contact a provider, or choose product policy.
 - the five explicit profiles: `development`, `test`, `preview`, `staging`, and `production`;
 - typed object-storage, email, push, OCR, AI, payments, telemetry, and secrets selections;
 - `ConfigValidationErrorV1`, whose diagnostics contain only safe paths and codes; and
-- opaque `SecretReferenceV1` values. Their string/JSON representation is redacted, while
-  `secretReferenceHandleV1` gives trusted composition code the reference needed by a secrets port.
+- canonical `SecretReferenceV1` identifier objects shared with the secrets port. References expose
+  only validated namespace/path/version identifiers, serialize as redacted values, and have no raw
+  string extractor.
 
 There is intentionally no unversioned package root.
 
@@ -29,12 +30,16 @@ and those defaults use loopback endpoints, in-memory/local facilities, or disabl
 Preview, staging, and production have no provider-selection defaults: all eight provider modes must
 be declared; object storage and secrets must be remote; every other port may be explicitly disabled.
 
-Environment parsing is exact. Unknown DataBreeze keys, duplicate entry-list keys, whitespace or
-alternate boolean/integer spellings, unknown structured override fields, incomplete active
-providers, and fields attached to a disabled provider are rejected. Cleartext endpoints are allowed
-only for an explicitly local adapter on loopback in development/test. URLs with credentials and
-all cleartext nonlocal endpoints are rejected. Configuration accepts secret references, never API
-keys, passwords, tokens, webhook secrets, or other credential values.
+Environment and override inputs are snapshotted from own data-property descriptors before parsing;
+accessors and failed proxy inspection become bounded, stable, redacted validation diagnostics.
+Unknown DataBreeze keys, duplicate entry-list keys, whitespace or alternate boolean/integer
+spellings, unknown structured override fields, incomplete active providers, and fields attached to
+a disabled provider are rejected. A higher-precedence provider `mode` that changes the selected
+variant atomically replaces the lower-precedence provider record, so local fields cannot leak into
+a disabled or remote selection. Cleartext endpoints are allowed only for an explicitly local
+adapter on loopback in development/test. URLs with credentials and all cleartext nonlocal endpoints
+are rejected. Secret reference paths are canonical non-traversing segments. Configuration accepts
+references, never API keys, passwords, tokens, webhook secrets, or other credential values.
 
 ## Forbidden dependencies
 
@@ -42,6 +47,9 @@ keys, passwords, tokens, webhook secrets, or other credential values.
 - Business configuration, feature flags, organization/workspace/project policy, entitlements, or
   tenant state.
 - Provider credentials or implicit host-environment reads.
+
+The only runtime dependency is the pure versioned provider-contract package used to construct the
+same structured secret-reference object accepted by `SecretsProviderPortV1`.
 
 The product-policy precedence `platform default -> plan/region -> organization -> workspace ->
 project -> recipe/job` remains owned by later domain/application plans. This package covers only

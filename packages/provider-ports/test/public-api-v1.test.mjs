@@ -17,6 +17,8 @@ test('publishes versioned provider boundaries', async () => {
   assert.ok(ports, 'the provider v1 source entry point must exist');
   assert.equal(ports.PROVIDER_PORT_SCHEMA_VERSION_V1, 1);
   assert.equal(typeof ports.defineProviderDescriptorV1, 'function');
+  assert.equal(typeof ports.defineObjectStorageMultipartPlanV1, 'function');
+  assert.equal(ports.secretHandleIdV1, undefined);
 });
 
 test('exposes only the versioned provider entry point', async () => {

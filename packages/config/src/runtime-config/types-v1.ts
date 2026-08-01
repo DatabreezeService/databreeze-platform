@@ -1,3 +1,7 @@
+import type { SecretReferenceV1 } from '@databreeze/provider-ports/v1';
+
+export type { SecretReferenceV1 } from '@databreeze/provider-ports/v1';
+
 export const RUNTIME_CONFIG_SCHEMA_VERSION_V1 = 1 as const;
 
 export type RuntimeProfileV1 = 'development' | 'test' | 'preview' | 'staging' | 'production';
@@ -28,7 +32,9 @@ export class ConfigValidationErrorV1 extends Error {
     super('Runtime configuration is invalid.');
     this.name = 'ConfigValidationErrorV1';
     this.issues = Object.freeze(
-      issues.map((issue) => Object.freeze({ path: issue.path, code: issue.code })),
+      issues
+        .slice(0, 100)
+        .map((issue) => Object.freeze({ path: issue.path.slice(0, 80), code: issue.code })),
     );
     Object.freeze(this);
   }
@@ -36,32 +42,6 @@ export class ConfigValidationErrorV1 extends Error {
   public toJSON(): Readonly<{ name: string; issues: readonly ConfigIssueV1[] }> {
     return Object.freeze({ name: this.name, issues: this.issues });
   }
-}
-
-export interface SecretReferenceV1 {
-  readonly kind: 'secret-reference';
-  toString(): '[REDACTED_SECRET_REFERENCE]';
-  toJSON(): '[REDACTED_SECRET_REFERENCE]';
-}
-
-const secretReferenceHandles = new WeakMap<SecretReferenceV1, string>();
-
-export function createSecretReferenceV1(handle: string): SecretReferenceV1 {
-  const reference: SecretReferenceV1 = {
-    kind: 'secret-reference',
-    toString: () => '[REDACTED_SECRET_REFERENCE]',
-    toJSON: () => '[REDACTED_SECRET_REFERENCE]',
-  };
-  secretReferenceHandles.set(reference, handle);
-  return Object.freeze(reference);
-}
-
-export function secretReferenceHandleV1(reference: SecretReferenceV1): string {
-  const handle = secretReferenceHandles.get(reference);
-  if (handle === undefined) {
-    throw new TypeError('Unknown secret reference.');
-  }
-  return handle;
 }
 
 export interface ProviderPolicyConfigV1 {

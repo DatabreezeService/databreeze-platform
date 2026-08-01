@@ -1,8 +1,5 @@
-import {
-  ConfigValidationErrorV1,
-  RUNTIME_CONFIG_SCHEMA_VERSION_V1,
-  createSecretReferenceV1,
-} from './types-v1.ts';
+import { ConfigValidationErrorV1, RUNTIME_CONFIG_SCHEMA_VERSION_V1 } from './types-v1.ts';
+import { defineSecretReferenceV1 } from '@databreeze/provider-ports/v1';
 import type {
   ActiveDocumentProviderConfigV1,
   AiConfigV1,
@@ -199,11 +196,7 @@ const placeholderSegments = new Set([
 ]);
 
 function isRecord(value: unknown): value is UnknownRecord {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-    return false;
-  }
-  const prototype = Object.getPrototypeOf(value) as unknown;
-  return prototype === Object.prototype || prototype === null;
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function deepFreeze<T>(value: T): T {
@@ -216,45 +209,138 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-function environmentEntries(
-  environment: EnvironmentEntriesV1 | undefined,
-): readonly (readonly [string, string | undefined])[] {
-  if (environment === undefined) {
-    return [];
+function ownDataDescriptors(value: unknown): Record<string, PropertyDescriptor> | undefined {
+  if (value === null || typeof value !== 'object') return undefined;
+  try {
+    return Object.getOwnPropertyDescriptors(value) as Record<string, PropertyDescriptor>;
+  } catch {
+    return undefined;
   }
-  if (!Array.isArray(environment)) {
-    return Object.entries(environment);
-  }
-  return environment as readonly (readonly [string, string | undefined])[];
 }
 
-function validateOverrideKeys(value: unknown, issues: ConfigIssueV1[], path = ''): void {
-  if (!isRecord(value)) {
-    if (path === '') {
-      issues.push({ path: 'overrides', code: 'invalid_string' });
-    }
-    return;
+function isArraySafely(value: unknown): boolean | undefined {
+  try {
+    return Array.isArray(value);
+  } catch {
+    return undefined;
   }
+}
 
-  const allowed = allowedOverrideKeys[path];
-  if (allowed === undefined) {
-    return;
+function snapshotLoadInput(
+  input: LoadRuntimeConfigInputV1,
+  issues: ConfigIssueV1[],
+): Readonly<{ environment?: EnvironmentEntriesV1; overrides?: unknown }> {
+  const descriptors = ownDataDescriptors(input);
+  if (descriptors === undefined || isArraySafely(input) !== false) {
+    issues.push({ path: 'configuration.invalid_input', code: 'invalid_string' });
+    return {};
   }
-
-  for (const [key, child] of Object.entries(value)) {
-    const childPath = path === '' ? key : `${path}.${key}`;
-    if (!allowed.includes(key)) {
-      issues.push({ path: `overrides.${childPath}`, code: 'unknown_key' });
+  const result: { environment?: EnvironmentEntriesV1; overrides?: unknown } = {};
+  for (const [key, descriptor] of Object.entries(descriptors)) {
+    if (key !== 'environment' && key !== 'overrides') {
+      issues.push({ path: 'configuration.unknown_key', code: 'unknown_key' });
       continue;
     }
-    if (allowedOverrideKeys[childPath] !== undefined) {
-      if (!isRecord(child)) {
-        issues.push({ path: `overrides.${childPath}`, code: 'invalid_string' });
-      } else {
-        validateOverrideKeys(child, issues, childPath);
-      }
+    if (!('value' in descriptor)) {
+      issues.push({ path: 'configuration.invalid_input', code: 'invalid_string' });
+      continue;
     }
+    if (key === 'environment') result.environment = descriptor.value as EnvironmentEntriesV1;
+    if (key === 'overrides') result.overrides = descriptor.value;
   }
+  return result;
+}
+
+function snapshotEnvironment(
+  environment: EnvironmentEntriesV1 | undefined,
+  issues: ConfigIssueV1[],
+): readonly (readonly [string, string | undefined])[] {
+  if (environment === undefined) return [];
+  const descriptors = ownDataDescriptors(environment);
+  if (descriptors === undefined) {
+    issues.push({ path: 'environment.invalid_input', code: 'invalid_string' });
+    return [];
+  }
+  const entries: (readonly [string, string | undefined])[] = [];
+  if (isArraySafely(environment) === false) {
+    for (const [key, descriptor] of Object.entries(descriptors)) {
+      if (
+        !('value' in descriptor) ||
+        (descriptor.value !== undefined && typeof descriptor.value !== 'string')
+      ) {
+        issues.push({ path: 'environment.invalid_input', code: 'invalid_string' });
+        continue;
+      }
+      entries.push([key, descriptor.value as string | undefined]);
+    }
+    return entries;
+  }
+  const lengthDescriptor = descriptors['length'];
+  if (
+    lengthDescriptor === undefined ||
+    !('value' in lengthDescriptor) ||
+    !Number.isSafeInteger(lengthDescriptor.value) ||
+    lengthDescriptor.value < 0 ||
+    lengthDescriptor.value > 1_000
+  ) {
+    issues.push({ path: 'environment.invalid_input', code: 'invalid_string' });
+    return [];
+  }
+  for (let index = 0; index < (lengthDescriptor.value as number); index += 1) {
+    const entryDescriptor = descriptors[String(index)];
+    if (entryDescriptor === undefined || !('value' in entryDescriptor)) {
+      issues.push({ path: 'environment.invalid_entry', code: 'invalid_string' });
+      continue;
+    }
+    const tupleDescriptors = ownDataDescriptors(entryDescriptor.value);
+    const tupleLength = tupleDescriptors?.['length'];
+    const keyDescriptor = tupleDescriptors?.['0'];
+    const valueDescriptor = tupleDescriptors?.['1'];
+    if (
+      tupleDescriptors === undefined ||
+      tupleLength === undefined ||
+      !('value' in tupleLength) ||
+      tupleLength.value !== 2 ||
+      keyDescriptor === undefined ||
+      !('value' in keyDescriptor) ||
+      typeof keyDescriptor.value !== 'string' ||
+      valueDescriptor === undefined ||
+      !('value' in valueDescriptor) ||
+      (valueDescriptor.value !== undefined && typeof valueDescriptor.value !== 'string')
+    ) {
+      issues.push({ path: 'environment.invalid_entry', code: 'invalid_string' });
+      continue;
+    }
+    entries.push([keyDescriptor.value, valueDescriptor.value as string | undefined]);
+  }
+  return entries;
+}
+
+function snapshotOverrides(value: unknown, issues: ConfigIssueV1[], path = ''): UnknownRecord {
+  const descriptors = ownDataDescriptors(value);
+  if (descriptors === undefined || isArraySafely(value) !== false) {
+    issues.push({ path: 'overrides.invalid_input', code: 'invalid_string' });
+    return {};
+  }
+  const allowed = allowedOverrideKeys[path];
+  if (allowed === undefined) return {};
+  const result: UnknownRecord = {};
+  for (const [key, descriptor] of Object.entries(descriptors)) {
+    if (!allowed.includes(key)) {
+      issues.push({ path: 'overrides.unknown_key', code: 'unknown_key' });
+      continue;
+    }
+    if (!('value' in descriptor)) {
+      issues.push({ path: 'overrides.invalid_input', code: 'invalid_string' });
+      continue;
+    }
+    const childPath = path === '' ? key : `${path}.${key}`;
+    result[key] =
+      allowedOverrideKeys[childPath] === undefined
+        ? descriptor.value
+        : snapshotOverrides(descriptor.value, issues, childPath);
+  }
+  return result;
 }
 
 function setPath(target: UnknownRecord, path: readonly string[], value: unknown): void {
@@ -272,11 +358,20 @@ function setPath(target: UnknownRecord, path: readonly string[], value: unknown)
   }
 }
 
-function mergeRecords(base: UnknownRecord, overlay: UnknownRecord): UnknownRecord {
+function mergeRecords(base: UnknownRecord, overlay: UnknownRecord, path = ''): UnknownRecord {
+  if (
+    path.startsWith('providers.') &&
+    typeof overlay['mode'] === 'string' &&
+    overlay['mode'] !== base['mode']
+  ) {
+    return { ...overlay };
+  }
   const result: UnknownRecord = { ...base };
   for (const [key, value] of Object.entries(overlay)) {
     const current = result[key];
-    result[key] = isRecord(current) && isRecord(value) ? mergeRecords(current, value) : value;
+    const childPath = path === '' ? key : `${path}.${key}`;
+    result[key] =
+      isRecord(current) && isRecord(value) ? mergeRecords(current, value, childPath) : value;
   }
   return result;
 }
@@ -315,7 +410,7 @@ function readEnvironment(
   const seen = new Set<string>();
   const result: UnknownRecord = {};
 
-  for (const [key, value] of environmentEntries(environment)) {
+  for (const [key, value] of snapshotEnvironment(environment, issues)) {
     if (seen.has(key)) {
       issues.push({ path: `environment.${key}`, code: 'duplicate' });
       continue;
@@ -325,7 +420,7 @@ function readEnvironment(
     const definition = environmentDefinitions[key];
     if (definition === undefined) {
       if (key.startsWith('DATABREEZE_')) {
-        issues.push({ path: `environment.${key}`, code: 'unknown_key' });
+        issues.push({ path: 'environment.unknown_key', code: 'unknown_key' });
       }
       continue;
     }
@@ -515,13 +610,31 @@ function secretReference(
     return undefined;
   }
   const match =
-    /^secret:\/\/([a-z0-9][a-z0-9._-]*)\/([a-z0-9][a-z0-9._/-]*)(?:#[a-z0-9._-]+)?$/.exec(value);
-  const segments = match?.slice(1).flatMap((part) => part.split(/[./_-]+/)) ?? [];
-  if (match === null || segments.some((segment) => placeholderSegments.has(segment))) {
+    /^secret:\/\/([a-z0-9][a-z0-9._-]{0,62})\/([^#]+?)(?:#([a-z0-9][a-z0-9._-]{0,62}))?$/.exec(
+      value,
+    );
+  const pathSegments = match?.[2]?.split('/') ?? [];
+  const canonicalSegments = pathSegments.every(
+    (segment) => /^[a-z0-9][a-z0-9._-]{0,62}$/.test(segment) && segment !== '.' && segment !== '..',
+  );
+  const placeholderTokens = [match?.[1] ?? '', ...pathSegments, match?.[3] ?? ''].flatMap((part) =>
+    part.split(/[._-]+/),
+  );
+  if (
+    match === null ||
+    !canonicalSegments ||
+    value.includes('//', 'secret://'.length) ||
+    value.includes('%') ||
+    placeholderTokens.some((segment) => placeholderSegments.has(segment))
+  ) {
     issues.push({ path, code: 'invalid_secret_reference' });
     return undefined;
   }
-  return createSecretReferenceV1(value);
+  return defineSecretReferenceV1({
+    namespace: match[1] as string,
+    pathSegments,
+    ...(match[3] === undefined ? {} : { version: match[3] }),
+  });
 }
 
 function modeOf(
@@ -853,10 +966,10 @@ function selectedProfile(
 
 export function loadRuntimeConfigV1(input: LoadRuntimeConfigInputV1 = {}): RuntimeConfigV1 {
   const issues: ConfigIssueV1[] = [];
-  const environment = readEnvironment(input.environment, issues);
-  const overrides = input.overrides === undefined ? {} : input.overrides;
-  validateOverrideKeys(overrides, issues);
-  const overrideRecord = isRecord(overrides) ? overrides : {};
+  const safeInput = snapshotLoadInput(input, issues);
+  const environment = readEnvironment(safeInput.environment, issues);
+  const overrideRecord =
+    safeInput.overrides === undefined ? {} : snapshotOverrides(safeInput.overrides, issues);
   const profile = selectedProfile(environment, overrideRecord, issues);
 
   if (profile === undefined) {

@@ -15,12 +15,23 @@ credential value, persistence, framework, or SDK dependency.
 - telemetry export; and
 - opaque secret-handle resolution.
 
-Every port shares descriptor, health, and state-export operations. A descriptor declares typed
-capabilities, idempotency, cancellation, timeouts, retry limits, data regions, retention/training
-behavior, failover/degraded behavior, and an exit/export format. Common helpers validate and freeze
-that metadata, enforce cancellation/deadlines/idempotency, and normalize failures to safe stable
-codes without retaining raw provider causes. Secret handles expose no value and redact string/JSON
-serialization.
+Every port shares only descriptor and health operations. State leaves through provider-specific,
+closed, content-safe contracts: object manifests, delivery-suppression manifests, subscription
+migration manifests, or secrets portability metadata. Stateless OCR, AI, and telemetry adapters do
+not invent an arbitrary export record. A descriptor declares the complete operation set for its
+provider kind plus idempotency, cancellation, timeouts, retry limits, data regions,
+retention/training behavior, failover/degraded behavior, and coherent exit metadata.
+
+Common helpers validate and freeze closed metadata, reuse the canonical contract timestamp parser,
+enforce cancellation/deadlines/idempotency, and create errors only through a redacting factory with
+allowlisted operations and code-derived message keys. Raw provider causes are neither accessed nor
+retained. Structured secret references flow directly into the secrets port; secret handles contain
+no material or public raw handle ID, and both redact string/JSON serialization.
+
+Object storage is resumable and bounded-memory: begin, upload a validated 8-64 MiB part, complete,
+or abort. Plans support immutable objects through 20 GiB with declared whole-object and per-part
+SHA-256 digests. Email and push expose explicit typed recipient-suppression operations; durable
+notification policy remains owned by NCO.
 
 There is intentionally no unversioned package root. Provider-specific identifiers may appear only
 as opaque external references returned by an adapter; they never replace DataBreeze domain IDs or
@@ -29,14 +40,16 @@ become the only representation of customer state.
 ## Payment boundary
 
 `PaymentsProviderPortV1` is restricted to hosted checkout/portal, subscription upsert, verified
-subscription webhooks, and reconciliation for DataBreeze's own organization subscriptions. It has
-no customer charge, capture, refund, transfer, withholding, reversal, settlement, or raw payment-
-credential operation. Built-in Free/Development/Admin-granted entitlement operation remains
-provider-independent; a missing payment adapter must not block it.
+subscription webhooks, reconciliation, and a schema-validated migration manifest for DataBreeze's
+own organization subscriptions. It has no customer charge, capture, refund, transfer, withholding,
+reversal, settlement, raw payment credential, or arbitrary provider-state operation. Built-in
+Free/Development/Admin-granted entitlement operation remains provider-independent; a missing
+payment adapter must not block it.
 
 ## Forbidden dependencies
 
-- Provider/cloud SDKs and concrete adapters.
+- Provider/cloud SDKs and concrete adapters. The sole dependency is the generated canonical
+  DataBreeze contract validator used for timestamps.
 - Service/application implementations, databases, queues, filesystems, or UI frameworks.
 - Raw secrets, API keys, payment credentials, or provider response bodies in errors.
 - Product workflows, entitlement authority, storage authority, notification durability, OCR/AI

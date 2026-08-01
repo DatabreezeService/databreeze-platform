@@ -27,7 +27,11 @@ importers:
         specifier: 8.43.0
         version: 8.43.0(eslint@9.36.0)(typescript@5.9.2)
 
-  packages/config: {}
+  packages/config:
+    dependencies:
+      '@databreeze/provider-ports':
+        specifier: workspace:*
+        version: link:../provider-ports
 
   packages/contracts:
     dependencies:
@@ -44,7 +48,11 @@ importers:
         specifier: workspace:*
         version: link:../contracts
 
-  packages/provider-ports: {}
+  packages/provider-ports:
+    dependencies:
+      '@databreeze/contracts':
+        specifier: workspace:*
+        version: link:../contracts
 
   packages/test-fixtures: {}
 

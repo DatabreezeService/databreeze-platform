@@ -13,5 +13,8 @@
     "build": "tsc --project tsconfig.build.json && node test/built-public-api-smoke.mjs",
     "test": "node --test test/**/*.test.mjs",
     "typecheck": "tsc --noEmit --project tsconfig.json"
+  },
+  "dependencies": {
+    "@databreeze/contracts": "workspace:*"
   }
 }

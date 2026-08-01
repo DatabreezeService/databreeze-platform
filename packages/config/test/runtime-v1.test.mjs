@@ -1,11 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import {
-  ConfigValidationErrorV1,
-  loadRuntimeConfigV1,
-  secretReferenceHandleV1,
-} from '../src/runtime-config/v1.ts';
+import { ConfigValidationErrorV1, loadRuntimeConfigV1 } from '../src/runtime-config/v1.ts';
 
 function nonLocalEnvironment(profile) {
   return [
@@ -83,10 +79,8 @@ for (const profile of ['preview', 'staging', 'production']) {
     assert.equal(config.profile, profile);
     assert.equal(config.providers.objectStorage.mode, 'remote');
     assert.equal(config.providers.objectStorage.bucket, `databreeze-${profile}`);
-    assert.equal(
-      secretReferenceHandleV1(config.providers.objectStorage.credentialRef),
-      `secret://${profile}/object-storage`,
-    );
+    assert.equal(config.providers.objectStorage.credentialRef.namespace, profile);
+    assert.deepEqual(config.providers.objectStorage.credentialRef.pathSegments, ['object-storage']);
     assert.deepEqual(config.providers.secrets, {
       mode: 'remote',
       endpointUrl: 'https://secrets.example.test',
@@ -156,7 +150,7 @@ test('rejects unknown DataBreeze environment keys but ignores host environment k
           ['DATABREEZE_UNKNOWN_OPTION', 'true'],
         ],
       }),
-    'environment.DATABREEZE_UNKNOWN_OPTION',
+    'environment.unknown_key',
     'unknown_key',
   );
 });
@@ -168,7 +162,7 @@ test('rejects unknown nested override keys', () => {
         environment: [['DATABREEZE_PROFILE', 'development']],
         overrides: { providers: { ai: { mode: 'disabled', apiKey: 'not-allowed' } } },
       }),
-    'overrides.providers.ai.apiKey',
+    'overrides.unknown_key',
     'unknown_key',
   );
 });

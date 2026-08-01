@@ -7,29 +7,30 @@ function validDescriptor(kind = 'object-storage') {
   return {
     kind,
     adapterKey: 'in-memory-v1',
-    capabilities: [
-      {
-        operation: 'put-immutable',
-        idempotency: 'required',
-        cancellation: 'cooperative',
-        timeoutMs: 5_000,
-        maxAttempts: 3,
-      },
-    ],
+    capabilities: ports.PROVIDER_OPERATIONS_BY_KIND_V1[kind].map((operation) => ({
+      operation,
+      idempotency: 'required',
+      cancellation: 'cooperative',
+      timeoutMs: 5_000,
+      maxAttempts: 3,
+    })),
     dataHandling: {
       regions: ['local'],
-      contentRetention: 'durable',
-      maximumRetentionSeconds: 86_400,
-      trainingUse: 'not_applicable',
+      contentRetention: kind === 'secrets' ? 'none' : 'durable',
+      ...(kind === 'secrets' ? {} : { maximumRetentionSeconds: 86_400 }),
+      trainingUse: kind === 'ai' ? 'prohibited' : 'not_applicable',
     },
     resilience: {
       failover: 'manual',
       degradedBehavior: 'fail_closed',
     },
     exit: {
-      statePortability: 'full',
-      exportFormat: 'databreeze-object-manifest-v1',
-      credentialRevocation: 'supported',
+      statePortability: kind === 'ocr' || kind === 'ai' || kind === 'telemetry' ? 'none' : 'full',
+      exportFormat:
+        kind === 'ocr' || kind === 'ai' || kind === 'telemetry'
+          ? 'not-applicable'
+          : `databreeze-${kind}-manifest-v1`,
+      credentialRevocation: kind === 'secrets' ? 'supported' : 'not_applicable',
     },
   };
 }
@@ -39,7 +40,7 @@ test('defines and deeply freezes complete provider metadata', () => {
 
   assert.equal(descriptor.schemaVersion, 1);
   assert.equal(descriptor.kind, 'object-storage');
-  assert.equal(descriptor.capabilities[0].operation, 'put-immutable');
+  assert.equal(descriptor.capabilities[0].operation, 'begin-multipart-upload');
   assert.equal(Object.isFrozen(descriptor), true);
   assert.equal(Object.isFrozen(descriptor.capabilities), true);
   assert.equal(Object.isFrozen(descriptor.dataHandling.regions), true);
@@ -73,15 +74,15 @@ test('rejects incomplete retry, data-handling, resilience, and exit metadata', (
 
 test('normalizes provider failures without retaining provider causes or secret values', () => {
   const secret = 'provider-token-that-must-not-escape';
-  const error = ports.createProviderFailureV1({
+  const input = {
     code: 'RATE_LIMITED',
     providerKind: 'email',
     operation: 'send-template',
     retryable: true,
     retryAfterMs: 2_000,
-    safeMessageKey: 'provider.rate_limited',
-    providerCause: new Error(secret),
-  });
+  };
+  Object.defineProperty(input, 'providerCause', { value: new Error(secret), enumerable: true });
+  const error = ports.createProviderFailureV1(input);
 
   assert.ok(error instanceof ports.ProviderOperationErrorV1);
   assert.deepEqual(JSON.parse(JSON.stringify(error)), {
@@ -98,35 +99,32 @@ test('normalizes provider failures without retaining provider causes or secret v
   assert.equal('cause' in error, false);
 });
 
-test('creates immutable invocation metadata with deadline, timeout, cancellation, and idempotency', () => {
-  const context = ports.createProviderInvocationContextV1({
+function context(overrides = {}) {
+  return ports.createProviderInvocationContextV1({
+    operation: 'extract',
     operationId: 'op-0001',
     correlationId: 'corr-0001',
     deadlineAt: '2026-08-01T10:00:05.000Z',
     timeoutMs: 5_000,
-    idempotencyKey: 'idem-0001',
     abortSignal: { aborted: false },
+    ...overrides,
   });
+}
 
-  assert.equal(Object.isFrozen(context), true);
-  assert.equal(Object.isFrozen(context.abortSignal), true);
+test('creates immutable invocation metadata with deadline, timeout, cancellation, and idempotency', () => {
+  const invocation = context({ idempotencyKey: 'idem-0001' });
+  assert.equal(Object.isFrozen(invocation), true);
+  assert.equal(Object.isFrozen(invocation.abortSignal), true);
   assert.doesNotThrow(() =>
-    ports.assertProviderInvocationActiveV1(context, '2026-08-01T10:00:00.000Z'),
+    ports.assertProviderInvocationActiveV1(invocation, '2026-08-01T10:00:00.000Z'),
   );
-  assert.doesNotThrow(() => ports.requireProviderIdempotencyV1(context));
+  assert.equal(ports.requireProviderIdempotencyV1(invocation), 'idem-0001');
 });
 
 test('rejects an aborted invocation with a normalized non-retryable error', () => {
-  const context = ports.createProviderInvocationContextV1({
-    operationId: 'op-aborted',
-    correlationId: 'corr-aborted',
-    deadlineAt: '2026-08-01T10:00:05.000Z',
-    timeoutMs: 5_000,
-    abortSignal: { aborted: true },
-  });
-
+  const invocation = context({ abortSignal: { aborted: true } });
   assert.throws(
-    () => ports.assertProviderInvocationActiveV1(context, '2026-08-01T10:00:00.000Z'),
+    () => ports.assertProviderInvocationActiveV1(invocation, '2026-08-01T10:00:00.000Z'),
     (error) =>
       error instanceof ports.ProviderOperationErrorV1 &&
       error.code === 'ABORTED' &&
@@ -136,33 +134,18 @@ test('rejects an aborted invocation with a normalized non-retryable error', () =
 
 test('observes cancellation that occurs after invocation context creation', () => {
   const abortSignal = { aborted: false };
-  const context = ports.createProviderInvocationContextV1({
-    operationId: 'op-later-abort',
-    correlationId: 'corr-later-abort',
-    deadlineAt: '2026-08-01T10:00:05.000Z',
-    timeoutMs: 5_000,
-    abortSignal,
-  });
-
+  const invocation = context({ abortSignal });
   abortSignal.aborted = true;
-
   assert.throws(
-    () => ports.assertProviderInvocationActiveV1(context, '2026-08-01T10:00:00.000Z'),
+    () => ports.assertProviderInvocationActiveV1(invocation, '2026-08-01T10:00:00.000Z'),
     (error) => error instanceof ports.ProviderOperationErrorV1 && error.code === 'ABORTED',
   );
 });
 
 test('rejects an expired invocation with a normalized timeout error', () => {
-  const context = ports.createProviderInvocationContextV1({
-    operationId: 'op-timeout',
-    correlationId: 'corr-timeout',
-    deadlineAt: '2026-08-01T10:00:05.000Z',
-    timeoutMs: 5_000,
-    abortSignal: { aborted: false },
-  });
-
+  const invocation = context();
   assert.throws(
-    () => ports.assertProviderInvocationActiveV1(context, '2026-08-01T10:00:05.000Z'),
+    () => ports.assertProviderInvocationActiveV1(invocation, '2026-08-01T10:00:05.000Z'),
     (error) =>
       error instanceof ports.ProviderOperationErrorV1 &&
       error.code === 'TIMEOUT' &&
@@ -170,17 +153,9 @@ test('rejects an expired invocation with a normalized timeout error', () => {
   );
 });
 
-test('requires idempotency only when an operation declares it', () => {
-  const context = ports.createProviderInvocationContextV1({
-    operationId: 'op-no-idempotency',
-    correlationId: 'corr-no-idempotency',
-    deadlineAt: '2026-08-01T10:00:05.000Z',
-    timeoutMs: 5_000,
-    abortSignal: { aborted: false },
-  });
-
+test('requires an idempotency key at mutating adapter boundaries', () => {
   assert.throws(
-    () => ports.requireProviderIdempotencyV1(context),
+    () => ports.requireProviderIdempotencyV1(context()),
     (error) => error instanceof ports.ProviderOperationErrorV1 && error.code === 'INVALID_REQUEST',
   );
 });
@@ -192,7 +167,6 @@ test('defines provider health with safe reason codes and no raw detail channel',
     latencyMs: 125,
     safeReasonCodes: ['UPSTREAM_RATE_LIMITED'],
   });
-
   assert.deepEqual(health, {
     status: 'degraded',
     checkedAt: '2026-08-01T10:00:00.000Z',
@@ -202,13 +176,16 @@ test('defines provider health with safe reason codes and no raw detail channel',
   assert.equal(Object.isFrozen(health.safeReasonCodes), true);
 });
 
-test('creates opaque secret handles that redact serialization', () => {
+test('creates opaque secret handles that redact serialization and expose no material or raw IDs', () => {
+  const reference = ports.defineSecretReferenceV1({
+    namespace: 'production',
+    pathSegments: ['email', 'credential'],
+  });
   const handle = ports.defineSecretHandleV1({
-    handleId: 'opaque-secret-handle',
+    reference,
     expiresAt: '2026-08-01T10:05:00.000Z',
   });
-
   assert.equal(String(handle), '[REDACTED_SECRET_HANDLE]');
   assert.equal(JSON.stringify(handle), '"[REDACTED_SECRET_HANDLE]"');
-  assert.equal(ports.secretHandleIdV1(handle), 'opaque-secret-handle');
+  assert.equal(ports.secretHandleIdV1, undefined);
 });
