@@ -48,6 +48,8 @@ importers:
         specifier: workspace:*
         version: link:../contracts
 
+  packages/i18n: {}
+
   packages/provider-ports:
     dependencies:
       '@databreeze/contracts':

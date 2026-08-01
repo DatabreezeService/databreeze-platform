@@ -1,0 +1,258 @@
+import type { SupportedLocaleV1 } from './catalogs-v1.ts';
+import { I18nErrorV1 } from './errors-v1.ts';
+import { assertSupportedLocaleV1 } from './locale-v1.ts';
+import { readClosedDataObjectV1 } from './safe-input-v1.ts';
+
+const FRACTION_KEYS_V1 = new Set([
+  'locale',
+  'maximumFractionDigits',
+  'minimumFractionDigits',
+  'useGrouping',
+]);
+const CURRENCY_KEYS_V1 = new Set([...FRACTION_KEYS_V1, 'currency', 'currencyDisplay']);
+const DATE_TIME_KEYS_V1 = new Set(['dateStyle', 'hour12', 'locale', 'timeStyle', 'timeZone']);
+const LIST_KEYS_V1 = new Set(['locale', 'style', 'type']);
+const RELATIVE_TIME_KEYS_V1 = new Set(['locale', 'numeric', 'style']);
+const PLURAL_KEYS_V1 = new Set(['locale', 'type']);
+const CURRENCY_CODES_V1 = new Set(Intl.supportedValuesOf('currency'));
+const RELATIVE_TIME_UNITS_V1 = new Set<Intl.RelativeTimeFormatUnit>([
+  'day',
+  'hour',
+  'minute',
+  'month',
+  'quarter',
+  'second',
+  'week',
+  'year',
+]);
+
+interface FractionOptionsV1 {
+  readonly locale: SupportedLocaleV1;
+  readonly minimumFractionDigits?: number;
+  readonly maximumFractionDigits?: number;
+  readonly useGrouping?: boolean;
+}
+
+export type DecimalFormatOptionsV1 = FractionOptionsV1;
+
+export interface CurrencyFormatOptionsV1 extends FractionOptionsV1 {
+  readonly currency: string;
+  readonly currencyDisplay?: 'code' | 'name' | 'narrowSymbol' | 'symbol';
+}
+
+export type PercentFormatOptionsV1 = FractionOptionsV1;
+
+export interface DateTimeFormatOptionsV1 {
+  readonly locale: SupportedLocaleV1;
+  readonly timeZone: string;
+  readonly dateStyle?: 'full' | 'long' | 'medium' | 'short';
+  readonly timeStyle?: 'full' | 'long' | 'medium' | 'short';
+  readonly hour12?: boolean;
+}
+
+export interface ListFormatOptionsV1 {
+  readonly locale: SupportedLocaleV1;
+  readonly type?: 'conjunction' | 'disjunction' | 'unit';
+  readonly style?: 'long' | 'narrow' | 'short';
+}
+
+export interface RelativeTimeFormatOptionsV1 {
+  readonly locale: SupportedLocaleV1;
+  readonly numeric?: 'always' | 'auto';
+  readonly style?: 'long' | 'narrow' | 'short';
+}
+
+export interface PluralFormatOptionsV1 {
+  readonly locale: SupportedLocaleV1;
+  readonly type?: 'cardinal' | 'ordinal';
+}
+
+function requiredLocale(options: Readonly<Record<string, unknown>>): SupportedLocaleV1 {
+  const locale = options['locale'];
+  assertSupportedLocaleV1(locale);
+  return locale;
+}
+
+function finiteNumber(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new I18nErrorV1('INVALID_NUMBER');
+  }
+  return value;
+}
+
+function optionalEnum<T extends string>(value: unknown, values: readonly T[]): T | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== 'string' || !values.includes(value as T)) {
+    throw new I18nErrorV1('INVALID_ARGUMENT');
+  }
+  return value as T;
+}
+
+function optionalBoolean(value: unknown): boolean | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== 'boolean') {
+    throw new I18nErrorV1('INVALID_ARGUMENT');
+  }
+  return value;
+}
+
+function optionalFractionDigit(value: unknown): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > 20) {
+    throw new I18nErrorV1('INVALID_ARGUMENT');
+  }
+  return value;
+}
+
+function isStringListValue(value: unknown): boolean {
+  return Array.isArray(value) && value.every((item: unknown) => typeof item === 'string');
+}
+
+function numberFormatOptions(
+  input: unknown,
+  allowedKeys: ReadonlySet<string>,
+): { readonly locale: SupportedLocaleV1; readonly options: Intl.NumberFormatOptions } {
+  const source = readClosedDataObjectV1(input, allowedKeys);
+  const locale = requiredLocale(source);
+  const minimumFractionDigits = optionalFractionDigit(source['minimumFractionDigits']);
+  const maximumFractionDigits = optionalFractionDigit(source['maximumFractionDigits']);
+  if (
+    minimumFractionDigits !== undefined &&
+    maximumFractionDigits !== undefined &&
+    minimumFractionDigits > maximumFractionDigits
+  ) {
+    throw new I18nErrorV1('INVALID_ARGUMENT');
+  }
+  const useGrouping = optionalBoolean(source['useGrouping']);
+  return {
+    locale,
+    options: {
+      ...(minimumFractionDigits === undefined ? {} : { minimumFractionDigits }),
+      ...(maximumFractionDigits === undefined ? {} : { maximumFractionDigits }),
+      ...(useGrouping === undefined ? {} : { useGrouping }),
+    },
+  };
+}
+
+export function formatDateTimeV1(value: number | Date, input: DateTimeFormatOptionsV1): string {
+  const source = readClosedDataObjectV1(input, DATE_TIME_KEYS_V1);
+  const locale = requiredLocale(source);
+  const rawTimeZone = source['timeZone'];
+  if (typeof rawTimeZone !== 'string' || rawTimeZone.trim() === '') {
+    throw new I18nErrorV1('INVALID_TIME_ZONE');
+  }
+  const timestamp = value instanceof Date ? value.getTime() : value;
+  if (typeof timestamp !== 'number' || !Number.isFinite(timestamp)) {
+    throw new I18nErrorV1('INVALID_DATE');
+  }
+  const date = new Date(timestamp);
+  if (!Number.isFinite(date.getTime())) {
+    throw new I18nErrorV1('INVALID_DATE');
+  }
+  const dateStyle = optionalEnum(source['dateStyle'], ['full', 'long', 'medium', 'short']);
+  const timeStyle = optionalEnum(source['timeStyle'], ['full', 'long', 'medium', 'short']);
+  const hour12 = optionalBoolean(source['hour12']);
+  try {
+    return new Intl.DateTimeFormat(locale, {
+      timeZone: rawTimeZone,
+      dateStyle: dateStyle ?? 'medium',
+      timeStyle: timeStyle ?? 'short',
+      ...(hour12 === undefined ? {} : { hour12 }),
+    }).format(date);
+  } catch {
+    throw new I18nErrorV1('INVALID_TIME_ZONE');
+  }
+}
+
+export function formatDecimalV1(value: number, input: DecimalFormatOptionsV1): string {
+  const { locale, options } = numberFormatOptions(input, FRACTION_KEYS_V1);
+  return new Intl.NumberFormat(locale, { ...options, style: 'decimal' }).format(
+    finiteNumber(value),
+  );
+}
+
+export function formatCurrencyV1(value: number, input: CurrencyFormatOptionsV1): string {
+  const source = readClosedDataObjectV1(input, CURRENCY_KEYS_V1);
+  const { locale, options } = numberFormatOptions(source, CURRENCY_KEYS_V1);
+  const currency = source['currency'];
+  if (
+    typeof currency !== 'string' ||
+    !/^[A-Z]{3}$/u.test(currency) ||
+    !CURRENCY_CODES_V1.has(currency)
+  ) {
+    throw new I18nErrorV1('INVALID_CURRENCY');
+  }
+  const currencyDisplay = optionalEnum(source['currencyDisplay'], [
+    'code',
+    'name',
+    'narrowSymbol',
+    'symbol',
+  ]);
+  return new Intl.NumberFormat(locale, {
+    ...options,
+    style: 'currency',
+    currency,
+    ...(currencyDisplay === undefined ? {} : { currencyDisplay }),
+  }).format(finiteNumber(value));
+}
+
+export function formatPercentV1(value: number, input: PercentFormatOptionsV1): string {
+  const { locale, options } = numberFormatOptions(input, FRACTION_KEYS_V1);
+  const maximumFractionDigits =
+    options.maximumFractionDigits ?? Math.max(options.minimumFractionDigits ?? 0, 3);
+  return new Intl.NumberFormat(locale, {
+    ...options,
+    maximumFractionDigits,
+    style: 'percent',
+  }).format(finiteNumber(value));
+}
+
+export function formatListV1(values: readonly string[], input: ListFormatOptionsV1): string {
+  const source = readClosedDataObjectV1(input, LIST_KEYS_V1);
+  const locale = requiredLocale(source);
+  if (!isStringListValue(values)) {
+    throw new I18nErrorV1('INVALID_ARGUMENT');
+  }
+  const type = optionalEnum(source['type'], ['conjunction', 'disjunction', 'unit']);
+  const style = optionalEnum(source['style'], ['long', 'narrow', 'short']);
+  return new Intl.ListFormat(locale, {
+    ...(type === undefined ? {} : { type }),
+    ...(style === undefined ? {} : { style }),
+  }).format(Array.from(values));
+}
+
+export function formatRelativeTimeV1(
+  value: number,
+  unit: Intl.RelativeTimeFormatUnit,
+  input: RelativeTimeFormatOptionsV1,
+): string {
+  const source = readClosedDataObjectV1(input, RELATIVE_TIME_KEYS_V1);
+  const locale = requiredLocale(source);
+  if (typeof unit !== 'string' || !RELATIVE_TIME_UNITS_V1.has(unit)) {
+    throw new I18nErrorV1('INVALID_ARGUMENT');
+  }
+  const numeric = optionalEnum(source['numeric'], ['always', 'auto']);
+  const style = optionalEnum(source['style'], ['long', 'narrow', 'short']);
+  return new Intl.RelativeTimeFormat(locale, {
+    ...(numeric === undefined ? {} : { numeric }),
+    ...(style === undefined ? {} : { style }),
+  }).format(finiteNumber(value), unit);
+}
+
+export function selectPluralCategoryV1(
+  value: number,
+  input: PluralFormatOptionsV1,
+): Intl.LDMLPluralRule {
+  const source = readClosedDataObjectV1(input, PLURAL_KEYS_V1);
+  const locale = requiredLocale(source);
+  const type = optionalEnum(source['type'], ['cardinal', 'ordinal']);
+  return new Intl.PluralRules(locale, type === undefined ? {} : { type }).select(
+    finiteNumber(value),
+  );
+}
