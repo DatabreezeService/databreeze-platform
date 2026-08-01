@@ -5,7 +5,7 @@
   "type": "module",
   "exports": {
     "./runtime/v1": {
-      "types": "./src/runtime-config/v1.ts",
+      "types": "./dist/runtime-config/v1.d.ts",
       "import": "./dist/runtime-config/v1.js"
     }
   },
