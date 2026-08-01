@@ -35,6 +35,9 @@ The PostgreSQL init script creates the module schemas only. It contains no
 credentials and runs only when the database volume is first initialized.
 MinIO bucket setup runs as a short-lived Compose service and reads credentials
 from the environment; it never stores them in the repository.
+The collector is a minimal image, so an adjacent curl-only health companion
+probes its health endpoint; this keeps the collector image free of a shell or
+package manager while still making readiness observable.
 
 ## Safety and troubleshooting
 

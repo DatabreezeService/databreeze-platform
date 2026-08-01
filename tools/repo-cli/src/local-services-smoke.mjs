@@ -8,7 +8,14 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const composeFile = path.join(repositoryRoot, 'infrastructure', 'local', 'compose.yml');
 const exampleEnvFile = path.join(repositoryRoot, 'infrastructure', 'local', '.env.example');
 const localEnvFile = path.join(repositoryRoot, 'infrastructure', 'local', '.env');
-const services = ['postgres', 'redis', 'minio', 'mailpit', 'otel-collector'];
+const services = [
+  'postgres',
+  'redis',
+  'minio',
+  'mailpit',
+  'otel-collector',
+  'otel-collector-health',
+];
 
 function usage() {
   console.log(`Usage: pnpm local:smoke [-- --start] [-- --wait-seconds=60]

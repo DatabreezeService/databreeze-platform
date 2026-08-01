@@ -17,6 +17,7 @@ test('local compose defines pinned, healthy disposable dependencies', () => {
     'minio-init:',
     'mailpit:',
     'otel-collector:',
+    'otel-collector-health:',
   ]) {
     assert.match(compose, new RegExp(`^  ${service}`, 'm'));
   }
@@ -25,10 +26,11 @@ test('local compose defines pinned, healthy disposable dependencies', () => {
   assert.match(compose, /RELEASE\.2025-06-13T11-33-47Z/);
   assert.match(compose, /mailpit:v1\.21\.8/);
   assert.match(compose, /collector-contrib:0\.128\.0/);
+  assert.match(compose, /curlimages\/curl:8\.14\.1/);
   for (const volume of ['postgres-data', 'redis-data', 'minio-data', 'mailpit-data']) {
     assert.match(compose, new RegExp(`^  ${volume}:`, 'm'));
   }
-  assert.equal((compose.match(/healthcheck:/g) ?? []).length, 5);
+  assert.equal((compose.match(/healthcheck:/g) ?? []).length, 6);
 });
 
 test('local bootstrap is credential-free and creates every owned module schema', () => {
