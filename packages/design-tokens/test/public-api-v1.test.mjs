@@ -22,6 +22,11 @@ test('design tokens expose only versioned TypeScript CSS and Android contracts',
   const generated = await import('../tokens/generated/typescript/v1.ts');
   assert.equal(generated.designTokenVersion, 1);
   assert.ok(Object.isFrozen(generated.designTokenEntriesV1));
+  assert.ok(generated.designTokenEntriesV1.every((token) => Object.isFrozen(token)));
+  const firstToken = generated.designTokenEntriesV1[0];
+  const originalName = firstToken.name;
+  assert.equal(Reflect.set(firstToken, 'name', 'color.compromised'), false);
+  assert.equal(firstToken.name, originalName);
   assert.equal(
     generated.designTokenEntriesV1.find((token) => token.name === 'sizing.controlMinimum').value,
     44,

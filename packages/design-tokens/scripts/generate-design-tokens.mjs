@@ -15,9 +15,31 @@ const prettierOptions = {
   singleQuote: true,
   trailingComma: 'all',
 };
+const requiredFamilies = [
+  'color',
+  'elevation',
+  'focus',
+  'logo',
+  'motion',
+  'radius',
+  'sizing',
+  'spacing',
+  'status',
+  'typography',
+];
+const requiredRequirements = ['WEB-014', 'DSK-021', 'AND-017'];
+const supportedTypes = new Set([
+  'boolean',
+  'color',
+  'dimension',
+  'duration',
+  'integer',
+  'number',
+  'string',
+]);
 
 function parseOptions(argumentsList) {
-  const options = { check: false, outputRoot: defaultOutputRoot };
+  const options = { check: false, outputRoot: defaultOutputRoot, sourcePath };
   for (let index = 0; index < argumentsList.length; index += 1) {
     const argument = argumentsList[index];
     if (argument === '--check') {
@@ -27,11 +49,134 @@ function parseOptions(argumentsList) {
       if (!value || value.startsWith('--')) throw new Error('--output requires a directory');
       options.outputRoot = resolve(value);
       index += 1;
+    } else if (argument === '--source') {
+      const value = argumentsList[index + 1];
+      if (!value || value.startsWith('--')) throw new Error('--source requires a file');
+      options.sourcePath = resolve(value);
+      index += 1;
     } else {
       throw new Error(`Unknown argument: ${argument}`);
     }
   }
   return options;
+}
+
+function isRecord(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function requireExactKeys(value, allowedKeys, label) {
+  if (!isRecord(value)) throw new Error(`${label} must be an object`);
+  const actualKeys = Object.keys(value).sort();
+  const expectedKeys = [...allowedKeys].sort();
+  if (JSON.stringify(actualKeys) !== JSON.stringify(expectedKeys)) {
+    throw new Error(`${label} keys must be exactly ${expectedKeys.join(', ')}`);
+  }
+}
+
+function validateTokenValue(token, label) {
+  const hasUnit = Object.hasOwn(token, 'unit');
+  if (token.type === 'dimension') {
+    if (!hasUnit || !['dp', 'sp'].includes(token.unit)) {
+      throw new Error(`${label}.unit must be dp or sp`);
+    }
+    if (typeof token.value !== 'number' || !Number.isFinite(token.value) || token.value < 0) {
+      throw new Error(`${label}.value must be a finite non-negative number`);
+    }
+    return;
+  }
+  if (token.type === 'duration') {
+    if (!hasUnit || token.unit !== 'ms') throw new Error(`${label}.unit must be ms`);
+    if (!Number.isInteger(token.value) || token.value < 0) {
+      throw new Error(`${label}.value must be a non-negative integer`);
+    }
+    return;
+  }
+  if (hasUnit) throw new Error(`${label}.unit is forbidden for ${token.type}`);
+  if (token.type === 'color') {
+    if (typeof token.value !== 'string' || !/^#[0-9A-F]{6}$/u.test(token.value)) {
+      throw new Error(`${label}.value must be an uppercase #RRGGBB color`);
+    }
+  } else if (token.type === 'string') {
+    const containsControl =
+      typeof token.value === 'string' &&
+      [...token.value].some((character) => {
+        const codePoint = character.codePointAt(0);
+        return codePoint !== undefined && (codePoint <= 31 || codePoint === 127);
+      });
+    if (
+      typeof token.value !== 'string' ||
+      token.value.length === 0 ||
+      token.value.length > 512 ||
+      containsControl
+    ) {
+      throw new Error(`${label}.value must be bounded non-empty text without controls`);
+    }
+  } else if (token.type === 'boolean') {
+    if (typeof token.value !== 'boolean') throw new Error(`${label}.value must be boolean`);
+  } else if (token.type === 'integer') {
+    if (!Number.isInteger(token.value) || token.value < 0) {
+      throw new Error(`${label}.value must be a non-negative integer`);
+    }
+  } else if (typeof token.value !== 'number' || !Number.isFinite(token.value) || token.value < 0) {
+    throw new Error(`${label}.value must be a finite non-negative number`);
+  }
+}
+
+function validateSource(source) {
+  requireExactKeys(source, ['requirements', 'tokens', 'version'], 'root');
+  if (source.version !== 1) throw new Error('version must be 1');
+  if (
+    !Array.isArray(source.requirements) ||
+    JSON.stringify(source.requirements) !== JSON.stringify(requiredRequirements)
+  ) {
+    throw new Error(`requirements must be exactly ${requiredRequirements.join(', ')}`);
+  }
+  if (!Array.isArray(source.tokens) || source.tokens.length === 0) {
+    throw new Error('tokens must be a non-empty array');
+  }
+
+  const names = [];
+  const cssNames = new Set();
+  const androidNames = new Set();
+  for (const [index, token] of source.tokens.entries()) {
+    const label = `tokens[${index}]`;
+    if (!isRecord(token)) throw new Error(`${label} must be an object`);
+    if (typeof token.type !== 'string' || !supportedTypes.has(token.type)) {
+      throw new Error(`${label}.type is unsupported`);
+    }
+    requireExactKeys(
+      token,
+      token.type === 'dimension' || token.type === 'duration'
+        ? ['name', 'type', 'unit', 'value']
+        : ['name', 'type', 'value'],
+      label,
+    );
+    if (
+      typeof token.name !== 'string' ||
+      !/^[a-z][A-Za-z0-9]*(?:\.(?:[a-z][A-Za-z0-9]*|[0-9]+))+$/u.test(token.name)
+    ) {
+      throw new Error(`${label}.name is not a supported semantic name`);
+    }
+    validateTokenValue(token, label);
+    names.push(token.name);
+    const cssName = slug(token.name);
+    const androidName = cssName.replaceAll('-', '_');
+    if (cssNames.has(cssName) || androidNames.has(androidName)) {
+      throw new Error(`${label}.name collides after platform normalization`);
+    }
+    cssNames.add(cssName);
+    androidNames.add(androidName);
+  }
+
+  if (new Set(names).size !== names.length) throw new Error('token names must be unique');
+  if (JSON.stringify(names) !== JSON.stringify([...names].sort())) {
+    throw new Error('token names must be sorted');
+  }
+  const families = [...new Set(names.map((name) => name.split('.')[0]))];
+  if (JSON.stringify(families) !== JSON.stringify(requiredFamilies)) {
+    throw new Error(`token families must be exactly ${requiredFamilies.join(', ')}`);
+  }
 }
 
 function sha256(value) {
@@ -82,8 +227,18 @@ function androidResource(token) {
 
 function renderTypeScript(source) {
   return (
-    `export const designTokenVersion = ${JSON.stringify(source.version)};\n` +
-    `export const designTokenEntriesV1 = Object.freeze(${JSON.stringify(source.tokens, null, 2)});\n` +
+    `type DeepReadonly<Value> = Value extends object\n` +
+    `  ? { readonly [Key in keyof Value]: DeepReadonly<Value[Key]> }\n` +
+    `  : Value;\n\n` +
+    `function deepFreeze<const Value>(value: Value): DeepReadonly<Value> {\n` +
+    `  if (value !== null && typeof value === 'object') {\n` +
+    `    for (const nested of Object.values(value)) deepFreeze(nested);\n` +
+    `    Object.freeze(value);\n` +
+    `  }\n` +
+    `  return value as DeepReadonly<Value>;\n` +
+    `}\n\n` +
+    `export const designTokenVersion = ${JSON.stringify(source.version)} as const;\n` +
+    `export const designTokenEntriesV1 = deepFreeze(${JSON.stringify(source.tokens, null, 2)} as const);\n` +
     'export type DesignTokenV1 = (typeof designTokenEntriesV1)[number];\n'
   );
 }
@@ -164,8 +319,15 @@ async function checkFiles(outputRoot, files) {
 
 async function main() {
   const options = parseOptions(process.argv.slice(2));
-  const sourceBytes = await readFile(sourcePath);
-  const source = JSON.parse(sourceBytes.toString('utf8'));
+  const sourceBytes = await readFile(options.sourcePath);
+  let source;
+  try {
+    source = JSON.parse(sourceBytes.toString('utf8'));
+    validateSource(source);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'unknown validation failure';
+    throw new Error(`Invalid design token source: ${reason}`);
+  }
   const files = await buildFiles(source, sourceBytes);
   if (options.check) {
     await checkFiles(options.outputRoot, files);

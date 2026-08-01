@@ -1,5 +1,17 @@
-export const designTokenVersion = 1;
-export const designTokenEntriesV1 = Object.freeze([
+type DeepReadonly<Value> = Value extends object
+  ? { readonly [Key in keyof Value]: DeepReadonly<Value[Key]> }
+  : Value;
+
+function deepFreeze<const Value>(value: Value): DeepReadonly<Value> {
+  if (value !== null && typeof value === 'object') {
+    for (const nested of Object.values(value)) deepFreeze(nested);
+    Object.freeze(value);
+  }
+  return value as DeepReadonly<Value>;
+}
+
+export const designTokenVersion = 1 as const;
+export const designTokenEntriesV1 = deepFreeze([
   {
     name: 'color.background',
     type: 'color',
@@ -8,7 +20,7 @@ export const designTokenEntriesV1 = Object.freeze([
   {
     name: 'color.border',
     type: 'color',
-    value: '#8A93A5',
+    value: '#7A8499',
   },
   {
     name: 'color.focus',
@@ -385,5 +397,5 @@ export const designTokenEntriesV1 = Object.freeze([
     type: 'string',
     value: 'tabular-nums',
   },
-]);
+] as const);
 export type DesignTokenV1 = (typeof designTokenEntriesV1)[number];

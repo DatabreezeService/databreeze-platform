@@ -5,5 +5,5 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["tokens/generated/typescript/**/*.ts"]
+  "include": ["test/type-contract-v1.ts", "tokens/generated/typescript/**/*.ts"]
 }

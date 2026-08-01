@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <color name="db_color_background">#FFFFFF</color>
-  <color name="db_color_border">#8A93A5</color>
+  <color name="db_color_border">#7A8499</color>
   <color name="db_color_focus">#1D4ED8</color>
   <color name="db_color_on_primary">#FFFFFF</color>
   <color name="db_color_primary">#344EF8</color>

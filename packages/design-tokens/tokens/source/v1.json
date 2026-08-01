@@ -3,7 +3,7 @@
   "requirements": ["WEB-014", "DSK-021", "AND-017"],
   "tokens": [
     { "name": "color.background", "type": "color", "value": "#FFFFFF" },
-    { "name": "color.border", "type": "color", "value": "#8A93A5" },
+    { "name": "color.border", "type": "color", "value": "#7A8499" },
     { "name": "color.focus", "type": "color", "value": "#1D4ED8" },
     { "name": "color.onPrimary", "type": "color", "value": "#FFFFFF" },
     { "name": "color.primary", "type": "color", "value": "#344EF8" },

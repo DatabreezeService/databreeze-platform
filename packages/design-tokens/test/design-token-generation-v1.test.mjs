@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, relative, resolve } from 'node:path';
 import test from 'node:test';
@@ -26,8 +26,10 @@ function filesUnder(root, directory = root) {
     .sort();
 }
 
-function runGenerator(outputRoot) {
-  return spawnSync(process.execPath, [generatorPath, '--output', outputRoot], {
+function runGenerator(outputRoot, source = undefined) {
+  const argumentsList = [generatorPath, '--output', outputRoot];
+  if (source !== undefined) argumentsList.push('--source', source);
+  return spawnSync(process.execPath, argumentsList, {
     cwd: packageRoot,
     encoding: 'utf8',
   });
@@ -169,6 +171,10 @@ test('[WEB-014, DSK-021, AND-017 partial] semantic color pairs meet WCAG 2.2 AA'
     contrastRatio(tokens.get('color.border').value, tokens.get('color.background').value) >= 3,
     'component boundaries must reach 3:1',
   );
+  for (const surfaceName of ['color.background', 'color.surface', 'color.surfaceStrong']) {
+    const ratio = contrastRatio(tokens.get('color.border').value, tokens.get(surfaceName).value);
+    assert.ok(ratio >= 3, `color.border on ${surfaceName} has contrast ${ratio}`);
+  }
   assert.ok(
     contrastRatio(tokens.get('color.focus').value, tokens.get('color.background').value) >= 3,
     'focus indication must reach 3:1',
@@ -269,5 +275,55 @@ test('generation drift is detected without rewriting the expected outputs', () =
     assert.equal(readFileSync(cssPath, 'utf8'), changed);
   } finally {
     rmSync(outputRoot, { force: true, recursive: true });
+  }
+});
+
+test('invalid canonical source fails closed before any output is rewritten', () => {
+  const canonical = JSON.parse(readFileSync(sourcePath, 'utf8'));
+  const mutations = [
+    ['unknown root key', (source) => (source.extra = true)],
+    ['unsupported requirement', (source) => source.requirements.push('WEB-999')],
+    ['unknown token key', (source) => (source.tokens[0].extra = true)],
+    ['unsupported token type', (source) => (source.tokens[0].type = 'paint')],
+    ['forbidden unit', (source) => (source.tokens[0].unit = 'dp')],
+    [
+      'missing unit',
+      (source) => delete source.tokens.find((token) => token.type === 'dimension').unit,
+    ],
+    ['invalid color value', (source) => (source.tokens[0].value = 'blue')],
+    [
+      'invalid numeric domain',
+      (source) => (source.tokens.find((token) => token.type === 'dimension').value = -1),
+    ],
+    ['unsorted names', (source) => source.tokens.reverse()],
+    ['duplicate name', (source) => source.tokens.splice(1, 0, { ...source.tokens[0] })],
+    [
+      'missing required family',
+      (source) =>
+        (source.tokens = source.tokens.filter((token) => !token.name.startsWith('status.'))),
+    ],
+  ];
+
+  for (const [label, mutate] of mutations) {
+    const temporaryRoot = mkdtempSync(resolve(tmpdir(), 'databreeze-invalid-token-source-'));
+    const outputRoot = resolve(temporaryRoot, 'output');
+    const invalidSourcePath = resolve(temporaryRoot, 'source.json');
+    const markerPath = resolve(outputRoot, 'existing-marker.txt');
+    try {
+      const source = globalThis.structuredClone(canonical);
+      mutate(source);
+      writeFileSync(invalidSourcePath, JSON.stringify(source), 'utf8');
+      mkdirSync(outputRoot);
+      writeFileSync(markerPath, 'unchanged', { encoding: 'utf8', flag: 'wx' });
+
+      const result = runGenerator(outputRoot, invalidSourcePath);
+
+      assert.equal(result.status, 1, `${label}: ${result.stderr}`);
+      assert.match(result.stderr, /Invalid design token source:/u, label);
+      assert.deepEqual(filesUnder(outputRoot), ['existing-marker.txt'], label);
+      assert.equal(readFileSync(markerPath, 'utf8'), 'unchanged', label);
+    } finally {
+      rmSync(temporaryRoot, { force: true, recursive: true });
+    }
   }
 });
