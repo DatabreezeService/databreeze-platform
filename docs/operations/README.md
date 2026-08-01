@@ -1,6 +1,6 @@
 # Operations Documentation
 
-Operational runbooks are versioned with the product and linked from alerts and release records. They are written as each deployable becomes operational.
+Operational runbooks are versioned with the product and linked from alerts and release records. Foundation evidence is tracked in [engineering-foundation-verification](engineering-foundation-verification.md).
 
 Every production deployable requires:
 
