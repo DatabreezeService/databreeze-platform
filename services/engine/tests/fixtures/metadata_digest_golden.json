@@ -1,0 +1,15 @@
+{
+  "input": {
+    "items": [
+      { "key": "priority", "value": "high" },
+      { "key": "category", "value": "invoice" }
+    ],
+    "tags": ["beta", "alpha"]
+  },
+  "expectedOutput": {
+    "canonicalDigest": "ff31b5c9e7b88bc809067eedcb3f0d80063904bfe3e178adc45119ad47ae9d2c",
+    "canonicalizationVersion": "foundation-metadata-v1",
+    "itemCount": 2,
+    "tagCount": 2
+  }
+}

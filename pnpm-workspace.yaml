@@ -3,7 +3,14 @@ packages:
   - 'apps/web'
   - 'packages/*'
   - 'services/api'
+  - 'services/engine'
   - 'tools/*'
+
+allowBuilds:
+  '@prisma/engines': true
+  '@scarf/scarf': false
+  esbuild: true
+  prisma: true
 
 engineStrict: true
 pmOnFail: download

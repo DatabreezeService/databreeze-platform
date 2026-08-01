@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DataBreeze</string>
+    <string name="home_title">Your data companion</string>
+    <string name="home_body">Capture and review data safely, even when offline.</string>
+    <string name="capture_action">Open form</string>
+    <string name="capture_title">Capture data</string>
+    <string name="capture_body">Your draft is stored safely on this device.</string>
+    <string name="capture_saved">Draft saved</string>
+    <string name="capture_save">Save draft</string>
+    <string name="back_action">Back</string>
+</resources>

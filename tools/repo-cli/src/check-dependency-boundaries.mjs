@@ -1,9 +1,17 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { builtinModules } from 'node:module';
 import path from 'node:path';
 import process from 'node:process';
 import ts from 'typescript';
 
 const sourceExtensions = new Set(['.ts', '.tsx', '.mts', '.cts']);
+const desktopRendererSourceExtensions = new Set([
+  ...sourceExtensions,
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+]);
 const ignoredDirectories = new Set(['node_modules', 'dist', 'build', 'coverage', 'out']);
 
 function parseRoot(argumentsList) {
@@ -21,7 +29,7 @@ function parseRoot(argumentsList) {
   return path.resolve(specifiedRoot);
 }
 
-function listFiles(directory) {
+function listFiles(directory, extensions = sourceExtensions) {
   if (!existsSync(directory)) {
     return [];
   }
@@ -31,9 +39,9 @@ function listFiles(directory) {
     const entryPath = path.join(directory, entry.name);
     if (entry.isDirectory()) {
       if (!ignoredDirectories.has(entry.name)) {
-        files.push(...listFiles(entryPath));
+        files.push(...listFiles(entryPath, extensions));
       }
-    } else if (entry.isFile() && sourceExtensions.has(path.extname(entry.name))) {
+    } else if (entry.isFile() && extensions.has(path.extname(entry.name))) {
       files.push(entryPath);
     }
   }
@@ -56,10 +64,18 @@ function readPackageManifest(manifestPath) {
 }
 
 function sourceFileKind(filePath) {
-  if (filePath.endsWith('.tsx')) {
-    return ts.ScriptKind.TSX;
+  switch (path.extname(filePath)) {
+    case '.tsx':
+      return ts.ScriptKind.TSX;
+    case '.jsx':
+      return ts.ScriptKind.JSX;
+    case '.js':
+    case '.mjs':
+    case '.cjs':
+      return ts.ScriptKind.JS;
+    default:
+      return ts.ScriptKind.TS;
   }
-  return ts.ScriptKind.TS;
 }
 
 function importedModules(filePath) {
@@ -124,6 +140,32 @@ function featureName(filePath, apiDirectory) {
   return /^src\/features\/([^/]+)\//.exec(relativePath)?.[1];
 }
 
+const featureLayers = new Set(['adapter', 'api', 'application', 'domain', 'persistence']);
+const allowedFeatureLayerImports = {
+  adapter: new Set(['adapter', 'application', 'domain']),
+  api: new Set(['api', 'application']),
+  application: new Set(['application', 'domain']),
+  domain: new Set(['domain']),
+  persistence: new Set(['application', 'domain', 'persistence']),
+};
+
+function featureLocation(filePath, apiDirectory) {
+  const relativePath = path.relative(apiDirectory, filePath).split(path.sep).join('/');
+  const match = /^src\/features\/([^/]+)\/([^/]+)(?:\/|$)/.exec(relativePath);
+  if (match?.[1] === undefined || match[2] === undefined || !featureLayers.has(match[2])) {
+    return undefined;
+  }
+  return { feature: match[1], layer: match[2] };
+}
+
+function aliasedFeatureLocation(moduleSpecifier) {
+  const match = /(?:^|\/)features\/([^/]+)\/([^/]+)(?:\/|$)/.exec(moduleSpecifier);
+  if (match?.[1] === undefined || match[2] === undefined || !featureLayers.has(match[2])) {
+    return undefined;
+  }
+  return { feature: match[1], layer: match[2] };
+}
+
 function relativePath(repositoryRoot, filePath) {
   return path.relative(repositoryRoot, filePath).split(path.sep).join('/');
 }
@@ -181,6 +223,48 @@ function checkClientImports(repositoryRoot, apiDirectory) {
   return diagnostics;
 }
 
+const nodeBuiltins = new Set([
+  ...builtinModules,
+  ...builtinModules.map((moduleName) => `node:${moduleName}`),
+]);
+
+function checkDesktopRendererBoundary(repositoryRoot) {
+  const diagnostics = [];
+  const desktopSource = path.join(repositoryRoot, 'apps', 'desktop', 'src');
+  const rendererDirectory = path.join(desktopSource, 'renderer');
+  const privilegedDirectories = ['application', 'main', 'preload'].map((name) =>
+    path.join(desktopSource, name),
+  );
+
+  for (const filePath of listFiles(rendererDirectory, desktopRendererSourceExtensions)) {
+    for (const moduleSpecifier of importedModules(filePath)) {
+      const relativeTarget = moduleSpecifier.startsWith('.')
+        ? path.resolve(path.dirname(filePath), moduleSpecifier)
+        : undefined;
+      const importsPrivilegedRelativeTarget =
+        relativeTarget !== undefined &&
+        privilegedDirectories.some((directory) => isWithin(relativeTarget, directory));
+      const importsPrivilegedAlias = /(?:^|\/)(?:application|main|preload)(?:\/|$)/.test(
+        moduleSpecifier,
+      );
+      const importsPrivilegedRuntime =
+        matchesPackageSpecifier(moduleSpecifier, 'electron') || nodeBuiltins.has(moduleSpecifier);
+
+      if (importsPrivilegedRelativeTarget || importsPrivilegedAlias || importsPrivilegedRuntime) {
+        diagnostics.push(
+          diagnostic(
+            'desktop-renderer-must-remain-unprivileged',
+            repositoryRoot,
+            filePath,
+            `import=${moduleSpecifier}`,
+          ),
+        );
+      }
+    }
+  }
+  return diagnostics;
+}
+
 function checkFeaturePersistenceImports(repositoryRoot, apiDirectory) {
   const diagnostics = [];
 
@@ -215,6 +299,37 @@ function checkFeaturePersistenceImports(repositoryRoot, apiDirectory) {
         diagnostics.push(
           diagnostic(
             'features-must-not-import-other-feature-persistence',
+            repositoryRoot,
+            filePath,
+            `import=${moduleSpecifier}`,
+          ),
+        );
+      }
+    }
+  }
+
+  return diagnostics;
+}
+
+function checkFeatureLayerImports(repositoryRoot, apiDirectory) {
+  const diagnostics = [];
+
+  for (const filePath of listFiles(path.join(apiDirectory, 'src', 'features'))) {
+    const source = featureLocation(filePath, apiDirectory);
+    if (source === undefined) continue;
+
+    for (const moduleSpecifier of importedModules(filePath)) {
+      const target = moduleSpecifier.startsWith('.')
+        ? featureLocation(path.resolve(path.dirname(filePath), moduleSpecifier), apiDirectory)
+        : aliasedFeatureLocation(moduleSpecifier);
+      if (
+        target !== undefined &&
+        target.feature === source.feature &&
+        !allowedFeatureLayerImports[source.layer].has(target.layer)
+      ) {
+        diagnostics.push(
+          diagnostic(
+            'feature-layers-must-depend-inward',
             repositoryRoot,
             filePath,
             `import=${moduleSpecifier}`,
@@ -364,7 +479,9 @@ function checkRepository(repositoryRoot) {
   const apiDirectory = path.join(repositoryRoot, 'services', 'api');
   return [
     ...checkClientImports(repositoryRoot, apiDirectory),
+    ...checkDesktopRendererBoundary(repositoryRoot),
     ...checkFeaturePersistenceImports(repositoryRoot, apiDirectory),
+    ...checkFeatureLayerImports(repositoryRoot, apiDirectory),
     ...checkPackageExports(repositoryRoot),
     ...checkPrivateWorkspacePackageImports(repositoryRoot),
   ].sort();

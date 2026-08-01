@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling==1.31.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "databreeze-engine"
+version = "0.1.0"
+description = "Typed deterministic processing runtime for DataBreeze executors"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  "databreeze-contracts==1.0.0",
+  "pydantic==2.13.4",
+]
+
+[project.scripts]
+databreeze-engine-sidecar = "databreeze_engine.sidecar:main"
+databreeze-engine-cloud = "databreeze_engine.cloud:main"
+
+[dependency-groups]
+dev = [
+  "hatchling==1.31.0",
+  "mypy==2.3.0",
+  "pytest==9.1.1",
+  "ruff==0.16.1",
+]
+
+[tool.uv]
+package = true
+python-downloads = "manual"
+
+[tool.uv.sources]
+databreeze-contracts = { path = "../../packages/contracts/generated/python" }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/databreeze_engine"]
+
+[tool.pytest.ini_options]
+addopts = ["--strict-config", "--strict-markers", "-ra"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+packages = ["databreeze_engine"]
+mypy_path = ["src"]

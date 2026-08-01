@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DataBreeze</string>
+    <string name="home_title">Trợ lý dữ liệu của bạn</string>
+    <string name="home_body">Thu thập và xem lại dữ liệu an toàn, kể cả khi ngoại tuyến.</string>
+    <string name="capture_action">Mở biểu mẫu</string>
+    <string name="capture_title">Thu thập dữ liệu</string>
+    <string name="capture_body">Bản nháp được lưu an toàn trên thiết bị này.</string>
+    <string name="capture_saved">Đã lưu bản nháp</string>
+    <string name="capture_save">Lưu bản nháp</string>
+    <string name="back_action">Quay lại</string>
+</resources>

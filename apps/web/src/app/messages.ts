@@ -1,0 +1,111 @@
+import type { SupportedLocaleV1 } from '@databreeze/i18n/v1';
+
+const vietnameseMessages = {
+  'access.clientHint': 'Mọi thao tác vẫn phải được máy chủ cho phép.',
+  'access.restricted': 'Bạn có thể xem công việc này nhưng chưa có quyền tạo tác vụ mới.',
+  'action.backWorkspace': 'Quay lại không gian làm việc',
+  'action.openInbox': 'Mở Hộp thư đến',
+  'action.retry': 'Thử lại an toàn',
+  'app.error.body':
+    'Không gian làm việc chưa khởi động được. Không có thay đổi nào được gửi. Hãy tải lại trang hoặc liên hệ quản trị viên.',
+  'app.error.title': 'Không thể khởi động không gian làm việc',
+  'context.organization': 'Tổ chức Mây Sáng',
+  'context.project': 'Dự án Vận hành',
+  'context.workspace': 'Không gian Kiểm soát',
+  'error.body': 'Khu vực này chưa mở được. Dữ liệu vẫn an toàn và không có thay đổi nào được gửi.',
+  'error.title': 'Không thể mở khu vực này',
+  'home.action': 'Tạo tác vụ',
+  'home.caption': 'Danh sách công việc được điều phối và chờ quyết định trong không gian hiện tại.',
+  'home.column.item': 'Công việc',
+  'home.column.owner': 'Phụ trách',
+  'home.column.status': 'Trạng thái',
+  'home.heading': 'Công việc cần xử lý',
+  'home.item.approval': 'Phê duyệt báo cáo doanh thu tháng 7',
+  'home.item.device': 'Xác nhận thiết bị thu thập tại Hà Nội',
+  'home.item.review': 'Xem xét 12 ngoại lệ dữ liệu',
+  'home.owner.finance': 'Nhóm Tài chính',
+  'home.owner.operations': 'Nhóm Vận hành',
+  'home.owner.you': 'Bạn',
+  'home.status.approval': 'Chờ phê duyệt',
+  'home.status.device': 'Cần xác nhận',
+  'home.status.review': 'Cần xem xét',
+  'locale.english': 'English',
+  'locale.vietnamese': 'Tiếng Việt',
+  'nav.administration': 'Quản trị',
+  'nav.audit': 'Nhật ký kiểm toán',
+  'nav.close': 'Đóng điều hướng',
+  'nav.inbox': 'Hộp thư đến',
+  'nav.label': 'Điều hướng chính',
+  'nav.open': 'Mở điều hướng',
+  'nav.usage': 'Mức sử dụng',
+  'notFound.body':
+    'Địa chỉ này không thuộc khu vực đã đăng ký. Không có dữ liệu nào được thay đổi.',
+  'notFound.title': 'Không tìm thấy trang',
+  'notifications.label': 'Thông báo, 2 mục chưa đọc',
+  'placeholder.body':
+    'Nền tảng đã dành sẵn khu vực này. Dữ liệu và thao tác sẽ xuất hiện sau khi API quản trị tương ứng được triển khai và máy chủ xác nhận quyền truy cập.',
+  'placeholder.unavailable': 'Khu vực này chưa khả dụng',
+  'search.label': 'Tìm kiếm trong không gian làm việc',
+  'search.placeholder': 'Tìm công việc, báo cáo hoặc bằng chứng',
+  'skip.main': 'Bỏ qua để đến nội dung chính',
+} as const;
+
+type AppMessageKey = keyof typeof vietnameseMessages;
+
+const englishMessages: Readonly<Record<AppMessageKey, string>> = {
+  'access.clientHint': 'Server authorization is still required for every action.',
+  'access.restricted': 'You can view this work but cannot create a new job.',
+  'action.backWorkspace': 'Return to workspace',
+  'action.openInbox': 'Open Inbox',
+  'action.retry': 'Retry safely',
+  'app.error.body':
+    'The workspace did not start. No changes were sent. Reload the page or contact an administrator.',
+  'app.error.title': 'The workspace could not start',
+  'context.organization': 'Bright Cloud Organization',
+  'context.project': 'Operations Project',
+  'context.workspace': 'Governed Workspace',
+  'error.body': 'This area could not open. Your data remains safe and no changes were sent.',
+  'error.title': 'This area could not open',
+  'home.action': 'Create job',
+  'home.caption': 'Governed work awaiting action or a decision in the current workspace.',
+  'home.column.item': 'Work item',
+  'home.column.owner': 'Owner',
+  'home.column.status': 'Status',
+  'home.heading': 'Open governed work',
+  'home.item.approval': 'Approve the July revenue report',
+  'home.item.device': 'Confirm the Hanoi capture device',
+  'home.item.review': 'Review 12 data exceptions',
+  'home.owner.finance': 'Finance team',
+  'home.owner.operations': 'Operations team',
+  'home.owner.you': 'You',
+  'home.status.approval': 'Awaiting approval',
+  'home.status.device': 'Confirmation needed',
+  'home.status.review': 'Needs review',
+  'locale.english': 'English',
+  'locale.vietnamese': 'Tiếng Việt',
+  'nav.administration': 'Administration',
+  'nav.audit': 'Audit log',
+  'nav.close': 'Close navigation',
+  'nav.inbox': 'Inbox',
+  'nav.label': 'Primary navigation',
+  'nav.open': 'Open navigation',
+  'nav.usage': 'Usage',
+  'notFound.body': 'This address is not a registered area. No data was changed.',
+  'notFound.title': 'Page not found',
+  'notifications.label': 'Notifications, 2 unread',
+  'placeholder.body':
+    'The platform has reserved this area. Data and actions will appear after its governed API is available and server authorization is confirmed.',
+  'placeholder.unavailable': 'This area is not available yet',
+  'search.label': 'Search this workspace',
+  'search.placeholder': 'Search work, reports, or evidence',
+  'skip.main': 'Skip to main content',
+};
+
+const appMessages: Readonly<Record<SupportedLocaleV1, Readonly<Record<AppMessageKey, string>>>> = {
+  'vi-VN': vietnameseMessages,
+  en: englishMessages,
+};
+
+export function appMessage(locale: SupportedLocaleV1, key: AppMessageKey): string {
+  return appMessages[locale][key];
+}

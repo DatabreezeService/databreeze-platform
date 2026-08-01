@@ -4,18 +4,28 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./v1": {
+      "types": "./tokens/generated/typescript/v1.ts",
+      "import": "./dist/v1.js"
+    },
+    "./android/v1": "./tokens/generated/android/values/databreeze_tokens_v1.xml",
     "./brand/derivatives.json": "./brand/derivatives.json",
     "./brand/generated/*": "./brand/generated/*",
     "./brand/manifest.json": "./brand/manifest.json",
-    "./brand/source/*": "./brand/source/*"
+    "./brand/source/*": "./brand/source/*",
+    "./css/v1": "./tokens/generated/css/v1.css"
   },
   "scripts": {
     "brand:check": "node scripts/generate-brand-derivatives.mjs --check",
     "brand:generate": "node scripts/generate-brand-derivatives.mjs",
-    "build": "corepack pnpm brand:check",
-    "test": "node --test test/**/*.test.mjs"
+    "build": "corepack pnpm brand:check && corepack pnpm tokens:check && tsc --project tsconfig.build.json && node test/built-public-api-smoke.mjs",
+    "test": "node --test test/**/*.test.mjs && corepack pnpm tokens:check",
+    "tokens:check": "node scripts/generate-design-tokens.mjs --check",
+    "tokens:generate": "node scripts/generate-design-tokens.mjs",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
   },
   "devDependencies": {
+    "prettier": "3.6.2",
     "sharp": "0.35.3"
   }
 }

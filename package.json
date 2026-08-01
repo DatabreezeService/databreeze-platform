@@ -20,6 +20,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . && node tools/repo-cli/src/check-dependency-boundaries.mjs",
+    "local:smoke": "node tools/repo-cli/src/local-services-smoke.mjs",
+    "infra:check": "node tools/repo-cli/src/check-aws-infrastructure.mjs",
     "repo:bootstrap": "corepack pnpm install --frozen-lockfile",
     "repo:build": "corepack pnpm build",
     "repo:check": "corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm requirements:check && corepack pnpm contracts:check && corepack pnpm test",
@@ -28,7 +30,12 @@
     "requirements:check": "node tools/repo-cli/src/generate-requirement-index.mjs --check",
     "requirements:generate": "node tools/repo-cli/src/generate-requirement-index.mjs",
     "test": "node --test tools/repo-cli/test/**/*.test.mjs && turbo run test",
-    "typecheck": "tsc --noEmit --project tsconfig.json"
+    "typecheck": "tsc --noEmit --project tsconfig.json",
+    "web:browser:install:ci": "corepack pnpm --filter @databreeze/web browser:install:ci",
+    "web:test:e2e:dev": "corepack pnpm --filter @databreeze/web test:e2e:dev",
+    "web:test:e2e:preview": "corepack pnpm turbo run build --filter=@databreeze/web && corepack pnpm --filter @databreeze/web test:e2e:preview",
+    "web:test:e2e:ci": "corepack pnpm web:browser:install:ci && corepack pnpm web:test:e2e",
+    "web:test:e2e": "corepack pnpm turbo run build --filter=@databreeze/web && corepack pnpm --filter @databreeze/web test:e2e"
   },
   "devDependencies": {
     "@eslint/js": "9.36.0",
