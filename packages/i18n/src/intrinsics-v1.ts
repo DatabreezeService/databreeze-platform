@@ -55,8 +55,10 @@ const pluralSelectMethodV1 = captureMethodV1(
   PluralRulesConstructorV1.prototype as unknown as object,
   'select',
 );
+const stringConversionV1 = captureMethodV1(globalThis, 'String');
 const stringCharCodeAtV1 = captureMethodV1(String.prototype, 'charCodeAt');
 const stringNormalizeV1 = captureMethodV1(String.prototype, 'normalize');
+const stringReplaceV1 = captureMethodV1(String.prototype, 'replace');
 const stringTrimV1 = captureMethodV1(String.prototype, 'trim');
 const stringSplitV1 = captureMethodV1(String.prototype, 'split');
 
@@ -141,8 +143,20 @@ export function stringCodeUnitAtIntrinsicV1(value: string, index: number): numbe
   return applyIntrinsicV1<number>(stringCharCodeAtV1, value, [index]);
 }
 
+export function convertToStringIntrinsicV1(value: unknown): string {
+  return applyIntrinsicV1<string>(stringConversionV1, undefined, [value]);
+}
+
 export function normalizeStringIntrinsicV1(value: string): string {
   return applyIntrinsicV1<string>(stringNormalizeV1, value, ['NFC']);
+}
+
+export function replaceStringIntrinsicV1(
+  value: string,
+  pattern: RegExp,
+  replacement: (substring: string, capture: string) => string,
+): string {
+  return applyIntrinsicV1<string>(stringReplaceV1, value, [pattern, replacement]);
 }
 
 export function trimStringIntrinsicV1(value: string): string {

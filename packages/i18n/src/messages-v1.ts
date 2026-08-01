@@ -6,7 +6,11 @@ import {
   type SupportedLocaleV1,
 } from './catalogs-v1.ts';
 import { I18nErrorV1 } from './errors-v1.ts';
-import { selectPluralIntrinsicV1 } from './intrinsics-v1.ts';
+import {
+  convertToStringIntrinsicV1,
+  replaceStringIntrinsicV1,
+  selectPluralIntrinsicV1,
+} from './intrinsics-v1.ts';
 import { assertSupportedLocaleV1 } from './locale-v1.ts';
 import { readClosedDataObjectV1 } from './safe-input-v1.ts';
 import { sanitizeTextParameterV1 } from './text-v1.ts';
@@ -35,9 +39,10 @@ export function formatMessageV1(
   }
   const catalogMessage = MESSAGE_CATALOGS_V1[locale][key];
   const parameterNames = Object.keys(catalogMessage.parameters);
+  const parameterNameSet = new Set(parameterNames);
   let safeParameters: Readonly<Record<string, unknown>>;
   try {
-    safeParameters = readClosedDataObjectV1(parameters, new Set(parameterNames));
+    safeParameters = readClosedDataObjectV1(parameters, parameterNameSet);
   } catch (error) {
     if (
       error instanceof I18nErrorV1 &&
@@ -51,7 +56,11 @@ export function formatMessageV1(
       } catch {
         throw error;
       }
-      if (keys.some((parameterName) => !parameterNames.includes(String(parameterName)))) {
+      if (
+        keys.some(
+          (parameterName) => !parameterNameSet.has(convertToStringIntrinsicV1(parameterName)),
+        )
+      ) {
         throw new I18nErrorV1('EXTRA_PARAMETER');
       }
     }
@@ -72,8 +81,11 @@ export function formatMessageV1(
     );
   }
 
-  return catalogMessage.message.replace(PLACEHOLDER_V1, (_placeholder, parameterName: string) =>
-    String(normalizedParameters[parameterName]),
+  return replaceStringIntrinsicV1(
+    catalogMessage.message,
+    PLACEHOLDER_V1,
+    (_placeholder, parameterName) =>
+      convertToStringIntrinsicV1(normalizedParameters[parameterName]),
   );
 }
 

@@ -1,6 +1,7 @@
 import type { SupportedLocaleV1 } from './catalogs-v1.ts';
 import { I18nErrorV1 } from './errors-v1.ts';
 import {
+  convertToStringIntrinsicV1,
   createDateIntrinsicV1,
   dateTimestampIntrinsicV1,
   formatDateTimeIntrinsicV1,
@@ -96,10 +97,15 @@ function optionalEnum<T extends string>(value: unknown, values: readonly T[]): T
   if (value === undefined) {
     return undefined;
   }
-  if (typeof value !== 'string' || !values.includes(value as T)) {
+  if (typeof value !== 'string') {
     throw new I18nErrorV1('INVALID_ARGUMENT');
   }
-  return value as T;
+  for (let index = 0; index < values.length; index += 1) {
+    if (value === values[index]) {
+      return value as T;
+    }
+  }
+  throw new I18nErrorV1('INVALID_ARGUMENT');
 }
 
 function optionalBoolean(value: unknown): boolean | undefined {
@@ -163,14 +169,19 @@ function snapshotStringListV1(value: unknown): readonly string[] {
         throw new I18nErrorV1('INVALID_ARGUMENT');
       }
       const index = Number(key);
-      if (!Number.isSafeInteger(index) || index < 0 || index >= length || String(index) !== key) {
+      if (
+        !Number.isSafeInteger(index) ||
+        index < 0 ||
+        index >= length ||
+        convertToStringIntrinsicV1(index) !== key
+      ) {
         throw new I18nErrorV1('INVALID_ARGUMENT');
       }
     }
 
     const snapshot: string[] = [];
     for (let index = 0; index < length; index += 1) {
-      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      const descriptor = Object.getOwnPropertyDescriptor(value, convertToStringIntrinsicV1(index));
       if (
         descriptor === undefined ||
         !Object.hasOwn(descriptor, 'value') ||

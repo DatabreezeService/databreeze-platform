@@ -235,3 +235,83 @@ test('describes invalid retry seconds without claiming every failure is non-fini
     );
   }
 });
+
+test('preserves valid i18n outputs after global String and prototype methods are replaced', async () => {
+  const { formatListV1, formatMessageV1, formatRetryAfterSecondsV1, negotiateLocaleV1 } =
+    await import('../src/v1.ts');
+  const calls = [];
+  const restorations = [];
+  const StringIntrinsic = String;
+  let actual;
+
+  try {
+    for (const method of ['replace', 'replaceAll', 'startsWith', 'includes']) {
+      restorations.push(
+        replaceValue(
+          StringIntrinsic.prototype,
+          method,
+          hostileFunction(calls, `string-${method}-marker`),
+        ),
+      );
+    }
+    restorations.push(
+      replaceValue(globalThis, 'String', hostileFunction(calls, 'string-constructor-marker')),
+    );
+
+    actual = {
+      error: formatMessageV1('en', 'error.generic'),
+      list: formatListV1(['Web', 'Android'], { locale: 'en' }),
+      message: formatMessageV1('en', 'accessibility.progressLabel', { current: 2, total: 5 }),
+      negotiated: negotiateLocaleV1('en-US-u-ca-gregory'),
+      plural: formatRetryAfterSecondsV1('en', 1),
+    };
+  } finally {
+    restoreAll(restorations);
+  }
+
+  assert.deepEqual(actual, {
+    error: 'Something went wrong. Your data has been preserved.',
+    list: 'Web and Android',
+    message: 'Progress: 2 of 5.',
+    negotiated: 'en',
+    plural: 'Try again in 1 second.',
+  });
+  assert.deepEqual(calls, []);
+});
+
+test('keeps extra-parameter errors stable when global String conversion is replaced', async () => {
+  const { formatMessageV1, I18nErrorV1 } = await import('../src/v1.ts');
+  const calls = [];
+  const restorations = [];
+  const StringIntrinsic = String;
+  const parameters = { [Symbol('extra-parameter-marker')]: 'hidden' };
+  let caught;
+
+  try {
+    restorations.push(
+      replaceValue(
+        StringIntrinsic.prototype,
+        'replace',
+        hostileFunction(calls, 'string-replace-marker'),
+      ),
+    );
+    restorations.push(
+      replaceValue(globalThis, 'String', hostileFunction(calls, 'string-constructor-marker')),
+    );
+    try {
+      formatMessageV1('en', 'action.save', parameters);
+    } catch (error) {
+      caught = error;
+    }
+  } finally {
+    restoreAll(restorations);
+  }
+
+  assert.equal(caught instanceof I18nErrorV1, true);
+  assert.equal(caught.code, 'EXTRA_PARAMETER');
+  assert.doesNotMatch(
+    inspect(caught),
+    /(?:extra-parameter|string-(?:constructor|replace))-marker/u,
+  );
+  assert.deepEqual(calls, []);
+});
