@@ -73,6 +73,24 @@ test('formats lists, relative time, and plural categories for both locales', asy
   assert.equal(selectPluralCategoryV1(1, { locale: 'vi-VN' }), 'other');
 });
 
+test('accepts every plural relative-time unit admitted by the public TypeScript type', async () => {
+  const { formatRelativeTimeV1 } = await import('../src/v1.ts');
+  const cases = [
+    ['years', '2 years ago'],
+    ['quarters', '2 quarters ago'],
+    ['months', '2 months ago'],
+    ['weeks', '2 weeks ago'],
+    ['days', '2 days ago'],
+    ['hours', '2 hours ago'],
+    ['minutes', '2 minutes ago'],
+    ['seconds', '2 seconds ago'],
+  ];
+
+  for (const [unit, expected] of cases) {
+    assert.equal(formatRelativeTimeV1(-2, unit, { locale: 'en' }), expected);
+  }
+});
+
 test('rejects invalid locale, time zone, date, currency, numeric values, units, and option keys', async () => {
   const { formatCurrencyV1, formatDateTimeV1, formatDecimalV1, formatRelativeTimeV1, I18nErrorV1 } =
     await import('../src/v1.ts');

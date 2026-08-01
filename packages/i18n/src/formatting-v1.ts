@@ -30,13 +30,21 @@ const CURRENCY_CODES_V1 = new Set(supportedValuesIntrinsicV1('currency'));
 const MAX_LIST_ITEMS_V1 = 1_000;
 const RELATIVE_TIME_UNITS_V1 = new Set<Intl.RelativeTimeFormatUnit>([
   'day',
+  'days',
   'hour',
+  'hours',
   'minute',
+  'minutes',
   'month',
+  'months',
   'quarter',
+  'quarters',
   'second',
+  'seconds',
   'week',
+  'weeks',
   'year',
+  'years',
 ]);
 
 interface FractionOptionsV1 {
