@@ -9,7 +9,7 @@ itself, contact a provider, or choose product policy.
 `@databreeze/config/runtime/v1` exports:
 
 - `loadRuntimeConfigV1`, which accepts an explicit environment record/entry list, optional
-  structured overrides, and the composition-owned secret-reference issuer used by enabled
+  structured overrides, and the factory-issued secret-reference capability used by enabled
   credential references, then returns a deeply frozen configuration;
 - the five explicit profiles: `development`, `test`, `preview`, `staging`, and `production`;
 - typed object-storage, email, push, OCR, AI, payments, telemetry, and secrets selections;
@@ -49,8 +49,8 @@ references, never API keys, passwords, tokens, webhook secrets, or other credent
   tenant state.
 - Provider credentials or implicit host-environment reads.
 
-The only runtime dependency is the pure versioned provider-contract package used to accept a
-scoped secret-reference issuer and construct the same opaque reference accepted by
+The only runtime dependency is the pure versioned provider-contract package used to authenticate a
+scoped secret-reference capability and construct the same opaque reference accepted by
 `SecretsProviderPortV1`.
 
 The product-policy precedence `platform default -> plan/region -> organization -> workspace ->

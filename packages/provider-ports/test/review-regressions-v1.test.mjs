@@ -212,6 +212,13 @@ test('secret references and handles reveal no metadata without their scoped capa
   });
   const handle = ports.defineSecretHandleV1({ reference, expiresAt: '2026-08-01T10:05:00.000Z' });
 
+  assert.equal(ports.isSecretReferenceCapabilityV1(capability), true);
+  assert.equal(ports.isSecretReferenceIssuerV1(capability.issuer), true);
+  assert.equal(ports.isSecretReferenceV1(reference), true);
+  assert.equal(ports.isSecretReferenceForCapabilityV1(capability, reference), true);
+  assert.equal(ports.isSecretReferenceForCapabilityV1(foreignCapability, reference), false);
+  assert.equal(ports.assertSecretReferenceCapabilityV1(capability), capability);
+  assert.equal(ports.assertSecretReferenceForCapabilityV1(capability, reference), reference);
   assert.deepEqual(capability.resolver.resolve(reference), {
     namespace: 'production',
     pathSegments: ['email', 'credential'],
@@ -237,6 +244,43 @@ test('secret references and handles reveal no metadata without their scoped capa
   assert.equal(ports.secretHandleIdV1, undefined);
   assert.equal(ports.secretReferenceHandleV1, undefined);
   assert.doesNotMatch(JSON.stringify({ reference, handle }), /production|email|credential|active/u);
+});
+
+test('secret provenance checks reject hostile and revoked values without invoking traps', () => {
+  const marker = 'secret-provenance-marker-X9Y8Z7';
+  let trapCalls = 0;
+  const hostile = new Proxy(
+    {},
+    {
+      get() {
+        trapCalls += 1;
+        throw new Error(marker);
+      },
+      ownKeys() {
+        trapCalls += 1;
+        throw new Error(marker);
+      },
+    },
+  );
+  const { proxy: revoked, revoke } = Proxy.revocable({}, {});
+  revoke();
+
+  for (const value of [undefined, null, 42, {}, hostile, revoked]) {
+    assert.equal(ports.isSecretReferenceCapabilityV1(value), false);
+    assert.equal(ports.isSecretReferenceIssuerV1(value), false);
+    assert.equal(ports.isSecretReferenceV1(value), false);
+  }
+  assert.equal(trapCalls, 0);
+  assert.throws(
+    () => ports.assertSecretReferenceCapabilityV1(hostile),
+    (error) => {
+      assert.ok(error instanceof ports.ProviderContractErrorV1);
+      assert.doesNotMatch(String(error), new RegExp(marker, 'u'));
+      assert.doesNotMatch(JSON.stringify(error), new RegExp(marker, 'u'));
+      assert.doesNotMatch(inspect(error), new RegExp(marker, 'u'));
+      return true;
+    },
+  );
 });
 
 test('base ports have no generic arbitrary state export', async () => {

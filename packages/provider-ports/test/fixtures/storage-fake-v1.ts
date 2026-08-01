@@ -2,6 +2,7 @@ import {
   ProviderContractErrorV1,
   assertMutatingProviderRequestV1,
   assertObjectStorageCompleteMultipartRequestV1,
+  createProviderFailureV1,
   defineObjectStorageExitManifestV1,
   defineObjectStorageMultipartUploadV1,
   defineObjectStorageUploadedPartV1,
@@ -10,9 +11,12 @@ import {
 } from '../../src/v1.ts';
 import type {
   ObjectStorageBeginMultipartResultV1,
+  ObjectStorageMultipartPlanV1,
+  ObjectStorageMultipartUploadV1,
   ObjectStorageProviderPortV1,
   ObjectStoragePutResultV1,
   ObjectStorageUploadedPartV1,
+  ProviderOperationV1,
 } from '../../src/v1.ts';
 
 type BackingKindV1 = 'map' | 'record';
@@ -21,6 +25,29 @@ interface BackingV1<T> {
   get(key: string): T | undefined;
   set(key: string, value: T): void;
   delete(key: string): boolean;
+}
+
+interface IdempotencyRecordV1<T> {
+  readonly fingerprint: string;
+  readonly result: T;
+}
+
+function replayV1<T>(
+  backing: BackingV1<IdempotencyRecordV1<T>>,
+  key: string,
+  fingerprint: string,
+  operation: ProviderOperationV1,
+): T | undefined {
+  const prior = backing.get(key);
+  if (prior === undefined) return undefined;
+  if (prior.fingerprint !== fingerprint) {
+    throw createProviderFailureV1({
+      code: 'CONFLICT',
+      operation,
+      retryable: false,
+    });
+  }
+  return prior.result;
 }
 
 function createBackingV1<T>(kind: BackingKindV1): BackingV1<T> {
@@ -88,11 +115,36 @@ export function storageFakeV1(
   backingKind: BackingKindV1,
   sha256V1: (content: Uint8Array) => string,
 ): ObjectStorageProviderPortV1 {
-  const beginReceipts = createBackingV1<ObjectStorageBeginMultipartResultV1>(backingKind);
-  const partReceipts = createBackingV1<ObjectStorageUploadedPartV1>(backingKind);
+  const beginReceipts =
+    createBackingV1<IdempotencyRecordV1<ObjectStorageBeginMultipartResultV1>>(backingKind);
+  const partReceipts =
+    createBackingV1<IdempotencyRecordV1<ObjectStorageUploadedPartV1>>(backingKind);
   const parts = createBackingV1<Uint8Array>(backingKind);
-  const results = createBackingV1<ObjectStoragePutResultV1>(backingKind);
+  const results = createBackingV1<IdempotencyRecordV1<ObjectStoragePutResultV1>>(backingKind);
   const objects = createBackingV1<Uint8Array>(backingKind);
+  const objectIds = new WeakMap<object, number>();
+  let nextObjectId = 1;
+
+  const objectId = (value: object): number => {
+    const existing = objectIds.get(value);
+    if (existing !== undefined) return existing;
+    const assigned = nextObjectId;
+    nextObjectId += 1;
+    objectIds.set(value, assigned);
+    return assigned;
+  };
+  const planFingerprint = (plan: ObjectStorageMultipartPlanV1): readonly unknown[] => [
+    objectId(plan),
+    plan.objectKey,
+    plan.expectedSha256,
+    plan.expectedByteLength,
+    plan.partSizeBytes,
+    plan.maximumParts,
+  ];
+  const uploadFingerprint = (upload: ObjectStorageMultipartUploadV1): readonly unknown[] => [
+    objectId(upload),
+    ...planFingerprint(upload.plan),
+  ];
 
   return {
     descriptor: () => descriptorV1(adapterKey),
@@ -107,19 +159,27 @@ export function storageFakeV1(
     },
     async beginMultipartUpload(request) {
       const key = assertMutatingProviderRequestV1(request.context);
-      const prior = beginReceipts.get(key);
+      const fingerprint = JSON.stringify(['begin', ...planFingerprint(request.plan)]);
+      const prior = replayV1(beginReceipts, key, fingerprint, 'begin-multipart-upload');
       if (prior !== undefined) return prior;
       const upload = defineObjectStorageMultipartUploadV1({
         uploadRef: `upload:${request.plan.objectKey}`,
         plan: request.plan,
       });
-      beginReceipts.set(key, upload);
+      beginReceipts.set(key, Object.freeze({ fingerprint, result: upload }));
       await Promise.resolve();
       return upload;
     },
     async uploadPart(request) {
       const key = assertMutatingProviderRequestV1(request.context);
-      const prior = partReceipts.get(key);
+      const fingerprint = JSON.stringify([
+        'upload',
+        ...uploadFingerprint(request.upload),
+        request.part.partNumber,
+        request.part.sha256,
+        request.part.byteLength,
+      ]);
+      const prior = replayV1(partReceipts, key, fingerprint, 'upload-part');
       if (prior !== undefined) return prior;
       const content = request.part.readContent();
       if (sha256V1(content) !== request.part.sha256) throw new ProviderContractErrorV1();
@@ -129,14 +189,27 @@ export function storageFakeV1(
         receiptRef: `part:${request.part.partNumber}`,
       });
       parts.set(`${request.upload.uploadRef}:${request.part.partNumber}`, content);
-      partReceipts.set(key, receipt);
+      partReceipts.set(key, Object.freeze({ fingerprint, result: receipt }));
       await Promise.resolve();
       return receipt;
     },
     async completeMultipartUpload(untrustedRequest) {
       const request = assertObjectStorageCompleteMultipartRequestV1(untrustedRequest);
       const key = assertMutatingProviderRequestV1(request.context);
-      const prior = results.get(key);
+      const fingerprint = JSON.stringify([
+        'complete',
+        ...uploadFingerprint(request.upload),
+        request.expectedSha256,
+        request.expectedByteLength,
+        request.orderedParts.map((receipt) => [
+          objectId(receipt),
+          receipt.partNumber,
+          receipt.sha256,
+          receipt.byteLength,
+          receipt.receiptRef,
+        ]),
+      ]);
+      const prior = replayV1(results, key, fingerprint, 'complete-multipart-upload');
       if (prior !== undefined) return prior;
       const chunks: Uint8Array[] = [];
       let byteLength = 0;
@@ -161,7 +234,7 @@ export function storageFakeV1(
       const objectRef = `object:${request.upload.plan.objectKey}`;
       objects.set(objectRef, content);
       const result = Object.freeze({ objectRef, sha256, byteLength });
-      results.set(key, result);
+      results.set(key, Object.freeze({ fingerprint, result }));
       await Promise.resolve();
       return result;
     },

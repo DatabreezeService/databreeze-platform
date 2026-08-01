@@ -27,7 +27,8 @@ enforce cancellation/deadlines/idempotency, and create errors only through a red
 allowlisted operations and code-derived message keys. Raw provider causes are neither accessed nor
 retained. A composition-owned issuer/resolver capability creates and resolves secret references;
 references and handles expose no identifier fields or raw public ID and redact string, JSON, and
-diagnostic inspection.
+diagnostic inspection. Provenance predicates and assertions validate genuine capabilities,
+issuers, references, and capability membership without revealing identifier metadata.
 
 Object storage is resumable and bounded-memory: begin, upload a validated copy-isolated 8-64 MiB
 part, complete, or abort. Factory-issued uploads bind their immutable plan; uploaded-part receipts

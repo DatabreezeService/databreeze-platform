@@ -1,4 +1,10 @@
 import { ConfigValidationErrorV1, RUNTIME_CONFIG_SCHEMA_VERSION_V1 } from './types-v1.ts';
+import {
+  isSecretReferenceCapabilityV1,
+  isSecretReferenceForCapabilityV1,
+  isSecretReferenceIssuerV1,
+  isSecretReferenceV1,
+} from '@databreeze/provider-ports/v1';
 import type {
   ActiveDocumentProviderConfigV1,
   AiConfigV1,
@@ -13,7 +19,7 @@ import type {
   PushConfigV1,
   RuntimeConfigV1,
   RuntimeProfileV1,
-  SecretReferenceIssuerV1,
+  SecretReferenceCapabilityV1,
   SecretReferenceV1,
   SecretsConfigV1,
   TelemetryConfigV1,
@@ -248,7 +254,7 @@ function snapshotLoadInput(
 ): Readonly<{
   environment?: EnvironmentEntriesV1;
   overrides?: unknown;
-  secretReferenceIssuer?: SecretReferenceIssuerV1;
+  secretReferenceCapability?: SecretReferenceCapabilityV1;
 }> {
   const descriptors = ownDataDescriptors(input);
   if (descriptors === undefined || isArraySafely(input) !== false) {
@@ -258,10 +264,10 @@ function snapshotLoadInput(
   const result: {
     environment?: EnvironmentEntriesV1;
     overrides?: unknown;
-    secretReferenceIssuer?: SecretReferenceIssuerV1;
+    secretReferenceCapability?: SecretReferenceCapabilityV1;
   } = {};
   for (const [key, descriptor] of Object.entries(descriptors)) {
-    if (key !== 'environment' && key !== 'overrides' && key !== 'secretReferenceIssuer') {
+    if (key !== 'environment' && key !== 'overrides' && key !== 'secretReferenceCapability') {
       issues.push({ path: 'configuration.unknown_key', code: 'unknown_key' });
       continue;
     }
@@ -271,8 +277,8 @@ function snapshotLoadInput(
     }
     if (key === 'environment') result.environment = descriptor.value as EnvironmentEntriesV1;
     if (key === 'overrides') result.overrides = descriptor.value;
-    if (key === 'secretReferenceIssuer') {
-      result.secretReferenceIssuer = descriptor.value as SecretReferenceIssuerV1;
+    if (key === 'secretReferenceCapability') {
+      result.secretReferenceCapability = descriptor.value as SecretReferenceCapabilityV1;
     }
   }
   return result;
@@ -658,8 +664,26 @@ function validEndpoint(
   return value;
 }
 
-function isSecretReferenceIssueFunction(value: unknown): value is SecretReferenceIssuerV1['issue'] {
+function isSecretReferenceIssueFunction(
+  value: unknown,
+): value is SecretReferenceCapabilityV1['issuer']['issue'] {
   return typeof value === 'function';
+}
+
+function invalidSecretReferenceCapability(issues: ConfigIssueV1[]): undefined {
+  if (
+    !issues.some(
+      (issue) =>
+        issue.path === 'configuration.secret_reference_capability' &&
+        issue.code === 'invalid_secret_reference_capability',
+    )
+  ) {
+    issues.push({
+      path: 'configuration.secret_reference_capability',
+      code: 'invalid_secret_reference_capability',
+    });
+  }
+  return undefined;
 }
 
 function secretReference(
@@ -667,7 +691,7 @@ function secretReference(
   path: string,
   issues: ConfigIssueV1[],
   required: boolean,
-  issuer: SecretReferenceIssuerV1 | undefined,
+  capability: SecretReferenceCapabilityV1 | undefined,
 ): SecretReferenceV1 | undefined {
   if (value === undefined) {
     if (required) issues.push({ path, code: 'required' });
@@ -698,25 +722,42 @@ function secretReference(
     issues.push({ path, code: 'invalid_secret_reference' });
     return undefined;
   }
-  const issuerDescriptors = ownDataDescriptors(issuer);
+  if (!isSecretReferenceCapabilityV1(capability)) {
+    return invalidSecretReferenceCapability(issues);
+  }
+  const capabilityDescriptors = ownDataDescriptors(capability);
+  const issuerDescriptor = capabilityDescriptors?.['issuer'];
+  const issuerValue: unknown =
+    issuerDescriptor !== undefined && 'value' in issuerDescriptor
+      ? issuerDescriptor.value
+      : undefined;
+  if (!isSecretReferenceIssuerV1(issuerValue)) {
+    return invalidSecretReferenceCapability(issues);
+  }
+  const issuerDescriptors = ownDataDescriptors(issuerValue);
   const issueDescriptor = issuerDescriptors?.['issue'];
   const issueValue: unknown =
     issueDescriptor !== undefined && 'value' in issueDescriptor ? issueDescriptor.value : undefined;
   if (!isSecretReferenceIssueFunction(issueValue)) {
-    issues.push({ path: 'configuration.secret_reference_issuer', code: 'required' });
-    return undefined;
+    return invalidSecretReferenceCapability(issues);
   }
   try {
-    return Reflect.apply(issueValue, undefined, [
+    const reference: unknown = Reflect.apply(issueValue, undefined, [
       {
         namespace: match[1] as string,
         pathSegments,
         ...(match[3] === undefined ? {} : { version: match[3] }),
       },
     ]);
+    if (
+      !isSecretReferenceV1(reference) ||
+      !isSecretReferenceForCapabilityV1(capability, reference)
+    ) {
+      return invalidSecretReferenceCapability(issues);
+    }
+    return reference;
   } catch {
-    issues.push({ path, code: 'invalid_secret_reference' });
-    return undefined;
+    return invalidSecretReferenceCapability(issues);
   }
 }
 
@@ -755,7 +796,7 @@ function validateObjectStorage(
   record: UnknownRecord,
   profile: RuntimeProfileV1,
   issues: ConfigIssueV1[],
-  issuer: SecretReferenceIssuerV1 | undefined,
+  capability: SecretReferenceCapabilityV1 | undefined,
 ): ObjectStorageConfigV1 {
   const path = 'providers.objectStorage';
   const mode = modeOf(record, path, ['local', 'remote'], issues);
@@ -783,7 +824,7 @@ function validateObjectStorage(
     `${path}.credentialRef`,
     issues,
     mode === 'remote',
-    issuer,
+    capability,
   );
   return {
     mode: mode === 'remote' ? 'remote' : 'local',
@@ -799,7 +840,7 @@ function validateEmail(
   record: UnknownRecord,
   profile: RuntimeProfileV1,
   issues: ConfigIssueV1[],
-  issuer: SecretReferenceIssuerV1 | undefined,
+  capability: SecretReferenceCapabilityV1 | undefined,
 ): EmailConfigV1 {
   const path = 'providers.email';
   const mode = modeOf(record, path, ['disabled', 'local', 'remote'], issues);
@@ -827,7 +868,7 @@ function validateEmail(
     `${path}.credentialRef`,
     issues,
     mode === 'remote',
-    issuer,
+    capability,
   );
   return {
     mode: mode === 'remote' ? 'remote' : 'local',
@@ -841,7 +882,7 @@ function validatePush(
   record: UnknownRecord,
   profile: RuntimeProfileV1,
   issues: ConfigIssueV1[],
-  issuer: SecretReferenceIssuerV1 | undefined,
+  capability: SecretReferenceCapabilityV1 | undefined,
 ): PushConfigV1 {
   const path = 'providers.push';
   const mode = modeOf(record, path, ['disabled', 'remote'], issues);
@@ -863,7 +904,7 @@ function validatePush(
     `${path}.credentialRef`,
     issues,
     true,
-    issuer,
+    capability,
   );
   return {
     mode: 'remote',
@@ -878,7 +919,7 @@ function validateDocumentProvider(
   profile: RuntimeProfileV1,
   name: 'ocr' | 'ai',
   issues: ConfigIssueV1[],
-  issuer: SecretReferenceIssuerV1 | undefined,
+  capability: SecretReferenceCapabilityV1 | undefined,
 ): ActiveDocumentProviderConfigV1 | { readonly mode: 'disabled' } {
   const path = `providers.${name}`;
   const mode = modeOf(record, path, ['disabled', 'local', 'remote'], issues);
@@ -902,7 +943,7 @@ function validateDocumentProvider(
     `${path}.credentialRef`,
     issues,
     mode === 'remote',
-    issuer,
+    capability,
   );
   return {
     mode: mode === 'remote' ? 'remote' : 'local',
@@ -915,7 +956,7 @@ function validatePayments(
   record: UnknownRecord,
   profile: RuntimeProfileV1,
   issues: ConfigIssueV1[],
-  issuer: SecretReferenceIssuerV1 | undefined,
+  capability: SecretReferenceCapabilityV1 | undefined,
 ): PaymentsConfigV1 {
   const path = 'providers.payments';
   const mode = modeOf(record, path, ['disabled', 'remote'], issues);
@@ -941,14 +982,14 @@ function validatePayments(
     `${path}.credentialRef`,
     issues,
     true,
-    issuer,
+    capability,
   );
   const webhookSecretRef = secretReference(
     record['webhookSecretRef'],
     `${path}.webhookSecretRef`,
     issues,
     true,
-    issuer,
+    capability,
   );
   return {
     mode: 'remote',
@@ -962,7 +1003,7 @@ function validateTelemetry(
   record: UnknownRecord,
   profile: RuntimeProfileV1,
   issues: ConfigIssueV1[],
-  issuer: SecretReferenceIssuerV1 | undefined,
+  capability: SecretReferenceCapabilityV1 | undefined,
 ): TelemetryConfigV1 {
   const path = 'providers.telemetry';
   const mode = modeOf(record, path, ['disabled', 'local', 'remote'], issues);
@@ -986,7 +1027,7 @@ function validateTelemetry(
     `${path}.credentialRef`,
     issues,
     false,
-    issuer,
+    capability,
   );
   return {
     mode: mode === 'remote' ? 'remote' : 'local',
@@ -1030,33 +1071,33 @@ function validateProviders(
   record: UnknownRecord,
   profile: RuntimeProfileV1,
   issues: ConfigIssueV1[],
-  issuer: SecretReferenceIssuerV1 | undefined,
+  capability: SecretReferenceCapabilityV1 | undefined,
 ): ProviderRuntimeConfigV1 {
   return {
     objectStorage: validateObjectStorage(
       recordAt(record, 'objectStorage'),
       profile,
       issues,
-      issuer,
+      capability,
     ),
-    email: validateEmail(recordAt(record, 'email'), profile, issues, issuer),
-    push: validatePush(recordAt(record, 'push'), profile, issues, issuer),
+    email: validateEmail(recordAt(record, 'email'), profile, issues, capability),
+    push: validatePush(recordAt(record, 'push'), profile, issues, capability),
     ocr: validateDocumentProvider(
       recordAt(record, 'ocr'),
       profile,
       'ocr',
       issues,
-      issuer,
+      capability,
     ) as OcrConfigV1,
     ai: validateDocumentProvider(
       recordAt(record, 'ai'),
       profile,
       'ai',
       issues,
-      issuer,
+      capability,
     ) as AiConfigV1,
-    payments: validatePayments(recordAt(record, 'payments'), profile, issues, issuer),
-    telemetry: validateTelemetry(recordAt(record, 'telemetry'), profile, issues, issuer),
+    payments: validatePayments(recordAt(record, 'payments'), profile, issues, capability),
+    telemetry: validateTelemetry(recordAt(record, 'telemetry'), profile, issues, capability),
     secrets: validateSecrets(recordAt(record, 'secrets'), profile, issues),
   };
 }
@@ -1081,6 +1122,12 @@ function selectedProfile(
 export function loadRuntimeConfigV1(input: LoadRuntimeConfigInputV1 = {}): RuntimeConfigV1 {
   const issues: ConfigIssueV1[] = [];
   const safeInput = snapshotLoadInput(input, issues);
+  if (
+    safeInput.secretReferenceCapability !== undefined &&
+    !isSecretReferenceCapabilityV1(safeInput.secretReferenceCapability)
+  ) {
+    invalidSecretReferenceCapability(issues);
+  }
   const environment = readEnvironment(safeInput.environment, issues);
   const overrideRecord =
     safeInput.overrides === undefined ? {} : snapshotOverrides(safeInput.overrides, issues);
@@ -1114,7 +1161,7 @@ export function loadRuntimeConfigV1(input: LoadRuntimeConfigInputV1 = {}): Runti
     recordAt(merged, 'providers'),
     profile,
     issues,
-    safeInput.secretReferenceIssuer,
+    safeInput.secretReferenceCapability,
   );
 
   if (issues.length > 0) {

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { ConfigValidationErrorV1, loadRuntimeConfigV1 } from '../src/runtime-config/v1.ts';
-import { createSecretReferenceCapabilityV1 } from '../../provider-ports/src/v1.ts';
+import { createSecretReferenceCapabilityV1 } from '@databreeze/provider-ports/v1';
 
 const secretReferenceCapability = createSecretReferenceCapabilityV1();
 
@@ -79,7 +79,7 @@ for (const profile of ['preview', 'staging', 'production']) {
   test(`loads an explicitly complete ${profile} profile`, () => {
     const config = loadRuntimeConfigV1({
       environment: nonLocalEnvironment(profile),
-      secretReferenceIssuer: secretReferenceCapability.issuer,
+      secretReferenceCapability,
     });
 
     assert.equal(config.profile, profile);
@@ -311,7 +311,7 @@ for (const reference of ['', 'super-secret-value', 'secret://production/changeme
 test('redacts valid secret references during string and JSON serialization', () => {
   const config = loadRuntimeConfigV1({
     environment: nonLocalEnvironment('production'),
-    secretReferenceIssuer: secretReferenceCapability.issuer,
+    secretReferenceCapability,
   });
   const reference = config.providers.objectStorage.credentialRef;
 

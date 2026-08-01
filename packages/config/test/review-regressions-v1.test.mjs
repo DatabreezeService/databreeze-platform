@@ -4,7 +4,7 @@ import test from 'node:test';
 
 import { ConfigValidationErrorV1, loadRuntimeConfigV1 } from '../src/runtime-config/v1.ts';
 
-const providerPorts = await import('../../provider-ports/src/v1.ts');
+const providerPorts = await import('@databreeze/provider-ports/v1');
 
 function issue(error, path, code) {
   return (
@@ -343,18 +343,22 @@ for (const namespace of ['', '.', '..', 'team//prod', 'team/', 'team/../prod', '
   });
 }
 
-test('returns an issuer-created opaque secret reference without a raw extractor', async () => {
+function enabledPushEnvironment() {
+  return {
+    DATABREEZE_PROFILE: 'development',
+    DATABREEZE_PUSH_MODE: 'remote',
+    DATABREEZE_PUSH_ENDPOINT_URL: 'https://push.example.test',
+    DATABREEZE_PUSH_APPLICATION_ID: 'databreeze',
+    DATABREEZE_PUSH_CREDENTIAL_REF: 'secret://development/push/credential#active',
+  };
+}
+
+test('returns a capability-created opaque secret reference without a raw extractor', async () => {
   const runtime = await import('../src/runtime-config/v1.ts');
   const capability = providerPorts.createSecretReferenceCapabilityV1();
   const config = loadRuntimeConfigV1({
-    environment: {
-      DATABREEZE_PROFILE: 'development',
-      DATABREEZE_PUSH_MODE: 'remote',
-      DATABREEZE_PUSH_ENDPOINT_URL: 'https://push.example.test',
-      DATABREEZE_PUSH_APPLICATION_ID: 'databreeze',
-      DATABREEZE_PUSH_CREDENTIAL_REF: 'secret://development/push/credential#active',
-    },
-    secretReferenceIssuer: capability.issuer,
+    environment: enabledPushEnvironment(),
+    secretReferenceCapability: capability,
   });
   const reference = config.providers.push.credentialRef;
   assert.deepEqual(capability.resolver.resolve(reference), {
@@ -370,4 +374,124 @@ test('returns an issuer-created opaque secret reference without a raw extractor'
   assert.equal(runtime.secretReferenceHandleV1, undefined);
   assert.equal(runtime.createSecretReferenceV1, undefined);
   assert.equal(JSON.stringify(reference), '"[REDACTED_SECRET_REFERENCE]"');
+  assert.doesNotMatch(JSON.stringify(config), /secretReferenceCapability|secret:\/\//u);
+});
+
+test('rejects fake, hostile, revoked, and foreign secret capabilities without invoking them', () => {
+  const realCapability = providerPorts.createSecretReferenceCapabilityV1();
+  const foreignCapability = providerPorts.createSecretReferenceCapabilityV1();
+  const foreignReference = foreignCapability.issuer.issue({
+    namespace: 'foreign',
+    pathSegments: ['credential'],
+  });
+  let invoked = 0;
+  const attempts = [
+    {
+      name: 'primitive-return',
+      marker: 'primitive-return-marker-X9Y8Z7',
+      value: {
+        issuer: {
+          issue() {
+            invoked += 1;
+            return 42;
+          },
+        },
+        resolver: {},
+      },
+    },
+    {
+      name: 'plain-return',
+      marker: 'plain-return-marker-X9Y8Z7',
+      value: {
+        issuer: {
+          issue() {
+            invoked += 1;
+            return { raw: 'plain-return-marker-X9Y8Z7' };
+          },
+        },
+        resolver: {},
+      },
+    },
+    {
+      name: 'throwing-method',
+      marker: 'throwing-method-marker-X9Y8Z7',
+      value: {
+        issuer: {
+          issue() {
+            invoked += 1;
+            throw new Error('throwing-method-marker-X9Y8Z7');
+          },
+        },
+        resolver: {},
+      },
+    },
+    {
+      name: 'foreign-return',
+      marker: 'foreign-return-marker-X9Y8Z7',
+      value: {
+        issuer: {
+          issue() {
+            invoked += 1;
+            return foreignReference;
+          },
+        },
+        resolver: foreignCapability.resolver,
+      },
+    },
+  ];
+
+  const getterCapability = {};
+  Object.defineProperty(getterCapability, 'issuer', {
+    enumerable: true,
+    get() {
+      invoked += 1;
+      throw new Error('capability-getter-marker-X9Y8Z7');
+    },
+  });
+  attempts.push({
+    name: 'getter',
+    marker: 'capability-getter-marker-X9Y8Z7',
+    value: getterCapability,
+  });
+
+  const hostileProxy = new Proxy(
+    {},
+    {
+      get() {
+        invoked += 1;
+        throw new Error('capability-proxy-marker-X9Y8Z7');
+      },
+      ownKeys() {
+        invoked += 1;
+        throw new Error('capability-proxy-marker-X9Y8Z7');
+      },
+    },
+  );
+  attempts.push({
+    name: 'proxy',
+    marker: 'capability-proxy-marker-X9Y8Z7',
+    value: hostileProxy,
+  });
+
+  const { proxy: revokedProxy, revoke } = Proxy.revocable(realCapability, {});
+  revoke();
+  attempts.push({
+    name: 'revoked-proxy',
+    marker: 'revoked-proxy-marker-X9Y8Z7',
+    value: revokedProxy,
+  });
+
+  for (const attempt of attempts) {
+    expectSafeConfigFailure(
+      () =>
+        loadRuntimeConfigV1({
+          environment: enabledPushEnvironment(),
+          secretReferenceCapability: attempt.value,
+        }),
+      'configuration.secret_reference_capability',
+      'invalid_secret_reference_capability',
+      [attempt.marker],
+    );
+  }
+  assert.equal(invoked, 0);
 });

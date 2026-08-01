@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   ProviderContractErrorV1,
+  ProviderOperationErrorV1,
   assertProviderInvocationActiveV1,
   createProviderInvocationContextV1,
   defineObjectStorageCompleteMultipartRequestV1,
@@ -19,6 +20,10 @@ import { storageFakeV1 } from './fixtures/storage-fake-v1.ts';
 const packageDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const sha256 = (content) => createHash('sha256').update(content).digest('hex');
+
+function isIdempotencyConflict(error) {
+  return error instanceof ProviderOperationErrorV1 && error.code === 'CONFLICT' && !error.retryable;
+}
 
 function context(operation, idempotencyKey) {
   return createProviderInvocationContextV1({
@@ -100,6 +105,128 @@ test('the typechecked behavioral fake recomputes the completed object digest', a
     orderedParts: [receipt],
   });
   await assert.rejects(() => port.completeMultipartUpload(request), ProviderContractErrorV1);
+});
+
+test('begin rejects reuse of an idempotency key for a different multipart plan', async () => {
+  const port = storageFakeV1('begin-conflict-memory-v1', 'map', sha256);
+  const firstPlan = defineObjectStorageMultipartPlanV1({
+    objectKey: 'workspace/begin-conflict-a',
+    expectedSha256: 'a'.repeat(64),
+    expectedByteLength: 3,
+    partSizeBytes: 8 * 1024 * 1024,
+  });
+  const secondPlan = defineObjectStorageMultipartPlanV1({
+    objectKey: 'workspace/begin-conflict-b',
+    expectedSha256: 'b'.repeat(64),
+    expectedByteLength: 4,
+    partSizeBytes: 16 * 1024 * 1024,
+  });
+  const firstRequest = {
+    context: context('begin-multipart-upload', 'idem-begin-conflict'),
+    plan: firstPlan,
+  };
+  const first = await port.beginMultipartUpload(firstRequest);
+  assert.equal(await port.beginMultipartUpload(firstRequest), first);
+  await assert.rejects(
+    () =>
+      port.beginMultipartUpload({
+        context: context('begin-multipart-upload', 'idem-begin-conflict'),
+        plan: secondPlan,
+      }),
+    isIdempotencyConflict,
+  );
+});
+
+test('upload rejects reuse of an idempotency key for another upload or part integrity tuple', async () => {
+  const port = storageFakeV1('upload-conflict-memory-v1', 'map', sha256);
+  const plan = defineObjectStorageMultipartPlanV1({
+    objectKey: 'workspace/upload-conflict',
+    expectedSha256: sha256(new Uint8Array([1, 2, 3])),
+    expectedByteLength: 3,
+    partSizeBytes: 8 * 1024 * 1024,
+  });
+  const firstUpload = await port.beginMultipartUpload({
+    context: context('begin-multipart-upload', 'idem-upload-conflict-begin-a'),
+    plan,
+  });
+  const secondUpload = await port.beginMultipartUpload({
+    context: context('begin-multipart-upload', 'idem-upload-conflict-begin-b'),
+    plan,
+  });
+  const firstPart = defineObjectStoragePartV1({
+    partNumber: 1,
+    content: new Uint8Array([1, 2, 3]),
+    sha256: sha256(new Uint8Array([1, 2, 3])),
+  });
+  const secondPart = defineObjectStoragePartV1({
+    partNumber: 1,
+    content: new Uint8Array([1, 2, 4]),
+    sha256: sha256(new Uint8Array([1, 2, 4])),
+  });
+  const firstRequest = defineObjectStorageUploadPartRequestV1({
+    context: context('upload-part', 'idem-upload-conflict'),
+    upload: firstUpload,
+    part: firstPart,
+  });
+  const first = await port.uploadPart(firstRequest);
+  assert.equal(await port.uploadPart(firstRequest), first);
+  for (const [upload, part] of [
+    [secondUpload, firstPart],
+    [firstUpload, secondPart],
+  ]) {
+    await assert.rejects(
+      () =>
+        port.uploadPart(
+          defineObjectStorageUploadPartRequestV1({
+            context: context('upload-part', 'idem-upload-conflict'),
+            upload,
+            part,
+          }),
+        ),
+      isIdempotencyConflict,
+    );
+  }
+});
+
+test('complete rejects reuse of an idempotency key for another bound upload and receipt list', async () => {
+  const port = storageFakeV1('complete-conflict-memory-v1', 'map', sha256);
+  const content = new Uint8Array([1, 2, 3]);
+  const plan = defineObjectStorageMultipartPlanV1({
+    objectKey: 'workspace/complete-conflict',
+    expectedSha256: sha256(content),
+    expectedByteLength: content.byteLength,
+    partSizeBytes: 8 * 1024 * 1024,
+  });
+  const uploads = await Promise.all(
+    ['a', 'b'].map((suffix) =>
+      port.beginMultipartUpload({
+        context: context('begin-multipart-upload', `idem-complete-conflict-begin-${suffix}`),
+        plan,
+      }),
+    ),
+  );
+  const part = defineObjectStoragePartV1({ partNumber: 1, content, sha256: sha256(content) });
+  const receipts = await Promise.all(
+    uploads.map((upload, index) =>
+      port.uploadPart(
+        defineObjectStorageUploadPartRequestV1({
+          context: context('upload-part', `idem-complete-conflict-part-${index}`),
+          upload,
+          part,
+        }),
+      ),
+    ),
+  );
+  const requests = uploads.map((upload, index) =>
+    defineObjectStorageCompleteMultipartRequestV1({
+      context: context('complete-multipart-upload', 'idem-complete-conflict'),
+      upload,
+      orderedParts: [receipts[index]],
+    }),
+  );
+  const first = await port.completeMultipartUpload(requests[0]);
+  assert.equal(await port.completeMultipartUpload(requests[0]), first);
+  await assert.rejects(() => port.completeMultipartUpload(requests[1]), isIdempotencyConflict);
 });
 
 for (const [name, port] of [

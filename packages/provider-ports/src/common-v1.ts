@@ -833,6 +833,9 @@ export interface SecretReferenceCapabilityV1 {
 }
 
 const secretReferences = new WeakSet<object>();
+const secretReferenceIssuers = new WeakSet<object>();
+const secretReferenceCapabilities = new WeakSet<object>();
+const referencesBySecretCapability = new WeakMap<object, WeakSet<object>>();
 const secretSegmentPattern = /^[a-z0-9][a-z0-9._-]{0,62}$/;
 const inspectCustomV1 = Symbol.for('nodejs.util.inspect.custom');
 
@@ -877,6 +880,7 @@ function validatedSecretReferenceMetadataV1(input: unknown): SecretReferenceMeta
 
 export function createSecretReferenceCapabilityV1(): SecretReferenceCapabilityV1 {
   const metadataByReference = new WeakMap<object, SecretReferenceMetadataV1>();
+  const issuedReferences = new WeakSet<object>();
   const issuer: SecretReferenceIssuerV1 = Object.freeze({
     issue(input: SecretReferenceMetadataV1): SecretReferenceV1 {
       const metadata = validatedSecretReferenceMetadataV1(input);
@@ -884,6 +888,7 @@ export function createSecretReferenceCapabilityV1(): SecretReferenceCapabilityV1
         Object.create(secretReferencePrototypeV1) as SecretReferenceV1,
       );
       secretReferences.add(reference);
+      issuedReferences.add(reference);
       metadataByReference.set(reference, metadata);
       return reference;
     },
@@ -896,7 +901,58 @@ export function createSecretReferenceCapabilityV1(): SecretReferenceCapabilityV1
       return metadata;
     },
   });
-  return Object.freeze({ issuer, resolver });
+  const capability = Object.freeze({ issuer, resolver });
+  secretReferenceIssuers.add(issuer);
+  secretReferenceCapabilities.add(capability);
+  referencesBySecretCapability.set(capability, issuedReferences);
+  return capability;
+}
+
+export function isSecretReferenceCapabilityV1(
+  value: unknown,
+): value is SecretReferenceCapabilityV1 {
+  return isObject(value) && secretReferenceCapabilities.has(value);
+}
+
+export function isSecretReferenceIssuerV1(value: unknown): value is SecretReferenceIssuerV1 {
+  return isObject(value) && secretReferenceIssuers.has(value);
+}
+
+export function isSecretReferenceV1(value: unknown): value is SecretReferenceV1 {
+  return isObject(value) && secretReferences.has(value);
+}
+
+export function isSecretReferenceForCapabilityV1(
+  capability: unknown,
+  reference: unknown,
+): reference is SecretReferenceV1 {
+  if (!isSecretReferenceCapabilityV1(capability) || !isSecretReferenceV1(reference)) return false;
+  return referencesBySecretCapability.get(capability)?.has(reference) === true;
+}
+
+export function assertSecretReferenceCapabilityV1(value: unknown): SecretReferenceCapabilityV1 {
+  if (!isSecretReferenceCapabilityV1(value)) throw new ProviderContractErrorV1();
+  return value;
+}
+
+export function assertSecretReferenceIssuerV1(value: unknown): SecretReferenceIssuerV1 {
+  if (!isSecretReferenceIssuerV1(value)) throw new ProviderContractErrorV1();
+  return value;
+}
+
+export function assertSecretReferenceV1(value: unknown): SecretReferenceV1 {
+  if (!isSecretReferenceV1(value)) throw new ProviderContractErrorV1();
+  return value;
+}
+
+export function assertSecretReferenceForCapabilityV1(
+  capability: unknown,
+  reference: unknown,
+): SecretReferenceV1 {
+  if (!isSecretReferenceForCapabilityV1(capability, reference)) {
+    throw new ProviderContractErrorV1();
+  }
+  return reference;
 }
 
 const secretHandleBrandV1: unique symbol = Symbol('SecretHandleV1');
