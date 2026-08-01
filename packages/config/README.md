@@ -8,14 +8,15 @@ itself, contact a provider, or choose product policy.
 
 `@databreeze/config/runtime/v1` exports:
 
-- `loadRuntimeConfigV1`, which accepts an explicit environment record/entry list plus optional
-  structured overrides and returns a deeply frozen configuration;
+- `loadRuntimeConfigV1`, which accepts an explicit environment record/entry list, optional
+  structured overrides, and the composition-owned secret-reference issuer used by enabled
+  credential references, then returns a deeply frozen configuration;
 - the five explicit profiles: `development`, `test`, `preview`, `staging`, and `production`;
 - typed object-storage, email, push, OCR, AI, payments, telemetry, and secrets selections;
 - `ConfigValidationErrorV1`, whose diagnostics contain only safe paths and codes; and
-- canonical `SecretReferenceV1` identifier objects shared with the secrets port. References expose
-  only validated namespace/path/version identifiers, serialize as redacted values, and have no raw
-  string extractor.
+- canonical `SecretReferenceV1` identifier objects shared with the secrets port. References have no
+  enumerable identifier fields or global extractor and redact string, JSON, and diagnostic
+  inspection; only the matching composition-owned resolver can recover their validated metadata.
 
 There is intentionally no unversioned package root.
 
@@ -48,8 +49,9 @@ references, never API keys, passwords, tokens, webhook secrets, or other credent
   tenant state.
 - Provider credentials or implicit host-environment reads.
 
-The only runtime dependency is the pure versioned provider-contract package used to construct the
-same structured secret-reference object accepted by `SecretsProviderPortV1`.
+The only runtime dependency is the pure versioned provider-contract package used to accept a
+scoped secret-reference issuer and construct the same opaque reference accepted by
+`SecretsProviderPortV1`.
 
 The product-policy precedence `platform default -> plan/region -> organization -> workspace ->
 project -> recipe/job` remains owned by later domain/application plans. This package covers only

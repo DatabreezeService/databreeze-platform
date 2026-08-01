@@ -13,23 +13,6 @@ import type {
 
 const unavailable = (): Promise<never> => Promise.reject(new Error('compile-only adapter'));
 
-const completeObjectStorageAdapter = {
-  descriptor: (): never => {
-    throw new Error('compile-only adapter');
-  },
-  checkHealth: unavailable,
-  beginMultipartUpload: unavailable,
-  uploadPart: unavailable,
-  completeMultipartUpload: unavailable,
-  abortMultipartUpload: unavailable,
-  readRange: unavailable,
-  verifyDigest: unavailable,
-  applyRetention: unavailable,
-  deleteVerified: unavailable,
-  createReadGrant: unavailable,
-  exportObjectManifest: unavailable,
-} satisfies ObjectStorageProviderPortV1;
-
 const completeEmailAdapter = {
   descriptor: (): never => {
     throw new Error('compile-only adapter');
@@ -41,17 +24,10 @@ const completeEmailAdapter = {
   exportSuppressionManifest: unavailable,
 } satisfies EmailProviderPortV1;
 
-void completeObjectStorageAdapter;
 void completeEmailAdapter;
 
 // @ts-expect-error -- secret references are branded values created by the validated factory.
-const structurallyForgedSecretReference: SecretReferenceV1 = {
-  kind: 'secret-reference',
-  namespace: 'production',
-  pathSegments: ['email'],
-  toString: () => '[REDACTED_SECRET_REFERENCE]',
-  toJSON: () => '[REDACTED_SECRET_REFERENCE]',
-};
+const structurallyForgedSecretReference: SecretReferenceV1 = {};
 void structurallyForgedSecretReference;
 
 // @ts-expect-error -- provider operation errors are created only by createProviderFailureV1.

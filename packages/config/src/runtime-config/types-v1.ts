@@ -1,6 +1,6 @@
-import type { SecretReferenceV1 } from '@databreeze/provider-ports/v1';
+import type { SecretReferenceIssuerV1, SecretReferenceV1 } from '@databreeze/provider-ports/v1';
 
-export type { SecretReferenceV1 } from '@databreeze/provider-ports/v1';
+export type { SecretReferenceIssuerV1, SecretReferenceV1 } from '@databreeze/provider-ports/v1';
 
 export const RUNTIME_CONFIG_SCHEMA_VERSION_V1 = 1 as const;
 
@@ -15,6 +15,7 @@ export type ConfigIssueCodeV1 =
   | 'invalid_mode'
   | 'invalid_profile'
   | 'invalid_secret_reference'
+  | 'invalid_secret_namespace'
   | 'invalid_string'
   | 'required'
   | 'unknown_key'
@@ -144,4 +145,5 @@ export type EnvironmentEntriesV1 =
 export interface LoadRuntimeConfigInputV1 {
   readonly environment?: EnvironmentEntriesV1;
   readonly overrides?: unknown;
+  readonly secretReferenceIssuer?: SecretReferenceIssuerV1;
 }

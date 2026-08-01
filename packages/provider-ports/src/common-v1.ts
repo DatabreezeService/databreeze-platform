@@ -280,7 +280,8 @@ function readArray(value: unknown, maximum = 100): readonly unknown[] | undefine
   }
   const length = lengthDescriptor.value as number;
   const result: unknown[] = [];
-  for (const key of Object.keys(descriptors)) {
+  for (const key of Reflect.ownKeys(descriptors)) {
+    if (typeof key !== 'string') return undefined;
     if (key === 'length') continue;
     if (!/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= length) return undefined;
   }
@@ -312,6 +313,49 @@ function isPositiveInteger(value: unknown, maximum = Number.MAX_SAFE_INTEGER): v
 
 function isUtcTimestamp(value: unknown): value is string {
   return parseV1Contract(UTC_TIMESTAMP_SCHEMA_ID, value).accepted;
+}
+
+interface ComparableUtcTimestampV1 {
+  readonly epochSecond: number;
+  readonly fractionalSecond: string;
+}
+
+const comparableUtcTimestampPattern =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?Z$/;
+
+function comparableUtcTimestamp(value: string): ComparableUtcTimestampV1 | undefined {
+  const match = comparableUtcTimestampPattern.exec(value);
+  if (match === null) return undefined;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+  const second = Number(match[6]);
+  const calendar = new Date(0);
+  calendar.setUTCHours(0, 0, 0, 0);
+  calendar.setUTCFullYear(year, month - 1, day);
+  calendar.setUTCHours(hour, minute, Math.min(second, 59), 0);
+  const epochSecond = calendar.getTime() / 1_000 + (second === 60 ? 1 : 0);
+  if (!Number.isSafeInteger(epochSecond)) return undefined;
+  return { epochSecond, fractionalSecond: match[7] ?? '' };
+}
+
+function compareUtcTimestamps(left: string, right: string): number | undefined {
+  const leftValue = comparableUtcTimestamp(left);
+  const rightValue = comparableUtcTimestamp(right);
+  if (leftValue === undefined || rightValue === undefined) return undefined;
+  if (leftValue.epochSecond !== rightValue.epochSecond) {
+    return leftValue.epochSecond < rightValue.epochSecond ? -1 : 1;
+  }
+  const fractionalLength = Math.max(
+    leftValue.fractionalSecond.length,
+    rightValue.fractionalSecond.length,
+  );
+  const leftFraction = leftValue.fractionalSecond.padEnd(fractionalLength, '0');
+  const rightFraction = rightValue.fractionalSecond.padEnd(fractionalLength, '0');
+  if (leftFraction === rightFraction) return 0;
+  return leftFraction < rightFraction ? -1 : 1;
 }
 
 function deepFreeze<T>(value: T): T {
@@ -703,7 +747,9 @@ export function assertProviderInvocationActiveV1(
       retryable: false,
     });
   }
-  if (Date.parse(now) >= Date.parse(context.deadlineAt)) {
+  const deadlineComparison = compareUtcTimestamps(now, context.deadlineAt);
+  if (deadlineComparison === undefined) throw invalidInvocation();
+  if (deadlineComparison >= 0) {
     throw createProviderFailureV1({
       code: 'TIMEOUT',
       operation: context.operation,
@@ -763,22 +809,43 @@ const secretReferenceBrandV1: unique symbol = Symbol('SecretReferenceV1');
 
 export interface SecretReferenceV1 {
   readonly [secretReferenceBrandV1]: true;
-  readonly kind: 'secret-reference';
-  readonly namespace: string;
-  readonly pathSegments: readonly string[];
-  readonly version?: string;
   toString(): '[REDACTED_SECRET_REFERENCE]';
   toJSON(): '[REDACTED_SECRET_REFERENCE]';
 }
 
-const secretReferences = new WeakSet<object>();
-const secretSegmentPattern = /^[a-z0-9][a-z0-9._-]{0,62}$/;
-
-export function defineSecretReferenceV1(input: {
+export interface SecretReferenceMetadataV1 {
   readonly namespace: string;
   readonly pathSegments: readonly string[];
   readonly version?: string;
-}): SecretReferenceV1 {
+}
+
+export interface SecretReferenceIssuerV1 {
+  issue(input: SecretReferenceMetadataV1): SecretReferenceV1;
+}
+
+export interface SecretReferenceResolverV1 {
+  resolve(reference: SecretReferenceV1): SecretReferenceMetadataV1;
+}
+
+export interface SecretReferenceCapabilityV1 {
+  readonly issuer: SecretReferenceIssuerV1;
+  readonly resolver: SecretReferenceResolverV1;
+}
+
+const secretReferences = new WeakSet<object>();
+const secretSegmentPattern = /^[a-z0-9][a-z0-9._-]{0,62}$/;
+const inspectCustomV1 = Symbol.for('nodejs.util.inspect.custom');
+
+const secretReferencePrototypeV1 = Object.freeze(
+  Object.defineProperties(Object.create(null) as object, {
+    toString: { value: () => '[REDACTED_SECRET_REFERENCE]' },
+    toJSON: { value: () => '[REDACTED_SECRET_REFERENCE]' },
+    [Symbol.toPrimitive]: { value: () => '[REDACTED_SECRET_REFERENCE]' },
+    [inspectCustomV1]: { value: () => '[REDACTED_SECRET_REFERENCE]' },
+  }),
+);
+
+function validatedSecretReferenceMetadataV1(input: unknown): SecretReferenceMetadataV1 {
   const record = readClosedRecord(input, ['namespace', 'pathSegments', 'version']);
   const segments = record === undefined ? undefined : readArray(record['pathSegments'], 32);
   if (
@@ -801,29 +868,53 @@ export function defineSecretReferenceV1(input: {
   ) {
     throw new ProviderContractErrorV1();
   }
-  const reference: SecretReferenceV1 = deepFreeze({
-    [secretReferenceBrandV1]: true,
-    kind: 'secret-reference',
+  return deepFreeze({
     namespace: record['namespace'],
     pathSegments: segments as string[],
     ...(record['version'] === undefined ? {} : { version: record['version'] }),
-    toString: () => '[REDACTED_SECRET_REFERENCE]',
-    toJSON: () => '[REDACTED_SECRET_REFERENCE]',
   });
-  secretReferences.add(reference);
-  return reference;
+}
+
+export function createSecretReferenceCapabilityV1(): SecretReferenceCapabilityV1 {
+  const metadataByReference = new WeakMap<object, SecretReferenceMetadataV1>();
+  const issuer: SecretReferenceIssuerV1 = Object.freeze({
+    issue(input: SecretReferenceMetadataV1): SecretReferenceV1 {
+      const metadata = validatedSecretReferenceMetadataV1(input);
+      const reference = Object.freeze(
+        Object.create(secretReferencePrototypeV1) as SecretReferenceV1,
+      );
+      secretReferences.add(reference);
+      metadataByReference.set(reference, metadata);
+      return reference;
+    },
+  });
+  const resolver: SecretReferenceResolverV1 = Object.freeze({
+    resolve(reference: SecretReferenceV1): SecretReferenceMetadataV1 {
+      if (!isObject(reference)) throw new ProviderContractErrorV1();
+      const metadata = metadataByReference.get(reference);
+      if (metadata === undefined) throw new ProviderContractErrorV1();
+      return metadata;
+    },
+  });
+  return Object.freeze({ issuer, resolver });
 }
 
 const secretHandleBrandV1: unique symbol = Symbol('SecretHandleV1');
 
 export interface SecretHandleV1 {
   readonly [secretHandleBrandV1]: true;
-  readonly kind: 'secret-handle';
-  readonly reference: SecretReferenceV1;
-  readonly expiresAt?: string;
   toString(): '[REDACTED_SECRET_HANDLE]';
   toJSON(): '[REDACTED_SECRET_HANDLE]';
 }
+
+const secretHandlePrototypeV1 = Object.freeze(
+  Object.defineProperties(Object.create(null) as object, {
+    toString: { value: () => '[REDACTED_SECRET_HANDLE]' },
+    toJSON: { value: () => '[REDACTED_SECRET_HANDLE]' },
+    [Symbol.toPrimitive]: { value: () => '[REDACTED_SECRET_HANDLE]' },
+    [inspectCustomV1]: { value: () => '[REDACTED_SECRET_HANDLE]' },
+  }),
+);
 
 export function defineSecretHandleV1(input: {
   readonly reference: SecretReferenceV1;
@@ -838,12 +929,5 @@ export function defineSecretHandleV1(input: {
   ) {
     throw new ProviderContractErrorV1();
   }
-  return deepFreeze({
-    [secretHandleBrandV1]: true,
-    kind: 'secret-handle',
-    reference: record['reference'] as SecretReferenceV1,
-    ...(record['expiresAt'] === undefined ? {} : { expiresAt: record['expiresAt'] }),
-    toString: () => '[REDACTED_SECRET_HANDLE]',
-    toJSON: () => '[REDACTED_SECRET_HANDLE]',
-  });
+  return Object.freeze(Object.create(secretHandlePrototypeV1) as SecretHandleV1);
 }

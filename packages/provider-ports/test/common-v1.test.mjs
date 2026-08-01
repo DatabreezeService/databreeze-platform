@@ -177,7 +177,7 @@ test('defines provider health with safe reason codes and no raw detail channel',
 });
 
 test('creates opaque secret handles that redact serialization and expose no material or raw IDs', () => {
-  const reference = ports.defineSecretReferenceV1({
+  const reference = ports.createSecretReferenceCapabilityV1().issuer.issue({
     namespace: 'production',
     pathSegments: ['email', 'credential'],
   });

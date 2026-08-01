@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { ConfigValidationErrorV1, loadRuntimeConfigV1 } from '../src/runtime-config/v1.ts';
+import { createSecretReferenceCapabilityV1 } from '../../provider-ports/src/v1.ts';
+
+const secretReferenceCapability = createSecretReferenceCapabilityV1();
 
 function nonLocalEnvironment(profile) {
   return [
@@ -74,13 +77,18 @@ test('loads deterministic test defaults distinct from development', () => {
 
 for (const profile of ['preview', 'staging', 'production']) {
   test(`loads an explicitly complete ${profile} profile`, () => {
-    const config = loadRuntimeConfigV1({ environment: nonLocalEnvironment(profile) });
+    const config = loadRuntimeConfigV1({
+      environment: nonLocalEnvironment(profile),
+      secretReferenceIssuer: secretReferenceCapability.issuer,
+    });
 
     assert.equal(config.profile, profile);
     assert.equal(config.providers.objectStorage.mode, 'remote');
     assert.equal(config.providers.objectStorage.bucket, `databreeze-${profile}`);
-    assert.equal(config.providers.objectStorage.credentialRef.namespace, profile);
-    assert.deepEqual(config.providers.objectStorage.credentialRef.pathSegments, ['object-storage']);
+    assert.deepEqual(
+      secretReferenceCapability.resolver.resolve(config.providers.objectStorage.credentialRef),
+      { namespace: profile, pathSegments: ['object-storage'] },
+    );
     assert.deepEqual(config.providers.secrets, {
       mode: 'remote',
       endpointUrl: 'https://secrets.example.test',
@@ -135,7 +143,7 @@ test('rejects duplicate environment entries instead of choosing one', () => {
           ['DATABREEZE_PROFILE', 'production'],
         ],
       }),
-    'environment.DATABREEZE_PROFILE',
+    'environment.duplicate_key',
     'duplicate',
   );
 });
@@ -301,7 +309,10 @@ for (const reference of ['', 'super-secret-value', 'secret://production/changeme
 }
 
 test('redacts valid secret references during string and JSON serialization', () => {
-  const config = loadRuntimeConfigV1({ environment: nonLocalEnvironment('production') });
+  const config = loadRuntimeConfigV1({
+    environment: nonLocalEnvironment('production'),
+    secretReferenceIssuer: secretReferenceCapability.issuer,
+  });
   const reference = config.providers.objectStorage.credentialRef;
 
   assert.equal(String(reference), '[REDACTED_SECRET_REFERENCE]');

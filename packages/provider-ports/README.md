@@ -25,13 +25,16 @@ retention/training behavior, failover/degraded behavior, and coherent exit metad
 Common helpers validate and freeze closed metadata, reuse the canonical contract timestamp parser,
 enforce cancellation/deadlines/idempotency, and create errors only through a redacting factory with
 allowlisted operations and code-derived message keys. Raw provider causes are neither accessed nor
-retained. Structured secret references flow directly into the secrets port; secret handles contain
-no material or public raw handle ID, and both redact string/JSON serialization.
+retained. A composition-owned issuer/resolver capability creates and resolves secret references;
+references and handles expose no identifier fields or raw public ID and redact string, JSON, and
+diagnostic inspection.
 
-Object storage is resumable and bounded-memory: begin, upload a validated 8-64 MiB part, complete,
-or abort. Plans support immutable objects through 20 GiB with declared whole-object and per-part
-SHA-256 digests. Email and push expose explicit typed recipient-suppression operations; durable
-notification policy remains owned by NCO.
+Object storage is resumable and bounded-memory: begin, upload a validated copy-isolated 8-64 MiB
+part, complete, or abort. Factory-issued uploads bind their immutable plan; uploaded-part receipts
+bind their upload and part metadata; completion accepts only the exact ordered, contiguous receipt
+set and derives total length and digest from the bound plan. Plans support immutable objects through
+20 GiB with declared whole-object and per-part SHA-256 digests. Email and push expose explicit typed
+recipient-suppression operations; durable notification policy remains owned by NCO.
 
 There is intentionally no unversioned package root. Provider-specific identifiers may appear only
 as opaque external references returned by an adapter; they never replace DataBreeze domain IDs or

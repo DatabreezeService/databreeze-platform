@@ -64,15 +64,17 @@ function readArray(value: unknown, maximum: number): readonly unknown[] | undefi
     return undefined;
   }
   const result: unknown[] = [];
+  for (const key of Reflect.ownKeys(descriptors)) {
+    if (typeof key !== 'string') return undefined;
+    if (key === 'length') continue;
+    if (!/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= (length as number)) {
+      return undefined;
+    }
+  }
   for (let index = 0; index < (length as number); index += 1) {
     const descriptor = descriptors[String(index)];
     if (descriptor === undefined || !('value' in descriptor)) return undefined;
     result.push(descriptor.value);
-  }
-  if (
-    Object.keys(descriptors).some((key) => key !== 'length' && Number(key) >= (length as number))
-  ) {
-    return undefined;
   }
   return result;
 }
@@ -97,9 +99,14 @@ export interface ObjectStorageMultipartPlanInputV1 {
   readonly partSizeBytes: number;
 }
 
+const objectStorageMultipartPlanBrandV1: unique symbol = Symbol('ObjectStorageMultipartPlanV1');
+
 export interface ObjectStorageMultipartPlanV1 extends ObjectStorageMultipartPlanInputV1 {
+  readonly [objectStorageMultipartPlanBrandV1]: true;
   readonly maximumParts: number;
 }
+
+const multipartPlansV1 = new WeakSet<object>();
 
 export function defineObjectStorageMultipartPlanV1(
   input: ObjectStorageMultipartPlanInputV1,
@@ -122,13 +129,15 @@ export function defineObjectStorageMultipartPlanV1(
   }
   const maximumParts = Math.ceil(record['expectedByteLength'] / record['partSizeBytes']);
   if (maximumParts > OBJECT_STORAGE_MAX_PARTS_V1) throw new ProviderContractErrorV1();
-  return Object.freeze({
+  const plan = Object.freeze({
     objectKey: record['objectKey'],
     expectedSha256: record['expectedSha256'],
     expectedByteLength: record['expectedByteLength'],
     partSizeBytes: record['partSizeBytes'],
     maximumParts,
-  });
+  }) as ObjectStorageMultipartPlanV1;
+  multipartPlansV1.add(plan);
+  return plan;
 }
 
 export interface ObjectStoragePartInputV1 {
@@ -137,25 +146,56 @@ export interface ObjectStoragePartInputV1 {
   readonly sha256: string;
 }
 
-export type ObjectStoragePartV1 = ObjectStoragePartInputV1;
+const objectStoragePartBrandV1: unique symbol = Symbol('ObjectStoragePartV1');
+
+export interface ObjectStoragePartV1 {
+  readonly [objectStoragePartBrandV1]: true;
+  readonly partNumber: number;
+  readonly sha256: string;
+  readonly byteLength: number;
+  readContent(): Uint8Array;
+}
+
+const contentByObjectStoragePartV1 = new WeakMap<object, Uint8Array>();
+const objectStoragePartPrototypeV1 = Object.freeze(
+  Object.defineProperty(Object.create(null) as object, 'readContent', {
+    value(this: object): Uint8Array {
+      const content = contentByObjectStoragePartV1.get(this);
+      if (content === undefined) throw new ProviderContractErrorV1();
+      return Uint8Array.prototype.slice.call(content) as Uint8Array;
+    },
+  }),
+);
+
+function snapshotPartContentV1(value: unknown): Uint8Array | undefined {
+  if (!(value instanceof Uint8Array)) return undefined;
+  try {
+    return Uint8Array.prototype.slice.call(value) as Uint8Array;
+  } catch {
+    return undefined;
+  }
+}
 
 export function defineObjectStoragePartV1(input: ObjectStoragePartInputV1): ObjectStoragePartV1 {
   const record = readClosedRecord(input, ['partNumber', 'content', 'sha256']);
+  const content = record === undefined ? undefined : snapshotPartContentV1(record['content']);
   if (
     record === undefined ||
     !isPositiveInteger(record['partNumber'], OBJECT_STORAGE_MAX_PARTS_V1) ||
-    !(record['content'] instanceof Uint8Array) ||
-    record['content'].byteLength === 0 ||
-    record['content'].byteLength > OBJECT_STORAGE_MAX_PART_BYTES_V1 ||
+    content === undefined ||
+    content.byteLength === 0 ||
+    content.byteLength > OBJECT_STORAGE_MAX_PART_BYTES_V1 ||
     !isSha256(record['sha256'])
   ) {
     throw new ProviderContractErrorV1();
   }
-  return Object.freeze({
+  const part = Object.assign(Object.create(objectStoragePartPrototypeV1) as object, {
     partNumber: record['partNumber'],
-    content: record['content'],
     sha256: record['sha256'],
-  });
+    byteLength: content.byteLength,
+  }) as ObjectStoragePartV1;
+  contentByObjectStoragePartV1.set(part, content);
+  return Object.freeze(part);
 }
 
 export interface ObjectStorageBeginMultipartRequestV1 {
@@ -163,36 +203,254 @@ export interface ObjectStorageBeginMultipartRequestV1 {
   readonly plan: ObjectStorageMultipartPlanV1;
 }
 
-export interface ObjectStorageBeginMultipartResultV1 {
+const objectStorageMultipartUploadBrandV1: unique symbol = Symbol('ObjectStorageMultipartUploadV1');
+
+export interface ObjectStorageMultipartUploadV1 {
+  readonly [objectStorageMultipartUploadBrandV1]: true;
   readonly uploadRef: string;
+  readonly plan: ObjectStorageMultipartPlanV1;
   readonly acceptedPartSizeBytes: number;
   readonly maximumParts: number;
 }
 
+export type ObjectStorageBeginMultipartResultV1 = ObjectStorageMultipartUploadV1;
+
+const planByMultipartUploadV1 = new WeakMap<object, ObjectStorageMultipartPlanV1>();
+
+export function defineObjectStorageMultipartUploadV1(input: {
+  readonly uploadRef: string;
+  readonly plan: ObjectStorageMultipartPlanV1;
+}): ObjectStorageMultipartUploadV1 {
+  const record = readClosedRecord(input, ['uploadRef', 'plan']);
+  if (
+    record === undefined ||
+    !isSafeReference(record['uploadRef']) ||
+    typeof record['plan'] !== 'object' ||
+    record['plan'] === null ||
+    !multipartPlansV1.has(record['plan'])
+  ) {
+    throw new ProviderContractErrorV1();
+  }
+  const plan = record['plan'] as ObjectStorageMultipartPlanV1;
+  const upload = Object.freeze({
+    uploadRef: record['uploadRef'],
+    plan,
+    acceptedPartSizeBytes: plan.partSizeBytes,
+    maximumParts: plan.maximumParts,
+  }) as ObjectStorageMultipartUploadV1;
+  planByMultipartUploadV1.set(upload, plan);
+  return upload;
+}
+
 export interface ObjectStorageUploadPartRequestV1 {
   readonly context: ProviderInvocationContextV1;
-  readonly uploadRef: string;
+  readonly upload: ObjectStorageMultipartUploadV1;
   readonly part: ObjectStoragePartV1;
 }
 
+const objectStorageUploadedPartBrandV1: unique symbol = Symbol('ObjectStorageUploadedPartV1');
+
 export interface ObjectStorageUploadedPartV1 {
+  readonly [objectStorageUploadedPartBrandV1]: true;
   readonly partNumber: number;
   readonly sha256: string;
   readonly byteLength: number;
   readonly receiptRef: string;
 }
 
-export interface ObjectStorageCompleteMultipartRequestV1 {
+interface ObjectStorageUploadedPartStateV1 {
+  readonly upload: ObjectStorageMultipartUploadV1;
+  readonly partNumber: number;
+  readonly sha256: string;
+  readonly byteLength: number;
+  readonly receiptRef: string;
+}
+
+const uploadedPartStateV1 = new WeakMap<object, ObjectStorageUploadedPartStateV1>();
+
+function expectedPartByteLengthV1(
+  plan: ObjectStorageMultipartPlanV1,
+  partNumber: number,
+): number | undefined {
+  if (partNumber < 1 || partNumber > plan.maximumParts) return undefined;
+  if (partNumber < plan.maximumParts) return plan.partSizeBytes;
+  return plan.expectedByteLength - plan.partSizeBytes * (plan.maximumParts - 1);
+}
+
+function partBelongsToUploadV1(
+  upload: ObjectStorageMultipartUploadV1,
+  part: ObjectStoragePartV1,
+): boolean {
+  const plan = planByMultipartUploadV1.get(upload);
+  if (plan === undefined || !contentByObjectStoragePartV1.has(part)) return false;
+  return expectedPartByteLengthV1(plan, part.partNumber) === part.byteLength;
+}
+
+export function defineObjectStorageUploadPartRequestV1(
+  input: ObjectStorageUploadPartRequestV1,
+): ObjectStorageUploadPartRequestV1 {
+  const record = readClosedRecord(input, ['context', 'upload', 'part']);
+  if (
+    record === undefined ||
+    typeof record['upload'] !== 'object' ||
+    record['upload'] === null ||
+    typeof record['part'] !== 'object' ||
+    record['part'] === null ||
+    !partBelongsToUploadV1(
+      record['upload'] as ObjectStorageMultipartUploadV1,
+      record['part'] as ObjectStoragePartV1,
+    )
+  ) {
+    throw new ProviderContractErrorV1();
+  }
+  try {
+    requireProviderIdempotencyV1(record['context'] as ProviderInvocationContextV1);
+  } catch {
+    throw new ProviderContractErrorV1();
+  }
+  return Object.freeze({
+    context: record['context'] as ProviderInvocationContextV1,
+    upload: record['upload'] as ObjectStorageMultipartUploadV1,
+    part: record['part'] as ObjectStoragePartV1,
+  });
+}
+
+export function defineObjectStorageUploadedPartV1(input: {
+  readonly upload: ObjectStorageMultipartUploadV1;
+  readonly part: ObjectStoragePartV1;
+  readonly receiptRef: string;
+}): ObjectStorageUploadedPartV1 {
+  const record = readClosedRecord(input, ['upload', 'part', 'receiptRef']);
+  if (
+    record === undefined ||
+    typeof record['upload'] !== 'object' ||
+    record['upload'] === null ||
+    typeof record['part'] !== 'object' ||
+    record['part'] === null ||
+    !isSafeReference(record['receiptRef']) ||
+    !partBelongsToUploadV1(
+      record['upload'] as ObjectStorageMultipartUploadV1,
+      record['part'] as ObjectStoragePartV1,
+    )
+  ) {
+    throw new ProviderContractErrorV1();
+  }
+  const upload = record['upload'] as ObjectStorageMultipartUploadV1;
+  const part = record['part'] as ObjectStoragePartV1;
+  const state: ObjectStorageUploadedPartStateV1 = Object.freeze({
+    upload,
+    partNumber: part.partNumber,
+    sha256: part.sha256,
+    byteLength: part.byteLength,
+    receiptRef: record['receiptRef'],
+  });
+  const receipt = Object.freeze({
+    partNumber: state.partNumber,
+    sha256: state.sha256,
+    byteLength: state.byteLength,
+    receiptRef: state.receiptRef,
+  }) as ObjectStorageUploadedPartV1;
+  uploadedPartStateV1.set(receipt, state);
+  return receipt;
+}
+
+export interface ObjectStorageCompleteMultipartRequestInputV1 {
   readonly context: ProviderInvocationContextV1;
+  readonly upload: ObjectStorageMultipartUploadV1;
+  readonly orderedParts: readonly ObjectStorageUploadedPartV1[];
+}
+
+const objectStorageCompleteMultipartRequestBrandV1: unique symbol = Symbol(
+  'ObjectStorageCompleteMultipartRequestV1',
+);
+
+export interface ObjectStorageCompleteMultipartRequestV1 {
+  readonly [objectStorageCompleteMultipartRequestBrandV1]: true;
+  readonly context: ProviderInvocationContextV1;
+  readonly upload: ObjectStorageMultipartUploadV1;
   readonly uploadRef: string;
   readonly orderedParts: readonly ObjectStorageUploadedPartV1[];
   readonly expectedSha256: string;
   readonly expectedByteLength: number;
 }
 
+const completeMultipartRequestsV1 = new WeakSet<object>();
+
+export function defineObjectStorageCompleteMultipartRequestV1(
+  input: ObjectStorageCompleteMultipartRequestInputV1,
+): ObjectStorageCompleteMultipartRequestV1 {
+  const record = readClosedRecord(input, ['context', 'upload', 'orderedParts']);
+  const upload = record?.['upload'];
+  const plan =
+    typeof upload === 'object' && upload !== null ? planByMultipartUploadV1.get(upload) : undefined;
+  const orderedParts = record === undefined ? undefined : readArray(record['orderedParts'], 10_000);
+  if (
+    record === undefined ||
+    plan === undefined ||
+    orderedParts === undefined ||
+    orderedParts.length !== plan.maximumParts
+  ) {
+    throw new ProviderContractErrorV1();
+  }
+  try {
+    requireProviderIdempotencyV1(record['context'] as ProviderInvocationContextV1);
+  } catch {
+    throw new ProviderContractErrorV1();
+  }
+
+  let totalByteLength = 0;
+  const validatedParts: ObjectStorageUploadedPartV1[] = [];
+  for (let index = 0; index < orderedParts.length; index += 1) {
+    const receipt = orderedParts[index];
+    if (typeof receipt !== 'object' || receipt === null) throw new ProviderContractErrorV1();
+    const typedReceipt = receipt as ObjectStorageUploadedPartV1;
+    const state = uploadedPartStateV1.get(typedReceipt);
+    const expectedPartNumber = index + 1;
+    if (
+      state === undefined ||
+      state.upload !== upload ||
+      state.partNumber !== expectedPartNumber ||
+      state.byteLength !== expectedPartByteLengthV1(plan, expectedPartNumber) ||
+      typedReceipt.partNumber !== state.partNumber ||
+      typedReceipt.sha256 !== state.sha256 ||
+      typedReceipt.byteLength !== state.byteLength ||
+      typedReceipt.receiptRef !== state.receiptRef
+    ) {
+      throw new ProviderContractErrorV1();
+    }
+    totalByteLength += state.byteLength;
+    validatedParts.push(typedReceipt);
+  }
+  if (totalByteLength !== plan.expectedByteLength) throw new ProviderContractErrorV1();
+
+  const request = Object.freeze({
+    context: record['context'] as ProviderInvocationContextV1,
+    upload: upload as ObjectStorageMultipartUploadV1,
+    uploadRef: (upload as ObjectStorageMultipartUploadV1).uploadRef,
+    orderedParts: Object.freeze(validatedParts),
+    expectedSha256: plan.expectedSha256,
+    expectedByteLength: plan.expectedByteLength,
+  }) as ObjectStorageCompleteMultipartRequestV1;
+  completeMultipartRequestsV1.add(request);
+  return request;
+}
+
+export function assertObjectStorageCompleteMultipartRequestV1(
+  request: ObjectStorageCompleteMultipartRequestV1,
+): ObjectStorageCompleteMultipartRequestV1 {
+  if (
+    typeof request !== 'object' ||
+    request === null ||
+    !completeMultipartRequestsV1.has(request)
+  ) {
+    throw new ProviderContractErrorV1();
+  }
+  return request;
+}
+
 export interface ObjectStorageAbortMultipartRequestV1 {
   readonly context: ProviderInvocationContextV1;
-  readonly uploadRef: string;
+  readonly upload: ObjectStorageMultipartUploadV1;
 }
 
 export interface ObjectStoragePutResultV1 {

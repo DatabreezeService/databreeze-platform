@@ -4,6 +4,8 @@ import test from 'node:test';
 
 import { ConfigValidationErrorV1, loadRuntimeConfigV1 } from '../src/runtime-config/v1.ts';
 
+const providerPorts = await import('../../provider-ports/src/v1.ts');
+
 function issue(error, path, code) {
   return (
     error instanceof ConfigValidationErrorV1 &&
@@ -201,6 +203,44 @@ test('configuration converts proxy and malformed tuple failures to bounded redac
   );
 });
 
+test('duplicate environment keys use a stable bounded path without exposing attacker text', () => {
+  const exposedKey = 'DATABREEZE_DUPLICATE_SECRET_X9Y8Z7';
+  const exposedValue = 'duplicate-value-X9Y8Z7';
+  expectSafeConfigFailure(
+    () =>
+      loadRuntimeConfigV1({
+        environment: [
+          ['DATABREEZE_PROFILE', 'development'],
+          [exposedKey, exposedValue],
+          [exposedKey, exposedValue],
+        ],
+      }),
+    'environment.duplicate_key',
+    'duplicate',
+    [exposedKey, exposedValue],
+  );
+});
+
+test('environment arrays and tuples reject non-index string and symbol properties', () => {
+  const environment = [['DATABREEZE_PROFILE', 'development']];
+  environment.extra = 'must-not-be-read';
+  expectSafeConfigFailure(
+    () => loadRuntimeConfigV1({ environment }),
+    'environment.invalid_input',
+    'invalid_string',
+    ['must-not-be-read'],
+  );
+
+  const tuple = ['DATABREEZE_PROFILE', 'development'];
+  tuple[Symbol('hidden')] = 'must-not-be-read';
+  expectSafeConfigFailure(
+    () => loadRuntimeConfigV1({ environment: [tuple] }),
+    'environment.invalid_entry',
+    'invalid_string',
+    ['must-not-be-read'],
+  );
+});
+
 test('configuration snapshots the load request itself and bounds repeated diagnostics', () => {
   let getterCalls = 0;
   const input = {};
@@ -286,8 +326,26 @@ for (const reference of [
   });
 }
 
-test('returns a canonical structured secret reference without a raw extractor', async () => {
+for (const namespace of ['', '.', '..', 'team//prod', 'team/', 'team/../prod', 'team/./prod']) {
+  test(`rejects non-canonical secret namespace ${JSON.stringify(namespace)}`, () => {
+    expectSafeConfigFailure(
+      () =>
+        loadRuntimeConfigV1({
+          environment: {
+            DATABREEZE_PROFILE: 'development',
+            DATABREEZE_SECRETS_MODE: 'memory',
+            DATABREEZE_SECRETS_NAMESPACE: namespace,
+          },
+        }),
+      'providers.secrets.namespace',
+      'invalid_secret_namespace',
+    );
+  });
+}
+
+test('returns an issuer-created opaque secret reference without a raw extractor', async () => {
   const runtime = await import('../src/runtime-config/v1.ts');
+  const capability = providerPorts.createSecretReferenceCapabilityV1();
   const config = loadRuntimeConfigV1({
     environment: {
       DATABREEZE_PROFILE: 'development',
@@ -296,11 +354,19 @@ test('returns a canonical structured secret reference without a raw extractor', 
       DATABREEZE_PUSH_APPLICATION_ID: 'databreeze',
       DATABREEZE_PUSH_CREDENTIAL_REF: 'secret://development/push/credential#active',
     },
+    secretReferenceIssuer: capability.issuer,
   });
   const reference = config.providers.push.credentialRef;
-  assert.deepEqual(reference.pathSegments, ['push', 'credential']);
-  assert.equal(reference.namespace, 'development');
-  assert.equal(reference.version, 'active');
+  assert.deepEqual(capability.resolver.resolve(reference), {
+    namespace: 'development',
+    pathSegments: ['push', 'credential'],
+    version: 'active',
+  });
+  assert.equal(reference.namespace, undefined);
+  assert.equal(reference.pathSegments, undefined);
+  assert.equal(reference.version, undefined);
+  assert.deepEqual(Reflect.ownKeys(reference), []);
+  assert.doesNotMatch(inspect(reference), /development|push|credential|active/u);
   assert.equal(runtime.secretReferenceHandleV1, undefined);
   assert.equal(runtime.createSecretReferenceV1, undefined);
   assert.equal(JSON.stringify(reference), '"[REDACTED_SECRET_REFERENCE]"');
