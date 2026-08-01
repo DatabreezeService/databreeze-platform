@@ -224,6 +224,9 @@ importers:
       '@databreeze/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@databreeze/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@databreeze/telemetry':
         specifier: workspace:*
         version: link:../../packages/telemetry

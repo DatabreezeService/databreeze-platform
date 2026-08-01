@@ -20,6 +20,7 @@ test('the API workspace exposes independently runnable quality and artifact gate
     'openapi:generate',
     'prisma:generate',
     'prisma:validate',
+    'pretest',
     'test',
     'typecheck',
   ]) {
