@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createScopedAuthorizationEvaluatorV1 } from '../src/authorization/v1.ts';
+import { createScopedAuthorizationEvaluatorV1 } from '../dist/authorization/v1.js';
 
 const ids = Object.freeze({
   principal: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',

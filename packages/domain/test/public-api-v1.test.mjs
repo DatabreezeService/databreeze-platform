@@ -18,6 +18,7 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
     './entitlements/v1',
     './mfa/v1',
     './device-authorization/v1',
+    './artifact/v1',
   ]);
 
   for (const entry of Object.values(manifest.exports)) {
@@ -27,7 +28,7 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
 
   let aggregate;
   try {
-    aggregate = await import('../src/v1.ts');
+    aggregate = await import('../dist/v1.js');
   } catch {
     aggregate = undefined;
   }

@@ -12,7 +12,7 @@ import {
   rotateRefreshFamilyV1,
   transitionDeviceIdentityV1,
   validateMembershipV1,
-} from '../src/identity/v1.ts';
+} from '../dist/identity/v1.js';
 
 const id = (tail) => `00000000-0000-4000-8000-${tail.padStart(12, '0')}`;
 const createdAt = '2026-01-01T00:00:00.000Z';

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import * as api from '../src/permissions/v1.ts';
+import * as api from '../dist/permissions/v1.js';
 
 const { AUTHORIZATION_CHANNELS_V1, PERMISSION_APPLICABILITY_V1, PERMISSIONS_V1 } = api;
 

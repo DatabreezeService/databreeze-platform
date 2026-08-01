@@ -8,7 +8,7 @@ import {
   redeemRecoveryCodeV1,
   requiresStepUpV1,
   transitionMfaFactorV1,
-} from '../src/mfa/v1.ts';
+} from '../dist/mfa/v1.js';
 
 const id = (tail) => `00000000-0000-4000-8000-${tail.padStart(12, '0')}`;
 const createdAt = '2026-01-01T00:00:00.000Z';
