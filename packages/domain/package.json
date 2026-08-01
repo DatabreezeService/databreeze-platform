@@ -31,6 +31,10 @@
     "./entitlements/v1": {
       "types": "./src/entitlements/v1.ts",
       "import": "./dist/entitlements/v1.js"
+    },
+    "./mfa/v1": {
+      "types": "./src/mfa/v1.ts",
+      "import": "./dist/mfa/v1.js"
     }
   },
   "scripts": {
