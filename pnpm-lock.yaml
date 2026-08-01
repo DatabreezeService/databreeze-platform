@@ -27,6 +27,8 @@ importers:
         specifier: 8.43.0
         version: 8.43.0(eslint@9.36.0)(typescript@5.9.2)
 
+  packages/config: {}
+
   packages/contracts:
     dependencies:
       ajv:
@@ -41,6 +43,8 @@ importers:
       '@databreeze/contracts':
         specifier: workspace:*
         version: link:../contracts
+
+  packages/provider-ports: {}
 
   packages/test-fixtures: {}
 

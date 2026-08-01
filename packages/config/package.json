@@ -1,0 +1,17 @@
+{
+  "name": "@databreeze/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./runtime/v1": {
+      "types": "./src/runtime-config/v1.ts",
+      "import": "./dist/runtime-config/v1.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json && node test/built-public-api-smoke.mjs",
+    "test": "node --test test/**/*.test.mjs",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  }
+}
