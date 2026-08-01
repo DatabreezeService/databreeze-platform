@@ -1,0 +1,33 @@
+{
+  "name": "@databreeze/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "build": "vite build --config vite.main.config.ts && vite build --config vite.preload.config.ts && vite build --config vite.renderer.config.ts && node scripts/check-build.mjs",
+    "dev": "corepack pnpm build && electron .",
+    "lint": "eslint .",
+    "security:check": "vitest run --config vitest.security.config.ts",
+    "test": "corepack pnpm build && vitest run && node --test test/*.test.mjs",
+    "typecheck": "tsc --build --pretty false"
+  },
+  "dependencies": {
+    "@databreeze/design-tokens": "workspace:*",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@testing-library/react": "16.3.0",
+    "@testing-library/user-event": "14.6.1",
+    "@types/node": "24.13.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@vitejs/plugin-react": "6.0.5",
+    "electron": "43.2.0",
+    "jsdom": "30.0.1",
+    "typescript": "5.9.2",
+    "vite": "8.2.0",
+    "vitest": "4.1.10"
+  }
+}

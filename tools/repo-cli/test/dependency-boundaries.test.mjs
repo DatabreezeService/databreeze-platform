@@ -140,3 +140,21 @@ test('uses exact and most-specific export entries before broader patterns, inclu
     2,
   );
 });
+
+test('accepts the Desktop renderer depending only on shared types and public UI packages', () => {
+  const result = checkFixture('desktop-trust-boundary-allowed');
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stderr, '');
+});
+
+test('rejects Desktop renderer imports of Electron, Node, main, and preload modules', () => {
+  const result = checkFixture('desktop-renderer-trust-boundary');
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /electron\.ts/);
+  assert.match(result.stderr, /node\.ts/);
+  assert.match(result.stderr, /main\.ts/);
+  assert.match(result.stderr, /preload\.ts/);
+  assert.equal(result.stderr.match(/rule=desktop-renderer-must-remain-unprivileged/g)?.length, 4);
+});
