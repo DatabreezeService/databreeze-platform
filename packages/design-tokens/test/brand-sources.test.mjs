@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
-import { readdir, readFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { test } from 'node:test';
 import { URL } from 'node:url';
 
@@ -42,6 +44,29 @@ async function readManifest() {
   return JSON.parse(await readFile(manifestUrl, 'utf8'));
 }
 
+async function sourceFileNames(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  entries.sort((left, right) => (left.name < right.name ? -1 : left.name > right.name ? 1 : 0));
+
+  for (const entry of entries) {
+    if (!entry.isFile()) {
+      throw new Error(`Unexpected brand source entry "${entry.name}": expected a regular file`);
+    }
+  }
+
+  return entries.map((entry) => entry.name);
+}
+
+async function createTemporarySourceDirectory() {
+  const root = await mkdtemp(join(tmpdir(), 'databreeze-brand-source-'));
+  const directory = join(root, 'source');
+  await mkdir(directory);
+  await Promise.all(
+    approvedAssets.map(({ file }) => writeFile(join(directory, file), Buffer.alloc(0))),
+  );
+  return { directory, root };
+}
+
 test('the manifest records the complete approved immutable source set', async () => {
   const manifest = await readManifest();
 
@@ -52,13 +77,41 @@ test('the manifest records the complete approved immutable source set', async ()
 });
 
 test('the source directory contains only the three canonical named PNGs', async () => {
-  const entries = await readdir(sourceDirectory, { withFileTypes: true });
-  const sourceFiles = entries
-    .filter((entry) => entry.isFile())
-    .map((entry) => entry.name)
-    .sort();
+  const sourceFiles = await sourceFileNames(sourceDirectory);
 
   assert.deepEqual(sourceFiles, approvedAssets.map(({ file }) => file).sort());
+});
+
+test('source-set validation rejects an unexpected nested directory', async () => {
+  const temporary = await createTemporarySourceDirectory();
+
+  try {
+    await mkdir(join(temporary.directory, 'legacy'));
+
+    await assert.rejects(
+      sourceFileNames(temporary.directory),
+      /Unexpected brand source entry "legacy": expected a regular file/,
+    );
+  } finally {
+    await rm(temporary.root, { force: true, recursive: true });
+  }
+});
+
+test('source-set validation rejects an unexpected symbolic link', async () => {
+  const temporary = await createTemporarySourceDirectory();
+
+  try {
+    const legacyDirectory = join(temporary.root, 'legacy');
+    await mkdir(legacyDirectory);
+    await symlink(legacyDirectory, join(temporary.directory, 'asset-4.png'), 'junction');
+
+    await assert.rejects(
+      sourceFileNames(temporary.directory),
+      /Unexpected brand source entry "asset-4\.png": expected a regular file/,
+    );
+  } finally {
+    await rm(temporary.root, { force: true, recursive: true });
+  }
 });
 
 for (const asset of approvedAssets) {
