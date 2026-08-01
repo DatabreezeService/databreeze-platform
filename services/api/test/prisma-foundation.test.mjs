@@ -45,14 +45,17 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.equal(diff.status, 0, diff.stderr || diff.stdout);
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "platform"/);
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "iam"/);
+  assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "iae"/);
   assert.match(diff.stdout, /CREATE TABLE "platform"\."schema_registry"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."users"/);
+  assert.match(diff.stdout, /CREATE TABLE "iae"\."artifact_versions"/);
 
   const migrationsDirectory = path.join(apiDirectory, 'prisma', 'migrations');
   const inventory = (await readdir(migrationsDirectory)).sort();
   assert.deepEqual(inventory, [
     '20260801000000_platform_schema_registry',
     '20260802000000_iam_identity_foundation',
+    '20260802010000_iae_artifact_foundation',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -77,5 +80,17 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     'CREATE UNIQUE INDEX "refresh_tokens_digest_key"',
   ]) {
     assert.match(iamMigration, new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  const iaeMigration = await readFile(
+    path.join(migrationsDirectory, inventory[2], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE SCHEMA IF NOT EXISTS "iae"',
+    'CREATE TABLE "iae"."artifact_versions"',
+    'CREATE TABLE "iae"."content_placements"',
+    'CREATE TABLE "iae"."evidence_references"',
+  ]) {
+    assert.match(iaeMigration, new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
 });

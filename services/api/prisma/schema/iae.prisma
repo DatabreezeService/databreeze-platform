@@ -1,0 +1,64 @@
+/// IAE-owned immutable artifact, placement, and evidence records. Tenant ancestry is
+/// materialized for indexed scope checks; cross-module references remain opaque UUIDs.
+model ArtifactVersion {
+  id             String   @id @db.Uuid
+  artifactId     String   @map("artifact_id") @db.Uuid
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String?  @map("workspace_id") @db.Uuid
+  projectId      String?  @map("project_id") @db.Uuid
+  sourceKind     String   @map("source_kind") @db.VarChar(24)
+  dataMode       String   @map("data_mode") @db.VarChar(16)
+  contentSha256  String   @map("content_sha256") @db.Char(64)
+  byteSize       BigInt   @map("byte_size")
+  mediaType      String   @map("media_type") @db.VarChar(255)
+  displayName    String   @map("display_name") @db.VarChar(255)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  status         String   @default("ACTIVE") @db.VarChar(24)
+
+  @@index([artifactId], map: "artifact_versions_artifact_id_idx")
+  @@index([organizationId, workspaceId, projectId], map: "artifact_versions_scope_idx")
+  @@index([contentSha256], map: "artifact_versions_content_sha256_idx")
+  @@map("artifact_versions")
+  @@schema("iae")
+}
+
+model ContentPlacement {
+  id                String   @id @db.Uuid
+  artifactVersionId String   @map("artifact_version_id") @db.Uuid
+  scopeType         String   @map("scope_type") @db.VarChar(24)
+  organizationId    String   @map("organization_id") @db.Uuid
+  workspaceId       String?  @map("workspace_id") @db.Uuid
+  projectId         String?  @map("project_id") @db.Uuid
+  kind              String   @db.VarChar(16)
+  opaqueReference   String   @map("opaque_reference") @db.VarChar(512)
+  contentSha256     String   @map("content_sha256") @db.Char(64)
+  available         Boolean  @default(true)
+  revision          Int      @default(1)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([artifactVersionId], map: "content_placements_artifact_version_idx")
+  @@index([organizationId, workspaceId, projectId], map: "content_placements_scope_idx")
+  @@unique([artifactVersionId, kind], map: "content_placements_version_kind_key")
+  @@map("content_placements")
+  @@schema("iae")
+}
+
+model EvidenceReference {
+  id                String   @id @db.Uuid
+  artifactVersionId String   @map("artifact_version_id") @db.Uuid
+  scopeType         String   @map("scope_type") @db.VarChar(24)
+  organizationId    String   @map("organization_id") @db.Uuid
+  workspaceId       String?  @map("workspace_id") @db.Uuid
+  projectId         String?  @map("project_id") @db.Uuid
+  coordinate        Json
+  sourceState       String   @map("source_state") @db.VarChar(24)
+  excerpt           String?  @db.VarChar(512)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([artifactVersionId], map: "evidence_references_artifact_version_idx")
+  @@index([organizationId, workspaceId, projectId], map: "evidence_references_scope_idx")
+  @@map("evidence_references")
+  @@schema("iae")
+}
