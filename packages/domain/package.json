@@ -47,6 +47,7 @@
   },
   "scripts": {
     "build": "tsc --project tsconfig.build.json && node test/built-public-api-smoke.mjs",
+    "pretest": "pnpm build",
     "test": "node --test test/**/*.test.mjs",
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },
