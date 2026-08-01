@@ -5,7 +5,7 @@ import {
   type StableIdentifierV1,
   type StrictUtcTimestampV1,
   type TenantScopeV1,
-} from '../tenant-scope/v1.ts';
+} from '../tenant-scope/v1.js';
 
 /** IAM-020..IAM-021 and DSO-002..DSO-005: signed device authority and opaque grants. */
 export const DEVICE_AUTHORIZATION_SCHEMA_VERSION_V1 = 1 as const;

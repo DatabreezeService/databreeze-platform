@@ -1,10 +1,10 @@
-import { isFreshStepUpV1, type StepUpAssertionV1, type IdentityResultV1 } from '../identity/v1.ts';
+import { isFreshStepUpV1, type StepUpAssertionV1, type IdentityResultV1 } from '../identity/v1.js';
 import {
   parseStableIdentifierV1,
   parseStrictUtcTimestampV1,
   type StableIdentifierV1,
   type StrictUtcTimestampV1,
-} from '../tenant-scope/v1.ts';
+} from '../tenant-scope/v1.js';
 
 /** IAM-012..IAM-018: MFA factors, step-up, and one-time recovery invariants. */
 export const MFA_SCHEMA_VERSION_V1 = 1 as const;

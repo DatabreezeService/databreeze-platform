@@ -5,7 +5,7 @@ import {
   type StableIdentifierV1,
   type StrictUtcTimestampV1,
   type TenantScopeV1,
-} from '../tenant-scope/v1.ts';
+} from '../tenant-scope/v1.js';
 
 /** AUD-001..AUD-024: immutable, tenant-scoped audit ledger invariants. */
 export const AUDIT_SCHEMA_VERSION_V1 = 1 as const;
