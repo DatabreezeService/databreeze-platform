@@ -84,6 +84,29 @@ test('[IAM-001] accepts only non-guessable UUIDv4/v7 identifiers and strict UTC 
   });
 });
 
+test('[IAM-001, IAM-019] canonicalizes mixed-case UUID identities to lowercase', async () => {
+  const api = await loadTenantScope();
+  assert.ok(api);
+
+  assert.deepEqual(api.parseStableIdentifierV1(ids.organizationA.toUpperCase()), {
+    accepted: true,
+    value: ids.organizationA,
+  });
+
+  const mixedCaseProject = {
+    scopeType: 'project',
+    organizationId: ids.organizationA.toUpperCase(),
+    workspaceId: ids.workspaceA.toUpperCase(),
+    projectId: ids.projectA.toUpperCase(),
+  };
+  const parsed = expectAccepted(api.parseTenantScopeV1(mixedCaseProject));
+  assert.deepEqual(parsed, projectA);
+  assert.equal(
+    api.tenantScopesEqualV1(parsed, expectAccepted(api.parseTenantScopeV1(projectA))),
+    true,
+  );
+});
+
 test('[IAM-019] parses only complete closed tenant ancestry', async () => {
   const api = await loadTenantScope();
   assert.ok(api);

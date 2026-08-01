@@ -71,7 +71,7 @@ export function parseStableIdentifierV1(
     return rejected('INVALID_IDENTIFIER');
   }
 
-  return accepted(parsed.value as StableIdentifierV1);
+  return accepted(parsed.value.toLowerCase() as StableIdentifierV1);
 }
 
 export function parseStrictUtcTimestampV1(
