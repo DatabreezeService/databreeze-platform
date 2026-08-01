@@ -3,6 +3,7 @@ packages:
   - 'apps/web'
   - 'packages/*'
   - 'services/api'
+  - 'services/engine'
   - 'tools/*'
 
 allowBuilds:
