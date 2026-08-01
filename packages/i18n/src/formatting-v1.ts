@@ -15,6 +15,9 @@ const LIST_KEYS_V1 = new Set(['locale', 'style', 'type']);
 const RELATIVE_TIME_KEYS_V1 = new Set(['locale', 'numeric', 'style']);
 const PLURAL_KEYS_V1 = new Set(['locale', 'type']);
 const CURRENCY_CODES_V1 = new Set(Intl.supportedValuesOf('currency'));
+// eslint-disable-next-line @typescript-eslint/unbound-method -- Capture the intrinsic so Date subclasses cannot replace it.
+const dateGetTimeV1 = Date.prototype.getTime;
+const MAX_LIST_ITEMS_V1 = 1_000;
 const RELATIVE_TIME_UNITS_V1 = new Set<Intl.RelativeTimeFormatUnit>([
   'day',
   'hour',
@@ -110,8 +113,68 @@ function optionalFractionDigit(value: unknown): number | undefined {
   return value;
 }
 
-function isStringListValue(value: unknown): boolean {
-  return Array.isArray(value) && value.every((item: unknown) => typeof item === 'string');
+function snapshotDateV1(value: unknown): Date {
+  try {
+    const timestamp = typeof value === 'number' ? value : Reflect.apply(dateGetTimeV1, value, []);
+    if (!Number.isFinite(timestamp)) {
+      throw new I18nErrorV1('INVALID_DATE');
+    }
+    const date = new Date(timestamp);
+    if (!Number.isFinite(Reflect.apply(dateGetTimeV1, date, []))) {
+      throw new I18nErrorV1('INVALID_DATE');
+    }
+    return date;
+  } catch {
+    throw new I18nErrorV1('INVALID_DATE');
+  }
+}
+
+function snapshotStringListV1(value: unknown): readonly string[] {
+  try {
+    if (!Array.isArray(value)) {
+      throw new I18nErrorV1('INVALID_ARGUMENT');
+    }
+    const lengthDescriptor = Object.getOwnPropertyDescriptor(value, 'length');
+    if (
+      lengthDescriptor === undefined ||
+      !Object.hasOwn(lengthDescriptor, 'value') ||
+      typeof lengthDescriptor.value !== 'number' ||
+      !Number.isInteger(lengthDescriptor.value) ||
+      lengthDescriptor.value < 0 ||
+      lengthDescriptor.value > MAX_LIST_ITEMS_V1
+    ) {
+      throw new I18nErrorV1('INVALID_ARGUMENT');
+    }
+    const length = lengthDescriptor.value;
+    for (const key of Reflect.ownKeys(value)) {
+      if (key === 'length') {
+        continue;
+      }
+      if (typeof key !== 'string') {
+        throw new I18nErrorV1('INVALID_ARGUMENT');
+      }
+      const index = Number(key);
+      if (!Number.isSafeInteger(index) || index < 0 || index >= length || String(index) !== key) {
+        throw new I18nErrorV1('INVALID_ARGUMENT');
+      }
+    }
+
+    const snapshot: string[] = [];
+    for (let index = 0; index < length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      if (
+        descriptor === undefined ||
+        !Object.hasOwn(descriptor, 'value') ||
+        typeof descriptor.value !== 'string'
+      ) {
+        throw new I18nErrorV1('INVALID_ARGUMENT');
+      }
+      snapshot.push(descriptor.value);
+    }
+    return snapshot;
+  } catch {
+    throw new I18nErrorV1('INVALID_ARGUMENT');
+  }
 }
 
 function numberFormatOptions(
@@ -147,14 +210,7 @@ export function formatDateTimeV1(value: number | Date, input: DateTimeFormatOpti
   if (typeof rawTimeZone !== 'string' || rawTimeZone.trim() === '') {
     throw new I18nErrorV1('INVALID_TIME_ZONE');
   }
-  const timestamp = value instanceof Date ? value.getTime() : value;
-  if (typeof timestamp !== 'number' || !Number.isFinite(timestamp)) {
-    throw new I18nErrorV1('INVALID_DATE');
-  }
-  const date = new Date(timestamp);
-  if (!Number.isFinite(date.getTime())) {
-    throw new I18nErrorV1('INVALID_DATE');
-  }
+  const date = snapshotDateV1(value);
   const dateStyle = optionalEnum(source['dateStyle'], ['full', 'long', 'medium', 'short']);
   const timeStyle = optionalEnum(source['timeStyle'], ['full', 'long', 'medium', 'short']);
   const hour12 = optionalBoolean(source['hour12']);
@@ -216,15 +272,17 @@ export function formatPercentV1(value: number, input: PercentFormatOptionsV1): s
 export function formatListV1(values: readonly string[], input: ListFormatOptionsV1): string {
   const source = readClosedDataObjectV1(input, LIST_KEYS_V1);
   const locale = requiredLocale(source);
-  if (!isStringListValue(values)) {
-    throw new I18nErrorV1('INVALID_ARGUMENT');
-  }
+  const snapshot = snapshotStringListV1(values);
   const type = optionalEnum(source['type'], ['conjunction', 'disjunction', 'unit']);
   const style = optionalEnum(source['style'], ['long', 'narrow', 'short']);
-  return new Intl.ListFormat(locale, {
-    ...(type === undefined ? {} : { type }),
-    ...(style === undefined ? {} : { style }),
-  }).format(Array.from(values));
+  try {
+    return new Intl.ListFormat(locale, {
+      ...(type === undefined ? {} : { type }),
+      ...(style === undefined ? {} : { style }),
+    }).format(snapshot);
+  } catch {
+    throw new I18nErrorV1('INVALID_ARGUMENT');
+  }
 }
 
 export function formatRelativeTimeV1(

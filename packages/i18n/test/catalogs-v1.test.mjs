@@ -99,7 +99,8 @@ const REQUIRED_KEYS = Object.freeze([
   'error.sessionExpired',
   'retry.now',
   'retry.later',
-  'retry.afterSeconds',
+  'retry.afterSeconds.one',
+  'retry.afterSeconds.other',
   'module.folderAutopilot',
   'module.spreadsheetAuditor',
   'module.quoteIntelligence',
@@ -208,4 +209,20 @@ test('Vietnamese foundation copy is primary professional copy rather than an Eng
   assert.equal(MESSAGE_CATALOGS_V1['vi-VN']['role.approver'].message, 'Người phê duyệt');
   assert.match(MESSAGE_CATALOGS_V1['vi-VN']['dataMode.hybrid.description'].message, /dữ liệu/u);
   assert.equal(MESSAGE_CATALOGS_V1['vi-VN']['sync.complete'].message, 'Đồng bộ hoàn tất');
+  assert.equal(
+    MESSAGE_CATALOGS_V1['vi-VN']['approval.status.cancelled'].message,
+    'Yêu cầu đã bị hủy',
+  );
+  assert.match(
+    MESSAGE_CATALOGS_V1['vi-VN']['dataMode.local.description'].message,
+    /thiết bị đã được cấp quyền/u,
+  );
+  assert.match(
+    MESSAGE_CATALOGS_V1['vi-VN']['dataMode.cloud.description'].message,
+    /Dữ liệu gốc đã được phê duyệt/u,
+  );
+  assert.equal(
+    MESSAGE_CATALOGS_V1['vi-VN']['error.networkUnavailable'].message,
+    'Không có kết nối mạng. Các thay đổi được phép sẽ được lưu và đồng bộ sau.',
+  );
 });

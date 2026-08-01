@@ -4,27 +4,44 @@ import { readClosedDataObjectV1 } from './safe-input-v1.ts';
 
 const NEGOTIATION_KEYS_V1 = new Set(['acceptLanguage', 'userLocale']);
 const Q_VALUE_V1 = /^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/u;
-const LANGUAGE_TAG_V1 = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/u;
+const canonicalizeLocalesV1 = Intl.getCanonicalLocales.bind(Intl);
+const LocaleV1 = Intl.Locale;
+
+interface CanonicalRangeV1 {
+  readonly canonical: string;
+  readonly locale: SupportedLocaleV1;
+  readonly specificity: number;
+}
 
 interface CandidateV1 {
+  readonly canonical: string;
   readonly locale: SupportedLocaleV1 | '*';
   readonly quality: number;
   readonly order: number;
+  readonly specificity: number;
 }
 
-function supportedLocaleForTag(tag: string): SupportedLocaleV1 | undefined {
+function canonicalSupportedRange(tag: string): CanonicalRangeV1 | undefined {
   const trimmed = tag.trim();
-  if (!LANGUAGE_TAG_V1.test(trimmed)) {
+  if (trimmed === '' || trimmed.length > 255) {
     return undefined;
   }
-  const language = trimmed.split('-', 1)[0]?.toLowerCase();
-  if (language === 'vi') {
-    return 'vi-VN';
+
+  try {
+    const canonicalLocales = canonicalizeLocalesV1([trimmed]);
+    if (canonicalLocales.length !== 1 || canonicalLocales[0] === undefined) {
+      return undefined;
+    }
+    const canonical = canonicalLocales[0];
+    const language = new LocaleV1(canonical).language.toLowerCase();
+    const locale = language === 'vi' ? 'vi-VN' : language === 'en' ? 'en' : undefined;
+    if (locale === undefined) {
+      return undefined;
+    }
+    return { canonical, locale, specificity: canonical.split('-').length };
+  } catch {
+    return undefined;
   }
-  if (language === 'en') {
-    return 'en';
-  }
-  return undefined;
 }
 
 function parseCandidate(part: string, order: number): CandidateV1 | undefined {
@@ -32,7 +49,6 @@ function parseCandidate(part: string, order: number): CandidateV1 | undefined {
   if (sections.length > 2 || sections[0] === '') {
     return undefined;
   }
-  const tag = sections[0];
   let quality = 1;
   if (sections.length === 2) {
     const match = /^q=(.+)$/iu.exec(sections[1] ?? '');
@@ -41,11 +57,48 @@ function parseCandidate(part: string, order: number): CandidateV1 | undefined {
     }
     quality = Number(match[1]);
   }
-  if (tag === '*') {
-    return { locale: '*', quality, order };
+
+  if (sections[0] === '*') {
+    return { canonical: '*', locale: '*', quality, order, specificity: 0 };
   }
-  const locale = supportedLocaleForTag(tag ?? '');
-  return locale === undefined ? undefined : { locale, quality, order };
+  const range = canonicalSupportedRange(sections[0] ?? '');
+  return range === undefined ? undefined : { ...range, quality, order };
+}
+
+function consolidateDuplicateRanges(candidates: readonly CandidateV1[]): readonly CandidateV1[] {
+  const bestByRange = new Map<string, CandidateV1>();
+  for (const candidate of candidates) {
+    const key = candidate.locale === '*' ? '*' : candidate.canonical;
+    const current = bestByRange.get(key);
+    if (
+      current === undefined ||
+      candidate.quality > current.quality ||
+      (candidate.quality === current.quality && candidate.order < current.order)
+    ) {
+      bestByRange.set(key, candidate);
+    }
+  }
+  return [...bestByRange.values()];
+}
+
+function mostSpecificExplicit(
+  candidates: readonly CandidateV1[],
+  locale: SupportedLocaleV1,
+): CandidateV1 | undefined {
+  return candidates
+    .filter((candidate) => candidate.locale === locale)
+    .sort(
+      (left, right) =>
+        right.specificity - left.specificity ||
+        right.quality - left.quality ||
+        left.order - right.order,
+    )[0];
+}
+
+function bestWildcard(candidates: readonly CandidateV1[]): CandidateV1 | undefined {
+  return candidates
+    .filter((candidate) => candidate.locale === '*')
+    .sort((left, right) => right.quality - left.quality || left.order - right.order)[0];
 }
 
 function negotiateHeader(header: unknown): SupportedLocaleV1 {
@@ -53,47 +106,32 @@ function negotiateHeader(header: unknown): SupportedLocaleV1 {
     return DEFAULT_LOCALE_V1;
   }
 
-  const candidates = header
-    .split(',')
-    .slice(0, 64)
-    .map(parseCandidate)
-    .filter((candidate): candidate is CandidateV1 => candidate !== undefined);
-  const bestByLocale = new Map<SupportedLocaleV1 | '*', CandidateV1>();
-  for (const candidate of candidates) {
-    const current = bestByLocale.get(candidate.locale);
-    if (
-      current === undefined ||
-      candidate.quality > current.quality ||
-      (candidate.quality === current.quality && candidate.order < current.order)
-    ) {
-      bestByLocale.set(candidate.locale, candidate);
-    }
-  }
-
-  const excluded = new Set<SupportedLocaleV1>(
-    [...bestByLocale.values()]
-      .filter(
-        (candidate): candidate is CandidateV1 & { readonly locale: SupportedLocaleV1 } =>
-          candidate.locale !== '*' && candidate.quality === 0,
-      )
-      .map((candidate) => candidate.locale),
+  const candidates = consolidateDuplicateRanges(
+    header
+      .split(',')
+      .slice(0, 64)
+      .map(parseCandidate)
+      .filter((candidate): candidate is CandidateV1 => candidate !== undefined),
   );
-  const ranked = [...bestByLocale.values()]
-    .filter((candidate) => candidate.quality > 0)
-    .sort((left, right) => right.quality - left.quality || left.order - right.order);
-  for (const candidate of ranked) {
-    if (candidate.locale !== '*') {
-      if (!excluded.has(candidate.locale)) {
-        return candidate.locale;
-      }
-      continue;
-    }
-    const wildcardLocale = SUPPORTED_LOCALES_V1.find((locale) => !excluded.has(locale));
-    if (wildcardLocale !== undefined) {
-      return wildcardLocale;
-    }
-  }
-  return DEFAULT_LOCALE_V1;
+  const wildcard = bestWildcard(candidates);
+  const scores = SUPPORTED_LOCALES_V1.map((locale, localeOrder) => {
+    const explicit = mostSpecificExplicit(candidates, locale);
+    const candidate = explicit ?? wildcard;
+    return {
+      locale,
+      localeOrder,
+      quality: candidate?.quality ?? 0,
+      order: candidate?.order ?? Number.MAX_SAFE_INTEGER,
+    };
+  }).filter((score) => score.quality > 0);
+
+  scores.sort(
+    (left, right) =>
+      right.quality - left.quality ||
+      left.order - right.order ||
+      left.localeOrder - right.localeOrder,
+  );
+  return scores[0]?.locale ?? DEFAULT_LOCALE_V1;
 }
 
 export interface LocaleNegotiationInputV1 {
@@ -117,9 +155,9 @@ export function negotiateLocaleV1(input?: unknown): SupportedLocaleV1 {
   }
   const userLocale = negotiation['userLocale'];
   if (typeof userLocale === 'string') {
-    const preferred = supportedLocaleForTag(userLocale);
+    const preferred = canonicalSupportedRange(userLocale);
     if (preferred !== undefined) {
-      return preferred;
+      return preferred.locale;
     }
   }
   return negotiateHeader(negotiation['acceptLanguage']);

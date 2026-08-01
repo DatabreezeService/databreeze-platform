@@ -9,7 +9,7 @@ test('interpolates declared string and numeric parameters deterministically', as
     'Đã xảy ra lỗi. Mã đối chiếu: corr-123.',
   );
   assert.equal(
-    formatMessageV1('en', 'retry.afterSeconds', { seconds: 15 }),
+    formatMessageV1('en', 'retry.afterSeconds.other', { seconds: 15 }),
     'Try again in 15 seconds.',
   );
   assert.equal(
@@ -22,11 +22,11 @@ test('[WEB-021, NCO-017] requires every declared parameter and rejects extras', 
   const { formatMessageV1, I18nErrorV1 } = await import('../src/v1.ts');
 
   assert.throws(
-    () => formatMessageV1('en', 'retry.afterSeconds', {}),
+    () => formatMessageV1('en', 'retry.afterSeconds.other', {}),
     (error) => error instanceof I18nErrorV1 && error.code === 'MISSING_PARAMETER',
   );
   assert.throws(
-    () => formatMessageV1('en', 'retry.afterSeconds', { seconds: 2, undeclared: 'no' }),
+    () => formatMessageV1('en', 'retry.afterSeconds.other', { seconds: 2, undeclared: 'no' }),
     (error) => error instanceof I18nErrorV1 && error.code === 'EXTRA_PARAMETER',
   );
   assert.throws(
@@ -39,9 +39,12 @@ test('rejects wrong parameter types, non-finite numbers, missing keys, and unsup
   const { formatMessageV1, I18nErrorV1 } = await import('../src/v1.ts');
 
   const cases = [
-    [() => formatMessageV1('en', 'retry.afterSeconds', { seconds: '2' }), 'INVALID_PARAMETER'],
     [
-      () => formatMessageV1('en', 'retry.afterSeconds', { seconds: Number.NaN }),
+      () => formatMessageV1('en', 'retry.afterSeconds.other', { seconds: '2' }),
+      'INVALID_PARAMETER',
+    ],
+    [
+      () => formatMessageV1('en', 'retry.afterSeconds.other', { seconds: Number.NaN }),
       'INVALID_PARAMETER',
     ],
     [() => formatMessageV1('en', 'missing.key', {}), 'MISSING_MESSAGE'],
@@ -57,8 +60,8 @@ test('performs literal text interpolation without interpreting HTML', async () =
   const marker = '<strong>& customer</strong>';
 
   assert.equal(
-    formatMessageV1('en', 'error.genericWithCorrelationId', { correlationId: marker }),
-    `Something went wrong. Reference code: ${marker}.`,
+    formatMessageV1('en', 'sync.lastCompletedAt', { time: marker }),
+    `Last synchronized at ${marker}.`,
   );
 });
 
@@ -75,7 +78,7 @@ test('rejects accessor-backed parameter bags without invoking them', async () =>
   });
 
   assert.throws(
-    () => formatMessageV1('en', 'retry.afterSeconds', parameters),
+    () => formatMessageV1('en', 'retry.afterSeconds.other', parameters),
     (error) => error instanceof I18nErrorV1 && error.code === 'INVALID_ARGUMENT',
   );
   assert.equal(getterCalls, 0);

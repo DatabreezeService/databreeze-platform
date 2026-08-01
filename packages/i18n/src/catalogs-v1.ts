@@ -4,7 +4,7 @@ export const SUPPORTED_LOCALES_V1 = Object.freeze(['vi-VN', 'en'] as const);
 export type SupportedLocaleV1 = (typeof SUPPORTED_LOCALES_V1)[number];
 export const DEFAULT_LOCALE_V1: SupportedLocaleV1 = 'vi-VN';
 
-export type MessageParameterTypeV1 = 'number' | 'string';
+export type MessageParameterTypeV1 = 'identifier' | 'number' | 'text';
 
 export interface CatalogMessageV1 {
   readonly message: string;
@@ -61,7 +61,7 @@ const vietnameseCatalogV1 = {
   'scope.project': entry('Dự án'),
   'dataMode.local.label': entry('Cục bộ'),
   'dataMode.local.description': entry(
-    'Dữ liệu gốc ở lại trên thiết bị được cho phép; chỉ thông tin đã được chính sách cho phép mới đồng bộ.',
+    'Dữ liệu gốc được giữ trên thiết bị đã được cấp quyền; chỉ thông tin được chính sách cho phép mới được đồng bộ.',
   ),
   'dataMode.hybrid.label': entry('Kết hợp'),
   'dataMode.hybrid.description': entry(
@@ -69,7 +69,7 @@ const vietnameseCatalogV1 = {
   ),
   'dataMode.cloud.label': entry('Đám mây'),
   'dataMode.cloud.description': entry(
-    'Dữ liệu gốc được cho phép có thể lưu trữ và xử lý an toàn trên hạ tầng đám mây.',
+    'Dữ liệu gốc đã được phê duyệt có thể được lưu trữ và xử lý an toàn trên hạ tầng đám mây.',
   ),
   'job.status.created': entry('Đã tạo'),
   'job.status.queued': entry('Đang chờ xử lý'),
@@ -95,22 +95,22 @@ const vietnameseCatalogV1 = {
   'approval.status.rejected': entry('Đã từ chối'),
   'approval.status.expired': entry('Yêu cầu đã hết hạn'),
   'approval.status.invalidated': entry('Phê duyệt không còn hiệu lực'),
-  'approval.status.cancelled': entry('Yêu cầu đã hủy'),
-  'offline.available': entry('Có thể làm việc ngoại tuyến'),
+  'approval.status.cancelled': entry('Yêu cầu đã bị hủy'),
+  'offline.available': entry('Có thể sử dụng khi ngoại tuyến'),
   'offline.working': entry('Đang làm việc ngoại tuyến'),
   'offline.changesQueued': entry('Thay đổi đang chờ đồng bộ'),
   'offline.requiresConnection': entry('Thao tác này cần kết nối mạng'),
-  'sync.idle': entry('Chưa có thay đổi cần đồng bộ'),
+  'sync.idle': entry('Không có thay đổi cần đồng bộ'),
   'sync.inProgress': entry('Đang đồng bộ'),
   'sync.complete': entry('Đồng bộ hoàn tất'),
   'sync.paused': entry('Đã tạm dừng đồng bộ'),
   'sync.conflict': entry('Có xung đột cần xử lý'),
   'sync.failed': entry('Đồng bộ chưa thành công'),
   'sync.waitingForNetwork': entry('Đang chờ kết nối mạng'),
-  'sync.lastCompletedAt': entry('Đồng bộ gần nhất lúc {time}.', { time: 'string' }),
+  'sync.lastCompletedAt': entry('Đồng bộ gần nhất lúc {time}.', { time: 'text' }),
   'error.generic': entry('Đã xảy ra lỗi. Dữ liệu của bạn vẫn được giữ nguyên.'),
   'error.genericWithCorrelationId': entry('Đã xảy ra lỗi. Mã đối chiếu: {correlationId}.', {
-    correlationId: 'string',
+    correlationId: 'identifier',
   }),
   'error.invalidRequest': entry('Yêu cầu không hợp lệ. Hãy kiểm tra thông tin và thử lại.'),
   'error.unauthorized': entry('Phiên đăng nhập không hợp lệ. Hãy đăng nhập lại.'),
@@ -119,14 +119,17 @@ const vietnameseCatalogV1 = {
   'error.conflict': entry('Dữ liệu đã thay đổi. Hãy tải lại trước khi tiếp tục.'),
   'error.rateLimited': entry('Đang có quá nhiều yêu cầu. Hãy thử lại sau.'),
   'error.serviceUnavailable': entry(
-    'Dịch vụ tạm thời chưa sẵn sàng. Dữ liệu của bạn vẫn được giữ nguyên.',
+    'Dịch vụ tạm thời không khả dụng. Dữ liệu của bạn vẫn được giữ nguyên.',
   ),
-  'error.networkUnavailable': entry('Không có kết nối mạng. Thay đổi được phép sẽ chờ để đồng bộ.'),
-  'error.sourceOffline': entry('Thiết bị chứa dữ liệu gốc hiện không trực tuyến.'),
+  'error.networkUnavailable': entry(
+    'Không có kết nối mạng. Các thay đổi được phép sẽ được lưu và đồng bộ sau.',
+  ),
+  'error.sourceOffline': entry('Thiết bị chứa dữ liệu gốc hiện đang ngoại tuyến.'),
   'error.sessionExpired': entry('Phiên làm việc đã hết hạn. Hãy đăng nhập lại để tiếp tục.'),
   'retry.now': entry('Thử lại ngay'),
   'retry.later': entry('Hãy thử lại sau. Dữ liệu đã nhập vẫn được giữ nguyên.'),
-  'retry.afterSeconds': entry('Thử lại sau {seconds} giây.', { seconds: 'number' }),
+  'retry.afterSeconds.one': entry('Thử lại sau {seconds} giây.', { seconds: 'number' }),
+  'retry.afterSeconds.other': entry('Thử lại sau {seconds} giây.', { seconds: 'number' }),
   'module.folderAutopilot': entry('Folder Autopilot'),
   'module.spreadsheetAuditor': entry('Spreadsheet Auditor'),
   'module.quoteIntelligence': entry('Quote Intelligence'),
@@ -241,12 +244,12 @@ const englishCatalogV1: MessageCatalogV1 = {
   'sync.conflict': entry('Conflict needs attention'),
   'sync.failed': entry('Sync did not complete'),
   'sync.waitingForNetwork': entry('Waiting for a network connection'),
-  'sync.lastCompletedAt': entry('Last synchronized at {time}.', { time: 'string' }),
+  'sync.lastCompletedAt': entry('Last synchronized at {time}.', { time: 'text' }),
   'error.generic': entry('Something went wrong. Your data has been preserved.'),
   'error.genericWithCorrelationId': entry(
     'Something went wrong. Reference code: {correlationId}.',
     {
-      correlationId: 'string',
+      correlationId: 'identifier',
     },
   ),
   'error.invalidRequest': entry('The request is invalid. Check the information and try again.'),
@@ -265,7 +268,8 @@ const englishCatalogV1: MessageCatalogV1 = {
   'error.sessionExpired': entry('Your session expired. Sign in again to continue.'),
   'retry.now': entry('Try again now'),
   'retry.later': entry('Try again later. Your entered data has been preserved.'),
-  'retry.afterSeconds': entry('Try again in {seconds} seconds.', { seconds: 'number' }),
+  'retry.afterSeconds.one': entry('Try again in {seconds} second.', { seconds: 'number' }),
+  'retry.afterSeconds.other': entry('Try again in {seconds} seconds.', { seconds: 'number' }),
   'module.folderAutopilot': entry('Folder Autopilot'),
   'module.spreadsheetAuditor': entry('Spreadsheet Auditor'),
   'module.quoteIntelligence': entry('Quote Intelligence'),

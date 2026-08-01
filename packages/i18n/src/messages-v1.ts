@@ -8,16 +8,17 @@ import {
 import { I18nErrorV1 } from './errors-v1.ts';
 import { assertSupportedLocaleV1 } from './locale-v1.ts';
 import { readClosedDataObjectV1 } from './safe-input-v1.ts';
+import { sanitizeTextParameterV1 } from './text-v1.ts';
 
 const MESSAGE_KEY_SET_V1 = new Set<string>(MESSAGE_KEYS_V1);
 const PLACEHOLDER_V1 = /\{([A-Za-z][A-Za-z0-9]*)\}/gu;
 
-function assertParameterValue(type: MessageParameterTypeV1, value: unknown): void {
-  if (type === 'string' && typeof value === 'string') {
-    return;
-  }
+function normalizeParameterValue(type: MessageParameterTypeV1, value: unknown): number | string {
   if (type === 'number' && typeof value === 'number' && Number.isFinite(value)) {
-    return;
+    return value;
+  }
+  if (type === 'identifier' || type === 'text') {
+    return sanitizeTextParameterV1(value, type);
   }
   throw new I18nErrorV1('INVALID_PARAMETER');
 }
@@ -56,14 +57,31 @@ export function formatMessageV1(
     throw error;
   }
 
+  const normalizedParameters: Record<string, number | string> = Object.create(null) as Record<
+    string,
+    number | string
+  >;
   for (const parameterName of parameterNames) {
     if (!Object.hasOwn(safeParameters, parameterName)) {
       throw new I18nErrorV1('MISSING_PARAMETER');
     }
-    assertParameterValue(catalogMessage.parameters[parameterName]!, safeParameters[parameterName]);
+    normalizedParameters[parameterName] = normalizeParameterValue(
+      catalogMessage.parameters[parameterName]!,
+      safeParameters[parameterName],
+    );
   }
 
   return catalogMessage.message.replace(PLACEHOLDER_V1, (_placeholder, parameterName: string) =>
-    String(safeParameters[parameterName]),
+    String(normalizedParameters[parameterName]),
   );
+}
+
+export function formatRetryAfterSecondsV1(locale: SupportedLocaleV1, seconds: number): string {
+  assertSupportedLocaleV1(locale);
+  if (!Number.isFinite(seconds) || !Number.isSafeInteger(seconds) || seconds < 0) {
+    throw new I18nErrorV1('INVALID_NUMBER');
+  }
+  const category = new Intl.PluralRules(locale).select(seconds);
+  const key = category === 'one' ? 'retry.afterSeconds.one' : 'retry.afterSeconds.other';
+  return formatMessageV1(locale, key, { seconds });
 }

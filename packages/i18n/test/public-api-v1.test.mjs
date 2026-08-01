@@ -23,6 +23,7 @@ test('publishes the versioned bilingual foundation API', async () => {
   assert.deepEqual(api.SUPPORTED_LOCALES_V1, ['vi-VN', 'en']);
   assert.equal(typeof api.negotiateLocaleV1, 'function');
   assert.equal(typeof api.formatMessageV1, 'function');
+  assert.equal(typeof api.formatRetryAfterSecondsV1, 'function');
   assert.equal(typeof api.formatDateTimeV1, 'function');
   assert.equal(typeof api.formatDecimalV1, 'function');
   assert.equal(typeof api.formatCurrencyV1, 'function');
