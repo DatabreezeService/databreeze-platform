@@ -24,6 +24,7 @@ test('AWS foundation has reusable modules and safe alpha composition', () => {
   assert.match(variables, /enable_nat_gateway[\s\S]*default\s+=\s+false/);
   assert.match(variables, /enable_cloudfront[\s\S]*default\s+=\s+false/);
   assert.match(variables, /enable_ecs_services[\s\S]*default\s+=\s+false/);
+  assert.match(variables, /enable_database[\s\S]*default\s+=\s+false/);
   assert.match(variables, /backup_retention_period[\s\S]*default\s+=\s+1/);
 });
 

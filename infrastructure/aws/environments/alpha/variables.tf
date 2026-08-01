@@ -39,7 +39,8 @@ variable "enable_cloudfront" {
 
 variable "enable_database" {
   type    = bool
-  default = true
+  description = "Create managed RDS/ElastiCache resources; disabled by default to prevent accidental recurring spend."
+  default     = false
 }
 
 variable "enable_ecs_services" {
