@@ -5,7 +5,7 @@ import {
   type StableIdentifierV1,
   type StrictUtcTimestampV1,
   type TenantScopeV1,
-} from '../tenant-scope/v1.ts';
+} from '../tenant-scope/v1.js';
 
 /** IAM-001..IAM-021: pure identity, membership, session, and device invariants. */
 export const IDENTITY_SCHEMA_VERSION_V1 = 1 as const;

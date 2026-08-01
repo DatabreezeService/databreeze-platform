@@ -9,7 +9,7 @@ import {
   type InitialRoleIdV1,
   type PermissionV1,
   type ResourceTypeV1,
-} from '../permissions/v1.ts';
+} from '../permissions/v1.js';
 import {
   parseStableIdentifierV1,
   parseTenantScopeV1,
@@ -17,10 +17,10 @@ import {
   tenantScopesEqualV1,
   type StableIdentifierV1,
   type TenantScopeV1,
-} from '../tenant-scope/v1.ts';
+} from '../tenant-scope/v1.js';
 
-export { AUTHORIZATION_CHANNELS_V1 } from '../permissions/v1.ts';
-export type { AuthorizationChannelV1 } from '../permissions/v1.ts';
+export { AUTHORIZATION_CHANNELS_V1 } from '../permissions/v1.js';
+export type { AuthorizationChannelV1 } from '../permissions/v1.js';
 
 /** Partial foundation coverage: IAM-002, IAM-003, IAM-004, IAM-009, and IAM-019. */
 
