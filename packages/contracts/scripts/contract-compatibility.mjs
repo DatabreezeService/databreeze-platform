@@ -411,7 +411,7 @@ function readArguments(argumentsList) {
       options.approved = true;
     } else if (argument === '--root' || argument === '--version') {
       const value = argumentsList[index + 1];
-      if (!value) fail(`${argument} requires a value`);
+      if (!value || value.startsWith('--')) fail(`${argument} requires a value`);
       if (argument === '--root') options.root = resolve(value);
       else options.version = Number(value);
       index += 1;

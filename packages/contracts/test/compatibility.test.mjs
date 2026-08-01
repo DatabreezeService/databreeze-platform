@@ -18,11 +18,14 @@ const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const compatibilityScript = resolve(packageRoot, 'scripts/contract-compatibility.mjs');
 
 function runCompatibility(root, command, extraArguments = []) {
-  return spawnSync(
-    process.execPath,
-    [compatibilityScript, command, '--root', root, ...extraArguments],
-    { cwd: packageRoot, encoding: 'utf8' },
-  );
+  return runCompatibilityArguments(command, '--root', root, ...extraArguments);
+}
+
+function runCompatibilityArguments(...argumentsList) {
+  return spawnSync(process.execPath, [compatibilityScript, ...argumentsList], {
+    cwd: packageRoot,
+    encoding: 'utf8',
+  });
 }
 
 function withPackageCopy(callback) {
@@ -40,6 +43,20 @@ test('the checked-in published v1 compatibility baseline accepts unchanged contr
   const run = runCompatibility(packageRoot, 'check');
   assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
   assert.match(run.stdout, /Published contract compatibility baseline is unchanged/u);
+});
+
+test('compatibility options reject another flag where a value is required', () => {
+  for (const { argumentsList, option } of [
+    { argumentsList: ['check', '--root', '--version', '2'], option: '--root' },
+    {
+      argumentsList: ['update', '--root', packageRoot, '--version', '--approve-new-version'],
+      option: '--version',
+    },
+  ]) {
+    const run = runCompatibilityArguments(...argumentsList);
+    assert.equal(run.status, 1, `${run.stdout}\n${run.stderr}`);
+    assert.match(run.stderr, new RegExp(`${option} requires a value`, 'u'));
+  }
 });
 
 test('compatibility check rejects a missing published schema', () => {
