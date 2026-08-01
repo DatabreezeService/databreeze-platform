@@ -1,15 +1,18 @@
 # Telemetry Contracts
 
 `@databreeze/telemetry/v1` is the content-safe observability boundary shared by
-the Web, API, Desktop, Android, and Python engine adapters. It deliberately has
-no logging or OpenTelemetry SDK dependency. Runtime adapters own exporting;
-this package owns the allowlist, correlation propagation, bounded values, and
+the Web, API, Desktop, Android, and Python engine adapters. The canonical
+record/allowlist schema is [`schemas/v1.json`](./schemas/v1.json); parity tests
+keep the Kotlin and Python mirrors aligned. The package deliberately has no
+logging or OpenTelemetry SDK dependency. Runtime adapters own exporting; this
+package owns the allowlist, correlation propagation, bounded values, and
 redaction behavior.
 
-Allowed attributes are identifiers, bounded counts/durations, outcomes, route
-names, versions, and reason/error codes. Unknown keys are dropped. Sensitive
-keys (tokens, secrets, paths, filenames, source values, prompts, evidence, and
-content) are rejected by the strict assertion helper and never serialized.
+Allowed attributes are opaque identifiers, bounded numeric counts/durations,
+controlled outcome/route/version/reason tokens, and a boolean sampling flag.
+Unknown keys are dropped. Sensitive keys and values (tokens, secrets, paths,
+filenames, source values, prompts, evidence, contact data, and content) are
+rejected by the strict assertion helper and never serialized.
 
 Use `createStructuredLoggerV1` at runtime boundaries and pass only the
 correlation headers produced by `correlationHeadersV1`. A logger sink receives

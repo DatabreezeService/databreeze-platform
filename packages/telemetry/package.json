@@ -7,8 +7,13 @@
     "./v1": {
       "types": "./dist/v1.d.ts",
       "import": "./dist/v1.js"
-    }
+    },
+    "./schema/v1": "./schemas/v1.json"
   },
+  "files": [
+    "dist",
+    "schemas"
+  ],
   "scripts": {
     "build": "tsc --project tsconfig.build.json && node test/built-public-api-smoke.mjs",
     "test": "node --test test/**/*.test.mjs",

@@ -10,6 +10,7 @@ export interface CorrelationContextV1 {
   correlationId: string;
   traceId?: string;
   spanId?: string;
+  traceFlags?: string;
 }
 
 export interface SafeTelemetryAttributesV1 {
@@ -23,6 +24,9 @@ export interface TelemetryRecordV1 {
   event: string;
   component: string;
   correlationId: string;
+  traceId?: string;
+  spanId?: string;
+  traceFlags?: string;
   attributes: SafeTelemetryAttributesV1;
 }
 
@@ -32,6 +36,7 @@ export interface StructuredLoggerOptionsV1 {
   clock?: () => Date;
 }
 
+/** The canonical list is mirrored by the Python and Kotlin adapters and checked in CI. */
 export const SAFE_ATTRIBUTE_KEYS_V1 = Object.freeze([
   'organizationId',
   'workspaceId',
@@ -64,15 +69,56 @@ export const SAFE_ATTRIBUTE_KEYS_V1 = Object.freeze([
   'sampled',
 ] as const);
 
+export type TelemetryAttributeKeyV1 = (typeof SAFE_ATTRIBUTE_KEYS_V1)[number];
+
 const safeAttributeSet = new Set<string>(SAFE_ATTRIBUTE_KEYS_V1);
+const identifierAttributeSet = new Set<string>([
+  'organizationId',
+  'workspaceId',
+  'projectId',
+  'principalId',
+  'deviceId',
+  'jobId',
+  'attemptId',
+  'artifactId',
+  'artifactVersionId',
+  'datasetId',
+  'datasetVersionId',
+]);
+const numericAttributeSet = new Set<string>([
+  'durationMs',
+  'queueDelayMs',
+  'retryCount',
+  'itemCount',
+  'byteCount',
+  'redactedCount',
+]);
+const tokenAttributeSet = new Set<string>([
+  'processorVersion',
+  'protocolVersion',
+  'operation',
+  'outcome',
+  'reasonCode',
+  'errorCode',
+  'providerCode',
+  'mode',
+  'dataClass',
+]);
 const forbiddenKeyPattern =
   /(secret|token|password|credential|private.?key|authorization|cookie|path|filename|file.?name|content|payload|body|value|prompt|question|evidence|snippet|formula|transcript|voice|email|phone|address|comment)/iu;
+const unsafeStringPattern =
+  /(?:[\\/]|^[a-z]:|:\/\/|[@]|\.(?:xlsx?|csv|pdf|docx?|pptx?|png|jpe?g|gif|zip|json|xml|parquet|txt|log|db|sqlite|avro|orc)$)/iu;
+const tokenPattern = /^(?=.*[A-Za-z])[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
+const routePattern = /^\/?[A-Za-z0-9._~/-]{1,255}$/u;
 const correlationIdPattern =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
-const traceIdPattern = /^[0-9a-f]{32}$/iu;
-const spanIdPattern = /^[0-9a-f]{16}$/iu;
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+const traceIdPattern = /^(?!0{32}$)[0-9a-f]{32}$/iu;
+const spanIdPattern = /^(?!0{16}$)[0-9a-f]{16}$/iu;
+const traceFlagsPattern = /^[0-9a-f]{2}$/iu;
+const traceParentPattern = /^([0-9a-f]{2})-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/iu;
 const eventPattern = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,7}$/u;
 const componentPattern = /^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,5}$/u;
+const levelSet = new Set<TelemetryLevelV1>(['debug', 'info', 'warn', 'error']);
 const maxStringLength = 256;
 
 export class UnsafeTelemetryAttributeErrorV1 extends Error {
@@ -91,15 +137,33 @@ function assertBoundedKey(key: string): void {
   }
 }
 
-function safeScalar(key: string, value: unknown): TelemetryScalarV1 | undefined {
-  if (typeof value === 'boolean') return value;
-  if (typeof value === 'number')
-    return Number.isFinite(value) && Math.abs(value) <= 1e15 ? value : undefined;
-  if (typeof value !== 'string' || value.length > maxStringLength) return undefined;
-  if (forbiddenKeyPattern.test(key)) throw new UnsafeTelemetryAttributeErrorV1(key);
-  if (/[/\\]/u.test(value) && /(id|route|operation|reasonCode|errorCode|providerCode)/u.test(key))
+function safeNumber(value: unknown): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value) || Math.abs(value) > 1e15) {
     return undefined;
+  }
   return value;
+}
+
+function containsControlCharacter(value: string): boolean {
+  return [...value].some((character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 0x1f || codePoint === 0x7f;
+  });
+}
+
+function safeString(key: string, value: string): string | undefined {
+  if (value.length > maxStringLength || containsControlCharacter(value)) return undefined;
+  if (unsafeStringPattern.test(value)) return undefined;
+  if (key === 'route') return routePattern.test(value) ? value : undefined;
+  if (!identifierAttributeSet.has(key) && !tokenAttributeSet.has(key)) return undefined;
+  return tokenPattern.test(value) ? value : undefined;
+}
+
+function safeScalar(key: string, value: unknown): TelemetryScalarV1 | undefined {
+  if (key === 'sampled') return typeof value === 'boolean' ? value : undefined;
+  if (numericAttributeSet.has(key) || key === 'status') return safeNumber(value);
+  if (typeof value !== 'string') return undefined;
+  return safeString(key, value);
 }
 
 export function sanitizeTelemetryAttributesV1(
@@ -124,8 +188,9 @@ export function assertSafeTelemetryAttributesV1(
     if (forbiddenKeyPattern.test(key) || !safeAttributeSet.has(key)) {
       throw new UnsafeTelemetryAttributeErrorV1(key);
     }
-    const scalar = safeScalar(key, input[key]);
-    if (scalar === undefined) throw new UnsafeTelemetryAttributeErrorV1(key);
+    if (safeScalar(key, input[key]) === undefined) {
+      throw new UnsafeTelemetryAttributeErrorV1(key);
+    }
   }
 }
 
@@ -134,18 +199,35 @@ function assertCorrelationId(value: string): string {
   return value.toLowerCase();
 }
 
+function assertTraceId(value: string): string {
+  if (!traceIdPattern.test(value)) throw new Error('Invalid telemetry trace ID');
+  return value.toLowerCase();
+}
+
+function assertSpanId(value: string): string {
+  if (!spanIdPattern.test(value)) throw new Error('Invalid telemetry span ID');
+  return value.toLowerCase();
+}
+
+function assertTraceFlags(value: string): string {
+  if (!traceFlagsPattern.test(value)) throw new Error('Invalid telemetry trace flags');
+  return value.toLowerCase();
+}
+
 export function createCorrelationContextV1(
   input: Partial<CorrelationContextV1> = {},
 ): CorrelationContextV1 {
   const correlationId = input.correlationId ?? globalThis.crypto.randomUUID();
   const context: CorrelationContextV1 = { correlationId: assertCorrelationId(correlationId) };
-  if (input.traceId !== undefined) {
-    if (!traceIdPattern.test(input.traceId)) throw new Error('Invalid telemetry trace ID');
-    context.traceId = input.traceId.toLowerCase();
-  }
-  if (input.spanId !== undefined) {
-    if (!spanIdPattern.test(input.spanId)) throw new Error('Invalid telemetry span ID');
-    context.spanId = input.spanId.toLowerCase();
+  const hasTraceId = input.traceId !== undefined;
+  const hasSpanId = input.spanId !== undefined;
+  if (hasTraceId !== hasSpanId) throw new Error('Trace and span IDs must be supplied together');
+  if (hasTraceId && hasSpanId) {
+    context.traceId = assertTraceId(input.traceId as string);
+    context.spanId = assertSpanId(input.spanId as string);
+    context.traceFlags = assertTraceFlags(input.traceFlags ?? '01');
+  } else if (input.traceFlags !== undefined) {
+    throw new Error('Trace flags require trace and span IDs');
   }
   return context;
 }
@@ -156,26 +238,52 @@ export function correlationHeadersV1(context: CorrelationContextV1): Record<stri
     [OTEL_CORRELATION_HEADER_V1]: normalized.correlationId,
   };
   if (normalized.traceId && normalized.spanId) {
-    headers[OTEL_TRACEPARENT_HEADER_V1] = `00-${normalized.traceId}-${normalized.spanId}-01`;
+    headers[OTEL_TRACEPARENT_HEADER_V1] =
+      `00-${normalized.traceId}-${normalized.spanId}-${normalized.traceFlags ?? '01'}`;
   }
   return headers;
+}
+
+function readSingleHeader(
+  headers: Record<string, string | string[] | undefined>,
+  name: string,
+): string | undefined {
+  const values: string[] = [];
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() !== name) continue;
+    if (Array.isArray(value)) values.push(...value);
+    else if (value !== undefined) values.push(value);
+  }
+  if (values.length > 1) throw new Error(`Ambiguous telemetry ${name} header`);
+  if (values.length === 0) return undefined;
+  const value = values[0];
+  if (!value) throw new Error(`Empty telemetry ${name} header`);
+  return value;
 }
 
 export function correlationFromHeadersV1(
   headers: Record<string, string | string[] | undefined>,
 ): CorrelationContextV1 {
-  const correlationHeader =
-    headers[OTEL_CORRELATION_HEADER_V1] ?? headers[OTEL_CORRELATION_HEADER_V1.toUpperCase()];
-  const correlationId = Array.isArray(correlationHeader) ? correlationHeader[0] : correlationHeader;
+  const correlationId = readSingleHeader(headers, OTEL_CORRELATION_HEADER_V1);
   if (!correlationId) throw new Error('Missing telemetry correlation ID');
-  const traceParent =
-    headers[OTEL_TRACEPARENT_HEADER_V1] ?? headers[OTEL_TRACEPARENT_HEADER_V1.toUpperCase()];
-  const traceParentValue = Array.isArray(traceParent) ? traceParent[0] : traceParent;
-  const match = traceParentValue?.match(/^00-([0-9a-f]{32})-([0-9a-f]{16})-[0-9a-f]{2}$/iu);
-  const context: Partial<CorrelationContextV1> = { correlationId };
-  if (match?.[1]) context.traceId = match[1];
-  if (match?.[2]) context.spanId = match[2];
-  return createCorrelationContextV1(context);
+  const traceParent = readSingleHeader(headers, OTEL_TRACEPARENT_HEADER_V1);
+  if (traceParent === undefined) return createCorrelationContextV1({ correlationId });
+  const match = traceParent.match(traceParentPattern);
+  if (!match || match[1]?.toLowerCase() === 'ff') {
+    throw new Error('Invalid telemetry traceparent');
+  }
+  const traceId = match[2];
+  const spanId = match[3];
+  const traceFlags = match[4];
+  if (traceId === undefined || spanId === undefined || traceFlags === undefined) {
+    throw new Error('Invalid telemetry traceparent');
+  }
+  return createCorrelationContextV1({
+    correlationId,
+    traceId,
+    spanId,
+    traceFlags,
+  });
 }
 
 export function createStructuredLoggerV1(options: StructuredLoggerOptionsV1) {
@@ -189,16 +297,23 @@ export function createStructuredLoggerV1(options: StructuredLoggerOptionsV1) {
       correlation: CorrelationContextV1,
       attributes: Record<string, unknown> = {},
     ): TelemetryRecordV1 {
+      if (!levelSet.has(level)) throw new Error('Invalid telemetry level');
       if (!eventPattern.test(event)) throw new Error('Invalid telemetry event');
+      const normalized = createCorrelationContextV1(correlation);
       const record: TelemetryRecordV1 = {
         schemaVersion: TELEMETRY_SCHEMA_VERSION_V1,
         timestamp: clock().toISOString(),
         level,
         event,
         component: options.component,
-        correlationId: assertCorrelationId(correlation.correlationId),
+        correlationId: normalized.correlationId,
         attributes: sanitizeTelemetryAttributesV1(attributes),
       };
+      if (normalized.traceId && normalized.spanId) {
+        record.traceId = normalized.traceId;
+        record.spanId = normalized.spanId;
+        if (normalized.traceFlags !== undefined) record.traceFlags = normalized.traceFlags;
+      }
       sink(record);
       return record;
     },

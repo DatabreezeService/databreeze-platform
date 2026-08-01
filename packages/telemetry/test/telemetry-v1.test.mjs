@@ -32,9 +32,23 @@ test('strict assertions reject secrets, paths, content, and unbounded values', (
     { path: 'C:\\Users\\someone\\source.xlsx' },
     { outcome: 'x'.repeat(257) },
     { sourceValue: '42' },
+    { status: 'C:\\Users\\someone\\source.xlsx' },
+    { outcome: 'customer@example.com' },
+    { reasonCode: 'invoice total 123' },
+    { dataClass: 'source.xlsx' },
   ]) {
     assert.throws(() => assertSafeTelemetryAttributesV1(input), UnsafeTelemetryAttributeErrorV1);
   }
+  assert.deepEqual(
+    sanitizeTelemetryAttributesV1({
+      path: 'C:\\private\\file.xlsx',
+      status: 'C:\\private\\file.xlsx',
+      outcome: 'customer@example.com',
+      reasonCode: 'invoice total 123',
+      dataClass: 'source.xlsx',
+    }),
+    {},
+  );
   assert.deepEqual(
     sanitizeTelemetryAttributesV1({ path: 'C:\\private\\file.xlsx', outcome: 'failed' }),
     { outcome: 'failed' },
@@ -46,11 +60,65 @@ test('correlation headers round-trip without accepting malformed identifiers', (
     correlationId,
     traceId: '0123456789abcdef0123456789abcdef',
     spanId: '0123456789abcdef',
+    traceFlags: '01',
   });
   const headers = correlationHeadersV1(context);
   assert.deepEqual(correlationFromHeadersV1(headers), context);
   assert.throws(() => createCorrelationContextV1({ correlationId: 'not-a-uuid' }));
+  assert.throws(() =>
+    createCorrelationContextV1({
+      correlationId,
+      traceId: '0'.repeat(32),
+      spanId: '0123456789abcdef',
+    }),
+  );
+  assert.throws(() =>
+    createCorrelationContextV1({
+      correlationId,
+      traceId: '0123456789abcdef0123456789abcdef',
+      spanId: '0'.repeat(16),
+    }),
+  );
+  assert.throws(() =>
+    createCorrelationContextV1({
+      correlationId,
+      traceId: '0123456789abcdef0123456789abcdef',
+      spanId: '0123456789abcdef',
+      traceFlags: 'zz',
+    }),
+  );
   assert.throws(() => correlationFromHeadersV1({}));
+  assert.throws(() =>
+    correlationFromHeadersV1({ 'x-correlation-id': [correlationId, correlationId] }),
+  );
+  assert.throws(() =>
+    correlationFromHeadersV1({
+      'x-correlation-id': correlationId,
+      traceparent: [
+        '00-0123456789abcdef0123456789abcdef-0123456789abcdef-01',
+        '00-0123456789abcdef0123456789abcdef-0123456789abcdef-01',
+      ],
+    }),
+  );
+  assert.deepEqual(
+    correlationFromHeadersV1({
+      'X-Correlation-Id': correlationId,
+      TrAcEpArEnT: '00-0123456789abcdef0123456789abcdef-0123456789abcdef-01',
+    }),
+    context,
+  );
+  assert.throws(() =>
+    correlationFromHeadersV1({
+      'x-correlation-id': correlationId,
+      traceparent: '00-00000000000000000000000000000000-0123456789abcdef-01',
+    }),
+  );
+  assert.throws(() =>
+    correlationFromHeadersV1({
+      'x-correlation-id': correlationId,
+      traceparent: '00-0123456789abcdef0123456789abcdef-0123456789abcdef-zz',
+    }),
+  );
 });
 
 test('structured logger emits a stable record and never forwards unknown attributes', () => {
@@ -70,4 +138,22 @@ test('structured logger emits a stable record and never forwards unknown attribu
   assert.equal(record.schemaVersion, 1);
   assert.equal(record.timestamp, '2026-01-01T00:00:00.000Z');
   assert.deepEqual(record.attributes, { status: 200 });
+});
+
+test('structured logger carries normalized trace context into the record', () => {
+  const logger = createStructuredLoggerV1({ component: 'api', sink: () => undefined });
+  const record = logger.emit(
+    'info',
+    'request.completed',
+    {
+      correlationId,
+      traceId: '0123456789abcdef0123456789abcdef',
+      spanId: '0123456789abcdef',
+      traceFlags: '00',
+    },
+    {},
+  );
+  assert.equal(record.traceId, '0123456789abcdef0123456789abcdef');
+  assert.equal(record.spanId, '0123456789abcdef');
+  assert.equal(record.traceFlags, '00');
 });
