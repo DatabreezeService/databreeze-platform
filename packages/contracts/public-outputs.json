@@ -1,0 +1,26 @@
+{
+  "inventoryFormat": 1,
+  "versions": [
+    {
+      "contractVersion": 1,
+      "generatedFiles": [
+        "generated/kotlin/src/main/kotlin/com/databreeze/contracts/v1/Models.kt",
+        "generated/kotlin/src/main/kotlin/com/databreeze/contracts/v1/Validation.kt",
+        "generated/python/databreeze_contracts/__init__.py",
+        "generated/python/databreeze_contracts/py.typed",
+        "generated/python/databreeze_contracts/v1/__init__.py",
+        "generated/python/databreeze_contracts/v1/_validation.py",
+        "generated/python/databreeze_contracts/v1/models.py",
+        "generated/python/pyproject.toml",
+        "generated/typescript/v1/index.ts",
+        "generated/typescript/v1/validation.mjs"
+      ],
+      "jsonSurfaces": [
+        {
+          "path": "package.json",
+          "pointers": ["/dependencies", "/exports", "/name"]
+        }
+      ]
+    }
+  ]
+}

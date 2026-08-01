@@ -30,6 +30,7 @@ htmlcov/
 
 # Gradle and Android
 .gradle/
+.kotlin/
 **/build/
 local.properties
 *.apk

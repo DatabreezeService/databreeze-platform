@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/command-envelope",
+  "$comment": "Partial foundation coverage for INT-004 and IAM-019.",
+  "title": "Idempotent Command Envelope",
+  "description": "The shared closed envelope for an idempotent, tenant-scoped command.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "commandId",
+    "commandType",
+    "schemaVersion",
+    "tenantScope",
+    "actor",
+    "correlation",
+    "issuedAt",
+    "idempotencyKey",
+    "data"
+  ],
+  "properties": {
+    "commandId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "commandType": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z][a-z0-9_-]*)+$"
+    },
+    "schemaVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "tenantScope": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/tenant-scope"
+    },
+    "actor": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/actor-metadata"
+    },
+    "correlation": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/correlation-metadata"
+    },
+    "issuedAt": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "data": {
+      "type": "object"
+    }
+  }
+}

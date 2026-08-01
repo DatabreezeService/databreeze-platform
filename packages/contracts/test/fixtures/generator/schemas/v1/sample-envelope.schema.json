@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.example.test/contracts/v1/sample-envelope",
+  "title": "Sample Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "id", "data"],
+  "properties": {
+    "labels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "kind": {
+      "const": "sample"
+    },
+    "id": {
+      "$ref": "https://schemas.example.test/contracts/v1/alpha"
+    },
+    "data": {
+      "type": "object"
+    }
+  }
+}

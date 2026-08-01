@@ -1,0 +1,41 @@
+{
+  "name": "@databreeze/platform",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.18.0",
+  "engines": {
+    "node": "24.17.0",
+    "pnpm": "11.18.0"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.17.0",
+      "onFail": "download"
+    }
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "contracts:check": "corepack pnpm --filter @databreeze/contracts contract:check",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . && node tools/repo-cli/src/check-dependency-boundaries.mjs",
+    "repo:bootstrap": "corepack pnpm install --frozen-lockfile",
+    "repo:build": "corepack pnpm build",
+    "repo:check": "corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm requirements:check && corepack pnpm contracts:check && corepack pnpm test",
+    "repo:dev": "turbo run dev --parallel",
+    "repo:test": "corepack pnpm test",
+    "requirements:check": "node tools/repo-cli/src/generate-requirement-index.mjs --check",
+    "requirements:generate": "node tools/repo-cli/src/generate-requirement-index.mjs",
+    "test": "node --test tools/repo-cli/test/**/*.test.mjs && turbo run test",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.36.0",
+    "eslint": "9.36.0",
+    "prettier": "3.6.2",
+    "turbo": "2.5.6",
+    "typescript": "5.9.2",
+    "typescript-eslint": "8.43.0"
+  }
+}

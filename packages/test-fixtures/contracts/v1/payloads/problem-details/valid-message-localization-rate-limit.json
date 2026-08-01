@@ -1,0 +1,15 @@
+{
+  "type": "https://api.databreeze.dev/problems/rate-limit-exceeded",
+  "messageKey": "errors.rateLimitExceeded",
+  "status": 429,
+  "code": "RATE_LIMIT_EXCEEDED",
+  "correlationId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc05",
+  "retryable": true,
+  "retryAfterSeconds": 30,
+  "rateLimit": {
+    "scope": "principal",
+    "limit": 100,
+    "remaining": 0,
+    "resetAt": "2026-08-01T01:31:00Z"
+  }
+}

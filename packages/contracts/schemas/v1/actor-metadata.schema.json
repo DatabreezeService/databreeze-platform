@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/actor-metadata",
+  "$comment": "Shared actor identity metadata used by commands and events; supports AUD-004.",
+  "title": "Actor Metadata",
+  "description": "The stable type and identifier of the principal responsible for an action.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["actorType", "actorId"],
+  "properties": {
+    "actorType": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,62}$"
+    },
+    "actorId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    }
+  }
+}

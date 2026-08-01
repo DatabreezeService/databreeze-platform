@@ -1,0 +1,9 @@
+.github/workflows/README.md
+.superpowers/
+AGENTS.md
+README.md
+docs/
+**/README.md
+pnpm-lock.yaml
+packages/contracts/generated/
+packages/design-tokens/brand/derivatives.json

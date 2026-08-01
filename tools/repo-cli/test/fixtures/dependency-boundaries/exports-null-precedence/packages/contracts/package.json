@@ -1,0 +1,11 @@
+{
+  "name": "@fixture/contracts",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts",
+    "./blocked": null,
+    "./features/*": "./src/features/*.ts",
+    "./features/private/*": null
+  }
+}
