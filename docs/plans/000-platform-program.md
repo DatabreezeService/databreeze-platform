@@ -58,4 +58,4 @@ Child plans are written and approved before their product slice begins. Each nam
 - Vietnamese and English user-facing copy are complete for the delivered slice.
 - Relevant unit, integration, contract, end-to-end, security, accessibility, recovery, and performance tests pass.
 - Migrations, observability, operations, rollback, and release evidence are present.
-- No critical or high security finding remains unresolved for a production release.
+- No critical- or high-severity security finding remains unresolved for a production release.
