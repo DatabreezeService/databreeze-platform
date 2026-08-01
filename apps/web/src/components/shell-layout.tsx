@@ -97,7 +97,6 @@ export function ShellLayout({ accessContext }: { readonly accessContext: WebAcce
             onSubmit={handleSearch}
             role="search"
           >
-            <SearchIcon />
             <label className="sr-only" htmlFor="global-search-input">
               {appMessage(locale, 'search.label')}
             </label>
@@ -107,9 +106,15 @@ export function ShellLayout({ accessContext }: { readonly accessContext: WebAcce
               placeholder={appMessage(locale, 'search.placeholder')}
               type="search"
             />
-            <button className="sr-only" type="submit">
-              {formatMessageV1(locale, 'action.search')}
-            </button>
+            <Button
+              aria-label={formatMessageV1(locale, 'action.search')}
+              className="search-submit"
+              type="submit"
+              variant="secondary"
+            >
+              <SearchIcon />
+              <span>{formatMessageV1(locale, 'action.search')}</span>
+            </Button>
           </form>
           <div className="topbar__actions">
             <Link className="locale-link" to={alternatePath}>
@@ -144,18 +149,20 @@ export function ShellLayout({ accessContext }: { readonly accessContext: WebAcce
           ) : null}
         </header>
         <aside className="context-rail" aria-label={formatMessageV1(locale, 'scope.workspace')}>
-          <button type="button">
-            <span>{formatMessageV1(locale, 'scope.organization')}</span>
-            <strong>{appMessage(locale, 'context.organization')}</strong>
-          </button>
-          <button type="button">
-            <span>{formatMessageV1(locale, 'scope.workspace')}</span>
-            <strong>{appMessage(locale, 'context.workspace')}</strong>
-          </button>
-          <button type="button">
-            <span>{formatMessageV1(locale, 'scope.project')}</span>
-            <strong>{appMessage(locale, 'context.project')}</strong>
-          </button>
+          <dl>
+            <div className="context-rail__item">
+              <dt>{formatMessageV1(locale, 'scope.organization')}</dt>
+              <dd>{appMessage(locale, 'context.organization')}</dd>
+            </div>
+            <div className="context-rail__item">
+              <dt>{formatMessageV1(locale, 'scope.workspace')}</dt>
+              <dd>{appMessage(locale, 'context.workspace')}</dd>
+            </div>
+            <div className="context-rail__item">
+              <dt>{formatMessageV1(locale, 'scope.project')}</dt>
+              <dd>{appMessage(locale, 'context.project')}</dd>
+            </div>
+          </dl>
         </aside>
         <nav
           aria-label={appMessage(locale, 'nav.label')}

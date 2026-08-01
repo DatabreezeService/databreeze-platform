@@ -1,12 +1,16 @@
 import { PERMISSIONS_V1 } from '@databreeze/domain/permissions/v1';
 import { Button, Status } from '@databreeze/ui/v1';
+import { useNavigate } from 'react-router-dom';
 import { appMessage } from '../app/messages.ts';
 import type { WebAccessContext } from '../app/navigation.ts';
 import { useLocale } from '../app/locale-context.tsx';
 
 export function WorkspaceHome({ accessContext }: { readonly accessContext: WebAccessContext }) {
   const locale = useLocale();
-  const mayCreateJob = accessContext.permissions.includes(PERMISSIONS_V1.JOB_EXECUTION_CREATE);
+  const navigate = useNavigate();
+  const mayCreateJob =
+    accessContext.permissions.includes(PERMISSIONS_V1.JOB_EXECUTION_CREATE) &&
+    accessContext.entitlements.includes('automation');
   return (
     <section aria-labelledby="workspace-heading" className="work-surface">
       <div className="work-surface__heading">
@@ -16,6 +20,9 @@ export function WorkspaceHome({ accessContext }: { readonly accessContext: WebAc
         </div>
         <Button
           disabled={!mayCreateJob}
+          onClick={() => {
+            void navigate(`/${locale}/jobs`);
+          }}
           title={!mayCreateJob ? appMessage(locale, 'access.restricted') : undefined}
         >
           {appMessage(locale, 'home.action')}

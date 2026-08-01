@@ -101,6 +101,10 @@ a {
   background: transparent;
   font-size: var(--db-typography-font-size-label);
 }
+.search-submit {
+  flex: 0 0 auto;
+  gap: var(--db-spacing-2);
+}
 .topbar__actions {
   display: flex;
   justify-content: flex-end;
@@ -151,27 +155,27 @@ a {
   border-bottom: 1px solid var(--db-color-border);
   background: var(--db-color-surface-strong);
 }
-.context-rail button {
+.context-rail dl {
+  display: flex;
+  gap: 1px;
+  margin: 0;
+}
+.context-rail__item {
   min-height: var(--db-sizing-control-minimum);
   display: flex;
   align-items: baseline;
   gap: var(--db-spacing-2);
   padding: var(--db-spacing-2) var(--db-spacing-3);
-  border: 0;
-  border-radius: var(--db-radius-medium);
   color: var(--db-color-text);
-  background: transparent;
-  cursor: pointer;
 }
-.context-rail button:hover {
-  background: var(--db-color-background);
-}
-.context-rail span {
+.context-rail dt {
   color: var(--db-color-text-muted);
   font-size: var(--db-typography-font-size-caption);
 }
-.context-rail strong {
+.context-rail dd {
+  margin: 0;
   font-size: var(--db-typography-font-size-label);
+  font-weight: var(--db-typography-font-weight-semibold);
 }
 .primary-navigation {
   grid-area: nav;
@@ -335,7 +339,7 @@ td:first-child {
     overflow-x: auto;
     padding-inline: var(--db-spacing-4);
   }
-  .context-rail button {
+  .context-rail__item {
     flex: 0 0 auto;
     display: grid;
     gap: 0;

@@ -18,11 +18,12 @@ describe('safe localized recovery', () => {
     consoleError.mockRestore();
   });
 
-  it('catches application-level render failures with safe English recovery', () => {
+  it('derives English application recovery from the canonical router path', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const router = createAppRouter({ initialEntries: ['/en/workspace'] });
 
     render(
-      <ApplicationBoundary locale="en">
+      <ApplicationBoundary router={router}>
         <Crash />
       </ApplicationBoundary>,
     );

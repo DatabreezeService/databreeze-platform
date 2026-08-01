@@ -5,7 +5,8 @@
 Implemented the governed React 19/Vite Web shell on `feat/web-shell` with React Router,
 TanStack Query, Tailwind, shared DataBreeze design tokens/UI primitives, complete shell copy for
 `vi-VN` and `en`, canonical locale routes, responsive authenticated-navigation placeholders,
-safe route/application recovery, CSP/referrer metadata, Vitest/Testing Library coverage,
+safe route/application recovery, canonical development/preview security response headers,
+Vitest/Testing Library coverage,
 Playwright desktop/mobile smoke coverage, and an automated 250 KiB gzip JavaScript budget.
 
 The shell uses only generated checksum-protected brand derivatives. No brand asset was generated,
@@ -122,8 +123,33 @@ This is partial foundation coverage only; no `WEB-*` requirement is complete.
 
 - Foundation APIs and authentication do not yet exist. All organization/workspace/project,
   notifications, rows, permissions, and entitlements are typed content-minimized placeholders.
-- The static shell CSP permits inline styles for Vite/Tailwind development compatibility; script,
-  object, frame, base, form, image, font, and connect sources remain restricted. Deployment headers
-  can tighten style policy once development injection and hosting behavior are finalized.
+- The canonical Vite development/preview response-header CSP permits inline styles for
+  Vite/Tailwind compatibility; script, object, frame, base, form, image, font, and connect sources
+  remain restricted. Task 19 must apply the same response-header policy at AWS/CloudFront before
+  production deployment; this task does not claim that production hosting is configured.
 - Windows Application Control blocks downloaded Playwright Chromium in this environment. Installed
-  Chrome passed the same suite locally; CI remains configured for Playwright Chromium.
+  Chrome passed the same suite locally. The repository now provides explicit clean-runner Chromium
+  provisioning; Task 21 must wire the documented CI command into the repository workflow.
+
+## Fix round 1 addendum
+
+Independent review identified five important and three minor gaps. Fix round 1 corrected all of
+them test-first where production behavior changed:
+
+1. Replaced meta-delivered CSP with one committed response-header policy used by Vite development
+   and preview, verified the header, removed unsupported meta `frame-ancestors`, and proved an
+   embedding attempt is blocked. AWS/CloudFront enforcement remains explicitly assigned to Task 19.
+2. Made `ApplicationBoundary` derive its recovery locale from canonical router state; the English
+   crash regression no longer injects a locale manually.
+3. Replaced the hidden 1x1 search submit with a visible keyboard-focusable control whose browser
+   geometry is at least 44x44 pixels.
+4. Required job-create permission and the automation entitlement, routed the enabled action to the
+   intentional Jobs unavailable state, and changed inert context buttons to semantic content.
+5. Added exact clean-CI Chromium provisioning commands and documented Task 21 workflow ownership.
+6. Made description metadata locale-neutral, expanded browser-persistence probes across Storage,
+   IndexedDB, Cache Storage, and service-worker registration, prohibited persistence integrations
+   by dependency assertion, and documented the `Retry-After` deferral.
+
+Final fix-round evidence is recorded in `task-13-fix-round-1-report.md`. The final Web unit result
+is 5 files and 18 tests; the browser matrix is 17 passed and 3 intentional cross-project skips; the
+initial JavaScript remains within budget at 108,251/256,000 gzip bytes.

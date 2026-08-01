@@ -2,6 +2,7 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
     "composite": true,
     "lib": ["ES2024"],
     "module": "ESNext",
@@ -9,5 +10,11 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["e2e/**/*.ts", "playwright.config.ts", "vite.config.ts", "vitest.config.ts"]
+  "include": [
+    "e2e/**/*.ts",
+    "playwright.config.ts",
+    "security-headers.ts",
+    "vite.config.ts",
+    "vitest.config.ts"
+  ]
 }

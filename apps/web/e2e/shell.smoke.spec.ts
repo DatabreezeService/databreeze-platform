@@ -32,3 +32,20 @@ test('mobile navigation opens and follows a core route', async ({ page }, testIn
   await page.getByRole('link', { name: 'Jobs' }).click();
   await expect(page).toHaveURL(/\/en\/jobs$/u);
 });
+
+test('search submit is visible, keyboard reachable, and has a full touch target', async ({
+  page,
+}) => {
+  await page.goto('/en/workspace');
+
+  const searchInput = page.getByRole('searchbox', { name: 'Search' });
+  const submit = page.getByRole('button', { name: 'Search' });
+  await searchInput.focus();
+  await page.keyboard.press('Tab');
+
+  await expect(submit).toBeFocused();
+  await expect(submit).toBeVisible();
+  const bounds = await submit.boundingBox();
+  expect(bounds?.width).toBeGreaterThanOrEqual(44);
+  expect(bounds?.height).toBeGreaterThanOrEqual(44);
+});

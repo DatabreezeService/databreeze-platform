@@ -9,8 +9,8 @@ not implement foundation APIs, authentication, or customer workflows.
 - React 19 and Vite own the SPA entry point. React Router owns canonical locale routes and safe
   route-level recovery.
 - `ApplicationBoundary` composes the application error boundary, a privacy-conscious TanStack
-  Query client, and the router. Locale context is established from the canonical route inside the
-  shell.
+  Query client, and the router. Both outer recovery and shell locale context are derived from the
+  canonical route.
 - `WEB_FEATURE_REGISTRY` and `WEB_NAVIGATION_REGISTRY` are immutable build-time registries.
   Permission and entitlement values are display hints only; every future server operation still
   requires authoritative IAM enforcement.
@@ -33,12 +33,19 @@ corepack pnpm --filter @databreeze/web test
 corepack pnpm --filter @databreeze/web typecheck
 corepack pnpm --filter @databreeze/web build
 corepack pnpm web:test:e2e
+corepack pnpm web:browser:install:ci
+corepack pnpm web:test:e2e:ci
 ```
 
 The root `web:test:e2e` command builds public workspace dependencies first, starts the production
 preview, and runs desktop plus mobile Chromium smoke coverage. Local Windows Application Control
 may block Playwright's downloaded browser; the local configuration uses installed Chrome while CI
 uses Playwright Chromium. The build fails when initial JavaScript exceeds 250 KiB gzip.
+
+`web:browser:install:ci` runs `playwright install --with-deps chromium`, so a clean Linux runner
+receives both Chromium and its system libraries. `web:test:e2e:ci` provisions that browser before
+the browser suite. Task 21 must invoke this CI command when it adds the repository workflow; Task
+13 intentionally does not add or change workflow files.
 
 ## Localization routing
 
@@ -51,15 +58,22 @@ uses Playwright Chromium. The build fails when initial JavaScript exceeds 250 Ki
 
 ## Security and privacy boundaries
 
-- The static shell sets a restrictive baseline CSP, `no-referrer`, and approved favicon metadata.
+- One canonical response-header policy in `security-headers.ts` supplies CSP (including
+  `frame-ancestors 'none'`), `Referrer-Policy: no-referrer`, and
+  `X-Content-Type-Options: nosniff` to Vite development and preview responses. The HTML does not
+  attempt to set unsupported `frame-ancestors` through a CSP meta element. Task 19 must configure
+  the AWS/CloudFront hosting response headers with this same policy before production deployment;
+  Task 13 does not claim that production hosting is configured yet.
 - Query cache lifetime and retry behavior are bounded. No query persistence plugin is installed.
+- The current retry policy uses short bounded defaults only. Reading RFC 7807 responses and
+  honoring `Retry-After` is deferred until the typed control-plane HTTP adapter is available.
 - No bearer token, refresh credential, device secret, provider secret, tenant payload, preview,
   or source content is written to browser persistence. Future refresh credentials belong only in
   server-issued `HttpOnly`, `Secure`, `SameSite` cookies.
 - Route and application failures expose localized recovery copy, never exception details or stack
   traces. Full RFC 7807 mapping and correlation IDs wait for the control-plane contract.
-- Organization/workspace/project values are typed, content-minimized placeholders. They are not
-  server authority and contain no customer data.
+- Organization/workspace/project values are non-interactive, content-minimized placeholders. They
+  are not server authority and contain no customer data.
 
 ## Extension points
 

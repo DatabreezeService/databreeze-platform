@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "browser:install:ci": "playwright install --with-deps chromium",
     "budget": "node scripts/check-bundle-budget.mjs",
     "build": "tsc --build && vite build && corepack pnpm budget",
     "dev": "vite",
