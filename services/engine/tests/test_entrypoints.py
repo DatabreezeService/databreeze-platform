@@ -4,6 +4,8 @@ from collections.abc import Callable
 from io import BytesIO
 from typing import Any
 
+import pytest
+
 from databreeze_engine.cloud import invoke
 from databreeze_engine.framing import read_frame, write_frame
 from databreeze_engine.sidecar import serve
@@ -49,6 +51,24 @@ def test_sidecar_stops_on_corrupt_transport_without_extra_output(
 
 def test_sidecar_returns_json_rpc_parse_error_for_bounded_malformed_json() -> None:
     body = b"{}{}"
+    input_stream = BytesIO(len(body).to_bytes(4, "big") + body)
+    output_stream = BytesIO()
+
+    assert serve(input_stream, output_stream) == 2
+    output_stream.seek(0)
+    assert read_frame(output_stream) == {
+        "jsonrpc": "2.0",
+        "id": None,
+        "error": {
+            "code": -32700,
+            "message": "Parse error",
+            "data": {"engineCode": "PARSE_ERROR"},
+        },
+    }
+
+
+@pytest.mark.parametrize("body", [b"1e999999", b"-1e999999"])
+def test_sidecar_returns_parse_error_for_exponent_overflow(body: bytes) -> None:
     input_stream = BytesIO(len(body).to_bytes(4, "big") + body)
     output_stream = BytesIO()
 

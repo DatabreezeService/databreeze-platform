@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from typing import Any
 
 MAX_JSON_DEPTH = 64
@@ -24,19 +25,22 @@ def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def _validate_unicode(value: object) -> None:
-    if isinstance(value, str):
+def _validate_json_value(value: object) -> None:
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise JsonCodecError("NON_FINITE_NUMBER")
+    elif isinstance(value, str):
         try:
             value.encode("utf-8", "strict")
         except UnicodeEncodeError:
             raise JsonCodecError("INVALID_UNICODE") from None
     elif isinstance(value, list):
         for item in value:
-            _validate_unicode(item)
+            _validate_json_value(item)
     elif isinstance(value, dict):
         for key, item in value.items():
-            _validate_unicode(key)
-            _validate_unicode(item)
+            _validate_json_value(key)
+            _validate_json_value(item)
 
 
 def _preflight_json(encoded: bytes) -> None:
@@ -96,13 +100,13 @@ def decode_json(encoded: bytes) -> object:
         raise JsonCodecError("MALFORMED_JSON") from None
     except (RecursionError, ValueError, OverflowError):
         raise JsonCodecError("JSON_LIMIT_EXCEEDED") from None
-    _validate_unicode(value)
+    _validate_json_value(value)
     return value
 
 
 def encode_json(value: object) -> bytes:
     try:
-        _validate_unicode(value)
+        _validate_json_value(value)
         return json.dumps(
             value, ensure_ascii=False, allow_nan=False, separators=(",", ":"), sort_keys=True
         ).encode("utf-8", "strict")

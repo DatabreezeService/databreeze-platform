@@ -4,6 +4,7 @@ import inspect
 import os
 import subprocess
 import sys
+from types import MappingProxyType
 
 import pytest
 from pydantic import ValidationError
@@ -72,12 +73,33 @@ def test_manifest_canonicalization_is_hash_seed_independent(hash_seed: str) -> N
 
 def test_registry_and_manifests_are_immutable() -> None:
     registry = default_registry()
-    with pytest.raises(TypeError):
-        registry.actions[("other", "1.0.0")] = registry.actions[
-            ("foundation.metadata-digest", "1.0.0")
-        ]
     with pytest.raises(ValidationError):
         registry.manifests[0].resources.maxInputBytes = 1
+
+
+def test_cached_registry_rejects_ordinary_definition_and_state_rebinding() -> None:
+    registry = default_registry()
+    definition = registry.resolve(
+        "foundation.metadata-digest",
+        "1.0.0",
+        registry.manifests[0].handlerDigest,
+    )
+    replacement = registry_module._ActionDefinition(
+        definition.manifest,
+        lambda _context, _parameters: definition.handler(_context, _parameters),
+    )
+    key = (definition.manifest.actionType, definition.manifest.actionVersion)
+
+    for attribute, value in (
+        ("_actions", MappingProxyType({key: replacement})),
+        ("_action_types", frozenset({"replacement.action"})),
+        ("_manifests", (replacement.manifest,)),
+    ):
+        with pytest.raises(AttributeError):
+            setattr(registry, attribute, value)
+
+    assert not hasattr(registry, "actions")
+    assert registry.resolve(*key, definition.manifest.handlerDigest).handler is definition.handler
 
 
 def test_registry_and_dispatcher_expose_no_callable_or_registry_injection() -> None:

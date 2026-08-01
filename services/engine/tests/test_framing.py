@@ -65,6 +65,8 @@ def test_output_policy_is_smaller_and_bounded() -> None:
     [
         (b"[" * 65 + b"0" + b"]" * 65, "JSON_DEPTH_EXCEEDED"),
         (b"9" * 5_000, "JSON_NUMBER_TOO_LONG"),
+        (b"1e999999", "NON_FINITE_NUMBER"),
+        (b"-1e999999", "NON_FINITE_NUMBER"),
     ],
 )
 def test_json_limits_are_enforced_before_parser_recursion_or_integer_conversion(

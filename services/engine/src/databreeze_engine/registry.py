@@ -5,9 +5,9 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
-from pathlib import Path
+from importlib.resources import files
 from types import MappingProxyType
 
 from .handler import ActionHandler
@@ -48,9 +48,10 @@ def manifest_digest(manifest: ActionManifest) -> str:
 def _verify_reviewed_handler_artifact(content: bytes | None = None) -> None:
     artifact = content
     if artifact is None:
-        artifact_path = Path(metadata_digest.__file__)
         try:
-            artifact = artifact_path.read_bytes()
+            artifact = (
+                files("databreeze_engine.processors").joinpath("metadata_digest.py").read_bytes()
+            )
         except OSError:
             raise RegistryError("HANDLER_ARTIFACT_UNAVAILABLE") from None
     actual = "sha256:" + hashlib.sha256(artifact).hexdigest()
@@ -110,22 +111,25 @@ def _reviewed_definition() -> _ActionDefinition:
     return _ActionDefinition(manifest=manifest, handler=metadata_digest.handle)
 
 
+@dataclass(frozen=True, slots=True, init=False)
 class ActionRegistry:
     """Closed built-in registry; callers cannot provide definitions or callables."""
+
+    _actions: Mapping[tuple[str, str], _ActionDefinition] = field(init=False, repr=False)
+    _action_types: frozenset[str] = field(init=False, repr=False)
+    _manifests: tuple[ActionManifest, ...] = field(init=False, repr=False)
 
     def __init__(self) -> None:
         definition = _reviewed_definition()
         _validate_action_boundary(definition.manifest.actionType)
         key = (definition.manifest.actionType, definition.manifest.actionVersion)
-        self._actions: Mapping[tuple[str, str], _ActionDefinition] = MappingProxyType(
-            {key: definition}
+        object.__setattr__(
+            self,
+            "_actions",
+            MappingProxyType({key: definition}),
         )
-        self._action_types = frozenset({definition.manifest.actionType})
-        self._manifests = (definition.manifest,)
-
-    @property
-    def actions(self) -> Mapping[tuple[str, str], _ActionDefinition]:
-        return self._actions
+        object.__setattr__(self, "_action_types", frozenset({definition.manifest.actionType}))
+        object.__setattr__(self, "_manifests", (definition.manifest,))
 
     @property
     def manifests(self) -> tuple[ActionManifest, ...]:

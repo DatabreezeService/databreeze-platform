@@ -45,8 +45,12 @@ def main() -> int:
     program = (
         "import sys; sys.path.insert(0, sys.argv[1]); "
         "import databreeze_engine; "
+        "from databreeze_engine.registry import default_registry; "
+        "manifest = default_registry().manifests[0]; "
         "assert '.whl' in databreeze_engine.__file__; "
-        "assert databreeze_engine.ENGINE_VERSION == '0.1.0'"
+        "assert databreeze_engine.ENGINE_VERSION == '0.1.0'; "
+        "assert manifest.handlerDigest == "
+        "'sha256:6de342f9b36d0e1e05a4908ea7796e1564c45504f96256e2b4957aa8d0bbd9be'"
     )
     result = subprocess.run(
         [sys.executable, "-I", "-c", program, str(wheel.resolve())],
