@@ -37,18 +37,24 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     'diff',
     '--from-empty',
     '--to-schema',
-    'prisma/schema.prisma',
+    'prisma/schema',
     '--script',
     '--config',
     'prisma.config.ts',
   );
   assert.equal(diff.status, 0, diff.stderr || diff.stdout);
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "platform"/);
+  assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "iam"/);
   assert.match(diff.stdout, /CREATE TABLE "platform"\."schema_registry"/);
+  assert.match(diff.stdout, /CREATE TABLE "iam"\."users"/);
 
   const migrationsDirectory = path.join(apiDirectory, 'prisma', 'migrations');
   const inventory = (await readdir(migrationsDirectory)).sort();
-  assert.deepEqual(inventory, ['20260801000000_platform_schema_registry', 'migration_lock.toml']);
+  assert.deepEqual(inventory, [
+    '20260801000000_platform_schema_registry',
+    '20260802000000_iam_identity_foundation',
+    'migration_lock.toml',
+  ]);
   const migration = await readFile(
     path.join(migrationsDirectory, inventory[0], 'migration.sql'),
     'utf8',
@@ -59,5 +65,17 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     'CREATE TABLE "platform"."schema_registry"',
   ]) {
     assert.match(migration, new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  const iamMigration = await readFile(
+    path.join(migrationsDirectory, inventory[1], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE SCHEMA IF NOT EXISTS "iam"',
+    'CREATE TABLE "iam"."users"',
+    'CREATE TABLE "iam"."sessions"',
+    'CREATE UNIQUE INDEX "refresh_tokens_digest_key"',
+  ]) {
+    assert.match(iamMigration, new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
 });

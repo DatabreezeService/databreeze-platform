@@ -88,12 +88,15 @@ artifact.
 
 ## Prisma schema ownership and migrations
 
-`prisma/schema.prisma` declares PostgreSQL schemas in an explicit stable list:
+`prisma/schema/` is the multi-file Prisma schema. `platform.prisma` declares the generator,
+datasource, and composition metadata; module files own their PostgreSQL schema:
 
 - `platform`: composition/infrastructure-owned metadata, currently the reference
   `schema_registry` model.
 - `system`: reserved for persistence owned by the real system feature; no runtime repository is
   present in this task.
+- `iam`: identity, sessions, memberships, devices, MFA references, and signed authorization
+  snapshots owned by the IAM feature.
 
 All migrations live in one chronologically ordered `prisma/migrations` directory. A migration may
 create or alter only the schemas/tables its owning module declares; cross-module transactions are
