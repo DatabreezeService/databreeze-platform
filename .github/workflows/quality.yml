@@ -57,7 +57,6 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version-file: .node-version
-          cache: pnpm
       - name: Enable pinned pnpm
         shell: bash
         run: corepack enable && corepack prepare pnpm@11.18.0 --activate
@@ -83,6 +82,7 @@ jobs:
         run: python3 -m pip install --user uv==0.7.12
       - name: Run engine checks
         shell: bash
+        working-directory: services/engine
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           uv sync --locked
