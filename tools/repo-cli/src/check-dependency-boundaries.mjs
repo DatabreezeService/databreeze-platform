@@ -124,6 +124,32 @@ function featureName(filePath, apiDirectory) {
   return /^src\/features\/([^/]+)\//.exec(relativePath)?.[1];
 }
 
+const featureLayers = new Set(['adapter', 'api', 'application', 'domain', 'persistence']);
+const allowedFeatureLayerImports = {
+  adapter: new Set(['adapter', 'application', 'domain']),
+  api: new Set(['api', 'application']),
+  application: new Set(['application', 'domain']),
+  domain: new Set(['domain']),
+  persistence: new Set(['application', 'domain', 'persistence']),
+};
+
+function featureLocation(filePath, apiDirectory) {
+  const relativePath = path.relative(apiDirectory, filePath).split(path.sep).join('/');
+  const match = /^src\/features\/([^/]+)\/([^/]+)(?:\/|$)/.exec(relativePath);
+  if (match?.[1] === undefined || match[2] === undefined || !featureLayers.has(match[2])) {
+    return undefined;
+  }
+  return { feature: match[1], layer: match[2] };
+}
+
+function aliasedFeatureLocation(moduleSpecifier) {
+  const match = /(?:^|\/)features\/([^/]+)\/([^/]+)(?:\/|$)/.exec(moduleSpecifier);
+  if (match?.[1] === undefined || match[2] === undefined || !featureLayers.has(match[2])) {
+    return undefined;
+  }
+  return { feature: match[1], layer: match[2] };
+}
+
 function relativePath(repositoryRoot, filePath) {
   return path.relative(repositoryRoot, filePath).split(path.sep).join('/');
 }
@@ -215,6 +241,37 @@ function checkFeaturePersistenceImports(repositoryRoot, apiDirectory) {
         diagnostics.push(
           diagnostic(
             'features-must-not-import-other-feature-persistence',
+            repositoryRoot,
+            filePath,
+            `import=${moduleSpecifier}`,
+          ),
+        );
+      }
+    }
+  }
+
+  return diagnostics;
+}
+
+function checkFeatureLayerImports(repositoryRoot, apiDirectory) {
+  const diagnostics = [];
+
+  for (const filePath of listFiles(path.join(apiDirectory, 'src', 'features'))) {
+    const source = featureLocation(filePath, apiDirectory);
+    if (source === undefined) continue;
+
+    for (const moduleSpecifier of importedModules(filePath)) {
+      const target = moduleSpecifier.startsWith('.')
+        ? featureLocation(path.resolve(path.dirname(filePath), moduleSpecifier), apiDirectory)
+        : aliasedFeatureLocation(moduleSpecifier);
+      if (
+        target !== undefined &&
+        target.feature === source.feature &&
+        !allowedFeatureLayerImports[source.layer].has(target.layer)
+      ) {
+        diagnostics.push(
+          diagnostic(
+            'feature-layers-must-depend-inward',
             repositoryRoot,
             filePath,
             `import=${moduleSpecifier}`,
@@ -365,6 +422,7 @@ function checkRepository(repositoryRoot) {
   return [
     ...checkClientImports(repositoryRoot, apiDirectory),
     ...checkFeaturePersistenceImports(repositoryRoot, apiDirectory),
+    ...checkFeatureLayerImports(repositoryRoot, apiDirectory),
     ...checkPackageExports(repositoryRoot),
     ...checkPrivateWorkspacePackageImports(repositoryRoot),
   ].sort();
