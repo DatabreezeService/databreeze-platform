@@ -1,4 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -62,7 +63,34 @@ if (tofu.error?.code === 'ENOENT') {
   console.error(tofu.stdout || tofu.stderr);
   process.exitCode = tofu.status ?? 1;
 } else {
-  console.log('OpenTofu formatting and static AWS checks passed.');
+  const alphaDirectory = path.join(infrastructureRoot, 'environments', 'alpha');
+  const tofuDataDirectory = mkdtempSync(path.join(os.tmpdir(), 'databreeze-tofu-'));
+  const tofuEnvironment = { ...process.env, TF_DATA_DIR: tofuDataDirectory };
+  try {
+    const init = spawnSync('tofu', ['init', '-backend=false', '-input=false', '-no-color'], {
+      cwd: alphaDirectory,
+      env: tofuEnvironment,
+      encoding: 'utf8',
+    });
+    if (init.status !== 0) {
+      console.error(init.stdout || init.stderr);
+      process.exitCode = init.status ?? 1;
+    } else {
+      const validate = spawnSync('tofu', ['validate', '-no-color'], {
+        cwd: alphaDirectory,
+        env: tofuEnvironment,
+        encoding: 'utf8',
+      });
+      if (validate.status !== 0) {
+        console.error(validate.stdout || validate.stderr);
+        process.exitCode = validate.status ?? 1;
+      } else {
+        console.log('OpenTofu formatting, initialization, and validation passed.');
+      }
+    }
+  } finally {
+    rmSync(tofuDataDirectory, { recursive: true, force: true });
+  }
 }
 
 if (process.exitCode !== 1 && !tofu.error)

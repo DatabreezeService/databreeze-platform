@@ -19,6 +19,15 @@ test('AWS foundation has reusable modules and safe alpha composition', () => {
   ]) {
     assert.ok(existsSync(path.join(repositoryRoot, relativePath)), relativePath);
   }
+  const production = read('infrastructure/aws/environments/alpha/production.tfvars.example');
+  for (const token of [
+    'enable_nat_gateway                  = true',
+    'backup_retention_period             = 7',
+    'database_multi_az                   = true',
+    'redis_automatic_failover_enabled    = true',
+    'api_desired_count                   = 2',
+  ])
+    assert.match(production, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   const variables = read('infrastructure/aws/environments/alpha/variables.tf');
   assert.match(variables, /ap-southeast-1/);
   assert.match(variables, /enable_nat_gateway[\s\S]*default\s+=\s+false/);
@@ -41,6 +50,8 @@ test('AWS sources expose encryption, private data, and OIDC boundaries without s
     'aws_kms_key',
     'aws_secretsmanager_secret',
     'aws_iam_openid_connect_provider',
+    'RegionalServiceEncryption',
+    'kms:GenerateDataKey',
     'block_public_policy',
     'storage_encrypted',
     'manage_master_user_password = true',
@@ -59,4 +70,7 @@ test('AWS validation script is non-applying and reports missing OpenTofu clearly
     `${result.stdout}\n${result.stderr}`,
     /AWS infrastructure baseline|OpenTofu is not installed/,
   );
+  const source = read('tools/repo-cli/src/check-aws-infrastructure.mjs');
+  assert.match(source, /init', '-backend=false/);
+  assert.match(source, /validate', '-no-color/);
 });

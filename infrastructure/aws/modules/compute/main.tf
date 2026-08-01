@@ -46,6 +46,19 @@ resource "aws_iam_role_policy_attachment" "execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+resource "aws_iam_role_policy" "execution_secrets" {
+  name = "databreeze-${var.name}-ecs-secret-read"
+  role = aws_iam_role.execution.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["secretsmanager:GetSecretValue", "kms:Decrypt"]
+      Resource = [var.database_secret_arn, var.application_secret_arn, var.kms_key_arn]
+    }]
+  })
+}
+
 resource "aws_iam_role" "task" {
   name               = "databreeze-${var.name}-ecs-task"
   assume_role_policy = data.aws_iam_policy_document.task_assume.json
@@ -145,6 +158,17 @@ resource "aws_ecs_service" "api" {
     security_groups  = [var.api_security_group_id]
     assign_public_ip = false
   }
+
+  lifecycle {
+    precondition {
+      condition     = !var.enable_services || var.private_egress_enabled
+      error_message = "ECS services require private-subnet egress through NAT or reviewed VPC endpoints."
+    }
+    precondition {
+      condition     = var.environment != "production" || var.api_desired_count >= 2
+      error_message = "Production requires at least two API tasks."
+    }
+  }
 }
 
 resource "aws_ecs_service" "worker" {
@@ -159,5 +183,16 @@ resource "aws_ecs_service" "worker" {
     subnets          = var.private_subnet_ids
     security_groups  = [var.api_security_group_id]
     assign_public_ip = false
+  }
+
+  lifecycle {
+    precondition {
+      condition     = !var.enable_services || var.private_egress_enabled
+      error_message = "ECS services require private-subnet egress through NAT or reviewed VPC endpoints."
+    }
+    precondition {
+      condition     = var.environment != "production" || var.worker_desired_count >= 2
+      error_message = "Production requires at least two worker tasks."
+    }
   }
 }

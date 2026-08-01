@@ -2,10 +2,55 @@ locals {
   common_tags = merge(var.tags, { Component = "security" })
 }
 
+data "aws_caller_identity" "current" {}
+
+data "aws_iam_policy_document" "platform_key" {
+  statement {
+    sid       = "AccountAdministration"
+    effect    = "Allow"
+    actions   = ["kms:*"]
+    resources = ["*"]
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+  }
+
+  statement {
+    sid       = "RegionalServiceEncryption"
+    effect    = "Allow"
+    actions   = ["kms:Decrypt", "kms:DescribeKey", "kms:Encrypt", "kms:GenerateDataKey*", "kms:ReEncrypt*"]
+    resources = ["*"]
+    principals {
+      type        = "Service"
+      identifiers = [
+        "logs.${var.region}.amazonaws.com",
+        "s3.amazonaws.com",
+        "secretsmanager.amazonaws.com"
+      ]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "kms:CallerAccount"
+      values   = [data.aws_caller_identity.current.account_id]
+    }
+    condition {
+      test     = "StringLike"
+      variable = "kms:ViaService"
+      values   = [
+        "logs.${var.region}.amazonaws.com",
+        "s3.${var.region}.amazonaws.com",
+        "secretsmanager.${var.region}.amazonaws.com"
+      ]
+    }
+  }
+}
+
 resource "aws_kms_key" "platform" {
   description             = "DataBreeze platform envelope and storage encryption (${var.name})"
   deletion_window_in_days = 30
   enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.platform_key.json
   tags                    = merge(local.common_tags, { Name = "${var.name}-platform" })
 }
 
@@ -81,6 +126,20 @@ resource "aws_iam_role_policy" "github_deploy" {
         "arn:aws:s3:::databreeze-${var.name}-web",
         "arn:aws:s3:::databreeze-${var.name}-web/*"
       ]
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "github_kms" {
+  count = var.github_repository == "" ? 0 : 1
+  name  = "${var.name}-github-kms-upload"
+  role  = aws_iam_role.github_deploy[0].id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["kms:Encrypt", "kms:GenerateDataKey", "kms:DescribeKey"]
+      Resource = aws_kms_key.platform.arn
     }]
   })
 }

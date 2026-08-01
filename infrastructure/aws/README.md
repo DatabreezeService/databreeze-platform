@@ -32,11 +32,12 @@ Copy `terraform.tfvars.example` to `terraform.tfvars` only for local planning.
 Use an environment variable or a secrets manager for `github_repository`; do
 not add a real account, role, token, password, or state backend to Git.
 
-Alpha defaults disable NAT gateways, ECS services, and CloudFront distribution
-creation so a plan is safe to inspect without creating recurring spend. The
-production example enables redundant API workers, PITR/backups, NAT, and
-CloudFront explicitly. Production must use a remote encrypted state backend
-approved in a separate deployment ADR.
+Alpha defaults disable managed data, NAT gateways, ECS services, and CloudFront
+distribution creation so a plan is safe to inspect without creating recurring
+spend. The `environments/alpha/production.tfvars.example` file enables
+redundant API/worker capacity, PITR/backups, Multi-AZ data, NAT, and CloudFront
+explicitly. Production must use a remote encrypted state backend approved in a
+separate deployment ADR.
 
 The modules expose IDs and endpoints only as outputs. Database credentials are
 never output; the security module creates named Secrets Manager records for

@@ -17,6 +17,7 @@ module "network" {
 module "security" {
   source             = "../../modules/security"
   name               = var.name
+  region             = var.aws_region
   github_repository  = var.github_repository
   tags               = local.tags
 }
@@ -33,6 +34,7 @@ module "web" {
 module "data" {
   source                    = "../../modules/data"
   name                      = var.name
+  environment               = var.environment
   private_subnet_ids        = module.network.private_subnet_ids
   database_security_group_id = module.network.database_security_group_id
   cache_security_group_id   = module.network.cache_security_group_id
@@ -41,12 +43,17 @@ module "data" {
   database_instance_class  = var.database_instance_class
   backup_retention_period   = var.backup_retention_period
   deletion_protection       = var.deletion_protection
+  database_multi_az         = var.database_multi_az
+  redis_num_cache_clusters  = var.redis_num_cache_clusters
+  redis_automatic_failover_enabled = var.redis_automatic_failover_enabled
+  redis_multi_az_enabled    = var.redis_multi_az_enabled
   tags                      = local.tags
 }
 
 module "compute" {
   source                 = "../../modules/compute"
   name                   = var.name
+  environment            = var.environment
   region                 = var.aws_region
   private_subnet_ids     = module.network.private_subnet_ids
   api_security_group_id  = module.network.api_security_group_id
@@ -56,5 +63,8 @@ module "compute" {
   api_image              = var.api_image
   worker_image           = var.worker_image
   enable_services        = var.enable_ecs_services
+  private_egress_enabled = var.enable_nat_gateway
+  api_desired_count      = var.api_desired_count
+  worker_desired_count   = var.worker_desired_count
   tags                   = local.tags
 }

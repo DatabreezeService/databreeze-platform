@@ -29,6 +29,17 @@ variable "application_secret_arn" {
   description = "Secrets Manager ARN injected into task definitions by reference."
 }
 
+variable "environment" {
+  type        = string
+  description = "Deployment environment used for production safety preconditions."
+}
+
+variable "private_egress_enabled" {
+  type        = bool
+  description = "Whether private subnets have NAT or equivalent VPC endpoints."
+  default     = false
+}
+
 variable "api_image" {
   type        = string
   default     = "ghcr.io/databreeze/api:dev"

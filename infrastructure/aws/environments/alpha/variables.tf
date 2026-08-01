@@ -63,6 +63,26 @@ variable "deletion_protection" {
   default = false
 }
 
+variable "database_multi_az" {
+  type    = bool
+  default = false
+}
+
+variable "redis_num_cache_clusters" {
+  type    = number
+  default = 1
+}
+
+variable "redis_automatic_failover_enabled" {
+  type    = bool
+  default = false
+}
+
+variable "redis_multi_az_enabled" {
+  type    = bool
+  default = false
+}
+
 variable "github_repository" {
   type        = string
   description = "owner/repository for the least-privilege GitHub OIDC role. Empty disables the provider."
@@ -77,4 +97,14 @@ variable "api_image" {
 variable "worker_image" {
   type    = string
   default = "ghcr.io/databreeze/worker:dev"
+}
+
+variable "api_desired_count" {
+  type    = number
+  default = 1
+}
+
+variable "worker_desired_count" {
+  type    = number
+  default = 1
 }
