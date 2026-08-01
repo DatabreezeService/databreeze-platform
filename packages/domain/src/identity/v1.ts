@@ -167,9 +167,17 @@ function timestamp(input: unknown): StrictUtcTimestampV1 | undefined {
 
 function boundedText(input: unknown, maxLength: number): string | undefined {
   if (typeof input !== 'string' || input.length === 0 || input.length > maxLength) return undefined;
-  if (/[\u0000-\u001f\u007f]/u.test(input)) return undefined;
+  if (containsControlCharacterV1(input)) return undefined;
   const normalized = input.normalize('NFC').trim();
   return normalized.length > 0 && normalized.length <= maxLength ? normalized : undefined;
+}
+
+function containsControlCharacterV1(input: string): boolean {
+  for (const character of input) {
+    const codePoint = character.codePointAt(0);
+    if (codePoint !== undefined && (codePoint <= 0x1f || codePoint === 0x7f)) return true;
+  }
+  return false;
 }
 
 function positiveEpoch(input: unknown): number | undefined {
@@ -207,7 +215,12 @@ function durationWithin(
 }
 
 export function normalizeEmailAddressV1(input: unknown): IdentityResultV1<string> {
-  if (typeof input !== 'string' || input.length > 254 || /[\s\u0000-\u001f\u007f]/u.test(input))
+  if (
+    typeof input !== 'string' ||
+    input.length > 254 ||
+    /\s/u.test(input) ||
+    containsControlCharacterV1(input)
+  )
     return rejected('INVALID_TEXT');
   const normalized = input.normalize('NFC').toLowerCase();
   const at = normalized.indexOf('@');
