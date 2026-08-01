@@ -1,489 +1,62 @@
-# Devices, Sync and Offline ? K? ho?ch tri?n khai / Implementation Plan
+# Thiết bị, đồng bộ và ngoại tuyến — Kế hoạch triển khai / Devices, Sync and Offline Implementation Plan
 
-Goal / M?c ti?u: an independently deployable, testable, Vietnamese-first slice for Devices, Sync and Offline.
+**Mục tiêu / Goal:** Cung cấp DSO an toàn cho đăng ký thiết bị, đồng bộ, xung đột, chuyển giao và thu hồi; triển khai trải nghiệm ngoại tuyến Desktop/Android mà không để client thay thế IAM, AUD, IAE hay JRA.
 
-Architecture / Ki?n tr?c: NestJS/Fastify modular monolith with domain, application, adapter and API layers; Web/Desktop/Android/engine consume generated contracts and never feature persistence directly.
+**Phạm vi primary / Primary scope:**
 
-Dependencies / Ph? thu?c: 010 ? 020 ? 030 ? 040 ? 050 ? 060 ? 070 ? 100/110/120/130 ? 200/210/220 ? 300/310/320 ? 400; 500 is post-GA.
+- Task 1 sở hữu DSO-001 đến DSO-027.
+- Task 2 sở hữu AND-001 đến AND-023 và DSK-001 đến DSK-026. `DSK-001`, `DSK-002`, `DSK-008` giữ `partial` và `not-verified` trong manifest vì shell hiện có; không requirement nào được đánh dấu verified bởi plan này.
 
-## Global constraints / R?ng bu?c
+**Kiến trúc / Architecture:** `devices-sync-offline` là mô-đun NestJS/Fastify. Domain xác định device, capability, operation và conflict; application điều phối IAM authorization, JRA jobs và AUD events; adapters thực hiện Prisma, queue, object grant và signed transfer. Desktop Electron và Android Kotlin/Compose dùng hợp đồng v1 đã sinh; Python engine chỉ nhận typed processor payload, không nhận database credential hay arbitrary command.
 
-- Preserve IAM, AUD, tenant isolation, evidence, retention, data mode and approvals. Vietnamese default; English fallback complete.
-- Mutations require TenantScope, correlation, idempotency and revision. P0 is a release gate, P1 completes GA, P2 is post-GA.
-- No remote shell, filesystem browsing, cross-feature persistence, or sensitive telemetry.
+## Phụ thuộc và giới hạn / Dependencies and boundaries
 
-## Tasks
+1. `010-engineering-foundation.md` cung cấp shell, contracts và telemetry.
+2. `020-identity-audit-entitlements.md` phải cung cấp IAM DeviceIdentity, policy, session, authorization và AUD append before any DSO mutation.
+3. `030-artifacts-datasets-evidence.md` cung cấp immutable ArtifactVersion/EvidenceReference; `040-jobs-processing-approvals.md` cung cấp signed typed jobs.
+4. Plan này hoàn thành trước NCO/INT và dogfood. Web chỉ hiển thị opaque status/capability; không duyệt filesystem, path, shell, script hay remote desktop.
+
+## Đường dẫn và hợp đồng / Paths and contracts
+
+- `services/api/src/features/devices-sync-offline/{domain,application,adapter,api}/`
+- `services/api/prisma/schema/devices-sync-offline.prisma`
+- `packages/contracts/schemas/v1/devices-sync-offline/`
+- `apps/web/src/features/devices-sync-offline/`
+- `apps/desktop/src/features/devices-sync-offline/`
+- `apps/android/app/src/main/kotlin/com/databreeze/devicessyncoffline/`
+- `services/engine/src/databreeze_engine/processors/devices-sync-offline/`
+- Tests: `services/api/test/features/devices-sync-offline/`, `apps/desktop/test/`, `apps/android/app/src/test/`, `apps/android/app/src/androidTest/`, `services/engine/tests/processors/devices-sync-offline/`.
+
+Public v1 interfaces are `DeviceEnrollment`, `DeviceCapabilitySummary`, `SyncOperation`, `SyncConflict`, `OfflinePackageManifest`, `DeviceTransferReceipt`, and RFC 7807 `Problem`. Commands require `commandId`, `idempotencyKey`, `expectedRevision?`, `TenantScope`, caller/device identity and policy snapshot; all clients validate generated OpenAPI/JSON Schema responses at runtime.
 
 ### Task 1: DSO device sync
 
-Primary requirements / Y?u c?u ch?nh: DSO-001, DSO-002, DSO-003, DSO-004, DSO-005, DSO-006, DSO-007, DSO-008, DSO-009, DSO-010, DSO-011, DSO-012, DSO-013, DSO-014, DSO-015, DSO-016, DSO-017, DSO-018, DSO-019, DSO-020, DSO-021, DSO-022, DSO-023, DSO-024, DSO-025, DSO-026, DSO-027
+**Primary requirements:** DSO-001, DSO-002, DSO-003, DSO-004, DSO-005, DSO-006, DSO-007, DSO-008, DSO-009, DSO-010, DSO-011, DSO-012, DSO-013, DSO-014, DSO-015, DSO-016, DSO-017, DSO-018, DSO-019, DSO-020, DSO-021, DSO-022, DSO-023, DSO-024, DSO-025, DSO-026, DSO-027.
 
-Paths / ???ng d?n:
-- services/api/src/features/devices-sync-offline/{domain,application,adapter,api}/
-- services/api/prisma/schema/devices-sync-offline.prisma
-- packages/contracts/schemas/v1/devices-sync-offline/
-- apps/web/src/features/devices-sync-offline/
-- apps/desktop/src/features/devices-sync-offline/
-- apps/android/app/src/main/kotlin/com/databreeze/devicessyncoffline/
-- services/engine/src/databreeze_engine/processors/devices-sync-offline/
-
-Public interface / Giao di?n: versioned OpenAPI and JSON Schema v1; commands carry commandId, idempotencyKey, expectedRevision?, TenantScope; failures return RFC 7807 Problem. Generated contracts are the only client/worker boundary.
-
-- [ ] TDD: write red requirement-linked authorization, tenant, data-mode, idempotency and recovery tests, then implement domain/application/adapter/API and Vietnamese-first UI with complete English fallback.
-- [ ] Migration: add scoped keys, revision and resumable backfill; rollback via compensating migration/tombstone without mutating audit or artifact history.
-- [ ] Add unit, integration, contract, tenant-isolation, concurrency, E2E and accessibility tests at services/api/test/features/devices-sync-offline/, apps/web/src/features/devices-sync-offline/__tests__/, services/engine/tests/processors/devices-sync-offline/.
-- [ ] Telemetry is allowlisted correlation/outcome/latency/retry only; never emit source content, secret, local path or evidence snippet. On failure stop side effect, persist safe state and return stable Problem.
-- [ ] Release gate: P0 security/tenant/audit/evidence/data-mode/recovery pass; P1 before GA; P2 only by plan 500.
+- [ ] Write red domain/application tests for tenant-scoped enrollment, public-key rotation/revocation, grant/capability checks, idempotent operation acknowledgement, dependency ordering, policy/data-mode deny, explicit conflict and recovery after duplicate/lost acknowledgement.
+- [ ] Add migrations for `DeviceIdentityLink`, capability/grant revision, encrypted `SyncOperation`, `SyncConflict`, package manifest/receipt and quarantined local audit fragment references. Use tenant/device/operation unique constraints, optimistic revisions, immutable hashes and resumable backfill; write domain mutation and mandatory AUD event in one transaction.
+- [ ] Implement enrollment, heartbeat, capability/grant, push/pull reconciliation, conflict resolution, revocation and strict-Local package handoff handlers. Device receives only authorized opaque typed payloads; data mode forbids cloud upload/relay where required.
+- [ ] Publish contracts and API endpoints for enrollment confirmation, status, operation batches, conflicts and package receipt. Web manages status and revocation only; it cannot infer paths or source content. Add contract, two-tenant isolation, migration, retry/concurrency, signed-payload, tamper, expiry and offline-resume tests.
+- [ ] Emit allowlisted metrics: enrollment outcome, sync latency/backlog, retry, conflict type/count, revocation, package verification and protocol version. Never emit original bytes, filename, local path, preview, OCR/transcript, token or evidence value.
+- [ ] Failure behavior: reject stale security epoch/revoked device/wrong scope before side effect; quarantine malformed fragment/package, return stable Problem and keep durable operation state. Roll back with compensating migration/feature flag, preserve AUD and package receipts, and require reconciliation rather than silent last-write-wins.
+- [ ] Release gate: all DSO P0 security, tenant, data-mode, audit, conflict, handoff and disaster-recovery tests pass; DSO P1 reliability/usability tests pass before GA.
 
 ### Task 2: Android and Desktop offline
 
-Primary requirements / Y?u c?u ch?nh: AND-001, AND-002, AND-003, AND-004, AND-005, AND-006, AND-007, AND-008, AND-009, AND-010, AND-011, AND-012, AND-013, AND-014, AND-015, AND-016, AND-017, AND-018, AND-019, AND-020, AND-021, AND-022, AND-023
+**Primary requirements:** AND-001, AND-002, AND-003, AND-004, AND-005, AND-006, AND-007, AND-008, AND-009, AND-010, AND-011, AND-012, AND-013, AND-014, AND-015, AND-016, AND-017, AND-018, AND-019, AND-020, AND-021, AND-022, AND-023; DSK-001, DSK-002, DSK-003, DSK-004, DSK-005, DSK-006, DSK-007, DSK-008, DSK-009, DSK-010, DSK-011, DSK-012, DSK-013, DSK-014, DSK-015, DSK-016, DSK-017, DSK-018, DSK-019, DSK-020, DSK-021, DSK-022, DSK-023, DSK-024, DSK-025, DSK-026.
 
-Paths / ???ng d?n:
-- services/api/src/features/devices-sync-offline/{domain,application,adapter,api}/
-- services/api/prisma/schema/devices-sync-offline.prisma
-- packages/contracts/schemas/v1/devices-sync-offline/
-- apps/web/src/features/devices-sync-offline/
-- apps/desktop/src/features/devices-sync-offline/
-- apps/android/app/src/main/kotlin/com/databreeze/devicessyncoffline/
-- services/engine/src/databreeze_en…207110 tokens truncated…": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
-      "releaseStatus": "p0-release-gate"
-    },
-    {
-      "requirementId": "WEB-010",
-      "priority": "P0",
-      "primaryPlan": "400-production-readiness.md",
-      "primaryTask": "Task 1: WEB production control center",
-      "supportingTasks": [],
-      "codePaths": [
-        "services/api/src/features/production-readiness/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/production-readiness.prisma",
-        "packages/contracts/schemas/v1/production-readiness/",
-        "apps/web/src/features/production-readiness/",
-        "apps/desktop/src/features/production-readiness/",
-        "apps/android/app/src/main/kotlin/com/databreeze/productionreadiness/",
-        "services/engine/src/databreeze_engine/processors/production-readiness/"
-      ],
-      "testPaths": [
-        "services/api/test/features/production-readiness/",
-        "apps/web/src/features/production-readiness/__tests__/",
-        "services/engine/tests/processors/production-readiness/"
-      ],
-      "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
-      ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
-      "releaseStatus": "p0-release-gate"
-    },
-    {
-      "requirementId": "WEB-011",
-      "priority": "P0",
-      "primaryPlan": "400-production-readiness.md",
-      "primaryTask": "Task 1: WEB production control center",
-      "supportingTasks": [],
-      "codePaths": [
-        "services/api/src/features/production-readiness/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/production-readiness.prisma",
-        "packages/contracts/schemas/v1/production-readiness/",
-        "apps/web/src/features/production-readiness/",
-        "apps/desktop/src/features/production-readiness/",
-        "apps/android/app/src/main/kotlin/com/databreeze/productionreadiness/",
-        "services/engine/src/databreeze_engine/processors/production-readiness/"
-      ],
-      "testPaths": [
-        "services/api/test/features/production-readiness/",
-        "apps/web/src/features/production-readiness/__tests__/",
-        "services/engine/tests/processors/production-readiness/"
-      ],
-      "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
-      ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
-      "releaseStatus": "p0-release-gate"
-    },
-    {
-      "requirementId": "WEB-012",
-      "priority": "P0",
-      "primaryPlan": "400-production-readiness.md",
-      "primaryTask": "Task 1: WEB production control center",
-      "supportingTasks": [],
-      "codePaths": [
-        "services/api/src/features/production-readiness/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/production-readiness.prisma",
-        "packages/contracts/schemas/v1/production-readiness/",
-        "apps/web/src/features/production-readiness/",
-        "apps/desktop/src/features/production-readiness/",
-        "apps/android/app/src/main/kotlin/com/databreeze/productionreadiness/",
-        "services/engine/src/databreeze_engine/processors/production-readiness/"
-      ],
-      "testPaths": [
-        "services/api/test/features/production-readiness/",
-        "apps/web/src/features/production-readiness/__tests__/",
-        "services/engine/tests/processors/production-readiness/"
-      ],
-      "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
-      ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
-      "releaseStatus": "p0-release-gate"
-    },
-    {
-      "requirementId": "WEB-013",
-      "priority": "P1",
-      "primaryPlan": "400-production-readiness.md",
-      "primaryTask": "Task 1: WEB production control center",
-      "supportingTasks": [],
-      "codePaths": [
-        "services/api/src/features/production-readiness/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/production-readiness.prisma",
-        "packages/contracts/schemas/v1/production-readiness/",
-        "apps/web/src/features/production-readiness/",
-        "apps/desktop/src/features/production-readiness/",
-        "apps/android/app/src/main/kotlin/com/databreeze/productionreadiness/",
-        "services/engine/src/databreeze_engine/processors/production-readiness/"
-      ],
-      "testPaths": [
-        "services/api/test/features/production-readiness/",
-        "apps/web/src/features/production-readiness/__tests__/",
-        "services/engine/tests/processors/production-readiness/"
-      ],
-      "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
-      ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
-      "releaseStatus": "ga-completion"
-    },
-    {
-      "requirementId": "WEB-014",
-      "priority": "P1",
-      "primaryPlan": "400-production-readiness.md",
-      "primaryTask": "Task 1: WEB production control center",
-      "supportingTasks": [],
-      "codePaths": [
-        "services/api/src/features/production-readiness/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/production-readiness.prisma",
-        "packages/contracts/schemas/v1/production-readiness/",
-        "apps/web/src/features/production-readiness/",
-        "apps/desktop/src/features/production-readiness/",
-        "apps/android/app/src/main/kotlin/com/databreeze/productionreadiness/",
-        "services/engine/src/databreeze_engine/processors/production-readiness/"
-      ],
-      "testPaths": [
-        "services/api/test/features/production-readiness/",
-        "apps/web/src/features/production-readiness/__tests__/",
-        "services/engine/tests/processors/production-readiness/"
-      ],
-      "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
-      ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
-      "releaseStatus": "ga-completion"
-    },
-    {
-      "requirementId": "WEB-015",
-      "priority": "P1",
-      "primaryPlan": "400-production-readiness.md",
-      "primaryTask": "Task 1: WEB production control center",
-      "supportingTasks": [],
-      "codePaths": [
-        "services/api/src/features/production-readiness/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/production-readiness.prisma",
-        "packages/contracts/schemas/v1/production-readiness/",
-        "apps/web/src/features/production-readiness/",
-        "apps/desktop/src/features/production-readiness/",
-        "apps/android/app/src/main/kotlin/com/databreeze/productionreadiness/",
-        "services/engine/src/databreeze_engine/processors/production-readiness/"
-      ],
-      "testPaths": [
-        "services/api/test/features/production-readiness/",
-        "apps/web/src/features/production-readiness/__tests__/",
-        "services/engine/tests/processors/production-readiness/"
-      ],
-      "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
-      ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
-      "releaseStatus": "ga-completion"
-    },
-    {
-      "requirementId": "WEB-016",
-      "priority": "P1",
-      "primaryPlan": "400-production-readiness.md",
-      "primaryTask": "Task 1: WEB production control center",
-      "supportingTasks": [],
-      "codePaths": [
-        "services/api/src/features/production-readiness/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/production-readiness.prisma",
-        "packages/contracts/schemas/v1/production-readiness/",
-        "apps/web/src/features/production-readiness/",
-        "apps/desktop/src/features/production-readiness/",
-        "apps/android/app/src/main/kotlin/com/databreeze/productionreadiness/",
-        "services/engine/src/databreeze_engine/processors/production-readiness/"
-      ],
-      "testPaths": [
-        "services/api/test/features/production-readiness/",
-        "apps/web/src/features/production-readiness/__tests__/",
-        "services/engine/tests/processors/production-readiness/"
-      ],
-      "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
-      ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
-      "releaseStatus": "ga-completion"
-    },
-    {
-      "requirementId": "WEB-017",
-      "priority": "P1",
-      "primaryPlan": "400-production-readiness.md",
-      "primaryTask": "Task 1: WEB production control center",
-      "supportingTasks": [],
-      "codePaths": [
-        "services/api/src/features/production-readiness/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/production-readiness.prisma",
-        "packages/contracts/schemas/v1/production-readiness/",
-        "apps/web/src/features/production-readiness/",
-        "apps/desktop/src/features/production-readiness/",
-        "apps/android/app/src/main/kotlin/com/databreeze/productionreadiness/",
-        "services/engine/src/databreeze_engine/processors/production-readiness/"
-      ],
-      "testPaths": [
-        "services/api/test/features/production-readiness/",
-        "apps/web/src/features/production-readiness/__tests__/",
-        "services/engine/tests/processors/production-readiness/"
-      ],
-      "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
-      ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
-      "releaseStatus": "ga-completion"
-    },
-    {
-      "requirementId": "WEB-018",
-      "priority": "P1",
-      "primaryPlan": "400-production-readiness.md",
-      "primaryTask": "Task 1: WEB production control center",
-      "supportingTasks": [],
-      "codePaths": [
-        "services/api/src/features/production-readiness/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/production-readiness.prisma",
-        "packages/contracts/schemas/v1/production-readiness/",
-        "apps/web/src/features/production-readiness/",
-        "apps/desktop/src/features/production-readiness/",
-        "apps/android/app/src/main/kotlin/com/databreeze/productionreadiness/",
-        "services/engine/src/databreeze_engine/processors/production-readiness/"
-      ],
-      "testPaths": [
-        "services/api/test/features/production-readiness/",
-        "apps/web/src/features/production-readiness/__tests__/",
-        "services/engine/tests/processors/production-readiness/"
-      ],
-      "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
-      ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
-      "releaseStatus": "ga-completion"
-    },
-    {
-      "requirementId": "WEB-019",
-      "priority": "P1",
-      "primaryPlan": "400-production-readiness.md",
-      "primaryTask": "Task 1: WEB production control center",
-      "supportingTasks": [],
-      "codePaths": [
-        "services/api/src/features/production-readiness/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/production-readiness.prisma",
-        "packages/contracts/schemas/v1/production-readiness/",
-        "apps/web/src/features/production-readiness/",
-        "apps/desktop/src/features/production-readiness/",
-        "apps/android/app/src/main/kotlin/com/databreeze/productionreadiness/",
-        "services/engine/src/databreeze_engine/processors/production-readiness/"
-      ],
-      "testPaths": [
-        "services/api/test/features/production-readiness/",
-        "apps/web/src/features/production-readiness/__tests__/",
-        "services/engine/tests/processors/production-readiness/"
-      ],
-      "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
-      ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
-      "releaseStatus": "ga-completion"
-    },
-    {
-      "requirementId": "WEB-020",
-      "priority": "P1",
-      "primaryPlan": "400-production-readiness.md",
-      "primaryTask": "Task 1: WEB production control center",
-      "supportingTasks": [],
-      "codePaths": [
-        "services/api/src/features/production-readiness/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/production-readiness.prisma",
-        "packages/contracts/schemas/v1/production-readiness/",
-        "apps/web/src/features/production-readiness/",
-        "apps/desktop/src/features/production-readiness/",
-        "apps/android/app/src/main/kotlin/com/databreeze/productionreadiness/",
-        "services/engine/src/databreeze_engine/processors/production-readiness/"
-      ],
-      "testPaths": [
-        "services/api/test/features/production-readiness/",
-        "apps/web/src/features/production-readiness/__tests__/",
-        "services/engine/tests/processors/production-readiness/"
-      ],
-      "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
-      ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
-      "releaseStatus": "ga-completion"
-    },
-    {
-      "requirementId": "WEB-021",
-      "priority": "P1",
-      "primaryPlan": "400-production-readiness.md",
-      "primaryTask": "Task 1: WEB production control center",
-      "supportingTasks": [],
-      "codePaths": [
-        "services/api/src/features/production-readiness/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/production-readiness.prisma",
-        "packages/contracts/schemas/v1/production-readiness/",
-        "apps/web/src/features/production-readiness/",
-        "apps/desktop/src/features/production-readiness/",
-        "apps/android/app/src/main/kotlin/com/databreeze/productionreadiness/",
-        "services/engine/src/databreeze_engine/processors/production-readiness/"
-      ],
-      "testPaths": [
-        "services/api/test/features/production-readiness/",
-        "apps/web/src/features/production-readiness/__tests__/",
-        "services/engine/tests/processors/production-readiness/"
-      ],
-      "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
-      ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
-      "releaseStatus": "ga-completion"
-    },
-    {
-      "requirementId": "WEB-022",
-      "priority": "P1",
-      "primaryPlan": "400-production-readiness.md",
-      "primaryTask": "Task 1: WEB production control center",
-      "supportingTasks": [],
-      "codePaths": [
-        "services/api/src/features/production-readiness/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/production-readiness.prisma",
-        "packages/contracts/schemas/v1/production-readiness/",
-        "apps/web/src/features/production-readiness/",
-        "apps/desktop/src/features/production-readiness/",
-        "apps/android/app/src/main/kotlin/com/databreeze/productionreadiness/",
-        "services/engine/src/databreeze_engine/processors/production-readiness/"
-      ],
-      "testPaths": [
-        "services/api/test/features/production-readiness/",
-        "apps/web/src/features/production-readiness/__tests__/",
-        "services/engine/tests/processors/production-readiness/"
-      ],
-      "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
-      ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
-      "releaseStatus": "ga-completion"
-    },
-    {
-      "requirementId": "WEB-023",
-      "priority": "P0",
-      "primaryPlan": "400-production-readiness.md",
-      "primaryTask": "Task 1: WEB production control center",
-      "supportingTasks": [],
-      "codePaths": [
-        "services/api/src/features/production-readiness/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/production-readiness.prisma",
-        "packages/contracts/schemas/v1/production-readiness/",
-        "apps/web/src/features/production-readiness/",
-        "apps/desktop/src/features/production-readiness/",
-        "apps/android/app/src/main/kotlin/com/databreeze/productionreadiness/",
-        "services/engine/src/databreeze_engine/processors/production-readiness/"
-      ],
-      "testPaths": [
-        "services/api/test/features/production-readiness/",
-        "apps/web/src/features/production-readiness/__tests__/",
-        "services/engine/tests/processors/production-readiness/"
-      ],
-      "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
-      ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
-      "releaseStatus": "p0-release-gate"
-    }
-  ]
-}
+- [ ] Define native ports for keystore/key-envelope, encrypted account-scoped Room/local store, WorkManager/desktop scheduler, scoped-share intake, CameraX/voice capture, local retention and DSO transport. Desktop main/preload remains sandboxed, context-isolated and allowlisted; renderer never receives Node, filesystem or raw secret access.
+- [ ] Implement device-bound sessions and rotating credentials; clear queues, databases, grants and key material on revoke/account switch. Enforce Android backup exclusions, no `MANAGE_EXTERNAL_STORAGE`, verified App Links, validated intents and minimal exported components.
+- [ ] Preserve original capture bytes immutably; create derived crop/OCR/redaction/transcript versions. Store queues encrypted by account/workspace, enforce dependency ordering and display conflict/reason/queued-byte state. `LOCAL` blocks upload of original/reconstructable content and states cross-device availability honestly.
+- [ ] Implement user-mediated strict-Local export: explicit item/destination/purpose consent, source signature, authenticated encryption, destination envelope, manifest/hash/expiry, OS-selected transfer and content-safe receipt; reject cloud upload, relay, peer discovery and unregistered destination.
+- [ ] Test Kotlin unit/instrumentation and Desktop security suites for keystore storage, process death/reboot/duplicate work, intent/deep-link rejection, scoped URI copy, capture versioning, policy constraints, offline approval denial, notification minimization, TalkBack/font scaling and account isolation. Add end-to-end fixtures for transfer tamper/expiry and Desktop local-evidence unavailability on Android.
+- [ ] Telemetry exposes redacted diagnostics, sync/device/revocation/protocol state and safe recovery guidance only. Fail closed on unavailable key, policy change, revoked device, source offline or authorization loss; preserve user data until confirmed cleanup and append/reconcile LocalAuditFragment through DSO.
+- [ ] Roll back with app/version compatibility gate and migration rollback preserving encrypted operation records; disable incompatible sync protocol without deleting unsynchronized work. Release gate requires AND/DSK P0 security/offline/data-mode/evidence tests and P1 accessibility/localization/reliability tests before GA.
+
+## Release evidence / Bằng chứng phát hành
+
+For each record in `docs/plans/requirement-traceability.json`, retain `planned` or permitted shell `partial` status and `verificationStatus: not-verified` until linked migration, contract, test and release evidence paths exist. A release manager verifies P0 before promotion and P1 before GA; no P2 requirement is owned by this plan.
+
+## Hoãn lại / Deferred
+
+Collaboration notifications, integrations, feature workflows and post-GA extensions consume DSO public contracts later. They must not add direct persistence access or turn Web/Desktop/Android into arbitrary remote-control surfaces.

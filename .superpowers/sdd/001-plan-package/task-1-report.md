@@ -51,3 +51,9 @@ node --test tools/repo-cli/test/**/*.test.mjs: pass 26, fail 0
 
 - Full repository format check vẫn bị chặn bởi các fixture có sẵn: `desktop-renderer-trust-boundary` (3 files) và `desktop-trust-boundary-allowed` (3 files). Không sửa fixture ngoài scope.
 - Commit SHA: `014b791e0fb74d75e079caac8764e3a593ed01d1` (`docs(plans): persist complete implementation program`).
+
+## Fix round 1 / Sửa vòng 1
+
+- Restored `050-devices-sync-offline.md` after an embedded manifest fragment replaced its release-evidence tail. The plan now explicitly owns DSO-001–027 in Task 1 and AND-001–023 plus DSK-001–026 in Task 2, consistent with the unchanged manifest.
+- Added a regression test that requires both task headings and release evidence while rejecting an embedded `"requirements"` manifest key.
+- Focused check passed: 2 traceability tests, 0 failures; requirement-index check passed. Root `corepack pnpm test` passed: 27 repo-cli tests and 18 Turbo tasks.

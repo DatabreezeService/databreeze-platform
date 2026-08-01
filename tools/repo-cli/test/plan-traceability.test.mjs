@@ -83,3 +83,15 @@ test('manifest traceability bao phủ đúng chỉ mục yêu cầu và các c�
   }
   assert.equal(seen.size, indexById.size);
 });
+
+test('device-sync plan retains its implementation body instead of embedded manifest data', () => {
+  const plan = readFileSync(
+    path.join(repositoryRoot, 'docs', 'plans', '050-devices-sync-offline.md'),
+    'utf8',
+  );
+
+  assert.match(plan, /^### Task 1: DSO device sync/m);
+  assert.match(plan, /^### Task 2: Android and Desktop offline/m);
+  assert.match(plan, /^## Release evidence/m);
+  assert.doesNotMatch(plan, /"requirements": \[/);
+});
