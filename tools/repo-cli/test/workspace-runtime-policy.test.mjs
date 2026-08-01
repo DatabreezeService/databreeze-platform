@@ -9,7 +9,7 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 
 const expectedRuntimeVersions = {
   nodejs: '24.17.0',
-  pnpm: '11.19.0',
+  pnpm: '11.18.0',
   python: '3.13.0',
   java: 'temurin-21',
   postgres: '17',

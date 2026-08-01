@@ -2,10 +2,10 @@
   "name": "@databreeze/platform",
   "version": "0.0.0",
   "private": true,
-  "packageManager": "pnpm@11.19.0",
+  "packageManager": "pnpm@11.18.0",
   "engines": {
     "node": "24.17.0",
-    "pnpm": "11.19.0"
+    "pnpm": "11.18.0"
   },
   "devEngines": {
     "runtime": {
