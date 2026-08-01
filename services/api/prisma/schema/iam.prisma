@@ -1,0 +1,174 @@
+/// IAM-owned records. Cross-module references remain opaque UUIDs so feature repositories
+/// cannot bypass application authorization with implicit Prisma relations.
+model UserIdentity {
+  id             String   @id @db.Uuid
+  email          String   @unique(map: "users_email_key") @db.VarChar(254)
+  displayName    String   @map("display_name") @db.VarChar(200)
+  locale         String   @default("vi-VN") @db.VarChar(16)
+  status         String   @default("ACTIVE") @db.VarChar(24)
+  securityEpoch  Int      @default(1) @map("security_epoch")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("users")
+  @@schema("iam")
+}
+
+model PasswordCredential {
+  id           String   @id @db.Uuid
+  userId       String   @unique(map: "password_credentials_user_id_key") @map("user_id") @db.Uuid
+  algorithm    String   @default("argon2id") @db.VarChar(32)
+  encodedHash  String   @map("encoded_hash") @db.VarChar(768)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  rotatedAt    DateTime? @map("rotated_at") @db.Timestamptz(6)
+
+  @@map("password_credentials")
+  @@schema("iam")
+}
+
+model OrganizationIdentity {
+  id          String   @id @db.Uuid
+  name        String   @db.VarChar(200)
+  personal    Boolean  @default(false)
+  status      String   @default("ACTIVE") @db.VarChar(24)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("organizations")
+  @@schema("iam")
+}
+
+model WorkspaceIdentity {
+  id                 String   @id @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  name               String   @db.VarChar(200)
+  status             String   @default("ACTIVE") @db.VarChar(24)
+  authorizationEpoch Int      @default(1) @map("authorization_epoch")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([organizationId], map: "workspaces_organization_id_idx")
+  @@map("workspaces")
+  @@schema("iam")
+}
+
+model ProjectIdentity {
+  id             String   @id @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  kind           String   @db.VarChar(32)
+  name           String   @db.VarChar(200)
+  status         String   @default("ACTIVE") @db.VarChar(24)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([organizationId, workspaceId], map: "projects_ancestry_idx")
+  @@map("projects")
+  @@schema("iam")
+}
+
+model MembershipIdentity {
+  id             String   @id @db.Uuid
+  principalType  String   @map("principal_type") @db.VarChar(24)
+  principalId    String   @map("principal_id") @db.Uuid
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String?  @map("workspace_id") @db.Uuid
+  projectId      String?  @map("project_id") @db.Uuid
+  roleId         String   @map("role_id") @db.VarChar(32)
+  status         String   @default("INVITED") @db.VarChar(24)
+  startsAt       DateTime? @map("starts_at") @db.Timestamptz(6)
+  expiresAt      DateTime? @map("expires_at") @db.Timestamptz(6)
+  revision       Int      @default(1)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([principalId, status], map: "memberships_principal_status_idx")
+  @@index([organizationId, workspaceId, projectId], map: "memberships_scope_idx")
+  @@map("memberships")
+  @@schema("iam")
+}
+
+model SessionRecord {
+  id                 String   @id @db.Uuid
+  userId             String   @map("user_id") @db.Uuid
+  familyId           String   @map("family_id") @db.Uuid
+  issuedAt           DateTime @map("issued_at") @db.Timestamptz(6)
+  accessExpiresAt    DateTime @map("access_expires_at") @db.Timestamptz(6)
+  inactivityExpiresAt DateTime @map("inactivity_expires_at") @db.Timestamptz(6)
+  absoluteExpiresAt  DateTime @map("absolute_expires_at") @db.Timestamptz(6)
+  status             String   @default("ACTIVE") @db.VarChar(24)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  revokedAt          DateTime? @map("revoked_at") @db.Timestamptz(6)
+
+  @@index([userId, status], map: "sessions_user_status_idx")
+  @@index([familyId], map: "sessions_family_idx")
+  @@map("sessions")
+  @@schema("iam")
+}
+
+model RefreshTokenRecord {
+  id          String   @id @db.Uuid
+  sessionId   String   @map("session_id") @db.Uuid
+  familyId    String   @map("family_id") @db.Uuid
+  tokenDigest String   @unique(map: "refresh_tokens_digest_key") @map("token_digest") @db.VarChar(128)
+  status      String   @default("ACTIVE") @db.VarChar(24)
+  issuedAt    DateTime @map("issued_at") @db.Timestamptz(6)
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz(6)
+  usedAt      DateTime? @map("used_at") @db.Timestamptz(6)
+
+  @@index([familyId, status], map: "refresh_tokens_family_status_idx")
+  @@map("refresh_tokens")
+  @@schema("iam")
+}
+
+model DeviceIdentity {
+  id             String   @id @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  platform       String   @db.VarChar(24)
+  publicKey      String   @map("public_key") @db.VarChar(2048)
+  keyAlgorithm   String   @default("ED25519") @map("key_algorithm") @db.VarChar(32)
+  status         String   @default("PENDING") @db.VarChar(24)
+  securityEpoch  Int      @default(1) @map("security_epoch")
+  revision       Int      @default(1)
+  enrolledAt     DateTime @map("enrolled_at") @db.Timestamptz(6)
+  activatedAt    DateTime? @map("activated_at") @db.Timestamptz(6)
+  revokedAt      DateTime? @map("revoked_at") @db.Timestamptz(6)
+
+  @@index([userId, status], map: "devices_user_status_idx")
+  @@index([organizationId, status], map: "devices_organization_status_idx")
+  @@map("devices")
+  @@schema("iam")
+}
+
+model MfaFactor {
+  id              String   @id @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  factorType      String   @map("factor_type") @db.VarChar(24)
+  secretReference String   @map("secret_reference") @db.VarChar(512)
+  status          String   @default("PENDING") @db.VarChar(24)
+  enrolledAt      DateTime @map("enrolled_at") @db.Timestamptz(6)
+  verifiedAt      DateTime? @map("verified_at") @db.Timestamptz(6)
+  revokedAt       DateTime? @map("revoked_at") @db.Timestamptz(6)
+
+  @@index([userId, status], map: "mfa_factors_user_status_idx")
+  @@map("mfa_factors")
+  @@schema("iam")
+}
+
+model AuthorizationSnapshot {
+  id               String   @id @db.Uuid
+  deviceId         String   @map("device_id") @db.Uuid
+  organizationId   String   @map("organization_id") @db.Uuid
+  authorizationEpoch Int    @map("authorization_epoch")
+  snapshotRevision Int      @map("snapshot_revision")
+  payload          String   @db.Text
+  signature        String   @db.VarChar(1024)
+  issuedAt         DateTime @map("issued_at") @db.Timestamptz(6)
+  expiresAt        DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@index([deviceId, expiresAt], map: "authorization_snapshots_device_expiry_idx")
+  @@map("authorization_snapshots")
+  @@schema("iam")
+}
