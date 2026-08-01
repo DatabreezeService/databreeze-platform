@@ -35,6 +35,10 @@
     "./mfa/v1": {
       "types": "./src/mfa/v1.ts",
       "import": "./dist/mfa/v1.js"
+    },
+    "./device-authorization/v1": {
+      "types": "./src/device-authorization/v1.ts",
+      "import": "./dist/device-authorization/v1.js"
     }
   },
   "scripts": {
