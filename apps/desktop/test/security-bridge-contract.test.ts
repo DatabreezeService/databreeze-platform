@@ -43,4 +43,35 @@ describe('DSK-002 preload bridge', () => {
       [DESKTOP_IPC_CHANNELS.sidecarGetStatus],
     ]);
   });
+
+  it('rejects every unexpected capability argument before invoking IPC', async () => {
+    const invoke = vi.fn(() => Promise.reject(new Error('IPC must not be reached')));
+    const bridge = createDesktopBridgeV1(invoke);
+    const hostileAccessor = {};
+    const getter = vi.fn(() => 'secret');
+    Object.defineProperty(hostileAccessor, 'secret', { enumerable: true, get: getter });
+    const hostilePrototype = Object.create({ inherited: true }) as Record<string, unknown>;
+    hostilePrototype['value'] = 'unexpected';
+    const unexpectedInputs = [
+      undefined,
+      null,
+      { unknown: true },
+      hostileAccessor,
+      hostilePrototype,
+      'x'.repeat(70_000),
+    ];
+    const methods = [
+      bridge.v1.session.getSafeState as (...args: unknown[]) => Promise<unknown>,
+      bridge.v1.sidecar.getStatus as (...args: unknown[]) => Promise<unknown>,
+    ];
+
+    for (const method of methods) {
+      for (const input of unexpectedInputs) {
+        await expect(method(input)).rejects.toThrow(/^DESKTOP_REQUEST_REJECTED$/);
+      }
+    }
+
+    expect(invoke).not.toHaveBeenCalled();
+    expect(getter).not.toHaveBeenCalled();
+  });
 });

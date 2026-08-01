@@ -5,6 +5,13 @@ import process from 'node:process';
 import ts from 'typescript';
 
 const sourceExtensions = new Set(['.ts', '.tsx', '.mts', '.cts']);
+const desktopRendererSourceExtensions = new Set([
+  ...sourceExtensions,
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+]);
 const ignoredDirectories = new Set(['node_modules', 'dist', 'build', 'coverage', 'out']);
 
 function parseRoot(argumentsList) {
@@ -22,7 +29,7 @@ function parseRoot(argumentsList) {
   return path.resolve(specifiedRoot);
 }
 
-function listFiles(directory) {
+function listFiles(directory, extensions = sourceExtensions) {
   if (!existsSync(directory)) {
     return [];
   }
@@ -32,9 +39,9 @@ function listFiles(directory) {
     const entryPath = path.join(directory, entry.name);
     if (entry.isDirectory()) {
       if (!ignoredDirectories.has(entry.name)) {
-        files.push(...listFiles(entryPath));
+        files.push(...listFiles(entryPath, extensions));
       }
-    } else if (entry.isFile() && sourceExtensions.has(path.extname(entry.name))) {
+    } else if (entry.isFile() && extensions.has(path.extname(entry.name))) {
       files.push(entryPath);
     }
   }
@@ -57,10 +64,18 @@ function readPackageManifest(manifestPath) {
 }
 
 function sourceFileKind(filePath) {
-  if (filePath.endsWith('.tsx')) {
-    return ts.ScriptKind.TSX;
+  switch (path.extname(filePath)) {
+    case '.tsx':
+      return ts.ScriptKind.TSX;
+    case '.jsx':
+      return ts.ScriptKind.JSX;
+    case '.js':
+    case '.mjs':
+    case '.cjs':
+      return ts.ScriptKind.JS;
+    default:
+      return ts.ScriptKind.TS;
   }
-  return ts.ScriptKind.TS;
 }
 
 function importedModules(filePath) {
@@ -221,7 +236,7 @@ function checkDesktopRendererBoundary(repositoryRoot) {
     path.join(desktopSource, name),
   );
 
-  for (const filePath of listFiles(rendererDirectory)) {
+  for (const filePath of listFiles(rendererDirectory, desktopRendererSourceExtensions)) {
     for (const moduleSpecifier of importedModules(filePath)) {
       const relativeTarget = moduleSpecifier.startsWith('.')
         ? path.resolve(path.dirname(filePath), moduleSpecifier)

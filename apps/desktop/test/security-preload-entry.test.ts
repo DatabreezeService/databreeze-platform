@@ -40,4 +40,29 @@ describe('actual preload entry', () => {
     await bridge?.v1.session.getSafeState();
     expect(electron.invoke).toHaveBeenCalledWith(DESKTOP_IPC_CHANNELS.sessionGetSafeState);
   });
+
+  it('rejects hostile and oversized arguments on the exposed methods without invoking Electron IPC', async () => {
+    await import('../src/preload/index.ts');
+    const exposure = electron.expose.mock.calls[0] as unknown as
+      | [string, DesktopBridgeV1]
+      | undefined;
+    const bridge = exposure?.[1];
+    expect(bridge).toBeDefined();
+    const hostile = {};
+    const getter = vi.fn(() => 'secret');
+    Object.defineProperty(hostile, 'secret', { enumerable: true, get: getter });
+    const methods = [
+      bridge?.v1.session.getSafeState as (...args: unknown[]) => Promise<unknown>,
+      bridge?.v1.sidecar.getStatus as (...args: unknown[]) => Promise<unknown>,
+    ];
+
+    for (const method of methods) {
+      for (const input of [{ malformed: true }, hostile, 'x'.repeat(70_000)]) {
+        await expect(method(input)).rejects.toThrow(/^DESKTOP_REQUEST_REJECTED$/);
+      }
+    }
+
+    expect(electron.invoke).not.toHaveBeenCalled();
+    expect(getter).not.toHaveBeenCalled();
+  });
 });

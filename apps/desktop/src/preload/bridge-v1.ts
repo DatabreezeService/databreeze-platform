@@ -8,14 +8,22 @@ import {
 
 export type DesktopInvoke = (channel: DesktopIpcChannel) => Promise<unknown>;
 
+function rejectUnexpectedArguments(argumentsList: readonly unknown[]): void {
+  if (argumentsList.length !== 0) throw new Error('DESKTOP_REQUEST_REJECTED');
+}
+
 export function createDesktopBridgeV1(invoke: DesktopInvoke): DesktopBridgeV1 {
   const session = Object.freeze({
-    getSafeState: async () =>
-      parseDesktopSafeState(await invoke(DESKTOP_IPC_CHANNELS.sessionGetSafeState)),
+    getSafeState: async (...argumentsList: unknown[]) => {
+      rejectUnexpectedArguments(argumentsList);
+      return parseDesktopSafeState(await invoke(DESKTOP_IPC_CHANNELS.sessionGetSafeState));
+    },
   });
   const sidecar = Object.freeze({
-    getStatus: async () =>
-      parseSidecarSafeStatus(await invoke(DESKTOP_IPC_CHANNELS.sidecarGetStatus)),
+    getStatus: async (...argumentsList: unknown[]) => {
+      rejectUnexpectedArguments(argumentsList);
+      return parseSidecarSafeStatus(await invoke(DESKTOP_IPC_CHANNELS.sidecarGetStatus));
+    },
   });
   return Object.freeze({ v1: Object.freeze({ session, sidecar }) });
 }

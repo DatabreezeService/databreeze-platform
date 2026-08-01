@@ -148,7 +148,7 @@ test('accepts the Desktop renderer depending only on shared types and public UI 
   assert.equal(result.stderr, '');
 });
 
-test('rejects Desktop renderer imports of Electron, Node, main, and preload modules', () => {
+test('rejects privileged Desktop renderer imports across TypeScript and JavaScript modules', () => {
   const result = checkFixture('desktop-renderer-trust-boundary');
 
   assert.equal(result.status, 1);
@@ -156,5 +156,9 @@ test('rejects Desktop renderer imports of Electron, Node, main, and preload modu
   assert.match(result.stderr, /node\.ts/);
   assert.match(result.stderr, /main\.ts/);
   assert.match(result.stderr, /preload\.ts/);
-  assert.equal(result.stderr.match(/rule=desktop-renderer-must-remain-unprivileged/g)?.length, 4);
+  assert.match(result.stderr, /electron\.js/);
+  assert.match(result.stderr, /node\.jsx/);
+  assert.match(result.stderr, /main\.mjs/);
+  assert.match(result.stderr, /preload\.cjs/);
+  assert.equal(result.stderr.match(/rule=desktop-renderer-must-remain-unprivileged/g)?.length, 8);
 });

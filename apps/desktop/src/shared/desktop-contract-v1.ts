@@ -90,6 +90,17 @@ function boundedVersion(value: unknown): string | null {
   return value;
 }
 
+function primitiveEnum<Value extends string>(
+  value: unknown,
+  allowedValues: readonly Value[],
+  errorCode: string,
+): Value {
+  if (typeof value !== 'string' || !allowedValues.includes(value as Value)) {
+    throw new Error(errorCode);
+  }
+  return value as Value;
+}
+
 function withinResultBudget(value: unknown): void {
   if (new TextEncoder().encode(JSON.stringify(value)).byteLength > SAFE_RESULT_MAX_BYTES) {
     throw new Error('RESULT_TOO_LARGE');
@@ -106,23 +117,29 @@ export function parseDesktopSafeState(value: unknown): DesktopSafeState {
   ]);
   const applicationVersion = boundedVersion(record.applicationVersion);
   if (applicationVersion === null) throw new Error('INVALID_VERSION');
-  if (!['LOCAL', 'CLOUD', 'HYBRID'].includes(String(record.dataMode))) {
-    throw new Error('INVALID_DATA_MODE');
-  }
-  if (!['unavailable', 'locked'].includes(String(record.deviceState))) {
-    throw new Error('INVALID_DEVICE_STATE');
-  }
-  if (!['not-enrolled', 'locked'].includes(String(record.enrollmentState))) {
-    throw new Error('INVALID_ENROLLMENT_STATE');
-  }
-  if (!['vi-VN', 'en'].includes(String(record.locale))) throw new Error('INVALID_LOCALE');
+  const dataMode = primitiveEnum(
+    record.dataMode,
+    ['LOCAL', 'CLOUD', 'HYBRID'] as const,
+    'INVALID_DATA_MODE',
+  );
+  const deviceState = primitiveEnum(
+    record.deviceState,
+    ['unavailable', 'locked'] as const,
+    'INVALID_DEVICE_STATE',
+  );
+  const enrollmentState = primitiveEnum(
+    record.enrollmentState,
+    ['not-enrolled', 'locked'] as const,
+    'INVALID_ENROLLMENT_STATE',
+  );
+  const locale = primitiveEnum(record.locale, ['vi-VN', 'en'] as const, 'INVALID_LOCALE');
 
   const result: DesktopSafeState = Object.freeze({
     applicationVersion,
-    dataMode: record.dataMode as DesktopDataMode,
-    deviceState: record.deviceState as DesktopDeviceState,
-    enrollmentState: record.enrollmentState as DesktopEnrollmentState,
-    locale: record.locale as DesktopLocale,
+    dataMode,
+    deviceState,
+    enrollmentState,
+    locale,
   });
   withinResultBudget(result);
   return result;
@@ -130,14 +147,14 @@ export function parseDesktopSafeState(value: unknown): DesktopSafeState {
 
 export function parseSidecarSafeStatus(value: unknown): SidecarSafeStatus {
   const record = exactDataRecord(value, ['engineVersion', 'lifecycle', 'protocolVersion']);
-  if (
-    !['not-installed', 'stopped', 'starting', 'ready', 'failed'].includes(String(record.lifecycle))
-  ) {
-    throw new Error('INVALID_LIFECYCLE');
-  }
+  const lifecycle = primitiveEnum(
+    record.lifecycle,
+    ['not-installed', 'stopped', 'starting', 'ready', 'failed'] as const,
+    'INVALID_LIFECYCLE',
+  );
   const result: SidecarSafeStatus = Object.freeze({
     engineVersion: boundedVersion(record.engineVersion),
-    lifecycle: record.lifecycle as SidecarLifecycleState,
+    lifecycle,
     protocolVersion: boundedVersion(record.protocolVersion),
   });
   withinResultBudget(result);
