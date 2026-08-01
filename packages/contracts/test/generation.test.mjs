@@ -3,6 +3,7 @@ import {
   appendFileSync,
   cpSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -190,6 +191,25 @@ test('drift check reports missing stale and unexpected files without mutation', 
     assert.match(check.stderr, new RegExp(`stale: ${stale.replaceAll('/', '\\/')}`));
     assert.match(check.stderr, new RegExp(`unexpected: ${unexpected.replaceAll('/', '\\/')}`));
     assert.deepEqual(snapshot(output), before);
+  });
+});
+
+test('drift check ignores uv editable-install metadata beside generated Python contracts', () => {
+  withTemporaryDirectory((directory) => {
+    const output = resolve(directory, 'output');
+    const generate = runGenerator('--source', fixtureRoot, '--output', output);
+    assert.equal(generate.status, 0, generate.stderr);
+    mkdirSync(resolve(output, 'python/build/lib/databreeze_contracts'), { recursive: true });
+    mkdirSync(resolve(output, 'python/databreeze_contracts.egg-info'), { recursive: true });
+    writeFileSync(
+      resolve(output, 'python/build/lib/databreeze_contracts/__init__.py'),
+      '# local\n',
+    );
+    writeFileSync(resolve(output, 'python/databreeze_contracts.egg-info/PKG-INFO'), 'local\n');
+
+    const check = runGenerator('--check', '--source', fixtureRoot, '--output', output);
+
+    assert.equal(check.status, 0, check.stderr);
   });
 });
 
