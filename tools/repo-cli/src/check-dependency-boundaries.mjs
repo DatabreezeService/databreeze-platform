@@ -72,6 +72,14 @@ function importedModules(filePath) {
   );
   const moduleSpecifiers = [];
 
+  function addStringLiteral(node) {
+    if (node !== undefined && ts.isStringLiteralLike(node)) {
+      moduleSpecifiers.push(node.text);
+      return true;
+    }
+    return false;
+  }
+
   function visit(node) {
     if (
       (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
@@ -79,6 +87,23 @@ function importedModules(filePath) {
       ts.isStringLiteral(node.moduleSpecifier)
     ) {
       moduleSpecifiers.push(node.moduleSpecifier.text);
+    }
+
+    if (
+      ts.isImportEqualsDeclaration(node) &&
+      ts.isExternalModuleReference(node.moduleReference) &&
+      addStringLiteral(node.moduleReference.expression)
+    ) {
+      return;
+    }
+
+    if (
+      ts.isCallExpression(node) &&
+      node.arguments.length === 1 &&
+      (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+        (ts.isIdentifier(node.expression) && node.expression.text === 'require'))
+    ) {
+      addStringLiteral(node.arguments[0]);
     }
     ts.forEachChild(node, visit);
   }
@@ -224,31 +249,57 @@ function escapesForRegularExpression(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function exportsSubpath(exportsField, subpath) {
-  if (typeof exportsField === 'string') {
-    return subpath === '.';
+function hasPublicExportTarget(target) {
+  if (typeof target === 'string') {
+    return true;
   }
-  if (exportsField === null || typeof exportsField !== 'object' || Array.isArray(exportsField)) {
+  if (Array.isArray(target)) {
+    return target.some(hasPublicExportTarget);
+  }
+  if (target === null || typeof target !== 'object') {
+    return false;
+  }
+  return Object.values(target).some(hasPublicExportTarget);
+}
+
+function exportPatternMatches(pattern, subpath) {
+  return new RegExp(`^${escapesForRegularExpression(pattern).replace('\\*', '.*')}$`).test(subpath);
+}
+
+function compareExportPatterns(left, right) {
+  const leftPrefixLength = left.indexOf('*') + 1;
+  const rightPrefixLength = right.indexOf('*') + 1;
+
+  if (leftPrefixLength !== rightPrefixLength) {
+    return rightPrefixLength - leftPrefixLength;
+  }
+  return right.length - left.length;
+}
+
+function exportsSubpath(exportsField, subpath) {
+  if (typeof exportsField === 'string' || Array.isArray(exportsField)) {
+    return subpath === '.' && hasPublicExportTarget(exportsField);
+  }
+  if (exportsField === null || typeof exportsField !== 'object') {
     return false;
   }
 
   const exportKeys = Object.keys(exportsField);
   const publicSubpaths = exportKeys.filter((key) => key.startsWith('.'));
   if (publicSubpaths.length === 0) {
-    return subpath === '.';
+    return subpath === '.' && hasPublicExportTarget(exportsField);
   }
 
-  return publicSubpaths.some((exportedSubpath) => {
-    if (exportedSubpath === subpath) {
-      return true;
-    }
-    if (!exportedSubpath.includes('*')) {
-      return false;
-    }
-    return new RegExp(
-      `^${escapesForRegularExpression(exportedSubpath).replace('\\*', '.+')}$`,
-    ).test(subpath);
-  });
+  if (Object.prototype.hasOwnProperty.call(exportsField, subpath)) {
+    return hasPublicExportTarget(exportsField[subpath]);
+  }
+
+  const matchingPattern = publicSubpaths
+    .filter((exportedSubpath) => exportedSubpath.includes('*'))
+    .filter((exportedSubpath) => exportPatternMatches(exportedSubpath, subpath))
+    .sort(compareExportPatterns)[0];
+
+  return matchingPattern !== undefined && hasPublicExportTarget(exportsField[matchingPattern]);
 }
 
 function checkPrivateWorkspacePackageImports(repositoryRoot) {

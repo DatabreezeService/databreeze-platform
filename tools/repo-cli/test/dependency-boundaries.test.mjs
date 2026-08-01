@@ -29,6 +29,19 @@ test('rejects a client import of a service implementation', () => {
   assert.match(result.stderr, /rule=clients-must-not-import-service-implementations/);
 });
 
+test('rejects literal dynamic imports, require calls, and TypeScript import-equals of services', () => {
+  const result = checkFixture('client-loads-service-literals');
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /dynamic\.ts/);
+  assert.match(result.stderr, /required\.ts/);
+  assert.match(result.stderr, /import-equals\.ts/);
+  assert.equal(
+    result.stderr.match(/rule=clients-must-not-import-service-implementations/g)?.length,
+    3,
+  );
+});
+
 test('rejects a client import of the API directory itself', () => {
   const result = checkFixture('client-imports-service-directory');
 
@@ -89,4 +102,17 @@ test('rejects a client import of a private workspace-package subpath', () => {
   assert.equal(result.status, 1);
   assert.match(result.stderr, /apps[\\/]web[\\/]src[\\/]client\.ts/);
   assert.match(result.stderr, /rule=workspace-packages-must-not-import-private-subpaths/);
+});
+
+test('uses exact and most-specific export entries before broader patterns, including null targets', () => {
+  const result = checkFixture('exports-null-precedence');
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /blocked\.ts/);
+  assert.match(result.stderr, /private\.ts/);
+  assert.doesNotMatch(result.stderr, /public\.ts/);
+  assert.equal(
+    result.stderr.match(/rule=workspace-packages-must-not-import-private-subpaths/g)?.length,
+    2,
+  );
 });
