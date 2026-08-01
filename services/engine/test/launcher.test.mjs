@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import test from 'node:test';
 
+import { isRequiredUvVersion } from '../scripts/uv-version.mjs';
+
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const launcher = path.join(projectRoot, 'scripts', 'run-engine.mjs');
 
@@ -36,3 +38,32 @@ test('missing uv fails with one bounded setup diagnostic', () => {
   assert.match(result.stderr, /requires uv 0\.11\.32.*DATABREEZE_UV/u);
   assert.ok(result.stderr.length < 400);
 });
+
+test('uv exact-version parsing rejects prefix collisions and undocumented suffixes', () => {
+  assert.equal(isRequiredUvVersion('uv 0.11.32'), true);
+  assert.equal(
+    isRequiredUvVersion('uv 0.11.32 (3010295ae 2026-07-23 x86_64-pc-windows-msvc)'),
+    true,
+  );
+  assert.equal(isRequiredUvVersion('uv 0.11.320'), false);
+  assert.equal(isRequiredUvVersion('uv 0.11.32 unexpected'), false);
+});
+
+test(
+  'launcher rejects a prefix-collision version from a fake executable',
+  {
+    skip:
+      process.platform === 'win32' ? 'Windows does not execute shebang fixtures directly' : false,
+  },
+  () => {
+    const fakeUv = path.join(projectRoot, 'test', 'fixtures', 'fake-uv-prefix');
+    const result = spawnSync(process.execPath, [launcher, 'python-version'], {
+      cwd: projectRoot,
+      encoding: 'utf8',
+      env: { ...process.env, DATABREEZE_UV: fakeUv },
+      windowsHide: true,
+    });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /requires exactly uv 0\.11\.32/u);
+  },
+);

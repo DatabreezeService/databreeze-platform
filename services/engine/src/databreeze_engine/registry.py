@@ -7,11 +7,16 @@ import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
 from types import MappingProxyType
 
 from .handler import ActionHandler
 from .models import ActionManifest, ResourceLimits
-from .processors.metadata_digest import HANDLER_DIGEST, handle
+from .processors import metadata_digest
+
+REVIEWED_METADATA_HANDLER_DIGEST = (
+    "sha256:6de342f9b36d0e1e05a4908ea7796e1564c45504f96256e2b4957aa8d0bbd9be"
+)
 
 
 class RegistryError(Exception):
@@ -21,7 +26,7 @@ class RegistryError(Exception):
 
 
 @dataclass(frozen=True, slots=True)
-class ActionDefinition:
+class _ActionDefinition:
     manifest: ActionManifest
     handler: ActionHandler
 
@@ -40,69 +45,44 @@ def manifest_digest(manifest: ActionManifest) -> str:
     return "sha256:" + hashlib.sha256(canonical_manifest_bytes(manifest)).hexdigest()
 
 
-class ActionRegistry:
-    def __init__(self, definitions: tuple[ActionDefinition, ...]) -> None:
-        actions: dict[tuple[str, str], ActionDefinition] = {}
-        action_types: set[str] = set()
-        for definition in definitions:
-            manifest = ActionManifest.model_validate(definition.manifest)
-            action_boundary = manifest.actionType.replace("_", "-").split(".")
-            prohibited_tokens = {
-                "billing",
-                "funds",
-                "payment",
-                "reversal",
-                "settlement",
-                "transfer",
-                "withholding",
-            }
-            if any(
-                token in prohibited_tokens
-                for component in action_boundary
-                for token in component.split("-")
-            ):
-                raise RegistryError("PROHIBITED_ACTION_BOUNDARY")
-            key = (manifest.actionType, manifest.actionVersion)
-            if key in actions:
-                raise RegistryError("DUPLICATE_ACTION_VERSION")
-            actions[key] = ActionDefinition(manifest=manifest, handler=definition.handler)
-            action_types.add(manifest.actionType)
-        self._actions: Mapping[tuple[str, str], ActionDefinition] = MappingProxyType(actions)
-        self._action_types = frozenset(action_types)
-        self._manifests = tuple(
-            definition.manifest
-            for _, definition in sorted(actions.items(), key=lambda item: item[0])
-        )
-
-    @property
-    def actions(self) -> Mapping[tuple[str, str], ActionDefinition]:
-        return self._actions
-
-    @property
-    def manifests(self) -> tuple[ActionManifest, ...]:
-        return self._manifests
-
-    def resolve(self, action_type: str, version: str, handler_digest: str) -> ActionDefinition:
-        key = (action_type, version)
-        definition = self._actions.get(key)
-        if definition is None:
-            code = (
-                "UNSUPPORTED_ACTION_VERSION"
-                if action_type in self._action_types
-                else "UNSUPPORTED_ACTION"
-            )
-            raise RegistryError(code)
-        if definition.manifest.handlerDigest != handler_digest:
-            raise RegistryError("HANDLER_DIGEST_MISMATCH")
-        return definition
+def _verify_reviewed_handler_artifact(content: bytes | None = None) -> None:
+    artifact = content
+    if artifact is None:
+        artifact_path = Path(metadata_digest.__file__)
+        try:
+            artifact = artifact_path.read_bytes()
+        except OSError:
+            raise RegistryError("HANDLER_ARTIFACT_UNAVAILABLE") from None
+    actual = "sha256:" + hashlib.sha256(artifact).hexdigest()
+    if actual != REVIEWED_METADATA_HANDLER_DIGEST:
+        raise RegistryError("HANDLER_ARTIFACT_DIGEST_MISMATCH")
 
 
-@lru_cache(maxsize=1)
-def default_registry() -> ActionRegistry:
+def _validate_action_boundary(action_type: str) -> None:
+    action_boundary = action_type.replace("_", "-").split(".")
+    prohibited_tokens = {
+        "billing",
+        "funds",
+        "payment",
+        "reversal",
+        "settlement",
+        "transfer",
+        "withholding",
+    }
+    if any(
+        token in prohibited_tokens
+        for component in action_boundary
+        for token in component.split("-")
+    ):
+        raise RegistryError("PROHIBITED_ACTION_BOUNDARY")
+
+
+def _reviewed_definition() -> _ActionDefinition:
+    _verify_reviewed_handler_artifact()
     manifest = ActionManifest(
         actionType="foundation.metadata-digest",
         actionVersion="1.0.0",
-        handlerDigest=HANDLER_DIGEST,
+        handlerDigest=REVIEWED_METADATA_HANDLER_DIGEST,
         engineVersion="0.1.0",
         protocolVersion="1.0",
         inputSchemaId="foundation.metadata-fixture.v1",
@@ -127,4 +107,44 @@ def default_registry() -> ActionRegistry:
         filesystemWritesPermitted=False,
         externalProvidersPermitted=False,
     )
-    return ActionRegistry((ActionDefinition(manifest=manifest, handler=handle),))
+    return _ActionDefinition(manifest=manifest, handler=metadata_digest.handle)
+
+
+class ActionRegistry:
+    """Closed built-in registry; callers cannot provide definitions or callables."""
+
+    def __init__(self) -> None:
+        definition = _reviewed_definition()
+        _validate_action_boundary(definition.manifest.actionType)
+        key = (definition.manifest.actionType, definition.manifest.actionVersion)
+        self._actions: Mapping[tuple[str, str], _ActionDefinition] = MappingProxyType(
+            {key: definition}
+        )
+        self._action_types = frozenset({definition.manifest.actionType})
+        self._manifests = (definition.manifest,)
+
+    @property
+    def actions(self) -> Mapping[tuple[str, str], _ActionDefinition]:
+        return self._actions
+
+    @property
+    def manifests(self) -> tuple[ActionManifest, ...]:
+        return self._manifests
+
+    def resolve(self, action_type: str, version: str, handler_digest: str) -> _ActionDefinition:
+        definition = self._actions.get((action_type, version))
+        if definition is None:
+            code = (
+                "UNSUPPORTED_ACTION_VERSION"
+                if action_type in self._action_types
+                else "UNSUPPORTED_ACTION"
+            )
+            raise RegistryError(code)
+        if definition.manifest.handlerDigest != handler_digest:
+            raise RegistryError("HANDLER_DIGEST_MISMATCH")
+        return definition
+
+
+@lru_cache(maxsize=1)
+def default_registry() -> ActionRegistry:
+    return ActionRegistry()

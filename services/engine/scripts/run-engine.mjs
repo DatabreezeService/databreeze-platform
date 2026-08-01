@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
-const REQUIRED_UV_VERSION = '0.11.32';
+import { isRequiredUvVersion, REQUIRED_UV_VERSION } from './uv-version.mjs';
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const uv = process.env.DATABREEZE_UV?.trim() || 'uv';
 const operation = process.argv[2];
@@ -45,7 +45,7 @@ const version = spawnSync(uv, ['--version'], {
 });
 if (version.error || version.status !== 0) {
   setupFailure();
-} else if (!version.stdout.trim().startsWith(`uv ${REQUIRED_UV_VERSION}`)) {
+} else if (!isRequiredUvVersion(version.stdout)) {
   process.stderr.write(`DataBreeze engine requires exactly uv ${REQUIRED_UV_VERSION}.\n`);
   process.exitCode = 1;
 } else {

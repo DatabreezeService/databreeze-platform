@@ -5,6 +5,9 @@ from __future__ import annotations
 import json
 from typing import Any
 
+MAX_JSON_DEPTH = 64
+MAX_JSON_NUMBER_TOKEN_BYTES = 128
+
 
 class JsonCodecError(ValueError):
     def __init__(self, code: str) -> None:
@@ -36,7 +39,45 @@ def _validate_unicode(value: object) -> None:
             _validate_unicode(item)
 
 
+def _preflight_json(encoded: bytes) -> None:
+    depth = 0
+    in_string = False
+    escaped = False
+    index = 0
+    while index < len(encoded):
+        byte = encoded[index]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif byte == 0x5C:
+                escaped = True
+            elif byte == 0x22:
+                in_string = False
+            index += 1
+            continue
+        if byte == 0x22:
+            in_string = True
+            index += 1
+            continue
+        if byte in (0x5B, 0x7B):
+            depth += 1
+            if depth > MAX_JSON_DEPTH:
+                raise JsonCodecError("JSON_DEPTH_EXCEEDED")
+        elif byte in (0x5D, 0x7D):
+            depth -= 1
+        elif byte == 0x2D or 0x30 <= byte <= 0x39:
+            end = index + 1
+            while end < len(encoded) and encoded[end] in b"0123456789.eE+-":
+                end += 1
+            if end - index > MAX_JSON_NUMBER_TOKEN_BYTES:
+                raise JsonCodecError("JSON_NUMBER_TOO_LONG")
+            index = end
+            continue
+        index += 1
+
+
 def decode_json(encoded: bytes) -> object:
+    _preflight_json(encoded)
     try:
         text = encoded.decode("utf-8", "strict")
     except UnicodeDecodeError:
@@ -53,6 +94,8 @@ def decode_json(encoded: bytes) -> object:
         raise
     except json.JSONDecodeError:
         raise JsonCodecError("MALFORMED_JSON") from None
+    except (RecursionError, ValueError, OverflowError):
+        raise JsonCodecError("JSON_LIMIT_EXCEEDED") from None
     _validate_unicode(value)
     return value
 
@@ -63,5 +106,5 @@ def encode_json(value: object) -> bytes:
         return json.dumps(
             value, ensure_ascii=False, allow_nan=False, separators=(",", ":"), sort_keys=True
         ).encode("utf-8", "strict")
-    except (TypeError, ValueError, UnicodeEncodeError):
+    except (TypeError, ValueError, UnicodeEncodeError, RecursionError, OverflowError):
         raise JsonCodecError("INVALID_JSON_VALUE") from None

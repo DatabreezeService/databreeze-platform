@@ -14,7 +14,8 @@ def test_foundation_processor_matches_the_hand_checked_golden_digest(
     execution_payload: Callable[..., dict[str, Any]],
 ) -> None:
     request = EngineExecutionRequest.model_validate(execution_payload())
-    result = dispatch_execution(request, now=datetime(2026, 1, 1, tzinfo=UTC))
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    result = dispatch_execution(request, wall_clock=lambda: now)
     fixture = json.loads(
         (Path(__file__).parent / "fixtures" / "metadata_digest_golden.json").read_text(
             encoding="utf-8"
@@ -38,7 +39,10 @@ def test_foundation_processor_is_stable_for_equivalent_input_order(
     )
     second = EngineExecutionRequest.model_validate(reordered)
     now = datetime(2026, 1, 1, tzinfo=UTC)
-    assert dispatch_execution(first, now=now).output == dispatch_execution(second, now=now).output
+    assert (
+        dispatch_execution(first, wall_clock=lambda: now).output
+        == dispatch_execution(second, wall_clock=lambda: now).output
+    )
 
 
 def test_foundation_processor_ignores_product_locale(
@@ -47,4 +51,7 @@ def test_foundation_processor_ignores_product_locale(
     vi = EngineExecutionRequest.model_validate(execution_payload(locale="vi-VN"))
     en = EngineExecutionRequest.model_validate(execution_payload(locale="en"))
     now = datetime(2026, 1, 1, tzinfo=UTC)
-    assert dispatch_execution(vi, now=now).output == dispatch_execution(en, now=now).output
+    assert (
+        dispatch_execution(vi, wall_clock=lambda: now).output
+        == dispatch_execution(en, wall_clock=lambda: now).output
+    )

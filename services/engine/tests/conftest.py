@@ -18,7 +18,7 @@ def execution_payload() -> Callable[..., dict[str, Any]]:
                 "type": "foundation.metadata-digest",
                 "version": "1.0.0",
                 "handlerDigest": (
-                    "sha256:57b38f34972333a47d14bd84fc01a37d836673fe636bcfb699d5bfba12f9fb14"
+                    "sha256:6de342f9b36d0e1e05a4908ea7796e1564c45504f96256e2b4957aa8d0bbd9be"
                 ),
             },
             "inputHandles": [

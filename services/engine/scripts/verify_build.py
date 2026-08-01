@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tarfile
 import zipfile
+from configparser import ConfigParser
 from pathlib import Path
 
 
@@ -24,8 +25,17 @@ def main() -> int:
         names = frozenset(archive.namelist())
         entry_points = next(name for name in names if name.endswith(".dist-info/entry_points.txt"))
         entries = archive.read(entry_points).decode("utf-8")
-        if "databreeze-engine-sidecar" not in entries or "databreeze-engine-cloud" not in entries:
-            raise SystemExit("built wheel is missing engine console entries")
+        parser = ConfigParser(interpolation=None)
+        parser.read_string(entries)
+        expected_console_entries = {
+            "databreeze-engine-cloud": "databreeze_engine.cloud:main",
+            "databreeze-engine-sidecar": "databreeze_engine.sidecar:main",
+        }
+        actual_console_entries = (
+            dict(parser["console_scripts"]) if parser.has_section("console_scripts") else {}
+        )
+        if actual_console_entries != expected_console_entries:
+            raise SystemExit("built wheel has incorrect engine console entries")
         if "databreeze_engine/__init__.py" not in names:
             raise SystemExit("built wheel is missing the engine package")
     with tarfile.open(source, mode="r:gz") as archive:

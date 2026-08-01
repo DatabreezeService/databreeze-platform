@@ -16,34 +16,63 @@ class FrameError(ValueError):
         self.code = code
 
 
-def _exact_read(stream: BinaryIO, length: int) -> bytes:
-    chunks: list[bytes] = []
+def _exact_read(
+    stream: BinaryIO, length: int, *, truncated_code: str, allow_empty_eof: bool = False
+) -> bytes | None:
+    result = bytearray()
     remaining = length
     while remaining:
-        chunk = stream.read(remaining)
-        if not chunk:
-            raise FrameError("TRUNCATED_BODY")
-        chunks.append(chunk)
+        try:
+            chunk = stream.read(remaining)
+        except (OSError, ValueError):
+            raise FrameError("READ_FAILED") from None
+        if chunk is None or not isinstance(chunk, bytes):
+            raise FrameError("INVALID_READ_RESULT")
+        if chunk == b"":
+            if allow_empty_eof and not result:
+                return None
+            raise FrameError(truncated_code)
+        if len(chunk) > remaining:
+            raise FrameError("INVALID_READ_COUNT")
+        result.extend(chunk)
         remaining -= len(chunk)
-    return b"".join(chunks)
+    return bytes(result)
 
 
 def read_frame(stream: BinaryIO) -> object | None:
-    prefix = stream.read(4)
-    if prefix == b"":
+    prefix = _exact_read(stream, 4, truncated_code="TRUNCATED_PREFIX", allow_empty_eof=True)
+    if prefix is None:
         return None
-    if len(prefix) != 4:
-        raise FrameError("TRUNCATED_PREFIX")
     length = int.from_bytes(prefix, "big", signed=False)
     if length == 0:
         raise FrameError("ZERO_LENGTH_FRAME")
     if length > MAX_FRAME_BYTES:
         raise FrameError("OVERSIZED_FRAME")
-    body = _exact_read(stream, length)
+    body = _exact_read(stream, length, truncated_code="TRUNCATED_BODY")
+    if body is None:
+        raise FrameError("TRUNCATED_BODY")
     try:
         return decode_json(body)
     except JsonCodecError as error:
         raise FrameError(error.code) from None
+
+
+def _write_all(stream: BinaryIO, data: bytes) -> None:
+    offset = 0
+    while offset < len(data):
+        try:
+            count = stream.write(data[offset:])
+        except (OSError, ValueError):
+            raise FrameError("WRITE_FAILED") from None
+        if (
+            count is None
+            or isinstance(count, bool)
+            or not isinstance(count, int)
+            or count <= 0
+            or count > len(data) - offset
+        ):
+            raise FrameError("INVALID_WRITE_COUNT")
+        offset += count
 
 
 def write_frame(stream: BinaryIO, payload: object) -> None:
@@ -55,6 +84,9 @@ def write_frame(stream: BinaryIO, payload: object) -> None:
         raise FrameError("ZERO_LENGTH_OUTPUT")
     if len(body) > MAX_OUTPUT_FRAME_BYTES:
         raise FrameError("OVERSIZED_OUTPUT")
-    stream.write(len(body).to_bytes(4, "big", signed=False))
-    stream.write(body)
-    stream.flush()
+    _write_all(stream, len(body).to_bytes(4, "big", signed=False))
+    _write_all(stream, body)
+    try:
+        stream.flush()
+    except (OSError, ValueError):
+        raise FrameError("WRITE_FAILED") from None

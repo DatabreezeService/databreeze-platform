@@ -45,3 +45,21 @@ def test_sidecar_stops_on_corrupt_transport_without_extra_output(
     output_stream.seek(0)
     assert read_frame(output_stream)["result"]["status"] == "SUCCEEDED"
     assert read_frame(output_stream) is None
+
+
+def test_sidecar_returns_json_rpc_parse_error_for_bounded_malformed_json() -> None:
+    body = b"{}{}"
+    input_stream = BytesIO(len(body).to_bytes(4, "big") + body)
+    output_stream = BytesIO()
+
+    assert serve(input_stream, output_stream) == 2
+    output_stream.seek(0)
+    assert read_frame(output_stream) == {
+        "jsonrpc": "2.0",
+        "id": None,
+        "error": {
+            "code": -32700,
+            "message": "Parse error",
+            "data": {"engineCode": "PARSE_ERROR"},
+        },
+    }

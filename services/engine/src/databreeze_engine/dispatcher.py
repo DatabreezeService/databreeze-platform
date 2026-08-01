@@ -2,22 +2,42 @@
 
 from __future__ import annotations
 
+import time
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from pydantic import ValidationError
 
 from .handler import CancellationView, DisabledProgressSink, HandlerContext
+from .json_codec import encode_json
 from .models import (
     EngineError,
-    EngineErrorData,
     EngineExecutionRequest,
     EngineResult,
     JsonRpcErrorResponse,
     JsonRpcRequest,
     JsonRpcSuccessResponse,
 )
-from .registry import ActionRegistry, RegistryError, default_registry
+from .registry import RegistryError, default_registry
+
+WallClock = Callable[[], datetime]
+MonotonicClock = Callable[[], float]
+
+_ERROR_SPECS: dict[str, tuple[int, str]] = {
+    "PARSE_ERROR": (-32700, "Parse error"),
+    "MALFORMED_REQUEST": (-32600, "Invalid Request"),
+    "METHOD_NOT_FOUND": (-32601, "Method not found"),
+    "VALIDATION_FAILED": (-32602, "Invalid params"),
+    "INTERNAL_ERROR": (-32603, "Internal error"),
+    "UNSUPPORTED_PROTOCOL": (-32001, "Unsupported protocol"),
+    "UNSUPPORTED_ACTION": (-32002, "Unsupported action"),
+    "UNSUPPORTED_ACTION_VERSION": (-32003, "Unsupported action version"),
+    "HANDLER_DIGEST_MISMATCH": (-32004, "Handler digest mismatch"),
+    "DEADLINE_EXCEEDED": (-32006, "Deadline exceeded"),
+    "RESOURCE_LIMIT_EXCEEDED": (-32007, "Resource limit exceeded"),
+    "DURATION_EXCEEDED": (-32008, "Duration exceeded"),
+}
 
 
 class EngineDispatchError(Exception):
@@ -37,35 +57,57 @@ def _deadline(value: str) -> datetime:
 def dispatch_execution(
     request: EngineExecutionRequest,
     *,
-    registry: ActionRegistry | None = None,
-    now: datetime | None = None,
+    wall_clock: WallClock | None = None,
+    monotonic_clock: MonotonicClock | None = None,
 ) -> EngineResult:
-    active_registry = registry or default_registry()
-    current_time = now or datetime.now(UTC)
-    if _deadline(request.deadline) <= current_time:
+    read_wall_clock = wall_clock or (lambda: datetime.now(UTC))
+    read_monotonic_clock = monotonic_clock or time.monotonic
+    deadline = _deadline(request.deadline)
+    if deadline <= read_wall_clock():
         raise EngineDispatchError("DEADLINE_EXCEEDED")
     try:
-        definition = active_registry.resolve(
+        definition = default_registry().resolve(
             request.action.type, request.action.version, request.action.handlerDigest
         )
-        context = HandlerContext(
-            request_id=request.requestId,
-            attempt_id=request.attemptId,
-            correlation_id=request.correlation.correlationId,
-            locale=request.locale,
-            input_handles=tuple(request.inputHandles),
-            output_handle=request.outputHandle,
-            resources=definition.manifest.resources,
-            deadline=_deadline(request.deadline),
-            cancellation=CancellationView(),
-            progress=DisabledProgressSink(),
-        )
-        output = definition.handler(context, request.parameters)
-        return EngineResult(attemptId=request.attemptId, status="SUCCEEDED", output=output)
     except RegistryError as error:
         raise EngineDispatchError(error.code) from None
-    except ValidationError:
-        raise EngineDispatchError("VALIDATION_FAILED") from None
+
+    limits = definition.manifest.resources
+    if sum(handle.byteLength for handle in request.inputHandles) > limits.maxInputBytes:
+        raise EngineDispatchError("RESOURCE_LIMIT_EXCEEDED")
+    if request.outputHandle.byteLength > limits.maxOutputBytes:
+        raise EngineDispatchError("RESOURCE_LIMIT_EXCEEDED")
+
+    context = HandlerContext(
+        request_id=request.requestId,
+        attempt_id=request.attemptId,
+        correlation_id=request.correlation.correlationId,
+        locale=request.locale,
+        input_handles=tuple(request.inputHandles),
+        output_handle=request.outputHandle,
+        resources=limits,
+        deadline=deadline,
+        cancellation=CancellationView(),
+        progress=DisabledProgressSink(),
+    )
+    started = read_monotonic_clock()
+    try:
+        output = definition.handler(context, request.parameters)
+        result = EngineResult(attemptId=request.attemptId, status="SUCCEEDED", output=output)
+    except EngineDispatchError:
+        raise
+    except Exception:
+        raise EngineDispatchError("INTERNAL_ERROR") from None
+    elapsed_milliseconds = (read_monotonic_clock() - started) * 1000
+    if deadline <= read_wall_clock():
+        raise EngineDispatchError("DEADLINE_EXCEEDED")
+    if elapsed_milliseconds < 0:
+        raise EngineDispatchError("INTERNAL_ERROR")
+    if elapsed_milliseconds > limits.maxDurationMilliseconds:
+        raise EngineDispatchError("DURATION_EXCEEDED")
+    if len(encode_json(output.model_dump(mode="json"))) > limits.maxOutputBytes:
+        raise EngineDispatchError("RESOURCE_LIMIT_EXCEEDED")
+    return result
 
 
 def _recover_request_id(payload: object) -> int | str | None:
@@ -81,33 +123,58 @@ def _recover_request_id(payload: object) -> int | str | None:
     return None
 
 
-def _error(request_id: int | str | None, code: str) -> dict[str, Any]:
+def error_response(request_id: int | str | None, engine_code: str) -> dict[str, Any]:
+    numeric_code, message = _ERROR_SPECS.get(engine_code, _ERROR_SPECS["INTERNAL_ERROR"])
+    safe_engine_code = engine_code if engine_code in _ERROR_SPECS else "INTERNAL_ERROR"
+    error = EngineError.model_validate(
+        {
+            "code": numeric_code,
+            "message": message,
+            "data": {"engineCode": safe_engine_code},
+        }
+    )
     response = JsonRpcErrorResponse(
         jsonrpc="2.0",
         id=request_id,
-        error=EngineError(code=code, data=EngineErrorData()),  # type: ignore[arg-type]
+        error=error,
     )
     return response.model_dump(mode="json")
 
 
-def dispatch_rpc(payload: object, *, now: datetime | None = None) -> dict[str, Any]:
+def dispatch_rpc(
+    payload: object,
+    *,
+    wall_clock: WallClock | None = None,
+    monotonic_clock: MonotonicClock | None = None,
+) -> dict[str, Any]:
     request_id = _recover_request_id(payload)
-    if (
-        isinstance(payload, dict)
-        and isinstance(payload.get("params"), dict)
-        and payload["params"].get("protocolVersion") not in (None, "1.0")
-    ):
-        return _error(request_id, "UNSUPPORTED_PROTOCOL")
+    if not isinstance(payload, dict):
+        return error_response(None, "MALFORMED_REQUEST")
+    if set(payload) != {"jsonrpc", "id", "method", "params"}:
+        return error_response(request_id, "MALFORMED_REQUEST")
+    if payload.get("jsonrpc") != "2.0" or request_id is None:
+        return error_response(request_id, "MALFORMED_REQUEST")
+    if payload.get("method") != "engine.execute":
+        return error_response(request_id, "METHOD_NOT_FOUND")
+    params = payload.get("params")
+    if not isinstance(params, dict):
+        return error_response(request_id, "VALIDATION_FAILED")
+    if params.get("protocolVersion") not in (None, "1.0"):
+        return error_response(request_id, "UNSUPPORTED_PROTOCOL")
     try:
         request = JsonRpcRequest.model_validate(payload)
     except ValidationError:
-        return _error(request_id, "MALFORMED_REQUEST")
+        return error_response(request_id, "VALIDATION_FAILED")
     try:
-        result = dispatch_execution(request.params, now=now)
+        result = dispatch_execution(
+            request.params,
+            wall_clock=wall_clock,
+            monotonic_clock=monotonic_clock,
+        )
         return JsonRpcSuccessResponse(jsonrpc="2.0", id=request.id, result=result).model_dump(
             mode="json"
         )
     except EngineDispatchError as error:
-        return _error(request.id, error.code)
+        return error_response(request.id, error.code)
     except Exception:
-        return _error(request.id, "INTERNAL_ERROR")
+        return error_response(request.id, "INTERNAL_ERROR")

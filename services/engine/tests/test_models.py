@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 from collections.abc import Callable
 from typing import Any
 
@@ -50,16 +49,30 @@ def test_execution_request_rejects_unknown_fields(
         {"path": r"C:\\private\\source.xlsx"},
         {"url": "https://example.test/private"},
         {"environment": {"TOKEN": "secret"}},
-        {"items": [{"key": "x", "value": "\ud800"}]},
-        {"items": [{"key": "x", "value": math.nan}]},
-        {"items": [{"key": "x", "value": math.inf}]},
+        {"secret": "TOKEN"},
+        {"credentialRef": "opaque-secret"},
+        {"jobEnvelope": {"signature": "abc"}},
+        {"destination": "private/source.xlsx"},
+        {"endpoint": "file:C:/private/source.xlsx"},
+        {"items": [{"key": "category", "value": "private/source.xlsx"}], "tags": []},
+        {"items": [{"key": "category", "value": "file:C:/private"}], "tags": []},
+        {"items": [{"key": "CATEGORY", "value": "invoice"}], "tags": []},
+        {"items": [{"key": "category", "value": "\ud800"}], "tags": []},
     ],
 )
-def test_parameters_reject_prohibited_or_non_json_shapes(
+def test_action_parameters_reject_every_non_schema_shape(
     execution_payload: Callable[..., dict[str, Any]], parameters: dict[str, Any]
 ) -> None:
     with pytest.raises(ValidationError):
         EngineExecutionRequest.model_validate(execution_payload(parameters=parameters))
+
+
+def test_execution_boundary_exposes_the_closed_foundation_parameter_model(
+    execution_payload: Callable[..., dict[str, Any]],
+) -> None:
+    request = EngineExecutionRequest.model_validate(execution_payload())
+    assert request.parameters.__class__.__name__ == "FoundationMetadataParameters"
+    assert not isinstance(request.parameters, dict)
 
 
 def test_handle_byte_length_rejects_boolean_coercion(

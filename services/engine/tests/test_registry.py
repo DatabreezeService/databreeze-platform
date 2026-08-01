@@ -1,23 +1,73 @@
 from __future__ import annotations
 
+import inspect
+import os
+import subprocess
+import sys
+
 import pytest
 from pydantic import ValidationError
 
+import databreeze_engine.registry as registry_module
+from databreeze_engine.dispatcher import dispatch_execution
 from databreeze_engine.registry import (
     ActionRegistry,
     RegistryError,
+    canonical_manifest_bytes,
     default_registry,
     manifest_digest,
 )
 
 
-def test_default_manifest_is_bounded_safe_and_byte_stable() -> None:
+def test_default_manifest_has_fixed_canonical_bytes_and_digest() -> None:
     manifest = default_registry().manifests[0]
     assert manifest.networkPermitted is False
     assert manifest.filesystemWritesPermitted is False
     assert manifest.externalProvidersPermitted is False
     assert manifest.resources.maxDurationMilliseconds == 5_000
-    assert manifest_digest(manifest) == manifest_digest(manifest.model_copy())
+    assert canonical_manifest_bytes(manifest) == (
+        b'{"actionType":"foundation.metadata-digest","actionVersion":"1.0.0",'
+        b'"dataModes":["LOCAL","CLOUD","HYBRID"],"determinism":"DETERMINISTIC",'
+        b'"engineVersion":"0.1.0","executionModes":["LOCAL","CLOUD"],'
+        b'"executionTargets":["DESKTOP","CLOUD_WORKER"],'
+        b'"externalProvidersPermitted":false,"filesystemWritesPermitted":false,'
+        b'"handlerDigest":"sha256:6de342f9b36d0e1e05a4908ea7796e1564c45504f96256e2b4957aa8d0bbd9be",'
+        b'"inputSchemaId":"foundation.metadata-fixture.v1","networkPermitted":false,'
+        b'"outputSchemaId":"foundation.metadata-digest-result.v1",'
+        b'"protocolVersion":"1.0","requiredCapabilities":["metadata.read"],'
+        b'"resources":{"maxDurationMilliseconds":5000,"maxInputBytes":16777216,'
+        b'"maxMemoryBytes":67108864,"maxOutputBytes":1048576,'
+        b'"maxTemporaryStorageBytes":0,"progressCadenceMilliseconds":500},'
+        b'"riskClass":"READ_ONLY","seedPolicy":"NONE","sideEffectClass":"NONE"}'
+    )
+    assert manifest_digest(manifest) == (
+        "sha256:5e528dba025ef289ec1d32b7b1bccdbc46d67d7cc96539af2adbec654068d441"
+    )
+
+
+@pytest.mark.parametrize("hash_seed", ["1", "987654"])
+def test_manifest_canonicalization_is_hash_seed_independent(hash_seed: str) -> None:
+    program = (
+        "from databreeze_engine.registry import canonical_manifest_bytes, default_registry, "
+        "manifest_digest; manifest = default_registry().manifests[0]; "
+        "print(canonical_manifest_bytes(manifest).hex()); print(manifest_digest(manifest))"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", program],
+        check=True,
+        capture_output=True,
+        text=True,
+        env={
+            **os.environ,
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONHASHSEED": hash_seed,
+        },
+        timeout=30,
+    )
+    encoded_bytes, digest = result.stdout.splitlines()
+    manifest = default_registry().manifests[0]
+    assert bytes.fromhex(encoded_bytes) == canonical_manifest_bytes(manifest)
+    assert digest == "sha256:5e528dba025ef289ec1d32b7b1bccdbc46d67d7cc96539af2adbec654068d441"
 
 
 def test_registry_and_manifests_are_immutable() -> None:
@@ -30,10 +80,17 @@ def test_registry_and_manifests_are_immutable() -> None:
         registry.manifests[0].resources.maxInputBytes = 1
 
 
-def test_registry_rejects_duplicate_action_versions() -> None:
-    definition = next(iter(default_registry().actions.values()))
-    with pytest.raises(RegistryError, match="DUPLICATE_ACTION_VERSION"):
-        ActionRegistry((definition, definition))
+def test_registry_and_dispatcher_expose_no_callable_or_registry_injection() -> None:
+    assert "ActionDefinition" not in vars(registry_module)
+    assert tuple(inspect.signature(ActionRegistry).parameters) == ()
+    assert "registry" not in inspect.signature(dispatch_execution).parameters
+    with pytest.raises(TypeError):
+        ActionRegistry((lambda: None,))  # type: ignore[call-arg]
+
+
+def test_reviewed_handler_artifact_digest_fails_closed_on_changed_bytes() -> None:
+    with pytest.raises(RegistryError, match="HANDLER_ARTIFACT_DIGEST_MISMATCH"):
+        registry_module._verify_reviewed_handler_artifact(b"changed processor bytes")
 
 
 def test_manifest_rejects_prohibited_effect_and_unknown_capability() -> None:
@@ -49,11 +106,9 @@ def test_manifest_rejects_prohibited_effect_and_unknown_capability() -> None:
 
 
 def test_registry_rejects_customer_payment_or_funds_transfer_actions() -> None:
-    definition = next(iter(default_registry().actions.values()))
     for action_type in ("customer.payment", "funds-transfer.execute"):
-        unsafe = definition.manifest.model_copy(update={"actionType": action_type})
         with pytest.raises(RegistryError, match="PROHIBITED_ACTION_BOUNDARY"):
-            ActionRegistry((type(definition)(manifest=unsafe, handler=definition.handler),))
+            registry_module._validate_action_boundary(action_type)
 
 
 def test_registry_fails_closed_for_unknown_action_version_and_digest() -> None:

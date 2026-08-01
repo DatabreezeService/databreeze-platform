@@ -4,22 +4,20 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any
 
 from ..handler import HandlerContext
 from ..models import EngineProgress, FoundationDigestResult, FoundationMetadataParameters
 
-HANDLER_DIGEST = "sha256:57b38f34972333a47d14bd84fc01a37d836673fe636bcfb699d5bfba12f9fb14"
 
-
-def handle(context: HandlerContext, parameters: dict[str, Any]) -> FoundationDigestResult:
-    validated = FoundationMetadataParameters.model_validate(parameters)
+def handle(
+    context: HandlerContext, parameters: FoundationMetadataParameters
+) -> FoundationDigestResult:
     canonical = {
         "items": sorted(
-            ({"key": item.key, "value": item.value} for item in validated.items),
+            ({"key": item.key, "value": item.value} for item in parameters.items),
             key=lambda item: (item["key"], item["value"]),
         ),
-        "tags": sorted(validated.tags),
+        "tags": sorted(parameters.tags),
     }
     encoded = json.dumps(
         canonical, ensure_ascii=False, allow_nan=False, separators=(",", ":"), sort_keys=True
@@ -36,6 +34,6 @@ def handle(context: HandlerContext, parameters: dict[str, Any]) -> FoundationDig
     return FoundationDigestResult(
         canonicalDigest=hashlib.sha256(encoded).hexdigest(),
         canonicalizationVersion="foundation-metadata-v1",
-        itemCount=len(validated.items),
-        tagCount=len(validated.tags),
+        itemCount=len(parameters.items),
+        tagCount=len(parameters.tags),
     )

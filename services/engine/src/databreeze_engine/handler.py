@@ -4,9 +4,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Protocol
+from typing import Protocol
 
-from .models import EngineProgress, FoundationDigestResult, OpaqueHandle, ResourceLimits
+from .models import (
+    EngineProgress,
+    FoundationDigestResult,
+    FoundationMetadataParameters,
+    OpaqueHandle,
+    ResourceLimits,
+)
 
 
 class ProgressSink(Protocol):
@@ -34,7 +40,7 @@ class HandlerContext:
 
 class ActionHandler(Protocol):
     def __call__(
-        self, context: HandlerContext, parameters: dict[str, Any]
+        self, context: HandlerContext, parameters: FoundationMetadataParameters
     ) -> FoundationDigestResult: ...
 
 

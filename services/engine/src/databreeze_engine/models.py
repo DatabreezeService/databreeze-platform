@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import math
-import re
 from typing import Annotated, Any, Literal, Self
 
 from databreeze_contracts.v1 import CorrelationMetadata, Identifier, UtcTimestamp
@@ -18,81 +16,7 @@ from pydantic import (
     model_validator,
 )
 
-MAX_PARAMETER_DEPTH = 8
-MAX_PARAMETER_COLLECTION = 256
-MAX_PARAMETER_STRING = 4096
 MAX_HANDLES = 32
-PROHIBITED_PARAMETER_KEYS = frozenset(
-    {
-        "callable",
-        "command",
-        "credential",
-        "credentials",
-        "environment",
-        "env",
-        "filesystempath",
-        "module",
-        "path",
-        "script",
-        "shell",
-        "url",
-    }
-)
-_KEY_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
-_WINDOWS_PATH = re.compile(r"^[A-Za-z]:[\\/]")
-_COMMAND_PREFIX = re.compile(r"^(?:cmd(?:\.exe)?|powershell(?:\.exe)?|pwsh|sh|bash)\b", re.I)
-
-
-def _normalized_key(value: str) -> str:
-    return re.sub(r"[^a-z]", "", value.lower())
-
-
-def validate_safe_json(value: Any, *, depth: int = 0) -> None:
-    """Reject non-JSON, unbounded, executable, locator, and environment shapes."""
-    if depth > MAX_PARAMETER_DEPTH:
-        raise ValueError("parameter nesting exceeds the protocol limit")
-    if value is None:
-        raise ValueError("null is not allowed")
-    if isinstance(value, bool):
-        return
-    if isinstance(value, int):
-        return
-    if isinstance(value, float):
-        if not math.isfinite(value):
-            raise ValueError("non-finite numbers are not allowed")
-        return
-    if isinstance(value, str):
-        if len(value) > MAX_PARAMETER_STRING:
-            raise ValueError("parameter string exceeds the protocol limit")
-        try:
-            value.encode("utf-8", "strict")
-        except UnicodeEncodeError as error:
-            raise ValueError("invalid Unicode is not allowed") from error
-        if (
-            "://" in value
-            or value.startswith(("/", "\\\\"))
-            or _WINDOWS_PATH.match(value)
-            or _COMMAND_PREFIX.match(value)
-        ):
-            raise ValueError("locator and command values are not allowed")
-        return
-    if isinstance(value, list):
-        if len(value) > MAX_PARAMETER_COLLECTION:
-            raise ValueError("parameter list exceeds the protocol limit")
-        for item in value:
-            validate_safe_json(item, depth=depth + 1)
-        return
-    if isinstance(value, dict):
-        if len(value) > MAX_PARAMETER_COLLECTION:
-            raise ValueError("parameter object exceeds the protocol limit")
-        for key, item in value.items():
-            if not isinstance(key, str) or not _KEY_PATTERN.fullmatch(key):
-                raise ValueError("parameter keys must use the safe protocol grammar")
-            if _normalized_key(key) in PROHIBITED_PARAMETER_KEYS:
-                raise ValueError("prohibited parameter shape")
-            validate_safe_json(item, depth=depth + 1)
-        return
-    raise ValueError("non-JSON values are not allowed")
 
 
 class ClosedModel(BaseModel):
@@ -131,41 +55,13 @@ class OpaqueHandle(ClosedModel):
     schemaId: SchemaId
 
 
-class EngineExecutionRequest(ClosedModel):
-    protocolVersion: Literal["1.0"]
-    requestId: Identifier
-    attemptId: Identifier
-    correlation: CorrelationMetadata
-    action: ActionReference
-    inputHandles: Annotated[list[OpaqueHandle], Field(max_length=MAX_HANDLES)]
-    outputHandle: OpaqueHandle
-    parameters: dict[str, Any]
-    deadline: UtcTimestamp
-    locale: Literal["vi-VN", "en"]
-
-    @model_validator(mode="after")
-    def validate_parameters(self) -> Self:
-        validate_safe_json(self.parameters)
-        return self
-
-
-class JsonRpcRequest(ClosedModel):
-    jsonrpc: Literal["2.0"]
-    id: (
-        Annotated[StrictInt, Field(ge=0)]
-        | Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]
-    )
-    method: Literal["engine.execute"]
-    params: EngineExecutionRequest
-
-
 class FoundationMetadataItem(ClosedModel):
-    key: Annotated[StrictStr, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{0,63}$")]
-    value: Annotated[StrictStr, StringConstraints(min_length=1, max_length=512)]
+    key: Literal["category", "priority"]
+    value: Annotated[StrictStr, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{0,63}$")]
 
 
 class FoundationMetadataParameters(ClosedModel):
-    items: Annotated[list[FoundationMetadataItem], Field(min_length=1, max_length=64)]
+    items: Annotated[list[FoundationMetadataItem], Field(min_length=1, max_length=2)]
     tags: Annotated[
         list[Annotated[StrictStr, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{0,63}$")]],
         Field(max_length=64),
@@ -178,6 +74,29 @@ class FoundationMetadataParameters(ClosedModel):
         if len(set(self.tags)) != len(self.tags):
             raise ValueError("metadata tags must be unique")
         return self
+
+
+class EngineExecutionRequest(ClosedModel):
+    protocolVersion: Literal["1.0"]
+    requestId: Identifier
+    attemptId: Identifier
+    correlation: CorrelationMetadata
+    action: ActionReference
+    inputHandles: Annotated[list[OpaqueHandle], Field(max_length=MAX_HANDLES)]
+    outputHandle: OpaqueHandle
+    parameters: FoundationMetadataParameters
+    deadline: UtcTimestamp
+    locale: Literal["vi-VN", "en"]
+
+
+class JsonRpcRequest(ClosedModel):
+    jsonrpc: Literal["2.0"]
+    id: (
+        Annotated[StrictInt, Field(ge=0)]
+        | Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]
+    )
+    method: Literal["engine.execute"]
+    params: EngineExecutionRequest
 
 
 class FoundationDigestResult(ClosedModel):
@@ -194,24 +113,57 @@ class EngineResult(ClosedModel):
 
 
 EngineErrorCode = Literal[
+    "PARSE_ERROR",
     "MALFORMED_FRAME",
     "MALFORMED_REQUEST",
+    "METHOD_NOT_FOUND",
     "UNSUPPORTED_PROTOCOL",
     "UNSUPPORTED_ACTION",
     "UNSUPPORTED_ACTION_VERSION",
     "HANDLER_DIGEST_MISMATCH",
     "VALIDATION_FAILED",
     "DEADLINE_EXCEEDED",
+    "RESOURCE_LIMIT_EXCEEDED",
+    "DURATION_EXCEEDED",
     "INTERNAL_ERROR",
 ]
 
 
 class EngineErrorData(ClosedModel):
-    pass
+    engineCode: EngineErrorCode
 
 
 class EngineError(ClosedModel):
-    code: EngineErrorCode
+    code: Literal[
+        -32700,
+        -32600,
+        -32601,
+        -32602,
+        -32603,
+        -32001,
+        -32002,
+        -32003,
+        -32004,
+        -32005,
+        -32006,
+        -32007,
+        -32008,
+    ]
+    message: Literal[
+        "Parse error",
+        "Invalid Request",
+        "Method not found",
+        "Invalid params",
+        "Internal error",
+        "Unsupported protocol",
+        "Unsupported action",
+        "Unsupported action version",
+        "Handler digest mismatch",
+        "Validation failed",
+        "Deadline exceeded",
+        "Resource limit exceeded",
+        "Duration exceeded",
+    ]
     data: EngineErrorData
 
 

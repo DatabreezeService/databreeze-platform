@@ -8,16 +8,20 @@ general plug-in host.
 
 `databreeze_engine.models` defines strict Pydantic v2 envelopes backed by the generated
 `databreeze-contracts` identifier, UTC timestamp, and correlation types. Models forbid unknown
-fields and coercion, bound strings and collections, reject non-finite JSON and unsafe locator or
-execution shapes, and carry opaque handle descriptors rather than paths, credentials, URLs, source
-content, commands, or job envelopes.
+fields and coercion, bound strings and collections, reject non-finite JSON, and carry opaque handle
+descriptors rather than paths, credentials, URLs, source content, commands, or job envelopes. The
+foundation action accepts only its closed `FoundationMetadataParameters` schema; it has no generic
+JSON parameter map or locator, credential, envelope, or command field.
 
-`databreeze_engine.registry` composes an immutable registry in code from reviewed handlers. Each
-entry binds an action/version to canonical handler and manifest digests, schema IDs, target/data
-modes, capabilities, effect and risk classes, determinism, and finite resource limits. There is no
-entry-point discovery, runtime registration API, import-string lookup, uploaded executable code,
-`eval`, `exec`, shell command, or user plug-in path. Billing-provider effects and customer payment,
-funds-transfer, withholding, reversal, or settlement action names are rejected.
+`databreeze_engine.registry` composes an immutable, built-in-only registry in code from reviewed
+handlers. Its constructor accepts no definitions or callables, and production dispatch accepts no
+registry override. Each entry binds an action/version to schema IDs, target/data modes,
+capabilities, effect and risk classes, determinism, and finite resource limits. The fixed handler
+digest is verified against the shipped reviewed processor artifact bytes before the registry opens;
+changing that artifact requires reviewing and updating its digest. There is no entry-point
+discovery, runtime registration API, import-string lookup, uploaded executable code, `eval`, `exec`,
+shell command, or user plug-in path. Billing-provider effects and customer payment, funds-transfer,
+withholding, reversal, or settlement action names are rejected.
 
 Handlers receive only `HandlerContext`: validated IDs and locale, immutable resource limits, opaque
 handles, deadline/cancellation views, and a content-safe progress sink. They receive no stdio,
@@ -30,17 +34,25 @@ Both adapters call the same registry, dispatcher, and handler:
 
 - `databreeze-engine-sidecar` loops over binary stdio frames: exactly four unsigned big-endian length
   bytes and one UTF-8 JSON value. Input is capped at 16 MiB; output at 1 MiB. EOF before a prefix is a
-  clean stop. Truncated, zero, oversized, invalid UTF-8/Unicode, duplicate-key, malformed, or
-  concatenated JSON frames stop safely without attempting resynchronization. Stdout contains frames
-  only; this foundation emits no diagnostics.
+  clean stop. Reads and writes loop until their exact declared counts are complete. Invalid bounded
+  JSON produces one JSON-RPC parse error before shutdown; truncated, zero, oversized, or other
+  corrupt transport stops safely without attempting resynchronization. JSON nesting and numeric
+  token lengths are bounded before Python parsing. Stdout contains frames only; this foundation
+  emits no diagnostics.
 - `databreeze-engine-cloud` accepts one bounded JSON payload and returns one validated result through
   the same dispatcher. It does not import the Desktop framing layer or connect to PostgreSQL, Redis,
   object storage, or providers.
 
-JSON-RPC errors use stable content-free codes such as `MALFORMED_REQUEST`, `UNSUPPORTED_PROTOCOL`,
-`UNSUPPORTED_ACTION`, `UNSUPPORTED_ACTION_VERSION`, `HANDLER_DIGEST_MISMATCH`, `VALIDATION_FAILED`,
-`DEADLINE_EXCEEDED`, and `INTERNAL_ERROR`. Error data is an empty allowlisted object; exception text,
-paths, parameters, environment values, handles, and stack traces are never reflected.
+JSON-RPC errors use the standard numeric codes and fixed messages for parse, request, method,
+parameter, and internal errors. Engine failures use reserved server codes. The stable content-free
+engine enumâ€”for example `UNSUPPORTED_ACTION`, `HANDLER_DIGEST_MISMATCH`, `DEADLINE_EXCEEDED`, or
+`RESOURCE_LIMIT_EXCEEDED`â€”appears only as allowlisted `error.data.engineCode`; exception text, paths,
+parameters, environment values, handles, and stack traces are never reflected.
+
+Before invoking a handler, dispatch enforces the manifest's aggregate declared input bytes and
+output-handle capacity. After the handler returns, it checks the wall-clock deadline, monotonic
+logical duration, and actual serialized output size. These are deterministic in-process checks, not
+hard interruption: OS process, CPU, memory, and timeout supervision remain explicitly deferred.
 
 ## Reproducible commands
 
@@ -61,8 +73,8 @@ node scripts/run-engine.mjs build
 ```
 
 The build command checks lock freshness, builds the wheel and source distribution offline with the
-locked Hatchling backend already present, checks their inventory and both console entries, and imports
-the wheel in an isolated interpreter. Root `corepack pnpm lint`, `typecheck`, `test`, and `build`
+locked Hatchling backend already present, checks their inventory and both exact console-entry
+mappings, and imports the wheel in an isolated interpreter. Root `corepack pnpm lint`, `typecheck`, `test`, and `build`
 include `@databreeze/engine` through Turborepo on Windows and other supported development hosts.
 
 ## Requirement coverage and explicit deferrals
