@@ -28,7 +28,7 @@
     "fixtures:check": "node ../../tools/fixture-validation/src/run-contract-parity.mjs",
     "generate": "node scripts/generate-models.mjs",
     "generate:check": "node scripts/generate-models.mjs --check",
-    "test": "node --test test/**/*.test.mjs",
+    "test": "node --test \"test/**/*.test.mjs\"",
     "test:python-formats": "node test/python-format-runtime-probe.mjs"
   },
   "dependencies": {

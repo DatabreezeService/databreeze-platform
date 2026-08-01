@@ -18,10 +18,13 @@ import test from 'node:test';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 
+import { resolvePythonInterpreter } from './test-runtime-tools.mjs';
+
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const generatorPath = resolve(packageRoot, 'scripts/generate-models.mjs');
 const fixtureRoot = resolve(packageRoot, 'test/fixtures/generator');
 const generatedRoot = resolve(packageRoot, 'generated');
+const pythonInterpreter = resolvePythonInterpreter();
 const expectedFiles = [
   'kotlin/src/main/kotlin/com/databreeze/contracts/v1/Models.kt',
   'kotlin/src/main/kotlin/com/databreeze/contracts/v1/Validation.kt',
@@ -74,7 +77,7 @@ function withTemporaryDirectory(run) {
 function runPythonValidationProgram(program) {
   const source = resolve(generatedRoot, 'python/databreeze_contracts/v1/_validation.py');
   assert.equal(existsSync(source), true, 'generated Python validation helpers are missing');
-  return spawnSync('python', ['-c', program, source], {
+  return spawnSync(pythonInterpreter, ['-c', program, source], {
     cwd: packageRoot,
     encoding: 'utf8',
   });
@@ -264,7 +267,7 @@ test('the checked-in Python package compiles with the available interpreter', ()
     '    source = Path(name).read_text(encoding="utf-8")',
     '    compile(source, name, "exec")',
   ].join('\n');
-  const result = spawnSync('python', ['-c', program, ...files], {
+  const result = spawnSync(pythonInterpreter, ['-c', program, ...files], {
     cwd: packageRoot,
     encoding: 'utf8',
   });

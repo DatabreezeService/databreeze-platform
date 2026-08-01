@@ -7,8 +7,11 @@ import { spawnSync } from 'node:child_process';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 
+import { resolvePythonInterpreter } from './test-runtime-tools.mjs';
+
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const generatedPython = resolve(packageRoot, 'generated/python');
+const pythonInterpreter = resolvePythonInterpreter();
 const pyproject = readFileSync(resolve(generatedPython, 'pyproject.toml'), 'utf8');
 const dependenciesSection = /dependencies\s*=\s*\[([\s\S]*?)\]/u.exec(pyproject);
 assert.ok(dependenciesSection, 'generated pyproject.toml must declare project dependencies');
@@ -71,7 +74,7 @@ const temporaryRoot = mkdtempSync(resolve(tmpdir(), 'databreeze-python-formats-'
 try {
   const dependenciesRoot = resolve(temporaryRoot, 'site-packages');
   const install = spawnSync(
-    'python',
+    pythonInterpreter,
     [
       '-m',
       'pip',
@@ -88,7 +91,7 @@ try {
 
   const validationPath = resolve(generatedPython, 'databreeze_contracts/v1/_validation.py');
   const probe = spawnSync(
-    'python',
+    pythonInterpreter,
     ['-c', pythonProgram, dependenciesRoot, validationPath, JSON.stringify(cases)],
     {
       cwd: packageRoot,

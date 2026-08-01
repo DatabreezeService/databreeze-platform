@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "parity": "node src/run-contract-parity.mjs",
-    "test": "node --test test/**/*.test.mjs"
+    "test": "node --test \"test/**/*.test.mjs\""
   },
   "dependencies": {
     "@databreeze/contracts": "workspace:*"
