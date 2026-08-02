@@ -36,6 +36,10 @@ import { InMemoryArtifactUploadStorageAdapter } from './adapter/in-memory-artifa
 import { InMemoryProtectedDocumentSecretInputAdapter } from './adapter/in-memory-protected-document-secret-input.adapter.js';
 import { InMemoryProtectedDocumentUnlockRepositoryAdapter } from './adapter/in-memory-protected-document-unlock-repository.adapter.js';
 import {
+  PrismaProtectedDocumentUnlockRepositoryAdapter,
+  type ProtectedDocumentUnlockDatabaseClientV1,
+} from './adapter/prisma-protected-document-unlock-repository.adapter.js';
+import {
   PrismaArtifactUploadRepositoryAdapter,
   type ArtifactUploadDatabaseClientV1,
 } from './adapter/prisma-artifact-upload-repository.adapter.js';
@@ -115,6 +119,8 @@ export interface IaeModuleOptions {
   readonly artifactUploadDatabase?: ArtifactUploadDatabaseClientV1;
   readonly artifactUploadStorage?: ArtifactUploadStoragePortV1;
   readonly protectedDocumentUnlockRepository?: ProtectedDocumentUnlockRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly protectedDocumentUnlockDatabase?: ProtectedDocumentUnlockDatabaseClientV1;
   readonly protectedDocumentSecretInput?: ProtectedDocumentSecretInputPortV1;
   readonly evidenceGrantRepository?: EvidenceGrantRepositoryPortV1;
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
@@ -196,7 +202,9 @@ export class IaeModule {
           provide: PROTECTED_DOCUMENT_UNLOCK_REPOSITORY_PORT,
           useValue:
             options.protectedDocumentUnlockRepository ??
-            new InMemoryProtectedDocumentUnlockRepositoryAdapter(),
+            (options.protectedDocumentUnlockDatabase === undefined
+              ? new InMemoryProtectedDocumentUnlockRepositoryAdapter()
+              : new PrismaProtectedDocumentUnlockRepositoryAdapter(options.protectedDocumentUnlockDatabase)),
         },
         {
           provide: PROTECTED_DOCUMENT_SECRET_INPUT_PORT,

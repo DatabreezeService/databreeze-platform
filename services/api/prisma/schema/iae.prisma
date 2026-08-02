@@ -195,3 +195,28 @@ model ArtifactUploadSessionRecord {
   @@map("artifact_upload_sessions")
   @@schema("iae")
 }
+
+/// IAE-015: password-protected document unlock state; no secret material is persisted.
+model ProtectedDocumentUnlockRequestRecord {
+  id                String   @id @db.Uuid
+  artifactVersionId String   @map("artifact_version_id") @db.Uuid
+  scopeType         String   @map("scope_type") @db.VarChar(24)
+  organizationId    String   @map("organization_id") @db.Uuid
+  workspaceId       String?  @map("workspace_id") @db.Uuid
+  projectId         String?  @map("project_id") @db.Uuid
+  deviceId          String?  @map("device_id") @db.Uuid
+  mode              String   @db.VarChar(24)
+  state             String   @db.VarChar(16)
+  attemptCount      Int      @map("attempt_count")
+  maxAttempts       Int      @map("max_attempts")
+  lastFailureCode   String?  @map("last_failure_code") @db.VarChar(32)
+  createdAt         DateTime @map("created_at") @db.Timestamptz(6)
+  expiresAt         DateTime @map("expires_at") @db.Timestamptz(6)
+  revision          Int      @default(1)
+
+  @@index([artifactVersionId], map: "protected_document_unlock_artifact_idx")
+  @@index([organizationId, workspaceId, projectId, state], map: "protected_document_unlock_scope_state_idx")
+  @@index([expiresAt], map: "protected_document_unlock_expiry_idx")
+  @@map("protected_document_unlock_requests")
+  @@schema("iae")
+}
