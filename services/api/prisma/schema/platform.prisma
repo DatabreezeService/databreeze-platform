@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["platform", "system", "iam", "iae", "aud", "bua"]
+  schemas  = ["platform", "system", "iam", "iae", "aud", "bua", "dsm"]
 }
 
 /// Platform-owned registry documenting database-schema ownership boundaries.
