@@ -6,6 +6,10 @@ import {
   PrismaDeviceSyncRepositoryAdapter,
   type DeviceSyncDatabaseClientV1,
 } from './adapter/prisma-device-sync-repository.adapter.js';
+import {
+  PrismaDeviceAuthorizationRepositoryAdapter,
+  type DeviceAuthorizationDatabaseClientV1,
+} from './adapter/prisma-device-authorization-repository.adapter.js';
 import { InMemoryDataModePolicyRepositoryAdapter } from './adapter/in-memory-data-mode-policy-repository.adapter.js';
 import { DeviceSyncAuthorizationAdapter } from './adapter/device-sync-authorization.adapter.js';
 import { InMemoryDeviceAuthorizationRepositoryAdapter } from './adapter/in-memory-device-authorization-repository.adapter.js';
@@ -49,6 +53,8 @@ export interface DsoModuleOptions {
   readonly deviceSyncRepository?: DeviceSyncRepositoryPortV1;
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly deviceSyncDatabase?: DeviceSyncDatabaseClientV1;
+  /** Production composition passes the same generated Prisma client for durable grants/snapshots. */
+  readonly deviceAuthorizationDatabase?: DeviceAuthorizationDatabaseClientV1;
   readonly dataModePolicyRepository?: DataModePolicyRepositoryPortV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
   readonly deviceSyncCursorSigner?: DeviceSyncCursorSignerV1;
@@ -70,7 +76,10 @@ export class DsoModule {
     const policyRepository =
       options.dataModePolicyRepository ?? new InMemoryDataModePolicyRepositoryAdapter();
     const authorizationRepository =
-      options.deviceAuthorizationRepository ?? new InMemoryDeviceAuthorizationRepositoryAdapter();
+      options.deviceAuthorizationRepository ??
+      (options.deviceAuthorizationDatabase === undefined
+        ? new InMemoryDeviceAuthorizationRepositoryAdapter()
+        : new PrismaDeviceAuthorizationRepositoryAdapter(options.deviceAuthorizationDatabase));
     const authorizationService = new DeviceAuthorizationService(authorizationRepository);
     const authorization =
       options.deviceSyncAuthorization ??
