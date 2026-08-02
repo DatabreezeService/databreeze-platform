@@ -33,6 +33,7 @@ Run these from the repository root:
 | `pnpm local:services reset` | Recreate containers/networks while preserving named volumes; it never passes `--volumes`. |
 | `pnpm local:services restart-check` | Restart the running stack and verify health after restart. |
 | `pnpm local:services status` | Print container/health state without changing it. |
+| `pnpm local:services logs --tail=100` | Print bounded, read-only logs for known local services. |
 
 The older `pnpm local:smoke -- --start` form remains supported. Port collisions
 can be resolved by copying `.env.example` to `.env` and changing the host port
@@ -64,6 +65,9 @@ package manager while still making readiness observable.
 - The Compose health checks are the readiness contract for local consumers.
   `pnpm local:services status` reports the current health and
   `pnpm local:services restart-check` verifies restart persistence.
+- `pnpm local:services logs --service=postgres --tail=100` is read-only and
+  accepts only known service names. Logs are local diagnostics; review them
+  before sharing because provider messages can still contain development data.
 - If a previous run left a stopped container, rerun `pnpm local:services start`;
   it is idempotent and does not delete volumes.
 - If Docker is unavailable, the static infrastructure tests still validate the

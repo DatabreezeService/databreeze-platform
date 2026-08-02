@@ -12,7 +12,8 @@ Task: `FND-003 — Close local infrastructure gaps`
   credentials, roles, or secret literals.
 - `tools/repo-cli/src/local-services.mjs` provides daemon-free `config` and
   `preflight` commands plus `check`, `start`, `stop`, `reset`,
-  `restart-check`, `status`, and legacy `smoke` commands.
+  `restart-check`, `status`, bounded read-only `logs`, and legacy `smoke`
+  commands.
 - Lifecycle commands preserve named volumes. `reset` uses Compose
   `down --remove-orphans` without `--volumes`; data deletion is never implicit.
 - Preflight reports missing Docker CLI/daemon, host port collisions, and

@@ -117,7 +117,7 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
     encoding: 'utf8',
   });
   assert.equal(result.status, 0, result.stderr);
-  for (const command of ['config', 'preflight', 'check', 'start', 'stop', 'reset', 'restart-check', 'status', 'smoke']) {
+  for (const command of ['config', 'preflight', 'check', 'start', 'stop', 'reset', 'restart-check', 'status', 'logs', 'smoke']) {
     assert.match(result.stdout, new RegExp(`^  ${command}\\s`, 'm'));
   }
   assert.match(script, /statfsSync/u);
@@ -144,9 +144,26 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
   assert.notEqual(invalidDisk.status, 0);
   assert.match(`${invalidDisk.stdout}\n${invalidDisk.stderr}`, /--min-free-gib must be a non-negative number/u);
 
+  const invalidTail = spawnSync(process.execPath, [helpScript, 'logs', '--tail=0'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  });
+  assert.notEqual(invalidTail.status, 0);
+  assert.match(`${invalidTail.stdout}\n${invalidTail.stderr}`, /--tail must be an integer/u);
+
+  const invalidService = spawnSync(process.execPath, [helpScript, 'logs', '--service=unknown'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  });
+  assert.notEqual(invalidService.status, 0);
+  assert.match(`${invalidService.stdout}\n${invalidService.stderr}`, /--service must name one of/u);
+
   const composeConfig = spawnSync(process.execPath, [helpScript, 'config'], {
     cwd: repositoryRoot,
     encoding: 'utf8',
   });
   if (composeConfig.status === 0) assert.match(composeConfig.stdout, /Compose configuration is valid/u);
+  assert.match(script, /logs', '--no-color/u);
+  assert.match(script, /--service must name one of/u);
+  assert.match(script, /--tail must be an integer/u);
 });

@@ -18,6 +18,7 @@ const services = [
   'otel-collector',
   'otel-collector-health',
 ];
+const logServices = [...services, 'minio-init'];
 const hostPorts = [
   { service: 'postgres', key: 'POSTGRES_PORT', fallback: 5432 },
   { service: 'redis', key: 'REDIS_PORT', fallback: 6379 },
@@ -42,11 +43,14 @@ Commands (all preserve named volumes):
   reset                 recreate containers and networks, preserving volumes
   restart-check         restart running services and verify health/persistence
   status                print current container and health state
+  logs                  print bounded local container logs (read-only)
   smoke                 legacy readiness command (use --start to start first)
 
 Options:
   --start               with smoke, start services before polling
   --wait-seconds=N      readiness timeout (default: 60, maximum: 3600)
+  --tail=N              log lines per service (default: 100, maximum: 1000)
+  --service=NAME        limit logs to one known local service
   --min-free-gib=N      minimum host free space (default: 5)
   --help                show this help
 
@@ -212,6 +216,8 @@ function parseArguments(argv) {
   const options = {
     start: false,
     waitSeconds: 60,
+    tail: 100,
+    service: undefined,
     minFreeGib: Number(process.env.DATABREEZE_MIN_FREE_GIB || 5),
   };
   for (const argument of argumentsToParse) {
@@ -224,6 +230,14 @@ function parseArguments(argv) {
       options.waitSeconds = Number(argument.slice('--wait-seconds='.length));
       continue;
     }
+    if (argument.startsWith('--tail=')) {
+      options.tail = Number(argument.slice('--tail='.length));
+      continue;
+    }
+    if (argument.startsWith('--service=')) {
+      options.service = argument.slice('--service='.length);
+      continue;
+    }
     if (argument.startsWith('--min-free-gib=')) {
       options.minFreeGib = Number(argument.slice('--min-free-gib='.length));
       continue;
@@ -233,10 +247,16 @@ function parseArguments(argv) {
   if (!Number.isInteger(options.waitSeconds) || options.waitSeconds < 1 || options.waitSeconds > 3600) {
     fail('--wait-seconds must be an integer from 1 to 3600');
   }
+  if (!Number.isInteger(options.tail) || options.tail < 1 || options.tail > 1000) {
+    fail('--tail must be an integer from 1 to 1000');
+  }
+  if (options.service !== undefined && !logServices.includes(options.service)) {
+    fail(`--service must name one of: ${logServices.join(', ')}`);
+  }
   if (!Number.isFinite(options.minFreeGib) || options.minFreeGib < 0) {
     fail('--min-free-gib must be a non-negative number');
   }
-  if (!['config', 'preflight', 'check', 'start', 'stop', 'reset', 'restart-check', 'status', 'smoke'].includes(command)) {
+  if (!['config', 'preflight', 'check', 'start', 'stop', 'reset', 'restart-check', 'status', 'logs', 'smoke'].includes(command)) {
     fail(`unknown command: ${command}`);
   }
   return { command, options };
@@ -266,6 +286,11 @@ export async function main(argv = process.argv.slice(2)) {
 
   if (command === 'status') {
     for (const service of services) console.log(`${service}: ${inspectHealth(service, values).detail}`);
+    return;
+  }
+  if (command === 'logs') {
+    const selected = options.service ? [options.service] : logServices;
+    runDocker([...composeArgs(values), 'logs', '--no-color', `--tail=${options.tail}`, ...selected]);
     return;
   }
   if (command === 'stop') {
