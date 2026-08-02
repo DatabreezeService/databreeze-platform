@@ -88,6 +88,10 @@ export interface ArtifactDatabaseClientV1 {
       readonly where: { readonly id: string };
       readonly data: { readonly status: string; readonly scanState: ArtifactScanStateV1 };
     }): Promise<ArtifactVersionDatabaseRowV1>;
+    updateMany(input: {
+      readonly where: { readonly id: string; readonly status: string; readonly scanState: string };
+      readonly data: { readonly status: string; readonly scanState: ArtifactScanStateV1 };
+    }): Promise<{ readonly count: number }>;
   };
   readonly contentPlacement: {
     create(input: {
@@ -265,10 +269,13 @@ class PrismaArtifactTransactionAdapter implements ArtifactTransactionPortV1 {
       throw new Error('IAE_INVALID_STATUS');
     if (current.status === 'DELETED' && status !== 'DELETED')
       throw new Error('IAE_TERMINAL_STATUS');
-    const updated = await this.client.artifactVersion.update({
-      where: { id: versionId },
+    const result = await this.client.artifactVersion.updateMany({
+      where: { id: versionId, status: current.status, scanState: current.scanState },
       data: { status, scanState: scanState ?? current.scanState },
     });
+    if (result.count !== 1) throw new Error('IAE_REVISION_CONFLICT');
+    const updated = await this.client.artifactVersion.findUnique({ where: { id: versionId } });
+    if (updated === null) throw new Error('IAE_VERSION_NOT_FOUND');
     return rowToVersion(updated);
   }
 
