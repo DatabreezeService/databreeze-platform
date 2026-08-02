@@ -1,0 +1,24 @@
+/// DSM-owned governed dataset definition versions. Field descriptors remain
+/// immutable JSON so publication can preserve the exact contract consumed by
+/// engines and clients without cross-module relational access.
+model DatasetDefinitionRecord {
+  id             String    @id @db.Uuid
+  datasetId      String    @map("dataset_id") @db.Uuid
+  scopeType      String    @map("scope_type") @db.VarChar(24)
+  organizationId String    @map("organization_id") @db.Uuid
+  workspaceId    String?   @map("workspace_id") @db.Uuid
+  projectId      String?   @map("project_id") @db.Uuid
+  schemaVersion  Int       @map("schema_version")
+  name           String    @db.VarChar(200)
+  fields         Json
+  status         String    @db.VarChar(16)
+  createdAt      DateTime  @map("created_at") @db.Timestamptz(6)
+  publishedAt    DateTime? @map("published_at") @db.Timestamptz(6)
+  revision       Int       @default(1)
+
+  @@unique([datasetId, id], map: "dataset_definitions_dataset_version_key")
+  @@index([organizationId, workspaceId, projectId, datasetId], map: "dataset_definitions_scope_idx")
+  @@index([datasetId, createdAt], map: "dataset_definitions_versions_idx")
+  @@map("dataset_definitions")
+  @@schema("dsm")
+}
