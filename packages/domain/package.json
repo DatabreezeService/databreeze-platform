@@ -103,6 +103,10 @@
     "./rule-set/v1": {
       "types": "./src/rule-set/v1.ts",
       "import": "./dist/rule-set/v1.js"
+    },
+    "./evidence-grant/v1": {
+      "types": "./src/evidence-grant/v1.ts",
+      "import": "./dist/evidence-grant/v1.js"
     }
   },
   "scripts": {

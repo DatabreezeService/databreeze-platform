@@ -34,6 +34,7 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
   './reference-entity/v1',
     './mapping/v1',
     './rule-set/v1',
+    './evidence-grant/v1',
   ]);
 
   for (const entry of Object.values(manifest.exports)) {
@@ -60,6 +61,7 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
   assert.equal(typeof aggregate.createScopedAuthorizationEvaluatorV1, 'function');
   assert.equal(aggregate.MAPPING_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.RULE_SET_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.EVIDENCE_GRANT_SCHEMA_VERSION_V1, 1);
 });
 
 test('[IAM-004] does not expose an unversioned package root', async () => {
