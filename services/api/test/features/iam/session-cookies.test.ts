@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   CSRF_COOKIE_NAME_V1,
   REFRESH_COOKIE_NAME_V1,
+  clearCookieV1,
   readCookieValueV1,
   serializeCookieV1,
 } from '../../../src/features/iam/api/session-cookies.js';
@@ -34,4 +35,15 @@ test('reads one exact cookie value and fails closed for ambiguity or malformed i
   );
   assert.equal(readCookieValueV1('broken-cookie', REFRESH_COOKIE_NAME_V1), undefined);
   assert.equal(readCookieValueV1(undefined, REFRESH_COOKIE_NAME_V1), undefined);
+});
+
+test('creates deletion cookies without weakening the original security attributes', () => {
+  assert.equal(
+    clearCookieV1(REFRESH_COOKIE_NAME_V1, { httpOnly: true }),
+    `${REFRESH_COOKIE_NAME_V1}=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax`,
+  );
+  assert.equal(
+    clearCookieV1(CSRF_COOKIE_NAME_V1, { httpOnly: false }),
+    `${CSRF_COOKIE_NAME_V1}=; Max-Age=0; Path=/; Secure; SameSite=Lax`,
+  );
 });

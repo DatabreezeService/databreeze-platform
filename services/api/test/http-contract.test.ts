@@ -424,3 +424,56 @@ void test('refresh rotates Web cookies without returning the refresh token and p
     },
   );
 });
+
+void test('sign-out revokes idempotently and clears browser credentials', async () => {
+  const revoked: string[] = [];
+  await withApp(
+    {
+      sessions: {
+        issue: () => Promise.reject(new Error('not used')),
+        refresh: () => Promise.reject(new Error('not used')),
+        revoke: (sessionId) => {
+          revoked.push(String(sessionId));
+          return Promise.resolve(false);
+        },
+        findPrincipal: () => Promise.resolve(undefined),
+      },
+    },
+    async (app) => {
+      const web = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/sign-out',
+        headers: {
+          cookie: `databreeze_refresh=current-refresh-token; databreeze_csrf=${csrfToken}`,
+          'x-csrf-token': csrfToken,
+          origin: 'http://localhost:3000',
+        },
+        payload: {
+          clientPlatform: 'web',
+          sessionId: '00000000-0000-4000-8000-000000000010',
+        },
+      });
+      assert.equal(web.statusCode, 204);
+      assert.equal(web.body, '');
+      const webCookies = web.headers['set-cookie'];
+      assert.ok(Array.isArray(webCookies));
+      assert.match(webCookies[0] ?? '', /^databreeze_refresh=; Max-Age=0; .*HttpOnly; Secure; SameSite=Lax$/);
+      assert.match(webCookies[1] ?? '', /^databreeze_csrf=; Max-Age=0; .*Secure; SameSite=Lax$/);
+
+      const native = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/sign-out',
+        payload: {
+          clientPlatform: 'android',
+          sessionId: '00000000-0000-4000-8000-000000000011',
+        },
+      });
+      assert.equal(native.statusCode, 204);
+      assert.equal(native.headers['set-cookie'], undefined);
+      assert.deepEqual(revoked, [
+        '00000000-0000-4000-8000-000000000010',
+        '00000000-0000-4000-8000-000000000011',
+      ]);
+    },
+  );
+});

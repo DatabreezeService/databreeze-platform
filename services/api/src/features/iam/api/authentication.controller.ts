@@ -20,6 +20,7 @@ import { SessionProblemError } from '../application/session-problem.error.js';
 import {
   CSRF_COOKIE_NAME_V1,
   REFRESH_COOKIE_NAME_V1,
+  clearCookieV1,
   readCookieValueV1,
   serializeCookieV1,
 } from './session-cookies.js';
@@ -27,6 +28,7 @@ import { AuthSessionDto } from './auth-session.dto.js';
 import { SignInDto } from './sign-in.dto.js';
 import { SessionRefreshDto } from './session-refresh.dto.js';
 import { SessionRefreshResponseDto } from './session-refresh-response.dto.js';
+import { SessionSignOutDto } from './session-sign-out.dto.js';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 @ApiTags('auth')
@@ -120,5 +122,25 @@ export class AuthenticationController {
       accessExpiresAt: result.value.accessExpiresAt,
       ...(input.clientPlatform === 'web' ? {} : { refreshToken: result.value.refreshToken }),
     };
+  }
+
+  @Post('sign-out')
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Revoke a session and clear browser credentials' })
+  @ApiBody({ type: SessionSignOutDto })
+  @ApiUnauthorizedResponse({ description: 'The session could not be authenticated.' })
+  @ApiServiceUnavailableResponse({ description: 'Session persistence is unavailable.' })
+  async signOut(
+    @Body() input: SessionSignOutDto,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<void> {
+    if (this.sessions === undefined) throw new SessionProblemError('SESSION_UNAVAILABLE');
+    await this.sessions.revoke(input.sessionId);
+    if (input.clientPlatform === 'web') {
+      reply.header('Set-Cookie', [
+        clearCookieV1(REFRESH_COOKIE_NAME_V1, { httpOnly: true }),
+        clearCookieV1(CSRF_COOKIE_NAME_V1, { httpOnly: false }),
+      ]);
+    }
   }
 }

@@ -36,6 +36,20 @@ export function serializeCookieV1(name: string, value: string, options: CookieOp
     .join('; ');
 }
 
+export function clearCookieV1(name: string, options: Pick<CookieOptionsV1, 'httpOnly'>): string {
+  if (!validCookieNameV1(name)) throw new Error('Cookie name is invalid');
+  return [
+    `${name}=`,
+    'Max-Age=0',
+    'Path=/',
+    options.httpOnly ? 'HttpOnly' : undefined,
+    'Secure',
+    'SameSite=Lax',
+  ]
+    .filter((part): part is string => part !== undefined)
+    .join('; ');
+}
+
 /** Read one unencoded, token-shaped cookie without accepting duplicate names. */
 export function readCookieValueV1(rawCookie: unknown, name: string): string | undefined {
   if (typeof rawCookie !== 'string' || !validCookieNameV1(name)) return undefined;
