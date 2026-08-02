@@ -12,7 +12,10 @@ import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js
 import type { ArtifactRepositoryPortV1 } from './artifact-repository.port.js';
 import type { ArtifactRetentionRepositoryPortV1 } from './artifact-retention-repository.port.js';
 
-export type ArtifactRetentionServiceErrorV1 = 'ARTIFACT_NOT_FOUND' | 'REQUEST_NOT_FOUND';
+export type ArtifactRetentionServiceErrorV1 =
+  | 'ACTOR_MISMATCH'
+  | 'ARTIFACT_NOT_FOUND'
+  | 'REQUEST_NOT_FOUND';
 export type ArtifactRetentionServiceResultV1<TValue> =
   | ArtifactRetentionResultV1<TValue>
   | { readonly accepted: false; readonly code: ArtifactRetentionServiceErrorV1 };
@@ -30,7 +33,13 @@ export class ArtifactRetentionService {
       readonly retention: Parameters<typeof evaluateArtifactRetentionV1>[0];
     },
   ): Promise<ArtifactRetentionServiceResultV1<ArtifactDeletionRequestV1>> {
-    const created = createArtifactDeletionRequestV1(input);
+    const requestedBy = parseStableIdentifierV1(input.requestedBy);
+    if (!requestedBy.accepted || requestedBy.value !== context.actorId)
+      return Object.freeze({ accepted: false, code: 'ACTOR_MISMATCH' as const });
+    const created = createArtifactDeletionRequestV1({
+      ...input,
+      requestedBy: context.actorId,
+    });
     if (!created.accepted) return created;
     const artifactVersionId = parseStableIdentifierV1(input.artifactVersionId);
     if (!artifactVersionId.accepted)

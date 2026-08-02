@@ -53,7 +53,7 @@ export class ArtifactRetentionController {
       requestId: input.requestId,
       artifactVersionId: versionId,
       tenantScope: context.tenantScope,
-      requestedBy: input.requestedBy,
+      requestedBy: context.actorId,
       requestedAt: input.requestedAt,
       retention: input,
     });
