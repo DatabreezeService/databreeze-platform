@@ -6,6 +6,7 @@ import { balancedBlocks } from '../src/terraform-safety.mjs';
 test('Terraform block scanning ignores comments, heredocs, and braces in strings', () => {
   const source = `
 # ingress { cidr_blocks = ["0.0.0.0/0"] }
+// ingress { cidr_blocks = ["0.0.0.0/0"] } }
 /* ingress { cidr_blocks = ["0.0.0.0/0"] } */
 locals {
   description = <<-EOT
