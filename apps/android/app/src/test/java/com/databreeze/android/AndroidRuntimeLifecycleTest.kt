@@ -13,6 +13,7 @@ import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import javax.crypto.SecretKey
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
@@ -46,7 +47,10 @@ class AndroidRuntimeLifecycleTest {
 
         val signIn = async(Dispatchers.Default) { runtime.signIn(scope, "device-key") }
         keyStarted.await()
-        val signOut = async(Dispatchers.Default) { runtime.signOut(scope, "device-key") }
+        val signOut = async(
+            context = Dispatchers.Default,
+            start = CoroutineStart.UNDISPATCHED,
+        ) { runtime.signOut(scope, "device-key") }
 
         assertNull(withTimeoutOrNull(200) { revokeCalled.await() })
         assertEquals(listOf("key-create"), events.toList())
