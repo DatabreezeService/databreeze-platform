@@ -60,6 +60,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "jra"\."execution_attempts"/);
   assert.match(diff.stdout, /CREATE TABLE "jra"\."result_manifests"/);
   assert.match(diff.stdout, /CREATE TABLE "jra"\."job_dispatch_outbox"/);
+  assert.match(diff.stdout, /CREATE TABLE "jra"\."recipe_versions"/);
 
   const migrationsDirectory = path.join(apiDirectory, 'prisma', 'migrations');
   const inventory = (await readdir(migrationsDirectory)).sort();
@@ -74,6 +75,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802060000_jra_execution_attempts',
     '20260802070000_jra_result_manifests',
     '20260802080000_jra_dispatch_outbox',
+    '20260802090000_jra_recipes',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -191,5 +193,16 @@ test('the schema diff and centrally ordered migration inventory establish platfo
       dispatchMigration,
       new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
+  }
+  const recipeMigration = await readFile(
+    path.join(migrationsDirectory, inventory[10], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE TABLE "jra"."recipe_versions"',
+    'CREATE TABLE "jra"."recipe_publication_envelopes"',
+    'CREATE UNIQUE INDEX "recipe_versions_recipe_version_key"',
+  ]) {
+    assert.match(recipeMigration, new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
 });

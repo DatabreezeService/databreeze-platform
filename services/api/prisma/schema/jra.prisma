@@ -148,6 +148,67 @@ model JobDispatchRecord {
   @@schema("jra")
 }
 
+model RecipeVersionRecord {
+  id                String   @id @db.Uuid
+  scopeType         String   @map("scope_type") @db.VarChar(24)
+  organizationId    String   @map("organization_id") @db.Uuid
+  workspaceId       String?  @map("workspace_id") @db.Uuid
+  projectId         String?  @map("project_id") @db.Uuid
+  recipeId          String   @map("recipe_id") @db.Uuid
+  version           Int
+  name              String   @db.VarChar(160)
+  description       String?  @db.VarChar(2000)
+  actionDefinitions Json     @map("action_definitions")
+  recipeHash        String   @map("recipe_hash") @db.Char(64)
+  state             String   @db.VarChar(16)
+  createdAt         DateTime @map("created_at") @db.Timestamptz(6)
+  publishedAt       DateTime? @map("published_at") @db.Timestamptz(6)
+
+  @@unique([recipeId, version], map: "recipe_versions_recipe_version_key")
+  @@index([organizationId, workspaceId, projectId, state], map: "recipe_versions_scope_state_idx")
+  @@map("recipe_versions")
+  @@schema("jra")
+}
+
+model RecipeTriggerRecord {
+  id                      String  @id @db.Uuid
+  recipeId               String  @map("recipe_id") @db.Uuid
+  recipeVersion           Int     @map("recipe_version")
+  scopeType               String  @map("scope_type") @db.VarChar(24)
+  organizationId          String  @map("organization_id") @db.Uuid
+  workspaceId             String? @map("workspace_id") @db.Uuid
+  projectId               String? @map("project_id") @db.Uuid
+  triggerType             String  @map("trigger_type") @db.VarChar(24)
+  deduplicationKey        String  @map("deduplication_key") @db.VarChar(200)
+  authorizationContextHash String  @map("authorization_context_hash") @db.Char(64)
+  enabled                 Boolean
+
+  @@unique([recipeId, recipeVersion, deduplicationKey], map: "recipe_triggers_deduplication_key")
+  @@index([organizationId, workspaceId, projectId, enabled], map: "recipe_triggers_scope_enabled_idx")
+  @@map("recipe_triggers")
+  @@schema("jra")
+}
+
+model RecipePublicationEnvelopeRecord {
+  id                    String   @id @db.Uuid
+  recipeId             String   @map("recipe_id") @db.Uuid
+  recipeVersion         Int      @map("recipe_version")
+  recipeHash            String   @map("recipe_hash") @db.Char(64)
+  actionHandlerDigests  Json     @map("action_handler_digests")
+  actionSchemaIds       Json     @map("action_schema_ids")
+  dsmDefinitionHashes   Json     @map("dsm_definition_hashes")
+  policyReferenceHashes Json     @map("policy_reference_hashes")
+  validFrom             DateTime @map("valid_from") @db.Timestamptz(6)
+  validUntil            DateTime @map("valid_until") @db.Timestamptz(6)
+  signerKeyVersion      String   @map("signer_key_version") @db.VarChar(128)
+  signature             String   @db.VarChar(4096)
+
+  @@unique([recipeId, recipeVersion], map: "recipe_publication_envelopes_recipe_version_key")
+  @@index([validUntil], map: "recipe_publication_envelopes_expiry_idx")
+  @@map("recipe_publication_envelopes")
+  @@schema("jra")
+}
+
 model ApprovalPolicyRecord {
   id                   String  @id @db.Uuid
   workspaceId          String  @map("workspace_id") @db.Uuid
