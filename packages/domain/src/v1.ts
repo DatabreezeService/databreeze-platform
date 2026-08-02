@@ -8,6 +8,7 @@ export * from './execution-attempt/v1.js';
 export * from './result-manifest/v1.js';
 export * from './dispatch/v1.js';
 export * from './recipe/v1.js';
+export * from './finding/v1.js';
 export * from './identity/v1.js';
 export * from './entitlements/v1.js';
 export * from './mfa/v1.js';

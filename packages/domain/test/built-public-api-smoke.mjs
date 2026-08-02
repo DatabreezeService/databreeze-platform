@@ -14,6 +14,7 @@ const [
   resultManifest,
   dispatch,
   recipe,
+  finding,
 ] = await Promise.all([
   import('@databreeze/domain/v1'),
   import('@databreeze/domain/permissions/v1'),
@@ -28,6 +29,7 @@ const [
   import('@databreeze/domain/result-manifest/v1'),
   import('@databreeze/domain/dispatch/v1'),
   import('@databreeze/domain/recipe/v1'),
+  import('@databreeze/domain/finding/v1'),
 ]);
 
 assert.equal(aggregate.PERMISSION_SCHEMA_VERSION_V1, 1);
@@ -44,4 +46,5 @@ assert.equal(executionAttempt.EXECUTION_ATTEMPT_SCHEMA_VERSION_V1, 1);
 assert.equal(resultManifest.RESULT_MANIFEST_SCHEMA_VERSION_V1, 1);
 assert.equal(dispatch.DISPATCH_SCHEMA_VERSION_V1, 1);
 assert.equal(recipe.RECIPE_SCHEMA_VERSION_V1, 1);
+assert.equal(finding.FINDING_SCHEMA_VERSION_V1, 1);
 await assert.rejects(import('@databreeze/domain'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });

@@ -75,6 +75,10 @@
     "./recipe/v1": {
       "types": "./src/recipe/v1.ts",
       "import": "./dist/recipe/v1.js"
+    },
+    "./finding/v1": {
+      "types": "./src/finding/v1.ts",
+      "import": "./dist/finding/v1.js"
     }
   },
   "scripts": {
