@@ -63,7 +63,10 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
     assert.deepEqual(paths, [
       '/health/live',
       '/health/ready',
+      '/v1/artifacts/inbox',
       '/v1/auth/sign-in',
+      '/v1/datasets',
+      '/v1/datasets/{datasetId}/versions',
       '/v1/system/compatibility',
       '/v1/system/compatibility/check',
     ]);
