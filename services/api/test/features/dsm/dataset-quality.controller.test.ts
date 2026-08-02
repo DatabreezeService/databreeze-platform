@@ -72,7 +72,9 @@ void test('[DSM-011, DSM-013, DSM-015] quality HTTP surfaces never accept source
       url: `/v1/dataset-quality-results?datasetVersionId=${datasetVersionId}`,
     });
     assert.equal(listed.statusCode, 200);
-    assert.equal(JSON.parse(listed.body).length, 1);
+    const listedBody: unknown = JSON.parse(listed.body);
+    assert.ok(Array.isArray(listedBody));
+    assert.equal(listedBody.length, 1);
   } finally {
     await app.close();
   }
