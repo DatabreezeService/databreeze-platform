@@ -123,22 +123,42 @@ model RefreshTokenRecord {
 }
 
 model DeviceIdentity {
-  id             String   @id @db.Uuid
-  userId         String   @map("user_id") @db.Uuid
-  organizationId String   @map("organization_id") @db.Uuid
-  platform       String   @db.VarChar(24)
-  publicKey      String   @map("public_key") @db.VarChar(2048)
-  keyAlgorithm   String   @default("ED25519") @map("key_algorithm") @db.VarChar(32)
-  status         String   @default("PENDING") @db.VarChar(24)
-  securityEpoch  Int      @default(1) @map("security_epoch")
-  revision       Int      @default(1)
-  enrolledAt     DateTime @map("enrolled_at") @db.Timestamptz(6)
-  activatedAt    DateTime? @map("activated_at") @db.Timestamptz(6)
-  revokedAt      DateTime? @map("revoked_at") @db.Timestamptz(6)
+  id                String   @id @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  organizationId    String   @map("organization_id") @db.Uuid
+  platform          String   @db.VarChar(24)
+  publicKey         String   @map("public_key") @db.VarChar(2048)
+  keyAlgorithm      String   @default("ED25519") @map("key_algorithm") @db.VarChar(32)
+  installationIdHash String? @map("installation_id_hash") @db.VarChar(128)
+  status            String   @default("PENDING") @db.VarChar(24)
+  securityEpoch     Int      @default(1) @map("security_epoch")
+  revision          Int      @default(1)
+  enrolledAt        DateTime @map("enrolled_at") @db.Timestamptz(6)
+  activatedAt       DateTime? @map("activated_at") @db.Timestamptz(6)
+  revokedAt         DateTime? @map("revoked_at") @db.Timestamptz(6)
 
   @@index([userId, status], map: "devices_user_status_idx")
   @@index([organizationId, status], map: "devices_organization_status_idx")
   @@map("devices")
+  @@schema("iam")
+}
+
+/// IAM-007: single-use, short-lived proof-of-possession enrollment challenges.
+model DeviceEnrollmentChallenge {
+  id                String   @id @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  organizationId    String   @map("organization_id") @db.Uuid
+  platform          String   @db.VarChar(24)
+  installationIdHash String  @map("installation_id_hash") @db.VarChar(128)
+  challengeDigest   String   @map("challenge_digest") @db.VarChar(128)
+  status            String   @default("PENDING") @db.VarChar(16)
+  issuedAt          DateTime @map("issued_at") @db.Timestamptz(6)
+  expiresAt         DateTime @map("expires_at") @db.Timestamptz(6)
+  revision          Int      @default(1)
+
+  @@index([organizationId, status, expiresAt], map: "device_enrollment_challenges_org_status_idx")
+  @@index([userId, issuedAt], map: "device_enrollment_challenges_user_issued_idx")
+  @@map("device_enrollment_challenges")
   @@schema("iam")
 }
 
