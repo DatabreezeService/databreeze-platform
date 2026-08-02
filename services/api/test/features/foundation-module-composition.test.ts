@@ -22,6 +22,8 @@ import { PrismaAuditRepositoryAdapter } from '../../src/features/aud/adapter/pri
 import { BuaModule } from '../../src/features/bua/bua.module.js';
 import { ENTITLEMENT_REPOSITORY_PORT } from '../../src/features/bua/application/entitlement-repository.port.js';
 import { PrismaEntitlementRepositoryAdapter } from '../../src/features/bua/adapter/prisma-entitlement-repository.adapter.js';
+import { REQUEST_TENANT_CONTEXT } from '../../src/platform/http/request-tenant-context.port.js';
+import { SessionRequestTenantContextAdapter } from '../../src/platform/http/session-tenant-context.adapter.js';
 
 function moduleTypes(): readonly unknown[] {
   const registered = AppModule.register();
@@ -89,6 +91,29 @@ void test('[IAM-005] configured session persistence uses the Prisma lifecycle ad
   assert.ok(provider && 'useValue' in provider);
   if (!provider || !('useValue' in provider)) return;
   assert.ok(provider.useValue instanceof PrismaSessionLifecycleAdapter);
+});
+
+void test('[IAM-009] a session access-token lookup composes one live tenant-context adapter across feature modules', () => {
+  const sessions = {
+    findPrincipalByAccessToken: async () => undefined,
+  } as never;
+  const registered = AppModule.register({ sessions });
+  const iam = registered.imports?.find(
+    (candidate) =>
+      typeof candidate === 'object' && candidate !== null && 'module' in candidate && candidate.module === IamModule,
+  );
+  assert.ok(iam && typeof iam === 'object' && 'providers' in iam);
+  if (!iam || typeof iam !== 'object' || !('providers' in iam)) return;
+  const provider = iam.providers?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === REQUEST_TENANT_CONTEXT,
+  );
+  assert.ok(provider && 'useValue' in provider);
+  if (!provider || !('useValue' in provider)) return;
+  assert.ok(provider.useValue instanceof SessionRequestTenantContextAdapter);
 });
 
 void test('[IAM-001, IAM-011] configured identity bootstrap persistence uses the Prisma adapter', () => {
