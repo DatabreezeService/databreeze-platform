@@ -10,8 +10,9 @@ Task: `FND-003 — Close local infrastructure gaps`
   remain pinned in `infrastructure/local/compose.yml`.
 - PostgreSQL initialization creates every module-owned schema and contains no
   credentials, roles, or secret literals.
-- `tools/repo-cli/src/local-services.mjs` provides `check`, `start`, `stop`,
-  `reset`, `restart-check`, `status`, and legacy `smoke` commands.
+- `tools/repo-cli/src/local-services.mjs` provides daemon-free `config` and
+  `preflight` commands plus `check`, `start`, `stop`, `reset`,
+  `restart-check`, `status`, and legacy `smoke` commands.
 - Lifecycle commands preserve named volumes. `reset` uses Compose
   `down --remove-orphans` without `--volumes`; data deletion is never implicit.
 - Preflight reports missing Docker CLI/daemon, host port collisions, and
@@ -27,12 +28,16 @@ Passed:
 - `node tools/repo-cli/src/local-services.mjs --help`
 - `node tools/repo-cli/src/local-services-smoke.mjs --help`
 - `node tools/repo-cli/src/local-services.mjs config`
+- `node tools/repo-cli/src/local-services.mjs preflight --min-free-gib=0`
 - `git diff --check`
 
 Environment-gated:
 
 - `node tools/repo-cli/src/local-services.mjs check` fails closed with
   `Docker daemon is unavailable` because no Docker daemon is running here.
+- The daemon-free `preflight` command completes Compose, port, and disk checks
+  without starting containers; the evidence run used a zero-GiB threshold so
+  it remains independent of the workstation's available disk headroom.
 - Live `compose up`, health polling, port-collision simulation, disk-pressure
   threshold validation, and restart-persistence checks must run on a machine
   with Docker Desktop/Compose v2 before FND-003 can become `verified`.
