@@ -132,7 +132,9 @@ function client(): DeviceAuthorizationDatabaseClientV1 {
   const database = {
     authorizationSnapshot: delegate(snapshotRows),
     deviceGrantRecord: delegate(grantRows),
-    async $transaction<TValue>(work: (transaction: DeviceAuthorizationDatabaseClientV1) => Promise<TValue>) {
+    async $transaction<TValue>(
+      work: (transaction: DeviceAuthorizationDatabaseClientV1) => Promise<TValue>,
+    ) {
       return work(database as unknown as DeviceAuthorizationDatabaseClientV1);
     },
   };
@@ -143,10 +145,23 @@ void test('[IAM-020, DSO-005, IAM-009] Prisma device authorization adapter persi
   const repository = new PrismaDeviceAuthorizationRepositoryAdapter(client());
   await repository.saveSnapshot(context(workspaceId, 'snapshot'), snapshot());
   await repository.saveGrant(context(workspaceId, 'grant'), grant());
-  assert.equal((await repository.findSnapshot(context(workspaceId, 'find-snapshot'), id(deviceId)))?.snapshotId, id(snapshotId));
-  assert.equal((await repository.findGrant(context(workspaceId, 'find-grant'), id(grantId)))?.grantId, id(grantId));
-  assert.equal(await repository.findGrant(context(siblingWorkspaceId, 'sibling'), id(grantId)), undefined);
+  assert.equal(
+    (await repository.findSnapshot(context(workspaceId, 'find-snapshot'), id(deviceId)))
+      ?.snapshotId,
+    id(snapshotId),
+  );
+  assert.equal(
+    (await repository.findGrant(context(workspaceId, 'find-grant'), id(grantId)))?.grantId,
+    id(grantId),
+  );
+  assert.equal(
+    await repository.findGrant(context(siblingWorkspaceId, 'sibling'), id(grantId)),
+    undefined,
+  );
   const revoked = await repository.revokeGrant(context(workspaceId, 'revoke'), id(grantId), 1);
   assert.equal(revoked?.status, 'REVOKED');
-  assert.equal((await repository.findGrant(context(workspaceId, 'revoked'), id(grantId)))?.revision, 2);
+  assert.equal(
+    (await repository.findGrant(context(workspaceId, 'revoked'), id(grantId)))?.revision,
+    2,
+  );
 });

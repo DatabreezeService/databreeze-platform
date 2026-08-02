@@ -55,7 +55,10 @@ void test('[IAM-020, IAM-021] DSO authority adapter reads IAM status and securit
 void test('[IAM-020, IAM-021] revoked or unavailable IAM devices fail closed', async () => {
   const revoked = device();
   const identity = {
-    get: async () => ({ accepted: true as const, value: { ...revoked, status: 'REVOKED' as const } }),
+    get: async () => ({
+      accepted: true as const,
+      value: { ...revoked, status: 'REVOKED' as const },
+    }),
   };
   const adapter = new IamDeviceIdentityAuthorityAdapter(identity);
   assert.deepEqual(await adapter.inspect(context('revoked'), { deviceId }), {

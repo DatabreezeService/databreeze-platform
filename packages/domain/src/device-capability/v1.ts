@@ -109,17 +109,32 @@ function positive(input: unknown): number | undefined {
   return typeof input === 'number' && Number.isSafeInteger(input) && input >= 1 ? input : undefined;
 }
 
-function list<T>(input: unknown, predicate: (value: unknown) => value is T): readonly T[] | undefined {
-  if (!Array.isArray(input) || input.length === 0 || input.length > DEVICE_CAPABILITY_MAX_LIST_ITEMS_V1)
+function list<T>(
+  input: unknown,
+  predicate: (value: unknown) => value is T,
+): readonly T[] | undefined {
+  if (
+    !Array.isArray(input) ||
+    input.length === 0 ||
+    input.length > DEVICE_CAPABILITY_MAX_LIST_ITEMS_V1
+  )
     return undefined;
   const values = input.filter(predicate);
   return values.length === input.length ? Object.freeze([...new Set(values)]) : undefined;
 }
 
-function withinGrantLifetime(issuedAt: StrictUtcTimestampV1, expiresAt: StrictUtcTimestampV1): boolean {
+function withinGrantLifetime(
+  issuedAt: StrictUtcTimestampV1,
+  expiresAt: StrictUtcTimestampV1,
+): boolean {
   const start = Date.parse(issuedAt);
   const end = Date.parse(expiresAt);
-  return Number.isFinite(start) && Number.isFinite(end) && end > start && end - start <= DEVICE_CAPABILITY_MAX_GRANT_SECONDS_V1 * 1_000;
+  return (
+    Number.isFinite(start) &&
+    Number.isFinite(end) &&
+    end > start &&
+    end - start <= DEVICE_CAPABILITY_MAX_GRANT_SECONDS_V1 * 1_000
+  );
 }
 
 function capabilityType(input: unknown): input is DeviceCapabilityTypeV1 {
@@ -133,7 +148,9 @@ function capabilityType(input: unknown): input is DeviceCapabilityTypeV1 {
 }
 
 function classification(input: unknown): input is DeviceDataClassificationV1 {
-  return input === 'PUBLIC' || input === 'INTERNAL' || input === 'CONFIDENTIAL' || input === 'RESTRICTED';
+  return (
+    input === 'PUBLIC' || input === 'INTERNAL' || input === 'CONFIDENTIAL' || input === 'RESTRICTED'
+  );
 }
 
 function payloadClass(input: unknown): input is DeviceSynchronizationPayloadClassV1 {
@@ -195,7 +212,8 @@ export function transitionDeviceCapabilityV1(
 ): DeviceCapabilityResultV1<DeviceCapabilityV1> {
   const reportedAt = timestamp(at);
   if (!reportedAt) return rejected('INVALID_TIMESTAMP');
-  if (capability.status === 'REVOKED' || capability.status === 'EXPIRED') return rejected('INVALID_STATE');
+  if (capability.status === 'REVOKED' || capability.status === 'EXPIRED')
+    return rejected('INVALID_STATE');
   const status = transition === 'PAUSE' ? 'PAUSED' : transition === 'RESUME' ? 'ACTIVE' : 'REVOKED';
   if (transition === 'RESUME' && capability.status !== 'PAUSED') return rejected('INVALID_STATE');
   if (transition === 'PAUSE' && capability.status !== 'ACTIVE') return rejected('INVALID_STATE');

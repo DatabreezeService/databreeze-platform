@@ -183,14 +183,14 @@ test('[IAM-007, IAM-021] enrollment challenges are bounded and single-use', () =
   });
   assert.equal(challenge.accepted, true);
   if (challenge.accepted) {
-    const used = consumeDeviceEnrollmentChallengeV1(
-      challenge.value,
-      '2026-01-01T00:01:00.000Z',
-    );
+    const used = consumeDeviceEnrollmentChallengeV1(challenge.value, '2026-01-01T00:01:00.000Z');
     assert.equal(used.accepted, true);
     if (used.accepted) assert.equal(used.value.status, 'USED');
     assert.deepEqual(
-      consumeDeviceEnrollmentChallengeV1(used.accepted ? used.value : challenge.value, '2026-01-01T00:02:00.000Z'),
+      consumeDeviceEnrollmentChallengeV1(
+        used.accepted ? used.value : challenge.value,
+        '2026-01-01T00:02:00.000Z',
+      ),
       { accepted: false, code: 'INVALID_STATE' },
     );
   }

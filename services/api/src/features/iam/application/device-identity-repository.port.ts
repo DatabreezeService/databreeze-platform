@@ -1,7 +1,4 @@
-import type {
-  DeviceEnrollmentChallengeV1,
-  DeviceIdentityV1,
-} from '@databreeze/domain/identity/v1';
+import type { DeviceEnrollmentChallengeV1, DeviceIdentityV1 } from '@databreeze/domain/identity/v1';
 import type { StableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { IamTenantContextV1 } from './tenant-context.js';
@@ -9,10 +6,7 @@ import type { IamTenantContextV1 } from './tenant-context.js';
 export const DEVICE_IDENTITY_REPOSITORY_PORT = Symbol('DEVICE_IDENTITY_REPOSITORY_PORT');
 
 export interface DeviceIdentityTransactionPortV1 {
-  saveChallenge(
-    context: IamTenantContextV1,
-    challenge: DeviceEnrollmentChallengeV1,
-  ): Promise<void>;
+  saveChallenge(context: IamTenantContextV1, challenge: DeviceEnrollmentChallengeV1): Promise<void>;
   findChallenge(
     context: IamTenantContextV1,
     challengeId: StableIdentifierV1,

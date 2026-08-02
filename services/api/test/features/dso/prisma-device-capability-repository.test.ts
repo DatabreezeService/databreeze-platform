@@ -137,9 +137,17 @@ function client(): DeviceCapabilityDatabaseClientV1 {
 void test('[DSO-002, DSO-003, IAM-009] Prisma capability adapter persists and isolates capabilities', async () => {
   const repository = new PrismaDeviceCapabilityRepositoryAdapter(client());
   await repository.saveCapability(context(workspaceId, 'cap-save'), capability());
-  assert.equal((await repository.listCapabilities(context(workspaceId, 'cap-list'), id(deviceId))).length, 1);
   assert.equal(
-    (await repository.listCapabilities(context('00000000-0000-4000-8000-000000000609', 'sibling'), id(deviceId))).length,
+    (await repository.listCapabilities(context(workspaceId, 'cap-list'), id(deviceId))).length,
+    1,
+  );
+  assert.equal(
+    (
+      await repository.listCapabilities(
+        context('00000000-0000-4000-8000-000000000609', 'sibling'),
+        id(deviceId),
+      )
+    ).length,
     1,
   );
 });
@@ -148,10 +156,21 @@ void test('[DSO-005, DSO-016] Prisma grant adapter hides sibling workspaces and 
   const repository = new PrismaDeviceCapabilityRepositoryAdapter(client());
   await repository.saveCapability(context(workspaceId, 'cap-save-2'), capability());
   await repository.saveGrant(context(workspaceId, 'grant-save'), grant());
-  assert.equal((await repository.findGrant(context(siblingWorkspaceId, 'sibling'), id(grantId))), undefined);
-  await repository.replaceGrant(context(workspaceId, 'grant-replace'), { ...grant(), status: 'REVOKED', revision: 2 }, 1);
+  assert.equal(
+    await repository.findGrant(context(siblingWorkspaceId, 'sibling'), id(grantId)),
+    undefined,
+  );
+  await repository.replaceGrant(
+    context(workspaceId, 'grant-replace'),
+    { ...grant(), status: 'REVOKED', revision: 2 },
+    1,
+  );
   await assert.rejects(
-    repository.replaceGrant(context(workspaceId, 'grant-stale'), { ...grant(), status: 'EXPIRED', revision: 3 }, 1),
+    repository.replaceGrant(
+      context(workspaceId, 'grant-stale'),
+      { ...grant(), status: 'EXPIRED', revision: 3 },
+      1,
+    ),
     /DSO_REVISION_CONFLICT/,
   );
 });

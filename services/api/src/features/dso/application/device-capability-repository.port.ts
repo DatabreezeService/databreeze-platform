@@ -16,8 +16,14 @@ export interface DeviceCapabilityTransactionPortV1 {
     deviceId: StableIdentifierV1,
   ): Promise<readonly DeviceCapabilityV1[]>;
   saveGrant(context: IamTenantContextV1, grant: DeviceGrantV1): Promise<void>;
-  findGrant(context: IamTenantContextV1, grantId: StableIdentifierV1): Promise<DeviceGrantV1 | undefined>;
-  listGrants(context: IamTenantContextV1, deviceId: StableIdentifierV1): Promise<readonly DeviceGrantV1[]>;
+  findGrant(
+    context: IamTenantContextV1,
+    grantId: StableIdentifierV1,
+  ): Promise<DeviceGrantV1 | undefined>;
+  listGrants(
+    context: IamTenantContextV1,
+    deviceId: StableIdentifierV1,
+  ): Promise<readonly DeviceGrantV1[]>;
   replaceCapability(
     context: IamTenantContextV1,
     capability: DeviceCapabilityV1,

@@ -76,13 +76,15 @@ void test('[DSO-002, DSO-006] grant issuance rejects a missing capability and re
 void test('[DSO-016, DSO-017] capability and grant transitions are revisioned and idempotent only at the expected revision', async () => {
   const service = new DeviceCapabilityService(new InMemoryDeviceCapabilityRepositoryAdapter());
   assert.equal(
-    (await service.report(context('transition-report'), {
-      capabilityId,
-      deviceId,
-      type: 'LOCAL_PROCESSOR',
-      constraintDigest: 'd'.repeat(64),
-      reportedAt: '2026-01-01T00:00:00.000Z',
-    })).accepted,
+    (
+      await service.report(context('transition-report'), {
+        capabilityId,
+        deviceId,
+        type: 'LOCAL_PROCESSOR',
+        constraintDigest: 'd'.repeat(64),
+        reportedAt: '2026-01-01T00:00:00.000Z',
+      })
+    ).accepted,
     true,
   );
   const paused = await service.pauseCapability(
@@ -96,7 +98,13 @@ void test('[DSO-016, DSO-017] capability and grant transitions are revisioned an
   if (!paused.accepted) return;
   assert.equal(paused.value.status, 'PAUSED');
   assert.deepEqual(
-    await service.pauseCapability(context('stale-pause'), capabilityId, 1, '2026-01-01T00:02:00.000Z', deviceId),
+    await service.pauseCapability(
+      context('stale-pause'),
+      capabilityId,
+      1,
+      '2026-01-01T00:02:00.000Z',
+      deviceId,
+    ),
     { accepted: false, code: 'REVISION_CONFLICT' },
   );
 });

@@ -1,5 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsISO8601, IsIn, IsInt, IsString, IsUUID, Matches, Max, Min, MinLength } from 'class-validator';
+import {
+  IsISO8601,
+  IsIn,
+  IsInt,
+  IsString,
+  IsUUID,
+  Matches,
+  Max,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 export class IssueDeviceEnrollmentChallengeDto {
   @ApiProperty({ format: 'uuid' })

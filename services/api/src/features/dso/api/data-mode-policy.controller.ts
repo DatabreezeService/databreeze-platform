@@ -25,11 +25,15 @@ export class DataModePolicyController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Publish an immutable workspace data-mode policy version' })
   @ApiBody({ type: PublishDataModePolicyDto })
-  async publish(@Req() request: unknown, @Body() input: PublishDataModePolicyDto): Promise<unknown> {
+  async publish(
+    @Req() request: unknown,
+    @Body() input: PublishDataModePolicyDto,
+  ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
-    const parentVersionId = input.parentVersionId === undefined
-      ? undefined
-      : parseStableIdentifierV1(input.parentVersionId);
+    const parentVersionId =
+      input.parentVersionId === undefined
+        ? undefined
+        : parseStableIdentifierV1(input.parentVersionId);
     if (parentVersionId !== undefined && !parentVersionId.accepted)
       return { accepted: false, code: 'INVALID_IDENTIFIER' as const };
     return this.policies.publish(

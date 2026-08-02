@@ -37,7 +37,10 @@ export class InMemoryDeviceCapabilityRepositoryAdapter implements DeviceCapabili
   private grants = new Map<string, DeviceGrantV1>();
   private transactionTail: Promise<void> = Promise.resolve();
 
-  public async saveCapability(context: IamTenantContextV1, capability: DeviceCapabilityV1): Promise<void> {
+  public async saveCapability(
+    context: IamTenantContextV1,
+    capability: DeviceCapabilityV1,
+  ): Promise<void> {
     if (!capabilityVisible(context, capability)) throw new Error('SCOPE_DENIED');
     const existing = this.capabilities.get(capability.capabilityId);
     if (existing && JSON.stringify(existing) !== JSON.stringify(capability))
@@ -50,7 +53,9 @@ export class InMemoryDeviceCapabilityRepositoryAdapter implements DeviceCapabili
     capabilityId: DeviceCapabilityV1['capabilityId'],
   ): Promise<DeviceCapabilityV1 | undefined> {
     const capability = this.capabilities.get(capabilityId);
-    return capability && capabilityVisible(context, capability) ? cloneCapability(capability) : undefined;
+    return capability && capabilityVisible(context, capability)
+      ? cloneCapability(capability)
+      : undefined;
   }
 
   public async listCapabilities(
@@ -68,7 +73,8 @@ export class InMemoryDeviceCapabilityRepositoryAdapter implements DeviceCapabili
   public async saveGrant(context: IamTenantContextV1, grant: DeviceGrantV1): Promise<void> {
     if (!grantVisible(context, grant)) throw new Error('SCOPE_DENIED');
     const existing = this.grants.get(grant.grantId);
-    if (existing && JSON.stringify(existing) !== JSON.stringify(grant)) throw new Error('IMMUTABLE_GRANT');
+    if (existing && JSON.stringify(existing) !== JSON.stringify(grant))
+      throw new Error('IMMUTABLE_GRANT');
     this.grants.set(grant.grantId, cloneGrant(grant));
   }
 

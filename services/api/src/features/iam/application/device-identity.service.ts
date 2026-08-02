@@ -8,7 +8,10 @@ import {
   type DeviceIdentityV1,
   type IdentityErrorCodeV1,
 } from '@databreeze/domain/identity/v1';
-import { parseStableIdentifierV1, type StableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
+import {
+  parseStableIdentifierV1,
+  type StableIdentifierV1,
+} from '@databreeze/domain/tenant-scope/v1';
 
 import type { IamTenantContextV1 } from './tenant-context.js';
 import type { DeviceIdentityRepositoryPortV1 } from './device-identity-repository.port.js';

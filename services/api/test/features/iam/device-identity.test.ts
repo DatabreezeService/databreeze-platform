@@ -86,8 +86,8 @@ void test('[IAM-009, IAM-021] enrollment is proof-bound and organization scoped'
     }),
     { accepted: false, code: 'PROOF_INVALID' },
   );
-  assert.deepEqual(
-    await service.get(context(otherOrganizationId, 'other-org'), deviceId),
-    { accepted: false, code: 'DEVICE_NOT_FOUND' },
-  );
+  assert.deepEqual(await service.get(context(otherOrganizationId, 'other-org'), deviceId), {
+    accepted: false,
+    code: 'DEVICE_NOT_FOUND',
+  });
 });

@@ -20,14 +20,16 @@ export type DataModePolicyApplicationResultV1<TValue> =
   | { readonly accepted: false; readonly code: DataModePolicyApplicationErrorCodeV1 };
 
 function rejected<TValue>(
-  code: 'INVALID_IDENTIFIER' | 'POLICY_BROADENS_PARENT' | 'IMMUTABLE_POLICY' | 'PERSISTENCE_UNAVAILABLE',
+  code:
+    | 'INVALID_IDENTIFIER'
+    | 'POLICY_BROADENS_PARENT'
+    | 'IMMUTABLE_POLICY'
+    | 'PERSISTENCE_UNAVAILABLE',
 ): DataModePolicyApplicationResultV1<TValue> {
   return Object.freeze({ accepted: false, code });
 }
 
-function mapRepositoryError(error: unknown):
-  | 'IMMUTABLE_POLICY'
-  | 'PERSISTENCE_UNAVAILABLE' {
+function mapRepositoryError(error: unknown): 'IMMUTABLE_POLICY' | 'PERSISTENCE_UNAVAILABLE' {
   if (error instanceof Error && error.message.includes('IMMUTABLE')) return 'IMMUTABLE_POLICY';
   return 'PERSISTENCE_UNAVAILABLE';
 }

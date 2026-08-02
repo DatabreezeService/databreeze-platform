@@ -7,7 +7,10 @@ import {
   type DeviceEnrollmentChallengeV1,
   type DeviceIdentityV1,
 } from '@databreeze/domain/identity/v1';
-import { parseStableIdentifierV1, parseStrictUtcTimestampV1 } from '@databreeze/domain/tenant-scope/v1';
+import {
+  parseStableIdentifierV1,
+  parseStrictUtcTimestampV1,
+} from '@databreeze/domain/tenant-scope/v1';
 
 import {
   PrismaDeviceIdentityRepositoryAdapter,
@@ -94,7 +97,13 @@ function delegate(rows: Record<string, unknown>[]) {
         rows.filter((row) => Object.entries(where).every(([key, value]) => row[key] === value)),
       );
     },
-    update({ where, data }: { readonly where: { readonly id: string }; readonly data: Record<string, unknown> }) {
+    update({
+      where,
+      data,
+    }: {
+      readonly where: { readonly id: string };
+      readonly data: Record<string, unknown>;
+    }) {
       const index = rows.findIndex((row) => row['id'] === where.id);
       if (index < 0) throw new Error('row not found');
       rows[index] = { ...rows[index], ...data };
@@ -109,7 +118,9 @@ function client(): DeviceIdentityDatabaseClientV1 {
   const database = {
     deviceEnrollmentChallenge: delegate(challengeRows),
     deviceIdentity: delegate(deviceRows),
-    async $transaction<TValue>(work: (transaction: DeviceIdentityDatabaseClientV1) => Promise<TValue>) {
+    async $transaction<TValue>(
+      work: (transaction: DeviceIdentityDatabaseClientV1) => Promise<TValue>,
+    ) {
       return work(database as unknown as DeviceIdentityDatabaseClientV1);
     },
   };
@@ -120,10 +131,29 @@ void test('[IAM-007, IAM-009, IAM-021] Prisma device identity adapter persists c
   const repository = new PrismaDeviceIdentityRepositoryAdapter(client());
   await repository.saveChallenge(context(), challenge());
   await repository.saveDevice(context(), device());
-  assert.equal((await repository.findChallenge(context(organizationId, 'find-challenge'), stable(challengeId)))?.id, stable(challengeId));
-  assert.equal((await repository.findDevice(context(organizationId, 'find-device'), stable(deviceId)))?.id, stable(deviceId));
-  assert.equal(await repository.findDevice(context(siblingOrganizationId, 'sibling'), stable(deviceId)), undefined);
-  const active = { ...device(), status: 'ACTIVE' as const, securityEpoch: 2, revision: 2, activatedAt: timestamp('2026-01-01T00:01:00.000Z') };
+  assert.equal(
+    (await repository.findChallenge(context(organizationId, 'find-challenge'), stable(challengeId)))
+      ?.id,
+    stable(challengeId),
+  );
+  assert.equal(
+    (await repository.findDevice(context(organizationId, 'find-device'), stable(deviceId)))?.id,
+    stable(deviceId),
+  );
+  assert.equal(
+    await repository.findDevice(context(siblingOrganizationId, 'sibling'), stable(deviceId)),
+    undefined,
+  );
+  const active = {
+    ...device(),
+    status: 'ACTIVE' as const,
+    securityEpoch: 2,
+    revision: 2,
+    activatedAt: timestamp('2026-01-01T00:01:00.000Z'),
+  };
   await repository.replaceDevice(context(), active, 1);
-  assert.equal((await repository.findDevice(context(organizationId, 'after'), stable(deviceId)))?.status, 'ACTIVE');
+  assert.equal(
+    (await repository.findDevice(context(organizationId, 'after'), stable(deviceId)))?.status,
+    'ACTIVE',
+  );
 });

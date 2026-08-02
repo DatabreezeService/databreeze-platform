@@ -135,7 +135,11 @@ function capabilityFromRow(row: DeviceCapabilityDatabaseRowV1): DeviceCapability
     throw new Error('DSO_PERSISTED_CAPABILITY_INVALID');
   if (!Number.isSafeInteger(row.revision) || row.revision < 1)
     throw new Error('DSO_PERSISTED_REVISION_INVALID');
-  return Object.freeze({ ...created.value, status: row.status as DeviceCapabilityV1['status'], revision: row.revision });
+  return Object.freeze({
+    ...created.value,
+    status: row.status as DeviceCapabilityV1['status'],
+    revision: row.revision,
+  });
 }
 
 function grantFromRow(row: DeviceOperationalGrantDatabaseRowV1): DeviceGrantV1 {
@@ -157,7 +161,11 @@ function grantFromRow(row: DeviceOperationalGrantDatabaseRowV1): DeviceGrantV1 {
     throw new Error('DSO_PERSISTED_GRANT_INVALID');
   if (!Number.isSafeInteger(row.revision) || row.revision < 1)
     throw new Error('DSO_PERSISTED_REVISION_INVALID');
-  return Object.freeze({ ...created.value, status: row.status as DeviceGrantV1['status'], revision: row.revision });
+  return Object.freeze({
+    ...created.value,
+    status: row.status as DeviceGrantV1['status'],
+    revision: row.revision,
+  });
 }
 
 function capabilityCreateData(
@@ -229,7 +237,9 @@ class PrismaDeviceCapabilityTransactionAdapter implements DeviceCapabilityTransa
     context: IamTenantContextV1,
     capabilityId: DeviceCapabilityV1['capabilityId'],
   ): Promise<DeviceCapabilityV1 | undefined> {
-    const row = await this.client.deviceCapabilityRecord.findUnique({ where: { id: capabilityId } });
+    const row = await this.client.deviceCapabilityRecord.findUnique({
+      where: { id: capabilityId },
+    });
     if (row === null) return undefined;
     const capability = capabilityFromRow(row);
     return capabilityVisible(context, capability) ? capability : undefined;
@@ -243,7 +253,9 @@ class PrismaDeviceCapabilityTransactionAdapter implements DeviceCapabilityTransa
       where: { organizationId: context.tenantScope.organizationId, deviceId },
       orderBy: { reportedAt: 'desc' },
     });
-    return rows.map(capabilityFromRow).filter((capability) => capabilityVisible(context, capability));
+    return rows
+      .map(capabilityFromRow)
+      .filter((capability) => capabilityVisible(context, capability));
   }
 
   public async saveGrant(context: IamTenantContextV1, grant: DeviceGrantV1): Promise<void> {
@@ -263,7 +275,9 @@ class PrismaDeviceCapabilityTransactionAdapter implements DeviceCapabilityTransa
     context: IamTenantContextV1,
     grantId: DeviceGrantV1['grantId'],
   ): Promise<DeviceGrantV1 | undefined> {
-    const row = await this.client.deviceOperationalGrantRecord.findUnique({ where: { id: grantId } });
+    const row = await this.client.deviceOperationalGrantRecord.findUnique({
+      where: { id: grantId },
+    });
     if (row === null) return undefined;
     const grant = grantFromRow(row);
     return grantVisible(context, grant) ? grant : undefined;
@@ -348,22 +362,34 @@ export class PrismaDeviceCapabilityRepositoryAdapter implements DeviceCapability
     );
   }
 
-  public saveCapability(context: IamTenantContextV1, capability: DeviceCapabilityV1): Promise<void> {
-    return new PrismaDeviceCapabilityTransactionAdapter(this.client).saveCapability(context, capability);
+  public saveCapability(
+    context: IamTenantContextV1,
+    capability: DeviceCapabilityV1,
+  ): Promise<void> {
+    return new PrismaDeviceCapabilityTransactionAdapter(this.client).saveCapability(
+      context,
+      capability,
+    );
   }
 
   public findCapability(
     context: IamTenantContextV1,
     capabilityId: DeviceCapabilityV1['capabilityId'],
   ): Promise<DeviceCapabilityV1 | undefined> {
-    return new PrismaDeviceCapabilityTransactionAdapter(this.client).findCapability(context, capabilityId);
+    return new PrismaDeviceCapabilityTransactionAdapter(this.client).findCapability(
+      context,
+      capabilityId,
+    );
   }
 
   public listCapabilities(
     context: IamTenantContextV1,
     deviceId: DeviceCapabilityV1['deviceId'],
   ): Promise<readonly DeviceCapabilityV1[]> {
-    return new PrismaDeviceCapabilityTransactionAdapter(this.client).listCapabilities(context, deviceId);
+    return new PrismaDeviceCapabilityTransactionAdapter(this.client).listCapabilities(
+      context,
+      deviceId,
+    );
   }
 
   public saveGrant(context: IamTenantContextV1, grant: DeviceGrantV1): Promise<void> {

@@ -14,7 +14,11 @@ import { createIamTenantContextV1 } from '../../../src/features/iam/application/
 
 function provider(module: ReturnType<typeof DsoModule.register>, token: symbol) {
   const match = module.providers?.find(
-    (candidate) => typeof candidate === 'object' && candidate !== null && 'provide' in candidate && candidate.provide === token,
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === token,
   );
   assert.notEqual(match, undefined);
   if (!match || !('useValue' in match)) throw new Error('provider is not a value provider');
@@ -24,25 +28,38 @@ function provider(module: ReturnType<typeof DsoModule.register>, token: symbol) 
 void test('[DSO-005, IAM-020] production DSO composition selects durable authorization storage', () => {
   const database = {} as never;
   const registered = DsoModule.register({ deviceAuthorizationDatabase: database });
-  assert.ok(provider(registered, DEVICE_AUTHORIZATION_REPOSITORY_PORT) instanceof PrismaDeviceAuthorizationRepositoryAdapter);
+  assert.ok(
+    provider(registered, DEVICE_AUTHORIZATION_REPOSITORY_PORT) instanceof
+      PrismaDeviceAuthorizationRepositoryAdapter,
+  );
 });
 
 void test('[DSO-003, DSO-005] production DSO composition selects durable capability storage', () => {
   const database = {} as never;
   const registered = DsoModule.register({ deviceCapabilityDatabase: database });
-  assert.ok(provider(registered, DEVICE_CAPABILITY_REPOSITORY_PORT) instanceof PrismaDeviceCapabilityRepositoryAdapter);
+  assert.ok(
+    provider(registered, DEVICE_CAPABILITY_REPOSITORY_PORT) instanceof
+      PrismaDeviceCapabilityRepositoryAdapter,
+  );
 });
 
 void test('[IAM-020, DSO-005] DSO composition passes the IAM identity authority bridge', () => {
-  const authority = { inspect: async () => ({ accepted: false as const, code: 'DEVICE_REVOKED' as const }) };
+  const authority = {
+    inspect: async () => ({ accepted: false as const, code: 'DEVICE_REVOKED' as const }),
+  };
   const registered = DsoModule.register({ deviceIdentityAuthority: authority });
-  assert.ok(provider(registered, DEVICE_SYNC_AUTHORIZATION) instanceof DeviceSyncAuthorizationAdapter);
+  assert.ok(
+    provider(registered, DEVICE_SYNC_AUTHORIZATION) instanceof DeviceSyncAuthorizationAdapter,
+  );
 });
 
 void test('[DSO-008, DSO-026] production DSO composition selects durable data-mode policy storage', () => {
   const database = {} as never;
   const registered = DsoModule.register({ dataModePolicyDatabase: database });
-  assert.ok(provider(registered, DATA_MODE_POLICY_REPOSITORY_PORT) instanceof PrismaDataModePolicyRepositoryAdapter);
+  assert.ok(
+    provider(registered, DATA_MODE_POLICY_REPOSITORY_PORT) instanceof
+      PrismaDataModePolicyRepositoryAdapter,
+  );
 });
 
 void test('[IAM-020, DSO-005] default DSO composition fails closed without an IAM device bridge', async () => {
@@ -60,7 +77,10 @@ void test('[IAM-020, DSO-005] default DSO composition fails closed without an IA
   assert.equal(context.accepted, true);
   if (!context.accepted) return;
   const registered = DsoModule.register();
-  const authorization = provider(registered, DEVICE_SYNC_AUTHORIZATION) as DeviceSyncAuthorizationAdapter;
+  const authorization = provider(
+    registered,
+    DEVICE_SYNC_AUTHORIZATION,
+  ) as DeviceSyncAuthorizationAdapter;
   assert.deepEqual(
     await authorization.authorize(context.value, {
       deviceId: '00000000-0000-4000-8000-000000000665',

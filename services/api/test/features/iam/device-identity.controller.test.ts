@@ -33,7 +33,10 @@ void test('[IAM-007, IAM-021] device identity HTTP endpoints use the authenticat
   const service = new DeviceIdentityService(new InMemoryDeviceIdentityRepositoryAdapter(), {
     verify: () => true,
   });
-  const { app } = await createApiApplication({ deviceIdentityService: service, requestTenantContext });
+  const { app } = await createApiApplication({
+    deviceIdentityService: service,
+    requestTenantContext,
+  });
   try {
     const challenge = await app.inject({
       method: 'POST',

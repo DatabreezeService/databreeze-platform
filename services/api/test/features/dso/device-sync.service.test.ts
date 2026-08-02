@@ -84,7 +84,11 @@ function packageInput(overrides: Record<string, unknown> = {}) {
 }
 
 void test('[DSO-011, DSO-012, DSO-014] sync enqueue is idempotent and tenant scoped', async () => {
-  const service = new DeviceSyncService(new InMemoryDeviceSyncRepositoryAdapter(), undefined, authorization);
+  const service = new DeviceSyncService(
+    new InMemoryDeviceSyncRepositoryAdapter(),
+    undefined,
+    authorization,
+  );
   const first = await service.enqueue(context(workspaceId, 'sync-1'), operationInput());
   const replay = await service.enqueue(context(workspaceId, 'sync-1'), operationInput());
   assert.equal(first.accepted, true);
@@ -203,7 +207,11 @@ void test('[DSO-007, DSO-008] policy denies payloads that are not approved for t
 });
 
 void test('[DSO-007, DSO-014, DSO-017] pull returns an opaque, ordered batch and advances its cursor', async () => {
-  const service = new DeviceSyncService(new InMemoryDeviceSyncRepositoryAdapter(), undefined, authorization);
+  const service = new DeviceSyncService(
+    new InMemoryDeviceSyncRepositoryAdapter(),
+    undefined,
+    authorization,
+  );
   const created = await service.enqueue(context(workspaceId, 'pull-seed'), operationInput());
   assert.equal(created.accepted, true);
   const cursor = createDeviceSyncCursorV1(
@@ -242,7 +250,11 @@ void test('[DSO-007, DSO-014, DSO-017] pull returns an opaque, ordered batch and
 });
 
 void test('[DSO-011, DSO-014] push derives idempotency per change and rejects a stale cursor', async () => {
-  const service = new DeviceSyncService(new InMemoryDeviceSyncRepositoryAdapter(), undefined, authorization);
+  const service = new DeviceSyncService(
+    new InMemoryDeviceSyncRepositoryAdapter(),
+    undefined,
+    authorization,
+  );
   const cursor = createDeviceSyncCursorV1(
     {
       cursorId: '00000000-0000-4000-8000-000000000032',

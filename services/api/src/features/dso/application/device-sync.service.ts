@@ -284,9 +284,7 @@ export class DeviceSyncService {
               ...(cursor.policyVersionId === undefined
                 ? {}
                 : { policyVersionId: cursor.policyVersionId }),
-              ...(cursor.policyDigest === undefined
-                ? {}
-                : { policyDigest: cursor.policyDigest }),
+              ...(cursor.policyDigest === undefined ? {} : { policyDigest: cursor.policyDigest }),
               dataMode: cursor.dataMode,
               protocolVersion: cursor.protocolVersion,
               issuedAt: input.now,
@@ -326,16 +324,24 @@ export class DeviceSyncService {
       now: input.now,
     });
     if (!authorized.accepted) return authorized;
-    const verification = cursorForVerification(context, batch.value.cursor, {
-      now: input.now,
-      deviceId: batch.value.deviceId,
-      minimumRevision: input.minimumRevision,
-    }, input.signer);
+    const verification = cursorForVerification(
+      context,
+      batch.value.cursor,
+      {
+        now: input.now,
+        deviceId: batch.value.deviceId,
+        minimumRevision: input.minimumRevision,
+      },
+      input.signer,
+    );
     if (!verification.accepted) return verification;
     const items: DeviceSyncPushItemResultV1[] = [];
     for (const change of batch.value.changes) {
       const result = await this.enqueue(
-        { ...context, idempotencyKey: childIdempotencyKey(context.idempotencyKey, change.operationId) },
+        {
+          ...context,
+          idempotencyKey: childIdempotencyKey(context.idempotencyKey, change.operationId),
+        },
         {
           operationId: change.operationId,
           deviceId: change.deviceId,
@@ -355,7 +361,10 @@ export class DeviceSyncService {
       );
       items.push(Object.freeze({ operationId: change.operationId, result }));
     }
-    return Object.freeze({ accepted: true, value: Object.freeze({ cursor: batch.value.cursor, items }) });
+    return Object.freeze({
+      accepted: true,
+      value: Object.freeze({ cursor: batch.value.cursor, items }),
+    });
   }
 
   private async authorizeDevice(

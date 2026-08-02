@@ -258,10 +258,7 @@ class PrismaDeviceAuthorizationTransactionAdapter implements DeviceAuthorization
       .find((snapshot) => visible(context.tenantScope, snapshot.tenantScope));
   }
 
-  public async saveGrant(
-    context: IamTenantContextV1,
-    grant: OpaqueDeviceGrantV1,
-  ): Promise<void> {
+  public async saveGrant(context: IamTenantContextV1, grant: OpaqueDeviceGrantV1): Promise<void> {
     if (!tenantScopeContainsV1(context.tenantScope, grant.tenantScope))
       throw new Error('DSO_SCOPE_NARROWING_REQUIRED');
     const existing = await this.client.deviceGrantRecord.findUnique({
@@ -323,15 +320,24 @@ export class PrismaDeviceAuthorizationRepositoryAdapter
     );
   }
 
-  public saveSnapshot(context: IamTenantContextV1, snapshot: AuthorizationSnapshotV1): Promise<void> {
-    return new PrismaDeviceAuthorizationTransactionAdapter(this.client).saveSnapshot(context, snapshot);
+  public saveSnapshot(
+    context: IamTenantContextV1,
+    snapshot: AuthorizationSnapshotV1,
+  ): Promise<void> {
+    return new PrismaDeviceAuthorizationTransactionAdapter(this.client).saveSnapshot(
+      context,
+      snapshot,
+    );
   }
 
   public findSnapshot(
     context: IamTenantContextV1,
     deviceId: AuthorizationSnapshotV1['deviceId'],
   ): Promise<AuthorizationSnapshotV1 | undefined> {
-    return new PrismaDeviceAuthorizationTransactionAdapter(this.client).findSnapshot(context, deviceId);
+    return new PrismaDeviceAuthorizationTransactionAdapter(this.client).findSnapshot(
+      context,
+      deviceId,
+    );
   }
 
   public saveGrant(context: IamTenantContextV1, grant: OpaqueDeviceGrantV1): Promise<void> {

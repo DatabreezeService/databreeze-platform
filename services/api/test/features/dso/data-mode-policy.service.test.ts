@@ -95,9 +95,15 @@ void test('[IAM-009, DSO-026] a policy cannot be published for a different works
 
 void test('[DSO-026] policy persistence conflicts return stable application errors', async () => {
   const service = new DataModePolicyService(new InMemoryDataModePolicyRepositoryAdapter());
-  assert.equal((await service.publish(context(workspaceId, 'policy-immutable-1'), input(versionId, 'HYBRID'))).accepted, true);
+  assert.equal(
+    (await service.publish(context(workspaceId, 'policy-immutable-1'), input(versionId, 'HYBRID')))
+      .accepted,
+    true,
+  );
   assert.deepEqual(
-    await service.publish(context(workspaceId, 'policy-immutable-2'), { ...input(versionId, 'LOCAL') }),
+    await service.publish(context(workspaceId, 'policy-immutable-2'), {
+      ...input(versionId, 'LOCAL'),
+    }),
     { accepted: false, code: 'IMMUTABLE_POLICY' },
   );
 });

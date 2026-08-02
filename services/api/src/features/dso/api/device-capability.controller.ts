@@ -40,7 +40,10 @@ export class DeviceCapabilityController {
 
   @Get(':deviceId/capabilities')
   @ApiOperation({ summary: 'List content-free capabilities for one device' })
-  async listCapabilities(@Req() request: unknown, @Param('deviceId') deviceId: string): Promise<unknown> {
+  async listCapabilities(
+    @Req() request: unknown,
+    @Param('deviceId') deviceId: string,
+  ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
     return this.capabilities.listCapabilities(context, deviceId);
   }

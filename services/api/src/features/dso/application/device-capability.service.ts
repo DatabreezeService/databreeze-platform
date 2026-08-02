@@ -7,7 +7,10 @@ import {
   type DeviceGrantV1,
   type DeviceCapabilityErrorCodeV1,
 } from '@databreeze/domain/device-capability/v1';
-import { parseStableIdentifierV1, type StableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
+import {
+  parseStableIdentifierV1,
+  type StableIdentifierV1,
+} from '@databreeze/domain/tenant-scope/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type { DeviceCapabilityRepositoryPortV1 } from './device-capability-repository.port.js';
@@ -52,7 +55,8 @@ function domainResult<TValue>(
 
 function mapRepositoryError(error: unknown): DeviceCapabilityApplicationErrorCodeV1 {
   if (!(error instanceof Error)) return 'PERSISTENCE_UNAVAILABLE';
-  if (error.message === 'SCOPE_DENIED' || error.message === 'DSO_SCOPE_DENIED') return 'SCOPE_DENIED';
+  if (error.message === 'SCOPE_DENIED' || error.message === 'DSO_SCOPE_DENIED')
+    return 'SCOPE_DENIED';
   if (error.message === 'REVISION_CONFLICT' || error.message === 'DSO_REVISION_CONFLICT')
     return 'REVISION_CONFLICT';
   if (error.message === 'CAPABILITY_NOT_FOUND' || error.message === 'DSO_CAPABILITY_NOT_FOUND')
@@ -125,12 +129,14 @@ export class DeviceCapabilityService implements DeviceCapabilityAuthorizationPor
     context: IamTenantContextV1,
     input: Parameters<DeviceCapabilityAuthorizationPortV1['authorizeGrant']>[1],
   ): Promise<DeviceCapabilityAuthorizationResultV1> {
-    if (context.tenantScope.scopeType !== 'workspace') return authorizationRejected('GRANT_SCOPE_DENIED');
+    if (context.tenantScope.scopeType !== 'workspace')
+      return authorizationRejected('GRANT_SCOPE_DENIED');
     const deviceId = stable(input.deviceId);
     const workspaceId = stable(input.workspaceId);
     const grantId = stable(input.grantId);
     if (!deviceId || !workspaceId || !grantId) return authorizationRejected('INVALID_IDENTIFIER');
-    if (workspaceId !== context.tenantScope.workspaceId) return authorizationRejected('GRANT_SCOPE_DENIED');
+    if (workspaceId !== context.tenantScope.workspaceId)
+      return authorizationRejected('GRANT_SCOPE_DENIED');
     const actionType = input.actionType;
     const now = input.now;
     if (typeof actionType !== 'string' || !/^[A-Z][A-Z0-9._-]{0,63}$/u.test(actionType))
@@ -188,7 +194,10 @@ export class DeviceCapabilityService implements DeviceCapabilityAuthorizationPor
       return await this.repository.withTransaction(context, async (transaction) => {
         const capability = await transaction.findCapability(context, capabilityId);
         if (!capability) return rejected('CAPABILITY_NOT_FOUND');
-        if (capability.deviceId !== deviceId || capability.organizationId !== context.tenantScope.organizationId)
+        if (
+          capability.deviceId !== deviceId ||
+          capability.organizationId !== context.tenantScope.organizationId
+        )
           return rejected('SCOPE_DENIED');
         const created = createDeviceGrantV1({
           ...input,
@@ -243,7 +252,8 @@ export class DeviceCapabilityService implements DeviceCapabilityAuthorizationPor
       return await this.repository.withTransaction(context, async (transaction) => {
         const current = await transaction.findCapability(context, capabilityId);
         if (!current) return rejected('CAPABILITY_NOT_FOUND');
-        if (deviceId !== undefined && current.deviceId !== deviceId) return rejected('SCOPE_DENIED');
+        if (deviceId !== undefined && current.deviceId !== deviceId)
+          return rejected('SCOPE_DENIED');
         if (current.revision !== expectedRevision) return rejected('REVISION_CONFLICT');
         const paused = transitionDeviceCapabilityV1(current, 'PAUSE', at);
         if (!paused.accepted) return domainResult(paused);

@@ -230,9 +230,7 @@ function dataMode(input: unknown): 'Local' | 'Hybrid' | 'Cloud' | undefined {
   return input === 'Local' || input === 'Hybrid' || input === 'Cloud' ? input : undefined;
 }
 
-function canonicalCursor(
-  input: Omit<DeviceSyncCursorV1, 'payload' | 'signature'>,
-): string {
+function canonicalCursor(input: Omit<DeviceSyncCursorV1, 'payload' | 'signature'>): string {
   return JSON.stringify({
     schemaVersion: input.schemaVersion,
     cursorId: input.cursorId,
@@ -468,8 +466,7 @@ export function createDeviceSyncCursorV1(
   const changeRevision = nonNegativeRevision(input.changeRevision);
   const policyVersionId =
     input.policyVersionId === undefined ? undefined : stable(input.policyVersionId);
-  const policyDigest =
-    input.policyDigest === undefined ? undefined : digest(input.policyDigest);
+  const policyDigest = input.policyDigest === undefined ? undefined : digest(input.policyDigest);
   const mode = dataMode(input.dataMode);
   const protocolVersion = protocol(input.protocolVersion);
   const issuedAt = timestamp(input.issuedAt);
@@ -531,8 +528,7 @@ export function verifyDeviceSyncCursorV1(
   if (!authorizationEpoch || minimumRevision === undefined) return rejected('INVALID_REVISION');
   const policyVersionId =
     input.policyVersionId === undefined ? undefined : stable(input.policyVersionId);
-  const policyDigest =
-    input.policyDigest === undefined ? undefined : digest(input.policyDigest);
+  const policyDigest = input.policyDigest === undefined ? undefined : digest(input.policyDigest);
   if (input.policyVersionId !== undefined && !policyVersionId)
     return rejected('INVALID_IDENTIFIER');
   if (input.policyDigest !== undefined && !policyDigest) return rejected('INVALID_DIGEST');

@@ -130,7 +130,9 @@ function organizationScope(context: IamTenantContextV1, organizationId: string):
   );
 }
 
-function challengeFromRow(row: DeviceEnrollmentChallengeDatabaseRowV1): DeviceEnrollmentChallengeV1 {
+function challengeFromRow(
+  row: DeviceEnrollmentChallengeDatabaseRowV1,
+): DeviceEnrollmentChallengeV1 {
   const created = createDeviceEnrollmentChallengeV1({
     challengeId: row.id,
     userId: row.userId,
@@ -327,11 +329,17 @@ export class PrismaDeviceIdentityRepositoryAdapter implements DeviceIdentityRepo
   }
 
   public saveChallenge(context: IamTenantContextV1, challenge: DeviceEnrollmentChallengeV1) {
-    return new PrismaDeviceIdentityTransactionAdapter(this.client).saveChallenge(context, challenge);
+    return new PrismaDeviceIdentityTransactionAdapter(this.client).saveChallenge(
+      context,
+      challenge,
+    );
   }
 
   public findChallenge(context: IamTenantContextV1, challengeId: StableIdentifierV1) {
-    return new PrismaDeviceIdentityTransactionAdapter(this.client).findChallenge(context, challengeId);
+    return new PrismaDeviceIdentityTransactionAdapter(this.client).findChallenge(
+      context,
+      challengeId,
+    );
   }
 
   public saveDevice(context: IamTenantContextV1, device: DeviceIdentityV1) {

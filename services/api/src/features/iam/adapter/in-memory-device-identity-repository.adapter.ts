@@ -24,9 +24,7 @@ function organizationContext(context: IamTenantContextV1, organizationId: string
 }
 
 /** IAM test/local adapter with organization scoping and serialized transactions. */
-export class InMemoryDeviceIdentityRepositoryAdapter
-  implements DeviceIdentityRepositoryPortV1
-{
+export class InMemoryDeviceIdentityRepositoryAdapter implements DeviceIdentityRepositoryPortV1 {
   private challenges = new Map<string, DeviceEnrollmentChallengeV1>();
   private devices = new Map<string, DeviceIdentityV1>();
   private transactionTail: Promise<void> = Promise.resolve();

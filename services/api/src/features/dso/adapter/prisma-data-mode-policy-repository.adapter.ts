@@ -44,7 +44,8 @@ function scopeMatches(context: IamTenantContextV1, policy: DataModePolicyVersion
   return (
     context.tenantScope.organizationId === policy.organizationId &&
     (context.tenantScope.scopeType === 'organization' ||
-      ('workspaceId' in context.tenantScope && context.tenantScope.workspaceId === policy.workspaceId))
+      ('workspaceId' in context.tenantScope &&
+        context.tenantScope.workspaceId === policy.workspaceId))
   );
 }
 

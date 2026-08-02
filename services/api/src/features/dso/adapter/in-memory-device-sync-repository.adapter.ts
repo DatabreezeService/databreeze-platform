@@ -159,7 +159,9 @@ export class InMemoryDeviceSyncRepositoryAdapter implements DeviceSyncRepository
       )
       .sort((left, right) => left.sequence - right.sequence)
       .slice(0, limit)
-      .map((entry) => Object.freeze({ sequence: entry.sequence, operation: cloneOperation(entry.operation) }));
+      .map((entry) =>
+        Object.freeze({ sequence: entry.sequence, operation: cloneOperation(entry.operation) }),
+      );
   }
 
   public async saveConflict(

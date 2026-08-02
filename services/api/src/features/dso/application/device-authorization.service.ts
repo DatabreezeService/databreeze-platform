@@ -18,11 +18,7 @@ import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js
 import type { DeviceAuthorizationRepositoryPortV1 } from './device-authorization-repository.port.js';
 
 function rejected<TValue>(
-  code:
-    | 'INVALID_IDENTIFIER'
-    | 'GRANT_EXPIRED'
-    | 'GRANT_SCOPE_DENIED'
-    | 'INVALID_EFFECT',
+  code: 'INVALID_IDENTIFIER' | 'GRANT_EXPIRED' | 'GRANT_SCOPE_DENIED' | 'INVALID_EFFECT',
 ): DeviceAuthorizationResultV1<TValue> {
   return Object.freeze({ accepted: false, code });
 }
@@ -103,9 +99,7 @@ export class DeviceAuthorizationService {
         authorizationEpoch: context.authorizationEpoch,
       });
       if (!checked.accepted) {
-        return checked.code === 'SNAPSHOT_STALE'
-          ? rejected('GRANT_SCOPE_DENIED')
-          : checked;
+        return checked.code === 'SNAPSHOT_STALE' ? rejected('GRANT_SCOPE_DENIED') : checked;
       }
       return checkOpaqueDeviceGrantEffectV1(grant, input.effect);
     });

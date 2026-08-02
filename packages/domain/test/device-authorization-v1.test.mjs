@@ -118,12 +118,12 @@ test('[DSO-005] a grant must explicitly contain the requested synchronization ef
   });
   assert.equal(grant.accepted, true);
   if (!grant.accepted) return;
-  assert.deepEqual(
-    checkOpaqueDeviceGrantEffectV1(grant.value, 'WRITE_DERIVATIVE'),
-    { accepted: false, code: 'EFFECT_DENIED' },
-  );
-  assert.deepEqual(
-    checkOpaqueDeviceGrantEffectV1(grant.value, 'READ'),
-    { accepted: true, value: true },
-  );
+  assert.deepEqual(checkOpaqueDeviceGrantEffectV1(grant.value, 'WRITE_DERIVATIVE'), {
+    accepted: false,
+    code: 'EFFECT_DENIED',
+  });
+  assert.deepEqual(checkOpaqueDeviceGrantEffectV1(grant.value, 'READ'), {
+    accepted: true,
+    value: true,
+  });
 });

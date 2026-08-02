@@ -39,7 +39,11 @@ test('[DSO-002, DSO-013, DSO-017] capabilities are opaque, bounded, and revision
       }),
       { accepted: false, code: 'INVALID_OPAQUE_HANDLE' },
     );
-    const paused = transitionDeviceCapabilityV1(capability.value, 'PAUSE', '2026-01-01T00:01:00.000Z');
+    const paused = transitionDeviceCapabilityV1(
+      capability.value,
+      'PAUSE',
+      '2026-01-01T00:01:00.000Z',
+    );
     assert.equal(paused.accepted, true);
     if (paused.accepted) assert.equal(paused.value.revision, 2);
   }

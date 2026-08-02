@@ -33,7 +33,8 @@ export class DeviceSyncAuthorizationAdapter implements DeviceSyncAuthorizationPo
       const typedGrant = await this.capabilityAuthorization.authorizeGrant(context, {
         deviceId: input.deviceId,
         workspaceId:
-          typeof input.tenantScope === 'object' && input.tenantScope !== null &&
+          typeof input.tenantScope === 'object' &&
+          input.tenantScope !== null &&
           'workspaceId' in input.tenantScope
             ? input.tenantScope.workspaceId
             : undefined,

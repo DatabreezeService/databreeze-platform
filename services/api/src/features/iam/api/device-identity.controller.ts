@@ -66,10 +66,17 @@ export class DeviceIdentityController {
 
   @Get('organizations/:organizationId/devices')
   @ApiOperation({ summary: 'List content-free device identities in the caller organization' })
-  async list(@Req() request: unknown, @Param('organizationId') organizationId: string): Promise<unknown> {
+  async list(
+    @Req() request: unknown,
+    @Param('organizationId') organizationId: string,
+  ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
     const parsed = parseStableIdentifierV1(organizationId);
-    if (!parsed.accepted || context.tenantScope.scopeType !== 'organization' || parsed.value !== context.tenantScope.organizationId)
+    if (
+      !parsed.accepted ||
+      context.tenantScope.scopeType !== 'organization' ||
+      parsed.value !== context.tenantScope.organizationId
+    )
       return { accepted: false, code: 'SCOPE_DENIED' as const };
     return this.devices.list(context);
   }
