@@ -74,6 +74,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "dso"\."device_sync_conflicts"/);
   assert.match(diff.stdout, /CREATE TABLE "dso"\."strict_local_package_manifests"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."authorization_snapshots"/);
+  assert.match(diff.stdout, /CREATE TABLE "iam"\."device_enrollment_challenges"/);
   assert.match(diff.stdout, /CREATE TABLE "dso"\."device_grants"/);
 
   const migrationsDirectory = path.join(apiDirectory, 'prisma', 'migrations');
@@ -98,6 +99,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802150000_dso_sync_sequence',
     '20260802160000_dso_device_authorization',
     '20260802170000_iam_snapshot_authority_alignment',
+    '20260802180000_iam_device_enrollment',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -333,6 +335,20 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   ]) {
     assert.match(
       authorityAlignmentMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const deviceEnrollmentMigration = await readFile(
+    path.join(migrationsDirectory, inventory[19], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'ALTER TABLE "iam"."devices"',
+    'CREATE TABLE "iam"."device_enrollment_challenges"',
+    'CREATE INDEX "device_enrollment_challenges_org_status_idx"',
+  ]) {
+    assert.match(
+      deviceEnrollmentMigration,
       new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
   }
