@@ -48,9 +48,11 @@ docs/plans/requirement-traceability.json records all 611 IDs with requested trac
 - `main` contains stable releases. `dev` is the integration branch.
 - New capabilities use `feat/<name>`; corrections use `fix/<name>`; operational and documentation work use conventional prefixes when more accurate.
 - Commit one coherent tested unit at a time. Do not combine unrelated applications or domains merely to reduce commit count.
-- Pull requests target `dev`, normally contain 30–50 commits, and must not exceed 70 commits.
-- Invoke CodeRabbit once per pull request after the branch is ready for review. Validate every comment against the specifications and tests; fix valid findings and document why invalid findings are not applied.
-- Promote `dev` to `main` only through a separate release pull request after the relevant production gates pass.
+- Feature/fix pull requests target `dev`, preferably contain 30–50 commits, and must not exceed 60 commits. Run local and hosted checks, but do not invoke CodeRabbit on these integration pull requests.
+- Merge a green integration pull request while preserving its atomic rollback commits, then immediately open a separate `dev` → `main` promotion pull request for that completed batch.
+- Invoke CodeRabbit exactly once on the otherwise-ready promotion pull request and request a full review. Do not invoke it if the promotion exceeds 280 changed files; split or revert the batch first.
+- Reproduce every CodeRabbit claim against the reviewed commit. Fix valid findings in focused commits, document rejected findings with evidence, rerun all affected gates, and never request a second CodeRabbit review on that pull request.
+- Do not merge a promotion when the single review was skipped, timed out, has unresolved valid findings, or required hosted checks are not green.
 
 ## Cross-cutting definition of done
 
