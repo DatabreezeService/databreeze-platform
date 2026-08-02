@@ -5,6 +5,10 @@ import { MappingController } from './api/mapping.controller.js';
 import { ReferenceEntityController } from './api/reference-entity.controller.js';
 import { RuleSetController } from './api/rule-set.controller.js';
 import { InMemoryGovernedDatasetRepositoryAdapter } from './adapter/in-memory-governed-dataset-repository.adapter.js';
+import {
+  PrismaGovernedDatasetRepositoryAdapter,
+  type GovernedDatasetDatabaseClientV1,
+} from './adapter/prisma-governed-dataset-repository.adapter.js';
 import { InMemoryMappingRepositoryAdapter } from './adapter/in-memory-mapping-repository.adapter.js';
 import { InMemoryReferenceEntityRepositoryAdapter } from './adapter/in-memory-reference-entity-repository.adapter.js';
 import { InMemoryRuleSetRepositoryAdapter } from './adapter/in-memory-rule-set-repository.adapter.js';
@@ -12,9 +16,18 @@ import {
   GOVERNED_DATASET_REPOSITORY_PORT,
   type GovernedDatasetRepositoryPortV1,
 } from './application/governed-dataset-repository.port.js';
-import { MAPPING_REPOSITORY_PORT, type MappingRepositoryPortV1 } from './application/mapping-repository.port.js';
-import { REFERENCE_ENTITY_REPOSITORY_PORT, type ReferenceEntityRepositoryPortV1 } from './application/reference-entity-repository.port.js';
-import { RULE_SET_REPOSITORY_PORT, type RuleSetRepositoryPortV1 } from './application/rule-set-repository.port.js';
+import {
+  MAPPING_REPOSITORY_PORT,
+  type MappingRepositoryPortV1,
+} from './application/mapping-repository.port.js';
+import {
+  REFERENCE_ENTITY_REPOSITORY_PORT,
+  type ReferenceEntityRepositoryPortV1,
+} from './application/reference-entity-repository.port.js';
+import {
+  RULE_SET_REPOSITORY_PORT,
+  type RuleSetRepositoryPortV1,
+} from './application/rule-set-repository.port.js';
 import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
@@ -23,6 +36,8 @@ import {
 
 export interface DsmModuleOptions {
   readonly governedDatasetRepository?: GovernedDatasetRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly governedDatasetDatabase?: GovernedDatasetDatabaseClientV1;
   readonly mappingRepository?: MappingRepositoryPortV1;
   readonly ruleSetRepository?: RuleSetRepositoryPortV1;
   readonly referenceEntityRepository?: ReferenceEntityRepositoryPortV1;
@@ -34,15 +49,34 @@ export class DsmModule {
   public static register(options: DsmModuleOptions = {}): DynamicModule {
     return {
       module: DsmModule,
-      controllers: [GovernedDatasetController, MappingController, RuleSetController, ReferenceEntityController],
+      controllers: [
+        GovernedDatasetController,
+        MappingController,
+        RuleSetController,
+        ReferenceEntityController,
+      ],
       providers: [
         {
           provide: GOVERNED_DATASET_REPOSITORY_PORT,
-          useValue: options.governedDatasetRepository ?? new InMemoryGovernedDatasetRepositoryAdapter(),
+          useValue:
+            options.governedDatasetRepository ??
+            (options.governedDatasetDatabase === undefined
+              ? new InMemoryGovernedDatasetRepositoryAdapter()
+              : new PrismaGovernedDatasetRepositoryAdapter(options.governedDatasetDatabase)),
         },
-        { provide: MAPPING_REPOSITORY_PORT, useValue: options.mappingRepository ?? new InMemoryMappingRepositoryAdapter() },
-        { provide: RULE_SET_REPOSITORY_PORT, useValue: options.ruleSetRepository ?? new InMemoryRuleSetRepositoryAdapter() },
-        { provide: REFERENCE_ENTITY_REPOSITORY_PORT, useValue: options.referenceEntityRepository ?? new InMemoryReferenceEntityRepositoryAdapter() },
+        {
+          provide: MAPPING_REPOSITORY_PORT,
+          useValue: options.mappingRepository ?? new InMemoryMappingRepositoryAdapter(),
+        },
+        {
+          provide: RULE_SET_REPOSITORY_PORT,
+          useValue: options.ruleSetRepository ?? new InMemoryRuleSetRepositoryAdapter(),
+        },
+        {
+          provide: REFERENCE_ENTITY_REPOSITORY_PORT,
+          useValue:
+            options.referenceEntityRepository ?? new InMemoryReferenceEntityRepositoryAdapter(),
+        },
         {
           provide: REQUEST_TENANT_CONTEXT,
           useValue: options.requestTenantContext ?? new UnavailableRequestTenantContextAdapter(),
