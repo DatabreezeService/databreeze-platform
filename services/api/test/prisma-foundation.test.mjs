@@ -75,6 +75,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "dso"\."strict_local_package_manifests"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."authorization_snapshots"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."mfa_recovery_codes"/);
+  assert.match(diff.stdout, /CREATE TABLE "iam"\."access_tokens"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."device_enrollment_challenges"/);
   assert.match(diff.stdout, /CREATE TABLE "dso"\."device_grants"/);
 
@@ -104,6 +105,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802190000_dso_capabilities_grants',
     '20260802200000_dso_data_mode_policies',
     '20260802210000_iam_mfa_recovery',
+    '20260802220000_iam_access_tokens',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -380,6 +382,19 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   ]) {
     assert.match(
       dataModePolicyMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const accessTokenMigration = await readFile(
+    path.join(migrationsDirectory, inventory[23], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE TABLE "iam"."access_tokens"',
+    'CREATE UNIQUE INDEX "access_tokens_digest_key"',
+  ]) {
+    assert.match(
+      accessTokenMigration,
       new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
   }

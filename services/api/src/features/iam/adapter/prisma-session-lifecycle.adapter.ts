@@ -46,6 +46,16 @@ export interface RefreshTokenDatabaseRowV1 {
   readonly usedAt?: Date | null;
 }
 
+export interface AccessTokenDatabaseRowV1 {
+  readonly id: string;
+  readonly sessionId: string;
+  readonly tokenDigest: string;
+  readonly issuedAt: Date;
+  readonly expiresAt: Date;
+  readonly status: string;
+  readonly revokedAt?: Date | null;
+}
+
 export interface SessionUserDatabaseRowV1 {
   readonly id: string;
   readonly status: string;
@@ -106,6 +116,19 @@ interface RefreshTokenDelegateV1 {
   }): Promise<{ readonly count: number }>;
 }
 
+interface AccessTokenDelegateV1 {
+  create(input: {
+    readonly data: AccessTokenDatabaseRowV1;
+  }): Promise<AccessTokenDatabaseRowV1>;
+  findUnique(input: {
+    readonly where: { readonly tokenDigest: string };
+  }): Promise<AccessTokenDatabaseRowV1 | null>;
+  updateMany(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+    readonly data: Partial<AccessTokenDatabaseRowV1>;
+  }): Promise<{ readonly count: number }>;
+}
+
 interface UniqueDelegateV1<TRow> {
   findUnique(input: {
     readonly where: Readonly<Record<string, unknown>>;
@@ -121,6 +144,7 @@ interface ListDelegateV1<TRow> {
 export interface SessionLifecycleDatabaseClientV1 {
   readonly sessionRecord: SessionDelegateV1;
   readonly refreshTokenRecord: RefreshTokenDelegateV1;
+  readonly accessTokenRecord: AccessTokenDelegateV1;
   readonly userIdentity: UniqueDelegateV1<SessionUserDatabaseRowV1>;
   readonly membershipIdentity: ListDelegateV1<SessionMembershipDatabaseRowV1>;
   readonly workspaceIdentity: UniqueDelegateV1<SessionWorkspaceDatabaseRowV1>;
@@ -234,6 +258,8 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
     });
     if (!created.accepted) throw new Error(`IAM_${created.code}`);
     const refreshToken = tokenFor(refreshTokenId);
+    const accessTokenId = stableIdentifier(randomUUID());
+    const accessToken = tokenFor(accessTokenId);
     const record = created.value;
     await this.client.$transaction(async (transaction) => {
       await transaction.sessionRecord.create({
@@ -261,10 +287,21 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
           usedAt: null,
         },
       });
+      await transaction.accessTokenRecord.create({
+        data: {
+          id: accessTokenId,
+          sessionId: record.sessionId,
+          tokenDigest: digestToken(accessToken),
+          issuedAt: new Date(record.issuedAt),
+          expiresAt: new Date(record.accessExpiresAt),
+          status: 'ACTIVE',
+          revokedAt: null,
+        },
+      });
     });
     return {
       sessionId: record.sessionId,
-      accessToken: tokenFor(stableIdentifier(randomUUID())),
+      accessToken,
       refreshToken,
       accessExpiresAt: record.accessExpiresAt,
     };
@@ -312,6 +349,10 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
             where: { id: token.sessionId },
             data: { status: 'REVOKED', revokedAt: now },
           });
+          await transaction.accessTokenRecord.updateMany({
+            where: { sessionId: token.sessionId, status: 'ACTIVE' },
+            data: { status: 'REVOKED', revokedAt: now },
+          });
         } else if (rotated.code === 'EXPIRED' && token.status === 'ACTIVE') {
           await transaction.refreshTokenRecord.updateMany({
             where: { id: token.id, status: 'ACTIVE' },
@@ -341,6 +382,8 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
         data: { accessExpiresAt: new Date(accessExpiresAt), inactivityExpiresAt: new Date(inactivityExpiresAt) },
       });
       const nextRefreshToken = tokenFor(rotated.nextTokenId);
+      const nextAccessTokenId = stableIdentifier(randomUUID());
+      const nextAccessToken = tokenFor(nextAccessTokenId);
       await transaction.refreshTokenRecord.create({
         data: {
           id: rotated.nextTokenId,
@@ -353,9 +396,20 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
           usedAt: null,
         },
       });
+      await transaction.accessTokenRecord.create({
+        data: {
+          id: nextAccessTokenId,
+          sessionId: session.sessionId,
+          tokenDigest: digestToken(nextAccessToken),
+          issuedAt: now,
+          expiresAt: new Date(accessExpiresAt),
+          status: 'ACTIVE',
+          revokedAt: null,
+        },
+      });
       return successfulSession({
         sessionId: session.sessionId,
-        accessToken: tokenFor(stableIdentifier(randomUUID())),
+        accessToken: nextAccessToken,
         refreshToken: nextRefreshToken,
         accessExpiresAt,
       });
@@ -380,8 +434,27 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
         where: { familyId: session.familyId, status: 'ACTIVE' },
         data: { status: 'REVOKED' },
       });
+      await transaction.accessTokenRecord.updateMany({
+        where: { sessionId: session.id, status: 'ACTIVE' },
+        data: { status: 'REVOKED', revokedAt: now },
+      });
       return true;
     });
+  }
+
+  public async findPrincipalByAccessToken(
+    accessTokenInput: unknown,
+  ): Promise<AuthenticatedPrincipalV1 | undefined> {
+    if (typeof accessTokenInput !== 'string' || accessTokenInput.length < 80) return undefined;
+    try {
+      const row = await this.client.accessTokenRecord.findUnique({
+        where: { tokenDigest: digestToken(accessTokenInput) },
+      });
+      if (!row || row.status !== 'ACTIVE' || row.expiresAt.getTime() <= this.clock().getTime()) return undefined;
+      return this.findPrincipal(row.sessionId);
+    } catch {
+      return undefined;
+    }
   }
 
   public async findPrincipal(sessionIdInput: unknown): Promise<AuthenticatedPrincipalV1 | undefined> {

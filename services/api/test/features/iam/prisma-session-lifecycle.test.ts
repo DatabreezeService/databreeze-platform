@@ -6,6 +6,7 @@ import {
   type SessionLifecycleDatabaseClientV1,
   type SessionRecordDatabaseRowV1,
   type RefreshTokenDatabaseRowV1,
+  type AccessTokenDatabaseRowV1,
 } from '../../../src/features/iam/adapter/prisma-session-lifecycle.adapter.js';
 
 const userId = '00000000-0000-4000-8000-000000000001';
@@ -23,9 +24,11 @@ function createDatabase(): {
   readonly client: SessionLifecycleDatabaseClientV1;
   readonly sessions: Map<string, SessionRecordDatabaseRowV1>;
   readonly refreshTokens: Map<string, RefreshTokenDatabaseRowV1>;
+  readonly accessTokens: Map<string, AccessTokenDatabaseRowV1>;
 } {
   const sessions = new Map<string, SessionRecordDatabaseRowV1>();
   const refreshTokens = new Map<string, RefreshTokenDatabaseRowV1>();
+  const accessTokens = new Map<string, AccessTokenDatabaseRowV1>();
   const client = {
     sessionRecord: {
       create: async ({ data }: { readonly data: SessionRecordDatabaseRowV1 }) => {
@@ -80,6 +83,30 @@ function createDatabase(): {
         return { count };
       },
     },
+    accessTokenRecord: {
+      create: async ({ data }: { readonly data: AccessTokenDatabaseRowV1 }) => {
+        accessTokens.set(data.id, data);
+        return data;
+      },
+      findUnique: async ({ where }: { readonly where: { readonly tokenDigest: string } }) =>
+        [...accessTokens.values()].find((row) => row.tokenDigest === where.tokenDigest) ?? null,
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        readonly where: Readonly<Record<string, unknown>>;
+        readonly data: Partial<AccessTokenDatabaseRowV1>;
+      }) => {
+        let count = 0;
+        for (const [id, row] of accessTokens) {
+          if (!Object.entries(where).every(([key, value]) => row[key as keyof AccessTokenDatabaseRowV1] === value))
+            continue;
+          accessTokens.set(id, { ...row, ...data });
+          count += 1;
+        }
+        return { count };
+      },
+    },
     userIdentity: {
       findUnique: async () => ({ id: userId, status: 'ACTIVE', securityEpoch: 4 }),
     },
@@ -108,11 +135,11 @@ function createDatabase(): {
     $transaction: async <TValue>(work: (transaction: SessionLifecycleDatabaseClientV1) => Promise<TValue>) =>
       work(client),
   } as unknown as SessionLifecycleDatabaseClientV1;
-  return { client, sessions, refreshTokens };
+  return { client, sessions, refreshTokens, accessTokens };
 }
 
 void test('[IAM-005, IAM-006] Prisma sessions persist opaque bounded access and refresh credentials', async () => {
-  const { client, sessions, refreshTokens } = createDatabase();
+  const { client, sessions, refreshTokens, accessTokens } = createDatabase();
   const adapter = new PrismaSessionLifecycleAdapter(client, {
     clock: () => new Date('2026-01-01T00:00:00.000Z'),
   });
@@ -123,7 +150,10 @@ void test('[IAM-005, IAM-006] Prisma sessions persist opaque bounded access and 
   assert.match(session.refreshToken, /^[0-9a-f-]{36}\.[A-Za-z0-9_-]{43}$/u);
   assert.equal(sessions.size, 1);
   assert.equal(refreshTokens.size, 1);
+  assert.equal(accessTokens.size, 1);
   assert.equal((await adapter.findPrincipal(session.sessionId))?.userId, userId);
+  assert.equal((await adapter.findPrincipalByAccessToken(session.accessToken))?.userId, userId);
+  assert.equal(await adapter.findPrincipalByAccessToken('not-a-token'), undefined);
 });
 
 void test('[IAM-005] refresh rotation is transactional and reuse revokes the complete family', async () => {
@@ -171,4 +201,5 @@ void test('[IAM-005] revocation is idempotent and hides session principals after
   assert.equal(await adapter.revoke(session.sessionId), true);
   assert.equal(await adapter.revoke(session.sessionId), true);
   assert.equal(await adapter.findPrincipal(session.sessionId), undefined);
+  assert.equal(await adapter.findPrincipalByAccessToken(session.accessToken), undefined);
 });
