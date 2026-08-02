@@ -511,6 +511,22 @@ void test('protected artifact reads derive tenant scope from an authenticated ac
       });
       assert.equal(authenticated.statusCode, 200);
       assert.deepEqual(authenticated.json(), []);
+
+      const auditEvents = await app.inject({
+        method: 'GET',
+        url: '/v1/audit/events',
+        headers: { authorization: 'Bearer access-token-for-context-1' },
+      });
+      assert.equal(auditEvents.statusCode, 200);
+      assert.deepEqual(auditEvents.json(), []);
+
+      const auditSeals = await app.inject({
+        method: 'GET',
+        url: '/v1/audit/seals',
+        headers: { authorization: 'Bearer access-token-for-context-1' },
+      });
+      assert.equal(auditSeals.statusCode, 200);
+      assert.deepEqual(auditSeals.json(), []);
     },
   );
 });
