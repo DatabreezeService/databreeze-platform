@@ -41,6 +41,19 @@ function context(scopeWorkspace: string) {
   return result.value;
 }
 
+function organizationContext() {
+  const result = createIamTenantContextV1({
+    tenantScope: { scopeType: 'organization', organizationId },
+    actorId,
+    correlationId,
+    idempotencyKey: 'entitlement-organization',
+    authorizationEpoch: 1,
+  });
+  assert.equal(result.accepted, true);
+  if (!result.accepted) throw new Error('invalid organization context');
+  return result.value;
+}
+
 function plan(): EntitlementPlanV1 {
   const result = createPlanV1({
     planCode: 'development',
@@ -152,4 +165,34 @@ void test('[BUA-008, BUA-009, BUA-010, BUA-011] usage state persists append-only
     /rollback/,
   );
   assert.equal((await repository.listUsageState(context(workspaceId))).entries.length, 1);
+});
+
+void test('[IAM-009, BUA-008] replaying inherited organization usage through a workspace context is read-only', async () => {
+  const repository = new InMemoryEntitlementRepositoryAdapter();
+  const { workspaceId: _workspaceId, ...organizationSnapshot } = snapshot();
+  const storedSnapshot = {
+    ...organizationSnapshot,
+    snapshotId: stable('00000000-0000-4000-8000-000000000040'),
+  };
+  await repository.saveSnapshot(organizationContext(), storedSnapshot);
+  const reserved = reserveUsageV1(
+    storedSnapshot,
+    { entries: [], reservations: [] },
+    {
+      reservationId: stable('00000000-0000-4000-8000-000000000041'),
+      entryId: stable('00000000-0000-4000-8000-000000000042'),
+      tenantScope: { scopeType: 'organization', organizationId: stable(organizationId) },
+      metric: 'job_count',
+      requestedUnits: 1,
+      idempotencyKey: 'organization-job',
+      now: '2026-01-01T00:01:00.000Z',
+    },
+  );
+  assert.equal(reserved.accepted, true);
+  if (!reserved.accepted) return;
+  await repository.persistUsageState(organizationContext(), reserved.value.state);
+  const inherited = await repository.listUsageState(context(workspaceId));
+  assert.equal(inherited.entries.length, 1);
+  await repository.persistUsageState(context(workspaceId), inherited);
+  assert.equal((await repository.listUsageState(organizationContext())).entries.length, 1);
 });

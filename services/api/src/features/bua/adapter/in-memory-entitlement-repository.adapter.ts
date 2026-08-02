@@ -132,31 +132,31 @@ export class InMemoryEntitlementRepositoryAdapter implements EntitlementReposito
   async persistUsageState(context: IamTenantContextV1, state: UsageLedgerStateV1): Promise<void> {
     await Promise.resolve();
     for (const entry of state.entries) {
-      if (!scopeAllowsMutation(context, entry.tenantScope))
-        throw new Error('BUA_SCOPE_NARROWING_REQUIRED');
       const existing = this.entries.get(entry.entryId);
       if (existing) {
         if (JSON.stringify(existing) !== JSON.stringify(entry))
           throw new Error('BUA_IMMUTABLE_USAGE_ENTRY');
         continue;
       }
+      if (!scopeAllowsMutation(context, entry.tenantScope))
+        throw new Error('BUA_SCOPE_NARROWING_REQUIRED');
       const sameMetric = [...this.entries.values()].filter(
         (item) =>
           item.metric === entry.metric &&
           tenantScopeContainsV1(item.tenantScope, entry.tenantScope) &&
           tenantScopeContainsV1(entry.tenantScope, item.tenantScope),
       );
-      if (entry.sequence !== (sameMetric.at(-1)?.sequence ?? 0) + 1)
-        throw new Error('BUA_SEQUENCE_CONFLICT');
+      const nextSequence = Math.max(0, ...sameMetric.map((item) => item.sequence)) + 1;
+      if (entry.sequence !== nextSequence) throw new Error('BUA_SEQUENCE_CONFLICT');
       if ([...this.entries.values()].some((item) => item.idempotencyKey === entry.idempotencyKey))
         throw new Error('BUA_IDEMPOTENCY_CONFLICT');
       this.entries.set(entry.entryId, cloneEntry(entry));
     }
     for (const reservation of state.reservations) {
-      if (!scopeAllowsMutation(context, reservation.tenantScope))
-        throw new Error('BUA_SCOPE_NARROWING_REQUIRED');
       const existing = this.reservations.get(reservation.reservationId);
       if (!existing) {
+        if (!scopeAllowsMutation(context, reservation.tenantScope))
+          throw new Error('BUA_SCOPE_NARROWING_REQUIRED');
         this.reservations.set(reservation.reservationId, cloneReservation(reservation));
         continue;
       }
