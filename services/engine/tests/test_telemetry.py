@@ -68,6 +68,16 @@ def test_engine_rejects_ambiguous_or_zero_trace_headers() -> None:
         )
 
 
+def test_engine_telemetry_does_not_execute_hostile_mapping_items() -> None:
+    class HostileMapping(dict[str, object]):
+        def items(self):  # type: ignore[override]
+            raise RuntimeError("provider cause must not escape")
+
+    assert sanitize_attributes(HostileMapping()) == {}
+    with pytest.raises(ValueError, match="not readable"):
+        assert_safe_attributes(HostileMapping())
+
+
 def test_engine_accepts_mixed_case_header_names() -> None:
     context = CorrelationContext(
         "00000000-0000-4000-8000-000000000001",

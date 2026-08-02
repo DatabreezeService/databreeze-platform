@@ -162,23 +162,33 @@ def sanitize_attributes(attributes: dict[str, Any]) -> dict[str, str | int | flo
     if not isinstance(attributes, Mapping):
         return {}
     safe: dict[str, str | int | float | bool] = {}
-    for raw_key, value in attributes.items():
-        key = _validate_key(raw_key)
-        if key not in SAFE_ATTRIBUTE_KEYS:
-            continue
-        scalar = _safe_scalar(key, value)
-        if scalar is not None:
-            safe[key] = scalar
+    try:
+        for raw_key, value in attributes.items():
+            key = _validate_key(raw_key)
+            if key not in SAFE_ATTRIBUTE_KEYS:
+                continue
+            scalar = _safe_scalar(key, value)
+            if scalar is not None:
+                safe[key] = scalar
+    except Exception:
+        # Diagnostics must fail closed without reflecting provider causes or
+        # executing a hostile Mapping implementation again.
+        return safe
     return safe
 
 
 def assert_safe_attributes(attributes: Mapping[str, Any]) -> None:
     """Raise when a record contains an unsafe or unknown attribute."""
 
-    for raw_key, value in attributes.items():
-        key = _validate_key(raw_key)
-        if key not in SAFE_ATTRIBUTE_KEYS or _safe_scalar(key, value) is None:
-            raise ValueError(f"telemetry attribute is not allowed: {key}")
+    try:
+        for raw_key, value in attributes.items():
+            key = _validate_key(raw_key)
+            if key not in SAFE_ATTRIBUTE_KEYS or _safe_scalar(key, value) is None:
+                raise ValueError(f"telemetry attribute is not allowed: {key}")
+    except ValueError:
+        raise
+    except Exception:
+        raise ValueError("telemetry attributes are not readable") from None
 
 
 def _correlation_id(value: str) -> str:
