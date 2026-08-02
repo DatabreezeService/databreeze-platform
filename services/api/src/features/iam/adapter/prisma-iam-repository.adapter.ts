@@ -35,6 +35,7 @@ interface IamMembershipDelegateV1 {
   }): Promise<IamMembershipDatabaseRowV1 | null>;
   findMany(input: {
     readonly where: Readonly<Record<string, unknown>>;
+    readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
   }): Promise<readonly IamMembershipDatabaseRowV1[]>;
   create(input: { readonly data: IamMembershipDatabaseRowV1 }): Promise<IamMembershipDatabaseRowV1>;
   updateMany(input: {
@@ -123,7 +124,14 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
     context: IamTenantContextV1,
     principalId: StableIdentifierV1,
   ): Promise<IamMembershipRecordV1 | undefined> {
-    const rows = await this.client.membershipIdentity.findMany({ where: { principalId } });
+    const rows = await this.client.membershipIdentity.findMany({
+      where: {
+        organizationId: context.tenantScope.organizationId,
+        principalId,
+        status: 'ACTIVE',
+      },
+      orderBy: { id: 'asc' },
+    });
     return rows
       .map(membershipFromRow)
       .find(
@@ -137,7 +145,10 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
   public async listMemberships(
     context: IamTenantContextV1,
   ): Promise<readonly IamMembershipRecordV1[]> {
-    const rows = await this.client.membershipIdentity.findMany({ where: {} });
+    const rows = await this.client.membershipIdentity.findMany({
+      where: { organizationId: context.tenantScope.organizationId },
+      orderBy: { id: 'asc' },
+    });
     return rows
       .map(membershipFromRow)
       .filter((membership) => visibleInScope(context.tenantScope, membership.scope));
