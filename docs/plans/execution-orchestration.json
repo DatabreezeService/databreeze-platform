@@ -80,7 +80,7 @@
     },
     "FND-003": {
       "status": "in-progress",
-      "commit": "039de6b",
+      "commit": "f0251d4",
       "evidence": [
         "infrastructure/local/compose.yml",
         "infrastructure/local/README.md",

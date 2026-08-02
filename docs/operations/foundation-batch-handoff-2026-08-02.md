@@ -36,7 +36,7 @@ PR until the branch reaches at least 30 commits, targeting approximately 70 and
 never reaching 100. The only small-PR exceptions are focused promotion-review
 fixes required to close an already-open `dev`→`main` gate.
 
-At this checkpoint the branch is 62 commits ahead of `origin/dev`. The current
+At this checkpoint the branch is 70 commits ahead of `origin/dev`. The current
 boundary is still coherent: FND-003 local lifecycle hardening is accompanied by
 portable AWS safety, telemetry, CI/supply-chain, and evidence updates. Continue
 with scoped foundation work until the final handoff boundary; do not manufacture
