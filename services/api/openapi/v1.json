@@ -6397,10 +6397,10 @@
       "UpdateInboxMetadataDto": {
         "type": "object",
         "properties": {
-          "assigneeId": { "type": "string", "format": "uuid", "nullable": true },
+          "assigneeId": { "oneOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }] },
           "labels": { "maxItems": 32, "type": "array", "items": { "type": "string" } },
           "priority": { "type": "string", "enum": ["LOW", "NORMAL", "HIGH", "URGENT"] },
-          "dueAt": { "type": "string", "format": "date-time", "nullable": true },
+          "dueAt": { "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }] },
           "expectedRevision": { "type": "number", "minimum": 1 }
         }
       },
@@ -6736,6 +6736,39 @@
           "lineageManifestHash"
         ]
       },
+      "DatasetQualityFindingSubjectDto": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["DATASET", "ROW", "FIELD", "CELL"] },
+          "keyHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "fieldId": { "type": "string", "format": "uuid" }
+        },
+        "required": ["type", "keyHash"]
+      },
+      "DatasetQualitySafeValueDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "TEXT",
+              "INTEGER",
+              "DECIMAL",
+              "BOOLEAN",
+              "DATE",
+              "MISSING",
+              "NULL",
+              "BLANK",
+              "INVALID",
+              "ZERO",
+              "NOT_APPLICABLE",
+              "REDACTED"
+            ]
+          },
+          "value": { "oneOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }] }
+        },
+        "required": ["kind"]
+      },
       "DatasetQualityFindingDto": {
         "type": "object",
         "properties": {
@@ -6745,7 +6778,10 @@
           "messageCode": { "type": "string", "minLength": 1, "maxLength": 96 },
           "occurrenceCount": { "type": "number", "minimum": 0 },
           "evidenceIds": { "type": "array", "items": { "type": "string", "format": "uuid" } },
-          "detailHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+          "detailHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "subject": { "$ref": "#/components/schemas/DatasetQualityFindingSubjectDto" },
+          "actual": { "$ref": "#/components/schemas/DatasetQualitySafeValueDto" },
+          "expected": { "$ref": "#/components/schemas/DatasetQualitySafeValueDto" }
         },
         "required": [
           "findingId",

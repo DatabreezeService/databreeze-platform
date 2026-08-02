@@ -2,11 +2,13 @@ import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
+  Allow,
   IsArray,
   IsIn,
   IsInt,
   IsString,
   IsUUID,
+  IsOptional,
   Matches,
   Max,
   MaxLength,
@@ -14,6 +16,64 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
+
+export class DatasetQualitySafeValueDto {
+  @ApiProperty({
+    enum: [
+      'TEXT',
+      'INTEGER',
+      'DECIMAL',
+      'BOOLEAN',
+      'DATE',
+      'MISSING',
+      'NULL',
+      'BLANK',
+      'INVALID',
+      'ZERO',
+      'NOT_APPLICABLE',
+      'REDACTED',
+    ],
+  })
+  @IsIn([
+    'TEXT',
+    'INTEGER',
+    'DECIMAL',
+    'BOOLEAN',
+    'DATE',
+    'MISSING',
+    'NULL',
+    'BLANK',
+    'INVALID',
+    'ZERO',
+    'NOT_APPLICABLE',
+    'REDACTED',
+  ])
+  kind!: string;
+
+  @ApiProperty({
+    required: false,
+    oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'boolean' }],
+  })
+  @IsOptional()
+  @Allow()
+  value?: string | number | boolean;
+}
+
+export class DatasetQualityFindingSubjectDto {
+  @ApiProperty({ enum: ['DATASET', 'ROW', 'FIELD', 'CELL'] })
+  @IsIn(['DATASET', 'ROW', 'FIELD', 'CELL'])
+  type!: string;
+
+  @ApiProperty({ pattern: '^[0-9a-f]{64}$' })
+  @IsString()
+  @Matches(/^[0-9a-f]{64}$/u)
+  keyHash!: string;
+
+  @ApiProperty({ format: 'uuid', required: false })
+  @IsOptional()
+  @IsUUID()
+  fieldId?: string;
+}
 
 export class DatasetQualityFindingDto {
   @ApiProperty({ format: 'uuid' })
@@ -50,6 +110,24 @@ export class DatasetQualityFindingDto {
   @IsString()
   @Matches(/^[0-9a-f]{64}$/u)
   detailHash!: string;
+
+  @ApiProperty({ type: DatasetQualityFindingSubjectDto, required: false })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DatasetQualityFindingSubjectDto)
+  subject?: DatasetQualityFindingSubjectDto;
+
+  @ApiProperty({ type: DatasetQualitySafeValueDto, required: false })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DatasetQualitySafeValueDto)
+  actual?: DatasetQualitySafeValueDto;
+
+  @ApiProperty({ type: DatasetQualitySafeValueDto, required: false })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DatasetQualitySafeValueDto)
+  expected?: DatasetQualitySafeValueDto;
 }
 
 export class RegisterDatasetQualityResultDto {

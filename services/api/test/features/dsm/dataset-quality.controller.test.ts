@@ -54,6 +54,13 @@ void test('[DSM-011, DSM-013, DSM-015] quality HTTP surfaces never accept source
             occurrenceCount: 3,
             evidenceIds: [],
             detailHash: 'b'.repeat(64),
+            subject: {
+              type: 'FIELD',
+              keyHash: 'd'.repeat(64),
+              fieldId: '00000000-0000-4000-8000-000000000931',
+            },
+            actual: { kind: 'DECIMAL', value: 0.42 },
+            expected: { kind: 'DECIMAL', value: 0.1 },
           },
         ],
         resultFingerprint: 'c'.repeat(64),

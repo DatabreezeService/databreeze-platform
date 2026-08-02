@@ -38,7 +38,10 @@ export class CreateInboxItemDto {
 
 /** IAE-013: revisioned, content-free inbox triage metadata patch. */
 export class UpdateInboxMetadataDto {
-  @ApiProperty({ type: String, format: 'uuid', nullable: true, required: false })
+  @ApiProperty({
+    oneOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }],
+    required: false,
+  })
   @IsOptional()
   @IsUUID()
   assigneeId?: string | null;
@@ -57,7 +60,10 @@ export class UpdateInboxMetadataDto {
   @IsIn(['LOW', 'NORMAL', 'HIGH', 'URGENT'])
   priority?: InboxPriorityV1;
 
-  @ApiProperty({ type: String, format: 'date-time', nullable: true, required: false })
+  @ApiProperty({
+    oneOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }],
+    required: false,
+  })
   @IsOptional()
   @IsISO8601()
   dueAt?: string | null;
