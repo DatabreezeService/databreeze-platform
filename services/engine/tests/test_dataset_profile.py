@@ -38,7 +38,12 @@ def test_profile_distinguishes_missing_null_blank_zero_and_not_applicable() -> N
 def test_profile_is_deterministic_and_discloses_sampling() -> None:
     rows = [{"code": "B"}, {"code": "A"}, {"code": "B"}]
     first = profile_records(rows, ["code"], max_rows=2, sample_seed=7)
-    second = profile_records([{"code": "C"}, {"code": "A"}, {"code": "B"}], ["code"], max_rows=2, sample_seed=7)
+    second = profile_records(
+        [{"code": "C"}, {"code": "A"}, {"code": "B"}],
+        ["code"],
+        max_rows=2,
+        sample_seed=7,
+    )
     assert first.rowCountScanned == 2
     assert first.sourceRowCount == 3
     assert first.sampled is True
