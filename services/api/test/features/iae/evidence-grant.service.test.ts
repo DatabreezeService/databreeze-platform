@@ -39,3 +39,8 @@ void test('[IAE-005, IAM-020] revoked, expired, and mismatched grants fail close
   await service.revoke(context('grant-revoke'), input.grantId);
   assert.deepEqual(await service.resolve(context('grant-revoked'), { grantId: input.grantId, recipientDeviceId: deviceId, authorizationEpoch: 2, now: '2026-01-01T00:01:00.000Z' }), { accepted: false, code: 'GRANT_REVOKED' });
 });
+
+void test('[IAM-020] issuing a grant with a stale authorization epoch is rejected', async () => {
+  const service = new EvidenceGrantService(new InMemoryEvidenceGrantRepositoryAdapter());
+  assert.deepEqual(await service.issue(context('grant-stale-epoch'), { ...input, authorizationEpoch: 1 }), { accepted: false, code: 'EPOCH_MISMATCH' });
+});
