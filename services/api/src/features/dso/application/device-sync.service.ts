@@ -1,9 +1,17 @@
 import {
+  createDeviceSyncBatchV1,
+  createDeviceSyncChangeV1,
+  createDeviceSyncCursorV1,
   createDeviceSyncConflictV1,
   createDeviceSyncOperationV1,
   createDeviceTransferReceiptV1,
   createStrictLocalPackageManifestV1,
   transitionDeviceSyncOperationV1,
+  verifyDeviceSyncCursorV1,
+  type DeviceSyncBatchV1,
+  type DeviceSyncChangeV1,
+  type DeviceSyncCursorSignerV1,
+  type DeviceSyncCursorV1,
   type DeviceSyncConflictV1,
   type DeviceSyncErrorCodeV1,
   type DeviceSyncOperationV1,
@@ -18,6 +26,7 @@ import {
 } from '@databreeze/domain/data-mode/v1';
 import {
   parseStableIdentifierV1,
+  tenantScopesEqualV1,
   tenantScopeContainsV1,
   type StableIdentifierV1,
 } from '@databreeze/domain/tenant-scope/v1';
@@ -25,6 +34,7 @@ import {
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type { DataModePolicyRepositoryPortV1 } from './data-mode-policy-repository.port.js';
 import type {
+  DeviceSyncOperationChangeV1,
   DeviceSyncOperationTransitionV1,
   DeviceSyncRepositoryPortV1,
 } from './device-sync-repository.port.js';
@@ -52,6 +62,16 @@ export interface DeviceSyncPolicyPortV1 {
     context: IamTenantContextV1,
     policyVersionId: StableIdentifierV1,
   ): Promise<DataModePolicyVersionV1 | undefined>;
+}
+
+export interface DeviceSyncPushItemResultV1 {
+  readonly operationId: StableIdentifierV1;
+  readonly result: DeviceSyncServiceResultV1<DeviceSyncOperationV1>;
+}
+
+export interface DeviceSyncPushResponseV1 {
+  readonly cursor: DeviceSyncCursorV1;
+  readonly items: readonly DeviceSyncPushItemResultV1[];
 }
 
 type OperationInputV1 = Parameters<typeof createDeviceSyncOperationV1>[0] & {
@@ -88,6 +108,64 @@ function scopeContains(
   candidate: { tenantScope: IamTenantContextV1['tenantScope'] },
 ): boolean {
   return tenantScopeContainsV1(context.tenantScope, candidate.tenantScope);
+}
+
+function pageSize(input: unknown): number | undefined {
+  if (input === undefined) return 64;
+  return typeof input === 'number' && Number.isSafeInteger(input) && input >= 1 && input <= 256
+    ? input
+    : undefined;
+}
+
+function cursorForVerification(
+  context: IamTenantContextV1,
+  cursor: DeviceSyncCursorV1,
+  input: {
+    readonly now: unknown;
+    readonly deviceId: unknown;
+    readonly minimumRevision: unknown;
+    readonly policyVersionId?: unknown;
+    readonly policyDigest?: unknown;
+    readonly dataMode?: unknown;
+    readonly protocolVersion?: unknown;
+  },
+  signer: DeviceSyncCursorSignerV1,
+): DeviceSyncServiceResultV1<true> {
+  if (!tenantScopeContainsV1(context.tenantScope, cursor.tenantScope))
+    return rejected('TENANT_SCOPE_DENIED');
+  return verifyDeviceSyncCursorV1(
+    cursor,
+    {
+      ...input,
+      tenantScope: cursor.tenantScope,
+      authorizationEpoch: context.authorizationEpoch,
+    },
+    signer,
+  );
+}
+
+function changeFromOperation(
+  entry: DeviceSyncOperationChangeV1,
+): DeviceSyncServiceResultV1<DeviceSyncChangeV1> {
+  return createDeviceSyncChangeV1({
+    changeId: entry.operation.operationId,
+    operationId: entry.operation.operationId,
+    deviceId: entry.operation.deviceId,
+    tenantScope: entry.operation.tenantScope,
+    entityType: entry.operation.entityType,
+    entityId: entry.operation.entityId,
+    kind: entry.operation.kind,
+    payloadClass: entry.operation.payloadClass,
+    payloadDigest: entry.operation.payloadDigest,
+    dependencyIds: entry.operation.dependencyIds,
+    entityRevision: entry.operation.revision,
+    createdAt: entry.operation.createdAt,
+  });
+}
+
+function childIdempotencyKey(base: string, operationId: StableIdentifierV1): string {
+  const suffix = `:${operationId}`;
+  return `${base.slice(0, Math.max(1, 200 - suffix.length))}${suffix}`;
 }
 
 /** Coordinates device synchronization without exposing local paths, bytes, or provider state. */
@@ -136,6 +214,117 @@ export class DeviceSyncService {
 
   public async list(context: IamTenantContextV1): Promise<readonly DeviceSyncOperationV1[]> {
     return this.repository.listOperations(context);
+  }
+
+  public async pull(
+    context: IamTenantContextV1,
+    input: {
+      readonly deviceId: unknown;
+      readonly cursor: DeviceSyncCursorV1;
+      readonly now: unknown;
+      readonly minimumRevision: unknown;
+      readonly signer: DeviceSyncCursorSignerV1;
+      readonly nextCursorId?: unknown;
+      readonly pageSize?: unknown;
+      readonly policyVersionId?: unknown;
+      readonly policyDigest?: unknown;
+      readonly dataMode?: unknown;
+      readonly protocolVersion?: unknown;
+    },
+  ): Promise<DeviceSyncServiceResultV1<DeviceSyncBatchV1>> {
+    const verification = cursorForVerification(context, input.cursor, input, input.signer);
+    if (!verification.accepted) return verification;
+    const limit = pageSize(input.pageSize);
+    if (!limit) return rejected('INVALID_BATCH');
+    const records = await this.repository.listOperationChanges(
+      context,
+      input.cursor.changeRevision,
+      limit,
+    );
+    const changes: DeviceSyncChangeV1[] = [];
+    for (const record of records) {
+      if (record.operation.deviceId !== input.deviceId) continue;
+      const change = changeFromOperation(record);
+      if (!change.accepted) return change;
+      changes.push(change.value);
+    }
+    const lastSequence = records.at(-1)?.sequence;
+    const nextCursor =
+      lastSequence === undefined
+        ? undefined
+        : createDeviceSyncCursorV1(
+            {
+              cursorId: input.nextCursorId ?? input.cursor.cursorId,
+              deviceId: input.deviceId,
+              tenantScope: input.cursor.tenantScope,
+              authorizationEpoch: input.cursor.authorizationEpoch,
+              changeRevision: lastSequence,
+              ...(input.cursor.policyVersionId === undefined
+                ? {}
+                : { policyVersionId: input.cursor.policyVersionId }),
+              ...(input.cursor.policyDigest === undefined
+                ? {}
+                : { policyDigest: input.cursor.policyDigest }),
+              dataMode: input.cursor.dataMode,
+              protocolVersion: input.cursor.protocolVersion,
+              issuedAt: input.now,
+              expiresAt: input.cursor.expiresAt,
+            },
+            input.signer,
+          );
+    if (nextCursor !== undefined && !nextCursor.accepted) return nextCursor;
+    return createDeviceSyncBatchV1({
+      deviceId: input.deviceId,
+      tenantScope: input.cursor.tenantScope,
+      cursor: input.cursor,
+      ...(nextCursor === undefined ? {} : { nextCursor: nextCursor.value }),
+      changes,
+    });
+  }
+
+  public async push(
+    context: IamTenantContextV1,
+    input: {
+      readonly batch: unknown;
+      readonly now: unknown;
+      readonly minimumRevision: unknown;
+      readonly signer: DeviceSyncCursorSignerV1;
+    },
+  ): Promise<DeviceSyncServiceResultV1<DeviceSyncPushResponseV1>> {
+    const batch = createDeviceSyncBatchV1(
+      input.batch as Parameters<typeof createDeviceSyncBatchV1>[0],
+    );
+    if (!batch.accepted) return batch;
+    const verification = cursorForVerification(context, batch.value.cursor, {
+      now: input.now,
+      deviceId: batch.value.deviceId,
+      minimumRevision: input.minimumRevision,
+    }, input.signer);
+    if (!verification.accepted) return verification;
+    const items: DeviceSyncPushItemResultV1[] = [];
+    for (const change of batch.value.changes) {
+      const result = await this.enqueue(
+        { ...context, idempotencyKey: childIdempotencyKey(context.idempotencyKey, change.operationId) },
+        {
+          operationId: change.operationId,
+          deviceId: change.deviceId,
+          tenantScope: change.tenantScope,
+          entityType: change.entityType,
+          entityId: change.entityId,
+          kind: change.kind,
+          payloadClass: change.payloadClass,
+          payloadDigest: change.payloadDigest,
+          dependencyIds: change.dependencyIds,
+          baseRevision: change.entityRevision,
+          createdAt: change.createdAt,
+          ...(batch.value.cursor.policyVersionId === undefined
+            ? {}
+            : { policyVersionId: batch.value.cursor.policyVersionId }),
+        },
+      );
+      items.push(Object.freeze({ operationId: change.operationId, result }));
+    }
+    return Object.freeze({ accepted: true, value: Object.freeze({ cursor: batch.value.cursor, items }) });
   }
 
   public async transition(

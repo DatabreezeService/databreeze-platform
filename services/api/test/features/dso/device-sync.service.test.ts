@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { createDeviceSyncCursorV1 } from '@databreeze/domain/device-sync/v1';
+
 import { InMemoryDataModePolicyRepositoryAdapter } from '../../../src/features/dso/adapter/in-memory-data-mode-policy-repository.adapter.js';
 import { InMemoryDeviceSyncRepositoryAdapter } from '../../../src/features/dso/adapter/in-memory-device-sync-repository.adapter.js';
 import { DataModePolicyService } from '../../../src/features/dso/application/data-mode-policy.service.js';
@@ -21,6 +23,10 @@ const conflictId = '00000000-0000-4000-8000-000000000025';
 const policyId = '00000000-0000-4000-8000-000000000026';
 const policyVersionId = '00000000-0000-4000-8000-000000000027';
 const digest = 'a'.repeat(64);
+const signer = {
+  sign: (payload: string) => `sig:${payload}`,
+  verify: (payload: string, signature: string) => signature === `sig:${payload}`,
+};
 
 function context(scopeWorkspaceId: string, idempotencyKey: string, expectedRevision?: number) {
   const result = createIamTenantContextV1({
@@ -183,4 +189,101 @@ void test('[DSO-007, DSO-008] policy denies payloads that are not approved for t
     }),
   );
   assert.deepEqual(result, { accepted: false, code: 'POLICY_DENIED' });
+});
+
+void test('[DSO-007, DSO-014, DSO-017] pull returns an opaque, ordered batch and advances its cursor', async () => {
+  const service = new DeviceSyncService(new InMemoryDeviceSyncRepositoryAdapter());
+  const created = await service.enqueue(context(workspaceId, 'pull-seed'), operationInput());
+  assert.equal(created.accepted, true);
+  const cursor = createDeviceSyncCursorV1(
+    {
+      cursorId: '00000000-0000-4000-8000-000000000030',
+      deviceId,
+      tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+      authorizationEpoch: 1,
+      changeRevision: 0,
+      dataMode: 'Hybrid',
+      protocolVersion: 'sync-v1',
+      issuedAt: '2026-01-01T00:00:00.000Z',
+      expiresAt: '2026-01-01T01:00:00.000Z',
+    },
+    signer,
+  );
+  assert.equal(cursor.accepted, true);
+  if (!cursor.accepted) return;
+  const pulled = await service.pull(context(workspaceId, 'pull-read'), {
+    deviceId,
+    cursor: cursor.value,
+    now: '2026-01-01T00:00:01.000Z',
+    minimumRevision: 0,
+    signer,
+    nextCursorId: '00000000-0000-4000-8000-000000000031',
+    pageSize: 10,
+  });
+  assert.equal(pulled.accepted, true);
+  if (!pulled.accepted) return;
+  assert.equal(pulled.value.changes.length, 1);
+  const [pulledChange] = pulled.value.changes;
+  assert.ok(pulledChange);
+  assert.equal('encryptedPayload' in pulledChange, false);
+  assert.equal(pulled.value.nextCursor?.changeRevision, 1);
+});
+
+void test('[DSO-011, DSO-014] push derives idempotency per change and rejects a stale cursor', async () => {
+  const service = new DeviceSyncService(new InMemoryDeviceSyncRepositoryAdapter());
+  const cursor = createDeviceSyncCursorV1(
+    {
+      cursorId: '00000000-0000-4000-8000-000000000032',
+      deviceId,
+      tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+      authorizationEpoch: 1,
+      changeRevision: 0,
+      dataMode: 'Hybrid',
+      protocolVersion: 'sync-v1',
+      issuedAt: '2026-01-01T00:00:00.000Z',
+      expiresAt: '2026-01-01T01:00:00.000Z',
+    },
+    signer,
+  );
+  assert.equal(cursor.accepted, true);
+  if (!cursor.accepted) return;
+  const change = {
+    changeId: '00000000-0000-4000-8000-000000000033',
+    operationId: '00000000-0000-4000-8000-000000000034',
+    deviceId,
+    tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+    entityType: 'artifact-version',
+    entityId: '00000000-0000-4000-8000-000000000035',
+    kind: 'UPSERT' as const,
+    payloadClass: 'CONTROL_METADATA' as const,
+    payloadDigest: digest,
+    dependencyIds: [],
+    entityRevision: 1,
+    createdAt: '2026-01-01T00:00:01.000Z',
+  };
+  const batch = {
+    schemaVersion: 1 as const,
+    deviceId,
+    tenantScope: { scopeType: 'workspace' as const, organizationId, workspaceId },
+    cursor: cursor.value,
+    changes: [change],
+  };
+  const pushed = await service.push(context(workspaceId, 'push-base'), {
+    batch,
+    now: '2026-01-01T00:00:02.000Z',
+    minimumRevision: 0,
+    signer,
+  });
+  assert.equal(pushed.accepted, true);
+  if (!pushed.accepted) return;
+  assert.equal(pushed.value.items.length, 1);
+  const [pushedItem] = pushed.value.items;
+  assert.ok(pushedItem);
+  assert.equal(pushedItem.result.accepted, true);
+  const staleContext = context(workspaceId, 'push-stale');
+  const stale = await service.push(
+    { ...staleContext, authorizationEpoch: 2 },
+    { batch, now: '2026-01-01T00:00:02.000Z', minimumRevision: 0, signer },
+  );
+  assert.deepEqual(stale, { accepted: false, code: 'CURSOR_STALE' });
 });

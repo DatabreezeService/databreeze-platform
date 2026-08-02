@@ -10,6 +10,11 @@ import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js
 
 export const DEVICE_SYNC_REPOSITORY_PORT = Symbol('DEVICE_SYNC_REPOSITORY_PORT');
 
+export interface DeviceSyncOperationChangeV1 {
+  readonly sequence: number;
+  readonly operation: DeviceSyncOperationV1;
+}
+
 export type DeviceSyncOperationTransitionV1 =
   | 'ACCEPT'
   | 'APPLY'
@@ -32,6 +37,11 @@ export interface DeviceSyncTransactionPortV1 {
     idempotencyKey: string,
   ): Promise<DeviceSyncOperationV1 | undefined>;
   listOperations(context: IamTenantContextV1): Promise<readonly DeviceSyncOperationV1[]>;
+  listOperationChanges(
+    context: IamTenantContextV1,
+    afterSequence: number,
+    limit: number,
+  ): Promise<readonly DeviceSyncOperationChangeV1[]>;
   saveConflict(context: IamTenantContextV1, conflict: DeviceSyncConflictV1): Promise<void>;
   listConflicts(
     context: IamTenantContextV1,

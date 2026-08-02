@@ -9,6 +9,7 @@ import {
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type {
+  DeviceSyncOperationChangeV1,
   DeviceSyncRepositoryPortV1,
   DeviceSyncTransactionPortV1,
 } from '../application/device-sync-repository.port.js';
@@ -52,6 +53,8 @@ function cloneReceipt(receipt: DeviceTransferReceiptV1): DeviceTransferReceiptV1
 /** Deterministic DSO adapter; production replaces it with the Prisma adapter at composition. */
 export class InMemoryDeviceSyncRepositoryAdapter implements DeviceSyncRepositoryPortV1 {
   private operations = new Map<string, DeviceSyncOperationV1>();
+  private operationSequences = new Map<string, number>();
+  private nextOperationSequence = 1;
   private operationKeys = new Map<string, string>();
   private conflicts = new Map<string, DeviceSyncConflictV1>();
   private packages = new Map<string, StrictLocalPackageManifestV1>();
@@ -76,6 +79,7 @@ export class InMemoryDeviceSyncRepositoryAdapter implements DeviceSyncRepository
         this.operationKeys.set(key, operation.operationId);
       }
       this.operations.set(operation.operationId, cloneOperation(operation));
+      this.operationSequences.set(operation.operationId, this.nextOperationSequence++);
       return;
     }
     if (!visible(context.tenantScope, existing.tenantScope)) return;
@@ -134,6 +138,28 @@ export class InMemoryDeviceSyncRepositoryAdapter implements DeviceSyncRepository
       .filter((operation) => visible(context.tenantScope, operation.tenantScope))
       .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
       .map(cloneOperation);
+  }
+
+  public async listOperationChanges(
+    context: IamTenantContextV1,
+    afterSequence: number,
+    limit: number,
+  ): Promise<readonly DeviceSyncOperationChangeV1[]> {
+    await Promise.resolve();
+    return [...this.operations.entries()]
+      .map(([operationId, operation]) => ({
+        operation,
+        sequence: this.operationSequences.get(operationId),
+      }))
+      .filter(
+        (entry): entry is { operation: DeviceSyncOperationV1; sequence: number } =>
+          entry.sequence !== undefined &&
+          entry.sequence > afterSequence &&
+          visible(context.tenantScope, entry.operation.tenantScope),
+      )
+      .sort((left, right) => left.sequence - right.sequence)
+      .slice(0, limit)
+      .map((entry) => Object.freeze({ sequence: entry.sequence, operation: cloneOperation(entry.operation) }));
   }
 
   public async saveConflict(
@@ -220,6 +246,8 @@ export class InMemoryDeviceSyncRepositoryAdapter implements DeviceSyncRepository
     await previous;
     const before = {
       operations: new Map(this.operations),
+      operationSequences: new Map(this.operationSequences),
+      nextOperationSequence: this.nextOperationSequence,
       operationKeys: new Map(this.operationKeys),
       conflicts: new Map(this.conflicts),
       packages: new Map(this.packages),
@@ -231,6 +259,7 @@ export class InMemoryDeviceSyncRepositoryAdapter implements DeviceSyncRepository
         findOperation: this.findOperation.bind(this),
         findOperationByIdempotency: this.findOperationByIdempotency.bind(this),
         listOperations: this.listOperations.bind(this),
+        listOperationChanges: this.listOperationChanges.bind(this),
         saveConflict: this.saveConflict.bind(this),
         listConflicts: this.listConflicts.bind(this),
         savePackage: this.savePackage.bind(this),
@@ -240,6 +269,8 @@ export class InMemoryDeviceSyncRepositoryAdapter implements DeviceSyncRepository
       });
     } catch (error) {
       this.operations = before.operations;
+      this.operationSequences = before.operationSequences;
+      this.nextOperationSequence = before.nextOperationSequence;
       this.operationKeys = before.operationKeys;
       this.conflicts = before.conflicts;
       this.packages = before.packages;

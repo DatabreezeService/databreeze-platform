@@ -18,6 +18,7 @@ import {
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type {
+  DeviceSyncOperationChangeV1,
   DeviceSyncRepositoryPortV1,
   DeviceSyncTransactionPortV1,
 } from '../application/device-sync-repository.port.js';
@@ -42,6 +43,7 @@ export interface DeviceSyncOperationDatabaseRowV1 {
   readonly createdAt: Date;
   readonly acknowledgedAt: Date | null;
   readonly idempotencyKey: string;
+  readonly syncSequence?: number;
 }
 
 export interface DeviceSyncConflictDatabaseRowV1 {
@@ -147,6 +149,7 @@ export interface DeviceSyncOperationDatabaseCreateDataV1 {
   readonly createdAt: Date;
   readonly acknowledgedAt: Date | null;
   readonly idempotencyKey: string;
+  readonly syncSequence?: number;
 }
 
 export interface DeviceSyncOperationDatabaseUpdateDataV1 {
@@ -531,6 +534,28 @@ class PrismaDeviceSyncTransactionAdapter implements DeviceSyncTransactionPortV1 
       .filter((operation) => visible(context.tenantScope, operation.tenantScope));
   }
 
+  public async listOperationChanges(
+    context: IamTenantContextV1,
+    afterSequence: number,
+    limit: number,
+  ): Promise<readonly DeviceSyncOperationChangeV1[]> {
+    const rows = await this.client.deviceSyncOperationRecord.findMany({
+      where: { organizationId: context.tenantScope.organizationId },
+      orderBy: { syncSequence: 'asc' },
+    });
+    return rows
+      .map((row, index) => ({
+        sequence: row.syncSequence ?? index + 1,
+        operation: operationFromRow(row),
+      }))
+      .filter(
+        (entry) =>
+          entry.sequence > afterSequence &&
+          visible(context.tenantScope, entry.operation.tenantScope),
+      )
+      .slice(0, limit);
+  }
+
   public async saveConflict(
     context: IamTenantContextV1,
     conflict: DeviceSyncConflictV1,
@@ -677,6 +702,18 @@ export class PrismaDeviceSyncRepositoryAdapter implements DeviceSyncRepositoryPo
 
   public listOperations(context: IamTenantContextV1): Promise<readonly DeviceSyncOperationV1[]> {
     return new PrismaDeviceSyncTransactionAdapter(this.client).listOperations(context);
+  }
+
+  public listOperationChanges(
+    context: IamTenantContextV1,
+    afterSequence: number,
+    limit: number,
+  ): Promise<readonly DeviceSyncOperationChangeV1[]> {
+    return new PrismaDeviceSyncTransactionAdapter(this.client).listOperationChanges(
+      context,
+      afterSequence,
+      limit,
+    );
   }
 
   public saveConflict(context: IamTenantContextV1, conflict: DeviceSyncConflictV1): Promise<void> {
