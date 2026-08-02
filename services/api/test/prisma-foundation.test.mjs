@@ -55,6 +55,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "iae"\."artifact_versions"/);
   assert.match(diff.stdout, /CREATE TABLE "iae"\."inbox_items"/);
   assert.match(diff.stdout, /CREATE TABLE "iae"\."artifact_lineage"/);
+  assert.match(diff.stdout, /CREATE TABLE "iae"\."evidence_grants"/);
   assert.match(diff.stdout, /CREATE TABLE "aud"\."audit_events"/);
   assert.match(diff.stdout, /CREATE TABLE "bua"\."usage_ledger_entries"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_definitions"/);
@@ -85,6 +86,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802090000_jra_recipes',
     '20260802100000_iae_dsm_governance',
     '20260802110000_dsm_mappings_rules',
+    '20260802120000_iae_evidence_grants',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -243,4 +245,9 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   ]) {
     assert.match(mappingRulesMigration, new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
+  const evidenceGrantsMigration = await readFile(
+    path.join(migrationsDirectory, inventory[13], 'migration.sql'),
+    'utf8',
+  );
+  assert.match(evidenceGrantsMigration, /CREATE TABLE "iae"\."evidence_grants"/);
 });

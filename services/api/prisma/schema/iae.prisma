@@ -103,3 +103,27 @@ model EvidenceReference {
   @@map("evidence_references")
   @@schema("iae")
 }
+
+/// IAE-005, IAE-006: short-lived, revocable, device-bound evidence grants.
+model EvidenceGrantRecord {
+  id                  String    @id @db.Uuid
+  evidenceId          String    @map("evidence_id") @db.Uuid
+  artifactVersionId   String    @map("artifact_version_id") @db.Uuid
+  scopeType           String    @map("scope_type") @db.VarChar(24)
+  organizationId      String    @map("organization_id") @db.Uuid
+  workspaceId         String?   @map("workspace_id") @db.Uuid
+  projectId           String?   @map("project_id") @db.Uuid
+  recipientDeviceId   String    @map("recipient_device_id") @db.Uuid
+  action              String    @db.VarChar(24)
+  issuedAt            DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt           DateTime  @map("expires_at") @db.Timestamptz(6)
+  authorizationEpoch  Int       @map("authorization_epoch")
+  maxExcerptBytes     Int       @map("max_excerpt_bytes")
+  revokedAt           DateTime? @map("revoked_at") @db.Timestamptz(6)
+
+  @@index([evidenceId], map: "evidence_grants_evidence_idx")
+  @@index([artifactVersionId], map: "evidence_grants_artifact_version_idx")
+  @@index([organizationId, workspaceId, projectId, recipientDeviceId], map: "evidence_grants_scope_device_idx")
+  @@map("evidence_grants")
+  @@schema("iae")
+}
