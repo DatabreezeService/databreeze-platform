@@ -19,15 +19,18 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
     './mfa/v1',
     './device-authorization/v1',
     './data-mode/v1',
-    './artifact/v1',
-    './dataset/v1',
+  './artifact/v1',
+  './artifact-intake/v1',
+  './dataset/v1',
+  './dataset-governance/v1',
     './jobs/v1',
     './approval/v1',
     './execution-attempt/v1',
     './result-manifest/v1',
     './dispatch/v1',
     './recipe/v1',
-    './finding/v1',
+  './finding/v1',
+  './reference-entity/v1',
   ]);
 
   for (const entry of Object.values(manifest.exports)) {
