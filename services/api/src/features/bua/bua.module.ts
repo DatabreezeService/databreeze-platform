@@ -1,6 +1,10 @@
 import { type DynamicModule, Module } from '@nestjs/common';
 
 import { InMemoryEntitlementRepositoryAdapter } from './adapter/in-memory-entitlement-repository.adapter.js';
+import {
+  PrismaEntitlementRepositoryAdapter,
+  type EntitlementDatabaseClientV1,
+} from './adapter/prisma-entitlement-repository.adapter.js';
 import { EntitlementAdmissionService } from './application/entitlement-admission.service.js';
 import {
   ENTITLEMENT_REPOSITORY_PORT,
@@ -11,12 +15,18 @@ export const ENTITLEMENT_ADMISSION_SERVICE = Symbol('ENTITLEMENT_ADMISSION_SERVI
 
 export interface BuaModuleOptions {
   readonly entitlementRepository?: EntitlementRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly entitlementDatabase?: EntitlementDatabaseClientV1;
 }
 
 @Module({})
 export class BuaModule {
   public static register(options: BuaModuleOptions = {}): DynamicModule {
-    const repository = options.entitlementRepository ?? new InMemoryEntitlementRepositoryAdapter();
+    const repository =
+      options.entitlementRepository ??
+      (options.entitlementDatabase === undefined
+        ? new InMemoryEntitlementRepositoryAdapter()
+        : new PrismaEntitlementRepositoryAdapter(options.entitlementDatabase));
     const service = new EntitlementAdmissionService(repository);
     return {
       module: BuaModule,
