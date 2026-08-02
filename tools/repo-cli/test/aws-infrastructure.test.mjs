@@ -85,3 +85,18 @@ test('AWS validation script is non-applying and reports missing OpenTofu clearly
   assert.match(source, /missing required safety boundary/u);
   assert.doesNotMatch(source, /tofu',\s*\['apply'/u);
 });
+
+test('AWS production profile enables recovery and prevents public data paths', () => {
+  const production = read('infrastructure/aws/environments/alpha/production.tfvars.example');
+  const versions = read('infrastructure/aws/environments/alpha/versions.tf');
+  const data = read('infrastructure/aws/modules/data/main.tf');
+  const compute = read('infrastructure/aws/modules/compute/main.tf');
+  assert.match(production, /backup_retention_period\s*=\s*7/u);
+  assert.match(production, /deletion_protection\s*=\s*true/u);
+  assert.match(production, /database_multi_az\s*=\s*true/u);
+  assert.match(production, /redis_automatic_failover_enabled\s*=\s*true/u);
+  assert.match(versions, /required_version\s*=\s*">= 1\.8\.0, < 2\.0\.0"/u);
+  assert.doesNotMatch(data, /publicly_accessible\s*=\s*true/u);
+  assert.doesNotMatch(data, /skip_final_snapshot\s*=\s*true/u);
+  assert.match(compute, /assign_public_ip\s*=\s*false/u);
+});
