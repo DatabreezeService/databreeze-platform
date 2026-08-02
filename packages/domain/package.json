@@ -63,6 +63,10 @@
     "./execution-attempt/v1": {
       "types": "./src/execution-attempt/v1.ts",
       "import": "./dist/execution-attempt/v1.js"
+    },
+    "./result-manifest/v1": {
+      "types": "./src/result-manifest/v1.ts",
+      "import": "./dist/result-manifest/v1.js"
     }
   },
   "scripts": {
