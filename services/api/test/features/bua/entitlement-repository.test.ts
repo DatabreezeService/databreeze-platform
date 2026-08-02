@@ -169,7 +169,8 @@ void test('[BUA-008, BUA-009, BUA-010, BUA-011] usage state persists append-only
 
 void test('[IAM-009, BUA-008] replaying inherited organization usage through a workspace context is read-only', async () => {
   const repository = new InMemoryEntitlementRepositoryAdapter();
-  const { workspaceId: _workspaceId, ...organizationSnapshot } = snapshot();
+  const { workspaceId: organizationWorkspaceId, ...organizationSnapshot } = snapshot();
+  void organizationWorkspaceId;
   const storedSnapshot = {
     ...organizationSnapshot,
     snapshotId: stable('00000000-0000-4000-8000-000000000040'),

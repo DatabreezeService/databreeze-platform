@@ -38,7 +38,7 @@ export interface EntitlementFinalizeInputV1 extends EntitlementSettlementCommonI
   readonly committedUnits: unknown;
 }
 
-export interface EntitlementReleaseInputV1 extends EntitlementSettlementCommonInputV1 {}
+export type EntitlementReleaseInputV1 = EntitlementSettlementCommonInputV1;
 
 export interface EntitlementAdmissionValueV1 {
   readonly snapshot: EntitlementSnapshotV1;

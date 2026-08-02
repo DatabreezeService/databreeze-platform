@@ -7,7 +7,6 @@ import {
 } from '@databreeze/domain/identity/v1';
 import {
   parseStableIdentifierV1,
-  parseStrictUtcTimestampV1,
   type StableIdentifierV1,
   type StrictUtcTimestampV1,
 } from '@databreeze/domain/tenant-scope/v1';
@@ -59,12 +58,6 @@ function stableIdentifier(input: string): StableIdentifierV1 {
   return parsed.value;
 }
 
-function strictTimestamp(input: string): StrictUtcTimestampV1 {
-  const parsed = parseStrictUtcTimestampV1(input);
-  if (!parsed.accepted) throw new Error('IAM_INVALID_TIMESTAMP');
-  return parsed.value;
-}
-
 function tokenFor(tokenId: StableIdentifierV1): string {
   return `${tokenId}.${randomBytes(32).toString('base64url')}`;
 }
@@ -85,8 +78,9 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
 
   public issue(
     principal: AuthenticatedPrincipalV1,
-    _clientPlatform: 'android' | 'desktop' | 'web',
+    clientPlatform: 'android' | 'desktop' | 'web',
   ): Promise<AuthenticationSessionV1> {
+    void clientPlatform;
     const now = this.clock();
     const sessionId = randomUUID();
     const familyId = randomUUID();
@@ -128,8 +122,10 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
 
   public async refresh(
     refreshTokenInput: unknown,
-    _clientPlatform: 'android' | 'desktop' | 'web',
+    clientPlatform: 'android' | 'desktop' | 'web',
   ): Promise<SessionRefreshResultV1> {
+    void clientPlatform;
+    await Promise.resolve();
     if (typeof refreshTokenInput !== 'string' || refreshTokenInput.length < 80)
       return { accepted: false, code: 'INVALID_REFRESH_TOKEN' };
     const token = this.refreshTokens.get(digestToken(refreshTokenInput));
@@ -176,6 +172,7 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
   }
 
   public async revoke(sessionIdInput: unknown): Promise<boolean> {
+    await Promise.resolve();
     if (typeof sessionIdInput !== 'string') return false;
     const session = this.sessions.get(sessionIdInput);
     if (!session) return false;
