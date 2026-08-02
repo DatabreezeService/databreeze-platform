@@ -102,3 +102,15 @@ test('AWS production profile enables recovery and prevents public data paths', (
   assert.doesNotMatch(data, /skip_final_snapshot\s*=\s*true/u);
   assert.match(compute, /assign_public_ip\s*=\s*false/u);
 });
+
+test('AWS foundation keeps state and apply outside the repository', () => {
+  const readme = read('infrastructure/aws/README.md');
+  const sources = [
+    read('infrastructure/aws/environments/alpha/main.tf'),
+    read('infrastructure/aws/environments/alpha/versions.tf'),
+  ].join('\n');
+  assert.match(readme, /plan-only/u);
+  assert.match(readme, /remote encrypted state backend/u);
+  assert.doesNotMatch(sources, /^\s*backend\s+"/mu);
+  assert.doesNotMatch(sources, /terraform\.tfstate|\.tfstate\.backup/u);
+});
