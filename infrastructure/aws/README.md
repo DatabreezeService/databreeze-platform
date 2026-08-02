@@ -39,6 +39,9 @@ redundant API/worker capacity, PITR/backups, Multi-AZ data, NAT, and CloudFront
 explicitly. Production must use a remote encrypted state backend approved in a
 separate deployment ADR.
 
+The production profile also enables RDS Performance Insights with the platform
+KMS key; alpha keeps it disabled unless explicitly selected.
+
 The modules expose IDs and endpoints only as outputs. Database credentials are
 never output; the security module creates named Secrets Manager records for
 later provider-managed rotation.
