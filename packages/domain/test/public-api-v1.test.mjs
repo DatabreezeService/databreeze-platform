@@ -22,6 +22,7 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
     './device-capability/v1',
     './data-mode/v1',
     './pkce/v1',
+    './csrf/v1',
     './artifact/v1',
     './artifact-intake/v1',
     './artifact-governance/v1',
@@ -58,6 +59,7 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
   assert.equal(aggregate.ENTITLEMENT_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.MFA_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.PKCE_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.CSRF_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.DEVICE_AUTHORIZATION_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.AUDIT_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.DATASET_SCHEMA_VERSION_V1, 1);
