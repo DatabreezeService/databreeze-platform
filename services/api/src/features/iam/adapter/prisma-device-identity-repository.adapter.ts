@@ -56,6 +56,10 @@ interface DelegateV1<TRow, TCreate, TUpdate = never> {
     readonly where: { readonly id: string };
     readonly data: TUpdate;
   }): Promise<TRow>;
+  updateMany?(input: {
+    readonly where: { readonly id: string; readonly revision: number };
+    readonly data: TUpdate;
+  }): Promise<{ readonly count: number }>;
 }
 
 export interface DeviceIdentityDatabaseClientV1 {
@@ -245,11 +249,12 @@ class PrismaDeviceIdentityTransactionAdapter implements DeviceIdentityTransactio
       challenge.revision !== current.revision + 1
     )
       throw new Error('IMMUTABLE_CHALLENGE');
-    if (!this.client.deviceEnrollmentChallenge.update) throw new Error('UPDATE_UNAVAILABLE');
-    await this.client.deviceEnrollmentChallenge.update({
-      where: { id: challenge.id },
+    if (!this.client.deviceEnrollmentChallenge.updateMany) throw new Error('UPDATE_UNAVAILABLE');
+    const result = await this.client.deviceEnrollmentChallenge.updateMany({
+      where: { id: challenge.id, revision: current.revision },
       data: { status: challenge.status, revision: challenge.revision },
     });
+    if (result.count !== 1) throw new Error('REVISION_CONFLICT');
   }
 
   public async findChallenge(
@@ -301,9 +306,9 @@ class PrismaDeviceIdentityTransactionAdapter implements DeviceIdentityTransactio
     if (!current) throw new Error('DEVICE_NOT_FOUND');
     if (current.revision !== expectedRevision) throw new Error('REVISION_CONFLICT');
     if (device.revision !== expectedRevision + 1) throw new Error('INVALID_REVISION');
-    if (!this.client.deviceIdentity.update) throw new Error('UPDATE_UNAVAILABLE');
-    await this.client.deviceIdentity.update({
-      where: { id: device.id },
+    if (!this.client.deviceIdentity.updateMany) throw new Error('UPDATE_UNAVAILABLE');
+    const result = await this.client.deviceIdentity.updateMany({
+      where: { id: device.id, revision: expectedRevision },
       data: {
         publicKey: device.publicKey,
         status: device.status,
@@ -313,6 +318,7 @@ class PrismaDeviceIdentityTransactionAdapter implements DeviceIdentityTransactio
         revokedAt: device.revokedAt ? new Date(device.revokedAt) : null,
       },
     });
+    if (result.count !== 1) throw new Error('REVISION_CONFLICT');
   }
 }
 
