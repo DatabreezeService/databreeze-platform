@@ -1,5 +1,10 @@
 """Reviewed built-in processors composed into the closed registry."""
-from .spreadsheet_auditor import SpreadsheetAuditError, SpreadsheetAuditResult, audit_workbook
+
+from .spreadsheet_auditor import (
+    SpreadsheetAuditError,
+    SpreadsheetAuditResult,
+    audit_workbook,
+)
 from .spreadsheet_auditor_manifest import (
     SpreadsheetAuditManifest,
     SpreadsheetAuditManifestFinding,
