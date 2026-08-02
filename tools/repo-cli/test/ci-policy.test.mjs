@@ -37,3 +37,55 @@ test('CI policy rejects floating actions and pull request target execution', () 
     fs.writeFileSync(path.join(root, '.github/workflows', name), text);
   assert.throws(() => checkCiPolicy(root), /unpinned action/u);
 });
+
+test('CI policy rejects runner jobs without a timeout', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'databreeze-ci-timeout-'));
+  fs.mkdirSync(path.join(root, '.github/workflows'), { recursive: true });
+  const checkout = 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683';
+  const workflows = {
+    'quality.yml': [
+      'name: q',
+      'permissions:',
+      '  contents: read',
+      'jobs:',
+      '  check:',
+      '    runs-on: ubuntu-24.04',
+      '    steps:',
+      `      - uses: ${checkout}`,
+      '        with:',
+      '          persist-credentials: false',
+    ].join('\n'),
+    'security.yml': [
+      'name: s',
+      'permissions:',
+      '  contents: read',
+      'jobs:',
+      '  scan:',
+      '    runs-on: ubuntu-24.04',
+      '    timeout-minutes: 10',
+      '    steps:',
+      `      - uses: ${checkout}`,
+      '        with:',
+      '          persist-credentials: false',
+      '      - run: pnpm audit && check-secret-patterns.mjs check-license-policy.mjs check-container-policy.mjs generate-sbom.mjs',
+    ].join('\n'),
+    'release.yml': [
+      'name: r',
+      'permissions:',
+      '  contents: read',
+      '  id-token: write',
+      'jobs:',
+      '  release:',
+      '    runs-on: ubuntu-24.04',
+      '    timeout-minutes: 10',
+      '    steps:',
+      `      - uses: ${checkout}`,
+      '        with:',
+      '          persist-credentials: false',
+      '      - run: generate-provenance.mjs',
+    ].join('\n'),
+  };
+  for (const [name, text] of Object.entries(workflows))
+    fs.writeFileSync(path.join(root, '.github/workflows', name), text);
+  assert.throws(() => checkCiPolicy(root), /timeout-minutes/u);
+});

@@ -41,6 +41,14 @@ function assertLeastPrivilege(text, filename) {
   }
 }
 
+function assertBoundedJobs(text, filename) {
+  const jobCount = (text.match(/^\s+runs-on:\s*\S+/gim) ?? []).length;
+  const timeoutCount = (text.match(/^\s+timeout-minutes:\s*\d+/gim) ?? []).length;
+  if (jobCount > timeoutCount) {
+    throw new Error(`${filename} must bound every runner job with timeout-minutes`);
+  }
+}
+
 export function checkCiPolicy(root = process.cwd()) {
   const workflows = Object.fromEntries(
     REQUIRED_WORKFLOWS.map((name) => [name, readWorkflow(root, name)]),
@@ -48,6 +56,7 @@ export function checkCiPolicy(root = process.cwd()) {
   for (const [name, text] of Object.entries(workflows)) {
     assertPinnedActions(text, name);
     assertLeastPrivilege(text, name);
+    assertBoundedJobs(text, name);
   }
   const security = workflows['security.yml'];
   for (const required of [

@@ -16,6 +16,7 @@ jobs:
   scope:
     name: Detect affected runtimes
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     outputs:
       shared: ${{ steps.scope.outputs.shared }}
       web: ${{ steps.scope.outputs.web }}
@@ -89,6 +90,7 @@ jobs:
     needs: scope
     if: needs.scope.outputs.engine == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
