@@ -477,3 +477,37 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
     },
   );
 });
+
+void test('protected artifact reads derive tenant scope from an authenticated access token', async () => {
+  const principal = {
+    userId: '00000000-0000-4000-8000-000000000001',
+    organizationId: '00000000-0000-4000-8000-000000000002',
+    workspaceId: '00000000-0000-4000-8000-000000000003',
+    securityEpoch: 3,
+    mfaRequired: false,
+  };
+  await withApp(
+    {
+      sessions: {
+        issue: () => Promise.reject(new Error('not used')),
+        refresh: () => Promise.reject(new Error('not used')),
+        revoke: () => Promise.resolve(true),
+        findPrincipal: () => Promise.resolve(principal),
+        findPrincipalByAccessToken: async (token) =>
+          token === 'access-token-for-context-1' ? principal : undefined,
+      },
+    },
+    async (app) => {
+      const unauthenticated = await app.inject({ method: 'GET', url: '/v1/artifacts/inbox' });
+      assertProblem(unauthenticated, 401, 'AUTHENTICATION_FAILED');
+
+      const authenticated = await app.inject({
+        method: 'GET',
+        url: '/v1/artifacts/inbox',
+        headers: { authorization: 'Bearer access-token-for-context-1' },
+      });
+      assert.equal(authenticated.statusCode, 200);
+      assert.deepEqual(authenticated.json(), []);
+    },
+  );
+});
