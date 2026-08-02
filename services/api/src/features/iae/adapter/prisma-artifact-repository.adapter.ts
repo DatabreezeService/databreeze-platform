@@ -82,6 +82,10 @@ export interface ArtifactDatabaseClientV1 {
     findUnique(input: {
       readonly where: { readonly id: string };
     }): Promise<ArtifactVersionDatabaseRowV1 | null>;
+    update(input: {
+      readonly where: { readonly id: string };
+      readonly data: { readonly status: string };
+    }): Promise<ArtifactVersionDatabaseRowV1>;
   };
   readonly contentPlacement: {
     create(input: {
@@ -235,6 +239,27 @@ class PrismaArtifactTransactionAdapter implements ArtifactTransactionPortV1 {
         : undefined;
   }
 
+  public async updateVersionStatus(
+    context: IamTenantContextV1,
+    versionId: ArtifactVersionV1['versionId'],
+    status: ArtifactVersionV1['status'],
+  ): Promise<ArtifactVersionV1 | undefined> {
+    const row = await this.client.artifactVersion.findUnique({ where: { id: versionId } });
+    if (row === null || !visible(context.tenantScope, row)) return undefined;
+    if (!tenantScopeContainsV1(context.tenantScope, rowScope(row)))
+      throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
+    const current = rowToVersion(row);
+    if (!['QUARANTINED', 'ACTIVE', 'DELETED'].includes(status))
+      throw new Error('IAE_INVALID_STATUS');
+    if (current.status === 'DELETED' && status !== 'DELETED')
+      throw new Error('IAE_TERMINAL_STATUS');
+    const updated = await this.client.artifactVersion.update({
+      where: { id: versionId },
+      data: { status },
+    });
+    return rowToVersion(updated);
+  }
+
   public async savePlacement(
     context: IamTenantContextV1,
     placement: ContentPlacementV1,
@@ -371,6 +396,17 @@ export class PrismaArtifactRepositoryAdapter implements ArtifactRepositoryPortV1
     versionId: ArtifactVersionV1['versionId'],
   ): Promise<ArtifactVersionV1 | undefined> {
     return new PrismaArtifactTransactionAdapter(this.client).findVersion(context, versionId);
+  }
+  public updateVersionStatus(
+    context: IamTenantContextV1,
+    versionId: ArtifactVersionV1['versionId'],
+    status: ArtifactVersionV1['status'],
+  ): Promise<ArtifactVersionV1 | undefined> {
+    return new PrismaArtifactTransactionAdapter(this.client).updateVersionStatus(
+      context,
+      versionId,
+      status,
+    );
   }
   public savePlacement(context: IamTenantContextV1, placement: ContentPlacementV1): Promise<void> {
     return new PrismaArtifactTransactionAdapter(this.client).savePlacement(context, placement);

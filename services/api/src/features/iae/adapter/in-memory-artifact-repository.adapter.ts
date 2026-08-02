@@ -64,6 +64,25 @@ export class InMemoryArtifactRepositoryAdapter implements ArtifactRepositoryPort
       : undefined;
   }
 
+  async updateVersionStatus(
+    context: IamTenantContextV1,
+    versionId: ArtifactVersionV1['versionId'],
+    status: ArtifactVersionV1['status'],
+  ): Promise<ArtifactVersionV1 | undefined> {
+    await Promise.resolve();
+    const current = this.versions.get(versionId);
+    if (!current || !visibleInScope(context.tenantScope, current.tenantScope)) return undefined;
+    if (!scopeAllowsMutation(context, current.tenantScope))
+      throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
+    if (!['QUARANTINED', 'ACTIVE', 'DELETED'].includes(status))
+      throw new Error('IAE_INVALID_STATUS');
+    if (current.status === 'DELETED' && status !== 'DELETED')
+      throw new Error('IAE_TERMINAL_STATUS');
+    const next = cloneVersion({ ...current, status });
+    this.versions.set(versionId, next);
+    return next;
+  }
+
   async savePlacement(context: IamTenantContextV1, placement: ContentPlacementV1): Promise<void> {
     await Promise.resolve();
     if (!scopeAllowsMutation(context, placement.tenantScope))
@@ -152,6 +171,7 @@ export class InMemoryArtifactRepositoryAdapter implements ArtifactRepositoryPort
       return await work({
         saveVersion: this.saveVersion.bind(this),
         findVersion: this.findVersion.bind(this),
+        updateVersionStatus: this.updateVersionStatus.bind(this),
         savePlacement: this.savePlacement.bind(this),
         updatePlacement: this.updatePlacement.bind(this),
         listPlacements: this.listPlacements.bind(this),

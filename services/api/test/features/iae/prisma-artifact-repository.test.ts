@@ -63,6 +63,13 @@ function client(
           versions.find((candidate) => candidate.id === input.where.id) ?? null,
         );
       },
+      update(input) {
+        const current = versions.find((candidate) => candidate.id === input.where.id);
+        if (!current) throw new Error('fixture version not found');
+        const next = { ...current, ...input.data };
+        versions[versions.indexOf(current)] = next;
+        return Promise.resolve(next);
+      },
     },
     contentPlacement: {
       create(input) {
@@ -149,6 +156,12 @@ void test('[IAE-003, IAE-004, IAE-005, IAM-009] Prisma artifact adapter keeps pl
   const evidence: EvidenceDatabaseRowV1[] = [];
   const repository = new PrismaArtifactRepositoryAdapter(client([], placements, evidence));
   await repository.saveVersion(context('version'), artifact.value);
+  const quarantined = await repository.updateVersionStatus(
+    context('quarantine'),
+    versionId,
+    'QUARANTINED',
+  );
+  assert.equal(quarantined?.status, 'QUARANTINED');
   await repository.savePlacement(context('placement'), placement.value);
   await repository.savePlacement(context('placement-repeat'), placement.value);
   await repository.saveEvidence(context('evidence'), evidenceRef.value);
