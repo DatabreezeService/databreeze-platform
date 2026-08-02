@@ -5,11 +5,15 @@ import {
   ACCESS_TOKEN_MAX_SECONDS_V1,
   bootstrapPersonalOrganizationV1,
   checkOwnerRemovalV1,
+  consumeDeviceEnrollmentChallengeV1,
+  createDeviceEnrollmentChallengeV1,
+  createDeviceIdentityV1,
   createSessionRecordV1,
   createUserIdentityV1,
   isFreshStepUpV1,
   normalizeEmailAddressV1,
   rotateRefreshFamilyV1,
+  rotateDeviceIdentityKeyV1,
   transitionDeviceIdentityV1,
   validateMembershipV1,
 } from '../dist/identity/v1.js';
@@ -163,5 +167,68 @@ test('[IAM-021] device activation and revocation are monotonic', () => {
         transitionDeviceIdentityV1(revoked.value, 'ACTIVATE', '2026-01-01T00:03:00.000Z').accepted,
         false,
       );
+  }
+});
+
+test('[IAM-007, IAM-021] enrollment challenges are bounded and single-use', () => {
+  const challenge = createDeviceEnrollmentChallengeV1({
+    challengeId: id('50'),
+    userId: id('1'),
+    organizationId: id('2'),
+    platform: 'ANDROID',
+    installationIdHash: 'a'.repeat(64),
+    challengeDigest: 'b'.repeat(64),
+    issuedAt: createdAt,
+    expiresAt: '2026-01-01T00:05:00.000Z',
+  });
+  assert.equal(challenge.accepted, true);
+  if (challenge.accepted) {
+    const used = consumeDeviceEnrollmentChallengeV1(
+      challenge.value,
+      '2026-01-01T00:01:00.000Z',
+    );
+    assert.equal(used.accepted, true);
+    if (used.accepted) assert.equal(used.value.status, 'USED');
+    assert.deepEqual(
+      consumeDeviceEnrollmentChallengeV1(used.accepted ? used.value : challenge.value, '2026-01-01T00:02:00.000Z'),
+      { accepted: false, code: 'INVALID_STATE' },
+    );
+  }
+});
+
+test('[IAM-007, IAM-021] device enrollment validates key policy and rotation advances the epoch', () => {
+  const device = createDeviceIdentityV1({
+    id: id('51'),
+    userId: id('1'),
+    organizationId: id('2'),
+    platform: 'WINDOWS',
+    publicKey: 'ed25519-public-key',
+    installationIdHash: 'c'.repeat(64),
+    enrolledAt: createdAt,
+  });
+  assert.equal(device.accepted, true);
+  if (device.accepted) {
+    const rotated = rotateDeviceIdentityKeyV1(
+      device.value,
+      'new-ed25519-public-key',
+      '2026-01-01T00:01:00.000Z',
+    );
+    assert.equal(rotated.accepted, true);
+    if (rotated.accepted) {
+      assert.equal(rotated.value.publicKey, 'new-ed25519-public-key');
+      assert.equal(rotated.value.securityEpoch, 2);
+      assert.equal(rotated.value.revision, 2);
+    }
+    assert.deepEqual(
+      createDeviceIdentityV1({
+        id: id('52'),
+        userId: id('1'),
+        organizationId: id('2'),
+        platform: 'WINDOWS',
+        publicKey: 'not allowed\nkey',
+        enrolledAt: createdAt,
+      }),
+      { accepted: false, code: 'INVALID_TEXT' },
+    );
   }
 });
