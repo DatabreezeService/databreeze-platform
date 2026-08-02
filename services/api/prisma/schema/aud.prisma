@@ -1,0 +1,53 @@
+/// AUD-owned append-only events and independently verifiable seals. Tenant ancestry is
+/// materialized for indexed scope checks; cross-module references remain opaque UUIDs.
+model AuditEventRecord {
+  id              String   @id @db.Uuid
+  schemaVersion   Int      @map("schema_version")
+  action          String   @db.VarChar(80)
+  scopeKey        String   @map("scope_key") @db.VarChar(200)
+  scopeType       String   @map("scope_type") @db.VarChar(24)
+  organizationId  String   @map("organization_id") @db.Uuid
+  workspaceId     String?  @map("workspace_id") @db.Uuid
+  projectId       String?  @map("project_id") @db.Uuid
+  actorType       String   @map("actor_type") @db.VarChar(24)
+  actorId         String   @map("actor_id") @db.Uuid
+  entityType      String   @map("entity_type") @db.VarChar(80)
+  entityId        String   @map("entity_id") @db.Uuid
+  entityRevision  Int      @map("entity_revision")
+  sequence        Int
+  occurredAt      DateTime @map("occurred_at") @db.Timestamptz(6)
+  correlationId   String   @map("correlation_id") @db.Uuid
+  idempotencyKey  String   @map("idempotency_key") @db.VarChar(200)
+  summary         Json
+  previousDigest  String?  @map("previous_digest") @db.VarChar(512)
+  digest          String   @db.VarChar(512)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([scopeKey, sequence], map: "audit_events_scope_sequence_key")
+  @@unique([scopeKey, idempotencyKey], map: "audit_events_scope_idempotency_key")
+  @@index([organizationId, workspaceId, projectId, sequence], map: "audit_events_scope_idx")
+  @@index([entityId], map: "audit_events_entity_idx")
+  @@map("audit_events")
+  @@schema("aud")
+}
+
+model AuditSealRecord {
+  id             String   @id @db.Uuid
+  schemaVersion  Int      @map("schema_version")
+  scopeKey       String   @map("scope_key") @db.VarChar(200)
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String?  @map("workspace_id") @db.Uuid
+  projectId      String?  @map("project_id") @db.Uuid
+  firstSequence  Int      @map("first_sequence")
+  lastSequence   Int      @map("last_sequence")
+  eventCount     Int      @map("event_count")
+  rootDigest     String   @map("root_digest") @db.VarChar(512)
+  sealedAt       DateTime @map("sealed_at") @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([scopeKey, firstSequence, lastSequence], map: "audit_seals_scope_range_key")
+  @@index([organizationId, workspaceId, projectId, lastSequence], map: "audit_seals_scope_idx")
+  @@map("audit_seals")
+  @@schema("aud")
+}
