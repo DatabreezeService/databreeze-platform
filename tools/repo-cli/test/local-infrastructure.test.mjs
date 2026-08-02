@@ -101,6 +101,7 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
   assert.match(script, /down', '--remove-orphans/u);
   assert.doesNotMatch(script, /down'[^\n]*--volumes/u);
   assert.doesNotMatch(script, /down\s+--volumes/u);
+  assert.doesNotMatch(script, /docker\s+(?:rm|volume\s+rm|system\s+prune)/iu);
 
   const invalidTimeout = spawnSync(process.execPath, [helpScript, 'check', '--wait-seconds=0'], {
     cwd: repositoryRoot,
