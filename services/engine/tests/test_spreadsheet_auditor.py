@@ -5,7 +5,11 @@ import zipfile
 
 import pytest
 
-from databreeze_engine.processors.spreadsheet_auditor import SpreadsheetAuditError, audit_workbook
+from databreeze_engine.processors import (
+    SpreadsheetAuditError,
+    audit_workbook,
+    build_spreadsheet_audit_manifest,
+)
 
 
 def _workbook(*, macro: bool = False, external_link: bool = False) -> bytes:
@@ -51,3 +55,43 @@ def test_audit_rejects_archive_traversal_and_cell_resource_exhaustion() -> None:
         audit_workbook(output.getvalue())
     with pytest.raises(SpreadsheetAuditError, match="RESOURCE_LIMIT"):
         audit_workbook(_workbook(), max_cells=1)
+
+
+def test_manifest_adds_opaque_identities_without_source_values() -> None:
+    result = audit_workbook(_workbook())
+    manifest = build_spreadsheet_audit_manifest(
+        result,
+        audit_id="55555555-5555-4555-8555-555555555555",
+        artifact_version_id="66666666-6666-4666-8666-666666666666",
+        tenant_scope={
+            "scopeType": "workspace",
+            "organizationId": "22222222-2222-4222-8222-222222222222",
+            "workspaceId": "33333333-3333-4333-8333-333333333333",
+        },
+        processor_version="spreadsheet-auditor-0.1.0",
+        created_at="2026-08-04T00:00:00.000Z",
+        sheet_ids={"Inventory": "77777777-7777-4777-8777-777777777777"},
+        finding_ids={("Inventory", "C1"): "88888888-8888-4888-8888-888888888888"},
+    )
+    encoded = manifest.model_dump_json()
+    assert "SUM(B1:D1)" not in encoded
+    assert "A1" not in encoded
+    assert manifest.findings[0].sheetId == "77777777-7777-4777-8777-777777777777"
+
+
+def test_manifest_requires_complete_server_identity_mappings() -> None:
+    with pytest.raises(ValueError, match="SHEET_ID_MAPPING_INCOMPLETE"):
+        build_spreadsheet_audit_manifest(
+            audit_workbook(_workbook()),
+            audit_id="55555555-5555-4555-8555-555555555555",
+            artifact_version_id="66666666-6666-4666-8666-666666666666",
+            tenant_scope={
+                "scopeType": "workspace",
+                "organizationId": "22222222-2222-4222-8222-222222222222",
+                "workspaceId": "33333333-3333-4333-8333-333333333333",
+            },
+            processor_version="spreadsheet-auditor-0.1.0",
+            created_at="2026-08-04T00:00:00.000Z",
+            sheet_ids={},
+            finding_ids={},
+        )
