@@ -84,6 +84,10 @@
       "types": "./src/artifact-upload/v1.ts",
       "import": "./dist/artifact-upload/v1.js"
     },
+    "./protected-document/v1": {
+      "types": "./src/protected-document/v1.ts",
+      "import": "./dist/protected-document/v1.js"
+    },
     "./dataset/v1": {
       "types": "./src/dataset/v1.ts",
       "import": "./dist/dataset/v1.js"
