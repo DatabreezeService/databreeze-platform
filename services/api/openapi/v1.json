@@ -1390,6 +1390,519 @@
         "summary": "List immutable business-party versions",
         "tags": ["reference-entities"]
       }
+    },
+    "/v1/devices/sync/operations": {
+      "post": {
+        "operationId": "DeviceSyncController.enqueue",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateDeviceSyncOperationDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Enqueue an opaque, tenant-scoped synchronization operation",
+        "tags": ["devices"]
+      },
+      "get": {
+        "operationId": "DeviceSyncController.list",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "List synchronization operation status without source content",
+        "tags": ["devices"]
+      }
+    },
+    "/v1/devices/sync/operations/{operationId}/transition": {
+      "post": {
+        "operationId": "DeviceSyncController.transition",
+        "parameters": [
+          { "name": "operationId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TransitionDeviceSyncOperationDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Advance one synchronization operation with an expected revision",
+        "tags": ["devices"]
+      }
+    },
+    "/v1/devices/sync/conflicts": {
+      "post": {
+        "operationId": "DeviceSyncController.createConflict",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateDeviceSyncConflictDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Record a conflict and stop the affected operation",
+        "tags": ["devices"]
+      },
+      "get": {
+        "operationId": "DeviceSyncController.listConflicts",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "List explicit synchronization conflicts",
+        "tags": ["devices"]
+      }
+    },
+    "/v1/devices/sync/packages": {
+      "post": {
+        "operationId": "DeviceSyncController.issuePackage",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateStrictLocalPackageDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Issue a digest-only strict-Local package manifest",
+        "tags": ["devices"]
+      }
+    },
+    "/v1/devices/sync/packages/receipts": {
+      "post": {
+        "operationId": "DeviceSyncController.receipt",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateDeviceTransferReceiptDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Record a content-safe strict-Local transfer receipt",
+        "tags": ["devices"]
+      }
     }
   },
   "info": {
@@ -1603,6 +2116,145 @@
           "reason",
           "evidenceId",
           "resolvedAt"
+        ]
+      },
+      "CreateDeviceSyncOperationDto": {
+        "type": "object",
+        "properties": {
+          "operationId": { "type": "string", "format": "uuid" },
+          "deviceId": { "type": "string", "format": "uuid" },
+          "tenantScope": { "type": "object", "additionalProperties": true },
+          "entityType": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "entityId": { "type": "string", "format": "uuid" },
+          "kind": { "type": "string", "enum": ["UPSERT", "DELETE", "ACKNOWLEDGE"] },
+          "payloadClass": {
+            "type": "string",
+            "enum": [
+              "CONTROL_METADATA",
+              "APPROVED_DERIVED_RESULT",
+              "RECONSTRUCTABLE_DERIVED_CONTENT"
+            ]
+          },
+          "payloadDigest": { "type": "string", "minLength": 64, "maxLength": 128 },
+          "encryptedPayload": { "type": "string", "maxLength": 16384 },
+          "dependencyIds": { "maxItems": 64, "type": "array", "items": { "type": "string" } },
+          "baseRevision": { "type": "number", "minimum": 1, "maximum": 9007199254740991 },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "policyVersionId": { "type": "string", "format": "uuid" },
+          "classification": {
+            "type": "string",
+            "enum": ["PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED"]
+          }
+        },
+        "required": [
+          "operationId",
+          "deviceId",
+          "tenantScope",
+          "entityType",
+          "entityId",
+          "kind",
+          "payloadClass",
+          "payloadDigest",
+          "createdAt"
+        ]
+      },
+      "TransitionDeviceSyncOperationDto": {
+        "type": "object",
+        "properties": {
+          "transition": {
+            "type": "string",
+            "enum": ["ACCEPT", "APPLY", "CONFLICT", "QUARANTINE", "REJECT"]
+          },
+          "at": { "type": "string", "format": "date-time" }
+        },
+        "required": ["transition", "at"]
+      },
+      "CreateDeviceSyncConflictDto": {
+        "type": "object",
+        "properties": {
+          "conflictId": { "type": "string", "format": "uuid" },
+          "operationId": { "type": "string", "format": "uuid" },
+          "deviceId": { "type": "string", "format": "uuid" },
+          "tenantScope": { "type": "object", "additionalProperties": true },
+          "entityType": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "entityId": { "type": "string", "format": "uuid" },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "REVISION_MISMATCH",
+              "POLICY_CHANGED",
+              "DUPLICATE_EFFECT",
+              "REVOKED_DEVICE",
+              "DEPENDENCY_UNAVAILABLE",
+              "PAYLOAD_NOT_ALLOWED"
+            ]
+          },
+          "expectedRevision": { "type": "number", "minimum": 1 },
+          "actualRevision": { "type": "number", "minimum": 1 },
+          "detectedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": [
+          "conflictId",
+          "operationId",
+          "deviceId",
+          "tenantScope",
+          "entityType",
+          "entityId",
+          "reason",
+          "detectedAt"
+        ]
+      },
+      "CreateStrictLocalPackageDto": {
+        "type": "object",
+        "properties": {
+          "packageId": { "type": "string", "format": "uuid" },
+          "deviceId": { "type": "string", "format": "uuid" },
+          "tenantScope": { "type": "object", "additionalProperties": true },
+          "purpose": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "destinationClass": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "itemDigests": {
+            "minItems": 1,
+            "maxItems": 64,
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "packageDigest": { "type": "string", "minLength": 64, "maxLength": 128 },
+          "issuedAt": { "type": "string", "format": "date-time" },
+          "expiresAt": { "type": "string", "format": "date-time" }
+        },
+        "required": [
+          "packageId",
+          "deviceId",
+          "tenantScope",
+          "purpose",
+          "destinationClass",
+          "itemDigests",
+          "packageDigest",
+          "issuedAt",
+          "expiresAt"
+        ]
+      },
+      "CreateDeviceTransferReceiptDto": {
+        "type": "object",
+        "properties": {
+          "receiptId": { "type": "string", "format": "uuid" },
+          "packageId": { "type": "string", "format": "uuid" },
+          "deviceId": { "type": "string", "format": "uuid" },
+          "destinationClass": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "packageDigest": { "type": "string", "minLength": 64, "maxLength": 128 },
+          "receivedAt": { "type": "string", "format": "date-time" },
+          "manifestVerified": { "type": "boolean" },
+          "status": { "type": "string", "enum": ["ACCEPTED", "REJECTED", "QUARANTINED"] }
+        },
+        "required": [
+          "receiptId",
+          "packageId",
+          "deviceId",
+          "destinationClass",
+          "packageDigest",
+          "receivedAt",
+          "manifestVerified",
+          "status"
         ]
       },
       "Identifier": {
