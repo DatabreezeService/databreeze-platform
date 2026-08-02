@@ -176,8 +176,7 @@ export function resolveFindingV1(
   if (!resolvedAt || Date.parse(resolvedAt) < Date.parse(finding.createdAt))
     return rejected('INVALID_TIMESTAMP');
   if (!resolutionNote) return rejected('INVALID_TEXT');
-  const workflowState =
-    dispositionInput === 'FIXED' ? 'RESOLVED' : (dispositionInput as 'DISMISSED' | 'SUPPRESSED');
+  const workflowState = dispositionInput === 'FIXED' ? 'RESOLVED' : dispositionInput;
   return Object.freeze({
     accepted: true,
     value: Object.freeze({
