@@ -3886,9 +3886,10 @@
           "userId": { "type": "string", "format": "uuid" },
           "organizationId": { "type": "string", "format": "uuid" },
           "workspaceId": { "type": "string", "format": "uuid" },
-          "authorizationEpoch": { "type": "number", "minimum": 1 }
+          "authorizationEpoch": { "type": "number", "minimum": 1 },
+          "mfaRequired": { "type": "boolean" }
         },
-        "required": ["userId", "organizationId", "authorizationEpoch"]
+        "required": ["userId", "organizationId", "authorizationEpoch", "mfaRequired"]
       },
       "SignInDto": {
         "type": "object",

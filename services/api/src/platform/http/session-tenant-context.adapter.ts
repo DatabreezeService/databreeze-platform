@@ -95,6 +95,7 @@ export class SessionRequestTenantContextAdapter implements RequestTenantContextP
       correlationId: correlationId(input),
       idempotencyKey: idempotencyKey(input),
       authorizationEpoch: principal.securityEpoch,
+      mfaRequired: principal.mfaRequired,
     });
     if (!context.accepted) throw new RequestTenantContextProblemError('CONTEXT_INVALID');
     return context.value;

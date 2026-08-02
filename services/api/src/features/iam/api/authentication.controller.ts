@@ -62,6 +62,7 @@ export class AuthenticationController {
         ? {}
         : { workspaceId: context.tenantScope.workspaceId }),
       authorizationEpoch: context.authorizationEpoch,
+      mfaRequired: context.mfaRequired ?? false,
     };
   }
 

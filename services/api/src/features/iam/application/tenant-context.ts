@@ -11,6 +11,7 @@ export interface IamTenantContextV1 {
   readonly correlationId: StableIdentifierV1;
   readonly idempotencyKey: string;
   readonly authorizationEpoch: number;
+  readonly mfaRequired?: boolean;
   readonly expectedRevision?: number;
 }
 
@@ -35,6 +36,7 @@ export function createIamTenantContextV1(input: {
   readonly correlationId: unknown;
   readonly idempotencyKey: unknown;
   readonly authorizationEpoch: unknown;
+  readonly mfaRequired?: unknown;
   readonly expectedRevision?: unknown;
 }): IamContextResultV1<IamTenantContextV1> {
   const tenantScope = parseTenantScopeV1(input.tenantScope);
@@ -55,6 +57,8 @@ export function createIamTenantContextV1(input: {
     input.authorizationEpoch < 1
   )
     return rejected('INVALID_EPOCH');
+  if (input.mfaRequired !== undefined && typeof input.mfaRequired !== 'boolean')
+    return rejected('INVALID_TEXT');
   if (
     input.expectedRevision !== undefined &&
     (typeof input.expectedRevision !== 'number' ||
@@ -70,6 +74,7 @@ export function createIamTenantContextV1(input: {
       correlationId: correlationId.value,
       idempotencyKey: input.idempotencyKey,
       authorizationEpoch: input.authorizationEpoch,
+      ...(input.mfaRequired === undefined ? {} : { mfaRequired: input.mfaRequired }),
       ...(input.expectedRevision === undefined ? {} : { expectedRevision: input.expectedRevision }),
     }),
   });

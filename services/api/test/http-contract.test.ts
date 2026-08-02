@@ -523,6 +523,7 @@ void test('protected artifact reads derive tenant scope from an authenticated ac
         organizationId: principal.organizationId,
         workspaceId: principal.workspaceId,
         authorizationEpoch: principal.securityEpoch,
+        mfaRequired: principal.mfaRequired,
       });
 
       const auditEvents = await app.inject({

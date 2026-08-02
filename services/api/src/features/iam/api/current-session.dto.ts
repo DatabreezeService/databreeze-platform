@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsUUID } from 'class-validator';
+import { IsBoolean, IsOptional, IsUUID } from 'class-validator';
 
 /** IAM-009: the redacted identity projection used to hydrate an authenticated client. */
 export class CurrentSessionDto {
@@ -19,4 +19,7 @@ export class CurrentSessionDto {
   @ApiProperty({ minimum: 1 })
   authorizationEpoch!: number;
 
+  @ApiProperty()
+  @IsBoolean()
+  mfaRequired!: boolean;
 }

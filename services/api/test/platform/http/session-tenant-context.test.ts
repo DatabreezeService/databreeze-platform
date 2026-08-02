@@ -45,6 +45,7 @@ test('derives a workspace tenant context from a bearer session and never accepts
     correlationId,
     idempotencyKey: 'mutation-001',
     authorizationEpoch: principal.securityEpoch,
+    mfaRequired: principal.mfaRequired,
   });
 });
 
