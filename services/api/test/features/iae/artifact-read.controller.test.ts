@@ -144,3 +144,53 @@ void test('[IAE-008, IAM-009] artifact reads do not enumerate a sibling workspac
   const result = await service.find(sibling.value, parsedVersionId.value);
   assert.equal(result.version, undefined);
 });
+
+void test('[IAE-006, IAE-019] unavailable or deleted evidence never resolves to an open handle', async () => {
+  const repository = new InMemoryArtifactRepositoryAdapter();
+  const tenantContext = context();
+  const service = new ArtifactService(repository);
+  const registered = await service.register(tenantContext, {
+    version: {
+      artifactId,
+      versionId,
+      tenantScope: tenantContext.tenantScope,
+      sourceKind: 'FILE',
+      dataMode: 'Cloud',
+      contentSha256: 'c'.repeat(64),
+      byteSize: 10,
+      mediaType: 'text/csv',
+      displayName: 'unavailable.csv',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    },
+    placement: {
+      placementId,
+      tenantScope: tenantContext.tenantScope,
+      kind: 'CLOUD',
+      opaqueReference: 'cloud-placement-000001',
+      contentSha256: 'c'.repeat(64),
+    },
+    evidence: {
+      evidenceId,
+      tenantScope: tenantContext.tenantScope,
+      coordinate: { kind: 'ROW', row: 1, field: 'amount' },
+      sourceState: 'SOURCE_OFFLINE',
+    },
+  });
+  assert.equal(registered.accepted, true);
+  if (!registered.accepted) return;
+  const registeredEvidence = registered.value.evidence;
+  if (!registeredEvidence) return;
+
+  const resolved = await service.resolveEvidence(
+    tenantContext,
+    registered.value.version.versionId,
+    registeredEvidence.evidenceId,
+  );
+  assert.deepEqual(
+    resolved && { action: resolved.action, placementReference: resolved.placementReference },
+    {
+      action: 'UNAVAILABLE',
+      placementReference: undefined,
+    },
+  );
+});

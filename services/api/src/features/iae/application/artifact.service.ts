@@ -94,6 +94,8 @@ export class ArtifactService {
       if (!evidence) return undefined;
       const version = await transaction.findVersion(context, versionId);
       if (!version) return undefined;
+      if (version.status === 'DELETED' || evidence.sourceState !== 'AVAILABLE')
+        return Object.freeze({ evidence, version, action: 'UNAVAILABLE' as const });
       const placements = await transaction.listPlacements(context, version.versionId);
       const cloud = placements.find(
         (placement) => placement.kind === 'CLOUD' && placement.available,
@@ -107,12 +109,14 @@ export class ArtifactService {
         });
       const local = placements.find((placement) => placement.kind === 'LOCAL');
       if (local)
-        return Object.freeze({
-          evidence,
-          version,
-          action: local.available ? ('OPEN_ON_SOURCE_DEVICE' as const) : ('UNAVAILABLE' as const),
-          placementReference: local.opaqueReference,
-        });
+        return local.available
+          ? Object.freeze({
+              evidence,
+              version,
+              action: 'OPEN_ON_SOURCE_DEVICE' as const,
+              placementReference: local.opaqueReference,
+            })
+          : Object.freeze({ evidence, version, action: 'UNAVAILABLE' as const });
       return Object.freeze({ evidence, version, action: 'UNAVAILABLE' as const });
     });
   }
