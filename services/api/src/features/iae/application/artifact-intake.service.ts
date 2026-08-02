@@ -2,6 +2,7 @@ import {
   createInboxItemV1,
   finalizeArtifactAdmissionV1,
   transitionInboxItemV1,
+  updateInboxMetadataV1,
   type ArtifactIntakeResultV1,
   type ArtifactScanStateV1,
   type InboxItemV1,
@@ -78,5 +79,23 @@ export class ArtifactIntakeService {
 
   public async list(context: IamTenantContextV1): Promise<readonly InboxItemV1[]> {
     return this.repository.withTransaction(context, (transaction) => transaction.list(context));
+  }
+
+  public async updateMetadata(
+    context: IamTenantContextV1,
+    inboxItemId: InboxItemV1['inboxItemId'],
+    input: Omit<Parameters<typeof updateInboxMetadataV1>[1], 'expectedRevision'>,
+  ): Promise<ArtifactIntakeServiceResultV1<InboxItemV1>> {
+    return this.repository.withTransaction(context, async (transaction) => {
+      const item = await transaction.find(context, inboxItemId);
+      if (!item) return Object.freeze({ accepted: false, code: 'INBOX_NOT_FOUND' as const });
+      const updated = updateInboxMetadataV1(item, {
+        ...input,
+        expectedRevision: context.expectedRevision ?? item.revision,
+      });
+      if (!updated.accepted) return updated;
+      await transaction.save(context, updated.value);
+      return updated;
+    });
   }
 }
