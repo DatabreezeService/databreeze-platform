@@ -439,6 +439,25 @@ void test('refresh rotates Web cookies without returning the refresh token and p
       assert.doesNotMatch(response.body, /REUSE_DETECTED/);
     },
   );
+
+  await withApp(
+    {
+      sessions: {
+        issue: () => Promise.reject(new Error('not used')),
+        refresh: () => Promise.reject(new Error('database unavailable')),
+        revoke: () => Promise.resolve(true),
+        findPrincipal: () => Promise.resolve(undefined),
+      },
+    },
+    async (app) => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/refresh',
+        payload: { clientPlatform: 'desktop', refreshToken: 'database-refresh-token' },
+      });
+      assertProblem(response, 503, 'SESSION_UNAVAILABLE');
+    },
+  );
 });
 
 void test('sign-out revokes idempotently and clears browser credentials', async () => {
@@ -493,6 +512,28 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
         '00000000-0000-4000-8000-000000000010',
         '00000000-0000-4000-8000-000000000011',
       ]);
+    },
+  );
+
+  await withApp(
+    {
+      sessions: {
+        issue: () => Promise.reject(new Error('not used')),
+        refresh: () => Promise.reject(new Error('not used')),
+        revoke: () => Promise.reject(new Error('database unavailable')),
+        findPrincipal: () => Promise.resolve(undefined),
+      },
+    },
+    async (app) => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/sign-out',
+        payload: {
+          clientPlatform: 'android',
+          sessionId: '00000000-0000-4000-8000-000000000011',
+        },
+      });
+      assertProblem(response, 503, 'SESSION_UNAVAILABLE');
     },
   );
 });
