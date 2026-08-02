@@ -20,6 +20,11 @@ import {
   type DeviceSyncUseCaseV1,
 } from './application/device-sync.use-case.js';
 import {
+  DEVICE_SYNC_CURSOR_SIGNER,
+  UnavailableDeviceSyncCursorSigner,
+} from './application/device-sync-cursor-signer.port.js';
+import type { DeviceSyncCursorSignerV1 } from '@databreeze/domain/device-sync/v1';
+import {
   DATA_MODE_POLICY_REPOSITORY_PORT,
   type DataModePolicyRepositoryPortV1,
 } from './application/data-mode-policy-repository.port.js';
@@ -35,6 +40,7 @@ export interface DsoModuleOptions {
   readonly deviceSyncDatabase?: DeviceSyncDatabaseClientV1;
   readonly dataModePolicyRepository?: DataModePolicyRepositoryPortV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
+  readonly deviceSyncCursorSigner?: DeviceSyncCursorSignerV1;
 }
 
 function useCase(
@@ -62,6 +68,10 @@ export class DsoModule {
               : new PrismaDeviceSyncRepositoryAdapter(options.deviceSyncDatabase)),
         },
         { provide: DATA_MODE_POLICY_REPOSITORY_PORT, useValue: policyRepository },
+        {
+          provide: DEVICE_SYNC_CURSOR_SIGNER,
+          useValue: options.deviceSyncCursorSigner ?? new UnavailableDeviceSyncCursorSigner(),
+        },
         {
           provide: DEVICE_SYNC_USE_CASE,
           useFactory: (repository: DeviceSyncRepositoryPortV1): DeviceSyncUseCaseV1 =>

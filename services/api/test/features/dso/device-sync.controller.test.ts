@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { createDeviceSyncCursorV1 } from '@databreeze/domain/device-sync/v1';
+
 import { createApiApplication } from '../../../src/bootstrap.js';
 import { InMemoryDeviceSyncRepositoryAdapter } from '../../../src/features/dso/adapter/in-memory-device-sync-repository.adapter.js';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
@@ -11,6 +13,10 @@ const workspaceId = '00000000-0000-4000-8000-000000000102';
 const deviceId = '00000000-0000-4000-8000-000000000103';
 const operationId = '00000000-0000-4000-8000-000000000104';
 const entityId = '00000000-0000-4000-8000-000000000105';
+const signer = {
+  sign: (payload: string) => `sig:${payload}`,
+  verify: (payload: string, signature: string) => signature === `sig:${payload}`,
+};
 
 function context() {
   const result = createIamTenantContextV1({
@@ -34,6 +40,7 @@ void test('[DSO-011, DSO-014] HTTP sync endpoints return opaque scoped operation
   const { app } = await createApiApplication({
     deviceSyncRepository: repository,
     requestTenantContext,
+    deviceSyncCursorSigner: signer,
   });
   try {
     const response = await app.inject({
@@ -58,6 +65,37 @@ void test('[DSO-011, DSO-014] HTTP sync endpoints return opaque scoped operation
     const listed = await app.inject({ method: 'GET', url: '/v1/devices/sync/operations' });
     assert.equal(listed.statusCode, 200);
     assert.equal(listed.json().length, 1);
+
+    const cursor = createDeviceSyncCursorV1(
+      {
+        cursorId: '00000000-0000-4000-8000-000000000108',
+        deviceId,
+        tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+        authorizationEpoch: 1,
+        changeRevision: 0,
+        dataMode: 'Hybrid',
+        protocolVersion: 'sync-v1',
+        issuedAt: '2026-01-01T00:00:00.000Z',
+        expiresAt: '2026-01-01T01:00:00.000Z',
+      },
+      signer,
+    );
+    assert.equal(cursor.accepted, true);
+    if (!cursor.accepted) return;
+    const pulled = await app.inject({
+      method: 'POST',
+      url: '/v1/devices/sync/pull',
+      payload: {
+        deviceId,
+        cursor: cursor.value,
+        now: '2026-01-01T00:00:01.000Z',
+        minimumRevision: 0,
+        nextCursorId: '00000000-0000-4000-8000-000000000109',
+      },
+    });
+    assert.equal(pulled.statusCode, 200);
+    assert.equal(pulled.json().accepted, true);
+    assert.equal(pulled.json().value.changes.length, 1);
   } finally {
     await app.close();
   }
@@ -67,6 +105,7 @@ void test('[DSO-014] HTTP sync validation rejects unknown or unsafe fields', asy
   const { app } = await createApiApplication({
     deviceSyncRepository: new InMemoryDeviceSyncRepositoryAdapter(),
     requestTenantContext: { resolve: () => Promise.resolve(context()) },
+    deviceSyncCursorSigner: signer,
   });
   try {
     const response = await app.inject({

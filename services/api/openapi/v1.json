@@ -1533,6 +1533,154 @@
         "tags": ["devices"]
       }
     },
+    "/v1/devices/sync/pull": {
+      "post": {
+        "operationId": "DeviceSyncController.pull",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/PullDeviceSyncDto" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Pull an opaque, signed, cursor-bound synchronization batch",
+        "tags": ["devices"]
+      }
+    },
+    "/v1/devices/sync/push": {
+      "post": {
+        "operationId": "DeviceSyncController.push",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/PushDeviceSyncDto" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Push a signed, dependency-ordered synchronization batch",
+        "tags": ["devices"]
+      }
+    },
     "/v1/devices/sync/operations/{operationId}/transition": {
       "post": {
         "operationId": "DeviceSyncController.transition",
@@ -2157,6 +2305,31 @@
           "payloadDigest",
           "createdAt"
         ]
+      },
+      "PullDeviceSyncDto": {
+        "type": "object",
+        "properties": {
+          "deviceId": { "type": "string", "format": "uuid" },
+          "cursor": { "type": "object", "additionalProperties": true },
+          "now": { "type": "string", "format": "date-time" },
+          "minimumRevision": { "type": "number", "minimum": 0 },
+          "nextCursorId": { "type": "string", "format": "uuid" },
+          "pageSize": { "type": "number", "minimum": 1, "maximum": 256 },
+          "policyVersionId": { "type": "string", "format": "uuid" },
+          "policyDigest": { "type": "string", "maxLength": 128 },
+          "dataMode": { "type": "string", "enum": ["Local", "Hybrid", "Cloud"] },
+          "protocolVersion": { "type": "string", "maxLength": 32 }
+        },
+        "required": ["deviceId", "cursor", "now", "minimumRevision"]
+      },
+      "PushDeviceSyncDto": {
+        "type": "object",
+        "properties": {
+          "batch": { "type": "object", "additionalProperties": true },
+          "now": { "type": "string", "format": "date-time" },
+          "minimumRevision": { "type": "number", "minimum": 0 }
+        },
+        "required": ["batch", "now", "minimumRevision"]
       },
       "TransitionDeviceSyncOperationDto": {
         "type": "object",

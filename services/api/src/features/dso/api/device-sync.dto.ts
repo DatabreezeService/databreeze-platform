@@ -249,3 +249,71 @@ export class CreateDeviceTransferReceiptDto {
   @IsIn(['ACCEPTED', 'REJECTED', 'QUARANTINED'])
   status!: 'ACCEPTED' | 'REJECTED' | 'QUARANTINED';
 }
+
+export class PullDeviceSyncDto {
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
+  deviceId!: string;
+
+  @ApiProperty({ additionalProperties: true })
+  @IsObject()
+  cursor!: Record<string, unknown>;
+
+  @ApiProperty({ format: 'date-time' })
+  @IsISO8601()
+  now!: string;
+
+  @ApiProperty({ minimum: 0 })
+  @IsInt()
+  @Min(0)
+  minimumRevision!: number;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  nextCursorId?: string;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 256 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(256)
+  pageSize?: number;
+
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  policyVersionId?: string;
+
+  @ApiPropertyOptional({ maxLength: 128 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  policyDigest?: string;
+
+  @ApiPropertyOptional({ enum: ['Local', 'Hybrid', 'Cloud'] })
+  @IsOptional()
+  @IsIn(['Local', 'Hybrid', 'Cloud'])
+  dataMode?: 'Local' | 'Hybrid' | 'Cloud';
+
+  @ApiPropertyOptional({ maxLength: 32 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  protocolVersion?: string;
+}
+
+export class PushDeviceSyncDto {
+  @ApiProperty({ additionalProperties: true })
+  @IsObject()
+  batch!: Record<string, unknown>;
+
+  @ApiProperty({ format: 'date-time' })
+  @IsISO8601()
+  now!: string;
+
+  @ApiProperty({ minimum: 0 })
+  @IsInt()
+  @Min(0)
+  minimumRevision!: number;
+}

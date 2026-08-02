@@ -16,6 +16,11 @@ import {
   type DeviceSyncUseCaseV1,
 } from '../application/device-sync.use-case.js';
 import {
+  DEVICE_SYNC_CURSOR_SIGNER,
+  type UnavailableDeviceSyncCursorSigner,
+} from '../application/device-sync-cursor-signer.port.js';
+import type { DeviceSyncCursorSignerV1 } from '@databreeze/domain/device-sync/v1';
+import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
 } from '../../../platform/http/request-tenant-context.port.js';
@@ -24,6 +29,8 @@ import {
   CreateDeviceSyncOperationDto,
   CreateDeviceTransferReceiptDto,
   CreateStrictLocalPackageDto,
+  PullDeviceSyncDto,
+  PushDeviceSyncDto,
   TransitionDeviceSyncOperationDto,
 } from './device-sync.dto.js';
 
@@ -33,6 +40,8 @@ import {
 export class DeviceSyncController {
   public constructor(
     @Inject(DEVICE_SYNC_USE_CASE) private readonly sync: DeviceSyncUseCaseV1,
+    @Inject(DEVICE_SYNC_CURSOR_SIGNER)
+    private readonly cursorSigner: DeviceSyncCursorSignerV1 | UnavailableDeviceSyncCursorSigner,
     @Inject(REQUEST_TENANT_CONTEXT) private readonly requestContext: RequestTenantContextPortV1,
   ) {}
 
@@ -53,6 +62,24 @@ export class DeviceSyncController {
   async list(@Req() request: unknown): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
     return this.sync.list(context);
+  }
+
+  @Post('sync/pull')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Pull an opaque, signed, cursor-bound synchronization batch' })
+  @ApiBody({ type: PullDeviceSyncDto })
+  async pull(@Req() request: unknown, @Body() input: PullDeviceSyncDto): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    return this.sync.pull(context, { ...input, signer: this.cursorSigner });
+  }
+
+  @Post('sync/push')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Push a signed, dependency-ordered synchronization batch' })
+  @ApiBody({ type: PushDeviceSyncDto })
+  async push(@Req() request: unknown, @Body() input: PushDeviceSyncDto): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    return this.sync.push(context, { ...input, signer: this.cursorSigner });
   }
 
   @Post('sync/operations/:operationId/transition')

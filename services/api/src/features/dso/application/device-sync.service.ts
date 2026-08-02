@@ -220,7 +220,7 @@ export class DeviceSyncService {
     context: IamTenantContextV1,
     input: {
       readonly deviceId: unknown;
-      readonly cursor: DeviceSyncCursorV1;
+      readonly cursor: unknown;
       readonly now: unknown;
       readonly minimumRevision: unknown;
       readonly signer: DeviceSyncCursorSignerV1;
@@ -232,13 +232,15 @@ export class DeviceSyncService {
       readonly protocolVersion?: unknown;
     },
   ): Promise<DeviceSyncServiceResultV1<DeviceSyncBatchV1>> {
-    const verification = cursorForVerification(context, input.cursor, input, input.signer);
+    if (!input.cursor || typeof input.cursor !== 'object') return rejected('INVALID_CURSOR');
+    const cursor = input.cursor as DeviceSyncCursorV1;
+    const verification = cursorForVerification(context, cursor, input, input.signer);
     if (!verification.accepted) return verification;
     const limit = pageSize(input.pageSize);
     if (!limit) return rejected('INVALID_BATCH');
     const records = await this.repository.listOperationChanges(
       context,
-      input.cursor.changeRevision,
+      cursor.changeRevision,
       limit,
     );
     const changes: DeviceSyncChangeV1[] = [];
@@ -254,29 +256,29 @@ export class DeviceSyncService {
         ? undefined
         : createDeviceSyncCursorV1(
             {
-              cursorId: input.nextCursorId ?? input.cursor.cursorId,
+              cursorId: input.nextCursorId ?? cursor.cursorId,
               deviceId: input.deviceId,
-              tenantScope: input.cursor.tenantScope,
-              authorizationEpoch: input.cursor.authorizationEpoch,
+              tenantScope: cursor.tenantScope,
+              authorizationEpoch: cursor.authorizationEpoch,
               changeRevision: lastSequence,
-              ...(input.cursor.policyVersionId === undefined
+              ...(cursor.policyVersionId === undefined
                 ? {}
-                : { policyVersionId: input.cursor.policyVersionId }),
-              ...(input.cursor.policyDigest === undefined
+                : { policyVersionId: cursor.policyVersionId }),
+              ...(cursor.policyDigest === undefined
                 ? {}
-                : { policyDigest: input.cursor.policyDigest }),
-              dataMode: input.cursor.dataMode,
-              protocolVersion: input.cursor.protocolVersion,
+                : { policyDigest: cursor.policyDigest }),
+              dataMode: cursor.dataMode,
+              protocolVersion: cursor.protocolVersion,
               issuedAt: input.now,
-              expiresAt: input.cursor.expiresAt,
+              expiresAt: cursor.expiresAt,
             },
             input.signer,
           );
     if (nextCursor !== undefined && !nextCursor.accepted) return nextCursor;
     return createDeviceSyncBatchV1({
       deviceId: input.deviceId,
-      tenantScope: input.cursor.tenantScope,
-      cursor: input.cursor,
+      tenantScope: cursor.tenantScope,
+      cursor,
       ...(nextCursor === undefined ? {} : { nextCursor: nextCursor.value }),
       changes,
     });
