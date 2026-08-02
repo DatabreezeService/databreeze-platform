@@ -14,9 +14,12 @@ import com.databreeze.android.sync.SyncScheduler
 import com.databreeze.android.sync.SyncTransport
 import com.databreeze.android.sync.UnconfiguredSyncTransport
 import com.databreeze.android.sync.WorkManagerSyncScheduler
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.ConcurrentHashMap
 
 /** Application-owned adapters. Feature packages receive ports, never Context or raw clients. */
-class AndroidRuntime private constructor(
+class AndroidRuntime internal constructor(
     val localStore: LocalStorePort,
     val deviceKeyStore: DeviceKeyStore,
     val syncTransport: SyncTransport,
@@ -24,23 +27,30 @@ class AndroidRuntime private constructor(
     val syncRevocationGuard: SyncRevocationGuard,
     val workerFactory: DataBreezeWorkerFactory,
 ) {
+    private val lifecycleMutexes = ConcurrentHashMap<String, Mutex>()
+
     /**
      * Re-enables a scope only after authentication has succeeded and its device key is ready.
      * The explicit call prevents a process restart from silently undoing sign-out revocation.
      */
-    suspend fun signIn(scope: AccountWorkspaceScope, keyAlias: String): DeviceKeyHandle {
-        val handle = deviceKeyStore.getOrCreate(keyAlias)
-        syncRevocationGuard.reactivate(scope)
-        return handle
-    }
+    suspend fun signIn(scope: AccountWorkspaceScope, keyAlias: String): DeviceKeyHandle =
+        lifecycleMutex(scope).withLock {
+            val handle = deviceKeyStore.getOrCreate(keyAlias)
+            syncRevocationGuard.reactivate(scope)
+            handle
+        }
 
     /** Revocation/account switch clears local work and the device-bound key before returning. */
-    suspend fun signOut(scope: AccountWorkspaceScope, keyAlias: String) {
-        syncRevocationGuard.revoke(scope)
-        syncScheduler.cancel(scope)
-        localStore.clear(scope)
-        deviceKeyStore.delete(keyAlias)
-    }
+    suspend fun signOut(scope: AccountWorkspaceScope, keyAlias: String) =
+        lifecycleMutex(scope).withLock {
+            syncRevocationGuard.revoke(scope)
+            syncScheduler.cancel(scope)
+            localStore.clear(scope)
+            deviceKeyStore.delete(keyAlias)
+        }
+
+    private fun lifecycleMutex(scope: AccountWorkspaceScope): Mutex =
+        lifecycleMutexes.computeIfAbsent(scope.stableKey) { Mutex() }
 
     companion object {
         fun create(context: Context): AndroidRuntime {
