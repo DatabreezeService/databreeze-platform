@@ -106,6 +106,8 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802200000_dso_data_mode_policies',
     '20260802210000_iam_mfa_recovery',
     '20260802220000_iam_access_tokens',
+    '20260802230000_iae_retention_exports',
+    '20260802240000_iae_upload_sessions',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
