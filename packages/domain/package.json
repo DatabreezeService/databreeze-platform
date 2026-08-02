@@ -95,6 +95,14 @@
     "./reference-entity/v1": {
       "types": "./src/reference-entity/v1.ts",
       "import": "./dist/reference-entity/v1.js"
+    },
+    "./mapping/v1": {
+      "types": "./src/mapping/v1.ts",
+      "import": "./dist/mapping/v1.js"
+    },
+    "./rule-set/v1": {
+      "types": "./src/rule-set/v1.ts",
+      "import": "./dist/rule-set/v1.js"
     }
   },
   "scripts": {

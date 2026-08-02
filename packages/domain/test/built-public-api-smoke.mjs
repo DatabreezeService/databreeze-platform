@@ -19,6 +19,8 @@ const [
   recipe,
   finding,
   referenceEntity,
+  mapping,
+  ruleSet,
 ] = await Promise.all([
   import('@databreeze/domain/v1'),
   import('@databreeze/domain/permissions/v1'),
@@ -38,6 +40,8 @@ const [
   import('@databreeze/domain/recipe/v1'),
   import('@databreeze/domain/finding/v1'),
   import('@databreeze/domain/reference-entity/v1'),
+  import('@databreeze/domain/mapping/v1'),
+  import('@databreeze/domain/rule-set/v1'),
 ]);
 
 assert.equal(aggregate.PERMISSION_SCHEMA_VERSION_V1, 1);
@@ -59,4 +63,6 @@ assert.equal(dispatch.DISPATCH_SCHEMA_VERSION_V1, 1);
 assert.equal(recipe.RECIPE_SCHEMA_VERSION_V1, 1);
   assert.equal(finding.FINDING_SCHEMA_VERSION_V1, 1);
   assert.equal(referenceEntity.REFERENCE_ENTITY_SCHEMA_VERSION_V1, 1);
+  assert.equal(mapping.MAPPING_SCHEMA_VERSION_V1, 1);
+  assert.equal(ruleSet.RULE_SET_SCHEMA_VERSION_V1, 1);
 await assert.rejects(import('@databreeze/domain'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
