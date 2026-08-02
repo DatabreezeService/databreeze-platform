@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 
-import { Body, Controller, HttpCode, Inject, Optional, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Optional, Post, Req, Res } from '@nestjs/common';
 import {
   ApiBody,
   ApiOkResponse,
@@ -29,6 +29,11 @@ import { SignInDto } from './sign-in.dto.js';
 import { SessionRefreshDto } from './session-refresh.dto.js';
 import { SessionRefreshResponseDto } from './session-refresh-response.dto.js';
 import { SessionSignOutDto } from './session-sign-out.dto.js';
+import { CurrentSessionDto } from './current-session.dto.js';
+import {
+  REQUEST_TENANT_CONTEXT,
+  type RequestTenantContextPortV1,
+} from '../../../platform/http/request-tenant-context.port.js';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 @ApiTags('auth')
@@ -40,7 +45,25 @@ export class AuthenticationController {
     @Optional()
     @Inject(SESSION_LIFECYCLE_PORT)
     private readonly sessions?: SessionLifecyclePortV1,
+    @Inject(REQUEST_TENANT_CONTEXT)
+    private readonly requestContext?: RequestTenantContextPortV1,
   ) {}
+
+  @Get('me')
+  @ApiOperation({ summary: 'Read the redacted authenticated session identity' })
+  @ApiOkResponse({ type: CurrentSessionDto })
+  async me(@Req() request: FastifyRequest): Promise<CurrentSessionDto> {
+    if (this.requestContext === undefined) throw new SessionProblemError('SESSION_UNAVAILABLE');
+    const context = await this.requestContext.resolve(request);
+    return {
+      userId: context.actorId,
+      organizationId: context.tenantScope.organizationId,
+      ...(context.tenantScope.scopeType === 'organization'
+        ? {}
+        : { workspaceId: context.tenantScope.workspaceId }),
+      authorizationEpoch: context.authorizationEpoch,
+    };
+  }
 
   @Post('sign-in')
   @HttpCode(200)
