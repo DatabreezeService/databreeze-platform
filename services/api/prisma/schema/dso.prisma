@@ -1,0 +1,113 @@
+/// DSO-owned immutable synchronization operations. Payloads are limited to
+/// approved metadata or derived classes; original content is never stored here.
+model DeviceSyncOperationRecord {
+  id                String    @id @db.Uuid
+  scopeType         String    @map("scope_type") @db.VarChar(24)
+  organizationId    String    @map("organization_id") @db.Uuid
+  workspaceId       String?   @map("workspace_id") @db.Uuid
+  projectId         String?   @map("project_id") @db.Uuid
+  deviceId          String    @map("device_id") @db.Uuid
+  entityType        String    @map("entity_type") @db.VarChar(64)
+  entityId          String    @map("entity_id") @db.Uuid
+  kind              String    @db.VarChar(16)
+  payloadClass      String    @map("payload_class") @db.VarChar(40)
+  payloadDigest     String    @map("payload_digest") @db.VarChar(128)
+  encryptedPayload  String?   @map("encrypted_payload") @db.VarChar(16384)
+  dependencyIds     Json      @map("dependency_ids")
+  baseRevision      Int?      @map("base_revision")
+  status            String    @db.VarChar(16)
+  revision          Int       @default(1)
+  createdAt         DateTime  @map("created_at") @db.Timestamptz(6)
+  acknowledgedAt    DateTime? @map("acknowledged_at") @db.Timestamptz(6)
+  idempotencyKey    String    @map("idempotency_key") @db.VarChar(200)
+
+  @@index([organizationId, workspaceId, projectId, status], map: "device_sync_operations_scope_status_idx")
+  @@index([deviceId, createdAt], map: "device_sync_operations_device_created_idx")
+  @@index([entityType, entityId], map: "device_sync_operations_entity_idx")
+  @@map("device_sync_operations")
+  @@schema("dso")
+}
+
+/// DSO-018: conflicts are explicit records; no last-write-wins resolution is implicit.
+model DeviceSyncConflictRecord {
+  id                String    @id @db.Uuid
+  operationId       String    @map("operation_id") @db.Uuid
+  scopeType         String    @map("scope_type") @db.VarChar(24)
+  organizationId    String    @map("organization_id") @db.Uuid
+  workspaceId       String?   @map("workspace_id") @db.Uuid
+  projectId         String?   @map("project_id") @db.Uuid
+  deviceId          String    @map("device_id") @db.Uuid
+  entityType        String    @map("entity_type") @db.VarChar(64)
+  entityId          String    @map("entity_id") @db.Uuid
+  reason            String    @db.VarChar(32)
+  status            String    @db.VarChar(16)
+  expectedRevision  Int?      @map("expected_revision")
+  actualRevision    Int?      @map("actual_revision")
+  detectedAt        DateTime  @map("detected_at") @db.Timestamptz(6)
+  resolvedAt        DateTime? @map("resolved_at") @db.Timestamptz(6)
+
+  @@unique([operationId, reason], map: "device_sync_conflicts_operation_reason_key")
+  @@index([organizationId, workspaceId, projectId, status], map: "device_sync_conflicts_scope_status_idx")
+  @@index([deviceId, detectedAt], map: "device_sync_conflicts_device_detected_idx")
+  @@map("device_sync_conflicts")
+  @@schema("dso")
+}
+
+/// DSO-019, DSO-020: strict-Local packages carry only signed metadata and digests.
+model StrictLocalPackageManifestRecord {
+  id               String    @id @db.Uuid
+  scopeType        String    @map("scope_type") @db.VarChar(24)
+  organizationId   String    @map("organization_id") @db.Uuid
+  workspaceId      String?   @map("workspace_id") @db.Uuid
+  projectId        String?   @map("project_id") @db.Uuid
+  deviceId         String    @map("device_id") @db.Uuid
+  purpose          String    @db.VarChar(200)
+  destinationClass String    @map("destination_class") @db.VarChar(64)
+  itemDigests      Json      @map("item_digests")
+  packageDigest    String    @map("package_digest") @db.VarChar(128)
+  issuedAt         DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(6)
+  status           String    @db.VarChar(16)
+  revision         Int       @default(1)
+
+  @@index([organizationId, workspaceId, projectId, status], map: "strict_local_packages_scope_status_idx")
+  @@index([deviceId, expiresAt], map: "strict_local_packages_device_expiry_idx")
+  @@map("strict_local_package_manifests")
+  @@schema("dso")
+}
+
+/// DSO-021: receipts prove manifest/digest verification without copying source content.
+model DeviceTransferReceiptRecord {
+  id               String   @id @db.Uuid
+  packageId        String   @map("package_id") @db.Uuid
+  deviceId         String   @map("device_id") @db.Uuid
+  destinationClass String   @map("destination_class") @db.VarChar(64)
+  packageDigest    String   @map("package_digest") @db.VarChar(128)
+  receivedAt       DateTime @map("received_at") @db.Timestamptz(6)
+  manifestVerified Boolean  @map("manifest_verified")
+  status           String   @db.VarChar(16)
+
+  @@unique([packageId, deviceId], map: "device_transfer_receipts_package_device_key")
+  @@index([deviceId, receivedAt], map: "device_transfer_receipts_device_received_idx")
+  @@map("device_transfer_receipts")
+  @@schema("dso")
+}
+
+/// DSO-023: malformed or offline audit fragments remain quarantined until reconciliation.
+model LocalAuditFragmentRecord {
+  id                     String   @id @db.Uuid
+  scopeType              String   @map("scope_type") @db.VarChar(24)
+  organizationId         String   @map("organization_id") @db.Uuid
+  workspaceId            String?  @map("workspace_id") @db.Uuid
+  projectId              String?  @map("project_id") @db.Uuid
+  deviceId               String   @map("device_id") @db.Uuid
+  fragmentDigest         String   @map("fragment_digest") @db.VarChar(128)
+  encryptedFragmentRef   String   @map("encrypted_fragment_ref") @db.VarChar(512)
+  status                 String   @db.VarChar(16)
+  receivedAt             DateTime @map("received_at") @db.Timestamptz(6)
+
+  @@unique([deviceId, fragmentDigest], map: "local_audit_fragments_device_digest_key")
+  @@index([organizationId, workspaceId, projectId, status], map: "local_audit_fragments_scope_status_idx")
+  @@map("local_audit_fragments")
+  @@schema("dso")
+}

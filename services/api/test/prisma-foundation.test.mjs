@@ -50,6 +50,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "bua"/);
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "dsm"/);
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "jra"/);
+  assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "dso"/);
   assert.match(diff.stdout, /CREATE TABLE "platform"\."schema_registry"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."users"/);
   assert.match(diff.stdout, /CREATE TABLE "iae"\."artifact_versions"/);
@@ -69,6 +70,9 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "jra"\."result_manifests"/);
   assert.match(diff.stdout, /CREATE TABLE "jra"\."job_dispatch_outbox"/);
   assert.match(diff.stdout, /CREATE TABLE "jra"\."recipe_versions"/);
+  assert.match(diff.stdout, /CREATE TABLE "dso"\."device_sync_operations"/);
+  assert.match(diff.stdout, /CREATE TABLE "dso"\."device_sync_conflicts"/);
+  assert.match(diff.stdout, /CREATE TABLE "dso"\."strict_local_package_manifests"/);
 
   const migrationsDirectory = path.join(apiDirectory, 'prisma', 'migrations');
   const inventory = (await readdir(migrationsDirectory)).sort();
@@ -88,6 +92,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802110000_dsm_mappings_rules',
     '20260802120000_iae_evidence_grants',
     '20260802130000_iae_dsm_scope_hardening',
+    '20260802140000_dso_device_sync',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -269,5 +274,19 @@ test('the schema diff and centrally ordered migration inventory establish platfo
       scopeHardeningMigration,
       new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
+  }
+  const dsoMigration = await readFile(
+    path.join(migrationsDirectory, inventory[15], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE SCHEMA IF NOT EXISTS "dso"',
+    'CREATE TABLE "dso"."device_sync_operations"',
+    'CREATE TABLE "dso"."device_sync_conflicts"',
+    'CREATE TABLE "dso"."strict_local_package_manifests"',
+    'CREATE TABLE "dso"."device_transfer_receipts"',
+    'CREATE UNIQUE INDEX "device_sync_operations_workspace_idempotency_key"',
+  ]) {
+    assert.match(dsoMigration, new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
 });
