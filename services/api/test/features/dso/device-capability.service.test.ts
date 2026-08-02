@@ -100,3 +100,46 @@ void test('[DSO-016, DSO-017] capability and grant transitions are revisioned an
     { accepted: false, code: 'REVISION_CONFLICT' },
   );
 });
+
+void test('[DSO-005, IAM-020] typed grants enforce action, workspace, epoch, expiry, and revocation', async () => {
+  const service = new DeviceCapabilityService(new InMemoryDeviceCapabilityRepositoryAdapter());
+  await service.report(context('auth-report'), {
+    capabilityId,
+    deviceId,
+    type: 'APPROVED_FOLDER',
+    constraintDigest: 'e'.repeat(64),
+    reportedAt: '2026-01-01T00:00:00.000Z',
+  });
+  await service.issueGrant(context('auth-grant'), {
+    grantId,
+    deviceId,
+    capabilityId,
+    workspaceId,
+    authorizationEpoch: 2,
+    allowedActionTypes: ['READ'],
+    allowedDataClassifications: ['INTERNAL'],
+    synchronizationPayloadClasses: ['CONTROL_METADATA'],
+    issuedAt: '2026-01-01T00:00:00.000Z',
+    expiresAt: '2026-01-01T01:00:00.000Z',
+  });
+  assert.deepEqual(
+    await service.authorizeGrant(context('auth-read'), {
+      deviceId,
+      workspaceId,
+      grantId,
+      actionType: 'READ',
+      now: '2026-01-01T00:30:00.000Z',
+    }),
+    { accepted: true, value: true },
+  );
+  assert.deepEqual(
+    await service.authorizeGrant(context('auth-write'), {
+      deviceId,
+      workspaceId,
+      grantId,
+      actionType: 'WRITE_DERIVATIVE',
+      now: '2026-01-01T00:30:00.000Z',
+    }),
+    { accepted: false, code: 'GRANT_SCOPE_DENIED' },
+  );
+});

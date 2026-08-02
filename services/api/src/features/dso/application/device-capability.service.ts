@@ -11,6 +11,10 @@ import { parseStableIdentifierV1, type StableIdentifierV1 } from '@databreeze/do
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type { DeviceCapabilityRepositoryPortV1 } from './device-capability-repository.port.js';
+import type {
+  DeviceCapabilityAuthorizationPortV1,
+  DeviceCapabilityAuthorizationResultV1,
+} from './device-capability-authorization.port.js';
 
 export const DEVICE_CAPABILITY_SERVICE = Symbol('DEVICE_CAPABILITY_SERVICE');
 
@@ -59,8 +63,17 @@ function mapRepositoryError(error: unknown): DeviceCapabilityApplicationErrorCod
   return 'PERSISTENCE_UNAVAILABLE';
 }
 
+function authorizationRejected(
+  code: Exclude<
+    DeviceCapabilityAuthorizationResultV1,
+    { readonly accepted: true; readonly value: true }
+  >['code'],
+): DeviceCapabilityAuthorizationResultV1 {
+  return Object.freeze({ accepted: false, code });
+}
+
 /** Coordinates DSO capability/grant state without owning IAM identity lifecycle. */
-export class DeviceCapabilityService {
+export class DeviceCapabilityService implements DeviceCapabilityAuthorizationPortV1 {
   public constructor(private readonly repository: DeviceCapabilityRepositoryPortV1) {}
 
   public async report(
@@ -106,6 +119,48 @@ export class DeviceCapabilityService {
     if (!deviceId) return rejected('INVALID_IDENTIFIER');
     if (context.tenantScope.scopeType !== 'workspace') return rejected('SCOPE_DENIED');
     return { accepted: true, value: await this.repository.listGrants(context, deviceId) };
+  }
+
+  public async authorizeGrant(
+    context: IamTenantContextV1,
+    input: Parameters<DeviceCapabilityAuthorizationPortV1['authorizeGrant']>[1],
+  ): Promise<DeviceCapabilityAuthorizationResultV1> {
+    if (context.tenantScope.scopeType !== 'workspace') return authorizationRejected('GRANT_SCOPE_DENIED');
+    const deviceId = stable(input.deviceId);
+    const workspaceId = stable(input.workspaceId);
+    const grantId = stable(input.grantId);
+    if (!deviceId || !workspaceId || !grantId) return authorizationRejected('INVALID_IDENTIFIER');
+    if (workspaceId !== context.tenantScope.workspaceId) return authorizationRejected('GRANT_SCOPE_DENIED');
+    const actionType = input.actionType;
+    const now = input.now;
+    if (typeof actionType !== 'string' || !/^[A-Z][A-Z0-9._-]{0,63}$/u.test(actionType))
+      return authorizationRejected('GRANT_SCOPE_DENIED');
+    if (typeof now !== 'string' || !Number.isFinite(Date.parse(now)))
+      return authorizationRejected('GRANT_EXPIRED');
+    try {
+      return await this.repository.withTransaction(context, async (transaction) => {
+        const grant = await transaction.findGrant(context, grantId);
+        if (!grant) return authorizationRejected('GRANT_NOT_FOUND');
+        if (
+          grant.deviceId !== deviceId ||
+          grant.organizationId !== context.tenantScope.organizationId ||
+          grant.workspaceId !== workspaceId ||
+          grant.authorizationEpoch !== context.authorizationEpoch
+        )
+          return authorizationRejected('GRANT_SCOPE_DENIED');
+        if (grant.status === 'REVOKED') return authorizationRejected('GRANT_REVOKED');
+        if (
+          grant.status === 'EXPIRED' ||
+          (grant.expiresAt !== undefined && Date.parse(grant.expiresAt) <= Date.parse(now))
+        )
+          return authorizationRejected('GRANT_EXPIRED');
+        return grant.allowedActionTypes.includes(actionType)
+          ? { accepted: true, value: true }
+          : authorizationRejected('GRANT_SCOPE_DENIED');
+      });
+    } catch {
+      return authorizationRejected('AUTHORIZATION_UNAVAILABLE');
+    }
   }
 
   public async issueGrant(
