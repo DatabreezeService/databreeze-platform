@@ -39,6 +39,10 @@ export class CreateArtifactUploadSessionDto {
 }
 
 export class RecordArtifactUploadPartDto {
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
+  transferId!: string;
+
   @ApiProperty({ minimum: 1 })
   @IsInt()
   @Min(1)
@@ -61,6 +65,14 @@ export class RecordArtifactUploadPartDto {
   @IsInt()
   @Min(1)
   expectedRevision!: number;
+}
+
+export class IssueArtifactUploadTransferDto {
+  @ApiProperty({ minimum: 1, maximum: 1000000 })
+  @IsInt()
+  @Min(1)
+  @Max(1000000)
+  partNumber!: number;
 }
 
 export class CompleteArtifactUploadDto {

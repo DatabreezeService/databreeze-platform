@@ -2412,6 +2412,83 @@
         "tags": ["artifacts"]
       }
     },
+    "/v1/artifact-upload-sessions/{sessionId}/parts/transfer": {
+      "post": {
+        "operationId": "ArtifactUploadController.issuePartTransfer",
+        "parameters": [
+          { "name": "sessionId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/IssueArtifactUploadTransferDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Issue one opaque upload-part transfer grant",
+        "tags": ["artifacts"]
+      }
+    },
     "/v1/artifact-upload-sessions": {
       "post": {
         "operationId": "ArtifactUploadController.create",
@@ -6575,6 +6652,11 @@
         },
         "required": ["manifestId", "versionIds", "approvalState", "createdAt"]
       },
+      "IssueArtifactUploadTransferDto": {
+        "type": "object",
+        "properties": { "partNumber": { "type": "number", "minimum": 1, "maximum": 1000000 } },
+        "required": ["partNumber"]
+      },
       "CreateArtifactUploadSessionDto": {
         "type": "object",
         "properties": {
@@ -6601,13 +6683,21 @@
       "RecordArtifactUploadPartDto": {
         "type": "object",
         "properties": {
+          "transferId": { "type": "string", "format": "uuid" },
           "partNumber": { "type": "number", "minimum": 1 },
           "contentSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
           "byteSize": { "type": "number", "minimum": 0 },
           "uploadedAt": { "type": "string", "format": "date-time" },
           "expectedRevision": { "type": "number", "minimum": 1 }
         },
-        "required": ["partNumber", "contentSha256", "byteSize", "uploadedAt", "expectedRevision"]
+        "required": [
+          "transferId",
+          "partNumber",
+          "contentSha256",
+          "byteSize",
+          "uploadedAt",
+          "expectedRevision"
+        ]
       },
       "CompleteArtifactUploadDto": {
         "type": "object",

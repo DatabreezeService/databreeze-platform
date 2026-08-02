@@ -31,6 +31,7 @@ import {
   type ArtifactExportDatabaseClientV1,
 } from './adapter/prisma-artifact-export-repository.adapter.js';
 import { InMemoryArtifactUploadRepositoryAdapter } from './adapter/in-memory-artifact-upload-repository.adapter.js';
+import { InMemoryArtifactUploadStorageAdapter } from './adapter/in-memory-artifact-upload-storage.adapter.js';
 import {
   PrismaArtifactUploadRepositoryAdapter,
   type ArtifactUploadDatabaseClientV1,
@@ -69,6 +70,10 @@ import {
   type ArtifactUploadRepositoryPortV1,
 } from './application/artifact-upload-repository.port.js';
 import {
+  ARTIFACT_UPLOAD_STORAGE_PORT,
+  type ArtifactUploadStoragePortV1,
+} from './application/artifact-upload-storage.port.js';
+import {
   EVIDENCE_GRANT_REPOSITORY_PORT,
   type EvidenceGrantRepositoryPortV1,
 } from './application/evidence-grant-repository.port.js';
@@ -97,6 +102,7 @@ export interface IaeModuleOptions {
   readonly artifactUploadRepository?: ArtifactUploadRepositoryPortV1;
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly artifactUploadDatabase?: ArtifactUploadDatabaseClientV1;
+  readonly artifactUploadStorage?: ArtifactUploadStoragePortV1;
   readonly evidenceGrantRepository?: EvidenceGrantRepositoryPortV1;
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly evidenceGrantDatabase?: EvidenceGrantDatabaseClientV1;
@@ -169,6 +175,10 @@ export class IaeModule {
               : new PrismaArtifactUploadRepositoryAdapter(options.artifactUploadDatabase)),
         },
         {
+          provide: ARTIFACT_UPLOAD_STORAGE_PORT,
+          useValue: options.artifactUploadStorage ?? new InMemoryArtifactUploadStorageAdapter(),
+        },
+        {
           provide: EVIDENCE_GRANT_REPOSITORY_PORT,
           useValue:
             options.evidenceGrantRepository ??
@@ -188,6 +198,7 @@ export class IaeModule {
         ARTIFACT_RETENTION_REPOSITORY_PORT,
         ARTIFACT_EXPORT_REPOSITORY_PORT,
         ARTIFACT_UPLOAD_REPOSITORY_PORT,
+        ARTIFACT_UPLOAD_STORAGE_PORT,
         EVIDENCE_GRANT_REPOSITORY_PORT,
       ],
     };

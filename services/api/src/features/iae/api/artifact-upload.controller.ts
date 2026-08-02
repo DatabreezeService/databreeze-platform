@@ -11,8 +11,13 @@ import {
   AbortArtifactUploadDto,
   CompleteArtifactUploadDto,
   CreateArtifactUploadSessionDto,
+  IssueArtifactUploadTransferDto,
   RecordArtifactUploadPartDto,
 } from './artifact-upload.dto.js';
+import {
+  ARTIFACT_UPLOAD_STORAGE_PORT,
+  type ArtifactUploadStoragePortV1,
+} from '../application/artifact-upload-storage.port.js';
 import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
@@ -27,9 +32,24 @@ export class ArtifactUploadController {
 
   public constructor(
     @Inject(ARTIFACT_UPLOAD_REPOSITORY_PORT) repository: ArtifactUploadRepositoryPortV1,
+    @Inject(ARTIFACT_UPLOAD_STORAGE_PORT) storage: ArtifactUploadStoragePortV1,
     @Inject(REQUEST_TENANT_CONTEXT) private readonly requestContext: RequestTenantContextPortV1,
   ) {
-    this.uploads = new ArtifactUploadService(repository);
+    this.uploads = new ArtifactUploadService(repository, storage);
+  }
+
+  @Post(':sessionId/parts/transfer')
+  @ApiOperation({ summary: 'Issue one opaque upload-part transfer grant' })
+  @ApiBody({ type: IssueArtifactUploadTransferDto })
+  async issuePartTransfer(
+    @Req() request: unknown,
+    @Param('sessionId') sessionIdInput: string,
+    @Body() input: IssueArtifactUploadTransferDto,
+  ): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    const sessionId = parseStableIdentifierV1(sessionIdInput);
+    if (!sessionId.accepted) return Object.freeze({ accepted: false, code: 'INVALID_IDENTIFIER' });
+    return this.uploads.issuePartTransfer(context, sessionId.value, input.partNumber);
   }
 
   @Post()

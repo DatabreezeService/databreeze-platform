@@ -45,6 +45,22 @@ void test('IAE-014 upload HTTP control plane never accepts source bytes or paths
     });
     assert.equal(response.statusCode, 201);
     assert.doesNotMatch(response.body, /sourcePath|localPath|rawBytes|excerpt/iu);
+
+    const transfer = await app.inject({
+      method: 'POST',
+      url: '/v1/artifact-upload-sessions/55555555-5555-4555-8555-555555555555/parts/transfer',
+      payload: { partNumber: 1 },
+    });
+    assert.equal(transfer.statusCode, 201);
+    const transferBody = JSON.parse(transfer.body) as {
+      accepted: boolean;
+      value?: { transferId?: string; sessionId?: string; partNumber?: number };
+    };
+    assert.equal(transferBody.accepted, true);
+    assert.equal(transferBody.value?.sessionId, '55555555-5555-4555-8555-555555555555');
+    assert.equal(transferBody.value?.partNumber, 1);
+    assert.match(transferBody.value?.transferId ?? '', /^[0-9a-f-]{36}$/u);
+    assert.doesNotMatch(transfer.body, /url|path|bytes|locator/iu);
   } finally {
     await app.close();
   }
