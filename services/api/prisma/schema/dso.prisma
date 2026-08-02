@@ -136,3 +136,44 @@ model DeviceGrantRecord {
   @@map("device_grants")
   @@schema("dso")
 }
+
+/// DSO-003/004: device-reported capabilities are content-free, opaque, and revisioned.
+model DeviceCapabilityRecord {
+  id                String   @id @db.Uuid
+  deviceId          String   @map("device_id") @db.Uuid
+  organizationId    String   @map("organization_id") @db.Uuid
+  capabilityType    String   @map("capability_type") @db.VarChar(32)
+  opaqueLocalHandle String?  @map("opaque_local_handle") @db.VarChar(512)
+  constraintDigest  String   @map("constraint_digest") @db.VarChar(128)
+  status            String   @db.VarChar(16)
+  reportedAt        DateTime @map("reported_at") @db.Timestamptz(6)
+  revision          Int      @default(1)
+
+  @@index([organizationId, deviceId, status], map: "device_capabilities_org_device_status_idx")
+  @@index([deviceId, reportedAt], map: "device_capabilities_device_reported_idx")
+  @@map("device_capabilities")
+  @@schema("dso")
+}
+
+/// DSO-005: operational grants carry only typed actions, classifications, and payload classes.
+model DeviceOperationalGrantRecord {
+  id                              String   @id @db.Uuid
+  deviceId                        String   @map("device_id") @db.Uuid
+  organizationId                  String   @map("organization_id") @db.Uuid
+  workspaceId                     String   @map("workspace_id") @db.Uuid
+  capabilityId                    String   @map("capability_id") @db.Uuid
+  authorizationEpoch              Int      @map("authorization_epoch")
+  allowedActionTypes              Json     @map("allowed_action_types")
+  allowedDataClassifications     Json     @map("allowed_data_classifications")
+  synchronizationPayloadClasses   Json     @map("synchronization_payload_classes")
+  issuedAt                        DateTime @map("issued_at") @db.Timestamptz(6)
+  expiresAt                       DateTime? @map("expires_at") @db.Timestamptz(6)
+  status                          String   @db.VarChar(16)
+  revision                        Int      @default(1)
+
+  @@index([organizationId, workspaceId, deviceId, status], map: "device_operational_grants_scope_status_idx")
+  @@index([deviceId, expiresAt], map: "device_operational_grants_device_expiry_idx")
+  @@index([capabilityId], map: "device_operational_grants_capability_idx")
+  @@map("device_operational_grants")
+  @@schema("dso")
+}

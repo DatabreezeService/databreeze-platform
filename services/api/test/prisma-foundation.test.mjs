@@ -100,6 +100,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802160000_dso_device_authorization',
     '20260802170000_iam_snapshot_authority_alignment',
     '20260802180000_iam_device_enrollment',
+    '20260802190000_dso_capabilities_grants',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -349,6 +350,20 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   ]) {
     assert.match(
       deviceEnrollmentMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const capabilityMigration = await readFile(
+    path.join(migrationsDirectory, inventory[20], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE TABLE "dso"."device_capabilities"',
+    'CREATE TABLE "dso"."device_operational_grants"',
+    'CREATE INDEX "device_operational_grants_scope_status_idx"',
+  ]) {
+    assert.match(
+      capabilityMigration,
       new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
   }
