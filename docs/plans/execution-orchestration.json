@@ -77,6 +77,18 @@
         "tools/repo-cli/test/android-shell.test.mjs"
       ],
       "note": "Room, WorkManager, Keystore, bilingual resources, generated contracts/tokens, backup/network policy, account isolation, and process-recreation evidence are complete. No product requirement status was promoted."
+    },
+    "FND-003": {
+      "status": "in-progress",
+      "commit": "4eff6f5",
+      "evidence": [
+        "infrastructure/local/compose.yml",
+        "infrastructure/local/postgres/init/001-create-module-schemas.sql",
+        "tools/repo-cli/src/local-services.mjs",
+        "tools/repo-cli/test/local-infrastructure.test.mjs",
+        "docs/operations/foundation-local-infrastructure-2026-08-02.md"
+      ],
+      "note": "Static Compose/bootstrap/lifecycle checks pass. Live Docker health, port-collision, disk-pressure, and restart-persistence evidence remains pending because the Docker daemon is unavailable in this environment."
     }
   },
   "plans": [
