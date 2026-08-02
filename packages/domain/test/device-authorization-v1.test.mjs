@@ -4,6 +4,7 @@ import test from 'node:test';
 
 import {
   checkOpaqueDeviceGrantV1,
+  checkOpaqueDeviceGrantEffectV1,
   createAuthorizationSnapshotV1,
   createOpaqueDeviceGrantV1,
   verifyAuthorizationSnapshotV1,
@@ -72,6 +73,7 @@ test('[DSO-002, DSO-005] opaque grants contain no local path and fail closed aft
     tenantScope: scope,
     bindingId: id('21'),
     capabilityDigest: 'sha256:folder-capability',
+    authorizationEpoch: 2,
     effects: ['READ', 'WRITE_DERIVATIVE'],
     issuedAt: '2026-01-01T00:00:00.000Z',
     expiresAt: '2026-01-01T01:00:00.000Z',
@@ -84,6 +86,7 @@ test('[DSO-002, DSO-005] opaque grants contain no local path and fail closed aft
       now: '2026-01-01T00:30:00.000Z',
       deviceId: id('11'),
       tenantScope: scope,
+      authorizationEpoch: 2,
     }),
     { accepted: true, value: true },
   );
@@ -94,8 +97,33 @@ test('[DSO-002, DSO-005] opaque grants contain no local path and fail closed aft
         now: '2026-01-01T00:30:00.000Z',
         deviceId: id('11'),
         tenantScope: scope,
+        authorizationEpoch: 2,
       },
     ),
     { accepted: false, code: 'GRANT_REVOKED' },
   );
+});
+
+test('[DSO-005] a grant must explicitly contain the requested synchronization effect', () => {
+  const grant = createOpaqueDeviceGrantV1({
+    grantId: id('30'),
+    deviceId: id('11'),
+    tenantScope: scope,
+    bindingId: id('31'),
+    capabilityDigest: 'sha256:folder-capability',
+    authorizationEpoch: 2,
+    effects: ['READ'],
+    issuedAt: '2026-01-01T00:00:00.000Z',
+    expiresAt: '2026-01-01T01:00:00.000Z',
+  });
+  assert.equal(grant.accepted, true);
+  if (!grant.accepted) return;
+  assert.deepEqual(checkOpaqueDeviceGrantEffectV1(grant.value, 'WRITE_DERIVATIVE'), {
+    accepted: false,
+    code: 'EFFECT_DENIED',
+  });
+  assert.deepEqual(checkOpaqueDeviceGrantEffectV1(grant.value, 'READ'), {
+    accepted: true,
+    value: true,
+  });
 });

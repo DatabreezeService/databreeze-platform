@@ -14,6 +14,7 @@ export const ACCESS_TOKEN_MAX_SECONDS_V1 = 15 * 60;
 export const STEP_UP_MAX_SECONDS_V1 = 10 * 60;
 export const OFFLINE_AUTHORIZATION_MAX_SECONDS_V1 = 24 * 60 * 60;
 export const INVITATION_MAX_SECONDS_V1 = 7 * 24 * 60 * 60;
+export const DEVICE_ENROLLMENT_CHALLENGE_MAX_SECONDS_V1 = 5 * 60;
 
 export type LocaleV1 = 'vi-VN' | 'en';
 export type UserStatusV1 = 'ACTIVE' | 'LOCKED' | 'SUSPENDED' | 'DEACTIVATED';
@@ -116,12 +117,27 @@ export interface DeviceIdentityV1 {
   readonly organizationId: StableIdentifierV1;
   readonly platform: DevicePlatformV1;
   readonly publicKey: string;
+  readonly installationIdHash?: string;
   readonly keyAlgorithm: 'ED25519';
   readonly status: DeviceStatusV1;
   readonly securityEpoch: number;
   readonly enrolledAt: StrictUtcTimestampV1;
   readonly activatedAt?: StrictUtcTimestampV1;
   readonly revokedAt?: StrictUtcTimestampV1;
+  readonly revision: number;
+}
+
+export interface DeviceEnrollmentChallengeV1 {
+  readonly schemaVersion: typeof IDENTITY_SCHEMA_VERSION_V1;
+  readonly id: StableIdentifierV1;
+  readonly userId: StableIdentifierV1;
+  readonly organizationId: StableIdentifierV1;
+  readonly platform: DevicePlatformV1;
+  readonly installationIdHash: string;
+  readonly challengeDigest: string;
+  readonly status: 'PENDING' | 'USED' | 'EXPIRED';
+  readonly issuedAt: StrictUtcTimestampV1;
+  readonly expiresAt: StrictUtcTimestampV1;
   readonly revision: number;
 }
 
@@ -141,6 +157,8 @@ export type IdentityErrorCodeV1 =
   | 'INVALID_SCOPE'
   | 'INVALID_LIFETIME'
   | 'INVALID_ROLE'
+  | 'INVALID_PLATFORM'
+  | 'INVALID_PUBLIC_KEY'
   | 'INVALID_STATE';
 
 export type IdentityResultV1<TValue> =
@@ -212,6 +230,20 @@ function durationWithin(
     endMs > startMs &&
     endMs - startMs <= maxSeconds * 1_000
   );
+}
+
+function isDevicePlatform(input: unknown): input is DevicePlatformV1 {
+  return input === 'WINDOWS' || input === 'ANDROID';
+}
+
+function digest(input: unknown): string | undefined {
+  return typeof input === 'string' && /^[a-f0-9]{64}$/u.test(input) ? input : undefined;
+}
+
+function publicKey(input: unknown): string | undefined {
+  if (typeof input !== 'string' || input.length === 0 || input.length > 2048) return undefined;
+  if (containsControlCharacterV1(input) || /\s/u.test(input)) return undefined;
+  return input.normalize('NFC');
 }
 
 export function normalizeEmailAddressV1(input: unknown): IdentityResultV1<string> {
@@ -451,6 +483,129 @@ export function rotateRefreshFamilyV1(input: {
     familyStatus: 'ACTIVE',
     nextTokenId: input.nextTokenId,
   });
+}
+
+export function createDeviceEnrollmentChallengeV1(input: {
+  readonly challengeId: unknown;
+  readonly userId: unknown;
+  readonly organizationId: unknown;
+  readonly platform: unknown;
+  readonly installationIdHash: unknown;
+  readonly challengeDigest: unknown;
+  readonly issuedAt: unknown;
+  readonly expiresAt: unknown;
+}): IdentityResultV1<DeviceEnrollmentChallengeV1> {
+  const challengeId = stableId(input.challengeId);
+  const userId = stableId(input.userId);
+  const organizationId = stableId(input.organizationId);
+  const platform = input.platform;
+  const installationIdHash = digest(input.installationIdHash);
+  const challengeDigest = digest(input.challengeDigest);
+  const issuedAt = timestamp(input.issuedAt);
+  const expiresAt = timestamp(input.expiresAt);
+  if (!challengeId || !userId || !organizationId) return rejected('INVALID_IDENTIFIER');
+  if (!isDevicePlatform(platform)) return rejected('INVALID_PLATFORM');
+  if (!installationIdHash || !challengeDigest) return rejected('INVALID_TEXT');
+  if (!issuedAt || !expiresAt) return rejected('INVALID_TIMESTAMP');
+  if (!durationWithin(issuedAt, expiresAt, DEVICE_ENROLLMENT_CHALLENGE_MAX_SECONDS_V1))
+    return rejected('INVALID_LIFETIME');
+  return accepted(
+    Object.freeze({
+      schemaVersion: IDENTITY_SCHEMA_VERSION_V1,
+      id: challengeId,
+      userId,
+      organizationId,
+      platform,
+      installationIdHash,
+      challengeDigest,
+      status: 'PENDING' as const,
+      issuedAt,
+      expiresAt,
+      revision: 1,
+    }),
+  );
+}
+
+export function consumeDeviceEnrollmentChallengeV1(
+  challenge: DeviceEnrollmentChallengeV1,
+  at: unknown,
+): IdentityResultV1<DeviceEnrollmentChallengeV1> {
+  const timestampValue = timestamp(at);
+  if (!timestampValue) return rejected('INVALID_TIMESTAMP');
+  if (challenge.status !== 'PENDING') return rejected('INVALID_STATE');
+  if (Date.parse(timestampValue) < Date.parse(challenge.issuedAt))
+    return rejected('INVALID_TIMESTAMP');
+  if (Date.parse(timestampValue) >= Date.parse(challenge.expiresAt))
+    return rejected('INVALID_STATE');
+  return accepted(
+    Object.freeze({
+      ...challenge,
+      status: 'USED' as const,
+      revision: challenge.revision + 1,
+    }),
+  );
+}
+
+export function createDeviceIdentityV1(input: {
+  readonly id: unknown;
+  readonly userId: unknown;
+  readonly organizationId: unknown;
+  readonly platform: unknown;
+  readonly publicKey: unknown;
+  readonly installationIdHash?: unknown;
+  readonly enrolledAt: unknown;
+}): IdentityResultV1<DeviceIdentityV1> {
+  const id = stableId(input.id);
+  const userId = stableId(input.userId);
+  const organizationId = stableId(input.organizationId);
+  const enrolledAt = timestamp(input.enrolledAt);
+  const key = publicKey(input.publicKey);
+  const installationIdHash =
+    input.installationIdHash === undefined ? undefined : digest(input.installationIdHash);
+  if (!id || !userId || !organizationId) return rejected('INVALID_IDENTIFIER');
+  if (!isDevicePlatform(input.platform)) return rejected('INVALID_PLATFORM');
+  if (!key) return rejected('INVALID_TEXT');
+  if (input.installationIdHash !== undefined && !installationIdHash)
+    return rejected('INVALID_TEXT');
+  if (!enrolledAt) return rejected('INVALID_TIMESTAMP');
+  return accepted(
+    Object.freeze({
+      schemaVersion: IDENTITY_SCHEMA_VERSION_V1,
+      id,
+      userId,
+      organizationId,
+      platform: input.platform,
+      publicKey: key,
+      keyAlgorithm: 'ED25519' as const,
+      status: 'PENDING' as const,
+      securityEpoch: 1,
+      enrolledAt,
+      ...(installationIdHash ? { installationIdHash } : {}),
+      revision: 1,
+    }),
+  );
+}
+
+export function rotateDeviceIdentityKeyV1(
+  device: DeviceIdentityV1,
+  nextPublicKey: unknown,
+  at: unknown,
+): IdentityResultV1<DeviceIdentityV1> {
+  const timestampValue = timestamp(at);
+  const key = publicKey(nextPublicKey);
+  if (!timestampValue) return rejected('INVALID_TIMESTAMP');
+  if (!key) return rejected('INVALID_TEXT');
+  if (device.status === 'REVOKED' || key === device.publicKey) return rejected('INVALID_STATE');
+  if (Date.parse(timestampValue) < Date.parse(device.enrolledAt))
+    return rejected('INVALID_TIMESTAMP');
+  return accepted(
+    Object.freeze({
+      ...device,
+      publicKey: key,
+      securityEpoch: device.securityEpoch + 1,
+      revision: device.revision + 1,
+    }),
+  );
 }
 
 export function transitionDeviceIdentityV1(

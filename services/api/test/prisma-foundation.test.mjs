@@ -50,6 +50,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "bua"/);
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "dsm"/);
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "jra"/);
+  assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "dso"/);
   assert.match(diff.stdout, /CREATE TABLE "platform"\."schema_registry"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."users"/);
   assert.match(diff.stdout, /CREATE TABLE "iae"\."artifact_versions"/);
@@ -69,6 +70,12 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "jra"\."result_manifests"/);
   assert.match(diff.stdout, /CREATE TABLE "jra"\."job_dispatch_outbox"/);
   assert.match(diff.stdout, /CREATE TABLE "jra"\."recipe_versions"/);
+  assert.match(diff.stdout, /CREATE TABLE "dso"\."device_sync_operations"/);
+  assert.match(diff.stdout, /CREATE TABLE "dso"\."device_sync_conflicts"/);
+  assert.match(diff.stdout, /CREATE TABLE "dso"\."strict_local_package_manifests"/);
+  assert.match(diff.stdout, /CREATE TABLE "iam"\."authorization_snapshots"/);
+  assert.match(diff.stdout, /CREATE TABLE "iam"\."device_enrollment_challenges"/);
+  assert.match(diff.stdout, /CREATE TABLE "dso"\."device_grants"/);
 
   const migrationsDirectory = path.join(apiDirectory, 'prisma', 'migrations');
   const inventory = (await readdir(migrationsDirectory)).sort();
@@ -88,6 +95,13 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802110000_dsm_mappings_rules',
     '20260802120000_iae_evidence_grants',
     '20260802130000_iae_dsm_scope_hardening',
+    '20260802140000_dso_device_sync',
+    '20260802150000_dso_sync_sequence',
+    '20260802160000_dso_device_authorization',
+    '20260802170000_iam_snapshot_authority_alignment',
+    '20260802180000_iam_device_enrollment',
+    '20260802190000_dso_capabilities_grants',
+    '20260802200000_dso_data_mode_policies',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -267,6 +281,103 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   ]) {
     assert.match(
       scopeHardeningMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const dsoMigration = await readFile(
+    path.join(migrationsDirectory, inventory[15], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE SCHEMA IF NOT EXISTS "dso"',
+    'CREATE TABLE "dso"."device_sync_operations"',
+    'CREATE TABLE "dso"."device_sync_conflicts"',
+    'CREATE TABLE "dso"."strict_local_package_manifests"',
+    'CREATE TABLE "dso"."device_transfer_receipts"',
+    'CREATE UNIQUE INDEX "device_sync_operations_workspace_idempotency_key"',
+  ]) {
+    assert.match(dsoMigration, new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  const dsoSequenceMigration = await readFile(
+    path.join(migrationsDirectory, inventory[16], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE SEQUENCE IF NOT EXISTS "dso"."device_sync_operations_sync_sequence_seq"',
+    'ADD COLUMN "sync_sequence" INTEGER',
+    'CREATE UNIQUE INDEX "device_sync_operations_sync_sequence_key"',
+  ]) {
+    assert.match(
+      dsoSequenceMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const dsoAuthorizationMigration = await readFile(
+    path.join(migrationsDirectory, inventory[17], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE TABLE "dso"."device_authorization_snapshots"',
+    'CREATE TABLE "dso"."device_grants"',
+    'CREATE INDEX "device_grants_scope_device_status_idx"',
+  ]) {
+    assert.match(
+      dsoAuthorizationMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const authorityAlignmentMigration = await readFile(
+    path.join(migrationsDirectory, inventory[18], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'ALTER TABLE "iam"."authorization_snapshots"',
+    'CREATE UNIQUE INDEX "authorization_snapshots_device_revision_key"',
+    'DROP TABLE "dso"."device_authorization_snapshots"',
+  ]) {
+    assert.match(
+      authorityAlignmentMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const deviceEnrollmentMigration = await readFile(
+    path.join(migrationsDirectory, inventory[19], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'ALTER TABLE "iam"."devices"',
+    'CREATE TABLE "iam"."device_enrollment_challenges"',
+    'CREATE INDEX "device_enrollment_challenges_org_status_idx"',
+  ]) {
+    assert.match(
+      deviceEnrollmentMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const capabilityMigration = await readFile(
+    path.join(migrationsDirectory, inventory[20], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE TABLE "dso"."device_capabilities"',
+    'CREATE TABLE "dso"."device_operational_grants"',
+    'CREATE INDEX "device_operational_grants_scope_status_idx"',
+  ]) {
+    assert.match(
+      capabilityMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const dataModePolicyMigration = await readFile(
+    path.join(migrationsDirectory, inventory[21], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE TABLE "dso"."device_data_mode_policies"',
+    'CREATE UNIQUE INDEX "device_data_mode_policies_policy_revision_key"',
+  ]) {
+    assert.match(
+      dataModePolicyMigration,
       new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
   }
