@@ -10,6 +10,7 @@ const [
   artifactGovernance,
   artifactRetention,
   artifactExport,
+  artifactUpload,
   dataset,
   datasetGovernance,
   dataMode,
@@ -34,6 +35,7 @@ const [
   import('@databreeze/domain/artifact-governance/v1'),
   import('@databreeze/domain/artifact-retention/v1'),
   import('@databreeze/domain/artifact-export/v1'),
+  import('@databreeze/domain/artifact-upload/v1'),
   import('@databreeze/domain/dataset/v1'),
   import('@databreeze/domain/dataset-governance/v1'),
   import('@databreeze/domain/data-mode/v1'),
@@ -60,6 +62,7 @@ assert.equal(artifactIntake.ARTIFACT_INTAKE_SCHEMA_VERSION_V1, 1);
 assert.equal(artifactGovernance.ARTIFACT_GOVERNANCE_SCHEMA_VERSION_V1, 1);
 assert.equal(artifactRetention.ARTIFACT_RETENTION_SCHEMA_VERSION_V1, 1);
 assert.equal(artifactExport.ARTIFACT_EXPORT_SCHEMA_VERSION_V1, 1);
+assert.equal(artifactUpload.ARTIFACT_UPLOAD_SCHEMA_VERSION_V1, 1);
 assert.equal(dataset.DATASET_SCHEMA_VERSION_V1, 1);
 assert.equal(datasetGovernance.DATASET_GOVERNANCE_SCHEMA_VERSION_V1, 1);
 assert.equal(dataMode.DATA_MODE_POLICY_SCHEMA_VERSION_V1, 1);
