@@ -73,6 +73,33 @@ model JobOutboxRecord {
   @@schema("jra")
 }
 
+model ExecutionAttemptRecord {
+  id                 String    @id @db.Uuid
+  jobId              String    @map("job_id") @db.Uuid
+  scopeType          String    @map("scope_type") @db.VarChar(24)
+  organizationId     String    @map("organization_id") @db.Uuid
+  workspaceId        String?   @map("workspace_id") @db.Uuid
+  projectId          String?   @map("project_id") @db.Uuid
+  attemptNumber      Int       @map("attempt_number")
+  executorType       String    @map("executor_type") @db.VarChar(24)
+  executorId         String    @map("executor_id") @db.Uuid
+  leaseTokenHash     String    @map("lease_token_hash") @db.Char(64)
+  leaseExpiresAt     DateTime  @map("lease_expires_at") @db.Timestamptz(6)
+  state              String    @db.VarChar(16)
+  createdAt          DateTime  @map("created_at") @db.Timestamptz(6)
+  heartbeatAt        DateTime  @map("heartbeat_at") @db.Timestamptz(6)
+  startedAt          DateTime? @map("started_at") @db.Timestamptz(6)
+  finishedAt         DateTime? @map("finished_at") @db.Timestamptz(6)
+  resultManifestHash String?   @map("result_manifest_hash") @db.Char(64)
+  revision           Int       @default(1)
+
+  @@unique([jobId, attemptNumber], map: "execution_attempts_job_number_key")
+  @@index([organizationId, workspaceId, projectId, state, leaseExpiresAt], map: "execution_attempts_scope_state_lease_idx")
+  @@index([jobId, revision], map: "execution_attempts_job_revision_idx")
+  @@map("execution_attempts")
+  @@schema("jra")
+}
+
 model ApprovalPolicyRecord {
   id                   String  @id @db.Uuid
   workspaceId          String  @map("workspace_id") @db.Uuid
