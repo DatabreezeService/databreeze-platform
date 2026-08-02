@@ -12,6 +12,11 @@ export type DatasetProfileServiceResultV1<TValue> =
   | DatasetProfileResultV1<TValue>
   | { readonly accepted: false; readonly code: DatasetProfileServiceErrorV1 };
 
+export interface DatasetProfilePageV1 {
+  readonly items: readonly DatasetProfileV1[];
+  readonly nextCursor?: DatasetProfileV1['profileId'];
+}
+
 /** Coordinates immutable, value-free profiling disclosure records. */
 export class DatasetProfileService {
   public constructor(private readonly repository: DatasetProfileRepositoryPortV1) {}
@@ -51,5 +56,25 @@ export class DatasetProfileService {
     return this.repository.withTransaction(context, (transaction) =>
       transaction.list(context, datasetVersionId),
     );
+  }
+
+  /** DSM-021: stable cursor pagination is scoped by the exact dataset version and tenant. */
+  public async listPage(
+    context: IamTenantContextV1,
+    datasetVersionId: DatasetProfileV1['datasetVersionId'],
+    options: { readonly limit: number; readonly cursor?: DatasetProfileV1['profileId'] },
+  ): Promise<DatasetProfilePageV1> {
+    if (!Number.isSafeInteger(options.limit) || options.limit < 1 || options.limit > 100)
+      throw new Error('DSM_INVALID_PAGE_LIMIT');
+    const profiles = await this.list(context, datasetVersionId);
+    const cursor = options.cursor;
+    const after =
+      cursor === undefined ? profiles : profiles.filter((profile) => profile.profileId > cursor);
+    const items = after.slice(0, options.limit);
+    const last = items.at(-1);
+    return Object.freeze({
+      items: Object.freeze(items),
+      ...(after.length > items.length && last !== undefined ? { nextCursor: last.profileId } : {}),
+    });
   }
 }
