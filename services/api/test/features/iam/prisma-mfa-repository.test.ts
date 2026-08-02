@@ -55,6 +55,19 @@ function createDatabase(): {
         factors.set(where.id, updated);
         return updated;
       },
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        readonly where: Readonly<Record<string, unknown>>;
+        readonly data: Partial<MfaFactorDatabaseRowV1>;
+      }) => {
+        const current = factors.get(String(where['id']));
+        if (!current || (where['revision'] !== undefined && current.revision !== where['revision']))
+          return { count: 0 };
+        factors.set(current.id, { ...current, ...data });
+        return { count: 1 };
+      },
     },
     mfaRecoveryCode: {
       findMany: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) =>
@@ -81,6 +94,19 @@ function createDatabase(): {
         const updated = { ...current, ...data };
         recoveryCodes.set(where.id, updated);
         return updated;
+      },
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        readonly where: Readonly<Record<string, unknown>>;
+        readonly data: Partial<MfaRecoveryCodeDatabaseRowV1>;
+      }) => {
+        const current = recoveryCodes.get(String(where['id']));
+        if (!current || (where['revision'] !== undefined && current.revision !== where['revision']))
+          return { count: 0 };
+        recoveryCodes.set(current.id, { ...current, ...data });
+        return { count: 1 };
       },
     },
     $transaction: async <TValue>(work: (transaction: MfaDatabaseClientV1) => Promise<TValue>) => {
@@ -198,5 +224,34 @@ void test('[IAM-012, IAM-014] Prisma MFA persistence rejects a changed stale rev
       recoveryCodes: input.recoveryCodes,
     }),
     /IAM_MFA_REVISION_CONFLICT/u,
+  );
+});
+
+void test('[IAM-012, IAM-016] Prisma MFA persistence rejects a redemption race with compare-and-set', async () => {
+  const { client } = createDatabase();
+  const adapter = new PrismaMfaRepositoryAdapter(client);
+  const input = state();
+  const factor = input.factors[0];
+  const code = input.recoveryCodes[0];
+  if (!factor || !code) throw new Error('fixture missing MFA state');
+  await adapter.saveState(factor.userId, input);
+  const recoveryDelegate = client.mfaRecoveryCode as MfaDatabaseClientV1['mfaRecoveryCode'] & {
+    updateMany: MfaDatabaseClientV1['mfaRecoveryCode']['updateMany'];
+  };
+  recoveryDelegate.updateMany = async () => ({ count: 0 });
+  const racedAdapter = new PrismaMfaRepositoryAdapter(client);
+  await assert.rejects(
+    racedAdapter.saveState(factor.userId, {
+      factors: input.factors,
+      recoveryCodes: [
+        {
+          ...code,
+          status: 'USED',
+          usedAt: '2026-01-01T00:01:00.000Z' as typeof code.createdAt,
+          revision: 2,
+        },
+      ],
+    }),
+    /IAM_MFA_REVISION_CONFLICT/,
   );
 });
