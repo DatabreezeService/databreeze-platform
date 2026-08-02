@@ -26,6 +26,7 @@ Passed:
 - `node --test tools/repo-cli/test/local-infrastructure.test.mjs`
 - `node tools/repo-cli/src/local-services.mjs --help`
 - `node tools/repo-cli/src/local-services-smoke.mjs --help`
+- `node tools/repo-cli/src/local-services.mjs config`
 - `git diff --check`
 
 Environment-gated:
