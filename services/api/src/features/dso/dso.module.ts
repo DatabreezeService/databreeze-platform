@@ -17,6 +17,7 @@ import {
 import { InMemoryDeviceCapabilityRepositoryAdapter } from './adapter/in-memory-device-capability-repository.adapter.js';
 import { InMemoryDataModePolicyRepositoryAdapter } from './adapter/in-memory-data-mode-policy-repository.adapter.js';
 import { DeviceSyncAuthorizationAdapter } from './adapter/device-sync-authorization.adapter.js';
+import type { DeviceIdentityAuthorityPortV1 } from './application/device-identity-authority.port.js';
 import { InMemoryDeviceAuthorizationRepositoryAdapter } from './adapter/in-memory-device-authorization-repository.adapter.js';
 import {
   DEVICE_SYNC_REPOSITORY_PORT,
@@ -72,6 +73,7 @@ export interface DsoModuleOptions {
   readonly requestTenantContext?: RequestTenantContextPortV1;
   readonly deviceSyncCursorSigner?: DeviceSyncCursorSignerV1;
   readonly deviceSyncAuthorization?: DeviceSyncAuthorizationPortV1;
+  readonly deviceIdentityAuthority?: DeviceIdentityAuthorityPortV1;
   readonly deviceAuthorizationRepository?: DeviceAuthorizationRepositoryPortV1;
 }
 
@@ -96,7 +98,7 @@ export class DsoModule {
     const authorizationService = new DeviceAuthorizationService(authorizationRepository);
     const authorization =
       options.deviceSyncAuthorization ??
-      new DeviceSyncAuthorizationAdapter(authorizationService);
+      new DeviceSyncAuthorizationAdapter(authorizationService, options.deviceIdentityAuthority);
     const capabilityRepository =
       options.deviceCapabilityRepository ??
       (options.deviceCapabilityDatabase === undefined
