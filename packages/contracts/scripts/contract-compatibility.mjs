@@ -44,7 +44,16 @@ function listFiles(root, directory = root) {
   return readdirSync(directory, { withFileTypes: true })
     .flatMap((entry) => {
       const path = resolve(directory, entry.name);
-      return entry.isDirectory() ? listFiles(root, path) : [toPosix(relative(root, path))];
+      const relativePath = toPosix(relative(root, path));
+      // uv/hatch editable-install metadata is not a public contract artifact.
+      if (
+        relativePath === 'python/build' ||
+        relativePath.startsWith('python/build/') ||
+        /^python\/[^/]+\.egg-info(?:\/|$)/u.test(relativePath)
+      ) {
+        return [];
+      }
+      return entry.isDirectory() ? listFiles(root, path) : [relativePath];
     })
     .sort(compareStrings);
 }

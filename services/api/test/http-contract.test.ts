@@ -208,3 +208,90 @@ void test('scrubs unexpected application errors into stable Problem Details', as
     },
   );
 });
+
+void test('sign-in returns a session DTO and maps authentication failures without provider details', async () => {
+  await withApp(
+    {
+      authentication: {
+        signIn: () =>
+          Promise.resolve({
+            accepted: true as const,
+            value: {
+              principal: {
+                userId: '00000000-0000-4000-8000-000000000001',
+                organizationId: '00000000-0000-4000-8000-000000000002',
+                workspaceId: '00000000-0000-4000-8000-000000000003',
+                securityEpoch: 2,
+                mfaRequired: true,
+              },
+              session: {
+                sessionId: '00000000-0000-4000-8000-000000000010',
+                accessToken: 'access-token',
+                refreshToken: 'refresh-token',
+                accessExpiresAt: '2026-01-01T00:15:00.000Z',
+              },
+            },
+          }),
+      },
+    },
+    async (app) => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/sign-in',
+        payload: {
+          email: 'user@example.com',
+          password: 'correct horse battery staple',
+          clientPlatform: 'web',
+        },
+      });
+      assert.equal(response.statusCode, 200);
+      assert.deepEqual(response.json(), {
+        sessionId: '00000000-0000-4000-8000-000000000010',
+        userId: '00000000-0000-4000-8000-000000000001',
+        organizationId: '00000000-0000-4000-8000-000000000002',
+        workspaceId: '00000000-0000-4000-8000-000000000003',
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+        accessExpiresAt: '2026-01-01T00:15:00.000Z',
+        securityEpoch: 2,
+        mfaRequired: true,
+      });
+      assertResponseIdentifiers(response);
+    },
+  );
+
+  await withApp(
+    {
+      authentication: {
+        signIn: () =>
+          Promise.resolve({ accepted: false as const, code: 'INVALID_CREDENTIALS' as const }),
+      },
+    },
+    async (app) => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/sign-in',
+        payload: {
+          email: 'user@example.com',
+          password: 'correct horse battery staple',
+          clientPlatform: 'web',
+        },
+      });
+      assertProblem(response, 401, 'AUTHENTICATION_FAILED');
+      assert.doesNotMatch(response.body, /INVALID_CREDENTIALS/);
+    },
+  );
+
+  await withApp({}, async (app) => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/sign-in',
+      payload: {
+        email: 'user@example.com',
+        password: 'correct horse battery staple',
+        clientPlatform: 'web',
+      },
+    });
+    assertProblem(response, 503, 'AUTHENTICATION_UNAVAILABLE');
+  });
+});

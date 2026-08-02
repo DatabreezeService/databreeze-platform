@@ -3,7 +3,7 @@ import test from 'node:test';
 
 async function loadPermissions() {
   try {
-    return await import('../src/permissions/v1.ts');
+    return await import('../dist/permissions/v1.js');
   } catch {
     return undefined;
   }

@@ -5,6 +5,7 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 
 import { AppModule } from './app.module.js';
+import type { IamModuleOptions } from './features/iam/iam.module.js';
 import type { ClientCompatibilityPort } from './features/system/application/client-compatibility.port.js';
 import type { ReadinessPort } from './features/system/application/readiness.port.js';
 import { ProblemDetailsFilter } from './platform/http/problem-details.filter.js';
@@ -17,7 +18,7 @@ export interface ApiApplication {
   readonly openApi: OpenAPIObject | object;
 }
 
-export interface ApiApplicationOptions {
+export interface ApiApplicationOptions extends IamModuleOptions {
   readonly compatibilityPort?: ClientCompatibilityPort;
   readonly readinessPort?: ReadinessPort;
 }

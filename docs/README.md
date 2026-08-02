@@ -28,7 +28,8 @@ The suite was reviewed in the legacy `BE_DataBreeze` repository and migrated int
 | `specs/` | Contains normative, testable product requirements grouped by foundation, platform, and feature. |
 | `decisions/` | Records important choices and the alternatives that were rejected. |
 | `plans/` | Contains implementation sequencing created only after the relevant specifications are approved. |
-| `operations/` | Will contain deployment, incident, backup, restoration, and support runbooks as implementation begins. |
+| `operations/` | Deployment, release-channel, secret, provider, backup, restoration, and support runbooks. |
+| `development/` | Clean-checkout, branch/review, boundary, and troubleshooting guidance. |
 | `superpowers/specs/` | Historical design material. A file there may be superseded by this suite. |
 
 ## Authority and Change Rules

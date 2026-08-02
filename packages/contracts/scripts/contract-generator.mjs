@@ -1195,9 +1195,18 @@ function listRelativeFiles(root, directory = resolve(root)) {
   return entries
     .flatMap((entry) => {
       const path = resolve(directory, entry.name);
-      return entry.isDirectory()
-        ? listRelativeFiles(root, path)
-        : [relative(resolve(root), path).replaceAll('\\', '/')];
+      const relativePath = relative(resolve(root), path).replaceAll('\\', '/');
+      // uv/hatch may create editable-install metadata beside the generated
+      // Python package. These are runtime build products, not contract output,
+      // and must not make a clean-checkout drift check fail.
+      if (
+        relativePath === 'python/build' ||
+        relativePath.startsWith('python/build/') ||
+        /^python\/[^/]+\.egg-info(?:\/|$)/u.test(relativePath)
+      ) {
+        return [];
+      }
+      return entry.isDirectory() ? listRelativeFiles(root, path) : [relativePath];
     })
     .sort(compareStrings);
 }

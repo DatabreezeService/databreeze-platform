@@ -45,8 +45,10 @@ test('uv exact-version parsing rejects prefix collisions and undocumented suffix
     isRequiredUvVersion('uv 0.11.32 (3010295ae 2026-07-23 x86_64-pc-windows-msvc)'),
     true,
   );
+  assert.equal(isRequiredUvVersion('uv 0.11.32 (linux-build x86_64-unknown-linux-gnu)'), true);
   assert.equal(isRequiredUvVersion('uv 0.11.320'), false);
   assert.equal(isRequiredUvVersion('uv 0.11.32 unexpected'), false);
+  assert.equal(isRequiredUvVersion(`uv 0.11.32 (${`x`.repeat(161)})`), false);
 });
 
 test(

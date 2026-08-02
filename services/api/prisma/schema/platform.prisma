@@ -1,13 +1,13 @@
 generator client {
   provider     = "prisma-client"
-  output       = "../build/prisma-client"
+  output       = "../../build/prisma-client"
   moduleFormat = "esm"
   engineType   = "client"
 }
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["platform", "system"]
+  schemas  = ["platform", "system", "iam", "iae"]
 }
 
 /// Platform-owned registry documenting database-schema ownership boundaries.

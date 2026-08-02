@@ -19,10 +19,35 @@
     "./authorization/v1": {
       "types": "./src/authorization/v1.ts",
       "import": "./dist/authorization/v1.js"
+    },
+    "./audit/v1": {
+      "types": "./src/audit/v1.ts",
+      "import": "./dist/audit/v1.js"
+    },
+    "./identity/v1": {
+      "types": "./src/identity/v1.ts",
+      "import": "./dist/identity/v1.js"
+    },
+    "./entitlements/v1": {
+      "types": "./src/entitlements/v1.ts",
+      "import": "./dist/entitlements/v1.js"
+    },
+    "./mfa/v1": {
+      "types": "./src/mfa/v1.ts",
+      "import": "./dist/mfa/v1.js"
+    },
+    "./device-authorization/v1": {
+      "types": "./src/device-authorization/v1.ts",
+      "import": "./dist/device-authorization/v1.js"
+    },
+    "./artifact/v1": {
+      "types": "./src/artifact/v1.ts",
+      "import": "./dist/artifact/v1.js"
     }
   },
   "scripts": {
     "build": "tsc --project tsconfig.build.json && node test/built-public-api-smoke.mjs",
+    "pretest": "pnpm build",
     "test": "node --test test/**/*.test.mjs",
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },
