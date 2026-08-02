@@ -8,6 +8,8 @@ import { DEVICE_CAPABILITY_REPOSITORY_PORT } from '../../../src/features/dso/app
 import { PrismaDeviceCapabilityRepositoryAdapter } from '../../../src/features/dso/adapter/prisma-device-capability-repository.adapter.js';
 import { DEVICE_SYNC_AUTHORIZATION } from '../../../src/features/dso/application/device-sync-authorization.port.js';
 import { DeviceSyncAuthorizationAdapter } from '../../../src/features/dso/adapter/device-sync-authorization.adapter.js';
+import { DATA_MODE_POLICY_REPOSITORY_PORT } from '../../../src/features/dso/application/data-mode-policy-repository.port.js';
+import { PrismaDataModePolicyRepositoryAdapter } from '../../../src/features/dso/adapter/prisma-data-mode-policy-repository.adapter.js';
 
 function provider(module: ReturnType<typeof DsoModule.register>, token: symbol) {
   const match = module.providers?.find(
@@ -34,4 +36,10 @@ void test('[IAM-020, DSO-005] DSO composition passes the IAM identity authority 
   const authority = { inspect: async () => ({ accepted: false as const, code: 'DEVICE_REVOKED' as const }) };
   const registered = DsoModule.register({ deviceIdentityAuthority: authority });
   assert.ok(provider(registered, DEVICE_SYNC_AUTHORIZATION) instanceof DeviceSyncAuthorizationAdapter);
+});
+
+void test('[DSO-008, DSO-026] production DSO composition selects durable data-mode policy storage', () => {
+  const database = {} as never;
+  const registered = DsoModule.register({ dataModePolicyDatabase: database });
+  assert.ok(provider(registered, DATA_MODE_POLICY_REPOSITORY_PORT) instanceof PrismaDataModePolicyRepositoryAdapter);
 });

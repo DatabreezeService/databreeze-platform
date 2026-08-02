@@ -2,6 +2,7 @@ import { type DynamicModule, Module } from '@nestjs/common';
 
 import { DeviceSyncController } from './api/device-sync.controller.js';
 import { DeviceCapabilityController } from './api/device-capability.controller.js';
+import { DataModePolicyController } from './api/data-mode-policy.controller.js';
 import { InMemoryDeviceSyncRepositoryAdapter } from './adapter/in-memory-device-sync-repository.adapter.js';
 import {
   PrismaDeviceSyncRepositoryAdapter,
@@ -17,6 +18,10 @@ import {
 } from './adapter/prisma-device-capability-repository.adapter.js';
 import { InMemoryDeviceCapabilityRepositoryAdapter } from './adapter/in-memory-device-capability-repository.adapter.js';
 import { InMemoryDataModePolicyRepositoryAdapter } from './adapter/in-memory-data-mode-policy-repository.adapter.js';
+import {
+  PrismaDataModePolicyRepositoryAdapter,
+  type DataModePolicyDatabaseClientV1,
+} from './adapter/prisma-data-mode-policy-repository.adapter.js';
 import { DeviceSyncAuthorizationAdapter } from './adapter/device-sync-authorization.adapter.js';
 import type { DeviceIdentityAuthorityPortV1 } from './application/device-identity-authority.port.js';
 import { InMemoryDeviceAuthorizationRepositoryAdapter } from './adapter/in-memory-device-authorization-repository.adapter.js';
@@ -50,6 +55,7 @@ import {
   DATA_MODE_POLICY_REPOSITORY_PORT,
   type DataModePolicyRepositoryPortV1,
 } from './application/data-mode-policy-repository.port.js';
+import { DATA_MODE_POLICY_SERVICE, DataModePolicyService } from './application/data-mode-policy.service.js';
 import {
   DEVICE_CAPABILITY_REPOSITORY_PORT,
   type DeviceCapabilityRepositoryPortV1,
@@ -71,6 +77,7 @@ export interface DsoModuleOptions {
   readonly deviceCapabilityDatabase?: DeviceCapabilityDatabaseClientV1;
   readonly deviceCapabilityRepository?: DeviceCapabilityRepositoryPortV1;
   readonly dataModePolicyRepository?: DataModePolicyRepositoryPortV1;
+  readonly dataModePolicyDatabase?: DataModePolicyDatabaseClientV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
   readonly deviceSyncCursorSigner?: DeviceSyncCursorSignerV1;
   readonly deviceSyncAuthorization?: DeviceSyncAuthorizationPortV1;
@@ -90,7 +97,11 @@ function useCase(
 export class DsoModule {
   public static register(options: DsoModuleOptions = {}): DynamicModule {
     const policyRepository =
-      options.dataModePolicyRepository ?? new InMemoryDataModePolicyRepositoryAdapter();
+      options.dataModePolicyRepository ??
+      (options.dataModePolicyDatabase === undefined
+        ? new InMemoryDataModePolicyRepositoryAdapter()
+        : new PrismaDataModePolicyRepositoryAdapter(options.dataModePolicyDatabase));
+    const policyService = new DataModePolicyService(policyRepository);
     const authorizationRepository =
       options.deviceAuthorizationRepository ??
       (options.deviceAuthorizationDatabase === undefined
@@ -108,7 +119,7 @@ export class DsoModule {
     const capabilityService = new DeviceCapabilityService(capabilityRepository);
     return {
       module: DsoModule,
-      controllers: [DeviceSyncController, DeviceCapabilityController],
+      controllers: [DeviceSyncController, DeviceCapabilityController, DataModePolicyController],
       providers: [
         {
           provide: DEVICE_AUTHORIZATION_REPOSITORY_PORT,
@@ -131,6 +142,7 @@ export class DsoModule {
               : new PrismaDeviceSyncRepositoryAdapter(options.deviceSyncDatabase)),
         },
         { provide: DATA_MODE_POLICY_REPOSITORY_PORT, useValue: policyRepository },
+        { provide: DATA_MODE_POLICY_SERVICE, useValue: policyService },
         { provide: DEVICE_SYNC_AUTHORIZATION, useValue: authorization },
         {
           provide: DEVICE_SYNC_CURSOR_SIGNER,
@@ -154,6 +166,8 @@ export class DsoModule {
         DEVICE_SYNC_USE_CASE,
         DEVICE_CAPABILITY_REPOSITORY_PORT,
         DEVICE_CAPABILITY_SERVICE,
+        DATA_MODE_POLICY_REPOSITORY_PORT,
+        DATA_MODE_POLICY_SERVICE,
       ],
     };
   }

@@ -8,6 +8,8 @@ import {
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type { DataModePolicyRepositoryPortV1 } from './data-mode-policy-repository.port.js';
 
+export const DATA_MODE_POLICY_SERVICE = Symbol('DATA_MODE_POLICY_SERVICE');
+
 function rejected<TValue>(
   code: 'INVALID_IDENTIFIER' | 'POLICY_BROADENS_PARENT',
 ): DataModePolicyResultV1<TValue> {
