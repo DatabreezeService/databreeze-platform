@@ -23,13 +23,21 @@ function immutableState(existing: MfaStateV1, next: MfaStateV1): boolean {
       (prior.userId !== factor.userId || prior.secretReference !== factor.secretReference)
     )
       return false;
-    if (prior && factor.revision !== prior.revision && factor.revision !== prior.revision + 1)
+    if (
+      prior &&
+      JSON.stringify(prior) !== JSON.stringify(factor) &&
+      factor.revision !== prior.revision + 1
+    )
       return false;
   }
   for (const code of next.recoveryCodes) {
     const prior = existingCodes.get(code.id);
     if (prior && (prior.userId !== code.userId || prior.digest !== code.digest)) return false;
-    if (prior && code.revision !== prior.revision && code.revision !== prior.revision + 1)
+    if (
+      prior &&
+      JSON.stringify(prior) !== JSON.stringify(code) &&
+      code.revision !== prior.revision + 1
+    )
       return false;
   }
   return true;
