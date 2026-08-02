@@ -22,6 +22,9 @@ Task: `FND-003 — Close local infrastructure gaps`
   check, providing the entry point for persistence evidence.
 - `persistence-check` writes a five-minute Redis sentinel, restarts only Redis,
   verifies the sentinel, and deletes it; it never flushes a database or volume.
+- The documented lifecycle command set includes `config`, `preflight`, `check`,
+  `start`, `stop`, `reset`, `restart-check`, `persistence-check`, `status`,
+  `logs`, and the legacy `smoke` entry point.
 
 ## Verification
 
