@@ -7,6 +7,7 @@ import { DsmModule, type DsmModuleOptions } from './features/dsm/dsm.module.js';
 import { DsoModule, type DsoModuleOptions } from './features/dso/dso.module.js';
 import { AudModule, type AudModuleOptions } from './features/aud/aud.module.js';
 import { BuaModule, type BuaModuleOptions } from './features/bua/bua.module.js';
+import { SaModule, type SaModuleOptions } from './features/sa/sa.module.js';
 import { SessionRequestTenantContextAdapter } from './platform/http/session-tenant-context.adapter.js';
 
 export type AppModuleOptions = SystemModuleOptions &
@@ -15,7 +16,8 @@ export type AppModuleOptions = SystemModuleOptions &
   DsmModuleOptions &
   DsoModuleOptions &
   AudModuleOptions &
-  BuaModuleOptions;
+  BuaModuleOptions &
+  SaModuleOptions;
 
 @Module({})
 export class AppModule {
@@ -40,6 +42,7 @@ export class AppModule {
         DsoModule.register(composedOptions),
         AudModule.register(composedOptions),
         BuaModule.register(composedOptions),
+        SaModule.register(composedOptions),
       ],
     };
   }

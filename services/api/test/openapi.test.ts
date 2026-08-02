@@ -142,6 +142,8 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       '/v1/reference-entities/{entityId}/resolutions',
       '/v1/reference-entities/{entityId}/versions',
       '/v1/reference-entities/{entityId}/versions/{versionId}',
+      '/v1/spreadsheet-audits',
+      '/v1/spreadsheet-audits/{auditId}',
       '/v1/system/compatibility',
       '/v1/system/compatibility/check',
     ]);

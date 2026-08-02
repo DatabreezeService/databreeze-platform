@@ -9,6 +9,7 @@ import type { IamModuleOptions } from './features/iam/iam.module.js';
 import type { IaeModuleOptions } from './features/iae/iae.module.js';
 import type { DsmModuleOptions } from './features/dsm/dsm.module.js';
 import type { DsoModuleOptions } from './features/dso/dso.module.js';
+import type { SaModuleOptions } from './features/sa/sa.module.js';
 import type { ClientCompatibilityPort } from './features/system/application/client-compatibility.port.js';
 import type { ReadinessPort } from './features/system/application/readiness.port.js';
 import { ProblemDetailsFilter } from './platform/http/problem-details.filter.js';
@@ -28,7 +29,8 @@ export interface ApiApplicationOptions
   extends IamModuleOptions,
     IaeModuleOptions,
     DsmModuleOptions,
-    DsoModuleOptions {
+    DsoModuleOptions,
+    SaModuleOptions {
   readonly compatibilityPort?: ClientCompatibilityPort;
   readonly readinessPort?: ReadinessPort;
   readonly requestContext?: RequestContextOptions;
