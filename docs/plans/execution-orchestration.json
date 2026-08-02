@@ -1,0 +1,210 @@
+{
+  "version": 1,
+  "program": "DataBreeze complete platform delivery",
+  "authority": {
+    "requirements": "docs/plans/requirement-traceability.json",
+    "execution": "docs/plans/002-complete-execution-orchestration.md",
+    "resumeProtocol": "docs/plans/003-luna-handoff-runbook.md"
+  },
+  "requirementTotals": {
+    "total": 611,
+    "byPriority": {
+      "P0": 444,
+      "P1": 154,
+      "P2": 13
+    }
+  },
+  "checkpoint": {
+    "observedAt": "2026-08-02T09:00:00Z",
+    "remoteDev": "b21642b",
+    "remoteMain": "8ac8bca",
+    "lastFeaturePullRequest": 7,
+    "lastPromotionPullRequest": 8,
+    "openPullRequestsObserved": 0,
+    "note": "Historical observation only; every session must fetch and recompute current state."
+  },
+  "reviewPolicy": {
+    "featurePullRequest": {
+      "base": "dev",
+      "codeRabbit": false,
+      "mergeAfterHostedChecks": true
+    },
+    "promotionPullRequest": {
+      "base": "main",
+      "head": "dev",
+      "codeRabbitInvocations": 1,
+      "requireFullReview": true,
+      "maximumFilesBeforeOpening": 280
+    },
+    "commitBudget": {
+      "preferredMinimum": 30,
+      "preferredMaximum": 50,
+      "hardMaximum": 60
+    }
+  },
+  "statusVocabulary": [
+    "partial-needs-reconciliation",
+    "planned",
+    "in-progress",
+    "implemented",
+    "verified",
+    "released",
+    "post-ga-planned",
+    "blocked"
+  ],
+  "nextTaskId": "FND-001",
+  "plans": [
+    {
+      "planId": "010",
+      "file": "010-engineering-foundation.md",
+      "requirementCount": 0,
+      "dependencies": [],
+      "status": "partial-needs-reconciliation",
+      "taskIds": ["FND-001", "FND-002", "FND-003", "FND-004", "FND-005", "FND-006", "FND-007"]
+    },
+    {
+      "planId": "020",
+      "file": "020-identity-audit-entitlements.md",
+      "requirementCount": 67,
+      "dependencies": ["010"],
+      "status": "partial-needs-reconciliation",
+      "taskIds": ["IAM-001", "IAM-002", "IAM-003", "IAM-004", "IAM-005", "AUD-001", "AUD-002", "BUA-001", "BUA-002", "IAM-006", "IAM-007"]
+    },
+    {
+      "planId": "030",
+      "file": "030-artifacts-datasets-evidence.md",
+      "requirementCount": 47,
+      "dependencies": ["020"],
+      "status": "partial-needs-reconciliation",
+      "taskIds": ["IAE-001", "IAE-002", "IAE-003", "IAE-004", "IAE-005", "DSM-001", "DSM-002", "DSM-003", "IAE-006", "IAE-007"]
+    },
+    {
+      "planId": "040",
+      "file": "040-jobs-processing-approvals.md",
+      "requirementCount": 30,
+      "dependencies": ["030"],
+      "status": "partial-needs-reconciliation",
+      "taskIds": ["JRA-001", "JRA-002", "JRA-003", "JRA-004", "JRA-005", "JRA-006", "JRA-007", "JRA-008", "JRA-009", "JRA-010", "JRA-011"]
+    },
+    {
+      "planId": "050",
+      "file": "050-devices-sync-offline.md",
+      "requirementCount": 76,
+      "dependencies": ["040"],
+      "status": "partial-needs-reconciliation",
+      "taskIds": ["DSO-001", "DSO-002", "DSO-003", "DSO-004", "DSO-005", "DSO-006", "DSO-007", "DSO-008", "DSO-009", "DSO-010"]
+    },
+    {
+      "planId": "060",
+      "file": "060-collaboration-integrations.md",
+      "requirementCount": 42,
+      "dependencies": ["050"],
+      "status": "planned",
+      "taskIds": ["NCO-001", "NCO-002", "NCO-003", "NCO-004", "INT-001", "INT-002", "INT-003", "INT-004", "NCO-005", "INT-005"]
+    },
+    {
+      "planId": "070",
+      "file": "070-dogfood-folder-spreadsheet.md",
+      "requirementCount": 0,
+      "dependencies": ["060"],
+      "status": "planned",
+      "taskIds": ["DOG-001", "DOG-002", "DOG-003", "DOG-004", "DOG-005", "DOG-006", "DOG-007"]
+    },
+    {
+      "planId": "100",
+      "file": "100-folder-autopilot.md",
+      "requirementCount": 34,
+      "dependencies": ["070"],
+      "status": "planned",
+      "taskIds": ["FA-001", "FA-002", "FA-003", "FA-004", "FA-005", "FA-006", "FA-007"]
+    },
+    {
+      "planId": "110",
+      "file": "110-spreadsheet-auditor.md",
+      "requirementCount": 27,
+      "dependencies": ["100"],
+      "status": "planned",
+      "taskIds": ["SA-001", "SA-002", "SA-003", "SA-004", "SA-005", "SA-006", "SA-007"]
+    },
+    {
+      "planId": "120",
+      "file": "120-quote-intelligence.md",
+      "requirementCount": 27,
+      "dependencies": ["070"],
+      "status": "planned",
+      "taskIds": ["QI-001", "QI-002", "QI-003", "QI-004", "QI-005", "QI-006", "QI-007"]
+    },
+    {
+      "planId": "130",
+      "file": "130-operations-capture.md",
+      "requirementCount": 40,
+      "dependencies": ["070"],
+      "status": "planned",
+      "taskIds": ["OC-001", "OC-002", "OC-003", "OC-004", "OC-005", "OC-006", "OC-007", "OC-008"]
+    },
+    {
+      "planId": "200",
+      "file": "200-invoice-leak-detector.md",
+      "requirementCount": 27,
+      "dependencies": ["120"],
+      "status": "planned",
+      "taskIds": ["ILD-001", "ILD-002", "ILD-003", "ILD-004", "ILD-005", "ILD-006", "ILD-007"]
+    },
+    {
+      "planId": "210",
+      "file": "210-client-report-factory.md",
+      "requirementCount": 27,
+      "dependencies": ["110", "120"],
+      "status": "planned",
+      "taskIds": ["CRF-001", "CRF-002", "CRF-003", "CRF-004", "CRF-005", "CRF-006", "CRF-007"]
+    },
+    {
+      "planId": "220",
+      "file": "220-private-data-analyst.md",
+      "requirementCount": 37,
+      "dependencies": ["130", "210"],
+      "status": "planned",
+      "taskIds": ["PDA-001", "PDA-002", "PDA-003", "PDA-004", "PDA-005", "PDA-006", "PDA-007", "PDA-008"]
+    },
+    {
+      "planId": "300",
+      "file": "300-migration-ready.md",
+      "requirementCount": 32,
+      "dependencies": ["220"],
+      "status": "planned",
+      "taskIds": ["MR-001", "MR-002", "MR-003", "MR-004", "MR-005", "MR-006", "MR-007"]
+    },
+    {
+      "planId": "310",
+      "file": "310-data-quality-guard.md",
+      "requirementCount": 35,
+      "dependencies": ["200", "300"],
+      "status": "planned",
+      "taskIds": ["DQG-001", "DQG-002", "DQG-003", "DQG-004", "DQG-005", "DQG-006", "DQG-007", "DQG-008"]
+    },
+    {
+      "planId": "320",
+      "file": "320-embedded-importer.md",
+      "requirementCount": 27,
+      "dependencies": ["050", "060"],
+      "status": "planned",
+      "taskIds": ["EI-001", "EI-002", "EI-003", "EI-004", "EI-005", "EI-006", "EI-007"]
+    },
+    {
+      "planId": "400",
+      "file": "400-production-readiness.md",
+      "requirementCount": 23,
+      "dependencies": ["300", "310", "320"],
+      "status": "planned",
+      "taskIds": ["GA-001", "GA-002", "GA-003", "GA-004", "GA-005", "GA-006", "GA-007", "GA-008", "GA-009", "GA-010", "GA-011", "GA-012"]
+    },
+    {
+      "planId": "500",
+      "file": "500-post-ga-extensions.md",
+      "requirementCount": 13,
+      "dependencies": ["400"],
+      "status": "post-ga-planned",
+      "taskIds": ["P2-001", "P2-002", "P2-003", "P2-004"]
+    }
+  ]
+}
