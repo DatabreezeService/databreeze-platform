@@ -253,6 +253,10 @@ export class CreateDeviceTransferReceiptDto {
 export class PullDeviceSyncDto {
   @ApiProperty({ format: 'uuid' })
   @IsUUID()
+  grantId!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
   deviceId!: string;
 
   @ApiProperty({ additionalProperties: true })
@@ -304,6 +308,10 @@ export class PullDeviceSyncDto {
 }
 
 export class PushDeviceSyncDto {
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
+  grantId!: string;
+
   @ApiProperty({ additionalProperties: true })
   @IsObject()
   batch!: Record<string, unknown>;

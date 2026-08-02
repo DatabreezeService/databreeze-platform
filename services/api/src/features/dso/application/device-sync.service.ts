@@ -38,6 +38,10 @@ import type {
   DeviceSyncOperationTransitionV1,
   DeviceSyncRepositoryPortV1,
 } from './device-sync-repository.port.js';
+import type {
+  DeviceSyncAuthorizationEffectV1,
+  DeviceSyncAuthorizationPortV1,
+} from './device-sync-authorization.port.js';
 
 export type DeviceSyncServiceErrorCodeV1 =
   | DeviceSyncErrorCodeV1
@@ -51,7 +55,13 @@ export type DeviceSyncServiceErrorCodeV1 =
   | 'POLICY_DENIED'
   | 'REVISION_CONFLICT'
   | 'IMMUTABLE_RECORD'
-  | 'RECEIPT_MISMATCH';
+  | 'RECEIPT_MISMATCH'
+  | 'DEVICE_AUTHORIZATION_REQUIRED'
+  | 'AUTHORIZATION_UNAVAILABLE'
+  | 'DEVICE_REVOKED'
+  | 'GRANT_REVOKED'
+  | 'GRANT_EXPIRED'
+  | 'GRANT_SCOPE_DENIED';
 
 export type DeviceSyncServiceResultV1<TValue> =
   | DeviceSyncResultV1<TValue>
@@ -173,6 +183,7 @@ export class DeviceSyncService {
   public constructor(
     private readonly repository: DeviceSyncRepositoryPortV1,
     private readonly policy?: DeviceSyncPolicyPortV1,
+    private readonly authorization?: DeviceSyncAuthorizationPortV1,
   ) {}
 
   public async enqueue(
@@ -224,6 +235,7 @@ export class DeviceSyncService {
       readonly now: unknown;
       readonly minimumRevision: unknown;
       readonly signer: DeviceSyncCursorSignerV1;
+      readonly grantId?: unknown;
       readonly nextCursorId?: unknown;
       readonly pageSize?: unknown;
       readonly policyVersionId?: unknown;
@@ -234,6 +246,14 @@ export class DeviceSyncService {
   ): Promise<DeviceSyncServiceResultV1<DeviceSyncBatchV1>> {
     if (!input.cursor || typeof input.cursor !== 'object') return rejected('INVALID_CURSOR');
     const cursor = input.cursor as DeviceSyncCursorV1;
+    const authorized = await this.authorizeDevice(context, {
+      deviceId: input.deviceId,
+      tenantScope: cursor.tenantScope,
+      grantId: input.grantId,
+      effect: 'READ',
+      now: input.now,
+    });
+    if (!authorized.accepted) return authorized;
     const verification = cursorForVerification(context, cursor, input, input.signer);
     if (!verification.accepted) return verification;
     const limit = pageSize(input.pageSize);
@@ -291,12 +311,21 @@ export class DeviceSyncService {
       readonly now: unknown;
       readonly minimumRevision: unknown;
       readonly signer: DeviceSyncCursorSignerV1;
+      readonly grantId?: unknown;
     },
   ): Promise<DeviceSyncServiceResultV1<DeviceSyncPushResponseV1>> {
     const batch = createDeviceSyncBatchV1(
       input.batch as Parameters<typeof createDeviceSyncBatchV1>[0],
     );
     if (!batch.accepted) return batch;
+    const authorized = await this.authorizeDevice(context, {
+      deviceId: batch.value.deviceId,
+      tenantScope: batch.value.tenantScope,
+      grantId: input.grantId,
+      effect: 'WRITE_DERIVATIVE',
+      now: input.now,
+    });
+    if (!authorized.accepted) return authorized;
     const verification = cursorForVerification(context, batch.value.cursor, {
       now: input.now,
       deviceId: batch.value.deviceId,
@@ -327,6 +356,28 @@ export class DeviceSyncService {
       items.push(Object.freeze({ operationId: change.operationId, result }));
     }
     return Object.freeze({ accepted: true, value: Object.freeze({ cursor: batch.value.cursor, items }) });
+  }
+
+  private async authorizeDevice(
+    context: IamTenantContextV1,
+    input: {
+      readonly deviceId: unknown;
+      readonly tenantScope: unknown;
+      readonly grantId?: unknown;
+      readonly effect: DeviceSyncAuthorizationEffectV1;
+      readonly now: unknown;
+    },
+  ): Promise<DeviceSyncServiceResultV1<true>> {
+    if (input.grantId === undefined) return rejected('DEVICE_AUTHORIZATION_REQUIRED');
+    if (!this.authorization) return rejected('AUTHORIZATION_UNAVAILABLE');
+    const result = await this.authorization.authorize(context, {
+      deviceId: input.deviceId,
+      tenantScope: input.tenantScope,
+      grantId: input.grantId,
+      effect: input.effect,
+      now: input.now,
+    });
+    return result.accepted ? result : rejected(result.code);
   }
 
   public async transition(

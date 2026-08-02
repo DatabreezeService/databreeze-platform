@@ -7,6 +7,7 @@ import { InMemoryDataModePolicyRepositoryAdapter } from '../../../src/features/d
 import { InMemoryDeviceSyncRepositoryAdapter } from '../../../src/features/dso/adapter/in-memory-device-sync-repository.adapter.js';
 import { DataModePolicyService } from '../../../src/features/dso/application/data-mode-policy.service.js';
 import { DeviceSyncService } from '../../../src/features/dso/application/device-sync.service.js';
+import type { DeviceSyncAuthorizationPortV1 } from '../../../src/features/dso/application/device-sync-authorization.port.js';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
 
 const organizationId = '00000000-0000-4000-8000-000000000001';
@@ -26,6 +27,16 @@ const digest = 'a'.repeat(64);
 const signer = {
   sign: (payload: string) => `sig:${payload}`,
   verify: (payload: string, signature: string) => signature === `sig:${payload}`,
+};
+const grantId = '00000000-0000-4000-8000-000000000036';
+
+const authorization: DeviceSyncAuthorizationPortV1 = {
+  authorize: (_context, input) =>
+    Promise.resolve(
+      input.grantId === grantId
+        ? { accepted: true as const, value: true as const }
+        : { accepted: false as const, code: 'GRANT_SCOPE_DENIED' as const },
+    ),
 };
 
 function context(scopeWorkspaceId: string, idempotencyKey: string, expectedRevision?: number) {
@@ -73,7 +84,7 @@ function packageInput(overrides: Record<string, unknown> = {}) {
 }
 
 void test('[DSO-011, DSO-012, DSO-014] sync enqueue is idempotent and tenant scoped', async () => {
-  const service = new DeviceSyncService(new InMemoryDeviceSyncRepositoryAdapter());
+  const service = new DeviceSyncService(new InMemoryDeviceSyncRepositoryAdapter(), undefined, authorization);
   const first = await service.enqueue(context(workspaceId, 'sync-1'), operationInput());
   const replay = await service.enqueue(context(workspaceId, 'sync-1'), operationInput());
   assert.equal(first.accepted, true);
@@ -192,7 +203,7 @@ void test('[DSO-007, DSO-008] policy denies payloads that are not approved for t
 });
 
 void test('[DSO-007, DSO-014, DSO-017] pull returns an opaque, ordered batch and advances its cursor', async () => {
-  const service = new DeviceSyncService(new InMemoryDeviceSyncRepositoryAdapter());
+  const service = new DeviceSyncService(new InMemoryDeviceSyncRepositoryAdapter(), undefined, authorization);
   const created = await service.enqueue(context(workspaceId, 'pull-seed'), operationInput());
   assert.equal(created.accepted, true);
   const cursor = createDeviceSyncCursorV1(
@@ -217,6 +228,7 @@ void test('[DSO-007, DSO-014, DSO-017] pull returns an opaque, ordered batch and
     now: '2026-01-01T00:00:01.000Z',
     minimumRevision: 0,
     signer,
+    grantId,
     nextCursorId: '00000000-0000-4000-8000-000000000031',
     pageSize: 10,
   });
@@ -230,7 +242,7 @@ void test('[DSO-007, DSO-014, DSO-017] pull returns an opaque, ordered batch and
 });
 
 void test('[DSO-011, DSO-014] push derives idempotency per change and rejects a stale cursor', async () => {
-  const service = new DeviceSyncService(new InMemoryDeviceSyncRepositoryAdapter());
+  const service = new DeviceSyncService(new InMemoryDeviceSyncRepositoryAdapter(), undefined, authorization);
   const cursor = createDeviceSyncCursorV1(
     {
       cursorId: '00000000-0000-4000-8000-000000000032',
@@ -273,6 +285,7 @@ void test('[DSO-011, DSO-014] push derives idempotency per change and rejects a 
     now: '2026-01-01T00:00:02.000Z',
     minimumRevision: 0,
     signer,
+    grantId,
   });
   assert.equal(pushed.accepted, true);
   if (!pushed.accepted) return;
@@ -283,7 +296,7 @@ void test('[DSO-011, DSO-014] push derives idempotency per change and rejects a 
   const staleContext = context(workspaceId, 'push-stale');
   const stale = await service.push(
     { ...staleContext, authorizationEpoch: 2 },
-    { batch, now: '2026-01-01T00:00:02.000Z', minimumRevision: 0, signer },
+    { batch, now: '2026-01-01T00:00:02.000Z', minimumRevision: 0, signer, grantId },
   );
   assert.deepEqual(stale, { accepted: false, code: 'CURSOR_STALE' });
 });

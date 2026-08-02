@@ -1,5 +1,6 @@
 import {
   checkOpaqueDeviceGrantV1,
+  checkOpaqueDeviceGrantEffectV1,
   createAuthorizationSnapshotV1,
   createOpaqueDeviceGrantV1,
   verifyAuthorizationSnapshotV1,
@@ -17,7 +18,11 @@ import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js
 import type { DeviceAuthorizationRepositoryPortV1 } from './device-authorization-repository.port.js';
 
 function rejected<TValue>(
-  code: 'INVALID_IDENTIFIER' | 'GRANT_EXPIRED',
+  code:
+    | 'INVALID_IDENTIFIER'
+    | 'GRANT_EXPIRED'
+    | 'GRANT_SCOPE_DENIED'
+    | 'INVALID_EFFECT',
 ): DeviceAuthorizationResultV1<TValue> {
   return Object.freeze({ accepted: false, code });
 }
@@ -75,6 +80,28 @@ export class DeviceAuthorizationService {
       const grant = await transaction.findGrant(context, grantId);
       if (!grant) return rejected('GRANT_EXPIRED');
       return checkOpaqueDeviceGrantV1(grant, input);
+    });
+  }
+
+  public async checkGrantEffect(
+    context: IamTenantContextV1,
+    grantIdInput: unknown,
+    input: Parameters<typeof checkOpaqueDeviceGrantV1>[1] & {
+      readonly effect: unknown;
+    },
+  ): Promise<DeviceAuthorizationResultV1<true>> {
+    const grantId = stable(grantIdInput);
+    if (!grantId) return rejected('INVALID_IDENTIFIER');
+    return this.repository.withTransaction(context, async (transaction) => {
+      const grant = await transaction.findGrant(context, grantId);
+      if (!grant) return rejected('GRANT_EXPIRED');
+      const checked = checkOpaqueDeviceGrantV1(grant, input);
+      if (!checked.accepted) {
+        return checked.code === 'SNAPSHOT_STALE'
+          ? rejected('GRANT_SCOPE_DENIED')
+          : checked;
+      }
+      return checkOpaqueDeviceGrantEffectV1(grant, input.effect);
     });
   }
 

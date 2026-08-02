@@ -2309,6 +2309,7 @@
       "PullDeviceSyncDto": {
         "type": "object",
         "properties": {
+          "grantId": { "type": "string", "format": "uuid" },
           "deviceId": { "type": "string", "format": "uuid" },
           "cursor": { "type": "object", "additionalProperties": true },
           "now": { "type": "string", "format": "date-time" },
@@ -2320,16 +2321,17 @@
           "dataMode": { "type": "string", "enum": ["Local", "Hybrid", "Cloud"] },
           "protocolVersion": { "type": "string", "maxLength": 32 }
         },
-        "required": ["deviceId", "cursor", "now", "minimumRevision"]
+        "required": ["grantId", "deviceId", "cursor", "now", "minimumRevision"]
       },
       "PushDeviceSyncDto": {
         "type": "object",
         "properties": {
+          "grantId": { "type": "string", "format": "uuid" },
           "batch": { "type": "object", "additionalProperties": true },
           "now": { "type": "string", "format": "date-time" },
           "minimumRevision": { "type": "number", "minimum": 0 }
         },
-        "required": ["batch", "now", "minimumRevision"]
+        "required": ["grantId", "batch", "now", "minimumRevision"]
       },
       "TransitionDeviceSyncOperationDto": {
         "type": "object",

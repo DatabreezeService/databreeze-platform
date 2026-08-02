@@ -12,6 +12,7 @@ export const DEVICE_AUTHORIZATION_SCHEMA_VERSION_V1 = 1 as const;
 export const DEVICE_AUTHORIZATION_MAX_SECONDS_V1 = 24 * 60 * 60;
 
 export type DeviceDataModeV1 = 'Local' | 'Hybrid' | 'Cloud';
+export type DeviceAuthorizationEffectV1 = 'READ' | 'WRITE_DERIVATIVE' | 'WATCH';
 
 export interface AuthorizationSnapshotV1 {
   readonly schemaVersion: typeof DEVICE_AUTHORIZATION_SCHEMA_VERSION_V1;
@@ -62,7 +63,9 @@ export type DeviceAuthorizationErrorCodeV1 =
   | 'SIGNATURE_INVALID'
   | 'SNAPSHOT_STALE'
   | 'GRANT_REVOKED'
-  | 'GRANT_EXPIRED';
+  | 'GRANT_EXPIRED'
+  | 'GRANT_SCOPE_DENIED'
+  | 'EFFECT_DENIED';
 
 export type DeviceAuthorizationResultV1<TValue> =
   | { readonly accepted: true; readonly value: TValue }
@@ -306,4 +309,15 @@ export function checkOpaqueDeviceGrantV1(
   if (grant.deviceId !== deviceId || !sameScope(grant.tenantScope, tenantScope))
     return rejected('SNAPSHOT_STALE');
   return Object.freeze({ accepted: true, value: true });
+}
+
+export function checkOpaqueDeviceGrantEffectV1(
+  grant: OpaqueDeviceGrantV1,
+  effect: unknown,
+): DeviceAuthorizationResultV1<true> {
+  if (effect !== 'READ' && effect !== 'WRITE_DERIVATIVE' && effect !== 'WATCH')
+    return rejected('INVALID_EFFECT');
+  return grant.effects.includes(effect)
+    ? Object.freeze({ accepted: true, value: true })
+    : rejected('EFFECT_DENIED');
 }
