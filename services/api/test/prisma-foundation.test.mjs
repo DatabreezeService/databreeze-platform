@@ -49,12 +49,14 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "aud"/);
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "bua"/);
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "dsm"/);
+  assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "jra"/);
   assert.match(diff.stdout, /CREATE TABLE "platform"\."schema_registry"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."users"/);
   assert.match(diff.stdout, /CREATE TABLE "iae"\."artifact_versions"/);
   assert.match(diff.stdout, /CREATE TABLE "aud"\."audit_events"/);
   assert.match(diff.stdout, /CREATE TABLE "bua"\."usage_ledger_entries"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_definitions"/);
+  assert.match(diff.stdout, /CREATE TABLE "jra"\."jobs"/);
 
   const migrationsDirectory = path.join(apiDirectory, 'prisma', 'migrations');
   const inventory = (await readdir(migrationsDirectory)).sort();
@@ -65,6 +67,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802020000_aud_audit_ledger',
     '20260802030000_bua_entitlement_usage',
     '20260802040000_dsm_dataset_definitions',
+    '20260802050000_jra_jobs_approvals',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -137,5 +140,17 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     'CREATE UNIQUE INDEX "dataset_definitions_dataset_version_key"',
   ]) {
     assert.match(dsmMigration, new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  const jraMigration = await readFile(
+    path.join(migrationsDirectory, inventory[6], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE SCHEMA IF NOT EXISTS "jra"',
+    'CREATE TABLE "jra"."jobs"',
+    'CREATE TABLE "jra"."approval_requests"',
+    'CREATE UNIQUE INDEX "jobs_scope_idempotency_key"',
+  ]) {
+    assert.match(jraMigration, new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
 });
