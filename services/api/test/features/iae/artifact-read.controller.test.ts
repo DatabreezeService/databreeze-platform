@@ -95,6 +95,41 @@ void test('[IAE-006, IAE-008, IAE-019, IAE-020] artifact reads return exact cont
       row: 1,
       field: 'amount',
     });
+
+    const resolutionResponse = await app.inject({
+      method: 'GET',
+      url: `/v1/artifact-versions/${versionId}/evidence/${evidenceId}/resolve`,
+    });
+    assert.equal(resolutionResponse.statusCode, 200);
+    assert.deepEqual(JSON.parse(resolutionResponse.body), {
+      accepted: true,
+      value: {
+        evidence: {
+          schemaVersion: 1,
+          evidenceId,
+          artifactVersionId: versionId,
+          tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+          coordinate: { kind: 'ROW', row: 1, field: 'amount' },
+          sourceState: 'AVAILABLE',
+        },
+        version: {
+          schemaVersion: 1,
+          artifactId,
+          versionId,
+          tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+          sourceKind: 'FILE',
+          dataMode: 'Local',
+          contentSha256: 'a'.repeat(64),
+          byteSize: 10,
+          mediaType: 'text/csv',
+          displayName: 'orders.csv',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          status: 'ACTIVE',
+        },
+        action: 'OPEN_ON_SOURCE_DEVICE',
+        placementReference: 'local-placement-000001',
+      },
+    });
   } finally {
     await app.close();
   }
