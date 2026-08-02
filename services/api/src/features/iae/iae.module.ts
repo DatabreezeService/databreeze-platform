@@ -14,6 +14,10 @@ import {
 } from './adapter/prisma-artifact-intake-repository.adapter.js';
 import { InMemoryArtifactRepositoryAdapter } from './adapter/in-memory-artifact-repository.adapter.js';
 import { InMemoryArtifactLineageRepositoryAdapter } from './adapter/in-memory-artifact-lineage-repository.adapter.js';
+import {
+  PrismaArtifactLineageRepositoryAdapter,
+  type ArtifactLineageDatabaseClientV1,
+} from './adapter/prisma-artifact-lineage-repository.adapter.js';
 import { InMemoryArtifactRetentionRepositoryAdapter } from './adapter/in-memory-artifact-retention-repository.adapter.js';
 import {
   PrismaArtifactRetentionRepositoryAdapter,
@@ -67,6 +71,8 @@ export interface IaeModuleOptions {
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly artifactDatabase?: ArtifactDatabaseClientV1;
   readonly artifactLineageRepository?: ArtifactLineageRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly artifactLineageDatabase?: ArtifactLineageDatabaseClientV1;
   readonly artifactRetentionRepository?: ArtifactRetentionRepositoryPortV1;
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly artifactRetentionDatabase?: ArtifactRetentionDatabaseClientV1;
@@ -111,7 +117,10 @@ export class IaeModule {
         {
           provide: ARTIFACT_LINEAGE_REPOSITORY_PORT,
           useValue:
-            options.artifactLineageRepository ?? new InMemoryArtifactLineageRepositoryAdapter(),
+            options.artifactLineageRepository ??
+            (options.artifactLineageDatabase === undefined
+              ? new InMemoryArtifactLineageRepositoryAdapter()
+              : new PrismaArtifactLineageRepositoryAdapter(options.artifactLineageDatabase)),
         },
         {
           provide: ARTIFACT_RETENTION_REPOSITORY_PORT,
