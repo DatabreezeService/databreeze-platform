@@ -29,7 +29,7 @@ class MainActivityTest {
         }
 
         composeRule.activityRule.scenario.recreate()
-        composeRule.onNodeWithTag("capture-button").performClick()
+        composeRule.onNodeWithTag("capture-screen").assertIsDisplayed()
         composeRule.onNodeWithTag("draft-status").assertIsDisplayed()
     }
 }
