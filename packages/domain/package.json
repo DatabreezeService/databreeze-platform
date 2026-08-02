@@ -92,6 +92,10 @@
       "types": "./src/dataset-governance/v1.ts",
       "import": "./dist/dataset-governance/v1.js"
     },
+    "./dataset-quality/v1": {
+      "types": "./src/dataset-quality/v1.ts",
+      "import": "./dist/dataset-quality/v1.js"
+    },
     "./jobs/v1": {
       "types": "./src/jobs/v1.ts",
       "import": "./dist/jobs/v1.js"
