@@ -76,6 +76,9 @@ function parseEnvFile(file) {
 
 function environment() {
   const fileValues = parseEnvFile(existsSync(localEnvFile) ? localEnvFile : exampleEnvFile);
+  if (process.env.COMPOSE_PROJECT_NAME !== undefined) {
+    fileValues.set('COMPOSE_PROJECT_NAME', process.env.COMPOSE_PROJECT_NAME);
+  }
   for (const definition of hostPorts) {
     if (process.env[definition.key] !== undefined) fileValues.set(definition.key, process.env[definition.key]);
   }
