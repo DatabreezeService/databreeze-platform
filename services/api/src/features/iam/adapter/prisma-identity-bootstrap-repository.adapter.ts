@@ -88,6 +88,22 @@ interface MembershipDelegateV1 extends IdentityDelegateV1<MembershipIdentityData
   }): Promise<readonly MembershipIdentityDatabaseRowV1[]>;
 }
 
+function valuesEqual(left: unknown, right: unknown): boolean {
+  if (left instanceof Date && right instanceof Date) return left.getTime() === right.getTime();
+  return left === right;
+}
+
+function ownedFieldsMatch<TRow extends object>(
+  existing: TRow,
+  expected: TRow,
+): boolean {
+  const existingRecord = existing as Record<string, unknown>;
+  const expectedRecord = expected as Record<string, unknown>;
+  return Object.keys(expectedRecord).every((key) =>
+    valuesEqual(existingRecord[key], expectedRecord[key]),
+  );
+}
+
 export interface IdentityBootstrapDatabaseClientV1 {
   readonly userIdentity: UserDelegateV1;
   readonly organizationIdentity: IdentityDelegateV1<OrganizationIdentityDatabaseRowV1>;
@@ -237,7 +253,7 @@ class PrismaIdentityBootstrapTransactionAdapter implements IdentityBootstrapTran
   public async save(bootstrap: PersonalOrganizationBootstrapV1): Promise<void> {
     const userRow = await this.client.userIdentity.findUnique({ where: { id: bootstrap.user.id } });
     if (!userRow) throw new Error('IAM_USER_NOT_FOUND');
-    if (JSON.stringify(userFromRow(userRow)) !== JSON.stringify(bootstrap.user))
+    if (!ownedFieldsMatch(userFromRow(userRow), bootstrap.user))
       throw new Error('IAM_BOOTSTRAP_CONFLICT');
     const organizationData: OrganizationIdentityDatabaseRowV1 = {
       id: bootstrap.organization.id,
@@ -289,7 +305,7 @@ class PrismaIdentityBootstrapTransactionAdapter implements IdentityBootstrapTran
   ): Promise<void> {
     const existing = await delegate.findUnique({ where: { id: expected.id } });
     if (existing) {
-      if (JSON.stringify(existing) !== JSON.stringify(expected))
+      if (!ownedFieldsMatch(existing, expected))
         throw new Error('IAM_BOOTSTRAP_CONFLICT');
       return;
     }
