@@ -28,5 +28,5 @@ export interface SessionLifecyclePortV1 extends SessionIssuerPortV1 {
     clientPlatform: 'android' | 'desktop' | 'web',
   ): Promise<SessionRefreshResultV1>;
   revoke(sessionId: unknown): Promise<boolean>;
-  findPrincipal(sessionId: unknown): AuthenticatedPrincipalV1 | undefined;
+  findPrincipal(sessionId: unknown): Promise<AuthenticatedPrincipalV1 | undefined>;
 }

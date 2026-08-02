@@ -19,7 +19,7 @@ void test('[IAM-005, IAM-006] session issuer creates opaque bounded sessions', a
   assert.match(session.accessToken, /^[0-9a-f-]{36}\.[A-Za-z0-9_-]{43}$/u);
   assert.match(session.refreshToken, /^[0-9a-f-]{36}\.[A-Za-z0-9_-]{43}$/u);
   assert.equal(session.accessExpiresAt, '2026-01-01T00:15:00.000Z');
-  assert.equal(adapter.findPrincipal(session.sessionId)?.userId, principal.userId);
+  assert.equal((await adapter.findPrincipal(session.sessionId))?.userId, principal.userId);
 });
 
 void test('[IAM-005] refresh rotation is single-use and reuse revokes the family', async () => {
@@ -32,7 +32,7 @@ void test('[IAM-005] refresh rotation is single-use and reuse revokes the family
   assert.notEqual(rotated.value.refreshToken, first.refreshToken);
   const reuse = await adapter.refresh(first.refreshToken, 'desktop');
   assert.deepEqual(reuse, { accepted: false, code: 'REUSE_DETECTED' });
-  assert.equal(adapter.findPrincipal(first.sessionId), undefined);
+  assert.equal(await adapter.findPrincipal(first.sessionId), undefined);
   assert.deepEqual(await adapter.refresh(rotated.value.refreshToken, 'desktop'), {
     accepted: false,
     code: 'REVOKED_FAMILY',
