@@ -1,5 +1,5 @@
 const COOKIE_NAME_PATTERN_V1 = /^[A-Za-z0-9_]+$/u;
-const COOKIE_VALUE_PATTERN_V1 = /^[A-Za-z0-9_-]+$/u;
+const COOKIE_VALUE_PATTERN_V1 = /^[A-Za-z0-9._~-]+$/u;
 
 export const REFRESH_COOKIE_NAME_V1 = 'databreeze_refresh';
 export const CSRF_COOKIE_NAME_V1 = 'databreeze_csrf';
