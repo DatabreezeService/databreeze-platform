@@ -12,6 +12,7 @@ export * from './dataset-governance/v1.js';
 export * from './dataset-quality/v1.js';
 export * from './dataset-profile/v1.js';
 export * from './dataset-export/v1.js';
+export * from './spreadsheet-audit/v1.js';
 export * from './jobs/v1.js';
 export * from './approval/v1.js';
 export * from './execution-attempt/v1.js';

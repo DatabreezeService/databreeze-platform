@@ -108,6 +108,10 @@
       "types": "./src/dataset-export/v1.ts",
       "import": "./dist/dataset-export/v1.js"
     },
+    "./spreadsheet-audit/v1": {
+      "types": "./src/spreadsheet-audit/v1.ts",
+      "import": "./dist/spreadsheet-audit/v1.js"
+    },
     "./jobs/v1": {
       "types": "./src/jobs/v1.ts",
       "import": "./dist/jobs/v1.js"
