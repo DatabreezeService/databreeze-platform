@@ -57,6 +57,12 @@ void test('[DSM-002, DSM-012, DSM-014] dataset result manifests are immutable an
     const read = await app.inject({ method: 'GET', url: `/v1/dataset-versions/${versionId}` });
     assert.equal(read.statusCode, 200);
     assert.equal(read.json().value.contentFingerprint, 'a'.repeat(64));
+    const listed = await app.inject({
+      method: 'GET',
+      url: `/v1/dataset-versions?datasetId=${datasetId}`,
+    });
+    assert.equal(listed.statusCode, 200);
+    assert.equal(listed.json().length, 1);
   } finally {
     await app.close();
   }

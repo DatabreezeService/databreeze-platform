@@ -10,6 +10,10 @@ export interface DatasetVersionTransactionPortV1 {
     context: IamTenantContextV1,
     versionId: DatasetVersionManifestV1['versionId'],
   ): Promise<DatasetVersionManifestV1 | undefined>;
+  list(
+    context: IamTenantContextV1,
+    datasetId: DatasetVersionManifestV1['datasetId'],
+  ): Promise<readonly DatasetVersionManifestV1[]>;
 }
 
 export interface DatasetVersionRepositoryPortV1 extends DatasetVersionTransactionPortV1 {

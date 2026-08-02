@@ -47,6 +47,10 @@ export interface DatasetVersionDatabaseClientV1 {
     findUnique(input: {
       readonly where: { readonly id: string };
     }): Promise<DatasetVersionDatabaseRowV1 | null>;
+    findMany(input: {
+      readonly where: Readonly<Record<string, string>>;
+      readonly orderBy: { readonly id: 'asc' };
+    }): Promise<readonly DatasetVersionDatabaseRowV1[]>;
   };
   $transaction<TValue>(
     work: (transaction: DatasetVersionDatabaseClientV1) => Promise<TValue>,
@@ -143,6 +147,17 @@ class PrismaDatasetVersionTransactionAdapter implements DatasetVersionTransactio
         ? rowToDomain(row)
         : undefined;
   }
+
+  public async list(
+    context: IamTenantContextV1,
+    datasetId: DatasetVersionManifestV1['datasetId'],
+  ): Promise<readonly DatasetVersionManifestV1[]> {
+    const rows = await this.client.datasetVersionRecord.findMany({
+      where: { datasetId, organizationId: context.tenantScope.organizationId },
+      orderBy: { id: 'asc' },
+    });
+    return rows.filter((row) => visible(context.tenantScope, row)).map(rowToDomain);
+  }
 }
 
 export class PrismaDatasetVersionRepositoryAdapter implements DatasetVersionRepositoryPortV1 {
@@ -166,5 +181,12 @@ export class PrismaDatasetVersionRepositoryAdapter implements DatasetVersionRepo
     versionId: DatasetVersionManifestV1['versionId'],
   ): Promise<DatasetVersionManifestV1 | undefined> {
     return new PrismaDatasetVersionTransactionAdapter(this.client).find(context, versionId);
+  }
+
+  public list(
+    context: IamTenantContextV1,
+    datasetId: DatasetVersionManifestV1['datasetId'],
+  ): Promise<readonly DatasetVersionManifestV1[]> {
+    return new PrismaDatasetVersionTransactionAdapter(this.client).list(context, datasetId);
   }
 }

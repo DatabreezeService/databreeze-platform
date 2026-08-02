@@ -44,6 +44,20 @@ export class InMemoryDatasetVersionRepositoryAdapter implements DatasetVersionRe
       : undefined;
   }
 
+  public async list(
+    context: IamTenantContextV1,
+    datasetId: DatasetVersionManifestV1['datasetId'],
+  ): Promise<readonly DatasetVersionManifestV1[]> {
+    await Promise.resolve();
+    return [...this.versions.values()]
+      .filter(
+        (version) =>
+          version.datasetId === datasetId && visible(context.tenantScope, version.tenantScope),
+      )
+      .sort((left, right) => left.versionId.localeCompare(right.versionId))
+      .map(clone);
+  }
+
   public async withTransaction<TValue>(
     context: IamTenantContextV1,
     work: (transaction: DatasetVersionTransactionPortV1) => Promise<TValue>,
@@ -56,7 +70,11 @@ export class InMemoryDatasetVersionRepositoryAdapter implements DatasetVersionRe
     await previous;
     const before = new Map(this.versions);
     try {
-      return await work({ save: this.save.bind(this), find: this.find.bind(this) });
+      return await work({
+        save: this.save.bind(this),
+        find: this.find.bind(this),
+        list: this.list.bind(this),
+      });
     } catch (error) {
       this.versions = before;
       throw error;

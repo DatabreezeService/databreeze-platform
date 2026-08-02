@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Post, Query, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
@@ -49,5 +49,17 @@ export class DatasetVersionController {
     const versionId = parseStableIdentifierV1(versionIdInput);
     if (!versionId.accepted) return { accepted: false, code: 'INVALID_IDENTIFIER' as const };
     return this.versions.find(context, versionId.value);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'List exact dataset result manifests for one governed dataset' })
+  async list(
+    @Req() request: unknown,
+    @Query('datasetId') datasetIdInput: string,
+  ): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    const datasetId = parseStableIdentifierV1(datasetIdInput);
+    if (!datasetId.accepted) return { accepted: false, code: 'INVALID_IDENTIFIER' as const };
+    return this.versions.list(context, datasetId.value);
   }
 }

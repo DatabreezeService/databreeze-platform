@@ -48,6 +48,17 @@ function client(rows: DatasetVersionDatabaseRowV1[]): DatasetVersionDatabaseClie
       findUnique({ where }) {
         return Promise.resolve(rows.find((row) => row.id === where.id) ?? null);
       },
+      findMany({ where }) {
+        return Promise.resolve(
+          rows
+            .filter(
+              (row) =>
+                row.datasetId === where['datasetId'] &&
+                row.organizationId === where['organizationId'],
+            )
+            .sort((left, right) => left.id.localeCompare(right.id)),
+        );
+      },
     },
     $transaction(work) {
       return work(this);
@@ -78,5 +89,6 @@ void test('[DSM-002, DSM-003, IAM-009] Prisma dataset version adapter is immutab
   await repository.save(tenantContext, created.value);
   await repository.save(tenantContext, created.value);
   assert.deepEqual(await repository.find(tenantContext, versionId), created.value);
+  assert.deepEqual(await repository.list(tenantContext, created.value.datasetId), [created.value]);
   assert.equal(rows.length, 1);
 });

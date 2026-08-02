@@ -42,4 +42,13 @@ export class DatasetVersionService {
       ? Object.freeze({ accepted: true, value: found })
       : Object.freeze({ accepted: false, code: 'VERSION_NOT_FOUND' as const });
   }
+
+  public async list(
+    context: IamTenantContextV1,
+    datasetId: DatasetVersionManifestV1['datasetId'],
+  ): Promise<readonly DatasetVersionManifestV1[]> {
+    return this.repository.withTransaction(context, (transaction) =>
+      transaction.list(context, datasetId),
+    );
+  }
 }
