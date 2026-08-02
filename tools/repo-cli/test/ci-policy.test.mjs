@@ -11,8 +11,11 @@ test('repository workflows are present, pinned, and least privilege', () => {
 });
 
 test('CI policy requires checkout credentials to be discarded', () => {
-  const workflow = fs.readFileSync(path.join(process.cwd(), '.github/workflows/quality.yml'), 'utf8');
-  assert.match(workflow, /persist-credentials:\s*false/u);
+  for (const name of ['quality.yml', 'security.yml', 'release.yml']) {
+    const workflow = fs.readFileSync(path.join(process.cwd(), '.github/workflows', name), 'utf8');
+    assert.match(workflow, /persist-credentials:\s*false/u);
+    assert.match(workflow, /^\s+contents:\s*read\s*$/mu);
+  }
 });
 
 test('CI policy fails closed when an artifact output is missing', () => {

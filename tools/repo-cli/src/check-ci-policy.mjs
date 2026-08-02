@@ -30,6 +30,9 @@ function assertLeastPrivilege(text, filename) {
   if (!/^permissions:\s*$/im.test(text)) {
     throw new Error(`${filename} must declare a top-level permissions block`);
   }
+  if (!/^\s+contents:\s*read\s*$/im.test(text)) {
+    throw new Error(`${filename} must grant contents: read explicitly`);
+  }
   if (/pull_request_target:/iu.test(text)) {
     throw new Error(`${filename} must not execute untrusted code from pull_request_target`);
   }
