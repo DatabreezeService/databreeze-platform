@@ -3150,7 +3150,6 @@
           "organizationId",
           "workspaceId",
           "accessToken",
-          "refreshToken",
           "accessExpiresAt",
           "securityEpoch",
           "mfaRequired"

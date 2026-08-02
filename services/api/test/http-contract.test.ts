@@ -300,11 +300,15 @@ void test('sign-in returns a session DTO and maps authentication failures withou
         organizationId: '00000000-0000-4000-8000-000000000002',
         workspaceId: '00000000-0000-4000-8000-000000000003',
         accessToken: 'access-token',
-        refreshToken: 'refresh-token',
         accessExpiresAt: '2026-01-01T00:15:00.000Z',
         securityEpoch: 2,
         mfaRequired: true,
       });
+      const setCookies = response.headers['set-cookie'];
+      assert.ok(Array.isArray(setCookies));
+      assert.equal(setCookies.length, 2);
+      assert.match(setCookies[0] ?? '', /^databreeze_refresh=refresh-token; .*HttpOnly; Secure; SameSite=Lax$/);
+      assert.match(setCookies[1] ?? '', /^databreeze_csrf=[A-Za-z0-9_-]+; .*Secure; SameSite=Lax$/);
       assertResponseIdentifiers(response);
     },
   );
