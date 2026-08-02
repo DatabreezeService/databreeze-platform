@@ -4466,6 +4466,223 @@
         "tags": ["datasets"]
       }
     },
+    "/v1/dataset-profiles": {
+      "post": {
+        "operationId": "DatasetProfileController.register",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RegisterDatasetProfileDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Register an immutable, value-free dataset profile disclosure",
+        "tags": ["datasets"]
+      },
+      "get": {
+        "operationId": "DatasetProfileController.list",
+        "parameters": [
+          {
+            "name": "datasetVersionId",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "List profile disclosures for one exact dataset version",
+        "tags": ["datasets"]
+      }
+    },
+    "/v1/dataset-profiles/{profileId}": {
+      "get": {
+        "operationId": "DatasetProfileController.get",
+        "parameters": [
+          { "name": "profileId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Read an exact immutable dataset profile disclosure",
+        "tags": ["datasets"]
+      }
+    },
     "/v1/devices/sync/operations": {
       "post": {
         "operationId": "DeviceSyncController.enqueue",
@@ -6570,6 +6787,41 @@
           "qualityState",
           "findings",
           "resultFingerprint",
+          "createdAt"
+        ]
+      },
+      "DatasetProfileResourceLimitsDto": {
+        "type": "object",
+        "properties": {
+          "maxRows": { "type": "number", "minimum": 1, "maximum": 10000000 },
+          "maxBytes": { "type": "number", "minimum": 1, "maximum": 1099511627776 },
+          "maxDurationMs": { "type": "number", "minimum": 1, "maximum": 86400000 }
+        },
+        "required": ["maxRows", "maxBytes", "maxDurationMs"]
+      },
+      "RegisterDatasetProfileDto": {
+        "type": "object",
+        "properties": {
+          "profileId": { "type": "string", "format": "uuid" },
+          "datasetVersionId": { "type": "string", "format": "uuid" },
+          "completeness": { "type": "string", "enum": ["COMPLETE", "DETERMINISTIC_SAMPLE"] },
+          "samplingMethod": { "type": "string", "maxLength": 96 },
+          "samplingSeed": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "excludedScopes": { "maxItems": 64, "type": "array", "items": { "type": "string" } },
+          "rowCountScanned": { "type": "number", "minimum": 0 },
+          "rowCountAvailable": { "type": "number", "minimum": 0 },
+          "resourceLimits": { "$ref": "#/components/schemas/DatasetProfileResourceLimitsDto" },
+          "profileFingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": [
+          "profileId",
+          "datasetVersionId",
+          "completeness",
+          "samplingMethod",
+          "rowCountScanned",
+          "resourceLimits",
+          "profileFingerprint",
           "createdAt"
         ]
       },

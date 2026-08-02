@@ -6,6 +6,8 @@ import { ReferenceEntityController } from './api/reference-entity.controller.js'
 import { RuleSetController } from './api/rule-set.controller.js';
 import { DatasetVersionController } from './api/dataset-version.controller.js';
 import { DatasetQualityController } from './api/dataset-quality.controller.js';
+import { DatasetProfileController } from './api/dataset-profile.controller.js';
+import { InMemoryDatasetProfileRepositoryAdapter } from './adapter/in-memory-dataset-profile-repository.adapter.js';
 import { InMemoryGovernedDatasetRepositoryAdapter } from './adapter/in-memory-governed-dataset-repository.adapter.js';
 import {
   PrismaGovernedDatasetRepositoryAdapter,
@@ -61,6 +63,10 @@ import {
   type DatasetQualityRepositoryPortV1,
 } from './application/dataset-quality-repository.port.js';
 import {
+  DATASET_PROFILE_REPOSITORY_PORT,
+  type DatasetProfileRepositoryPortV1,
+} from './application/dataset-profile-repository.port.js';
+import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
   UnavailableRequestTenantContextAdapter,
@@ -85,6 +91,7 @@ export interface DsmModuleOptions {
   readonly datasetQualityRepository?: DatasetQualityRepositoryPortV1;
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly datasetQualityDatabase?: DatasetQualityDatabaseClientV1;
+  readonly datasetProfileRepository?: DatasetProfileRepositoryPortV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
 }
 
@@ -100,6 +107,7 @@ export class DsmModule {
         ReferenceEntityController,
         DatasetVersionController,
         DatasetQualityController,
+        DatasetProfileController,
       ],
       providers: [
         {
@@ -149,6 +157,11 @@ export class DsmModule {
             (options.datasetQualityDatabase === undefined
               ? new InMemoryDatasetQualityRepositoryAdapter()
               : new PrismaDatasetQualityRepositoryAdapter(options.datasetQualityDatabase)),
+        },
+        {
+          provide: DATASET_PROFILE_REPOSITORY_PORT,
+          useValue:
+            options.datasetProfileRepository ?? new InMemoryDatasetProfileRepositoryAdapter(),
         },
         {
           provide: REQUEST_TENANT_CONTEXT,
