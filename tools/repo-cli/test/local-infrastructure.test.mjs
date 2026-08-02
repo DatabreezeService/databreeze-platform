@@ -61,6 +61,8 @@ test('local bootstrap is credential-free and creates every owned module schema',
   ];
   for (const schema of expectedSchemas) assert.match(sql, new RegExp(`'${schema}'`));
   assert.doesNotMatch(sql, /password|secret|BEGIN\s+;|CREATE\s+ROLE/i);
+  assert.match(sql, /CREATE SCHEMA IF NOT EXISTS/u);
+  assert.doesNotMatch(sql, /DROP\s+SCHEMA|DROP\s+DATABASE|TRUNCATE/u);
 
   const bucketScript = read('infrastructure/local/minio/bootstrap-buckets.sh');
   assert.match(bucketScript, /MINIO_ROOT_PASSWORD/);
