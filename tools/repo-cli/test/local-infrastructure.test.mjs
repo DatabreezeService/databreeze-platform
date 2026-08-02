@@ -37,6 +37,8 @@ test('local compose defines pinned, healthy disposable dependencies', () => {
   assert.match(compose, /minio-init:[\s\S]*depends_on:[\s\S]*condition: service_healthy/u);
   assert.match(compose, /minio-init:[\s\S]*restart: 'no'/u);
   assert.match(compose, /postgres-data:[\s\S]*name: \$\{COMPOSE_PROJECT_NAME/u);
+  assert.match(compose, /networks: \[local\]/u);
+  assert.match(compose, /name: \$\{COMPOSE_PROJECT_NAME:-databreeze-local\}-network/u);
 });
 
 test('local bootstrap is credential-free and creates every owned module schema', () => {
