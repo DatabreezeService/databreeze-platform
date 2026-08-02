@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { type DynamicModule, Module } from '@nestjs/common';
 
 import { AuthenticationController } from './api/authentication.controller.js';
@@ -94,6 +95,17 @@ export interface IamModuleOptions {
   readonly requestTenantContext?: RequestTenantContextPortV1;
 }
 
+/** Compare already-normalized recovery-code digests without data-dependent byte comparisons. */
+export function constantTimeRecoveryCodeMatchV1(
+  presentedDigest: string,
+  storedDigest: string,
+): boolean {
+  const presented = Buffer.from(presentedDigest, 'utf8');
+  const stored = Buffer.from(storedDigest, 'utf8');
+  if (presented.length !== stored.length) return false;
+  return timingSafeEqual(presented, stored);
+}
+
 export function composeAuthenticationUseCase(options: IamModuleOptions): AuthenticationUseCaseV1 {
   if (options.authentication) return options.authentication;
   if (options.credentials && options.passwordCredentials && options.sessions) {
@@ -136,14 +148,7 @@ export class IamModule {
         : new MfaService(
             mfaRepository,
             options.recoveryCodeMatcher ?? {
-              matches: (presentedDigest, storedDigest) => {
-                if (presentedDigest.length !== storedDigest.length) return false;
-                let difference = 0;
-                for (let index = 0; index < presentedDigest.length; index += 1) {
-                  difference |= presentedDigest.charCodeAt(index) ^ storedDigest.charCodeAt(index);
-                }
-                return difference === 0;
-              },
+              matches: constantTimeRecoveryCodeMatchV1,
             },
           ));
     const iamRepository =

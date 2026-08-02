@@ -4,6 +4,7 @@ import test from 'node:test';
 import { createRecoveryCodeV1 } from '@databreeze/domain/mfa/v1';
 
 import { InMemoryMfaRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-mfa-repository.adapter.js';
+import { constantTimeRecoveryCodeMatchV1 } from '../../../src/features/iam/iam.module.js';
 import { MfaService } from '../../../src/features/iam/application/mfa.service.js';
 
 const userId = '00000000-0000-4000-8000-000000000001';
@@ -69,4 +70,10 @@ void test('[IAM-012] high-risk operations require a fresh step-up assertion', ()
     service.requireStepUp('HIGH', assertion, userId as never, '2026-01-01T00:05:00.000Z').accepted,
     true,
   );
+});
+
+void test('[IAM-015] default recovery-code matching compares normalized bytes safely', () => {
+  assert.equal(constantTimeRecoveryCodeMatchV1('digest-1', 'digest-1'), true);
+  assert.equal(constantTimeRecoveryCodeMatchV1('digest-1', 'digest-2'), false);
+  assert.equal(constantTimeRecoveryCodeMatchV1('digest-1', 'digest-10'), false);
 });
