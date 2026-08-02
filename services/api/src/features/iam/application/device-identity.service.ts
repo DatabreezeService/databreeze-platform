@@ -188,6 +188,7 @@ export class DeviceIdentityService {
     return this.repository.withTransaction(context, async (transaction) => {
       const current = await transaction.findDevice(context, deviceId);
       if (!current) return rejected('DEVICE_NOT_FOUND');
+      if (current.userId !== context.actorId) return rejected('SCOPE_DENIED');
       if (current.status === 'REVOKED') return rejected('DEVICE_REVOKED');
       if (current.revision !== expectedRevision) return rejected('REVISION_CONFLICT');
       const rotated = rotateDeviceIdentityKeyV1(current, nextPublicKey, at);
