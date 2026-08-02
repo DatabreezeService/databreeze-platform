@@ -332,7 +332,7 @@ export async function main(argv = process.argv.slice(2)) {
   if (command === 'restart-check') {
     runDocker([...composeArgs(values), 'restart']);
     await waitForReady(values, options.waitSeconds);
-    console.log('Local service restart and health persistence check passed.');
+    console.log('Local service restart and health checks passed. Use persistence-check for a Redis sentinel probe.');
     return;
   }
   if (command === 'persistence-check') {
