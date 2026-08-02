@@ -95,3 +95,33 @@ void test('[DSO-005] synchronization prefers a typed capability grant when prese
     { accepted: true, value: true },
   );
 });
+
+void test('[DSO-005] a denied typed grant cannot fall back to a legacy grant with broader effects', async () => {
+  const grants = new DeviceAuthorizationService(new InMemoryDeviceAuthorizationRepositoryAdapter());
+  const issued = await grants.issueGrant(context('legacy-for-typed-denial'), {
+    grantId,
+    deviceId,
+    tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+    bindingId: '00000000-0000-4000-8000-000000000407',
+    capabilityDigest: digest,
+    authorizationEpoch: 1,
+    effects: ['READ'],
+    issuedAt: '2026-01-01T00:00:00.000Z',
+    expiresAt: '2026-01-01T01:00:00.000Z',
+  });
+  assert.equal(issued.accepted, true);
+  const typed = {
+    authorizeGrant: async () => ({ accepted: false as const, code: 'GRANT_SCOPE_DENIED' as const }),
+  };
+  const adapter = new DeviceSyncAuthorizationAdapter(grants, undefined, typed);
+  assert.deepEqual(
+    await adapter.authorize(context('typed-denied'), {
+      deviceId,
+      tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+      grantId,
+      effect: 'READ',
+      now: '2026-01-01T00:30:00.000Z',
+    }),
+    { accepted: false, code: 'GRANT_SCOPE_DENIED' },
+  );
+});
