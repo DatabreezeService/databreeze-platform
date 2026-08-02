@@ -16,6 +16,7 @@ const [
   datasetGovernance,
   datasetQuality,
   datasetProfile,
+  datasetExport,
   dataMode,
   jobs,
   approval,
@@ -44,6 +45,7 @@ const [
   import('@databreeze/domain/dataset-governance/v1'),
   import('@databreeze/domain/dataset-quality/v1'),
   import('@databreeze/domain/dataset-profile/v1'),
+  import('@databreeze/domain/dataset-export/v1'),
   import('@databreeze/domain/data-mode/v1'),
   import('@databreeze/domain/jobs/v1'),
   import('@databreeze/domain/approval/v1'),
@@ -74,6 +76,7 @@ assert.equal(dataset.DATASET_SCHEMA_VERSION_V1, 1);
 assert.equal(datasetGovernance.DATASET_GOVERNANCE_SCHEMA_VERSION_V1, 1);
 assert.equal(datasetQuality.DATASET_QUALITY_SCHEMA_VERSION_V1, 1);
 assert.equal(datasetProfile.DATASET_PROFILE_SCHEMA_VERSION_V1, 1);
+assert.equal(datasetExport.DATASET_EXPORT_SCHEMA_VERSION_V1, 1);
 assert.equal(dataMode.DATA_MODE_POLICY_SCHEMA_VERSION_V1, 1);
 assert.equal(jobs.JOB_SCHEMA_VERSION_V1, 1);
 assert.equal(approval.APPROVAL_SCHEMA_VERSION_V1, 1);
