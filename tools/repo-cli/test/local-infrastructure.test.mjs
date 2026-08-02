@@ -94,4 +94,18 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
   assert.match(script, /down', '--remove-orphans/u);
   assert.doesNotMatch(script, /down'[^\n]*--volumes/u);
   assert.doesNotMatch(script, /down\s+--volumes/u);
+
+  const invalidTimeout = spawnSync(process.execPath, [helpScript, 'check', '--wait-seconds=0'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  });
+  assert.notEqual(invalidTimeout.status, 0);
+  assert.match(`${invalidTimeout.stdout}\n${invalidTimeout.stderr}`, /--wait-seconds must be an integer/u);
+
+  const invalidDisk = spawnSync(process.execPath, [helpScript, 'check', '--min-free-gib=-1'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  });
+  assert.notEqual(invalidDisk.status, 0);
+  assert.match(`${invalidDisk.stdout}\n${invalidDisk.stderr}`, /--min-free-gib must be a non-negative number/u);
 });
