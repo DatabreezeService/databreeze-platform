@@ -35,3 +35,14 @@ review branch:
 
 All actionable findings were handled in focused commits. Hosted checks and the connected Android
 tests remain required before merging the review-fix PR and the synchronized promotion PR.
+
+## Automatic incremental review after PR #15 synchronization
+
+GitHub automatically refreshed the existing review when PR #15 merged into `dev` (no new review
+was requested). It identified two additional valid claims, both fixed in the follow-up branch:
+
+- Revocation locks are now keyed by `AccountWorkspaceScope`, so a long-running sync in one
+  workspace cannot stall sign-out in another.
+- The guard now exposes `reactivate(scope)` and `AndroidRuntime.signIn` calls it only after the
+  device key is initialized, allowing an explicit sign-in/sign-out cycle without silently
+  re-enabling a revoked scope on process restart.
