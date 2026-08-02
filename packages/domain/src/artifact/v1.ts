@@ -341,12 +341,48 @@ function spreadsheetColumnNumber(value: string): number {
   return result;
 }
 
+function nonNegativeCount(input: unknown): input is number {
+  return typeof input === 'number' && Number.isSafeInteger(input) && input >= 0;
+}
+
+function isEvidenceGeometry(input: unknown): input is EvidenceGeometryV1 {
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) return false;
+  const record = input as Record<string, unknown>;
+  if (record['kind'] === 'SPREADSHEET') {
+    if (!Array.isArray(record['sheets']) || record['sheets'].length > 512) return false;
+    const names = new Set<string>();
+    return record['sheets'].every((candidate) => {
+      if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate))
+        return false;
+      const sheet = candidate as Record<string, unknown>;
+      const name = boundedText(sheet['name'], 255);
+      if (
+        !name ||
+        names.has(name) ||
+        !nonNegativeCount(sheet['maxRow']) ||
+        !nonNegativeCount(sheet['maxColumn']) ||
+        sheet['maxRow'] > 1_000_000 ||
+        sheet['maxColumn'] > 16_384
+      )
+        return false;
+      names.add(name);
+      return true;
+    });
+  }
+  if (record['kind'] === 'PAGED')
+    return nonNegativeCount(record['maxPage']) && record['maxPage'] <= 10_000_000;
+  if (record['kind'] === 'TABULAR')
+    return nonNegativeCount(record['maxRow']) && record['maxRow'] <= 1_000_000_000;
+  return false;
+}
+
 /** IAE-006: evidence coordinates are checked against the exact source geometry. */
 export function validateEvidenceCoordinateV1(
   coordinate: EvidenceCoordinateV1,
   geometry?: EvidenceGeometryV1,
 ): ArtifactResultV1<true> {
   if (!geometry) return accepted(true);
+  if (!isEvidenceGeometry(geometry)) return rejected('INVALID_COORDINATE');
   if (coordinate.kind === 'CELL') {
     if (geometry.kind !== 'SPREADSHEET') return rejected('COORDINATE_OUT_OF_BOUNDS');
     const sheet = geometry.sheets.find((candidate) => candidate.name === coordinate.sheet);

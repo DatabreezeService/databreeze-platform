@@ -125,4 +125,18 @@ void test('[IAE-006] evidence coordinates are validated against exact source geo
     validateEvidenceCoordinateV1({ kind: 'PAGE', page: 4 }, { kind: 'PAGED', maxPage: 3 }),
     { accepted: false, code: 'COORDINATE_OUT_OF_BOUNDS' },
   );
+  assert.deepEqual(
+    validateEvidenceCoordinateV1(
+      { kind: 'CELL', sheet: 'Sheet1', address: 'B4' },
+      { kind: 'SPREADSHEET', sheets: null },
+    ),
+    { accepted: false, code: 'INVALID_COORDINATE' },
+  );
+  assert.deepEqual(
+    validateEvidenceCoordinateV1(
+      { kind: 'PAGE', page: 1 },
+      { kind: 'PAGED', maxPage: '3' },
+    ),
+    { accepted: false, code: 'INVALID_COORDINATE' },
+  );
 });
