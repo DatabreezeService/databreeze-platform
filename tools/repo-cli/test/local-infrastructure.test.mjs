@@ -74,3 +74,23 @@ test('readiness smoke script exposes a non-destructive help command', () => {
   assert.match(result.stdout, /--start/);
   assert.match(result.stdout, /never removes containers or named volumes/i);
 });
+
+test('local lifecycle commands fail safely around Docker, ports, disk, and volumes', () => {
+  const script = read('tools/repo-cli/src/local-services.mjs');
+  const helpScript = path.join(repositoryRoot, 'tools', 'repo-cli', 'src', 'local-services.mjs');
+  const result = spawnSync(process.execPath, [helpScript, '--help'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr);
+  for (const command of ['check', 'start', 'stop', 'reset', 'restart-check', 'status', 'smoke']) {
+    assert.match(result.stdout, new RegExp(`^  ${command}\\s`, 'm'));
+  }
+  assert.match(script, /statfsSync/u);
+  assert.match(script, /portAvailable/u);
+  assert.match(script, /Docker CLI is not installed/u);
+  assert.match(script, /Docker daemon is unavailable/u);
+  assert.match(script, /down', '--remove-orphans/u);
+  assert.doesNotMatch(script, /down'[^\n]*--volumes/u);
+  assert.doesNotMatch(script, /down\s+--volumes/u);
+});

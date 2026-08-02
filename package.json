@@ -27,6 +27,7 @@
     "format:check": "prettier --check .",
     "lint": "eslint . && node tools/repo-cli/src/check-dependency-boundaries.mjs",
     "local:smoke": "node tools/repo-cli/src/local-services-smoke.mjs",
+    "local:services": "node tools/repo-cli/src/local-services.mjs",
     "infra:check": "node tools/repo-cli/src/check-aws-infrastructure.mjs",
     "orchestration:check": "node tools/repo-cli/src/check-execution-orchestration.mjs",
     "repo:bootstrap": "corepack pnpm install --frozen-lockfile",
