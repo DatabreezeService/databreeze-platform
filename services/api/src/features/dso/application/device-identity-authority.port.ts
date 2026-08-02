@@ -26,9 +26,11 @@ export interface DeviceIdentityAuthorityPortV1 {
 /** Safe default for compositions that have not supplied the IAM authority bridge. */
 export class UnavailableDeviceIdentityAuthority implements DeviceIdentityAuthorityPortV1 {
   public inspect(
-    _context: IamTenantContextV1,
-    _input: Parameters<DeviceIdentityAuthorityPortV1['inspect']>[1],
+    context: IamTenantContextV1,
+    input: Parameters<DeviceIdentityAuthorityPortV1['inspect']>[1],
   ): Promise<DeviceIdentityAuthorityResultV1> {
+    void context;
+    void input;
     return Promise.resolve({ accepted: false, code: 'AUTHORIZATION_UNAVAILABLE' });
   }
 }

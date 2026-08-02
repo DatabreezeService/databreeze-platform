@@ -40,7 +40,7 @@ function device() {
 
 void test('[IAM-020, IAM-021] DSO authority adapter reads IAM status and security epoch', async () => {
   const current = device();
-  const identity = { get: async () => ({ accepted: true as const, value: current }) };
+  const identity = { get: () => Promise.resolve({ accepted: true as const, value: current }) };
   const adapter = new IamDeviceIdentityAuthorityAdapter(identity);
   assert.deepEqual(await adapter.inspect(context('active'), { deviceId }), {
     accepted: true,
@@ -55,10 +55,11 @@ void test('[IAM-020, IAM-021] DSO authority adapter reads IAM status and securit
 void test('[IAM-020, IAM-021] revoked or unavailable IAM devices fail closed', async () => {
   const revoked = device();
   const identity = {
-    get: async () => ({
-      accepted: true as const,
-      value: { ...revoked, status: 'REVOKED' as const },
-    }),
+    get: () =>
+      Promise.resolve({
+        accepted: true as const,
+        value: { ...revoked, status: 'REVOKED' as const },
+      }),
   };
   const adapter = new IamDeviceIdentityAuthorityAdapter(identity);
   assert.deepEqual(await adapter.inspect(context('revoked'), { deviceId }), {

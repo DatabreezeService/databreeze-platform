@@ -4,7 +4,6 @@ import {
   type DeviceCapabilityV1,
   type DeviceGrantV1,
 } from '@databreeze/domain/device-capability/v1';
-import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type {
@@ -106,18 +105,6 @@ export interface DeviceCapabilityDatabaseClientV1 {
   $transaction<TValue>(
     work: (transaction: DeviceCapabilityDatabaseClientV1) => Promise<TValue>,
   ): Promise<TValue>;
-}
-
-function stableIdentifier(value: string): string {
-  const parsed = parseStableIdentifierV1(value);
-  if (!parsed.accepted) throw new Error('DSO_PERSISTED_IDENTIFIER_INVALID');
-  return parsed.value;
-}
-
-function listOfStrings(value: unknown): readonly string[] {
-  if (!Array.isArray(value) || value.length === 0 || value.some((item) => typeof item !== 'string'))
-    throw new Error('DSO_PERSISTED_COLLECTION_INVALID');
-  return Object.freeze([...value]);
 }
 
 function capabilityFromRow(row: DeviceCapabilityDatabaseRowV1): DeviceCapabilityV1 {

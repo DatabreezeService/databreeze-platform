@@ -41,6 +41,7 @@ export class InMemoryDeviceCapabilityRepositoryAdapter implements DeviceCapabili
     context: IamTenantContextV1,
     capability: DeviceCapabilityV1,
   ): Promise<void> {
+    await Promise.resolve();
     if (!capabilityVisible(context, capability)) throw new Error('SCOPE_DENIED');
     const existing = this.capabilities.get(capability.capabilityId);
     if (existing && JSON.stringify(existing) !== JSON.stringify(capability))
@@ -52,6 +53,7 @@ export class InMemoryDeviceCapabilityRepositoryAdapter implements DeviceCapabili
     context: IamTenantContextV1,
     capabilityId: DeviceCapabilityV1['capabilityId'],
   ): Promise<DeviceCapabilityV1 | undefined> {
+    await Promise.resolve();
     const capability = this.capabilities.get(capabilityId);
     return capability && capabilityVisible(context, capability)
       ? cloneCapability(capability)
@@ -62,6 +64,7 @@ export class InMemoryDeviceCapabilityRepositoryAdapter implements DeviceCapabili
     context: IamTenantContextV1,
     deviceId: DeviceCapabilityV1['deviceId'],
   ): Promise<readonly DeviceCapabilityV1[]> {
+    await Promise.resolve();
     return [...this.capabilities.values()]
       .filter(
         (capability) => capability.deviceId === deviceId && capabilityVisible(context, capability),
@@ -71,6 +74,7 @@ export class InMemoryDeviceCapabilityRepositoryAdapter implements DeviceCapabili
   }
 
   public async saveGrant(context: IamTenantContextV1, grant: DeviceGrantV1): Promise<void> {
+    await Promise.resolve();
     if (!grantVisible(context, grant)) throw new Error('SCOPE_DENIED');
     const existing = this.grants.get(grant.grantId);
     if (existing && JSON.stringify(existing) !== JSON.stringify(grant))
@@ -82,6 +86,7 @@ export class InMemoryDeviceCapabilityRepositoryAdapter implements DeviceCapabili
     context: IamTenantContextV1,
     grantId: DeviceGrantV1['grantId'],
   ): Promise<DeviceGrantV1 | undefined> {
+    await Promise.resolve();
     const grant = this.grants.get(grantId);
     return grant && grantVisible(context, grant) ? cloneGrant(grant) : undefined;
   }
@@ -90,6 +95,7 @@ export class InMemoryDeviceCapabilityRepositoryAdapter implements DeviceCapabili
     context: IamTenantContextV1,
     deviceId: DeviceGrantV1['deviceId'],
   ): Promise<readonly DeviceGrantV1[]> {
+    await Promise.resolve();
     return [...this.grants.values()]
       .filter((grant) => grant.deviceId === deviceId && grantVisible(context, grant))
       .sort((left, right) => left.grantId.localeCompare(right.grantId))

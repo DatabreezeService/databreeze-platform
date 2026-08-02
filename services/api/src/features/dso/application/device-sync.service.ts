@@ -26,13 +26,11 @@ import {
 } from '@databreeze/domain/data-mode/v1';
 import {
   parseStableIdentifierV1,
-  tenantScopesEqualV1,
   tenantScopeContainsV1,
   type StableIdentifierV1,
 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
-import type { DataModePolicyRepositoryPortV1 } from './data-mode-policy-repository.port.js';
 import type {
   DeviceSyncOperationChangeV1,
   DeviceSyncOperationTransitionV1,

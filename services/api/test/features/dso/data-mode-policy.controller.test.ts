@@ -23,6 +23,13 @@ function context() {
   return result.value;
 }
 
+function jsonObject(response: { json(): unknown }): Record<string, unknown> {
+  const value = response.json();
+  assert.equal(typeof value, 'object');
+  assert.notEqual(value, null);
+  return value as Record<string, unknown>;
+}
+
 void test('[DSO-008, DSO-026] HTTP data-mode policy endpoints derive tenant scope from the caller', async () => {
   const tenantContext = context();
   const requestTenantContext: RequestTenantContextPortV1 = {
@@ -52,10 +59,13 @@ void test('[DSO-008, DSO-026] HTTP data-mode policy endpoints derive tenant scop
       },
     });
     assert.equal(published.statusCode, 200);
-    assert.equal(published.json().accepted, true);
+    assert.equal(jsonObject(published)['accepted'], true);
     const listed = await app.inject({ method: 'GET', url: `/v1/data-mode-policies/${policyId}` });
     assert.equal(listed.statusCode, 200);
-    assert.equal(listed.json().value.length, 1);
+    const listedBody = jsonObject(listed);
+    const listedValue = listedBody['value'];
+    assert.ok(Array.isArray(listedValue));
+    assert.equal(listedValue.length, 1);
   } finally {
     await app.close();
   }

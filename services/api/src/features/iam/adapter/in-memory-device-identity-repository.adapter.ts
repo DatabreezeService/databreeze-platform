@@ -33,6 +33,7 @@ export class InMemoryDeviceIdentityRepositoryAdapter implements DeviceIdentityRe
     context: IamTenantContextV1,
     challenge: DeviceEnrollmentChallengeV1,
   ): Promise<void> {
+    await Promise.resolve();
     if (!organizationContext(context, challenge.organizationId)) throw new Error('SCOPE_DENIED');
     const existing = this.challenges.get(challenge.id);
     if (existing) {
@@ -50,12 +51,14 @@ export class InMemoryDeviceIdentityRepositoryAdapter implements DeviceIdentityRe
     context: IamTenantContextV1,
     challengeId: DeviceEnrollmentChallengeV1['id'],
   ): Promise<DeviceEnrollmentChallengeV1 | undefined> {
+    await Promise.resolve();
     const challenge = this.challenges.get(challengeId);
     if (!challenge || !organizationContext(context, challenge.organizationId)) return undefined;
     return cloneChallenge(challenge);
   }
 
   public async saveDevice(context: IamTenantContextV1, device: DeviceIdentityV1): Promise<void> {
+    await Promise.resolve();
     if (!organizationContext(context, device.organizationId)) throw new Error('SCOPE_DENIED');
     const existing = this.devices.get(device.id);
     if (existing && JSON.stringify(existing) !== JSON.stringify(device))
@@ -67,12 +70,14 @@ export class InMemoryDeviceIdentityRepositoryAdapter implements DeviceIdentityRe
     context: IamTenantContextV1,
     deviceId: DeviceIdentityV1['id'],
   ): Promise<DeviceIdentityV1 | undefined> {
+    await Promise.resolve();
     const device = this.devices.get(deviceId);
     if (!device || !organizationContext(context, device.organizationId)) return undefined;
     return cloneDevice(device);
   }
 
   public async listDevices(context: IamTenantContextV1): Promise<readonly DeviceIdentityV1[]> {
+    await Promise.resolve();
     return [...this.devices.values()]
       .filter((device) => organizationContext(context, device.organizationId))
       .map(cloneDevice);

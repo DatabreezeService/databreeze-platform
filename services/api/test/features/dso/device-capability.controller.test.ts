@@ -24,6 +24,13 @@ function context() {
   return result.value;
 }
 
+function jsonObject(response: { json(): unknown }): Record<string, unknown> {
+  const value = response.json();
+  assert.equal(typeof value, 'object');
+  assert.notEqual(value, null);
+  return value as Record<string, unknown>;
+}
+
 void test('[DSO-002, DSO-003, DSO-005] HTTP capability and grant endpoints remain content-free', async () => {
   const tenantContext = context();
   const requestTenantContext: RequestTenantContextPortV1 = {
@@ -43,12 +50,15 @@ void test('[DSO-002, DSO-003, DSO-005] HTTP capability and grant endpoints remai
       },
     });
     assert.equal(reported.statusCode, 200);
-    assert.equal(reported.json().accepted, true);
+    assert.equal(jsonObject(reported)['accepted'], true);
     assert.doesNotMatch(reported.body, /C:\\|bytes|preview|source/u);
 
     const listed = await app.inject({ method: 'GET', url: `/v1/devices/${deviceId}/capabilities` });
     assert.equal(listed.statusCode, 200);
-    assert.equal(listed.json().value.length, 1);
+    const listedBody = jsonObject(listed);
+    const listedValue = listedBody['value'];
+    assert.ok(Array.isArray(listedValue));
+    assert.equal(listedValue.length, 1);
 
     const issued = await app.inject({
       method: 'POST',
@@ -67,7 +77,7 @@ void test('[DSO-002, DSO-003, DSO-005] HTTP capability and grant endpoints remai
       },
     });
     assert.equal(issued.statusCode, 200);
-    assert.equal(issued.json().accepted, true);
+    assert.equal(jsonObject(issued)['accepted'], true);
 
     const revoked = await app.inject({
       method: 'POST',
@@ -75,7 +85,10 @@ void test('[DSO-002, DSO-003, DSO-005] HTTP capability and grant endpoints remai
       payload: { expectedRevision: 1 },
     });
     assert.equal(revoked.statusCode, 200);
-    assert.equal(revoked.json().value.status, 'REVOKED');
+    const revokedValue = jsonObject(revoked)['value'];
+    assert.equal(typeof revokedValue, 'object');
+    assert.notEqual(revokedValue, null);
+    assert.equal((revokedValue as Record<string, unknown>)['status'], 'REVOKED');
   } finally {
     await app.close();
   }

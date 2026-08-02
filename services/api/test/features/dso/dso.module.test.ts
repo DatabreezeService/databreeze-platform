@@ -12,7 +12,7 @@ import { DATA_MODE_POLICY_REPOSITORY_PORT } from '../../../src/features/dso/appl
 import { PrismaDataModePolicyRepositoryAdapter } from '../../../src/features/dso/adapter/prisma-data-mode-policy-repository.adapter.js';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
 
-function provider(module: ReturnType<typeof DsoModule.register>, token: symbol) {
+function provider(module: ReturnType<typeof DsoModule.register>, token: symbol): unknown {
   const match = module.providers?.find(
     (candidate) =>
       typeof candidate === 'object' &&
@@ -22,7 +22,7 @@ function provider(module: ReturnType<typeof DsoModule.register>, token: symbol) 
   );
   assert.notEqual(match, undefined);
   if (!match || !('useValue' in match)) throw new Error('provider is not a value provider');
-  return match.useValue;
+  return match.useValue as unknown;
 }
 
 void test('[DSO-005, IAM-020] production DSO composition selects durable authorization storage', () => {
@@ -45,7 +45,7 @@ void test('[DSO-003, DSO-005] production DSO composition selects durable capabil
 
 void test('[IAM-020, DSO-005] DSO composition passes the IAM identity authority bridge', () => {
   const authority = {
-    inspect: async () => ({ accepted: false as const, code: 'DEVICE_REVOKED' as const }),
+    inspect: () => Promise.resolve({ accepted: false as const, code: 'DEVICE_REVOKED' as const }),
   };
   const registered = DsoModule.register({ deviceIdentityAuthority: authority });
   assert.ok(

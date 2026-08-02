@@ -16,11 +16,7 @@ import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import {
   PrismaDeviceSyncRepositoryAdapter,
-  type DeviceSyncConflictDatabaseRowV1,
   type DeviceSyncDatabaseClientV1,
-  type DeviceSyncOperationDatabaseRowV1,
-  type DeviceTransferReceiptDatabaseRowV1,
-  type StrictLocalPackageDatabaseRowV1,
 } from '../../../src/features/dso/adapter/prisma-device-sync-repository.adapter.js';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
 

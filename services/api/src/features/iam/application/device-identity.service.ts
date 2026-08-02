@@ -29,7 +29,8 @@ export interface DeviceEnrollmentProofVerifierV1 {
 
 /** Safe default: enrollment never succeeds until the host supplies a crypto verifier. */
 export class UnavailableDeviceEnrollmentProofVerifier implements DeviceEnrollmentProofVerifierV1 {
-  public verify(_input: Parameters<DeviceEnrollmentProofVerifierV1['verify']>[0]): boolean {
+  public verify(input: Parameters<DeviceEnrollmentProofVerifierV1['verify']>[0]): boolean {
+    void input;
     return false;
   }
 }

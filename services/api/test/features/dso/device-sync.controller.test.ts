@@ -23,6 +23,19 @@ const authorization: DeviceSyncAuthorizationPortV1 = {
   authorize: () => Promise.resolve({ accepted: true, value: true }),
 };
 
+function jsonObject(response: { json(): unknown }): Record<string, unknown> {
+  const value = response.json();
+  assert.equal(typeof value, 'object');
+  assert.notEqual(value, null);
+  return value as Record<string, unknown>;
+}
+
+function jsonArray(response: { json(): unknown }): unknown[] {
+  const value = response.json();
+  assert.ok(Array.isArray(value));
+  return value;
+}
+
 function context() {
   const result = createIamTenantContextV1({
     actorId: '00000000-0000-4000-8000-000000000106',
@@ -65,12 +78,12 @@ void test('[DSO-011, DSO-014] HTTP sync endpoints return opaque scoped operation
       },
     });
     assert.equal(response.statusCode, 200);
-    assert.equal(response.json().accepted, true);
+    assert.equal(jsonObject(response)['accepted'], true);
     assert.doesNotMatch(response.body, /path|bytes|preview|secret/u);
 
     const listed = await app.inject({ method: 'GET', url: '/v1/devices/sync/operations' });
     assert.equal(listed.statusCode, 200);
-    assert.equal(listed.json().length, 1);
+    assert.equal(jsonArray(listed).length, 1);
 
     const cursor = createDeviceSyncCursorV1(
       {
@@ -101,8 +114,13 @@ void test('[DSO-011, DSO-014] HTTP sync endpoints return opaque scoped operation
       },
     });
     assert.equal(pulled.statusCode, 200);
-    assert.equal(pulled.json().accepted, true);
-    assert.equal(pulled.json().value.changes.length, 1);
+    assert.equal(jsonObject(pulled)['accepted'], true);
+    const pulledValue = jsonObject(pulled)['value'];
+    assert.equal(typeof pulledValue, 'object');
+    assert.notEqual(pulledValue, null);
+    const changes = (pulledValue as Record<string, unknown>)['changes'];
+    assert.ok(Array.isArray(changes));
+    assert.equal(changes.length, 1);
   } finally {
     await app.close();
   }
@@ -133,7 +151,7 @@ void test('[DSO-014] HTTP sync validation rejects unknown or unsafe fields', asy
       },
     });
     assert.equal(response.statusCode, 400);
-    assert.equal(response.json().code, 'VALIDATION_FAILED');
+    assert.equal(jsonObject(response)['code'], 'VALIDATION_FAILED');
     assert.doesNotMatch(response.body, /private|source\.xlsx/u);
   } finally {
     await app.close();

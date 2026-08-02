@@ -32,9 +32,11 @@ export interface DeviceSyncAuthorizationPortV1 {
 /** The API remains fail-closed until composition supplies the IAM-backed grant checker. */
 export class UnavailableDeviceSyncAuthorizationAdapter implements DeviceSyncAuthorizationPortV1 {
   public authorize(
-    _context: IamTenantContextV1,
-    _input: Parameters<DeviceSyncAuthorizationPortV1['authorize']>[1],
+    context: IamTenantContextV1,
+    input: Parameters<DeviceSyncAuthorizationPortV1['authorize']>[1],
   ): Promise<DeviceSyncAuthorizationResultV1> {
+    void context;
+    void input;
     return Promise.resolve({ accepted: false, code: 'AUTHORIZATION_UNAVAILABLE' });
   }
 }

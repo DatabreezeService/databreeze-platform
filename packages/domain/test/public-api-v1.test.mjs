@@ -19,6 +19,7 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
     './mfa/v1',
     './device-authorization/v1',
     './device-sync/v1',
+    './device-capability/v1',
     './data-mode/v1',
     './artifact/v1',
     './artifact-intake/v1',

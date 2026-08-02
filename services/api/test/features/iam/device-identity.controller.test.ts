@@ -25,6 +25,13 @@ function context() {
   return result.value;
 }
 
+function jsonObject(response: { json(): unknown }): Record<string, unknown> {
+  const value = response.json();
+  assert.equal(typeof value, 'object');
+  assert.notEqual(value, null);
+  return value as Record<string, unknown>;
+}
+
 void test('[IAM-007, IAM-021] device identity HTTP endpoints use the authenticated organization context', async () => {
   const tenantContext = context();
   const requestTenantContext: RequestTenantContextPortV1 = {
@@ -51,7 +58,7 @@ void test('[IAM-007, IAM-021] device identity HTTP endpoints use the authenticat
       },
     });
     assert.equal(challenge.statusCode, 200);
-    assert.equal(challenge.json().accepted, true);
+    assert.equal(jsonObject(challenge)['accepted'], true);
 
     const enrolled = await app.inject({
       method: 'POST',
@@ -65,14 +72,19 @@ void test('[IAM-007, IAM-021] device identity HTTP endpoints use the authenticat
       },
     });
     assert.equal(enrolled.statusCode, 200);
-    assert.equal(enrolled.json().value.status, 'PENDING');
+    const enrolledValue = jsonObject(enrolled)['value'];
+    assert.equal(typeof enrolledValue, 'object');
+    assert.notEqual(enrolledValue, null);
+    assert.equal((enrolledValue as Record<string, unknown>)['status'], 'PENDING');
 
     const devices = await app.inject({
       method: 'GET',
       url: `/v1/organizations/${organizationId}/devices`,
     });
     assert.equal(devices.statusCode, 200);
-    assert.equal(devices.json().value.length, 1);
+    const devicesValue = jsonObject(devices)['value'];
+    assert.ok(Array.isArray(devicesValue));
+    assert.equal(devicesValue.length, 1);
   } finally {
     await app.close();
   }

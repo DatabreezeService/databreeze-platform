@@ -77,7 +77,7 @@ void test('[DSO-005, IAM-020] synchronization authorization checks grant scope, 
 
 void test('[DSO-005] synchronization prefers a typed capability grant when present', async () => {
   const typed = {
-    authorizeGrant: async () => ({ accepted: true as const, value: true as const }),
+    authorizeGrant: () => Promise.resolve({ accepted: true as const, value: true as const }),
   };
   const adapter = new DeviceSyncAuthorizationAdapter(
     new DeviceAuthorizationService(new InMemoryDeviceAuthorizationRepositoryAdapter()),
@@ -111,7 +111,8 @@ void test('[DSO-005] a denied typed grant cannot fall back to a legacy grant wit
   });
   assert.equal(issued.accepted, true);
   const typed = {
-    authorizeGrant: async () => ({ accepted: false as const, code: 'GRANT_SCOPE_DENIED' as const }),
+    authorizeGrant: () =>
+      Promise.resolve({ accepted: false as const, code: 'GRANT_SCOPE_DENIED' as const }),
   };
   const adapter = new DeviceSyncAuthorizationAdapter(grants, undefined, typed);
   assert.deepEqual(
