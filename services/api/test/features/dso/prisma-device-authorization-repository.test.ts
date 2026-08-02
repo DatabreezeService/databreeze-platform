@@ -83,7 +83,7 @@ function grant(): OpaqueDeviceGrantV1 {
   return created.value;
 }
 
-function delegate(rows: Record<string, unknown>[]) {
+function delegate(rows: Record<string, unknown>[], forceRevisionConflict = false) {
   return {
     create({ data }: { readonly data: Record<string, unknown> }) {
       const persisted = { ...data };
@@ -123,15 +123,32 @@ function delegate(rows: Record<string, unknown>[]) {
       rows[index] = { ...rows[index], ...data };
       return Promise.resolve(rows[index]);
     },
+    updateMany({
+      where,
+      data,
+    }: {
+      readonly where: { readonly id: string; readonly revision: number };
+      readonly data: Record<string, unknown>;
+    }) {
+      if (forceRevisionConflict) return Promise.resolve({ count: 0 });
+      const index = rows.findIndex(
+        (row) => row['id'] === where.id && row['revision'] === where.revision,
+      );
+      if (index < 0) return Promise.resolve({ count: 0 });
+      rows[index] = { ...rows[index], ...data };
+      return Promise.resolve({ count: 1 });
+    },
   };
 }
 
-function client(): DeviceAuthorizationDatabaseClientV1 {
+function client(
+  options: { readonly forceRevisionConflict?: boolean } = {},
+): DeviceAuthorizationDatabaseClientV1 {
   const snapshotRows: Record<string, unknown>[] = [];
   const grantRows: Record<string, unknown>[] = [];
   const database = {
     authorizationSnapshot: delegate(snapshotRows),
-    deviceGrantRecord: delegate(grantRows),
+    deviceGrantRecord: delegate(grantRows, options.forceRevisionConflict),
     async $transaction<TValue>(
       work: (transaction: DeviceAuthorizationDatabaseClientV1) => Promise<TValue>,
     ) {
@@ -163,5 +180,16 @@ void test('[IAM-020, DSO-005, IAM-009] Prisma device authorization adapter persi
   assert.equal(
     (await repository.findGrant(context(workspaceId, 'revoked'), id(grantId)))?.revision,
     2,
+  );
+});
+
+void test('[IAM-020, DSO-005] Prisma device grant revocation rejects a database race', async () => {
+  const repository = new PrismaDeviceAuthorizationRepositoryAdapter(
+    client({ forceRevisionConflict: true }),
+  );
+  await repository.saveGrant(context(workspaceId, 'grant-race-save'), grant());
+  await assert.rejects(
+    repository.revokeGrant(context(workspaceId, 'grant-race-revoke'), id(grantId), 1),
+    /DSO_REVISION_CONFLICT/u,
   );
 });
