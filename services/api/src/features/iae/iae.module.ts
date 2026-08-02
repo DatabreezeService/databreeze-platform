@@ -7,6 +7,7 @@ import { ArtifactLineageController } from './api/artifact-lineage.controller.js'
 import { ContentPlacementController } from './api/content-placement.controller.js';
 import { ArtifactRetentionController } from './api/artifact-retention.controller.js';
 import { ArtifactExportController } from './api/artifact-export.controller.js';
+import { ArtifactUploadController } from './api/artifact-upload.controller.js';
 import { InMemoryArtifactIntakeRepositoryAdapter } from './adapter/in-memory-artifact-intake-repository.adapter.js';
 import {
   PrismaArtifactIntakeRepositoryAdapter,
@@ -28,6 +29,11 @@ import {
   PrismaArtifactExportRepositoryAdapter,
   type ArtifactExportDatabaseClientV1,
 } from './adapter/prisma-artifact-export-repository.adapter.js';
+import { InMemoryArtifactUploadRepositoryAdapter } from './adapter/in-memory-artifact-upload-repository.adapter.js';
+import {
+  PrismaArtifactUploadRepositoryAdapter,
+  type ArtifactUploadDatabaseClientV1,
+} from './adapter/prisma-artifact-upload-repository.adapter.js';
 import {
   PrismaArtifactRepositoryAdapter,
   type ArtifactDatabaseClientV1,
@@ -54,6 +60,10 @@ import {
   type ArtifactExportRepositoryPortV1,
 } from './application/artifact-export-repository.port.js';
 import {
+  ARTIFACT_UPLOAD_REPOSITORY_PORT,
+  type ArtifactUploadRepositoryPortV1,
+} from './application/artifact-upload-repository.port.js';
+import {
   EVIDENCE_GRANT_REPOSITORY_PORT,
   type EvidenceGrantRepositoryPortV1,
 } from './application/evidence-grant-repository.port.js';
@@ -79,6 +89,9 @@ export interface IaeModuleOptions {
   readonly artifactExportRepository?: ArtifactExportRepositoryPortV1;
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly artifactExportDatabase?: ArtifactExportDatabaseClientV1;
+  readonly artifactUploadRepository?: ArtifactUploadRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly artifactUploadDatabase?: ArtifactUploadDatabaseClientV1;
   readonly evidenceGrantRepository?: EvidenceGrantRepositoryPortV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
 }
@@ -96,6 +109,7 @@ export class IaeModule {
         ContentPlacementController,
         ArtifactRetentionController,
         ArtifactExportController,
+        ArtifactUploadController,
       ],
       providers: [
         {
@@ -139,6 +153,14 @@ export class IaeModule {
               : new PrismaArtifactExportRepositoryAdapter(options.artifactExportDatabase)),
         },
         {
+          provide: ARTIFACT_UPLOAD_REPOSITORY_PORT,
+          useValue:
+            options.artifactUploadRepository ??
+            (options.artifactUploadDatabase === undefined
+              ? new InMemoryArtifactUploadRepositoryAdapter()
+              : new PrismaArtifactUploadRepositoryAdapter(options.artifactUploadDatabase)),
+        },
+        {
           provide: EVIDENCE_GRANT_REPOSITORY_PORT,
           useValue: options.evidenceGrantRepository ?? new InMemoryEvidenceGrantRepositoryAdapter(),
         },
@@ -153,6 +175,7 @@ export class IaeModule {
         ARTIFACT_LINEAGE_REPOSITORY_PORT,
         ARTIFACT_RETENTION_REPOSITORY_PORT,
         ARTIFACT_EXPORT_REPOSITORY_PORT,
+        ARTIFACT_UPLOAD_REPOSITORY_PORT,
         EVIDENCE_GRANT_REPOSITORY_PORT,
       ],
     };
