@@ -127,6 +127,27 @@ model ResultManifestRecord {
   @@schema("jra")
 }
 
+model JobDispatchRecord {
+  id             String    @id @db.Uuid
+  jobId          String    @map("job_id") @db.Uuid
+  scopeType      String    @map("scope_type") @db.VarChar(24)
+  organizationId String    @map("organization_id") @db.Uuid
+  workspaceId    String?   @map("workspace_id") @db.Uuid
+  projectId      String?   @map("project_id") @db.Uuid
+  eventType      String    @map("event_type") @db.VarChar(32)
+  payloadHash    String    @map("payload_hash") @db.Char(64)
+  idempotencyKey String    @map("idempotency_key") @db.VarChar(200)
+  createdAt      DateTime  @map("created_at") @db.Timestamptz(6)
+  deliveredAt    DateTime? @map("delivered_at") @db.Timestamptz(6)
+  revision       Int       @default(1)
+
+  @@unique([jobId, idempotencyKey], map: "job_dispatch_job_idempotency_key")
+  @@index([organizationId, workspaceId, projectId, deliveredAt, createdAt], map: "job_dispatch_pending_idx")
+  @@index([jobId, eventType], map: "job_dispatch_job_event_idx")
+  @@map("job_dispatch_outbox")
+  @@schema("jra")
+}
+
 model ApprovalPolicyRecord {
   id                   String  @id @db.Uuid
   workspaceId          String  @map("workspace_id") @db.Uuid

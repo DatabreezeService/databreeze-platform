@@ -59,6 +59,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "jra"\."jobs"/);
   assert.match(diff.stdout, /CREATE TABLE "jra"\."execution_attempts"/);
   assert.match(diff.stdout, /CREATE TABLE "jra"\."result_manifests"/);
+  assert.match(diff.stdout, /CREATE TABLE "jra"\."job_dispatch_outbox"/);
 
   const migrationsDirectory = path.join(apiDirectory, 'prisma', 'migrations');
   const inventory = (await readdir(migrationsDirectory)).sort();
@@ -72,6 +73,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802050000_jra_jobs_approvals',
     '20260802060000_jra_execution_attempts',
     '20260802070000_jra_result_manifests',
+    '20260802080000_jra_dispatch_outbox',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -176,5 +178,18 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     'CREATE UNIQUE INDEX "result_manifests_attempt_key"',
   ]) {
     assert.match(resultMigration, new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  const dispatchMigration = await readFile(
+    path.join(migrationsDirectory, inventory[9], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE TABLE "jra"."job_dispatch_outbox"',
+    'CREATE UNIQUE INDEX "job_dispatch_job_idempotency_key"',
+  ]) {
+    assert.match(
+      dispatchMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
   }
 });
