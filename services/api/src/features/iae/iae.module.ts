@@ -6,6 +6,7 @@ import { ArtifactReadController } from './api/artifact-read.controller.js';
 import { ArtifactLineageController } from './api/artifact-lineage.controller.js';
 import { ContentPlacementController } from './api/content-placement.controller.js';
 import { ArtifactRetentionController } from './api/artifact-retention.controller.js';
+import { ArtifactExportController } from './api/artifact-export.controller.js';
 import { InMemoryArtifactIntakeRepositoryAdapter } from './adapter/in-memory-artifact-intake-repository.adapter.js';
 import {
   PrismaArtifactIntakeRepositoryAdapter,
@@ -14,6 +15,7 @@ import {
 import { InMemoryArtifactRepositoryAdapter } from './adapter/in-memory-artifact-repository.adapter.js';
 import { InMemoryArtifactLineageRepositoryAdapter } from './adapter/in-memory-artifact-lineage-repository.adapter.js';
 import { InMemoryArtifactRetentionRepositoryAdapter } from './adapter/in-memory-artifact-retention-repository.adapter.js';
+import { InMemoryArtifactExportRepositoryAdapter } from './adapter/in-memory-artifact-export-repository.adapter.js';
 import {
   PrismaArtifactRepositoryAdapter,
   type ArtifactDatabaseClientV1,
@@ -36,6 +38,10 @@ import {
   type ArtifactRetentionRepositoryPortV1,
 } from './application/artifact-retention-repository.port.js';
 import {
+  ARTIFACT_EXPORT_REPOSITORY_PORT,
+  type ArtifactExportRepositoryPortV1,
+} from './application/artifact-export-repository.port.js';
+import {
   EVIDENCE_GRANT_REPOSITORY_PORT,
   type EvidenceGrantRepositoryPortV1,
 } from './application/evidence-grant-repository.port.js';
@@ -54,6 +60,7 @@ export interface IaeModuleOptions {
   readonly artifactDatabase?: ArtifactDatabaseClientV1;
   readonly artifactLineageRepository?: ArtifactLineageRepositoryPortV1;
   readonly artifactRetentionRepository?: ArtifactRetentionRepositoryPortV1;
+  readonly artifactExportRepository?: ArtifactExportRepositoryPortV1;
   readonly evidenceGrantRepository?: EvidenceGrantRepositoryPortV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
 }
@@ -70,6 +77,7 @@ export class IaeModule {
         ArtifactLineageController,
         ContentPlacementController,
         ArtifactRetentionController,
+        ArtifactExportController,
       ],
       providers: [
         {
@@ -95,7 +103,13 @@ export class IaeModule {
         },
         {
           provide: ARTIFACT_RETENTION_REPOSITORY_PORT,
-          useValue: options.artifactRetentionRepository ?? new InMemoryArtifactRetentionRepositoryAdapter(),
+          useValue:
+            options.artifactRetentionRepository ?? new InMemoryArtifactRetentionRepositoryAdapter(),
+        },
+        {
+          provide: ARTIFACT_EXPORT_REPOSITORY_PORT,
+          useValue:
+            options.artifactExportRepository ?? new InMemoryArtifactExportRepositoryAdapter(),
         },
         {
           provide: EVIDENCE_GRANT_REPOSITORY_PORT,
@@ -111,6 +125,7 @@ export class IaeModule {
         ARTIFACT_REPOSITORY_PORT,
         ARTIFACT_LINEAGE_REPOSITORY_PORT,
         ARTIFACT_RETENTION_REPOSITORY_PORT,
+        ARTIFACT_EXPORT_REPOSITORY_PORT,
         EVIDENCE_GRANT_REPOSITORY_PORT,
       ],
     };
