@@ -89,10 +89,6 @@ function positiveInteger(input: unknown): number | undefined {
   return typeof input === 'number' && Number.isSafeInteger(input) && input > 0 ? input : undefined;
 }
 
-function revision(input: unknown): number | undefined {
-  return positiveInteger(input);
-}
-
 function validPart(part: unknown, totalParts: number): part is ArtifactUploadPartV1 {
   if (typeof part !== 'object' || part === null || Array.isArray(part)) return false;
   const record = part as Record<string, unknown>;
@@ -124,7 +120,6 @@ export function createArtifactUploadSessionV1(input: {
   const artifactId = identifier(input.artifactId);
   const tenantScope = parseTenantScopeV1(input.tenantScope);
   const expectedSha256 = hash(input.expectedSha256);
-  const expectedByteSize = positiveInteger(input.expectedByteSize ?? 0);
   const partSize = positiveInteger(input.partSize);
   const mediaTypeValue = mediaType(input.mediaType);
   const createdAt = timestamp(input.createdAt);

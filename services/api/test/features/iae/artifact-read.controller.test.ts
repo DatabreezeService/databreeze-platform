@@ -70,7 +70,13 @@ void test('[IAE-006, IAE-008, IAE-019, IAE-020] artifact reads return exact cont
   try {
     const response = await app.inject({ method: 'GET', url: `/v1/artifact-versions/${versionId}` });
     assert.equal(response.statusCode, 200);
-    const body = response.json();
+    const body = JSON.parse(response.body) as {
+      readonly accepted: boolean;
+      readonly value: {
+        readonly version: { readonly versionId: string };
+        readonly placements: readonly [{ readonly opaqueReference: string }];
+      };
+    };
     assert.equal(body.accepted, true);
     assert.equal(body.value.version.versionId, versionId);
     assert.equal(body.value.placements[0].opaqueReference, 'local-placement-000001');
@@ -81,7 +87,10 @@ void test('[IAE-006, IAE-008, IAE-019, IAE-020] artifact reads return exact cont
       url: `/v1/artifact-versions/${versionId}/evidence`,
     });
     assert.equal(evidenceResponse.statusCode, 200);
-    assert.deepEqual(evidenceResponse.json().value[0].coordinate, {
+    const evidenceBody = JSON.parse(evidenceResponse.body) as {
+      readonly value: readonly [{ readonly coordinate: Record<string, unknown> }];
+    };
+    assert.deepEqual(evidenceBody.value[0].coordinate, {
       kind: 'ROW',
       row: 1,
       field: 'amount',

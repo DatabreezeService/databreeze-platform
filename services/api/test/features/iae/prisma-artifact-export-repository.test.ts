@@ -5,7 +5,11 @@ import { createArtifactExportManifestV1 } from '@databreeze/domain/artifact-expo
 import { parseTenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
 
-import { PrismaArtifactExportRepositoryAdapter } from '../../../src/features/iae/adapter/prisma-artifact-export-repository.adapter.js';
+import {
+  PrismaArtifactExportRepositoryAdapter,
+  type ArtifactExportDatabaseClientV1,
+  type ArtifactExportDatabaseRowV1,
+} from '../../../src/features/iae/adapter/prisma-artifact-export-repository.adapter.js';
 
 const organizationId = '11111111-1111-4111-8111-111111111111';
 const workspaceId = '22222222-2222-4222-8222-222222222222';
@@ -43,23 +47,23 @@ const manifest = createArtifactExportManifestV1({
 });
 if (!manifest.accepted) throw new Error('fixture manifest invalid');
 
-test('IAE-018 Prisma export adapter preserves immutable manifests and scopes reads', async () => {
-  const rows = new Map<string, any>();
-  const client = {
+void test('IAE-018 Prisma export adapter preserves immutable manifests and scopes reads', async () => {
+  const rows = new Map<string, ArtifactExportDatabaseRowV1>();
+  const client: ArtifactExportDatabaseClientV1 = {
     artifactExportManifestRecord: {
-      async create({ data }: any) {
+      create({ data }) {
         const row = { ...data };
         rows.set(row.id, row);
-        return row;
+        return Promise.resolve(row);
       },
-      async findUnique({ where }: any) {
-        return rows.get(where.id) ?? null;
+      findUnique({ where }) {
+        return Promise.resolve(rows.get(where.id) ?? null);
       },
     },
-    async $transaction(work: any) {
-      return work(this);
+    $transaction(work) {
+      return work(client);
     },
-  } as any;
+  };
   const repository = new PrismaArtifactExportRepositoryAdapter(client);
   await repository.save(context, manifest.value);
   await repository.save(context, manifest.value);

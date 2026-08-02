@@ -61,7 +61,8 @@ void test('[DSM-009, DSM-010, DSM-021] mapping publication is exposed as an immu
       payload: { nextVersionId, publishedAt: '2026-01-01T00:01:00.000Z' },
     });
     assert.equal(response.statusCode, 200);
-    assert.equal(response.json().value.status, 'PUBLISHED');
+    const body = JSON.parse(response.body) as { readonly value: { readonly status: string } };
+    assert.equal(body.value.status, 'PUBLISHED');
   } finally {
     await app.close();
   }

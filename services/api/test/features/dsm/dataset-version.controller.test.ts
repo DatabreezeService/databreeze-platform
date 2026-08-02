@@ -53,16 +53,23 @@ void test('[DSM-002, DSM-012, DSM-014] dataset result manifests are immutable an
       },
     });
     assert.equal(response.statusCode, 201);
-    assert.equal(response.json().value.rowCount, 42);
+    const createdBody = JSON.parse(response.body) as {
+      readonly value: { readonly rowCount: number };
+    };
+    assert.equal(createdBody.value.rowCount, 42);
     const read = await app.inject({ method: 'GET', url: `/v1/dataset-versions/${versionId}` });
     assert.equal(read.statusCode, 200);
-    assert.equal(read.json().value.contentFingerprint, 'a'.repeat(64));
+    const readBody = JSON.parse(read.body) as {
+      readonly value: { readonly contentFingerprint: string };
+    };
+    assert.equal(readBody.value.contentFingerprint, 'a'.repeat(64));
     const listed = await app.inject({
       method: 'GET',
       url: `/v1/dataset-versions?datasetId=${datasetId}`,
     });
     assert.equal(listed.statusCode, 200);
-    assert.equal(listed.json().length, 1);
+    const listedBody = JSON.parse(listed.body) as readonly unknown[];
+    assert.equal(listedBody.length, 1);
   } finally {
     await app.close();
   }

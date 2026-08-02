@@ -53,14 +53,18 @@ void test('[IAE-007] lineage endpoints resolve exact derived and source versions
       url: `/v1/artifact-versions/${derivedVersionId}/lineage`,
     });
     assert.equal(derived.statusCode, 200);
-    assert.equal(derived.json().value.derivedArtifactVersionId, derivedVersionId);
+    const derivedBody = JSON.parse(derived.body) as {
+      readonly value: { readonly derivedArtifactVersionId: string };
+    };
+    assert.equal(derivedBody.value.derivedArtifactVersionId, derivedVersionId);
 
     const source = await app.inject({
       method: 'GET',
       url: `/v1/artifact-versions/${sourceVersionId}/derived-lineage`,
     });
     assert.equal(source.statusCode, 200);
-    assert.equal(source.json().value.length, 1);
+    const sourceBody = JSON.parse(source.body) as { readonly value: readonly unknown[] };
+    assert.equal(sourceBody.value.length, 1);
   } finally {
     await app.close();
   }

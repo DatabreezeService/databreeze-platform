@@ -64,13 +64,17 @@ void test('[DSM-005, DSM-006, DSM-018, DSM-021] governed dataset HTTP surfaces p
       },
     });
     assert.equal(published.statusCode, 200);
-    assert.equal(published.json().value.status, 'PUBLISHED');
+    const publishedBody = JSON.parse(published.body) as {
+      readonly value: { readonly status: string };
+    };
+    assert.equal(publishedBody.value.status, 'PUBLISHED');
     const read = await app.inject({
       method: 'GET',
       url: `/v1/datasets/${datasetId}/versions/${publishedVersionId}`,
     });
     assert.equal(read.statusCode, 200);
-    assert.equal(read.json().value.versionId, publishedVersionId);
+    const readBody = JSON.parse(read.body) as { readonly value: { readonly versionId: string } };
+    assert.equal(readBody.value.versionId, publishedVersionId);
     const comparison = await app.inject({
       method: 'GET',
       url: `/v1/datasets/${datasetId}/compatibility?previousVersionId=${versionId}&nextVersionId=${publishedVersionId}`,

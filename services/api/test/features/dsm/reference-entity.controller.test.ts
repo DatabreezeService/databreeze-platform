@@ -54,7 +54,8 @@ void test('[DSM-025, DSM-026, DSM-027] reference entity API exposes exact versio
       url: `/v1/reference-entities/${entityId}/versions/${versionId}`,
     });
     assert.equal(response.statusCode, 200);
-    assert.equal(response.json().value.displayName, 'Công ty Ánh Dương');
+    const body = JSON.parse(response.body) as { readonly value: { readonly displayName: string } };
+    assert.equal(body.value.displayName, 'Công ty Ánh Dương');
     const resolutions = await app.inject({
       method: 'GET',
       url: `/v1/reference-entities/${entityId}/resolutions`,

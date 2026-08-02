@@ -1,7 +1,4 @@
-import {
-  parseStableIdentifierV1,
-  type StableIdentifierV1,
-} from '@databreeze/domain/tenant-scope/v1';
+import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 import {
   updateContentPlacementAvailabilityV1,
   type ArtifactResultV1,

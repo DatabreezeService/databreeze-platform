@@ -59,7 +59,10 @@ void test('IAE-009/010 admission HTTP endpoint persists clean status without sou
       },
     });
     assert.equal(response.statusCode, 201);
-    assert.equal(response.json().value.version.status, 'ACTIVE');
+    const body = JSON.parse(response.body) as {
+      readonly value: { readonly version: { readonly status: string } };
+    };
+    assert.equal(body.value.version.status, 'ACTIVE');
     assert.doesNotMatch(response.body, /sourcePath|rawBytes|excerpt/iu);
   } finally {
     await app.close();
