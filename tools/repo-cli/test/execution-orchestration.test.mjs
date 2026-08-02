@@ -186,6 +186,17 @@ test('ledger records verified task evidence before advancing the next task', () 
   );
 });
 
+test('CodeRabbit promotion disposition records one review and rejected claims', () => {
+  const disposition = readFileSync(
+    path.join(repositoryRoot, 'docs', 'operations', 'code-review-11-disposition.md'),
+    'utf8',
+  );
+  assert.match(disposition, /Promotion PR.*#11/u);
+  assert.match(disposition, /one permitted full CodeRabbit review/u);
+  assert.match(disposition, /Duplicate plan catalog/u);
+  assert.match(disposition, /Docstring coverage warning/u);
+});
+
 test('repository checker rejects dependency cycles', () => {
   withTemporaryPlans(
     ({ ledger }) => {
@@ -209,6 +220,24 @@ test('repository checker rejects false verified requirement evidence', () => {
       assert.notEqual(result.status, 0);
       assert.match(result.stderr, /lacks exact existing test paths/u);
       assert.match(result.stderr, /lacks exact existing release-evidence paths/u);
+    },
+  );
+});
+
+test('repository checker rejects task evidence paths that escape the repository root', () => {
+  withTemporaryPlans(
+    ({ ledger }) => {
+      ledger.taskState = {
+        'FND-001': {
+          status: 'verified',
+          commit: '0'.repeat(40),
+          evidence: ['..'],
+        },
+      };
+    },
+    (result) => {
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /verified task FND-001 has missing evidence paths/u);
     },
   );
 });
