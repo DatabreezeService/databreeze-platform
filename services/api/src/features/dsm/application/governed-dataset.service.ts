@@ -78,4 +78,16 @@ export class GovernedDatasetService {
       transaction.list(context, datasetId),
     );
   }
+
+  public async find(
+    context: IamTenantContextV1,
+    versionId: StableIdentifierV1,
+  ): Promise<GovernedDatasetServiceResultV1<GovernedDatasetDefinitionV1>> {
+    return this.repository.withTransaction(context, async (transaction) => {
+      const definition = await transaction.find(context, versionId);
+      return definition
+        ? Object.freeze({ accepted: true as const, value: definition })
+        : Object.freeze({ accepted: false as const, code: 'VERSION_NOT_FOUND' as const });
+    });
+  }
 }
