@@ -62,6 +62,19 @@ export class ArtifactRetentionService {
     });
   }
 
+  public async find(
+    context: IamTenantContextV1,
+    requestIdInput: unknown,
+  ): Promise<ArtifactRetentionServiceResultV1<ArtifactDeletionRequestV1>> {
+    const requestId = parseStableIdentifierV1(requestIdInput);
+    if (!requestId.accepted)
+      return Object.freeze({ accepted: false, code: 'INVALID_IDENTIFIER' as const });
+    const request = await this.requests.find(context, requestId.value);
+    return request
+      ? Object.freeze({ accepted: true, value: request })
+      : Object.freeze({ accepted: false, code: 'REQUEST_NOT_FOUND' as const });
+  }
+
   public async authorize(
     context: IamTenantContextV1,
     input: {

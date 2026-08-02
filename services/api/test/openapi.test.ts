@@ -63,6 +63,7 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
     assert.deepEqual(paths, [
       '/health/live',
       '/health/ready',
+      '/v1/artifact-deletion-requests/{requestId}',
       '/v1/artifact-deletion-requests/{requestId}/authorize',
       '/v1/artifact-upload-sessions',
       '/v1/artifact-upload-sessions/{sessionId}',
