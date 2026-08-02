@@ -1,5 +1,6 @@
 import {
   tenantScopeContainsV1,
+  type ArtifactScanStateV1,
   type ArtifactVersionV1,
   type ContentPlacementV1,
   type EvidenceReferenceV1,
@@ -68,6 +69,7 @@ export class InMemoryArtifactRepositoryAdapter implements ArtifactRepositoryPort
     context: IamTenantContextV1,
     versionId: ArtifactVersionV1['versionId'],
     status: ArtifactVersionV1['status'],
+    scanState?: ArtifactScanStateV1,
   ): Promise<ArtifactVersionV1 | undefined> {
     await Promise.resolve();
     const current = this.versions.get(versionId);
@@ -78,7 +80,7 @@ export class InMemoryArtifactRepositoryAdapter implements ArtifactRepositoryPort
       throw new Error('IAE_INVALID_STATUS');
     if (current.status === 'DELETED' && status !== 'DELETED')
       throw new Error('IAE_TERMINAL_STATUS');
-    const next = cloneVersion({ ...current, status });
+    const next = cloneVersion({ ...current, status, scanState: scanState ?? current.scanState });
     this.versions.set(versionId, next);
     return next;
   }

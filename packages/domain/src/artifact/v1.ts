@@ -14,6 +14,7 @@ export const ARTIFACT_SCHEMA_VERSION_V1 = 1 as const;
 export type ArtifactDataModeV1 = 'Local' | 'Hybrid' | 'Cloud';
 export type ArtifactSourceKindV1 = 'FILE' | 'FOLDER' | 'CAPTURE' | 'GENERATED';
 export type ArtifactVersionStatusV1 = 'QUARANTINED' | 'ACTIVE' | 'DELETED';
+export type ArtifactScanStateV1 = 'PENDING' | 'CLEAN' | 'MALICIOUS' | 'FAILED';
 export type ArtifactPlacementKindV1 = 'LOCAL' | 'CLOUD';
 export type EvidenceSourceStateV1 = 'AVAILABLE' | 'SOURCE_OFFLINE' | 'DELETED';
 
@@ -42,6 +43,7 @@ export interface ArtifactVersionV1 {
   readonly displayName: string;
   readonly createdAt: StrictUtcTimestampV1;
   readonly status: ArtifactVersionStatusV1;
+  readonly scanState: ArtifactScanStateV1;
 }
 
 export interface ContentPlacementV1 {
@@ -83,6 +85,7 @@ export type ArtifactErrorCodeV1 =
   | 'INVALID_MEDIA_TYPE'
   | 'INVALID_NAME'
   | 'INVALID_STATUS'
+  | 'INVALID_SCAN_STATE'
   | 'INVALID_REVISION'
   | 'REVISION_CONFLICT'
   | 'INVALID_REFERENCE'
@@ -172,6 +175,10 @@ function isStatus(input: unknown): input is ArtifactVersionStatusV1 {
   return input === 'QUARANTINED' || input === 'ACTIVE' || input === 'DELETED';
 }
 
+function isScanState(input: unknown): input is ArtifactScanStateV1 {
+  return input === 'PENDING' || input === 'CLEAN' || input === 'MALICIOUS' || input === 'FAILED';
+}
+
 export function createArtifactVersionV1(input: {
   readonly artifactId: unknown;
   readonly versionId: unknown;
@@ -184,6 +191,7 @@ export function createArtifactVersionV1(input: {
   readonly displayName: unknown;
   readonly createdAt: unknown;
   readonly status?: unknown;
+  readonly scanState?: unknown;
 }): ArtifactResultV1<ArtifactVersionV1> {
   const artifactId = stableId(input.artifactId);
   const versionId = stableId(input.versionId);
@@ -193,6 +201,7 @@ export function createArtifactVersionV1(input: {
   const displayNameValue = displayName(input.displayName);
   const createdAt = timestamp(input.createdAt);
   const status = input.status ?? 'ACTIVE';
+  const scanState = input.scanState ?? 'PENDING';
   if (!artifactId || !versionId) return rejected('INVALID_IDENTIFIER');
   if (!tenantScope) return rejected('INVALID_SCOPE');
   if (!isSourceKind(input.sourceKind)) return rejected('INVALID_KIND');
@@ -208,6 +217,7 @@ export function createArtifactVersionV1(input: {
   if (!displayNameValue) return rejected('INVALID_NAME');
   if (!createdAt) return rejected('INVALID_TIMESTAMP');
   if (!isStatus(status)) return rejected('INVALID_STATUS');
+  if (!isScanState(scanState)) return rejected('INVALID_SCAN_STATE');
   return accepted(
     Object.freeze({
       schemaVersion: ARTIFACT_SCHEMA_VERSION_V1,
@@ -222,6 +232,7 @@ export function createArtifactVersionV1(input: {
       displayName: displayNameValue,
       createdAt,
       status,
+      scanState,
     }),
   );
 }

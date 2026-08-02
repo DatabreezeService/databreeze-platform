@@ -2,6 +2,7 @@ import {
   createArtifactVersionV1,
   createContentPlacementV1,
   createEvidenceReferenceV1,
+  type ArtifactScanStateV1,
   type ArtifactVersionV1,
   type ContentPlacementV1,
   type EvidenceReferenceV1,
@@ -33,6 +34,7 @@ export interface ArtifactVersionDatabaseRowV1 {
   readonly displayName: string;
   readonly createdAt: Date;
   readonly status: string;
+  readonly scanState?: string;
 }
 
 export interface ContentPlacementDatabaseRowV1 {
@@ -84,7 +86,7 @@ export interface ArtifactDatabaseClientV1 {
     }): Promise<ArtifactVersionDatabaseRowV1 | null>;
     update(input: {
       readonly where: { readonly id: string };
-      readonly data: { readonly status: string };
+      readonly data: { readonly status: string; readonly scanState: ArtifactScanStateV1 };
     }): Promise<ArtifactVersionDatabaseRowV1>;
   };
   readonly contentPlacement: {
@@ -152,6 +154,7 @@ function rowToVersion(row: ArtifactVersionDatabaseRowV1): ArtifactVersionV1 {
     displayName: row.displayName,
     createdAt: row.createdAt.toISOString(),
     status: row.status,
+    scanState: row.scanState ?? 'PENDING',
   });
   if (!parsed.accepted) throw new Error('IAE_PERSISTED_ARTIFACT_INVALID');
   return parsed.value;
@@ -226,6 +229,7 @@ class PrismaArtifactTransactionAdapter implements ArtifactTransactionPortV1 {
         displayName: version.displayName,
         createdAt: new Date(version.createdAt),
         status: version.status,
+        scanState: version.scanState,
       },
     });
   }
@@ -246,6 +250,7 @@ class PrismaArtifactTransactionAdapter implements ArtifactTransactionPortV1 {
     context: IamTenantContextV1,
     versionId: ArtifactVersionV1['versionId'],
     status: ArtifactVersionV1['status'],
+    scanState?: ArtifactScanStateV1,
   ): Promise<ArtifactVersionV1 | undefined> {
     const row = await this.client.artifactVersion.findUnique({ where: { id: versionId } });
     if (row === null || !visible(context.tenantScope, row)) return undefined;
@@ -258,7 +263,7 @@ class PrismaArtifactTransactionAdapter implements ArtifactTransactionPortV1 {
       throw new Error('IAE_TERMINAL_STATUS');
     const updated = await this.client.artifactVersion.update({
       where: { id: versionId },
-      data: { status },
+      data: { status, scanState: scanState ?? current.scanState },
     });
     return rowToVersion(updated);
   }

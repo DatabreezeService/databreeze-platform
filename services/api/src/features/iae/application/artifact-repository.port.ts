@@ -1,4 +1,5 @@
 import type {
+  ArtifactScanStateV1,
   ArtifactVersionV1,
   ContentPlacementV1,
   EvidenceReferenceV1,
@@ -18,6 +19,7 @@ export interface ArtifactTransactionPortV1 {
     context: IamTenantContextV1,
     versionId: ArtifactVersionV1['versionId'],
     status: ArtifactVersionV1['status'],
+    scanState?: ArtifactScanStateV1,
   ): Promise<ArtifactVersionV1 | undefined>;
   savePlacement(context: IamTenantContextV1, placement: ContentPlacementV1): Promise<void>;
   updatePlacement(context: IamTenantContextV1, placement: ContentPlacementV1): Promise<void>;
