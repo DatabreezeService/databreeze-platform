@@ -37,10 +37,10 @@ interface IamMembershipDelegateV1 {
     readonly where: Readonly<Record<string, unknown>>;
   }): Promise<readonly IamMembershipDatabaseRowV1[]>;
   create(input: { readonly data: IamMembershipDatabaseRowV1 }): Promise<IamMembershipDatabaseRowV1>;
-  update(input: {
-    readonly where: { readonly id: string };
+  updateMany(input: {
+    readonly where: { readonly id: string; readonly revision: number };
     readonly data: Partial<IamMembershipDatabaseRowV1>;
-  }): Promise<IamMembershipDatabaseRowV1>;
+  }): Promise<{ readonly count: number }>;
 }
 
 export interface IamDatabaseClientV1 {
@@ -167,14 +167,15 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
       !tenantScopesEqualV1(existing.scope, membership.scope)
     )
       throw new Error('IAM_MEMBERSHIP_SCOPE_IMMUTABLE');
-    await this.client.membershipIdentity.update({
-      where: { id: membership.id },
+    const updated = await this.client.membershipIdentity.updateMany({
+      where: { id: membership.id, revision: existing.revision },
       data: {
         roleId: membership.roleId,
         status: membership.status,
         revision: membership.revision,
       },
     });
+    if (updated.count !== 1) throw new Error('IAM_REVISION_CONFLICT');
   }
 }
 
