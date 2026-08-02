@@ -185,7 +185,9 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
     return true;
   }
 
-  public async findPrincipal(sessionIdInput: unknown): Promise<AuthenticatedPrincipalV1 | undefined> {
+  public async findPrincipal(
+    sessionIdInput: unknown,
+  ): Promise<AuthenticatedPrincipalV1 | undefined> {
     await Promise.resolve();
     if (typeof sessionIdInput !== 'string') return undefined;
     const session = this.sessions.get(sessionIdInput);

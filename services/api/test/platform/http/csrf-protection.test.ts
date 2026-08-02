@@ -8,13 +8,9 @@ const token = 'QmFzZTY0dXJsVG9rZW5fMDEyMzQ1Njc4OWFiY2RlZg';
 const allowedOrigins = ['https://app.databreeze.example'];
 
 void test('allows safe methods and non-cookie clients without a CSRF token', () => {
-  assert.deepEqual(
-    evaluateCsrfRequestV1(
-      { method: 'GET', headers: {} },
-      { allowedOrigins },
-    ),
-    { accepted: true },
-  );
+  assert.deepEqual(evaluateCsrfRequestV1({ method: 'GET', headers: {} }, { allowedOrigins }), {
+    accepted: true,
+  });
   assert.deepEqual(
     evaluateCsrfRequestV1(
       { method: 'POST', headers: { authorization: 'Bearer access-token' } },
@@ -82,18 +78,18 @@ void test('rejects hostile, ambiguous, or missing browser origin signals', () =>
   );
   assert.deepEqual(
     evaluateCsrfRequestV1(
-      { method: 'POST', headers: { ...headers, origin: ['https://app.databreeze.example', 'https://evil.example'] } },
+      {
+        method: 'POST',
+        headers: { ...headers, origin: ['https://app.databreeze.example', 'https://evil.example'] },
+      },
       { allowedOrigins },
     ),
     { accepted: false, code: 'ORIGIN_INVALID' },
   );
-  assert.deepEqual(
-    evaluateCsrfRequestV1(
-      { method: 'POST', headers },
-      { allowedOrigins },
-    ),
-    { accepted: false, code: 'ORIGIN_INVALID' },
-  );
+  assert.deepEqual(evaluateCsrfRequestV1({ method: 'POST', headers }, { allowedOrigins }), {
+    accepted: false,
+    code: 'ORIGIN_INVALID',
+  });
   assert.deepEqual(
     evaluateCsrfRequestV1(
       {

@@ -39,8 +39,12 @@ export interface MfaRecoveryCodeDatabaseRowV1 {
 }
 
 interface MfaFactorDelegateV1 {
-  findMany(input: { readonly where: Readonly<Record<string, unknown>> }): Promise<readonly MfaFactorDatabaseRowV1[]>;
-  findUnique(input: { readonly where: { readonly id: string } }): Promise<MfaFactorDatabaseRowV1 | null>;
+  findMany(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+  }): Promise<readonly MfaFactorDatabaseRowV1[]>;
+  findUnique(input: {
+    readonly where: { readonly id: string };
+  }): Promise<MfaFactorDatabaseRowV1 | null>;
   create(input: { readonly data: MfaFactorDatabaseRowV1 }): Promise<MfaFactorDatabaseRowV1>;
   update(input: {
     readonly where: { readonly id: string };
@@ -49,9 +53,15 @@ interface MfaFactorDelegateV1 {
 }
 
 interface MfaRecoveryCodeDelegateV1 {
-  findMany(input: { readonly where: Readonly<Record<string, unknown>> }): Promise<readonly MfaRecoveryCodeDatabaseRowV1[]>;
-  findUnique(input: { readonly where: { readonly id: string } }): Promise<MfaRecoveryCodeDatabaseRowV1 | null>;
-  create(input: { readonly data: MfaRecoveryCodeDatabaseRowV1 }): Promise<MfaRecoveryCodeDatabaseRowV1>;
+  findMany(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+  }): Promise<readonly MfaRecoveryCodeDatabaseRowV1[]>;
+  findUnique(input: {
+    readonly where: { readonly id: string };
+  }): Promise<MfaRecoveryCodeDatabaseRowV1 | null>;
+  create(input: {
+    readonly data: MfaRecoveryCodeDatabaseRowV1;
+  }): Promise<MfaRecoveryCodeDatabaseRowV1>;
   update(input: {
     readonly where: { readonly id: string };
     readonly data: Partial<MfaRecoveryCodeDatabaseRowV1>;
@@ -165,20 +175,32 @@ function recoveryRow(code: RecoveryCodeV1): MfaRecoveryCodeDatabaseRowV1 {
 function immutableState(existing: MfaStateV1, next: MfaStateV1): boolean {
   const existingFactors = new Map(existing.factors.map((factor) => [factor.id, factor]));
   const existingCodes = new Map(existing.recoveryCodes.map((code) => [code.id, code]));
-  if (existing.factors.some((factor) => !next.factors.some((candidate) => candidate.id === factor.id)))
+  if (
+    existing.factors.some((factor) => !next.factors.some((candidate) => candidate.id === factor.id))
+  )
     return false;
-  if (existing.recoveryCodes.some((code) => !next.recoveryCodes.some((candidate) => candidate.id === code.id)))
+  if (
+    existing.recoveryCodes.some(
+      (code) => !next.recoveryCodes.some((candidate) => candidate.id === code.id),
+    )
+  )
     return false;
   for (const factor of next.factors) {
     const prior = existingFactors.get(factor.id);
-    if (prior && (prior.userId !== factor.userId || prior.secretReference !== factor.secretReference)) return false;
-    if (prior && factor.revision !== prior.revision && factor.revision !== prior.revision + 1) return false;
+    if (
+      prior &&
+      (prior.userId !== factor.userId || prior.secretReference !== factor.secretReference)
+    )
+      return false;
+    if (prior && factor.revision !== prior.revision && factor.revision !== prior.revision + 1)
+      return false;
     if (!prior && factor.revision !== 1) return false;
   }
   for (const code of next.recoveryCodes) {
     const prior = existingCodes.get(code.id);
     if (prior && (prior.userId !== code.userId || prior.digest !== code.digest)) return false;
-    if (prior && code.revision !== prior.revision && code.revision !== prior.revision + 1) return false;
+    if (prior && code.revision !== prior.revision && code.revision !== prior.revision + 1)
+      return false;
     if (!prior && code.revision !== 1) return false;
   }
   return true;

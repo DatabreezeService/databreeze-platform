@@ -42,7 +42,18 @@ function createDatabase(): {
   readonly memberships: Map<string, MembershipIdentityDatabaseRowV1>;
 } {
   const users = new Map<string, UserIdentityDatabaseRowV1>([
-    [userId, { id: userId, email: 'an@example.com', displayName: 'Nguyen An', locale: 'vi-VN', status: 'ACTIVE', securityEpoch: 1, createdAt }],
+    [
+      userId,
+      {
+        id: userId,
+        email: 'an@example.com',
+        displayName: 'Nguyen An',
+        locale: 'vi-VN',
+        status: 'ACTIVE',
+        securityEpoch: 1,
+        createdAt,
+      },
+    ],
   ]);
   const organizations = new Map<string, OrganizationIdentityDatabaseRowV1>();
   const workspaces = new Map<string, WorkspaceIdentityDatabaseRowV1>();
@@ -50,24 +61,29 @@ function createDatabase(): {
   const memberships = new Map<string, MembershipIdentityDatabaseRowV1>();
   const client = {
     userIdentity: {
-      findUnique: async ({ where }: { readonly where: { readonly id: string } }) => users.get(where.id) ?? null,
+      findUnique: async ({ where }: { readonly where: { readonly id: string } }) =>
+        users.get(where.id) ?? null,
     },
     organizationIdentity: {
       create: async ({ data }: { readonly data: OrganizationIdentityDatabaseRowV1 }) => {
         organizations.set(data.id, data);
         return data;
       },
-      findUnique: async ({ where }: { readonly where: { readonly id: string } }) => organizations.get(where.id) ?? null,
+      findUnique: async ({ where }: { readonly where: { readonly id: string } }) =>
+        organizations.get(where.id) ?? null,
     },
     workspaceIdentity: {
       create: async ({ data }: { readonly data: WorkspaceIdentityDatabaseRowV1 }) => {
         workspaces.set(data.id, data);
         return data;
       },
-      findUnique: async ({ where }: { readonly where: { readonly id: string } }) => workspaces.get(where.id) ?? null,
+      findUnique: async ({ where }: { readonly where: { readonly id: string } }) =>
+        workspaces.get(where.id) ?? null,
       findMany: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) =>
         [...workspaces.values()].filter((row) =>
-          Object.entries(where).every(([key, value]) => row[key as keyof WorkspaceIdentityDatabaseRowV1] === value),
+          Object.entries(where).every(
+            ([key, value]) => row[key as keyof WorkspaceIdentityDatabaseRowV1] === value,
+          ),
         ),
     },
     projectIdentity: {
@@ -75,10 +91,13 @@ function createDatabase(): {
         projects.set(data.id, data);
         return data;
       },
-      findUnique: async ({ where }: { readonly where: { readonly id: string } }) => projects.get(where.id) ?? null,
+      findUnique: async ({ where }: { readonly where: { readonly id: string } }) =>
+        projects.get(where.id) ?? null,
       findMany: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) =>
         [...projects.values()].filter((row) =>
-          Object.entries(where).every(([key, value]) => row[key as keyof ProjectIdentityDatabaseRowV1] === value),
+          Object.entries(where).every(
+            ([key, value]) => row[key as keyof ProjectIdentityDatabaseRowV1] === value,
+          ),
         ),
     },
     membershipIdentity: {
@@ -86,13 +105,18 @@ function createDatabase(): {
         memberships.set(data.id, data);
         return data;
       },
-      findUnique: async ({ where }: { readonly where: { readonly id: string } }) => memberships.get(where.id) ?? null,
+      findUnique: async ({ where }: { readonly where: { readonly id: string } }) =>
+        memberships.get(where.id) ?? null,
       findMany: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) =>
         [...memberships.values()].filter((row) =>
-          Object.entries(where).every(([key, value]) => row[key as keyof MembershipIdentityDatabaseRowV1] === value),
+          Object.entries(where).every(
+            ([key, value]) => row[key as keyof MembershipIdentityDatabaseRowV1] === value,
+          ),
         ),
     },
-    $transaction: async <TValue>(work: (transaction: IdentityBootstrapDatabaseClientV1) => Promise<TValue>) => {
+    $transaction: async <TValue>(
+      work: (transaction: IdentityBootstrapDatabaseClientV1) => Promise<TValue>,
+    ) => {
       const before = {
         organizations: new Map(organizations),
         workspaces: new Map(workspaces),
@@ -142,7 +166,10 @@ void test('[IAM-011] repeated bootstrap is immutable and conflicting hierarchy i
   await adapter.save(validated.value);
   await assert.doesNotReject(() => adapter.save(validated.value));
   await assert.rejects(
-    adapter.save({ ...validated.value, organization: { ...validated.value.organization, name: 'Changed' } }),
+    adapter.save({
+      ...validated.value,
+      organization: { ...validated.value.organization, name: 'Changed' },
+    }),
     /IAM_BOOTSTRAP_CONFLICT/,
   );
 });

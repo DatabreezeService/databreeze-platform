@@ -1,10 +1,7 @@
 import { Controller, Get, Inject, Param, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
-import type {
-  EntitlementSnapshotV1,
-  UsageLedgerStateV1,
-} from '@databreeze/domain/entitlements/v1';
+import type { EntitlementSnapshotV1, UsageLedgerStateV1 } from '@databreeze/domain/entitlements/v1';
 
 import {
   ENTITLEMENT_REPOSITORY_PORT,
@@ -33,7 +30,11 @@ export class EntitlementController {
   async snapshot(
     @Req() request: unknown,
     @Param('snapshotId') snapshotIdInput: string,
-  ): Promise<EntitlementSnapshotV1 | EntitlementNotFoundV1 | { readonly accepted: false; readonly code: 'INVALID_IDENTIFIER' }> {
+  ): Promise<
+    | EntitlementSnapshotV1
+    | EntitlementNotFoundV1
+    | { readonly accepted: false; readonly code: 'INVALID_IDENTIFIER' }
+  > {
     const context = await this.requestContext.resolve(request);
     const parsed = parseStableIdentifierV1(snapshotIdInput);
     if (!parsed.accepted) return { accepted: false, code: 'INVALID_IDENTIFIER' };

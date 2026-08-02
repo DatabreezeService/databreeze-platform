@@ -88,9 +88,7 @@ export interface SessionMfaFactorDatabaseRowV1 {
 }
 
 interface SessionDelegateV1 {
-  create(input: {
-    readonly data: SessionRecordDatabaseRowV1;
-  }): Promise<SessionRecordDatabaseRowV1>;
+  create(input: { readonly data: SessionRecordDatabaseRowV1 }): Promise<SessionRecordDatabaseRowV1>;
   findUnique(input: {
     readonly where: { readonly id: string };
   }): Promise<SessionRecordDatabaseRowV1 | null>;
@@ -101,9 +99,7 @@ interface SessionDelegateV1 {
 }
 
 interface RefreshTokenDelegateV1 {
-  create(input: {
-    readonly data: RefreshTokenDatabaseRowV1;
-  }): Promise<RefreshTokenDatabaseRowV1>;
+  create(input: { readonly data: RefreshTokenDatabaseRowV1 }): Promise<RefreshTokenDatabaseRowV1>;
   findUnique(input: {
     readonly where: { readonly tokenDigest: string };
   }): Promise<RefreshTokenDatabaseRowV1 | null>;
@@ -117,9 +113,7 @@ interface RefreshTokenDelegateV1 {
 }
 
 interface AccessTokenDelegateV1 {
-  create(input: {
-    readonly data: AccessTokenDatabaseRowV1;
-  }): Promise<AccessTokenDatabaseRowV1>;
+  create(input: { readonly data: AccessTokenDatabaseRowV1 }): Promise<AccessTokenDatabaseRowV1>;
   findUnique(input: {
     readonly where: { readonly tokenDigest: string };
   }): Promise<AccessTokenDatabaseRowV1 | null>;
@@ -130,15 +124,11 @@ interface AccessTokenDelegateV1 {
 }
 
 interface UniqueDelegateV1<TRow> {
-  findUnique(input: {
-    readonly where: Readonly<Record<string, unknown>>;
-  }): Promise<TRow | null>;
+  findUnique(input: { readonly where: Readonly<Record<string, unknown>> }): Promise<TRow | null>;
 }
 
 interface ListDelegateV1<TRow> {
-  findMany(input: {
-    readonly where: Readonly<Record<string, unknown>>;
-  }): Promise<readonly TRow[]>;
+  findMany(input: { readonly where: Readonly<Record<string, unknown>> }): Promise<readonly TRow[]>;
 }
 
 export interface SessionLifecycleDatabaseClientV1 {
@@ -218,7 +208,12 @@ function tokenFromRow(row: RefreshTokenDatabaseRowV1): {
   const expiresAt = timestamp(row.expiresAt);
   if (!expiresAt || row.tokenDigest.length < 32 || row.tokenDigest.length > 128)
     throw new Error('IAM_PERSISTED_REFRESH_TOKEN_INVALID');
-  if (row.status !== 'ACTIVE' && row.status !== 'USED' && row.status !== 'REVOKED' && row.status !== 'EXPIRED')
+  if (
+    row.status !== 'ACTIVE' &&
+    row.status !== 'USED' &&
+    row.status !== 'REVOKED' &&
+    row.status !== 'EXPIRED'
+  )
     throw new Error('IAM_PERSISTED_REFRESH_TOKEN_INVALID');
   return { id, sessionId, familyId, expiresAt, status: row.status };
 }
@@ -379,7 +374,10 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
       const inactivityExpiresAt = addSeconds(now, INACTIVITY_SECONDS_V1, session.absoluteExpiresAt);
       await transaction.sessionRecord.update({
         where: { id: session.sessionId },
-        data: { accessExpiresAt: new Date(accessExpiresAt), inactivityExpiresAt: new Date(inactivityExpiresAt) },
+        data: {
+          accessExpiresAt: new Date(accessExpiresAt),
+          inactivityExpiresAt: new Date(inactivityExpiresAt),
+        },
       });
       const nextRefreshToken = tokenFor(rotated.nextTokenId);
       const nextAccessTokenId = stableIdentifier(randomUUID());
@@ -450,19 +448,24 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
       const row = await this.client.accessTokenRecord.findUnique({
         where: { tokenDigest: digestToken(accessTokenInput) },
       });
-      if (!row || row.status !== 'ACTIVE' || row.expiresAt.getTime() <= this.clock().getTime()) return undefined;
+      if (!row || row.status !== 'ACTIVE' || row.expiresAt.getTime() <= this.clock().getTime())
+        return undefined;
       return this.findPrincipal(row.sessionId);
     } catch {
       return undefined;
     }
   }
 
-  public async findPrincipal(sessionIdInput: unknown): Promise<AuthenticatedPrincipalV1 | undefined> {
+  public async findPrincipal(
+    sessionIdInput: unknown,
+  ): Promise<AuthenticatedPrincipalV1 | undefined> {
     if (typeof sessionIdInput !== 'string') return undefined;
     const parsed = parseStableIdentifierV1(sessionIdInput);
     if (!parsed.accepted) return undefined;
     try {
-      const sessionRow = await this.client.sessionRecord.findUnique({ where: { id: parsed.value } });
+      const sessionRow = await this.client.sessionRecord.findUnique({
+        where: { id: parsed.value },
+      });
       if (!sessionRow) return undefined;
       const session = sessionFromRow(sessionRow);
       const now = Date.parse(this.clock().toISOString());

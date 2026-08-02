@@ -7,11 +7,7 @@ import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
 } from '../../../platform/http/request-tenant-context.port.js';
-import {
-  EnrollMfaFactorDto,
-  RedeemMfaRecoveryCodeDto,
-  VerifyMfaFactorDto,
-} from './mfa.dto.js';
+import { EnrollMfaFactorDto, RedeemMfaRecoveryCodeDto, VerifyMfaFactorDto } from './mfa.dto.js';
 
 @ApiTags('auth')
 @ApiBearerAuth()

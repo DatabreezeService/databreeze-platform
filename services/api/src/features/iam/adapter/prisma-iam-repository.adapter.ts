@@ -30,7 +30,9 @@ export interface IamMembershipDatabaseRowV1 {
 }
 
 interface IamMembershipDelegateV1 {
-  findUnique(input: { readonly where: { readonly id: string } }): Promise<IamMembershipDatabaseRowV1 | null>;
+  findUnique(input: {
+    readonly where: { readonly id: string };
+  }): Promise<IamMembershipDatabaseRowV1 | null>;
   findMany(input: {
     readonly where: Readonly<Record<string, unknown>>;
   }): Promise<readonly IamMembershipDatabaseRowV1[]>;
@@ -99,7 +101,8 @@ function membershipRow(membership: MembershipIdentityV1): IamMembershipDatabaseR
     principalId: membership.principalId,
     scopeType: membership.scope.scopeType.toUpperCase(),
     organizationId: membership.scope.organizationId,
-    workspaceId: membership.scope.scopeType === 'organization' ? null : membership.scope.workspaceId,
+    workspaceId:
+      membership.scope.scopeType === 'organization' ? null : membership.scope.workspaceId,
     projectId: membership.scope.scopeType === 'project' ? membership.scope.projectId : null,
     roleId: membership.roleId,
     status: membership.status,
@@ -131,7 +134,9 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
       );
   }
 
-  public async listMemberships(context: IamTenantContextV1): Promise<readonly IamMembershipRecordV1[]> {
+  public async listMemberships(
+    context: IamTenantContextV1,
+  ): Promise<readonly IamMembershipRecordV1[]> {
     const rows = await this.client.membershipIdentity.findMany({ where: {} });
     return rows
       .map(membershipFromRow)
@@ -157,7 +162,10 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
     const existing = membershipFromRow(existingRow);
     if (context.expectedRevision !== existing.revision) throw new Error('IAM_REVISION_CONFLICT');
     if (membership.revision !== existing.revision + 1) throw new Error('IAM_REVISION_CONFLICT');
-    if (existing.principalId !== membership.principalId || !tenantScopesEqualV1(existing.scope, membership.scope))
+    if (
+      existing.principalId !== membership.principalId ||
+      !tenantScopesEqualV1(existing.scope, membership.scope)
+    )
       throw new Error('IAM_MEMBERSHIP_SCOPE_IMMUTABLE');
     await this.client.membershipIdentity.update({
       where: { id: membership.id },

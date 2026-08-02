@@ -5,7 +5,10 @@ import {
   type PersonalOrganizationBootstrapV1,
   type UserIdentityV1,
 } from '@databreeze/domain/identity/v1';
-import { parseStableIdentifierV1, parseStrictUtcTimestampV1 } from '@databreeze/domain/tenant-scope/v1';
+import {
+  parseStableIdentifierV1,
+  parseStrictUtcTimestampV1,
+} from '@databreeze/domain/tenant-scope/v1';
 
 import type {
   IdentityBootstrapRepositoryPortV1,
@@ -70,13 +73,13 @@ interface IdentityDelegateV1<TRow> {
 }
 
 interface ListDelegateV1<TRow> {
-  findMany(input: {
-    readonly where: Readonly<Record<string, unknown>>;
-  }): Promise<readonly TRow[]>;
+  findMany(input: { readonly where: Readonly<Record<string, unknown>> }): Promise<readonly TRow[]>;
 }
 
 interface UserDelegateV1 {
-  findUnique(input: { readonly where: { readonly id: string } }): Promise<UserIdentityDatabaseRowV1 | null>;
+  findUnique(input: {
+    readonly where: { readonly id: string };
+  }): Promise<UserIdentityDatabaseRowV1 | null>;
 }
 
 interface MembershipDelegateV1 extends IdentityDelegateV1<MembershipIdentityDatabaseRowV1> {
@@ -122,7 +125,10 @@ function userFromRow(row: UserIdentityDatabaseRowV1): UserIdentityV1 {
   return created.value;
 }
 
-function membershipMatches(row: MembershipIdentityDatabaseRowV1, expected: MembershipIdentityV1): boolean {
+function membershipMatches(
+  row: MembershipIdentityDatabaseRowV1,
+  expected: MembershipIdentityV1,
+): boolean {
   return (
     row.id === expected.id &&
     row.principalType === expected.principalType &&
@@ -172,7 +178,9 @@ function bootstrapRowsMatch(
 class PrismaIdentityBootstrapTransactionAdapter implements IdentityBootstrapTransactionPortV1 {
   public constructor(private readonly client: IdentityBootstrapDatabaseClientV1) {}
 
-  public async findByUserId(userId: PersonalOrganizationBootstrapV1['user']['id']): Promise<PersonalOrganizationBootstrapV1 | undefined> {
+  public async findByUserId(
+    userId: PersonalOrganizationBootstrapV1['user']['id'],
+  ): Promise<PersonalOrganizationBootstrapV1 | undefined> {
     const userRow = await this.client.userIdentity.findUnique({ where: { id: userId } });
     if (!userRow) return undefined;
     const user = userFromRow(userRow);
@@ -190,8 +198,11 @@ class PrismaIdentityBootstrapTransactionAdapter implements IdentityBootstrapTran
     if (!membershipRow) return undefined;
     const organizationId = stableId(membershipRow.organizationId);
     if (!organizationId) throw new Error('IAM_PERSISTED_MEMBERSHIP_INVALID');
-    const organization = await this.client.organizationIdentity.findUnique({ where: { id: organizationId } });
-    if (!organization || !organization.personal) throw new Error('IAM_PERSISTED_ORGANIZATION_INVALID');
+    const organization = await this.client.organizationIdentity.findUnique({
+      where: { id: organizationId },
+    });
+    if (!organization || !organization.personal)
+      throw new Error('IAM_PERSISTED_ORGANIZATION_INVALID');
     const workspaceRows = await this.client.workspaceIdentity.findMany({
       where: { organizationId, status: 'ACTIVE' },
     });
@@ -278,7 +289,8 @@ class PrismaIdentityBootstrapTransactionAdapter implements IdentityBootstrapTran
   ): Promise<void> {
     const existing = await delegate.findUnique({ where: { id: expected.id } });
     if (existing) {
-      if (JSON.stringify(existing) !== JSON.stringify(expected)) throw new Error('IAM_BOOTSTRAP_CONFLICT');
+      if (JSON.stringify(existing) !== JSON.stringify(expected))
+        throw new Error('IAM_BOOTSTRAP_CONFLICT');
       return;
     }
     await delegate.create({ data: expected });

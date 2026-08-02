@@ -101,7 +101,10 @@ void test('[IAM-009] a session access-token lookup composes one live tenant-cont
   const registered = AppModule.register({ sessions });
   const iam = registered.imports?.find(
     (candidate) =>
-      typeof candidate === 'object' && candidate !== null && 'module' in candidate && candidate.module === IamModule,
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'module' in candidate &&
+      candidate.module === IamModule,
   );
   assert.ok(iam && typeof iam === 'object' && 'providers' in iam);
   if (!iam || typeof iam !== 'object' || !('providers' in iam)) return;

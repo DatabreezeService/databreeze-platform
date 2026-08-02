@@ -2,7 +2,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createMfaFactorV1, createRecoveryCodeV1, transitionMfaFactorV1 } from '@databreeze/domain/mfa/v1';
+import {
+  createMfaFactorV1,
+  createRecoveryCodeV1,
+  transitionMfaFactorV1,
+} from '@databreeze/domain/mfa/v1';
 import type { MfaStateV1 } from '@databreeze/domain/mfa/v1';
 
 import {
@@ -28,9 +32,12 @@ function createDatabase(): {
     mfaFactor: {
       findMany: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) =>
         [...factors.values()].filter((row) =>
-          Object.entries(where).every(([key, value]) => row[key as keyof MfaFactorDatabaseRowV1] === value),
+          Object.entries(where).every(
+            ([key, value]) => row[key as keyof MfaFactorDatabaseRowV1] === value,
+          ),
         ),
-      findUnique: async ({ where }: { readonly where: { readonly id: string } }) => factors.get(where.id) ?? null,
+      findUnique: async ({ where }: { readonly where: { readonly id: string } }) =>
+        factors.get(where.id) ?? null,
       create: async ({ data }: { readonly data: MfaFactorDatabaseRowV1 }) => {
         factors.set(data.id, data);
         return data;
@@ -52,9 +59,12 @@ function createDatabase(): {
     mfaRecoveryCode: {
       findMany: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) =>
         [...recoveryCodes.values()].filter((row) =>
-          Object.entries(where).every(([key, value]) => row[key as keyof MfaRecoveryCodeDatabaseRowV1] === value),
+          Object.entries(where).every(
+            ([key, value]) => row[key as keyof MfaRecoveryCodeDatabaseRowV1] === value,
+          ),
         ),
-      findUnique: async ({ where }: { readonly where: { readonly id: string } }) => recoveryCodes.get(where.id) ?? null,
+      findUnique: async ({ where }: { readonly where: { readonly id: string } }) =>
+        recoveryCodes.get(where.id) ?? null,
       create: async ({ data }: { readonly data: MfaRecoveryCodeDatabaseRowV1 }) => {
         recoveryCodes.set(data.id, data);
         return data;
@@ -150,7 +160,10 @@ void test('[IAM-009, IAM-012] MFA state cannot cross users and failed transactio
   const input = state();
   const factor = input.factors[0];
   if (!factor) throw new Error('fixture missing factor');
-  await assert.rejects(adapter.saveState('00000000-0000-4000-8000-000000000099', input), /MFA_SCOPE_MISMATCH/);
+  await assert.rejects(
+    adapter.saveState('00000000-0000-4000-8000-000000000099', input),
+    /MFA_SCOPE_MISMATCH/,
+  );
   await assert.rejects(
     adapter.withTransaction(async (transaction) => {
       await transaction.saveState(factor.userId, input);

@@ -81,7 +81,9 @@ void test('[IAM-001, IAM-002, IAM-009] credential lookup returns only an active,
 void test('[IAM-001, IAM-009] lookup fails closed when persisted tenancy is inactive or malformed', async () => {
   const inactive = new PrismaCredentialLookupAdapter(
     database({
-      organizationIdentity: { findUnique: async () => ({ id: organizationId, status: 'SUSPENDED' }) },
+      organizationIdentity: {
+        findUnique: async () => ({ id: organizationId, status: 'SUSPENDED' }),
+      },
     }),
   );
   assert.equal(await inactive.findCredential('user@example.com'), undefined);

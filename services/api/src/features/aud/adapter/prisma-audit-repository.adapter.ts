@@ -146,7 +146,8 @@ function positiveInteger(input: unknown): number | undefined {
 function persistedEvent(row: AuditEventDatabaseRowV1): AuditEventV1 {
   const eventId = parseStableIdentifierV1(row.id);
   const organizationId = parseStableIdentifierV1(row.organizationId);
-  const workspaceId = row.workspaceId === null ? undefined : parseStableIdentifierV1(row.workspaceId);
+  const workspaceId =
+    row.workspaceId === null ? undefined : parseStableIdentifierV1(row.workspaceId);
   const projectId = row.projectId === null ? undefined : parseStableIdentifierV1(row.projectId);
   const actorId = parseStableIdentifierV1(row.actorId);
   const entityId = parseStableIdentifierV1(row.entityId);

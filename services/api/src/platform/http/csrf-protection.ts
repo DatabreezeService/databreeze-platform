@@ -16,27 +16,42 @@ export interface CsrfProtectionOptionsV1 {
 
 export type CsrfRequestResultV1 =
   | { readonly accepted: true }
-  | { readonly accepted: false; readonly code: 'CSRF_REQUIRED' | 'CSRF_INVALID' | 'ORIGIN_INVALID' };
+  | {
+      readonly accepted: false;
+      readonly code: 'CSRF_REQUIRED' | 'CSRF_INVALID' | 'ORIGIN_INVALID';
+    };
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
-const COOKIE_AUTH_NAMES = new Set(['databreeze_access', 'databreeze_refresh', 'databreeze_session']);
+const COOKIE_AUTH_NAMES = new Set([
+  'databreeze_access',
+  'databreeze_refresh',
+  'databreeze_session',
+]);
 const CSRF_COOKIE_NAME = 'databreeze_csrf';
 
 function oneHeader(
   headers: CsrfRequestV1['headers'],
   name: string,
-): { readonly present: false } | { readonly present: true; readonly value: string } | { readonly present: true; readonly ambiguous: true } {
+):
+  | { readonly present: false }
+  | { readonly present: true; readonly value: string }
+  | { readonly present: true; readonly ambiguous: true } {
   const matching = Object.entries(headers)
     .filter(([key]) => key.toLowerCase() === name)
     .map(([, value]) => value)
     .filter((value): value is string | readonly string[] => value !== undefined);
-  if (matching.length !== 1) return matching.length === 0 ? { present: false } : { present: true, ambiguous: true };
+  if (matching.length !== 1)
+    return matching.length === 0 ? { present: false } : { present: true, ambiguous: true };
   const value = matching[0];
   if (typeof value !== 'string') return { present: true, ambiguous: true };
   return { present: true, value };
 }
 
-function parseCookies(raw: string): { readonly values: ReadonlyMap<string, string>; readonly duplicateNames: ReadonlySet<string>; readonly malformed: boolean } {
+function parseCookies(raw: string): {
+  readonly values: ReadonlyMap<string, string>;
+  readonly duplicateNames: ReadonlySet<string>;
+  readonly malformed: boolean;
+} {
   const values = new Map<string, string>();
   const duplicateNames = new Set<string>();
   let malformed = false;
@@ -67,7 +82,10 @@ function hasCookieAuth(cookies: ReturnType<typeof parseCookies>): boolean {
   return false;
 }
 
-function originAccepted(headers: CsrfRequestV1['headers'], options: CsrfProtectionOptionsV1): boolean {
+function originAccepted(
+  headers: CsrfRequestV1['headers'],
+  options: CsrfProtectionOptionsV1,
+): boolean {
   const origin = oneHeader(headers, 'origin');
   if (origin.present && 'ambiguous' in origin) return false;
   if (origin.present) return options.allowedOrigins.includes(origin.value);
@@ -91,7 +109,8 @@ export function evaluateCsrfRequestV1(
 
   const cookie = oneHeader(request.headers, 'cookie');
   if (!cookie.present) return Object.freeze({ accepted: true as const });
-  if ('ambiguous' in cookie) return Object.freeze({ accepted: false as const, code: 'CSRF_INVALID' as const });
+  if ('ambiguous' in cookie)
+    return Object.freeze({ accepted: false as const, code: 'CSRF_INVALID' as const });
 
   const cookies = parseCookies(cookie.value);
   if (!hasCookieAuth(cookies)) return Object.freeze({ accepted: true as const });

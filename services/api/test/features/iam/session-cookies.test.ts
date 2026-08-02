@@ -14,7 +14,10 @@ const refreshToken = `00000000-0000-4000-8000-000000000001.${token}`;
 
 void test('serializes bounded session cookies with explicit browser security attributes', () => {
   assert.equal(
-    serializeCookieV1(REFRESH_COOKIE_NAME_V1, refreshToken, { httpOnly: true, maxAgeSeconds: 2_592_000 }),
+    serializeCookieV1(REFRESH_COOKIE_NAME_V1, refreshToken, {
+      httpOnly: true,
+      maxAgeSeconds: 2_592_000,
+    }),
     `${REFRESH_COOKIE_NAME_V1}=${refreshToken}; Max-Age=2592000; Path=/; HttpOnly; Secure; SameSite=Lax`,
   );
   assert.equal(
@@ -24,13 +27,22 @@ void test('serializes bounded session cookies with explicit browser security att
 });
 
 void test('reads one exact cookie value and fails closed for ambiguity or malformed input', () => {
-  assert.equal(readCookieValueV1(`${REFRESH_COOKIE_NAME_V1}=${refreshToken}`, REFRESH_COOKIE_NAME_V1), refreshToken);
   assert.equal(
-    readCookieValueV1(`other=value; ${REFRESH_COOKIE_NAME_V1}=${refreshToken}`, REFRESH_COOKIE_NAME_V1),
+    readCookieValueV1(`${REFRESH_COOKIE_NAME_V1}=${refreshToken}`, REFRESH_COOKIE_NAME_V1),
     refreshToken,
   );
   assert.equal(
-    readCookieValueV1(`${REFRESH_COOKIE_NAME_V1}=${refreshToken}; ${REFRESH_COOKIE_NAME_V1}=other`, REFRESH_COOKIE_NAME_V1),
+    readCookieValueV1(
+      `other=value; ${REFRESH_COOKIE_NAME_V1}=${refreshToken}`,
+      REFRESH_COOKIE_NAME_V1,
+    ),
+    refreshToken,
+  );
+  assert.equal(
+    readCookieValueV1(
+      `${REFRESH_COOKIE_NAME_V1}=${refreshToken}; ${REFRESH_COOKIE_NAME_V1}=other`,
+      REFRESH_COOKIE_NAME_V1,
+    ),
     undefined,
   );
   assert.equal(readCookieValueV1('broken-cookie', REFRESH_COOKIE_NAME_V1), undefined);

@@ -15,7 +15,10 @@ import {
   type AuthenticationUseCaseV1,
 } from '../application/authentication.port.js';
 import { AuthenticationProblemError } from '../application/authentication-problem.error.js';
-import { SESSION_LIFECYCLE_PORT, type SessionLifecyclePortV1 } from '../application/session-lifecycle.port.js';
+import {
+  SESSION_LIFECYCLE_PORT,
+  type SessionLifecyclePortV1,
+} from '../application/session-lifecycle.port.js';
 import { SessionProblemError } from '../application/session-problem.error.js';
 import {
   CSRF_COOKIE_NAME_V1,
@@ -98,7 +101,9 @@ export class AuthenticationController {
       organizationId: result.value.principal.organizationId,
       workspaceId: result.value.principal.workspaceId,
       accessToken: result.value.session.accessToken,
-      ...(input.clientPlatform === 'web' ? {} : { refreshToken: result.value.session.refreshToken }),
+      ...(input.clientPlatform === 'web'
+        ? {}
+        : { refreshToken: result.value.session.refreshToken }),
       accessExpiresAt: result.value.session.accessExpiresAt,
       securityEpoch: result.value.principal.securityEpoch,
       mfaRequired: result.value.principal.mfaRequired,
@@ -122,7 +127,10 @@ export class AuthenticationController {
       input.clientPlatform === 'web'
         ? readCookieValueV1(request.headers.cookie, REFRESH_COOKIE_NAME_V1)
         : input.refreshToken;
-    if (refreshToken === undefined || (input.clientPlatform === 'web' && input.refreshToken !== undefined)) {
+    if (
+      refreshToken === undefined ||
+      (input.clientPlatform === 'web' && input.refreshToken !== undefined)
+    ) {
       throw new SessionProblemError('SESSION_INVALID');
     }
     const result = await this.sessions.refresh(refreshToken, input.clientPlatform);

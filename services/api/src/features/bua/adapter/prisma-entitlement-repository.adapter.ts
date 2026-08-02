@@ -240,10 +240,12 @@ function persistedPlan(row: EntitlementPlanDatabaseRowV1): EntitlementPlanV1 {
 function persistedSnapshot(row: EntitlementSnapshotDatabaseRowV1): EntitlementSnapshotV1 {
   const snapshotId = parseStableIdentifierV1(row.id);
   const organizationId = parseStableIdentifierV1(row.organizationId);
-  const workspaceId = row.workspaceId === null ? undefined : parseStableIdentifierV1(row.workspaceId);
+  const workspaceId =
+    row.workspaceId === null ? undefined : parseStableIdentifierV1(row.workspaceId);
   const scope = persistedScope({ ...row, projectId: null });
   const effectiveAt = parseStrictUtcTimestampV1(row.effectiveAt.toISOString());
-  const expiresAt = row.expiresAt === null ? undefined : parseStrictUtcTimestampV1(row.expiresAt.toISOString());
+  const expiresAt =
+    row.expiresAt === null ? undefined : parseStrictUtcTimestampV1(row.expiresAt.toISOString());
   const features = parseFeatures(row.features);
   const quotas = parseQuotas(row.quotas);
   if (
@@ -282,8 +284,10 @@ function persistedSnapshot(row: EntitlementSnapshotDatabaseRowV1): EntitlementSn
 function persistedEntry(row: UsageLedgerEntryDatabaseRowV1): UsageLedgerEntryV1 {
   const entryId = parseStableIdentifierV1(row.id);
   const organizationId = parseStableIdentifierV1(row.organizationId);
-  const workspaceId = row.workspaceId === null ? undefined : parseStableIdentifierV1(row.workspaceId);
-  const reservationId = row.reservationId === null ? undefined : parseStableIdentifierV1(row.reservationId);
+  const workspaceId =
+    row.workspaceId === null ? undefined : parseStableIdentifierV1(row.workspaceId);
+  const reservationId =
+    row.reservationId === null ? undefined : parseStableIdentifierV1(row.reservationId);
   const occurredAt = parseStrictUtcTimestampV1(row.occurredAt.toISOString());
   const scope = persistedScope({ ...row, projectId: null });
   if (
@@ -353,14 +357,22 @@ function snapshotCreateData(snapshot: EntitlementSnapshotV1): EntitlementSnapsho
   return {
     ...databaseScope(
       snapshot.workspaceId
-        ? { scopeType: 'workspace', organizationId: snapshot.organizationId, workspaceId: snapshot.workspaceId }
+        ? {
+            scopeType: 'workspace',
+            organizationId: snapshot.organizationId,
+            workspaceId: snapshot.workspaceId,
+          }
         : { scopeType: 'organization', organizationId: snapshot.organizationId },
     ),
     id: snapshot.snapshotId,
     schemaVersion: snapshot.schemaVersion,
     scopeKey: scopeKey(
       snapshot.workspaceId
-        ? { scopeType: 'workspace', organizationId: snapshot.organizationId, workspaceId: snapshot.workspaceId }
+        ? {
+            scopeType: 'workspace',
+            organizationId: snapshot.organizationId,
+            workspaceId: snapshot.workspaceId,
+          }
         : { scopeType: 'organization', organizationId: snapshot.organizationId },
     ),
     planCode: snapshot.planCode,
@@ -392,9 +404,7 @@ function entryCreateData(entry: UsageLedgerEntryV1): UsageLedgerEntryCreateDataV
   };
 }
 
-function reservationCreateData(
-  reservation: UsageReservationV1,
-): UsageReservationCreateDataV1 {
+function reservationCreateData(reservation: UsageReservationV1): UsageReservationCreateDataV1 {
   return {
     ...databaseScope(reservation.tenantScope),
     id: reservation.reservationId,
@@ -437,7 +447,9 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
     await this.client.entitlementPlanRecord.create({ data: planCreateData(plan) });
   }
 
-  public async findPlan(planCode: EntitlementPlanV1['planCode']): Promise<EntitlementPlanV1 | undefined> {
+  public async findPlan(
+    planCode: EntitlementPlanV1['planCode'],
+  ): Promise<EntitlementPlanV1 | undefined> {
     const row = await this.client.entitlementPlanRecord.findUnique({ where: { planCode } });
     return row === null ? undefined : persistedPlan(row);
   }
@@ -447,7 +459,11 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
     snapshot: EntitlementSnapshotV1,
   ): Promise<void> {
     const scope = snapshot.workspaceId
-      ? { scopeType: 'workspace' as const, organizationId: snapshot.organizationId, workspaceId: snapshot.workspaceId }
+      ? {
+          scopeType: 'workspace' as const,
+          organizationId: snapshot.organizationId,
+          workspaceId: snapshot.workspaceId,
+        }
       : { scopeType: 'organization' as const, organizationId: snapshot.organizationId };
     if (!tenantScopeContainsV1(context.tenantScope, scope))
       throw new Error('BUA_SCOPE_NARROWING_REQUIRED');
@@ -466,11 +482,17 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
     context: IamTenantContextV1,
     snapshotId: EntitlementSnapshotV1['snapshotId'],
   ): Promise<EntitlementSnapshotV1 | undefined> {
-    const row = await this.client.entitlementSnapshotRecord.findUnique({ where: { id: snapshotId } });
+    const row = await this.client.entitlementSnapshotRecord.findUnique({
+      where: { id: snapshotId },
+    });
     if (row === null) return undefined;
     const snapshot = persistedSnapshot(row);
     const scope = snapshot.workspaceId
-      ? { scopeType: 'workspace' as const, organizationId: snapshot.organizationId, workspaceId: snapshot.workspaceId }
+      ? {
+          scopeType: 'workspace' as const,
+          organizationId: snapshot.organizationId,
+          workspaceId: snapshot.workspaceId,
+        }
       : { scopeType: 'organization' as const, organizationId: snapshot.organizationId };
     return visible(context.tenantScope, scope) ? snapshot : undefined;
   }
@@ -489,12 +511,16 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
     return Object.freeze({
       entries: Object.freeze(
         entryRows
-          .filter((row) => visible(context.tenantScope, persistedScope({ ...row, projectId: null })))
+          .filter((row) =>
+            visible(context.tenantScope, persistedScope({ ...row, projectId: null })),
+          )
           .map(persistedEntry),
       ),
       reservations: Object.freeze(
         reservationRows
-          .filter((row) => visible(context.tenantScope, persistedScope({ ...row, projectId: null })))
+          .filter((row) =>
+            visible(context.tenantScope, persistedScope({ ...row, projectId: null })),
+          )
           .map(persistedReservation),
       ),
     });
@@ -524,7 +550,9 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
         where: { id: reservation.reservationId },
       });
       if (existing === null) {
-        await this.client.usageReservationRecord.create({ data: reservationCreateData(reservation) });
+        await this.client.usageReservationRecord.create({
+          data: reservationCreateData(reservation),
+        });
         continue;
       }
       const current = persistedReservation(existing);
@@ -578,10 +606,7 @@ export class PrismaEntitlementRepositoryAdapter implements EntitlementRepository
     return new PrismaEntitlementTransactionAdapter(this.client).listUsageState(context);
   }
 
-  public persistUsageState(
-    context: IamTenantContextV1,
-    state: UsageLedgerStateV1,
-  ): Promise<void> {
+  public persistUsageState(context: IamTenantContextV1, state: UsageLedgerStateV1): Promise<void> {
     return new PrismaEntitlementTransactionAdapter(this.client).persistUsageState(context, state);
   }
 }

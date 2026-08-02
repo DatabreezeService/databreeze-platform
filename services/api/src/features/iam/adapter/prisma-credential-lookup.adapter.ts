@@ -46,9 +46,7 @@ export interface MfaFactorDatabaseRowV1 {
 }
 
 interface UniqueDelegateV1<TRow> {
-  findUnique(input: {
-    readonly where: Readonly<Record<string, unknown>>;
-  }): Promise<TRow | null>;
+  findUnique(input: { readonly where: Readonly<Record<string, unknown>> }): Promise<TRow | null>;
 }
 
 interface WorkspaceLookupDelegateV1 extends UniqueDelegateV1<WorkspaceIdentityDatabaseRowV1> {
@@ -87,8 +85,7 @@ function activeMembership(
   row: MembershipIdentityDatabaseRowV1,
   userId: string,
 ): ActiveMembershipV1 | undefined {
-  if (row.principalId !== userId || row.status !== 'ACTIVE')
-    return undefined;
+  if (row.principalId !== userId || row.status !== 'ACTIVE') return undefined;
   const organizationId = stableId(row.organizationId);
   if (!organizationId) return undefined;
   if (row.scopeType === 'WORKSPACE') {
@@ -163,7 +160,9 @@ export class PrismaCredentialLookupAdapter implements CredentialLookupPortV1 {
       workspaceId = workspace ? stableId(workspace.id) : undefined;
     }
     if (!workspaceId) return undefined;
-    const workspace = await this.client.workspaceIdentity.findUnique({ where: { id: workspaceId } });
+    const workspace = await this.client.workspaceIdentity.findUnique({
+      where: { id: workspaceId },
+    });
     if (
       !organization ||
       organization.id !== selected.organizationId ||

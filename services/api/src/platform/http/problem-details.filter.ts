@@ -60,9 +60,7 @@ function describe(error: unknown, correlationId: string): ProblemInput {
     return {
       code: invalidContext ? 'CONTEXT_INVALID' : 'AUTHENTICATION_FAILED',
       correlationId,
-      messageKey: invalidContext
-        ? 'api.error.context_invalid'
-        : 'api.error.authentication_failed',
+      messageKey: invalidContext ? 'api.error.context_invalid' : 'api.error.authentication_failed',
       retryable: false,
       status: invalidContext ? HttpStatus.BAD_REQUEST : HttpStatus.UNAUTHORIZED,
     };

@@ -79,9 +79,15 @@ function delegate<TRow extends Record<string, unknown>>(rows: TRow[]) {
       rows.push(persisted);
       return Promise.resolve(persisted);
     },
-    findUnique({ where }: { readonly where: { readonly id?: string; readonly planCode?: string } }) {
+    findUnique({
+      where,
+    }: {
+      readonly where: { readonly id?: string; readonly planCode?: string };
+    }) {
       const key = where.id ?? where.planCode;
-      return Promise.resolve(rows.find((row) => row['id'] === key || row['planCode'] === key) ?? null);
+      return Promise.resolve(
+        rows.find((row) => row['id'] === key || row['planCode'] === key) ?? null,
+      );
     },
     findMany({
       where,
@@ -97,7 +103,8 @@ function delegate<TRow extends Record<string, unknown>>(rows: TRow[]) {
       return Promise.resolve(
         [...filtered].sort((left, right) => {
           if (!field) return 0;
-          const comparison = left[field]! < right[field]! ? -1 : left[field]! > right[field]! ? 1 : 0;
+          const comparison =
+            left[field]! < right[field]! ? -1 : left[field]! > right[field]! ? 1 : 0;
           return direction === 'desc' ? -comparison : comparison;
         }),
       );
@@ -167,12 +174,21 @@ void test('[BUA-001, BUA-002, BUA-008, IAM-009] Prisma entitlement adapter persi
   await repository.savePlan(plan());
   await repository.saveSnapshot(context(workspaceId, 'seed-1'), snapshot());
   const service = new EntitlementAdmissionService(repository);
-  const result = await service.admit(context(workspaceId, 'admit-1'), admissionInput('admit-1', '1'));
+  const result = await service.admit(
+    context(workspaceId, 'admit-1'),
+    admissionInput('admit-1', '1'),
+  );
   assert.equal(result.accepted, true);
   assert.equal((await repository.listUsageState(context(workspaceId, 'read'))).entries.length, 1);
-  assert.equal((await repository.listUsageState(context(siblingWorkspaceId, 'sibling'))).entries.length, 0);
   assert.equal(
-    await repository.findSnapshot(context(siblingWorkspaceId, 'snapshot-sibling'), snapshot().snapshotId),
+    (await repository.listUsageState(context(siblingWorkspaceId, 'sibling'))).entries.length,
+    0,
+  );
+  assert.equal(
+    await repository.findSnapshot(
+      context(siblingWorkspaceId, 'snapshot-sibling'),
+      snapshot().snapshotId,
+    ),
     undefined,
   );
 });
@@ -181,7 +197,10 @@ void test('[BUA-012] Prisma entitlement adapter applies reservation status revis
   const repository = new PrismaEntitlementRepositoryAdapter(client());
   await repository.saveSnapshot(context(workspaceId, 'seed-2'), snapshot());
   const service = new EntitlementAdmissionService(repository);
-  const admitted = await service.admit(context(workspaceId, 'admit-2'), admissionInput('admit-2', '2'));
+  const admitted = await service.admit(
+    context(workspaceId, 'admit-2'),
+    admissionInput('admit-2', '2'),
+  );
   assert.equal(admitted.accepted, true);
   if (!admitted.accepted) return;
   const finalized = await service.finalize(context(workspaceId, 'finish-2'), {

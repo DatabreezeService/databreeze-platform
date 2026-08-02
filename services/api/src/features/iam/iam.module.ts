@@ -17,9 +17,15 @@ import {
   IDENTITY_BOOTSTRAP_REPOSITORY_PORT,
   type IdentityBootstrapRepositoryPortV1,
 } from './application/identity-bootstrap-repository.port.js';
-import { MFA_REPOSITORY_PORT, type MfaRepositoryPortV1 } from './application/mfa-repository.port.js';
+import {
+  MFA_REPOSITORY_PORT,
+  type MfaRepositoryPortV1,
+} from './application/mfa-repository.port.js';
 import { MFA_SERVICE, MfaService } from './application/mfa.service.js';
-import { IAM_REPOSITORY_PORT, type IamRepositoryPortV1 } from './application/iam-repository.port.js';
+import {
+  IAM_REPOSITORY_PORT,
+  type IamRepositoryPortV1,
+} from './application/iam-repository.port.js';
 import type { PasswordCredentialService } from './application/password-credential.service.js';
 import { UnavailableAuthenticationAdapter } from './adapter/unavailable-authentication.adapter.js';
 import {
@@ -34,8 +40,14 @@ import {
   PrismaIdentityBootstrapRepositoryAdapter,
   type IdentityBootstrapDatabaseClientV1,
 } from './adapter/prisma-identity-bootstrap-repository.adapter.js';
-import { PrismaMfaRepositoryAdapter, type MfaDatabaseClientV1 } from './adapter/prisma-mfa-repository.adapter.js';
-import { PrismaIamRepositoryAdapter, type IamDatabaseClientV1 } from './adapter/prisma-iam-repository.adapter.js';
+import {
+  PrismaMfaRepositoryAdapter,
+  type MfaDatabaseClientV1,
+} from './adapter/prisma-mfa-repository.adapter.js';
+import {
+  PrismaIamRepositoryAdapter,
+  type IamDatabaseClientV1,
+} from './adapter/prisma-iam-repository.adapter.js';
 import { DeviceIdentityController } from './api/device-identity.controller.js';
 import { InMemoryDeviceIdentityRepositoryAdapter } from './adapter/in-memory-device-identity-repository.adapter.js';
 import {
@@ -70,7 +82,9 @@ export interface IamModuleOptions {
   readonly mfaRepository?: MfaRepositoryPortV1;
   readonly mfaDatabase?: MfaDatabaseClientV1;
   readonly mfaService?: MfaService;
-  readonly recoveryCodeMatcher?: { matches(presentedDigest: string, storedDigest: string): boolean };
+  readonly recoveryCodeMatcher?: {
+    matches(presentedDigest: string, storedDigest: string): boolean;
+  };
   readonly iamRepository?: IamRepositoryPortV1;
   readonly iamDatabase?: IamDatabaseClientV1;
   readonly deviceIdentityService?: DeviceIdentityService;

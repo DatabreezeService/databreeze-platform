@@ -23,9 +23,7 @@ interface RequestLikeV1 {
 }
 
 export interface SessionPrincipalLookupV1 {
-  findPrincipalByAccessToken(
-    accessToken: unknown,
-  ): Promise<AuthenticatedPrincipalV1 | undefined>;
+  findPrincipalByAccessToken(accessToken: unknown): Promise<AuthenticatedPrincipalV1 | undefined>;
 }
 
 function requestLike(input: unknown): RequestLikeV1 | undefined {
@@ -84,7 +82,8 @@ export class SessionRequestTenantContextAdapter implements RequestTenantContextP
     } catch {
       throw new RequestTenantContextProblemError('AUTHENTICATION_FAILED');
     }
-    if (principal === undefined) throw new RequestTenantContextProblemError('AUTHENTICATION_FAILED');
+    if (principal === undefined)
+      throw new RequestTenantContextProblemError('AUTHENTICATION_FAILED');
     const context = createIamTenantContextV1({
       tenantScope: {
         scopeType: 'workspace',

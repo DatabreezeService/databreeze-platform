@@ -59,13 +59,11 @@ function createDatabase(): {
       },
       findUnique: async ({ where }: { readonly where: { readonly tokenDigest: string } }) =>
         [...refreshTokens.values()].find((row) => row.tokenDigest === where.tokenDigest) ?? null,
-      findMany: async ({
-        where,
-      }: {
-        readonly where: Readonly<Record<string, unknown>>;
-      }) =>
+      findMany: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) =>
         [...refreshTokens.values()].filter((row) =>
-          Object.entries(where).every(([key, value]) => row[key as keyof RefreshTokenDatabaseRowV1] === value),
+          Object.entries(where).every(
+            ([key, value]) => row[key as keyof RefreshTokenDatabaseRowV1] === value,
+          ),
         ),
       updateMany: async ({
         where,
@@ -76,7 +74,11 @@ function createDatabase(): {
       }) => {
         let count = 0;
         for (const [id, row] of refreshTokens) {
-          if (!Object.entries(where).every(([key, value]) => row[key as keyof RefreshTokenDatabaseRowV1] === value))
+          if (
+            !Object.entries(where).every(
+              ([key, value]) => row[key as keyof RefreshTokenDatabaseRowV1] === value,
+            )
+          )
             continue;
           refreshTokens.set(id, { ...row, ...data });
           count += 1;
@@ -100,7 +102,11 @@ function createDatabase(): {
       }) => {
         let count = 0;
         for (const [id, row] of accessTokens) {
-          if (!Object.entries(where).every(([key, value]) => row[key as keyof AccessTokenDatabaseRowV1] === value))
+          if (
+            !Object.entries(where).every(
+              ([key, value]) => row[key as keyof AccessTokenDatabaseRowV1] === value,
+            )
+          )
             continue;
           accessTokens.set(id, { ...row, ...data });
           count += 1;
@@ -133,8 +139,9 @@ function createDatabase(): {
     mfaFactor: {
       findMany: async () => [{ id: '00000000-0000-4000-8000-000000000005' }],
     },
-    $transaction: async <TValue>(work: (transaction: SessionLifecycleDatabaseClientV1) => Promise<TValue>) =>
-      work(client),
+    $transaction: async <TValue>(
+      work: (transaction: SessionLifecycleDatabaseClientV1) => Promise<TValue>,
+    ) => work(client),
   } as unknown as SessionLifecycleDatabaseClientV1;
   return { client, sessions, refreshTokens, accessTokens };
 }

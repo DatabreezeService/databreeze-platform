@@ -2,7 +2,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { parseStableIdentifierV1, type StableIdentifierV1, type TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
+import {
+  parseStableIdentifierV1,
+  type StableIdentifierV1,
+  type TenantScopeV1,
+} from '@databreeze/domain/tenant-scope/v1';
 
 import {
   PrismaIamRepositoryAdapter,
@@ -37,7 +41,12 @@ function context(scope: TenantScopeV1, expectedRevision?: number) {
   return result.value;
 }
 
-function row(idValue: string, scope: 'WORKSPACE' | 'ORGANIZATION', workspace: string | null, roleId: string): IamMembershipDatabaseRowV1 {
+function row(
+  idValue: string,
+  scope: 'WORKSPACE' | 'ORGANIZATION',
+  workspace: string | null,
+  roleId: string,
+): IamMembershipDatabaseRowV1 {
   return {
     id: idValue,
     principalType: 'USER',
@@ -61,10 +70,13 @@ function createDatabase(rows: readonly IamMembershipDatabaseRowV1[] = []): {
   const memberships = new Map(rows.map((value) => [value.id, value]));
   const client = {
     membershipIdentity: {
-      findUnique: async ({ where }: { readonly where: { readonly id: string } }) => memberships.get(where.id) ?? null,
+      findUnique: async ({ where }: { readonly where: { readonly id: string } }) =>
+        memberships.get(where.id) ?? null,
       findMany: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) =>
         [...memberships.values()].filter((candidate) =>
-          Object.entries(where).every(([key, value]) => candidate[key as keyof IamMembershipDatabaseRowV1] === value),
+          Object.entries(where).every(
+            ([key, value]) => candidate[key as keyof IamMembershipDatabaseRowV1] === value,
+          ),
         ),
       create: async ({ data }: { readonly data: IamMembershipDatabaseRowV1 }) => {
         memberships.set(data.id, data);
@@ -108,7 +120,8 @@ void test('[IAM-009, IAM-019] Prisma IAM membership reads are tenant scoped and 
   const workspaceScope = { scopeType: 'workspace', organizationId, workspaceId } as const;
   assert.equal((await repository.listMemberships(context(workspaceScope))).length, 2);
   assert.equal(
-    (await repository.listMemberships(context({ scopeType: 'organization', organizationId }))).length,
+    (await repository.listMemberships(context({ scopeType: 'organization', organizationId })))
+      .length,
     3,
   );
   assert.equal(

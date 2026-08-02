@@ -315,7 +315,10 @@ void test('sign-in returns a session DTO and maps authentication failures withou
       const setCookies = response.headers['set-cookie'];
       assert.ok(Array.isArray(setCookies));
       assert.equal(setCookies.length, 2);
-      assert.match(setCookies[0] ?? '', /^databreeze_refresh=refresh-token; .*HttpOnly; Secure; SameSite=Lax$/);
+      assert.match(
+        setCookies[0] ?? '',
+        /^databreeze_refresh=refresh-token; .*HttpOnly; Secure; SameSite=Lax$/,
+      );
       assert.match(setCookies[1] ?? '', /^databreeze_csrf=[A-Za-z0-9_-]+; .*Secure; SameSite=Lax$/);
       assertResponseIdentifiers(response);
     },
@@ -397,7 +400,10 @@ void test('refresh rotates Web cookies without returning the refresh token and p
       const webCookies = web.headers['set-cookie'];
       assert.ok(Array.isArray(webCookies));
       assert.equal(webCookies.length, 2);
-      assert.match(webCookies[0] ?? '', /^databreeze_refresh=next-refresh-token; .*HttpOnly; Secure; SameSite=Lax$/);
+      assert.match(
+        webCookies[0] ?? '',
+        /^databreeze_refresh=next-refresh-token; .*HttpOnly; Secure; SameSite=Lax$/,
+      );
       assert.match(webCookies[1] ?? '', /^databreeze_csrf=[A-Za-z0-9_-]+; .*Secure; SameSite=Lax$/);
 
       const native = await app.inject({
@@ -417,7 +423,8 @@ void test('refresh rotates Web cookies without returning the refresh token and p
     {
       sessions: {
         issue: () => Promise.reject(new Error('not used')),
-        refresh: () => Promise.resolve({ accepted: false as const, code: 'REUSE_DETECTED' as const }),
+        refresh: () =>
+          Promise.resolve({ accepted: false as const, code: 'REUSE_DETECTED' as const }),
         revoke: () => Promise.resolve(true),
         findPrincipal: () => Promise.resolve(undefined),
       },
@@ -466,7 +473,10 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
       assert.equal(web.body, '');
       const webCookies = web.headers['set-cookie'];
       assert.ok(Array.isArray(webCookies));
-      assert.match(webCookies[0] ?? '', /^databreeze_refresh=; Max-Age=0; .*HttpOnly; Secure; SameSite=Lax$/);
+      assert.match(
+        webCookies[0] ?? '',
+        /^databreeze_refresh=; Max-Age=0; .*HttpOnly; Secure; SameSite=Lax$/,
+      );
       assert.match(webCookies[1] ?? '', /^databreeze_csrf=; Max-Age=0; .*Secure; SameSite=Lax$/);
 
       const native = await app.inject({
@@ -624,7 +634,9 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
       payload: { at: '2026-01-01T00:01:00.000Z' },
     });
     assert.equal(verified.statusCode, 200);
-    const verifiedBody = parsedBody<{ readonly factors: readonly [{ readonly status: string }] }>(verified);
+    const verifiedBody = parsedBody<{ readonly factors: readonly [{ readonly status: string }] }>(
+      verified,
+    );
     assert.equal(verifiedBody.factors[0].status, 'ACTIVE');
 
     const invalid = await app.inject({
