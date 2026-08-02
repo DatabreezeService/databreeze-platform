@@ -20,6 +20,7 @@ export interface DataModePolicyVersionV1 {
   readonly schemaVersion: typeof DATA_MODE_POLICY_SCHEMA_VERSION_V1;
   readonly policyId: StableIdentifierV1;
   readonly policyVersionId: StableIdentifierV1;
+  readonly organizationId: StableIdentifierV1;
   readonly workspaceId: StableIdentifierV1;
   readonly revision: number;
   readonly mode: DataModeV1;
@@ -132,6 +133,7 @@ function policyNarrowerOrEqual(
 export function createDataModePolicyVersionV1(input: {
   readonly policyId: unknown;
   readonly policyVersionId: unknown;
+  readonly organizationId: unknown;
   readonly workspaceId: unknown;
   readonly revision: unknown;
   readonly mode: unknown;
@@ -144,6 +146,7 @@ export function createDataModePolicyVersionV1(input: {
 }): DataModePolicyResultV1<DataModePolicyVersionV1> {
   const policyId = stable(input.policyId);
   const policyVersionId = stable(input.policyVersionId);
+  const organizationId = stable(input.organizationId);
   const workspaceId = stable(input.workspaceId);
   const revision = input.revision;
   const mode = input.mode;
@@ -153,7 +156,8 @@ export function createDataModePolicyVersionV1(input: {
   const allowedDestinationClasses = textList(input.allowedDestinationClasses, 32, 64);
   const canonicalHash = input.canonicalHash;
   const publishedAt = timestamp(input.publishedAt);
-  if (!policyId || !policyVersionId || !workspaceId) return rejected('INVALID_IDENTIFIER');
+  if (!policyId || !policyVersionId || !organizationId || !workspaceId)
+    return rejected('INVALID_IDENTIFIER');
   if (typeof revision !== 'number' || !Number.isSafeInteger(revision) || revision < 1)
     return rejected('INVALID_REVISION');
   if (!modes.includes(mode as DataModeV1)) return rejected('INVALID_MODE');
@@ -169,6 +173,7 @@ export function createDataModePolicyVersionV1(input: {
       schemaVersion: DATA_MODE_POLICY_SCHEMA_VERSION_V1,
       policyId,
       policyVersionId,
+      organizationId,
       workspaceId,
       revision,
       mode: mode as DataModeV1,
