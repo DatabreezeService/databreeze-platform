@@ -256,13 +256,24 @@ def correlation_headers(context: CorrelationContext) -> dict[str, str]:
 
 def _single_header(headers: Mapping[str, str | Sequence[str] | None], name: str) -> str | None:
     values: list[str] = []
-    for key, value in headers.items():
-        if key.lower() != name:
-            continue
-        if isinstance(value, str):
-            values.append(value)
-        elif value is not None:
-            values.extend(value)
+    try:
+        for key, value in headers.items():
+            if not isinstance(key, str):
+                raise ValueError("telemetry header name is not a string")
+            if key.lower() != name:
+                continue
+            if isinstance(value, str):
+                values.append(value)
+            elif value is not None:
+                if not isinstance(value, Sequence) or isinstance(value, (bytes, bytearray)):
+                    raise ValueError("telemetry header value is not readable")
+                if not all(isinstance(item, str) for item in value):
+                    raise ValueError("telemetry header value is not readable")
+                values.extend(value)
+    except ValueError:
+        raise
+    except Exception:
+        raise ValueError("telemetry headers are not readable") from None
     if len(values) > 1:
         raise ValueError(f"ambiguous telemetry {name} header")
     if not values:

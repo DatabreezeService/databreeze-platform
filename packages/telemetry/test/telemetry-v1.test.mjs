@@ -71,6 +71,20 @@ test('telemetry never executes accessor-backed attributes', () => {
   assert.equal(accessed, false);
 });
 
+test('telemetry never executes accessor-backed correlation headers', () => {
+  let accessed = false;
+  const hostile = {};
+  Object.defineProperty(hostile, 'x-correlation-id', {
+    enumerable: true,
+    get() {
+      accessed = true;
+      throw new Error('hostile header getter');
+    },
+  });
+  assert.throws(() => correlationFromHeadersV1(hostile), /Unreadable telemetry/u);
+  assert.equal(accessed, false);
+});
+
 test('correlation headers round-trip without accepting malformed identifiers', () => {
   const context = createCorrelationContextV1({
     correlationId,

@@ -259,9 +259,17 @@ function readSingleHeader(
   name: string,
 ): string | undefined {
   const values: string[] = [];
-  for (const [key, value] of Object.entries(headers)) {
+  for (const key of Object.keys(headers)) {
+    const descriptor = Object.getOwnPropertyDescriptor(headers, key);
+    if (!descriptor || !('value' in descriptor)) throw new Error(`Unreadable telemetry ${name} header`);
+    const value = descriptor.value as string | string[] | undefined;
     if (key.toLowerCase() !== name) continue;
-    if (Array.isArray(value)) values.push(...value);
+    if (Array.isArray(value)) {
+      if (!value.every((item) => typeof item === 'string')) {
+        throw new Error(`Unreadable telemetry ${name} header`);
+      }
+      values.push(...value);
+    }
     else if (value !== undefined) values.push(value);
   }
   if (values.length > 1) throw new Error(`Ambiguous telemetry ${name} header`);
