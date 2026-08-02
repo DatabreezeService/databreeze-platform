@@ -66,6 +66,7 @@ function row(id: string, candidateWorkspaceId: string): GovernedDatasetDatabaseR
     status: 'DRAFT',
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     publishedAt: null,
+    revision: 1,
     canonicalHash: 'a'.repeat(64),
   };
 }
@@ -152,4 +153,14 @@ void test('[DSM-001] Prisma dataset adapter persists a replay exactly once', asy
   await repository.save(context(workspaceId, 'save'), definition);
   await repository.save(context(workspaceId, 'replay'), definition);
   assert.equal(rows.length, 1);
+});
+
+void test('[DSM-001] Prisma dataset adapter rejects a non-initial immutable revision', async () => {
+  const repository = new PrismaGovernedDatasetRepositoryAdapter(
+    client([{ ...row(versionId, workspaceId), revision: 2 }]),
+  );
+  await assert.rejects(
+    repository.find(context(workspaceId, 'invalid-revision'), versionId),
+    /DSM_PERSISTED_REVISION_INVALID/u,
+  );
 });
