@@ -51,13 +51,6 @@ const artifactResult = createArtifactVersionV1({
 if (!artifactResult.accepted) throw new Error('invalid artifact fixture');
 const artifact = artifactResult.value;
 
-function stable(value: string) {
-  const result = parseStableIdentifierV1(value);
-  assert.equal(result.accepted, true);
-  if (!result.accepted) throw new Error('invalid identifier');
-  return result.value;
-}
-
 void test('[IAE-001] create returns the same inbox item for a repeated key', async () => {
   const service = new ArtifactIntakeService(new InMemoryArtifactIntakeRepositoryAdapter());
   const first = await service.create(context(workspaceId, 'create-1'), inbox);

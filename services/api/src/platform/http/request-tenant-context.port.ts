@@ -9,7 +9,8 @@ export interface RequestTenantContextPortV1 {
 
 /** Safe default until the IAM bearer/session adapter is configured by the host. */
 export class UnavailableRequestTenantContextAdapter implements RequestTenantContextPortV1 {
-  public async resolve(_request: unknown): Promise<IamTenantContextV1> {
+  public async resolve(request: unknown): Promise<IamTenantContextV1> {
+    void request;
     await Promise.resolve();
     throw new Error('AUTHENTICATED_CONTEXT_UNAVAILABLE');
   }
