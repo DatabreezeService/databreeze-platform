@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 import { createArtifactVersionV1 } from '@databreeze/domain/artifact/v1';
 
 import { InMemoryArtifactIntakeRepositoryAdapter } from '../../../src/features/iae/adapter/in-memory-artifact-intake-repository.adapter.js';
