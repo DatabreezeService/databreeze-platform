@@ -93,6 +93,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802120000_iae_evidence_grants',
     '20260802130000_iae_dsm_scope_hardening',
     '20260802140000_dso_device_sync',
+    '20260802150000_dso_sync_sequence',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -288,5 +289,19 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     'CREATE UNIQUE INDEX "device_sync_operations_workspace_idempotency_key"',
   ]) {
     assert.match(dsoMigration, new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  const dsoSequenceMigration = await readFile(
+    path.join(migrationsDirectory, inventory[16], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE SEQUENCE IF NOT EXISTS "dso"."device_sync_operations_sync_sequence_seq"',
+    'ADD COLUMN "sync_sequence" INTEGER',
+    'CREATE UNIQUE INDEX "device_sync_operations_sync_sequence_key"',
+  ]) {
+    assert.match(
+      dsoSequenceMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
   }
 });

@@ -20,9 +20,11 @@ model DeviceSyncOperationRecord {
   createdAt         DateTime  @map("created_at") @db.Timestamptz(6)
   acknowledgedAt    DateTime? @map("acknowledged_at") @db.Timestamptz(6)
   idempotencyKey    String    @map("idempotency_key") @db.VarChar(200)
+  syncSequence      Int       @default(autoincrement()) @unique(map: "device_sync_operations_sync_sequence_key") @map("sync_sequence")
 
   @@index([organizationId, workspaceId, projectId, status], map: "device_sync_operations_scope_status_idx")
   @@index([deviceId, createdAt], map: "device_sync_operations_device_created_idx")
+  @@index([organizationId, syncSequence], map: "device_sync_operations_org_sequence_idx")
   @@index([entityType, entityId], map: "device_sync_operations_entity_idx")
   @@map("device_sync_operations")
   @@schema("dso")
