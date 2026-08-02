@@ -37,11 +37,11 @@ void test('[IAM-001, IAM-005, IAM-006] configured credentials and sessions issue
       },
     });
     assert.equal(response.statusCode, 200);
-    const body = response.json() as {
+    const body = response.json<{
       sessionId: string;
       accessToken: string;
       refreshToken: string;
-    };
+    }>();
     assert.match(body.sessionId, /^[0-9a-f-]{36}$/u);
     assert.notEqual(body.accessToken, body.refreshToken);
   } finally {
