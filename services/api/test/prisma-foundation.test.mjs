@@ -121,6 +121,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802280000_iae_protected_document_unlocks',
     '20260802290000_dsm_export_manifests',
     '20260802300000_sa_spreadsheet_audits',
+    '20260803000000_iae_lineage_uniqueness',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -493,4 +494,12 @@ test('the schema diff and centrally ordered migration inventory establish platfo
       new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
   }
+  const lineageUniquenessMigration = await readFile(
+    path.join(migrationsDirectory, inventory[32], 'migration.sql'),
+    'utf8',
+  );
+  assert.match(
+    lineageUniquenessMigration,
+    /CREATE UNIQUE INDEX "artifact_lineage_derived_version_key"/,
+  );
 });
