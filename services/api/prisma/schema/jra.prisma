@@ -100,6 +100,33 @@ model ExecutionAttemptRecord {
   @@schema("jra")
 }
 
+model ResultManifestRecord {
+  id                         String   @id @db.Uuid
+  jobId                      String   @map("job_id") @db.Uuid
+  attemptId                  String   @map("attempt_id") @db.Uuid
+  scopeType                  String   @map("scope_type") @db.VarChar(24)
+  organizationId             String   @map("organization_id") @db.Uuid
+  workspaceId                String?  @map("workspace_id") @db.Uuid
+  projectId                  String?  @map("project_id") @db.Uuid
+  sourceArtifactVersionIds   Json     @map("source_artifact_version_ids")
+  outputIds                  Json     @map("output_ids")
+  outputHashes               Json     @map("output_hashes")
+  evidenceCoverage           String   @map("evidence_coverage") @db.VarChar(16)
+  handlerDigest              String   @map("handler_digest") @db.Char(64)
+  engineVersion              String   @map("engine_version") @db.VarChar(128)
+  attemptNumber              Int      @map("attempt_number")
+  reviewerId                 String?  @map("reviewer_id") @db.Uuid
+  approvalState              String   @map("approval_state") @db.VarChar(16)
+  manifestHash               String   @map("manifest_hash") @db.Char(64)
+  generatedAt                DateTime @map("generated_at") @db.Timestamptz(6)
+
+  @@unique([attemptId], map: "result_manifests_attempt_key")
+  @@index([organizationId, workspaceId, projectId, generatedAt], map: "result_manifests_scope_time_idx")
+  @@index([jobId, attemptNumber], map: "result_manifests_job_attempt_idx")
+  @@map("result_manifests")
+  @@schema("jra")
+}
+
 model ApprovalPolicyRecord {
   id                   String  @id @db.Uuid
   workspaceId          String  @map("workspace_id") @db.Uuid
