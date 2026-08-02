@@ -64,7 +64,8 @@ void test('SA-001/SA-004 HTTP stores value-free audit results and rejects source
     });
     assert.equal(rejected.statusCode, 400);
     const rejectedBody = JSON.parse(rejected.body) as Record<string, unknown>;
-    const { correlationId: _correlationId, ...rejectedWithoutCorrelation } = rejectedBody;
+    const rejectedWithoutCorrelation = { ...rejectedBody };
+    delete rejectedWithoutCorrelation.correlationId;
     assert.doesNotMatch(JSON.stringify(rejectedWithoutCorrelation), /SUM|42|sourceValue/iu);
 
     const created = await app.inject({

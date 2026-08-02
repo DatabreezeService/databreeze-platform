@@ -76,10 +76,10 @@ void test('[IAE-016, IAM-009] retention HTTP binds requester to the authenticate
       },
     });
     assert.equal(response.statusCode, 201);
-    const created = response.json() as {
+    const created = response.json<{
       readonly accepted: boolean;
       readonly value?: { readonly requestedBy?: string; readonly requestId?: string };
-    };
+    }>();
     assert.equal(created.accepted, true);
     assert.equal(created.value?.requestId, requestId);
     assert.equal(created.value?.requestedBy, actorId);

@@ -11,6 +11,7 @@ export default tseslint.config(
       '**/out/**',
       'packages/contracts/generated/**',
       'tools/repo-cli/test/fixtures/**',
+      '.worktrees/**',
     ],
   },
   eslint.configs.recommended,
