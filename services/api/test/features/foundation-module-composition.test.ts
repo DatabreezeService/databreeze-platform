@@ -14,6 +14,8 @@ import { IDENTITY_BOOTSTRAP_REPOSITORY_PORT } from '../../src/features/iam/appli
 import { PrismaIdentityBootstrapRepositoryAdapter } from '../../src/features/iam/adapter/prisma-identity-bootstrap-repository.adapter.js';
 import { MFA_REPOSITORY_PORT } from '../../src/features/iam/application/mfa-repository.port.js';
 import { PrismaMfaRepositoryAdapter } from '../../src/features/iam/adapter/prisma-mfa-repository.adapter.js';
+import { IAM_REPOSITORY_PORT } from '../../src/features/iam/application/iam-repository.port.js';
+import { PrismaIamRepositoryAdapter } from '../../src/features/iam/adapter/prisma-iam-repository.adapter.js';
 import { AudModule } from '../../src/features/aud/aud.module.js';
 import { AUDIT_REPOSITORY_PORT } from '../../src/features/aud/application/audit-repository.port.js';
 import { PrismaAuditRepositoryAdapter } from '../../src/features/aud/adapter/prisma-audit-repository.adapter.js';
@@ -117,6 +119,21 @@ void test('[IAM-012, IAM-014] configured MFA persistence uses the Prisma adapter
   assert.ok(provider && 'useValue' in provider);
   if (!provider || !('useValue' in provider)) return;
   assert.ok(provider.useValue instanceof PrismaMfaRepositoryAdapter);
+});
+
+void test('[IAM-009, IAM-019] configured IAM membership persistence uses the Prisma adapter', () => {
+  const database = {} as never;
+  const registered = IamModule.register({ iamDatabase: database });
+  const provider = registered.providers?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === IAM_REPOSITORY_PORT,
+  );
+  assert.ok(provider && 'useValue' in provider);
+  if (!provider || !('useValue' in provider)) return;
+  assert.ok(provider.useValue instanceof PrismaIamRepositoryAdapter);
 });
 
 void test('[BUA-001] configured entitlement persistence uses the Prisma adapter instead of the local fallback', () => {
