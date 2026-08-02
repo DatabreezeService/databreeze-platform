@@ -8,7 +8,6 @@ import com.databreeze.android.storage.DataBreezeDatabase
 import com.databreeze.android.storage.SyncQueueEntity
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -27,14 +26,20 @@ class RoomIsolationTest {
                 mutationId = "mutation-1",
                 operationType = "capture.submit",
                 payloadHash = "sha256:${"a".repeat(64)}",
+                createdAtEpochMs = 1L,
             )
+            val firstWorkspaceB = first.copy(workspaceId = "workspace-b", createdAtEpochMs = 2L)
             database.syncQueue().enqueue(first)
             database.syncQueue().enqueue(first)
+            database.syncQueue().enqueue(firstWorkspaceB)
             database.syncQueue().enqueue(first.copy(accountId = "account-b"))
 
             assertEquals(listOf(first), database.syncQueue().snapshot("account-a", "workspace-a"))
             assertEquals(1, database.syncQueue().snapshot("account-b", "workspace-a").size)
-            assertTrue(database.syncQueue().snapshot("account-a", "workspace-b").isEmpty())
+            assertEquals(
+                listOf(firstWorkspaceB),
+                database.syncQueue().snapshot("account-a", "workspace-b"),
+            )
         } finally {
             database.close()
         }

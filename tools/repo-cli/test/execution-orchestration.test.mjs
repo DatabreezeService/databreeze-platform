@@ -177,6 +177,7 @@ test('repository checker validates the committed orchestration package', () => {
 test('ledger records verified task evidence before advancing the next task', () => {
   const ledger = readJson('docs/plans/execution-orchestration.json');
   assert.equal(ledger.nextTaskId, 'FND-003');
+  assert.equal(ledger.checkpoint.lastFeaturePullRequest, 13);
   assert.deepEqual(ledger.taskState?.['FND-001']?.status, 'verified');
   assert.match(ledger.taskState?.['FND-001']?.commit ?? '', /^[0-9a-f]{40}$/u);
   assert.ok(
