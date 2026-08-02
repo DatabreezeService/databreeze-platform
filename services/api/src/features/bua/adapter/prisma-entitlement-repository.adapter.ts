@@ -121,6 +121,10 @@ interface DelegateV1<TRow, TCreate> {
     readonly where: { readonly id: string };
     readonly data: Readonly<Record<string, unknown>>;
   }): Promise<TRow>;
+  updateMany?(input: {
+    readonly where: { readonly id: string; readonly revision: number };
+    readonly data: Readonly<Record<string, unknown>>;
+  }): Promise<{ readonly count: number }>;
 }
 
 export interface EntitlementDatabaseClientV1 {
@@ -562,11 +566,12 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
         reservation.revision !== current.revision + 1
       )
         throw new Error('BUA_RESERVATION_CONFLICT');
-      if (!this.client.usageReservationRecord.update) throw new Error('BUA_UPDATE_UNAVAILABLE');
-      await this.client.usageReservationRecord.update({
-        where: { id: reservation.reservationId },
+      if (!this.client.usageReservationRecord.updateMany) throw new Error('BUA_UPDATE_UNAVAILABLE');
+      const result = await this.client.usageReservationRecord.updateMany({
+        where: { id: reservation.reservationId, revision: current.revision },
         data: { status: reservation.status, revision: reservation.revision, updatedAt: new Date() },
       });
+      if (result.count !== 1) throw new Error('BUA_RESERVATION_CONFLICT');
     }
   }
 }
