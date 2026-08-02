@@ -1,0 +1,43 @@
+package com.databreeze.android
+
+import android.content.Context
+import com.databreeze.android.security.AndroidDeviceKeyStore
+import com.databreeze.android.security.DeviceKeyStore
+import com.databreeze.android.storage.LocalStorePort
+import com.databreeze.android.storage.AccountWorkspaceScope
+import com.databreeze.android.storage.RoomLocalStore
+import com.databreeze.android.sync.DataBreezeWorkerFactory
+import com.databreeze.android.sync.SyncScheduler
+import com.databreeze.android.sync.SyncTransport
+import com.databreeze.android.sync.UnconfiguredSyncTransport
+import com.databreeze.android.sync.WorkManagerSyncScheduler
+
+/** Application-owned adapters. Feature packages receive ports, never Context or raw clients. */
+class AndroidRuntime private constructor(
+    val localStore: LocalStorePort,
+    val deviceKeyStore: DeviceKeyStore,
+    val syncTransport: SyncTransport,
+    val syncScheduler: SyncScheduler,
+    val workerFactory: DataBreezeWorkerFactory,
+) {
+    /** Revocation/account switch clears local work and the device-bound key before returning. */
+    suspend fun signOut(scope: AccountWorkspaceScope, keyAlias: String) {
+        syncScheduler.cancel(scope)
+        localStore.clear(scope)
+        deviceKeyStore.delete(keyAlias)
+    }
+
+    companion object {
+        fun create(context: Context): AndroidRuntime {
+            val localStore = RoomLocalStore.create(context.applicationContext)
+            val transport = UnconfiguredSyncTransport()
+            return AndroidRuntime(
+                localStore = localStore,
+                deviceKeyStore = AndroidDeviceKeyStore(),
+                syncTransport = transport,
+                syncScheduler = WorkManagerSyncScheduler(context.applicationContext),
+                workerFactory = DataBreezeWorkerFactory(localStore, transport),
+            )
+        }
+    }
+}
