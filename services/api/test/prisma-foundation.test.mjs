@@ -63,6 +63,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_definitions"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_versions"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_quality_results"/);
+  assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_profiles"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."reference_entity_versions"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."reference_entity_resolutions"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."mapping_definitions"/);
@@ -112,6 +113,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802240000_iae_upload_sessions',
     '20260802250000_dsm_quality_results',
     '20260802260000_iae_inbox_metadata',
+    '20260802270000_dsm_profiles',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -428,5 +430,17 @@ test('the schema diff and centrally ordered migration inventory establish platfo
       inboxMetadataMigration,
       new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
+  }
+  const profileMigration = await readFile(
+    path.join(migrationsDirectory, inventory[28], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE TABLE "dsm"."dataset_profiles"',
+    'CREATE INDEX "dataset_profiles_dataset_version_idx"',
+    '"sampling_method" VARCHAR(96)',
+    '"max_duration_ms" BIGINT',
+  ]) {
+    assert.match(profileMigration, new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
 });

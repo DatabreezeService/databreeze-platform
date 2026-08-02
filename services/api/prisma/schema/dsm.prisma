@@ -72,6 +72,32 @@ model DatasetQualityResultRecord {
   @@schema("dsm")
 }
 
+/// DSM-011: immutable disclosure of profiling completeness, sampling, exclusions, and budgets.
+model DatasetProfileRecord {
+  id                String    @id @db.Uuid
+  datasetVersionId  String    @map("dataset_version_id") @db.Uuid
+  scopeType         String    @map("scope_type") @db.VarChar(24)
+  organizationId    String    @map("organization_id") @db.Uuid
+  workspaceId       String?   @map("workspace_id") @db.Uuid
+  projectId         String?   @map("project_id") @db.Uuid
+  completeness      String    @db.VarChar(32)
+  samplingMethod    String    @map("sampling_method") @db.VarChar(96)
+  samplingSeed      String?   @map("sampling_seed") @db.Char(64)
+  excludedScopes    Json      @map("excluded_scopes")
+  rowCountScanned   BigInt    @map("row_count_scanned")
+  rowCountAvailable BigInt?   @map("row_count_available")
+  maxRows           BigInt    @map("max_rows")
+  maxBytes          BigInt    @map("max_bytes")
+  maxDurationMs     BigInt    @map("max_duration_ms")
+  profileFingerprint String   @map("profile_fingerprint") @db.Char(64)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([datasetVersionId], map: "dataset_profiles_dataset_version_idx")
+  @@index([organizationId, workspaceId, projectId, datasetVersionId], map: "dataset_profiles_scope_idx")
+  @@map("dataset_profiles")
+  @@schema("dsm")
+}
+
 /// DSM-025: canonical workspace reference identities are versioned and immutable.
 model ReferenceEntityVersionRecord {
   id                   String   @id @db.Uuid

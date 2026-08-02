@@ -8,6 +8,10 @@ import { DatasetVersionController } from './api/dataset-version.controller.js';
 import { DatasetQualityController } from './api/dataset-quality.controller.js';
 import { DatasetProfileController } from './api/dataset-profile.controller.js';
 import { InMemoryDatasetProfileRepositoryAdapter } from './adapter/in-memory-dataset-profile-repository.adapter.js';
+import {
+  PrismaDatasetProfileRepositoryAdapter,
+  type DatasetProfileDatabaseClientV1,
+} from './adapter/prisma-dataset-profile-repository.adapter.js';
 import { InMemoryGovernedDatasetRepositoryAdapter } from './adapter/in-memory-governed-dataset-repository.adapter.js';
 import {
   PrismaGovernedDatasetRepositoryAdapter,
@@ -92,6 +96,8 @@ export interface DsmModuleOptions {
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly datasetQualityDatabase?: DatasetQualityDatabaseClientV1;
   readonly datasetProfileRepository?: DatasetProfileRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly datasetProfileDatabase?: DatasetProfileDatabaseClientV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
 }
 
@@ -161,7 +167,10 @@ export class DsmModule {
         {
           provide: DATASET_PROFILE_REPOSITORY_PORT,
           useValue:
-            options.datasetProfileRepository ?? new InMemoryDatasetProfileRepositoryAdapter(),
+            options.datasetProfileRepository ??
+            (options.datasetProfileDatabase === undefined
+              ? new InMemoryDatasetProfileRepositoryAdapter()
+              : new PrismaDatasetProfileRepositoryAdapter(options.datasetProfileDatabase)),
         },
         {
           provide: REQUEST_TENANT_CONTEXT,
