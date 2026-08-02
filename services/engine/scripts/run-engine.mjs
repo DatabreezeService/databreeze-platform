@@ -54,7 +54,7 @@ if (version.error || version.status !== 0) {
     format: [...run, 'ruff', 'format', '--check', '.'],
     lint: [...run, 'ruff', 'check', '.'],
     'python-version': [...run, 'python', '--version'],
-    test: [...run, 'pytest'],
+    test: [...run, 'python', '-m', 'pytest'],
     typecheck: [...run, 'mypy'],
   };
   if (operation === 'build') {
