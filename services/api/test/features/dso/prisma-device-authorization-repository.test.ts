@@ -130,7 +130,7 @@ function client(): DeviceAuthorizationDatabaseClientV1 {
   const snapshotRows: Record<string, unknown>[] = [];
   const grantRows: Record<string, unknown>[] = [];
   const database = {
-    deviceAuthorizationSnapshotRecord: delegate(snapshotRows),
+    authorizationSnapshot: delegate(snapshotRows),
     deviceGrantRecord: delegate(grantRows),
     async $transaction<TValue>(work: (transaction: DeviceAuthorizationDatabaseClientV1) => Promise<TValue>) {
       return work(database as unknown as DeviceAuthorizationDatabaseClientV1);

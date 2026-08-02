@@ -65,7 +65,8 @@ interface DelegateV1<TRow, TCreate, TUpdate = never> {
 }
 
 export interface DeviceAuthorizationDatabaseClientV1 {
-  readonly deviceAuthorizationSnapshotRecord: DelegateV1<
+  /** IAM owns snapshots; DSO only consumes them for offline verification. */
+  readonly authorizationSnapshot: DelegateV1<
     DeviceAuthorizationSnapshotDatabaseRowV1,
     DeviceAuthorizationSnapshotDatabaseCreateDataV1
   >;
@@ -233,7 +234,7 @@ class PrismaDeviceAuthorizationTransactionAdapter implements DeviceAuthorization
   ): Promise<void> {
     if (!tenantScopeContainsV1(context.tenantScope, snapshot.tenantScope))
       throw new Error('DSO_SCOPE_NARROWING_REQUIRED');
-    const existing = await this.client.deviceAuthorizationSnapshotRecord.findUnique({
+    const existing = await this.client.authorizationSnapshot.findUnique({
       where: { id: snapshot.snapshotId },
     });
     if (existing !== null) {
@@ -241,14 +242,14 @@ class PrismaDeviceAuthorizationTransactionAdapter implements DeviceAuthorization
         throw new Error('DSO_IMMUTABLE_SNAPSHOT');
       return;
     }
-    await this.client.deviceAuthorizationSnapshotRecord.create({ data: snapshotCreateData(snapshot) });
+    await this.client.authorizationSnapshot.create({ data: snapshotCreateData(snapshot) });
   }
 
   public async findSnapshot(
     context: IamTenantContextV1,
     deviceId: AuthorizationSnapshotV1['deviceId'],
   ): Promise<AuthorizationSnapshotV1 | undefined> {
-    const rows = await this.client.deviceAuthorizationSnapshotRecord.findMany({
+    const rows = await this.client.authorizationSnapshot.findMany({
       where: { organizationId: context.tenantScope.organizationId, deviceId },
       orderBy: { snapshotRevision: 'desc' },
     });

@@ -73,7 +73,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "dso"\."device_sync_operations"/);
   assert.match(diff.stdout, /CREATE TABLE "dso"\."device_sync_conflicts"/);
   assert.match(diff.stdout, /CREATE TABLE "dso"\."strict_local_package_manifests"/);
-  assert.match(diff.stdout, /CREATE TABLE "dso"\."device_authorization_snapshots"/);
+  assert.match(diff.stdout, /CREATE TABLE "iam"\."authorization_snapshots"/);
   assert.match(diff.stdout, /CREATE TABLE "dso"\."device_grants"/);
 
   const migrationsDirectory = path.join(apiDirectory, 'prisma', 'migrations');
@@ -97,6 +97,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802140000_dso_device_sync',
     '20260802150000_dso_sync_sequence',
     '20260802160000_dso_device_authorization',
+    '20260802170000_iam_snapshot_authority_alignment',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -318,6 +319,20 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   ]) {
     assert.match(
       dsoAuthorizationMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const authorityAlignmentMigration = await readFile(
+    path.join(migrationsDirectory, inventory[18], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'ALTER TABLE "iam"."authorization_snapshots"',
+    'CREATE UNIQUE INDEX "authorization_snapshots_device_revision_key"',
+    'DROP TABLE "dso"."device_authorization_snapshots"',
+  ]) {
+    assert.match(
+      authorityAlignmentMigration,
       new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
   }

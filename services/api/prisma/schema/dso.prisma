@@ -114,31 +114,6 @@ model LocalAuditFragmentRecord {
   @@schema("dso")
 }
 
-/// IAM-020, DSO-005: signed authorization snapshots are immutable and epoch-bound.
-model DeviceAuthorizationSnapshotRecord {
-  id                  String   @id @db.Uuid
-  deviceId            String   @map("device_id") @db.Uuid
-  userId              String   @map("user_id") @db.Uuid
-  scopeType           String   @map("scope_type") @db.VarChar(24)
-  organizationId      String   @map("organization_id") @db.Uuid
-  workspaceId         String?  @map("workspace_id") @db.Uuid
-  projectId           String?  @map("project_id") @db.Uuid
-  authorizationEpoch  Int      @map("authorization_epoch")
-  snapshotRevision    Int      @map("snapshot_revision")
-  permissions         Json
-  dataMode            String   @map("data_mode") @db.VarChar(16)
-  payload             String   @db.VarChar(16384)
-  signature           String   @db.VarChar(1024)
-  issuedAt            DateTime @map("issued_at") @db.Timestamptz(6)
-  expiresAt           DateTime @map("expires_at") @db.Timestamptz(6)
-
-  @@unique([deviceId, snapshotRevision], map: "device_authorization_snapshots_device_revision_key")
-  @@index([organizationId, workspaceId, projectId, deviceId], map: "device_authorization_snapshots_scope_device_idx")
-  @@index([deviceId, expiresAt], map: "device_authorization_snapshots_device_expiry_idx")
-  @@map("device_authorization_snapshots")
-  @@schema("dso")
-}
-
 /// IAM-020, DSO-005: opaque grants are revocable, scoped, and never contain local paths.
 model DeviceGrantRecord {
   id                  String   @id @db.Uuid

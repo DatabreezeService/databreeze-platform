@@ -158,16 +158,24 @@ model MfaFactor {
 }
 
 model AuthorizationSnapshot {
-  id               String   @id @db.Uuid
-  deviceId         String   @map("device_id") @db.Uuid
-  organizationId   String   @map("organization_id") @db.Uuid
-  authorizationEpoch Int    @map("authorization_epoch")
-  snapshotRevision Int      @map("snapshot_revision")
-  payload          String   @db.Text
-  signature        String   @db.VarChar(1024)
-  issuedAt         DateTime @map("issued_at") @db.Timestamptz(6)
-  expiresAt        DateTime @map("expires_at") @db.Timestamptz(6)
+  id                 String   @id @db.Uuid
+  deviceId           String   @map("device_id") @db.Uuid
+  userId             String   @map("user_id") @db.Uuid
+  scopeType          String   @map("scope_type") @db.VarChar(24)
+  organizationId     String   @map("organization_id") @db.Uuid
+  workspaceId        String?  @map("workspace_id") @db.Uuid
+  projectId          String?  @map("project_id") @db.Uuid
+  authorizationEpoch Int      @map("authorization_epoch")
+  snapshotRevision   Int      @map("snapshot_revision")
+  permissions        Json
+  dataMode           String   @map("data_mode") @db.VarChar(16)
+  payload            String   @db.Text
+  signature          String   @db.VarChar(1024)
+  issuedAt           DateTime @map("issued_at") @db.Timestamptz(6)
+  expiresAt          DateTime @map("expires_at") @db.Timestamptz(6)
 
+  @@unique([deviceId, snapshotRevision], map: "authorization_snapshots_device_revision_key")
+  @@index([organizationId, workspaceId, projectId, deviceId], map: "authorization_snapshots_scope_device_idx")
   @@index([deviceId, expiresAt], map: "authorization_snapshots_device_expiry_idx")
   @@map("authorization_snapshots")
   @@schema("iam")
