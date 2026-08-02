@@ -80,7 +80,7 @@
     },
     "FND-003": {
       "status": "in-progress",
-      "commit": "4eff6f5",
+      "commit": "fcabfb3",
       "evidence": [
         "infrastructure/local/compose.yml",
         "infrastructure/local/postgres/init/001-create-module-schemas.sql",
@@ -88,7 +88,7 @@
         "tools/repo-cli/test/local-infrastructure.test.mjs",
         "docs/operations/foundation-local-infrastructure-2026-08-02.md"
       ],
-      "note": "Static Compose/bootstrap/lifecycle checks pass. Live Docker health, port-collision, disk-pressure, and restart-persistence evidence remains pending because the Docker daemon is unavailable in this environment."
+      "note": "Static Compose/bootstrap/lifecycle checks, daemon-free config validation, AWS safety checks, telemetry redaction tests, and infrastructure path-aware CI pass. Live Docker health, port-collision, disk-pressure, and restart-persistence evidence remains pending because the Docker daemon is unavailable in this environment."
     }
   },
   "plans": [
