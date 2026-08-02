@@ -104,6 +104,10 @@ interface DelegateV1<TRow, TCreate, TUpdate = never> {
     readonly where: { readonly id: string };
     readonly data: TUpdate;
   }): Promise<TRow>;
+  updateMany?(input: {
+    readonly where: { readonly id: string; readonly revision: number };
+    readonly data: TUpdate;
+  }): Promise<{ readonly count: number }>;
 }
 
 export interface DeviceSyncDatabaseClientV1 {
@@ -487,15 +491,17 @@ class PrismaDeviceSyncTransactionAdapter implements DeviceSyncTransactionPortV1 
       throw new Error('DSO_IMMUTABLE_RECORD');
     if (JSON.stringify(current) === JSON.stringify(operation)) return;
     if (operation.revision !== current.revision + 1) throw new Error('DSO_REVISION_CONFLICT');
-    if (!this.client.deviceSyncOperationRecord.update) throw new Error('DSO_UPDATE_UNAVAILABLE');
-    await this.client.deviceSyncOperationRecord.update({
-      where: { id: operation.operationId },
+    if (!this.client.deviceSyncOperationRecord.updateMany)
+      throw new Error('DSO_UPDATE_UNAVAILABLE');
+    const result = await this.client.deviceSyncOperationRecord.updateMany({
+      where: { id: operation.operationId, revision: current.revision },
       data: {
         status: operation.status,
         revision: operation.revision,
         acknowledgedAt: operation.acknowledgedAt ? new Date(operation.acknowledgedAt) : null,
       },
     });
+    if (result.count !== 1) throw new Error('DSO_REVISION_CONFLICT');
   }
 
   public async findOperation(
