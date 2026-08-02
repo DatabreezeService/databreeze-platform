@@ -102,6 +102,12 @@ test('local OpenTelemetry collector keeps every signal on the bounded local pipe
   assert.doesNotMatch(collector, /filelog|otlphttp|s3|https?:\/\//iu);
 });
 
+test('local infrastructure documents bounded diagnostic storage', () => {
+  const readme = read('infrastructure/local/README.md');
+  assert.match(readme, /Container JSON logs are capped at 10 MiB per file/u);
+  assert.match(readme, /three retained files/u);
+});
+
 test('readiness smoke script exposes a non-destructive help command', () => {
   const script = path.join(repositoryRoot, 'tools', 'repo-cli', 'src', 'local-services-smoke.mjs');
   const result = spawnSync(process.execPath, [script, '--help'], {
