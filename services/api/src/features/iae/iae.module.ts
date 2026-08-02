@@ -204,7 +204,9 @@ export class IaeModule {
             options.protectedDocumentUnlockRepository ??
             (options.protectedDocumentUnlockDatabase === undefined
               ? new InMemoryProtectedDocumentUnlockRepositoryAdapter()
-              : new PrismaProtectedDocumentUnlockRepositoryAdapter(options.protectedDocumentUnlockDatabase)),
+              : new PrismaProtectedDocumentUnlockRepositoryAdapter(
+                  options.protectedDocumentUnlockDatabase,
+                )),
         },
         {
           provide: PROTECTED_DOCUMENT_SECRET_INPUT_PORT,

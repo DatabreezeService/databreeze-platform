@@ -1,7 +1,4 @@
-import {
-  tenantScopeContainsV1,
-  type TenantScopeV1,
-} from '@databreeze/domain/tenant-scope/v1';
+import { tenantScopeContainsV1, type TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 import type { SpreadsheetAuditResultV1 } from '@databreeze/domain/spreadsheet-audit/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
@@ -24,9 +21,7 @@ function clone(result: SpreadsheetAuditResultV1): SpreadsheetAuditResultV1 {
   });
 }
 
-export class InMemorySpreadsheetAuditRepositoryAdapter
-  implements SpreadsheetAuditRepositoryPortV1
-{
+export class InMemorySpreadsheetAuditRepositoryAdapter implements SpreadsheetAuditRepositoryPortV1 {
   private results = new Map<string, SpreadsheetAuditResultV1>();
   private transactionTail: Promise<void> = Promise.resolve();
 

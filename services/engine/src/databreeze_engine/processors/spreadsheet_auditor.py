@@ -94,8 +94,17 @@ def _cell_address(reference: str) -> tuple[int, int] | None:
 
 
 def _normalized_formula(value: str) -> str:
+    """Normalize row movement while retaining formula range geometry."""
     normalized = _FORMULA_SPACE.sub(" ", value.strip().upper())
-    return _FORMULA_REFERENCE.sub("#CELL", normalized)
+
+    def reference(match: re.Match[str]) -> str:
+        token = match.group(0).replace("$", "")
+        column = re.match(r"[A-Z]{1,3}", token)
+        if column is None:
+            return "#CELL"
+        return f"{column.group(0)}#ROW"
+
+    return _FORMULA_REFERENCE.sub(reference, normalized)
 
 
 def _fingerprint(value: str) -> str:

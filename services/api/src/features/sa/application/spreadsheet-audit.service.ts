@@ -3,10 +3,7 @@ import {
   type SpreadsheetAuditResultValidationV1,
   type SpreadsheetAuditResultV1,
 } from '@databreeze/domain/spreadsheet-audit/v1';
-import {
-  parseStableIdentifierV1,
-  tenantScopeContainsV1,
-} from '@databreeze/domain/tenant-scope/v1';
+import { parseStableIdentifierV1, tenantScopeContainsV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type { SpreadsheetAuditRepositoryPortV1 } from './spreadsheet-audit-repository.port.js';
