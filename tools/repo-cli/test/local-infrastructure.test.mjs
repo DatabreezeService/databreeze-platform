@@ -83,7 +83,7 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
     encoding: 'utf8',
   });
   assert.equal(result.status, 0, result.stderr);
-  for (const command of ['check', 'start', 'stop', 'reset', 'restart-check', 'status', 'smoke']) {
+  for (const command of ['config', 'check', 'start', 'stop', 'reset', 'restart-check', 'status', 'smoke']) {
     assert.match(result.stdout, new RegExp(`^  ${command}\\s`, 'm'));
   }
   assert.match(script, /statfsSync/u);
@@ -108,4 +108,10 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
   });
   assert.notEqual(invalidDisk.status, 0);
   assert.match(`${invalidDisk.stdout}\n${invalidDisk.stderr}`, /--min-free-gib must be a non-negative number/u);
+
+  const composeConfig = spawnSync(process.execPath, [helpScript, 'config'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  });
+  if (composeConfig.status === 0) assert.match(composeConfig.stdout, /Compose configuration is valid/u);
 });
