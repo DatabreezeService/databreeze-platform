@@ -5,6 +5,7 @@ import {
   compareGovernedSchemaCompatibilityV1,
   createDatasetVersionManifestV1,
   createGovernedDatasetDefinitionV1,
+  publishGovernedDatasetDefinitionV1,
 } from '../dist/dataset-governance/v1.js';
 
 const scope = {
@@ -93,4 +94,20 @@ void test('[DSM-002, DSM-012, DSM-014] dataset versions pin every reproducibilit
   });
   assert.equal(result.accepted, true);
   if (result.accepted) assert.equal(Object.isFrozen(result.value), true);
+});
+
+void test('[DSM-005, DSM-006] publication creates a new immutable version', () => {
+  const draft = definition();
+  assert.equal(draft.accepted, true);
+  if (!draft.accepted) return;
+  const published = publishGovernedDatasetDefinitionV1(
+    draft.value,
+    '00000000-0000-4000-8000-000000000099',
+    '2026-01-01T00:01:00.000Z',
+  );
+  assert.equal(published.accepted, true);
+  if (!published.accepted) return;
+  assert.equal(published.value.status, 'PUBLISHED');
+  assert.notEqual(published.value.versionId, draft.value.versionId);
+  assert.equal(draft.value.status, 'DRAFT');
 });

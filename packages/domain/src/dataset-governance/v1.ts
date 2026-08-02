@@ -245,6 +245,28 @@ export function compareGovernedSchemaCompatibilityV1(
   return accepted(classification);
 }
 
+export function publishGovernedDatasetDefinitionV1(
+  definition: GovernedDatasetDefinitionV1,
+  nextVersionIdInput: unknown,
+  publishedAtInput: unknown,
+): DatasetGovernanceResultV1<GovernedDatasetDefinitionV1> {
+  const nextVersionId = identifier(nextVersionIdInput);
+  const publishedAt = timestamp(publishedAtInput);
+  if (!nextVersionId) return rejected('INVALID_IDENTIFIER');
+  if (!publishedAt) return rejected('INVALID_TIMESTAMP');
+  if (definition.status !== 'DRAFT') return rejected('INVALID_STATE');
+  if (Date.parse(publishedAt) < Date.parse(definition.createdAt))
+    return rejected('INVALID_TIMESTAMP');
+  return accepted(
+    Object.freeze({
+      ...definition,
+      versionId: nextVersionId,
+      status: 'PUBLISHED' as const,
+      publishedAt,
+    }),
+  );
+}
+
 export function createDatasetVersionManifestV1(input: {
   readonly datasetId: unknown;
   readonly versionId: unknown;
