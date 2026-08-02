@@ -23,6 +23,9 @@
 | `apps/android/gradlew.bat :app:testDebugUnitTest --no-daemon` | passed |
 | `apps/android/gradlew.bat :app:assembleDebug :app:compileDebugAndroidTestKotlin --no-daemon` | passed |
 | `apps/android/gradlew.bat :app:connectedDebugAndroidTest --no-daemon` | passed on `Medium_Phone(AVD) - 17`; three instrumentation tests, including Room isolation and activity recreation |
+| `corepack pnpm repo:check` | passed; 49 repository tests and all 21 workspace test tasks |
+| `corepack pnpm repo:build` | passed; all 12 build tasks |
+| `corepack pnpm infra:check` | static AWS checks passed; OpenTofu is not installed, so non-applying fmt/validate were skipped |
 | `git diff --check` | passed |
 
 The first instrumentation attempt exposed an incorrect expectation after Navigation restored the capture destination on recreation. The test was corrected in `dcdc07c`; the rerun passed all three tests.
