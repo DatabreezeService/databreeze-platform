@@ -46,6 +46,7 @@ function database(
     },
     workspaceIdentity: {
       findUnique: async () => ({ id: workspaceId, organizationId, status: 'ACTIVE' }),
+      findMany: async () => [{ id: workspaceId, organizationId, status: 'ACTIVE' }],
     },
     organizationIdentity: {
       findUnique: async () => ({ id: organizationId, status: 'ACTIVE' }),
@@ -112,4 +113,28 @@ void test('[IAM-001, IAM-002] lookup does not authenticate users without an acti
   );
 
   assert.equal(await adapter.findCredential('user@example.com'), undefined);
+});
+
+void test('[IAM-001, IAM-009] an organization owner resolves the canonical active workspace', async () => {
+  const adapter = new PrismaCredentialLookupAdapter(
+    database({
+      membershipIdentity: {
+        findMany: async () => [
+          {
+            id: membershipId,
+            principalId: userId,
+            organizationId,
+            workspaceId: null,
+            projectId: null,
+            scopeType: 'ORGANIZATION',
+            status: 'ACTIVE',
+          },
+        ],
+      },
+    }),
+  );
+
+  const result = await adapter.findCredential('user@example.com');
+  assert.equal(result?.principal.organizationId, organizationId);
+  assert.equal(result?.principal.workspaceId, workspaceId);
 });

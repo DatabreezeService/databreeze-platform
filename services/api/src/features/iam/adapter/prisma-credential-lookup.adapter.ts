@@ -51,6 +51,12 @@ interface UniqueDelegateV1<TRow> {
   }): Promise<TRow | null>;
 }
 
+interface WorkspaceLookupDelegateV1 extends UniqueDelegateV1<WorkspaceIdentityDatabaseRowV1> {
+  readonly findMany?: (input: {
+    readonly where: Readonly<Record<string, unknown>>;
+  }) => Promise<readonly WorkspaceIdentityDatabaseRowV1[]>;
+}
+
 interface ListDelegateV1<TRow> {
   findMany(input: {
     readonly where: Readonly<Record<string, unknown>>;
@@ -62,14 +68,14 @@ export interface CredentialLookupDatabaseClientV1 {
   readonly userIdentity: UniqueDelegateV1<UserIdentityDatabaseRowV1>;
   readonly passwordCredential: UniqueDelegateV1<PasswordCredentialDatabaseRowV1>;
   readonly membershipIdentity: ListDelegateV1<MembershipIdentityDatabaseRowV1>;
-  readonly workspaceIdentity: UniqueDelegateV1<WorkspaceIdentityDatabaseRowV1>;
+  readonly workspaceIdentity: WorkspaceLookupDelegateV1;
   readonly organizationIdentity: UniqueDelegateV1<OrganizationIdentityDatabaseRowV1>;
   readonly mfaFactor: ListDelegateV1<MfaFactorDatabaseRowV1>;
 }
 
 interface ActiveMembershipV1 {
   readonly organizationId: string;
-  readonly workspaceId: string;
+  readonly workspaceId?: string;
 }
 
 function stableId(input: unknown): string | undefined {
@@ -81,13 +87,18 @@ function activeMembership(
   row: MembershipIdentityDatabaseRowV1,
   userId: string,
 ): ActiveMembershipV1 | undefined {
-  if (row.principalId !== userId || row.status !== 'ACTIVE' || row.scopeType !== 'WORKSPACE')
+  if (row.principalId !== userId || row.status !== 'ACTIVE')
     return undefined;
-  if (row.projectId !== null) return undefined;
   const organizationId = stableId(row.organizationId);
-  const workspaceId = stableId(row.workspaceId);
-  if (!organizationId || !workspaceId) return undefined;
-  return { organizationId, workspaceId };
+  if (!organizationId) return undefined;
+  if (row.scopeType === 'WORKSPACE') {
+    if (row.projectId !== null) return undefined;
+    const workspaceId = stableId(row.workspaceId);
+    return workspaceId ? { organizationId, workspaceId } : undefined;
+  }
+  if (row.scopeType === 'ORGANIZATION' && row.workspaceId === null && row.projectId === null)
+    return { organizationId };
+  return undefined;
 }
 
 /**
@@ -135,17 +146,30 @@ export class PrismaCredentialLookupAdapter implements CredentialLookupPortV1 {
       .find((membership): membership is ActiveMembershipV1 => membership !== undefined);
     if (!selected) return undefined;
 
-    const [organization, workspace, factors] = await Promise.all([
+    const [organization, factors] = await Promise.all([
       this.client.organizationIdentity.findUnique({ where: { id: selected.organizationId } }),
-      this.client.workspaceIdentity.findUnique({ where: { id: selected.workspaceId } }),
       this.client.mfaFactor.findMany({ where: { userId, status: 'ACTIVE' } }),
     ]);
+    let workspaceId = selected.workspaceId;
+    if (!workspaceId) {
+      if (!this.client.workspaceIdentity.findMany) return undefined;
+      const workspaces = await this.client.workspaceIdentity.findMany({
+        where: { organizationId: selected.organizationId, status: 'ACTIVE' },
+      });
+      const workspace = workspaces.find(
+        (candidate) =>
+          candidate.organizationId === selected.organizationId && candidate.status === 'ACTIVE',
+      );
+      workspaceId = workspace ? stableId(workspace.id) : undefined;
+    }
+    if (!workspaceId) return undefined;
+    const workspace = await this.client.workspaceIdentity.findUnique({ where: { id: workspaceId } });
     if (
       !organization ||
       organization.id !== selected.organizationId ||
       organization.status !== 'ACTIVE' ||
       !workspace ||
-      workspace.id !== selected.workspaceId ||
+      workspace.id !== workspaceId ||
       workspace.organizationId !== selected.organizationId ||
       workspace.status !== 'ACTIVE'
     )
@@ -155,7 +179,7 @@ export class PrismaCredentialLookupAdapter implements CredentialLookupPortV1 {
       principal: Object.freeze({
         userId,
         organizationId: selected.organizationId,
-        workspaceId: selected.workspaceId,
+        workspaceId,
         securityEpoch: user.securityEpoch,
         mfaRequired: factors.length > 0,
       }),
