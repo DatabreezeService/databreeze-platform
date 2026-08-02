@@ -4,6 +4,7 @@ import { GovernedDatasetController } from './api/governed-dataset.controller.js'
 import { MappingController } from './api/mapping.controller.js';
 import { ReferenceEntityController } from './api/reference-entity.controller.js';
 import { RuleSetController } from './api/rule-set.controller.js';
+import { DatasetVersionController } from './api/dataset-version.controller.js';
 import { InMemoryGovernedDatasetRepositoryAdapter } from './adapter/in-memory-governed-dataset-repository.adapter.js';
 import {
   PrismaGovernedDatasetRepositoryAdapter,
@@ -20,6 +21,7 @@ import {
   type ReferenceEntityDatabaseClientV1,
 } from './adapter/prisma-reference-entity-repository.adapter.js';
 import { InMemoryRuleSetRepositoryAdapter } from './adapter/in-memory-rule-set-repository.adapter.js';
+import { InMemoryDatasetVersionRepositoryAdapter } from './adapter/in-memory-dataset-version-repository.adapter.js';
 import {
   PrismaRuleSetRepositoryAdapter,
   type RuleSetDatabaseClientV1,
@@ -41,6 +43,10 @@ import {
   type RuleSetRepositoryPortV1,
 } from './application/rule-set-repository.port.js';
 import {
+  DATASET_VERSION_REPOSITORY_PORT,
+  type DatasetVersionRepositoryPortV1,
+} from './application/dataset-version-repository.port.js';
+import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
   UnavailableRequestTenantContextAdapter,
@@ -59,6 +65,7 @@ export interface DsmModuleOptions {
   readonly referenceEntityRepository?: ReferenceEntityRepositoryPortV1;
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly referenceEntityDatabase?: ReferenceEntityDatabaseClientV1;
+  readonly datasetVersionRepository?: DatasetVersionRepositoryPortV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
 }
 
@@ -72,6 +79,7 @@ export class DsmModule {
         MappingController,
         RuleSetController,
         ReferenceEntityController,
+        DatasetVersionController,
       ],
       providers: [
         {
@@ -105,6 +113,11 @@ export class DsmModule {
             (options.referenceEntityDatabase === undefined
               ? new InMemoryReferenceEntityRepositoryAdapter()
               : new PrismaReferenceEntityRepositoryAdapter(options.referenceEntityDatabase)),
+        },
+        {
+          provide: DATASET_VERSION_REPOSITORY_PORT,
+          useValue:
+            options.datasetVersionRepository ?? new InMemoryDatasetVersionRepositoryAdapter(),
         },
         {
           provide: REQUEST_TENANT_CONTEXT,
