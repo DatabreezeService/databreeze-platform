@@ -19,7 +19,9 @@ export type DeviceCapabilityApplicationErrorCodeV1 =
   | 'CAPABILITY_NOT_FOUND'
   | 'GRANT_NOT_FOUND'
   | 'SCOPE_DENIED'
-  | 'REVISION_CONFLICT';
+  | 'REVISION_CONFLICT'
+  | 'IMMUTABLE_RECORD'
+  | 'PERSISTENCE_UNAVAILABLE';
 
 export type DeviceCapabilityApplicationResultV1<TValue> =
   | { readonly accepted: true; readonly value: TValue }
@@ -44,6 +46,19 @@ function domainResult<TValue>(
   return result.accepted ? result : rejected(result.code);
 }
 
+function mapRepositoryError(error: unknown): DeviceCapabilityApplicationErrorCodeV1 {
+  if (!(error instanceof Error)) return 'PERSISTENCE_UNAVAILABLE';
+  if (error.message === 'SCOPE_DENIED' || error.message === 'DSO_SCOPE_DENIED') return 'SCOPE_DENIED';
+  if (error.message === 'REVISION_CONFLICT' || error.message === 'DSO_REVISION_CONFLICT')
+    return 'REVISION_CONFLICT';
+  if (error.message === 'CAPABILITY_NOT_FOUND' || error.message === 'DSO_CAPABILITY_NOT_FOUND')
+    return 'CAPABILITY_NOT_FOUND';
+  if (error.message === 'GRANT_NOT_FOUND' || error.message === 'DSO_GRANT_NOT_FOUND')
+    return 'GRANT_NOT_FOUND';
+  if (error.message.includes('IMMUTABLE')) return 'IMMUTABLE_RECORD';
+  return 'PERSISTENCE_UNAVAILABLE';
+}
+
 /** Coordinates DSO capability/grant state without owning IAM identity lifecycle. */
 export class DeviceCapabilityService {
   public constructor(private readonly repository: DeviceCapabilityRepositoryPortV1) {}
@@ -64,10 +79,14 @@ export class DeviceCapabilityService {
       organizationId: context.tenantScope.organizationId,
     });
     if (!created.accepted) return domainResult(created);
-    return this.repository.withTransaction(context, async (transaction) => {
-      await transaction.saveCapability(context, created.value);
-      return created;
-    });
+    try {
+      return await this.repository.withTransaction(context, async (transaction) => {
+        await transaction.saveCapability(context, created.value);
+        return created;
+      });
+    } catch (error) {
+      return rejected(mapRepositoryError(error));
+    }
   }
 
   public async listCapabilities(
@@ -110,22 +129,26 @@ export class DeviceCapabilityService {
     const workspaceId = stable(input.workspaceId);
     if (!capabilityId || !deviceId || !workspaceId) return rejected('INVALID_IDENTIFIER');
     if (workspaceId !== context.tenantScope.workspaceId) return rejected('SCOPE_DENIED');
-    return this.repository.withTransaction(context, async (transaction) => {
-      const capability = await transaction.findCapability(context, capabilityId);
-      if (!capability) return rejected('CAPABILITY_NOT_FOUND');
-      if (capability.deviceId !== deviceId || capability.organizationId !== context.tenantScope.organizationId)
-        return rejected('SCOPE_DENIED');
-      const created = createDeviceGrantV1({
-        ...input,
-        organizationId: context.tenantScope.organizationId,
-        capabilityId,
-        deviceId,
-        workspaceId,
+    try {
+      return await this.repository.withTransaction(context, async (transaction) => {
+        const capability = await transaction.findCapability(context, capabilityId);
+        if (!capability) return rejected('CAPABILITY_NOT_FOUND');
+        if (capability.deviceId !== deviceId || capability.organizationId !== context.tenantScope.organizationId)
+          return rejected('SCOPE_DENIED');
+        const created = createDeviceGrantV1({
+          ...input,
+          organizationId: context.tenantScope.organizationId,
+          capabilityId,
+          deviceId,
+          workspaceId,
+        });
+        if (!created.accepted) return domainResult(created);
+        await transaction.saveGrant(context, created.value);
+        return created;
       });
-      if (!created.accepted) return domainResult(created);
-      await transaction.saveGrant(context, created.value);
-      return created;
-    });
+    } catch (error) {
+      return rejected(mapRepositoryError(error));
+    }
   }
 
   public async revokeGrant(
@@ -135,15 +158,19 @@ export class DeviceCapabilityService {
   ): Promise<DeviceCapabilityApplicationResultV1<DeviceGrantV1>> {
     const grantId = stable(grantIdInput);
     if (!grantId) return rejected('INVALID_IDENTIFIER');
-    return this.repository.withTransaction(context, async (transaction) => {
-      const current = await transaction.findGrant(context, grantId);
-      if (!current) return rejected('GRANT_NOT_FOUND');
-      if (current.revision !== expectedRevision) return rejected('REVISION_CONFLICT');
-      const revoked = transitionDeviceGrantV1(current, 'REVOKE');
-      if (!revoked.accepted) return domainResult(revoked);
-      await transaction.replaceGrant(context, revoked.value, expectedRevision);
-      return revoked;
-    });
+    try {
+      return await this.repository.withTransaction(context, async (transaction) => {
+        const current = await transaction.findGrant(context, grantId);
+        if (!current) return rejected('GRANT_NOT_FOUND');
+        if (current.revision !== expectedRevision) return rejected('REVISION_CONFLICT');
+        const revoked = transitionDeviceGrantV1(current, 'REVOKE');
+        if (!revoked.accepted) return domainResult(revoked);
+        await transaction.replaceGrant(context, revoked.value, expectedRevision);
+        return revoked;
+      });
+    } catch (error) {
+      return rejected(mapRepositoryError(error));
+    }
   }
 
   public async pauseCapability(
@@ -157,15 +184,19 @@ export class DeviceCapabilityService {
     if (!capabilityId) return rejected('INVALID_IDENTIFIER');
     const deviceId = deviceIdInput === undefined ? undefined : stable(deviceIdInput);
     if (deviceIdInput !== undefined && !deviceId) return rejected('INVALID_IDENTIFIER');
-    return this.repository.withTransaction(context, async (transaction) => {
-      const current = await transaction.findCapability(context, capabilityId);
-      if (!current) return rejected('CAPABILITY_NOT_FOUND');
-      if (deviceId !== undefined && current.deviceId !== deviceId) return rejected('SCOPE_DENIED');
-      if (current.revision !== expectedRevision) return rejected('REVISION_CONFLICT');
-      const paused = transitionDeviceCapabilityV1(current, 'PAUSE', at);
-      if (!paused.accepted) return domainResult(paused);
-      await transaction.replaceCapability(context, paused.value, expectedRevision);
-      return paused;
-    });
+    try {
+      return await this.repository.withTransaction(context, async (transaction) => {
+        const current = await transaction.findCapability(context, capabilityId);
+        if (!current) return rejected('CAPABILITY_NOT_FOUND');
+        if (deviceId !== undefined && current.deviceId !== deviceId) return rejected('SCOPE_DENIED');
+        if (current.revision !== expectedRevision) return rejected('REVISION_CONFLICT');
+        const paused = transitionDeviceCapabilityV1(current, 'PAUSE', at);
+        if (!paused.accepted) return domainResult(paused);
+        await transaction.replaceCapability(context, paused.value, expectedRevision);
+        return paused;
+      });
+    } catch (error) {
+      return rejected(mapRepositoryError(error));
+    }
   }
 }
