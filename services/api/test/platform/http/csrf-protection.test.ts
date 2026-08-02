@@ -1,11 +1,31 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { validateRequestContextOptionsV1 } from '../../../src/platform/http/request-context.js';
+
 import { evaluateCsrfRequestV1 } from '../../../src/platform/http/csrf-protection.js';
 
 const token = 'QmFzZTY0dXJsVG9rZW5fMDEyMzQ1Njc4OWFiY2RlZg';
 
 const allowedOrigins = ['https://app.databreeze.example'];
+
+void test('production request context requires explicit HTTPS browser origins', () => {
+  assert.throws(
+    () => validateRequestContextOptionsV1({}, 'production'),
+    /CSRF_ALLOWED_ORIGINS_REQUIRED/,
+  );
+  assert.throws(
+    () =>
+      validateRequestContextOptionsV1(
+        { csrf: { allowedOrigins: ['http://localhost:3000'] } },
+        'production',
+      ),
+    /CSRF_ALLOWED_ORIGINS_INVALID/,
+  );
+  assert.doesNotThrow(() =>
+    validateRequestContextOptionsV1({ csrf: { allowedOrigins } }, 'production'),
+  );
+});
 
 void test('allows safe methods and non-cookie clients without a CSRF token', () => {
   assert.deepEqual(evaluateCsrfRequestV1({ method: 'GET', headers: {} }, { allowedOrigins }), {
