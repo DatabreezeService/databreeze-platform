@@ -12,6 +12,7 @@ const [
   approval,
   executionAttempt,
   resultManifest,
+  dispatch,
 ] = await Promise.all([
   import('@databreeze/domain/v1'),
   import('@databreeze/domain/permissions/v1'),
@@ -24,6 +25,7 @@ const [
   import('@databreeze/domain/approval/v1'),
   import('@databreeze/domain/execution-attempt/v1'),
   import('@databreeze/domain/result-manifest/v1'),
+  import('@databreeze/domain/dispatch/v1'),
 ]);
 
 assert.equal(aggregate.PERMISSION_SCHEMA_VERSION_V1, 1);
@@ -38,4 +40,5 @@ assert.equal(jobs.JOB_SCHEMA_VERSION_V1, 1);
 assert.equal(approval.APPROVAL_SCHEMA_VERSION_V1, 1);
 assert.equal(executionAttempt.EXECUTION_ATTEMPT_SCHEMA_VERSION_V1, 1);
 assert.equal(resultManifest.RESULT_MANIFEST_SCHEMA_VERSION_V1, 1);
+assert.equal(dispatch.DISPATCH_SCHEMA_VERSION_V1, 1);
 await assert.rejects(import('@databreeze/domain'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
