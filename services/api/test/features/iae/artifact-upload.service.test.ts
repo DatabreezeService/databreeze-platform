@@ -6,6 +6,17 @@ import { ArtifactUploadService } from '../../../src/features/iae/application/art
 import { InMemoryArtifactUploadRepositoryAdapter } from '../../../src/features/iae/adapter/in-memory-artifact-upload-repository.adapter.js';
 import { InMemoryArtifactUploadStorageAdapter } from '../../../src/features/iae/adapter/in-memory-artifact-upload-storage.adapter.js';
 
+class TrackingStorageAdapter extends InMemoryArtifactUploadStorageAdapter {
+  public abortCalls = 0;
+
+  public override async abort(
+    ...argumentsList: Parameters<InMemoryArtifactUploadStorageAdapter['abort']>
+  ): Promise<void> {
+    this.abortCalls += 1;
+    await super.abort(...argumentsList);
+  }
+}
+
 const contextResult = createIamTenantContextV1({
   actorId: '11111111-1111-4111-8111-111111111111',
   tenantScope: {
@@ -58,4 +69,33 @@ void test('IAE-014 service persists parts and rejects stale completion', async (
   assert.equal(completed.accepted, true);
   if (!completed.accepted) return;
   assert.equal(completed.value.state, 'COMPLETED');
+});
+
+void test('IAE-014 expiration revokes storage-side partial state before persisting terminal status', async () => {
+  const storage = new TrackingStorageAdapter();
+  const service = new ArtifactUploadService(new InMemoryArtifactUploadRepositoryAdapter(), storage);
+  const created = await service.create(context, {
+    sessionId: '77777777-7777-4777-8777-777777777777',
+    artifactId: '88888888-8888-4888-8888-888888888888',
+    tenantScope: context.tenantScope,
+    expectedSha256: 'a'.repeat(64),
+    expectedByteSize: 4,
+    mediaType: 'application/octet-stream',
+    partSize: 4,
+    createdAt: '2026-08-02T00:00:00.000Z',
+    expiresAt: '2026-08-02T01:00:00.000Z',
+  });
+  assert.equal(created.accepted, true);
+  if (!created.accepted) return;
+  const expired = await service.expire(
+    context,
+    created.value.sessionId,
+    '2026-08-02T01:00:00.000Z',
+  );
+  assert.equal(expired.accepted, true);
+  if (!expired.accepted) return;
+  assert.equal(expired.value.state, 'EXPIRED');
+  assert.equal(storage.abortCalls, 1);
+  const transfer = await service.issuePartTransfer(context, created.value.sessionId, 1);
+  assert.deepEqual(transfer, { accepted: false, code: 'UPLOAD_STORAGE_NOT_READY' });
 });

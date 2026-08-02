@@ -112,9 +112,15 @@ export class ArtifactUploadService {
     sessionId: ArtifactUploadSessionV1['sessionId'],
     now: unknown,
   ): Promise<ArtifactUploadServiceResultV1<ArtifactUploadSessionV1>> {
-    return this.mutate(context, sessionId, (session) =>
-      expireArtifactUploadSessionV1(session, now),
-    );
+    return this.repository.withTransaction(context, async (transaction) => {
+      const current = await transaction.find(context, sessionId);
+      if (!current) return Object.freeze({ accepted: false, code: 'UPLOAD_NOT_FOUND' as const });
+      const next = expireArtifactUploadSessionV1(current, now);
+      if (!next.accepted) return next;
+      await this.storage.abort(context, current);
+      await transaction.save(context, next.value);
+      return next;
+    });
   }
 
   public async issuePartTransfer(
