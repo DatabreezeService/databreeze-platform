@@ -70,6 +70,9 @@ test('AWS sources expose encryption, private data, and OIDC boundaries without s
   assert.match(sources, /token\.actions\.githubusercontent\.com:sub/u);
   assert.match(sources, /repo:\$\{var\.github_repository\}:ref:refs\/heads\/dev/u);
   assert.doesNotMatch(sources, /refs\/pull|refs\/tags|repo:\*\//u);
+  assert.match(sources, /aws_s3_bucket_lifecycle_configuration/u);
+  assert.match(sources, /noncurrent_version_expiration/u);
+  assert.match(sources, /abort_incomplete_multipart_upload/u);
 });
 
 test('AWS validation script is non-applying and reports missing OpenTofu clearly', () => {
