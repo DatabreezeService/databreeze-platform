@@ -13,7 +13,11 @@ from databreeze_engine.processors import (
 
 
 def _workbook(
-    *, macro: bool = False, external_link: bool = False, formula_gap: bool = False
+    *,
+    macro: bool = False,
+    external_link: bool = False,
+    formula_gap: bool = False,
+    absolute_reference: bool = False,
 ) -> bytes:
     workbook = (
         b'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
@@ -24,15 +28,24 @@ def _workbook(
         b'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
         b'<Relationship Id="rId1" Target="worksheets/sheet1.xml"/></Relationships>'
     )
-    sheet_rows = (
-        b'<row r="1"><c r="A1"><f>SUM(B1:C1)</f><v>3</v></c></row>'
-        b'<row r="2"><c r="A2"><v>9</v></c></row>'
-        b'<row r="3"><c r="A3"><f>SUM(B3:C3)</f><v>3</v></c></row>'
-        if formula_gap
-        else b'<row r="1"><c r="A1"><f>SUM(B1:C1)</f><v>3</v></c>'
-        b'<c r="B1"><f>SUM(B1:C1)</f><v>3</v></c>'
-        b'<c r="C1"><f>SUM(B1:D1)</f><v>4</v></c></row>'
-    )
+    if absolute_reference:
+        sheet_rows = (
+            b'<row r="1"><c r="A1"><f>SUM($B$1:C1)</f><v>3</v></c></row>'
+            b'<row r="2"><c r="A2"><f>SUM(B2:C2)</f><v>3</v></c></row>'
+            b'<row r="3"><c r="A3"><f>SUM(B3:C3)</f><v>3</v></c></row>'
+        )
+    elif formula_gap:
+        sheet_rows = (
+            b'<row r="1"><c r="A1"><f>SUM(B1:C1)</f><v>3</v></c></row>'
+            b'<row r="2"><c r="A2"><v>9</v></c></row>'
+            b'<row r="3"><c r="A3"><f>SUM(B3:C3)</f><v>3</v></c></row>'
+        )
+    else:
+        sheet_rows = (
+            b'<row r="1"><c r="A1"><f>SUM(B1:C1)</f><v>3</v></c>'
+            b'<c r="B1"><f>SUM(B1:C1)</f><v>3</v></c>'
+            b'<c r="C1"><f>SUM(B1:D1)</f><v>4</v></c></row>'
+        )
     sheet = (
         b'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
         b'<sheetData>' + sheet_rows + b'</sheetData></worksheet>'
@@ -65,6 +78,13 @@ def test_audit_reports_a_formula_gap_without_returning_the_intervening_value() -
         ("A2", "FORMULA_GAP"),
     ]
     assert all("value" not in finding.model_dump() for finding in result.findings)
+
+
+def test_formula_family_normalization_preserves_absolute_references() -> None:
+    result = audit_workbook(_workbook(absolute_reference=True))
+    assert [(finding.address, finding.kind) for finding in result.findings] == [
+        ("A1", "FORMULA_FAMILY_OUTLIER"),
+    ]
 
 
 @pytest.mark.parametrize("flag", ["macro", "external_link"])

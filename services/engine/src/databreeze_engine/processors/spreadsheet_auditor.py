@@ -106,11 +106,19 @@ def _normalized_formula(value: str) -> str:
     normalized = _FORMULA_SPACE.sub(" ", value.strip().upper())
 
     def reference(match: re.Match[str]) -> str:
-        token = match.group(0).replace("$", "")
-        column = re.match(r"[A-Z]{1,3}", token)
-        if column is None:
+        token = re.fullmatch(
+            r"(?P<column_absolute>\$?)(?P<column>[A-Z]{1,3})"
+            r"(?P<row_absolute>\$?)(?P<row>[1-9][0-9]*)",
+            match.group(0),
+            re.IGNORECASE,
+        )
+        if token is None:
             return "#CELL"
-        return f"{column.group(0)}#ROW"
+        column = token.group("column").upper()
+        row = token.group("row")
+        column_prefix = "$" if token.group("column_absolute") else ""
+        row_value = f"${row}" if token.group("row_absolute") else "#ROW"
+        return f"{column_prefix}{column}{row_value}"
 
     return _FORMULA_REFERENCE.sub(reference, normalized)
 
