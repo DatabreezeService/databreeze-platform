@@ -2,6 +2,7 @@ import { type DynamicModule, Module } from '@nestjs/common';
 
 import { InboxController } from './api/inbox.controller.js';
 import { EvidenceGrantController } from './api/evidence-grant.controller.js';
+import { ArtifactReadController } from './api/artifact-read.controller.js';
 import { InMemoryArtifactIntakeRepositoryAdapter } from './adapter/in-memory-artifact-intake-repository.adapter.js';
 import {
   PrismaArtifactIntakeRepositoryAdapter,
@@ -47,7 +48,7 @@ export class IaeModule {
   public static register(options: IaeModuleOptions = {}): DynamicModule {
     return {
       module: IaeModule,
-      controllers: [InboxController, EvidenceGrantController],
+      controllers: [InboxController, EvidenceGrantController, ArtifactReadController],
       providers: [
         {
           provide: ARTIFACT_INTAKE_REPOSITORY_PORT,
