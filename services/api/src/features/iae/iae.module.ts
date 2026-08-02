@@ -3,12 +3,14 @@ import { type DynamicModule, Module } from '@nestjs/common';
 import { InboxController } from './api/inbox.controller.js';
 import { EvidenceGrantController } from './api/evidence-grant.controller.js';
 import { ArtifactReadController } from './api/artifact-read.controller.js';
+import { ArtifactLineageController } from './api/artifact-lineage.controller.js';
 import { InMemoryArtifactIntakeRepositoryAdapter } from './adapter/in-memory-artifact-intake-repository.adapter.js';
 import {
   PrismaArtifactIntakeRepositoryAdapter,
   type ArtifactIntakeDatabaseClientV1,
 } from './adapter/prisma-artifact-intake-repository.adapter.js';
 import { InMemoryArtifactRepositoryAdapter } from './adapter/in-memory-artifact-repository.adapter.js';
+import { InMemoryArtifactLineageRepositoryAdapter } from './adapter/in-memory-artifact-lineage-repository.adapter.js';
 import {
   PrismaArtifactRepositoryAdapter,
   type ArtifactDatabaseClientV1,
@@ -22,6 +24,10 @@ import {
   ARTIFACT_REPOSITORY_PORT,
   type ArtifactRepositoryPortV1,
 } from './application/artifact-repository.port.js';
+import {
+  ARTIFACT_LINEAGE_REPOSITORY_PORT,
+  type ArtifactLineageRepositoryPortV1,
+} from './application/artifact-lineage-repository.port.js';
 import {
   EVIDENCE_GRANT_REPOSITORY_PORT,
   type EvidenceGrantRepositoryPortV1,
@@ -39,6 +45,7 @@ export interface IaeModuleOptions {
   readonly artifactRepository?: ArtifactRepositoryPortV1;
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly artifactDatabase?: ArtifactDatabaseClientV1;
+  readonly artifactLineageRepository?: ArtifactLineageRepositoryPortV1;
   readonly evidenceGrantRepository?: EvidenceGrantRepositoryPortV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
 }
@@ -48,7 +55,12 @@ export class IaeModule {
   public static register(options: IaeModuleOptions = {}): DynamicModule {
     return {
       module: IaeModule,
-      controllers: [InboxController, EvidenceGrantController, ArtifactReadController],
+      controllers: [
+        InboxController,
+        EvidenceGrantController,
+        ArtifactReadController,
+        ArtifactLineageController,
+      ],
       providers: [
         {
           provide: ARTIFACT_INTAKE_REPOSITORY_PORT,
@@ -67,6 +79,11 @@ export class IaeModule {
               : new PrismaArtifactRepositoryAdapter(options.artifactDatabase)),
         },
         {
+          provide: ARTIFACT_LINEAGE_REPOSITORY_PORT,
+          useValue:
+            options.artifactLineageRepository ?? new InMemoryArtifactLineageRepositoryAdapter(),
+        },
+        {
           provide: EVIDENCE_GRANT_REPOSITORY_PORT,
           useValue: options.evidenceGrantRepository ?? new InMemoryEvidenceGrantRepositoryAdapter(),
         },
@@ -78,6 +95,7 @@ export class IaeModule {
       exports: [
         ARTIFACT_INTAKE_REPOSITORY_PORT,
         ARTIFACT_REPOSITORY_PORT,
+        ARTIFACT_LINEAGE_REPOSITORY_PORT,
         EVIDENCE_GRANT_REPOSITORY_PORT,
       ],
     };
