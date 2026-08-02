@@ -165,3 +165,29 @@ model ArtifactExportManifestRecord {
   @@map("artifact_export_manifests")
   @@schema("iae")
 }
+
+/// IAE-014: resumable, content-addressed upload sessions with bounded part metadata.
+model ArtifactUploadSessionRecord {
+  id             String   @id @db.Uuid
+  artifactId     String   @map("artifact_id") @db.Uuid
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String?  @map("workspace_id") @db.Uuid
+  projectId      String?  @map("project_id") @db.Uuid
+  expectedSha256 String   @map("expected_sha256") @db.Char(64)
+  expectedByteSize BigInt @map("expected_byte_size")
+  mediaType      String   @map("media_type") @db.VarChar(255)
+  partSize       Int      @map("part_size")
+  totalParts     Int      @map("total_parts")
+  parts          Json
+  state          String   @db.VarChar(16)
+  createdAt      DateTime @map("created_at") @db.Timestamptz(6)
+  expiresAt      DateTime @map("expires_at") @db.Timestamptz(6)
+  revision       Int      @default(1)
+
+  @@index([artifactId], map: "artifact_upload_sessions_artifact_idx")
+  @@index([organizationId, workspaceId, projectId, state], map: "artifact_upload_sessions_scope_state_idx")
+  @@index([expiresAt], map: "artifact_upload_sessions_expiry_idx")
+  @@map("artifact_upload_sessions")
+  @@schema("iae")
+}
