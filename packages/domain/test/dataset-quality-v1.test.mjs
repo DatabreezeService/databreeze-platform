@@ -68,6 +68,10 @@ void test('[DSM-020] quality state is deterministic from finding severity and co
     'BLOCKED',
   );
   assert.equal(qualityStateFromFindingsV1([], true), 'INCOMPLETE');
+  assert.deepEqual(result({ qualityState: 'PASS' }), {
+    accepted: false,
+    code: 'INVALID_QUALITY_STATE',
+  });
 });
 
 void test('[DSM-013] quality result validation rejects malformed hashes, counts, and duplicate findings', () => {

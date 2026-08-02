@@ -77,7 +77,7 @@ function grant(): DeviceGrantV1 {
   return result.value;
 }
 
-function delegate(rows: Record<string, unknown>[]) {
+function delegate(rows: Record<string, unknown>[], forceRevisionConflict = false) {
   return {
     create({ data }: { readonly data: Record<string, unknown> }) {
       const persisted = { ...data };
@@ -116,15 +116,32 @@ function delegate(rows: Record<string, unknown>[]) {
       rows[index] = { ...rows[index], ...data };
       return Promise.resolve(rows[index]);
     },
+    updateMany({
+      where,
+      data,
+    }: {
+      readonly where: { readonly id: string; readonly revision: number };
+      readonly data: Record<string, unknown>;
+    }) {
+      if (forceRevisionConflict) return Promise.resolve({ count: 0 });
+      const index = rows.findIndex(
+        (row) => row['id'] === where.id && row['revision'] === where.revision,
+      );
+      if (index < 0) return Promise.resolve({ count: 0 });
+      rows[index] = { ...rows[index], ...data };
+      return Promise.resolve({ count: 1 });
+    },
   };
 }
 
-function client(): DeviceCapabilityDatabaseClientV1 {
+function client(
+  options: { readonly forceRevisionConflict?: boolean } = {},
+): DeviceCapabilityDatabaseClientV1 {
   const capabilityRows: Record<string, unknown>[] = [];
   const grantRows: Record<string, unknown>[] = [];
   const database = {
-    deviceCapabilityRecord: delegate(capabilityRows),
-    deviceOperationalGrantRecord: delegate(grantRows),
+    deviceCapabilityRecord: delegate(capabilityRows, options.forceRevisionConflict),
+    deviceOperationalGrantRecord: delegate(grantRows, options.forceRevisionConflict),
     async $transaction<TValue>(
       work: (transaction: DeviceCapabilityDatabaseClientV1) => Promise<TValue>,
     ) {
@@ -172,5 +189,29 @@ void test('[DSO-005, DSO-016] Prisma grant adapter hides sibling workspaces and 
       1,
     ),
     /DSO_REVISION_CONFLICT/,
+  );
+});
+
+void test('[DSO-005, DSO-016] Prisma capability and grant replacements reject database races', async () => {
+  const repository = new PrismaDeviceCapabilityRepositoryAdapter(
+    client({ forceRevisionConflict: true }),
+  );
+  await repository.saveCapability(context(workspaceId, 'cap-race-save'), capability());
+  await assert.rejects(
+    repository.replaceCapability(
+      context(workspaceId, 'cap-race-replace'),
+      { ...capability(), status: 'PAUSED', revision: 2 },
+      1,
+    ),
+    /DSO_REVISION_CONFLICT/u,
+  );
+  await repository.saveGrant(context(workspaceId, 'grant-race-save'), grant());
+  await assert.rejects(
+    repository.replaceGrant(
+      context(workspaceId, 'grant-race-replace'),
+      { ...grant(), status: 'REVOKED', revision: 2 },
+      1,
+    ),
+    /DSO_REVISION_CONFLICT/u,
   );
 });

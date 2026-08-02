@@ -24,6 +24,7 @@ export interface MappingDatabaseRowV1 {
   readonly status: string;
   readonly createdAt: Date;
   readonly publishedAt: Date | null;
+  readonly revision: number;
   readonly canonicalHash: string;
 }
 
@@ -72,6 +73,7 @@ function databaseScope(scope: TenantScopeV1) {
 }
 
 function rowToDomain(row: MappingDatabaseRowV1): MappingDefinitionV1 {
+  if (row.revision !== 1) throw new Error('DSM_PERSISTED_REVISION_INVALID');
   const parsed = createMappingDefinitionV1({
     datasetId: row.datasetId,
     versionId: row.id,

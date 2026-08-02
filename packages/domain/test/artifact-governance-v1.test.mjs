@@ -34,6 +34,41 @@ void test('[IAE-003, IAE-007, IAE-012] lineage pins source versions and typed tr
   if (result.accepted) assert.equal(result.value.coordinateLineage[0]?.transform, 'NORMALIZED');
 });
 
+void test('[IAE-007] lineage rejects self-references, scope cardinality drift, and duplicate coordinate mappings', () => {
+  const base = {
+    lineageId: '00000000-0000-4000-8000-000000000015',
+    derivedArtifactVersionId: '00000000-0000-4000-8000-000000000016',
+    tenantScope: scope,
+    sourceArtifactVersionIds: ['00000000-0000-4000-8000-000000000017'],
+    processorVersion: 'normalizer@1',
+    coordinateLineage: [
+      {
+        sourceEvidenceId: '00000000-0000-4000-8000-000000000018',
+        derivedEvidenceId: '00000000-0000-4000-8000-000000000019',
+        transform: 'COPIED',
+      },
+    ],
+  };
+  assert.deepEqual(
+    createArtifactLineageV1({
+      ...base,
+      sourceArtifactVersionIds: [base.derivedArtifactVersionId],
+    }),
+    { accepted: false, code: 'DUPLICATE_IDENTIFIER' },
+  );
+  assert.deepEqual(createArtifactLineageV1({ ...base, sourceTenantScopes: [] }), {
+    accepted: false,
+    code: 'INVALID_SCOPE',
+  });
+  assert.deepEqual(
+    createArtifactLineageV1({
+      ...base,
+      coordinateLineage: [...base.coordinateLineage, ...base.coordinateLineage],
+    }),
+    { accepted: false, code: 'DUPLICATE_IDENTIFIER' },
+  );
+});
+
 void test('[IAE-008] derived data mode cannot be wider than its least-permissive source', () => {
   const source = createArtifactVersionV1({
     artifactId: '00000000-0000-4000-8000-000000000020',

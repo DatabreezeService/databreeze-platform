@@ -119,8 +119,12 @@ export function createArtifactLineageV1(input: {
     return rejected('INVALID_IDENTIFIER');
   if (new Set(sourceArtifactVersionIds).size !== sourceArtifactVersionIds.length)
     return rejected('DUPLICATE_IDENTIFIER');
+  if (sourceArtifactVersionIds.includes(derivedArtifactVersionId))
+    return rejected('DUPLICATE_IDENTIFIER');
   if (input.sourceTenantScopes !== undefined) {
     if (!Array.isArray(input.sourceTenantScopes)) return rejected('INVALID_SCOPE');
+    if (input.sourceTenantScopes.length !== sourceArtifactVersionIds.length)
+      return rejected('INVALID_SCOPE');
     for (const candidate of input.sourceTenantScopes) {
       const sourceScope = scope(candidate);
       if (!sourceScope || !tenantScopesEqualV1(sourceScope, tenantScope))
@@ -129,6 +133,7 @@ export function createArtifactLineageV1(input: {
   }
   if (!Array.isArray(input.coordinateLineage)) return rejected('INVALID_LINEAGE');
   const coordinateLineage: CoordinateLineageV1[] = [];
+  const coordinatePairs = new Set<string>();
   for (const candidate of input.coordinateLineage) {
     if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate))
       return rejected('INVALID_LINEAGE');
@@ -139,6 +144,9 @@ export function createArtifactLineageV1(input: {
     if (!sourceEvidenceId || !derivedEvidenceId) return rejected('INVALID_IDENTIFIER');
     if (!['COPIED', 'NORMALIZED', 'AGGREGATED', 'REDACTED'].includes(transform as string))
       return rejected('INVALID_TRANSFORM');
+    const pair = `${sourceEvidenceId}:${derivedEvidenceId}`;
+    if (coordinatePairs.has(pair)) return rejected('DUPLICATE_IDENTIFIER');
+    coordinatePairs.add(pair);
     coordinateLineage.push(
       Object.freeze({
         sourceEvidenceId,

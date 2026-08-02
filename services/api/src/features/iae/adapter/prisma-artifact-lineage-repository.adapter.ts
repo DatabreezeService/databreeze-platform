@@ -33,10 +33,7 @@ export interface ArtifactLineageDatabaseClientV1 {
       readonly data: ArtifactLineageDatabaseRowV1;
     }): Promise<ArtifactLineageDatabaseRowV1>;
     findUnique(input: {
-      readonly where: { readonly id: string };
-    }): Promise<ArtifactLineageDatabaseRowV1 | null>;
-    findFirst(input: {
-      readonly where: { readonly derivedArtifactVersionId: string };
+      readonly where: { readonly id: string } | { readonly derivedArtifactVersionId: string };
     }): Promise<ArtifactLineageDatabaseRowV1 | null>;
     findMany(input: {
       readonly where: { readonly sourceVersionIds: { readonly array_contains: string } };
@@ -120,7 +117,7 @@ class PrismaArtifactLineageTransactionAdapter implements ArtifactLineageTransact
     context: IamTenantContextV1,
     derivedArtifactVersionId: ArtifactLineageV1['derivedArtifactVersionId'],
   ): Promise<ArtifactLineageV1 | undefined> {
-    const row = await this.client.artifactLineageRecord.findFirst({
+    const row = await this.client.artifactLineageRecord.findUnique({
       where: { derivedArtifactVersionId },
     });
     return row !== null && visible(context.tenantScope, row) ? rowToDomain(row) : undefined;

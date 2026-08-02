@@ -54,3 +54,20 @@ void test('[SA-005] findings cannot reference an unknown sheet or duplicate IDs'
     { accepted: false, code: 'DUPLICATE_IDENTIFIER' },
   );
 });
+
+void test('[SA-006] findings must stay inside the exact sheet geometry', () => {
+  assert.deepEqual(
+    createSpreadsheetAuditResultV1({
+      ...base,
+      findings: [{ ...base.findings[0], address: 'E1' }],
+    }),
+    { accepted: false, code: 'INVALID_COORDINATE' },
+  );
+  assert.deepEqual(
+    createSpreadsheetAuditResultV1({
+      ...base,
+      findings: [{ ...base.findings[0], address: 'A11' }],
+    }),
+    { accepted: false, code: 'INVALID_COORDINATE' },
+  );
+});

@@ -77,6 +77,15 @@ void test('[IAE-016, IAE-021] retention service preserves blocked requests and a
   assert.equal(request.accepted, true);
   if (!request.accepted) return;
   assert.equal(request.value.state, 'BLOCKED');
+  const forged = await service.request(tenantContext, {
+    requestId: '00000000-0000-4000-8000-000000000719',
+    artifactVersionId: versionId,
+    tenantScope: tenantContext.tenantScope,
+    requestedBy: '00000000-0000-4000-8000-000000000720',
+    requestedAt: '2026-01-03T00:00:00.000Z',
+    retention: retention(false),
+  });
+  assert.deepEqual(forged, { accepted: false, code: 'ACTOR_MISMATCH' });
   const stale = await service.authorize(tenantContext, {
     requestId: request.value.requestId,
     retention: retention(true),
@@ -93,5 +102,9 @@ void test('[IAE-016, IAE-021] retention service preserves blocked requests and a
     expectedRevision: request.value.revision,
   });
   assert.equal(authorized.accepted, true);
-  if (authorized.accepted) assert.equal(authorized.value.state, 'AUTHORIZED');
+  if (authorized.accepted) {
+    assert.equal(authorized.value.state, 'AUTHORIZED');
+    const found = await service.find(tenantContext, authorized.value.requestId);
+    assert.deepEqual(found, authorized);
+  }
 });

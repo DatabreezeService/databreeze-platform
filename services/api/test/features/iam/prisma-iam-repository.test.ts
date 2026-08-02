@@ -66,8 +66,10 @@ function row(
 function createDatabase(rows: readonly IamMembershipDatabaseRowV1[] = []): {
   readonly client: IamDatabaseClientV1;
   readonly memberships: Map<string, IamMembershipDatabaseRowV1>;
+  readonly forceUpdateConflict: { value: boolean };
 } {
   const memberships = new Map(rows.map((value) => [value.id, value]));
+  const forceUpdateConflict = { value: false };
   const client = {
     membershipIdentity: {
       findUnique: async ({ where }: { readonly where: { readonly id: string } }) =>
@@ -82,18 +84,19 @@ function createDatabase(rows: readonly IamMembershipDatabaseRowV1[] = []): {
         memberships.set(data.id, data);
         return data;
       },
-      update: async ({
+      updateMany: async ({
         where,
         data,
       }: {
-        readonly where: { readonly id: string };
+        readonly where: { readonly id: string; readonly revision: number };
         readonly data: Partial<IamMembershipDatabaseRowV1>;
       }) => {
+        if (forceUpdateConflict.value) return { count: 0 };
         const current = memberships.get(where.id);
-        if (!current) throw new Error('MEMBERSHIP_NOT_FOUND');
+        if (!current || current.revision !== where.revision) return { count: 0 };
         const updated = { ...current, ...data };
         memberships.set(where.id, updated);
-        return updated;
+        return { count: 1 };
       },
     },
     $transaction: async <TValue>(work: (transaction: IamDatabaseClientV1) => Promise<TValue>) => {
@@ -107,7 +110,7 @@ function createDatabase(rows: readonly IamMembershipDatabaseRowV1[] = []): {
       }
     },
   } as unknown as IamDatabaseClientV1;
-  return { client, memberships };
+  return { client, memberships, forceUpdateConflict };
 }
 
 void test('[IAM-009, IAM-019] Prisma IAM membership reads are tenant scoped and hide siblings', async () => {
@@ -131,7 +134,7 @@ void test('[IAM-009, IAM-019] Prisma IAM membership reads are tenant scoped and 
 });
 
 void test('[IAM-009, IAM-019] Prisma IAM writes require narrowing and enforce optimistic revisions', async () => {
-  const { client, memberships } = createDatabase();
+  const { client, memberships, forceUpdateConflict } = createDatabase();
   const repository = new PrismaIamRepositoryAdapter(client);
   const workspaceScope = { scopeType: 'workspace', organizationId, workspaceId } as const;
   await assert.rejects(
@@ -161,6 +164,19 @@ void test('[IAM-009, IAM-019] Prisma IAM writes require narrowing and enforce op
       roleId: 'operator',
       status: 'ACTIVE',
       revision: 3,
+    }),
+    /IAM_REVISION_CONFLICT/u,
+  );
+  assert.equal(memberships.get(id('21'))?.roleId, 'viewer');
+  forceUpdateConflict.value = true;
+  await assert.rejects(
+    repository.saveMembership(context(workspaceScope, 1), {
+      id: stable('21'),
+      principalId,
+      scope: workspaceScope,
+      roleId: 'operator',
+      status: 'ACTIVE',
+      revision: 2,
     }),
     /IAM_REVISION_CONFLICT/u,
   );

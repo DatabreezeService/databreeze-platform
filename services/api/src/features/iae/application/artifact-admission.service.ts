@@ -37,6 +37,7 @@ export class ArtifactAdmissionService {
         context,
         versionId,
         admission.value.status,
+        admission.value.scanState,
       );
       if (!updated)
         return Object.freeze({ accepted: false, code: 'ADMISSION_UPDATE_FAILED' as const });

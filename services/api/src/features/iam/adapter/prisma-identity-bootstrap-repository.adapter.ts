@@ -305,7 +305,9 @@ export class PrismaIdentityBootstrapRepositoryAdapter implements IdentityBootstr
   }
 
   public save(bootstrap: PersonalOrganizationBootstrapV1) {
-    return new PrismaIdentityBootstrapTransactionAdapter(this.client).save(bootstrap);
+    return this.client.$transaction((transaction) =>
+      new PrismaIdentityBootstrapTransactionAdapter(transaction).save(bootstrap),
+    );
   }
 
   public withTransaction<TValue>(

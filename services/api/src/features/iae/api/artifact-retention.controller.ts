@@ -1,4 +1,4 @@
-import { Body, Controller, Inject, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Post, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import {
@@ -33,6 +33,13 @@ export class ArtifactRetentionController {
     this.retention = new ArtifactRetentionService(requests, artifacts);
   }
 
+  @Get('artifact-deletion-requests/:requestId')
+  @ApiOperation({ summary: 'Read one governed artifact deletion request' })
+  async find(@Req() request: unknown, @Param('requestId') requestId: string): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    return this.retention.find(context, requestId);
+  }
+
   @Post('artifact-versions/:versionId/deletion-requests')
   @ApiOperation({ summary: 'Request governed deletion of an exact artifact version' })
   @ApiBody({ type: CreateArtifactDeletionRequestDto })
@@ -46,7 +53,7 @@ export class ArtifactRetentionController {
       requestId: input.requestId,
       artifactVersionId: versionId,
       tenantScope: context.tenantScope,
-      requestedBy: input.requestedBy,
+      requestedBy: context.actorId,
       requestedAt: input.requestedAt,
       retention: input,
     });

@@ -50,6 +50,7 @@ function client(
   versions: ArtifactVersionDatabaseRowV1[],
   placements: ContentPlacementDatabaseRowV1[],
   evidence: EvidenceDatabaseRowV1[],
+  options: { readonly forceVersionConflict?: boolean } = {},
 ): ArtifactDatabaseClientV1 {
   return {
     artifactVersion: {
@@ -69,6 +70,19 @@ function client(
         const next = { ...current, ...input.data };
         versions[versions.indexOf(current)] = next;
         return Promise.resolve(next);
+      },
+      updateMany(input) {
+        const current = versions.find((candidate) => candidate.id === input.where.id);
+        if (
+          options.forceVersionConflict ||
+          !current ||
+          current.status !== input.where.status ||
+          current.scanState !== input.where.scanState
+        )
+          return Promise.resolve({ count: 0 });
+        const next = { ...current, ...input.data };
+        versions[versions.indexOf(current)] = next;
+        return Promise.resolve({ count: 1 });
       },
     },
     contentPlacement: {
@@ -96,12 +110,25 @@ function client(
         placements[placements.indexOf(current)] = next;
         return Promise.resolve(next);
       },
+      updateMany(input) {
+        const current = placements.find((candidate) => candidate.id === input.where.id);
+        if (!current || current.revision !== input.where.revision)
+          return Promise.resolve({ count: 0 });
+        const next = { ...current, ...input.data };
+        placements[placements.indexOf(current)] = next;
+        return Promise.resolve({ count: 1 });
+      },
     },
     evidenceReference: {
       create(input) {
         const persisted = { ...input.data } as EvidenceDatabaseRowV1;
         evidence.push(persisted);
         return Promise.resolve(persisted);
+      },
+      findUnique(input) {
+        return Promise.resolve(
+          evidence.find((candidate) => candidate.id === input.where.id) ?? null,
+        );
       },
       findMany(input) {
         return Promise.resolve(
@@ -165,6 +192,101 @@ void test('[IAE-003, IAE-004, IAE-005, IAM-009] Prisma artifact adapter keeps pl
   await repository.savePlacement(context('placement'), placement.value);
   await repository.savePlacement(context('placement-repeat'), placement.value);
   await repository.saveEvidence(context('evidence'), evidenceRef.value);
+  await repository.saveEvidence(context('evidence-repeat'), evidenceRef.value);
+  const conflictingEvidence = createEvidenceReferenceV1({
+    evidenceId,
+    artifactVersion: artifact.value,
+    tenantScope: artifact.value.tenantScope,
+    coordinate: { kind: 'ROW', row: 2 },
+  });
+  assert.equal(conflictingEvidence.accepted, true);
+  if (!conflictingEvidence.accepted) return;
+  await assert.rejects(
+    repository.saveEvidence(context('evidence-conflict'), conflictingEvidence.value),
+    /IAE_IMMUTABLE_EVIDENCE/,
+  );
   assert.equal((await repository.listPlacements(context('list-placement'), versionId)).length, 1);
   assert.equal((await repository.listEvidence(context('list-evidence'), versionId)).length, 1);
+});
+
+void test('[IAE-009, IAE-010] Prisma artifact status transitions reject a scan-state race', async () => {
+  const createdAt = parseStrictUtcTimestampV1('2026-01-01T00:00:00.000Z');
+  assert.equal(createdAt.accepted, true);
+  if (!createdAt.accepted) throw new Error('fixture timestamp rejected');
+  const artifact = createArtifactVersionV1({
+    artifactId,
+    versionId,
+    tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+    sourceKind: 'FILE',
+    dataMode: 'Hybrid',
+    contentSha256: 'a'.repeat(64),
+    byteSize: 8,
+    mediaType: 'text/csv',
+    displayName: 'orders.csv',
+    createdAt: createdAt.value,
+  });
+  assert.equal(artifact.accepted, true);
+  if (!artifact.accepted) throw new Error('fixture artifact rejected');
+  const versions: ArtifactVersionDatabaseRowV1[] = [];
+  const repository = new PrismaArtifactRepositoryAdapter(
+    client(versions, [], [], { forceVersionConflict: true }),
+  );
+  await repository.saveVersion(context('status-race-version'), artifact.value);
+  await assert.rejects(
+    repository.updateVersionStatus(context('status-race-update'), versionId, 'QUARANTINED'),
+    /IAE_REVISION_CONFLICT/u,
+  );
+  assert.equal(versions[0]?.status, 'ACTIVE');
+});
+
+void test('[IAE-020, DSO-006] Prisma placement adapter rejects a stale revision after a concurrent update', async () => {
+  const createdAt = parseStrictUtcTimestampV1('2026-01-01T00:00:00.000Z');
+  assert.equal(createdAt.accepted, true);
+  if (!createdAt.accepted) throw new Error('fixture timestamp rejected');
+  const artifact = createArtifactVersionV1({
+    artifactId,
+    versionId,
+    tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+    sourceKind: 'FILE',
+    dataMode: 'Hybrid',
+    contentSha256: 'f'.repeat(64),
+    byteSize: 8,
+    mediaType: 'text/csv',
+    displayName: 'orders.csv',
+    createdAt: createdAt.value,
+  });
+  assert.equal(artifact.accepted, true);
+  if (!artifact.accepted) throw new Error('fixture artifact rejected');
+  const placement = createContentPlacementV1({
+    placementId,
+    artifactVersion: artifact.value,
+    tenantScope: artifact.value.tenantScope,
+    kind: 'CLOUD',
+    opaqueReference: 'opaque-reference-1234',
+    contentSha256: artifact.value.contentSha256,
+  });
+  assert.equal(placement.accepted, true);
+  if (!placement.accepted) throw new Error('fixture placement rejected');
+  const placements: ContentPlacementDatabaseRowV1[] = [];
+  const repository = new PrismaArtifactRepositoryAdapter(client([], placements, []));
+  await repository.saveVersion(context('stale-version'), artifact.value);
+  await repository.savePlacement(context('stale-placement'), placement.value);
+
+  const updated = {
+    ...placement.value,
+    available: false,
+    revision: placement.value.revision + 1,
+  };
+  await repository.updatePlacement(context('first-update'), updated);
+
+  await assert.rejects(
+    repository.updatePlacement(context('stale-update'), {
+      ...placement.value,
+      available: true,
+      revision: placement.value.revision + 1,
+    }),
+    /IAE_REVISION_CONFLICT/u,
+  );
+  assert.equal(placements[0]?.available, false);
+  assert.equal(placements[0]?.revision, 2);
 });

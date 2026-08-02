@@ -50,4 +50,21 @@ export class ArtifactReadController {
     if (!result.version) return { accepted: false, code: 'NOT_FOUND' as const };
     return Object.freeze({ accepted: true, value: result.evidence });
   }
+
+  @Get(':versionId/evidence/:evidenceId/resolve')
+  @ApiOperation({ summary: 'Resolve one exact evidence reference to a safe opaque action' })
+  async resolveEvidence(
+    @Req() request: unknown,
+    @Param('versionId') versionIdInput: string,
+    @Param('evidenceId') evidenceIdInput: string,
+  ): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    const versionId = parseStableIdentifierV1(versionIdInput);
+    const evidenceId = parseStableIdentifierV1(evidenceIdInput);
+    if (!versionId.accepted || !evidenceId.accepted)
+      return { accepted: false, code: 'INVALID_IDENTIFIER' as const };
+    const result = await this.artifacts.resolveEvidence(context, versionId.value, evidenceId.value);
+    if (!result) return { accepted: false, code: 'NOT_FOUND' as const };
+    return Object.freeze({ accepted: true, value: result });
+  }
 }

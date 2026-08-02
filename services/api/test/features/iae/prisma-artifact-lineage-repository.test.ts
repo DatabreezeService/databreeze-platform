@@ -41,13 +41,14 @@ function client(rows: ArtifactLineageDatabaseRowV1[]): ArtifactLineageDatabaseCl
         return Promise.resolve({ ...data });
       },
       findUnique({ where }) {
-        return Promise.resolve(rows.find((row) => row.id === where.id) ?? null);
-      },
-      findFirst({ where }) {
-        return Promise.resolve(
-          rows.find((row) => row.derivedArtifactVersionId === where.derivedArtifactVersionId) ??
-            null,
-        );
+        const row =
+          'id' in where
+            ? rows.find((candidate) => candidate.id === where.id)
+            : rows.find(
+                (candidate) =>
+                  candidate.derivedArtifactVersionId === where.derivedArtifactVersionId,
+              );
+        return Promise.resolve(row ?? null);
       },
       findMany({ where }) {
         return Promise.resolve(

@@ -95,6 +95,42 @@ void test('[IAE-006, IAE-008, IAE-019, IAE-020] artifact reads return exact cont
       row: 1,
       field: 'amount',
     });
+
+    const resolutionResponse = await app.inject({
+      method: 'GET',
+      url: `/v1/artifact-versions/${versionId}/evidence/${evidenceId}/resolve`,
+    });
+    assert.equal(resolutionResponse.statusCode, 200);
+    assert.deepEqual(JSON.parse(resolutionResponse.body), {
+      accepted: true,
+      value: {
+        evidence: {
+          schemaVersion: 1,
+          evidenceId,
+          artifactVersionId: versionId,
+          tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+          coordinate: { kind: 'ROW', row: 1, field: 'amount' },
+          sourceState: 'AVAILABLE',
+        },
+        version: {
+          schemaVersion: 1,
+          artifactId,
+          versionId,
+          tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+          sourceKind: 'FILE',
+          dataMode: 'Local',
+          contentSha256: 'a'.repeat(64),
+          byteSize: 10,
+          mediaType: 'text/csv',
+          displayName: 'orders.csv',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          status: 'ACTIVE',
+          scanState: 'PENDING',
+        },
+        action: 'OPEN_ON_SOURCE_DEVICE',
+        placementReference: 'local-placement-000001',
+      },
+    });
   } finally {
     await app.close();
   }
@@ -143,4 +179,54 @@ void test('[IAE-008, IAM-009] artifact reads do not enumerate a sibling workspac
   if (!parsedVersionId.accepted) return;
   const result = await service.find(sibling.value, parsedVersionId.value);
   assert.equal(result.version, undefined);
+});
+
+void test('[IAE-006, IAE-019] unavailable or deleted evidence never resolves to an open handle', async () => {
+  const repository = new InMemoryArtifactRepositoryAdapter();
+  const tenantContext = context();
+  const service = new ArtifactService(repository);
+  const registered = await service.register(tenantContext, {
+    version: {
+      artifactId,
+      versionId,
+      tenantScope: tenantContext.tenantScope,
+      sourceKind: 'FILE',
+      dataMode: 'Cloud',
+      contentSha256: 'c'.repeat(64),
+      byteSize: 10,
+      mediaType: 'text/csv',
+      displayName: 'unavailable.csv',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    },
+    placement: {
+      placementId,
+      tenantScope: tenantContext.tenantScope,
+      kind: 'CLOUD',
+      opaqueReference: 'cloud-placement-000001',
+      contentSha256: 'c'.repeat(64),
+    },
+    evidence: {
+      evidenceId,
+      tenantScope: tenantContext.tenantScope,
+      coordinate: { kind: 'ROW', row: 1, field: 'amount' },
+      sourceState: 'SOURCE_OFFLINE',
+    },
+  });
+  assert.equal(registered.accepted, true);
+  if (!registered.accepted) return;
+  const registeredEvidence = registered.value.evidence;
+  if (!registeredEvidence) return;
+
+  const resolved = await service.resolveEvidence(
+    tenantContext,
+    registered.value.version.versionId,
+    registeredEvidence.evidenceId,
+  );
+  assert.deepEqual(
+    resolved && { action: resolved.action, placementReference: resolved.placementReference },
+    {
+      action: 'UNAVAILABLE',
+      placementReference: undefined,
+    },
+  );
 });

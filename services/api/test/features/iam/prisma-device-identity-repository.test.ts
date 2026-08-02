@@ -82,7 +82,7 @@ function device(): DeviceIdentityV1 {
   return result.value;
 }
 
-function delegate(rows: Record<string, unknown>[]) {
+function delegate(rows: Record<string, unknown>[], forceRevisionConflict = false) {
   return {
     create({ data }: { readonly data: Record<string, unknown> }) {
       const persisted = { ...data };
@@ -109,15 +109,32 @@ function delegate(rows: Record<string, unknown>[]) {
       rows[index] = { ...rows[index], ...data };
       return Promise.resolve(rows[index]);
     },
+    updateMany({
+      where,
+      data,
+    }: {
+      readonly where: { readonly id: string; readonly revision: number };
+      readonly data: Record<string, unknown>;
+    }) {
+      if (forceRevisionConflict) return Promise.resolve({ count: 0 });
+      const index = rows.findIndex(
+        (row) => row['id'] === where.id && row['revision'] === where.revision,
+      );
+      if (index < 0) return Promise.resolve({ count: 0 });
+      rows[index] = { ...rows[index], ...data };
+      return Promise.resolve({ count: 1 });
+    },
   };
 }
 
-function client(): DeviceIdentityDatabaseClientV1 {
+function client(
+  options: { readonly forceRevisionConflict?: boolean } = {},
+): DeviceIdentityDatabaseClientV1 {
   const challengeRows: Record<string, unknown>[] = [];
   const deviceRows: Record<string, unknown>[] = [];
   const database = {
-    deviceEnrollmentChallenge: delegate(challengeRows),
-    deviceIdentity: delegate(deviceRows),
+    deviceEnrollmentChallenge: delegate(challengeRows, options.forceRevisionConflict),
+    deviceIdentity: delegate(deviceRows, options.forceRevisionConflict),
     async $transaction<TValue>(
       work: (transaction: DeviceIdentityDatabaseClientV1) => Promise<TValue>,
     ) {
@@ -156,4 +173,27 @@ void test('[IAM-007, IAM-009, IAM-021] Prisma device identity adapter persists c
     (await repository.findDevice(context(organizationId, 'after'), stable(deviceId)))?.status,
     'ACTIVE',
   );
+});
+
+void test('[IAM-007, IAM-021] Prisma device identity transitions reject database revision races', async () => {
+  const repository = new PrismaDeviceIdentityRepositoryAdapter(
+    client({ forceRevisionConflict: true }),
+  );
+  await repository.saveChallenge(context(), challenge());
+  const used = {
+    ...challenge(),
+    status: 'USED' as const,
+    revision: 2,
+  };
+  await assert.rejects(repository.saveChallenge(context(), used), /REVISION_CONFLICT/u);
+
+  await repository.saveDevice(context(), device());
+  const active = {
+    ...device(),
+    status: 'ACTIVE' as const,
+    securityEpoch: 2,
+    revision: 2,
+    activatedAt: timestamp('2026-01-01T00:01:00.000Z'),
+  };
+  await assert.rejects(repository.replaceDevice(context(), active, 1), /REVISION_CONFLICT/u);
 });

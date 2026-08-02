@@ -8,6 +8,9 @@ import {
   type TenantScopeV1,
 } from '../tenant-scope/v1.js';
 import type { ArtifactVersionV1 } from '../artifact/v1.js';
+import type { ArtifactScanStateV1 } from '../artifact/v1.js';
+
+export type { ArtifactScanStateV1 } from '../artifact/v1.js';
 
 /** IAE-001, IAE-009, IAE-010, IAE-013: intake admission is explicit and idempotent. */
 export const ARTIFACT_INTAKE_SCHEMA_VERSION_V1 = 1 as const;
@@ -20,7 +23,6 @@ export type InboxItemStateV1 =
   | 'RESOLVED'
   | 'QUARANTINED'
   | 'ARCHIVED';
-export type ArtifactScanStateV1 = 'PENDING' | 'CLEAN' | 'MALICIOUS' | 'FAILED';
 export type InboxPriorityV1 = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
 
 export interface InboxItemV1 {

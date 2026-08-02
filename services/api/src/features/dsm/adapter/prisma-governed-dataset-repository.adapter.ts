@@ -27,6 +27,7 @@ export interface GovernedDatasetDatabaseRowV1 {
   readonly status: string;
   readonly createdAt: Date;
   readonly publishedAt: Date | null;
+  readonly revision: number;
   readonly canonicalHash: string;
 }
 
@@ -88,6 +89,7 @@ function domainScope(row: GovernedDatasetDatabaseRowV1): TenantScopeV1 {
 }
 
 function rowToDomain(row: GovernedDatasetDatabaseRowV1): GovernedDatasetDefinitionV1 {
+  if (row.revision !== 1) throw new Error('DSM_PERSISTED_REVISION_INVALID');
   const created = createGovernedDatasetDefinitionV1({
     datasetId: row.datasetId,
     versionId: row.id,

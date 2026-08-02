@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { AppModule } from '../../src/app.module.js';
+import type { ApiApplicationOptions } from '../../src/bootstrap.js';
 import { IamModule } from '../../src/features/iam/iam.module.js';
 import {
   AUTHENTICATION_USE_CASE,
@@ -37,6 +38,15 @@ function moduleTypes(): readonly unknown[] {
       : entry,
   );
 }
+
+void test('[AUD-001, BUA-001] API application options expose durable module adapters', () => {
+  const options = {
+    auditRepository: {} as never,
+    entitlementRepository: {} as never,
+  } satisfies ApiApplicationOptions;
+  const registered = AppModule.register(options);
+  assert.equal(registered.module, AppModule);
+});
 
 void test('[IAM-001, AUD-001, BUA-001] application composition includes identity, audit, and entitlements modules', () => {
   const types = moduleTypes();

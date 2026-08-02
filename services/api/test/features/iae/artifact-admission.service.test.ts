@@ -49,6 +49,7 @@ void test('IAE-009/010 admission updates only the status projection after scanne
   assert.equal(admitted.accepted, true);
   if (!admitted.accepted) return;
   assert.equal(admitted.value.version.status, 'ACTIVE');
+  assert.equal(admitted.value.version.scanState, 'CLEAN');
   const rejected = await service.admit(context, artifact.value.versionId, {
     actualSha256: 'b'.repeat(64),
     actualByteSize: 4,

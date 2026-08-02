@@ -173,3 +173,30 @@ void test('[IAM-009, IAM-012] MFA state cannot cross users and failed transactio
   );
   assert.equal(factors.size, 0);
 });
+
+void test('[IAM-012, IAM-014] Prisma MFA persistence rejects a changed stale revision', async () => {
+  const { client, factors } = createDatabase();
+  const adapter = new PrismaMfaRepositoryAdapter(client);
+  const input = state();
+  const factor = input.factors[0];
+  if (!factor) throw new Error('fixture missing factor');
+  await adapter.saveState(factor.userId, input);
+  const persisted = factors.get(factor.id);
+  if (!persisted) throw new Error('fixture factor was not persisted');
+  factors.set(factor.id, {
+    ...persisted,
+    status: 'ACTIVE',
+    verifiedAt: new Date('2026-01-01T00:02:00.000Z'),
+    revision: 2,
+  });
+  const stale = transitionMfaFactorV1(factor, 'VERIFY', '2026-01-01T00:01:00.000Z');
+  assert.equal(stale.accepted, true);
+  if (!stale.accepted) return;
+  await assert.rejects(
+    adapter.saveState(factor.userId, {
+      factors: [stale.value],
+      recoveryCodes: input.recoveryCodes,
+    }),
+    /IAM_MFA_REVISION_CONFLICT/u,
+  );
+});

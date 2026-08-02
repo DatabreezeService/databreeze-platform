@@ -52,6 +52,15 @@ export interface ArtifactRetentionDatabaseClientV1 {
         readonly revision: number;
       };
     }): Promise<ArtifactRetentionDatabaseRowV1>;
+    updateMany(input: {
+      readonly where: { readonly id: string; readonly revision: number };
+      readonly data: {
+        readonly state: string;
+        readonly blockers: unknown;
+        readonly authorizedAt: Date | null;
+        readonly revision: number;
+      };
+    }): Promise<{ readonly count: number }>;
   };
   $transaction<TValue>(
     work: (transaction: ArtifactRetentionDatabaseClientV1) => Promise<TValue>,
@@ -150,8 +159,8 @@ class PrismaArtifactRetentionTransactionAdapter implements ArtifactRetentionTran
       current.requestedAt !== request.requestedAt
     )
       throw new Error('IAE_IMMUTABLE_DELETION_REQUEST');
-    await this.client.artifactDeletionRequestRecord.update({
-      where: { id: request.requestId },
+    const result = await this.client.artifactDeletionRequestRecord.updateMany({
+      where: { id: request.requestId, revision: current.revision },
       data: {
         state: request.state,
         blockers: request.blockers,
@@ -159,6 +168,7 @@ class PrismaArtifactRetentionTransactionAdapter implements ArtifactRetentionTran
         revision: request.revision,
       },
     });
+    if (result.count !== 1) throw new Error('IAE_REVISION_CONFLICT');
   }
 
   public async find(
