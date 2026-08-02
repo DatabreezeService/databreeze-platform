@@ -51,6 +51,10 @@
     "./dataset/v1": {
       "types": "./src/dataset/v1.ts",
       "import": "./dist/dataset/v1.js"
+    },
+    "./jobs/v1": {
+      "types": "./src/jobs/v1.ts",
+      "import": "./dist/jobs/v1.js"
     }
   },
   "scripts": {
