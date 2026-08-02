@@ -51,6 +51,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "dsm"/);
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "jra"/);
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "dso"/);
+  assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "sa"/);
   assert.match(diff.stdout, /CREATE TABLE "platform"\."schema_registry"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."users"/);
   assert.match(diff.stdout, /CREATE TABLE "iae"\."artifact_versions"/);
@@ -78,6 +79,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "dso"\."device_sync_operations"/);
   assert.match(diff.stdout, /CREATE TABLE "dso"\."device_sync_conflicts"/);
   assert.match(diff.stdout, /CREATE TABLE "dso"\."strict_local_package_manifests"/);
+  assert.match(diff.stdout, /CREATE TABLE "sa"\."spreadsheet_audit_results"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."authorization_snapshots"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."mfa_recovery_codes"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."access_tokens"/);
@@ -118,6 +120,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802270000_dsm_profiles',
     '20260802280000_iae_protected_document_unlocks',
     '20260802290000_dsm_export_manifests',
+    '20260802300000_sa_spreadsheet_audits',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -472,6 +475,21 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   ]) {
     assert.match(
       datasetExportMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const spreadsheetAuditMigration = await readFile(
+    path.join(migrationsDirectory, inventory[31], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE SCHEMA IF NOT EXISTS "sa"',
+    'CREATE TABLE "sa"."spreadsheet_audit_results"',
+    'CREATE INDEX "spreadsheet_audits_artifact_version_idx"',
+    '"blocked_reasons" JSONB',
+  ]) {
+    assert.match(
+      spreadsheetAuditMigration,
       new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
   }

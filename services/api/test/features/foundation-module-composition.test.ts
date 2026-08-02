@@ -25,6 +25,9 @@ import { ENTITLEMENT_REPOSITORY_PORT } from '../../src/features/bua/application/
 import { PrismaEntitlementRepositoryAdapter } from '../../src/features/bua/adapter/prisma-entitlement-repository.adapter.js';
 import { REQUEST_TENANT_CONTEXT } from '../../src/platform/http/request-tenant-context.port.js';
 import { SessionRequestTenantContextAdapter } from '../../src/platform/http/session-tenant-context.adapter.js';
+import { SaModule } from '../../src/features/sa/sa.module.js';
+import { SPREADSHEET_AUDIT_REPOSITORY_PORT } from '../../src/features/sa/application/spreadsheet-audit-repository.port.js';
+import { PrismaSpreadsheetAuditRepositoryAdapter } from '../../src/features/sa/adapter/prisma-spreadsheet-audit-repository.adapter.js';
 
 function moduleTypes(): readonly unknown[] {
   const registered = AppModule.register();
@@ -39,6 +42,21 @@ void test('[IAM-001, AUD-001, BUA-001] application composition includes identity
   const types = moduleTypes();
   assert.ok(types.includes(AudModule));
   assert.ok(types.includes(BuaModule));
+  assert.ok(types.includes(SaModule));
+});
+
+void test('[SA-001] configured spreadsheet audit persistence uses the Prisma adapter', () => {
+  const registered = SaModule.register({ spreadsheetAuditDatabase: {} as never });
+  const provider = registered.providers?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === SPREADSHEET_AUDIT_REPOSITORY_PORT,
+  );
+  assert.ok(provider && 'useValue' in provider);
+  if (!provider || !('useValue' in provider)) return;
+  assert.ok(provider.useValue instanceof PrismaSpreadsheetAuditRepositoryAdapter);
 });
 
 void test('[AUD-001] configured audit persistence uses the Prisma adapter instead of the local fallback', () => {
