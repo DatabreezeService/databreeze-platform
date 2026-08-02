@@ -4,6 +4,7 @@ import { InboxController } from './api/inbox.controller.js';
 import { EvidenceGrantController } from './api/evidence-grant.controller.js';
 import { ArtifactReadController } from './api/artifact-read.controller.js';
 import { ArtifactLineageController } from './api/artifact-lineage.controller.js';
+import { ContentPlacementController } from './api/content-placement.controller.js';
 import { InMemoryArtifactIntakeRepositoryAdapter } from './adapter/in-memory-artifact-intake-repository.adapter.js';
 import {
   PrismaArtifactIntakeRepositoryAdapter,
@@ -60,6 +61,7 @@ export class IaeModule {
         EvidenceGrantController,
         ArtifactReadController,
         ArtifactLineageController,
+        ContentPlacementController,
       ],
       providers: [
         {

@@ -90,6 +90,13 @@ export interface ArtifactDatabaseClientV1 {
     findMany(input: {
       readonly where: Readonly<Record<string, string>>;
     }): Promise<readonly ContentPlacementDatabaseRowV1[]>;
+    findUnique(input: {
+      readonly where: { readonly id: string };
+    }): Promise<ContentPlacementDatabaseRowV1 | null>;
+    update(input: {
+      readonly where: { readonly id: string };
+      readonly data: { readonly available: boolean; readonly revision: number };
+    }): Promise<ContentPlacementDatabaseRowV1>;
   };
   readonly evidenceReference: {
     create(input: { readonly data: EvidenceCreateDataV1 }): Promise<EvidenceDatabaseRowV1>;
@@ -269,6 +276,36 @@ class PrismaArtifactTransactionAdapter implements ArtifactTransactionPortV1 {
       .map((row) => rowToPlacement(row, version));
   }
 
+  public async updatePlacement(
+    context: IamTenantContextV1,
+    placement: ContentPlacementV1,
+  ): Promise<void> {
+    const existing = await this.client.contentPlacement.findUnique({
+      where: { id: placement.placementId },
+    });
+    if (existing === null) throw new Error('IAE_PLACEMENT_NOT_FOUND');
+    if (!tenantScopeContainsV1(context.tenantScope, placement.tenantScope))
+      throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
+    const versionRow = await this.client.artifactVersion.findUnique({
+      where: { id: placement.artifactVersionId },
+    });
+    if (versionRow === null) throw new Error('IAE_VERSION_NOT_FOUND');
+    const current = rowToPlacement(existing, rowToVersion(versionRow));
+    if (JSON.stringify(current) === JSON.stringify(placement)) return;
+    if (placement.revision !== current.revision + 1) throw new Error('IAE_REVISION_CONFLICT');
+    if (
+      current.artifactVersionId !== placement.artifactVersionId ||
+      current.kind !== placement.kind ||
+      current.opaqueReference !== placement.opaqueReference ||
+      current.contentSha256 !== placement.contentSha256
+    )
+      throw new Error('IAE_IMMUTABLE_PLACEMENT');
+    await this.client.contentPlacement.update({
+      where: { id: placement.placementId },
+      data: { available: placement.available, revision: placement.revision },
+    });
+  }
+
   public async saveEvidence(
     context: IamTenantContextV1,
     evidence: EvidenceReferenceV1,
@@ -329,6 +366,12 @@ export class PrismaArtifactRepositoryAdapter implements ArtifactRepositoryPortV1
   }
   public savePlacement(context: IamTenantContextV1, placement: ContentPlacementV1): Promise<void> {
     return new PrismaArtifactTransactionAdapter(this.client).savePlacement(context, placement);
+  }
+  public updatePlacement(
+    context: IamTenantContextV1,
+    placement: ContentPlacementV1,
+  ): Promise<void> {
+    return new PrismaArtifactTransactionAdapter(this.client).updatePlacement(context, placement);
   }
   public listPlacements(
     context: IamTenantContextV1,

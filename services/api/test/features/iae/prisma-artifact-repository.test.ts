@@ -77,6 +77,18 @@ function client(
           ),
         );
       },
+      findUnique(input) {
+        return Promise.resolve(
+          placements.find((candidate) => candidate.id === input.where.id) ?? null,
+        );
+      },
+      update(input) {
+        const current = placements.find((candidate) => candidate.id === input.where.id);
+        if (!current) throw new Error('fixture placement not found');
+        const next = { ...current, ...input.data };
+        placements[placements.indexOf(current)] = next;
+        return Promise.resolve(next);
+      },
     },
     evidenceReference: {
       create(input) {

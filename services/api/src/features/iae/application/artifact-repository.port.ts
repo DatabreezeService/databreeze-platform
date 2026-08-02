@@ -15,6 +15,7 @@ export interface ArtifactTransactionPortV1 {
     versionId: ArtifactVersionV1['versionId'],
   ): Promise<ArtifactVersionV1 | undefined>;
   savePlacement(context: IamTenantContextV1, placement: ContentPlacementV1): Promise<void>;
+  updatePlacement(context: IamTenantContextV1, placement: ContentPlacementV1): Promise<void>;
   listPlacements(
     context: IamTenantContextV1,
     versionId: ArtifactVersionV1['versionId'],

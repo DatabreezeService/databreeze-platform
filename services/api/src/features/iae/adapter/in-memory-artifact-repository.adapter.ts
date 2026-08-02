@@ -92,6 +92,24 @@ export class InMemoryArtifactRepositoryAdapter implements ArtifactRepositoryPort
       .map(clonePlacement);
   }
 
+  async updatePlacement(context: IamTenantContextV1, placement: ContentPlacementV1): Promise<void> {
+    await Promise.resolve();
+    if (!scopeAllowsMutation(context, placement.tenantScope))
+      throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
+    const existing = this.placements.get(placement.placementId);
+    if (!existing) throw new Error('IAE_PLACEMENT_NOT_FOUND');
+    if (JSON.stringify(existing) === JSON.stringify(placement)) return;
+    if (placement.revision !== existing.revision + 1) throw new Error('IAE_REVISION_CONFLICT');
+    if (
+      existing.artifactVersionId !== placement.artifactVersionId ||
+      existing.kind !== placement.kind ||
+      existing.opaqueReference !== placement.opaqueReference ||
+      existing.contentSha256 !== placement.contentSha256
+    )
+      throw new Error('IAE_IMMUTABLE_PLACEMENT');
+    this.placements.set(placement.placementId, clonePlacement(placement));
+  }
+
   async saveEvidence(context: IamTenantContextV1, evidence: EvidenceReferenceV1): Promise<void> {
     await Promise.resolve();
     if (!scopeAllowsMutation(context, evidence.tenantScope))
@@ -135,6 +153,7 @@ export class InMemoryArtifactRepositoryAdapter implements ArtifactRepositoryPort
         saveVersion: this.saveVersion.bind(this),
         findVersion: this.findVersion.bind(this),
         savePlacement: this.savePlacement.bind(this),
+        updatePlacement: this.updatePlacement.bind(this),
         listPlacements: this.listPlacements.bind(this),
         saveEvidence: this.saveEvidence.bind(this),
         listEvidence: this.listEvidence.bind(this),
