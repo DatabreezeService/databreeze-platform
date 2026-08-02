@@ -4165,6 +4165,223 @@
         "tags": ["datasets"]
       }
     },
+    "/v1/dataset-quality-results": {
+      "post": {
+        "operationId": "DatasetQualityController.register",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RegisterDatasetQualityResultDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Register an immutable, value-free dataset quality result",
+        "tags": ["datasets"]
+      },
+      "get": {
+        "operationId": "DatasetQualityController.list",
+        "parameters": [
+          {
+            "name": "datasetVersionId",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "List quality results for one exact dataset version",
+        "tags": ["datasets"]
+      }
+    },
+    "/v1/dataset-quality-results/{resultId}": {
+      "get": {
+        "operationId": "DatasetQualityController.get",
+        "parameters": [
+          { "name": "resultId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Read an exact immutable dataset quality result",
+        "tags": ["datasets"]
+      }
+    },
     "/v1/devices/sync/operations": {
       "post": {
         "operationId": "DeviceSyncController.enqueue",
@@ -6206,6 +6423,60 @@
           "rowCount",
           "qualityState",
           "lineageManifestHash"
+        ]
+      },
+      "DatasetQualityFindingDto": {
+        "type": "object",
+        "properties": {
+          "findingId": { "type": "string", "format": "uuid" },
+          "ruleId": { "type": "string", "format": "uuid" },
+          "severity": { "type": "string", "enum": ["INFO", "WARNING", "ERROR"] },
+          "messageCode": { "type": "string", "minLength": 1, "maxLength": 96 },
+          "occurrenceCount": { "type": "number", "minimum": 0 },
+          "evidenceIds": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "detailHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        },
+        "required": [
+          "findingId",
+          "ruleId",
+          "severity",
+          "messageCode",
+          "occurrenceCount",
+          "evidenceIds",
+          "detailHash"
+        ]
+      },
+      "RegisterDatasetQualityResultDto": {
+        "type": "object",
+        "properties": {
+          "resultId": { "type": "string", "format": "uuid" },
+          "datasetId": { "type": "string", "format": "uuid" },
+          "datasetVersionId": { "type": "string", "format": "uuid" },
+          "ruleSetVersionId": { "type": "string", "format": "uuid" },
+          "profileFingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "rowCountScanned": { "type": "number", "minimum": 0 },
+          "qualityState": {
+            "type": "string",
+            "enum": ["PASS", "PASS_WITH_WARNINGS", "BLOCKED", "INCOMPLETE"]
+          },
+          "findings": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/DatasetQualityFindingDto" }
+          },
+          "resultFingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": [
+          "resultId",
+          "datasetId",
+          "datasetVersionId",
+          "ruleSetVersionId",
+          "profileFingerprint",
+          "rowCountScanned",
+          "qualityState",
+          "findings",
+          "resultFingerprint",
+          "createdAt"
         ]
       },
       "CreateDeviceSyncOperationDto": {

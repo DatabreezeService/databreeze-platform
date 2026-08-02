@@ -5,6 +5,7 @@ import { MappingController } from './api/mapping.controller.js';
 import { ReferenceEntityController } from './api/reference-entity.controller.js';
 import { RuleSetController } from './api/rule-set.controller.js';
 import { DatasetVersionController } from './api/dataset-version.controller.js';
+import { DatasetQualityController } from './api/dataset-quality.controller.js';
 import { InMemoryGovernedDatasetRepositoryAdapter } from './adapter/in-memory-governed-dataset-repository.adapter.js';
 import {
   PrismaGovernedDatasetRepositoryAdapter,
@@ -98,6 +99,7 @@ export class DsmModule {
         RuleSetController,
         ReferenceEntityController,
         DatasetVersionController,
+        DatasetQualityController,
       ],
       providers: [
         {
