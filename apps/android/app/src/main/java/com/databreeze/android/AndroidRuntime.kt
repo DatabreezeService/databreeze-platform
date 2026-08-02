@@ -7,6 +7,8 @@ import com.databreeze.android.storage.LocalStorePort
 import com.databreeze.android.storage.AccountWorkspaceScope
 import com.databreeze.android.storage.RoomLocalStore
 import com.databreeze.android.sync.DataBreezeWorkerFactory
+import com.databreeze.android.sync.SharedPreferencesSyncRevocationGuard
+import com.databreeze.android.sync.SyncRevocationGuard
 import com.databreeze.android.sync.SyncScheduler
 import com.databreeze.android.sync.SyncTransport
 import com.databreeze.android.sync.UnconfiguredSyncTransport
@@ -18,10 +20,12 @@ class AndroidRuntime private constructor(
     val deviceKeyStore: DeviceKeyStore,
     val syncTransport: SyncTransport,
     val syncScheduler: SyncScheduler,
+    val syncRevocationGuard: SyncRevocationGuard,
     val workerFactory: DataBreezeWorkerFactory,
 ) {
     /** Revocation/account switch clears local work and the device-bound key before returning. */
     suspend fun signOut(scope: AccountWorkspaceScope, keyAlias: String) {
+        syncRevocationGuard.revoke(scope)
         syncScheduler.cancel(scope)
         localStore.clear(scope)
         deviceKeyStore.delete(keyAlias)
@@ -31,12 +35,16 @@ class AndroidRuntime private constructor(
         fun create(context: Context): AndroidRuntime {
             val localStore = RoomLocalStore.create(context.applicationContext)
             val transport = UnconfiguredSyncTransport()
+            val revocationGuard = SharedPreferencesSyncRevocationGuard(
+                context.applicationContext.getSharedPreferences("databreeze-sync", Context.MODE_PRIVATE),
+            )
             return AndroidRuntime(
                 localStore = localStore,
                 deviceKeyStore = AndroidDeviceKeyStore(),
                 syncTransport = transport,
                 syncScheduler = WorkManagerSyncScheduler(context.applicationContext),
-                workerFactory = DataBreezeWorkerFactory(localStore, transport),
+                syncRevocationGuard = revocationGuard,
+                workerFactory = DataBreezeWorkerFactory(localStore, transport, revocationGuard),
             )
         }
     }

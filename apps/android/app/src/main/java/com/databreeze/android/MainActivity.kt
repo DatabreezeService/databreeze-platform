@@ -29,6 +29,7 @@ import com.databreeze.android.storage.AccountWorkspaceScope
 import com.databreeze.android.storage.InMemoryLocalStore
 import com.databreeze.android.storage.LocalStorePort
 import com.databreeze.android.storage.SyncQueueEntity
+import com.databreeze.android.sync.SyncScheduler
 import kotlinx.coroutines.launch
 
 private object AppRoutes {
@@ -44,7 +45,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val application = application as DataBreezeApplication
-        setContent { DataBreezeApp(application.runtime.localStore, localScope) }
+        setContent {
+            DataBreezeApp(
+                localStore = application.runtime.localStore,
+                scope = localScope,
+                syncScheduler = application.runtime.syncScheduler,
+            )
+        }
     }
 }
 
@@ -53,6 +60,7 @@ class MainActivity : ComponentActivity() {
 fun DataBreezeApp(
     localStore: LocalStorePort = remember { InMemoryLocalStore() },
     scope: AccountWorkspaceScope = localScope,
+    syncScheduler: SyncScheduler? = null,
 ) {
     val navController = rememberNavController()
     DataBreezeTheme {
@@ -71,6 +79,7 @@ fun DataBreezeApp(
                     CaptureScreen(
                         localStore = localStore,
                         scope = scope,
+                        syncScheduler = syncScheduler,
                         onBack = { navController.popBackStack() },
                     )
                 }
@@ -100,6 +109,7 @@ private fun HomeScreen(onCapture: () -> Unit) {
 private fun CaptureScreen(
     localStore: LocalStorePort,
     scope: AccountWorkspaceScope,
+    syncScheduler: SyncScheduler?,
     onBack: () -> Unit,
 ) {
     val queue by localStore.observeQueue(scope).collectAsState(initial = emptyList())
@@ -131,6 +141,7 @@ private fun CaptureScreen(
                             createdAtEpochMs = System.currentTimeMillis(),
                         ),
                     )
+                    syncScheduler?.enqueue(scope)
                 }
             },
             modifier = Modifier.testTag("save-button"),
