@@ -27,6 +27,13 @@ test('provenance generation records sorted artifact digests', () => {
       provenance.subject.map((subject) => path.posix.basename(subject.path)),
       ['a-output.json', 'z-output.json'],
     );
+    assert.deepEqual(
+      provenance.subject.map((subject) => subject.sha256),
+      [
+        'ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb',
+        '594e519ae499312b29433b7dd8a97ff068defcba9755b6d5d00e84c524d67b06',
+      ],
+    );
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

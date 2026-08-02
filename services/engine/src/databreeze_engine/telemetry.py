@@ -107,6 +107,10 @@ _COMPONENT_PATTERN = re.compile(r"^[a-z][a-z0-9]*(?:[._-][a-z0-9]+){0,5}$")
 _LEVELS = frozenset({"debug", "info", "warn", "error"})
 
 
+class _LocalTelemetryValidationError(ValueError):
+    """A validation error raised by this module rather than a provider object."""
+
+
 @dataclass(frozen=True)
 class CorrelationContext:
     correlation_id: str
@@ -152,7 +156,7 @@ def _validate_key(key: object) -> str:
         or len(key) > 64
         or not _KEY_PATTERN.fullmatch(key)
     ):
-        raise ValueError(f"invalid telemetry key: {key!r}")
+        raise _LocalTelemetryValidationError(f"invalid telemetry key: {key!r}")
     return key
 
 
@@ -184,9 +188,9 @@ def assert_safe_attributes(attributes: Mapping[str, Any]) -> None:
         for raw_key, value in attributes.items():
             key = _validate_key(raw_key)
             if key not in SAFE_ATTRIBUTE_KEYS or _safe_scalar(key, value) is None:
-                raise ValueError(f"telemetry attribute is not allowed: {key}")
-    except ValueError:
-        raise
+                raise _LocalTelemetryValidationError(f"telemetry attribute is not allowed: {key}")
+    except _LocalTelemetryValidationError as error:
+        raise ValueError(str(error)) from None
     except Exception:
         raise ValueError("telemetry attributes are not readable") from None
 
@@ -259,19 +263,19 @@ def _single_header(headers: Mapping[str, str | Sequence[str] | None], name: str)
     try:
         for key, value in headers.items():
             if not isinstance(key, str):
-                raise ValueError("telemetry header name is not a string")
+                raise _LocalTelemetryValidationError("telemetry header name is not a string")
             if key.lower() != name:
                 continue
             if isinstance(value, str):
                 values.append(value)
             elif value is not None:
                 if not isinstance(value, Sequence) or isinstance(value, (bytes, bytearray)):
-                    raise ValueError("telemetry header value is not readable")
+                    raise _LocalTelemetryValidationError("telemetry header value is not readable")
                 if not all(isinstance(item, str) for item in value):
-                    raise ValueError("telemetry header value is not readable")
+                    raise _LocalTelemetryValidationError("telemetry header value is not readable")
                 values.extend(value)
-    except ValueError:
-        raise
+    except _LocalTelemetryValidationError as error:
+        raise ValueError(str(error)) from None
     except Exception:
         raise ValueError("telemetry headers are not readable") from None
     if len(values) > 1:

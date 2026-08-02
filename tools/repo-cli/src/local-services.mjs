@@ -68,8 +68,8 @@ function parseEnvFile(file) {
   if (!existsSync(file)) return new Map();
   const values = new Map();
   for (const line of readFileSync(file, 'utf8').split(/\r?\n/u)) {
-    const match = /^\s*([A-Z][A-Z0-9_]*)\s*=\s*(.*)\s*$/u.exec(line);
-    if (!match || match[1].startsWith('#')) continue;
+    const match = /^\s*([A-Z][A-Z0-9_]*)\s*=\s*(.*?)\s*$/u.exec(line);
+    if (!match) continue;
     values.set(match[1], match[2].replace(/^(['"])(.*)\1$/u, '$2'));
   }
   return values;
@@ -83,6 +83,9 @@ function environment() {
   for (const definition of hostPorts) {
     if (process.env[definition.key] !== undefined)
       fileValues.set(definition.key, process.env[definition.key]);
+  }
+  if (process.env.DATABREEZE_MIN_FREE_GIB !== undefined) {
+    fileValues.set('DATABREEZE_MIN_FREE_GIB', process.env.DATABREEZE_MIN_FREE_GIB);
   }
   return fileValues;
 }
@@ -112,13 +115,22 @@ function composeArgs(values = environment()) {
   return ['compose', '--project-name', project, '--env-file', envFile, '-f', composeFile];
 }
 
-function runDocker(args, { allowFailure = false } = {}) {
-  const result = spawnSync('docker', args, { cwd: repositoryRoot, encoding: 'utf8' });
+function runDocker(args, { allowFailure = false, capture = true, timeoutMs = 30_000 } = {}) {
+  const result = spawnSync(
+    'docker',
+    args,
+    capture
+      ? { cwd: repositoryRoot, encoding: 'utf8', timeout: timeoutMs }
+      : { cwd: repositoryRoot, stdio: 'inherit', timeout: timeoutMs },
+  );
   if (!allowFailure && (result.error || result.status !== 0)) {
     if (result.error?.code === 'ENOENT') {
       fail(
         'Docker CLI is not installed or not on PATH; start Docker Desktop before using this command',
       );
+    }
+    if (result.error?.code === 'ETIMEDOUT') {
+      fail(`docker ${args.join(' ')} timed out after ${timeoutMs}ms`);
     }
     const detail = (result.stderr || result.stdout || result.error?.message || '').trim();
     fail(`docker ${args.join(' ')} failed${detail ? `: ${detail}` : ''}`);
@@ -130,11 +142,15 @@ function requireDocker() {
   const result = spawnSync('docker', ['info', '--format', '{{.ServerVersion}}'], {
     cwd: repositoryRoot,
     encoding: 'utf8',
+    timeout: 15_000,
   });
   if (result.error?.code === 'ENOENT') {
     fail(
       'Docker CLI is not installed or not on PATH; start Docker Desktop before using this command',
     );
+  }
+  if (result.error?.code === 'ETIMEDOUT') {
+    fail('Docker CLI check timed out after 15000ms; verify Docker Desktop is responsive');
   }
   if (result.status !== 0) {
     fail(
@@ -212,13 +228,20 @@ function inspectHealth(service, values) {
   const idResult = runDocker([...composeArgs(values), 'ps', '-q', service], { allowFailure: true });
   const id = idResult.stdout.trim();
   if (!id) return { state: 'missing', health: 'unknown', detail: 'no container' };
-  const inspect = runDocker([
-    'inspect',
-    '--format',
-    '{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}no-health{{end}}',
-    id,
-  ]);
-  const [state, health] = inspect.stdout.trim().split('|');
+  const inspect = runDocker(
+    [
+      'inspect',
+      '--format',
+      '{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}no-health{{end}}',
+      id,
+    ],
+    { allowFailure: true },
+  );
+  const inspection = inspect.stdout?.trim();
+  if (inspect.error || inspect.status !== 0 || !inspection) {
+    return { state: 'unknown', health: 'unknown', detail: 'unknown/unknown (inspect unavailable)' };
+  }
+  const [state, health] = inspection.split('|');
   return { state, health, detail: `${state}/${health}` };
 }
 
@@ -243,7 +266,7 @@ async function waitForReady(values, waitSeconds) {
   fail(`readiness timeout after ${waitSeconds}s`);
 }
 
-function parseArguments(argv) {
+function parseArguments(argv, values = environment()) {
   let command = 'smoke';
   const argumentsToParse = [...argv];
   if (argumentsToParse[0] && !argumentsToParse[0].startsWith('-'))
@@ -253,7 +276,7 @@ function parseArguments(argv) {
     waitSeconds: 60,
     tail: 100,
     service: undefined,
-    minFreeGib: Number(process.env.DATABREEZE_MIN_FREE_GIB || 5),
+    minFreeGib: Number(values.get('DATABREEZE_MIN_FREE_GIB') ?? 5),
   };
   for (const argument of argumentsToParse) {
     if (argument === '--help' || argument === '-h') return { command: 'help', options };
@@ -316,12 +339,12 @@ function parseArguments(argv) {
 }
 
 export async function main(argv = process.argv.slice(2)) {
-  const { command, options } = parseArguments(argv);
+  const values = environment();
+  const { command, options } = parseArguments(argv, values);
   if (command === 'help') {
     usage();
     return;
   }
-  const values = environment();
   if (command === 'config') {
     validateCompose(values);
     console.log('Local Compose configuration is valid.');
@@ -344,13 +367,10 @@ export async function main(argv = process.argv.slice(2)) {
   }
   if (command === 'logs') {
     const selected = options.service ? [options.service] : logServices;
-    runDocker([
-      ...composeArgs(values),
-      'logs',
-      '--no-color',
-      `--tail=${options.tail}`,
-      ...selected,
-    ]);
+    runDocker(
+      [...composeArgs(values), 'logs', '--no-color', `--tail=${options.tail}`, ...selected],
+      { capture: false, timeoutMs: 120_000 },
+    );
     return;
   }
   if (command === 'stop') {
@@ -389,32 +409,40 @@ export async function main(argv = process.argv.slice(2)) {
   if (command === 'persistence-check') {
     const key = `databreeze:local:persistence-check:${process.pid}`;
     const value = `${Date.now()}`;
-    runDocker([
-      ...composeArgs(values),
-      'exec',
-      '-T',
-      'redis',
-      'redis-cli',
-      'SET',
-      key,
-      value,
-      'EX',
-      '300',
-    ]);
-    runDocker([...composeArgs(values), 'restart', 'redis']);
-    await waitForReady(values, options.waitSeconds);
-    const result = runDocker([
-      ...composeArgs(values),
-      'exec',
-      '-T',
-      'redis',
-      'redis-cli',
-      'GET',
-      key,
-    ]);
-    if (result.stdout.trim() !== value)
-      fail('Redis persistence sentinel was not recovered after restart');
-    runDocker([...composeArgs(values), 'exec', '-T', 'redis', 'redis-cli', 'DEL', key]);
+    let recovered = false;
+    try {
+      runDocker([
+        ...composeArgs(values),
+        'exec',
+        '-T',
+        'redis',
+        'redis-cli',
+        'SET',
+        key,
+        value,
+        'EX',
+        '300',
+      ]);
+      runDocker([...composeArgs(values), 'restart', 'redis']);
+      await waitForReady(values, options.waitSeconds);
+      const result = runDocker([
+        ...composeArgs(values),
+        'exec',
+        '-T',
+        'redis',
+        'redis-cli',
+        'GET',
+        key,
+      ]);
+      if (result.stdout.trim() !== value)
+        fail('Redis persistence sentinel was not recovered after restart');
+      recovered = true;
+    } finally {
+      runDocker([...composeArgs(values), 'exec', '-T', 'redis', 'redis-cli', 'DEL', key], {
+        allowFailure: true,
+      });
+    }
+    if (!recovered) return;
     console.log('Local Redis persistence check passed; sentinel was removed.');
     return;
   }

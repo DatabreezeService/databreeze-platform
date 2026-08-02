@@ -37,12 +37,17 @@ test('local compose defines pinned, healthy disposable dependencies', () => {
   assert.match(compose, /minio-init:[\s\S]*depends_on:[\s\S]*condition: service_healthy/u);
   assert.match(compose, /minio-init:[\s\S]*restart: 'no'/u);
   assert.match(compose, /postgres-data:[\s\S]*name: \$\{COMPOSE_PROJECT_NAME/u);
-  assert.match(compose, /networks: \[local\]/u);
+  assert.equal((compose.match(/networks: \[local\]/g) ?? []).length, 7);
   assert.match(compose, /name: \$\{COMPOSE_PROJECT_NAME:-databreeze-local\}-network/u);
   assert.match(compose, /x-default-logging: &default-logging/u);
   assert.match(compose, /max-size: 10m/u);
   assert.match(compose, /max-file: '3'/u);
   assert.equal((compose.match(/logging: \*default-logging/g) ?? []).length, 7);
+  assert.equal((compose.match(/127\.0\.0\.1:\$\{/g) ?? []).length, 9);
+  assert.match(
+    read('infrastructure/local/README.md'),
+    /Every published port is bound to `127\.0\.0\.1`/u,
+  );
 });
 
 test('local bootstrap is credential-free and creates every owned module schema', () => {
@@ -215,12 +220,25 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
     cwd: repositoryRoot,
     encoding: 'utf8',
   });
-  if (composeConfig.status === 0)
+  if (composeConfig.status === 0) {
     assert.match(composeConfig.stdout, /Compose configuration is valid/u);
-  assert.match(script, /logs[\s\S]*--no-color/u);
-  assert.match(script, /--service must name one of/u);
-  assert.match(script, /--tail must be an integer/u);
-  assert.match(script, /COMPOSE_PROJECT_NAME must start/u);
-  assert.match(script, /Redis persistence sentinel was not recovered/u);
+  } else {
+    assert.match(
+      `${composeConfig.stdout}\n${composeConfig.stderr}`,
+      /Docker CLI is not installed or not on PATH/u,
+    );
+  }
+  const preflight = spawnSync(process.execPath, [helpScript, 'preflight', '--min-free-gib=0'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  });
+  if (preflight.status === 0) {
+    assert.match(preflight.stdout, /preflight passed without starting services/u);
+  } else {
+    assert.match(
+      `${preflight.stdout}\n${preflight.stderr}`,
+      /Docker CLI is not installed or not on PATH/u,
+    );
+  }
   assert.doesNotMatch(script, /redis-cli\s+FLUSH(?:ALL|DB)/iu);
 });

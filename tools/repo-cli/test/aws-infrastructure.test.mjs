@@ -65,7 +65,8 @@ test('AWS sources expose encryption, private data, and OIDC boundaries without s
   ])
     assert.match(sources, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.doesNotMatch(sources, /AKIA[0-9A-Z]{16}|BEGIN (RSA|OPENSSH) PRIVATE KEY/);
-  assert.doesNotMatch(sources, /ingress[\s\S]{0,400}cidr_blocks\s*=\s*\["0\.0\.0\.0\/0"\]/u);
+  assert.doesNotMatch(sources, /ingress[\s\S]*?cidr_blocks\s*=\s*\["0\.0\.0\.0\/0"\]/u);
+  assert.doesNotMatch(sources, /principals[\s\S]*?identifiers\s*=\s*\[[^\]]*"\*"/u);
   assert.match(sources, /assign_public_ip\s*=\s*false/u);
   assert.match(sources, /token\.actions\.githubusercontent\.com:sub/u);
   assert.match(sources, /repo:\$\{var\.github_repository\}:ref:refs\/heads\/dev/u);
@@ -122,6 +123,8 @@ test('AWS production profile enables recovery and prevents public data paths', (
   assert.match(computeVariables, /variable "worker_memory"/u);
   assert.match(computeVariables, /supported Fargate CPU size/u);
   assert.match(computeVariables, /between 512 and 30720 MiB/u);
+  assert.match(compute, /allowed_worker_memory_by_cpu/u);
+  assert.match(compute, /AWS-supported Fargate size for worker_cpu/u);
 });
 
 test('AWS foundation keeps state and apply outside the repository', () => {

@@ -22,6 +22,9 @@ Task: `FND-003 — Close local infrastructure gaps`
   check, providing the entry point for persistence evidence.
 - `persistence-check` writes a five-minute Redis sentinel, restarts only Redis,
   verifies the sentinel, and deletes it; it never flushes a database or volume.
+- The documented lifecycle command set includes `config`, `preflight`, `check`,
+  `start`, `stop`, `reset`, `restart-check`, `persistence-check`, `status`,
+  `logs`, and the legacy `smoke` entry point.
 
 ## Verification
 
@@ -32,7 +35,6 @@ Passed:
 - `node tools/repo-cli/src/local-services-smoke.mjs --help`
 - `node tools/repo-cli/src/local-services.mjs config`
 - `node tools/repo-cli/src/local-services.mjs preflight --min-free-gib=0`
-- `node tools/repo-cli/src/local-services.mjs persistence-check` *(Docker-gated)*
 - `git diff --check`
 
 Environment-gated:
@@ -43,8 +45,9 @@ Environment-gated:
   without starting containers; the evidence run used a zero-GiB threshold so
   it remains independent of the workstation's available disk headroom.
 - Live `compose up`, health polling, port-collision simulation, disk-pressure
-  threshold validation, and restart-persistence checks must run on a machine
-  with Docker Desktop/Compose v2 before FND-003 can become `verified`.
+  threshold validation, and restart-persistence checks (including
+  `persistence-check`) must run on a machine with Docker Desktop/Compose v2
+  before FND-003 can become `verified`.
 
 ## Rollback
 

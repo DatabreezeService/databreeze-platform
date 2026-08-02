@@ -1,5 +1,12 @@
 locals {
   common_tags = merge(var.tags, { Component = "compute" })
+  allowed_worker_memory_by_cpu = {
+    "256"  = [512, 1024, 2048]
+    "512"  = [1024, 2048, 3072, 4096]
+    "1024" = [2048, 3072, 4096, 5120, 6144, 7168, 8192]
+    "2048" = [4096, 5120, 6144, 7168, 8192, 9216, 10240, 11264, 12288, 13312, 14336, 15360, 16384]
+    "4096" = [8192, 9216, 10240, 11264, 12288, 13312, 14336, 15360, 16384, 17408, 18432, 19456, 20480, 21504, 22528, 23552, 24576, 25600, 26624, 27648, 28672, 29696, 30720]
+  }
 }
 
 resource "aws_ecs_cluster" "this" {
@@ -150,6 +157,13 @@ resource "aws_ecs_task_definition" "worker" {
     precondition {
       condition     = var.environment != "production" || can(regex("@sha256:[0-9a-f]{64}$", var.worker_image))
       error_message = "Production worker deployments must use an immutable image digest."
+    }
+    precondition {
+      condition = contains(
+        lookup(local.allowed_worker_memory_by_cpu, tostring(var.worker_cpu), []),
+        var.worker_memory,
+      )
+      error_message = "worker_memory must be an AWS-supported Fargate size for worker_cpu."
     }
   }
 }
