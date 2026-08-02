@@ -19,9 +19,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "status": { "enum": ["ok"], "type": "string" }
-                  },
+                  "properties": { "status": { "enum": ["ok"], "type": "string" } },
                   "type": "object"
                 }
               }
@@ -96,9 +94,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "status": { "enum": ["ready"], "type": "string" }
-                  },
+                  "properties": { "status": { "enum": ["ready"], "type": "string" } },
                   "type": "object"
                 }
               }
@@ -153,9 +149,7 @@
           "503": {
             "description": "",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" } }
             },
             "headers": {
               "X-Correlation-Id": {
@@ -181,11 +175,7 @@
             "name": "clientPlatform",
             "required": true,
             "in": "query",
-            "schema": {
-              "example": "web",
-              "type": "string",
-              "enum": ["android", "desktop", "web"]
-            }
+            "schema": { "example": "web", "type": "string", "enum": ["android", "desktop", "web"] }
           },
           {
             "name": "clientVersion",
@@ -290,9 +280,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ClientCompatibilityDto"
-              }
+              "schema": { "$ref": "#/components/schemas/ClientCompatibilityDto" }
             }
           }
         },
@@ -379,18 +367,14 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/SignInDto" }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/SignInDto" } }
           }
         },
         "responses": {
           "200": {
             "description": "",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthSessionDto" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AuthSessionDto" } }
             },
             "headers": {
               "X-Correlation-Id": {
@@ -485,9 +469,7 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateInboxItemDto" }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/CreateInboxItemDto" } }
           }
         },
         "responses": {
@@ -616,18 +598,8 @@
       "post": {
         "operationId": "EvidenceGrantController.issue",
         "parameters": [
-          {
-            "name": "versionId",
-            "required": true,
-            "in": "path",
-            "schema": { "type": "string" }
-          },
-          {
-            "name": "evidenceId",
-            "required": true,
-            "in": "path",
-            "schema": { "type": "string" }
-          },
+          { "name": "versionId", "required": true, "in": "path", "schema": { "type": "string" } },
+          { "name": "evidenceId", "required": true, "in": "path", "schema": { "type": "string" } },
           {
             "name": "X-Correlation-Id",
             "in": "header",
@@ -640,9 +612,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateEvidenceGrantDto"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateEvidenceGrantDto" }
             }
           }
         },
@@ -706,12 +676,7 @@
       "delete": {
         "operationId": "EvidenceGrantController.revoke",
         "parameters": [
-          {
-            "name": "grantId",
-            "required": true,
-            "in": "path",
-            "schema": { "type": "string" }
-          },
+          { "name": "grantId", "required": true, "in": "path", "schema": { "type": "string" } },
           {
             "name": "X-Correlation-Id",
             "in": "header",
@@ -792,9 +757,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateGovernedDatasetDto"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateGovernedDatasetDto" }
             }
           }
         },
@@ -858,12 +821,7 @@
       "get": {
         "operationId": "GovernedDatasetController.list",
         "parameters": [
-          {
-            "name": "datasetId",
-            "required": true,
-            "in": "path",
-            "schema": { "type": "string" }
-          },
+          { "name": "datasetId", "required": true, "in": "path", "schema": { "type": "string" } },
           {
             "name": "X-Correlation-Id",
             "in": "header",
@@ -932,12 +890,7 @@
       "post": {
         "operationId": "MappingController.create",
         "parameters": [
-          {
-            "name": "datasetId",
-            "required": true,
-            "in": "path",
-            "schema": { "type": "string" }
-          },
+          { "name": "datasetId", "required": true, "in": "path", "schema": { "type": "string" } },
           {
             "name": "X-Correlation-Id",
             "in": "header",
@@ -949,9 +902,7 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateMappingDto" }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/CreateMappingDto" } }
           }
         },
         "responses": {
@@ -1012,12 +963,7 @@
       "get": {
         "operationId": "MappingController.list",
         "parameters": [
-          {
-            "name": "datasetId",
-            "required": true,
-            "in": "path",
-            "schema": { "type": "string" }
-          },
+          { "name": "datasetId", "required": true, "in": "path", "schema": { "type": "string" } },
           {
             "name": "X-Correlation-Id",
             "in": "header",
@@ -1086,12 +1032,7 @@
       "post": {
         "operationId": "RuleSetController.create",
         "parameters": [
-          {
-            "name": "datasetId",
-            "required": true,
-            "in": "path",
-            "schema": { "type": "string" }
-          },
+          { "name": "datasetId", "required": true, "in": "path", "schema": { "type": "string" } },
           {
             "name": "X-Correlation-Id",
             "in": "header",
@@ -1103,9 +1044,7 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateRuleSetDto" }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/CreateRuleSetDto" } }
           }
         },
         "responses": {
@@ -1166,12 +1105,7 @@
       "get": {
         "operationId": "RuleSetController.list",
         "parameters": [
-          {
-            "name": "datasetId",
-            "required": true,
-            "in": "path",
-            "schema": { "type": "string" }
-          },
+          { "name": "datasetId", "required": true, "in": "path", "schema": { "type": "string" } },
           {
             "name": "X-Correlation-Id",
             "in": "header",
@@ -1252,9 +1186,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateReferenceEntityDto"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateReferenceEntityDto" }
             }
           }
         },
@@ -1330,9 +1262,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MergeReferenceEntityDto"
-              }
+              "schema": { "$ref": "#/components/schemas/MergeReferenceEntityDto" }
             }
           }
         },
@@ -1396,12 +1326,7 @@
       "get": {
         "operationId": "ReferenceEntityController.list",
         "parameters": [
-          {
-            "name": "entityId",
-            "required": true,
-            "in": "path",
-            "schema": { "type": "string" }
-          },
+          { "name": "entityId", "required": true, "in": "path", "schema": { "type": "string" } },
           {
             "name": "X-Correlation-Id",
             "in": "header",
@@ -1498,21 +1423,9 @@
       "SignInDto": {
         "type": "object",
         "properties": {
-          "email": {
-            "type": "string",
-            "example": "ngu***@example.com",
-            "maxLength": 254
-          },
-          "password": {
-            "type": "string",
-            "minLength": 12,
-            "maxLength": 128,
-            "writeOnly": true
-          },
-          "clientPlatform": {
-            "type": "string",
-            "enum": ["android", "desktop", "web"]
-          }
+          "email": { "type": "string", "example": "ngu***@example.com", "maxLength": 254 },
+          "password": { "type": "string", "minLength": 12, "maxLength": 128, "writeOnly": true },
+          "clientPlatform": { "type": "string", "enum": ["android", "desktop", "web"] }
         },
         "required": ["email", "password", "clientPlatform"]
       },
@@ -1523,16 +1436,8 @@
           "userId": { "type": "string", "format": "uuid" },
           "organizationId": { "type": "string", "format": "uuid" },
           "workspaceId": { "type": "string", "format": "uuid" },
-          "accessToken": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 4096
-          },
-          "refreshToken": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 4096
-          },
+          "accessToken": { "type": "string", "minLength": 1, "maxLength": 4096 },
+          "refreshToken": { "type": "string", "minLength": 1, "maxLength": 4096 },
           "accessExpiresAt": { "type": "string", "format": "date-time" },
           "securityEpoch": { "type": "number", "minimum": 1 },
           "mfaRequired": { "type": "boolean" }
@@ -1555,11 +1460,7 @@
           "inboxItemId": { "type": "string", "format": "uuid" },
           "artifactVersionId": { "type": "string", "format": "uuid" },
           "createdAt": { "type": "string", "format": "date-time" },
-          "idempotencyKey": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          }
+          "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 200 }
         },
         "required": ["inboxItemId", "artifactVersionId", "createdAt"]
       },
@@ -1568,10 +1469,7 @@
         "properties": {
           "grantId": { "type": "string", "format": "uuid" },
           "recipientDeviceId": { "type": "string", "format": "uuid" },
-          "action": {
-            "type": "string",
-            "enum": ["COORDINATE", "EXCERPT", "OPEN_ON_DEVICE"]
-          },
+          "action": { "type": "string", "enum": ["COORDINATE", "EXCERPT", "OPEN_ON_DEVICE"] },
           "issuedAt": { "type": "string", "format": "date-time" },
           "expiresAt": { "type": "string", "format": "date-time" },
           "authorizationEpoch": { "type": "number", "minimum": 1 },
@@ -1591,10 +1489,7 @@
         "properties": {
           "fieldId": { "type": "string", "format": "uuid" },
           "name": { "type": "string", "maxLength": 128 },
-          "type": {
-            "type": "string",
-            "enum": ["TEXT", "INTEGER", "DECIMAL", "BOOLEAN", "DATE"]
-          },
+          "type": { "type": "string", "enum": ["TEXT", "INTEGER", "DECIMAL", "BOOLEAN", "DATE"] },
           "nullable": { "type": "boolean" },
           "unit": { "type": "string", "maxLength": 64 },
           "semanticRole": { "type": "string", "maxLength": 128 },
@@ -1604,10 +1499,7 @@
             "type": "string",
             "enum": ["PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED"]
           },
-          "defaultBehavior": {
-            "type": "string",
-            "enum": ["MISSING", "NULL", "STATIC", "NONE"]
-          }
+          "defaultBehavior": { "type": "string", "enum": ["MISSING", "NULL", "STATIC", "NONE"] }
         },
         "required": ["fieldId", "name", "type", "nullable"]
       },
@@ -1624,14 +1516,7 @@
           "createdAt": { "type": "string", "format": "date-time" },
           "canonicalHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
         },
-        "required": [
-          "datasetId",
-          "versionId",
-          "name",
-          "fields",
-          "createdAt",
-          "canonicalHash"
-        ]
+        "required": ["datasetId", "versionId", "name", "fields", "createdAt", "canonicalHash"]
       },
       "MappingStepDto": {
         "type": "object",
@@ -1660,10 +1545,7 @@
           "versionId": { "type": "string", "format": "uuid" },
           "sourceSchemaVersionId": { "type": "string", "format": "uuid" },
           "targetSchemaVersionId": { "type": "string", "format": "uuid" },
-          "steps": {
-            "type": "array",
-            "items": { "$ref": "#/components/schemas/MappingStepDto" }
-          },
+          "steps": { "type": "array", "items": { "$ref": "#/components/schemas/MappingStepDto" } },
           "createdAt": { "type": "string", "format": "date-time" },
           "canonicalHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
         },
@@ -1685,13 +1567,7 @@
           "createdAt": { "type": "string", "format": "date-time" },
           "canonicalHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
         },
-        "required": [
-          "versionId",
-          "schemaVersionId",
-          "rules",
-          "createdAt",
-          "canonicalHash"
-        ]
+        "required": ["versionId", "schemaVersionId", "rules", "createdAt", "canonicalHash"]
       },
       "CreateReferenceEntityDto": {
         "type": "object",
@@ -1701,27 +1577,14 @@
           "displayName": { "type": "string", "maxLength": 255 },
           "roles": {
             "type": "array",
-            "items": {
-              "type": "string",
-              "enum": ["SUPPLIER", "CUSTOMER", "CARRIER", "OTHER"]
-            }
+            "items": { "type": "string", "enum": ["SUPPLIER", "CUSTOMER", "CARRIER", "OTHER"] }
           },
           "aliases": { "type": "array", "items": { "type": "string" } },
-          "externalIdentifiers": {
-            "type": "array",
-            "items": { "type": "object" }
-          },
+          "externalIdentifiers": { "type": "array", "items": { "type": "object" } },
           "canonicalHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
           "createdAt": { "type": "string", "format": "date-time" }
         },
-        "required": [
-          "entityId",
-          "versionId",
-          "displayName",
-          "roles",
-          "canonicalHash",
-          "createdAt"
-        ]
+        "required": ["entityId", "versionId", "displayName", "roles", "canonicalHash", "createdAt"]
       },
       "MergeReferenceEntityDto": {
         "type": "object",
@@ -1791,20 +1654,13 @@
               "required": ["field", "code"],
               "properties": {
                 "field": { "type": "string", "minLength": 1, "maxLength": 255 },
-                "code": {
-                  "type": "string",
-                  "pattern": "^[A-Z][A-Z0-9_]{0,127}$"
-                }
+                "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{0,127}$" }
               }
             }
           },
           "retryAfterSeconds": { "type": "integer", "minimum": 0 },
           "currentRevision": { "$ref": "#/components/schemas/Revision" },
-          "remediationAction": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 255
-          },
+          "remediationAction": { "type": "string", "minLength": 1, "maxLength": 255 },
           "rateLimit": {
             "type": "object",
             "additionalProperties": false,
