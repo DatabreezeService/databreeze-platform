@@ -1,4 +1,4 @@
-"""Safe deterministic workbook inventory and formula-family auditing (SA-001..SA-004)."""
+"""Safe deterministic workbook inventory and formula-family auditing (SA-001..SA-007)."""
 
 from __future__ import annotations
 
@@ -83,6 +83,14 @@ def _column_number(column: str) -> int:
     value = 0
     for character in column.upper():
         value = value * 26 + ord(character) - 64
+    return value
+
+
+def _column_name(column: int) -> str:
+    value = ""
+    while column > 0:
+        column, remainder = divmod(column - 1, 26)
+        value = chr(65 + remainder) + value
     return value
 
 
@@ -199,7 +207,7 @@ def audit_workbook(
             root = _xml(archive.read(target))
             max_row = 0
             max_column = 0
-            formulas: list[tuple[str, str]] = []
+            cells: list[tuple[str, str | None]] = []
             for address, formula in _iter_cells(root):
                 total_cells += 1
                 if total_cells > max_cells:
@@ -211,8 +219,8 @@ def audit_workbook(
                 column, row = coordinates
                 max_column = max(max_column, column)
                 max_row = max(max_row, row)
-                if formula is not None:
-                    formulas.append((address.upper(), formula))
+                cells.append((address.upper(), formula))
+            formulas = [(address, formula) for address, formula in cells if formula is not None]
             families = Counter(_normalized_formula(formula) for _, formula in formulas)
             for address, formula in formulas:
                 family = _normalized_formula(formula)
@@ -225,6 +233,43 @@ def audit_workbook(
                             formulaFingerprint=_fingerprint(family),
                         )
                     )
+            cells_by_column: dict[int, dict[int, str | None]] = {}
+            for address, formula in cells:
+                coordinates = _cell_address(address)
+                if coordinates is None:
+                    continue
+                column, row = coordinates
+                cells_by_column.setdefault(column, {})[row] = formula
+            gap_keys: set[tuple[str, str]] = set()
+            for column, rows in cells_by_column.items():
+                formula_rows = sorted(row for row, formula in rows.items() if formula is not None)
+                for previous_row, next_row in zip(formula_rows, formula_rows[1:]):
+                    if next_row - previous_row <= 1:
+                        continue
+                    previous_formula = rows[previous_row]
+                    next_formula = rows[next_row]
+                    if previous_formula is None or next_formula is None:
+                        continue
+                    previous_family = _normalized_formula(previous_formula)
+                    if previous_family != _normalized_formula(next_formula):
+                        continue
+                    populated_rows = sorted(
+                        row for row in rows if previous_row < row < next_row
+                    )
+                    for row in populated_rows:
+                        address = f"{_column_name(column)}{row}"
+                        key = (address, previous_family)
+                        if key in gap_keys:
+                            continue
+                        gap_keys.add(key)
+                        findings.append(
+                            SpreadsheetFinding(
+                                sheet=sheet_name,
+                                address=address,
+                                kind="FORMULA_GAP",
+                                formulaFingerprint=_fingerprint(previous_family),
+                            )
+                        )
             summaries.append(
                 SpreadsheetSheetSummary(
                     name=sheet_name,
