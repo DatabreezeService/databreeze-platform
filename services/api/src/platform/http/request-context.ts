@@ -2,6 +2,11 @@ import { randomUUID } from 'node:crypto';
 
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
+import {
+  DEFAULT_CSRF_ALLOWED_ORIGINS_V1,
+  evaluateCsrfRequestV1,
+  type CsrfProtectionOptionsV1,
+} from './csrf-protection.js';
 import { createProblem } from './problem-details.js';
 
 export interface RequestContext {
@@ -15,6 +20,10 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}
 export type CorrelationHeaderResult =
   | { readonly accepted: true; readonly correlationId: string }
   | { readonly accepted: false };
+
+export interface RequestContextOptions {
+  readonly csrf?: Partial<CsrfProtectionOptionsV1>;
+}
 
 export function parseCorrelationHeader(
   values: readonly string[],
@@ -35,7 +44,10 @@ export function getRequestContext(request: FastifyRequest): RequestContext {
   return context;
 }
 
-export function installRequestContext(fastify: FastifyInstance): void {
+export function installRequestContext(
+  fastify: FastifyInstance,
+  options: RequestContextOptions = {},
+): void {
   fastify.addHook('onRequest', (request, reply, done) => {
     const requestId = randomUUID();
     const context: RequestContext = { correlationId: requestId, requestId };
@@ -68,6 +80,30 @@ export function installRequestContext(fastify: FastifyInstance): void {
     const acceptedContext = { correlationId: parsed.correlationId, requestId };
     requestContexts.set(request, acceptedContext);
     reply.header('X-Correlation-Id', acceptedContext.correlationId);
+    const csrf = evaluateCsrfRequestV1(
+      { method: request.method, headers: request.headers },
+      { allowedOrigins: options.csrf?.allowedOrigins ?? DEFAULT_CSRF_ALLOWED_ORIGINS_V1 },
+    );
+    if (!csrf.accepted) {
+      reply
+        .code(403)
+        .type('application/problem+json')
+        .send(
+          createProblem({
+            code: csrf.code,
+            correlationId: acceptedContext.correlationId,
+            messageKey:
+              csrf.code === 'ORIGIN_INVALID'
+                ? 'api.error.origin_invalid'
+                : csrf.code === 'CSRF_REQUIRED'
+                  ? 'api.error.csrf_required'
+                  : 'api.error.csrf_invalid',
+            retryable: false,
+            status: 403,
+          }),
+        );
+      return;
+    }
     done();
   });
 }

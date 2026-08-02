@@ -23,6 +23,7 @@ const problemSchemaId = 'https://schemas.databreeze.dev/contracts/v1/problem-det
 const correlationId = '123e4567-e89b-42d3-a456-426614174000';
 const secondCorrelationId = '018f1f08-7b2c-7c74-8e12-f639c7c92b15';
 const leakedMarker = 'do-not-leak-7f6290';
+const csrfToken = 'QmFzZTY0dXJsVG9rZW5fMDEyMzQ1Njc4OWFiY2RlZg';
 
 async function withApp(
   options: Parameters<typeof createApiApplication>[0],
@@ -175,6 +176,54 @@ void test('validates closed compatibility bodies without implicit scalar coercio
     });
     assertProblem(unknown, 400, 'VALIDATION_FAILED');
     assert.doesNotMatch(unknown.body, new RegExp(leakedMarker));
+  });
+});
+
+void test('enforces CSRF only for browser-cookie mutations and keeps token values out of errors', async () => {
+  await withApp({}, async (app) => {
+    const missing = await app.inject({
+      method: 'POST',
+      url: '/v1/system/compatibility/check',
+      headers: {
+        cookie: 'databreeze_refresh=session-value',
+        origin: 'http://localhost:3000',
+      },
+      payload: { clientPlatform: 'web', clientVersion: '1.0.0' },
+    });
+    assertProblem(missing, 403, 'CSRF_REQUIRED');
+    assert.doesNotMatch(missing.body, new RegExp(csrfToken));
+
+    const hostile = await app.inject({
+      method: 'POST',
+      url: '/v1/system/compatibility/check',
+      headers: {
+        cookie: `databreeze_refresh=session-value; databreeze_csrf=${csrfToken}`,
+        'x-csrf-token': csrfToken,
+        origin: 'https://evil.example',
+      },
+      payload: { clientPlatform: 'web', clientVersion: '1.0.0' },
+    });
+    assertProblem(hostile, 403, 'ORIGIN_INVALID');
+    assert.doesNotMatch(hostile.body, new RegExp(csrfToken));
+
+    const accepted = await app.inject({
+      method: 'POST',
+      url: '/v1/system/compatibility/check',
+      headers: {
+        cookie: `databreeze_refresh=session-value; databreeze_csrf=${csrfToken}`,
+        'x-csrf-token': csrfToken,
+        origin: 'http://localhost:3000',
+      },
+      payload: { clientPlatform: 'web', clientVersion: '1.0.0' },
+    });
+    assert.equal(accepted.statusCode, 200);
+
+    const safeRead = await app.inject({
+      method: 'GET',
+      url: '/health/live',
+      headers: { cookie: 'databreeze_refresh=session-value' },
+    });
+    assert.equal(safeRead.statusCode, 200);
   });
 });
 
