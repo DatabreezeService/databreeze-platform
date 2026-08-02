@@ -10,6 +10,8 @@ const read = (relativePath) => readFileSync(path.join(repositoryRoot, relativePa
 
 test('local compose defines pinned, healthy disposable dependencies', () => {
   const compose = read('infrastructure/local/compose.yml');
+  const envExample = read('infrastructure/local/.env.example');
+  assert.match(envExample, /^DATABREEZE_MIN_FREE_GIB=5$/m);
   for (const service of [
     'postgres:',
     'redis:',
@@ -31,6 +33,16 @@ test('local compose defines pinned, healthy disposable dependencies', () => {
     assert.match(compose, new RegExp(`^  ${volume}:`, 'm'));
   }
   assert.equal((compose.match(/healthcheck:/g) ?? []).length, 6);
+  assert.equal((compose.match(/^\s{4}init: true$/gmu) ?? []).length, 7);
+  assert.match(compose, /minio-init:[\s\S]*depends_on:[\s\S]*condition: service_healthy/u);
+  assert.match(compose, /minio-init:[\s\S]*restart: 'no'/u);
+  assert.match(compose, /postgres-data:[\s\S]*name: \$\{COMPOSE_PROJECT_NAME/u);
+  assert.match(compose, /networks: \[local\]/u);
+  assert.match(compose, /name: \$\{COMPOSE_PROJECT_NAME:-databreeze-local\}-network/u);
+  assert.match(compose, /x-default-logging: &default-logging/u);
+  assert.match(compose, /max-size: 10m/u);
+  assert.match(compose, /max-file: '3'/u);
+  assert.equal((compose.match(/logging: \*default-logging/g) ?? []).length, 7);
 });
 
 test('local bootstrap is credential-free and creates every owned module schema', () => {
@@ -58,10 +70,45 @@ test('local bootstrap is credential-free and creates every owned module schema',
   ];
   for (const schema of expectedSchemas) assert.match(sql, new RegExp(`'${schema}'`));
   assert.doesNotMatch(sql, /password|secret|BEGIN\s+;|CREATE\s+ROLE/i);
+  assert.match(sql, /CREATE SCHEMA IF NOT EXISTS/u);
+  assert.doesNotMatch(sql, /DROP\s+SCHEMA|DROP\s+DATABASE|TRUNCATE/u);
 
   const bucketScript = read('infrastructure/local/minio/bootstrap-buckets.sh');
   assert.match(bucketScript, /MINIO_ROOT_PASSWORD/);
+  assert.match(bucketScript, /mc mb --ignore-existing/u);
+  assert.match(bucketScript, /mc anonymous set none/u);
   assert.doesNotMatch(bucketScript, /databreeze-local-change-me/);
+});
+
+test('local OpenTelemetry collector keeps every signal on the bounded local pipeline', () => {
+  const collector = read('infrastructure/local/otel/collector.yaml');
+  for (const [section, indentation] of [
+    ['receivers:', ''],
+    ['processors:', ''],
+    ['exporters:', ''],
+    ['extensions:', ''],
+    ['service:', ''],
+    ['pipelines:', '  '],
+  ]) {
+    assert.match(collector, new RegExp(`^${indentation}${section}`, 'm'));
+  }
+  for (const signal of ['traces:', 'metrics:', 'logs:']) {
+    assert.match(collector, new RegExp(`^    ${signal}`, 'm'));
+    assert.match(collector, new RegExp(`${signal}[\\s\\S]*receivers: \\[otlp\\]`, 'u'));
+    assert.match(
+      collector,
+      new RegExp(`${signal}[\\s\\S]*processors: \\[memory_limiter, batch\\]`, 'u'),
+    );
+    assert.match(collector, new RegExp(`${signal}[\\s\\S]*exporters: \\[debug\\]`, 'u'));
+  }
+  assert.match(collector, /health_check:[\s\S]*endpoint: 0\.0\.0\.0:13133/u);
+  assert.doesNotMatch(collector, /filelog|otlphttp|s3|https?:\/\//iu);
+});
+
+test('local infrastructure documents bounded diagnostic storage', () => {
+  const readme = read('infrastructure/local/README.md');
+  assert.match(readme, /Container JSON logs are capped at 10 MiB per file/u);
+  assert.match(readme, /three retained files/u);
 });
 
 test('readiness smoke script exposes a non-destructive help command', () => {
@@ -73,4 +120,107 @@ test('readiness smoke script exposes a non-destructive help command', () => {
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /--start/);
   assert.match(result.stdout, /never removes containers or named volumes/i);
+});
+
+test('local lifecycle commands fail safely around Docker, ports, disk, and volumes', () => {
+  const script = read('tools/repo-cli/src/local-services.mjs');
+  const helpScript = path.join(repositoryRoot, 'tools', 'repo-cli', 'src', 'local-services.mjs');
+  const result = spawnSync(process.execPath, [helpScript, '--help'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr);
+  for (const command of [
+    'config',
+    'preflight',
+    'check',
+    'start',
+    'stop',
+    'reset',
+    'restart-check',
+    'persistence-check',
+    'status',
+    'logs',
+    'smoke',
+  ]) {
+    assert.match(result.stdout, new RegExp(`^  ${command}\\s`, 'm'));
+  }
+  assert.match(script, /statfsSync/u);
+  assert.match(script, /portAvailable/u);
+  assert.match(script, /configured = new Map/u);
+  assert.match(script, /Docker CLI is not installed/u);
+  assert.match(script, /Docker daemon is unavailable/u);
+  assert.match(script, /down', '--remove-orphans/u);
+  assert.doesNotMatch(script, /down'[^\n]*--volumes/u);
+  assert.doesNotMatch(script, /down\s+--volumes/u);
+  assert.doesNotMatch(script, /docker\s+(?:rm|volume\s+rm|system\s+prune)/iu);
+
+  const invalidTimeout = spawnSync(process.execPath, [helpScript, 'check', '--wait-seconds=0'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  });
+  assert.notEqual(invalidTimeout.status, 0);
+  assert.match(
+    `${invalidTimeout.stdout}\n${invalidTimeout.stderr}`,
+    /--wait-seconds must be an integer/u,
+  );
+
+  const invalidDisk = spawnSync(process.execPath, [helpScript, 'check', '--min-free-gib=-1'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  });
+  assert.notEqual(invalidDisk.status, 0);
+  assert.match(
+    `${invalidDisk.stdout}\n${invalidDisk.stderr}`,
+    /--min-free-gib must be a non-negative number/u,
+  );
+
+  const invalidTail = spawnSync(process.execPath, [helpScript, 'logs', '--tail=0'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  });
+  assert.notEqual(invalidTail.status, 0);
+  assert.match(`${invalidTail.stdout}\n${invalidTail.stderr}`, /--tail must be an integer/u);
+
+  const invalidService = spawnSync(process.execPath, [helpScript, 'logs', '--service=unknown'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  });
+  assert.notEqual(invalidService.status, 0);
+  assert.match(`${invalidService.stdout}\n${invalidService.stderr}`, /--service must name one of/u);
+
+  const invalidProject = spawnSync(process.execPath, [helpScript, 'config'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    env: { ...process.env, COMPOSE_PROJECT_NAME: '../unsafe-project' },
+  });
+  assert.notEqual(invalidProject.status, 0);
+  assert.match(
+    `${invalidProject.stdout}\n${invalidProject.stderr}`,
+    /COMPOSE_PROJECT_NAME must start/u,
+  );
+
+  const invalidEnvironmentDisk = spawnSync(process.execPath, [helpScript, 'preflight'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    env: { ...process.env, DATABREEZE_MIN_FREE_GIB: 'not-a-number' },
+  });
+  assert.notEqual(invalidEnvironmentDisk.status, 0);
+  assert.match(
+    `${invalidEnvironmentDisk.stdout}\n${invalidEnvironmentDisk.stderr}`,
+    /--min-free-gib must be a non-negative number/u,
+  );
+
+  const composeConfig = spawnSync(process.execPath, [helpScript, 'config'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  });
+  if (composeConfig.status === 0)
+    assert.match(composeConfig.stdout, /Compose configuration is valid/u);
+  assert.match(script, /logs[\s\S]*--no-color/u);
+  assert.match(script, /--service must name one of/u);
+  assert.match(script, /--tail must be an integer/u);
+  assert.match(script, /COMPOSE_PROJECT_NAME must start/u);
+  assert.match(script, /Redis persistence sentinel was not recovered/u);
+  assert.doesNotMatch(script, /redis-cli\s+FLUSH(?:ALL|DB)/iu);
 });

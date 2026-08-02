@@ -91,7 +91,7 @@ Create the Gradle wrapper/version catalog and Kotlin/Compose application with bi
 
 ### Task 18: Local development infrastructure
 
-Create Docker Compose definitions for PostgreSQL 17, Redis 7.4, MinIO, Mailpit, and an OpenTelemetry collector. Add health checks, named development volumes, `.env.example`, initialization scripts without credentials, and a smoke script that validates readiness. Commit as `feat(infra): add portable local dependencies`.
+Create Docker Compose definitions for PostgreSQL 17, Redis 7.4, MinIO, Mailpit, and an OpenTelemetry collector. Add health checks, an isolated project network, named development volumes, `.env.example`, initialization scripts without credentials, and lifecycle commands for daemon-free config validation, safe start/stop/reset, port and disk preflight, status, and restart-persistence checks. Commit as `feat(infra): add portable local dependencies`.
 
 ### Task 19: AWS OpenTofu foundation
 

@@ -76,6 +76,28 @@ variable "api_memory" {
   default = 1024
 }
 
+variable "worker_cpu" {
+  type        = number
+  description = "Fargate task CPU units reserved for the worker pool."
+  default     = 1024
+
+  validation {
+    condition     = contains([256, 512, 1024, 2048, 4096], var.worker_cpu)
+    error_message = "worker_cpu must be a supported Fargate CPU size."
+  }
+}
+
+variable "worker_memory" {
+  type        = number
+  description = "Fargate task memory (MiB) reserved for the worker pool."
+  default     = 2048
+
+  validation {
+    condition     = var.worker_memory >= 512 && var.worker_memory <= 30720
+    error_message = "worker_memory must be between 512 and 30720 MiB."
+  }
+}
+
 variable "tags" {
   type    = map(string)
   default = {}

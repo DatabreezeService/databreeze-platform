@@ -33,7 +33,7 @@ This record was created from the current merged `dev` checkpoint, not from an ea
 | Task 15 | reconciled | Electron main/preload/renderer shell, context isolation, CSP/navigation policy, and IPC boundary tests pass. |
 | Task 16 | reconciled | Python `uv` project, typed action registry, framed entry points, deterministic processor, and engine checks/build pass. |
 | Task 17 | reconciled | Kotlin/Compose shell, generated resources, Room/WorkManager/Keystore ports, network security, backup policy, and debug unit tests pass. |
-| Task 18 | reconciled | PostgreSQL/Redis/MinIO/Mailpit/OpenTelemetry Compose definitions, health checks, and static readiness checks pass; live Docker startup is separately environment-gated. |
+| Task 18 | reconciled-with-limit | PostgreSQL/Redis/MinIO/Mailpit/OpenTelemetry Compose definitions, health checks, explicit network/volume isolation, safe lifecycle commands, port/disk/Docker preflight, and daemon-free config checks pass; live Docker startup/restart persistence is separately environment-gated in FND-003. |
 | Task 19 | reconciled-with-limit | AWS OpenTofu modules, alpha composition, encryption/private-network/OIDC source checks, and non-applying infrastructure check pass; OpenTofu itself is not installed locally, so format/validate remain hosted-check obligations. |
 | Task 20 | reconciled | Content-safe telemetry package, correlation propagation, redaction allowlists, and hostile-attribute tests are present and covered by repository checks. |
 | Task 21 | reconciled | Path-aware quality/security/release workflows, pinned actions, least-privilege permissions, SBOM/provenance, and scan definitions are present and hosted checks pass. |
@@ -59,7 +59,7 @@ The repository checks include generated-contract drift, brand checksum/derivativ
 ## Known environment limits
 
 - OpenTofu is not installed on this workstation. No AWS infrastructure was applied; hosted CI must run the pinned OpenTofu format/validate checks before an infrastructure PR is accepted.
-- Docker is installed but live local dependency startup was not required for this reconciliation. Run `corepack pnpm local:smoke` on a healthy Docker daemon before dogfood acceptance.
+- Docker is installed but its daemon is unavailable for this reconciliation. Run `corepack pnpm local:services check`, `start`, and `restart-check` on a healthy Docker daemon before dogfood acceptance.
 - Android instrumentation/emulator testing and signed release packaging remain Plan 400 gates; the debug unit suite passed with the local SDK path supplied through `ANDROID_HOME`/`ANDROID_SDK_ROOT`.
 - No customer data or credentials were used. Ignored dependency caches, virtual environments, build output, and Gradle state remain untracked.
 

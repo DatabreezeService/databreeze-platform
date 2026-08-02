@@ -65,24 +65,15 @@ resource "aws_iam_role" "task" {
   tags               = merge(local.common_tags, { Name = "databreeze-${var.name}-ecs-task" })
 }
 
-resource "aws_iam_role_policy" "task" {
-  name = "databreeze-${var.name}-ecs-task-minimal"
-  role = aws_iam_role.task.id
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["secretsmanager:GetSecretValue", "kms:Decrypt"]
-      Resource = [var.database_secret_arn, var.application_secret_arn, var.kms_key_arn]
-    }]
-  })
-}
-
 locals {
   api_container = {
     name      = "api"
     image     = var.api_image
     essential = true
+    readonlyRootFilesystem = true
+    privileged              = false
+    user                    = "10001"
+    stopTimeout             = 30
     cpu       = var.api_cpu
     memory    = var.api_memory
     portMappings = [{
@@ -119,20 +110,31 @@ resource "aws_ecs_task_definition" "api" {
   task_role_arn            = aws_iam_role.task.arn
   container_definitions    = jsonencode([local.api_container])
   tags                     = merge(local.common_tags, { Name = "databreeze-${var.name}-api" })
+
+  lifecycle {
+    precondition {
+      condition     = var.environment != "production" || can(regex("@sha256:[0-9a-f]{64}$", var.api_image))
+      error_message = "Production API deployments must use an immutable image digest."
+    }
+  }
 }
 
 resource "aws_ecs_task_definition" "worker" {
   family                   = "databreeze-${var.name}-worker"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  cpu                      = "1024"
-  memory                   = "2048"
+  cpu                      = tostring(var.worker_cpu)
+  memory                   = tostring(var.worker_memory)
   execution_role_arn       = aws_iam_role.execution.arn
   task_role_arn            = aws_iam_role.task.arn
   container_definitions = jsonencode([{
     name      = "worker"
     image     = var.worker_image
     essential = true
+    readonlyRootFilesystem = true
+    privileged              = false
+    user                    = "10001"
+    stopTimeout             = 30
     logConfiguration = {
       logDriver = "awslogs"
       options = {
@@ -143,6 +145,13 @@ resource "aws_ecs_task_definition" "worker" {
     }
   }])
   tags = merge(local.common_tags, { Name = "databreeze-${var.name}-worker" })
+
+  lifecycle {
+    precondition {
+      condition     = var.environment != "production" || can(regex("@sha256:[0-9a-f]{64}$", var.worker_image))
+      error_message = "Production worker deployments must use an immutable image digest."
+    }
+  }
 }
 
 resource "aws_ecs_service" "api" {

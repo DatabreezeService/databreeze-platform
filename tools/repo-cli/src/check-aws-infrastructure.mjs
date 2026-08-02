@@ -45,6 +45,25 @@ for (const requiredText of [
 ]) {
   if (!allTerraform.includes(requiredText)) fail(`missing required declaration ${requiredText}`);
 }
+for (const requiredBoundary of [
+  'block_public_policy',
+  'versioning_configuration',
+  'assign_public_ip = false',
+  'deletion_protection',
+  'backup_retention_period',
+  'token.actions.githubusercontent.com:sub',
+  'recovery_window_in_days = 30',
+  'force_destroy = false',
+]) {
+  if (!allTerraform.includes(requiredBoundary))
+    fail(`missing required safety boundary ${requiredBoundary}`);
+}
+if (/ingress[\s\S]{0,400}cidr_blocks\s*=\s*\["0\.0\.0\.0\/0"\]/u.test(allTerraform)) {
+  fail('a private service security group permits unrestricted ingress');
+}
+if (/resource\s+"aws_s3_bucket_policy"[\s\S]*?Principal\s*=\s*"\*"/u.test(allTerraform)) {
+  fail('the Web bucket policy grants a wildcard principal');
+}
 if (
   /AKIA[0-9A-Z]{16}|aws_secret_access_key\s*=|BEGIN (RSA|OPENSSH) PRIVATE KEY/.test(allTerraform)
 ) {

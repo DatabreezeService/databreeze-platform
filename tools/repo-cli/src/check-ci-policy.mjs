@@ -30,11 +30,37 @@ function assertLeastPrivilege(text, filename) {
   if (!/^permissions:\s*$/im.test(text)) {
     throw new Error(`${filename} must declare a top-level permissions block`);
   }
+  if (!/^\s+contents:\s*read\s*$/im.test(text)) {
+    throw new Error(`${filename} must grant contents: read explicitly`);
+  }
   if (/pull_request_target:/iu.test(text)) {
     throw new Error(`${filename} must not execute untrusted code from pull_request_target`);
   }
   if (/AWS_(?:ACCESS_KEY_ID|SECRET_ACCESS_KEY)\s*:/iu.test(text)) {
     throw new Error(`${filename} must not define long-lived AWS key environment variables`);
+  }
+  if (/uses:\s*actions\/checkout@/iu.test(text) && !/persist-credentials:\s*false/iu.test(text)) {
+    throw new Error(`${filename} must disable checkout credential persistence`);
+  }
+}
+
+function assertBoundedJobs(text, filename) {
+  const jobCount = (text.match(/^\s+runs-on:\s*\S+/gim) ?? []).length;
+  const timeoutCount = (text.match(/^\s+timeout-minutes:\s*\d+/gim) ?? []).length;
+  if (jobCount > timeoutCount) {
+    throw new Error(`${filename} must bound every runner job with timeout-minutes`);
+  }
+}
+
+function assertArtifactOutputs(text, filename) {
+  const artifactSteps =
+    text.match(
+      /-\s+uses:\s+actions\/upload-artifact@[^\n]+[\s\S]*?(?=\n\s+-\s+name:|\n\s+\w+:\s*$|$)/gim,
+    ) ?? [];
+  for (const step of artifactSteps) {
+    if (!/if-no-files-found:\s*error/iu.test(step)) {
+      throw new Error(`${filename} artifact uploads must fail when an output is missing`);
+    }
   }
 }
 
@@ -45,6 +71,8 @@ export function checkCiPolicy(root = process.cwd()) {
   for (const [name, text] of Object.entries(workflows)) {
     assertPinnedActions(text, name);
     assertLeastPrivilege(text, name);
+    assertBoundedJobs(text, name);
+    assertArtifactOutputs(text, name);
   }
   const security = workflows['security.yml'];
   for (const required of [
@@ -62,6 +90,9 @@ export function checkCiPolicy(root = process.cwd()) {
   }
   if (!release.includes('generate-provenance.mjs')) {
     throw new Error('release.yml must generate a provenance record');
+  }
+  if (!/^\s+environment:\s*release\s*$/im.test(release)) {
+    throw new Error('release.yml must use the protected release environment');
   }
   return { workflowCount: REQUIRED_WORKFLOWS.length };
 }

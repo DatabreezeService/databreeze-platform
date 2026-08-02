@@ -108,3 +108,13 @@ variable "worker_desired_count" {
   type    = number
   default = 1
 }
+
+variable "worker_cpu" {
+  type    = number
+  default = 1024
+}
+
+variable "worker_memory" {
+  type    = number
+  default = 2048
+}

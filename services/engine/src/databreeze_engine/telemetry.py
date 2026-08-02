@@ -162,23 +162,33 @@ def sanitize_attributes(attributes: dict[str, Any]) -> dict[str, str | int | flo
     if not isinstance(attributes, Mapping):
         return {}
     safe: dict[str, str | int | float | bool] = {}
-    for raw_key, value in attributes.items():
-        key = _validate_key(raw_key)
-        if key not in SAFE_ATTRIBUTE_KEYS:
-            continue
-        scalar = _safe_scalar(key, value)
-        if scalar is not None:
-            safe[key] = scalar
+    try:
+        for raw_key, value in attributes.items():
+            key = _validate_key(raw_key)
+            if key not in SAFE_ATTRIBUTE_KEYS:
+                continue
+            scalar = _safe_scalar(key, value)
+            if scalar is not None:
+                safe[key] = scalar
+    except Exception:
+        # Diagnostics must fail closed without reflecting provider causes or
+        # executing a hostile Mapping implementation again.
+        return safe
     return safe
 
 
 def assert_safe_attributes(attributes: Mapping[str, Any]) -> None:
     """Raise when a record contains an unsafe or unknown attribute."""
 
-    for raw_key, value in attributes.items():
-        key = _validate_key(raw_key)
-        if key not in SAFE_ATTRIBUTE_KEYS or _safe_scalar(key, value) is None:
-            raise ValueError(f"telemetry attribute is not allowed: {key}")
+    try:
+        for raw_key, value in attributes.items():
+            key = _validate_key(raw_key)
+            if key not in SAFE_ATTRIBUTE_KEYS or _safe_scalar(key, value) is None:
+                raise ValueError(f"telemetry attribute is not allowed: {key}")
+    except ValueError:
+        raise
+    except Exception:
+        raise ValueError("telemetry attributes are not readable") from None
 
 
 def _correlation_id(value: str) -> str:
@@ -246,13 +256,24 @@ def correlation_headers(context: CorrelationContext) -> dict[str, str]:
 
 def _single_header(headers: Mapping[str, str | Sequence[str] | None], name: str) -> str | None:
     values: list[str] = []
-    for key, value in headers.items():
-        if key.lower() != name:
-            continue
-        if isinstance(value, str):
-            values.append(value)
-        elif value is not None:
-            values.extend(value)
+    try:
+        for key, value in headers.items():
+            if not isinstance(key, str):
+                raise ValueError("telemetry header name is not a string")
+            if key.lower() != name:
+                continue
+            if isinstance(value, str):
+                values.append(value)
+            elif value is not None:
+                if not isinstance(value, Sequence) or isinstance(value, (bytes, bytearray)):
+                    raise ValueError("telemetry header value is not readable")
+                if not all(isinstance(item, str) for item in value):
+                    raise ValueError("telemetry header value is not readable")
+                values.extend(value)
+    except ValueError:
+        raise
+    except Exception:
+        raise ValueError("telemetry headers are not readable") from None
     if len(values) > 1:
         raise ValueError(f"ambiguous telemetry {name} header")
     if not values:

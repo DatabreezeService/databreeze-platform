@@ -2,21 +2,32 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const output = process.argv[process.argv.indexOf('--output') + 1] || 'artifacts/provenance.json';
-const artifactArguments = process.argv.reduce((result, value, index, values) => {
-  if (value === '--artifact' && values[index + 1]) result.push(values[index + 1]);
-  return result;
-}, []);
-const artifacts = artifactArguments
-  .filter((file) => fs.existsSync(file))
-  .map((file) => {
-    const bytes = fs.readFileSync(file);
-    return {
-      path: path.relative(process.cwd(), file).replaceAll('\\', '/'),
-      sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
-      size: bytes.length,
-    };
-  });
+const outputIndex = process.argv.indexOf('--output');
+const output = outputIndex === -1 ? 'artifacts/provenance.json' : process.argv[outputIndex + 1];
+if (!output || output.startsWith('--')) {
+  throw new Error('--output requires a file path');
+}
+const artifactArguments = [];
+for (let index = 0; index < process.argv.length; index += 1) {
+  if (process.argv[index] !== '--artifact') continue;
+  const artifact = process.argv[index + 1];
+  if (!artifact || artifact.startsWith('--')) {
+    throw new Error('--artifact requires a file path');
+  }
+  artifactArguments.push(artifact);
+}
+const missingArtifacts = artifactArguments.filter((file) => !fs.existsSync(file));
+if (missingArtifacts.length > 0) {
+  throw new Error(`Provenance artifact(s) do not exist: ${missingArtifacts.join(', ')}`);
+}
+const artifacts = artifactArguments.map((file) => {
+  const bytes = fs.readFileSync(file);
+  return {
+    path: path.relative(process.cwd(), file).replaceAll('\\', '/'),
+    sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
+    size: bytes.length,
+  };
+});
 artifacts.sort((a, b) => a.path.localeCompare(b.path));
 const epoch = Number(process.env.SOURCE_DATE_EPOCH || 0);
 const provenance = {

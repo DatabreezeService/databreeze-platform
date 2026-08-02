@@ -3,8 +3,9 @@ locals {
 }
 
 resource "aws_s3_bucket" "web" {
-  bucket = "databreeze-${var.name}-web"
-  tags   = merge(local.common_tags, { Name = "databreeze-${var.name}-web" })
+  bucket        = "databreeze-${var.name}-web"
+  force_destroy = false
+  tags          = merge(local.common_tags, { Name = "databreeze-${var.name}-web" })
 }
 
 resource "aws_s3_bucket_ownership_controls" "web" {
@@ -27,6 +28,27 @@ resource "aws_s3_bucket_versioning" "web" {
   versioning_configuration {
     status = "Enabled"
   }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "web" {
+  bucket = aws_s3_bucket.web.id
+
+  rule {
+    id     = "bounded-version-retention"
+    status = "Enabled"
+
+    filter {}
+
+    noncurrent_version_expiration {
+      noncurrent_days = 90
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+
+  depends_on = [aws_s3_bucket_versioning.web]
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "web" {

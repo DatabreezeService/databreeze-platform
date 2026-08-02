@@ -55,6 +55,36 @@ test('strict assertions reject secrets, paths, content, and unbounded values', (
   );
 });
 
+test('telemetry never executes accessor-backed attributes', () => {
+  let accessed = false;
+  const hostile = {};
+  Object.defineProperty(hostile, 'outcome', {
+    enumerable: true,
+    get() {
+      accessed = true;
+      throw new Error('hostile getter');
+    },
+  });
+
+  assert.deepEqual(sanitizeTelemetryAttributesV1(hostile), {});
+  assert.throws(() => assertSafeTelemetryAttributesV1(hostile), UnsafeTelemetryAttributeErrorV1);
+  assert.equal(accessed, false);
+});
+
+test('telemetry never executes accessor-backed correlation headers', () => {
+  let accessed = false;
+  const hostile = {};
+  Object.defineProperty(hostile, 'x-correlation-id', {
+    enumerable: true,
+    get() {
+      accessed = true;
+      throw new Error('hostile header getter');
+    },
+  });
+  assert.throws(() => correlationFromHeadersV1(hostile), /Unreadable telemetry/u);
+  assert.equal(accessed, false);
+});
+
 test('correlation headers round-trip without accepting malformed identifiers', () => {
   const context = createCorrelationContextV1({
     correlationId,

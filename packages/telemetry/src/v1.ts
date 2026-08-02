@@ -166,12 +166,21 @@ function safeScalar(key: string, value: unknown): TelemetryScalarV1 | undefined 
   return safeString(key, value);
 }
 
+function ownDataEntries(input: Record<string, unknown>): Array<[string, unknown]> {
+  const entries: Array<[string, unknown]> = [];
+  for (const key of Object.keys(input)) {
+    const descriptor = Object.getOwnPropertyDescriptor(input, key);
+    if (descriptor && 'value' in descriptor) entries.push([key, descriptor.value]);
+  }
+  return entries;
+}
+
 export function sanitizeTelemetryAttributesV1(
   input: Record<string, unknown>,
 ): SafeTelemetryAttributesV1 {
   if (input === null || typeof input !== 'object' || Array.isArray(input)) return {};
   const output: SafeTelemetryAttributesV1 = {};
-  for (const [key, value] of Object.entries(input)) {
+  for (const [key, value] of ownDataEntries(input)) {
     assertBoundedKey(key);
     if (!safeAttributeSet.has(key)) continue;
     const scalar = safeScalar(key, value);
@@ -188,7 +197,12 @@ export function assertSafeTelemetryAttributesV1(
     if (forbiddenKeyPattern.test(key) || !safeAttributeSet.has(key)) {
       throw new UnsafeTelemetryAttributeErrorV1(key);
     }
-    if (safeScalar(key, input[key]) === undefined) {
+    const descriptor = Object.getOwnPropertyDescriptor(input, key);
+    if (
+      !descriptor ||
+      !('value' in descriptor) ||
+      safeScalar(key, descriptor.value) === undefined
+    ) {
       throw new UnsafeTelemetryAttributeErrorV1(key);
     }
   }
@@ -249,10 +263,18 @@ function readSingleHeader(
   name: string,
 ): string | undefined {
   const values: string[] = [];
-  for (const [key, value] of Object.entries(headers)) {
+  for (const key of Object.keys(headers)) {
+    const descriptor = Object.getOwnPropertyDescriptor(headers, key);
+    if (!descriptor || !('value' in descriptor))
+      throw new Error(`Unreadable telemetry ${name} header`);
+    const value = descriptor.value as string | string[] | undefined;
     if (key.toLowerCase() !== name) continue;
-    if (Array.isArray(value)) values.push(...value);
-    else if (value !== undefined) values.push(value);
+    if (Array.isArray(value)) {
+      if (!value.every((item) => typeof item === 'string')) {
+        throw new Error(`Unreadable telemetry ${name} header`);
+      }
+      values.push(...value);
+    } else if (value !== undefined) values.push(value);
   }
   if (values.length > 1) throw new Error(`Ambiguous telemetry ${name} header`);
   if (values.length === 0) return undefined;

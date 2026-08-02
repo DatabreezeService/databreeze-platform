@@ -38,6 +38,8 @@ resource "aws_db_instance" "postgres" {
   final_snapshot_identifier  = "databreeze-${var.name}-final"
   auto_minor_version_upgrade = true
   copy_tags_to_snapshot      = true
+  performance_insights_enabled    = var.environment == "production"
+  performance_insights_kms_key_id = var.environment == "production" ? var.kms_key_arn : null
   tags                       = merge(local.common_tags, { Name = "databreeze-${var.name}" })
 }
 
