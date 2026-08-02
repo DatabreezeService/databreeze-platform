@@ -1,0 +1,144 @@
+import { strict as assert } from 'node:assert';
+import test from 'node:test';
+
+import {
+  createArtifactVersionV1,
+  createContentPlacementV1,
+  createEvidenceReferenceV1,
+} from '@databreeze/domain/artifact/v1';
+import {
+  parseStableIdentifierV1,
+  parseStrictUtcTimestampV1,
+  type StableIdentifierV1,
+} from '@databreeze/domain/tenant-scope/v1';
+import {
+  PrismaArtifactRepositoryAdapter,
+  type ArtifactDatabaseClientV1,
+  type ArtifactVersionDatabaseRowV1,
+  type ContentPlacementDatabaseRowV1,
+  type EvidenceDatabaseRowV1,
+} from '../../../src/features/iae/adapter/prisma-artifact-repository.adapter.js';
+import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
+
+function id(value: string): StableIdentifierV1 {
+  const result = parseStableIdentifierV1(value);
+  assert.equal(result.accepted, true);
+  if (!result.accepted) throw new Error('fixture id rejected');
+  return result.value;
+}
+const organizationId = id('00000000-0000-4000-8000-000000000501');
+const workspaceId = id('00000000-0000-4000-8000-000000000502');
+const artifactId = id('00000000-0000-4000-8000-000000000503');
+const versionId = id('00000000-0000-4000-8000-000000000504');
+const placementId = id('00000000-0000-4000-8000-000000000505');
+const evidenceId = id('00000000-0000-4000-8000-000000000506');
+
+function context(key: string) {
+  const result = createIamTenantContextV1({
+    actorId: '00000000-0000-4000-8000-000000000507',
+    tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+    authorizationEpoch: 1,
+    correlationId: '00000000-0000-4000-8000-000000000508',
+    idempotencyKey: key,
+  });
+  assert.equal(result.accepted, true);
+  if (!result.accepted) throw new Error('fixture context rejected');
+  return result.value;
+}
+
+function client(
+  versions: ArtifactVersionDatabaseRowV1[],
+  placements: ContentPlacementDatabaseRowV1[],
+  evidence: EvidenceDatabaseRowV1[],
+): ArtifactDatabaseClientV1 {
+  return {
+    artifactVersion: {
+      create(input) {
+        const persisted = { ...input.data } as ArtifactVersionDatabaseRowV1;
+        versions.push(persisted);
+        return Promise.resolve(persisted);
+      },
+      findUnique(input) {
+        return Promise.resolve(
+          versions.find((candidate) => candidate.id === input.where.id) ?? null,
+        );
+      },
+    },
+    contentPlacement: {
+      create(input) {
+        const persisted = { ...input.data } as ContentPlacementDatabaseRowV1;
+        placements.push(persisted);
+        return Promise.resolve(persisted);
+      },
+      findMany(input) {
+        return Promise.resolve(
+          placements.filter(
+            (candidate) => candidate.artifactVersionId === input.where['artifactVersionId'],
+          ),
+        );
+      },
+    },
+    evidenceReference: {
+      create(input) {
+        const persisted = { ...input.data } as EvidenceDatabaseRowV1;
+        evidence.push(persisted);
+        return Promise.resolve(persisted);
+      },
+      findMany(input) {
+        return Promise.resolve(
+          evidence.filter(
+            (candidate) => candidate.artifactVersionId === input.where['artifactVersionId'],
+          ),
+        );
+      },
+    },
+    $transaction(work) {
+      return work(this);
+    },
+  };
+}
+
+void test('[IAE-003, IAE-004, IAE-005, IAM-009] Prisma artifact adapter keeps placement and evidence tenant scoped', async () => {
+  const createdAt = parseStrictUtcTimestampV1('2026-01-01T00:00:00.000Z');
+  assert.equal(createdAt.accepted, true);
+  if (!createdAt.accepted) throw new Error('fixture timestamp rejected');
+  const artifact = createArtifactVersionV1({
+    artifactId,
+    versionId,
+    tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+    sourceKind: 'FILE',
+    dataMode: 'Hybrid',
+    contentSha256: 'e'.repeat(64),
+    byteSize: 8,
+    mediaType: 'text/csv',
+    displayName: 'orders.csv',
+    createdAt: createdAt.value,
+  });
+  assert.equal(artifact.accepted, true);
+  if (!artifact.accepted) throw new Error('fixture artifact rejected');
+  const placement = createContentPlacementV1({
+    placementId,
+    artifactVersion: artifact.value,
+    tenantScope: artifact.value.tenantScope,
+    kind: 'CLOUD',
+    opaqueReference: 'opaque-reference-1234',
+    contentSha256: artifact.value.contentSha256,
+  });
+  const evidenceRef = createEvidenceReferenceV1({
+    evidenceId,
+    artifactVersion: artifact.value,
+    tenantScope: artifact.value.tenantScope,
+    coordinate: { kind: 'ROW', row: 1 },
+  });
+  assert.equal(placement.accepted, true);
+  assert.equal(evidenceRef.accepted, true);
+  if (!placement.accepted || !evidenceRef.accepted) throw new Error('fixture child rejected');
+  const placements: ContentPlacementDatabaseRowV1[] = [];
+  const evidence: EvidenceDatabaseRowV1[] = [];
+  const repository = new PrismaArtifactRepositoryAdapter(client([], placements, evidence));
+  await repository.saveVersion(context('version'), artifact.value);
+  await repository.savePlacement(context('placement'), placement.value);
+  await repository.saveEvidence(context('evidence'), evidenceRef.value);
+  assert.equal((await repository.listPlacements(context('list-placement'), versionId)).length, 1);
+  assert.equal((await repository.listEvidence(context('list-evidence'), versionId)).length, 1);
+});
