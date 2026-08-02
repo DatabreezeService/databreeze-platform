@@ -59,6 +59,10 @@
     "./approval/v1": {
       "types": "./src/approval/v1.ts",
       "import": "./dist/approval/v1.js"
+    },
+    "./execution-attempt/v1": {
+      "types": "./src/execution-attempt/v1.ts",
+      "import": "./dist/execution-attempt/v1.js"
     }
   },
   "scripts": {
