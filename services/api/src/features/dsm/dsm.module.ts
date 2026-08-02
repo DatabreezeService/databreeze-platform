@@ -15,6 +15,10 @@ import {
   type MappingDatabaseClientV1,
 } from './adapter/prisma-mapping-repository.adapter.js';
 import { InMemoryReferenceEntityRepositoryAdapter } from './adapter/in-memory-reference-entity-repository.adapter.js';
+import {
+  PrismaReferenceEntityRepositoryAdapter,
+  type ReferenceEntityDatabaseClientV1,
+} from './adapter/prisma-reference-entity-repository.adapter.js';
 import { InMemoryRuleSetRepositoryAdapter } from './adapter/in-memory-rule-set-repository.adapter.js';
 import {
   PrismaRuleSetRepositoryAdapter,
@@ -53,6 +57,8 @@ export interface DsmModuleOptions {
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly ruleSetDatabase?: RuleSetDatabaseClientV1;
   readonly referenceEntityRepository?: ReferenceEntityRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly referenceEntityDatabase?: ReferenceEntityDatabaseClientV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
 }
 
@@ -95,7 +101,10 @@ export class DsmModule {
         {
           provide: REFERENCE_ENTITY_REPOSITORY_PORT,
           useValue:
-            options.referenceEntityRepository ?? new InMemoryReferenceEntityRepositoryAdapter(),
+            options.referenceEntityRepository ??
+            (options.referenceEntityDatabase === undefined
+              ? new InMemoryReferenceEntityRepositoryAdapter()
+              : new PrismaReferenceEntityRepositoryAdapter(options.referenceEntityDatabase)),
         },
         {
           provide: REQUEST_TENANT_CONTEXT,
