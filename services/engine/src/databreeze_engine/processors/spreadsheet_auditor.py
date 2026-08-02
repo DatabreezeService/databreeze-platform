@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import itertools
 import posixpath
 import re
 import zipfile
@@ -251,7 +252,7 @@ def audit_workbook(
             gap_keys: set[tuple[str, str]] = set()
             for column, rows in cells_by_column.items():
                 formula_rows = sorted(row for row, formula in rows.items() if formula is not None)
-                for previous_row, next_row in zip(formula_rows, formula_rows[1:]):
+                for previous_row, next_row in itertools.pairwise(formula_rows):
                     if next_row - previous_row <= 1:
                         continue
                     previous_formula = rows[previous_row]
@@ -261,9 +262,7 @@ def audit_workbook(
                     previous_family = _normalized_formula(previous_formula)
                     if previous_family != _normalized_formula(next_formula):
                         continue
-                    populated_rows = sorted(
-                        row for row in rows if previous_row < row < next_row
-                    )
+                    populated_rows = sorted(row for row in rows if previous_row < row < next_row)
                     for row in populated_rows:
                         address = f"{_column_name(column)}{row}"
                         key = (address, previous_family)
