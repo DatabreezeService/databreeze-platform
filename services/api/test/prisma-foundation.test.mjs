@@ -65,6 +65,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_quality_results"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_profiles"/);
   assert.match(diff.stdout, /CREATE TABLE "iae"\."protected_document_unlock_requests"/);
+  assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_export_manifests"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."reference_entity_versions"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."reference_entity_resolutions"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."mapping_definitions"/);
@@ -116,6 +117,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802260000_iae_inbox_metadata',
     '20260802270000_dsm_profiles',
     '20260802280000_iae_protected_document_unlocks',
+    '20260802290000_dsm_export_manifests',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -456,6 +458,20 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   ]) {
     assert.match(
       protectedDocumentMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const datasetExportMigration = await readFile(
+    path.join(migrationsDirectory, inventory[30], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE TABLE "dsm"."dataset_export_manifests"',
+    'CREATE INDEX "dataset_export_manifests_dataset_version_idx"',
+    '"policy_hash" CHAR(64)',
+  ]) {
+    assert.match(
+      datasetExportMigration,
       new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
   }

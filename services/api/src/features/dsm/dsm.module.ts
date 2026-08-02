@@ -11,6 +11,10 @@ import { DatasetExportController } from './api/dataset-export.controller.js';
 import { InMemoryDatasetProfileRepositoryAdapter } from './adapter/in-memory-dataset-profile-repository.adapter.js';
 import { InMemoryDatasetExportRepositoryAdapter } from './adapter/in-memory-dataset-export-repository.adapter.js';
 import {
+  PrismaDatasetExportRepositoryAdapter,
+  type DatasetExportDatabaseClientV1,
+} from './adapter/prisma-dataset-export-repository.adapter.js';
+import {
   PrismaDatasetProfileRepositoryAdapter,
   type DatasetProfileDatabaseClientV1,
 } from './adapter/prisma-dataset-profile-repository.adapter.js';
@@ -105,6 +109,8 @@ export interface DsmModuleOptions {
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly datasetProfileDatabase?: DatasetProfileDatabaseClientV1;
   readonly datasetExportRepository?: DatasetExportRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly datasetExportDatabase?: DatasetExportDatabaseClientV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
 }
 
@@ -182,7 +188,11 @@ export class DsmModule {
         },
         {
           provide: DATASET_EXPORT_REPOSITORY_PORT,
-          useValue: options.datasetExportRepository ?? new InMemoryDatasetExportRepositoryAdapter(),
+          useValue:
+            options.datasetExportRepository ??
+            (options.datasetExportDatabase === undefined
+              ? new InMemoryDatasetExportRepositoryAdapter()
+              : new PrismaDatasetExportRepositoryAdapter(options.datasetExportDatabase)),
         },
         {
           provide: REQUEST_TENANT_CONTEXT,

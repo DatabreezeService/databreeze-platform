@@ -98,6 +98,40 @@ model DatasetProfileRecord {
   @@schema("dsm")
 }
 
+/// DSM-022: governed export verification metadata; raw rows live only in the approved output.
+model DatasetExportManifestRecord {
+  id                    String   @id @db.Uuid
+  datasetId             String   @map("dataset_id") @db.Uuid
+  datasetVersionId      String   @map("dataset_version_id") @db.Uuid
+  scopeType             String   @map("scope_type") @db.VarChar(24)
+  organizationId        String   @map("organization_id") @db.Uuid
+  workspaceId           String?  @map("workspace_id") @db.Uuid
+  projectId             String?  @map("project_id") @db.Uuid
+  dataMode              String   @map("data_mode") @db.VarChar(16)
+  payloadClass          String   @map("payload_class") @db.VarChar(32)
+  format                String   @db.VarChar(16)
+  rowCount              BigInt   @map("row_count")
+  byteSize              BigInt   @map("byte_size")
+  contentSha256         String   @map("content_sha256") @db.Char(64)
+  schemaVersionId       String   @map("schema_version_id") @db.Uuid
+  mappingVersionId      String   @map("mapping_version_id") @db.Uuid
+  ruleSetVersionId      String   @map("rule_set_version_id") @db.Uuid
+  semanticManifestHash  String   @map("semantic_manifest_hash") @db.Char(64)
+  metricManifestHash    String   @map("metric_manifest_hash") @db.Char(64)
+  qualityManifestHash   String   @map("quality_manifest_hash") @db.Char(64)
+  lineageManifestHash   String   @map("lineage_manifest_hash") @db.Char(64)
+  evidenceManifestHash  String   @map("evidence_manifest_hash") @db.Char(64)
+  policyHash            String   @map("policy_hash") @db.Char(64)
+  qualityState          String   @map("quality_state") @db.VarChar(24)
+  approvalState         String   @map("approval_state") @db.VarChar(16)
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([datasetVersionId], map: "dataset_export_manifests_dataset_version_idx")
+  @@index([organizationId, workspaceId, projectId, datasetVersionId], map: "dataset_export_manifests_scope_idx")
+  @@map("dataset_export_manifests")
+  @@schema("dsm")
+}
+
 /// DSM-025: canonical workspace reference identities are versioned and immutable.
 model ReferenceEntityVersionRecord {
   id                   String   @id @db.Uuid
