@@ -176,12 +176,19 @@ test('repository checker validates the committed orchestration package', () => {
 
 test('ledger records verified task evidence before advancing the next task', () => {
   const ledger = readJson('docs/plans/execution-orchestration.json');
-  assert.equal(ledger.nextTaskId, 'FND-002');
+  assert.equal(ledger.nextTaskId, 'FND-003');
   assert.deepEqual(ledger.taskState?.['FND-001']?.status, 'verified');
   assert.match(ledger.taskState?.['FND-001']?.commit ?? '', /^[0-9a-f]{40}$/u);
   assert.ok(
     ledger.taskState['FND-001'].evidence.includes(
       'docs/operations/foundation-reconciliation-2026-08-02.md',
+    ),
+  );
+  assert.deepEqual(ledger.taskState?.['FND-002']?.status, 'verified');
+  assert.match(ledger.taskState?.['FND-002']?.commit ?? '', /^[0-9a-f]{40}$/u);
+  assert.ok(
+    ledger.taskState['FND-002'].evidence.includes(
+      'docs/operations/foundation-android-2026-08-02.md',
     ),
   );
 });
