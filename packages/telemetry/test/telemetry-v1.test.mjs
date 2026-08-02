@@ -97,7 +97,13 @@ test('telemetry rejects proxies that fail during reflection without exposing tra
   assert.deepEqual(sanitizeTelemetryAttributesV1(hostileAttributes), {});
   assert.throws(
     () => assertSafeTelemetryAttributesV1(hostileAttributes),
-    UnsafeTelemetryAttributeErrorV1,
+    (error) => {
+      assert.ok(error instanceof UnsafeTelemetryAttributeErrorV1);
+      assert.equal(error.key, 'unreadable');
+      assert.equal(error.message, 'Telemetry attribute is not allowed: unreadable');
+      assert.doesNotMatch(error.message, /attribute trap cause/u);
+      return true;
+    },
   );
 
   const hostileHeaders = new Proxy(
@@ -108,7 +114,14 @@ test('telemetry rejects proxies that fail during reflection without exposing tra
       },
     },
   );
-  assert.throws(() => correlationFromHeadersV1(hostileHeaders), /Unreadable telemetry/u);
+  assert.throws(
+    () => correlationFromHeadersV1(hostileHeaders),
+    (error) => {
+      assert.equal(error.message, 'Unreadable telemetry x-correlation-id header');
+      assert.doesNotMatch(error.message, /header trap cause/u);
+      return true;
+    },
+  );
 });
 
 test('correlation headers round-trip without accepting malformed identifiers', () => {
@@ -146,7 +159,10 @@ test('correlation headers round-trip without accepting malformed identifiers', (
   assert.throws(() => correlationFromHeadersV1({}));
   assert.throws(
     () => correlationFromHeadersV1({ 'x-correlation-id': 1 }),
-    /Unreadable telemetry x-correlation-id header/u,
+    (error) => {
+      assert.equal(error.message, 'Unreadable telemetry x-correlation-id header');
+      return true;
+    },
   );
   assert.throws(() =>
     correlationFromHeadersV1({ 'x-correlation-id': [correlationId, correlationId] }),
