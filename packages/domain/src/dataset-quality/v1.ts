@@ -13,6 +13,33 @@ export const DATASET_QUALITY_SCHEMA_VERSION_V1 = 1 as const;
 
 export type DatasetQualityFindingSeverityV1 = 'INFO' | 'WARNING' | 'ERROR';
 
+export type DatasetQualitySafeValueKindV1 =
+  | 'TEXT'
+  | 'INTEGER'
+  | 'DECIMAL'
+  | 'BOOLEAN'
+  | 'DATE'
+  | 'MISSING'
+  | 'NULL'
+  | 'BLANK'
+  | 'INVALID'
+  | 'ZERO'
+  | 'NOT_APPLICABLE'
+  | 'REDACTED';
+
+export interface DatasetQualitySafeValueV1 {
+  readonly kind: DatasetQualitySafeValueKindV1;
+  readonly value?: string | number | boolean;
+}
+
+export type DatasetQualitySubjectTypeV1 = 'DATASET' | 'ROW' | 'FIELD' | 'CELL';
+
+export interface DatasetQualityFindingSubjectV1 {
+  readonly type: DatasetQualitySubjectTypeV1;
+  readonly keyHash: string;
+  readonly fieldId?: StableIdentifierV1;
+}
+
 export interface DatasetQualityFindingV1 {
   readonly findingId: StableIdentifierV1;
   readonly ruleId: StableIdentifierV1;
@@ -21,6 +48,9 @@ export interface DatasetQualityFindingV1 {
   readonly occurrenceCount: number;
   readonly evidenceIds: readonly StableIdentifierV1[];
   readonly detailHash: string;
+  readonly subject?: DatasetQualityFindingSubjectV1;
+  readonly actual?: DatasetQualitySafeValueV1;
+  readonly expected?: DatasetQualitySafeValueV1;
 }
 
 export interface DatasetQualityResultV1 {
@@ -47,7 +77,8 @@ export type DatasetQualityErrorCodeV1 =
   | 'INVALID_TEXT'
   | 'INVALID_FINDING'
   | 'DUPLICATE_FINDING'
-  | 'INVALID_QUALITY_STATE';
+  | 'INVALID_QUALITY_STATE'
+  | 'INVALID_TYPED_VALUE';
 
 export type DatasetQualityResultV1Of<TValue> =
   | { readonly accepted: true; readonly value: TValue }
@@ -93,6 +124,68 @@ function positiveCount(input: unknown): number | undefined {
   return typeof input === 'number' && Number.isSafeInteger(input) && input >= 0 ? input : undefined;
 }
 
+const safeValueKinds: readonly DatasetQualitySafeValueKindV1[] = [
+  'TEXT',
+  'INTEGER',
+  'DECIMAL',
+  'BOOLEAN',
+  'DATE',
+  'MISSING',
+  'NULL',
+  'BLANK',
+  'INVALID',
+  'ZERO',
+  'NOT_APPLICABLE',
+  'REDACTED',
+];
+
+function safeValue(input: unknown): DatasetQualitySafeValueV1 | undefined {
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) return undefined;
+  const record = input as Record<string, unknown>;
+  const kind = record['kind'];
+  if (!safeValueKinds.includes(kind as DatasetQualitySafeValueKindV1)) return undefined;
+  const value = record['value'];
+  if (value === undefined) {
+    if (['TEXT', 'INTEGER', 'DECIMAL', 'BOOLEAN', 'DATE'].includes(kind as string))
+      return undefined;
+    return Object.freeze({ kind: kind as DatasetQualitySafeValueKindV1 });
+  }
+  if (typeof value === 'string') {
+    if (value.length === 0 || value.length > 256 || /\p{Cc}/u.test(value)) return undefined;
+    return Object.freeze({
+      kind: kind as DatasetQualitySafeValueKindV1,
+      value: value.normalize('NFC'),
+    });
+  }
+  if (typeof value === 'boolean') {
+    if (kind !== 'BOOLEAN') return undefined;
+    return Object.freeze({ kind: 'BOOLEAN', value });
+  }
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value) || (!Number.isSafeInteger(value) && kind === 'INTEGER'))
+      return undefined;
+    if (!['INTEGER', 'DECIMAL'].includes(kind as string)) return undefined;
+    return Object.freeze({ kind: kind as DatasetQualitySafeValueKindV1, value });
+  }
+  return undefined;
+}
+
+function subject(input: unknown): DatasetQualityFindingSubjectV1 | undefined {
+  if (typeof input !== 'object' || input === null || Array.isArray(input)) return undefined;
+  const record = input as Record<string, unknown>;
+  const type = record['type'];
+  const keyHash = hash(record['keyHash']);
+  const fieldId = record['fieldId'] === undefined ? undefined : identifier(record['fieldId']);
+  if (!['DATASET', 'ROW', 'FIELD', 'CELL'].includes(type as string) || !keyHash) return undefined;
+  if (record['fieldId'] !== undefined && !fieldId) return undefined;
+  if (['FIELD', 'CELL'].includes(type as string) && !fieldId) return undefined;
+  return Object.freeze({
+    type: type as DatasetQualitySubjectTypeV1,
+    keyHash,
+    ...(fieldId === undefined ? {} : { fieldId }),
+  });
+}
+
 function finding(input: unknown): DatasetQualityFindingV1 | undefined {
   if (typeof input !== 'object' || input === null || Array.isArray(input)) return undefined;
   const record = input as Record<string, unknown>;
@@ -103,6 +196,9 @@ function finding(input: unknown): DatasetQualityFindingV1 | undefined {
   const occurrenceCount = positiveCount(record['occurrenceCount']);
   const detailHash = hash(record['detailHash']);
   const evidenceInput = record['evidenceIds'] ?? [];
+  const parsedSubject = record['subject'] === undefined ? undefined : subject(record['subject']);
+  const actual = record['actual'] === undefined ? undefined : safeValue(record['actual']);
+  const expected = record['expected'] === undefined ? undefined : safeValue(record['expected']);
   if (!findingId || !ruleId || !messageCode || occurrenceCount === undefined || !detailHash) {
     return undefined;
   }
@@ -112,6 +208,9 @@ function finding(input: unknown): DatasetQualityFindingV1 | undefined {
   if (evidenceIds.some((candidate): candidate is undefined => candidate === undefined)) {
     return undefined;
   }
+  if (record['subject'] !== undefined && !parsedSubject) return undefined;
+  if (record['actual'] !== undefined && !actual) return undefined;
+  if (record['expected'] !== undefined && !expected) return undefined;
   return Object.freeze({
     findingId,
     ruleId,
@@ -120,6 +219,9 @@ function finding(input: unknown): DatasetQualityFindingV1 | undefined {
     occurrenceCount,
     evidenceIds: Object.freeze(evidenceIds as StableIdentifierV1[]),
     detailHash,
+    ...(parsedSubject === undefined ? {} : { subject: parsedSubject }),
+    ...(actual === undefined ? {} : { actual }),
+    ...(expected === undefined ? {} : { expected }),
   });
 }
 

@@ -89,3 +89,43 @@ void test('[DSM-013] quality result validation rejects malformed hashes, counts,
     { accepted: false, code: 'DUPLICATE_FINDING' },
   );
 });
+
+void test('[DSM-013] findings may carry bounded typed values and hashed subjects only', () => {
+  const created = result({
+    findings: [
+      {
+        findingId: ids.findingId,
+        ruleId: ids.ruleId,
+        severity: 'WARNING',
+        messageCode: 'NULL_RATE_HIGH',
+        occurrenceCount: 2,
+        evidenceIds: [ids.evidenceId],
+        detailHash: 'b'.repeat(64),
+        subject: {
+          type: 'FIELD',
+          keyHash: 'd'.repeat(64),
+          fieldId: '00000000-0000-4000-8000-000000000017',
+        },
+        actual: { kind: 'DECIMAL', value: 0.42 },
+        expected: { kind: 'DECIMAL', value: 0.1 },
+      },
+    ],
+  });
+  assert.equal(created.accepted, true);
+  if (!created.accepted) return;
+  assert.equal(created.value.findings[0].subject?.type, 'FIELD');
+  assert.deepEqual(created.value.findings[0].actual, { kind: 'DECIMAL', value: 0.42 });
+  const base = result();
+  assert.equal(base.accepted, true);
+  if (!base.accepted) return;
+  const invalid = createDatasetQualityResultV1({
+    ...base.value,
+    findings: [
+      {
+        ...created.value.findings[0],
+        actual: { kind: 'TEXT', value: 'a'.repeat(257) },
+      },
+    ],
+  });
+  assert.deepEqual(invalid, { accepted: false, code: 'INVALID_FINDING' });
+});
