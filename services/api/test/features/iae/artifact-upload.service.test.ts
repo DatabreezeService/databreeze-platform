@@ -4,6 +4,7 @@ import test from 'node:test';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
 import { ArtifactUploadService } from '../../../src/features/iae/application/artifact-upload.service.js';
 import { InMemoryArtifactUploadRepositoryAdapter } from '../../../src/features/iae/adapter/in-memory-artifact-upload-repository.adapter.js';
+import { InMemoryArtifactUploadStorageAdapter } from '../../../src/features/iae/adapter/in-memory-artifact-upload-storage.adapter.js';
 
 const contextResult = createIamTenantContextV1({
   actorId: '11111111-1111-4111-8111-111111111111',
@@ -20,7 +21,10 @@ if (!contextResult.accepted) throw new Error('fixture context invalid');
 const context = contextResult.value;
 
 void test('IAE-014 service persists parts and rejects stale completion', async () => {
-  const service = new ArtifactUploadService(new InMemoryArtifactUploadRepositoryAdapter());
+  const service = new ArtifactUploadService(
+    new InMemoryArtifactUploadRepositoryAdapter(),
+    new InMemoryArtifactUploadStorageAdapter(),
+  );
   const created = await service.create(context, {
     sessionId: '55555555-5555-4555-8555-555555555555',
     artifactId: '66666666-6666-4666-8666-666666666666',
@@ -34,7 +38,11 @@ void test('IAE-014 service persists parts and rejects stale completion', async (
   });
   assert.equal(created.accepted, true);
   if (!created.accepted) return;
+  const transfer = await service.issuePartTransfer(context, created.value.sessionId, 1);
+  assert.equal(transfer.accepted, true);
+  if (!transfer.accepted) return;
   const part = await service.recordPart(context, created.value.sessionId, {
+    transferId: transfer.value.transferId,
     partNumber: 1,
     contentSha256: 'b'.repeat(64),
     byteSize: 4,
