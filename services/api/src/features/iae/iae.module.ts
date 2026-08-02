@@ -9,6 +9,7 @@ import { ArtifactRetentionController } from './api/artifact-retention.controller
 import { ArtifactExportController } from './api/artifact-export.controller.js';
 import { ArtifactUploadController } from './api/artifact-upload.controller.js';
 import { ArtifactAdmissionController } from './api/artifact-admission.controller.js';
+import { ProtectedDocumentUnlockController } from './api/protected-document-unlock.controller.js';
 import { InMemoryArtifactIntakeRepositoryAdapter } from './adapter/in-memory-artifact-intake-repository.adapter.js';
 import {
   PrismaArtifactIntakeRepositoryAdapter,
@@ -32,6 +33,8 @@ import {
 } from './adapter/prisma-artifact-export-repository.adapter.js';
 import { InMemoryArtifactUploadRepositoryAdapter } from './adapter/in-memory-artifact-upload-repository.adapter.js';
 import { InMemoryArtifactUploadStorageAdapter } from './adapter/in-memory-artifact-upload-storage.adapter.js';
+import { InMemoryProtectedDocumentSecretInputAdapter } from './adapter/in-memory-protected-document-secret-input.adapter.js';
+import { InMemoryProtectedDocumentUnlockRepositoryAdapter } from './adapter/in-memory-protected-document-unlock-repository.adapter.js';
 import {
   PrismaArtifactUploadRepositoryAdapter,
   type ArtifactUploadDatabaseClientV1,
@@ -74,6 +77,14 @@ import {
   type ArtifactUploadStoragePortV1,
 } from './application/artifact-upload-storage.port.js';
 import {
+  PROTECTED_DOCUMENT_SECRET_INPUT_PORT,
+  type ProtectedDocumentSecretInputPortV1,
+} from './application/protected-document-secret-input.port.js';
+import {
+  PROTECTED_DOCUMENT_UNLOCK_REPOSITORY_PORT,
+  type ProtectedDocumentUnlockRepositoryPortV1,
+} from './application/protected-document-unlock-repository.port.js';
+import {
   EVIDENCE_GRANT_REPOSITORY_PORT,
   type EvidenceGrantRepositoryPortV1,
 } from './application/evidence-grant-repository.port.js';
@@ -103,6 +114,8 @@ export interface IaeModuleOptions {
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly artifactUploadDatabase?: ArtifactUploadDatabaseClientV1;
   readonly artifactUploadStorage?: ArtifactUploadStoragePortV1;
+  readonly protectedDocumentUnlockRepository?: ProtectedDocumentUnlockRepositoryPortV1;
+  readonly protectedDocumentSecretInput?: ProtectedDocumentSecretInputPortV1;
   readonly evidenceGrantRepository?: EvidenceGrantRepositoryPortV1;
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly evidenceGrantDatabase?: EvidenceGrantDatabaseClientV1;
@@ -124,6 +137,7 @@ export class IaeModule {
         ArtifactExportController,
         ArtifactUploadController,
         ArtifactAdmissionController,
+        ProtectedDocumentUnlockController,
       ],
       providers: [
         {
@@ -179,6 +193,18 @@ export class IaeModule {
           useValue: options.artifactUploadStorage ?? new InMemoryArtifactUploadStorageAdapter(),
         },
         {
+          provide: PROTECTED_DOCUMENT_UNLOCK_REPOSITORY_PORT,
+          useValue:
+            options.protectedDocumentUnlockRepository ??
+            new InMemoryProtectedDocumentUnlockRepositoryAdapter(),
+        },
+        {
+          provide: PROTECTED_DOCUMENT_SECRET_INPUT_PORT,
+          useValue:
+            options.protectedDocumentSecretInput ??
+            new InMemoryProtectedDocumentSecretInputAdapter(),
+        },
+        {
           provide: EVIDENCE_GRANT_REPOSITORY_PORT,
           useValue:
             options.evidenceGrantRepository ??
@@ -199,6 +225,8 @@ export class IaeModule {
         ARTIFACT_EXPORT_REPOSITORY_PORT,
         ARTIFACT_UPLOAD_REPOSITORY_PORT,
         ARTIFACT_UPLOAD_STORAGE_PORT,
+        PROTECTED_DOCUMENT_UNLOCK_REPOSITORY_PORT,
+        PROTECTED_DOCUMENT_SECRET_INPUT_PORT,
         EVIDENCE_GRANT_REPOSITORY_PORT,
       ],
     };
