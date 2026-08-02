@@ -166,12 +166,21 @@ function safeScalar(key: string, value: unknown): TelemetryScalarV1 | undefined 
   return safeString(key, value);
 }
 
+function ownDataEntries(input: Record<string, unknown>): Array<[string, unknown]> {
+  const entries: Array<[string, unknown]> = [];
+  for (const key of Object.keys(input)) {
+    const descriptor = Object.getOwnPropertyDescriptor(input, key);
+    if (descriptor && 'value' in descriptor) entries.push([key, descriptor.value]);
+  }
+  return entries;
+}
+
 export function sanitizeTelemetryAttributesV1(
   input: Record<string, unknown>,
 ): SafeTelemetryAttributesV1 {
   if (input === null || typeof input !== 'object' || Array.isArray(input)) return {};
   const output: SafeTelemetryAttributesV1 = {};
-  for (const [key, value] of Object.entries(input)) {
+  for (const [key, value] of ownDataEntries(input)) {
     assertBoundedKey(key);
     if (!safeAttributeSet.has(key)) continue;
     const scalar = safeScalar(key, value);
@@ -188,7 +197,8 @@ export function assertSafeTelemetryAttributesV1(
     if (forbiddenKeyPattern.test(key) || !safeAttributeSet.has(key)) {
       throw new UnsafeTelemetryAttributeErrorV1(key);
     }
-    if (safeScalar(key, input[key]) === undefined) {
+    const descriptor = Object.getOwnPropertyDescriptor(input, key);
+    if (!descriptor || !('value' in descriptor) || safeScalar(key, descriptor.value) === undefined) {
       throw new UnsafeTelemetryAttributeErrorV1(key);
     }
   }
