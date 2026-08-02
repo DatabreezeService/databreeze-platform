@@ -127,3 +127,41 @@ model EvidenceGrantRecord {
   @@map("evidence_grants")
   @@schema("iae")
 }
+
+/// IAE-016, IAE-021: deletion authorization is durable and separate from byte erasure.
+model ArtifactDeletionRequestRecord {
+  id                String    @id @db.Uuid
+  artifactVersionId String    @map("artifact_version_id") @db.Uuid
+  scopeType         String    @map("scope_type") @db.VarChar(24)
+  organizationId    String    @map("organization_id") @db.Uuid
+  workspaceId       String?   @map("workspace_id") @db.Uuid
+  projectId         String?   @map("project_id") @db.Uuid
+  requestedBy       String    @map("requested_by") @db.Uuid
+  requestedAt       DateTime  @map("requested_at") @db.Timestamptz(6)
+  state             String    @db.VarChar(16)
+  blockers          Json
+  authorizedAt      DateTime? @map("authorized_at") @db.Timestamptz(6)
+  revision          Int       @default(1)
+
+  @@index([artifactVersionId], map: "artifact_deletion_requests_artifact_idx")
+  @@index([organizationId, workspaceId, projectId, state], map: "artifact_deletion_requests_scope_state_idx")
+  @@map("artifact_deletion_requests")
+  @@schema("iae")
+}
+
+/// IAE-018: export manifests contain only verification metadata and references.
+model ArtifactExportManifestRecord {
+  id             String   @id @db.Uuid
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String?  @map("workspace_id") @db.Uuid
+  projectId      String?  @map("project_id") @db.Uuid
+  entries        Json
+  approvalState  String   @map("approval_state") @db.VarChar(16)
+  createdAt      DateTime @map("created_at") @db.Timestamptz(6)
+  canonicalHash  String   @map("canonical_hash") @db.Char(64)
+
+  @@index([organizationId, workspaceId, projectId], map: "artifact_export_manifests_scope_idx")
+  @@map("artifact_export_manifests")
+  @@schema("iae")
+}
