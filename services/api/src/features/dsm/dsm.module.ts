@@ -17,6 +17,10 @@ import {
 import { InMemoryReferenceEntityRepositoryAdapter } from './adapter/in-memory-reference-entity-repository.adapter.js';
 import { InMemoryRuleSetRepositoryAdapter } from './adapter/in-memory-rule-set-repository.adapter.js';
 import {
+  PrismaRuleSetRepositoryAdapter,
+  type RuleSetDatabaseClientV1,
+} from './adapter/prisma-rule-set-repository.adapter.js';
+import {
   GOVERNED_DATASET_REPOSITORY_PORT,
   type GovernedDatasetRepositoryPortV1,
 } from './application/governed-dataset-repository.port.js';
@@ -46,6 +50,8 @@ export interface DsmModuleOptions {
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly mappingDatabase?: MappingDatabaseClientV1;
   readonly ruleSetRepository?: RuleSetRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly ruleSetDatabase?: RuleSetDatabaseClientV1;
   readonly referenceEntityRepository?: ReferenceEntityRepositoryPortV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
 }
@@ -80,7 +86,11 @@ export class DsmModule {
         },
         {
           provide: RULE_SET_REPOSITORY_PORT,
-          useValue: options.ruleSetRepository ?? new InMemoryRuleSetRepositoryAdapter(),
+          useValue:
+            options.ruleSetRepository ??
+            (options.ruleSetDatabase === undefined
+              ? new InMemoryRuleSetRepositoryAdapter()
+              : new PrismaRuleSetRepositoryAdapter(options.ruleSetDatabase)),
         },
         {
           provide: REFERENCE_ENTITY_REPOSITORY_PORT,
