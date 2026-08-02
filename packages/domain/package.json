@@ -43,6 +43,10 @@
     "./artifact/v1": {
       "types": "./src/artifact/v1.ts",
       "import": "./dist/artifact/v1.js"
+    },
+    "./dataset/v1": {
+      "types": "./src/dataset/v1.ts",
+      "import": "./dist/dataset/v1.js"
     }
   },
   "scripts": {
