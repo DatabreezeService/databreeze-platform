@@ -1,7 +1,4 @@
-import {
-  tenantScopeContainsV1,
-  type TenantScopeV1,
-} from '@databreeze/domain/tenant-scope/v1';
+import { tenantScopeContainsV1, type TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 import type { ArtifactDeletionRequestV1 } from '@databreeze/domain/artifact-retention/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
@@ -55,7 +52,9 @@ export class InMemoryArtifactRetentionRepositoryAdapter
   ): Promise<ArtifactDeletionRequestV1 | undefined> {
     await Promise.resolve();
     const request = this.requests.get(requestId);
-    return request && visible(context.tenantScope, request.tenantScope) ? clone(request) : undefined;
+    return request && visible(context.tenantScope, request.tenantScope)
+      ? clone(request)
+      : undefined;
   }
 
   public async withTransaction<TValue>(
