@@ -65,19 +65,6 @@ resource "aws_iam_role" "task" {
   tags               = merge(local.common_tags, { Name = "databreeze-${var.name}-ecs-task" })
 }
 
-resource "aws_iam_role_policy" "task" {
-  name = "databreeze-${var.name}-ecs-task-minimal"
-  role = aws_iam_role.task.id
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["secretsmanager:GetSecretValue", "kms:Decrypt"]
-      Resource = [var.database_secret_arn, var.application_secret_arn, var.kms_key_arn]
-    }]
-  })
-}
-
 locals {
   api_container = {
     name      = "api"
