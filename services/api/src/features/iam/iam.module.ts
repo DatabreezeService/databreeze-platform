@@ -10,6 +10,10 @@ import {
   type SessionIssuerPortV1,
 } from './application/authentication.port.js';
 import { SESSION_LIFECYCLE_PORT } from './application/session-lifecycle.port.js';
+import {
+  IDENTITY_BOOTSTRAP_REPOSITORY_PORT,
+  type IdentityBootstrapRepositoryPortV1,
+} from './application/identity-bootstrap-repository.port.js';
 import type { PasswordCredentialService } from './application/password-credential.service.js';
 import { UnavailableAuthenticationAdapter } from './adapter/unavailable-authentication.adapter.js';
 import {
@@ -20,6 +24,10 @@ import {
   PrismaSessionLifecycleAdapter,
   type SessionLifecycleDatabaseClientV1,
 } from './adapter/prisma-session-lifecycle.adapter.js';
+import {
+  PrismaIdentityBootstrapRepositoryAdapter,
+  type IdentityBootstrapDatabaseClientV1,
+} from './adapter/prisma-identity-bootstrap-repository.adapter.js';
 import { DeviceIdentityController } from './api/device-identity.controller.js';
 import { InMemoryDeviceIdentityRepositoryAdapter } from './adapter/in-memory-device-identity-repository.adapter.js';
 import {
@@ -49,6 +57,8 @@ export interface IamModuleOptions {
   readonly passwordCredentials?: PasswordCredentialService;
   readonly sessions?: SessionIssuerPortV1;
   readonly sessionDatabase?: SessionLifecycleDatabaseClientV1;
+  readonly identityBootstrapRepository?: IdentityBootstrapRepositoryPortV1;
+  readonly identityBootstrapDatabase?: IdentityBootstrapDatabaseClientV1;
   readonly deviceIdentityService?: DeviceIdentityService;
   readonly deviceIdentityRepository?: DeviceIdentityRepositoryPortV1;
   readonly deviceIdentityDatabase?: DeviceIdentityDatabaseClientV1;
@@ -81,6 +91,11 @@ export class IamModule {
       (options.sessionDatabase === undefined
         ? undefined
         : new PrismaSessionLifecycleAdapter(options.sessionDatabase));
+    const identityBootstrapRepository =
+      options.identityBootstrapRepository ??
+      (options.identityBootstrapDatabase === undefined
+        ? undefined
+        : new PrismaIdentityBootstrapRepositoryAdapter(options.identityBootstrapDatabase));
     const authentication =
       options.authentication ??
       (credentials && sessions
@@ -100,6 +115,7 @@ export class IamModule {
     const exports = [DEVICE_IDENTITY_REPOSITORY_PORT, DEVICE_IDENTITY_SERVICE];
     if (credentials) exports.unshift(CREDENTIAL_LOOKUP_PORT);
     if (sessions) exports.unshift(SESSION_LIFECYCLE_PORT);
+    if (identityBootstrapRepository) exports.unshift(IDENTITY_BOOTSTRAP_REPOSITORY_PORT);
     return {
       module: IamModule,
       controllers: [AuthenticationController, DeviceIdentityController],
@@ -121,6 +137,14 @@ export class IamModule {
               {
                 provide: SESSION_LIFECYCLE_PORT,
                 useValue: sessions,
+              },
+            ]
+          : []),
+        ...(identityBootstrapRepository
+          ? [
+              {
+                provide: IDENTITY_BOOTSTRAP_REPOSITORY_PORT,
+                useValue: identityBootstrapRepository,
               },
             ]
           : []),
