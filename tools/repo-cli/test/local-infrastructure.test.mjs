@@ -94,8 +94,8 @@ test('local OpenTelemetry collector keeps every signal on the bounded local pipe
     assert.match(collector, new RegExp(`${signal}[\\s\\S]*processors: \\[memory_limiter, batch\\]`, 'u'));
     assert.match(collector, new RegExp(`${signal}[\\s\\S]*exporters: \\[debug\\]`, 'u'));
   }
-  assert.match(collector, /health_check:[\\s\\S]*endpoint: 0\.0\.0\.0:13133/u);
-  assert.doesNotMatch(collector, /filelog|otlphttp|s3|http:\/\\//iu);
+  assert.match(collector, /health_check:[\s\S]*endpoint: 0\.0\.0\.0:13133/u);
+  assert.doesNotMatch(collector, /filelog|otlphttp|s3|https?:\/\//iu);
 });
 
 test('readiness smoke script exposes a non-destructive help command', () => {
