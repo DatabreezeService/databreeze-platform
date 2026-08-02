@@ -3,6 +3,7 @@ name: ${COMPOSE_PROJECT_NAME:-databreeze-local}
 services:
   postgres:
     image: ${POSTGRES_IMAGE:-docker.io/library/postgres:17.5-alpine}
+    init: true
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-databreeze}
       POSTGRES_USER: ${POSTGRES_USER:-databreeze}
@@ -24,6 +25,7 @@ services:
 
   redis:
     image: ${REDIS_IMAGE:-docker.io/library/redis:7.4.5-alpine}
+    init: true
     command: ['redis-server', '--appendonly', 'yes']
     ports:
       - '${REDIS_PORT:-6379}:6379'
@@ -38,6 +40,7 @@ services:
 
   minio:
     image: ${MINIO_IMAGE:-quay.io/minio/minio:RELEASE.2025-06-13T11-33-47Z}
+    init: true
     command: ['server', '/data', '--console-address', ':9001']
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-databreeze}
@@ -57,6 +60,7 @@ services:
 
   minio-init:
     image: ${MINIO_MC_IMAGE:-quay.io/minio/mc:RELEASE.2025-06-13T11-33-47Z}
+    init: true
     depends_on:
       minio:
         condition: service_healthy
@@ -72,6 +76,7 @@ services:
 
   mailpit:
     image: ${MAILPIT_IMAGE:-axllent/mailpit:v1.21.8}
+    init: true
     environment:
       MP_MAX_MESSAGES: ${MAILPIT_MAX_MESSAGES:-5000}
       MP_DATABASE: /data/mailpit.db
@@ -89,6 +94,7 @@ services:
 
   otel-collector:
     image: ${OTEL_IMAGE:-otel/opentelemetry-collector-contrib:0.128.0}
+    init: true
     command: ['--config=/etc/otelcol-contrib/config.yaml']
     ports:
       - '${OTEL_GRPC_PORT:-4317}:4317'
@@ -109,6 +115,7 @@ services:
 
   otel-collector-health:
     image: ${HEALTHCHECK_IMAGE:-curlimages/curl:8.14.1}
+    init: true
     depends_on:
       otel-collector:
         condition: service_started

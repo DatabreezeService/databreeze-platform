@@ -33,6 +33,7 @@ test('local compose defines pinned, healthy disposable dependencies', () => {
     assert.match(compose, new RegExp(`^  ${volume}:`, 'm'));
   }
   assert.equal((compose.match(/healthcheck:/g) ?? []).length, 6);
+  assert.equal((compose.match(/^    init: true$/gmu) ?? []).length, 7);
   assert.match(compose, /minio-init:[\s\S]*depends_on:[\s\S]*condition: service_healthy/u);
   assert.match(compose, /minio-init:[\s\S]*restart: 'no'/u);
   assert.match(compose, /postgres-data:[\s\S]*name: \$\{COMPOSE_PROJECT_NAME/u);
