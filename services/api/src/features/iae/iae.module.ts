@@ -2,17 +2,56 @@ import { type DynamicModule, Module } from '@nestjs/common';
 
 import { InboxController } from './api/inbox.controller.js';
 import { EvidenceGrantController } from './api/evidence-grant.controller.js';
+import { ArtifactReadController } from './api/artifact-read.controller.js';
+import { ArtifactLineageController } from './api/artifact-lineage.controller.js';
+import { ContentPlacementController } from './api/content-placement.controller.js';
+import { ArtifactRetentionController } from './api/artifact-retention.controller.js';
+import { ArtifactExportController } from './api/artifact-export.controller.js';
+import { ArtifactUploadController } from './api/artifact-upload.controller.js';
+import { ArtifactAdmissionController } from './api/artifact-admission.controller.js';
+import { ProtectedDocumentUnlockController } from './api/protected-document-unlock.controller.js';
 import { InMemoryArtifactIntakeRepositoryAdapter } from './adapter/in-memory-artifact-intake-repository.adapter.js';
 import {
   PrismaArtifactIntakeRepositoryAdapter,
   type ArtifactIntakeDatabaseClientV1,
 } from './adapter/prisma-artifact-intake-repository.adapter.js';
 import { InMemoryArtifactRepositoryAdapter } from './adapter/in-memory-artifact-repository.adapter.js';
+import { InMemoryArtifactLineageRepositoryAdapter } from './adapter/in-memory-artifact-lineage-repository.adapter.js';
+import {
+  PrismaArtifactLineageRepositoryAdapter,
+  type ArtifactLineageDatabaseClientV1,
+} from './adapter/prisma-artifact-lineage-repository.adapter.js';
+import { InMemoryArtifactRetentionRepositoryAdapter } from './adapter/in-memory-artifact-retention-repository.adapter.js';
+import {
+  PrismaArtifactRetentionRepositoryAdapter,
+  type ArtifactRetentionDatabaseClientV1,
+} from './adapter/prisma-artifact-retention-repository.adapter.js';
+import { InMemoryArtifactExportRepositoryAdapter } from './adapter/in-memory-artifact-export-repository.adapter.js';
+import {
+  PrismaArtifactExportRepositoryAdapter,
+  type ArtifactExportDatabaseClientV1,
+} from './adapter/prisma-artifact-export-repository.adapter.js';
+import { InMemoryArtifactUploadRepositoryAdapter } from './adapter/in-memory-artifact-upload-repository.adapter.js';
+import { InMemoryArtifactUploadStorageAdapter } from './adapter/in-memory-artifact-upload-storage.adapter.js';
+import { InMemoryProtectedDocumentSecretInputAdapter } from './adapter/in-memory-protected-document-secret-input.adapter.js';
+import { InMemoryProtectedDocumentUnlockRepositoryAdapter } from './adapter/in-memory-protected-document-unlock-repository.adapter.js';
+import {
+  PrismaProtectedDocumentUnlockRepositoryAdapter,
+  type ProtectedDocumentUnlockDatabaseClientV1,
+} from './adapter/prisma-protected-document-unlock-repository.adapter.js';
+import {
+  PrismaArtifactUploadRepositoryAdapter,
+  type ArtifactUploadDatabaseClientV1,
+} from './adapter/prisma-artifact-upload-repository.adapter.js';
 import {
   PrismaArtifactRepositoryAdapter,
   type ArtifactDatabaseClientV1,
 } from './adapter/prisma-artifact-repository.adapter.js';
 import { InMemoryEvidenceGrantRepositoryAdapter } from './adapter/in-memory-evidence-grant-repository.adapter.js';
+import {
+  PrismaEvidenceGrantRepositoryAdapter,
+  type EvidenceGrantDatabaseClientV1,
+} from './adapter/prisma-evidence-grant-repository.adapter.js';
 import {
   ARTIFACT_INTAKE_REPOSITORY_PORT,
   type ArtifactIntakeRepositoryPortV1,
@@ -21,6 +60,34 @@ import {
   ARTIFACT_REPOSITORY_PORT,
   type ArtifactRepositoryPortV1,
 } from './application/artifact-repository.port.js';
+import {
+  ARTIFACT_LINEAGE_REPOSITORY_PORT,
+  type ArtifactLineageRepositoryPortV1,
+} from './application/artifact-lineage-repository.port.js';
+import {
+  ARTIFACT_RETENTION_REPOSITORY_PORT,
+  type ArtifactRetentionRepositoryPortV1,
+} from './application/artifact-retention-repository.port.js';
+import {
+  ARTIFACT_EXPORT_REPOSITORY_PORT,
+  type ArtifactExportRepositoryPortV1,
+} from './application/artifact-export-repository.port.js';
+import {
+  ARTIFACT_UPLOAD_REPOSITORY_PORT,
+  type ArtifactUploadRepositoryPortV1,
+} from './application/artifact-upload-repository.port.js';
+import {
+  ARTIFACT_UPLOAD_STORAGE_PORT,
+  type ArtifactUploadStoragePortV1,
+} from './application/artifact-upload-storage.port.js';
+import {
+  PROTECTED_DOCUMENT_SECRET_INPUT_PORT,
+  type ProtectedDocumentSecretInputPortV1,
+} from './application/protected-document-secret-input.port.js';
+import {
+  PROTECTED_DOCUMENT_UNLOCK_REPOSITORY_PORT,
+  type ProtectedDocumentUnlockRepositoryPortV1,
+} from './application/protected-document-unlock-repository.port.js';
 import {
   EVIDENCE_GRANT_REPOSITORY_PORT,
   type EvidenceGrantRepositoryPortV1,
@@ -38,7 +105,26 @@ export interface IaeModuleOptions {
   readonly artifactRepository?: ArtifactRepositoryPortV1;
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly artifactDatabase?: ArtifactDatabaseClientV1;
+  readonly artifactLineageRepository?: ArtifactLineageRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly artifactLineageDatabase?: ArtifactLineageDatabaseClientV1;
+  readonly artifactRetentionRepository?: ArtifactRetentionRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly artifactRetentionDatabase?: ArtifactRetentionDatabaseClientV1;
+  readonly artifactExportRepository?: ArtifactExportRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly artifactExportDatabase?: ArtifactExportDatabaseClientV1;
+  readonly artifactUploadRepository?: ArtifactUploadRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly artifactUploadDatabase?: ArtifactUploadDatabaseClientV1;
+  readonly artifactUploadStorage?: ArtifactUploadStoragePortV1;
+  readonly protectedDocumentUnlockRepository?: ProtectedDocumentUnlockRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly protectedDocumentUnlockDatabase?: ProtectedDocumentUnlockDatabaseClientV1;
+  readonly protectedDocumentSecretInput?: ProtectedDocumentSecretInputPortV1;
   readonly evidenceGrantRepository?: EvidenceGrantRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly evidenceGrantDatabase?: EvidenceGrantDatabaseClientV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
 }
 
@@ -47,7 +133,18 @@ export class IaeModule {
   public static register(options: IaeModuleOptions = {}): DynamicModule {
     return {
       module: IaeModule,
-      controllers: [InboxController, EvidenceGrantController],
+      controllers: [
+        InboxController,
+        EvidenceGrantController,
+        ArtifactReadController,
+        ArtifactLineageController,
+        ContentPlacementController,
+        ArtifactRetentionController,
+        ArtifactExportController,
+        ArtifactUploadController,
+        ArtifactAdmissionController,
+        ProtectedDocumentUnlockController,
+      ],
       providers: [
         {
           provide: ARTIFACT_INTAKE_REPOSITORY_PORT,
@@ -66,8 +163,64 @@ export class IaeModule {
               : new PrismaArtifactRepositoryAdapter(options.artifactDatabase)),
         },
         {
+          provide: ARTIFACT_LINEAGE_REPOSITORY_PORT,
+          useValue:
+            options.artifactLineageRepository ??
+            (options.artifactLineageDatabase === undefined
+              ? new InMemoryArtifactLineageRepositoryAdapter()
+              : new PrismaArtifactLineageRepositoryAdapter(options.artifactLineageDatabase)),
+        },
+        {
+          provide: ARTIFACT_RETENTION_REPOSITORY_PORT,
+          useValue:
+            options.artifactRetentionRepository ??
+            (options.artifactRetentionDatabase === undefined
+              ? new InMemoryArtifactRetentionRepositoryAdapter()
+              : new PrismaArtifactRetentionRepositoryAdapter(options.artifactRetentionDatabase)),
+        },
+        {
+          provide: ARTIFACT_EXPORT_REPOSITORY_PORT,
+          useValue:
+            options.artifactExportRepository ??
+            (options.artifactExportDatabase === undefined
+              ? new InMemoryArtifactExportRepositoryAdapter()
+              : new PrismaArtifactExportRepositoryAdapter(options.artifactExportDatabase)),
+        },
+        {
+          provide: ARTIFACT_UPLOAD_REPOSITORY_PORT,
+          useValue:
+            options.artifactUploadRepository ??
+            (options.artifactUploadDatabase === undefined
+              ? new InMemoryArtifactUploadRepositoryAdapter()
+              : new PrismaArtifactUploadRepositoryAdapter(options.artifactUploadDatabase)),
+        },
+        {
+          provide: ARTIFACT_UPLOAD_STORAGE_PORT,
+          useValue: options.artifactUploadStorage ?? new InMemoryArtifactUploadStorageAdapter(),
+        },
+        {
+          provide: PROTECTED_DOCUMENT_UNLOCK_REPOSITORY_PORT,
+          useValue:
+            options.protectedDocumentUnlockRepository ??
+            (options.protectedDocumentUnlockDatabase === undefined
+              ? new InMemoryProtectedDocumentUnlockRepositoryAdapter()
+              : new PrismaProtectedDocumentUnlockRepositoryAdapter(
+                  options.protectedDocumentUnlockDatabase,
+                )),
+        },
+        {
+          provide: PROTECTED_DOCUMENT_SECRET_INPUT_PORT,
+          useValue:
+            options.protectedDocumentSecretInput ??
+            new InMemoryProtectedDocumentSecretInputAdapter(),
+        },
+        {
           provide: EVIDENCE_GRANT_REPOSITORY_PORT,
-          useValue: options.evidenceGrantRepository ?? new InMemoryEvidenceGrantRepositoryAdapter(),
+          useValue:
+            options.evidenceGrantRepository ??
+            (options.evidenceGrantDatabase === undefined
+              ? new InMemoryEvidenceGrantRepositoryAdapter()
+              : new PrismaEvidenceGrantRepositoryAdapter(options.evidenceGrantDatabase)),
         },
         {
           provide: REQUEST_TENANT_CONTEXT,
@@ -77,6 +230,13 @@ export class IaeModule {
       exports: [
         ARTIFACT_INTAKE_REPOSITORY_PORT,
         ARTIFACT_REPOSITORY_PORT,
+        ARTIFACT_LINEAGE_REPOSITORY_PORT,
+        ARTIFACT_RETENTION_REPOSITORY_PORT,
+        ARTIFACT_EXPORT_REPOSITORY_PORT,
+        ARTIFACT_UPLOAD_REPOSITORY_PORT,
+        ARTIFACT_UPLOAD_STORAGE_PORT,
+        PROTECTED_DOCUMENT_UNLOCK_REPOSITORY_PORT,
+        PROTECTED_DOCUMENT_SECRET_INPUT_PORT,
         EVIDENCE_GRANT_REPOSITORY_PORT,
       ],
     };

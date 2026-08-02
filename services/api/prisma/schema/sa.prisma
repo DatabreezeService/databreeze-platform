@@ -1,0 +1,20 @@
+/// SA-001..SA-006: immutable, value-free spreadsheet audit results.
+model SpreadsheetAuditResultRecord {
+  id                String   @id @db.Uuid
+  artifactVersionId String   @map("artifact_version_id") @db.Uuid
+  scopeType         String   @map("scope_type") @db.VarChar(24)
+  organizationId    String   @map("organization_id") @db.Uuid
+  workspaceId       String?  @map("workspace_id") @db.Uuid
+  projectId         String?  @map("project_id") @db.Uuid
+  workbookSha256    String   @map("workbook_sha256") @db.Char(64)
+  sheets            Json
+  findings          Json
+  blockedReasons    Json     @map("blocked_reasons")
+  processorVersion  String   @map("processor_version") @db.VarChar(128)
+  createdAt         DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@index([artifactVersionId], map: "spreadsheet_audits_artifact_version_idx")
+  @@index([organizationId, workspaceId, projectId, artifactVersionId], map: "spreadsheet_audits_scope_idx")
+  @@map("spreadsheet_audit_results")
+  @@schema("sa")
+}

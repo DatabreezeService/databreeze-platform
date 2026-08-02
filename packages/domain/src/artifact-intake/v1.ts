@@ -21,6 +21,7 @@ export type InboxItemStateV1 =
   | 'QUARANTINED'
   | 'ARCHIVED';
 export type ArtifactScanStateV1 = 'PENDING' | 'CLEAN' | 'MALICIOUS' | 'FAILED';
+export type InboxPriorityV1 = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
 
 export interface InboxItemV1 {
   readonly schemaVersion: typeof ARTIFACT_INTAKE_SCHEMA_VERSION_V1;
@@ -31,6 +32,10 @@ export interface InboxItemV1 {
   readonly state: InboxItemStateV1;
   readonly createdAt: StrictUtcTimestampV1;
   readonly revision: number;
+  readonly assigneeId?: StableIdentifierV1;
+  readonly labels?: readonly string[];
+  readonly priority?: InboxPriorityV1;
+  readonly dueAt?: StrictUtcTimestampV1;
 }
 
 export type ArtifactIntakeErrorCodeV1 =
@@ -47,7 +52,9 @@ export type ArtifactIntakeErrorCodeV1 =
   | 'SIZE_MISMATCH'
   | 'MEDIA_MISMATCH'
   | 'SIZE_POLICY_EXCEEDED'
-  | 'SCAN_NOT_COMPLETE';
+  | 'SCAN_NOT_COMPLETE'
+  | 'INVALID_METADATA'
+  | 'REVISION_CONFLICT';
 
 export type ArtifactIntakeResultV1<TValue> =
   | { readonly accepted: true; readonly value: TValue }
@@ -144,6 +151,72 @@ export function transitionInboxItemV1(
   const nextState = nextStateInput as InboxItemStateV1;
   if (!transitions[item.state].includes(nextState)) return rejected('INVALID_TRANSITION');
   return accepted(Object.freeze({ ...item, state: nextState, revision: item.revision + 1 }));
+}
+
+/** IAE-013: metadata updates are revisioned and never change artifact identity or state. */
+export function updateInboxMetadataV1(
+  item: InboxItemV1,
+  input: {
+    readonly assigneeId?: unknown;
+    readonly labels?: unknown;
+    readonly priority?: unknown;
+    readonly dueAt?: unknown;
+    readonly expectedRevision: unknown;
+  },
+): ArtifactIntakeResultV1<InboxItemV1> {
+  if (
+    typeof input.expectedRevision !== 'number' ||
+    !Number.isSafeInteger(input.expectedRevision) ||
+    input.expectedRevision < 1
+  )
+    return rejected('INVALID_METADATA');
+  if (input.expectedRevision !== item.revision) return rejected('REVISION_CONFLICT');
+  let assigneeId = item.assigneeId;
+  if (input.assigneeId !== undefined) {
+    if (input.assigneeId === null) assigneeId = undefined;
+    else {
+      assigneeId = identifier(input.assigneeId);
+      if (!assigneeId) return rejected('INVALID_METADATA');
+    }
+  }
+  let labels = item.labels;
+  if (input.labels !== undefined) {
+    if (!Array.isArray(input.labels) || input.labels.length > 32)
+      return rejected('INVALID_METADATA');
+    const parsedLabels = input.labels.map((label) => text(label, 64));
+    if (
+      parsedLabels.some((label): label is undefined => label === undefined) ||
+      new Set(parsedLabels).size !== parsedLabels.length
+    )
+      return rejected('INVALID_METADATA');
+    labels = Object.freeze(parsedLabels as string[]);
+  }
+  let priority = item.priority;
+  if (input.priority !== undefined) {
+    if (!['LOW', 'NORMAL', 'HIGH', 'URGENT'].includes(input.priority as string))
+      return rejected('INVALID_METADATA');
+    priority = input.priority as InboxPriorityV1;
+  }
+  let dueAt = item.dueAt;
+  if (input.dueAt !== undefined) {
+    if (input.dueAt === null) dueAt = undefined;
+    else {
+      dueAt = timestamp(input.dueAt);
+      if (!dueAt) return rejected('INVALID_METADATA');
+    }
+  }
+  const next = { ...item, revision: item.revision + 1 };
+  if (input.assigneeId !== undefined) {
+    if (assigneeId === undefined) delete next.assigneeId;
+    else next.assigneeId = assigneeId;
+  }
+  if (labels !== undefined) next.labels = labels;
+  if (priority !== undefined) next.priority = priority;
+  if (input.dueAt !== undefined) {
+    if (dueAt === undefined) delete next.dueAt;
+    else next.dueAt = dueAt;
+  }
+  return accepted(Object.freeze(next));
 }
 
 export function finalizeArtifactAdmissionV1(input: {

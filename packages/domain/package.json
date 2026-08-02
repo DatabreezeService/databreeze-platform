@@ -72,6 +72,22 @@
       "types": "./src/artifact-governance/v1.ts",
       "import": "./dist/artifact-governance/v1.js"
     },
+    "./artifact-retention/v1": {
+      "types": "./src/artifact-retention/v1.ts",
+      "import": "./dist/artifact-retention/v1.js"
+    },
+    "./artifact-export/v1": {
+      "types": "./src/artifact-export/v1.ts",
+      "import": "./dist/artifact-export/v1.js"
+    },
+    "./artifact-upload/v1": {
+      "types": "./src/artifact-upload/v1.ts",
+      "import": "./dist/artifact-upload/v1.js"
+    },
+    "./protected-document/v1": {
+      "types": "./src/protected-document/v1.ts",
+      "import": "./dist/protected-document/v1.js"
+    },
     "./dataset/v1": {
       "types": "./src/dataset/v1.ts",
       "import": "./dist/dataset/v1.js"
@@ -79,6 +95,22 @@
     "./dataset-governance/v1": {
       "types": "./src/dataset-governance/v1.ts",
       "import": "./dist/dataset-governance/v1.js"
+    },
+    "./dataset-quality/v1": {
+      "types": "./src/dataset-quality/v1.ts",
+      "import": "./dist/dataset-quality/v1.js"
+    },
+    "./dataset-profile/v1": {
+      "types": "./src/dataset-profile/v1.ts",
+      "import": "./dist/dataset-profile/v1.js"
+    },
+    "./dataset-export/v1": {
+      "types": "./src/dataset-export/v1.ts",
+      "import": "./dist/dataset-export/v1.js"
+    },
+    "./spreadsheet-audit/v1": {
+      "types": "./src/spreadsheet-audit/v1.ts",
+      "import": "./dist/spreadsheet-audit/v1.js"
     },
     "./jobs/v1": {
       "types": "./src/jobs/v1.ts",

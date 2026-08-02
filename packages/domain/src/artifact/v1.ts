@@ -84,6 +84,7 @@ export type ArtifactErrorCodeV1 =
   | 'INVALID_NAME'
   | 'INVALID_STATUS'
   | 'INVALID_REVISION'
+  | 'REVISION_CONFLICT'
   | 'INVALID_REFERENCE'
   | 'INVALID_COORDINATE'
   | 'COORDINATE_OUT_OF_BOUNDS'
@@ -267,6 +268,25 @@ export function createContentPlacementV1(input: {
       contentSha256,
       available: input.available ?? true,
       revision,
+    }),
+  );
+}
+
+/** IAE-020: placement availability is a revisioned projection, not mutable content identity. */
+export function updateContentPlacementAvailabilityV1(
+  placement: ContentPlacementV1,
+  availableInput: unknown,
+  expectedRevisionInput: unknown,
+): ArtifactResultV1<ContentPlacementV1> {
+  if (typeof availableInput !== 'boolean') return rejected('INVALID_STATUS');
+  if (!positiveRevision(expectedRevisionInput)) return rejected('INVALID_REVISION');
+  if (expectedRevisionInput !== placement.revision) return rejected('REVISION_CONFLICT');
+  if (availableInput === placement.available) return accepted(placement);
+  return accepted(
+    Object.freeze({
+      ...placement,
+      available: availableInput,
+      revision: placement.revision + 1,
     }),
   );
 }

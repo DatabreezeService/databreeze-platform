@@ -83,6 +83,18 @@ export class ReferenceEntityService {
     );
   }
 
+  public async findVersion(
+    context: IamTenantContextV1,
+    versionId: StableIdentifierV1,
+  ): Promise<ReferenceEntityServiceResultV1<BusinessPartyVersionV1>> {
+    return this.repository.withTransaction(context, async (transaction) => {
+      const version = await transaction.findVersion(context, versionId);
+      return version
+        ? Object.freeze({ accepted: true as const, value: version })
+        : Object.freeze({ accepted: false as const, code: 'ENTITY_NOT_FOUND' as const });
+    });
+  }
+
   public async listResolutions(
     context: IamTenantContextV1,
     entityId: StableIdentifierV1,

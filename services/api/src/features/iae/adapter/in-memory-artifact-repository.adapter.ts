@@ -64,6 +64,25 @@ export class InMemoryArtifactRepositoryAdapter implements ArtifactRepositoryPort
       : undefined;
   }
 
+  async updateVersionStatus(
+    context: IamTenantContextV1,
+    versionId: ArtifactVersionV1['versionId'],
+    status: ArtifactVersionV1['status'],
+  ): Promise<ArtifactVersionV1 | undefined> {
+    await Promise.resolve();
+    const current = this.versions.get(versionId);
+    if (!current || !visibleInScope(context.tenantScope, current.tenantScope)) return undefined;
+    if (!scopeAllowsMutation(context, current.tenantScope))
+      throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
+    if (!['QUARANTINED', 'ACTIVE', 'DELETED'].includes(status))
+      throw new Error('IAE_INVALID_STATUS');
+    if (current.status === 'DELETED' && status !== 'DELETED')
+      throw new Error('IAE_TERMINAL_STATUS');
+    const next = cloneVersion({ ...current, status });
+    this.versions.set(versionId, next);
+    return next;
+  }
+
   async savePlacement(context: IamTenantContextV1, placement: ContentPlacementV1): Promise<void> {
     await Promise.resolve();
     if (!scopeAllowsMutation(context, placement.tenantScope))
@@ -90,6 +109,24 @@ export class InMemoryArtifactRepositoryAdapter implements ArtifactRepositoryPort
           visibleInScope(context.tenantScope, placement.tenantScope),
       )
       .map(clonePlacement);
+  }
+
+  async updatePlacement(context: IamTenantContextV1, placement: ContentPlacementV1): Promise<void> {
+    await Promise.resolve();
+    if (!scopeAllowsMutation(context, placement.tenantScope))
+      throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
+    const existing = this.placements.get(placement.placementId);
+    if (!existing) throw new Error('IAE_PLACEMENT_NOT_FOUND');
+    if (JSON.stringify(existing) === JSON.stringify(placement)) return;
+    if (placement.revision !== existing.revision + 1) throw new Error('IAE_REVISION_CONFLICT');
+    if (
+      existing.artifactVersionId !== placement.artifactVersionId ||
+      existing.kind !== placement.kind ||
+      existing.opaqueReference !== placement.opaqueReference ||
+      existing.contentSha256 !== placement.contentSha256
+    )
+      throw new Error('IAE_IMMUTABLE_PLACEMENT');
+    this.placements.set(placement.placementId, clonePlacement(placement));
   }
 
   async saveEvidence(context: IamTenantContextV1, evidence: EvidenceReferenceV1): Promise<void> {
@@ -134,7 +171,9 @@ export class InMemoryArtifactRepositoryAdapter implements ArtifactRepositoryPort
       return await work({
         saveVersion: this.saveVersion.bind(this),
         findVersion: this.findVersion.bind(this),
+        updateVersionStatus: this.updateVersionStatus.bind(this),
         savePlacement: this.savePlacement.bind(this),
+        updatePlacement: this.updatePlacement.bind(this),
         listPlacements: this.listPlacements.bind(this),
         saveEvidence: this.saveEvidence.bind(this),
         listEvidence: this.listEvidence.bind(this),

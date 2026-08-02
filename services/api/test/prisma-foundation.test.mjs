@@ -51,16 +51,22 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "dsm"/);
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "jra"/);
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "dso"/);
+  assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "sa"/);
   assert.match(diff.stdout, /CREATE TABLE "platform"\."schema_registry"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."users"/);
   assert.match(diff.stdout, /CREATE TABLE "iae"\."artifact_versions"/);
   assert.match(diff.stdout, /CREATE TABLE "iae"\."inbox_items"/);
+  assert.match(diff.stdout, /"assignee_id" UUID/);
   assert.match(diff.stdout, /CREATE TABLE "iae"\."artifact_lineage"/);
   assert.match(diff.stdout, /CREATE TABLE "iae"\."evidence_grants"/);
   assert.match(diff.stdout, /CREATE TABLE "aud"\."audit_events"/);
   assert.match(diff.stdout, /CREATE TABLE "bua"\."usage_ledger_entries"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_definitions"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_versions"/);
+  assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_quality_results"/);
+  assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_profiles"/);
+  assert.match(diff.stdout, /CREATE TABLE "iae"\."protected_document_unlock_requests"/);
+  assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_export_manifests"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."reference_entity_versions"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."reference_entity_resolutions"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."mapping_definitions"/);
@@ -73,6 +79,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "dso"\."device_sync_operations"/);
   assert.match(diff.stdout, /CREATE TABLE "dso"\."device_sync_conflicts"/);
   assert.match(diff.stdout, /CREATE TABLE "dso"\."strict_local_package_manifests"/);
+  assert.match(diff.stdout, /CREATE TABLE "sa"\."spreadsheet_audit_results"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."authorization_snapshots"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."mfa_recovery_codes"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."access_tokens"/);
@@ -106,6 +113,14 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802200000_dso_data_mode_policies',
     '20260802210000_iam_mfa_recovery',
     '20260802220000_iam_access_tokens',
+    '20260802230000_iae_retention_exports',
+    '20260802240000_iae_upload_sessions',
+    '20260802250000_dsm_quality_results',
+    '20260802260000_iae_inbox_metadata',
+    '20260802270000_dsm_profiles',
+    '20260802280000_iae_protected_document_unlocks',
+    '20260802290000_dsm_export_manifests',
+    '20260802300000_sa_spreadsheet_audits',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -395,6 +410,86 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   ]) {
     assert.match(
       accessTokenMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const qualityMigration = await readFile(
+    path.join(migrationsDirectory, inventory[26], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE TABLE "dsm"."dataset_quality_results"',
+    'CREATE INDEX "dataset_quality_results_dataset_version_idx"',
+  ]) {
+    assert.match(qualityMigration, new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  const inboxMetadataMigration = await readFile(
+    path.join(migrationsDirectory, inventory[27], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'ADD COLUMN "assignee_id" UUID',
+    'ADD COLUMN "labels" JSONB',
+    'ADD COLUMN "priority" VARCHAR(16)',
+    'ADD COLUMN "due_at" TIMESTAMPTZ(6)',
+  ]) {
+    assert.match(
+      inboxMetadataMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const profileMigration = await readFile(
+    path.join(migrationsDirectory, inventory[28], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE TABLE "dsm"."dataset_profiles"',
+    'CREATE INDEX "dataset_profiles_dataset_version_idx"',
+    '"sampling_method" VARCHAR(96)',
+    '"max_duration_ms" BIGINT',
+  ]) {
+    assert.match(profileMigration, new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  const protectedDocumentMigration = await readFile(
+    path.join(migrationsDirectory, inventory[29], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE TABLE "iae"."protected_document_unlock_requests"',
+    'CREATE INDEX "protected_document_unlock_artifact_idx"',
+    '"last_failure_code" VARCHAR(32)',
+  ]) {
+    assert.match(
+      protectedDocumentMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const datasetExportMigration = await readFile(
+    path.join(migrationsDirectory, inventory[30], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE TABLE "dsm"."dataset_export_manifests"',
+    'CREATE INDEX "dataset_export_manifests_dataset_version_idx"',
+    '"policy_hash" CHAR(64)',
+  ]) {
+    assert.match(
+      datasetExportMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const spreadsheetAuditMigration = await readFile(
+    path.join(migrationsDirectory, inventory[31], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE SCHEMA IF NOT EXISTS "sa"',
+    'CREATE TABLE "sa"."spreadsheet_audit_results"',
+    'CREATE INDEX "spreadsheet_audits_artifact_version_idx"',
+    '"blocked_reasons" JSONB',
+  ]) {
+    assert.match(
+      spreadsheetAuditMigration,
       new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
   }

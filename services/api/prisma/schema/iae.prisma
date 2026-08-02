@@ -34,6 +34,10 @@ model InboxItem {
   idempotencyKey    String   @map("idempotency_key") @db.VarChar(200)
   artifactVersionId String   @map("artifact_version_id") @db.Uuid
   state             String   @db.VarChar(24)
+  assigneeId        String?  @map("assignee_id") @db.Uuid
+  labels            Json     @default("[]")
+  priority          String   @default("NORMAL") @db.VarChar(16)
+  dueAt             DateTime? @map("due_at") @db.Timestamptz(6)
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   revision          Int      @default(1)
 
@@ -125,5 +129,94 @@ model EvidenceGrantRecord {
   @@index([artifactVersionId], map: "evidence_grants_artifact_version_idx")
   @@index([organizationId, workspaceId, projectId, recipientDeviceId], map: "evidence_grants_scope_device_idx")
   @@map("evidence_grants")
+  @@schema("iae")
+}
+
+/// IAE-016, IAE-021: deletion authorization is durable and separate from byte erasure.
+model ArtifactDeletionRequestRecord {
+  id                String    @id @db.Uuid
+  artifactVersionId String    @map("artifact_version_id") @db.Uuid
+  scopeType         String    @map("scope_type") @db.VarChar(24)
+  organizationId    String    @map("organization_id") @db.Uuid
+  workspaceId       String?   @map("workspace_id") @db.Uuid
+  projectId         String?   @map("project_id") @db.Uuid
+  requestedBy       String    @map("requested_by") @db.Uuid
+  requestedAt       DateTime  @map("requested_at") @db.Timestamptz(6)
+  state             String    @db.VarChar(16)
+  blockers          Json
+  authorizedAt      DateTime? @map("authorized_at") @db.Timestamptz(6)
+  revision          Int       @default(1)
+
+  @@index([artifactVersionId], map: "artifact_deletion_requests_artifact_idx")
+  @@index([organizationId, workspaceId, projectId, state], map: "artifact_deletion_requests_scope_state_idx")
+  @@map("artifact_deletion_requests")
+  @@schema("iae")
+}
+
+/// IAE-018: export manifests contain only verification metadata and references.
+model ArtifactExportManifestRecord {
+  id             String   @id @db.Uuid
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String?  @map("workspace_id") @db.Uuid
+  projectId      String?  @map("project_id") @db.Uuid
+  entries        Json
+  approvalState  String   @map("approval_state") @db.VarChar(16)
+  createdAt      DateTime @map("created_at") @db.Timestamptz(6)
+  canonicalHash  String   @map("canonical_hash") @db.Char(64)
+
+  @@index([organizationId, workspaceId, projectId], map: "artifact_export_manifests_scope_idx")
+  @@map("artifact_export_manifests")
+  @@schema("iae")
+}
+
+/// IAE-014: resumable, content-addressed upload sessions with bounded part metadata.
+model ArtifactUploadSessionRecord {
+  id             String   @id @db.Uuid
+  artifactId     String   @map("artifact_id") @db.Uuid
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String?  @map("workspace_id") @db.Uuid
+  projectId      String?  @map("project_id") @db.Uuid
+  expectedSha256 String   @map("expected_sha256") @db.Char(64)
+  expectedByteSize BigInt @map("expected_byte_size")
+  mediaType      String   @map("media_type") @db.VarChar(255)
+  partSize       Int      @map("part_size")
+  totalParts     Int      @map("total_parts")
+  parts          Json
+  state          String   @db.VarChar(16)
+  createdAt      DateTime @map("created_at") @db.Timestamptz(6)
+  expiresAt      DateTime @map("expires_at") @db.Timestamptz(6)
+  revision       Int      @default(1)
+
+  @@index([artifactId], map: "artifact_upload_sessions_artifact_idx")
+  @@index([organizationId, workspaceId, projectId, state], map: "artifact_upload_sessions_scope_state_idx")
+  @@index([expiresAt], map: "artifact_upload_sessions_expiry_idx")
+  @@map("artifact_upload_sessions")
+  @@schema("iae")
+}
+
+/// IAE-015: password-protected document unlock state; no secret material is persisted.
+model ProtectedDocumentUnlockRequestRecord {
+  id                String   @id @db.Uuid
+  artifactVersionId String   @map("artifact_version_id") @db.Uuid
+  scopeType         String   @map("scope_type") @db.VarChar(24)
+  organizationId    String   @map("organization_id") @db.Uuid
+  workspaceId       String?  @map("workspace_id") @db.Uuid
+  projectId         String?  @map("project_id") @db.Uuid
+  deviceId          String?  @map("device_id") @db.Uuid
+  mode              String   @db.VarChar(24)
+  state             String   @db.VarChar(16)
+  attemptCount      Int      @map("attempt_count")
+  maxAttempts       Int      @map("max_attempts")
+  lastFailureCode   String?  @map("last_failure_code") @db.VarChar(32)
+  createdAt         DateTime @map("created_at") @db.Timestamptz(6)
+  expiresAt         DateTime @map("expires_at") @db.Timestamptz(6)
+  revision          Int      @default(1)
+
+  @@index([artifactVersionId], map: "protected_document_unlock_artifact_idx")
+  @@index([organizationId, workspaceId, projectId, state], map: "protected_document_unlock_scope_state_idx")
+  @@index([expiresAt], map: "protected_document_unlock_expiry_idx")
+  @@map("protected_document_unlock_requests")
   @@schema("iae")
 }

@@ -95,3 +95,13 @@ export class CreateRuleSetDto {
   @MaxLength(64)
   canonicalHash!: string;
 }
+
+export class PublishDefinitionDto {
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
+  nextVersionId!: string;
+
+  @ApiProperty({ format: 'date-time' })
+  @IsISO8601()
+  publishedAt!: string;
+}

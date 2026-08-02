@@ -54,3 +54,57 @@ void test('[IAE-001, IAM-009] HTTP inbox listing uses the configured tenant cont
     await app.close();
   }
 });
+
+void test('[IAE-013] HTTP inbox metadata patch uses a revision precondition and stays content-free', async () => {
+  const repository = new InMemoryArtifactIntakeRepositoryAdapter();
+  const tenantContext = context();
+  const intake = new ArtifactIntakeService(repository);
+  const created = await intake.create(tenantContext, {
+    inboxItemId,
+    tenantScope: tenantContext.tenantScope,
+    idempotencyKey: 'http-inbox-metadata',
+    artifactVersionId,
+    createdAt: '2026-01-01T00:00:00.000Z',
+  });
+  assert.equal(created.accepted, true);
+  const requestTenantContext: RequestTenantContextPortV1 = {
+    resolve: () => Promise.resolve(tenantContext),
+  };
+  const { app } = await createApiApplication({
+    artifactIntakeRepository: repository,
+    requestTenantContext,
+  });
+  try {
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/v1/artifacts/inbox/${inboxItemId}`,
+      headers: { 'if-match': '1' },
+      payload: {
+        labels: ['finance', 'urgent'],
+        priority: 'HIGH',
+        dueAt: '2026-01-02T00:00:00.000Z',
+        path: 'must-not-be-accepted',
+      },
+    });
+    assert.equal(response.statusCode, 400);
+    assert.doesNotMatch(response.body, /must-not-be-accepted/u);
+
+    const accepted = await app.inject({
+      method: 'PATCH',
+      url: `/v1/artifacts/inbox/${inboxItemId}`,
+      headers: { 'if-match': '1' },
+      payload: {
+        labels: ['finance', 'urgent'],
+        priority: 'HIGH',
+        dueAt: '2026-01-02T00:00:00.000Z',
+      },
+    });
+    assert.equal(accepted.statusCode, 200);
+    const body: unknown = JSON.parse(accepted.body);
+    assert.ok(typeof body === 'object' && body !== null && 'accepted' in body);
+    assert.equal((body as { readonly accepted: boolean }).accepted, true);
+    assert.doesNotMatch(accepted.body, /path|source|byte|excerpt/u);
+  } finally {
+    await app.close();
+  }
+});
