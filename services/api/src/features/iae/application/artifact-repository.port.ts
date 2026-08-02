@@ -20,6 +20,10 @@ export interface ArtifactTransactionPortV1 {
     versionId: ArtifactVersionV1['versionId'],
   ): Promise<readonly ContentPlacementV1[]>;
   saveEvidence(context: IamTenantContextV1, evidence: EvidenceReferenceV1): Promise<void>;
+  listEvidence(
+    context: IamTenantContextV1,
+    versionId: ArtifactVersionV1['versionId'],
+  ): Promise<readonly EvidenceReferenceV1[]>;
 }
 
 export interface ArtifactRepositoryPortV1 extends ArtifactTransactionPortV1 {

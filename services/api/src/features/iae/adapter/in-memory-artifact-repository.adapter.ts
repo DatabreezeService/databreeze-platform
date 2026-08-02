@@ -70,6 +70,7 @@ export class InMemoryArtifactRepositoryAdapter implements ArtifactRepositoryPort
       throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
     if (!this.versions.has(placement.artifactVersionId)) throw new Error('IAE_VERSION_NOT_FOUND');
     const existing = this.placements.get(placement.placementId);
+    if (existing && JSON.stringify(existing) === JSON.stringify(placement)) return;
     if (existing && context.expectedRevision !== existing.revision)
       throw new Error('IAE_REVISION_CONFLICT');
     if (!existing && context.expectedRevision !== undefined)
@@ -96,8 +97,24 @@ export class InMemoryArtifactRepositoryAdapter implements ArtifactRepositoryPort
     if (!scopeAllowsMutation(context, evidence.tenantScope))
       throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
     if (!this.versions.has(evidence.artifactVersionId)) throw new Error('IAE_VERSION_NOT_FOUND');
-    if (this.evidence.has(evidence.evidenceId)) throw new Error('IAE_IMMUTABLE_EVIDENCE');
+    const existing = this.evidence.get(evidence.evidenceId);
+    if (existing && JSON.stringify(existing) === JSON.stringify(evidence)) return;
+    if (existing) throw new Error('IAE_IMMUTABLE_EVIDENCE');
     this.evidence.set(evidence.evidenceId, cloneEvidence(evidence));
+  }
+
+  async listEvidence(
+    context: IamTenantContextV1,
+    versionId: EvidenceReferenceV1['artifactVersionId'],
+  ): Promise<readonly EvidenceReferenceV1[]> {
+    await Promise.resolve();
+    return [...this.evidence.values()]
+      .filter(
+        (evidence) =>
+          evidence.artifactVersionId === versionId &&
+          visibleInScope(context.tenantScope, evidence.tenantScope),
+      )
+      .map(cloneEvidence);
   }
 
   async withTransaction<TValue>(
@@ -120,6 +137,7 @@ export class InMemoryArtifactRepositoryAdapter implements ArtifactRepositoryPort
         savePlacement: this.savePlacement.bind(this),
         listPlacements: this.listPlacements.bind(this),
         saveEvidence: this.saveEvidence.bind(this),
+        listEvidence: this.listEvidence.bind(this),
       });
     } catch (error) {
       this.versions = beforeVersions;
