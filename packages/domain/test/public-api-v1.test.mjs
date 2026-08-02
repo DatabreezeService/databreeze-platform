@@ -23,6 +23,7 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
     './dataset/v1',
     './jobs/v1',
     './approval/v1',
+    './execution-attempt/v1',
   ]);
 
   for (const entry of Object.values(manifest.exports)) {
