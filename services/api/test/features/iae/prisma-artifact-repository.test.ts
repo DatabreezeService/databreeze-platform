@@ -103,6 +103,11 @@ function client(
         evidence.push(persisted);
         return Promise.resolve(persisted);
       },
+      findUnique(input) {
+        return Promise.resolve(
+          evidence.find((candidate) => candidate.id === input.where.id) ?? null,
+        );
+      },
       findMany(input) {
         return Promise.resolve(
           evidence.filter(
@@ -165,6 +170,19 @@ void test('[IAE-003, IAE-004, IAE-005, IAM-009] Prisma artifact adapter keeps pl
   await repository.savePlacement(context('placement'), placement.value);
   await repository.savePlacement(context('placement-repeat'), placement.value);
   await repository.saveEvidence(context('evidence'), evidenceRef.value);
+  await repository.saveEvidence(context('evidence-repeat'), evidenceRef.value);
+  const conflictingEvidence = createEvidenceReferenceV1({
+    evidenceId,
+    artifactVersion: artifact.value,
+    tenantScope: artifact.value.tenantScope,
+    coordinate: { kind: 'ROW', row: 2 },
+  });
+  assert.equal(conflictingEvidence.accepted, true);
+  if (!conflictingEvidence.accepted) return;
+  await assert.rejects(
+    repository.saveEvidence(context('evidence-conflict'), conflictingEvidence.value),
+    /IAE_IMMUTABLE_EVIDENCE/,
+  );
   assert.equal((await repository.listPlacements(context('list-placement'), versionId)).length, 1);
   assert.equal((await repository.listEvidence(context('list-evidence'), versionId)).length, 1);
 });

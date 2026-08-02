@@ -104,6 +104,9 @@ export interface ArtifactDatabaseClientV1 {
   };
   readonly evidenceReference: {
     create(input: { readonly data: EvidenceCreateDataV1 }): Promise<EvidenceDatabaseRowV1>;
+    findUnique(input: {
+      readonly where: { readonly id: string };
+    }): Promise<EvidenceDatabaseRowV1 | null>;
     findMany(input: {
       readonly where: Readonly<Record<string, string>>;
     }): Promise<readonly EvidenceDatabaseRowV1[]>;
@@ -349,6 +352,14 @@ class PrismaArtifactTransactionAdapter implements ArtifactTransactionPortV1 {
     if (versionRow === null) throw new Error('IAE_VERSION_NOT_FOUND');
     if (!tenantScopeContainsV1(context.tenantScope, evidence.tenantScope))
       throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
+    const existing = await this.client.evidenceReference.findUnique({
+      where: { id: evidence.evidenceId },
+    });
+    if (existing !== null) {
+      const persisted = rowToEvidence(existing, rowToVersion(versionRow));
+      if (JSON.stringify(persisted) === JSON.stringify(evidence)) return;
+      throw new Error('IAE_IMMUTABLE_EVIDENCE');
+    }
     await this.client.evidenceReference.create({
       data: {
         ...databaseScope(evidence.tenantScope),
