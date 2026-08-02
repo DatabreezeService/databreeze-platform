@@ -5,7 +5,7 @@ Use this runbook to resume DataBreeze after a model, machine, branch, or hosted-
 ## Start-of-session algorithm
 
 1. Locate the canonical `databreeze-platform` repository; do not implement in the legacy `Databreeze` directory.
-2. Read repository `AGENTS.md` files, `docs/plans/README.md`, `002-complete-execution-orchestration.md`, `execution-orchestration.json`, the selected child plan, and the requirement records it owns.
+2. Read repository `AGENTS.md` files, `docs/plans/README.md`, `002-complete-execution-orchestration.md`, `004-luna-max-execution-plan.md`, `execution-orchestration.json`, the selected child plan, and the requirement records it owns.
 3. Fetch before trusting any recorded hash:
 
    ```powershell
@@ -38,8 +38,9 @@ Use this runbook to resume DataBreeze after a model, machine, branch, or hosted-
    ```
 
    If the offline Python cache is unavailable, use the documented online locked sync; do not alter the lock merely to make bootstrap pass.
-8. Select `nextTaskId` only if every dependency is verified and no open PR or dirty worktree already owns it. Otherwise follow the table below and record the corrected next task.
-9. State the selected task, assumptions, entry gate, expected files, tests, and stop conditions before mutation. If delegation is explicitly authorized, assign only disjoint paths with explicit integration ownership.
+8. Select `activeBatchId` and `nextTaskId` only if every dependency is verified and no open PR or dirty worktree already owns them. Verify that the active batch contains the next task and that its current commit/file budgets remain safe. Otherwise follow the table below and record the corrected batch and task.
+9. State the selected batch/task, assumptions, entry gate, expected files, tests, commit/file budget, and stop conditions before mutation. If delegation is explicitly authorized, assign only disjoint paths with explicit integration ownership.
+10. Run package-manager operations sequentially within a worktree. Never start concurrent `pnpm install`, check, test, or build commands that share the same `node_modules` tree.
 
 ## Resume-state decision table
 
@@ -57,6 +58,7 @@ Use this runbook to resume DataBreeze after a model, machine, branch, or hosted-
 | Dependency is only `implemented`, not `verified` | Finish its tests/evidence/review gate before the dependent task | Treating merged code as a verified dependency |
 | Baseline fails before task edits | Diagnose and document whether environment or repository caused it; repair in a `fix/*` unit or stop if unsafe | Attributing the failure to the new task or weakening the gate |
 | Migration/schema or generated-contract drift exists | Reconcile canonical sources, regeneration, migrations, and compatibility before feature work | Editing generated clients or database state manually |
+| Package installation/check reports `EBUSY` or `EEXIST` in `node_modules/.pnpm` | Another package-manager process used the same worktree or a previous one was interrupted | Stop concurrent package-manager processes, preserve tracked files, rerun one frozen install sequentially, then rerun the failed gate; never delete tracked files or alter the lock to bypass it |
 | Required production/signing/business credential is unavailable | Complete all credential-independent code/tests/runbooks and stop at the explicit external gate | Using personal/untracked credentials or claiming release readiness |
 
 ## Atomic task execution loop
@@ -89,7 +91,8 @@ For each `#### TASK-ID —` item in `002-complete-execution-orchestration.md`:
 
 10. Inspect generated/runtime debris before commit. Do not commit `.venv`, `node_modules`, Gradle state, build output, logs, caches, secrets, local databases, Terraform state, or test reports unless the repository explicitly tracks a sanitized fixture.
 11. Commit one independently reversible outcome with a semantic message. Do not combine contracts, an unrelated fix, and a different feature just to increase commit count.
-12. Push after each stable task boundary. Update the ledger/checkpoint only with verified facts and leave a handoff record if stopping.
+12. Recount the active batch against its base. Do not open a normal PR below 30 commits; target about 70, stop accepting new tasks at 90, and never exceed 99. Split before the promotion diff reaches 280 changed files; the packet target is 260.
+13. Push after each stable task boundary. Update the ledger/checkpoint only with verified facts and leave a handoff record if stopping.
 
 ## Pull-request and CodeRabbit protocol
 
@@ -145,6 +148,7 @@ Remote dev / main:
 Open feature PR / promotion PR:
 CodeRabbit invocation count, invocation timestamp (UTC), and review URL:
 Active plan / task ID:
+Active delivery batch / commit count / changed-file count:
 Requirement IDs and statuses changed:
 Completed commits (hash — outcome):
 Checks run and exact results:
@@ -165,11 +169,11 @@ The record supplements Git; it cannot claim `verified` without traceable test/re
 Copy this into the first Luna session and replace only the bracketed values discovered from live Git:
 
 ```text
-You are resuming DataBreeze in the canonical databreeze-platform repository. Do not trust chat checkpoints until you fetch and verify Git/PR state. Read every applicable AGENTS.md plus docs/plans/README.md, docs/plans/002-complete-execution-orchestration.md, docs/plans/003-luna-handoff-runbook.md, docs/plans/execution-orchestration.json, the selected child plan, and its requirement-traceability records.
+You are resuming DataBreeze in the canonical databreeze-platform repository. Do not trust chat checkpoints until you fetch and verify Git/PR state. Read every applicable AGENTS.md plus docs/plans/README.md, docs/plans/002-complete-execution-orchestration.md, docs/plans/003-luna-handoff-runbook.md, docs/plans/004-luna-max-execution-plan.md, docs/plans/execution-orchestration.json, the selected child plan, and its requirement-traceability records.
 
 Live verified checkpoint: branch [BRANCH], HEAD [HEAD], origin/dev [DEV], origin/main [MAIN], open feature PR [FEATURE_PR_OR_NONE], open dev→main promotion PR [PROMOTION_PR_OR_NONE]. Run the orchestration checker and the documented clean baseline before edits. Preserve all user changes and use an ignored worktree if isolation is needed.
 
-Resume task [TASK_ID] only after proving its dependency/entry gate. Follow test-first atomic delivery: canonical contracts when the interface changes, failing domain/state tests, PostgreSQL migration/tenant/transaction/outbox tests when durable state changes, implementation through ports, vertical client/adapter coverage when the task involves client behavior, safe telemetry/recovery, traceability evidence, scoped checks, repo:check, repo:build, diff review, and one reversible commit. For documentation-only or other non-durable/non-client tasks, record why those conditional tests do not apply. Do not mark merged code verified without all evidence.
+Resume batch [BATCH_ID] and task [TASK_ID] only after proving their dependency/entry gates, branch ownership, and commit/file budgets. Follow test-first atomic delivery: canonical contracts when the interface changes, failing domain/state tests, PostgreSQL migration/tenant/transaction/outbox tests when durable state changes, implementation through ports, vertical client/adapter coverage when the task involves client behavior, safe telemetry/recovery, traceability evidence, scoped checks, repo:check, repo:build, diff review, and one reversible commit. For documentation-only or other non-durable/non-client tasks, record why those conditional tests do not apply. Do not mark merged code verified without all evidence. Run pnpm installation/check/test/build commands sequentially within one worktree.
 
 Git flow is fixed: feat/* or fix/* → PR to dev with hosted checks and no CodeRabbit; merge preserving atomic commits; immediately open dev→main; request exactly one CodeRabbit full review there; reproduce every comment, fix only valid findings, document rejected ones, never request a second review on that PR. Prefer 30–70 commits, hard cap 99, and do not invoke the promotion review over 280 changed files.
 
