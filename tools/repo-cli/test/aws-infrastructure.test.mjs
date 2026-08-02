@@ -65,6 +65,9 @@ test('AWS sources expose encryption, private data, and OIDC boundaries without s
   ])
     assert.match(sources, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.doesNotMatch(sources, /AKIA[0-9A-Z]{16}|BEGIN (RSA|OPENSSH) PRIVATE KEY/);
+  assert.doesNotMatch(sources, /ingress[\s\S]{0,400}cidr_blocks\s*=\s*\["0\.0\.0\.0\/0"\]/u);
+  assert.match(sources, /assign_public_ip\s*=\s*false/u);
+  assert.match(sources, /token\.actions\.githubusercontent\.com:sub/u);
 });
 
 test('AWS validation script is non-applying and reports missing OpenTofu clearly', () => {
@@ -79,4 +82,6 @@ test('AWS validation script is non-applying and reports missing OpenTofu clearly
   assert.match(source, /init', '-backend=false/);
   assert.match(source, /validate', '-no-color/);
   assert.match(source, /process\.exitCode \?\? 0/);
+  assert.match(source, /missing required safety boundary/u);
+  assert.doesNotMatch(source, /tofu',\s*\['apply'/u);
 });
