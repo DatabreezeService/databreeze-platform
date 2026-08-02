@@ -106,3 +106,28 @@ void test('[IAE-006] Local registration cannot create cloud placement or source 
     undefined,
   );
 });
+
+void test('[IAE-005, IAE-006] evidence resolution returns an opaque device action for Local content', async () => {
+  const repository = new InMemoryArtifactRepositoryAdapter();
+  const service = new ArtifactService(repository);
+  const registered = await service.register(context(workspaceId, 'resolve-local'), input('Local'));
+  assert.equal(registered.accepted, true);
+  if (!registered.accepted || !registered.value.evidence) return;
+  const resolved = await service.resolveEvidence(
+    context(workspaceId, 'resolve-local-read'),
+    registered.value.version.versionId,
+    registered.value.evidence.evidenceId,
+  );
+  assert.equal(resolved?.action, 'OPEN_ON_SOURCE_DEVICE');
+  assert.equal(resolved?.placementReference, 'opaque-reference_1234');
+  assert.equal(resolved?.evidence.excerpt, undefined);
+  assert.doesNotMatch(resolved?.placementReference ?? '', /[\\/]/u);
+  assert.equal(
+    await service.resolveEvidence(
+      context(siblingWorkspaceId, 'resolve-local-sibling'),
+      registered.value.version.versionId,
+      registered.value.evidence.evidenceId,
+    ),
+    undefined,
+  );
+});

@@ -23,6 +23,16 @@ export interface ArtifactRegistrationValueV1 {
   readonly evidence?: EvidenceReferenceV1;
 }
 
+export type EvidenceResolutionActionV1 = 'OPEN_ON_SOURCE_DEVICE' | 'OPEN_CLOUD' | 'UNAVAILABLE';
+
+export interface EvidenceResolutionV1 {
+  readonly evidence: EvidenceReferenceV1;
+  readonly version: ArtifactVersionV1;
+  readonly action: EvidenceResolutionActionV1;
+  /** Opaque placement handle only; never a local path, URL, or source value. */
+  readonly placementReference?: string;
+}
+
 /** Registers immutable versions, opaque placements, and exact evidence in one transaction. */
 export class ArtifactService {
   public constructor(private readonly repository: ArtifactRepositoryPortV1) {}
@@ -70,5 +80,40 @@ export class ArtifactService {
       placements: await transaction.listPlacements(context, versionId),
       evidence: await transaction.listEvidence(context, versionId),
     }));
+  }
+
+  /** Resolves exact-version evidence without relaying local source content. */
+  public async resolveEvidence(
+    context: IamTenantContextV1,
+    versionId: ArtifactVersionV1['versionId'],
+    evidenceId: EvidenceReferenceV1['evidenceId'],
+  ): Promise<EvidenceResolutionV1 | undefined> {
+    return this.repository.withTransaction(context, async (transaction) => {
+      const candidates = await transaction.listEvidence(context, versionId);
+      const evidence = candidates.find((item) => item.evidenceId === evidenceId);
+      if (!evidence) return undefined;
+      const version = await transaction.findVersion(context, versionId);
+      if (!version) return undefined;
+      const placements = await transaction.listPlacements(context, version.versionId);
+      const cloud = placements.find(
+        (placement) => placement.kind === 'CLOUD' && placement.available,
+      );
+      if (cloud)
+        return Object.freeze({
+          evidence,
+          version,
+          action: 'OPEN_CLOUD' as const,
+          placementReference: cloud.opaqueReference,
+        });
+      const local = placements.find((placement) => placement.kind === 'LOCAL');
+      if (local)
+        return Object.freeze({
+          evidence,
+          version,
+          action: local.available ? ('OPEN_ON_SOURCE_DEVICE' as const) : ('UNAVAILABLE' as const),
+          placementReference: local.opaqueReference,
+        });
+      return Object.freeze({ evidence, version, action: 'UNAVAILABLE' as const });
+    });
   }
 }
