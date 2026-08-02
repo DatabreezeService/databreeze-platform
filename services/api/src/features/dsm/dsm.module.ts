@@ -23,6 +23,10 @@ import {
 import { InMemoryRuleSetRepositoryAdapter } from './adapter/in-memory-rule-set-repository.adapter.js';
 import { InMemoryDatasetVersionRepositoryAdapter } from './adapter/in-memory-dataset-version-repository.adapter.js';
 import {
+  PrismaDatasetVersionRepositoryAdapter,
+  type DatasetVersionDatabaseClientV1,
+} from './adapter/prisma-dataset-version-repository.adapter.js';
+import {
   PrismaRuleSetRepositoryAdapter,
   type RuleSetDatabaseClientV1,
 } from './adapter/prisma-rule-set-repository.adapter.js';
@@ -66,6 +70,8 @@ export interface DsmModuleOptions {
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly referenceEntityDatabase?: ReferenceEntityDatabaseClientV1;
   readonly datasetVersionRepository?: DatasetVersionRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly datasetVersionDatabase?: DatasetVersionDatabaseClientV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
 }
 
@@ -117,7 +123,10 @@ export class DsmModule {
         {
           provide: DATASET_VERSION_REPOSITORY_PORT,
           useValue:
-            options.datasetVersionRepository ?? new InMemoryDatasetVersionRepositoryAdapter(),
+            options.datasetVersionRepository ??
+            (options.datasetVersionDatabase === undefined
+              ? new InMemoryDatasetVersionRepositoryAdapter()
+              : new PrismaDatasetVersionRepositoryAdapter(options.datasetVersionDatabase)),
         },
         {
           provide: REQUEST_TENANT_CONTEXT,
