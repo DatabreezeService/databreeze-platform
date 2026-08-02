@@ -23,8 +23,9 @@ so accessor-backed diagnostics cannot execute arbitrary getters during logging.
 ## Failure behavior
 
 Malformed correlation or trace headers fail closed. Ambiguous duplicate headers
-are rejected. Invalid or oversized values are omitted by the permissive
-sanitizer and rejected by strict mode. Providers and exporters remain
+are rejected, including accessor-backed or non-string header values; hostile
+header mappings fail with a generic unreadable-header reason. Invalid or
+oversized values are omitted by the permissive sanitizer and rejected by strict mode. Providers and exporters remain
 replaceable; a collector outage cannot become domain authority or block durable
 jobs and audit writes.
 
