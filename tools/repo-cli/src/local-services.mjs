@@ -228,12 +228,15 @@ function inspectHealth(service, values) {
   const idResult = runDocker([...composeArgs(values), 'ps', '-q', service], { allowFailure: true });
   const id = idResult.stdout.trim();
   if (!id) return { state: 'missing', health: 'unknown', detail: 'no container' };
-  const inspect = runDocker([
-    'inspect',
-    '--format',
-    '{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}no-health{{end}}',
-    id,
-  ], { allowFailure: true });
+  const inspect = runDocker(
+    [
+      'inspect',
+      '--format',
+      '{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}no-health{{end}}',
+      id,
+    ],
+    { allowFailure: true },
+  );
   const inspection = inspect.stdout?.trim();
   if (inspect.error || inspect.status !== 0 || !inspection) {
     return { state: 'unknown', health: 'unknown', detail: 'unknown/unknown (inspect unavailable)' };
@@ -364,13 +367,10 @@ export async function main(argv = process.argv.slice(2)) {
   }
   if (command === 'logs') {
     const selected = options.service ? [options.service] : logServices;
-    runDocker([
-      ...composeArgs(values),
-      'logs',
-      '--no-color',
-      `--tail=${options.tail}`,
-      ...selected,
-    ], { capture: false, timeoutMs: 120_000 });
+    runDocker(
+      [...composeArgs(values), 'logs', '--no-color', `--tail=${options.tail}`, ...selected],
+      { capture: false, timeoutMs: 120_000 },
+    );
     return;
   }
   if (command === 'stop') {
