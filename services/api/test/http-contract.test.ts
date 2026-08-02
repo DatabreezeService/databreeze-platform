@@ -348,3 +348,79 @@ void test('sign-in returns a session DTO and maps authentication failures withou
     assertProblem(response, 503, 'AUTHENTICATION_UNAVAILABLE');
   });
 });
+
+void test('refresh rotates Web cookies without returning the refresh token and preserves native delivery', async () => {
+  const refreshed = {
+    sessionId: '00000000-0000-4000-8000-000000000020',
+    accessToken: 'next-access-token',
+    refreshToken: 'next-refresh-token',
+    accessExpiresAt: '2026-01-01T00:15:00.000Z',
+  };
+  const presented: string[] = [];
+  await withApp(
+    {
+      sessions: {
+        issue: () => Promise.reject(new Error('not used')),
+        refresh: (token, platform) => {
+          if (platform === 'web') presented.push(String(token));
+          return Promise.resolve({ accepted: true as const, value: refreshed });
+        },
+        revoke: () => Promise.resolve(true),
+        findPrincipal: () => Promise.resolve(undefined),
+      },
+    },
+    async (app) => {
+      const web = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/refresh',
+        headers: {
+          cookie: `databreeze_refresh=current-refresh-token; databreeze_csrf=${csrfToken}`,
+          'x-csrf-token': csrfToken,
+          origin: 'http://localhost:3000',
+        },
+        payload: { clientPlatform: 'web' },
+      });
+      assert.equal(web.statusCode, 200);
+      assert.deepEqual(web.json(), {
+        sessionId: refreshed.sessionId,
+        accessToken: refreshed.accessToken,
+        accessExpiresAt: refreshed.accessExpiresAt,
+      });
+      const webCookies = web.headers['set-cookie'];
+      assert.ok(Array.isArray(webCookies));
+      assert.equal(webCookies.length, 2);
+      assert.match(webCookies[0] ?? '', /^databreeze_refresh=next-refresh-token; .*HttpOnly; Secure; SameSite=Lax$/);
+      assert.match(webCookies[1] ?? '', /^databreeze_csrf=[A-Za-z0-9_-]+; .*Secure; SameSite=Lax$/);
+
+      const native = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/refresh',
+        payload: { clientPlatform: 'desktop', refreshToken: 'desktop-refresh-token' },
+      });
+      assert.equal(native.statusCode, 200);
+      assert.equal(native.json().refreshToken, refreshed.refreshToken);
+      assert.equal(native.headers['set-cookie'], undefined);
+      assert.deepEqual(presented, ['current-refresh-token']);
+    },
+  );
+
+  await withApp(
+    {
+      sessions: {
+        issue: () => Promise.reject(new Error('not used')),
+        refresh: () => Promise.resolve({ accepted: false as const, code: 'REUSE_DETECTED' as const }),
+        revoke: () => Promise.resolve(true),
+        findPrincipal: () => Promise.resolve(undefined),
+      },
+    },
+    async (app) => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/refresh',
+        payload: { clientPlatform: 'desktop', refreshToken: 'reused-token' },
+      });
+      assertProblem(response, 401, 'SESSION_INVALID');
+      assert.doesNotMatch(response.body, /REUSE_DETECTED/);
+    },
+  );
+});

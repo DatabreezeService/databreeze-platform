@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 
-import { Body, Controller, HttpCode, Inject, Post, Res } from '@nestjs/common';
+import { Body, Controller, HttpCode, Inject, Optional, Post, Req, Res } from '@nestjs/common';
 import {
   ApiBody,
   ApiOkResponse,
@@ -15,14 +15,19 @@ import {
   type AuthenticationUseCaseV1,
 } from '../application/authentication.port.js';
 import { AuthenticationProblemError } from '../application/authentication-problem.error.js';
+import { SESSION_LIFECYCLE_PORT, type SessionLifecyclePortV1 } from '../application/session-lifecycle.port.js';
+import { SessionProblemError } from '../application/session-problem.error.js';
 import {
   CSRF_COOKIE_NAME_V1,
   REFRESH_COOKIE_NAME_V1,
+  readCookieValueV1,
   serializeCookieV1,
 } from './session-cookies.js';
 import { AuthSessionDto } from './auth-session.dto.js';
 import { SignInDto } from './sign-in.dto.js';
-import type { FastifyReply } from 'fastify';
+import { SessionRefreshDto } from './session-refresh.dto.js';
+import { SessionRefreshResponseDto } from './session-refresh-response.dto.js';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 
 @ApiTags('auth')
 @Controller('v1/auth')
@@ -30,6 +35,9 @@ export class AuthenticationController {
   constructor(
     @Inject(AUTHENTICATION_USE_CASE)
     private readonly authentication: AuthenticationUseCaseV1,
+    @Optional()
+    @Inject(SESSION_LIFECYCLE_PORT)
+    private readonly sessions?: SessionLifecyclePortV1,
   ) {}
 
   @Post('sign-in')
@@ -68,6 +76,49 @@ export class AuthenticationController {
       accessExpiresAt: result.value.session.accessExpiresAt,
       securityEpoch: result.value.principal.securityEpoch,
       mfaRequired: result.value.principal.mfaRequired,
+    };
+  }
+
+  @Post('refresh')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Rotate a short-lived session' })
+  @ApiBody({ type: SessionRefreshDto })
+  @ApiOkResponse({ type: SessionRefreshResponseDto })
+  @ApiUnauthorizedResponse({ description: 'The refresh session was rejected.' })
+  @ApiServiceUnavailableResponse({ description: 'Session persistence is unavailable.' })
+  async refresh(
+    @Body() input: SessionRefreshDto,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<SessionRefreshResponseDto> {
+    if (this.sessions === undefined) throw new SessionProblemError('SESSION_UNAVAILABLE');
+    const refreshToken =
+      input.clientPlatform === 'web'
+        ? readCookieValueV1(request.headers.cookie, REFRESH_COOKIE_NAME_V1)
+        : input.refreshToken;
+    if (refreshToken === undefined || (input.clientPlatform === 'web' && input.refreshToken !== undefined)) {
+      throw new SessionProblemError('SESSION_INVALID');
+    }
+    const result = await this.sessions.refresh(refreshToken, input.clientPlatform);
+    if (!result.accepted) throw new SessionProblemError('SESSION_INVALID');
+    if (input.clientPlatform === 'web') {
+      const csrfToken = randomBytes(32).toString('base64url');
+      reply.header('Set-Cookie', [
+        serializeCookieV1(REFRESH_COOKIE_NAME_V1, result.value.refreshToken, {
+          httpOnly: true,
+          maxAgeSeconds: 2_592_000,
+        }),
+        serializeCookieV1(CSRF_COOKIE_NAME_V1, csrfToken, {
+          httpOnly: false,
+          maxAgeSeconds: 2_592_000,
+        }),
+      ]);
+    }
+    return {
+      sessionId: result.value.sessionId,
+      accessToken: result.value.accessToken,
+      accessExpiresAt: result.value.accessExpiresAt,
+      ...(input.clientPlatform === 'web' ? {} : { refreshToken: result.value.refreshToken }),
     };
   }
 }

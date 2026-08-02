@@ -8,6 +8,7 @@ import {
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import { AuthenticationProblemError } from '../../features/iam/application/authentication-problem.error.js';
+import { SessionProblemError } from '../../features/iam/application/session-problem.error.js';
 import { NotReadyError } from '../../features/system/application/not-ready.error.js';
 import { InputValidationException } from './input-validation.exception.js';
 import { createProblem, type ProblemInput } from './problem-details.js';
@@ -28,6 +29,16 @@ function describe(error: unknown, correlationId: string): ProblemInput {
       messageKey: unavailable
         ? 'api.error.authentication_unavailable'
         : 'api.error.authentication_failed',
+      retryable: unavailable,
+      status: unavailable ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.UNAUTHORIZED,
+    };
+  }
+  if (error instanceof SessionProblemError) {
+    const unavailable = error.code === 'SESSION_UNAVAILABLE';
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: unavailable ? 'api.error.session_unavailable' : 'api.error.session_invalid',
       retryable: unavailable,
       status: unavailable ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.UNAUTHORIZED,
     };

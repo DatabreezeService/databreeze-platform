@@ -7,9 +7,11 @@ import {
   CREDENTIAL_LOOKUP_PORT,
   type CredentialLookupPortV1,
   type AuthenticationUseCaseV1,
-  type SessionIssuerPortV1,
 } from './application/authentication.port.js';
-import { SESSION_LIFECYCLE_PORT } from './application/session-lifecycle.port.js';
+import {
+  SESSION_LIFECYCLE_PORT,
+  type SessionLifecyclePortV1,
+} from './application/session-lifecycle.port.js';
 import {
   IDENTITY_BOOTSTRAP_REPOSITORY_PORT,
   type IdentityBootstrapRepositoryPortV1,
@@ -59,7 +61,7 @@ export interface IamModuleOptions {
   readonly credentials?: CredentialLookupPortV1;
   readonly credentialDatabase?: CredentialLookupDatabaseClientV1;
   readonly passwordCredentials?: PasswordCredentialService;
-  readonly sessions?: SessionIssuerPortV1;
+  readonly sessions?: SessionLifecyclePortV1;
   readonly sessionDatabase?: SessionLifecycleDatabaseClientV1;
   readonly identityBootstrapRepository?: IdentityBootstrapRepositoryPortV1;
   readonly identityBootstrapDatabase?: IdentityBootstrapDatabaseClientV1;
