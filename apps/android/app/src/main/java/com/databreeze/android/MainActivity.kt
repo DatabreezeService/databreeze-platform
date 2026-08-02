@@ -14,10 +14,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -25,17 +25,43 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.databreeze.android.storage.AccountWorkspaceScope
+import com.databreeze.android.storage.InMemoryLocalStore
+import com.databreeze.android.storage.LocalStorePort
+import com.databreeze.android.storage.SyncQueueEntity
+import com.databreeze.android.sync.SyncScheduler
+import kotlinx.coroutines.launch
+
+private object AppRoutes {
+    const val HOME = "home"
+    const val CAPTURE = "capture"
+}
+
+private val localScope = AccountWorkspaceScope("local-account", "local-workspace")
+private const val DRAFT_MUTATION_ID = "capture-draft"
+private const val DRAFT_DIGEST = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { DataBreezeApp() }
+        val application = application as DataBreezeApplication
+        setContent {
+            DataBreezeApp(
+                localStore = application.runtime.localStore,
+                scope = localScope,
+                syncScheduler = application.runtime.syncScheduler,
+            )
+        }
     }
 }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun DataBreezeApp() {
+fun DataBreezeApp(
+    localStore: LocalStorePort = remember { InMemoryLocalStore() },
+    scope: AccountWorkspaceScope = localScope,
+    syncScheduler: SyncScheduler? = null,
+) {
     val navController = rememberNavController()
     DataBreezeTheme {
         Scaffold(
@@ -43,13 +69,20 @@ fun DataBreezeApp() {
         ) { padding ->
             NavHost(
                 navController = navController,
-                startDestination = "home",
+                startDestination = AppRoutes.HOME,
                 modifier = Modifier.padding(padding),
             ) {
-                composable("home") {
-                    HomeScreen(onCapture = { navController.navigate("capture") })
+                composable(AppRoutes.HOME) {
+                    HomeScreen(onCapture = { navController.navigate(AppRoutes.CAPTURE) })
                 }
-                composable("capture") { CaptureScreen(onBack = { navController.popBackStack() }) }
+                composable(AppRoutes.CAPTURE) {
+                    CaptureScreen(
+                        localStore = localStore,
+                        scope = scope,
+                        syncScheduler = syncScheduler,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
             }
         }
     }
@@ -73,8 +106,15 @@ private fun HomeScreen(onCapture: () -> Unit) {
 }
 
 @Composable
-private fun CaptureScreen(onBack: () -> Unit) {
-    var submitted by remember { mutableStateOf(false) }
+private fun CaptureScreen(
+    localStore: LocalStorePort,
+    scope: AccountWorkspaceScope,
+    syncScheduler: SyncScheduler?,
+    onBack: () -> Unit,
+) {
+    val queue by localStore.observeQueue(scope).collectAsState(initial = emptyList())
+    val coroutineScope = rememberCoroutineScope()
+    val submitted = queue.any { it.mutationId == DRAFT_MUTATION_ID }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -86,8 +126,26 @@ private fun CaptureScreen(onBack: () -> Unit) {
         Text(
             stringResource(if (submitted) R.string.capture_saved else R.string.capture_body),
             style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.testTag("draft-status"),
         )
-        Button(onClick = { submitted = true }, modifier = Modifier.testTag("save-button")) {
+        Button(
+            onClick = {
+                coroutineScope.launch {
+                    localStore.enqueue(
+                        SyncQueueEntity(
+                            accountId = scope.accountId,
+                            workspaceId = scope.workspaceId,
+                            mutationId = DRAFT_MUTATION_ID,
+                            operationType = "capture.submit",
+                            payloadHash = DRAFT_DIGEST,
+                            createdAtEpochMs = System.currentTimeMillis(),
+                        ),
+                    )
+                    syncScheduler?.enqueue(scope)
+                }
+            },
+            modifier = Modifier.testTag("save-button"),
+        ) {
             Text(stringResource(R.string.capture_save))
         }
         Button(onClick = onBack, modifier = Modifier.testTag("back-button")) {
