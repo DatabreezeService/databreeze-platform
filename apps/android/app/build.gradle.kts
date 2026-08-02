@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("org.jetbrains.kotlin.kapt")
 }
 
 android {
@@ -69,6 +70,7 @@ dependencies {
     implementation(libs.androidx.security.crypto)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.bundles.contractRuntime)
+    kapt(libs.androidx.room.compiler)
 
     implementation(platform("androidx.compose:compose-bom:${libs.versions.composeBom.get()}"))
     implementation("androidx.compose.ui:ui")
@@ -79,9 +81,19 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.room.testing)
     androidTestImplementation(platform("androidx.compose:compose-bom:${libs.versions.composeBom.get()}"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.espresso.core)
+    androidTestImplementation(libs.androidx.room.testing)
+}
+
+kapt {
+    arguments {
+        arg("room.schemaLocation", "$projectDir/schemas")
+        arg("room.incremental", "true")
+    }
 }
