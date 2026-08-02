@@ -42,3 +42,10 @@ separate deployment ADR.
 The modules expose IDs and endpoints only as outputs. Database credentials are
 never output; the security module creates named Secrets Manager records for
 later provider-managed rotation.
+
+`pnpm infra:check` is intentionally non-applying. It checks module presence,
+Singapore region defaults, private-network and encryption boundaries, OIDC
+subject scoping, production recovery preconditions, and then runs OpenTofu
+format/initialization/validation when the pinned tool is installed. Missing
+OpenTofu is reported as an explicit environment gate rather than silently
+treated as a production validation pass.
