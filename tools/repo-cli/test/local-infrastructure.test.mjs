@@ -31,6 +31,9 @@ test('local compose defines pinned, healthy disposable dependencies', () => {
     assert.match(compose, new RegExp(`^  ${volume}:`, 'm'));
   }
   assert.equal((compose.match(/healthcheck:/g) ?? []).length, 6);
+  assert.match(compose, /minio-init:[\s\S]*depends_on:[\s\S]*condition: service_healthy/u);
+  assert.match(compose, /minio-init:[\s\S]*restart: 'no'/u);
+  assert.match(compose, /postgres-data:[\s\S]*name: \$\{COMPOSE_PROJECT_NAME/u);
 });
 
 test('local bootstrap is credential-free and creates every owned module schema', () => {
@@ -61,6 +64,8 @@ test('local bootstrap is credential-free and creates every owned module schema',
 
   const bucketScript = read('infrastructure/local/minio/bootstrap-buckets.sh');
   assert.match(bucketScript, /MINIO_ROOT_PASSWORD/);
+  assert.match(bucketScript, /mc mb --ignore-existing/u);
+  assert.match(bucketScript, /mc anonymous set none/u);
   assert.doesNotMatch(bucketScript, /databreeze-local-change-me/);
 });
 
