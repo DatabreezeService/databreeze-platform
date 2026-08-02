@@ -1,7 +1,9 @@
 import {
   appendAuditEventV1,
+  createAuditSealV1,
   type AuditDigestPortV1,
   type AuditEventV1,
+  type AuditSealV1,
   type AuditResultV1,
 } from '@databreeze/domain/audit/v1';
 
@@ -52,6 +54,19 @@ export class AuditLedgerService {
       if (!appended.accepted) return appended;
       const stored = await transaction.appendEvent(context, appended.value.event);
       return Object.freeze({ accepted: true, value: stored });
+    });
+  }
+
+  public async seal(
+    context: IamTenantContextV1,
+    sealedAt: unknown,
+  ): Promise<AuditResultV1<AuditSealV1>> {
+    return this.repository.withTransaction(context, async (transaction) => {
+      const events = await transaction.listEvents(context);
+      const created = createAuditSealV1(events, context.tenantScope, sealedAt, this.digestPort);
+      if (!created.accepted) return created;
+      await transaction.saveSeal(context, created.value);
+      return created;
     });
   }
 }
