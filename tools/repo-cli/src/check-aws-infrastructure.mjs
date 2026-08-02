@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { balancedBlocks } from './terraform-safety.mjs';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const infrastructureRoot = path.join(repositoryRoot, 'infrastructure', 'aws');
@@ -31,6 +32,7 @@ const allTerraform = requiredFiles
   .filter((relativePath) => relativePath.endsWith('.tf'))
   .map((relativePath) => readFileSync(path.join(infrastructureRoot, relativePath), 'utf8'))
   .join('\n');
+
 for (const requiredText of [
   'ap-southeast-1',
   'hashicorp/aws',
@@ -44,6 +46,34 @@ for (const requiredText of [
   'aws_iam_openid_connect_provider',
 ]) {
   if (!allTerraform.includes(requiredText)) fail(`missing required declaration ${requiredText}`);
+}
+for (const requiredBoundary of [
+  'block_public_policy',
+  'versioning_configuration',
+  'assign_public_ip = false',
+  'deletion_protection',
+  'backup_retention_period',
+  'token.actions.githubusercontent.com:sub',
+  'recovery_window_in_days = 30',
+  'force_destroy = false',
+]) {
+  if (!allTerraform.includes(requiredBoundary))
+    fail(`missing required safety boundary ${requiredBoundary}`);
+}
+if (
+  balancedBlocks(allTerraform, 'ingress').some((block) =>
+    /\bcidr_blocks\s*=\s*\[[^\]]*"0\.0\.0\.0\/0"/u.test(block),
+  )
+) {
+  fail('a private service security group permits unrestricted ingress');
+}
+if (
+  /resource\s+"aws_s3_bucket_policy"[\s\S]*?Principal\s*=\s*"\*"/u.test(allTerraform) ||
+  balancedBlocks(allTerraform, 'principals').some((block) =>
+    /identifiers\s*=\s*\[[^\]]*"\*"/u.test(block),
+  )
+) {
+  fail('the Web bucket policy grants a wildcard principal');
 }
 if (
   /AKIA[0-9A-Z]{16}|aws_secret_access_key\s*=|BEGIN (RSA|OPENSSH) PRIVATE KEY/.test(allTerraform)

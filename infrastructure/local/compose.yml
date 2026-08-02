@@ -1,14 +1,23 @@
 name: ${COMPOSE_PROJECT_NAME:-databreeze-local}
 
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '3'
+
 services:
   postgres:
     image: ${POSTGRES_IMAGE:-docker.io/library/postgres:17.5-alpine}
+    init: true
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-databreeze}
       POSTGRES_USER: ${POSTGRES_USER:-databreeze}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-databreeze-local-change-me}
     ports:
-      - '${POSTGRES_PORT:-5432}:5432'
+      - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
+    networks: [local]
+    logging: *default-logging
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
@@ -24,9 +33,12 @@ services:
 
   redis:
     image: ${REDIS_IMAGE:-docker.io/library/redis:7.4.5-alpine}
+    init: true
     command: ['redis-server', '--appendonly', 'yes']
     ports:
-      - '${REDIS_PORT:-6379}:6379'
+      - '127.0.0.1:${REDIS_PORT:-6379}:6379'
+    networks: [local]
+    logging: *default-logging
     volumes:
       - redis-data:/data
     healthcheck:
@@ -38,13 +50,16 @@ services:
 
   minio:
     image: ${MINIO_IMAGE:-quay.io/minio/minio:RELEASE.2025-06-13T11-33-47Z}
+    init: true
     command: ['server', '/data', '--console-address', ':9001']
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-databreeze}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-databreeze-local-change-me}
     ports:
-      - '${MINIO_API_PORT:-9000}:9000'
-      - '${MINIO_CONSOLE_PORT:-9001}:9001'
+      - '127.0.0.1:${MINIO_API_PORT:-9000}:9000'
+      - '127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001'
+    networks: [local]
+    logging: *default-logging
     volumes:
       - minio-data:/data
     healthcheck:
@@ -57,9 +72,12 @@ services:
 
   minio-init:
     image: ${MINIO_MC_IMAGE:-quay.io/minio/mc:RELEASE.2025-06-13T11-33-47Z}
+    init: true
     depends_on:
       minio:
         condition: service_healthy
+    networks: [local]
+    logging: *default-logging
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-databreeze}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-databreeze-local-change-me}
@@ -72,12 +90,15 @@ services:
 
   mailpit:
     image: ${MAILPIT_IMAGE:-axllent/mailpit:v1.21.8}
+    init: true
     environment:
       MP_MAX_MESSAGES: ${MAILPIT_MAX_MESSAGES:-5000}
       MP_DATABASE: /data/mailpit.db
     ports:
-      - '${MAILPIT_SMTP_PORT:-1025}:1025'
-      - '${MAILPIT_UI_PORT:-8025}:8025'
+      - '127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025'
+      - '127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025'
+    networks: [local]
+    logging: *default-logging
     volumes:
       - mailpit-data:/data
     healthcheck:
@@ -89,11 +110,14 @@ services:
 
   otel-collector:
     image: ${OTEL_IMAGE:-otel/opentelemetry-collector-contrib:0.128.0}
+    init: true
     command: ['--config=/etc/otelcol-contrib/config.yaml']
     ports:
-      - '${OTEL_GRPC_PORT:-4317}:4317'
-      - '${OTEL_HTTP_PORT:-4318}:4318'
-      - '${OTEL_HEALTH_PORT:-13133}:13133'
+      - '127.0.0.1:${OTEL_GRPC_PORT:-4317}:4317'
+      - '127.0.0.1:${OTEL_HTTP_PORT:-4318}:4318'
+      - '127.0.0.1:${OTEL_HEALTH_PORT:-13133}:13133'
+    networks: [local]
+    logging: *default-logging
     volumes:
       - ./otel/collector.yaml:/etc/otelcol-contrib/config.yaml:ro
     # The collector image is intentionally distroless and has no shell or
@@ -109,9 +133,12 @@ services:
 
   otel-collector-health:
     image: ${HEALTHCHECK_IMAGE:-curlimages/curl:8.14.1}
+    init: true
     depends_on:
       otel-collector:
         condition: service_started
+    networks: [local]
+    logging: *default-logging
     command: ['sh', '-c', "trap 'exit 0' TERM INT; while :; do sleep 3600; done"]
     healthcheck:
       test: [CMD, curl, --fail, --silent, http://otel-collector:13133/]
@@ -130,3 +157,7 @@ volumes:
     name: ${COMPOSE_PROJECT_NAME:-databreeze-local}-minio-data
   mailpit-data:
     name: ${COMPOSE_PROJECT_NAME:-databreeze-local}-mailpit-data
+
+networks:
+  local:
+    name: ${COMPOSE_PROJECT_NAME:-databreeze-local}-network

@@ -55,6 +55,75 @@ test('strict assertions reject secrets, paths, content, and unbounded values', (
   );
 });
 
+test('telemetry never executes accessor-backed attributes', () => {
+  let accessed = false;
+  const hostile = {};
+  Object.defineProperty(hostile, 'outcome', {
+    enumerable: true,
+    get() {
+      accessed = true;
+      throw new Error('hostile getter');
+    },
+  });
+
+  assert.deepEqual(sanitizeTelemetryAttributesV1(hostile), {});
+  assert.throws(() => assertSafeTelemetryAttributesV1(hostile), UnsafeTelemetryAttributeErrorV1);
+  assert.equal(accessed, false);
+});
+
+test('telemetry never executes accessor-backed correlation headers', () => {
+  let accessed = false;
+  const hostile = {};
+  Object.defineProperty(hostile, 'x-correlation-id', {
+    enumerable: true,
+    get() {
+      accessed = true;
+      throw new Error('hostile header getter');
+    },
+  });
+  assert.throws(() => correlationFromHeadersV1(hostile), /Unreadable telemetry/u);
+  assert.equal(accessed, false);
+});
+
+test('telemetry rejects proxies that fail during reflection without exposing trap errors', () => {
+  const hostileAttributes = new Proxy(
+    {},
+    {
+      ownKeys() {
+        throw new Error('attribute trap cause');
+      },
+    },
+  );
+  assert.deepEqual(sanitizeTelemetryAttributesV1(hostileAttributes), {});
+  assert.throws(
+    () => assertSafeTelemetryAttributesV1(hostileAttributes),
+    (error) => {
+      assert.ok(error instanceof UnsafeTelemetryAttributeErrorV1);
+      assert.equal(error.key, 'unreadable');
+      assert.equal(error.message, 'Telemetry attribute is not allowed: unreadable');
+      assert.doesNotMatch(error.message, /attribute trap cause/u);
+      return true;
+    },
+  );
+
+  const hostileHeaders = new Proxy(
+    {},
+    {
+      ownKeys() {
+        throw new Error('header trap cause');
+      },
+    },
+  );
+  assert.throws(
+    () => correlationFromHeadersV1(hostileHeaders),
+    (error) => {
+      assert.equal(error.message, 'Unreadable telemetry x-correlation-id header');
+      assert.doesNotMatch(error.message, /header trap cause/u);
+      return true;
+    },
+  );
+});
+
 test('correlation headers round-trip without accepting malformed identifiers', () => {
   const context = createCorrelationContextV1({
     correlationId,
@@ -88,6 +157,13 @@ test('correlation headers round-trip without accepting malformed identifiers', (
     }),
   );
   assert.throws(() => correlationFromHeadersV1({}));
+  assert.throws(
+    () => correlationFromHeadersV1({ 'x-correlation-id': 1 }),
+    (error) => {
+      assert.equal(error.message, 'Unreadable telemetry x-correlation-id header');
+      return true;
+    },
+  );
   assert.throws(() =>
     correlationFromHeadersV1({ 'x-correlation-id': [correlationId, correlationId] }),
   );

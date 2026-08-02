@@ -10,7 +10,8 @@ Android companion, API, and Python engine.
    OpenTofu when infrastructure validation is needed. The repository pins the
    package manager and checks runtime versions.
 2. Run `corepack pnpm repo:bootstrap`.
-3. Run `corepack pnpm repo:check` and `corepack pnpm repo:build`. A clean
+3. Run `corepack pnpm repo:check` and `corepack pnpm repo:build`. The check
+   includes non-applying local/AWS infrastructure validation. A clean
    checkout is the baseline; do not hide a failure with an untracked local
    configuration file.
 4. Copy `infrastructure/local/.env.example` to a local-only `.env` if needed,

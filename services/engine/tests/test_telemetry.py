@@ -68,6 +68,50 @@ def test_engine_rejects_ambiguous_or_zero_trace_headers() -> None:
         )
 
 
+def test_engine_telemetry_does_not_execute_hostile_mapping_items() -> None:
+    class HostileMapping(dict[str, object]):
+        def items(self):  # type: ignore[override]
+            raise RuntimeError("provider cause must not escape")
+
+    assert sanitize_attributes(HostileMapping()) == {}
+    with pytest.raises(ValueError, match="not readable"):
+        assert_safe_attributes(HostileMapping())
+
+
+def test_engine_telemetry_normalizes_provider_value_errors() -> None:
+    class ValueErrorMapping(dict[str, object]):
+        def items(self):  # type: ignore[override]
+            raise ValueError("provider value error must not escape")
+
+    assert sanitize_attributes(ValueErrorMapping()) == {}
+    with pytest.raises(ValueError, match="not readable") as error:
+        assert_safe_attributes(ValueErrorMapping())
+    assert "provider value error" not in str(error.value)
+
+
+def test_engine_telemetry_rejects_hostile_or_non_string_header_values() -> None:
+    class HostileHeaders(dict[str, object]):
+        def items(self):  # type: ignore[override]
+            raise RuntimeError("provider header cause must not escape")
+
+    with pytest.raises(ValueError, match="not readable"):
+        correlation_from_headers(HostileHeaders())
+    with pytest.raises(ValueError, match="not readable"):
+        correlation_from_headers(
+            {
+                "x-correlation-id": [1, 2],
+            }
+        )
+
+    class ValueErrorHeaders(dict[str, object]):
+        def items(self):  # type: ignore[override]
+            raise ValueError("provider header value error must not escape")
+
+    with pytest.raises(ValueError, match="not readable") as error:
+        correlation_from_headers(ValueErrorHeaders())
+    assert "provider header value error" not in str(error.value)
+
+
 def test_engine_accepts_mixed_case_header_names() -> None:
     context = CorrelationContext(
         "00000000-0000-4000-8000-000000000001",

@@ -166,12 +166,33 @@ function safeScalar(key: string, value: unknown): TelemetryScalarV1 | undefined 
   return safeString(key, value);
 }
 
+function readOwnDataEntries(input: Record<string, unknown>): {
+  entries: Array<[string, unknown]>;
+  readable: boolean;
+} {
+  const entries: Array<[string, unknown]> = [];
+  try {
+    for (const key of Object.keys(input)) {
+      const descriptor = Object.getOwnPropertyDescriptor(input, key);
+      if (!descriptor || !('value' in descriptor)) return { entries: [], readable: false };
+      entries.push([key, descriptor.value]);
+    }
+  } catch {
+    return { entries: [], readable: false };
+  }
+  return { entries, readable: true };
+}
+
+function ownDataEntries(input: Record<string, unknown>): Array<[string, unknown]> {
+  return readOwnDataEntries(input).entries;
+}
+
 export function sanitizeTelemetryAttributesV1(
   input: Record<string, unknown>,
 ): SafeTelemetryAttributesV1 {
   if (input === null || typeof input !== 'object' || Array.isArray(input)) return {};
   const output: SafeTelemetryAttributesV1 = {};
-  for (const [key, value] of Object.entries(input)) {
+  for (const [key, value] of ownDataEntries(input)) {
     assertBoundedKey(key);
     if (!safeAttributeSet.has(key)) continue;
     const scalar = safeScalar(key, value);
@@ -183,12 +204,14 @@ export function sanitizeTelemetryAttributesV1(
 export function assertSafeTelemetryAttributesV1(
   input: Record<string, unknown>,
 ): asserts input is SafeTelemetryAttributesV1 {
-  for (const key of Object.keys(input ?? {})) {
+  const readable = readOwnDataEntries(input ?? {});
+  if (!readable.readable) throw new UnsafeTelemetryAttributeErrorV1('unreadable');
+  for (const [key, value] of readable.entries) {
     assertBoundedKey(key);
     if (forbiddenKeyPattern.test(key) || !safeAttributeSet.has(key)) {
       throw new UnsafeTelemetryAttributeErrorV1(key);
     }
-    if (safeScalar(key, input[key]) === undefined) {
+    if (safeScalar(key, value) === undefined) {
       throw new UnsafeTelemetryAttributeErrorV1(key);
     }
   }
@@ -249,10 +272,48 @@ function readSingleHeader(
   name: string,
 ): string | undefined {
   const values: string[] = [];
-  for (const [key, value] of Object.entries(headers)) {
+  let keys: string[];
+  try {
+    keys = Object.keys(headers);
+  } catch {
+    throw new Error(`Unreadable telemetry ${name} header`);
+  }
+  for (const key of keys) {
+    let descriptor: PropertyDescriptor | undefined;
+    try {
+      descriptor = Object.getOwnPropertyDescriptor(headers, key);
+    } catch {
+      throw new Error(`Unreadable telemetry ${name} header`);
+    }
+    if (!descriptor || !('value' in descriptor))
+      throw new Error(`Unreadable telemetry ${name} header`);
+    const value = descriptor.value as string | string[] | undefined;
     if (key.toLowerCase() !== name) continue;
-    if (Array.isArray(value)) values.push(...value);
-    else if (value !== undefined) values.push(value);
+    let arrayValue = false;
+    try {
+      arrayValue = Array.isArray(value);
+    } catch {
+      throw new Error(`Unreadable telemetry ${name} header`);
+    }
+    if (arrayValue) {
+      let valid = false;
+      try {
+        valid = Array.prototype.every.call(value, (item: unknown) => typeof item === 'string');
+      } catch {
+        throw new Error(`Unreadable telemetry ${name} header`);
+      }
+      if (!valid) {
+        throw new Error(`Unreadable telemetry ${name} header`);
+      }
+      try {
+        values.push(...(value as string[]));
+      } catch {
+        throw new Error(`Unreadable telemetry ${name} header`);
+      }
+    } else if (value !== undefined) {
+      if (typeof value !== 'string') throw new Error(`Unreadable telemetry ${name} header`);
+      values.push(value);
+    }
   }
   if (values.length > 1) throw new Error(`Ambiguous telemetry ${name} header`);
   if (values.length === 0) return undefined;

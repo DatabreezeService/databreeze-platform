@@ -27,11 +27,12 @@
     "format:check": "prettier --check .",
     "lint": "eslint . && node tools/repo-cli/src/check-dependency-boundaries.mjs",
     "local:smoke": "node tools/repo-cli/src/local-services-smoke.mjs",
+    "local:services": "node tools/repo-cli/src/local-services.mjs",
     "infra:check": "node tools/repo-cli/src/check-aws-infrastructure.mjs",
     "orchestration:check": "node tools/repo-cli/src/check-execution-orchestration.mjs",
     "repo:bootstrap": "corepack pnpm install --frozen-lockfile",
     "repo:build": "corepack pnpm build",
-    "repo:check": "corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm orchestration:check && corepack pnpm requirements:check && corepack pnpm contracts:check && corepack pnpm test",
+    "repo:check": "corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm orchestration:check && corepack pnpm requirements:check && corepack pnpm contracts:check && corepack pnpm infra:check && corepack pnpm test",
     "repo:dev": "turbo run dev --parallel",
     "repo:test": "corepack pnpm test",
     "requirements:check": "node tools/repo-cli/src/generate-requirement-index.mjs --check",
@@ -50,6 +51,7 @@
     "prettier": "3.6.2",
     "turbo": "2.5.6",
     "typescript": "5.9.2",
-    "typescript-eslint": "8.43.0"
+    "typescript-eslint": "8.43.0",
+    "yaml": "2.8.1"
   }
 }

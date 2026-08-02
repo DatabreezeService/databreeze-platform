@@ -93,7 +93,7 @@ For each `#### TASK-ID —` item in `002-complete-execution-orchestration.md`:
 
 ## Pull-request and CodeRabbit protocol
 
-1. Branch from current `origin/dev` using `feat/<scope>` or `fix/<scope>`. Keep atomic commits; preferred PR size is 30–50 commits and hard maximum is 60. Cut earlier at a coherent boundary when risk, dependency ordering, or reviewability warrants it.
+1. Branch from current `origin/dev` using `feat/<scope>` or `fix/<scope>`. Keep atomic commits; preferred PR size is 30–70 commits and hard maximum is 99. Cut earlier only for a coherent boundary, a mandatory promotion-gate fix, or a safety constraint.
 2. Before a feature PR, ensure it targets `dev`, has no unrelated commits, and passes local gates. Open it with requirement/task/evidence/rollback notes. CodeRabbit must not be invoked on this PR.
 3. Wait for hosted checks. Diagnose failures; do not merge red or missing required checks. Merge with history that preserves the atomic rollback units, normally `--no-ff`/merge commit rather than squash.
 4. Immediately compare `dev` and `main`. If `dev` contains the reviewed batch and no incompatible promotion is open, create `dev` → `main`. If the diff exceeds 280 changed files, do not invoke CodeRabbit: split/revert the feature batch or request user direction first.
@@ -171,7 +171,7 @@ Live verified checkpoint: branch [BRANCH], HEAD [HEAD], origin/dev [DEV], origin
 
 Resume task [TASK_ID] only after proving its dependency/entry gate. Follow test-first atomic delivery: canonical contracts when the interface changes, failing domain/state tests, PostgreSQL migration/tenant/transaction/outbox tests when durable state changes, implementation through ports, vertical client/adapter coverage when the task involves client behavior, safe telemetry/recovery, traceability evidence, scoped checks, repo:check, repo:build, diff review, and one reversible commit. For documentation-only or other non-durable/non-client tasks, record why those conditional tests do not apply. Do not mark merged code verified without all evidence.
 
-Git flow is fixed: feat/* or fix/* → PR to dev with hosted checks and no CodeRabbit; merge preserving atomic commits; immediately open dev→main; request exactly one CodeRabbit full review there; reproduce every comment, fix only valid findings, document rejected ones, never request a second review on that PR. Prefer 30–50 commits, hard cap 60, and do not invoke the promotion review over 280 changed files.
+Git flow is fixed: feat/* or fix/* → PR to dev with hosted checks and no CodeRabbit; merge preserving atomic commits; immediately open dev→main; request exactly one CodeRabbit full review there; reproduce every comment, fix only valid findings, document rejected ones, never request a second review on that PR. Prefer 30–70 commits, hard cap 99, and do not invoke the promotion review over 280 changed files.
 
 Keep PostgreSQL authoritative, Redis ephemeral, tenant scope explicit, originals/versions immutable, Hybrid default, Local content/path out of cloud, workers without database credentials, Desktop/sidecar allowlisted, Android background payloads content-free, Vietnamese and English complete, and external providers replaceable. Stop and record state for destructive migration risk, unknown overlapping changes, privacy/security fail-open behavior, missing production/signing authority, or a spec conflict. End with the exact handoff record from the runbook.
 ```

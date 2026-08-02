@@ -25,7 +25,7 @@ const expectedPlans = new Map([
 ]);
 const expectedPriorityTotals = { P0: 444, P1: 154, P2: 13 };
 const expectedReviewPolicy = {
-  commitBudget: { hardMaximum: 60, preferredMaximum: 50, preferredMinimum: 30 },
+  commitBudget: { hardMaximum: 99, preferredMaximum: 70, preferredMinimum: 30 },
   featurePullRequest: { base: 'dev', codeRabbit: false, mergeAfterHostedChecks: true },
   promotionPullRequest: {
     base: 'main',

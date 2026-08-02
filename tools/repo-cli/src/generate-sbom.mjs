@@ -2,7 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
-const output = process.argv[process.argv.indexOf('--output') + 1] || 'artifacts/sbom.cdx.json';
+const outputIndex = process.argv.indexOf('--output');
+const output = outputIndex === -1 ? 'artifacts/sbom.cdx.json' : process.argv[outputIndex + 1];
+if (!output || output.startsWith('--')) {
+  throw new Error('--output requires a file path');
+}
 const ignored = new Set([
   'node_modules',
   '.git',

@@ -39,6 +39,22 @@ redundant API/worker capacity, PITR/backups, Multi-AZ data, NAT, and CloudFront
 explicitly. Production must use a remote encrypted state backend approved in a
 separate deployment ADR.
 
+The production profile also enables RDS Performance Insights with the platform
+KMS key; alpha keeps it disabled unless explicitly selected.
+
+Before a production plan, set `api_image` and `worker_image` to immutable
+registry references ending in a 64-character SHA-256 digest (for example,
+`ghcr.io/example/databreeze-api@sha256:<digest>`). Mutable tags are accepted
+for alpha development only; the ECS task definitions have a production
+precondition that rejects them.
+
 The modules expose IDs and endpoints only as outputs. Database credentials are
 never output; the security module creates named Secrets Manager records for
 later provider-managed rotation.
+
+`pnpm infra:check` is intentionally non-applying. It checks module presence,
+Singapore region defaults, private-network and encryption boundaries, OIDC
+subject scoping, production recovery preconditions, and then runs OpenTofu
+format/initialization/validation when the pinned tool is installed. Missing
+OpenTofu is reported as an explicit environment gate rather than silently
+treated as a production validation pass.

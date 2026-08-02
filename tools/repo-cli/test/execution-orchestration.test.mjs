@@ -142,8 +142,8 @@ test('handoff policy preserves the requested dev and main review flow', () => {
   });
   assert.deepEqual(ledger.reviewPolicy.commitBudget, {
     preferredMinimum: 30,
-    preferredMaximum: 50,
-    hardMaximum: 60,
+    preferredMaximum: 70,
+    hardMaximum: 99,
   });
 });
 
@@ -177,7 +177,8 @@ test('repository checker validates the committed orchestration package', () => {
 test('ledger records verified task evidence before advancing the next task', () => {
   const ledger = readJson('docs/plans/execution-orchestration.json');
   assert.equal(ledger.nextTaskId, 'FND-003');
-  assert.equal(ledger.checkpoint.lastFeaturePullRequest, 13);
+  assert.equal(ledger.checkpoint.lastFeaturePullRequest, 18);
+  assert.equal(ledger.checkpoint.lastPromotionPullRequest, 14);
   assert.deepEqual(ledger.taskState?.['FND-001']?.status, 'verified');
   assert.match(ledger.taskState?.['FND-001']?.commit ?? '', /^[0-9a-f]{40}$/u);
   assert.ok(
