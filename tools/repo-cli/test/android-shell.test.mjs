@@ -46,16 +46,21 @@ test('Android manifest fails closed for network, backup, and exported-component 
   assert.match(manifest, /android:networkSecurityConfig="@xml\/network_security_config"/u);
   assert.match(manifest, /android:allowBackup="false"/u);
   assert.doesNotMatch(manifest, /MANAGE_EXTERNAL_STORAGE/u);
-  assert.doesNotMatch(manifest, /android:exported="true"[\s\S]*service/u);
+  assert.doesNotMatch(manifest, /<service\b(?=[^>]*\bandroid:exported\s*=\s*"true")[^>]*>/u);
+  assert.match(manifest, /android:name="androidx\.work\.WorkManagerInitializer"/u);
+  assert.match(
+    manifest,
+    /android:name="androidx\.work\.WorkManagerInitializer"[\s\S]*tools:node="remove"/u,
+  );
 
   const network = read('app/src/main/res/xml/network_security_config.xml');
   assert.match(network, /cleartextTrafficPermitted="false"/u);
   const backup = read('app/src/main/res/xml/backup_rules.xml');
   const extraction = read('app/src/main/res/xml/data_extraction_rules.xml');
   for (const rules of [backup, extraction]) {
-    assert.match(rules, /domain="database"/u);
-    assert.match(rules, /domain="sharedpref"/u);
-    assert.match(rules, /domain="external"/u);
+    for (const domain of ['database', 'sharedpref', 'external']) {
+      assert.match(rules, new RegExp(`<exclude\\b(?=[^>]*\\bdomain="${domain}")[^>]*>`, 'u'));
+    }
   }
 });
 
@@ -72,7 +77,7 @@ test('Android shell has durable local state, injected workers, and process-death
   const app = read('app/src/main/java/com/databreeze/android/DataBreezeApplication.kt');
   assert.match(localStore, /@Database\(entities = \[SyncQueueEntity::class\]/u);
   assert.match(localStore, /primaryKeys = \["accountId", "workspaceId", "mutationId"\]/u);
-  assert.match(sync, /ExistingWorkPolicy\.KEEP/u);
+  assert.match(sync, /ExistingWorkPolicy\.APPEND_OR_REPLACE/u);
   assert.match(sync, /DataBreezeWorkerFactory/u);
   assert.match(sync, /setRequiredNetworkType\(NetworkType\.CONNECTED\)/u);
   assert.match(app, /Configuration\.Provider/u);

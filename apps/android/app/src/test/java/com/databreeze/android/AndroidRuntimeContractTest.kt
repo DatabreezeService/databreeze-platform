@@ -1,5 +1,6 @@
 package com.databreeze.android
 
+import androidx.work.Data
 import com.databreeze.android.storage.AccountWorkspaceScope
 import com.databreeze.android.sync.SyncWorkInput
 import org.junit.Assert.assertEquals
@@ -35,13 +36,13 @@ class AndroidRuntimeContractTest {
     @Test
     fun work_input_rejects_missing_scope() {
         assertThrows(IllegalArgumentException::class.java) {
-            SyncWorkInput.fromData(androidx.work.Data.EMPTY)
+            SyncWorkInput.fromData(Data.EMPTY)
         }
     }
 
     @Test
     fun work_input_rejects_source_content_fields() {
-        val data = androidx.work.Data.Builder()
+        val data = Data.Builder()
             .putString("account_id", "account-1")
             .putString("workspace_id", "workspace-1")
             .putString("source_bytes", "must-not-be-carried")

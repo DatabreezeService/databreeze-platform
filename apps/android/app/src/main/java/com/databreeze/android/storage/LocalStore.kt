@@ -13,6 +13,7 @@ import androidx.room.RoomDatabase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -54,7 +55,7 @@ data class SyncQueueEntity(
     val payloadHash: String,
     val dependencyId: String? = null,
     val state: String = QUEUED_STATE,
-    val createdAtEpochMs: Long = 0L,
+    val createdAtEpochMs: Long,
 ) {
     init {
         AccountWorkspaceScope(accountId, workspaceId)
@@ -107,14 +108,14 @@ interface SyncQueueDao {
     suspend fun clear(accountId: String, workspaceId: String): Int
 
     @Query(
-        "UPDATE sync_queue SET state = :completedState WHERE accountId = :accountId AND workspaceId = :workspaceId AND mutationId = :mutationId",
+        "UPDATE sync_queue SET state = '${SyncQueueEntity.COMPLETED_STATE}' WHERE accountId = :accountId AND workspaceId = :workspaceId AND mutationId = :mutationId",
     )
-    suspend fun markCompleted(
-        accountId: String,
-        workspaceId: String,
-        mutationId: String,
-        completedState: String = SyncQueueEntity.COMPLETED_STATE,
-    ): Int
+    suspend fun markCompleted(accountId: String, workspaceId: String, mutationId: String): Int
+
+    @Query(
+        "DELETE FROM sync_queue WHERE accountId = :accountId AND workspaceId = :workspaceId AND mutationId IN (:mutationIds)",
+    )
+    suspend fun deleteBatch(accountId: String, workspaceId: String, mutationIds: List<String>): Int
 }
 
 @Database(entities = [SyncQueueEntity::class], version = 1, exportSchema = true)
@@ -128,6 +129,7 @@ interface LocalStorePort {
     fun observeQueue(scope: AccountWorkspaceScope): Flow<List<SyncQueueEntity>>
     suspend fun snapshotQueue(scope: AccountWorkspaceScope): List<SyncQueueEntity>
     suspend fun delete(scope: AccountWorkspaceScope, mutationId: String): Boolean
+    suspend fun deleteBatch(scope: AccountWorkspaceScope, mutationIds: List<String>): Int
     suspend fun markCompleted(scope: AccountWorkspaceScope, mutationId: String): Boolean
     suspend fun clear(scope: AccountWorkspaceScope)
 }
@@ -147,6 +149,9 @@ class RoomLocalStore private constructor(private val database: DataBreezeDatabas
 
     override suspend fun delete(scope: AccountWorkspaceScope, mutationId: String): Boolean =
         dao.delete(scope.accountId, scope.workspaceId, mutationId) == 1
+
+    override suspend fun deleteBatch(scope: AccountWorkspaceScope, mutationIds: List<String>): Int =
+        if (mutationIds.isEmpty()) 0 else dao.deleteBatch(scope.accountId, scope.workspaceId, mutationIds)
 
     override suspend fun markCompleted(scope: AccountWorkspaceScope, mutationId: String): Boolean =
         dao.markCompleted(scope.accountId, scope.workspaceId, mutationId) == 1
@@ -185,15 +190,27 @@ class InMemoryLocalStore : LocalStorePort {
     override fun observeQueue(scope: AccountWorkspaceScope): Flow<List<SyncQueueEntity>> =
         updates.asStateFlow().map { values ->
             values.filter { it.accountId == scope.accountId && it.workspaceId == scope.workspaceId }
-        }
+                .sortedWith(compareBy({ it.createdAtEpochMs }, { it.mutationId }))
+        }.distinctUntilChanged()
 
     override suspend fun snapshotQueue(scope: AccountWorkspaceScope): List<SyncQueueEntity> = mutex.withLock {
-        items.values.filter { it.accountId == scope.accountId && it.workspaceId == scope.workspaceId }
+        items.values
+            .filter { it.accountId == scope.accountId && it.workspaceId == scope.workspaceId }
+            .sortedWith(compareBy({ it.createdAtEpochMs }, { it.mutationId }))
     }
 
     override suspend fun delete(scope: AccountWorkspaceScope, mutationId: String): Boolean = mutex.withLock {
         val removed = items.remove(key(scope.accountId, scope.workspaceId, mutationId)) != null
         publish()
+        removed
+    }
+
+    override suspend fun deleteBatch(scope: AccountWorkspaceScope, mutationIds: List<String>): Int = mutex.withLock {
+        var removed = 0
+        mutationIds.forEach { mutationId ->
+            if (items.remove(key(scope.accountId, scope.workspaceId, mutationId)) != null) removed++
+        }
+        if (removed > 0) publish()
         removed
     }
 

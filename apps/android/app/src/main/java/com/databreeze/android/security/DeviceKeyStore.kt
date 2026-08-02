@@ -3,7 +3,6 @@ package com.databreeze.android.security
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import java.security.KeyStore
-import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -74,18 +73,21 @@ data class EncryptedPayload(val iv: ByteArray, val ciphertext: ByteArray) {
         require(iv.size == 12) { "GCM IV must be 96 bits" }
         require(ciphertext.isNotEmpty()) { "ciphertext cannot be empty" }
     }
+
+    override fun equals(other: Any?): Boolean =
+        this === other || (other is EncryptedPayload &&
+            iv.contentEquals(other.iv) && ciphertext.contentEquals(other.ciphertext))
+
+    override fun hashCode(): Int = 31 * iv.contentHashCode() + ciphertext.contentHashCode()
 }
 
 /** Encrypts local sensitive fields; callers persist only this envelope, never plaintext. */
 class DevicePayloadCipher(private val keyStore: DeviceKeyStore) {
-    private val random = SecureRandom()
-
     fun encrypt(handle: DeviceKeyHandle, plaintext: ByteArray): EncryptedPayload {
         require(plaintext.isNotEmpty()) { "plaintext cannot be empty" }
-        val iv = ByteArray(12).also(random::nextBytes)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.ENCRYPT_MODE, keyStore.keyFor(handle), GCMParameterSpec(128, iv))
-        return EncryptedPayload(iv, cipher.doFinal(plaintext))
+        cipher.init(Cipher.ENCRYPT_MODE, keyStore.keyFor(handle))
+        return EncryptedPayload(cipher.iv, cipher.doFinal(plaintext))
     }
 
     fun decrypt(handle: DeviceKeyHandle, payload: EncryptedPayload): ByteArray {

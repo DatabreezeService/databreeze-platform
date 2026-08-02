@@ -16,9 +16,9 @@
   },
   "checkpoint": {
     "observedAt": "2026-08-02T10:08:12Z",
-    "remoteDev": "ae2a4fc1c350e684fcbde7ed0a5e9a5a97038505",
+    "remoteDev": "4d415494240abbc610574132678007a623c405e4",
     "remoteMain": "d26e6be16ecadc07467b458b853eb8070940e846",
-    "lastFeaturePullRequest": 12,
+    "lastFeaturePullRequest": 13,
     "lastPromotionPullRequest": 11,
     "openPullRequestsObserved": 0,
     "note": "Historical observation only; every session must fetch and recompute current state."

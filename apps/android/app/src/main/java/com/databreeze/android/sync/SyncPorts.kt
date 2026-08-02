@@ -1,6 +1,7 @@
 package com.databreeze.android.sync
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
@@ -17,6 +18,8 @@ import com.databreeze.android.storage.AccountWorkspaceScope
 import com.databreeze.android.storage.LocalStorePort
 import com.databreeze.android.storage.SyncQueueEntity
 import com.databreeze.contracts.v1.Identifier
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.TimeUnit
 
 private const val ACCOUNT_ID = "account_id"
@@ -76,6 +79,55 @@ interface SyncTransport {
     suspend fun synchronize(request: SyncRequest, mutations: List<String>): SyncTransportResult
 }
 
+/**
+ * Serializes an authorized transport operation with scope revocation. Revocation is persisted
+ * before waiting for an in-flight operation, so a queued worker cannot start after sign-out.
+ */
+interface SyncRevocationGuard {
+    suspend fun <T> withPermit(scope: AccountWorkspaceScope, operation: suspend () -> T): T?
+    suspend fun revoke(scope: AccountWorkspaceScope)
+}
+
+class SharedPreferencesSyncRevocationGuard(
+    private val preferences: SharedPreferences,
+) : SyncRevocationGuard {
+    private val mutex = Mutex()
+
+    override suspend fun <T> withPermit(
+        scope: AccountWorkspaceScope,
+        operation: suspend () -> T,
+    ): T? = mutex.withLock {
+        if (preferences.getBoolean(key(scope), false)) null else operation()
+    }
+
+    override suspend fun revoke(scope: AccountWorkspaceScope) {
+        check(preferences.edit().putBoolean(key(scope), true).commit()) {
+            "unable to persist sync revocation"
+        }
+        mutex.withLock { Unit }
+    }
+
+    private fun key(scope: AccountWorkspaceScope): String = "revoked-${scope.stableKey}"
+}
+
+/** Deterministic guard used by JVM tests and dependency-free shell configurations. */
+class InMemorySyncRevocationGuard : SyncRevocationGuard {
+    private val mutex = Mutex()
+    private val revoked = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
+    override suspend fun <T> withPermit(
+        scope: AccountWorkspaceScope,
+        operation: suspend () -> T,
+    ): T? = mutex.withLock {
+        if (scope.stableKey in revoked) null else operation()
+    }
+
+    override suspend fun revoke(scope: AccountWorkspaceScope) {
+        revoked += scope.stableKey
+        mutex.withLock { Unit }
+    }
+}
+
 interface SyncScheduler {
     fun enqueue(scope: AccountWorkspaceScope, cursor: String? = null, revision: Long? = null)
     fun cancel(scope: AccountWorkspaceScope)
@@ -98,7 +150,7 @@ class WorkManagerSyncScheduler(private val context: Context) : SyncScheduler {
             .build()
         WorkManager.getInstance(context).enqueueUniqueWork(
             SyncScheduler.uniqueWorkName(scope),
-            ExistingWorkPolicy.KEEP,
+            ExistingWorkPolicy.APPEND_OR_REPLACE,
             request,
         )
     }
@@ -113,6 +165,7 @@ class SyncWorker(
     params: WorkerParameters,
     private val store: LocalStorePort,
     private val transport: SyncTransport,
+    private val revocationGuard: SyncRevocationGuard,
 ) : CoroutineWorker(appContext, params) {
     override suspend fun doWork(): ListenableWorker.Result {
         val input = try {
@@ -123,9 +176,12 @@ class SyncWorker(
         val mutations = store.snapshotQueue(input.scope)
             .filter { it.state != SyncQueueEntity.COMPLETED_STATE }
             .map { it.mutationId }
-        return when (val outcome = transport.synchronize(SyncRequest(input.scope, input.cursor), mutations)) {
+        val outcome = revocationGuard.withPermit(input.scope) {
+            transport.synchronize(SyncRequest(input.scope, input.cursor), mutations)
+        } ?: return Result.failure(Data.Builder().putString("reason_code", "scope_revoked").build())
+        return when (outcome) {
             SyncTransportResult.Accepted -> {
-                mutations.forEach { store.markCompleted(input.scope, it) }
+                store.deleteBatch(input.scope, mutations)
                 Result.success()
             }
             SyncTransportResult.Retryable -> Result.retry()
@@ -139,13 +195,15 @@ class SyncWorker(
 class DataBreezeWorkerFactory(
     private val store: LocalStorePort,
     private val transport: SyncTransport,
+    private val revocationGuard: SyncRevocationGuard,
 ) : WorkerFactory() {
     override fun createWorker(
         appContext: Context,
         workerClassName: String,
         workerParameters: WorkerParameters,
     ): ListenableWorker? = when (workerClassName) {
-        SyncWorker::class.qualifiedName -> SyncWorker(appContext, workerParameters, store, transport)
+        SyncWorker::class.qualifiedName ->
+            SyncWorker(appContext, workerParameters, store, transport, revocationGuard)
         else -> null
     }
 }

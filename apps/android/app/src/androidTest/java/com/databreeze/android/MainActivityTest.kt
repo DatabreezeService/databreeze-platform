@@ -4,6 +4,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
@@ -22,14 +24,16 @@ class MainActivityTest {
 
     @Test
     fun queued_draft_is_visible_after_activity_recreation() {
+        val savedText = composeRule.activity.getString(R.string.capture_saved)
         composeRule.onNodeWithTag("capture-button").performClick()
         composeRule.onNodeWithTag("save-button").performClick()
         composeRule.waitUntil(timeoutMillis = 5_000) {
-            composeRule.onAllNodesWithTag("draft-status").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithText(savedText).fetchSemanticsNodes().isNotEmpty()
         }
+        composeRule.onNodeWithText(savedText).assertIsDisplayed()
 
         composeRule.activityRule.scenario.recreate()
         composeRule.onNodeWithTag("capture-screen").assertIsDisplayed()
-        composeRule.onNodeWithTag("draft-status").assertIsDisplayed()
+        composeRule.onNodeWithText(savedText).assertIsDisplayed()
     }
 }

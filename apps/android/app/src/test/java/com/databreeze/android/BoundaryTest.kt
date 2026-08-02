@@ -31,6 +31,7 @@ class BoundaryTest {
             operationType = "capture.submit",
             payloadHash = "sha256:${"a".repeat(64)}",
             dependencyId = null,
+            createdAtEpochMs = 1L,
         )
         assertTrue(mutation.payloadHash.startsWith("sha256:"))
         assertEquals(null, mutation.dependencyId)
@@ -56,6 +57,7 @@ class BoundaryTest {
         val store = InMemoryLocalStore()
         val first = AccountWorkspaceScope("account-1", "workspace-1")
         val second = AccountWorkspaceScope("account-2", "workspace-1")
+        val third = AccountWorkspaceScope("account-1", "workspace-2")
         store.enqueue(
             SyncQueueEntity(
                 accountId = first.accountId,
@@ -63,6 +65,7 @@ class BoundaryTest {
                 mutationId = "mutation-1",
                 operationType = "capture.submit",
                 payloadHash = "sha256:${"b".repeat(64)}",
+                createdAtEpochMs = 1L,
             ),
         )
         store.enqueue(
@@ -72,6 +75,17 @@ class BoundaryTest {
                 mutationId = "mutation-1",
                 operationType = "capture.submit",
                 payloadHash = "sha256:${"c".repeat(64)}",
+                createdAtEpochMs = 2L,
+            ),
+        )
+        store.enqueue(
+            SyncQueueEntity(
+                accountId = third.accountId,
+                workspaceId = third.workspaceId,
+                mutationId = "mutation-1",
+                operationType = "capture.submit",
+                payloadHash = "sha256:${"d".repeat(64)}",
+                createdAtEpochMs = 3L,
             ),
         )
 
@@ -79,5 +93,6 @@ class BoundaryTest {
         assertEquals("account-1", store.snapshotQueue(first).single().accountId)
         store.clear(first)
         assertEquals(1, store.snapshotQueue(second).size)
+        assertEquals(1, store.snapshotQueue(third).size)
     }
 }
