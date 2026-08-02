@@ -40,6 +40,10 @@ import {
 } from './adapter/prisma-artifact-repository.adapter.js';
 import { InMemoryEvidenceGrantRepositoryAdapter } from './adapter/in-memory-evidence-grant-repository.adapter.js';
 import {
+  PrismaEvidenceGrantRepositoryAdapter,
+  type EvidenceGrantDatabaseClientV1,
+} from './adapter/prisma-evidence-grant-repository.adapter.js';
+import {
   ARTIFACT_INTAKE_REPOSITORY_PORT,
   type ArtifactIntakeRepositoryPortV1,
 } from './application/artifact-intake-repository.port.js';
@@ -93,6 +97,8 @@ export interface IaeModuleOptions {
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly artifactUploadDatabase?: ArtifactUploadDatabaseClientV1;
   readonly evidenceGrantRepository?: EvidenceGrantRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly evidenceGrantDatabase?: EvidenceGrantDatabaseClientV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
 }
 
@@ -162,7 +168,11 @@ export class IaeModule {
         },
         {
           provide: EVIDENCE_GRANT_REPOSITORY_PORT,
-          useValue: options.evidenceGrantRepository ?? new InMemoryEvidenceGrantRepositoryAdapter(),
+          useValue:
+            options.evidenceGrantRepository ??
+            (options.evidenceGrantDatabase === undefined
+              ? new InMemoryEvidenceGrantRepositoryAdapter()
+              : new PrismaEvidenceGrantRepositoryAdapter(options.evidenceGrantDatabase)),
         },
         {
           provide: REQUEST_TENANT_CONTEXT,
