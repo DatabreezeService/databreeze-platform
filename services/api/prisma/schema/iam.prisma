@@ -171,9 +171,24 @@ model MfaFactor {
   enrolledAt      DateTime @map("enrolled_at") @db.Timestamptz(6)
   verifiedAt      DateTime? @map("verified_at") @db.Timestamptz(6)
   revokedAt       DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revision        Int      @default(1)
 
   @@index([userId, status], map: "mfa_factors_user_status_idx")
   @@map("mfa_factors")
+  @@schema("iam")
+}
+
+model MfaRecoveryCode {
+  id        String    @id @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  digest    String    @db.VarChar(256)
+  status    String    @default("AVAILABLE") @db.VarChar(24)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  revision  Int       @default(1)
+
+  @@index([userId, status], map: "mfa_recovery_codes_user_status_idx")
+  @@map("mfa_recovery_codes")
   @@schema("iam")
 }
 

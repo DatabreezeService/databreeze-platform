@@ -14,6 +14,7 @@ import {
   IDENTITY_BOOTSTRAP_REPOSITORY_PORT,
   type IdentityBootstrapRepositoryPortV1,
 } from './application/identity-bootstrap-repository.port.js';
+import { MFA_REPOSITORY_PORT, type MfaRepositoryPortV1 } from './application/mfa-repository.port.js';
 import type { PasswordCredentialService } from './application/password-credential.service.js';
 import { UnavailableAuthenticationAdapter } from './adapter/unavailable-authentication.adapter.js';
 import {
@@ -28,6 +29,7 @@ import {
   PrismaIdentityBootstrapRepositoryAdapter,
   type IdentityBootstrapDatabaseClientV1,
 } from './adapter/prisma-identity-bootstrap-repository.adapter.js';
+import { PrismaMfaRepositoryAdapter, type MfaDatabaseClientV1 } from './adapter/prisma-mfa-repository.adapter.js';
 import { DeviceIdentityController } from './api/device-identity.controller.js';
 import { InMemoryDeviceIdentityRepositoryAdapter } from './adapter/in-memory-device-identity-repository.adapter.js';
 import {
@@ -59,6 +61,8 @@ export interface IamModuleOptions {
   readonly sessionDatabase?: SessionLifecycleDatabaseClientV1;
   readonly identityBootstrapRepository?: IdentityBootstrapRepositoryPortV1;
   readonly identityBootstrapDatabase?: IdentityBootstrapDatabaseClientV1;
+  readonly mfaRepository?: MfaRepositoryPortV1;
+  readonly mfaDatabase?: MfaDatabaseClientV1;
   readonly deviceIdentityService?: DeviceIdentityService;
   readonly deviceIdentityRepository?: DeviceIdentityRepositoryPortV1;
   readonly deviceIdentityDatabase?: DeviceIdentityDatabaseClientV1;
@@ -96,6 +100,11 @@ export class IamModule {
       (options.identityBootstrapDatabase === undefined
         ? undefined
         : new PrismaIdentityBootstrapRepositoryAdapter(options.identityBootstrapDatabase));
+    const mfaRepository =
+      options.mfaRepository ??
+      (options.mfaDatabase === undefined
+        ? undefined
+        : new PrismaMfaRepositoryAdapter(options.mfaDatabase));
     const authentication =
       options.authentication ??
       (credentials && sessions
@@ -116,6 +125,7 @@ export class IamModule {
     if (credentials) exports.unshift(CREDENTIAL_LOOKUP_PORT);
     if (sessions) exports.unshift(SESSION_LIFECYCLE_PORT);
     if (identityBootstrapRepository) exports.unshift(IDENTITY_BOOTSTRAP_REPOSITORY_PORT);
+    if (mfaRepository) exports.unshift(MFA_REPOSITORY_PORT);
     return {
       module: IamModule,
       controllers: [AuthenticationController, DeviceIdentityController],
@@ -145,6 +155,14 @@ export class IamModule {
               {
                 provide: IDENTITY_BOOTSTRAP_REPOSITORY_PORT,
                 useValue: identityBootstrapRepository,
+              },
+            ]
+          : []),
+        ...(mfaRepository
+          ? [
+              {
+                provide: MFA_REPOSITORY_PORT,
+                useValue: mfaRepository,
               },
             ]
           : []),
