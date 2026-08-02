@@ -49,6 +49,29 @@ model DatasetVersionRecord {
   @@schema("dsm")
 }
 
+/// DSM-011, DSM-013, DSM-015, DSM-020: immutable value-free profiling and validation results.
+model DatasetQualityResultRecord {
+  id                 String   @id @db.Uuid
+  datasetId          String   @map("dataset_id") @db.Uuid
+  datasetVersionId   String   @map("dataset_version_id") @db.Uuid
+  scopeType          String   @map("scope_type") @db.VarChar(24)
+  organizationId     String   @map("organization_id") @db.Uuid
+  workspaceId        String?  @map("workspace_id") @db.Uuid
+  projectId          String?  @map("project_id") @db.Uuid
+  ruleSetVersionId   String   @map("rule_set_version_id") @db.Uuid
+  profileFingerprint String   @map("profile_fingerprint") @db.Char(64)
+  rowCountScanned    BigInt   @map("row_count_scanned")
+  qualityState       String   @map("quality_state") @db.VarChar(24)
+  findings           Json
+  resultFingerprint  String   @map("result_fingerprint") @db.Char(64)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([datasetVersionId], map: "dataset_quality_results_dataset_version_idx")
+  @@index([organizationId, workspaceId, projectId, datasetVersionId], map: "dataset_quality_results_scope_idx")
+  @@map("dataset_quality_results")
+  @@schema("dsm")
+}
+
 /// DSM-025: canonical workspace reference identities are versioned and immutable.
 model ReferenceEntityVersionRecord {
   id                   String   @id @db.Uuid

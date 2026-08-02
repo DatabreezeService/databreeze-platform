@@ -61,6 +61,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "bua"\."usage_ledger_entries"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_definitions"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_versions"/);
+  assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_quality_results"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."reference_entity_versions"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."reference_entity_resolutions"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."mapping_definitions"/);
@@ -108,6 +109,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802220000_iam_access_tokens',
     '20260802230000_iae_retention_exports',
     '20260802240000_iae_upload_sessions',
+    '20260802250000_dsm_quality_results',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -399,5 +401,15 @@ test('the schema diff and centrally ordered migration inventory establish platfo
       accessTokenMigration,
       new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
+  }
+  const qualityMigration = await readFile(
+    path.join(migrationsDirectory, inventory[26], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE TABLE "dsm"."dataset_quality_results"',
+    'CREATE INDEX "dataset_quality_results_dataset_version_idx"',
+  ]) {
+    assert.match(qualityMigration, new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
 });

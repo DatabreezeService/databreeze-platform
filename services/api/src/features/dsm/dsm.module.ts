@@ -26,6 +26,11 @@ import {
   PrismaDatasetVersionRepositoryAdapter,
   type DatasetVersionDatabaseClientV1,
 } from './adapter/prisma-dataset-version-repository.adapter.js';
+import { InMemoryDatasetQualityRepositoryAdapter } from './adapter/in-memory-dataset-quality-repository.adapter.js';
+import {
+  PrismaDatasetQualityRepositoryAdapter,
+  type DatasetQualityDatabaseClientV1,
+} from './adapter/prisma-dataset-quality-repository.adapter.js';
 import {
   PrismaRuleSetRepositoryAdapter,
   type RuleSetDatabaseClientV1,
@@ -51,6 +56,10 @@ import {
   type DatasetVersionRepositoryPortV1,
 } from './application/dataset-version-repository.port.js';
 import {
+  DATASET_QUALITY_REPOSITORY_PORT,
+  type DatasetQualityRepositoryPortV1,
+} from './application/dataset-quality-repository.port.js';
+import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
   UnavailableRequestTenantContextAdapter,
@@ -72,6 +81,9 @@ export interface DsmModuleOptions {
   readonly datasetVersionRepository?: DatasetVersionRepositoryPortV1;
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly datasetVersionDatabase?: DatasetVersionDatabaseClientV1;
+  readonly datasetQualityRepository?: DatasetQualityRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly datasetQualityDatabase?: DatasetQualityDatabaseClientV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
 }
 
@@ -127,6 +139,14 @@ export class DsmModule {
             (options.datasetVersionDatabase === undefined
               ? new InMemoryDatasetVersionRepositoryAdapter()
               : new PrismaDatasetVersionRepositoryAdapter(options.datasetVersionDatabase)),
+        },
+        {
+          provide: DATASET_QUALITY_REPOSITORY_PORT,
+          useValue:
+            options.datasetQualityRepository ??
+            (options.datasetQualityDatabase === undefined
+              ? new InMemoryDatasetQualityRepositoryAdapter()
+              : new PrismaDatasetQualityRepositoryAdapter(options.datasetQualityDatabase)),
         },
         {
           provide: REQUEST_TENANT_CONTEXT,
