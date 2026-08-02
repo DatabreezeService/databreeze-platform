@@ -88,6 +88,9 @@ export function checkCiPolicy(root = process.cwd()) {
   if (!release.includes('generate-provenance.mjs')) {
     throw new Error('release.yml must generate a provenance record');
   }
+  if (!/^\s+environment:\s*release\s*$/im.test(release)) {
+    throw new Error('release.yml must use the protected release environment');
+  }
   return { workflowCount: REQUIRED_WORKFLOWS.length };
 }
 

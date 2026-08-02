@@ -23,6 +23,11 @@ test('CI policy fails closed when an artifact output is missing', () => {
   assert.match(workflow, /actions\/upload-artifact@[0-9a-f]{40}[\s\S]*if-no-files-found:\s*error/iu);
 });
 
+test('release workflow uses the protected release environment', () => {
+  const workflow = fs.readFileSync(path.join(process.cwd(), '.github/workflows/release.yml'), 'utf8');
+  assert.match(workflow, /^\s+environment:\s*release\s*$/mu);
+});
+
 test('CI policy rejects floating actions and pull request target execution', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'databreeze-ci-policy-'));
   fs.mkdirSync(path.join(root, '.github/workflows'), { recursive: true });
