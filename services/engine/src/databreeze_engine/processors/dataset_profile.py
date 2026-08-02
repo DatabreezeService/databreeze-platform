@@ -9,7 +9,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
 
-ValueState = Literal["MISSING", "NULL", "BLANK", "INVALID", "ZERO", "NOT_APPLICABLE", "REDACTED", "VALUE"]
+ValueState = Literal[
+    "MISSING", "NULL", "BLANK", "INVALID", "ZERO", "NOT_APPLICABLE", "REDACTED", "VALUE"
+]
 StateCounts = dict[ValueState, StrictInt]
 
 
