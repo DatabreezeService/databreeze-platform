@@ -13,9 +13,21 @@ from databreeze_engine.processors import (
 
 
 def _workbook(*, macro: bool = False, external_link: bool = False) -> bytes:
-    workbook = b'''<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Inventory" sheetId="1" r:id="rId1"/></sheets></workbook>'''
-    relationships = b'''<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Target="worksheets/sheet1.xml" Type="worksheet"/></Relationships>'''
-    sheet = b'''<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1"><c r="A1"><f>SUM(B1:C1)</f><v>3</v></c><c r="B1"><f>SUM(B1:C1)</f><v>3</v></c><c r="C1"><f>SUM(B1:D1)</f><v>4</v></c></row></sheetData></worksheet>'''
+    workbook = (
+        b'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+        b'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+        b'<sheets><sheet name="Inventory" sheetId="1" r:id="rId1"/></sheets></workbook>'
+    )
+    relationships = (
+        b'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        b'<Relationship Id="rId1" Target="worksheets/sheet1.xml"/></Relationships>'
+    )
+    sheet = (
+        b'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+        b'<sheetData><row r="1"><c r="A1"><f>SUM(B1:C1)</f><v>3</v></c>'
+        b'<c r="B1"><f>SUM(B1:C1)</f><v>3</v></c>'
+        b'<c r="C1"><f>SUM(B1:D1)</f><v>4</v></c></row></sheetData></worksheet>'
+    )
     output = io.BytesIO()
     with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
         archive.writestr("xl/workbook.xml", workbook)
