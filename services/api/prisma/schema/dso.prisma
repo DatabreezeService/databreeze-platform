@@ -177,3 +177,24 @@ model DeviceOperationalGrantRecord {
   @@map("device_operational_grants")
   @@schema("dso")
 }
+
+/// DSO-008/026: immutable workspace data-mode policy versions.
+model DeviceDataModePolicyRecord {
+  id                       String   @id @db.Uuid
+  policyId                 String   @map("policy_id") @db.Uuid
+  organizationId           String   @map("organization_id") @db.Uuid
+  workspaceId              String   @map("workspace_id") @db.Uuid
+  revision                 Int
+  mode                     String   @db.VarChar(16)
+  allowedPayloadClasses   Json     @map("allowed_payload_classes")
+  allowedPlacementKinds   Json     @map("allowed_placement_kinds")
+  allowedExecutorClasses  Json     @map("allowed_executor_classes")
+  allowedDestinationClasses Json   @map("allowed_destination_classes")
+  canonicalHash            String   @map("canonical_hash") @db.VarChar(64)
+  publishedAt              DateTime @map("published_at") @db.Timestamptz(6)
+
+  @@unique([policyId, revision], map: "device_data_mode_policies_policy_revision_key")
+  @@index([organizationId, workspaceId, policyId, revision], map: "device_data_mode_policies_scope_idx")
+  @@map("device_data_mode_policies")
+  @@schema("dso")
+}
