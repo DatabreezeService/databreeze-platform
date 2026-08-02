@@ -50,4 +50,34 @@ export class ReferenceEntityController {
     if (!entityId.accepted) return { accepted: false, code: 'INVALID_IDENTIFIER' as const };
     return this.entities.listVersions(context, entityId.value);
   }
+
+  @Get(':entityId/versions/:versionId')
+  @ApiOperation({ summary: 'Read one exact immutable business-party version' })
+  async getVersion(
+    @Req() request: unknown,
+    @Param('entityId') entityIdInput: string,
+    @Param('versionId') versionIdInput: string,
+  ): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    const entityId = parseStableIdentifierV1(entityIdInput);
+    const versionId = parseStableIdentifierV1(versionIdInput);
+    if (!entityId.accepted || !versionId.accepted)
+      return { accepted: false, code: 'INVALID_IDENTIFIER' as const };
+    const result = await this.entities.findVersion(context, versionId.value);
+    if (!result.accepted || result.value.entityId !== entityId.value)
+      return { accepted: false, code: 'ENTITY_NOT_FOUND' as const };
+    return result;
+  }
+
+  @Get(':entityId/resolutions')
+  @ApiOperation({ summary: 'List immutable merge and resolution history' })
+  async resolutions(
+    @Req() request: unknown,
+    @Param('entityId') entityIdInput: string,
+  ): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    const entityId = parseStableIdentifierV1(entityIdInput);
+    if (!entityId.accepted) return { accepted: false, code: 'INVALID_IDENTIFIER' as const };
+    return this.entities.listResolutions(context, entityId.value);
+  }
 }
