@@ -40,6 +40,10 @@
       "types": "./src/device-authorization/v1.ts",
       "import": "./dist/device-authorization/v1.js"
     },
+    "./data-mode/v1": {
+      "types": "./src/data-mode/v1.ts",
+      "import": "./dist/data-mode/v1.js"
+    },
     "./artifact/v1": {
       "types": "./src/artifact/v1.ts",
       "import": "./dist/artifact/v1.js"
