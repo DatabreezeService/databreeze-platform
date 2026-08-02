@@ -61,3 +61,35 @@ void test('[DSM-002, DSM-012, DSM-014] dataset result manifests are immutable an
     await app.close();
   }
 });
+
+void test('[DSM-002] dataset result DTO rejects malformed hashes and non-UUID version identities', async () => {
+  const requestTenantContext: RequestTenantContextPortV1 = {
+    resolve: () => Promise.resolve(context()),
+  };
+  const { app } = await createApiApplication({
+    datasetVersionRepository: new InMemoryDatasetVersionRepositoryAdapter(),
+    requestTenantContext,
+  });
+  try {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/dataset-versions',
+      payload: {
+        versionId: 'not-a-uuid',
+        datasetId,
+        inputArtifactVersionIds: [],
+        schemaVersionId: '00000000-0000-4000-8000-000000000808',
+        mappingVersionId: '00000000-0000-4000-8000-000000000809',
+        ruleSetVersionId: '00000000-0000-4000-8000-000000000810',
+        engineBuild: 'engine@1',
+        contentFingerprint: 'not-a-hash',
+        rowCount: 0,
+        qualityState: 'PASS',
+        lineageManifestHash: 'not-a-hash',
+      },
+    });
+    assert.equal(response.statusCode, 400);
+  } finally {
+    await app.close();
+  }
+});

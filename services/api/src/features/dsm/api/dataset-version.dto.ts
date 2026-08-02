@@ -5,8 +5,11 @@ import {
   IsIn,
   IsInt,
   IsISO8601,
+  IsString,
   IsUUID,
   Max,
+  MaxLength,
+  Matches,
   Min,
   MinLength,
 } from 'class-validator';
@@ -35,15 +38,18 @@ export class RegisterDatasetVersionDto {
   ruleSetVersionId!: string;
 
   @ApiProperty({ minLength: 1, maxLength: 128 })
+  @IsString()
   @MinLength(1)
+  @MaxLength(128)
   engineBuild!: string;
 
-  @ApiProperty({ pattern: '^[0-9a-f]{64}$' })
+  @ApiProperty({ format: 'uuid' })
   @IsUUID()
   versionId!: string;
 
   @ApiProperty({ pattern: '^[0-9a-f]{64}$' })
-  @MinLength(64)
+  @IsString()
+  @Matches(/^[0-9a-f]{64}$/u)
   contentFingerprint!: string;
 
   @ApiProperty({ minimum: 0 })
@@ -57,6 +63,7 @@ export class RegisterDatasetVersionDto {
   qualityState!: 'PASS' | 'PASS_WITH_WARNINGS' | 'BLOCKED' | 'INCOMPLETE';
 
   @ApiProperty({ pattern: '^[0-9a-f]{64}$' })
-  @MinLength(64)
+  @IsString()
+  @Matches(/^[0-9a-f]{64}$/u)
   lineageManifestHash!: string;
 }
