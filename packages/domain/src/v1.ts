@@ -3,6 +3,7 @@ export * from './audit/v1.js';
 export * from './artifact/v1.js';
 export * from './artifact-intake/v1.js';
 export * from './artifact-governance/v1.js';
+export * from './artifact-retention/v1.js';
 export * from './dataset/v1.js';
 export * from './dataset-governance/v1.js';
 export * from './jobs/v1.js';

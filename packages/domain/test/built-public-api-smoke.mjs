@@ -8,6 +8,7 @@ const [
   artifact,
   artifactIntake,
   artifactGovernance,
+  artifactRetention,
   dataset,
   datasetGovernance,
   dataMode,
@@ -30,6 +31,7 @@ const [
   import('@databreeze/domain/artifact/v1'),
   import('@databreeze/domain/artifact-intake/v1'),
   import('@databreeze/domain/artifact-governance/v1'),
+  import('@databreeze/domain/artifact-retention/v1'),
   import('@databreeze/domain/dataset/v1'),
   import('@databreeze/domain/dataset-governance/v1'),
   import('@databreeze/domain/data-mode/v1'),
@@ -54,6 +56,7 @@ assert.equal(typeof authorization.createScopedAuthorizationEvaluatorV1, 'functio
 assert.equal(artifact.ARTIFACT_SCHEMA_VERSION_V1, 1);
 assert.equal(artifactIntake.ARTIFACT_INTAKE_SCHEMA_VERSION_V1, 1);
 assert.equal(artifactGovernance.ARTIFACT_GOVERNANCE_SCHEMA_VERSION_V1, 1);
+assert.equal(artifactRetention.ARTIFACT_RETENTION_SCHEMA_VERSION_V1, 1);
 assert.equal(dataset.DATASET_SCHEMA_VERSION_V1, 1);
 assert.equal(datasetGovernance.DATASET_GOVERNANCE_SCHEMA_VERSION_V1, 1);
 assert.equal(dataMode.DATA_MODE_POLICY_SCHEMA_VERSION_V1, 1);
