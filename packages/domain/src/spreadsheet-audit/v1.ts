@@ -97,6 +97,12 @@ function count(input: unknown): number | undefined {
   return typeof input === 'number' && Number.isSafeInteger(input) && input >= 0 ? input : undefined;
 }
 
+function columnNumber(value: string): number {
+  let result = 0;
+  for (const character of value) result = result * 26 + character.charCodeAt(0) - 64;
+  return result;
+}
+
 function sheet(input: unknown): SpreadsheetAuditSheetV1 | undefined {
   if (typeof input !== 'object' || input === null || Array.isArray(input)) return undefined;
   const record = input as Record<string, unknown>;
@@ -181,9 +187,17 @@ export function createSpreadsheetAuditResultV1(input: {
   const validFindings = findings as SpreadsheetAuditFindingV1[];
   if (new Set(validFindings.map((candidate) => candidate.findingId)).size !== validFindings.length)
     return rejected('DUPLICATE_IDENTIFIER');
-  const sheetIds = new Set(validSheets.map((candidate) => candidate.sheetId));
-  if (validFindings.some((candidate) => !sheetIds.has(candidate.sheetId)))
-    return rejected('INVALID_IDENTIFIER');
+  const sheetsById = new Map(validSheets.map((candidate) => [candidate.sheetId, candidate]));
+  for (const candidate of validFindings) {
+    const targetSheet = sheetsById.get(candidate.sheetId);
+    if (!targetSheet) return rejected('INVALID_IDENTIFIER');
+    const address = /^([A-Z]{1,3})([1-9][0-9]*)$/u.exec(candidate.address);
+    if (!address) return rejected('INVALID_COORDINATE');
+    const column = columnNumber(address[1] ?? '');
+    const row = Number(address[2]);
+    if (column > targetSheet.maxColumn || row > targetSheet.maxRow)
+      return rejected('INVALID_COORDINATE');
+  }
   if (!Array.isArray(input.blockedReasons) || input.blockedReasons.length > 3)
     return rejected('INVALID_BLOCKED_REASON');
   const validBlockedReasons: SpreadsheetAuditBlockedReasonV1[] = [];
