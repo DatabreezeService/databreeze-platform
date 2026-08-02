@@ -53,6 +53,7 @@ for (const requiredBoundary of [
   'backup_retention_period',
   'token.actions.githubusercontent.com:sub',
   'recovery_window_in_days = 30',
+  'force_destroy = false',
 ]) {
   if (!allTerraform.includes(requiredBoundary)) fail(`missing required safety boundary ${requiredBoundary}`);
 }

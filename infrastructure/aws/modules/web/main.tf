@@ -3,8 +3,9 @@ locals {
 }
 
 resource "aws_s3_bucket" "web" {
-  bucket = "databreeze-${var.name}-web"
-  tags   = merge(local.common_tags, { Name = "databreeze-${var.name}-web" })
+  bucket        = "databreeze-${var.name}-web"
+  force_destroy = false
+  tags          = merge(local.common_tags, { Name = "databreeze-${var.name}-web" })
 }
 
 resource "aws_s3_bucket_ownership_controls" "web" {

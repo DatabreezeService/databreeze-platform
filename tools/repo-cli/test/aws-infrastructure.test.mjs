@@ -73,6 +73,7 @@ test('AWS sources expose encryption, private data, and OIDC boundaries without s
   assert.match(sources, /aws_s3_bucket_lifecycle_configuration/u);
   assert.match(sources, /noncurrent_version_expiration/u);
   assert.match(sources, /abort_incomplete_multipart_upload/u);
+  assert.match(sources, /force_destroy\s*=\s*false/u);
   assert.doesNotMatch(sources, /aws_iam_role_policy" task/u);
   assert.doesNotMatch(sources, /ecs-task-minimal/u);
 });
