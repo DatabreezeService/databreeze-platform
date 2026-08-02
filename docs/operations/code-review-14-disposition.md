@@ -54,3 +54,10 @@ was requested). It identified one valid lifecycle race: sign-in and sign-out cou
 between device-key initialization and revocation. `AndroidRuntime` now serializes the complete
 sign-in/sign-out lifecycle per `AccountWorkspaceScope`, and a blocking JVM test proves sign-out
 cannot revoke, cancel, or delete the key until sign-in has completed.
+
+## Automatic incremental review after PR #17 synchronization
+
+GitHub automatically refreshed the existing review after PR #17 merged into `dev` (no new review
+was requested). It identified a valid test determinism issue: the lifecycle test now starts
+sign-out with `CoroutineStart.UNDISPATCHED` after key creation has blocked, guaranteeing that the
+test actually contends on the per-scope mutex before releasing sign-in.
