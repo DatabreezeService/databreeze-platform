@@ -1,0 +1,450 @@
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
+
+import {
+  createSessionRecordV1,
+  rotateRefreshFamilyV1,
+  type SessionRecordV1,
+} from '@databreeze/domain/identity/v1';
+import {
+  parseStableIdentifierV1,
+  parseStrictUtcTimestampV1,
+  type StableIdentifierV1,
+  type StrictUtcTimestampV1,
+} from '@databreeze/domain/tenant-scope/v1';
+
+import type {
+  AuthenticationSessionV1,
+  AuthenticatedPrincipalV1,
+  SessionIssuerPortV1,
+} from '../application/authentication.port.js';
+import type {
+  SessionLifecyclePortV1,
+  SessionRefreshFailureCodeV1,
+  SessionRefreshResultV1,
+} from '../application/session-lifecycle.port.js';
+
+export interface SessionRecordDatabaseRowV1 {
+  readonly id: string;
+  readonly userId: string;
+  readonly familyId: string;
+  readonly issuedAt: Date;
+  readonly accessExpiresAt: Date;
+  readonly inactivityExpiresAt: Date;
+  readonly absoluteExpiresAt: Date;
+  readonly status: string;
+  readonly revokedAt?: Date | null;
+}
+
+export interface RefreshTokenDatabaseRowV1 {
+  readonly id: string;
+  readonly sessionId: string;
+  readonly familyId: string;
+  readonly tokenDigest: string;
+  readonly status: string;
+  readonly issuedAt: Date;
+  readonly expiresAt: Date;
+  readonly usedAt?: Date | null;
+}
+
+export interface SessionUserDatabaseRowV1 {
+  readonly id: string;
+  readonly status: string;
+  readonly securityEpoch: number;
+}
+
+export interface SessionMembershipDatabaseRowV1 {
+  readonly id: string;
+  readonly principalId: string;
+  readonly organizationId: string;
+  readonly workspaceId: string | null;
+  readonly projectId: string | null;
+  readonly scopeType: string;
+  readonly status: string;
+}
+
+export interface SessionWorkspaceDatabaseRowV1 {
+  readonly id: string;
+  readonly organizationId: string;
+  readonly status: string;
+}
+
+export interface SessionOrganizationDatabaseRowV1 {
+  readonly id: string;
+  readonly status: string;
+}
+
+export interface SessionMfaFactorDatabaseRowV1 {
+  readonly id: string;
+}
+
+interface SessionDelegateV1 {
+  create(input: {
+    readonly data: SessionRecordDatabaseRowV1;
+  }): Promise<SessionRecordDatabaseRowV1>;
+  findUnique(input: {
+    readonly where: { readonly id: string };
+  }): Promise<SessionRecordDatabaseRowV1 | null>;
+  update(input: {
+    readonly where: { readonly id: string };
+    readonly data: Partial<SessionRecordDatabaseRowV1>;
+  }): Promise<SessionRecordDatabaseRowV1>;
+}
+
+interface RefreshTokenDelegateV1 {
+  create(input: {
+    readonly data: RefreshTokenDatabaseRowV1;
+  }): Promise<RefreshTokenDatabaseRowV1>;
+  findUnique(input: {
+    readonly where: { readonly tokenDigest: string };
+  }): Promise<RefreshTokenDatabaseRowV1 | null>;
+  findMany(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+  }): Promise<readonly RefreshTokenDatabaseRowV1[]>;
+  updateMany(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+    readonly data: Partial<RefreshTokenDatabaseRowV1>;
+  }): Promise<{ readonly count: number }>;
+}
+
+interface UniqueDelegateV1<TRow> {
+  findUnique(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+  }): Promise<TRow | null>;
+}
+
+interface ListDelegateV1<TRow> {
+  findMany(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+  }): Promise<readonly TRow[]>;
+}
+
+export interface SessionLifecycleDatabaseClientV1 {
+  readonly sessionRecord: SessionDelegateV1;
+  readonly refreshTokenRecord: RefreshTokenDelegateV1;
+  readonly userIdentity: UniqueDelegateV1<SessionUserDatabaseRowV1>;
+  readonly membershipIdentity: ListDelegateV1<SessionMembershipDatabaseRowV1>;
+  readonly workspaceIdentity: UniqueDelegateV1<SessionWorkspaceDatabaseRowV1>;
+  readonly organizationIdentity: UniqueDelegateV1<SessionOrganizationDatabaseRowV1>;
+  readonly mfaFactor: ListDelegateV1<SessionMfaFactorDatabaseRowV1>;
+  $transaction<TValue>(
+    work: (transaction: SessionLifecycleDatabaseClientV1) => Promise<TValue>,
+  ): Promise<TValue>;
+}
+
+export interface SessionLifecycleAdapterOptionsV1 {
+  readonly clock?: () => Date;
+}
+
+const ACCESS_TOKEN_SECONDS_V1 = 15 * 60;
+const INACTIVITY_SECONDS_V1 = 60 * 60;
+const ABSOLUTE_SECONDS_V1 = 30 * 24 * 60 * 60;
+
+function stableIdentifier(input: string): StableIdentifierV1 {
+  const parsed = parseStableIdentifierV1(input);
+  if (!parsed.accepted) throw new Error('IAM_INVALID_IDENTIFIER');
+  return parsed.value;
+}
+
+function timestamp(input: Date | null | undefined): StrictUtcTimestampV1 | undefined {
+  if (!input) return undefined;
+  const parsed = parseStrictUtcTimestampV1(input.toISOString());
+  return parsed.accepted ? parsed.value : undefined;
+}
+
+function addSeconds(now: Date, seconds: number, upperBound?: string): string {
+  const candidate = new Date(now.getTime() + seconds * 1_000);
+  if (!upperBound || candidate.toISOString() <= upperBound) return candidate.toISOString();
+  return upperBound;
+}
+
+function digestToken(token: string): string {
+  return createHash('sha256').update(token, 'utf8').digest('base64url');
+}
+
+function tokenFor(tokenId: string): string {
+  return `${tokenId}.${randomBytes(32).toString('base64url')}`;
+}
+
+function sessionFromRow(row: SessionRecordDatabaseRowV1): SessionRecordV1 {
+  const created = createSessionRecordV1({
+    sessionId: row.id,
+    userId: row.userId,
+    familyId: row.familyId,
+    issuedAt: timestamp(row.issuedAt),
+    accessExpiresAt: timestamp(row.accessExpiresAt),
+    inactivityExpiresAt: timestamp(row.inactivityExpiresAt),
+    absoluteExpiresAt: timestamp(row.absoluteExpiresAt),
+  });
+  if (!created.accepted) throw new Error('IAM_PERSISTED_SESSION_INVALID');
+  if (row.status !== 'ACTIVE' && row.status !== 'REVOKED' && row.status !== 'EXPIRED')
+    throw new Error('IAM_PERSISTED_SESSION_INVALID');
+  return Object.freeze({ ...created.value, status: row.status });
+}
+
+function tokenFromRow(row: RefreshTokenDatabaseRowV1): {
+  readonly id: StableIdentifierV1;
+  readonly sessionId: StableIdentifierV1;
+  readonly familyId: StableIdentifierV1;
+  readonly expiresAt: StrictUtcTimestampV1;
+  readonly status: 'ACTIVE' | 'USED' | 'REVOKED' | 'EXPIRED';
+} {
+  const id = stableIdentifier(row.id);
+  const sessionId = stableIdentifier(row.sessionId);
+  const familyId = stableIdentifier(row.familyId);
+  const expiresAt = timestamp(row.expiresAt);
+  if (!expiresAt || row.tokenDigest.length < 32 || row.tokenDigest.length > 128)
+    throw new Error('IAM_PERSISTED_REFRESH_TOKEN_INVALID');
+  if (row.status !== 'ACTIVE' && row.status !== 'USED' && row.status !== 'REVOKED' && row.status !== 'EXPIRED')
+    throw new Error('IAM_PERSISTED_REFRESH_TOKEN_INVALID');
+  return { id, sessionId, familyId, expiresAt, status: row.status };
+}
+
+function successfulSession(session: AuthenticationSessionV1): SessionRefreshResultV1 {
+  return Object.freeze({ accepted: true, value: Object.freeze(session) });
+}
+
+/** PostgreSQL-backed, transactional session and refresh-token family lifecycle. */
+export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
+  private readonly clock: () => Date;
+
+  public constructor(
+    private readonly client: SessionLifecycleDatabaseClientV1,
+    options: SessionLifecycleAdapterOptionsV1 = {},
+  ) {
+    this.clock = options.clock ?? (() => new Date());
+  }
+
+  public async issue(
+    principal: AuthenticatedPrincipalV1,
+    clientPlatform: 'android' | 'desktop' | 'web',
+  ): Promise<AuthenticationSessionV1> {
+    void clientPlatform;
+    const now = this.clock();
+    const sessionId = stableIdentifier(randomUUID());
+    const familyId = stableIdentifier(randomUUID());
+    const refreshTokenId = stableIdentifier(randomUUID());
+    const created = createSessionRecordV1({
+      sessionId,
+      userId: principal.userId,
+      familyId,
+      issuedAt: now.toISOString(),
+      accessExpiresAt: addSeconds(now, ACCESS_TOKEN_SECONDS_V1),
+      inactivityExpiresAt: addSeconds(now, INACTIVITY_SECONDS_V1),
+      absoluteExpiresAt: addSeconds(now, ABSOLUTE_SECONDS_V1),
+    });
+    if (!created.accepted) throw new Error(`IAM_${created.code}`);
+    const refreshToken = tokenFor(refreshTokenId);
+    const record = created.value;
+    await this.client.$transaction(async (transaction) => {
+      await transaction.sessionRecord.create({
+        data: {
+          id: record.sessionId,
+          userId: record.userId,
+          familyId: record.familyId,
+          issuedAt: new Date(record.issuedAt),
+          accessExpiresAt: new Date(record.accessExpiresAt),
+          inactivityExpiresAt: new Date(record.inactivityExpiresAt),
+          absoluteExpiresAt: new Date(record.absoluteExpiresAt),
+          status: 'ACTIVE',
+          revokedAt: null,
+        },
+      });
+      await transaction.refreshTokenRecord.create({
+        data: {
+          id: refreshTokenId,
+          sessionId: record.sessionId,
+          familyId: record.familyId,
+          tokenDigest: digestToken(refreshToken),
+          status: 'ACTIVE',
+          issuedAt: new Date(record.issuedAt),
+          expiresAt: new Date(record.absoluteExpiresAt),
+          usedAt: null,
+        },
+      });
+    });
+    return {
+      sessionId: record.sessionId,
+      accessToken: tokenFor(stableIdentifier(randomUUID())),
+      refreshToken,
+      accessExpiresAt: record.accessExpiresAt,
+    };
+  }
+
+  public async refresh(
+    refreshTokenInput: unknown,
+    clientPlatform: 'android' | 'desktop' | 'web',
+  ): Promise<SessionRefreshResultV1> {
+    void clientPlatform;
+    if (typeof refreshTokenInput !== 'string' || refreshTokenInput.length < 80)
+      return { accepted: false, code: 'INVALID_REFRESH_TOKEN' };
+    const digest = digestToken(refreshTokenInput);
+    const now = this.clock();
+    return this.client.$transaction(async (transaction) => {
+      const persisted = await transaction.refreshTokenRecord.findUnique({
+        where: { tokenDigest: digest },
+      });
+      if (!persisted) return { accepted: false, code: 'INVALID_REFRESH_TOKEN' };
+      const token = tokenFromRow(persisted);
+      const sessionRow = await transaction.sessionRecord.findUnique({
+        where: { id: token.sessionId },
+      });
+      if (!sessionRow) return { accepted: false, code: 'INVALID_REFRESH_TOKEN' };
+      const session = sessionFromRow(sessionRow);
+      const active = await transaction.refreshTokenRecord.findMany({
+        where: { sessionId: token.sessionId, familyId: token.familyId, status: 'ACTIVE' },
+      });
+      const activeToken = active[0] ? tokenFromRow(active[0]) : undefined;
+      const rotated = rotateRefreshFamilyV1({
+        now: now.toISOString(),
+        presentedTokenId: token.id,
+        activeTokenId: activeToken?.id ?? token.id,
+        nextTokenId: stableIdentifier(randomUUID()),
+        familyStatus: session.status === 'ACTIVE' ? 'ACTIVE' : 'REVOKED',
+        tokenExpiresAt: token.expiresAt,
+      });
+      if (!rotated.accepted || !rotated.nextTokenId) {
+        if (rotated.code === 'REUSE_DETECTED') {
+          await transaction.refreshTokenRecord.updateMany({
+            where: { familyId: token.familyId, status: 'ACTIVE' },
+            data: { status: 'REVOKED' },
+          });
+          await transaction.sessionRecord.update({
+            where: { id: token.sessionId },
+            data: { status: 'REVOKED', revokedAt: now },
+          });
+        } else if (rotated.code === 'EXPIRED' && token.status === 'ACTIVE') {
+          await transaction.refreshTokenRecord.updateMany({
+            where: { id: token.id, status: 'ACTIVE' },
+            data: { status: 'EXPIRED' },
+          });
+        }
+        const failureCode: SessionRefreshFailureCodeV1 =
+          rotated.code === 'EXPIRED'
+            ? 'EXPIRED'
+            : rotated.code === 'REUSE_DETECTED'
+              ? 'REUSE_DETECTED'
+              : 'REVOKED_FAMILY';
+        return {
+          accepted: false,
+          code: failureCode,
+        };
+      }
+      const consumed = await transaction.refreshTokenRecord.updateMany({
+        where: { id: token.id, status: 'ACTIVE' },
+        data: { status: 'USED', usedAt: now },
+      });
+      if (consumed.count !== 1) return { accepted: false, code: 'INVALID_REFRESH_TOKEN' };
+      const accessExpiresAt = addSeconds(now, ACCESS_TOKEN_SECONDS_V1, session.absoluteExpiresAt);
+      const inactivityExpiresAt = addSeconds(now, INACTIVITY_SECONDS_V1, session.absoluteExpiresAt);
+      await transaction.sessionRecord.update({
+        where: { id: session.sessionId },
+        data: { accessExpiresAt: new Date(accessExpiresAt), inactivityExpiresAt: new Date(inactivityExpiresAt) },
+      });
+      const nextRefreshToken = tokenFor(rotated.nextTokenId);
+      await transaction.refreshTokenRecord.create({
+        data: {
+          id: rotated.nextTokenId,
+          sessionId: session.sessionId,
+          familyId: session.familyId,
+          tokenDigest: digestToken(nextRefreshToken),
+          status: 'ACTIVE',
+          issuedAt: now,
+          expiresAt: new Date(session.absoluteExpiresAt),
+          usedAt: null,
+        },
+      });
+      return successfulSession({
+        sessionId: session.sessionId,
+        accessToken: tokenFor(stableIdentifier(randomUUID())),
+        refreshToken: nextRefreshToken,
+        accessExpiresAt,
+      });
+    });
+  }
+
+  public async revoke(sessionIdInput: unknown): Promise<boolean> {
+    if (typeof sessionIdInput !== 'string') return false;
+    const sessionId = parseStableIdentifierV1(sessionIdInput);
+    if (!sessionId.accepted) return false;
+    const now = this.clock();
+    return this.client.$transaction(async (transaction) => {
+      const session = await transaction.sessionRecord.findUnique({
+        where: { id: sessionId.value },
+      });
+      if (!session) return false;
+      await transaction.sessionRecord.update({
+        where: { id: sessionId.value },
+        data: { status: 'REVOKED', revokedAt: session.revokedAt ?? now },
+      });
+      await transaction.refreshTokenRecord.updateMany({
+        where: { familyId: session.familyId, status: 'ACTIVE' },
+        data: { status: 'REVOKED' },
+      });
+      return true;
+    });
+  }
+
+  public async findPrincipal(sessionIdInput: unknown): Promise<AuthenticatedPrincipalV1 | undefined> {
+    if (typeof sessionIdInput !== 'string') return undefined;
+    const parsed = parseStableIdentifierV1(sessionIdInput);
+    if (!parsed.accepted) return undefined;
+    try {
+      const sessionRow = await this.client.sessionRecord.findUnique({ where: { id: parsed.value } });
+      if (!sessionRow) return undefined;
+      const session = sessionFromRow(sessionRow);
+      const now = Date.parse(this.clock().toISOString());
+      if (
+        session.status !== 'ACTIVE' ||
+        now >= Date.parse(session.inactivityExpiresAt) ||
+        now >= Date.parse(session.absoluteExpiresAt)
+      )
+        return undefined;
+      const user = await this.client.userIdentity.findUnique({ where: { id: session.userId } });
+      if (!user || user.status !== 'ACTIVE' || user.id !== session.userId) return undefined;
+      if (!Number.isSafeInteger(user.securityEpoch) || user.securityEpoch < 1) return undefined;
+      const memberships = await this.client.membershipIdentity.findMany({
+        where: { principalId: session.userId, status: 'ACTIVE' },
+      });
+      const membership = memberships.find(
+        (candidate) =>
+          candidate.principalId === session.userId &&
+          candidate.scopeType === 'WORKSPACE' &&
+          candidate.projectId === null &&
+          parseStableIdentifierV1(candidate.organizationId).accepted &&
+          parseStableIdentifierV1(candidate.workspaceId).accepted,
+      );
+      if (!membership || !membership.workspaceId) return undefined;
+      const organizationId = parseStableIdentifierV1(membership.organizationId);
+      const workspaceId = parseStableIdentifierV1(membership.workspaceId);
+      if (!organizationId.accepted || !workspaceId.accepted) return undefined;
+      const [organization, workspace, factors] = await Promise.all([
+        this.client.organizationIdentity.findUnique({ where: { id: organizationId.value } }),
+        this.client.workspaceIdentity.findUnique({ where: { id: workspaceId.value } }),
+        this.client.mfaFactor.findMany({ where: { userId: session.userId, status: 'ACTIVE' } }),
+      ]);
+      if (
+        !organization ||
+        organization.id !== organizationId.value ||
+        organization.status !== 'ACTIVE' ||
+        !workspace ||
+        workspace.id !== workspaceId.value ||
+        workspace.organizationId !== organizationId.value ||
+        workspace.status !== 'ACTIVE'
+      )
+        return undefined;
+      return Object.freeze({
+        userId: session.userId,
+        organizationId: organizationId.value,
+        workspaceId: workspaceId.value,
+        securityEpoch: user.securityEpoch,
+        mfaRequired: factors.length > 0,
+      });
+    } catch {
+      return undefined;
+    }
+  }
+}
+
+export const asSessionIssuerPortV1 = (
+  adapter: PrismaSessionLifecycleAdapter,
+): SessionIssuerPortV1 => adapter;

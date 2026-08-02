@@ -8,6 +8,8 @@ import {
   CREDENTIAL_LOOKUP_PORT,
 } from '../../src/features/iam/application/authentication.port.js';
 import { PrismaCredentialLookupAdapter } from '../../src/features/iam/adapter/prisma-credential-lookup.adapter.js';
+import { PrismaSessionLifecycleAdapter } from '../../src/features/iam/adapter/prisma-session-lifecycle.adapter.js';
+import { SESSION_LIFECYCLE_PORT } from '../../src/features/iam/application/session-lifecycle.port.js';
 import { AudModule } from '../../src/features/aud/aud.module.js';
 import { AUDIT_REPOSITORY_PORT } from '../../src/features/aud/application/audit-repository.port.js';
 import { PrismaAuditRepositoryAdapter } from '../../src/features/aud/adapter/prisma-audit-repository.adapter.js';
@@ -66,6 +68,21 @@ void test('[IAM-001] configured credential persistence uses the Prisma adapter b
       candidate.provide === AUTHENTICATION_USE_CASE,
   );
   assert.ok(authentication && 'useValue' in authentication);
+});
+
+void test('[IAM-005] configured session persistence uses the Prisma lifecycle adapter', () => {
+  const database = {} as never;
+  const registered = IamModule.register({ sessionDatabase: database });
+  const provider = registered.providers?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === SESSION_LIFECYCLE_PORT,
+  );
+  assert.ok(provider && 'useValue' in provider);
+  if (!provider || !('useValue' in provider)) return;
+  assert.ok(provider.useValue instanceof PrismaSessionLifecycleAdapter);
 });
 
 void test('[BUA-001] configured entitlement persistence uses the Prisma adapter instead of the local fallback', () => {

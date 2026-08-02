@@ -9,12 +9,17 @@ import {
   type AuthenticationUseCaseV1,
   type SessionIssuerPortV1,
 } from './application/authentication.port.js';
+import { SESSION_LIFECYCLE_PORT } from './application/session-lifecycle.port.js';
 import type { PasswordCredentialService } from './application/password-credential.service.js';
 import { UnavailableAuthenticationAdapter } from './adapter/unavailable-authentication.adapter.js';
 import {
   PrismaCredentialLookupAdapter,
   type CredentialLookupDatabaseClientV1,
 } from './adapter/prisma-credential-lookup.adapter.js';
+import {
+  PrismaSessionLifecycleAdapter,
+  type SessionLifecycleDatabaseClientV1,
+} from './adapter/prisma-session-lifecycle.adapter.js';
 import { DeviceIdentityController } from './api/device-identity.controller.js';
 import { InMemoryDeviceIdentityRepositoryAdapter } from './adapter/in-memory-device-identity-repository.adapter.js';
 import {
@@ -43,6 +48,7 @@ export interface IamModuleOptions {
   readonly credentialDatabase?: CredentialLookupDatabaseClientV1;
   readonly passwordCredentials?: PasswordCredentialService;
   readonly sessions?: SessionIssuerPortV1;
+  readonly sessionDatabase?: SessionLifecycleDatabaseClientV1;
   readonly deviceIdentityService?: DeviceIdentityService;
   readonly deviceIdentityRepository?: DeviceIdentityRepositoryPortV1;
   readonly deviceIdentityDatabase?: DeviceIdentityDatabaseClientV1;
@@ -70,10 +76,15 @@ export class IamModule {
       (options.credentialDatabase === undefined
         ? undefined
         : new PrismaCredentialLookupAdapter(options.credentialDatabase));
+    const sessions =
+      options.sessions ??
+      (options.sessionDatabase === undefined
+        ? undefined
+        : new PrismaSessionLifecycleAdapter(options.sessionDatabase));
     const authentication =
       options.authentication ??
-      (credentials
-        ? composeAuthenticationUseCase({ ...options, credentials })
+      (credentials && sessions
+        ? composeAuthenticationUseCase({ ...options, credentials, sessions })
         : composeAuthenticationUseCase(options));
     const deviceIdentityRepository =
       options.deviceIdentityRepository ??
@@ -86,6 +97,9 @@ export class IamModule {
         deviceIdentityRepository,
         options.deviceEnrollmentProofVerifier ?? new UnavailableDeviceEnrollmentProofVerifier(),
       );
+    const exports = [DEVICE_IDENTITY_REPOSITORY_PORT, DEVICE_IDENTITY_SERVICE];
+    if (credentials) exports.unshift(CREDENTIAL_LOOKUP_PORT);
+    if (sessions) exports.unshift(SESSION_LIFECYCLE_PORT);
     return {
       module: IamModule,
       controllers: [AuthenticationController, DeviceIdentityController],
@@ -102,6 +116,14 @@ export class IamModule {
               },
             ]
           : []),
+        ...(sessions
+          ? [
+              {
+                provide: SESSION_LIFECYCLE_PORT,
+                useValue: sessions,
+              },
+            ]
+          : []),
         {
           provide: DEVICE_IDENTITY_REPOSITORY_PORT,
           useValue: deviceIdentityRepository,
@@ -115,7 +137,7 @@ export class IamModule {
           useValue: options.requestTenantContext ?? new UnavailableRequestTenantContextAdapter(),
         },
       ],
-      exports: [DEVICE_IDENTITY_REPOSITORY_PORT, DEVICE_IDENTITY_SERVICE],
+      exports,
     };
   }
 }
