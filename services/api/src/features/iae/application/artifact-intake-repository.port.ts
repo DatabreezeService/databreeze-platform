@@ -10,7 +10,10 @@ export interface ArtifactIntakeTransactionPortV1 {
     context: IamTenantContextV1,
     idempotencyKey: string,
   ): Promise<InboxItemV1 | undefined>;
-  find(context: IamTenantContextV1, inboxItemId: InboxItemV1['inboxItemId']): Promise<InboxItemV1 | undefined>;
+  find(
+    context: IamTenantContextV1,
+    inboxItemId: InboxItemV1['inboxItemId'],
+  ): Promise<InboxItemV1 | undefined>;
   list(context: IamTenantContextV1): Promise<readonly InboxItemV1[]>;
 }
 

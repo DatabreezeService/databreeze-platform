@@ -131,7 +131,11 @@ function field(input: unknown): GovernedDatasetFieldV1 | undefined {
   const localizedInput = record['localizedLabels'] === undefined ? {} : record['localizedLabels'];
   const sensitivity = record['sensitivity'] ?? 'PUBLIC';
   const defaultBehavior = record['defaultBehavior'] ?? 'NONE';
-  if (!fieldId || !name || !['TEXT', 'INTEGER', 'DECIMAL', 'BOOLEAN', 'DATE'].includes(type as string))
+  if (
+    !fieldId ||
+    !name ||
+    !['TEXT', 'INTEGER', 'DECIMAL', 'BOOLEAN', 'DATE'].includes(type as string)
+  )
     return undefined;
   if (typeof nullable !== 'boolean') return undefined;
   if (record['unit'] !== undefined && !unit) return undefined;
@@ -203,7 +207,8 @@ export function createGovernedDatasetDefinitionV1(input: {
   if (!createdAt || (input.publishedAt !== undefined && !publishedAt))
     return rejected('INVALID_TIMESTAMP');
   const status = input.status ?? 'DRAFT';
-  if (!['DRAFT', 'PUBLISHED', 'RETIRED'].includes(status as string)) return rejected('INVALID_STATE');
+  if (!['DRAFT', 'PUBLISHED', 'RETIRED'].includes(status as string))
+    return rejected('INVALID_STATE');
   if (!canonicalHash) return rejected('INVALID_HASH');
   if (publishedAt && Date.parse(publishedAt) < Date.parse(createdAt))
     return rejected('INVALID_TIMESTAMP');
@@ -227,7 +232,10 @@ export function compareGovernedSchemaCompatibilityV1(
   previous: GovernedDatasetDefinitionV1,
   next: GovernedDatasetDefinitionV1,
 ): DatasetGovernanceResultV1<SchemaCompatibilityV1> {
-  if (previous.datasetId !== next.datasetId || !tenantScopesEqualV1(previous.tenantScope, next.tenantScope))
+  if (
+    previous.datasetId !== next.datasetId ||
+    !tenantScopesEqualV1(previous.tenantScope, next.tenantScope)
+  )
     return rejected('INCOMPATIBLE_SCHEMA');
   const nextById = new Map(next.fields.map((candidate) => [candidate.fieldId, candidate]));
   let classification: SchemaCompatibilityV1 = 'ADDITIVE_COMPATIBLE';
@@ -305,7 +313,9 @@ export function createDatasetVersionManifestV1(input: {
     input.rowCount < 0
   )
     return rejected('INVALID_COUNT');
-  if (!['PASS', 'PASS_WITH_WARNINGS', 'BLOCKED', 'INCOMPLETE'].includes(input.qualityState as string))
+  if (
+    !['PASS', 'PASS_WITH_WARNINGS', 'BLOCKED', 'INCOMPLETE'].includes(input.qualityState as string)
+  )
     return rejected('INVALID_QUALITY_STATE');
   return accepted(
     Object.freeze({

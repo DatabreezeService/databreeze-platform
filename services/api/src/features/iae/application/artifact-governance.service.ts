@@ -25,7 +25,10 @@ export class ArtifactGovernanceService {
     const created = createArtifactLineageV1(input);
     if (!created.accepted) return created;
     return this.repository.withTransaction(context, async (transaction) => {
-      const existing = await transaction.findByDerived(context, created.value.derivedArtifactVersionId);
+      const existing = await transaction.findByDerived(
+        context,
+        created.value.derivedArtifactVersionId,
+      );
       if (existing) {
         if (JSON.stringify(existing) === JSON.stringify(created.value))
           return Object.freeze({ accepted: true as const, value: existing });

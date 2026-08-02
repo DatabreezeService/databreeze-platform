@@ -19,7 +19,9 @@ const ids = {
   amountFieldId: '00000000-0000-4000-8000-000000000012',
 };
 
-function definition(fields = [{ fieldId: ids.amountFieldId, name: 'amount', type: 'DECIMAL', nullable: true }]) {
+function definition(
+  fields = [{ fieldId: ids.amountFieldId, name: 'amount', type: 'DECIMAL', nullable: true }],
+) {
   return createGovernedDatasetDefinitionV1({
     datasetId: ids.datasetId,
     versionId: ids.versionId,

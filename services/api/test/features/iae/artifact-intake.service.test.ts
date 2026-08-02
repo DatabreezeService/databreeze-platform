@@ -55,7 +55,15 @@ void test('[IAE-001] create returns the same inbox item for a repeated key', asy
   const first = await service.create(context(workspaceId, 'create-1'), inbox);
   const second = await service.create(context(workspaceId, 'create-2'), inbox);
   assert.deepEqual(second, first);
-  assert.equal((await service.create(context(workspaceId, 'create-3'), { ...inbox, artifactVersionId: '00000000-0000-4000-8000-000000000023' })).accepted, false);
+  assert.equal(
+    (
+      await service.create(context(workspaceId, 'create-3'), {
+        ...inbox,
+        artifactVersionId: '00000000-0000-4000-8000-000000000023',
+      })
+    ).accepted,
+    false,
+  );
 });
 
 void test('[IAE-009, IAE-010, IAM-009] admission moves clean content to routed and quarantines malicious content', async () => {
@@ -63,31 +71,57 @@ void test('[IAE-009, IAE-010, IAM-009] admission moves clean content to routed a
   const created = await service.create(context(workspaceId, 'admit-1'), inbox);
   assert.equal(created.accepted, true);
   if (!created.accepted) return;
-  const admitted = await service.admit(context(workspaceId, 'admit-2', created.value.revision), created.value.inboxItemId, artifact, {
-    actualSha256: artifact.contentSha256,
-    actualByteSize: artifact.byteSize,
-    detectedMediaType: artifact.mediaType,
-    scanState: 'CLEAN',
-    maxByteSize: 100,
-  });
+  const admitted = await service.admit(
+    context(workspaceId, 'admit-2', created.value.revision),
+    created.value.inboxItemId,
+    artifact,
+    {
+      actualSha256: artifact.contentSha256,
+      actualByteSize: artifact.byteSize,
+      detectedMediaType: artifact.mediaType,
+      scanState: 'CLEAN',
+      maxByteSize: 100,
+    },
+  );
   assert.equal(admitted.accepted, true);
   if (!admitted.accepted) return;
   assert.equal(admitted.value.item.state, 'ROUTED');
-  const sibling = await service.admit(context(siblingWorkspaceId, 'admit-3'), created.value.inboxItemId, artifact, {
-    actualSha256: artifact.contentSha256,
-    actualByteSize: artifact.byteSize,
-    detectedMediaType: artifact.mediaType,
-    scanState: 'CLEAN',
-    maxByteSize: 100,
-  });
+  const sibling = await service.admit(
+    context(siblingWorkspaceId, 'admit-3'),
+    created.value.inboxItemId,
+    artifact,
+    {
+      actualSha256: artifact.contentSha256,
+      actualByteSize: artifact.byteSize,
+      detectedMediaType: artifact.mediaType,
+      scanState: 'CLEAN',
+      maxByteSize: 100,
+    },
+  );
   assert.deepEqual(sibling, { accepted: false, code: 'INBOX_NOT_FOUND' });
 });
 
 void test('[IAE-001, IAM-009] inbox listing is scoped and newest-first', async () => {
   const service = new ArtifactIntakeService(new InMemoryArtifactIntakeRepositoryAdapter());
   await service.create(context(workspaceId, 'list-1'), inbox);
-  await service.create(context(workspaceId, 'list-2'), { ...inbox, inboxItemId: '00000000-0000-4000-8000-000000000024', artifactVersionId: '00000000-0000-4000-8000-000000000025', createdAt: '2026-01-02T00:00:00.000Z', idempotencyKey: 'list-2' });
-  await service.create(context(siblingWorkspaceId, 'list-3'), { ...inbox, inboxItemId: '00000000-0000-4000-8000-000000000026', artifactVersionId: '00000000-0000-4000-8000-000000000027', tenantScope: { scopeType: 'workspace', organizationId, workspaceId: siblingWorkspaceId }, createdAt: '2026-01-03T00:00:00.000Z', idempotencyKey: 'list-3' });
+  await service.create(context(workspaceId, 'list-2'), {
+    ...inbox,
+    inboxItemId: '00000000-0000-4000-8000-000000000024',
+    artifactVersionId: '00000000-0000-4000-8000-000000000025',
+    createdAt: '2026-01-02T00:00:00.000Z',
+    idempotencyKey: 'list-2',
+  });
+  await service.create(context(siblingWorkspaceId, 'list-3'), {
+    ...inbox,
+    inboxItemId: '00000000-0000-4000-8000-000000000026',
+    artifactVersionId: '00000000-0000-4000-8000-000000000027',
+    tenantScope: { scopeType: 'workspace', organizationId, workspaceId: siblingWorkspaceId },
+    createdAt: '2026-01-03T00:00:00.000Z',
+    idempotencyKey: 'list-3',
+  });
   const listed = await service.list(context(workspaceId, 'list-read'));
-  assert.deepEqual(listed.map((item) => item.inboxItemId), ['00000000-0000-4000-8000-000000000024', inbox.inboxItemId]);
+  assert.deepEqual(
+    listed.map((item) => item.inboxItemId),
+    ['00000000-0000-4000-8000-000000000024', inbox.inboxItemId],
+  );
 });

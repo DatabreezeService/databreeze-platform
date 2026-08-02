@@ -67,7 +67,8 @@ export class InMemoryGovernedDatasetRepositoryAdapter implements GovernedDataset
     return [...this.definitions.values()]
       .filter(
         (definition) =>
-          definition.datasetId === datasetId && visible(context.tenantScope, definition.tenantScope),
+          definition.datasetId === datasetId &&
+          visible(context.tenantScope, definition.tenantScope),
       )
       .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
       .map(clone);

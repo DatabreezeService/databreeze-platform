@@ -134,10 +134,10 @@ export function createBusinessPartyVersionV1(input: {
   const aliasesInput = input.aliases === undefined ? [] : input.aliases;
   if (!Array.isArray(aliasesInput) || aliasesInput.length > 64) return rejected('INVALID_TEXT');
   const aliases = aliasesInput.map((alias) => text(alias, 255));
-  if (aliases.some((alias): alias is undefined => alias === undefined)) return rejected('INVALID_TEXT');
-  const externalInput = input.externalIdentifiers === undefined ? [] : input.externalIdentifiers;
-  if (!Array.isArray(externalInput) || externalInput.length > 64)
+  if (aliases.some((alias): alias is undefined => alias === undefined))
     return rejected('INVALID_TEXT');
+  const externalInput = input.externalIdentifiers === undefined ? [] : input.externalIdentifiers;
+  if (!Array.isArray(externalInput) || externalInput.length > 64) return rejected('INVALID_TEXT');
   const externalIdentifiers: ExternalIdentifierV1[] = [];
   for (const candidate of externalInput) {
     if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate))
@@ -152,7 +152,8 @@ export function createBusinessPartyVersionV1(input: {
   if (new Set(externalKeys).size !== externalKeys.length) return rejected('DUPLICATE_VALUE');
   const status = input.status ?? 'ACTIVE';
   const visibility = input.visibility ?? 'WORKSPACE';
-  if (!['ACTIVE', 'INACTIVE', 'MERGED'].includes(status as string)) return rejected('INVALID_STATE');
+  if (!['ACTIVE', 'INACTIVE', 'MERGED'].includes(status as string))
+    return rejected('INVALID_STATE');
   if (!['WORKSPACE', 'PROJECT'].includes(visibility as string)) return rejected('INVALID_STATE');
   return accepted(
     Object.freeze({

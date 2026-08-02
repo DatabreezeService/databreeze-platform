@@ -178,11 +178,10 @@ export function validateDerivedArtifactVersionV1(input: {
     if (source.status !== 'ACTIVE') return rejected('SOURCE_NOT_ACTIVE');
     sourceModeRanks.push(source.dataMode === 'Local' ? 0 : source.dataMode === 'Hybrid' ? 1 : 2);
   }
-  const derivedModeRank = input.derived.dataMode === 'Local' ? 0 : input.derived.dataMode === 'Hybrid' ? 1 : 2;
+  const derivedModeRank =
+    input.derived.dataMode === 'Local' ? 0 : input.derived.dataMode === 'Hybrid' ? 1 : 2;
   const leastPermissiveSource = Math.min(...sourceModeRanks);
-  return derivedModeRank <= leastPermissiveSource
-    ? accepted(true)
-    : rejected('DATA_MODE_WIDENING');
+  return derivedModeRank <= leastPermissiveSource ? accepted(true) : rejected('DATA_MODE_WIDENING');
 }
 
 export function evaluateArtifactRetentionV1(input: {
@@ -199,7 +198,13 @@ export function evaluateArtifactRetentionV1(input: {
   const resourceRetentionUntil = timestamp(input.resourceRetentionUntil);
   const auditRetentionUntil = timestamp(input.auditRetentionUntil);
   const recoveryWindowUntil = timestamp(input.recoveryWindowUntil);
-  if (!evaluatedAt || !workspaceRetentionUntil || !resourceRetentionUntil || !auditRetentionUntil || !recoveryWindowUntil)
+  if (
+    !evaluatedAt ||
+    !workspaceRetentionUntil ||
+    !resourceRetentionUntil ||
+    !auditRetentionUntil ||
+    !recoveryWindowUntil
+  )
     return rejected('INVALID_TIMESTAMP');
   if (typeof input.activeApproval !== 'boolean' || typeof input.legalHold !== 'boolean')
     return rejected('INVALID_LINEAGE');
@@ -212,6 +217,10 @@ export function evaluateArtifactRetentionV1(input: {
   if (input.activeApproval) blockers.push('ACTIVE_APPROVAL');
   if (input.legalHold) blockers.push('LEGAL_HOLD');
   return accepted(
-    Object.freeze({ eligible: blockers.length === 0, blockers: Object.freeze(blockers), evaluatedAt }),
+    Object.freeze({
+      eligible: blockers.length === 0,
+      blockers: Object.freeze(blockers),
+      evaluatedAt,
+    }),
   );
 }

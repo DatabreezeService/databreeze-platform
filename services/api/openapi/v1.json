@@ -1624,14 +1624,7 @@
           "createdAt": { "type": "string", "format": "date-time" },
           "canonicalHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
         },
-        "required": [
-          "datasetId",
-          "versionId",
-          "name",
-          "fields",
-          "createdAt",
-          "canonicalHash"
-        ]
+        "required": ["datasetId", "versionId", "name", "fields", "createdAt", "canonicalHash"]
       },
       "MappingStepDto": {
         "type": "object",
@@ -1685,13 +1678,7 @@
           "createdAt": { "type": "string", "format": "date-time" },
           "canonicalHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
         },
-        "required": [
-          "versionId",
-          "schemaVersionId",
-          "rules",
-          "createdAt",
-          "canonicalHash"
-        ]
+        "required": ["versionId", "schemaVersionId", "rules", "createdAt", "canonicalHash"]
       },
       "CreateReferenceEntityDto": {
         "type": "object",
@@ -1714,14 +1701,7 @@
           "canonicalHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
           "createdAt": { "type": "string", "format": "date-time" }
         },
-        "required": [
-          "entityId",
-          "versionId",
-          "displayName",
-          "roles",
-          "canonicalHash",
-          "createdAt"
-        ]
+        "required": ["entityId", "versionId", "displayName", "roles", "canonicalHash", "createdAt"]
       },
       "MergeReferenceEntityDto": {
         "type": "object",

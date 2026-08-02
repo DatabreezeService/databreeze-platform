@@ -1,8 +1,4 @@
-import {
-  tenantScopeContainsV1,
-  type InboxItemV1,
-  type TenantScopeV1,
-} from '@databreeze/domain/v1';
+import { tenantScopeContainsV1, type InboxItemV1, type TenantScopeV1 } from '@databreeze/domain/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type {
@@ -35,8 +31,7 @@ export class InMemoryArtifactIntakeRepositoryAdapter implements ArtifactIntakeRe
     if (!canMutate(context, item.tenantScope)) throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
     const existing = this.items.get(item.inboxItemId);
     if (existing && JSON.stringify(existing) !== JSON.stringify(item)) {
-      if (context.expectedRevision !== existing.revision)
-        throw new Error('IAE_REVISION_CONFLICT');
+      if (context.expectedRevision !== existing.revision) throw new Error('IAE_REVISION_CONFLICT');
       if (
         existing.artifactVersionId !== item.artifactVersionId ||
         existing.idempotencyKey !== item.idempotencyKey ||
@@ -62,7 +57,8 @@ export class InMemoryArtifactIntakeRepositoryAdapter implements ArtifactIntakeRe
     await Promise.resolve();
     const item = [...this.items.values()].find(
       (candidate) =>
-        candidate.idempotencyKey === idempotencyKey && visible(context.tenantScope, candidate.tenantScope),
+        candidate.idempotencyKey === idempotencyKey &&
+        visible(context.tenantScope, candidate.tenantScope),
     );
     return item ? clone(item) : undefined;
   }
