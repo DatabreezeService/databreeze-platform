@@ -38,14 +38,10 @@ function walk(value, visit) {
   for (const child of Object.values(value)) walk(child, visit);
 }
 
-function containsText(value, expected) {
+function containsRunText(value, expected) {
   let found = false;
   walk(value, (node) => {
-    if (
-      Object.values(node).some((child) => typeof child === 'string' && child.includes(expected))
-    ) {
-      found = true;
-    }
+    if (typeof node.run === 'string' && node.run.includes(expected)) found = true;
   });
   return found;
 }
@@ -128,13 +124,14 @@ export function checkCiPolicy(root = process.cwd()) {
     'check-container-policy.mjs',
     'generate-sbom.mjs',
   ]) {
-    if (!containsText(security, required)) throw new Error(`security.yml is missing ${required}`);
+    if (!containsRunText(security, required))
+      throw new Error(`security.yml is missing ${required}`);
   }
   const release = workflows['release.yml'];
   if (!isRecord(release.permissions) || release.permissions['id-token'] !== 'write') {
     throw new Error('release.yml must request OIDC id-token permission explicitly');
   }
-  if (!containsText(release, 'generate-provenance.mjs')) {
+  if (!containsRunText(release, 'generate-provenance.mjs')) {
     throw new Error('release.yml must generate a provenance record');
   }
   let hasReleaseEnvironment = false;

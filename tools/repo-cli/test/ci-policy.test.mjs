@@ -167,3 +167,48 @@ test('CI policy rejects artifact steps without missing-output failure', () => {
     fs.writeFileSync(path.join(root, '.github/workflows', name), text);
   assert.throws(() => checkCiPolicy(root), /artifact uploads must fail/u);
 });
+
+test('CI policy requires security and release commands in run values', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'databreeze-ci-command-fields-'));
+  fs.mkdirSync(path.join(root, '.github/workflows'), { recursive: true });
+  const checkout = 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683';
+  const checkedOutJob = [
+    'jobs:',
+    '  check:',
+    '    runs-on: ubuntu-24.04',
+    '    timeout-minutes: 10',
+    '    steps:',
+    `      - uses: ${checkout}`,
+    '        with:',
+    '          persist-credentials: false',
+  ].join('\n');
+  const security = [
+    'name: "pnpm audit check-secret-patterns.mjs check-license-policy.mjs check-container-policy.mjs generate-sbom.mjs"',
+    'permissions:',
+    '  contents: read',
+    checkedOutJob,
+  ].join('\n');
+  const release = [
+    'name: "generate-provenance.mjs"',
+    'permissions:',
+    '  contents: read',
+    '  id-token: write',
+    'jobs:',
+    '  release:',
+    '    runs-on: ubuntu-24.04',
+    '    timeout-minutes: 10',
+    '    environment: release',
+    '    steps:',
+    `      - uses: ${checkout}`,
+    '        with:',
+    '          persist-credentials: false',
+  ].join('\n');
+  const quality = ['name: q', 'permissions:', '  contents: read', checkedOutJob].join('\n');
+  for (const [name, text] of Object.entries({
+    'quality.yml': quality,
+    'security.yml': security,
+    'release.yml': release,
+  }))
+    fs.writeFileSync(path.join(root, '.github/workflows', name), text);
+  assert.throws(() => checkCiPolicy(root), /security\.yml is missing pnpm audit/u);
+});
