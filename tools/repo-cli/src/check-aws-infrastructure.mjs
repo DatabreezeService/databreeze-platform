@@ -31,6 +31,40 @@ const allTerraform = requiredFiles
   .filter((relativePath) => relativePath.endsWith('.tf'))
   .map((relativePath) => readFileSync(path.join(infrastructureRoot, relativePath), 'utf8'))
   .join('\n');
+
+function balancedBlocks(text, keyword) {
+  const blocks = [];
+  const startPattern = new RegExp(`\\b${keyword}\\s*\\{`, 'g');
+  for (const match of text.matchAll(startPattern)) {
+    const openingBrace = text.indexOf('{', match.index);
+    let depth = 0;
+    let quoted = false;
+    let escaped = false;
+    for (let index = openingBrace; index < text.length; index += 1) {
+      const character = text[index];
+      if (quoted) {
+        if (escaped) escaped = false;
+        else if (character === '\\') escaped = true;
+        else if (character === '"') quoted = false;
+        continue;
+      }
+      if (character === '"') {
+        quoted = true;
+        continue;
+      }
+      if (character === '{') depth += 1;
+      if (character === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          blocks.push(text.slice(openingBrace, index + 1));
+          break;
+        }
+      }
+    }
+  }
+  return blocks;
+}
+
 for (const requiredText of [
   'ap-southeast-1',
   'hashicorp/aws',
@@ -58,10 +92,19 @@ for (const requiredBoundary of [
   if (!allTerraform.includes(requiredBoundary))
     fail(`missing required safety boundary ${requiredBoundary}`);
 }
-if (/ingress[\s\S]{0,400}cidr_blocks\s*=\s*\["0\.0\.0\.0\/0"\]/u.test(allTerraform)) {
+if (
+  balancedBlocks(allTerraform, 'ingress').some((block) =>
+    /\bcidr_blocks\s*=\s*\[[^\]]*"0\.0\.0\.0\/0"/u.test(block),
+  )
+) {
   fail('a private service security group permits unrestricted ingress');
 }
-if (/resource\s+"aws_s3_bucket_policy"[\s\S]*?Principal\s*=\s*"\*"/u.test(allTerraform)) {
+if (
+  /resource\s+"aws_s3_bucket_policy"[\s\S]*?Principal\s*=\s*"\*"/u.test(allTerraform) ||
+  balancedBlocks(allTerraform, 'principals').some((block) =>
+    /identifiers\s*=\s*\[[^\]]*"\*"/u.test(block),
+  )
+) {
   fail('the Web bucket policy grants a wildcard principal');
 }
 if (
