@@ -2,6 +2,10 @@ import { type DynamicModule, Module } from '@nestjs/common';
 
 import { DeviceSyncController } from './api/device-sync.controller.js';
 import { InMemoryDeviceSyncRepositoryAdapter } from './adapter/in-memory-device-sync-repository.adapter.js';
+import {
+  PrismaDeviceSyncRepositoryAdapter,
+  type DeviceSyncDatabaseClientV1,
+} from './adapter/prisma-device-sync-repository.adapter.js';
 import { InMemoryDataModePolicyRepositoryAdapter } from './adapter/in-memory-data-mode-policy-repository.adapter.js';
 import {
   DEVICE_SYNC_REPOSITORY_PORT,
@@ -27,6 +31,8 @@ import {
 
 export interface DsoModuleOptions {
   readonly deviceSyncRepository?: DeviceSyncRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly deviceSyncDatabase?: DeviceSyncDatabaseClientV1;
   readonly dataModePolicyRepository?: DataModePolicyRepositoryPortV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
 }
@@ -49,7 +55,11 @@ export class DsoModule {
       providers: [
         {
           provide: DEVICE_SYNC_REPOSITORY_PORT,
-          useValue: options.deviceSyncRepository ?? new InMemoryDeviceSyncRepositoryAdapter(),
+          useValue:
+            options.deviceSyncRepository ??
+            (options.deviceSyncDatabase === undefined
+              ? new InMemoryDeviceSyncRepositoryAdapter()
+              : new PrismaDeviceSyncRepositoryAdapter(options.deviceSyncDatabase)),
         },
         { provide: DATA_MODE_POLICY_REPOSITORY_PORT, useValue: policyRepository },
         {
