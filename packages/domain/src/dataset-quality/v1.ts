@@ -275,6 +275,11 @@ export function createDatasetQualityResultV1(input: {
   const typedFindings = findings as DatasetQualityFindingV1[];
   if (new Set(typedFindings.map((candidate) => candidate.findingId)).size !== typedFindings.length)
     return rejected('DUPLICATE_FINDING');
+  if (
+    input.qualityState !== 'INCOMPLETE' &&
+    qualityStateFromFindingsV1(typedFindings) !== input.qualityState
+  )
+    return rejected('INVALID_QUALITY_STATE');
   return accepted(
     Object.freeze({
       schemaVersion: DATASET_QUALITY_SCHEMA_VERSION_V1,
