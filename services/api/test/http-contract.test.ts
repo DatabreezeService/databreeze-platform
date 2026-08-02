@@ -6,6 +6,9 @@ import { parseV1Contract } from '@databreeze/contracts/v1';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 
 import { createApiApplication } from '../src/bootstrap.js';
+import { createIamTenantContextV1 } from '../src/features/iam/application/tenant-context.js';
+import { InMemoryMfaRepositoryAdapter } from '../src/features/iam/adapter/in-memory-mfa-repository.adapter.js';
+import { MfaService } from '../src/features/iam/application/mfa.service.js';
 
 interface InjectResponse {
   readonly body: string;
@@ -510,4 +513,55 @@ void test('protected artifact reads derive tenant scope from an authenticated ac
       assert.deepEqual(authenticated.json(), []);
     },
   );
+});
+
+void test('MFA HTTP lifecycle derives the user from the authenticated tenant context and returns redacted state', async () => {
+  const actorId = '00000000-0000-4000-8000-000000000001';
+  const mfaService = new MfaService(new InMemoryMfaRepositoryAdapter(), {
+    matches: (presented, stored) => presented === stored,
+  });
+  const contextResult = createIamTenantContextV1({
+    tenantScope: {
+      scopeType: 'workspace',
+      organizationId: '00000000-0000-4000-8000-000000000002',
+      workspaceId: '00000000-0000-4000-8000-000000000003',
+    },
+    actorId,
+    correlationId: '00000000-0000-4000-8000-000000000004',
+    idempotencyKey: 'mfa-http-test',
+    authorizationEpoch: 1,
+  });
+  assert.equal(contextResult.accepted, true);
+  if (!contextResult.accepted) return;
+  const requestTenantContext = { resolve: async () => contextResult.value };
+  await withApp({ mfaService, requestTenantContext }, async (app) => {
+    const enrolled = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/mfa/factors',
+      payload: {
+        id: '00000000-0000-4000-8000-000000000010',
+        method: 'TOTP',
+        secretReference: 'vault://iam/mfa/test-factor',
+        enrolledAt: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    assert.equal(enrolled.statusCode, 200);
+    assert.equal(enrolled.json().factors[0].status, 'PENDING');
+    assert.equal(enrolled.json().factors[0].secretReference, undefined);
+
+    const verified = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/mfa/factors/00000000-0000-4000-8000-000000000010/verify',
+      payload: { at: '2026-01-01T00:01:00.000Z' },
+    });
+    assert.equal(verified.statusCode, 200);
+    assert.equal(verified.json().factors[0].status, 'ACTIVE');
+
+    const invalid = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/mfa/factors/00000000-0000-4000-8000-000000000099/verify',
+      payload: { at: '2026-01-01T00:02:00.000Z' },
+    });
+    assertProblem(invalid, 400, 'MFA_REQUEST_REJECTED');
+  });
 });
