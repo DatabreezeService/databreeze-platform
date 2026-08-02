@@ -1,0 +1,135 @@
+/// JRA-owned durable typed work, transitions, dispatch outbox, and approvals.
+/// Cross-module artifact, dataset, identity, and entitlement references remain opaque.
+model TypedActionDefinitionRecord {
+  id                    String   @id @db.Uuid
+  actionType            String   @map("action_type") @db.VarChar(128)
+  version               Int
+  inputSchemaId         String   @map("input_schema_id") @db.VarChar(128)
+  outputSchemaId        String   @map("output_schema_id") @db.VarChar(128)
+  handlerDigest         String   @map("handler_digest") @db.Char(64)
+  requiredCapabilities  Json     @map("required_capabilities")
+  sideEffectClass       String   @map("side_effect_class") @db.VarChar(32)
+  riskClass             String   @map("risk_class") @db.VarChar(24)
+  defaultTimeoutSeconds Int      @map("default_timeout_seconds")
+  maxAttempts           Int      @map("max_attempts")
+  approvalClass         String   @map("approval_class") @db.VarChar(16)
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([actionType, version], map: "typed_actions_type_version_key")
+  @@map("typed_action_definitions")
+  @@schema("jra")
+}
+
+model JobRecord {
+  id               String    @id @db.Uuid
+  scopeType        String    @map("scope_type") @db.VarChar(24)
+  organizationId   String    @map("organization_id") @db.Uuid
+  workspaceId      String?   @map("workspace_id") @db.Uuid
+  projectId        String?   @map("project_id") @db.Uuid
+  requestedBy      String    @map("requested_by") @db.Uuid
+  actionType       String    @map("action_type") @db.VarChar(128)
+  actionVersion    Int       @map("action_version")
+  inputManifestHash String   @map("input_manifest_hash") @db.Char(64)
+  idempotencyKey   String    @map("idempotency_key") @db.VarChar(200)
+  state            String    @db.VarChar(32)
+  revision         Int       @default(1)
+  createdAt        DateTime  @map("created_at") @db.Timestamptz(6)
+  startedAt        DateTime? @map("started_at") @db.Timestamptz(6)
+  finishedAt       DateTime? @map("finished_at") @db.Timestamptz(6)
+
+  @@unique([scopeType, organizationId, workspaceId, projectId, idempotencyKey], map: "jobs_scope_idempotency_key")
+  @@index([organizationId, workspaceId, projectId, state, revision], map: "jobs_scope_state_idx")
+  @@index([actionType, actionVersion], map: "jobs_action_idx")
+  @@map("jobs")
+  @@schema("jra")
+}
+
+model JobTransitionRecord {
+  id           String   @id @db.Uuid
+  jobId        String   @map("job_id") @db.Uuid
+  fromState    String?  @map("from_state") @db.VarChar(32)
+  toState      String   @map("to_state") @db.VarChar(32)
+  actorId      String   @map("actor_id") @db.Uuid
+  occurredAt   DateTime @map("occurred_at") @db.Timestamptz(6)
+  revision     Int
+
+  @@unique([jobId, revision], map: "job_transitions_job_revision_key")
+  @@index([jobId, occurredAt], map: "job_transitions_job_time_idx")
+  @@map("job_transitions")
+  @@schema("jra")
+}
+
+model JobOutboxRecord {
+  id          String    @id @db.Uuid
+  jobId       String    @map("job_id") @db.Uuid
+  eventType   String    @map("event_type") @db.VarChar(80)
+  payload     Json
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  deliveredAt DateTime? @map("delivered_at") @db.Timestamptz(6)
+
+  @@unique([jobId, eventType], map: "job_outbox_job_event_key")
+  @@index([deliveredAt, createdAt], map: "job_outbox_delivery_idx")
+  @@map("job_outbox")
+  @@schema("jra")
+}
+
+model ApprovalPolicyRecord {
+  id                   String  @id @db.Uuid
+  workspaceId          String  @map("workspace_id") @db.Uuid
+  version              Int
+  actionMatcher        Json    @map("action_matcher")
+  minimumApprovals     Int     @map("minimum_approvals")
+  eligibleRoles        Json    @map("eligible_roles")
+  selfApprovalAllowed  Boolean @map("self_approval_allowed")
+  expiresAfterMinutes  Int     @map("expires_after_minutes")
+  requireMfa           Boolean @map("require_mfa")
+  conditions           Json
+  status               String  @db.VarChar(16)
+
+  @@unique([workspaceId, version], map: "approval_policies_workspace_version_key")
+  @@index([workspaceId, status], map: "approval_policies_workspace_status_idx")
+  @@map("approval_policies")
+  @@schema("jra")
+}
+
+model ApprovalRequestRecord {
+  id                    String    @id @db.Uuid
+  scopeType             String    @map("scope_type") @db.VarChar(24)
+  organizationId        String    @map("organization_id") @db.Uuid
+  workspaceId           String?   @map("workspace_id") @db.Uuid
+  projectId             String?   @map("project_id") @db.Uuid
+  subjectType           String    @map("subject_type") @db.VarChar(80)
+  subjectId             String    @map("subject_id") @db.Uuid
+  subjectVersion        Int       @map("subject_version")
+  subjectHash           String    @map("subject_hash") @db.Char(64)
+  requestedAction       String    @map("requested_action") @db.VarChar(80)
+  jobId                 String?   @map("job_id") @db.Uuid
+  policyId              String    @map("policy_id") @db.Uuid
+  policyVersion         Int       @map("policy_version")
+  status                String    @db.VarChar(16)
+  requestedBy           String    @map("requested_by") @db.Uuid
+  dueAt                 DateTime? @map("due_at") @db.Timestamptz(6)
+  revision              Int       @default(1)
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([organizationId, workspaceId, projectId, status], map: "approval_requests_scope_status_idx")
+  @@index([subjectId, subjectVersion], map: "approval_requests_subject_idx")
+  @@map("approval_requests")
+  @@schema("jra")
+}
+
+model ApprovalDecisionRecord {
+  id                 String   @id @db.Uuid
+  approvalRequestId  String   @map("approval_request_id") @db.Uuid
+  actorId            String   @map("actor_id") @db.Uuid
+  decision           String   @db.VarChar(16)
+  reason             String?  @db.VarChar(512)
+  mfaAssertionId     String?  @map("mfa_assertion_id") @db.Uuid
+  subjectHash        String   @map("subject_hash") @db.Char(64)
+  decidedAt          DateTime @map("decided_at") @db.Timestamptz(6)
+
+  @@unique([approvalRequestId, actorId], map: "approval_decisions_request_actor_key")
+  @@index([approvalRequestId, decidedAt], map: "approval_decisions_request_time_idx")
+  @@map("approval_decisions")
+  @@schema("jra")
+}
