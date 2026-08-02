@@ -78,8 +78,15 @@ test('local bootstrap is credential-free and creates every owned module schema',
 
 test('local OpenTelemetry collector keeps every signal on the bounded local pipeline', () => {
   const collector = read('infrastructure/local/otel/collector.yaml');
-  for (const section of ['receivers:', 'processors:', 'exporters:', 'extensions:', 'service:', 'pipelines:']) {
-    assert.match(collector, new RegExp(`^${section}`, 'm'));
+  for (const [section, indentation] of [
+    ['receivers:', ''],
+    ['processors:', ''],
+    ['exporters:', ''],
+    ['extensions:', ''],
+    ['service:', ''],
+    ['pipelines:', '  '],
+  ]) {
+    assert.match(collector, new RegExp(`^${indentation}${section}`, 'm'));
   }
   for (const signal of ['traces:', 'metrics:', 'logs:']) {
     assert.match(collector, new RegExp(`^    ${signal}`, 'm'));
