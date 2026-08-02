@@ -39,6 +39,10 @@ test('local compose defines pinned, healthy disposable dependencies', () => {
   assert.match(compose, /postgres-data:[\s\S]*name: \$\{COMPOSE_PROJECT_NAME/u);
   assert.match(compose, /networks: \[local\]/u);
   assert.match(compose, /name: \$\{COMPOSE_PROJECT_NAME:-databreeze-local\}-network/u);
+  assert.match(compose, /x-default-logging: &default-logging/u);
+  assert.match(compose, /max-size: 10m/u);
+  assert.match(compose, /max-file: '3'/u);
+  assert.equal((compose.match(/logging: \*default-logging/g) ?? []).length, 7);
 });
 
 test('local bootstrap is credential-free and creates every owned module schema', () => {
