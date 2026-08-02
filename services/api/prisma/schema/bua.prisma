@@ -1,0 +1,82 @@
+/// BUA-owned provider-independent entitlements and append-only usage ledger.
+/// Scope ancestry is materialized for indexed authorization checks; cross-module
+/// identities remain opaque UUIDs and plan/snapshot payloads are immutable JSON.
+model EntitlementPlanRecord {
+  planCode            String   @id @map("plan_code") @db.VarChar(40)
+  schemaVersion       Int      @map("schema_version")
+  displayNameKey      String   @map("display_name_key") @db.VarChar(120)
+  features            Json
+  quotas              Json
+  providerIndependent Boolean  @default(true) @map("provider_independent")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("entitlement_plans")
+  @@schema("bua")
+}
+
+model EntitlementSnapshotRecord {
+  id             String    @id @db.Uuid
+  schemaVersion  Int       @map("schema_version")
+  scopeKey       String    @map("scope_key") @db.VarChar(200)
+  scopeType      String    @map("scope_type") @db.VarChar(24)
+  organizationId String    @map("organization_id") @db.Uuid
+  workspaceId    String?   @map("workspace_id") @db.Uuid
+  planCode       String    @map("plan_code") @db.VarChar(40)
+  status         String    @db.VarChar(24)
+  revision       Int
+  securityEpoch  Int       @map("security_epoch")
+  effectiveAt    DateTime  @map("effective_at") @db.Timestamptz(6)
+  expiresAt      DateTime? @map("expires_at") @db.Timestamptz(6)
+  features       Json
+  quotas         Json
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([scopeKey, revision], map: "entitlement_snapshots_scope_revision_key")
+  @@index([organizationId, workspaceId, revision], map: "entitlement_snapshots_scope_idx")
+  @@index([planCode], map: "entitlement_snapshots_plan_idx")
+  @@map("entitlement_snapshots")
+  @@schema("bua")
+}
+
+model UsageLedgerEntryRecord {
+  id             String   @id @db.Uuid
+  schemaVersion  Int      @map("schema_version")
+  scopeKey       String   @map("scope_key") @db.VarChar(200)
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String?  @map("workspace_id") @db.Uuid
+  metric         String   @db.VarChar(40)
+  bucket         String   @db.VarChar(16)
+  deltaUnits     BigInt   @map("delta_units")
+  sequence       Int
+  reservationId  String?  @map("reservation_id") @db.Uuid
+  idempotencyKey String   @map("idempotency_key") @db.VarChar(200)
+  occurredAt     DateTime @map("occurred_at") @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([scopeKey, metric, sequence], map: "usage_ledger_scope_metric_sequence_key")
+  @@unique([scopeKey, idempotencyKey], map: "usage_ledger_scope_idempotency_key")
+  @@index([organizationId, workspaceId, metric, sequence], map: "usage_ledger_scope_idx")
+  @@index([reservationId], map: "usage_ledger_reservation_idx")
+  @@map("usage_ledger_entries")
+  @@schema("bua")
+}
+
+model UsageReservationRecord {
+  id             String   @id @db.Uuid
+  scopeKey       String   @map("scope_key") @db.VarChar(200)
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String?  @map("workspace_id") @db.Uuid
+  metric         String   @db.VarChar(40)
+  reservedUnits  BigInt   @map("reserved_units")
+  status         String   @db.VarChar(16)
+  createdAt      DateTime @map("created_at") @db.Timestamptz(6)
+  revision       Int
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([organizationId, workspaceId, status], map: "usage_reservations_scope_idx")
+  @@index([scopeKey, metric], map: "usage_reservations_metric_idx")
+  @@map("usage_reservations")
+  @@schema("bua")
+}
