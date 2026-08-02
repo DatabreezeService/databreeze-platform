@@ -10,6 +10,11 @@ import {
   PrismaDeviceAuthorizationRepositoryAdapter,
   type DeviceAuthorizationDatabaseClientV1,
 } from './adapter/prisma-device-authorization-repository.adapter.js';
+import {
+  PrismaDeviceCapabilityRepositoryAdapter,
+  type DeviceCapabilityDatabaseClientV1,
+} from './adapter/prisma-device-capability-repository.adapter.js';
+import { InMemoryDeviceCapabilityRepositoryAdapter } from './adapter/in-memory-device-capability-repository.adapter.js';
 import { InMemoryDataModePolicyRepositoryAdapter } from './adapter/in-memory-data-mode-policy-repository.adapter.js';
 import { DeviceSyncAuthorizationAdapter } from './adapter/device-sync-authorization.adapter.js';
 import { InMemoryDeviceAuthorizationRepositoryAdapter } from './adapter/in-memory-device-authorization-repository.adapter.js';
@@ -44,6 +49,11 @@ import {
   type DataModePolicyRepositoryPortV1,
 } from './application/data-mode-policy-repository.port.js';
 import {
+  DEVICE_CAPABILITY_REPOSITORY_PORT,
+  type DeviceCapabilityRepositoryPortV1,
+} from './application/device-capability-repository.port.js';
+import { DEVICE_CAPABILITY_SERVICE, DeviceCapabilityService } from './application/device-capability.service.js';
+import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
   UnavailableRequestTenantContextAdapter,
@@ -55,6 +65,9 @@ export interface DsoModuleOptions {
   readonly deviceSyncDatabase?: DeviceSyncDatabaseClientV1;
   /** Production composition passes the same generated Prisma client for durable grants/snapshots. */
   readonly deviceAuthorizationDatabase?: DeviceAuthorizationDatabaseClientV1;
+  /** Production composition passes the generated Prisma client for reported capabilities and grants. */
+  readonly deviceCapabilityDatabase?: DeviceCapabilityDatabaseClientV1;
+  readonly deviceCapabilityRepository?: DeviceCapabilityRepositoryPortV1;
   readonly dataModePolicyRepository?: DataModePolicyRepositoryPortV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
   readonly deviceSyncCursorSigner?: DeviceSyncCursorSignerV1;
@@ -84,6 +97,12 @@ export class DsoModule {
     const authorization =
       options.deviceSyncAuthorization ??
       new DeviceSyncAuthorizationAdapter(authorizationService);
+    const capabilityRepository =
+      options.deviceCapabilityRepository ??
+      (options.deviceCapabilityDatabase === undefined
+        ? new InMemoryDeviceCapabilityRepositoryAdapter()
+        : new PrismaDeviceCapabilityRepositoryAdapter(options.deviceCapabilityDatabase));
+    const capabilityService = new DeviceCapabilityService(capabilityRepository);
     return {
       module: DsoModule,
       controllers: [DeviceSyncController],
@@ -91,6 +110,14 @@ export class DsoModule {
         {
           provide: DEVICE_AUTHORIZATION_REPOSITORY_PORT,
           useValue: authorizationRepository,
+        },
+        {
+          provide: DEVICE_CAPABILITY_REPOSITORY_PORT,
+          useValue: capabilityRepository,
+        },
+        {
+          provide: DEVICE_CAPABILITY_SERVICE,
+          useValue: capabilityService,
         },
         {
           provide: DEVICE_SYNC_REPOSITORY_PORT,
@@ -119,7 +146,12 @@ export class DsoModule {
           useValue: options.requestTenantContext ?? new UnavailableRequestTenantContextAdapter(),
         },
       ],
-      exports: [DEVICE_SYNC_REPOSITORY_PORT, DEVICE_SYNC_USE_CASE],
+      exports: [
+        DEVICE_SYNC_REPOSITORY_PORT,
+        DEVICE_SYNC_USE_CASE,
+        DEVICE_CAPABILITY_REPOSITORY_PORT,
+        DEVICE_CAPABILITY_SERVICE,
+      ],
     };
   }
 }

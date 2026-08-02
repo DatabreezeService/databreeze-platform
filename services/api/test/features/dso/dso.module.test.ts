@@ -4,6 +4,8 @@ import test from 'node:test';
 import { DsoModule } from '../../../src/features/dso/dso.module.js';
 import { DEVICE_AUTHORIZATION_REPOSITORY_PORT } from '../../../src/features/dso/application/device-authorization-repository.port.js';
 import { PrismaDeviceAuthorizationRepositoryAdapter } from '../../../src/features/dso/adapter/prisma-device-authorization-repository.adapter.js';
+import { DEVICE_CAPABILITY_REPOSITORY_PORT } from '../../../src/features/dso/application/device-capability-repository.port.js';
+import { PrismaDeviceCapabilityRepositoryAdapter } from '../../../src/features/dso/adapter/prisma-device-capability-repository.adapter.js';
 
 function provider(module: ReturnType<typeof DsoModule.register>, token: symbol) {
   const match = module.providers?.find(
@@ -18,4 +20,10 @@ void test('[DSO-005, IAM-020] production DSO composition selects durable authori
   const database = {} as never;
   const registered = DsoModule.register({ deviceAuthorizationDatabase: database });
   assert.ok(provider(registered, DEVICE_AUTHORIZATION_REPOSITORY_PORT) instanceof PrismaDeviceAuthorizationRepositoryAdapter);
+});
+
+void test('[DSO-003, DSO-005] production DSO composition selects durable capability storage', () => {
+  const database = {} as never;
+  const registered = DsoModule.register({ deviceCapabilityDatabase: database });
+  assert.ok(provider(registered, DEVICE_CAPABILITY_REPOSITORY_PORT) instanceof PrismaDeviceCapabilityRepositoryAdapter);
 });
