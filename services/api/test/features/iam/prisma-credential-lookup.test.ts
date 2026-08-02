@@ -141,3 +141,36 @@ void test('[IAM-001, IAM-009] an organization owner resolves the canonical activ
   assert.equal(result?.principal.organizationId, organizationId);
   assert.equal(result?.principal.workspaceId, workspaceId);
 });
+
+void test('[IAM-002] workspace membership selection is deterministic', async () => {
+  const secondWorkspaceId = '00000000-0000-4000-8000-000000000007';
+  const adapter = new PrismaCredentialLookupAdapter(
+    database({
+      membershipIdentity: {
+        findMany: async () => [
+          {
+            id: '00000000-0000-4000-8000-000000000008',
+            principalId: userId,
+            organizationId,
+            workspaceId: secondWorkspaceId,
+            projectId: null,
+            scopeType: 'WORKSPACE',
+            status: 'ACTIVE',
+          },
+          {
+            id: membershipId,
+            principalId: userId,
+            organizationId,
+            workspaceId,
+            projectId: null,
+            scopeType: 'WORKSPACE',
+            status: 'ACTIVE',
+          },
+        ],
+      },
+    }),
+  );
+
+  const result = await adapter.findCredential('user@example.com');
+  assert.equal(result?.principal.workspaceId, workspaceId);
+});
