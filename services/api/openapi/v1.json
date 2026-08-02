@@ -4614,6 +4614,82 @@
         "tags": ["datasets"]
       }
     },
+    "/v1/dataset-profiles/page": {
+      "get": {
+        "operationId": "DatasetProfileController.page",
+        "parameters": [
+          {
+            "name": "datasetVersionId",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          { "name": "limit", "required": true, "in": "query", "schema": { "type": "string" } },
+          { "name": "cursor", "required": true, "in": "query", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "List dataset profiles with a stable scoped cursor",
+        "tags": ["datasets"]
+      }
+    },
     "/v1/dataset-profiles/{profileId}": {
       "get": {
         "operationId": "DatasetProfileController.get",

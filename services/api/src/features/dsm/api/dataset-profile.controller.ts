@@ -37,6 +37,29 @@ export class DatasetProfileController {
     return this.profiles.register(context, { ...input, tenantScope: context.tenantScope });
   }
 
+  @Get('page')
+  @ApiOperation({ summary: 'List dataset profiles with a stable scoped cursor' })
+  async page(
+    @Req() request: unknown,
+    @Query('datasetVersionId') datasetVersionIdInput: string,
+    @Query('limit') limitInput?: string,
+    @Query('cursor') cursorInput?: string,
+  ): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    const datasetVersionId = parseStableIdentifierV1(datasetVersionIdInput);
+    if (!datasetVersionId.accepted) return { accepted: false, code: 'INVALID_IDENTIFIER' as const };
+    const limit = limitInput === undefined ? 50 : Number(limitInput);
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
+      return { accepted: false, code: 'INVALID_PAGE_LIMIT' as const };
+    const cursor = cursorInput === undefined ? undefined : parseStableIdentifierV1(cursorInput);
+    if (cursorInput !== undefined && !cursor?.accepted)
+      return { accepted: false, code: 'INVALID_CURSOR' as const };
+    return this.profiles.listPage(context, datasetVersionId.value, {
+      limit,
+      ...(cursor?.accepted ? { cursor: cursor.value } : {}),
+    });
+  }
+
   @Get(':profileId')
   @ApiOperation({ summary: 'Read an exact immutable dataset profile disclosure' })
   async get(@Req() request: unknown, @Param('profileId') profileIdInput: string): Promise<unknown> {

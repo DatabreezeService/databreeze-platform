@@ -71,6 +71,46 @@ void test('[DSM-011, IAM-009] profile HTTP surface discloses sampling and resour
     assert.match(accepted.body, /DETERMINISTIC_SAMPLE/u);
     assert.doesNotMatch(accepted.body, /sourceValue|rawValue|path/u);
 
+    const second = await app.inject({
+      method: 'POST',
+      url: '/v1/dataset-profiles',
+      payload: {
+        profileId: '00000000-0000-4000-8000-000000000757',
+        datasetVersionId: '00000000-0000-4000-8000-000000000756',
+        completeness: 'COMPLETE',
+        samplingMethod: 'FULL_SCAN_V1',
+        rowCountScanned: 100,
+        resourceLimits: { maxRows: 1000, maxBytes: 1000000, maxDurationMs: 60000 },
+        profileFingerprint: 'c'.repeat(64),
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    assert.equal(second.statusCode, 201);
+
+    const firstPage = await app.inject({
+      method: 'GET',
+      url: '/v1/dataset-profiles/page?datasetVersionId=00000000-0000-4000-8000-000000000756&limit=1',
+    });
+    assert.equal(firstPage.statusCode, 200);
+    const firstPageBody = JSON.parse(firstPage.body) as {
+      readonly items: readonly { readonly profileId: string }[];
+      readonly nextCursor?: string;
+    };
+    assert.equal(firstPageBody.items.length, 1);
+    assert.equal(typeof firstPageBody.nextCursor, 'string');
+    const secondPage = await app.inject({
+      method: 'GET',
+      url: `/v1/dataset-profiles/page?datasetVersionId=00000000-0000-4000-8000-000000000756&limit=1&cursor=${firstPageBody.nextCursor}`,
+    });
+    assert.equal(secondPage.statusCode, 200);
+    const secondPageBody = JSON.parse(secondPage.body) as {
+      readonly items: readonly { readonly profileId: string }[];
+    };
+    assert.deepEqual(
+      secondPageBody.items.map((item) => item.profileId),
+      ['00000000-0000-4000-8000-000000000757'],
+    );
+
     const listed = await app.inject({
       method: 'GET',
       url: '/v1/dataset-profiles?datasetVersionId=00000000-0000-4000-8000-000000000756',
@@ -78,7 +118,7 @@ void test('[DSM-011, IAM-009] profile HTTP surface discloses sampling and resour
     assert.equal(listed.statusCode, 200);
     const body: unknown = JSON.parse(listed.body);
     assert.ok(Array.isArray(body));
-    assert.equal(body.length, 1);
+    assert.equal(body.length, 2);
   } finally {
     await app.close();
   }
