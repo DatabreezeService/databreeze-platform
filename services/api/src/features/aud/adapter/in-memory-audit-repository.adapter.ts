@@ -76,6 +76,22 @@ export class InMemoryAuditRepositoryAdapter implements AuditRepositoryPortV1 {
       .map(cloneEvent);
   }
 
+  async listEventsForScope(
+    context: IamTenantContextV1,
+    scope: TenantScopeV1,
+  ): Promise<readonly AuditEventV1[]> {
+    await Promise.resolve();
+    if (!scopeAllowsMutation(context, scope)) throw new Error('AUD_SCOPE_NARROWING_REQUIRED');
+    return [...this.events.values()]
+      .filter(
+        (event) =>
+          tenantScopeContainsV1(event.tenantScope, scope) &&
+          tenantScopeContainsV1(scope, event.tenantScope),
+      )
+      .sort((left, right) => left.sequence - right.sequence)
+      .map(cloneEvent);
+  }
+
   async saveSeal(context: IamTenantContextV1, seal: AuditSealV1): Promise<void> {
     await Promise.resolve();
     if (!scopeAllowsMutation(context, seal.tenantScope))
@@ -116,6 +132,7 @@ export class InMemoryAuditRepositoryAdapter implements AuditRepositoryPortV1 {
       return await work({
         appendEvent: this.appendEvent.bind(this),
         listEvents: this.listEvents.bind(this),
+        listEventsForScope: this.listEventsForScope.bind(this),
         saveSeal: this.saveSeal.bind(this),
         listSeals: this.listSeals.bind(this),
       });

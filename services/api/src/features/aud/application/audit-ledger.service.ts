@@ -33,7 +33,7 @@ export class AuditLedgerService {
     input: AuditLedgerInputV1,
   ): Promise<AuditResultV1<AuditEventV1>> {
     return this.repository.withTransaction(context, async (transaction) => {
-      const existing = await transaction.listEvents(context);
+      const existing = await transaction.listEventsForScope(context, context.tenantScope);
       const appended = appendAuditEventV1(
         { events: existing },
         {
@@ -62,7 +62,7 @@ export class AuditLedgerService {
     sealedAt: unknown,
   ): Promise<AuditResultV1<AuditSealV1>> {
     return this.repository.withTransaction(context, async (transaction) => {
-      const events = await transaction.listEvents(context);
+      const events = await transaction.listEventsForScope(context, context.tenantScope);
       const created = createAuditSealV1(events, context.tenantScope, sealedAt, this.digestPort);
       if (!created.accepted) return created;
       await transaction.saveSeal(context, created.value);

@@ -1,4 +1,5 @@
 import type { AuditEventV1, AuditSealV1 } from '@databreeze/domain/audit/v1';
+import type { TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 
@@ -7,6 +8,10 @@ export const AUDIT_REPOSITORY_PORT = Symbol('AUDIT_REPOSITORY_PORT');
 export interface AuditTransactionPortV1 {
   appendEvent(context: IamTenantContextV1, event: AuditEventV1): Promise<AuditEventV1>;
   listEvents(context: IamTenantContextV1): Promise<readonly AuditEventV1[]>;
+  listEventsForScope(
+    context: IamTenantContextV1,
+    scope: TenantScopeV1,
+  ): Promise<readonly AuditEventV1[]>;
   saveSeal(context: IamTenantContextV1, seal: AuditSealV1): Promise<void>;
   listSeals(context: IamTenantContextV1): Promise<readonly AuditSealV1[]>;
 }

@@ -317,6 +317,22 @@ class PrismaAuditTransactionAdapter implements AuditTransactionPortV1 {
     return events;
   }
 
+  public async listEventsForScope(
+    context: IamTenantContextV1,
+    scope: TenantScopeV1,
+  ): Promise<readonly AuditEventV1[]> {
+    if (!tenantScopeContainsV1(context.tenantScope, scope))
+      throw new Error('AUD_SCOPE_NARROWING_REQUIRED');
+    const rows = await this.client.auditEventRecord.findMany({
+      where: { scopeKey: scopeKey(scope) },
+      orderBy: { sequence: 'asc' },
+    });
+    const events = rows.map(persistedEvent);
+    const verified = verifyAuditChainV1(events, this.digestPort);
+    if (!verified.accepted) throw new Error('AUD_CHAIN_INVALID');
+    return events;
+  }
+
   public async saveSeal(context: IamTenantContextV1, seal: AuditSealV1): Promise<void> {
     if (!tenantScopeContainsV1(context.tenantScope, seal.tenantScope))
       throw new Error('AUD_SCOPE_NARROWING_REQUIRED');
@@ -370,6 +386,16 @@ export class PrismaAuditRepositoryAdapter implements AuditRepositoryPortV1 {
 
   public listEvents(context: IamTenantContextV1): Promise<readonly AuditEventV1[]> {
     return new PrismaAuditTransactionAdapter(this.client, this.digestPort).listEvents(context);
+  }
+
+  public listEventsForScope(
+    context: IamTenantContextV1,
+    scope: TenantScopeV1,
+  ): Promise<readonly AuditEventV1[]> {
+    return new PrismaAuditTransactionAdapter(this.client, this.digestPort).listEventsForScope(
+      context,
+      scope,
+    );
   }
 
   public saveSeal(context: IamTenantContextV1, seal: AuditSealV1): Promise<void> {
