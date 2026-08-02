@@ -217,9 +217,22 @@ a {
   outline-offset: calc(-1 * var(--db-focus-ring-width));
 }
 .work-surface,
-.feature-placeholder {
+.feature-placeholder,
+.feature-surface {
   max-width: 1120px;
   margin-inline: auto;
+}
+.feature-surface code {
+  color: var(--db-color-text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--db-typography-font-size-caption);
+}
+.inbox-retry {
+  margin-block-start: var(--db-spacing-4);
+}
+.inbox-empty {
+  padding-block: var(--db-spacing-8);
+  color: var(--db-color-text-muted);
 }
 .work-surface__heading {
   display: flex;
