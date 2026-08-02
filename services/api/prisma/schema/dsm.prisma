@@ -76,6 +76,10 @@ model ReferenceEntityVersionRecord {
 /// DSM-027: merge/split decisions never retarget historical bindings.
 model ReferenceEntityResolutionRecord {
   id             String   @id @db.Uuid
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String?  @map("workspace_id") @db.Uuid
+  projectId      String?  @map("project_id") @db.Uuid
   sourceEntityId String   @map("source_entity_id") @db.Uuid
   targetEntityId String   @map("target_entity_id") @db.Uuid
   actorId        String   @map("actor_id") @db.Uuid
@@ -85,6 +89,52 @@ model ReferenceEntityResolutionRecord {
 
   @@index([sourceEntityId], map: "reference_entity_resolutions_source_idx")
   @@index([targetEntityId], map: "reference_entity_resolutions_target_idx")
+  @@index([organizationId, workspaceId, projectId], map: "reference_entity_resolutions_scope_idx")
   @@map("reference_entity_resolutions")
+  @@schema("dsm")
+}
+
+/// DSM-007, DSM-008: immutable declarative mapping versions.
+model MappingDefinitionRecord {
+  id                    String    @id @db.Uuid
+  datasetId             String    @map("dataset_id") @db.Uuid
+  scopeType             String    @map("scope_type") @db.VarChar(24)
+  organizationId        String    @map("organization_id") @db.Uuid
+  workspaceId           String?   @map("workspace_id") @db.Uuid
+  projectId             String?   @map("project_id") @db.Uuid
+  sourceSchemaVersionId String    @map("source_schema_version_id") @db.Uuid
+  targetSchemaVersionId String    @map("target_schema_version_id") @db.Uuid
+  steps                 Json
+  status                String    @db.VarChar(16)
+  createdAt             DateTime  @map("created_at") @db.Timestamptz(6)
+  publishedAt           DateTime? @map("published_at") @db.Timestamptz(6)
+  revision              Int       @default(1)
+  canonicalHash         String    @map("canonical_hash") @db.Char(64)
+
+  @@unique([datasetId, id], map: "mapping_definitions_dataset_version_key")
+  @@index([organizationId, workspaceId, projectId, datasetId], map: "mapping_definitions_scope_idx")
+  @@map("mapping_definitions")
+  @@schema("dsm")
+}
+
+/// DSM-009, DSM-010, DSM-011: immutable declarative quality rule-set versions.
+model RuleSetDefinitionRecord {
+  id              String    @id @db.Uuid
+  datasetId       String    @map("dataset_id") @db.Uuid
+  scopeType       String    @map("scope_type") @db.VarChar(24)
+  organizationId  String    @map("organization_id") @db.Uuid
+  workspaceId     String?   @map("workspace_id") @db.Uuid
+  projectId       String?   @map("project_id") @db.Uuid
+  schemaVersionId String    @map("schema_version_id") @db.Uuid
+  rules           Json
+  status          String    @db.VarChar(16)
+  createdAt       DateTime  @map("created_at") @db.Timestamptz(6)
+  publishedAt     DateTime? @map("published_at") @db.Timestamptz(6)
+  revision        Int       @default(1)
+  canonicalHash   String    @map("canonical_hash") @db.Char(64)
+
+  @@unique([datasetId, id], map: "rule_set_definitions_dataset_version_key")
+  @@index([organizationId, workspaceId, projectId, datasetId], map: "rule_set_definitions_scope_idx")
+  @@map("rule_set_definitions")
   @@schema("dsm")
 }

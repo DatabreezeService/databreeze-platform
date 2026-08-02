@@ -61,6 +61,8 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_versions"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."reference_entity_versions"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."reference_entity_resolutions"/);
+  assert.match(diff.stdout, /CREATE TABLE "dsm"\."mapping_definitions"/);
+  assert.match(diff.stdout, /CREATE TABLE "dsm"\."rule_set_definitions"/);
   assert.match(diff.stdout, /CREATE TABLE "jra"\."jobs"/);
   assert.match(diff.stdout, /CREATE TABLE "jra"\."execution_attempts"/);
   assert.match(diff.stdout, /CREATE TABLE "jra"\."result_manifests"/);
@@ -82,6 +84,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802080000_jra_dispatch_outbox',
     '20260802090000_jra_recipes',
     '20260802100000_iae_dsm_governance',
+    '20260802110000_dsm_mappings_rules',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -228,5 +231,16 @@ test('the schema diff and centrally ordered migration inventory establish platfo
       governanceMigration,
       new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
+  }
+  const mappingRulesMigration = await readFile(
+    path.join(migrationsDirectory, inventory[12], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE TABLE "dsm"."mapping_definitions"',
+    'CREATE TABLE "dsm"."rule_set_definitions"',
+    'CREATE INDEX "artifact_lineage_scope_idx"',
+  ]) {
+    assert.match(mappingRulesMigration, new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
 });

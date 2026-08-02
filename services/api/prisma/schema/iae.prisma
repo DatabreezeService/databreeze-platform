@@ -46,8 +46,12 @@ model InboxItem {
 
 /// IAE-007, IAE-012: derived versions retain exact source and coordinate lineage.
 model ArtifactLineageRecord {
-  id                    String   @id @db.Uuid
-  derivedArtifactVersionId String @map("derived_artifact_version_id") @db.Uuid
+  id                      String   @id @db.Uuid
+  scopeType               String   @map("scope_type") @db.VarChar(24)
+  organizationId          String   @map("organization_id") @db.Uuid
+  workspaceId             String?  @map("workspace_id") @db.Uuid
+  projectId               String?  @map("project_id") @db.Uuid
+  derivedArtifactVersionId String  @map("derived_artifact_version_id") @db.Uuid
   sourceVersionIds      Json     @map("source_version_ids")
   processorVersion      String   @map("processor_version") @db.VarChar(128)
   recipeVersion         String?  @map("recipe_version") @db.VarChar(128)
@@ -55,6 +59,7 @@ model ArtifactLineageRecord {
   createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@index([derivedArtifactVersionId], map: "artifact_lineage_derived_version_idx")
+  @@index([organizationId, workspaceId, projectId], map: "artifact_lineage_scope_idx")
   @@map("artifact_lineage")
   @@schema("iae")
 }
