@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsISO8601, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsISO8601,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 /** IAM-005, IAM-006, IAM-012: public response shape for browser and native clients. */
 export class AuthSessionDto {
@@ -25,11 +33,12 @@ export class AuthSessionDto {
   @MaxLength(4096)
   accessToken!: string;
 
-  @ApiProperty({ minLength: 1, maxLength: 4096 })
+  @ApiProperty({ minLength: 1, maxLength: 4096, required: false })
+  @IsOptional()
   @IsString()
   @MinLength(1)
   @MaxLength(4096)
-  refreshToken!: string;
+  refreshToken?: string;
 
   @ApiProperty({ format: 'date-time' })
   @IsISO8601()

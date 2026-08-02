@@ -52,6 +52,14 @@
       "types": "./src/data-mode/v1.ts",
       "import": "./dist/data-mode/v1.js"
     },
+    "./pkce/v1": {
+      "types": "./src/pkce/v1.ts",
+      "import": "./dist/pkce/v1.js"
+    },
+    "./csrf/v1": {
+      "types": "./src/csrf/v1.ts",
+      "import": "./dist/csrf/v1.js"
+    },
     "./artifact/v1": {
       "types": "./src/artifact/v1.ts",
       "import": "./dist/artifact/v1.js"

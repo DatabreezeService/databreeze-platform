@@ -1,10 +1,11 @@
 {
-  "version": 1,
+  "version": 2,
   "program": "DataBreeze complete platform delivery",
   "authority": {
     "requirements": "docs/plans/requirement-traceability.json",
     "execution": "docs/plans/002-complete-execution-orchestration.md",
-    "resumeProtocol": "docs/plans/003-luna-handoff-runbook.md"
+    "resumeProtocol": "docs/plans/003-luna-handoff-runbook.md",
+    "deliveryBatches": "docs/plans/004-luna-max-execution-plan.md"
   },
   "requirementTotals": {
     "total": 611,
@@ -15,13 +16,14 @@
     }
   },
   "checkpoint": {
-    "observedAt": "2026-08-02T12:00:00Z",
-    "remoteDev": "92b3e9a4d581f3a6947b7a2bf58c8334f4ae0c18",
-    "remoteMain": "a2fcba34037c1ffd77816be16be75453abfb16fa",
-    "lastFeaturePullRequest": 18,
-    "lastPromotionPullRequest": 14,
+    "observedAt": "2026-08-02T13:38:28Z",
+    "remoteDev": "783a4710c0aa2a2808d78ad7f0643e6731150bd7",
+    "remoteMain": "3ed3d77d0281ef239d0509c81ded447d8fffd213",
+    "lastFeaturePullRequest": 19,
+    "lastPromotionPullRequest": 20,
+    "lastPromotionFixPullRequest": 23,
     "openPullRequestsObserved": 0,
-    "note": "Historical observation only; every session must fetch and recompute current state."
+    "note": "PR 19 merged a 73-commit foundation batch to dev; PR 20 promoted dev to main after CodeRabbit review and PRs 21-23 delivered validated review fixes. Historical observation only; every session must fetch and recompute current state."
   },
   "reviewPolicy": {
     "featurePullRequest": {
@@ -53,6 +55,7 @@
     "blocked"
   ],
   "nextTaskId": "FND-003",
+  "activeBatchId": "B01",
   "taskState": {
     "FND-001": {
       "status": "verified",
@@ -80,7 +83,7 @@
     },
     "FND-003": {
       "status": "in-progress",
-      "commit": "d9598a2",
+      "commit": "783a4710c0aa2a2808d78ad7f0643e6731150bd7",
       "evidence": [
         "infrastructure/local/compose.yml",
         "infrastructure/local/README.md",
@@ -89,16 +92,245 @@
         "tools/repo-cli/test/local-infrastructure.test.mjs",
         "docs/operations/foundation-local-infrastructure-2026-08-02.md"
       ],
-      "note": "Static Compose/bootstrap/lifecycle checks, daemon-free config/preflight, bounded local diagnostics/log retention, AWS safety checks, telemetry redaction tests, and infrastructure path-aware CI pass. Live Docker health, port-collision, disk-pressure, and restart-persistence evidence remains pending because the Docker daemon is unavailable in this environment."
+      "note": "Static Compose/bootstrap/lifecycle checks, daemon-free config/preflight, bounded local diagnostics/log retention, AWS safety checks, telemetry redaction tests, and infrastructure path-aware CI are integrated and promoted. Live Docker health, port-collision, disk-pressure, and restart-persistence evidence remains pending because the Docker daemon was unavailable in the implementation environment."
+    },
+    "FND-004": {
+      "status": "implemented",
+      "commit": "3ed3d77d0281ef239d0509c81ded447d8fffd213",
+      "evidence": [
+        "infrastructure/aws/README.md",
+        "infrastructure/aws/environments/alpha/main.tf",
+        "tools/repo-cli/src/check-aws-infrastructure.mjs",
+        "tools/repo-cli/test/aws-infrastructure.test.mjs"
+      ],
+      "note": "Portable AWS modules and static safety checks are promoted. Pinned OpenTofu fmt/init/validate and any reviewed plan/apply evidence remain external gates."
+    },
+    "FND-005": {
+      "status": "implemented",
+      "commit": "3ed3d77d0281ef239d0509c81ded447d8fffd213",
+      "evidence": [
+        "docs/operations/telemetry-safety.md",
+        "packages/telemetry/test/telemetry-v1.test.mjs",
+        "services/engine/tests/test_telemetry.py"
+      ],
+      "note": "TypeScript and Python telemetry boundaries, hostile-input normalization, and redaction tests are promoted; final clean-checkout reconciliation remains in B01."
+    },
+    "FND-006": {
+      "status": "implemented",
+      "commit": "3ed3d77d0281ef239d0509c81ded447d8fffd213",
+      "evidence": [
+        "docs/operations/foundation-ci-supply-chain-2026-08-02.md",
+        "tools/repo-cli/src/check-ci-policy.mjs",
+        "tools/repo-cli/test/ci-policy.test.mjs",
+        "tools/repo-cli/test/provenance.test.mjs",
+        "tools/repo-cli/test/sbom.test.mjs"
+      ],
+      "note": "Hosted checks, supply-chain policy, SBOM, and provenance safeguards are promoted. GitHub release-environment protection remains an administrator-recorded external gate."
+    },
+    "FND-007": {
+      "status": "partial-needs-reconciliation",
+      "commit": "3ed3d77d0281ef239d0509c81ded447d8fffd213",
+      "evidence": [
+        "docs/development/README.md",
+        "docs/operations/engineering-foundation-verification.md",
+        "docs/operations/deployment-and-rollback.md",
+        "docs/operations/secret-rotation.md",
+        "docs/operations/provider-adapters.md"
+      ],
+      "note": "Runbooks and static evidence exist; B01 must reconcile live external gates and publish the final foundation handoff before advancing plan status."
     }
   },
+  "deliveryBatches": [
+    {
+      "batchId": "B01",
+      "name": "Foundation verification and identity completion",
+      "branch": "feat/foundation-identity-completion",
+      "dependencies": [],
+      "status": "in-progress",
+      "commitBudget": { "minimum": 30, "target": 70, "maximum": 85 },
+      "maximumChangedFiles": 260,
+      "taskIds": [
+        "FND-003",
+        "FND-004",
+        "FND-005",
+        "FND-006",
+        "FND-007",
+        "IAM-001",
+        "IAM-002",
+        "IAM-003",
+        "IAM-004",
+        "IAM-005",
+        "AUD-001",
+        "AUD-002",
+        "BUA-001",
+        "BUA-002",
+        "IAM-006",
+        "IAM-007"
+      ],
+      "exitGate": "Foundation external gates are explicit and IAM, AUD, and BUA requirements are reconciled, completed, tested, and evidenced."
+    },
+    {
+      "batchId": "B02",
+      "name": "Artifacts, evidence, datasets, and definitions",
+      "branch": "feat/artifacts-datasets-completion",
+      "dependencies": ["B01"],
+      "status": "planned",
+      "commitBudget": { "minimum": 30, "target": 65, "maximum": 75 },
+      "maximumChangedFiles": 260,
+      "taskIds": ["IAE-001", "IAE-002", "IAE-003", "IAE-004", "IAE-005", "DSM-001", "DSM-002", "DSM-003", "IAE-006", "IAE-007"],
+      "exitGate": "Local, Hybrid, and Cloud artifact, evidence, dataset, definition, retention, and deletion gates pass."
+    },
+    {
+      "batchId": "B03",
+      "name": "Jobs, processing, findings, reviews, and approvals",
+      "branch": "feat/jobs-processing-completion",
+      "dependencies": ["B02"],
+      "status": "planned",
+      "commitBudget": { "minimum": 30, "target": 70, "maximum": 80 },
+      "maximumChangedFiles": 260,
+      "taskIds": ["JRA-001", "JRA-002", "JRA-003", "JRA-004", "JRA-005", "JRA-006", "JRA-007", "JRA-008", "JRA-009", "JRA-010", "JRA-011"],
+      "exitGate": "The same signed typed action executes locally or in cloud with durable admission, evidence, approval, recovery, usage, and audit outcomes."
+    },
+    {
+      "batchId": "B04",
+      "name": "Devices, synchronization, and offline operation",
+      "branch": "feat/devices-sync-completion",
+      "dependencies": ["B03"],
+      "status": "planned",
+      "commitBudget": { "minimum": 30, "target": 70, "maximum": 80 },
+      "maximumChangedFiles": 260,
+      "taskIds": ["DSO-001", "DSO-002", "DSO-003", "DSO-004", "DSO-005", "DSO-006", "DSO-007", "DSO-008", "DSO-009", "DSO-010"],
+      "exitGate": "Desktop and Android operate offline, resume idempotently, expose conflicts, preserve data modes, and fail closed after revocation."
+    },
+    {
+      "batchId": "B05",
+      "name": "Collaboration, notifications, public API, and integrations",
+      "branch": "feat/collaboration-integrations",
+      "dependencies": ["B04"],
+      "status": "planned",
+      "commitBudget": { "minimum": 30, "target": 70, "maximum": 80 },
+      "maximumChangedFiles": 260,
+      "taskIds": ["NCO-001", "NCO-002", "NCO-003", "NCO-004", "INT-001", "INT-002", "INT-003", "INT-004", "NCO-005", "INT-005"],
+      "exitGate": "Collaboration and external access use shared contracts and replaceable adapters without restricted or undocumented APIs."
+    },
+    {
+      "batchId": "B06",
+      "name": "Three-platform dogfood and Autopilot core",
+      "branch": "feat/dogfood-autopilot-core",
+      "dependencies": ["B05"],
+      "status": "planned",
+      "commitBudget": { "minimum": 30, "target": 65, "maximum": 75 },
+      "maximumChangedFiles": 260,
+      "taskIds": ["DOG-001", "DOG-002", "DOG-003", "DOG-004", "DOG-005", "DOG-006", "DOG-007", "FA-001", "FA-002", "FA-003"],
+      "exitGate": "All ten dogfood conditions pass and Autopilot has governed bindings, routing, watchers, and reconciliation."
+    },
+    {
+      "batchId": "B07",
+      "name": "Folder Autopilot and Spreadsheet Auditor",
+      "branch": "feat/autopilot-spreadsheet-auditor",
+      "dependencies": ["B06"],
+      "status": "planned",
+      "commitBudget": { "minimum": 30, "target": 70, "maximum": 85 },
+      "maximumChangedFiles": 260,
+      "taskIds": ["FA-004", "FA-005", "FA-006", "FA-007", "SA-001", "SA-002", "SA-003", "SA-004", "SA-005", "SA-006", "SA-007"],
+      "exitGate": "Folder Autopilot and Spreadsheet Auditor P0/P1 requirements are verified without mutating originals."
+    },
+    {
+      "batchId": "B08",
+      "name": "Quote and invoice intelligence",
+      "branch": "feat/quote-invoice-intelligence",
+      "dependencies": ["B06"],
+      "status": "planned",
+      "commitBudget": { "minimum": 30, "target": 75, "maximum": 90 },
+      "maximumChangedFiles": 260,
+      "taskIds": ["QI-001", "QI-002", "QI-003", "QI-004", "QI-005", "QI-006", "QI-007", "ILD-001", "ILD-002", "ILD-003", "ILD-004", "ILD-005", "ILD-006", "ILD-007"],
+      "exitGate": "Quote Intelligence and Invoice Leak Detector P0/P1 requirements are verified with exact source evidence and no vendor API dependency."
+    },
+    {
+      "batchId": "B09",
+      "name": "Operations Capture",
+      "branch": "feat/operations-capture",
+      "dependencies": ["B06"],
+      "status": "planned",
+      "commitBudget": { "minimum": 30, "target": 65, "maximum": 75 },
+      "maximumChangedFiles": 260,
+      "taskIds": ["OC-001", "OC-002", "OC-003", "OC-004", "OC-005", "OC-006", "OC-007", "OC-008"],
+      "exitGate": "Offline native capture, immutable submissions, correction, supervision, and Desktop reconciliation pass P0/P1 gates."
+    },
+    {
+      "batchId": "B10",
+      "name": "Client Report Factory",
+      "branch": "feat/client-report-factory",
+      "dependencies": ["B07", "B08"],
+      "status": "planned",
+      "commitBudget": { "minimum": 30, "target": 65, "maximum": 75 },
+      "maximumChangedFiles": 260,
+      "taskIds": ["CRF-001", "CRF-002", "CRF-003", "CRF-004", "CRF-005", "CRF-006", "CRF-007"],
+      "exitGate": "Evidence-linked multi-format reports, review, release, scheduling, and revocable sharing pass P0/P1 gates."
+    },
+    {
+      "batchId": "B11",
+      "name": "Private Data Analyst",
+      "branch": "feat/private-data-analyst",
+      "dependencies": ["B09", "B10"],
+      "status": "planned",
+      "commitBudget": { "minimum": 30, "target": 70, "maximum": 80 },
+      "maximumChangedFiles": 260,
+      "taskIds": ["PDA-001", "PDA-002", "PDA-003", "PDA-004", "PDA-005", "PDA-006", "PDA-007", "PDA-008"],
+      "exitGate": "Governed analysis is deterministic and reproducible; optional AI can propose but never supply numeric truth."
+    },
+    {
+      "batchId": "B12",
+      "name": "Migration Ready and Data Quality Guard",
+      "branch": "feat/migration-quality-suite",
+      "dependencies": ["B08", "B11"],
+      "status": "planned",
+      "commitBudget": { "minimum": 30, "target": 80, "maximum": 95 },
+      "maximumChangedFiles": 260,
+      "taskIds": ["MR-001", "MR-002", "MR-003", "MR-004", "MR-005", "MR-006", "MR-007", "DQG-001", "DQG-002", "DQG-003", "DQG-004", "DQG-005", "DQG-006", "DQG-007", "DQG-008"],
+      "exitGate": "Migration Ready and Data Quality Guard P0/P1 requirements are verified with export-first, immutable, evidence-backed behavior."
+    },
+    {
+      "batchId": "B13",
+      "name": "Embedded Importer",
+      "branch": "feat/embedded-importer",
+      "dependencies": ["B05"],
+      "status": "planned",
+      "commitBudget": { "minimum": 30, "target": 60, "maximum": 70 },
+      "maximumChangedFiles": 260,
+      "taskIds": ["EI-001", "EI-002", "EI-003", "EI-004", "EI-005", "EI-006", "EI-007"],
+      "exitGate": "Hosted importer and outbound-only Desktop gateway pass tenant, origin, upload, replay, accessibility, and local/cloud parity gates."
+    },
+    {
+      "batchId": "B14",
+      "name": "Production readiness and coordinated GA",
+      "branch": "feat/production-readiness",
+      "dependencies": ["B12", "B13"],
+      "status": "planned",
+      "commitBudget": { "minimum": 30, "target": 75, "maximum": 90 },
+      "maximumChangedFiles": 260,
+      "taskIds": ["GA-001", "GA-002", "GA-003", "GA-004", "GA-005", "GA-006", "GA-007", "GA-008", "GA-009", "GA-010", "GA-011", "GA-012"],
+      "exitGate": "Every P0/P1 requirement is verified, artifacts are signed and recoverable, and the coordinated GA release is observed and recorded."
+    },
+    {
+      "batchId": "B15",
+      "name": "Post-GA opt-in extensions",
+      "branch": "feat/post-ga-extensions",
+      "dependencies": ["B14"],
+      "status": "post-ga-planned",
+      "commitBudget": { "minimum": 30, "target": 60, "maximum": 70 },
+      "maximumChangedFiles": 260,
+      "taskIds": ["P2-001", "P2-002", "P2-003", "P2-004"],
+      "exitGate": "All 13 P2 requirements are opt-in, disabled by default, provider-exitable, revocable, and verified."
+    }
+  ],
   "plans": [
     {
       "planId": "010",
       "file": "010-engineering-foundation.md",
       "requirementCount": 0,
       "dependencies": [],
-      "status": "partial-needs-reconciliation",
+      "status": "in-progress",
       "taskIds": ["FND-001", "FND-002", "FND-003", "FND-004", "FND-005", "FND-006", "FND-007"]
     },
     {

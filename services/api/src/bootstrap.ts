@@ -13,7 +13,10 @@ import type { ClientCompatibilityPort } from './features/system/application/clie
 import type { ReadinessPort } from './features/system/application/readiness.port.js';
 import { ProblemDetailsFilter } from './platform/http/problem-details.filter.js';
 import { configureOpenApi } from './platform/http/openapi.js';
-import { installRequestContext } from './platform/http/request-context.js';
+import {
+  installRequestContext,
+  type RequestContextOptions,
+} from './platform/http/request-context.js';
 import { createValidationPipe } from './platform/http/validation.js';
 
 export interface ApiApplication {
@@ -28,13 +31,14 @@ export interface ApiApplicationOptions
     DsoModuleOptions {
   readonly compatibilityPort?: ClientCompatibilityPort;
   readonly readinessPort?: ReadinessPort;
+  readonly requestContext?: RequestContextOptions;
 }
 
 export async function createApiApplication(
   options: ApiApplicationOptions = {},
 ): Promise<ApiApplication> {
   const adapter = new FastifyAdapter({ bodyLimit: 65_536, logger: false });
-  installRequestContext(adapter.getInstance());
+  installRequestContext(adapter.getInstance(), options.requestContext);
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule.register(options),
     adapter,

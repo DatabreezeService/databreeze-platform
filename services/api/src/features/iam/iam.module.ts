@@ -1,15 +1,53 @@
 import { type DynamicModule, Module } from '@nestjs/common';
 
 import { AuthenticationController } from './api/authentication.controller.js';
+import { MfaController } from './api/mfa.controller.js';
 import { AuthenticationService } from './application/authentication.service.js';
 import {
   AUTHENTICATION_USE_CASE,
+  CREDENTIAL_LOOKUP_PORT,
   type CredentialLookupPortV1,
   type AuthenticationUseCaseV1,
-  type SessionIssuerPortV1,
 } from './application/authentication.port.js';
+import {
+  SESSION_LIFECYCLE_PORT,
+  type SessionLifecyclePortV1,
+} from './application/session-lifecycle.port.js';
+import {
+  IDENTITY_BOOTSTRAP_REPOSITORY_PORT,
+  type IdentityBootstrapRepositoryPortV1,
+} from './application/identity-bootstrap-repository.port.js';
+import {
+  MFA_REPOSITORY_PORT,
+  type MfaRepositoryPortV1,
+} from './application/mfa-repository.port.js';
+import { MFA_SERVICE, MfaService } from './application/mfa.service.js';
+import {
+  IAM_REPOSITORY_PORT,
+  type IamRepositoryPortV1,
+} from './application/iam-repository.port.js';
 import type { PasswordCredentialService } from './application/password-credential.service.js';
 import { UnavailableAuthenticationAdapter } from './adapter/unavailable-authentication.adapter.js';
+import {
+  PrismaCredentialLookupAdapter,
+  type CredentialLookupDatabaseClientV1,
+} from './adapter/prisma-credential-lookup.adapter.js';
+import {
+  PrismaSessionLifecycleAdapter,
+  type SessionLifecycleDatabaseClientV1,
+} from './adapter/prisma-session-lifecycle.adapter.js';
+import {
+  PrismaIdentityBootstrapRepositoryAdapter,
+  type IdentityBootstrapDatabaseClientV1,
+} from './adapter/prisma-identity-bootstrap-repository.adapter.js';
+import {
+  PrismaMfaRepositoryAdapter,
+  type MfaDatabaseClientV1,
+} from './adapter/prisma-mfa-repository.adapter.js';
+import {
+  PrismaIamRepositoryAdapter,
+  type IamDatabaseClientV1,
+} from './adapter/prisma-iam-repository.adapter.js';
 import { DeviceIdentityController } from './api/device-identity.controller.js';
 import { InMemoryDeviceIdentityRepositoryAdapter } from './adapter/in-memory-device-identity-repository.adapter.js';
 import {
@@ -35,8 +73,20 @@ import {
 export interface IamModuleOptions {
   readonly authentication?: AuthenticationUseCaseV1;
   readonly credentials?: CredentialLookupPortV1;
+  readonly credentialDatabase?: CredentialLookupDatabaseClientV1;
   readonly passwordCredentials?: PasswordCredentialService;
-  readonly sessions?: SessionIssuerPortV1;
+  readonly sessions?: SessionLifecyclePortV1;
+  readonly sessionDatabase?: SessionLifecycleDatabaseClientV1;
+  readonly identityBootstrapRepository?: IdentityBootstrapRepositoryPortV1;
+  readonly identityBootstrapDatabase?: IdentityBootstrapDatabaseClientV1;
+  readonly mfaRepository?: MfaRepositoryPortV1;
+  readonly mfaDatabase?: MfaDatabaseClientV1;
+  readonly mfaService?: MfaService;
+  readonly recoveryCodeMatcher?: {
+    matches(presentedDigest: string, storedDigest: string): boolean;
+  };
+  readonly iamRepository?: IamRepositoryPortV1;
+  readonly iamDatabase?: IamDatabaseClientV1;
   readonly deviceIdentityService?: DeviceIdentityService;
   readonly deviceIdentityRepository?: DeviceIdentityRepositoryPortV1;
   readonly deviceIdentityDatabase?: DeviceIdentityDatabaseClientV1;
@@ -59,6 +109,53 @@ export function composeAuthenticationUseCase(options: IamModuleOptions): Authent
 @Module({})
 export class IamModule {
   static register(options: IamModuleOptions = {}): DynamicModule {
+    const credentials =
+      options.credentials ??
+      (options.credentialDatabase === undefined
+        ? undefined
+        : new PrismaCredentialLookupAdapter(options.credentialDatabase));
+    const sessions =
+      options.sessions ??
+      (options.sessionDatabase === undefined
+        ? undefined
+        : new PrismaSessionLifecycleAdapter(options.sessionDatabase));
+    const identityBootstrapRepository =
+      options.identityBootstrapRepository ??
+      (options.identityBootstrapDatabase === undefined
+        ? undefined
+        : new PrismaIdentityBootstrapRepositoryAdapter(options.identityBootstrapDatabase));
+    const mfaRepository =
+      options.mfaRepository ??
+      (options.mfaDatabase === undefined
+        ? undefined
+        : new PrismaMfaRepositoryAdapter(options.mfaDatabase));
+    const mfaService =
+      options.mfaService ??
+      (mfaRepository === undefined
+        ? undefined
+        : new MfaService(
+            mfaRepository,
+            options.recoveryCodeMatcher ?? {
+              matches: (presentedDigest, storedDigest) => {
+                if (presentedDigest.length !== storedDigest.length) return false;
+                let difference = 0;
+                for (let index = 0; index < presentedDigest.length; index += 1) {
+                  difference |= presentedDigest.charCodeAt(index) ^ storedDigest.charCodeAt(index);
+                }
+                return difference === 0;
+              },
+            },
+          ));
+    const iamRepository =
+      options.iamRepository ??
+      (options.iamDatabase === undefined
+        ? undefined
+        : new PrismaIamRepositoryAdapter(options.iamDatabase));
+    const authentication =
+      options.authentication ??
+      (credentials && sessions
+        ? composeAuthenticationUseCase({ ...options, credentials, sessions })
+        : composeAuthenticationUseCase(options));
     const deviceIdentityRepository =
       options.deviceIdentityRepository ??
       (options.deviceIdentityDatabase === undefined
@@ -70,14 +167,69 @@ export class IamModule {
         deviceIdentityRepository,
         options.deviceEnrollmentProofVerifier ?? new UnavailableDeviceEnrollmentProofVerifier(),
       );
+    const exports = [DEVICE_IDENTITY_REPOSITORY_PORT, DEVICE_IDENTITY_SERVICE];
+    if (credentials) exports.unshift(CREDENTIAL_LOOKUP_PORT);
+    if (sessions) exports.unshift(SESSION_LIFECYCLE_PORT);
+    if (identityBootstrapRepository) exports.unshift(IDENTITY_BOOTSTRAP_REPOSITORY_PORT);
+    if (mfaRepository) exports.unshift(MFA_REPOSITORY_PORT);
+    if (mfaService) exports.unshift(MFA_SERVICE);
+    if (iamRepository) exports.unshift(IAM_REPOSITORY_PORT);
     return {
       module: IamModule,
-      controllers: [AuthenticationController, DeviceIdentityController],
+      controllers: [AuthenticationController, DeviceIdentityController, MfaController],
       providers: [
         {
           provide: AUTHENTICATION_USE_CASE,
-          useValue: composeAuthenticationUseCase(options),
+          useValue: authentication,
         },
+        ...(credentials
+          ? [
+              {
+                provide: CREDENTIAL_LOOKUP_PORT,
+                useValue: credentials,
+              },
+            ]
+          : []),
+        ...(sessions
+          ? [
+              {
+                provide: SESSION_LIFECYCLE_PORT,
+                useValue: sessions,
+              },
+            ]
+          : []),
+        ...(identityBootstrapRepository
+          ? [
+              {
+                provide: IDENTITY_BOOTSTRAP_REPOSITORY_PORT,
+                useValue: identityBootstrapRepository,
+              },
+            ]
+          : []),
+        ...(mfaRepository
+          ? [
+              {
+                provide: MFA_REPOSITORY_PORT,
+                useValue: mfaRepository,
+              },
+            ]
+          : []),
+        ...(mfaService
+          ? [
+              {
+                provide: MFA_SERVICE,
+                useValue: mfaService,
+              },
+            ]
+          : []),
+        ...(iamRepository
+          ? [
+              {
+                provide: IAM_REPOSITORY_PORT,
+                useValue: iamRepository,
+              },
+            ]
+          : []),
         {
           provide: DEVICE_IDENTITY_REPOSITORY_PORT,
           useValue: deviceIdentityRepository,
@@ -91,7 +243,7 @@ export class IamModule {
           useValue: options.requestTenantContext ?? new UnavailableRequestTenantContextAdapter(),
         },
       ],
-      exports: [DEVICE_IDENTITY_REPOSITORY_PORT, DEVICE_IDENTITY_SERVICE],
+      exports,
     };
   }
 }
