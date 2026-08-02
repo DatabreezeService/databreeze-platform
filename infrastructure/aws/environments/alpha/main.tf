@@ -66,5 +66,7 @@ module "compute" {
   private_egress_enabled = var.enable_nat_gateway
   api_desired_count      = var.api_desired_count
   worker_desired_count   = var.worker_desired_count
+  worker_cpu             = var.worker_cpu
+  worker_memory          = var.worker_memory
   tags                   = local.tags
 }

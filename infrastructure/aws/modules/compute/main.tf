@@ -136,8 +136,8 @@ resource "aws_ecs_task_definition" "worker" {
   family                   = "databreeze-${var.name}-worker"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  cpu                      = "1024"
-  memory                   = "2048"
+  cpu                      = tostring(var.worker_cpu)
+  memory                   = tostring(var.worker_memory)
   execution_role_arn       = aws_iam_role.execution.arn
   task_role_arn            = aws_iam_role.task.arn
   container_definitions = jsonencode([{

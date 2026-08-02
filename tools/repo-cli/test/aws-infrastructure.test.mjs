@@ -112,6 +112,13 @@ test('AWS production profile enables recovery and prevents public data paths', (
   assert.match(compute, /Production API deployments must use an immutable image digest\./u);
   assert.match(compute, /Production worker deployments must use an immutable image digest\./u);
   assert.match(compute, /@sha256:\[0-9a-f\]\{64\}/u);
+  assert.match(compute, /cpu\s*=\s*tostring\(var\.worker_cpu\)/u);
+  assert.match(compute, /memory\s*=\s*tostring\(var\.worker_memory\)/u);
+  const computeVariables = read('infrastructure/aws/modules/compute/variables.tf');
+  assert.match(computeVariables, /variable "worker_cpu"/u);
+  assert.match(computeVariables, /variable "worker_memory"/u);
+  assert.match(computeVariables, /supported Fargate CPU size/u);
+  assert.match(computeVariables, /between 512 and 30720 MiB/u);
 });
 
 test('AWS foundation keeps state and apply outside the repository', () => {
