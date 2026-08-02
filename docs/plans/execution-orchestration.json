@@ -15,11 +15,11 @@
     }
   },
   "checkpoint": {
-    "observedAt": "2026-08-02T10:08:12Z",
-    "remoteDev": "4d415494240abbc610574132678007a623c405e4",
-    "remoteMain": "d26e6be16ecadc07467b458b853eb8070940e846",
-    "lastFeaturePullRequest": 13,
-    "lastPromotionPullRequest": 11,
+    "observedAt": "2026-08-02T12:00:00Z",
+    "remoteDev": "92b3e9a4d581f3a6947b7a2bf58c8334f4ae0c18",
+    "remoteMain": "a2fcba34037c1ffd77816be16be75453abfb16fa",
+    "lastFeaturePullRequest": 18,
+    "lastPromotionPullRequest": 14,
     "openPullRequestsObserved": 0,
     "note": "Historical observation only; every session must fetch and recompute current state."
   },
@@ -38,8 +38,8 @@
     },
     "commitBudget": {
       "preferredMinimum": 30,
-      "preferredMaximum": 50,
-      "hardMaximum": 60
+      "preferredMaximum": 70,
+      "hardMaximum": 99
     }
   },
   "statusVocabulary": [
