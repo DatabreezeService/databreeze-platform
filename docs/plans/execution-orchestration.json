@@ -15,11 +15,11 @@
     }
   },
   "checkpoint": {
-    "observedAt": "2026-08-02T09:06:00Z",
-    "remoteDev": "86e72d8",
-    "remoteMain": "8ac8bca",
-    "lastFeaturePullRequest": 9,
-    "lastPromotionPullRequest": 8,
+    "observedAt": "2026-08-02T10:08:12Z",
+    "remoteDev": "ae2a4fc1c350e684fcbde7ed0a5e9a5a97038505",
+    "remoteMain": "d26e6be16ecadc07467b458b853eb8070940e846",
+    "lastFeaturePullRequest": 12,
+    "lastPromotionPullRequest": 11,
     "openPullRequestsObserved": 0,
     "note": "Historical observation only; every session must fetch and recompute current state."
   },
@@ -52,11 +52,11 @@
     "post-ga-planned",
     "blocked"
   ],
-  "nextTaskId": "FND-002",
+  "nextTaskId": "FND-003",
   "taskState": {
     "FND-001": {
       "status": "verified",
-      "commit": "7c023e5d7f6cfd3a4a9b2c2c0bdf098e0d4bbba5",
+      "commit": "7c023e51583cb6e168cf11e693ecaf2d60a71f72",
       "evidence": [
         "docs/operations/foundation-reconciliation-2026-08-02.md",
         "tools/repo-cli/test/foundation-reconciliation.test.mjs",
@@ -64,6 +64,19 @@
         "services/engine/scripts/run-engine.mjs"
       ],
       "note": "The task reconciles the foundation against merged dev; OpenTofu remains a hosted validation boundary and no requirement status was promoted."
+    },
+    "FND-002": {
+      "status": "verified",
+      "commit": "dcdc07cf392742ef1f571de6eac75c776cc9b0ed",
+      "evidence": [
+        "docs/operations/foundation-android-2026-08-02.md",
+        "apps/android/app/src/main/java/com/databreeze/android/storage/LocalStore.kt",
+        "apps/android/app/src/main/java/com/databreeze/android/sync/SyncPorts.kt",
+        "apps/android/app/src/androidTest/java/com/databreeze/android/RoomIsolationTest.kt",
+        "apps/android/app/src/androidTest/java/com/databreeze/android/MainActivityTest.kt",
+        "tools/repo-cli/test/android-shell.test.mjs"
+      ],
+      "note": "Room, WorkManager, Keystore, bilingual resources, generated contracts/tokens, backup/network policy, account isolation, and process-recreation evidence are complete. No product requirement status was promoted."
     }
   },
   "plans": [
