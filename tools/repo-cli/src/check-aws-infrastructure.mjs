@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { balancedBlocks } from './terraform-safety.mjs';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const infrastructureRoot = path.join(repositoryRoot, 'infrastructure', 'aws');
@@ -31,39 +32,6 @@ const allTerraform = requiredFiles
   .filter((relativePath) => relativePath.endsWith('.tf'))
   .map((relativePath) => readFileSync(path.join(infrastructureRoot, relativePath), 'utf8'))
   .join('\n');
-
-function balancedBlocks(text, keyword) {
-  const blocks = [];
-  const startPattern = new RegExp(`\\b${keyword}\\s*\\{`, 'g');
-  for (const match of text.matchAll(startPattern)) {
-    const openingBrace = text.indexOf('{', match.index);
-    let depth = 0;
-    let quoted = false;
-    let escaped = false;
-    for (let index = openingBrace; index < text.length; index += 1) {
-      const character = text[index];
-      if (quoted) {
-        if (escaped) escaped = false;
-        else if (character === '\\') escaped = true;
-        else if (character === '"') quoted = false;
-        continue;
-      }
-      if (character === '"') {
-        quoted = true;
-        continue;
-      }
-      if (character === '{') depth += 1;
-      if (character === '}') {
-        depth -= 1;
-        if (depth === 0) {
-          blocks.push(text.slice(openingBrace, index + 1));
-          break;
-        }
-      }
-    }
-  }
-  return blocks;
-}
 
 for (const requiredText of [
   'ap-southeast-1',
