@@ -8,6 +8,7 @@ import { ContentPlacementController } from './api/content-placement.controller.j
 import { ArtifactRetentionController } from './api/artifact-retention.controller.js';
 import { ArtifactExportController } from './api/artifact-export.controller.js';
 import { ArtifactUploadController } from './api/artifact-upload.controller.js';
+import { ArtifactAdmissionController } from './api/artifact-admission.controller.js';
 import { InMemoryArtifactIntakeRepositoryAdapter } from './adapter/in-memory-artifact-intake-repository.adapter.js';
 import {
   PrismaArtifactIntakeRepositoryAdapter,
@@ -116,6 +117,7 @@ export class IaeModule {
         ArtifactRetentionController,
         ArtifactExportController,
         ArtifactUploadController,
+        ArtifactAdmissionController,
       ],
       providers: [
         {
