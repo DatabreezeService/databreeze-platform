@@ -201,7 +201,13 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
     await Promise.resolve();
     if (typeof accessTokenInput !== 'string' || accessTokenInput.length < 80) return undefined;
     const sessionId = this.accessTokens.get(digestToken(accessTokenInput));
-    return sessionId === undefined ? undefined : this.findPrincipal(sessionId);
+    if (sessionId === undefined) return undefined;
+    const session = this.sessions.get(sessionId);
+    if (!session || Date.parse(session.record.accessExpiresAt) <= this.clock().getTime()) {
+      this.accessTokens.delete(digestToken(accessTokenInput));
+      return undefined;
+    }
+    return this.findPrincipal(sessionId);
   }
 
   private revokeFamily(familyId: StableIdentifierV1): void {
