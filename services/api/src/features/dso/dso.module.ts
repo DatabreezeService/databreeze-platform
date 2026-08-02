@@ -102,6 +102,12 @@ export class DsoModule {
         ? new InMemoryDataModePolicyRepositoryAdapter()
         : new PrismaDataModePolicyRepositoryAdapter(options.dataModePolicyDatabase));
     const policyService = new DataModePolicyService(policyRepository);
+    const capabilityRepository =
+      options.deviceCapabilityRepository ??
+      (options.deviceCapabilityDatabase === undefined
+        ? new InMemoryDeviceCapabilityRepositoryAdapter()
+        : new PrismaDeviceCapabilityRepositoryAdapter(options.deviceCapabilityDatabase));
+    const capabilityService = new DeviceCapabilityService(capabilityRepository);
     const authorizationRepository =
       options.deviceAuthorizationRepository ??
       (options.deviceAuthorizationDatabase === undefined
@@ -110,13 +116,11 @@ export class DsoModule {
     const authorizationService = new DeviceAuthorizationService(authorizationRepository);
     const authorization =
       options.deviceSyncAuthorization ??
-      new DeviceSyncAuthorizationAdapter(authorizationService, options.deviceIdentityAuthority);
-    const capabilityRepository =
-      options.deviceCapabilityRepository ??
-      (options.deviceCapabilityDatabase === undefined
-        ? new InMemoryDeviceCapabilityRepositoryAdapter()
-        : new PrismaDeviceCapabilityRepositoryAdapter(options.deviceCapabilityDatabase));
-    const capabilityService = new DeviceCapabilityService(capabilityRepository);
+      new DeviceSyncAuthorizationAdapter(
+        authorizationService,
+        options.deviceIdentityAuthority,
+        capabilityService,
+      );
     return {
       module: DsoModule,
       controllers: [DeviceSyncController, DeviceCapabilityController, DataModePolicyController],

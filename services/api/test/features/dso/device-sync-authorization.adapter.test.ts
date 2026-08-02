@@ -74,3 +74,24 @@ void test('[DSO-005, IAM-020] synchronization authorization checks grant scope, 
     { accepted: false, code: 'GRANT_REVOKED' },
   );
 });
+
+void test('[DSO-005] synchronization prefers a typed capability grant when present', async () => {
+  const typed = {
+    authorizeGrant: async () => ({ accepted: true as const, value: true as const }),
+  };
+  const adapter = new DeviceSyncAuthorizationAdapter(
+    new DeviceAuthorizationService(new InMemoryDeviceAuthorizationRepositoryAdapter()),
+    undefined,
+    typed,
+  );
+  assert.deepEqual(
+    await adapter.authorize(context('typed'), {
+      deviceId,
+      tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+      grantId,
+      effect: 'READ',
+      now: '2026-01-01T00:30:00.000Z',
+    }),
+    { accepted: true, value: true },
+  );
+});
