@@ -48,9 +48,21 @@
       "types": "./src/artifact/v1.ts",
       "import": "./dist/artifact/v1.js"
     },
+    "./artifact-intake/v1": {
+      "types": "./src/artifact-intake/v1.ts",
+      "import": "./dist/artifact-intake/v1.js"
+    },
+    "./artifact-governance/v1": {
+      "types": "./src/artifact-governance/v1.ts",
+      "import": "./dist/artifact-governance/v1.js"
+    },
     "./dataset/v1": {
       "types": "./src/dataset/v1.ts",
       "import": "./dist/dataset/v1.js"
+    },
+    "./dataset-governance/v1": {
+      "types": "./src/dataset-governance/v1.ts",
+      "import": "./dist/dataset-governance/v1.js"
     },
     "./jobs/v1": {
       "types": "./src/jobs/v1.ts",
@@ -79,6 +91,22 @@
     "./finding/v1": {
       "types": "./src/finding/v1.ts",
       "import": "./dist/finding/v1.js"
+    },
+    "./reference-entity/v1": {
+      "types": "./src/reference-entity/v1.ts",
+      "import": "./dist/reference-entity/v1.js"
+    },
+    "./mapping/v1": {
+      "types": "./src/mapping/v1.ts",
+      "import": "./dist/mapping/v1.js"
+    },
+    "./rule-set/v1": {
+      "types": "./src/rule-set/v1.ts",
+      "import": "./dist/rule-set/v1.js"
+    },
+    "./evidence-grant/v1": {
+      "types": "./src/evidence-grant/v1.ts",
+      "import": "./dist/evidence-grant/v1.js"
     }
   },
   "scripts": {

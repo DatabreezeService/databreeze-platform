@@ -15,11 +15,52 @@ model ArtifactVersion {
   displayName    String   @map("display_name") @db.VarChar(255)
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   status         String   @default("ACTIVE") @db.VarChar(24)
+  scanState      String   @default("PENDING") @map("scan_state") @db.VarChar(16)
 
   @@index([artifactId], map: "artifact_versions_artifact_id_idx")
   @@index([organizationId, workspaceId, projectId], map: "artifact_versions_scope_idx")
   @@index([contentSha256], map: "artifact_versions_content_sha256_idx")
   @@map("artifact_versions")
+  @@schema("iae")
+}
+
+/// IAE-001, IAE-013: idempotent intake state before routing or processing.
+model InboxItem {
+  id                String   @id @db.Uuid
+  scopeType         String   @map("scope_type") @db.VarChar(24)
+  organizationId    String   @map("organization_id") @db.Uuid
+  workspaceId       String?  @map("workspace_id") @db.Uuid
+  projectId         String?  @map("project_id") @db.Uuid
+  idempotencyKey    String   @map("idempotency_key") @db.VarChar(200)
+  artifactVersionId String   @map("artifact_version_id") @db.Uuid
+  state             String   @db.VarChar(24)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  revision          Int      @default(1)
+
+  @@unique([organizationId, workspaceId, projectId, idempotencyKey], map: "inbox_items_scope_idempotency_key")
+  @@index([artifactVersionId], map: "inbox_items_artifact_version_idx")
+  @@index([organizationId, workspaceId, projectId, state], map: "inbox_items_scope_state_idx")
+  @@map("inbox_items")
+  @@schema("iae")
+}
+
+/// IAE-007, IAE-012: derived versions retain exact source and coordinate lineage.
+model ArtifactLineageRecord {
+  id                      String   @id @db.Uuid
+  scopeType               String   @map("scope_type") @db.VarChar(24)
+  organizationId          String   @map("organization_id") @db.Uuid
+  workspaceId             String?  @map("workspace_id") @db.Uuid
+  projectId               String?  @map("project_id") @db.Uuid
+  derivedArtifactVersionId String  @map("derived_artifact_version_id") @db.Uuid
+  sourceVersionIds      Json     @map("source_version_ids")
+  processorVersion      String   @map("processor_version") @db.VarChar(128)
+  recipeVersion         String?  @map("recipe_version") @db.VarChar(128)
+  coordinateLineage     Json     @map("coordinate_lineage")
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([derivedArtifactVersionId], map: "artifact_lineage_derived_version_idx")
+  @@index([organizationId, workspaceId, projectId], map: "artifact_lineage_scope_idx")
+  @@map("artifact_lineage")
   @@schema("iae")
 }
 
@@ -60,5 +101,29 @@ model EvidenceReference {
   @@index([artifactVersionId], map: "evidence_references_artifact_version_idx")
   @@index([organizationId, workspaceId, projectId], map: "evidence_references_scope_idx")
   @@map("evidence_references")
+  @@schema("iae")
+}
+
+/// IAE-005, IAE-006: short-lived, revocable, device-bound evidence grants.
+model EvidenceGrantRecord {
+  id                  String    @id @db.Uuid
+  evidenceId          String    @map("evidence_id") @db.Uuid
+  artifactVersionId   String    @map("artifact_version_id") @db.Uuid
+  scopeType           String    @map("scope_type") @db.VarChar(24)
+  organizationId      String    @map("organization_id") @db.Uuid
+  workspaceId         String?   @map("workspace_id") @db.Uuid
+  projectId           String?   @map("project_id") @db.Uuid
+  recipientDeviceId   String    @map("recipient_device_id") @db.Uuid
+  action              String    @db.VarChar(24)
+  issuedAt            DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt           DateTime  @map("expires_at") @db.Timestamptz(6)
+  authorizationEpoch  Int       @map("authorization_epoch")
+  maxExcerptBytes     Int       @map("max_excerpt_bytes")
+  revokedAt           DateTime? @map("revoked_at") @db.Timestamptz(6)
+
+  @@index([evidenceId], map: "evidence_grants_evidence_idx")
+  @@index([artifactVersionId], map: "evidence_grants_artifact_version_idx")
+  @@index([organizationId, workspaceId, projectId, recipientDeviceId], map: "evidence_grants_scope_device_idx")
+  @@map("evidence_grants")
   @@schema("iae")
 }

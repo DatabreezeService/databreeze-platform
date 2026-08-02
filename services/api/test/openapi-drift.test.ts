@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 
-import { format } from 'prettier';
+import { format, resolveConfig } from 'prettier';
 
 import { createApiApplication } from '../src/bootstrap.js';
 
@@ -14,7 +14,15 @@ void test('the checked-in v1 OpenAPI artifact matches a fresh application genera
 
   const { app, openApi } = await createApiApplication();
   try {
-    assert.equal(actual, await format(JSON.stringify(openApi), { parser: 'json' }));
+    const prettierConfig = (await resolveConfig(artifactPath)) ?? {};
+    assert.equal(
+      actual,
+      await format(JSON.stringify(openApi), {
+        ...prettierConfig,
+        filepath: artifactPath,
+        parser: 'json',
+      }),
+    );
   } finally {
     await app.close();
   }

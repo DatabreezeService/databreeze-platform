@@ -53,9 +53,17 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "platform"\."schema_registry"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."users"/);
   assert.match(diff.stdout, /CREATE TABLE "iae"\."artifact_versions"/);
+  assert.match(diff.stdout, /CREATE TABLE "iae"\."inbox_items"/);
+  assert.match(diff.stdout, /CREATE TABLE "iae"\."artifact_lineage"/);
+  assert.match(diff.stdout, /CREATE TABLE "iae"\."evidence_grants"/);
   assert.match(diff.stdout, /CREATE TABLE "aud"\."audit_events"/);
   assert.match(diff.stdout, /CREATE TABLE "bua"\."usage_ledger_entries"/);
   assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_definitions"/);
+  assert.match(diff.stdout, /CREATE TABLE "dsm"\."dataset_versions"/);
+  assert.match(diff.stdout, /CREATE TABLE "dsm"\."reference_entity_versions"/);
+  assert.match(diff.stdout, /CREATE TABLE "dsm"\."reference_entity_resolutions"/);
+  assert.match(diff.stdout, /CREATE TABLE "dsm"\."mapping_definitions"/);
+  assert.match(diff.stdout, /CREATE TABLE "dsm"\."rule_set_definitions"/);
   assert.match(diff.stdout, /CREATE TABLE "jra"\."jobs"/);
   assert.match(diff.stdout, /CREATE TABLE "jra"\."execution_attempts"/);
   assert.match(diff.stdout, /CREATE TABLE "jra"\."result_manifests"/);
@@ -76,6 +84,10 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802070000_jra_result_manifests',
     '20260802080000_jra_dispatch_outbox',
     '20260802090000_jra_recipes',
+    '20260802100000_iae_dsm_governance',
+    '20260802110000_dsm_mappings_rules',
+    '20260802120000_iae_evidence_grants',
+    '20260802130000_iae_dsm_scope_hardening',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -204,5 +216,58 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     'CREATE UNIQUE INDEX "recipe_versions_recipe_version_key"',
   ]) {
     assert.match(recipeMigration, new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  const governanceMigration = await readFile(
+    path.join(migrationsDirectory, inventory[11], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'ALTER TABLE "iae"."artifact_versions"',
+    'CREATE TABLE "iae"."inbox_items"',
+    'CREATE TABLE "iae"."artifact_lineage"',
+    'ALTER TABLE "dsm"."dataset_definitions"',
+    'CREATE TABLE "dsm"."dataset_versions"',
+    'CREATE TABLE "dsm"."reference_entity_versions"',
+    'CREATE TABLE "dsm"."reference_entity_resolutions"',
+  ]) {
+    assert.match(
+      governanceMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const mappingRulesMigration = await readFile(
+    path.join(migrationsDirectory, inventory[12], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE TABLE "dsm"."mapping_definitions"',
+    'CREATE TABLE "dsm"."rule_set_definitions"',
+    'CREATE INDEX "artifact_lineage_scope_idx"',
+  ]) {
+    assert.match(
+      mappingRulesMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const evidenceGrantsMigration = await readFile(
+    path.join(migrationsDirectory, inventory[13], 'migration.sql'),
+    'utf8',
+  );
+  assert.match(evidenceGrantsMigration, /CREATE TABLE "iae"\."evidence_grants"/);
+  const scopeHardeningMigration = await readFile(
+    path.join(migrationsDirectory, inventory[14], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'ALTER TABLE "iae"."artifact_lineage"',
+    'ALTER TABLE "dsm"."reference_entity_resolutions"',
+    'CREATE UNIQUE INDEX "inbox_items_organization_idempotency_key"',
+    'CREATE UNIQUE INDEX "inbox_items_workspace_idempotency_key"',
+    'CREATE UNIQUE INDEX "inbox_items_project_idempotency_key"',
+  ]) {
+    assert.match(
+      scopeHardeningMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
   }
 });

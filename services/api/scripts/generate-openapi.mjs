@@ -1,17 +1,23 @@
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import process from 'node:process';
-import { URL } from 'node:url';
+import { URL, fileURLToPath } from 'node:url';
 
-import { format } from 'prettier';
+import { format, resolveConfig } from 'prettier';
 
 import { createApiApplication } from '../dist/bootstrap.js';
 
 const artifactUrl = new URL('../openapi/v1.json', import.meta.url);
+const artifactPath = fileURLToPath(artifactUrl);
 const check = process.argv.includes('--check');
 const { app, openApi } = await createApiApplication();
 
 try {
-  const generated = await format(JSON.stringify(openApi), { parser: 'json' });
+  const prettierConfig = (await resolveConfig(artifactPath)) ?? {};
+  const generated = await format(JSON.stringify(openApi), {
+    ...prettierConfig,
+    filepath: artifactPath,
+    parser: 'json',
+  });
   if (check) {
     const current = await readFile(artifactUrl, 'utf8').catch(() => undefined);
     if (current !== generated) {

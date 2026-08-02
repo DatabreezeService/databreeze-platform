@@ -15,6 +15,7 @@ import {
   UnavailableFeature,
 } from '../pages/shell-states.tsx';
 import { WorkspaceHome } from '../pages/workspace-home.tsx';
+import { InboxPage } from '../features/inbox/inbox-page.tsx';
 import { WEB_FEATURE_REGISTRY } from './feature-registry.ts';
 import { DEFAULT_ACCESS_CONTEXT, type WebAccessContext } from './navigation.ts';
 
@@ -55,7 +56,12 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
         { path: 'workspace', element: <WorkspaceHome accessContext={accessContext} /> },
         ...WEB_FEATURE_REGISTRY.filter((feature) => feature.key !== 'workspace').map((feature) => ({
           path: feature.path,
-          element: <UnavailableFeature featureKey={feature.key} />,
+          element:
+            feature.key === 'inbox' ? (
+              <InboxPage />
+            ) : (
+              <UnavailableFeature featureKey={feature.key} />
+            ),
         })),
         { path: 'debug/route-error', element: <RouteFailure /> },
         { path: '*', element: <NotFoundPage /> },
