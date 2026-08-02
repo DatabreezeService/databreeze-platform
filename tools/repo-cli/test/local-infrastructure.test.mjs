@@ -44,7 +44,10 @@ test('local compose defines pinned, healthy disposable dependencies', () => {
   assert.match(compose, /max-file: '3'/u);
   assert.equal((compose.match(/logging: \*default-logging/g) ?? []).length, 7);
   assert.equal((compose.match(/127\.0\.0\.1:\$\{/g) ?? []).length, 9);
-  assert.match(read('infrastructure/local/README.md'), /Every published port is bound to `127\.0\.0\.1`/u);
+  assert.match(
+    read('infrastructure/local/README.md'),
+    /Every published port is bound to `127\.0\.0\.1`/u,
+  );
 });
 
 test('local bootstrap is credential-free and creates every owned module schema', () => {
