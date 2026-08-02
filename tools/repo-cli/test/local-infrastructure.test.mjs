@@ -95,7 +95,7 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
     encoding: 'utf8',
   });
   assert.equal(result.status, 0, result.stderr);
-  for (const command of ['config', 'check', 'start', 'stop', 'reset', 'restart-check', 'status', 'smoke']) {
+  for (const command of ['config', 'preflight', 'check', 'start', 'stop', 'reset', 'restart-check', 'status', 'smoke']) {
     assert.match(result.stdout, new RegExp(`^  ${command}\\s`, 'm'));
   }
   assert.match(script, /statfsSync/u);

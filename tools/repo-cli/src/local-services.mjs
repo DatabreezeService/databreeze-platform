@@ -35,6 +35,7 @@ function usage() {
 
 Commands (all preserve named volumes):
   config                validate Compose syntax without requiring a Docker daemon
+  preflight             validate Compose, ports, and disk without a Docker daemon
   check                 validate Compose, ports, Docker, and disk headroom
   start                 validate, start services, and wait for healthy checks
   stop                  stop containers without removing containers or volumes
@@ -235,7 +236,7 @@ function parseArguments(argv) {
   if (!Number.isFinite(options.minFreeGib) || options.minFreeGib < 0) {
     fail('--min-free-gib must be a non-negative number');
   }
-  if (!['config', 'check', 'start', 'stop', 'reset', 'restart-check', 'status', 'smoke'].includes(command)) {
+  if (!['config', 'preflight', 'check', 'start', 'stop', 'reset', 'restart-check', 'status', 'smoke'].includes(command)) {
     fail(`unknown command: ${command}`);
   }
   return { command, options };
@@ -251,6 +252,13 @@ export async function main(argv = process.argv.slice(2)) {
   if (command === 'config') {
     validateCompose(values);
     console.log('Local Compose configuration is valid.');
+    return;
+  }
+  if (command === 'preflight') {
+    validateCompose(values);
+    ensureDiskSpace(options.minFreeGib);
+    await ensurePorts(values);
+    console.log('Local Compose, port, and disk preflight passed without starting services.');
     return;
   }
   requireDocker();

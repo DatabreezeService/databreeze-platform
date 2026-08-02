@@ -26,6 +26,7 @@ Run these from the repository root:
 | Command | Effect |
 | --- | --- |
 | `pnpm local:services config` | Validate Compose syntax without requiring a running Docker daemon. |
+| `pnpm local:services preflight` | Validate Compose, host ports, and disk headroom without starting containers. |
 | `pnpm local:services check` | Validate Compose, Docker, host ports, and free disk without starting anything. |
 | `pnpm local:services start` | Run preflight, start the stack, and wait for every health check. |
 | `pnpm local:services stop` | Stop containers while preserving containers and named volumes. |
