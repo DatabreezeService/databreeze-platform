@@ -42,6 +42,7 @@ Commands (all preserve named volumes):
   stop                  stop containers without removing containers or volumes
   reset                 recreate containers and networks, preserving volumes
   restart-check         restart running services and verify health/persistence
+  persistence-check     restart Redis and verify a disposable sentinel survives
   status                print current container and health state
   logs                  print bounded local container logs (read-only)
   smoke                 legacy readiness command (use --start to start first)
@@ -267,7 +268,7 @@ function parseArguments(argv) {
   if (!Number.isFinite(options.minFreeGib) || options.minFreeGib < 0) {
     fail('--min-free-gib must be a non-negative number');
   }
-  if (!['config', 'preflight', 'check', 'start', 'stop', 'reset', 'restart-check', 'status', 'logs', 'smoke'].includes(command)) {
+  if (!['config', 'preflight', 'check', 'start', 'stop', 'reset', 'restart-check', 'persistence-check', 'status', 'logs', 'smoke'].includes(command)) {
     fail(`unknown command: ${command}`);
   }
   return { command, options };
@@ -332,6 +333,29 @@ export async function main(argv = process.argv.slice(2)) {
     runDocker([...composeArgs(values), 'restart']);
     await waitForReady(values, options.waitSeconds);
     console.log('Local service restart and health persistence check passed.');
+    return;
+  }
+  if (command === 'persistence-check') {
+    const key = `databreeze:local:persistence-check:${process.pid}`;
+    const value = `${Date.now()}`;
+    runDocker([
+      ...composeArgs(values),
+      'exec',
+      '-T',
+      'redis',
+      'redis-cli',
+      'SET',
+      key,
+      value,
+      'EX',
+      '300',
+    ]);
+    runDocker([...composeArgs(values), 'restart', 'redis']);
+    await waitForReady(values, options.waitSeconds);
+    const result = runDocker([...composeArgs(values), 'exec', '-T', 'redis', 'redis-cli', 'GET', key]);
+    if (result.stdout.trim() !== value) fail('Redis persistence sentinel was not recovered after restart');
+    runDocker([...composeArgs(values), 'exec', '-T', 'redis', 'redis-cli', 'DEL', key]);
+    console.log('Local Redis persistence check passed; sentinel was removed.');
     return;
   }
   if (shouldStart) runDocker([...composeArgs(values), 'up', '-d']);

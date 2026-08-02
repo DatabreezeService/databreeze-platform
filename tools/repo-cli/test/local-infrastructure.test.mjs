@@ -127,7 +127,7 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
     encoding: 'utf8',
   });
   assert.equal(result.status, 0, result.stderr);
-  for (const command of ['config', 'preflight', 'check', 'start', 'stop', 'reset', 'restart-check', 'status', 'logs', 'smoke']) {
+  for (const command of ['config', 'preflight', 'check', 'start', 'stop', 'reset', 'restart-check', 'persistence-check', 'status', 'logs', 'smoke']) {
     assert.match(result.stdout, new RegExp(`^  ${command}\\s`, 'm'));
   }
   assert.match(script, /statfsSync/u);
@@ -196,4 +196,6 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
   assert.match(script, /--service must name one of/u);
   assert.match(script, /--tail must be an integer/u);
   assert.match(script, /COMPOSE_PROJECT_NAME must start/u);
+  assert.match(script, /Redis persistence sentinel was not recovered/u);
+  assert.doesNotMatch(script, /redis-cli\s+FLUSH(?:ALL|DB)/iu);
 });

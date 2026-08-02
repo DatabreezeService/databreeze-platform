@@ -34,6 +34,7 @@ Run these from the repository root:
 | `pnpm local:services stop` | Stop containers while preserving containers and named volumes. |
 | `pnpm local:services reset` | Recreate containers/networks while preserving named volumes; it never passes `--volumes`. |
 | `pnpm local:services restart-check` | Restart the running stack and verify health after restart. |
+| `pnpm local:services persistence-check` | Restart Redis and verify a disposable sentinel survives. |
 | `pnpm local:services status` | Print container/health state without changing it. |
 | `pnpm local:services logs --tail=100` | Print bounded, read-only logs for known local services. |
 

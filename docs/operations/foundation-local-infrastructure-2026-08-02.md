@@ -20,6 +20,8 @@ Task: `FND-003 — Close local infrastructure gaps`
   insufficient free disk space before starting containers.
 - `restart-check` restarts the running stack and waits for every service health
   check, providing the entry point for persistence evidence.
+- `persistence-check` writes a five-minute Redis sentinel, restarts only Redis,
+  verifies the sentinel, and deletes it; it never flushes a database or volume.
 
 ## Verification
 
@@ -30,6 +32,7 @@ Passed:
 - `node tools/repo-cli/src/local-services-smoke.mjs --help`
 - `node tools/repo-cli/src/local-services.mjs config`
 - `node tools/repo-cli/src/local-services.mjs preflight --min-free-gib=0`
+- `node tools/repo-cli/src/local-services.mjs persistence-check` *(Docker-gated)*
 - `git diff --check`
 
 Environment-gated:
