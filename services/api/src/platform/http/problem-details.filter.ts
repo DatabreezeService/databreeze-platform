@@ -9,6 +9,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 
 import { AuthenticationProblemError } from '../../features/iam/application/authentication-problem.error.js';
 import { SessionProblemError } from '../../features/iam/application/session-problem.error.js';
+import { MfaProblemError } from '../../features/iam/application/mfa-problem.error.js';
 import { RequestTenantContextProblemError } from './session-tenant-context.adapter.js';
 import { NotReadyError } from '../../features/system/application/not-ready.error.js';
 import { InputValidationException } from './input-validation.exception.js';
@@ -42,6 +43,16 @@ function describe(error: unknown, correlationId: string): ProblemInput {
       messageKey: unavailable ? 'api.error.session_unavailable' : 'api.error.session_invalid',
       retryable: unavailable,
       status: unavailable ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.UNAUTHORIZED,
+    };
+  }
+  if (error instanceof MfaProblemError) {
+    const unavailable = error.code === 'MFA_UNAVAILABLE';
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: unavailable ? 'api.error.mfa_unavailable' : 'api.error.mfa_request_rejected',
+      retryable: unavailable,
+      status: unavailable ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.BAD_REQUEST,
     };
   }
   if (error instanceof RequestTenantContextProblemError) {

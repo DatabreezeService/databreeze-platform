@@ -1,6 +1,7 @@
 import { type DynamicModule, Module } from '@nestjs/common';
 
 import { AuthenticationController } from './api/authentication.controller.js';
+import { MfaController } from './api/mfa.controller.js';
 import { AuthenticationService } from './application/authentication.service.js';
 import {
   AUTHENTICATION_USE_CASE,
@@ -161,7 +162,7 @@ export class IamModule {
     if (iamRepository) exports.unshift(IAM_REPOSITORY_PORT);
     return {
       module: IamModule,
-      controllers: [AuthenticationController, DeviceIdentityController],
+      controllers: [AuthenticationController, DeviceIdentityController, MfaController],
       providers: [
         {
           provide: AUTHENTICATION_USE_CASE,
