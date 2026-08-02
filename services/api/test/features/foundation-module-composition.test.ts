@@ -96,7 +96,7 @@ void test('[IAM-005] configured session persistence uses the Prisma lifecycle ad
 
 void test('[IAM-009] a session access-token lookup composes one live tenant-context adapter across feature modules', () => {
   const sessions = {
-    findPrincipalByAccessToken: async () => undefined,
+    findPrincipalByAccessToken: () => Promise.resolve(undefined),
   } as never;
   const registered = AppModule.register({ sessions });
   const iam = registered.imports?.find(

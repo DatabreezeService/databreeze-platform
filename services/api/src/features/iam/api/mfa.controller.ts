@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Inject, Optional, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, HttpCode, Inject, Optional, Param, Post, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { MFA_SERVICE, MfaService } from '../application/mfa.service.js';

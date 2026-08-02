@@ -7,7 +7,7 @@ const token = 'QmFzZTY0dXJsVG9rZW5fMDEyMzQ1Njc4OWFiY2RlZg';
 
 const allowedOrigins = ['https://app.databreeze.example'];
 
-test('allows safe methods and non-cookie clients without a CSRF token', () => {
+void test('allows safe methods and non-cookie clients without a CSRF token', () => {
   assert.deepEqual(
     evaluateCsrfRequestV1(
       { method: 'GET', headers: {} },
@@ -24,7 +24,7 @@ test('allows safe methods and non-cookie clients without a CSRF token', () => {
   );
 });
 
-test('requires a valid double-submit token for cookie-authenticated mutations', () => {
+void test('requires a valid double-submit token for cookie-authenticated mutations', () => {
   const base = {
     method: 'POST',
     headers: {
@@ -67,7 +67,7 @@ test('requires a valid double-submit token for cookie-authenticated mutations', 
   );
 });
 
-test('rejects hostile, ambiguous, or missing browser origin signals', () => {
+void test('rejects hostile, ambiguous, or missing browser origin signals', () => {
   const headers = {
     cookie: `databreeze_refresh=session-value; databreeze_csrf=${token}`,
     'x-csrf-token': token,
@@ -106,7 +106,7 @@ test('rejects hostile, ambiguous, or missing browser origin signals', () => {
   );
 });
 
-test('fails closed for duplicate cookies and duplicate token headers', () => {
+void test('fails closed for duplicate cookies and duplicate token headers', () => {
   assert.deepEqual(
     evaluateCsrfRequestV1(
       {

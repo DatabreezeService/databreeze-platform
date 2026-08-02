@@ -58,6 +58,11 @@ function assertProblem(response: InjectResponse, status: number, code: string): 
   );
 }
 
+function parsedBody<TValue>(response: { readonly body: string }): TValue {
+  const parsed: unknown = JSON.parse(response.body);
+  return parsed as TValue;
+}
+
 void test('reports ready only through the injectable readiness port and minimizes failed-check details', async () => {
   await withApp({ readinessPort: { check: () => Promise.resolve(true) } }, async (app) => {
     const response = await app.inject({ method: 'GET', url: '/health/ready' });
@@ -401,7 +406,8 @@ void test('refresh rotates Web cookies without returning the refresh token and p
         payload: { clientPlatform: 'desktop', refreshToken: 'desktop-refresh-token' },
       });
       assert.equal(native.statusCode, 200);
-      assert.equal(native.json().refreshToken, refreshed.refreshToken);
+      const nativeBody = parsedBody<{ readonly refreshToken?: unknown }>(native);
+      assert.equal(nativeBody['refreshToken'], refreshed.refreshToken);
       assert.equal(native.headers['set-cookie'], undefined);
       assert.deepEqual(presented, ['current-refresh-token']);
     },
@@ -496,8 +502,8 @@ void test('protected artifact reads derive tenant scope from an authenticated ac
         refresh: () => Promise.reject(new Error('not used')),
         revoke: () => Promise.resolve(true),
         findPrincipal: () => Promise.resolve(principal),
-        findPrincipalByAccessToken: async (token) =>
-          token === 'access-token-for-context-1' ? principal : undefined,
+        findPrincipalByAccessToken: (token) =>
+          Promise.resolve(token === 'access-token-for-context-1' ? principal : undefined),
       },
     },
     async (app) => {
@@ -593,7 +599,7 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
   });
   assert.equal(contextResult.accepted, true);
   if (!contextResult.accepted) return;
-  const requestTenantContext = { resolve: async () => contextResult.value };
+  const requestTenantContext = { resolve: () => Promise.resolve(contextResult.value) };
   await withApp({ mfaService, requestTenantContext }, async (app) => {
     const enrolled = await app.inject({
       method: 'POST',
@@ -606,8 +612,11 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
       },
     });
     assert.equal(enrolled.statusCode, 200);
-    assert.equal(enrolled.json().factors[0].status, 'PENDING');
-    assert.equal(enrolled.json().factors[0].secretReference, undefined);
+    const enrolledBody = parsedBody<{
+      readonly factors: readonly [{ readonly status: string; readonly secretReference?: unknown }];
+    }>(enrolled);
+    assert.equal(enrolledBody.factors[0].status, 'PENDING');
+    assert.equal(enrolledBody.factors[0].secretReference, undefined);
 
     const verified = await app.inject({
       method: 'POST',
@@ -615,7 +624,8 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
       payload: { at: '2026-01-01T00:01:00.000Z' },
     });
     assert.equal(verified.statusCode, 200);
-    assert.equal(verified.json().factors[0].status, 'ACTIVE');
+    const verifiedBody = parsedBody<{ readonly factors: readonly [{ readonly status: string }] }>(verified);
+    assert.equal(verifiedBody.factors[0].status, 'ACTIVE');
 
     const invalid = await app.inject({
       method: 'POST',

@@ -5,7 +5,6 @@ import {
   type AuditActorTypeV1,
   type AuditEventV1,
   type AuditSealV1,
-  type AuditSummaryV1,
   type AuditDigestPortV1,
 } from '@databreeze/domain/audit/v1';
 import {

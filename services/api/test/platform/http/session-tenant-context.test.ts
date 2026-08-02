@@ -12,12 +12,12 @@ const principal = {
 };
 const correlationId = '00000000-0000-4000-8000-000000000010';
 
-test('derives a workspace tenant context from a bearer session and never accepts client scope fields', async () => {
+void test('derives a workspace tenant context from a bearer session and never accepts client scope fields', async () => {
   const seen: string[] = [];
   const adapter = new SessionRequestTenantContextAdapter({
-    findPrincipalByAccessToken: async (token) => {
+    findPrincipalByAccessToken: (token) => {
       seen.push(String(token));
-      return principal;
+      return Promise.resolve(principal);
     },
   });
 
@@ -49,9 +49,9 @@ test('derives a workspace tenant context from a bearer session and never accepts
   });
 });
 
-test('rejects missing, ambiguous, malformed, and unknown bearer credentials', async () => {
+void test('rejects missing, ambiguous, malformed, and unknown bearer credentials', async () => {
   const adapter = new SessionRequestTenantContextAdapter({
-    findPrincipalByAccessToken: async () => undefined,
+    findPrincipalByAccessToken: () => Promise.resolve(undefined),
   });
   for (const request of [
     { headers: {} },
@@ -66,9 +66,9 @@ test('rejects missing, ambiguous, malformed, and unknown bearer credentials', as
   }
 });
 
-test('uses the request id for read-only calls and rejects unsafe principal state', async () => {
+void test('uses the request id for read-only calls and rejects unsafe principal state', async () => {
   const adapter = new SessionRequestTenantContextAdapter({
-    findPrincipalByAccessToken: async () => ({ ...principal, securityEpoch: 0 }),
+    findPrincipalByAccessToken: () => Promise.resolve({ ...principal, securityEpoch: 0 }),
   });
   await assert.rejects(
     adapter.resolve({ id: 'request-read-001', headers: { authorization: 'Bearer token' } }),

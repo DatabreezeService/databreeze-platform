@@ -2,7 +2,6 @@ import {
   tenantScopeContainsV1,
   tenantScopesEqualV1,
   parseStableIdentifierV1,
-  parseTenantScopeV1,
   type StableIdentifierV1,
   type TenantScopeV1,
 } from '@databreeze/domain/tenant-scope/v1';

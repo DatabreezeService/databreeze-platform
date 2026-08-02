@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await -- Prisma delegate doubles intentionally mirror async client signatures. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
