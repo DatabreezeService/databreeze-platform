@@ -92,6 +92,7 @@ void test('[DSO-004, DSO-005, DSO-006] opaque grants check online and fail close
     tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
     bindingId: '00000000-0000-4000-8000-000000000041',
     capabilityDigest: 'sha256:folder-capability',
+    authorizationEpoch: 3,
     effects: ['READ', 'WRITE_DERIVATIVE'],
     issuedAt: '2026-01-01T00:00:00.000Z',
     expiresAt: '2026-01-01T12:00:00.000Z',

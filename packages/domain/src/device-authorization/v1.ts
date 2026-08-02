@@ -37,6 +37,7 @@ export interface OpaqueDeviceGrantV1 {
   readonly tenantScope: TenantScopeV1;
   readonly bindingId: StableIdentifierV1;
   readonly capabilityDigest: string;
+  readonly authorizationEpoch: number;
   readonly effects: readonly ('READ' | 'WRITE_DERIVATIVE' | 'WATCH')[];
   readonly issuedAt: StrictUtcTimestampV1;
   readonly expiresAt: StrictUtcTimestampV1;
@@ -251,6 +252,7 @@ export function createOpaqueDeviceGrantV1(input: {
   readonly tenantScope: unknown;
   readonly bindingId: unknown;
   readonly capabilityDigest: unknown;
+  readonly authorizationEpoch: unknown;
   readonly effects: unknown;
   readonly issuedAt: unknown;
   readonly expiresAt: unknown;
@@ -260,11 +262,13 @@ export function createOpaqueDeviceGrantV1(input: {
   const tenantScope = scope(input.tenantScope);
   const bindingId = stableId(input.bindingId);
   const capabilityDigest = text(input.capabilityDigest, 512);
+  const authorizationEpoch = positiveInteger(input.authorizationEpoch);
   const issuedAt = timestamp(input.issuedAt);
   const expiresAt = timestamp(input.expiresAt);
   if (!grantId || !deviceId || !bindingId) return rejected('INVALID_IDENTIFIER');
   if (!tenantScope) return rejected('INVALID_SCOPE');
   if (!capabilityDigest) return rejected('INVALID_TEXT');
+  if (!authorizationEpoch) return rejected('INVALID_EPOCH');
   if (!issuedAt || !expiresAt) return rejected('INVALID_TIMESTAMP');
   if (!lifetimeWithin(issuedAt, expiresAt)) return rejected('INVALID_LIFETIME');
   if (
@@ -284,6 +288,7 @@ export function createOpaqueDeviceGrantV1(input: {
       tenantScope,
       bindingId,
       capabilityDigest,
+      authorizationEpoch,
       effects: Object.freeze([...new Set(input.effects as OpaqueDeviceGrantV1['effects'])]),
       issuedAt,
       expiresAt,
@@ -295,18 +300,29 @@ export function createOpaqueDeviceGrantV1(input: {
 
 export function checkOpaqueDeviceGrantV1(
   grant: OpaqueDeviceGrantV1,
-  input: { readonly now: unknown; readonly deviceId: unknown; readonly tenantScope: unknown },
+  input: {
+    readonly now: unknown;
+    readonly deviceId: unknown;
+    readonly tenantScope: unknown;
+    readonly authorizationEpoch: unknown;
+  },
 ): DeviceAuthorizationResultV1<true> {
   const now = timestamp(input.now);
   const deviceId = stableId(input.deviceId);
   const tenantScope = scope(input.tenantScope);
+  const authorizationEpoch = positiveInteger(input.authorizationEpoch);
   if (!now) return rejected('INVALID_TIMESTAMP');
   if (!deviceId) return rejected('INVALID_IDENTIFIER');
   if (!tenantScope) return rejected('INVALID_SCOPE');
+  if (!authorizationEpoch) return rejected('INVALID_EPOCH');
   if (grant.status === 'REVOKED') return rejected('GRANT_REVOKED');
   if (grant.status === 'EXPIRED' || Date.parse(now) >= Date.parse(grant.expiresAt))
     return rejected('GRANT_EXPIRED');
-  if (grant.deviceId !== deviceId || !sameScope(grant.tenantScope, tenantScope))
+  if (
+    grant.deviceId !== deviceId ||
+    !sameScope(grant.tenantScope, tenantScope) ||
+    grant.authorizationEpoch !== authorizationEpoch
+  )
     return rejected('SNAPSHOT_STALE');
   return Object.freeze({ accepted: true, value: true });
 }
