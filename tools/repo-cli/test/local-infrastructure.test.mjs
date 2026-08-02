@@ -158,6 +158,14 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
   assert.notEqual(invalidService.status, 0);
   assert.match(`${invalidService.stdout}\n${invalidService.stderr}`, /--service must name one of/u);
 
+  const invalidProject = spawnSync(process.execPath, [helpScript, 'config'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    env: { ...process.env, COMPOSE_PROJECT_NAME: '../unsafe-project' },
+  });
+  assert.notEqual(invalidProject.status, 0);
+  assert.match(`${invalidProject.stdout}\n${invalidProject.stderr}`, /COMPOSE_PROJECT_NAME must start/u);
+
   const composeConfig = spawnSync(process.execPath, [helpScript, 'config'], {
     cwd: repositoryRoot,
     encoding: 'utf8',
@@ -166,4 +174,5 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
   assert.match(script, /logs', '--no-color/u);
   assert.match(script, /--service must name one of/u);
   assert.match(script, /--tail must be an integer/u);
+  assert.match(script, /COMPOSE_PROJECT_NAME must start/u);
 });

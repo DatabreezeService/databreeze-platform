@@ -82,6 +82,14 @@ function environment() {
   return fileValues;
 }
 
+function projectName(values) {
+  const value = values.get('COMPOSE_PROJECT_NAME') || process.env.COMPOSE_PROJECT_NAME || 'databreeze-local';
+  if (!/^[a-z0-9][a-z0-9_-]{0,62}$/u.test(value)) {
+    fail('COMPOSE_PROJECT_NAME must start with a lowercase letter or digit and contain only lowercase letters, digits, hyphens, or underscores');
+  }
+  return value;
+}
+
 function portValue(definition, values) {
   const value = Number(values.get(definition.key) ?? definition.fallback);
   if (!Number.isInteger(value) || value < 1024 || value > 65535) {
@@ -92,7 +100,7 @@ function portValue(definition, values) {
 
 function composeArgs(values = environment()) {
   const envFile = existsSync(localEnvFile) ? localEnvFile : exampleEnvFile;
-  const project = values.get('COMPOSE_PROJECT_NAME') || process.env.COMPOSE_PROJECT_NAME || 'databreeze-local';
+  const project = projectName(values);
   return ['compose', '--project-name', project, '--env-file', envFile, '-f', composeFile];
 }
 
