@@ -103,6 +103,8 @@ test('AWS production profile enables recovery and prevents public data paths', (
   assert.match(versions, /required_version\s*=\s*">= 1\.8\.0, < 2\.0\.0"/u);
   assert.doesNotMatch(data, /publicly_accessible\s*=\s*true/u);
   assert.doesNotMatch(data, /skip_final_snapshot\s*=\s*true/u);
+  assert.match(data, /performance_insights_enabled\s*=\s*var\.environment == "production"/u);
+  assert.match(data, /performance_insights_kms_key_id/u);
   assert.match(compute, /assign_public_ip\s*=\s*false/u);
   assert.equal((compute.match(/readonlyRootFilesystem\s*=\s*true/g) ?? []).length, 2);
   assert.equal((compute.match(/privileged\s*=\s*false/g) ?? []).length, 2);
