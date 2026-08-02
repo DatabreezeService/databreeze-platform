@@ -32,6 +32,7 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
     './dataset/v1',
     './dataset-governance/v1',
     './dataset-quality/v1',
+    './dataset-profile/v1',
     './jobs/v1',
     './approval/v1',
     './execution-attempt/v1',
@@ -68,6 +69,7 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
   assert.equal(aggregate.AUDIT_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.DATASET_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.DATASET_QUALITY_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.DATASET_PROFILE_SCHEMA_VERSION_V1, 1);
   assert.equal(typeof aggregate.parseTenantScopeV1, 'function');
   assert.equal(aggregate.ARTIFACT_UPLOAD_SCHEMA_VERSION_V1, 1);
   assert.equal(typeof aggregate.createScopedAuthorizationEvaluatorV1, 'function');

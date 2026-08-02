@@ -96,6 +96,10 @@
       "types": "./src/dataset-quality/v1.ts",
       "import": "./dist/dataset-quality/v1.js"
     },
+    "./dataset-profile/v1": {
+      "types": "./src/dataset-profile/v1.ts",
+      "import": "./dist/dataset-profile/v1.js"
+    },
     "./jobs/v1": {
       "types": "./src/jobs/v1.ts",
       "import": "./dist/jobs/v1.js"
