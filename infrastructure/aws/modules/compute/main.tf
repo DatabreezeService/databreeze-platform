@@ -83,6 +83,10 @@ locals {
     name      = "api"
     image     = var.api_image
     essential = true
+    readonlyRootFilesystem = true
+    privileged              = false
+    user                    = "10001"
+    stopTimeout             = 30
     cpu       = var.api_cpu
     memory    = var.api_memory
     portMappings = [{
@@ -133,6 +137,10 @@ resource "aws_ecs_task_definition" "worker" {
     name      = "worker"
     image     = var.worker_image
     essential = true
+    readonlyRootFilesystem = true
+    privileged              = false
+    user                    = "10001"
+    stopTimeout             = 30
     logConfiguration = {
       logDriver = "awslogs"
       options = {
