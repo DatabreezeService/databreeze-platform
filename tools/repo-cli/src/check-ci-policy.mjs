@@ -49,6 +49,15 @@ function assertBoundedJobs(text, filename) {
   }
 }
 
+function assertArtifactOutputs(text, filename) {
+  const artifactSteps = text.match(/-\s+uses:\s+actions\/upload-artifact@[^\n]+[\s\S]*?(?=\n\s+-\s+name:|\n\s+\w+:\s*$|$)/gim) ?? [];
+  for (const step of artifactSteps) {
+    if (!/if-no-files-found:\s*error/iu.test(step)) {
+      throw new Error(`${filename} artifact uploads must fail when an output is missing`);
+    }
+  }
+}
+
 export function checkCiPolicy(root = process.cwd()) {
   const workflows = Object.fromEntries(
     REQUIRED_WORKFLOWS.map((name) => [name, readWorkflow(root, name)]),
@@ -57,6 +66,7 @@ export function checkCiPolicy(root = process.cwd()) {
     assertPinnedActions(text, name);
     assertLeastPrivilege(text, name);
     assertBoundedJobs(text, name);
+    assertArtifactOutputs(text, name);
   }
   const security = workflows['security.yml'];
   for (const required of [
