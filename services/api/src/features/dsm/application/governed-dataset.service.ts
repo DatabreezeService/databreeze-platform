@@ -6,7 +6,7 @@ import {
   type GovernedDatasetDefinitionV1,
   type SchemaCompatibilityV1,
 } from '@databreeze/domain/dataset-governance/v1';
-import { parseStableIdentifierV1, type StableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
+import type { StableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type { GovernedDatasetRepositoryPortV1 } from './governed-dataset-repository.port.js';

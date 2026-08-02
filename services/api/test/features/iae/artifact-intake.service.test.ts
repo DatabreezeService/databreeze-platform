@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 import { createArtifactVersionV1 } from '@databreeze/domain/artifact/v1';
 
 import { InMemoryArtifactIntakeRepositoryAdapter } from '../../../src/features/iae/adapter/in-memory-artifact-intake-repository.adapter.js';
@@ -50,13 +49,6 @@ const artifactResult = createArtifactVersionV1({
 });
 if (!artifactResult.accepted) throw new Error('invalid artifact fixture');
 const artifact = artifactResult.value;
-
-function stable(value: string) {
-  const result = parseStableIdentifierV1(value);
-  assert.equal(result.accepted, true);
-  if (!result.accepted) throw new Error('invalid identifier');
-  return result.value;
-}
 
 void test('[IAE-001] create returns the same inbox item for a repeated key', async () => {
   const service = new ArtifactIntakeService(new InMemoryArtifactIntakeRepositoryAdapter());
