@@ -17,6 +17,18 @@ export type ArtifactVersionStatusV1 = 'QUARANTINED' | 'ACTIVE' | 'DELETED';
 export type ArtifactPlacementKindV1 = 'LOCAL' | 'CLOUD';
 export type EvidenceSourceStateV1 = 'AVAILABLE' | 'SOURCE_OFFLINE' | 'DELETED';
 
+export type EvidenceGeometryV1 =
+  | {
+      readonly kind: 'SPREADSHEET';
+      readonly sheets: readonly {
+        readonly name: string;
+        readonly maxRow: number;
+        readonly maxColumn: number;
+      }[];
+    }
+  | { readonly kind: 'PAGED'; readonly maxPage: number }
+  | { readonly kind: 'TABULAR'; readonly maxRow: number };
+
 export interface ArtifactVersionV1 {
   readonly schemaVersion: typeof ARTIFACT_SCHEMA_VERSION_V1;
   readonly artifactId: StableIdentifierV1;
@@ -74,6 +86,7 @@ export type ArtifactErrorCodeV1 =
   | 'INVALID_REVISION'
   | 'INVALID_REFERENCE'
   | 'INVALID_COORDINATE'
+  | 'COORDINATE_OUT_OF_BOUNDS'
   | 'INVALID_SOURCE_STATE'
   | 'CONTENT_MISMATCH'
   | 'LOCAL_CONTENT_LEAK';
@@ -291,11 +304,45 @@ function evidenceCoordinate(input: unknown): EvidenceCoordinateV1 | undefined {
   return undefined;
 }
 
+function spreadsheetColumnNumber(value: string): number {
+  let result = 0;
+  for (const character of value) result = result * 26 + character.charCodeAt(0) - 64;
+  return result;
+}
+
+/** IAE-006: evidence coordinates are checked against the exact source geometry. */
+export function validateEvidenceCoordinateV1(
+  coordinate: EvidenceCoordinateV1,
+  geometry?: EvidenceGeometryV1,
+): ArtifactResultV1<true> {
+  if (!geometry) return accepted(true);
+  if (coordinate.kind === 'CELL') {
+    if (geometry.kind !== 'SPREADSHEET') return rejected('COORDINATE_OUT_OF_BOUNDS');
+    const sheet = geometry.sheets.find((candidate) => candidate.name === coordinate.sheet);
+    const address = /^\$?([A-Z]{1,3})\$?([1-9][0-9]*)$/u.exec(coordinate.address.toUpperCase());
+    if (!sheet || !address) return rejected('COORDINATE_OUT_OF_BOUNDS');
+    const column = spreadsheetColumnNumber(address[1] ?? '');
+    const row = Number(address[2]);
+    return row <= sheet.maxRow && column <= sheet.maxColumn
+      ? accepted(true)
+      : rejected('COORDINATE_OUT_OF_BOUNDS');
+  }
+  if (coordinate.kind === 'PAGE') {
+    return geometry.kind === 'PAGED' && coordinate.page <= geometry.maxPage
+      ? accepted(true)
+      : rejected('COORDINATE_OUT_OF_BOUNDS');
+  }
+  return geometry.kind === 'TABULAR' && coordinate.row <= geometry.maxRow
+    ? accepted(true)
+    : rejected('COORDINATE_OUT_OF_BOUNDS');
+}
+
 export function createEvidenceReferenceV1(input: {
   readonly evidenceId: unknown;
   readonly artifactVersion: ArtifactVersionV1;
   readonly tenantScope: unknown;
   readonly coordinate: unknown;
+  readonly geometry?: unknown;
   readonly sourceState?: unknown;
   readonly excerpt?: unknown;
 }): ArtifactResultV1<EvidenceReferenceV1> {
@@ -310,6 +357,11 @@ export function createEvidenceReferenceV1(input: {
   if (!tenantScopesEqualV1(tenantScope, input.artifactVersion.tenantScope))
     return rejected('INVALID_SCOPE');
   if (!coordinate) return rejected('INVALID_COORDINATE');
+  if (input.geometry !== undefined) {
+    const geometry = input.geometry as EvidenceGeometryV1;
+    const coordinateCheck = validateEvidenceCoordinateV1(coordinate, geometry);
+    if (!coordinateCheck.accepted) return coordinateCheck;
+  }
   if (sourceState !== 'AVAILABLE' && sourceState !== 'SOURCE_OFFLINE' && sourceState !== 'DELETED')
     return rejected('INVALID_SOURCE_STATE');
   if (input.excerpt !== undefined && !excerpt) return rejected('INVALID_REFERENCE');

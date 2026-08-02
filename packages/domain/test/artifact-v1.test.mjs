@@ -5,6 +5,7 @@ import {
   createArtifactVersionV1,
   createContentPlacementV1,
   createEvidenceReferenceV1,
+  validateEvidenceCoordinateV1,
 } from '../dist/artifact/v1.js';
 
 const scope = {
@@ -90,5 +91,29 @@ void test('[IAE-005, IAE-006] Local evidence carries coordinates but never excer
       excerpt: 'secret source value',
     }).code,
     'LOCAL_CONTENT_LEAK',
+  );
+});
+
+void test('[IAE-006] evidence coordinates are validated against exact source geometry', () => {
+  assert.deepEqual(
+    validateEvidenceCoordinateV1(
+      { kind: 'CELL', sheet: 'Sheet1', address: 'B4' },
+      { kind: 'SPREADSHEET', sheets: [{ name: 'Sheet1', maxRow: 10, maxColumn: 3 }] },
+    ),
+    { accepted: true, value: true },
+  );
+  assert.deepEqual(
+    validateEvidenceCoordinateV1(
+      { kind: 'CELL', sheet: 'Sheet1', address: 'D4' },
+      { kind: 'SPREADSHEET', sheets: [{ name: 'Sheet1', maxRow: 10, maxColumn: 3 }] },
+    ),
+    { accepted: false, code: 'COORDINATE_OUT_OF_BOUNDS' },
+  );
+  assert.deepEqual(
+    validateEvidenceCoordinateV1(
+      { kind: 'PAGE', page: 4 },
+      { kind: 'PAGED', maxPage: 3 },
+    ),
+    { accepted: false, code: 'COORDINATE_OUT_OF_BOUNDS' },
   );
 });
