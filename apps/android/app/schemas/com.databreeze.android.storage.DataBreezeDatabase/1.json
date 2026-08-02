@@ -58,21 +58,13 @@
         ],
         "primaryKey": {
           "autoGenerate": false,
-          "columnNames": [
-            "accountId",
-            "workspaceId",
-            "mutationId"
-          ]
+          "columnNames": ["accountId", "workspaceId", "mutationId"]
         },
         "indices": [
           {
             "name": "index_sync_queue_accountId_workspaceId_state",
             "unique": false,
-            "columnNames": [
-              "accountId",
-              "workspaceId",
-              "state"
-            ],
+            "columnNames": ["accountId", "workspaceId", "state"],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_sync_queue_accountId_workspaceId_state` ON `${TABLE_NAME}` (`accountId`, `workspaceId`, `state`)"
           }
