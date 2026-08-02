@@ -50,14 +50,24 @@ export class ArtifactIntakeService {
     inboxItemId: InboxItemV1['inboxItemId'],
     artifact: ArtifactVersionV1,
     input: Omit<Parameters<typeof finalizeArtifactAdmissionV1>[0], 'artifact'>,
-  ): Promise<ArtifactIntakeServiceResultV1<{ item: InboxItemV1; status: 'ACTIVE' | 'QUARANTINED'; scanState: ArtifactScanStateV1 }>> {
+  ): Promise<
+    ArtifactIntakeServiceResultV1<{
+      item: InboxItemV1;
+      status: 'ACTIVE' | 'QUARANTINED';
+      scanState: ArtifactScanStateV1;
+    }>
+  > {
     return this.repository.withTransaction(context, async (transaction) => {
       const item = await transaction.find(context, inboxItemId);
       if (!item) return Object.freeze({ accepted: false, code: 'INBOX_NOT_FOUND' as const });
       const admission = finalizeArtifactAdmissionV1({ artifact, ...input });
       if (!admission.accepted) return admission;
-      const next = transitionInboxItemV1(item, admission.value.status === 'ACTIVE' ? 'ROUTED' : 'QUARANTINED');
-      if (!next.accepted) return Object.freeze({ accepted: false, code: 'INVALID_TRANSITION' as const });
+      const next = transitionInboxItemV1(
+        item,
+        admission.value.status === 'ACTIVE' ? 'ROUTED' : 'QUARANTINED',
+      );
+      if (!next.accepted)
+        return Object.freeze({ accepted: false, code: 'INVALID_TRANSITION' as const });
       await transaction.save(context, next.value);
       return Object.freeze({
         accepted: true,

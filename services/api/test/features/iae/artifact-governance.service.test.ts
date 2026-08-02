@@ -58,11 +58,19 @@ void test('[IAE-007, IAE-012] lineage is immutable, idempotent, and tenant scope
   const repeated = await service.registerLineage(context(workspaceId, 'lineage-2'), input);
   assert.deepEqual(repeated, created);
   assert.equal(
-    (await service.findForDerived(context(siblingWorkspaceId, 'lineage-read'), stable(input.derivedArtifactVersionId))),
+    await service.findForDerived(
+      context(siblingWorkspaceId, 'lineage-read'),
+      stable(input.derivedArtifactVersionId),
+    ),
     undefined,
   );
   assert.equal(
-    (await service.listForSource(context(workspaceId, 'lineage-source'), stable(sourceArtifactVersionId))).length,
+    (
+      await service.listForSource(
+        context(workspaceId, 'lineage-source'),
+        stable(sourceArtifactVersionId),
+      )
+    ).length,
     1,
   );
 });
@@ -71,7 +79,9 @@ void test('[IAE-007] lineage rejects cross-scope sources and conflicting derived
   const service = new ArtifactGovernanceService(new InMemoryArtifactLineageRepositoryAdapter());
   const crossScope = await service.registerLineage(context(workspaceId, 'lineage-cross'), {
     ...input,
-    sourceTenantScopes: [{ scopeType: 'workspace', organizationId, workspaceId: siblingWorkspaceId }],
+    sourceTenantScopes: [
+      { scopeType: 'workspace', organizationId, workspaceId: siblingWorkspaceId },
+    ],
   });
   assert.deepEqual(crossScope, { accepted: false, code: 'CROSS_SCOPE' });
   await service.registerLineage(context(workspaceId, 'lineage-conflict-a'), input);

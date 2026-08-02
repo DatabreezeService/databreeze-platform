@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createBusinessPartyVersionV1, mergeBusinessPartyVersionsV1 } from '../dist/reference-entity/v1.js';
+import {
+  createBusinessPartyVersionV1,
+  mergeBusinessPartyVersionsV1,
+} from '../dist/reference-entity/v1.js';
 
 const scope = {
   scopeType: 'workspace',
@@ -28,10 +31,10 @@ void test('[DSM-025, DSM-026] business-party versions are workspace-scoped and c
   if (!result.accepted) return;
   assert.equal(result.value.displayName, 'Công ty Ánh Dương');
   assert.equal(Object.isFrozen(result.value.externalIdentifiers[0]), true);
-  assert.deepEqual(
-    createBusinessPartyVersionV1({ ...base, roles: [] }),
-    { accepted: false, code: 'INVALID_ROLE' },
-  );
+  assert.deepEqual(createBusinessPartyVersionV1({ ...base, roles: [] }), {
+    accepted: false,
+    code: 'INVALID_ROLE',
+  });
 });
 
 void test('[DSM-027] merge creates an explicit redirect without retargeting history', () => {

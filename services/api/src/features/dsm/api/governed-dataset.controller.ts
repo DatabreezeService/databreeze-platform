@@ -41,7 +41,10 @@ export class GovernedDatasetController {
 
   @Get(':datasetId/versions')
   @ApiOperation({ summary: 'List governed dataset versions visible to the caller' })
-  async list(@Req() request: unknown, @Param('datasetId') datasetIdInput: string): Promise<unknown> {
+  async list(
+    @Req() request: unknown,
+    @Param('datasetId') datasetIdInput: string,
+  ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
     const datasetId = parseStableIdentifierV1(datasetIdInput);
     if (!datasetId.accepted) return { accepted: false, code: 'INVALID_IDENTIFIER' as const };

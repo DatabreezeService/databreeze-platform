@@ -7,11 +7,17 @@ export const EVIDENCE_GRANT_REPOSITORY_PORT = Symbol('EVIDENCE_GRANT_REPOSITORY_
 
 export interface EvidenceGrantTransactionPortV1 {
   save(context: IamTenantContextV1, grant: EvidenceAccessGrantV1): Promise<void>;
-  find(context: IamTenantContextV1, grantId: StableIdentifierV1): Promise<EvidenceAccessGrantV1 | undefined>;
+  find(
+    context: IamTenantContextV1,
+    grantId: StableIdentifierV1,
+  ): Promise<EvidenceAccessGrantV1 | undefined>;
   revoke(context: IamTenantContextV1, grantId: StableIdentifierV1): Promise<void>;
   isRevoked(context: IamTenantContextV1, grantId: StableIdentifierV1): Promise<boolean>;
 }
 
 export interface EvidenceGrantRepositoryPortV1 extends EvidenceGrantTransactionPortV1 {
-  withTransaction<TValue>(context: IamTenantContextV1, work: (transaction: EvidenceGrantTransactionPortV1) => Promise<TValue>): Promise<TValue>;
+  withTransaction<TValue>(
+    context: IamTenantContextV1,
+    work: (transaction: EvidenceGrantTransactionPortV1) => Promise<TValue>,
+  ): Promise<TValue>;
 }

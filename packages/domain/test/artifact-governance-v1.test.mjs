@@ -62,14 +62,20 @@ void test('[IAE-008] derived data mode cannot be wider than its least-permissive
   assert.equal(source.accepted, true);
   assert.equal(derived.accepted, true);
   if (!source.accepted || !derived.accepted) return;
-  assert.deepEqual(validateDerivedArtifactVersionV1({ derived: derived.value, sourceVersions: [source.value] }), {
-    accepted: false,
-    code: 'DATA_MODE_WIDENING',
-  });
-  assert.deepEqual(validateDerivedArtifactVersionV1({
-    derived: { ...derived.value, dataMode: 'Local' },
-    sourceVersions: [source.value],
-  }), { accepted: true, value: true });
+  assert.deepEqual(
+    validateDerivedArtifactVersionV1({ derived: derived.value, sourceVersions: [source.value] }),
+    {
+      accepted: false,
+      code: 'DATA_MODE_WIDENING',
+    },
+  );
+  assert.deepEqual(
+    validateDerivedArtifactVersionV1({
+      derived: { ...derived.value, dataMode: 'Local' },
+      sourceVersions: [source.value],
+    }),
+    { accepted: true, value: true },
+  );
 });
 
 void test('[IAE-021] deletion eligibility is blocked by the strictest retention and governance condition', () => {

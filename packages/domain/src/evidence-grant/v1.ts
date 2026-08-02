@@ -86,35 +86,59 @@ export function createEvidenceAccessGrantV1(input: {
   const recipientDeviceId = identifier(input.recipientDeviceId);
   const issuedAt = timestamp(input.issuedAt);
   const expiresAt = timestamp(input.expiresAt);
-  if (!grantId || !evidenceId || !artifactVersionId || !recipientDeviceId) return rejected('INVALID_IDENTIFIER');
+  if (!grantId || !evidenceId || !artifactVersionId || !recipientDeviceId)
+    return rejected('INVALID_IDENTIFIER');
   if (!tenantScope) return rejected('INVALID_SCOPE');
-  if (!issuedAt || !expiresAt || Date.parse(expiresAt) <= Date.parse(issuedAt)) return rejected('INVALID_TIMESTAMP');
-  if (Date.parse(expiresAt) - Date.parse(issuedAt) > 15 * 60 * 1000) return rejected('EXPIRY_TOO_LONG');
-  if (!['COORDINATE', 'EXCERPT', 'OPEN_ON_DEVICE'].includes(input.action as string)) return rejected('INVALID_ACTION');
-  if (!['AVAILABLE', 'SOURCE_OFFLINE', 'DELETED'].includes(input.sourceState)) return rejected('SOURCE_UNAVAILABLE');
-  if (input.action === 'OPEN_ON_DEVICE' && input.artifactDataMode !== 'Local') return rejected('INVALID_ACTION');
-  if (input.action === 'EXCERPT' && input.artifactDataMode === 'Local') return rejected('LOCAL_CONTENT_LEAK');
-  if (input.action === 'EXCERPT' && input.sourceState !== 'AVAILABLE') return rejected('SOURCE_UNAVAILABLE');
-  if (typeof input.authorizationEpoch !== 'number' || !Number.isSafeInteger(input.authorizationEpoch) || input.authorizationEpoch < 1) return rejected('INVALID_EPOCH');
+  if (!issuedAt || !expiresAt || Date.parse(expiresAt) <= Date.parse(issuedAt))
+    return rejected('INVALID_TIMESTAMP');
+  if (Date.parse(expiresAt) - Date.parse(issuedAt) > 15 * 60 * 1000)
+    return rejected('EXPIRY_TOO_LONG');
+  if (!['COORDINATE', 'EXCERPT', 'OPEN_ON_DEVICE'].includes(input.action as string))
+    return rejected('INVALID_ACTION');
+  if (!['AVAILABLE', 'SOURCE_OFFLINE', 'DELETED'].includes(input.sourceState))
+    return rejected('SOURCE_UNAVAILABLE');
+  if (input.action === 'OPEN_ON_DEVICE' && input.artifactDataMode !== 'Local')
+    return rejected('INVALID_ACTION');
+  if (input.action === 'EXCERPT' && input.artifactDataMode === 'Local')
+    return rejected('LOCAL_CONTENT_LEAK');
+  if (input.action === 'EXCERPT' && input.sourceState !== 'AVAILABLE')
+    return rejected('SOURCE_UNAVAILABLE');
+  if (
+    typeof input.authorizationEpoch !== 'number' ||
+    !Number.isSafeInteger(input.authorizationEpoch) ||
+    input.authorizationEpoch < 1
+  )
+    return rejected('INVALID_EPOCH');
   const maxExcerptBytes = input.maxExcerptBytes ?? (input.action === 'EXCERPT' ? 512 : 0);
-  if (typeof maxExcerptBytes !== 'number' || !Number.isSafeInteger(maxExcerptBytes) || maxExcerptBytes < 0 || maxExcerptBytes > 4096) return rejected('INVALID_BYTES');
+  if (
+    typeof maxExcerptBytes !== 'number' ||
+    !Number.isSafeInteger(maxExcerptBytes) ||
+    maxExcerptBytes < 0 ||
+    maxExcerptBytes > 4096
+  )
+    return rejected('INVALID_BYTES');
   if (input.action !== 'EXCERPT' && maxExcerptBytes !== 0) return rejected('INVALID_BYTES');
-  return accepted(Object.freeze({
-    schemaVersion: EVIDENCE_GRANT_SCHEMA_VERSION_V1,
-    grantId,
-    evidenceId,
-    artifactVersionId,
-    tenantScope,
-    recipientDeviceId,
-    action: input.action as EvidenceGrantActionV1,
-    issuedAt,
-    expiresAt,
-    authorizationEpoch: input.authorizationEpoch,
-    maxExcerptBytes,
-  }));
+  return accepted(
+    Object.freeze({
+      schemaVersion: EVIDENCE_GRANT_SCHEMA_VERSION_V1,
+      grantId,
+      evidenceId,
+      artifactVersionId,
+      tenantScope,
+      recipientDeviceId,
+      action: input.action as EvidenceGrantActionV1,
+      issuedAt,
+      expiresAt,
+      authorizationEpoch: input.authorizationEpoch,
+      maxExcerptBytes,
+    }),
+  );
 }
 
-export function evidenceGrantMatchesScopeV1(grant: EvidenceAccessGrantV1, scopeInput: unknown): boolean {
+export function evidenceGrantMatchesScopeV1(
+  grant: EvidenceAccessGrantV1,
+  scopeInput: unknown,
+): boolean {
   const candidate = scope(scopeInput);
   return candidate !== undefined && tenantScopesEqualV1(candidate, grant.tenantScope);
 }

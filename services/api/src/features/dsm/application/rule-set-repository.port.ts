@@ -7,10 +7,19 @@ export const RULE_SET_REPOSITORY_PORT = Symbol('RULE_SET_REPOSITORY_PORT');
 
 export interface RuleSetTransactionPortV1 {
   save(context: IamTenantContextV1, definition: RuleSetDefinitionV1): Promise<void>;
-  find(context: IamTenantContextV1, versionId: StableIdentifierV1): Promise<RuleSetDefinitionV1 | undefined>;
-  list(context: IamTenantContextV1, datasetId: StableIdentifierV1): Promise<readonly RuleSetDefinitionV1[]>;
+  find(
+    context: IamTenantContextV1,
+    versionId: StableIdentifierV1,
+  ): Promise<RuleSetDefinitionV1 | undefined>;
+  list(
+    context: IamTenantContextV1,
+    datasetId: StableIdentifierV1,
+  ): Promise<readonly RuleSetDefinitionV1[]>;
 }
 
 export interface RuleSetRepositoryPortV1 extends RuleSetTransactionPortV1 {
-  withTransaction<TValue>(context: IamTenantContextV1, work: (transaction: RuleSetTransactionPortV1) => Promise<TValue>): Promise<TValue>;
+  withTransaction<TValue>(
+    context: IamTenantContextV1,
+    work: (transaction: RuleSetTransactionPortV1) => Promise<TValue>,
+  ): Promise<TValue>;
 }

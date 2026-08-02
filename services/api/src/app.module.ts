@@ -5,7 +5,10 @@ import { SystemModule, type SystemModuleOptions } from './features/system/system
 import { IaeModule, type IaeModuleOptions } from './features/iae/iae.module.js';
 import { DsmModule, type DsmModuleOptions } from './features/dsm/dsm.module.js';
 
-export type AppModuleOptions = SystemModuleOptions & IamModuleOptions & IaeModuleOptions & DsmModuleOptions;
+export type AppModuleOptions = SystemModuleOptions &
+  IamModuleOptions &
+  IaeModuleOptions &
+  DsmModuleOptions;
 
 @Module({})
 export class AppModule {

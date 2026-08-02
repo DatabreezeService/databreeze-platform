@@ -80,7 +80,9 @@ function timestamp(input: unknown): StrictUtcTimestampV1 | undefined {
 }
 
 function hash(input: unknown): string | undefined {
-  return typeof input === 'string' && /^[0-9a-f]{64}$/u.test(input) ? input.toLowerCase() : undefined;
+  return typeof input === 'string' && /^[0-9a-f]{64}$/u.test(input)
+    ? input.toLowerCase()
+    : undefined;
 }
 
 function rule(input: unknown): QualityRuleV1 | RuleSetErrorCodeV1 {
@@ -91,22 +93,46 @@ function rule(input: unknown): QualityRuleV1 | RuleSetErrorCodeV1 {
   const kind = record['kind'];
   const severity = record['severity'];
   const parameters = record['parameters'] ?? {};
-  if (!ruleId || !fieldId || !['REQUIRED', 'TYPE', 'RANGE', 'UNIQUE', 'REFERENCE'].includes(kind as string)) return 'INVALID_RULE';
+  if (
+    !ruleId ||
+    !fieldId ||
+    !['REQUIRED', 'TYPE', 'RANGE', 'UNIQUE', 'REFERENCE'].includes(kind as string)
+  )
+    return 'INVALID_RULE';
   if (!['ERROR', 'WARNING'].includes(severity as string)) return 'INVALID_RULE';
-  if (typeof parameters !== 'object' || parameters === null || Array.isArray(parameters)) return 'INVALID_PARAMETERS';
+  if (typeof parameters !== 'object' || parameters === null || Array.isArray(parameters))
+    return 'INVALID_PARAMETERS';
   if (kind === 'TYPE') {
-    if (!['TEXT', 'INTEGER', 'DECIMAL', 'BOOLEAN', 'DATE'].includes((parameters as Record<string, unknown>)['expectedType'] as string)) return 'INVALID_PARAMETERS';
+    if (
+      !['TEXT', 'INTEGER', 'DECIMAL', 'BOOLEAN', 'DATE'].includes(
+        (parameters as Record<string, unknown>)['expectedType'] as string,
+      )
+    )
+      return 'INVALID_PARAMETERS';
   } else if (kind === 'RANGE') {
     const range = parameters as Record<string, unknown>;
     const minimum = range['minimum'];
     const maximum = range['maximum'];
-    if ((minimum !== undefined && (typeof minimum !== 'number' || !Number.isFinite(minimum))) || (maximum !== undefined && (typeof maximum !== 'number' || !Number.isFinite(maximum))) || (minimum === undefined && maximum === undefined) || (minimum !== undefined && maximum !== undefined && minimum > maximum)) return 'INVALID_PARAMETERS';
+    if (
+      (minimum !== undefined && (typeof minimum !== 'number' || !Number.isFinite(minimum))) ||
+      (maximum !== undefined && (typeof maximum !== 'number' || !Number.isFinite(maximum))) ||
+      (minimum === undefined && maximum === undefined) ||
+      (minimum !== undefined && maximum !== undefined && minimum > maximum)
+    )
+      return 'INVALID_PARAMETERS';
   } else if (kind === 'REFERENCE') {
-    if (!identifier((parameters as Record<string, unknown>)['referenceEntityVersionId'])) return 'INVALID_PARAMETERS';
+    if (!identifier((parameters as Record<string, unknown>)['referenceEntityVersionId']))
+      return 'INVALID_PARAMETERS';
   } else if (Object.keys(parameters as object).length > 0) {
     return 'INVALID_PARAMETERS';
   }
-  return Object.freeze({ ruleId, fieldId, kind: kind as RuleKindV1, severity: severity as RuleSeverityV1, parameters: Object.freeze({ ...(parameters as Record<string, unknown>) }) as RuleParametersV1 });
+  return Object.freeze({
+    ruleId,
+    fieldId,
+    kind: kind as RuleKindV1,
+    severity: severity as RuleSeverityV1,
+    parameters: Object.freeze({ ...(parameters as Record<string, unknown>) }) as RuleParametersV1,
+  });
 }
 
 export function createRuleSetDefinitionV1(input: {
@@ -129,24 +155,61 @@ export function createRuleSetDefinitionV1(input: {
   const canonicalHash = hash(input.canonicalHash);
   if (!datasetId || !versionId || !schemaVersionId) return rejected('INVALID_IDENTIFIER');
   if (!tenantScope) return rejected('INVALID_SCOPE');
-  if (!createdAt || (input.publishedAt !== undefined && !publishedAt)) return rejected('INVALID_TIMESTAMP');
-  if (publishedAt && Date.parse(publishedAt) < Date.parse(createdAt)) return rejected('INVALID_TIMESTAMP');
+  if (!createdAt || (input.publishedAt !== undefined && !publishedAt))
+    return rejected('INVALID_TIMESTAMP');
+  if (publishedAt && Date.parse(publishedAt) < Date.parse(createdAt))
+    return rejected('INVALID_TIMESTAMP');
   if (!canonicalHash) return rejected('INVALID_HASH');
-  if (!Array.isArray(input.rules) || input.rules.length === 0 || input.rules.length > 512) return rejected('INVALID_RULE');
+  if (!Array.isArray(input.rules) || input.rules.length === 0 || input.rules.length > 512)
+    return rejected('INVALID_RULE');
   const parsedRules = input.rules.map(rule);
-  if (parsedRules.some((candidate): candidate is RuleSetErrorCodeV1 => typeof candidate === 'string')) return rejected(parsedRules.find((candidate): candidate is RuleSetErrorCodeV1 => typeof candidate === 'string') ?? 'INVALID_RULE');
+  if (
+    parsedRules.some((candidate): candidate is RuleSetErrorCodeV1 => typeof candidate === 'string')
+  )
+    return rejected(
+      parsedRules.find(
+        (candidate): candidate is RuleSetErrorCodeV1 => typeof candidate === 'string',
+      ) ?? 'INVALID_RULE',
+    );
   const rules = parsedRules as QualityRuleV1[];
-  if (new Set(rules.map((candidate) => candidate.ruleId)).size !== rules.length) return rejected('DUPLICATE_RULE');
+  if (new Set(rules.map((candidate) => candidate.ruleId)).size !== rules.length)
+    return rejected('DUPLICATE_RULE');
   const status = input.status ?? 'DRAFT';
-  if (!['DRAFT', 'PUBLISHED', 'RETIRED'].includes(status as string)) return rejected('INVALID_STATE');
-  return accepted(Object.freeze({ schemaVersion: RULE_SET_SCHEMA_VERSION_V1, datasetId, versionId, tenantScope, schemaVersionId, rules: Object.freeze(rules), status: status as RuleSetStatusV1, createdAt, ...(publishedAt ? { publishedAt } : {}), canonicalHash }));
+  if (!['DRAFT', 'PUBLISHED', 'RETIRED'].includes(status as string))
+    return rejected('INVALID_STATE');
+  return accepted(
+    Object.freeze({
+      schemaVersion: RULE_SET_SCHEMA_VERSION_V1,
+      datasetId,
+      versionId,
+      tenantScope,
+      schemaVersionId,
+      rules: Object.freeze(rules),
+      status: status as RuleSetStatusV1,
+      createdAt,
+      ...(publishedAt ? { publishedAt } : {}),
+      canonicalHash,
+    }),
+  );
 }
 
-export function publishRuleSetDefinitionV1(definition: RuleSetDefinitionV1, nextVersionIdInput: unknown, publishedAtInput: unknown): RuleSetResultV1<RuleSetDefinitionV1> {
+export function publishRuleSetDefinitionV1(
+  definition: RuleSetDefinitionV1,
+  nextVersionIdInput: unknown,
+  publishedAtInput: unknown,
+): RuleSetResultV1<RuleSetDefinitionV1> {
   const nextVersionId = identifier(nextVersionIdInput);
   const publishedAt = timestamp(publishedAtInput);
   if (!nextVersionId) return rejected('INVALID_IDENTIFIER');
-  if (!publishedAt || Date.parse(publishedAt) < Date.parse(definition.createdAt)) return rejected('INVALID_TIMESTAMP');
+  if (!publishedAt || Date.parse(publishedAt) < Date.parse(definition.createdAt))
+    return rejected('INVALID_TIMESTAMP');
   if (definition.status !== 'DRAFT') return rejected('INVALID_STATE');
-  return accepted(Object.freeze({ ...definition, versionId: nextVersionId, status: 'PUBLISHED' as const, publishedAt }));
+  return accepted(
+    Object.freeze({
+      ...definition,
+      versionId: nextVersionId,
+      status: 'PUBLISHED' as const,
+      publishedAt,
+    }),
+  );
 }

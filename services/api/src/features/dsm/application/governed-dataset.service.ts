@@ -45,7 +45,11 @@ export class GovernedDatasetService {
     return this.repository.withTransaction(context, async (transaction) => {
       const current = await transaction.find(context, versionId);
       if (!current) return Object.freeze({ accepted: false, code: 'VERSION_NOT_FOUND' as const });
-      const published = publishGovernedDatasetDefinitionV1(current, nextVersionIdInput, publishedAt);
+      const published = publishGovernedDatasetDefinitionV1(
+        current,
+        nextVersionIdInput,
+        publishedAt,
+      );
       if (!published.accepted) return published;
       await transaction.save(context, published.value);
       return published;
@@ -60,7 +64,8 @@ export class GovernedDatasetService {
     return this.repository.withTransaction(context, async (transaction) => {
       const previous = await transaction.find(context, previousVersionId);
       const next = await transaction.find(context, nextVersionId);
-      if (!previous || !next) return Object.freeze({ accepted: false, code: 'VERSION_NOT_FOUND' as const });
+      if (!previous || !next)
+        return Object.freeze({ accepted: false, code: 'VERSION_NOT_FOUND' as const });
       return compareGovernedSchemaCompatibilityV1(previous, next);
     });
   }
@@ -69,6 +74,8 @@ export class GovernedDatasetService {
     context: IamTenantContextV1,
     datasetId: StableIdentifierV1,
   ): Promise<readonly GovernedDatasetDefinitionV1[]> {
-    return this.repository.withTransaction(context, (transaction) => transaction.list(context, datasetId));
+    return this.repository.withTransaction(context, (transaction) =>
+      transaction.list(context, datasetId),
+    );
   }
 }

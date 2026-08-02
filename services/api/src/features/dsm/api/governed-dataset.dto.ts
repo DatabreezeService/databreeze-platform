@@ -1,6 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsIn, IsISO8601, IsOptional, IsString, IsUUID, MaxLength, MinLength, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsISO8601,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 
 export class GovernedDatasetFieldDto {
   @ApiProperty({ format: 'uuid' })

@@ -110,10 +110,7 @@ void test('[IAE-006] evidence coordinates are validated against exact source geo
     { accepted: false, code: 'COORDINATE_OUT_OF_BOUNDS' },
   );
   assert.deepEqual(
-    validateEvidenceCoordinateV1(
-      { kind: 'PAGE', page: 4 },
-      { kind: 'PAGED', maxPage: 3 },
-    ),
+    validateEvidenceCoordinateV1({ kind: 'PAGE', page: 4 }, { kind: 'PAGED', maxPage: 3 }),
     { accepted: false, code: 'COORDINATE_OUT_OF_BOUNDS' },
   );
 });

@@ -2,10 +2,16 @@ import { Body, Controller, Get, Inject, Param, Post, Req } from '@nestjs/common'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
-import { REFERENCE_ENTITY_REPOSITORY_PORT, type ReferenceEntityRepositoryPortV1 } from '../application/reference-entity-repository.port.js';
+import {
+  REFERENCE_ENTITY_REPOSITORY_PORT,
+  type ReferenceEntityRepositoryPortV1,
+} from '../application/reference-entity-repository.port.js';
 import { ReferenceEntityService } from '../application/reference-entity.service.js';
 import { CreateReferenceEntityDto, MergeReferenceEntityDto } from './reference-entity.dto.js';
-import { REQUEST_TENANT_CONTEXT, type RequestTenantContextPortV1 } from '../../../platform/http/request-tenant-context.port.js';
+import {
+  REQUEST_TENANT_CONTEXT,
+  type RequestTenantContextPortV1,
+} from '../../../platform/http/request-tenant-context.port.js';
 
 @ApiTags('reference-entities')
 @ApiBearerAuth()

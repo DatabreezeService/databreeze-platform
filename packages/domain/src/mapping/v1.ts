@@ -79,7 +79,9 @@ function timestamp(input: unknown): StrictUtcTimestampV1 | undefined {
 }
 
 function hash(input: unknown): string | undefined {
-  return typeof input === 'string' && /^[0-9a-f]{64}$/u.test(input) ? input.toLowerCase() : undefined;
+  return typeof input === 'string' && /^[0-9a-f]{64}$/u.test(input)
+    ? input.toLowerCase()
+    : undefined;
 }
 
 function mappingStep(input: unknown): MappingStepV1 | MappingErrorCodeV1 {
@@ -88,8 +90,21 @@ function mappingStep(input: unknown): MappingStepV1 | MappingErrorCodeV1 {
   const sourceFieldId = identifier(record['sourceFieldId']);
   const targetFieldId = identifier(record['targetFieldId']);
   const transform = record['transform'];
-  const lookupVersionId = record['lookupVersionId'] === undefined ? undefined : identifier(record['lookupVersionId']);
-  if (!sourceFieldId || !targetFieldId || !['IDENTITY', 'TRIM', 'LOWERCASE', 'UPPERCASE', 'PARSE_DECIMAL', 'PARSE_DATE', 'LOOKUP'].includes(transform as string))
+  const lookupVersionId =
+    record['lookupVersionId'] === undefined ? undefined : identifier(record['lookupVersionId']);
+  if (
+    !sourceFieldId ||
+    !targetFieldId ||
+    ![
+      'IDENTITY',
+      'TRIM',
+      'LOWERCASE',
+      'UPPERCASE',
+      'PARSE_DECIMAL',
+      'PARSE_DATE',
+      'LOOKUP',
+    ].includes(transform as string)
+  )
     return 'INVALID_STEP';
   if (record['lookupVersionId'] !== undefined && !lookupVersionId) return 'INVALID_IDENTIFIER';
   if (transform === 'LOOKUP' && !lookupVersionId) return 'LOOKUP_REQUIRED';
@@ -124,32 +139,40 @@ export function createMappingDefinitionV1(input: {
   if (!datasetId || !versionId || !sourceSchemaVersionId || !targetSchemaVersionId)
     return rejected('INVALID_IDENTIFIER');
   if (!tenantScope) return rejected('INVALID_SCOPE');
-  if (!createdAt || (input.publishedAt !== undefined && !publishedAt)) return rejected('INVALID_TIMESTAMP');
-  if (publishedAt && Date.parse(publishedAt) < Date.parse(createdAt)) return rejected('INVALID_TIMESTAMP');
+  if (!createdAt || (input.publishedAt !== undefined && !publishedAt))
+    return rejected('INVALID_TIMESTAMP');
+  if (publishedAt && Date.parse(publishedAt) < Date.parse(createdAt))
+    return rejected('INVALID_TIMESTAMP');
   if (!canonicalHash) return rejected('INVALID_HASH');
   if (!Array.isArray(input.steps) || input.steps.length === 0 || input.steps.length > 512)
     return rejected('INVALID_STEP');
   const parsedSteps = input.steps.map(mappingStep);
   if (parsedSteps.some((step): step is MappingErrorCodeV1 => typeof step === 'string'))
-    return rejected(parsedSteps.find((step): step is MappingErrorCodeV1 => typeof step === 'string') ?? 'INVALID_STEP');
+    return rejected(
+      parsedSteps.find((step): step is MappingErrorCodeV1 => typeof step === 'string') ??
+        'INVALID_STEP',
+    );
   const steps = parsedSteps as MappingStepV1[];
   const targets = new Set(steps.map((step) => step.targetFieldId));
   if (targets.size !== steps.length) return rejected('DUPLICATE_MAPPING');
   const status = input.status ?? 'DRAFT';
-  if (!['DRAFT', 'PUBLISHED', 'RETIRED'].includes(status as string)) return rejected('INVALID_STATE');
-  return accepted(Object.freeze({
-    schemaVersion: MAPPING_SCHEMA_VERSION_V1,
-    datasetId,
-    versionId,
-    tenantScope,
-    sourceSchemaVersionId,
-    targetSchemaVersionId,
-    steps: Object.freeze(steps),
-    status: status as MappingStatusV1,
-    createdAt,
-    ...(publishedAt ? { publishedAt } : {}),
-    canonicalHash,
-  }));
+  if (!['DRAFT', 'PUBLISHED', 'RETIRED'].includes(status as string))
+    return rejected('INVALID_STATE');
+  return accepted(
+    Object.freeze({
+      schemaVersion: MAPPING_SCHEMA_VERSION_V1,
+      datasetId,
+      versionId,
+      tenantScope,
+      sourceSchemaVersionId,
+      targetSchemaVersionId,
+      steps: Object.freeze(steps),
+      status: status as MappingStatusV1,
+      createdAt,
+      ...(publishedAt ? { publishedAt } : {}),
+      canonicalHash,
+    }),
+  );
 }
 
 export function publishMappingDefinitionV1(
@@ -160,7 +183,15 @@ export function publishMappingDefinitionV1(
   const nextVersionId = identifier(nextVersionIdInput);
   const publishedAt = timestamp(publishedAtInput);
   if (!nextVersionId) return rejected('INVALID_IDENTIFIER');
-  if (!publishedAt || Date.parse(publishedAt) < Date.parse(definition.createdAt)) return rejected('INVALID_TIMESTAMP');
+  if (!publishedAt || Date.parse(publishedAt) < Date.parse(definition.createdAt))
+    return rejected('INVALID_TIMESTAMP');
   if (definition.status !== 'DRAFT') return rejected('INVALID_STATE');
-  return accepted(Object.freeze({ ...definition, versionId: nextVersionId, status: 'PUBLISHED' as const, publishedAt }));
+  return accepted(
+    Object.freeze({
+      ...definition,
+      versionId: nextVersionId,
+      status: 'PUBLISHED' as const,
+      publishedAt,
+    }),
+  );
 }

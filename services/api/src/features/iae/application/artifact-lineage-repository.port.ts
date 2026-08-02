@@ -5,10 +5,7 @@ import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js
 export const ARTIFACT_LINEAGE_REPOSITORY_PORT = Symbol('ARTIFACT_LINEAGE_REPOSITORY_PORT');
 
 export interface ArtifactLineageTransactionPortV1 {
-  save(
-    context: IamTenantContextV1,
-    lineage: ArtifactLineageV1,
-  ): Promise<void>;
+  save(context: IamTenantContextV1, lineage: ArtifactLineageV1): Promise<void>;
   findByDerived(
     context: IamTenantContextV1,
     derivedArtifactVersionId: ArtifactLineageV1['derivedArtifactVersionId'],

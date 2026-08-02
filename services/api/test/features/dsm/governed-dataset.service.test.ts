@@ -38,7 +38,14 @@ const input = {
   versionId: '00000000-0000-4000-8000-000000000021',
   tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
   name: 'Orders',
-  fields: [{ fieldId: '00000000-0000-4000-8000-000000000022', name: 'amount', type: 'DECIMAL', nullable: true }],
+  fields: [
+    {
+      fieldId: '00000000-0000-4000-8000-000000000022',
+      name: 'amount',
+      type: 'DECIMAL',
+      nullable: true,
+    },
+  ],
   createdAt: '2026-01-01T00:00:00.000Z',
   canonicalHash: 'a'.repeat(64),
 };
@@ -62,11 +69,18 @@ void test('[DSM-001, DSM-004, DSM-005, DSM-006] service creates, publishes, comp
     stable('00000000-0000-4000-8000-000000000023'),
   );
   assert.deepEqual(comparison, { accepted: true, value: 'ADDITIVE_COMPATIBLE' });
-  assert.equal((await service.list(context(workspaceId, 'governed-4'), stable(input.datasetId))).length, 2);
+  assert.equal(
+    (await service.list(context(workspaceId, 'governed-4'), stable(input.datasetId))).length,
+    2,
+  );
 });
 
 void test('[IAM-009, DSM-018] governed definitions do not cross sibling workspaces', async () => {
   const service = new GovernedDatasetService(new InMemoryGovernedDatasetRepositoryAdapter());
   await service.create(context(workspaceId, 'governed-scope-1'), input);
-  assert.equal((await service.list(context(siblingWorkspaceId, 'governed-scope-2'), stable(input.datasetId))).length, 0);
+  assert.equal(
+    (await service.list(context(siblingWorkspaceId, 'governed-scope-2'), stable(input.datasetId)))
+      .length,
+    0,
+  );
 });

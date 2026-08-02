@@ -20,7 +20,10 @@ export interface ApiApplication {
   readonly openApi: OpenAPIObject | object;
 }
 
-export interface ApiApplicationOptions extends IamModuleOptions, IaeModuleOptions, DsmModuleOptions {
+export interface ApiApplicationOptions
+  extends IamModuleOptions,
+    IaeModuleOptions,
+    DsmModuleOptions {
   readonly compatibilityPort?: ClientCompatibilityPort;
   readonly readinessPort?: ReadinessPort;
 }

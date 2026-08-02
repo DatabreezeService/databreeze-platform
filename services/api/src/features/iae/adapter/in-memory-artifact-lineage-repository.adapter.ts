@@ -19,7 +19,9 @@ function clone(lineage: ArtifactLineageV1): ArtifactLineageV1 {
     ...lineage,
     tenantScope: Object.freeze({ ...lineage.tenantScope }),
     sourceArtifactVersionIds: Object.freeze([...lineage.sourceArtifactVersionIds]),
-    coordinateLineage: Object.freeze(lineage.coordinateLineage.map((item) => Object.freeze({ ...item }))),
+    coordinateLineage: Object.freeze(
+      lineage.coordinateLineage.map((item) => Object.freeze({ ...item })),
+    ),
   });
 }
 

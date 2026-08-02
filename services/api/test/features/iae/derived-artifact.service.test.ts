@@ -54,7 +54,9 @@ void test('[IAE-007, IAE-008] derivative registration resolves sources and persi
   const lineage = new InMemoryArtifactLineageRepositoryAdapter();
   const service = new DerivedArtifactService(artifacts, lineage);
   const source = sourceInput();
-  const sourceService = new (await import('../../../src/features/iae/application/artifact.service.js')).ArtifactService(artifacts);
+  const sourceService = new (
+    await import('../../../src/features/iae/application/artifact.service.js')
+  ).ArtifactService(artifacts);
   const registered = await sourceService.register(context('source'), source);
   assert.equal(registered.accepted, true);
   if (!registered.accepted) return;
@@ -87,13 +89,21 @@ void test('[IAE-007, IAE-008] derivative registration resolves sources and persi
   });
   assert.equal(derived.accepted, true);
   if (!derived.accepted) return;
-  assert.equal((await lineage.findByDerived(context('read'), derived.value.version.versionId))?.lineageId, '00000000-0000-4000-8000-000000000033');
+  assert.equal(
+    (await lineage.findByDerived(context('read'), derived.value.version.versionId))?.lineageId,
+    '00000000-0000-4000-8000-000000000033',
+  );
 });
 
 void test('[IAE-008] Local source cannot produce a Hybrid derivative', async () => {
   const artifacts = new InMemoryArtifactRepositoryAdapter();
-  const service = new DerivedArtifactService(artifacts, new InMemoryArtifactLineageRepositoryAdapter());
-  const sourceService = new (await import('../../../src/features/iae/application/artifact.service.js')).ArtifactService(artifacts);
+  const service = new DerivedArtifactService(
+    artifacts,
+    new InMemoryArtifactLineageRepositoryAdapter(),
+  );
+  const sourceService = new (
+    await import('../../../src/features/iae/application/artifact.service.js')
+  ).ArtifactService(artifacts);
   const source = sourceInput('Local');
   const registered = await sourceService.register(context('local-source'), source);
   assert.equal(registered.accepted, true);
@@ -119,24 +129,54 @@ void test('[IAE-008] Local source cannot produce a Hybrid derivative', async () 
       contentSha256: 'c'.repeat(64),
     },
     sourceArtifactVersionIds: [source.version.versionId],
-    lineage: { lineageId: '00000000-0000-4000-8000-000000000043', processorVersion: 'test@1', coordinateLineage: [] },
+    lineage: {
+      lineageId: '00000000-0000-4000-8000-000000000043',
+      processorVersion: 'test@1',
+      coordinateLineage: [],
+    },
   });
   assert.deepEqual(rejected, { accepted: false, code: 'DATA_MODE_WIDENING' });
 });
 
 void test('[IAE-007] missing source prevents any derivative write', async () => {
   const artifacts = new InMemoryArtifactRepositoryAdapter();
-  const service = new DerivedArtifactService(artifacts, new InMemoryArtifactLineageRepositoryAdapter());
+  const service = new DerivedArtifactService(
+    artifacts,
+    new InMemoryArtifactLineageRepositoryAdapter(),
+  );
   const rejected = await service.register(context('missing-source'), {
     version: {
-      artifactId: '00000000-0000-4000-8000-000000000050', versionId: '00000000-0000-4000-8000-000000000051',
-      tenantScope: scope, sourceKind: 'GENERATED', dataMode: 'Local', contentSha256: 'd'.repeat(64), byteSize: 1,
-      mediaType: 'text/csv', displayName: 'missing.csv', createdAt: '2026-01-01T00:00:01.000Z',
+      artifactId: '00000000-0000-4000-8000-000000000050',
+      versionId: '00000000-0000-4000-8000-000000000051',
+      tenantScope: scope,
+      sourceKind: 'GENERATED',
+      dataMode: 'Local',
+      contentSha256: 'd'.repeat(64),
+      byteSize: 1,
+      mediaType: 'text/csv',
+      displayName: 'missing.csv',
+      createdAt: '2026-01-01T00:00:01.000Z',
     },
-    placement: { placementId: '00000000-0000-4000-8000-000000000052', tenantScope: scope, kind: 'LOCAL', opaqueReference: 'missing-reference_1234', contentSha256: 'd'.repeat(64) },
+    placement: {
+      placementId: '00000000-0000-4000-8000-000000000052',
+      tenantScope: scope,
+      kind: 'LOCAL',
+      opaqueReference: 'missing-reference_1234',
+      contentSha256: 'd'.repeat(64),
+    },
     sourceArtifactVersionIds: ['00000000-0000-4000-8000-000000000053'],
-    lineage: { lineageId: '00000000-0000-4000-8000-000000000054', processorVersion: 'test@1', coordinateLineage: [] },
+    lineage: {
+      lineageId: '00000000-0000-4000-8000-000000000054',
+      processorVersion: 'test@1',
+      coordinateLineage: [],
+    },
   });
   assert.deepEqual(rejected, { accepted: false, code: 'SOURCE_NOT_FOUND' });
-  assert.equal((await artifacts.findVersion(context('missing-read'), '00000000-0000-4000-8000-000000000051' as never)), undefined);
+  assert.equal(
+    await artifacts.findVersion(
+      context('missing-read'),
+      '00000000-0000-4000-8000-000000000051' as never,
+    ),
+    undefined,
+  );
 });

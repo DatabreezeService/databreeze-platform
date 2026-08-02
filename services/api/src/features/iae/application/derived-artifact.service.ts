@@ -13,7 +13,10 @@ import {
   type ContentPlacementV1,
   type EvidenceReferenceV1,
 } from '@databreeze/domain/artifact/v1';
-import { parseStableIdentifierV1, type StableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
+import {
+  parseStableIdentifierV1,
+  type StableIdentifierV1,
+} from '@databreeze/domain/tenant-scope/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type { ArtifactLineageRepositoryPortV1 } from './artifact-lineage-repository.port.js';
@@ -59,22 +62,30 @@ export class DerivedArtifactService {
     const sourceIds: StableIdentifierV1[] = [];
     for (const candidate of input.sourceArtifactVersionIds) {
       const parsed = parseStableIdentifierV1(candidate);
-      if (!parsed.accepted) return Object.freeze({ accepted: false as const, code: 'INVALID_IDENTIFIER' as const });
+      if (!parsed.accepted)
+        return Object.freeze({ accepted: false as const, code: 'INVALID_IDENTIFIER' as const });
       sourceIds.push(parsed.value);
     }
-    const sourceVersions = await this.artifactRepository.withTransaction(context, async (transaction) => {
-      const values: ArtifactVersionV1[] = [];
-      for (const sourceId of sourceIds) {
-        const source = await transaction.findVersion(context, sourceId);
-        if (!source) return undefined;
-        values.push(source);
-      }
-      return values;
-    });
-    if (!sourceVersions) return Object.freeze({ accepted: false as const, code: 'SOURCE_NOT_FOUND' as const });
+    const sourceVersions = await this.artifactRepository.withTransaction(
+      context,
+      async (transaction) => {
+        const values: ArtifactVersionV1[] = [];
+        for (const sourceId of sourceIds) {
+          const source = await transaction.findVersion(context, sourceId);
+          if (!source) return undefined;
+          values.push(source);
+        }
+        return values;
+      },
+    );
+    if (!sourceVersions)
+      return Object.freeze({ accepted: false as const, code: 'SOURCE_NOT_FOUND' as const });
     const policy = validateDerivedArtifactVersionV1({ derived: version.value, sourceVersions });
     if (!policy.accepted) return policy;
-    const placement = createContentPlacementV1({ ...input.placement, artifactVersion: version.value });
+    const placement = createContentPlacementV1({
+      ...input.placement,
+      artifactVersion: version.value,
+    });
     if (!placement.accepted) return placement;
     const evidence = input.evidence
       ? createEvidenceReferenceV1({ ...input.evidence, artifactVersion: version.value })

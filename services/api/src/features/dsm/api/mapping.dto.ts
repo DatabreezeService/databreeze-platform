@@ -1,6 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsIn, IsISO8601, IsObject, IsOptional, IsString, IsUUID, MaxLength, MinLength, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsIn,
+  IsISO8601,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 
 export class MappingStepDto {
   @ApiProperty({ format: 'uuid' })
@@ -11,9 +22,18 @@ export class MappingStepDto {
   @IsUUID()
   targetFieldId!: string;
 
-  @ApiProperty({ enum: ['IDENTITY', 'TRIM', 'LOWERCASE', 'UPPERCASE', 'PARSE_DECIMAL', 'PARSE_DATE', 'LOOKUP'] })
+  @ApiProperty({
+    enum: ['IDENTITY', 'TRIM', 'LOWERCASE', 'UPPERCASE', 'PARSE_DECIMAL', 'PARSE_DATE', 'LOOKUP'],
+  })
   @IsIn(['IDENTITY', 'TRIM', 'LOWERCASE', 'UPPERCASE', 'PARSE_DECIMAL', 'PARSE_DATE', 'LOOKUP'])
-  transform!: 'IDENTITY' | 'TRIM' | 'LOWERCASE' | 'UPPERCASE' | 'PARSE_DECIMAL' | 'PARSE_DATE' | 'LOOKUP';
+  transform!:
+    | 'IDENTITY'
+    | 'TRIM'
+    | 'LOWERCASE'
+    | 'UPPERCASE'
+    | 'PARSE_DECIMAL'
+    | 'PARSE_DATE'
+    | 'LOOKUP';
 
   @ApiPropertyOptional({ format: 'uuid' })
   @IsOptional()
