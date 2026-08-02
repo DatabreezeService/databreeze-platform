@@ -13,6 +13,8 @@ import { parseStableIdentifierV1, type StableIdentifierV1 } from '@databreeze/do
 import type { IamTenantContextV1 } from './tenant-context.js';
 import type { DeviceIdentityRepositoryPortV1 } from './device-identity-repository.port.js';
 
+export const DEVICE_IDENTITY_SERVICE = Symbol('DEVICE_IDENTITY_SERVICE');
+
 export interface DeviceEnrollmentProofVerifierV1 {
   verify(input: {
     readonly challenge: DeviceEnrollmentChallengeV1;
@@ -20,6 +22,13 @@ export interface DeviceEnrollmentProofVerifierV1 {
     readonly proof: unknown;
     readonly now: unknown;
   }): boolean | Promise<boolean>;
+}
+
+/** Safe default: enrollment never succeeds until the host supplies a crypto verifier. */
+export class UnavailableDeviceEnrollmentProofVerifier implements DeviceEnrollmentProofVerifierV1 {
+  public verify(_input: Parameters<DeviceEnrollmentProofVerifierV1['verify']>[0]): boolean {
+    return false;
+  }
 }
 
 export type DeviceIdentityApplicationErrorCodeV1 =
