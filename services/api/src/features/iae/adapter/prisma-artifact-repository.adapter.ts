@@ -103,6 +103,10 @@ export interface ArtifactDatabaseClientV1 {
       readonly where: { readonly id: string };
       readonly data: { readonly available: boolean; readonly revision: number };
     }): Promise<ContentPlacementDatabaseRowV1>;
+    updateMany(input: {
+      readonly where: { readonly id: string; readonly revision: number };
+      readonly data: { readonly available: boolean; readonly revision: number };
+    }): Promise<{ readonly count: number }>;
   };
   readonly evidenceReference: {
     create(input: { readonly data: EvidenceCreateDataV1 }): Promise<EvidenceDatabaseRowV1>;
@@ -341,10 +345,11 @@ class PrismaArtifactTransactionAdapter implements ArtifactTransactionPortV1 {
       current.contentSha256 !== placement.contentSha256
     )
       throw new Error('IAE_IMMUTABLE_PLACEMENT');
-    await this.client.contentPlacement.update({
-      where: { id: placement.placementId },
+    const result = await this.client.contentPlacement.updateMany({
+      where: { id: placement.placementId, revision: current.revision },
       data: { available: placement.available, revision: placement.revision },
     });
+    if (result.count !== 1) throw new Error('IAE_REVISION_CONFLICT');
   }
 
   public async saveEvidence(
