@@ -123,7 +123,7 @@ function rule(input: unknown): QualityRuleV1 | RuleSetErrorCodeV1 {
   } else if (kind === 'REFERENCE') {
     if (!identifier((parameters as Record<string, unknown>)['referenceEntityVersionId']))
       return 'INVALID_PARAMETERS';
-  } else if (Object.keys(parameters as object).length > 0) {
+  } else if (Object.keys(parameters).length > 0) {
     return 'INVALID_PARAMETERS';
   }
   return Object.freeze({

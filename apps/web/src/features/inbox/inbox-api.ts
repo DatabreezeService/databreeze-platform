@@ -24,7 +24,7 @@ export interface InboxListItem {
 }
 
 function apiBaseUrl(): string {
-  const configured = import.meta.env['VITE_DATABREEZE_API_BASE_URL'];
+  const configured: unknown = import.meta.env['VITE_DATABREEZE_API_BASE_URL'];
   if (typeof configured !== 'string' || configured.trim() === '') return '';
   return configured.replace(/\/$/u, '');
 }
