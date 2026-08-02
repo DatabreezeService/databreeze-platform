@@ -2,7 +2,11 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const output = process.argv[process.argv.indexOf('--output') + 1] || 'artifacts/provenance.json';
+const outputIndex = process.argv.indexOf('--output');
+const output = outputIndex === -1 ? 'artifacts/provenance.json' : process.argv[outputIndex + 1];
+if (!output || output.startsWith('--')) {
+  throw new Error('--output requires a file path');
+}
 const artifactArguments = [];
 for (let index = 0; index < process.argv.length; index += 1) {
   if (process.argv[index] !== '--artifact') continue;

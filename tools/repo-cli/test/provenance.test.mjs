@@ -55,3 +55,12 @@ test('provenance generation rejects an artifact flag without a path', () => {
   assert.notEqual(result.status, 0);
   assert.match(`${result.stdout}\n${result.stderr}`, /--artifact requires a file path/u);
 });
+
+test('provenance generation rejects an output flag without a path', () => {
+  const result = spawnSync(process.execPath, [script, '--output'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(`${result.stdout}\n${result.stderr}`, /--output requires a file path/u);
+});
