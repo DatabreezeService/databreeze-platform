@@ -48,7 +48,7 @@ def _workbook(
         )
     sheet = (
         b'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-        b'<sheetData>' + sheet_rows + b'</sheetData></worksheet>'
+        b"<sheetData>" + sheet_rows + b"</sheetData></worksheet>"
     )
     output = io.BytesIO()
     with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
