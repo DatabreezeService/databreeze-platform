@@ -7,7 +7,9 @@ import { RuleSetController } from './api/rule-set.controller.js';
 import { DatasetVersionController } from './api/dataset-version.controller.js';
 import { DatasetQualityController } from './api/dataset-quality.controller.js';
 import { DatasetProfileController } from './api/dataset-profile.controller.js';
+import { DatasetExportController } from './api/dataset-export.controller.js';
 import { InMemoryDatasetProfileRepositoryAdapter } from './adapter/in-memory-dataset-profile-repository.adapter.js';
+import { InMemoryDatasetExportRepositoryAdapter } from './adapter/in-memory-dataset-export-repository.adapter.js';
 import {
   PrismaDatasetProfileRepositoryAdapter,
   type DatasetProfileDatabaseClientV1,
@@ -71,6 +73,10 @@ import {
   type DatasetProfileRepositoryPortV1,
 } from './application/dataset-profile-repository.port.js';
 import {
+  DATASET_EXPORT_REPOSITORY_PORT,
+  type DatasetExportRepositoryPortV1,
+} from './application/dataset-export-repository.port.js';
+import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
   UnavailableRequestTenantContextAdapter,
@@ -98,6 +104,7 @@ export interface DsmModuleOptions {
   readonly datasetProfileRepository?: DatasetProfileRepositoryPortV1;
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly datasetProfileDatabase?: DatasetProfileDatabaseClientV1;
+  readonly datasetExportRepository?: DatasetExportRepositoryPortV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
 }
 
@@ -114,6 +121,7 @@ export class DsmModule {
         DatasetVersionController,
         DatasetQualityController,
         DatasetProfileController,
+        DatasetExportController,
       ],
       providers: [
         {
@@ -171,6 +179,10 @@ export class DsmModule {
             (options.datasetProfileDatabase === undefined
               ? new InMemoryDatasetProfileRepositoryAdapter()
               : new PrismaDatasetProfileRepositoryAdapter(options.datasetProfileDatabase)),
+        },
+        {
+          provide: DATASET_EXPORT_REPOSITORY_PORT,
+          useValue: options.datasetExportRepository ?? new InMemoryDatasetExportRepositoryAdapter(),
         },
         {
           provide: REQUEST_TENANT_CONTEXT,

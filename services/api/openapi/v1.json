@@ -5204,6 +5204,151 @@
         "tags": ["datasets"]
       }
     },
+    "/v1/dataset-exports": {
+      "post": {
+        "operationId": "DatasetExportController.create",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateDatasetExportManifestDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Create a governed dataset export verification manifest",
+        "tags": ["datasets"]
+      }
+    },
+    "/v1/dataset-exports/{manifestId}": {
+      "get": {
+        "operationId": "DatasetExportController.find",
+        "parameters": [
+          { "name": "manifestId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Read an immutable governed dataset export manifest",
+        "tags": ["datasets"]
+      }
+    },
     "/v1/devices/sync/operations": {
       "post": {
         "operationId": "DeviceSyncController.enqueue",
@@ -7429,6 +7574,64 @@
           "rowCountScanned",
           "resourceLimits",
           "profileFingerprint",
+          "createdAt"
+        ]
+      },
+      "CreateDatasetExportManifestDto": {
+        "type": "object",
+        "properties": {
+          "manifestId": { "type": "string", "format": "uuid" },
+          "datasetId": { "type": "string", "format": "uuid" },
+          "datasetVersionId": { "type": "string", "format": "uuid" },
+          "dataMode": { "type": "string", "enum": ["LOCAL", "HYBRID", "CLOUD"] },
+          "payloadClass": {
+            "type": "string",
+            "enum": ["GOVERNED_DATA", "APPROVED_DERIVED_RESULT"]
+          },
+          "format": { "type": "string", "enum": ["CSV", "JSONL", "PARQUET", "XLSX"] },
+          "rowCount": { "type": "number", "minimum": 0 },
+          "byteSize": { "type": "number", "minimum": 0 },
+          "contentSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "schemaVersionId": { "type": "string", "format": "uuid" },
+          "mappingVersionId": { "type": "string", "format": "uuid" },
+          "ruleSetVersionId": { "type": "string", "format": "uuid" },
+          "semanticManifestHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "metricManifestHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "qualityManifestHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "lineageManifestHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "evidenceManifestHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "policyHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "qualityState": {
+            "type": "string",
+            "enum": ["PASS", "PASS_WITH_WARNINGS", "BLOCKED", "INCOMPLETE"]
+          },
+          "approvalState": {
+            "type": "string",
+            "enum": ["NOT_REQUIRED", "PENDING", "APPROVED", "REJECTED"]
+          },
+          "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": [
+          "manifestId",
+          "datasetId",
+          "datasetVersionId",
+          "dataMode",
+          "payloadClass",
+          "format",
+          "rowCount",
+          "byteSize",
+          "contentSha256",
+          "schemaVersionId",
+          "mappingVersionId",
+          "ruleSetVersionId",
+          "semanticManifestHash",
+          "metricManifestHash",
+          "qualityManifestHash",
+          "lineageManifestHash",
+          "evidenceManifestHash",
+          "policyHash",
+          "qualityState",
+          "approvalState",
           "createdAt"
         ]
       },
