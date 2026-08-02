@@ -10,6 +10,8 @@ const read = (relativePath) => readFileSync(path.join(repositoryRoot, relativePa
 
 test('local compose defines pinned, healthy disposable dependencies', () => {
   const compose = read('infrastructure/local/compose.yml');
+  const envExample = read('infrastructure/local/.env.example');
+  assert.match(envExample, /^DATABREEZE_MIN_FREE_GIB=5$/m);
   for (const service of [
     'postgres:',
     'redis:',
