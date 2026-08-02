@@ -78,6 +78,17 @@ def test_engine_telemetry_does_not_execute_hostile_mapping_items() -> None:
         assert_safe_attributes(HostileMapping())
 
 
+def test_engine_telemetry_normalizes_provider_value_errors() -> None:
+    class ValueErrorMapping(dict[str, object]):
+        def items(self):  # type: ignore[override]
+            raise ValueError("provider value error must not escape")
+
+    assert sanitize_attributes(ValueErrorMapping()) == {}
+    with pytest.raises(ValueError, match="not readable") as error:
+        assert_safe_attributes(ValueErrorMapping())
+    assert "provider value error" not in str(error.value)
+
+
 def test_engine_telemetry_rejects_hostile_or_non_string_header_values() -> None:
     class HostileHeaders(dict[str, object]):
         def items(self):  # type: ignore[override]
@@ -91,6 +102,14 @@ def test_engine_telemetry_rejects_hostile_or_non_string_header_values() -> None:
                 "x-correlation-id": [1, 2],
             }
         )
+
+    class ValueErrorHeaders(dict[str, object]):
+        def items(self):  # type: ignore[override]
+            raise ValueError("provider header value error must not escape")
+
+    with pytest.raises(ValueError, match="not readable") as error:
+        correlation_from_headers(ValueErrorHeaders())
+    assert "provider header value error" not in str(error.value)
 
 
 def test_engine_accepts_mixed_case_header_names() -> None:

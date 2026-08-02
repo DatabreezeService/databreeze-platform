@@ -85,6 +85,32 @@ test('telemetry never executes accessor-backed correlation headers', () => {
   assert.equal(accessed, false);
 });
 
+test('telemetry rejects proxies that fail during reflection without exposing trap errors', () => {
+  const hostileAttributes = new Proxy(
+    {},
+    {
+      ownKeys() {
+        throw new Error('attribute trap cause');
+      },
+    },
+  );
+  assert.deepEqual(sanitizeTelemetryAttributesV1(hostileAttributes), {});
+  assert.throws(
+    () => assertSafeTelemetryAttributesV1(hostileAttributes),
+    UnsafeTelemetryAttributeErrorV1,
+  );
+
+  const hostileHeaders = new Proxy(
+    {},
+    {
+      ownKeys() {
+        throw new Error('header trap cause');
+      },
+    },
+  );
+  assert.throws(() => correlationFromHeadersV1(hostileHeaders), /Unreadable telemetry/u);
+});
+
 test('correlation headers round-trip without accepting malformed identifiers', () => {
   const context = createCorrelationContextV1({
     correlationId,
@@ -118,6 +144,10 @@ test('correlation headers round-trip without accepting malformed identifiers', (
     }),
   );
   assert.throws(() => correlationFromHeadersV1({}));
+  assert.throws(
+    () => correlationFromHeadersV1({ 'x-correlation-id': 1 }),
+    /Unreadable telemetry x-correlation-id header/u,
+  );
   assert.throws(() =>
     correlationFromHeadersV1({ 'x-correlation-id': [correlationId, correlationId] }),
   );
