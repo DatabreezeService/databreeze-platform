@@ -12,5 +12,5 @@ test('infrastructure changes are shared quality-gate inputs', () => {
     'utf8',
   );
   assert.match(source, /'infrastructure\/'/u);
-  assert.match(source, /infrastructure: matches\(\['infrastructure\/'\]\)/u);
+  assert.match(source, /infrastructure: shared \|\| matches\(\['infrastructure\/'\]\)/u);
 });
