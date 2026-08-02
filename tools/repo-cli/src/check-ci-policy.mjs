@@ -53,7 +53,10 @@ function assertBoundedJobs(text, filename) {
 }
 
 function assertArtifactOutputs(text, filename) {
-  const artifactSteps = text.match(/-\s+uses:\s+actions\/upload-artifact@[^\n]+[\s\S]*?(?=\n\s+-\s+name:|\n\s+\w+:\s*$|$)/gim) ?? [];
+  const artifactSteps =
+    text.match(
+      /-\s+uses:\s+actions\/upload-artifact@[^\n]+[\s\S]*?(?=\n\s+-\s+name:|\n\s+\w+:\s*$|$)/gim,
+    ) ?? [];
   for (const step of artifactSteps) {
     if (!/if-no-files-found:\s*error/iu.test(step)) {
       throw new Error(`${filename} artifact uploads must fail when an output is missing`);

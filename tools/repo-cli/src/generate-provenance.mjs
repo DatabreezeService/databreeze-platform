@@ -20,15 +20,14 @@ const missingArtifacts = artifactArguments.filter((file) => !fs.existsSync(file)
 if (missingArtifacts.length > 0) {
   throw new Error(`Provenance artifact(s) do not exist: ${missingArtifacts.join(', ')}`);
 }
-const artifacts = artifactArguments
-  .map((file) => {
-    const bytes = fs.readFileSync(file);
-    return {
-      path: path.relative(process.cwd(), file).replaceAll('\\', '/'),
-      sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
-      size: bytes.length,
-    };
-  });
+const artifacts = artifactArguments.map((file) => {
+  const bytes = fs.readFileSync(file);
+  return {
+    path: path.relative(process.cwd(), file).replaceAll('\\', '/'),
+    sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
+    size: bytes.length,
+  };
+});
 artifacts.sort((a, b) => a.path.localeCompare(b.path));
 const epoch = Number(process.env.SOURCE_DATE_EPOCH || 0);
 const provenance = {

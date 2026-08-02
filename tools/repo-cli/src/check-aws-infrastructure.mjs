@@ -55,7 +55,8 @@ for (const requiredBoundary of [
   'recovery_window_in_days = 30',
   'force_destroy = false',
 ]) {
-  if (!allTerraform.includes(requiredBoundary)) fail(`missing required safety boundary ${requiredBoundary}`);
+  if (!allTerraform.includes(requiredBoundary))
+    fail(`missing required safety boundary ${requiredBoundary}`);
 }
 if (/ingress[\s\S]{0,400}cidr_blocks\s*=\s*\["0\.0\.0\.0\/0"\]/u.test(allTerraform)) {
   fail('a private service security group permits unrestricted ingress');

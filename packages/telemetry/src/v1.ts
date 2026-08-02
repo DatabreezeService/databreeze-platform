@@ -198,7 +198,11 @@ export function assertSafeTelemetryAttributesV1(
       throw new UnsafeTelemetryAttributeErrorV1(key);
     }
     const descriptor = Object.getOwnPropertyDescriptor(input, key);
-    if (!descriptor || !('value' in descriptor) || safeScalar(key, descriptor.value) === undefined) {
+    if (
+      !descriptor ||
+      !('value' in descriptor) ||
+      safeScalar(key, descriptor.value) === undefined
+    ) {
       throw new UnsafeTelemetryAttributeErrorV1(key);
     }
   }
@@ -261,7 +265,8 @@ function readSingleHeader(
   const values: string[] = [];
   for (const key of Object.keys(headers)) {
     const descriptor = Object.getOwnPropertyDescriptor(headers, key);
-    if (!descriptor || !('value' in descriptor)) throw new Error(`Unreadable telemetry ${name} header`);
+    if (!descriptor || !('value' in descriptor))
+      throw new Error(`Unreadable telemetry ${name} header`);
     const value = descriptor.value as string | string[] | undefined;
     if (key.toLowerCase() !== name) continue;
     if (Array.isArray(value)) {
@@ -269,8 +274,7 @@ function readSingleHeader(
         throw new Error(`Unreadable telemetry ${name} header`);
       }
       values.push(...value);
-    }
-    else if (value !== undefined) values.push(value);
+    } else if (value !== undefined) values.push(value);
   }
   if (values.length > 1) throw new Error(`Ambiguous telemetry ${name} header`);
   if (values.length === 0) return undefined;

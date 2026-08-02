@@ -81,15 +81,19 @@ function environment() {
     fileValues.set('COMPOSE_PROJECT_NAME', process.env.COMPOSE_PROJECT_NAME);
   }
   for (const definition of hostPorts) {
-    if (process.env[definition.key] !== undefined) fileValues.set(definition.key, process.env[definition.key]);
+    if (process.env[definition.key] !== undefined)
+      fileValues.set(definition.key, process.env[definition.key]);
   }
   return fileValues;
 }
 
 function projectName(values) {
-  const value = values.get('COMPOSE_PROJECT_NAME') || process.env.COMPOSE_PROJECT_NAME || 'databreeze-local';
+  const value =
+    values.get('COMPOSE_PROJECT_NAME') || process.env.COMPOSE_PROJECT_NAME || 'databreeze-local';
   if (!/^[a-z0-9][a-z0-9_-]{0,62}$/u.test(value)) {
-    fail('COMPOSE_PROJECT_NAME must start with a lowercase letter or digit and contain only lowercase letters, digits, hyphens, or underscores');
+    fail(
+      'COMPOSE_PROJECT_NAME must start with a lowercase letter or digit and contain only lowercase letters, digits, hyphens, or underscores',
+    );
   }
   return value;
 }
@@ -112,7 +116,9 @@ function runDocker(args, { allowFailure = false } = {}) {
   const result = spawnSync('docker', args, { cwd: repositoryRoot, encoding: 'utf8' });
   if (!allowFailure && (result.error || result.status !== 0)) {
     if (result.error?.code === 'ENOENT') {
-      fail('Docker CLI is not installed or not on PATH; start Docker Desktop before using this command');
+      fail(
+        'Docker CLI is not installed or not on PATH; start Docker Desktop before using this command',
+      );
     }
     const detail = (result.stderr || result.stdout || result.error?.message || '').trim();
     fail(`docker ${args.join(' ')} failed${detail ? `: ${detail}` : ''}`);
@@ -126,10 +132,14 @@ function requireDocker() {
     encoding: 'utf8',
   });
   if (result.error?.code === 'ENOENT') {
-    fail('Docker CLI is not installed or not on PATH; start Docker Desktop before using this command');
+    fail(
+      'Docker CLI is not installed or not on PATH; start Docker Desktop before using this command',
+    );
   }
   if (result.status !== 0) {
-    fail('Docker daemon is unavailable; start Docker Desktop or another Docker Engine before using this command');
+    fail(
+      'Docker daemon is unavailable; start Docker Desktop or another Docker Engine before using this command',
+    );
   }
 }
 
@@ -146,14 +156,20 @@ function ensureDiskSpace(minFreeGib) {
   const freeBytes = Number(stats.bavail) * Number(stats.bsize);
   const requiredBytes = minFreeGib * 1024 ** 3;
   if (freeBytes < requiredBytes) {
-    fail(`host free space is ${(freeBytes / 1024 ** 3).toFixed(2)} GiB; at least ${minFreeGib} GiB is required`);
+    fail(
+      `host free space is ${(freeBytes / 1024 ** 3).toFixed(2)} GiB; at least ${minFreeGib} GiB is required`,
+    );
   }
 }
 
 function containerRunning(service, values) {
-  const id = runDocker([...composeArgs(values), 'ps', '-q', service], { allowFailure: true }).stdout.trim();
+  const id = runDocker([...composeArgs(values), 'ps', '-q', service], {
+    allowFailure: true,
+  }).stdout.trim();
   if (!id) return false;
-  const state = runDocker(['inspect', '--format', '{{.State.Running}}', id], { allowFailure: true });
+  const state = runDocker(['inspect', '--format', '{{.State.Running}}', id], {
+    allowFailure: true,
+  });
   return state.stdout.trim() === 'true';
 }
 
@@ -182,10 +198,13 @@ async function ensurePorts(values) {
     }
     configured.set(port, definition);
     if (containerRunning(definition.service, values)) continue;
-    if (!(await portAvailable(port))) collisions.push(`${definition.key}=${port} (${definition.service})`);
+    if (!(await portAvailable(port)))
+      collisions.push(`${definition.key}=${port} (${definition.service})`);
   }
   if (collisions.length > 0) {
-    fail(`host ports are already in use: ${collisions.join(', ')}; set alternate ports in infrastructure/local/.env`);
+    fail(
+      `host ports are already in use: ${collisions.join(', ')}; set alternate ports in infrastructure/local/.env`,
+    );
   }
 }
 
@@ -208,7 +227,9 @@ async function waitForReady(values, waitSeconds) {
   let last = new Map();
   while (Date.now() <= deadline) {
     last = new Map(services.map((service) => [service, inspectHealth(service, values)]));
-    if ([...last.values()].every(({ state, health }) => state === 'running' && health === 'healthy')) {
+    if (
+      [...last.values()].every(({ state, health }) => state === 'running' && health === 'healthy')
+    ) {
       console.log(`Local services ready (${services.join(', ')}).`);
       return;
     }
@@ -217,14 +238,16 @@ async function waitForReady(values, waitSeconds) {
     await delay(1000);
   }
   console.error('\nLocal services did not become ready:');
-  for (const service of services) console.error(`- ${service}: ${last.get(service)?.detail ?? 'unknown'}`);
+  for (const service of services)
+    console.error(`- ${service}: ${last.get(service)?.detail ?? 'unknown'}`);
   fail(`readiness timeout after ${waitSeconds}s`);
 }
 
 function parseArguments(argv) {
   let command = 'smoke';
   const argumentsToParse = [...argv];
-  if (argumentsToParse[0] && !argumentsToParse[0].startsWith('-')) command = argumentsToParse.shift();
+  if (argumentsToParse[0] && !argumentsToParse[0].startsWith('-'))
+    command = argumentsToParse.shift();
   const options = {
     start: false,
     waitSeconds: 60,
@@ -256,7 +279,11 @@ function parseArguments(argv) {
     }
     fail(`unknown argument: ${argument}`);
   }
-  if (!Number.isInteger(options.waitSeconds) || options.waitSeconds < 1 || options.waitSeconds > 3600) {
+  if (
+    !Number.isInteger(options.waitSeconds) ||
+    options.waitSeconds < 1 ||
+    options.waitSeconds > 3600
+  ) {
     fail('--wait-seconds must be an integer from 1 to 3600');
   }
   if (!Number.isInteger(options.tail) || options.tail < 1 || options.tail > 1000) {
@@ -268,7 +295,21 @@ function parseArguments(argv) {
   if (!Number.isFinite(options.minFreeGib) || options.minFreeGib < 0) {
     fail('--min-free-gib must be a non-negative number');
   }
-  if (!['config', 'preflight', 'check', 'start', 'stop', 'reset', 'restart-check', 'persistence-check', 'status', 'logs', 'smoke'].includes(command)) {
+  if (
+    ![
+      'config',
+      'preflight',
+      'check',
+      'start',
+      'stop',
+      'reset',
+      'restart-check',
+      'persistence-check',
+      'status',
+      'logs',
+      'smoke',
+    ].includes(command)
+  ) {
     fail(`unknown command: ${command}`);
   }
   return { command, options };
@@ -297,12 +338,19 @@ export async function main(argv = process.argv.slice(2)) {
   validateCompose(values);
 
   if (command === 'status') {
-    for (const service of services) console.log(`${service}: ${inspectHealth(service, values).detail}`);
+    for (const service of services)
+      console.log(`${service}: ${inspectHealth(service, values).detail}`);
     return;
   }
   if (command === 'logs') {
     const selected = options.service ? [options.service] : logServices;
-    runDocker([...composeArgs(values), 'logs', '--no-color', `--tail=${options.tail}`, ...selected]);
+    runDocker([
+      ...composeArgs(values),
+      'logs',
+      '--no-color',
+      `--tail=${options.tail}`,
+      ...selected,
+    ]);
     return;
   }
   if (command === 'stop') {
@@ -311,7 +359,8 @@ export async function main(argv = process.argv.slice(2)) {
     return;
   }
 
-  const shouldStart = command === 'start' || command === 'reset' || (command === 'smoke' && options.start);
+  const shouldStart =
+    command === 'start' || command === 'reset' || (command === 'smoke' && options.start);
   if (shouldStart) {
     ensureDiskSpace(options.minFreeGib);
     await ensurePorts(values);
@@ -332,7 +381,9 @@ export async function main(argv = process.argv.slice(2)) {
   if (command === 'restart-check') {
     runDocker([...composeArgs(values), 'restart']);
     await waitForReady(values, options.waitSeconds);
-    console.log('Local service restart and health checks passed. Use persistence-check for a Redis sentinel probe.');
+    console.log(
+      'Local service restart and health checks passed. Use persistence-check for a Redis sentinel probe.',
+    );
     return;
   }
   if (command === 'persistence-check') {
@@ -352,8 +403,17 @@ export async function main(argv = process.argv.slice(2)) {
     ]);
     runDocker([...composeArgs(values), 'restart', 'redis']);
     await waitForReady(values, options.waitSeconds);
-    const result = runDocker([...composeArgs(values), 'exec', '-T', 'redis', 'redis-cli', 'GET', key]);
-    if (result.stdout.trim() !== value) fail('Redis persistence sentinel was not recovered after restart');
+    const result = runDocker([
+      ...composeArgs(values),
+      'exec',
+      '-T',
+      'redis',
+      'redis-cli',
+      'GET',
+      key,
+    ]);
+    if (result.stdout.trim() !== value)
+      fail('Redis persistence sentinel was not recovered after restart');
     runDocker([...composeArgs(values), 'exec', '-T', 'redis', 'redis-cli', 'DEL', key]);
     console.log('Local Redis persistence check passed; sentinel was removed.');
     return;

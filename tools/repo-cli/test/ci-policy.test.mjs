@@ -19,12 +19,21 @@ test('CI policy requires checkout credentials to be discarded', () => {
 });
 
 test('CI policy fails closed when an artifact output is missing', () => {
-  const workflow = fs.readFileSync(path.join(process.cwd(), '.github/workflows/release.yml'), 'utf8');
-  assert.match(workflow, /actions\/upload-artifact@[0-9a-f]{40}[\s\S]*if-no-files-found:\s*error/iu);
+  const workflow = fs.readFileSync(
+    path.join(process.cwd(), '.github/workflows/release.yml'),
+    'utf8',
+  );
+  assert.match(
+    workflow,
+    /actions\/upload-artifact@[0-9a-f]{40}[\s\S]*if-no-files-found:\s*error/iu,
+  );
 });
 
 test('release workflow uses the protected release environment', () => {
-  const workflow = fs.readFileSync(path.join(process.cwd(), '.github/workflows/release.yml'), 'utf8');
+  const workflow = fs.readFileSync(
+    path.join(process.cwd(), '.github/workflows/release.yml'),
+    'utf8',
+  );
   assert.match(workflow, /^\s+environment:\s*release\s*$/mu);
 });
 

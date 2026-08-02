@@ -33,7 +33,7 @@ test('local compose defines pinned, healthy disposable dependencies', () => {
     assert.match(compose, new RegExp(`^  ${volume}:`, 'm'));
   }
   assert.equal((compose.match(/healthcheck:/g) ?? []).length, 6);
-  assert.equal((compose.match(/^    init: true$/gmu) ?? []).length, 7);
+  assert.equal((compose.match(/^\s{4}init: true$/gmu) ?? []).length, 7);
   assert.match(compose, /minio-init:[\s\S]*depends_on:[\s\S]*condition: service_healthy/u);
   assert.match(compose, /minio-init:[\s\S]*restart: 'no'/u);
   assert.match(compose, /postgres-data:[\s\S]*name: \$\{COMPOSE_PROJECT_NAME/u);
@@ -95,7 +95,10 @@ test('local OpenTelemetry collector keeps every signal on the bounded local pipe
   for (const signal of ['traces:', 'metrics:', 'logs:']) {
     assert.match(collector, new RegExp(`^    ${signal}`, 'm'));
     assert.match(collector, new RegExp(`${signal}[\\s\\S]*receivers: \\[otlp\\]`, 'u'));
-    assert.match(collector, new RegExp(`${signal}[\\s\\S]*processors: \\[memory_limiter, batch\\]`, 'u'));
+    assert.match(
+      collector,
+      new RegExp(`${signal}[\\s\\S]*processors: \\[memory_limiter, batch\\]`, 'u'),
+    );
     assert.match(collector, new RegExp(`${signal}[\\s\\S]*exporters: \\[debug\\]`, 'u'));
   }
   assert.match(collector, /health_check:[\s\S]*endpoint: 0\.0\.0\.0:13133/u);
@@ -127,7 +130,19 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
     encoding: 'utf8',
   });
   assert.equal(result.status, 0, result.stderr);
-  for (const command of ['config', 'preflight', 'check', 'start', 'stop', 'reset', 'restart-check', 'persistence-check', 'status', 'logs', 'smoke']) {
+  for (const command of [
+    'config',
+    'preflight',
+    'check',
+    'start',
+    'stop',
+    'reset',
+    'restart-check',
+    'persistence-check',
+    'status',
+    'logs',
+    'smoke',
+  ]) {
     assert.match(result.stdout, new RegExp(`^  ${command}\\s`, 'm'));
   }
   assert.match(script, /statfsSync/u);
@@ -145,14 +160,20 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
     encoding: 'utf8',
   });
   assert.notEqual(invalidTimeout.status, 0);
-  assert.match(`${invalidTimeout.stdout}\n${invalidTimeout.stderr}`, /--wait-seconds must be an integer/u);
+  assert.match(
+    `${invalidTimeout.stdout}\n${invalidTimeout.stderr}`,
+    /--wait-seconds must be an integer/u,
+  );
 
   const invalidDisk = spawnSync(process.execPath, [helpScript, 'check', '--min-free-gib=-1'], {
     cwd: repositoryRoot,
     encoding: 'utf8',
   });
   assert.notEqual(invalidDisk.status, 0);
-  assert.match(`${invalidDisk.stdout}\n${invalidDisk.stderr}`, /--min-free-gib must be a non-negative number/u);
+  assert.match(
+    `${invalidDisk.stdout}\n${invalidDisk.stderr}`,
+    /--min-free-gib must be a non-negative number/u,
+  );
 
   const invalidTail = spawnSync(process.execPath, [helpScript, 'logs', '--tail=0'], {
     cwd: repositoryRoot,
@@ -174,7 +195,10 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
     env: { ...process.env, COMPOSE_PROJECT_NAME: '../unsafe-project' },
   });
   assert.notEqual(invalidProject.status, 0);
-  assert.match(`${invalidProject.stdout}\n${invalidProject.stderr}`, /COMPOSE_PROJECT_NAME must start/u);
+  assert.match(
+    `${invalidProject.stdout}\n${invalidProject.stderr}`,
+    /COMPOSE_PROJECT_NAME must start/u,
+  );
 
   const invalidEnvironmentDisk = spawnSync(process.execPath, [helpScript, 'preflight'], {
     cwd: repositoryRoot,
@@ -191,8 +215,9 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
     cwd: repositoryRoot,
     encoding: 'utf8',
   });
-  if (composeConfig.status === 0) assert.match(composeConfig.stdout, /Compose configuration is valid/u);
-  assert.match(script, /logs', '--no-color/u);
+  if (composeConfig.status === 0)
+    assert.match(composeConfig.stdout, /Compose configuration is valid/u);
+  assert.match(script, /logs[\s\S]*--no-color/u);
   assert.match(script, /--service must name one of/u);
   assert.match(script, /--tail must be an integer/u);
   assert.match(script, /COMPOSE_PROJECT_NAME must start/u);

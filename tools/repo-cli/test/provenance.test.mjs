@@ -37,7 +37,13 @@ test('provenance generation fails closed when an artifact is missing', () => {
   try {
     const result = spawnSync(
       process.execPath,
-      [script, '--output', path.join(directory, 'provenance.json'), '--artifact', path.join(directory, 'missing.json')],
+      [
+        script,
+        '--output',
+        path.join(directory, 'provenance.json'),
+        '--artifact',
+        path.join(directory, 'missing.json'),
+      ],
       { cwd: repositoryRoot, encoding: 'utf8' },
     );
     assert.notEqual(result.status, 0);
