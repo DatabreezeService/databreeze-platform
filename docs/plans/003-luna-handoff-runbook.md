@@ -20,11 +20,11 @@ Use this runbook to resume DataBreeze after a model, machine, branch, or hosted-
 
 4. Run `corepack pnpm orchestration:check`. Treat `execution-orchestration.json.checkpoint` as historical only; recompute the live PR/branch state.
 5. Inspect the selected task's requirement records. A record marked `implemented`, `verified`, or `released` must have real code/test/evidence paths that exist and match the current commit. Downgrade an unsupported status in the same corrective commit; never preserve a false completion claim.
-6. If a clean checkout is required, create an ignored worktree from the current integration base. Never reuse a worktree with unrelated user changes:
+6. If a clean checkout is required, create an ignored worktree from the current integration base. Select the branch prefix from the task type (`feat` for capability work, `fix` for corrections, `docs` for documentation, `ci` for workflow-only work, or another conventional prefix recorded in the task). Never reuse a worktree with unrelated user changes:
 
    ```powershell
    git check-ignore -q .worktrees
-   git worktree add .worktrees/<task-slug> -b feat/<task-slug> origin/dev
+   git worktree add .worktrees/<task-slug> -b <prefix>/<task-slug> origin/dev
    ```
 
 7. Bootstrap exactly as repository documentation specifies. The known clean-checkout sequence is:
@@ -115,7 +115,7 @@ For each `#### TASK-ID —` item in `002-complete-execution-orchestration.md`:
 | Duplicate command/job/webhook/client mutation | Existing idempotency/effect receipt matches | Return the prior outcome; never repeat a consequential effect |
 | Same idempotency key has different payload | Stored request hash differs | Return a stable conflict/security problem and audit it; do not choose either silently |
 | Lease expires while a worker finishes | Attempt/lease revision is stale | Reject/quarantine the result, clean grants/temp state, and let authoritative scheduling decide retry |
-| Redis is lost | Dispatch/cache/lock disappears | Reconstruct from PostgreSQL outbox/jobs; Redis is never authority |
+| Redis is lost | Dispatch/cache/lock disappears | First reconcile durable attempts and leases, fence stale workers, and verify idempotency/effect receipts; then rebuild dispatch hints from PostgreSQL outbox/jobs and redispatch only eligible work. Redis is never authority. |
 | Object store is partially available | Multipart/grant/hash operation fails | Keep state resumable, avoid finalization until verification, expire grants, and reconcile abandoned parts |
 | Database migration fails halfway | Migration journal/verify stage fails | Stop deploy, use the rehearsed compatible rollback/compensation path, preserve immutable records, and restore only from verified recovery points |
 | Contract generation differs by runtime | Drift/parity check fails | Fix canonical schema/generator/version, regenerate all runtimes, and block merge |
@@ -143,7 +143,7 @@ Canonical repository/worktree:
 Branch / HEAD / upstream:
 Remote dev / main:
 Open feature PR / promotion PR:
-CodeRabbit invocation count and review URL:
+CodeRabbit invocation count, invocation timestamp (UTC), and review URL:
 Active plan / task ID:
 Requirement IDs and statuses changed:
 Completed commits (hash — outcome):
@@ -169,7 +169,7 @@ You are resuming DataBreeze in the canonical databreeze-platform repository. Do 
 
 Live verified checkpoint: branch [BRANCH], HEAD [HEAD], origin/dev [DEV], origin/main [MAIN], open feature PR [FEATURE_PR_OR_NONE], open dev→main promotion PR [PROMOTION_PR_OR_NONE]. Run the orchestration checker and the documented clean baseline before edits. Preserve all user changes and use an ignored worktree if isolation is needed.
 
-Resume task [TASK_ID] only after proving its dependency/entry gate. Follow test-first atomic delivery: canonical contracts, failing domain tests, real PostgreSQL migration/tenant tests, implementation through ports, vertical client/adapter coverage, safe telemetry/recovery, traceability evidence, scoped checks, repo:check, repo:build, diff review, and one reversible commit. Do not mark merged code verified without all evidence.
+Resume task [TASK_ID] only after proving its dependency/entry gate. Follow test-first atomic delivery: canonical contracts when the interface changes, failing domain/state tests, PostgreSQL migration/tenant/transaction/outbox tests when durable state changes, implementation through ports, vertical client/adapter coverage when the task involves client behavior, safe telemetry/recovery, traceability evidence, scoped checks, repo:check, repo:build, diff review, and one reversible commit. For documentation-only or other non-durable/non-client tasks, record why those conditional tests do not apply. Do not mark merged code verified without all evidence.
 
 Git flow is fixed: feat/* or fix/* → PR to dev with hosted checks and no CodeRabbit; merge preserving atomic commits; immediately open dev→main; request exactly one CodeRabbit full review there; reproduce every comment, fix only valid findings, document rejected ones, never request a second review on that PR. Prefer 30–50 commits, hard cap 60, and do not invoke the promotion review over 280 changed files.
 

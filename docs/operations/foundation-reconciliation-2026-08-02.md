@@ -2,7 +2,7 @@
 
 **Evidence date:** 2026-08-02
 
-**Source commit:** `86e72d8`
+**Source commit:** `86e72d8569057d2a14ed6bb1672ce6a573fa8d7c` (display prefix: `86e72d8`)
 
 **Scope:** the merged engineering-foundation implementation and the 23 tasks in `docs/plans/010-engineering-foundation.md`.
 
@@ -65,4 +65,4 @@ The repository checks include generated-contract drift, brand checksum/derivativ
 
 ## Release and rollback decision
 
-FND-001 is complete as an evidence-reconciliation task. Plan 010 remains `partial-needs-reconciliation` until FND-002 through FND-007 close their independent gates and hosted OpenTofu validation is available. The next orchestration task is `FND-002`. Reverting this record and its test removes only reconciliation evidence; it does not alter application code, generated contracts, migrations, assets, or runtime state.
+FND-001 is complete as an evidence-reconciliation task. Plan 010 remains `partial-needs-reconciliation` until FND-002 through FND-007 close their independent gates and hosted OpenTofu validation is available. The next orchestration task is `FND-002`. Reverting this record and its test removes the reconciliation evidence and its `repo:check` enforcement; after such a rollback, run `corepack pnpm repo:check` and record the resulting gap before merging. The rollback does not alter application code, generated contracts, migrations, assets, or runtime state.

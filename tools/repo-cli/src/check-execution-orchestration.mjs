@@ -86,7 +86,13 @@ function escapeRegExp(value) {
 function pathExists(repositoryRoot, declaredPath) {
   if (typeof declaredPath !== 'string' || declaredPath.trim() === '') return false;
   if (/[{}*?]/u.test(declaredPath)) return false;
-  return existsSync(path.join(repositoryRoot, ...declaredPath.split('/')));
+  if (declaredPath.includes('\\')) return false;
+  const segments = declaredPath.split('/');
+  if (segments.some((segment) => segment === '.' || segment === '..')) return false;
+  const candidate = path.resolve(repositoryRoot, ...segments);
+  const relative = path.relative(repositoryRoot, candidate);
+  if (relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) return false;
+  return existsSync(candidate);
 }
 
 function validateDag(plans, diagnostics) {

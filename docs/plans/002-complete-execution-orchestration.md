@@ -47,6 +47,14 @@ Code is evidence of work, not evidence of full requirement completion. Use these
 | `released` | A coordinated signed release contains the verified requirement. | A later version; never silently reverted in the ledger |
 | `blocked` | External authority or state is required after safe alternatives are exhausted. | `planned` or `partial` after the blocker is resolved |
 
+The ledger also uses these plan/task states; they are not requirement statuses and must not be copied into a requirement record:
+
+| Plan/task state | Meaning | Allowed next state |
+|---|---|---|
+| `partial-needs-reconciliation` | Existing code or historical evidence exists, but the current checkpoint still needs an explicit reconciliation task. | `in-progress`, `planned`, or `blocked` |
+| `in-progress` | The selected task is actively being delivered on one branch/worktree. | `implemented`, `verified`, or `blocked` |
+| `post-ga-planned` | An opt-in P2 plan is intentionally held until GA release. | `in-progress` after GA, or `blocked` |
+
 Never infer `verified` from a merged PR, a green unit test, file existence, or a previous model's prose.
 
 ## 2. Recorded checkpoint
@@ -95,7 +103,7 @@ Parallel execution is allowed only when all of these are true:
 - One integration owner resolves contract/migration ordering before either branch merges.
 - The combined `dev` to `main` promotion remains below 280 changed files, leaving margin under CodeRabbit's 300-file limit.
 
-Safe parallel lanes after dogfood are FA→SA, QI, and OC. CRF and PDA may overlap only after their shared renderer/semantic interfaces are frozen. MR, DQG, and EI may overlap after a migration-number and contract-version reservation is recorded. The foundation spine 010→070 stays serial.
+Safe parallel lanes after dogfood are FA→SA, QI, and OC. CRF/PDA and MR/DQG remain serial by default. EI may overlap with those later plans only when both control records declare the matching interface-level entry gates, contract/migration reservations, and integration owner; otherwise they remain serial too. The foundation spine 010→070 stays serial.
 
 ## 4. Repository path contract
 
@@ -119,7 +127,14 @@ Every feature uses these exact roots; use the module key in the final column rat
 | 310 | `services/api/src/features/dqg` and `services/api/prisma/schema/dqg.prisma` | `data-quality-guard` |
 | 320 | `services/api/src/features/ei` and `services/api/prisma/schema/ei.prisma` | `embedded-importer` |
 
-Feature clients live under `apps/web/src/features/<key>`, `apps/desktop/src/features/<key>`, and `apps/android/app/src/main/kotlin/com/databreeze/<normalized-key>`. Deterministic processors live under `services/engine/src/databreeze_engine/processors/<normalized_key>`. Canonical schemas live under `packages/contracts/schemas/v1/<key>`; pure domain types live under `packages/domain/src/<key>/v1.ts`. Do not create aggregate prose-named modules such as `identity-audit-entitlements` or `production-readiness` in application code.
+Feature clients live under `apps/web/src/features/<key>` and `apps/desktop/src/features/<key>`. Android package directories use the deterministic `android-key`; engine processor directories use the deterministic `python-key`:
+
+| Derived key | Transformation | Example |
+|---|---|---|
+| `android-key` | Start with the lowercase ASCII module key, replace separators (`-` and `_`) with boundaries, remove all non-alphanumeric characters, and require the first character to be a letter. | `folder-autopilot` → `folderautopilot`; `private-data-analyst` → `privatedataanalyst` |
+| `python-key` | Start with the lowercase ASCII module key, replace every separator or invalid character with one underscore, collapse repeated underscores, and require the first character to be a letter. | `folder-autopilot` → `folder_autopilot`; `private-data-analyst` → `private_data_analyst` |
+
+Thus Android paths are `apps/android/app/src/main/kotlin/com/databreeze/<android-key>` and deterministic processors are `services/engine/src/databreeze_engine/processors/<python-key>`. Canonical schemas live under `packages/contracts/schemas/v1/<key>`; pure domain types live under `packages/domain/src/<key>/v1.ts`. Do not create aggregate prose-named modules such as `identity-audit-entitlements` or `production-readiness` in application code.
 
 ## 5. Atomic task execution contract
 

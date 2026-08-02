@@ -17,7 +17,10 @@ test('foundation reconciliation records every approved foundation task and gate'
   const evidence = readFileSync(evidencePath, 'utf8');
 
   assert.match(evidence, /^# Engineering Foundation Reconciliation$/mu);
-  assert.match(evidence, /\*\*Source commit:\*\* `86e72d8`/u);
+  assert.match(
+    evidence,
+    /\*\*Source commit:\*\* `86e72d8569057d2a14ed6bb1672ce6a573fa8d7c` \(display prefix: `86e72d8`\)/u,
+  );
   assert.match(evidence, /\*\*Requirement status:\*\* no requirement promoted to `verified`/u);
   for (let taskNumber = 1; taskNumber <= 23; taskNumber += 1) {
     assert.match(evidence, new RegExp(`\\| Task ${taskNumber} \\|`, 'u'));
