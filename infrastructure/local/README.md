@@ -18,6 +18,8 @@ named volumes prefixed by the Compose project name; no repository directory is
 mounted for database, object, or mail data. The volumes are disposable and are
 not removed by the lifecycle commands. Remove the named volumes only when you
 explicitly want to discard local state.
+Every published port is bound to `127.0.0.1`, so the development credentials and
+data endpoints are not reachable from other hosts on the local network.
 Container JSON logs are capped at 10 MiB per file with three retained files so
 diagnostics cannot silently consume the host disk.
 
