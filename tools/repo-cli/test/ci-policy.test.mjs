@@ -10,6 +10,11 @@ test('repository workflows are present, pinned, and least privilege', () => {
   assert.deepEqual(checkCiPolicy(process.cwd()), { workflowCount: 3 });
 });
 
+test('CI policy requires checkout credentials to be discarded', () => {
+  const workflow = fs.readFileSync(path.join(process.cwd(), '.github/workflows/quality.yml'), 'utf8');
+  assert.match(workflow, /persist-credentials:\s*false/u);
+});
+
 test('CI policy rejects floating actions and pull request target execution', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'databreeze-ci-policy-'));
   fs.mkdirSync(path.join(root, '.github/workflows'), { recursive: true });

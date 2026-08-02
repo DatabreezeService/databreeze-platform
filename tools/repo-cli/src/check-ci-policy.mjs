@@ -36,6 +36,9 @@ function assertLeastPrivilege(text, filename) {
   if (/AWS_(?:ACCESS_KEY_ID|SECRET_ACCESS_KEY)\s*:/iu.test(text)) {
     throw new Error(`${filename} must not define long-lived AWS key environment variables`);
   }
+  if (/uses:\s*actions\/checkout@/iu.test(text) && !/persist-credentials:\s*false/iu.test(text)) {
+    throw new Error(`${filename} must disable checkout credential persistence`);
+  }
 }
 
 export function checkCiPolicy(root = process.cwd()) {
