@@ -71,6 +71,10 @@
     "./dispatch/v1": {
       "types": "./src/dispatch/v1.ts",
       "import": "./dist/dispatch/v1.js"
+    },
+    "./recipe/v1": {
+      "types": "./src/recipe/v1.ts",
+      "import": "./dist/recipe/v1.js"
     }
   },
   "scripts": {
