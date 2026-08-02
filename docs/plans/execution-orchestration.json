@@ -15,10 +15,10 @@
     }
   },
   "checkpoint": {
-    "observedAt": "2026-08-02T09:00:00Z",
-    "remoteDev": "b21642b",
+    "observedAt": "2026-08-02T09:06:00Z",
+    "remoteDev": "86e72d8",
     "remoteMain": "8ac8bca",
-    "lastFeaturePullRequest": 7,
+    "lastFeaturePullRequest": 9,
     "lastPromotionPullRequest": 8,
     "openPullRequestsObserved": 0,
     "note": "Historical observation only; every session must fetch and recompute current state."
@@ -52,7 +52,20 @@
     "post-ga-planned",
     "blocked"
   ],
-  "nextTaskId": "FND-001",
+  "nextTaskId": "FND-002",
+  "taskState": {
+    "FND-001": {
+      "status": "verified",
+      "commit": "7c023e5d7f6cfd3a4a9b2c2c0bdf098e0d4bbba5",
+      "evidence": [
+        "docs/operations/foundation-reconciliation-2026-08-02.md",
+        "tools/repo-cli/test/foundation-reconciliation.test.mjs",
+        "services/engine/test/launcher.test.mjs",
+        "services/engine/scripts/run-engine.mjs"
+      ],
+      "note": "The task reconciles the foundation against merged dev; OpenTofu remains a hosted validation boundary and no requirement status was promoted."
+    }
+  },
   "plans": [
     {
       "planId": "010",

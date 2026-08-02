@@ -251,6 +251,34 @@ function run(argumentsList) {
   if (!taskIds.has(ledger.nextTaskId)) {
     diagnostics.push(`nextTaskId ${ledger.nextTaskId} is not in the task inventory`);
   }
+  const taskState = ledger.taskState ?? {};
+  if (taskState === null || typeof taskState !== 'object' || Array.isArray(taskState)) {
+    diagnostics.push('taskState must be an object');
+  } else {
+    for (const [taskId, state] of Object.entries(taskState)) {
+      if (!taskIds.has(taskId)) {
+        diagnostics.push(`taskState contains unknown task ${taskId}`);
+        continue;
+      }
+      if (state === null || typeof state !== 'object' || Array.isArray(state)) {
+        diagnostics.push(`taskState for ${taskId} must be an object`);
+        continue;
+      }
+      if (!ledger.statusVocabulary?.includes(state.status)) {
+        diagnostics.push(`task ${taskId} has unsupported status ${state.status}`);
+      }
+      if (['verified', 'released'].includes(state.status)) {
+        if (!/^[0-9a-f]{40}$/u.test(state.commit ?? '')) {
+          diagnostics.push(`verified task ${taskId} must name a full commit SHA`);
+        }
+        if (!Array.isArray(state.evidence) || state.evidence.length === 0) {
+          diagnostics.push(`verified task ${taskId} must name evidence paths`);
+        } else if (!state.evidence.every((entry) => pathExists(root, entry))) {
+          diagnostics.push(`verified task ${taskId} has missing evidence paths`);
+        }
+      }
+    }
+  }
   for (const heading of requiredRunbookHeadings) {
     if (!runbook.split(/\r?\n/u).includes(heading))
       diagnostics.push(`runbook heading missing: ${heading}`);

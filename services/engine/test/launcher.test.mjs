@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import test from 'node:test';
@@ -49,6 +50,11 @@ test('uv exact-version parsing rejects prefix collisions and undocumented suffix
   assert.equal(isRequiredUvVersion('uv 0.11.320'), false);
   assert.equal(isRequiredUvVersion('uv 0.11.32 unexpected'), false);
   assert.equal(isRequiredUvVersion(`uv 0.11.32 (${`x`.repeat(161)})`), false);
+});
+
+test('launcher invokes pytest through the Python module runner', () => {
+  const source = readFileSync(launcher, 'utf8');
+  assert.match(source, /test: \[\.\.\.run, 'python', '-m', 'pytest'\]/u);
 });
 
 test(
