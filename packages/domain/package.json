@@ -52,6 +52,10 @@
       "types": "./src/artifact-intake/v1.ts",
       "import": "./dist/artifact-intake/v1.js"
     },
+    "./artifact-governance/v1": {
+      "types": "./src/artifact-governance/v1.ts",
+      "import": "./dist/artifact-governance/v1.js"
+    },
     "./dataset/v1": {
       "types": "./src/dataset/v1.ts",
       "import": "./dist/dataset/v1.js"

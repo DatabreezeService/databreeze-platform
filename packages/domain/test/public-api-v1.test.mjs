@@ -21,6 +21,7 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
     './data-mode/v1',
   './artifact/v1',
   './artifact-intake/v1',
+  './artifact-governance/v1',
   './dataset/v1',
   './dataset-governance/v1',
     './jobs/v1',
