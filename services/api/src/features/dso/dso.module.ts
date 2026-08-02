@@ -1,6 +1,7 @@
 import { type DynamicModule, Module } from '@nestjs/common';
 
 import { DeviceSyncController } from './api/device-sync.controller.js';
+import { DeviceCapabilityController } from './api/device-capability.controller.js';
 import { InMemoryDeviceSyncRepositoryAdapter } from './adapter/in-memory-device-sync-repository.adapter.js';
 import {
   PrismaDeviceSyncRepositoryAdapter,
@@ -107,7 +108,7 @@ export class DsoModule {
     const capabilityService = new DeviceCapabilityService(capabilityRepository);
     return {
       module: DsoModule,
-      controllers: [DeviceSyncController],
+      controllers: [DeviceSyncController, DeviceCapabilityController],
       providers: [
         {
           provide: DEVICE_AUTHORIZATION_REPOSITORY_PORT,

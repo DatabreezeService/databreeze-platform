@@ -79,6 +79,16 @@ export class DeviceCapabilityService {
     return { accepted: true, value: await this.repository.listCapabilities(context, deviceId) };
   }
 
+  public async listGrants(
+    context: IamTenantContextV1,
+    deviceIdInput: unknown,
+  ): Promise<DeviceCapabilityApplicationResultV1<readonly DeviceGrantV1[]>> {
+    const deviceId = stable(deviceIdInput);
+    if (!deviceId) return rejected('INVALID_IDENTIFIER');
+    if (context.tenantScope.scopeType !== 'workspace') return rejected('SCOPE_DENIED');
+    return { accepted: true, value: await this.repository.listGrants(context, deviceId) };
+  }
+
   public async issueGrant(
     context: IamTenantContextV1,
     input: {
@@ -141,12 +151,16 @@ export class DeviceCapabilityService {
     capabilityIdInput: unknown,
     expectedRevision: number,
     at: unknown,
+    deviceIdInput?: unknown,
   ): Promise<DeviceCapabilityApplicationResultV1<DeviceCapabilityV1>> {
     const capabilityId = stable(capabilityIdInput);
     if (!capabilityId) return rejected('INVALID_IDENTIFIER');
+    const deviceId = deviceIdInput === undefined ? undefined : stable(deviceIdInput);
+    if (deviceIdInput !== undefined && !deviceId) return rejected('INVALID_IDENTIFIER');
     return this.repository.withTransaction(context, async (transaction) => {
       const current = await transaction.findCapability(context, capabilityId);
       if (!current) return rejected('CAPABILITY_NOT_FOUND');
+      if (deviceId !== undefined && current.deviceId !== deviceId) return rejected('SCOPE_DENIED');
       if (current.revision !== expectedRevision) return rejected('REVISION_CONFLICT');
       const paused = transitionDeviceCapabilityV1(current, 'PAUSE', at);
       if (!paused.accepted) return domainResult(paused);
