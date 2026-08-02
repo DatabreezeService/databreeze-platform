@@ -166,6 +166,17 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
   assert.notEqual(invalidProject.status, 0);
   assert.match(`${invalidProject.stdout}\n${invalidProject.stderr}`, /COMPOSE_PROJECT_NAME must start/u);
 
+  const invalidEnvironmentDisk = spawnSync(process.execPath, [helpScript, 'preflight'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    env: { ...process.env, DATABREEZE_MIN_FREE_GIB: 'not-a-number' },
+  });
+  assert.notEqual(invalidEnvironmentDisk.status, 0);
+  assert.match(
+    `${invalidEnvironmentDisk.stdout}\n${invalidEnvironmentDisk.stderr}`,
+    /--min-free-gib must be a non-negative number/u,
+  );
+
   const composeConfig = spawnSync(process.execPath, [helpScript, 'config'], {
     cwd: repositoryRoot,
     encoding: 'utf8',
