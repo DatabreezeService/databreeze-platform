@@ -71,6 +71,9 @@ jobs:
         run: corepack enable && corepack prepare pnpm@11.18.0 --activate
       - name: Install JavaScript dependencies
         run: pnpm install --frozen-lockfile
+      - name: Prepare locked Python engine environment
+        working-directory: services/engine
+        run: uv sync --locked
       - name: Validate CI policy
         run: pnpm ci:policy
       - name: Run repository checks
