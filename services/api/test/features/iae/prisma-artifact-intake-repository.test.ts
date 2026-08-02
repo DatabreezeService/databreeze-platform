@@ -78,6 +78,13 @@ function client(rows: ArtifactIntakeDatabaseRowV1[]): ArtifactIntakeDatabaseClie
             .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime()),
         );
       },
+      update(input) {
+        const current = rows.find((candidate) => candidate.id === input.where.id);
+        if (!current) throw new Error('fixture inbox item not found');
+        const next = { ...current, ...input.data };
+        rows[rows.indexOf(current)] = next;
+        return Promise.resolve(next);
+      },
     },
     async $transaction(work) {
       return work(this);
@@ -135,10 +142,44 @@ void test('[IAE-001] Prisma adapter uses immutable idempotent writes', async () 
   await repository.save(context(workspaceId, 'save-replay'), item);
   assert.equal(rows.length, 1);
   await assert.rejects(
-    repository.save(context(workspaceId, 'save-conflict'), {
-      ...item,
-      artifactVersionId: identifier('00000000-0000-4000-8000-000000000009'),
-    }),
+    repository.save(
+      { ...context(workspaceId, 'save-conflict'), expectedRevision: 1 },
+      {
+        ...item,
+        artifactVersionId: identifier('00000000-0000-4000-8000-000000000009'),
+      },
+    ),
     /IAE_IMMUTABLE_INBOX_ITEM/u,
+  );
+});
+
+void test('[IAE-013] Prisma adapter persists only validated state transitions with revisions', async () => {
+  const rows: ArtifactIntakeDatabaseRowV1[] = [];
+  const repository = new PrismaArtifactIntakeRepositoryAdapter(client(rows));
+  const item: InboxItemV1 = {
+    schemaVersion: 1 as const,
+    inboxItemId: itemId,
+    tenantScope: { scopeType: 'workspace' as const, organizationId, workspaceId },
+    idempotencyKey: 'transition',
+    artifactVersionId,
+    state: 'NEW' as const,
+    createdAt: timestamp('2026-01-01T00:00:00.000Z'),
+    revision: 1,
+  };
+  await repository.save(context(workspaceId, 'transition-create'), item);
+  await repository.save(
+    { ...context(workspaceId, 'transition-update'), expectedRevision: 1 },
+    { ...item, state: 'ROUTED', revision: 2 },
+  );
+  assert.equal(
+    (await repository.find(context(workspaceId, 'transition-read'), itemId))?.state,
+    'ROUTED',
+  );
+  await assert.rejects(
+    repository.save(
+      { ...context(workspaceId, 'transition-stale'), expectedRevision: 1 },
+      { ...item, state: 'PROCESSING', revision: 2 },
+    ),
+    /IAE_REVISION_CONFLICT/u,
   );
 });

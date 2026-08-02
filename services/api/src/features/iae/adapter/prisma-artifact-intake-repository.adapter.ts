@@ -1,5 +1,6 @@
 import {
   createInboxItemV1,
+  transitionInboxItemV1,
   type InboxItemStateV1,
   type InboxItemV1,
 } from '@databreeze/domain/artifact-intake/v1';
@@ -56,6 +57,10 @@ export interface ArtifactIntakeDatabaseDelegateV1 {
     readonly where: Readonly<Record<string, string | null>>;
     readonly orderBy: { readonly createdAt: 'desc' };
   }): Promise<readonly ArtifactIntakeDatabaseRowV1[]>;
+  update(input: {
+    readonly where: { readonly id: string };
+    readonly data: { readonly state: InboxItemStateV1; readonly revision: number };
+  }): Promise<ArtifactIntakeDatabaseRowV1>;
 }
 
 export interface ArtifactIntakeDatabaseClientV1 {
@@ -158,9 +163,27 @@ class PrismaArtifactIntakeTransactionAdapter implements ArtifactIntakeTransactio
     }
     const existing = await this.client.inboxItem.findUnique({ where: { id: item.inboxItemId } });
     if (existing !== null) {
-      if (JSON.stringify(rowToDomain(existing)) !== JSON.stringify(item)) {
+      const current = rowToDomain(existing);
+      if (JSON.stringify(current) === JSON.stringify(item)) return;
+      if (context.expectedRevision !== current.revision) {
+        throw new Error('IAE_REVISION_CONFLICT');
+      }
+      if (
+        current.artifactVersionId !== item.artifactVersionId ||
+        current.idempotencyKey !== item.idempotencyKey ||
+        JSON.stringify(current.tenantScope) !== JSON.stringify(item.tenantScope) ||
+        item.revision !== current.revision + 1
+      ) {
         throw new Error('IAE_IMMUTABLE_INBOX_ITEM');
       }
+      const transition = transitionInboxItemV1(current, item.state);
+      if (!transition.accepted || JSON.stringify(transition.value) !== JSON.stringify(item)) {
+        throw new Error('IAE_INVALID_INBOX_TRANSITION');
+      }
+      await this.client.inboxItem.update({
+        where: { id: item.inboxItemId },
+        data: { state: item.state, revision: item.revision },
+      });
       return;
     }
     await this.client.inboxItem.create({ data: domainToCreate(item) });
