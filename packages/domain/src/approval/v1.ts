@@ -118,13 +118,9 @@ function roleList(input: unknown): readonly string[] | undefined {
 }
 
 const policyStatuses: readonly ApprovalPolicyStatusV1[] = ['DRAFT', 'ACTIVE', 'RETIRED'];
-const requestStatuses: readonly ApprovalRequestStatusV1[] = [
-  'OPEN',
-  'APPROVED',
-  'REJECTED',
-  'EXPIRED',
-  'CANCELLED',
-];
+function isRecord(input: unknown): input is Record<string, unknown> {
+  return typeof input === 'object' && input !== null && !Array.isArray(input);
+}
 
 export function createApprovalPolicyV1(input: {
   readonly policyId: unknown;
@@ -145,12 +141,7 @@ export function createApprovalPolicyV1(input: {
   if (!policyId || !workspaceId) return rejected('INVALID_IDENTIFIER');
   if (!Number.isSafeInteger(input.version) || (input.version as number) < 1)
     return rejected('INVALID_VERSION');
-  if (
-    typeof input.actionMatcher !== 'object' ||
-    input.actionMatcher === null ||
-    Array.isArray(input.actionMatcher)
-  )
-    return rejected('INVALID_TEXT');
+  if (!isRecord(input.actionMatcher)) return rejected('INVALID_TEXT');
   if (!Number.isSafeInteger(input.minimumApprovals) || (input.minimumApprovals as number) < 1)
     return rejected('INVALID_COUNT');
   if (!roles || (input.minimumApprovals as number) > roles.length) return rejected('INVALID_ROLE');
@@ -163,14 +154,13 @@ export function createApprovalPolicyV1(input: {
   if (typeof input.selfApprovalAllowed !== 'boolean' || typeof input.requireMfa !== 'boolean')
     return rejected('INVALID_STATUS');
   if (!policyStatuses.includes(status as ApprovalPolicyStatusV1)) return rejected('INVALID_STATUS');
-  const matcher = Object.fromEntries(
-    Object.entries(input.actionMatcher as Record<string, unknown>).map(([key, value]) => [
-      text(key, 64),
-      text(value, 128),
-    ]),
-  );
-  if (Object.entries(matcher).some(([key, value]) => !key || !value))
-    return rejected('INVALID_TEXT');
+  const matcher: Record<string, string> = {};
+  for (const [key, value] of Object.entries(input.actionMatcher)) {
+    const normalizedKey = text(key, 64);
+    const normalizedValue = text(value, 128);
+    if (!normalizedKey || !normalizedValue) return rejected('INVALID_TEXT');
+    matcher[normalizedKey] = normalizedValue;
+  }
   return Object.freeze({
     accepted: true,
     value: Object.freeze({
@@ -178,7 +168,7 @@ export function createApprovalPolicyV1(input: {
       policyId,
       workspaceId,
       version: input.version as number,
-      actionMatcher: Object.freeze(matcher as Record<string, string>),
+      actionMatcher: Object.freeze(matcher),
       minimumApprovals: input.minimumApprovals as number,
       eligibleRoles: roles,
       selfApprovalAllowed: input.selfApprovalAllowed,
