@@ -123,6 +123,13 @@ resource "aws_ecs_task_definition" "api" {
   task_role_arn            = aws_iam_role.task.arn
   container_definitions    = jsonencode([local.api_container])
   tags                     = merge(local.common_tags, { Name = "databreeze-${var.name}-api" })
+
+  lifecycle {
+    precondition {
+      condition     = var.environment != "production" || can(regex("@sha256:[0-9a-f]{64}$", var.api_image))
+      error_message = "Production API deployments must use an immutable image digest."
+    }
+  }
 }
 
 resource "aws_ecs_task_definition" "worker" {
@@ -151,6 +158,13 @@ resource "aws_ecs_task_definition" "worker" {
     }
   }])
   tags = merge(local.common_tags, { Name = "databreeze-${var.name}-worker" })
+
+  lifecycle {
+    precondition {
+      condition     = var.environment != "production" || can(regex("@sha256:[0-9a-f]{64}$", var.worker_image))
+      error_message = "Production worker deployments must use an immutable image digest."
+    }
+  }
 }
 
 resource "aws_ecs_service" "api" {

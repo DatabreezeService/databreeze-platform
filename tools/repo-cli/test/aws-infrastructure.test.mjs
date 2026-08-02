@@ -109,6 +109,9 @@ test('AWS production profile enables recovery and prevents public data paths', (
   assert.equal((compute.match(/readonlyRootFilesystem\s*=\s*true/g) ?? []).length, 2);
   assert.equal((compute.match(/privileged\s*=\s*false/g) ?? []).length, 2);
   assert.equal((compute.match(/user\s*=\s*"10001"/g) ?? []).length, 2);
+  assert.match(compute, /Production API deployments must use an immutable image digest\./u);
+  assert.match(compute, /Production worker deployments must use an immutable image digest\./u);
+  assert.match(compute, /@sha256:\[0-9a-f\]\{64\}/u);
 });
 
 test('AWS foundation keeps state and apply outside the repository', () => {
