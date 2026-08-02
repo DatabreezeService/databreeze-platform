@@ -34,6 +34,10 @@ model InboxItem {
   idempotencyKey    String   @map("idempotency_key") @db.VarChar(200)
   artifactVersionId String   @map("artifact_version_id") @db.Uuid
   state             String   @db.VarChar(24)
+  assigneeId        String?  @map("assignee_id") @db.Uuid
+  labels            Json     @default("[]")
+  priority          String   @default("NORMAL") @db.VarChar(16)
+  dueAt             DateTime? @map("due_at") @db.Timestamptz(6)
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   revision          Int      @default(1)
 

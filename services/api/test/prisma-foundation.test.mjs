@@ -55,6 +55,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "iam"\."users"/);
   assert.match(diff.stdout, /CREATE TABLE "iae"\."artifact_versions"/);
   assert.match(diff.stdout, /CREATE TABLE "iae"\."inbox_items"/);
+  assert.match(diff.stdout, /"assignee_id" UUID/);
   assert.match(diff.stdout, /CREATE TABLE "iae"\."artifact_lineage"/);
   assert.match(diff.stdout, /CREATE TABLE "iae"\."evidence_grants"/);
   assert.match(diff.stdout, /CREATE TABLE "aud"\."audit_events"/);
@@ -110,6 +111,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802230000_iae_retention_exports',
     '20260802240000_iae_upload_sessions',
     '20260802250000_dsm_quality_results',
+    '20260802260000_iae_inbox_metadata',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -411,5 +413,20 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     'CREATE INDEX "dataset_quality_results_dataset_version_idx"',
   ]) {
     assert.match(qualityMigration, new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  const inboxMetadataMigration = await readFile(
+    path.join(migrationsDirectory, inventory[27], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'ADD COLUMN "assignee_id" UUID',
+    'ADD COLUMN "labels" JSONB',
+    'ADD COLUMN "priority" VARCHAR(16)',
+    'ADD COLUMN "due_at" TIMESTAMPTZ(6)',
+  ]) {
+    assert.match(
+      inboxMetadataMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
   }
 });
