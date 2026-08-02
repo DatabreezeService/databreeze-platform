@@ -23,7 +23,10 @@ import {
   type DataModePolicyDatabaseClientV1,
 } from './adapter/prisma-data-mode-policy-repository.adapter.js';
 import { DeviceSyncAuthorizationAdapter } from './adapter/device-sync-authorization.adapter.js';
-import type { DeviceIdentityAuthorityPortV1 } from './application/device-identity-authority.port.js';
+import {
+  UnavailableDeviceIdentityAuthority,
+  type DeviceIdentityAuthorityPortV1,
+} from './application/device-identity-authority.port.js';
 import { InMemoryDeviceAuthorizationRepositoryAdapter } from './adapter/in-memory-device-authorization-repository.adapter.js';
 import {
   DEVICE_SYNC_REPOSITORY_PORT,
@@ -118,7 +121,7 @@ export class DsoModule {
       options.deviceSyncAuthorization ??
       new DeviceSyncAuthorizationAdapter(
         authorizationService,
-        options.deviceIdentityAuthority,
+        options.deviceIdentityAuthority ?? new UnavailableDeviceIdentityAuthority(),
         capabilityService,
       );
     return {

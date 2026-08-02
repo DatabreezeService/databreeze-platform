@@ -10,6 +10,7 @@ import { DEVICE_SYNC_AUTHORIZATION } from '../../../src/features/dso/application
 import { DeviceSyncAuthorizationAdapter } from '../../../src/features/dso/adapter/device-sync-authorization.adapter.js';
 import { DATA_MODE_POLICY_REPOSITORY_PORT } from '../../../src/features/dso/application/data-mode-policy-repository.port.js';
 import { PrismaDataModePolicyRepositoryAdapter } from '../../../src/features/dso/adapter/prisma-data-mode-policy-repository.adapter.js';
+import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
 
 function provider(module: ReturnType<typeof DsoModule.register>, token: symbol) {
   const match = module.providers?.find(
@@ -42,4 +43,32 @@ void test('[DSO-008, DSO-026] production DSO composition selects durable data-mo
   const database = {} as never;
   const registered = DsoModule.register({ dataModePolicyDatabase: database });
   assert.ok(provider(registered, DATA_MODE_POLICY_REPOSITORY_PORT) instanceof PrismaDataModePolicyRepositoryAdapter);
+});
+
+void test('[IAM-020, DSO-005] default DSO composition fails closed without an IAM device bridge', async () => {
+  const context = createIamTenantContextV1({
+    actorId: '00000000-0000-4000-8000-000000000661',
+    correlationId: '00000000-0000-4000-8000-000000000662',
+    tenantScope: {
+      scopeType: 'workspace',
+      organizationId: '00000000-0000-4000-8000-000000000663',
+      workspaceId: '00000000-0000-4000-8000-000000000664',
+    },
+    idempotencyKey: 'default-authority',
+    authorizationEpoch: 1,
+  });
+  assert.equal(context.accepted, true);
+  if (!context.accepted) return;
+  const registered = DsoModule.register();
+  const authorization = provider(registered, DEVICE_SYNC_AUTHORIZATION) as DeviceSyncAuthorizationAdapter;
+  assert.deepEqual(
+    await authorization.authorize(context.value, {
+      deviceId: '00000000-0000-4000-8000-000000000665',
+      tenantScope: context.value.tenantScope,
+      grantId: '00000000-0000-4000-8000-000000000666',
+      effect: 'READ',
+      now: '2026-01-01T00:00:00.000Z',
+    }),
+    { accepted: false, code: 'AUTHORIZATION_UNAVAILABLE' },
+  );
 });
