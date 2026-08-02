@@ -37,6 +37,12 @@ Hosted CI remains authoritative for the complete dependency, SAST, container,
 OpenTofu, build, and release-environment gates. The generators never write
 runtime evidence inside the repository during these checks.
 
+The `release` environment's required reviewers and branch restrictions are
+GitHub repository settings rather than workflow YAML. Before promoting to
+`main`, an administrator must verify those settings and record the check in
+the release evidence; the repository policy checker deliberately verifies the
+workflow's environment reference but cannot infer external protection rules.
+
 ## Rollback
 
 Revert the focused CI or generator commit that introduced the behavior, rerun
