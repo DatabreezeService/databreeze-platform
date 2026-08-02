@@ -56,10 +56,10 @@ void test('[IAE-007] lineage rejects self-references, scope cardinality drift, a
     }),
     { accepted: false, code: 'DUPLICATE_IDENTIFIER' },
   );
-  assert.deepEqual(
-    createArtifactLineageV1({ ...base, sourceTenantScopes: [] }),
-    { accepted: false, code: 'INVALID_SCOPE' },
-  );
+  assert.deepEqual(createArtifactLineageV1({ ...base, sourceTenantScopes: [] }), {
+    accepted: false,
+    code: 'INVALID_SCOPE',
+  });
   assert.deepEqual(
     createArtifactLineageV1({
       ...base,
