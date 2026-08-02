@@ -54,7 +54,8 @@ export type ExecutionAttemptErrorCodeV1 =
   | 'LEASE_EXPIRED'
   | 'INVALID_STATE'
   | 'INVALID_OUTCOME'
-  | 'INVALID_RESULT_HASH';
+  | 'INVALID_RESULT_HASH'
+  | 'INVALID_REVISION';
 
 function rejected<TValue>(code: ExecutionAttemptErrorCodeV1): ExecutionAttemptResultV1<TValue> {
   return Object.freeze({ accepted: false, code });
