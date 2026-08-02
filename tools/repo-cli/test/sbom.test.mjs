@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -27,6 +27,12 @@ test('SBOM generation writes to an explicit output path', () => {
     });
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /Wrote .*sbom\.json/u);
+    assert.equal(existsSync(output), true);
+    const sbom = JSON.parse(readFileSync(output, 'utf8'));
+    assert.equal(sbom.bomFormat, 'CycloneDX');
+    assert.equal(sbom.specVersion, '1.5');
+    assert.ok(Array.isArray(sbom.components));
+    assert.ok(sbom.components.some((component) => component.name === '@databreeze/platform'));
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
