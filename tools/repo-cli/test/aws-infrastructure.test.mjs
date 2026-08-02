@@ -125,3 +125,10 @@ test('AWS foundation keeps state and apply outside the repository', () => {
   assert.doesNotMatch(sources, /^\s*backend\s+"/mu);
   assert.doesNotMatch(sources, /terraform\.tfstate|\.tfstate\.backup/u);
 });
+
+test('AWS production guidance requires digest-pinned application images', () => {
+  const readme = read('infrastructure/aws/README.md');
+  assert.match(readme, /api_image.*worker_image[\s\S]*immutable/u);
+  assert.match(readme, /64-character SHA-256 digest/u);
+  assert.match(readme, /Mutable tags are accepted for alpha development only/u);
+});
