@@ -9,17 +9,33 @@ through adapters, so the same contracts work with managed services later.
 
 1. Copy `.env.example` to `.env` and change the local-only values if needed.
 2. Start Docker Desktop (or another Docker Engine with Compose v2).
-3. Run `pnpm local:smoke -- --start` from the repository root.
+3. Run `pnpm local:services start` from the repository root.
 4. Open Mailpit at <http://localhost:8025> and MinIO Console at
    <http://localhost:9001> when you need to inspect local data.
 
 The stack is defined in [`compose.yml`](compose.yml). All state is held in
 named volumes prefixed by the Compose project name; no repository directory is
 mounted for database, object, or mail data. The volumes are disposable and are
-not removed by the smoke script. Use `docker compose --env-file
-infrastructure/local/.env -f infrastructure/local/compose.yml down` to stop
-the containers. Remove the named volumes only when you explicitly want to
-discard local state.
+not removed by the lifecycle commands. Remove the named volumes only when you
+explicitly want to discard local state.
+
+## Lifecycle commands
+
+Run these from the repository root:
+
+| Command | Effect |
+| --- | --- |
+| `pnpm local:services check` | Validate Compose, Docker, host ports, and free disk without starting anything. |
+| `pnpm local:services start` | Run preflight, start the stack, and wait for every health check. |
+| `pnpm local:services stop` | Stop containers while preserving containers and named volumes. |
+| `pnpm local:services reset` | Recreate containers/networks while preserving named volumes; it never passes `--volumes`. |
+| `pnpm local:services restart-check` | Restart the running stack and verify health after restart. |
+| `pnpm local:services status` | Print container/health state without changing it. |
+
+The older `pnpm local:smoke -- --start` form remains supported. Port collisions
+can be resolved by copying `.env.example` to `.env` and changing the host port
+variables. `check` fails closed when Docker is missing, the daemon is stopped,
+or free space is below the configured threshold (`--min-free-gib=N`).
 
 ## Services
 
@@ -44,10 +60,10 @@ package manager while still making readiness observable.
 - These images and credentials are for local development. Never copy `.env`
   into a deployment or commit it.
 - The Compose health checks are the readiness contract for local consumers.
-  `pnpm local:smoke` validates the Compose file and reports the first unhealthy
-  service. Add `--start` to bring the stack up before polling.
-- If a previous run left a stopped container, rerun the smoke command; it is
-  idempotent and does not delete volumes.
+  `pnpm local:services status` reports the current health and
+  `pnpm local:services restart-check` verifies restart persistence.
+- If a previous run left a stopped container, rerun `pnpm local:services start`;
+  it is idempotent and does not delete volumes.
 - If Docker is unavailable, the static infrastructure tests still validate the
   service definitions, image release lines, volume names, and credential-free
   initialization files.
