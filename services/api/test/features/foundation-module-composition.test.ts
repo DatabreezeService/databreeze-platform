@@ -14,6 +14,7 @@ import { IDENTITY_BOOTSTRAP_REPOSITORY_PORT } from '../../src/features/iam/appli
 import { PrismaIdentityBootstrapRepositoryAdapter } from '../../src/features/iam/adapter/prisma-identity-bootstrap-repository.adapter.js';
 import { MFA_REPOSITORY_PORT } from '../../src/features/iam/application/mfa-repository.port.js';
 import { PrismaMfaRepositoryAdapter } from '../../src/features/iam/adapter/prisma-mfa-repository.adapter.js';
+import { MFA_SERVICE, MfaService } from '../../src/features/iam/application/mfa.service.js';
 import { IAM_REPOSITORY_PORT } from '../../src/features/iam/application/iam-repository.port.js';
 import { PrismaIamRepositoryAdapter } from '../../src/features/iam/adapter/prisma-iam-repository.adapter.js';
 import { AudModule } from '../../src/features/aud/aud.module.js';
@@ -144,6 +145,21 @@ void test('[IAM-012, IAM-014] configured MFA persistence uses the Prisma adapter
   assert.ok(provider && 'useValue' in provider);
   if (!provider || !('useValue' in provider)) return;
   assert.ok(provider.useValue instanceof PrismaMfaRepositoryAdapter);
+});
+
+void test('[IAM-012, IAM-014] configured MFA persistence composes the application service', () => {
+  const database = {} as never;
+  const registered = IamModule.register({ mfaDatabase: database });
+  const provider = registered.providers?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === MFA_SERVICE,
+  );
+  assert.ok(provider && 'useValue' in provider);
+  if (!provider || !('useValue' in provider)) return;
+  assert.ok(provider.useValue instanceof MfaService);
 });
 
 void test('[IAM-009, IAM-019] configured IAM membership persistence uses the Prisma adapter', () => {

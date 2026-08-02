@@ -17,6 +17,7 @@ import {
   type IdentityBootstrapRepositoryPortV1,
 } from './application/identity-bootstrap-repository.port.js';
 import { MFA_REPOSITORY_PORT, type MfaRepositoryPortV1 } from './application/mfa-repository.port.js';
+import { MFA_SERVICE, MfaService } from './application/mfa.service.js';
 import { IAM_REPOSITORY_PORT, type IamRepositoryPortV1 } from './application/iam-repository.port.js';
 import type { PasswordCredentialService } from './application/password-credential.service.js';
 import { UnavailableAuthenticationAdapter } from './adapter/unavailable-authentication.adapter.js';
@@ -67,6 +68,8 @@ export interface IamModuleOptions {
   readonly identityBootstrapDatabase?: IdentityBootstrapDatabaseClientV1;
   readonly mfaRepository?: MfaRepositoryPortV1;
   readonly mfaDatabase?: MfaDatabaseClientV1;
+  readonly mfaService?: MfaService;
+  readonly recoveryCodeMatcher?: { matches(presentedDigest: string, storedDigest: string): boolean };
   readonly iamRepository?: IamRepositoryPortV1;
   readonly iamDatabase?: IamDatabaseClientV1;
   readonly deviceIdentityService?: DeviceIdentityService;
@@ -111,6 +114,23 @@ export class IamModule {
       (options.mfaDatabase === undefined
         ? undefined
         : new PrismaMfaRepositoryAdapter(options.mfaDatabase));
+    const mfaService =
+      options.mfaService ??
+      (mfaRepository === undefined
+        ? undefined
+        : new MfaService(
+            mfaRepository,
+            options.recoveryCodeMatcher ?? {
+              matches: (presentedDigest, storedDigest) => {
+                if (presentedDigest.length !== storedDigest.length) return false;
+                let difference = 0;
+                for (let index = 0; index < presentedDigest.length; index += 1) {
+                  difference |= presentedDigest.charCodeAt(index) ^ storedDigest.charCodeAt(index);
+                }
+                return difference === 0;
+              },
+            },
+          ));
     const iamRepository =
       options.iamRepository ??
       (options.iamDatabase === undefined
@@ -137,6 +157,7 @@ export class IamModule {
     if (sessions) exports.unshift(SESSION_LIFECYCLE_PORT);
     if (identityBootstrapRepository) exports.unshift(IDENTITY_BOOTSTRAP_REPOSITORY_PORT);
     if (mfaRepository) exports.unshift(MFA_REPOSITORY_PORT);
+    if (mfaService) exports.unshift(MFA_SERVICE);
     if (iamRepository) exports.unshift(IAM_REPOSITORY_PORT);
     return {
       module: IamModule,
@@ -175,6 +196,14 @@ export class IamModule {
               {
                 provide: MFA_REPOSITORY_PORT,
                 useValue: mfaRepository,
+              },
+            ]
+          : []),
+        ...(mfaService
+          ? [
+              {
+                provide: MFA_SERVICE,
+                useValue: mfaService,
               },
             ]
           : []),

@@ -13,6 +13,8 @@ import {
 
 import type { MfaRepositoryPortV1 } from './mfa-repository.port.js';
 
+export const MFA_SERVICE = Symbol('MFA_SERVICE');
+
 function invalidState(): MfaResultV1<never> {
   return Object.freeze({ accepted: false, code: 'INVALID_STATE' });
 }
