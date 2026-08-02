@@ -86,17 +86,18 @@ interface SyncTransport {
 interface SyncRevocationGuard {
     suspend fun <T> withPermit(scope: AccountWorkspaceScope, operation: suspend () -> T): T?
     suspend fun revoke(scope: AccountWorkspaceScope)
+    suspend fun reactivate(scope: AccountWorkspaceScope)
 }
 
 class SharedPreferencesSyncRevocationGuard(
     private val preferences: SharedPreferences,
 ) : SyncRevocationGuard {
-    private val mutex = Mutex()
+    private val mutexes = java.util.concurrent.ConcurrentHashMap<String, Mutex>()
 
     override suspend fun <T> withPermit(
         scope: AccountWorkspaceScope,
         operation: suspend () -> T,
-    ): T? = mutex.withLock {
+    ): T? = mutexFor(scope).withLock {
         if (preferences.getBoolean(key(scope), false)) null else operation()
     }
 
@@ -104,28 +105,45 @@ class SharedPreferencesSyncRevocationGuard(
         check(preferences.edit().putBoolean(key(scope), true).commit()) {
             "unable to persist sync revocation"
         }
-        mutex.withLock { Unit }
+        mutexFor(scope).withLock { Unit }
+    }
+
+    override suspend fun reactivate(scope: AccountWorkspaceScope) {
+        mutexFor(scope).withLock {
+            check(preferences.edit().remove(key(scope)).commit()) {
+                "unable to persist sync reactivation"
+            }
+        }
     }
 
     private fun key(scope: AccountWorkspaceScope): String = "revoked-${scope.stableKey}"
+    private fun mutexFor(scope: AccountWorkspaceScope): Mutex =
+        mutexes.computeIfAbsent(scope.stableKey) { Mutex() }
 }
 
 /** Deterministic guard used by JVM tests and dependency-free shell configurations. */
 class InMemorySyncRevocationGuard : SyncRevocationGuard {
-    private val mutex = Mutex()
+    private val mutexes = java.util.concurrent.ConcurrentHashMap<String, Mutex>()
     private val revoked = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
 
     override suspend fun <T> withPermit(
         scope: AccountWorkspaceScope,
         operation: suspend () -> T,
-    ): T? = mutex.withLock {
+    ): T? = mutexFor(scope).withLock {
         if (scope.stableKey in revoked) null else operation()
     }
 
     override suspend fun revoke(scope: AccountWorkspaceScope) {
         revoked += scope.stableKey
-        mutex.withLock { Unit }
+        mutexFor(scope).withLock { Unit }
     }
+
+    override suspend fun reactivate(scope: AccountWorkspaceScope) {
+        mutexFor(scope).withLock { revoked.remove(scope.stableKey) }
+    }
+
+    private fun mutexFor(scope: AccountWorkspaceScope): Mutex =
+        mutexes.computeIfAbsent(scope.stableKey) { Mutex() }
 }
 
 interface SyncScheduler {
