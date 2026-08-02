@@ -46,3 +46,11 @@ was requested). It identified two additional valid claims, both fixed in the fol
 - The guard now exposes `reactivate(scope)` and `AndroidRuntime.signIn` calls it only after the
   device key is initialized, allowing an explicit sign-in/sign-out cycle without silently
   re-enabling a revoked scope on process restart.
+
+## Automatic incremental review after PR #16 synchronization
+
+GitHub automatically refreshed the existing review after PR #16 merged into `dev` (no new review
+was requested). It identified one valid lifecycle race: sign-in and sign-out could interleave
+between device-key initialization and revocation. `AndroidRuntime` now serializes the complete
+sign-in/sign-out lifecycle per `AccountWorkspaceScope`, and a blocking JVM test proves sign-out
+cannot revoke, cancel, or delete the key until sign-in has completed.
