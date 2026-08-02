@@ -4,12 +4,17 @@ import { AuthenticationController } from './api/authentication.controller.js';
 import { AuthenticationService } from './application/authentication.service.js';
 import {
   AUTHENTICATION_USE_CASE,
+  CREDENTIAL_LOOKUP_PORT,
   type CredentialLookupPortV1,
   type AuthenticationUseCaseV1,
   type SessionIssuerPortV1,
 } from './application/authentication.port.js';
 import type { PasswordCredentialService } from './application/password-credential.service.js';
 import { UnavailableAuthenticationAdapter } from './adapter/unavailable-authentication.adapter.js';
+import {
+  PrismaCredentialLookupAdapter,
+  type CredentialLookupDatabaseClientV1,
+} from './adapter/prisma-credential-lookup.adapter.js';
 import { DeviceIdentityController } from './api/device-identity.controller.js';
 import { InMemoryDeviceIdentityRepositoryAdapter } from './adapter/in-memory-device-identity-repository.adapter.js';
 import {
@@ -35,6 +40,7 @@ import {
 export interface IamModuleOptions {
   readonly authentication?: AuthenticationUseCaseV1;
   readonly credentials?: CredentialLookupPortV1;
+  readonly credentialDatabase?: CredentialLookupDatabaseClientV1;
   readonly passwordCredentials?: PasswordCredentialService;
   readonly sessions?: SessionIssuerPortV1;
   readonly deviceIdentityService?: DeviceIdentityService;
@@ -59,6 +65,16 @@ export function composeAuthenticationUseCase(options: IamModuleOptions): Authent
 @Module({})
 export class IamModule {
   static register(options: IamModuleOptions = {}): DynamicModule {
+    const credentials =
+      options.credentials ??
+      (options.credentialDatabase === undefined
+        ? undefined
+        : new PrismaCredentialLookupAdapter(options.credentialDatabase));
+    const authentication =
+      options.authentication ??
+      (credentials
+        ? composeAuthenticationUseCase({ ...options, credentials })
+        : composeAuthenticationUseCase(options));
     const deviceIdentityRepository =
       options.deviceIdentityRepository ??
       (options.deviceIdentityDatabase === undefined
@@ -76,8 +92,16 @@ export class IamModule {
       providers: [
         {
           provide: AUTHENTICATION_USE_CASE,
-          useValue: composeAuthenticationUseCase(options),
+          useValue: authentication,
         },
+        ...(credentials
+          ? [
+              {
+                provide: CREDENTIAL_LOOKUP_PORT,
+                useValue: credentials,
+              },
+            ]
+          : []),
         {
           provide: DEVICE_IDENTITY_REPOSITORY_PORT,
           useValue: deviceIdentityRepository,

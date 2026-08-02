@@ -2,6 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { AppModule } from '../../src/app.module.js';
+import { IamModule } from '../../src/features/iam/iam.module.js';
+import {
+  AUTHENTICATION_USE_CASE,
+  CREDENTIAL_LOOKUP_PORT,
+} from '../../src/features/iam/application/authentication.port.js';
+import { PrismaCredentialLookupAdapter } from '../../src/features/iam/adapter/prisma-credential-lookup.adapter.js';
 import { AudModule } from '../../src/features/aud/aud.module.js';
 import { AUDIT_REPOSITORY_PORT } from '../../src/features/aud/application/audit-repository.port.js';
 import { PrismaAuditRepositoryAdapter } from '../../src/features/aud/adapter/prisma-audit-repository.adapter.js';
@@ -37,6 +43,29 @@ void test('[AUD-001] configured audit persistence uses the Prisma adapter instea
   assert.ok(provider && 'useValue' in provider);
   if (!provider || !('useValue' in provider)) return;
   assert.ok(provider.useValue instanceof PrismaAuditRepositoryAdapter);
+});
+
+void test('[IAM-001] configured credential persistence uses the Prisma adapter boundary', () => {
+  const database = {} as never;
+  const registered = IamModule.register({ credentialDatabase: database });
+  const provider = registered.providers?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === CREDENTIAL_LOOKUP_PORT,
+  );
+  assert.ok(provider && 'useValue' in provider);
+  if (!provider || !('useValue' in provider)) return;
+  assert.ok(provider.useValue instanceof PrismaCredentialLookupAdapter);
+  const authentication = registered.providers?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === AUTHENTICATION_USE_CASE,
+  );
+  assert.ok(authentication && 'useValue' in authentication);
 });
 
 void test('[BUA-001] configured entitlement persistence uses the Prisma adapter instead of the local fallback', () => {

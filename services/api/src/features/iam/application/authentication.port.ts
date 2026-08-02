@@ -2,6 +2,7 @@ import type { PasswordCredentialService } from './password-credential.service.js
 
 export const AUTHENTICATION_PORT = Symbol('AUTHENTICATION_PORT');
 export const AUTHENTICATION_USE_CASE = Symbol('AUTHENTICATION_USE_CASE');
+export const CREDENTIAL_LOOKUP_PORT = Symbol('CREDENTIAL_LOOKUP_PORT');
 
 export interface AuthenticatedPrincipalV1 {
   readonly userId: string;
