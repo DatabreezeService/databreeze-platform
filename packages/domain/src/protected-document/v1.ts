@@ -158,7 +158,8 @@ export function recordProtectedDocumentUnlockResultV1(
   },
 ): ProtectedDocumentUnlockResultV1<ProtectedDocumentUnlockRequestV1> {
   if (request.state !== 'REQUESTED') return rejected('INVALID_STATE');
-  if (input.expectedRevision !== request.revision) return rejected('REVISION_CONFLICT');
+  const expectedRevision = revision(input.expectedRevision);
+  if (expectedRevision !== request.revision) return rejected('REVISION_CONFLICT');
   const occurredAt = timestamp(input.occurredAt);
   if (!occurredAt) return rejected('INVALID_TIMESTAMP');
   if (Date.parse(occurredAt) >= Date.parse(request.expiresAt)) return rejected('EXPIRED');

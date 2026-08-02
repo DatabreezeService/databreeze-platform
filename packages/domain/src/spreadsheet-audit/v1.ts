@@ -89,6 +89,10 @@ function hash(input: unknown): string | undefined {
     : undefined;
 }
 
+function isBlockedReason(input: unknown): input is SpreadsheetAuditBlockedReasonV1 {
+  return input === 'MACRO' || input === 'EXTERNAL_LINK' || input === 'UNSUPPORTED_XML';
+}
+
 function count(input: unknown): number | undefined {
   return typeof input === 'number' && Number.isSafeInteger(input) && input >= 0 ? input : undefined;
 }
@@ -182,15 +186,12 @@ export function createSpreadsheetAuditResultV1(input: {
     return rejected('INVALID_IDENTIFIER');
   if (!Array.isArray(input.blockedReasons) || input.blockedReasons.length > 3)
     return rejected('INVALID_BLOCKED_REASON');
-  const blockedReasons = input.blockedReasons;
-  if (
-    blockedReasons.some(
-      (candidate) =>
-        candidate !== 'MACRO' && candidate !== 'EXTERNAL_LINK' && candidate !== 'UNSUPPORTED_XML',
-    )
-  )
-    return rejected('INVALID_BLOCKED_REASON');
-  if (new Set(blockedReasons).size !== blockedReasons.length)
+  const validBlockedReasons: SpreadsheetAuditBlockedReasonV1[] = [];
+  for (const candidate of input.blockedReasons) {
+    if (!isBlockedReason(candidate)) return rejected('INVALID_BLOCKED_REASON');
+    validBlockedReasons.push(candidate);
+  }
+  if (new Set(validBlockedReasons).size !== validBlockedReasons.length)
     return rejected('INVALID_BLOCKED_REASON');
   return Object.freeze({
     accepted: true,
@@ -202,7 +203,7 @@ export function createSpreadsheetAuditResultV1(input: {
       workbookSha256,
       sheets: Object.freeze(validSheets),
       findings: Object.freeze(validFindings),
-      blockedReasons: Object.freeze([...blockedReasons] as SpreadsheetAuditBlockedReasonV1[]),
+      blockedReasons: Object.freeze(validBlockedReasons),
       processorVersion,
       createdAt,
     }),

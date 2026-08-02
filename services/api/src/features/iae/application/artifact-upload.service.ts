@@ -11,7 +11,6 @@ import { tenantScopeContainsV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type { ArtifactUploadRepositoryPortV1 } from './artifact-upload-repository.port.js';
-import { InMemoryArtifactUploadStorageAdapter } from '../adapter/in-memory-artifact-upload-storage.adapter.js';
 import type {
   ArtifactUploadPartTransferV1,
   ArtifactUploadStoragePortV1,
@@ -28,7 +27,7 @@ export type ArtifactUploadServiceResultV1<TValue> =
 export class ArtifactUploadService {
   public constructor(
     private readonly repository: ArtifactUploadRepositoryPortV1,
-    private readonly storage: ArtifactUploadStoragePortV1 = new InMemoryArtifactUploadStorageAdapter(),
+    private readonly storage: ArtifactUploadStoragePortV1,
   ) {}
 
   public async create(

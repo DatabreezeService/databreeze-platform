@@ -13,7 +13,6 @@ import type {
   ProtectedDocumentSecretInputResultV1,
   ProtectedDocumentUnlockHandleV1,
 } from './protected-document-secret-input.port.js';
-import { InMemoryProtectedDocumentSecretInputAdapter } from '../adapter/in-memory-protected-document-secret-input.adapter.js';
 import type { ProtectedDocumentUnlockRepositoryPortV1 } from './protected-document-unlock-repository.port.js';
 
 export type ProtectedDocumentUnlockServiceErrorV1 =
@@ -28,7 +27,7 @@ export type ProtectedDocumentUnlockServiceResultV1<TValue> =
 export class ProtectedDocumentUnlockService {
   public constructor(
     private readonly requests: ProtectedDocumentUnlockRepositoryPortV1,
-    private readonly secretInput: ProtectedDocumentSecretInputPortV1 = new InMemoryProtectedDocumentSecretInputAdapter(),
+    private readonly secretInput: ProtectedDocumentSecretInputPortV1,
   ) {}
 
   public async create(
