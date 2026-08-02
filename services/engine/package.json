@@ -1,0 +1,11 @@
+{
+  "name": "@databreeze/engine",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/run-engine.mjs build",
+    "lint": "node scripts/run-engine.mjs format && node scripts/run-engine.mjs lint",
+    "test": "node --test test/*.test.mjs && node scripts/run-engine.mjs test",
+    "typecheck": "node scripts/run-engine.mjs typecheck"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "@fixture/contracts",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts"
+  }
+}

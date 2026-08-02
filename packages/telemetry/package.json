@@ -1,0 +1,22 @@
+{
+  "name": "@databreeze/telemetry",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./v1": {
+      "types": "./src/v1.ts",
+      "import": "./dist/v1.js"
+    },
+    "./schema/v1": "./schemas/v1.json"
+  },
+  "files": [
+    "dist",
+    "schemas"
+  ],
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json && node test/built-public-api-smoke.mjs",
+    "test": "node --test test/**/*.test.mjs",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  }
+}

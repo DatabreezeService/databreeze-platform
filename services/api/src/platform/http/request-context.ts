@@ -1,0 +1,73 @@
+import { randomUUID } from 'node:crypto';
+
+import type { FastifyInstance, FastifyRequest } from 'fastify';
+
+import { createProblem } from './problem-details.js';
+
+export interface RequestContext {
+  readonly correlationId: string;
+  readonly requestId: string;
+}
+
+const requestContexts = new WeakMap<FastifyRequest, RequestContext>();
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export type CorrelationHeaderResult =
+  | { readonly accepted: true; readonly correlationId: string }
+  | { readonly accepted: false };
+
+export function parseCorrelationHeader(
+  values: readonly string[],
+  requestId: string,
+): CorrelationHeaderResult {
+  if (values.length === 0) return { accepted: true, correlationId: requestId };
+  if (values.length !== 1) return { accepted: false };
+  const value = values[0];
+  if (value === undefined || value.length > 128 || !uuidPattern.test(value)) {
+    return { accepted: false };
+  }
+  return { accepted: true, correlationId: value };
+}
+
+export function getRequestContext(request: FastifyRequest): RequestContext {
+  const context = requestContexts.get(request);
+  if (context === undefined) throw new Error('Request context is unavailable');
+  return context;
+}
+
+export function installRequestContext(fastify: FastifyInstance): void {
+  fastify.addHook('onRequest', (request, reply, done) => {
+    const requestId = randomUUID();
+    const context: RequestContext = { correlationId: requestId, requestId };
+    requestContexts.set(request, context);
+    reply.header('X-Request-Id', context.requestId);
+    const values: string[] = [];
+    for (let index = 0; index < request.raw.rawHeaders.length; index += 2) {
+      if (request.raw.rawHeaders[index]?.toLowerCase() === 'x-correlation-id') {
+        const value = request.raw.rawHeaders[index + 1];
+        if (value !== undefined) values.push(value);
+      }
+    }
+    const parsed = parseCorrelationHeader(values, requestId);
+    if (!parsed.accepted) {
+      reply.header('X-Correlation-Id', requestId);
+      reply
+        .code(400)
+        .type('application/problem+json')
+        .send(
+          createProblem({
+            code: 'CORRELATION_ID_INVALID',
+            correlationId: requestId,
+            messageKey: 'api.error.correlation_id_invalid',
+            retryable: false,
+            status: 400,
+          }),
+        );
+      return;
+    }
+    const acceptedContext = { correlationId: parsed.correlationId, requestId };
+    requestContexts.set(request, acceptedContext);
+    reply.header('X-Correlation-Id', acceptedContext.correlationId);
+    done();
+  });
+}

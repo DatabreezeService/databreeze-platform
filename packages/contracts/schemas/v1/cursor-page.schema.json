@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/cursor-page",
+  "$comment": "Shared pagination shape supporting INT-005.",
+  "title": "Cursor Page Envelope",
+  "description": "The canonical closed page envelope with a UTC snapshot and opaque continuation cursor.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["data", "snapshotAt", "hasMore"],
+  "properties": {
+    "data": {
+      "type": "array",
+      "items": {}
+    },
+    "nextCursor": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "snapshotAt": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+    },
+    "hasMore": {
+      "type": "boolean"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "hasMore": {
+            "const": true
+          }
+        },
+        "required": ["hasMore"]
+      },
+      "then": {
+        "properties": {
+          "nextCursor": true
+        },
+        "required": ["nextCursor"]
+      },
+      "else": {
+        "not": {
+          "properties": {
+            "nextCursor": true
+          },
+          "required": ["nextCursor"]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+import type { PasswordCredentialService } from './password-credential.service.js';
+
+export const AUTHENTICATION_PORT = Symbol('AUTHENTICATION_PORT');
+export const AUTHENTICATION_USE_CASE = Symbol('AUTHENTICATION_USE_CASE');
+
+export interface AuthenticatedPrincipalV1 {
+  readonly userId: string;
+  readonly organizationId: string;
+  readonly workspaceId: string;
+  readonly securityEpoch: number;
+  readonly mfaRequired: boolean;
+}
+
+export interface CredentialLookupPortV1 {
+  findCredential(email: string): Promise<
+    | {
+        readonly principal: AuthenticatedPrincipalV1;
+        readonly credential: { readonly algorithm: 'argon2id'; readonly encodedHash: string };
+      }
+    | undefined
+  >;
+}
+
+export interface SessionIssuerPortV1 {
+  issue(
+    principal: AuthenticatedPrincipalV1,
+    clientPlatform: 'android' | 'desktop' | 'web',
+  ): Promise<{
+    readonly sessionId: string;
+    readonly accessToken: string;
+    readonly refreshToken: string;
+    readonly accessExpiresAt: string;
+  }>;
+}
+
+export interface AuthenticationInputV1 {
+  readonly email: unknown;
+  readonly password: unknown;
+  readonly clientPlatform: 'android' | 'desktop' | 'web';
+}
+
+export type AuthenticationFailureCodeV1 = 'INVALID_CREDENTIALS' | 'AUTHENTICATION_UNAVAILABLE';
+
+export interface AuthenticationSessionV1 {
+  readonly sessionId: string;
+  readonly accessToken: string;
+  readonly refreshToken: string;
+  readonly accessExpiresAt: string;
+}
+
+export interface AuthenticationValueV1 {
+  readonly principal: AuthenticatedPrincipalV1;
+  readonly session: AuthenticationSessionV1;
+}
+
+export type AuthenticationResultV1 =
+  | { readonly accepted: true; readonly value: AuthenticationValueV1 }
+  | { readonly accepted: false; readonly code: AuthenticationFailureCodeV1 };
+
+export interface AuthenticationUseCaseV1 {
+  signIn(input: AuthenticationInputV1): Promise<AuthenticationResultV1>;
+}
+
+export interface AuthenticationPortV1 {
+  readonly passwordCredentials: PasswordCredentialService;
+  readonly credentials: CredentialLookupPortV1;
+  readonly sessions: SessionIssuerPortV1;
+}

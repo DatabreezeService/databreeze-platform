@@ -1,0 +1,21 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../../build/prisma-client"
+  moduleFormat = "esm"
+  engineType   = "client"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["platform", "system", "iam", "iae", "aud", "bua", "dsm", "jra", "dso"]
+}
+
+/// Platform-owned registry documenting database-schema ownership boundaries.
+model SchemaRegistry {
+  schemaName  String   @id @map("schema_name") @db.VarChar(63)
+  ownerModule String   @map("owner_module") @db.VarChar(100)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("schema_registry")
+  @@schema("platform")
+}

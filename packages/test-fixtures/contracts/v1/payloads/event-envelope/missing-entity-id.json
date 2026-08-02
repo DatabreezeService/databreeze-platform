@@ -1,0 +1,24 @@
+{
+  "eventId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc07",
+  "eventType": "iam.workspace.renamed",
+  "schemaVersion": 1,
+  "tenantScope": {
+    "scopeType": "workspace",
+    "organizationId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc01",
+    "workspaceId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc02"
+  },
+  "entity": {
+    "entityType": "workspace",
+    "revision": 2
+  },
+  "actor": {
+    "actorType": "user",
+    "actorId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc04"
+  },
+  "correlation": {
+    "correlationId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc05"
+  },
+  "sourceComponent": "iam",
+  "occurredAt": "2026-08-01T01:30:00.125Z",
+  "data": {}
+}

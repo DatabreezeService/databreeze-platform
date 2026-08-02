@@ -1,0 +1,16 @@
+{
+  "name": "@databreeze/fixture-validation",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "parity": "node src/run-contract-parity.mjs",
+    "test": "node --test \"test/**/*.test.mjs\""
+  },
+  "dependencies": {
+    "@databreeze/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "5.9.2"
+  }
+}

@@ -1,0 +1,129 @@
+{
+  "name": "@databreeze/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./v1": {
+      "types": "./src/v1.ts",
+      "import": "./dist/v1.js"
+    },
+    "./permissions/v1": {
+      "types": "./src/permissions/v1.ts",
+      "import": "./dist/permissions/v1.js"
+    },
+    "./tenant-scope/v1": {
+      "types": "./src/tenant-scope/v1.ts",
+      "import": "./dist/tenant-scope/v1.js"
+    },
+    "./authorization/v1": {
+      "types": "./src/authorization/v1.ts",
+      "import": "./dist/authorization/v1.js"
+    },
+    "./audit/v1": {
+      "types": "./src/audit/v1.ts",
+      "import": "./dist/audit/v1.js"
+    },
+    "./identity/v1": {
+      "types": "./src/identity/v1.ts",
+      "import": "./dist/identity/v1.js"
+    },
+    "./entitlements/v1": {
+      "types": "./src/entitlements/v1.ts",
+      "import": "./dist/entitlements/v1.js"
+    },
+    "./mfa/v1": {
+      "types": "./src/mfa/v1.ts",
+      "import": "./dist/mfa/v1.js"
+    },
+    "./device-authorization/v1": {
+      "types": "./src/device-authorization/v1.ts",
+      "import": "./dist/device-authorization/v1.js"
+    },
+    "./device-sync/v1": {
+      "types": "./src/device-sync/v1.ts",
+      "import": "./dist/device-sync/v1.js"
+    },
+    "./device-capability/v1": {
+      "types": "./src/device-capability/v1.ts",
+      "import": "./dist/device-capability/v1.js"
+    },
+    "./data-mode/v1": {
+      "types": "./src/data-mode/v1.ts",
+      "import": "./dist/data-mode/v1.js"
+    },
+    "./artifact/v1": {
+      "types": "./src/artifact/v1.ts",
+      "import": "./dist/artifact/v1.js"
+    },
+    "./artifact-intake/v1": {
+      "types": "./src/artifact-intake/v1.ts",
+      "import": "./dist/artifact-intake/v1.js"
+    },
+    "./artifact-governance/v1": {
+      "types": "./src/artifact-governance/v1.ts",
+      "import": "./dist/artifact-governance/v1.js"
+    },
+    "./dataset/v1": {
+      "types": "./src/dataset/v1.ts",
+      "import": "./dist/dataset/v1.js"
+    },
+    "./dataset-governance/v1": {
+      "types": "./src/dataset-governance/v1.ts",
+      "import": "./dist/dataset-governance/v1.js"
+    },
+    "./jobs/v1": {
+      "types": "./src/jobs/v1.ts",
+      "import": "./dist/jobs/v1.js"
+    },
+    "./approval/v1": {
+      "types": "./src/approval/v1.ts",
+      "import": "./dist/approval/v1.js"
+    },
+    "./execution-attempt/v1": {
+      "types": "./src/execution-attempt/v1.ts",
+      "import": "./dist/execution-attempt/v1.js"
+    },
+    "./result-manifest/v1": {
+      "types": "./src/result-manifest/v1.ts",
+      "import": "./dist/result-manifest/v1.js"
+    },
+    "./dispatch/v1": {
+      "types": "./src/dispatch/v1.ts",
+      "import": "./dist/dispatch/v1.js"
+    },
+    "./recipe/v1": {
+      "types": "./src/recipe/v1.ts",
+      "import": "./dist/recipe/v1.js"
+    },
+    "./finding/v1": {
+      "types": "./src/finding/v1.ts",
+      "import": "./dist/finding/v1.js"
+    },
+    "./reference-entity/v1": {
+      "types": "./src/reference-entity/v1.ts",
+      "import": "./dist/reference-entity/v1.js"
+    },
+    "./mapping/v1": {
+      "types": "./src/mapping/v1.ts",
+      "import": "./dist/mapping/v1.js"
+    },
+    "./rule-set/v1": {
+      "types": "./src/rule-set/v1.ts",
+      "import": "./dist/rule-set/v1.js"
+    },
+    "./evidence-grant/v1": {
+      "types": "./src/evidence-grant/v1.ts",
+      "import": "./dist/evidence-grant/v1.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json && node test/built-public-api-smoke.mjs",
+    "pretest": "pnpm build",
+    "test": "node --test test/**/*.test.mjs",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  },
+  "dependencies": {
+    "@databreeze/contracts": "workspace:*"
+  }
+}

@@ -1,0 +1,101 @@
+@import '@databreeze/design-tokens/css/v1';
+
+.db-button {
+  min-block-size: var(--db-sizing-control-minimum);
+  min-inline-size: var(--db-sizing-control-minimum);
+  padding: 0 var(--db-spacing-4);
+  border: var(--db-focus-ring-width) solid transparent;
+  border-radius: var(--db-radius-medium);
+  font-family: var(--db-typography-font-family-body);
+  font-size: var(--db-typography-font-size-label);
+  font-weight: var(--db-typography-font-weight-semibold);
+  line-height: var(--db-typography-line-height-compact);
+  cursor: pointer;
+  transition-property: background-color, border-color, color;
+  transition-duration: var(--db-motion-duration-fast);
+  transition-timing-function: var(--db-motion-easing-standard);
+}
+
+.db-button:focus-visible {
+  outline: var(--db-focus-ring-width) solid var(--db-color-focus);
+  outline-offset: var(--db-focus-ring-offset);
+}
+
+.db-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.db-button--primary {
+  color: var(--db-color-on-primary);
+  background: var(--db-color-primary);
+}
+
+.db-button--primary:hover:not(:disabled) {
+  background: var(--db-color-primary-hover);
+}
+
+.db-button--secondary {
+  color: var(--db-color-text);
+  background: var(--db-color-surface);
+  border-color: var(--db-color-border);
+}
+
+.db-button--danger {
+  color: var(--db-color-on-primary);
+  background: var(--db-color-status-danger-text);
+}
+
+.db-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--db-spacing-2);
+  padding: var(--db-spacing-1) var(--db-spacing-2);
+  border-radius: var(--db-radius-medium);
+  font-family: var(--db-typography-font-family-body);
+  font-size: var(--db-typography-font-size-label);
+  font-weight: var(--db-typography-font-weight-medium);
+}
+
+.db-status[data-status='success'] {
+  color: var(--db-color-status-success-text);
+  background: var(--db-color-status-success-surface);
+}
+
+.db-status[data-status='warning'] {
+  color: var(--db-color-status-warning-text);
+  background: var(--db-color-status-warning-surface);
+}
+
+.db-status[data-status='danger'] {
+  color: var(--db-color-status-danger-text);
+  background: var(--db-color-status-danger-surface);
+}
+
+.db-status[data-status='info'] {
+  color: var(--db-color-status-info-text);
+  background: var(--db-color-status-info-surface);
+}
+
+.db-status__icon {
+  inline-size: var(--db-sizing-icon-small);
+  text-align: center;
+  font-weight: var(--db-typography-font-weight-semibold);
+}
+
+@media (forced-colors: active) {
+  .db-button,
+  .db-status {
+    border-color: CanvasText;
+  }
+
+  .db-button:focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .db-button {
+    transition-duration: 0ms;
+  }
+}

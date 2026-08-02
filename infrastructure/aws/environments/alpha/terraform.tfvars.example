@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars for a local plan. Never commit the copied file.
+aws_region              = "ap-southeast-1"
+environment             = "alpha"
+name                    = "alpha"
+enable_nat_gateway      = false
+enable_cloudfront       = false
+enable_ecs_services     = false
+enable_database         = false
+backup_retention_period = 1
+deletion_protection     = false
+github_repository       = ""

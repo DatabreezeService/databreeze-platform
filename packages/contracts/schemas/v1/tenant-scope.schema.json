@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/tenant-scope",
+  "$comment": "Partial foundation coverage for IAM-019.",
+  "title": "Tenant Scope",
+  "description": "A discriminated tenant scope containing the complete ancestry required at its level.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/organizationScope"
+    },
+    {
+      "$ref": "#/$defs/workspaceScope"
+    },
+    {
+      "$ref": "#/$defs/projectScope"
+    }
+  ],
+  "$defs": {
+    "organizationScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scopeType", "organizationId"],
+      "properties": {
+        "scopeType": {
+          "const": "organization"
+        },
+        "organizationId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        }
+      }
+    },
+    "workspaceScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scopeType", "organizationId", "workspaceId"],
+      "properties": {
+        "scopeType": {
+          "const": "workspace"
+        },
+        "organizationId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "workspaceId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        }
+      }
+    },
+    "projectScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scopeType", "organizationId", "workspaceId", "projectId"],
+      "properties": {
+        "scopeType": {
+          "const": "project"
+        },
+        "organizationId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "workspaceId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "projectId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "name": "@databreeze/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "browser:install:ci": "playwright install --with-deps chromium",
+    "budget": "node scripts/check-bundle-budget.mjs",
+    "build": "tsc --build && vite build && corepack pnpm budget",
+    "dev": "vite",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:e2e": "corepack pnpm test:e2e:preview && corepack pnpm test:e2e:dev",
+    "test:e2e:dev": "playwright test --config playwright.dev.config.ts",
+    "test:e2e:preview": "playwright test",
+    "test:watch": "vitest",
+    "typecheck": "tsc --build --pretty false"
+  },
+  "dependencies": {
+    "@databreeze/design-tokens": "workspace:*",
+    "@databreeze/domain": "workspace:*",
+    "@databreeze/i18n": "workspace:*",
+    "@databreeze/telemetry": "workspace:*",
+    "@databreeze/ui": "workspace:*",
+    "@tanstack/react-query": "5.101.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-router-dom": "7.18.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@tailwindcss/vite": "4.3.3",
+    "@testing-library/react": "16.3.0",
+    "@testing-library/user-event": "14.6.1",
+    "@types/node": "24.13.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@vitejs/plugin-react": "6.0.5",
+    "jsdom": "30.0.1",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.2",
+    "vite": "8.2.0",
+    "vitest": "4.1.10"
+  }
+}

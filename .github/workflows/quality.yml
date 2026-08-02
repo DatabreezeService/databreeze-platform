@@ -1,0 +1,127 @@
+name: quality
+
+on:
+  pull_request:
+  push:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scope:
+    name: Detect affected runtimes
+    runs-on: ubuntu-24.04
+    outputs:
+      shared: ${{ steps.scope.outputs.shared }}
+      web: ${{ steps.scope.outputs.web }}
+      desktop: ${{ steps.scope.outputs.desktop }}
+      android: ${{ steps.scope.outputs.android }}
+      engine: ${{ steps.scope.outputs.engine }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Detect change scope
+        id: scope
+        shell: bash
+        env:
+          BASE_SHA:
+            ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha ||
+            github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          base="$BASE_SHA"
+          if [[ -z "$base" || "$base" == "0000000000000000000000000000000000000000" ]]; then base="HEAD^"; fi
+          node tools/repo-cli/src/detect-change-scope.mjs "$base" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
+  repository:
+    name: Repository checks
+    needs: scope
+    if:
+      needs.scope.outputs.shared == 'true' || needs.scope.outputs.web == 'true' ||
+      needs.scope.outputs.desktop == 'true' || needs.scope.outputs.android == 'true' ||
+      needs.scope.outputs.engine == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Python 3.13
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version-file: services/engine/.python-version
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff
+        with:
+          version: 0.11.32
+          enable-cache: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+      - name: Enable pinned pnpm
+        shell: bash
+        run: corepack enable && corepack prepare pnpm@11.18.0 --activate
+      - name: Install JavaScript dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Prepare locked Python engine environment
+        working-directory: services/engine
+        run: uv sync --locked
+      - name: Validate CI policy
+        run: pnpm ci:policy
+      - name: Run repository checks
+        run: pnpm repo:check
+      - name: Build all JavaScript deployables
+        run: pnpm repo:build
+
+  engine:
+    name: Python engine checks
+    needs: scope
+    if: needs.scope.outputs.engine == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Python 3.13
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version-file: services/engine/.python-version
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff
+        with:
+          version: 0.11.32
+          enable-cache: false
+      - name: Run engine checks
+        shell: bash
+        working-directory: services/engine
+        run: |
+          uv sync --locked
+          uv run --locked pytest
+          uv run --locked ruff check .
+          uv run --locked ruff format --check .
+          uv run --locked mypy
+
+  android:
+    name: Android shell checks
+    needs: scope
+    if: needs.scope.outputs.android == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Set up Java 21
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Run Android unit tests
+        working-directory: apps/android
+        run: ./gradlew :app:testDebugUnitTest --no-daemon

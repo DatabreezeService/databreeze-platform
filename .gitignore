@@ -14,6 +14,8 @@ node_modules/
 dist/
 out/
 coverage/
+playwright-report/
+test-results/
 *.tsbuildinfo
 *.log
 
@@ -26,10 +28,14 @@ __pycache__/
 .ruff_cache/
 .coverage
 htmlcov/
+*.whl
+*.tar.gz
+*.frame
 *.egg-info/
 
 # Gradle and Android
 .gradle/
+.kotlin/
 **/build/
 local.properties
 *.apk
@@ -40,6 +46,7 @@ local.properties
 # IDE and operating system
 .idea/
 .vscode/
+.worktrees/
 *.iml
 .DS_Store
 Thumbs.db
@@ -47,6 +54,8 @@ Desktop.ini
 
 # Customer/runtime data and generated artifacts
 data/
+!infrastructure/aws/modules/data/
+!infrastructure/aws/modules/data/**
 runtime/
 uploads/
 artifacts/
