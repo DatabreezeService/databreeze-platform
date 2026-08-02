@@ -7,6 +7,7 @@ import {
   type StrictUtcTimestampV1,
   type TenantScopeV1,
 } from '../tenant-scope/v1.js';
+import type { ArtifactVersionV1 } from '../artifact/v1.js';
 
 /** IAE-003, IAE-007, IAE-012, IAE-021: lineage and deletion authority. */
 export const ARTIFACT_GOVERNANCE_SCHEMA_VERSION_V1 = 1 as const;
@@ -52,7 +53,10 @@ export type ArtifactGovernanceErrorCodeV1 =
   | 'INVALID_HASH'
   | 'INVALID_LINEAGE'
   | 'DUPLICATE_IDENTIFIER'
-  | 'INVALID_TRANSFORM';
+  | 'INVALID_TRANSFORM'
+  | 'SOURCE_REQUIRED'
+  | 'SOURCE_NOT_ACTIVE'
+  | 'DATA_MODE_WIDENING';
 
 export type ArtifactGovernanceResultV1<TValue> =
   | { readonly accepted: true; readonly value: TValue }
@@ -155,6 +159,30 @@ export function createArtifactLineageV1(input: {
       coordinateLineage: Object.freeze(coordinateLineage),
     }),
   );
+}
+
+/** IAE-007, IAE-008: derived content cannot cross scope or widen a data mode. */
+export function validateDerivedArtifactVersionV1(input: {
+  readonly derived: ArtifactVersionV1;
+  readonly sourceVersions: readonly ArtifactVersionV1[];
+}): ArtifactGovernanceResultV1<true> {
+  if (input.sourceVersions.length === 0) return rejected('SOURCE_REQUIRED');
+  const sourceIds = new Set<string>();
+  const sourceModeRanks: number[] = [];
+  for (const source of input.sourceVersions) {
+    if (source.versionId === input.derived.versionId) return rejected('DUPLICATE_IDENTIFIER');
+    if (sourceIds.has(source.versionId)) return rejected('DUPLICATE_IDENTIFIER');
+    sourceIds.add(source.versionId);
+    if (!tenantScopesEqualV1(source.tenantScope, input.derived.tenantScope))
+      return rejected('CROSS_SCOPE');
+    if (source.status !== 'ACTIVE') return rejected('SOURCE_NOT_ACTIVE');
+    sourceModeRanks.push(source.dataMode === 'Local' ? 0 : source.dataMode === 'Hybrid' ? 1 : 2);
+  }
+  const derivedModeRank = input.derived.dataMode === 'Local' ? 0 : input.derived.dataMode === 'Hybrid' ? 1 : 2;
+  const leastPermissiveSource = Math.min(...sourceModeRanks);
+  return derivedModeRank <= leastPermissiveSource
+    ? accepted(true)
+    : rejected('DATA_MODE_WIDENING');
 }
 
 export function evaluateArtifactRetentionV1(input: {
