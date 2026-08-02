@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, Inject, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Inject, Post, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import {
@@ -46,5 +46,12 @@ export class InboxController {
       artifactVersionId: input.artifactVersionId,
       createdAt: input.createdAt,
     });
+  }
+
+  @Get('inbox')
+  @ApiOperation({ summary: 'List content-free artifact intake items visible to the caller' })
+  async list(@Req() request: unknown): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    return this.intake.list(context);
   }
 }

@@ -65,4 +65,8 @@ export class ArtifactIntakeService {
       });
     });
   }
+
+  public async list(context: IamTenantContextV1): Promise<readonly InboxItemV1[]> {
+    return this.repository.withTransaction(context, (transaction) => transaction.list(context));
+  }
 }

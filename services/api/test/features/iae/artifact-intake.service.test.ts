@@ -82,3 +82,12 @@ void test('[IAE-009, IAE-010, IAM-009] admission moves clean content to routed a
   });
   assert.deepEqual(sibling, { accepted: false, code: 'INBOX_NOT_FOUND' });
 });
+
+void test('[IAE-001, IAM-009] inbox listing is scoped and newest-first', async () => {
+  const service = new ArtifactIntakeService(new InMemoryArtifactIntakeRepositoryAdapter());
+  await service.create(context(workspaceId, 'list-1'), inbox);
+  await service.create(context(workspaceId, 'list-2'), { ...inbox, inboxItemId: '00000000-0000-4000-8000-000000000024', artifactVersionId: '00000000-0000-4000-8000-000000000025', createdAt: '2026-01-02T00:00:00.000Z', idempotencyKey: 'list-2' });
+  await service.create(context(siblingWorkspaceId, 'list-3'), { ...inbox, inboxItemId: '00000000-0000-4000-8000-000000000026', artifactVersionId: '00000000-0000-4000-8000-000000000027', tenantScope: { scopeType: 'workspace', organizationId, workspaceId: siblingWorkspaceId }, createdAt: '2026-01-03T00:00:00.000Z', idempotencyKey: 'list-3' });
+  const listed = await service.list(context(workspaceId, 'list-read'));
+  assert.deepEqual(listed.map((item) => item.inboxItemId), ['00000000-0000-4000-8000-000000000024', inbox.inboxItemId]);
+});

@@ -76,6 +76,14 @@ export class InMemoryArtifactIntakeRepositoryAdapter implements ArtifactIntakeRe
     return item && visible(context.tenantScope, item.tenantScope) ? clone(item) : undefined;
   }
 
+  public async list(context: IamTenantContextV1): Promise<readonly InboxItemV1[]> {
+    await Promise.resolve();
+    return [...this.items.values()]
+      .filter((item) => visible(context.tenantScope, item.tenantScope))
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+      .map(clone);
+  }
+
   public async withTransaction<TValue>(
     context: IamTenantContextV1,
     work: (transaction: ArtifactIntakeTransactionPortV1) => Promise<TValue>,
@@ -92,6 +100,7 @@ export class InMemoryArtifactIntakeRepositoryAdapter implements ArtifactIntakeRe
         save: this.save.bind(this),
         findByIdempotency: this.findByIdempotency.bind(this),
         find: this.find.bind(this),
+        list: this.list.bind(this),
       });
     } catch (error) {
       this.items = before;
