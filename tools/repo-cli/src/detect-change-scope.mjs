@@ -14,6 +14,7 @@ const shared = matches([
   'tools/',
   'docs/specs/',
   'docs/plans/',
+  'infrastructure/',
   '.github/',
   'package.json',
   'pnpm-lock.yaml',
