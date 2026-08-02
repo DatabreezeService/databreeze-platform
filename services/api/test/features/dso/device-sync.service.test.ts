@@ -1,0 +1,186 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+import { InMemoryDataModePolicyRepositoryAdapter } from '../../../src/features/dso/adapter/in-memory-data-mode-policy-repository.adapter.js';
+import { InMemoryDeviceSyncRepositoryAdapter } from '../../../src/features/dso/adapter/in-memory-device-sync-repository.adapter.js';
+import { DataModePolicyService } from '../../../src/features/dso/application/data-mode-policy.service.js';
+import { DeviceSyncService } from '../../../src/features/dso/application/device-sync.service.js';
+import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
+
+const organizationId = '00000000-0000-4000-8000-000000000001';
+const workspaceId = '00000000-0000-4000-8000-000000000002';
+const siblingWorkspaceId = '00000000-0000-4000-8000-000000000003';
+const actorId = '00000000-0000-4000-8000-000000000010';
+const correlationId = '00000000-0000-4000-8000-000000000011';
+const deviceId = '00000000-0000-4000-8000-000000000020';
+const operationId = '00000000-0000-4000-8000-000000000021';
+const entityId = '00000000-0000-4000-8000-000000000022';
+const packageId = '00000000-0000-4000-8000-000000000023';
+const receiptId = '00000000-0000-4000-8000-000000000024';
+const conflictId = '00000000-0000-4000-8000-000000000025';
+const policyId = '00000000-0000-4000-8000-000000000026';
+const policyVersionId = '00000000-0000-4000-8000-000000000027';
+const digest = 'a'.repeat(64);
+
+function context(scopeWorkspaceId: string, idempotencyKey: string, expectedRevision?: number) {
+  const result = createIamTenantContextV1({
+    tenantScope: { scopeType: 'workspace', organizationId, workspaceId: scopeWorkspaceId },
+    actorId,
+    correlationId,
+    idempotencyKey,
+    authorizationEpoch: 1,
+    ...(expectedRevision === undefined ? {} : { expectedRevision }),
+  });
+  assert.equal(result.accepted, true);
+  if (!result.accepted) throw new Error('invalid context');
+  return result.value;
+}
+
+function operationInput(overrides: Record<string, unknown> = {}) {
+  return {
+    operationId,
+    deviceId,
+    tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+    entityType: 'artifact-version',
+    entityId,
+    kind: 'UPSERT',
+    payloadClass: 'CONTROL_METADATA',
+    payloadDigest: digest,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function packageInput(overrides: Record<string, unknown> = {}) {
+  return {
+    packageId,
+    deviceId,
+    tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+    purpose: 'offline-review',
+    destinationClass: 'USER_CARRIED_ENCRYPTED_PACKAGE',
+    itemDigests: [digest],
+    packageDigest: digest,
+    issuedAt: '2026-01-01T00:00:00.000Z',
+    expiresAt: '2026-01-01T01:00:00.000Z',
+    ...overrides,
+  };
+}
+
+void test('[DSO-011, DSO-012, DSO-014] sync enqueue is idempotent and tenant scoped', async () => {
+  const service = new DeviceSyncService(new InMemoryDeviceSyncRepositoryAdapter());
+  const first = await service.enqueue(context(workspaceId, 'sync-1'), operationInput());
+  const replay = await service.enqueue(context(workspaceId, 'sync-1'), operationInput());
+  assert.equal(first.accepted, true);
+  assert.deepEqual(replay, first);
+  const conflict = await service.enqueue(
+    context(workspaceId, 'sync-1'),
+    operationInput({ payloadDigest: 'b'.repeat(64) }),
+  );
+  assert.deepEqual(conflict, { accepted: false, code: 'IDEMPOTENCY_CONFLICT' });
+  const sibling = await service.enqueue(
+    context(siblingWorkspaceId, 'sync-sibling'),
+    operationInput({ operationId: '00000000-0000-4000-8000-000000000026' }),
+  );
+  assert.deepEqual(sibling, { accepted: false, code: 'TENANT_SCOPE_DENIED' });
+});
+
+void test('[DSO-016, DSO-018] transitions use optimistic revisions and explicit conflicts', async () => {
+  const service = new DeviceSyncService(new InMemoryDeviceSyncRepositoryAdapter());
+  const created = await service.enqueue(context(workspaceId, 'sync-transition'), operationInput());
+  assert.equal(created.accepted, true);
+  if (!created.accepted) return;
+  const accepted = await service.transition(
+    context(workspaceId, 'sync-accept', 1),
+    operationId,
+    'ACCEPT',
+    '2026-01-01T00:00:01.000Z',
+  );
+  assert.equal(accepted.accepted, true);
+  const stale = await service.transition(
+    context(workspaceId, 'sync-stale', 1),
+    operationId,
+    'APPLY',
+    '2026-01-01T00:00:02.000Z',
+  );
+  assert.deepEqual(stale, { accepted: false, code: 'REVISION_CONFLICT' });
+  const conflict = await service.recordConflict(context(workspaceId, 'sync-conflict'), {
+    conflictId,
+    operationId,
+    deviceId,
+    tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+    entityType: 'artifact-version',
+    entityId,
+    reason: 'REVISION_MISMATCH',
+    expectedRevision: 2,
+    actualRevision: 3,
+    detectedAt: '2026-01-01T00:00:03.000Z',
+  });
+  assert.equal(conflict.accepted, true);
+  assert.equal((await service.listConflicts(context(workspaceId, 'sync-conflict-list'))).length, 1);
+});
+
+void test('[DSO-019, DSO-020, DSO-021] strict-Local handoff binds package and receipt digests', async () => {
+  const service = new DeviceSyncService(new InMemoryDeviceSyncRepositoryAdapter());
+  const issued = await service.issueStrictLocalPackage(
+    context(workspaceId, 'package-issue'),
+    packageInput(),
+  );
+  assert.equal(issued.accepted, true);
+  const receipt = await service.recordTransferReceipt(context(workspaceId, 'package-receipt'), {
+    receiptId,
+    packageId,
+    deviceId,
+    destinationClass: 'USER_CARRIED_ENCRYPTED_PACKAGE',
+    packageDigest: digest,
+    receivedAt: '2026-01-01T00:30:00.000Z',
+    manifestVerified: true,
+    status: 'ACCEPTED',
+  });
+  assert.equal(receipt.accepted, true);
+  const tampered = await service.recordTransferReceipt(context(workspaceId, 'package-tamper'), {
+    receiptId: '00000000-0000-4000-8000-000000000028',
+    packageId,
+    deviceId,
+    destinationClass: 'USER_CARRIED_ENCRYPTED_PACKAGE',
+    packageDigest: 'b'.repeat(64),
+    receivedAt: '2026-01-01T00:31:00.000Z',
+    manifestVerified: false,
+    status: 'QUARANTINED',
+  });
+  assert.deepEqual(tampered, { accepted: false, code: 'RECEIPT_MISMATCH' });
+});
+
+void test('[DSO-007, DSO-008] policy denies payloads that are not approved for the classification', async () => {
+  const policies = new InMemoryDataModePolicyRepositoryAdapter();
+  const policyService = new DataModePolicyService(policies);
+  const published = await policyService.publish(context(workspaceId, 'policy-publish'), {
+    policyId,
+    policyVersionId,
+    organizationId,
+    workspaceId,
+    revision: 1,
+    mode: 'LOCAL',
+    allowedPayloadClasses: {
+      PUBLIC: ['CONTROL_METADATA'],
+      INTERNAL: ['CONTROL_METADATA'],
+      CONFIDENTIAL: ['CONTROL_METADATA'],
+      RESTRICTED: ['CONTROL_METADATA'],
+    },
+    allowedPlacementKinds: ['LOCAL'],
+    allowedExecutorClasses: ['DESKTOP'],
+    allowedDestinationClasses: ['DESKTOP'],
+    canonicalHash: digest,
+    publishedAt: '2026-01-01T00:00:00.000Z',
+  });
+  assert.equal(published.accepted, true);
+  const service = new DeviceSyncService(new InMemoryDeviceSyncRepositoryAdapter(), policies);
+  const result = await service.enqueue(
+    context(workspaceId, 'policy-denied'),
+    operationInput({
+      payloadClass: 'APPROVED_DERIVED_RESULT',
+      policyVersionId,
+      classification: 'INTERNAL',
+    }),
+  );
+  assert.deepEqual(result, { accepted: false, code: 'POLICY_DENIED' });
+});
