@@ -14,6 +14,10 @@ Unknown keys are dropped. Sensitive keys and values (tokens, secrets, paths,
 filenames, source values, prompts, evidence, contact data, and content) are
 rejected by the strict assertion helper and never serialized.
 
+Sanitization reads only own data properties. Accessor-backed or hostile
+diagnostic fields are ignored (or rejected by the strict helper) without
+executing their getters.
+
 Use `createStructuredLoggerV1` at runtime boundaries and pass only the
 correlation headers produced by `correlationHeadersV1`. A logger sink receives
 one JSON object per event; it never receives a source payload or an exception
