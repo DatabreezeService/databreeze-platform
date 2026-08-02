@@ -36,11 +36,33 @@ PR until the branch reaches at least 30 commits, targeting approximately 70 and
 never reaching 100. The only small-PR exceptions are focused promotion-review
 fixes required to close an already-open `dev`→`main` gate.
 
-At this checkpoint the branch is 70 commits ahead of `origin/dev`. The current
+At this checkpoint the branch is 72 commits ahead of `origin/dev`. The current
 boundary is still coherent: FND-003 local lifecycle hardening is accompanied by
 portable AWS safety, telemetry, CI/supply-chain, and evidence updates. Continue
 with scoped foundation work until the final handoff boundary; do not manufacture
 empty commits or open a small feature PR merely to reset the count.
+
+## Final scoped verification before the feature PR
+
+Passed from this worktree:
+
+- `corepack pnpm format:check`
+- `corepack pnpm lint`
+- `corepack pnpm typecheck`
+- `corepack pnpm contracts:check`
+- `corepack pnpm orchestration:check`
+- `corepack pnpm requirements:check`
+- `corepack pnpm test` (67 repository CLI tests plus all workspace suites)
+- `corepack pnpm repo:build` (API, Web, Desktop, shared packages, and engine)
+- `uv run --locked pytest`, Ruff, format, and mypy (91 engine tests)
+- `apps/android/gradlew.bat :app:testDebugUnitTest --offline --no-daemon`
+
+Environment-gated and intentionally not claimed as verified:
+
+- OpenTofu format/init/validate because OpenTofu is not installed locally.
+- Live Docker startup, health, port-collision, disk-pressure, Redis
+  persistence, and restart checks because the Docker daemon is unavailable.
+- Android instrumentation/emulator and signed release packaging.
 
 ## Safest next command
 
