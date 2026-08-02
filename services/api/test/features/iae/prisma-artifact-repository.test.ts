@@ -150,6 +150,7 @@ void test('[IAE-003, IAE-004, IAE-005, IAM-009] Prisma artifact adapter keeps pl
   const repository = new PrismaArtifactRepositoryAdapter(client([], placements, evidence));
   await repository.saveVersion(context('version'), artifact.value);
   await repository.savePlacement(context('placement'), placement.value);
+  await repository.savePlacement(context('placement-repeat'), placement.value);
   await repository.saveEvidence(context('evidence'), evidenceRef.value);
   assert.equal((await repository.listPlacements(context('list-placement'), versionId)).length, 1);
   assert.equal((await repository.listEvidence(context('list-evidence'), versionId)).length, 1);

@@ -245,6 +245,14 @@ class PrismaArtifactTransactionAdapter implements ArtifactTransactionPortV1 {
     if (version === null) throw new Error('IAE_VERSION_NOT_FOUND');
     if (!tenantScopeContainsV1(context.tenantScope, placement.tenantScope))
       throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
+    const existing = await this.client.contentPlacement.findUnique({
+      where: { id: placement.placementId },
+    });
+    if (existing !== null) {
+      const persisted = rowToPlacement(existing, rowToVersion(version));
+      if (JSON.stringify(persisted) === JSON.stringify(placement)) return;
+      throw new Error('IAE_IMMUTABLE_PLACEMENT');
+    }
     await this.client.contentPlacement.create({
       data: {
         ...databaseScope(placement.tenantScope),
