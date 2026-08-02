@@ -9,6 +9,7 @@ import type {
   AuditRepositoryPortV1,
   AuditTransactionPortV1,
 } from '../application/audit-repository.port.js';
+import { sameAuditEventV1, sameAuditSealV1 } from '../application/audit-equality.js';
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 
 function visibleInScope(context: TenantScopeV1, record: TenantScopeV1): boolean {
@@ -44,8 +45,7 @@ export class InMemoryAuditRepositoryAdapter implements AuditRepositoryPortV1 {
       throw new Error('AUD_SCOPE_NARROWING_REQUIRED');
     const existing = this.events.get(event.eventId);
     if (existing) {
-      if (JSON.stringify(existing) !== JSON.stringify(event))
-        throw new Error('AUD_IMMUTABLE_EVENT');
+      if (!sameAuditEventV1(existing, event)) throw new Error('AUD_IMMUTABLE_EVENT');
       return cloneEvent(existing);
     }
     const scopedEvents = [...this.events.values()]
@@ -103,8 +103,7 @@ export class InMemoryAuditRepositoryAdapter implements AuditRepositoryPortV1 {
         tenantScopeContainsV1(item.tenantScope, seal.tenantScope) &&
         tenantScopeContainsV1(seal.tenantScope, item.tenantScope),
     );
-    if (existing && JSON.stringify(existing) !== JSON.stringify(seal))
-      throw new Error('AUD_IMMUTABLE_SEAL');
+    if (existing && !sameAuditSealV1(existing, seal)) throw new Error('AUD_IMMUTABLE_SEAL');
     this.seals.set(seal.rootDigest, cloneSeal(seal));
   }
 

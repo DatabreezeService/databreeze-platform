@@ -21,6 +21,7 @@ import type {
   AuditRepositoryPortV1,
   AuditTransactionPortV1,
 } from '../application/audit-repository.port.js';
+import { sameAuditEventV1, sameAuditSealV1 } from '../application/audit-equality.js';
 
 export interface AuditEventDatabaseRowV1 {
   readonly id: string;
@@ -284,7 +285,7 @@ class PrismaAuditTransactionAdapter implements AuditTransactionPortV1 {
     });
     if (existing !== null) {
       const current = persistedEvent(existing);
-      if (JSON.stringify(current) !== JSON.stringify(event)) throw new Error('AUD_IMMUTABLE_EVENT');
+      if (!sameAuditEventV1(current, event)) throw new Error('AUD_IMMUTABLE_EVENT');
       return current;
     }
     const siblings = await this.client.auditEventRecord.findMany({
@@ -344,8 +345,7 @@ class PrismaAuditTransactionAdapter implements AuditTransactionPortV1 {
       },
     });
     if (existing !== null) {
-      if (JSON.stringify(persistedSeal(existing)) !== JSON.stringify(seal))
-        throw new Error('AUD_IMMUTABLE_SEAL');
+      if (!sameAuditSealV1(persistedSeal(existing), seal)) throw new Error('AUD_IMMUTABLE_SEAL');
       return;
     }
     await this.client.auditSealRecord.create({ data: sealCreateData(seal) });
