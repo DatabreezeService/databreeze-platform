@@ -154,9 +154,16 @@ function portAvailable(port) {
 
 async function ensurePorts(values) {
   const collisions = [];
+  const configured = new Map();
   for (const definition of hostPorts) {
-    if (containerRunning(definition.service, values)) continue;
     const port = portValue(definition, values);
+    const prior = configured.get(port);
+    if (prior && prior.key !== definition.key) {
+      collisions.push(`${prior.key}=${port} and ${definition.key}=${port}`);
+      continue;
+    }
+    configured.set(port, definition);
+    if (containerRunning(definition.service, values)) continue;
     if (!(await portAvailable(port))) collisions.push(`${definition.key}=${port} (${definition.service})`);
   }
   if (collisions.length > 0) {

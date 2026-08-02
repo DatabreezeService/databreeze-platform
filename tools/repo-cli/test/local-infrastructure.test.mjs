@@ -88,6 +88,7 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
   }
   assert.match(script, /statfsSync/u);
   assert.match(script, /portAvailable/u);
+  assert.match(script, /configured = new Map/u);
   assert.match(script, /Docker CLI is not installed/u);
   assert.match(script, /Docker daemon is unavailable/u);
   assert.match(script, /down', '--remove-orphans/u);
