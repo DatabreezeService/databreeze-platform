@@ -76,6 +76,21 @@ test('local bootstrap is credential-free and creates every owned module schema',
   assert.doesNotMatch(bucketScript, /databreeze-local-change-me/);
 });
 
+test('local OpenTelemetry collector keeps every signal on the bounded local pipeline', () => {
+  const collector = read('infrastructure/local/otel/collector.yaml');
+  for (const section of ['receivers:', 'processors:', 'exporters:', 'extensions:', 'service:', 'pipelines:']) {
+    assert.match(collector, new RegExp(`^${section}`, 'm'));
+  }
+  for (const signal of ['traces:', 'metrics:', 'logs:']) {
+    assert.match(collector, new RegExp(`^    ${signal}`, 'm'));
+    assert.match(collector, new RegExp(`${signal}[\\s\\S]*receivers: \\[otlp\\]`, 'u'));
+    assert.match(collector, new RegExp(`${signal}[\\s\\S]*processors: \\[memory_limiter, batch\\]`, 'u'));
+    assert.match(collector, new RegExp(`${signal}[\\s\\S]*exporters: \\[debug\\]`, 'u'));
+  }
+  assert.match(collector, /health_check:[\\s\\S]*endpoint: 0\.0\.0\.0:13133/u);
+  assert.doesNotMatch(collector, /filelog|otlphttp|s3|http:\/\\//iu);
+});
+
 test('readiness smoke script exposes a non-destructive help command', () => {
   const script = path.join(repositoryRoot, 'tools', 'repo-cli', 'src', 'local-services-smoke.mjs');
   const result = spawnSync(process.execPath, [script, '--help'], {
