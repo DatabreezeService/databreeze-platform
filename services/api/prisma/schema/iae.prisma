@@ -62,7 +62,7 @@ model ArtifactLineageRecord {
   coordinateLineage     Json     @map("coordinate_lineage")
   createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  @@index([derivedArtifactVersionId], map: "artifact_lineage_derived_version_idx")
+  @@unique([derivedArtifactVersionId], map: "artifact_lineage_derived_version_key")
   @@index([organizationId, workspaceId, projectId], map: "artifact_lineage_scope_idx")
   @@map("artifact_lineage")
   @@schema("iae")

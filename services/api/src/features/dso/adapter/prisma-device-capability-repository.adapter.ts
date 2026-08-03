@@ -50,6 +50,10 @@ interface DelegateV1<TRow, TCreate, TUpdate = never> {
     readonly where: { readonly id: string };
     readonly data: TUpdate;
   }): Promise<TRow>;
+  updateMany?(input: {
+    readonly where: { readonly id: string; readonly revision: number };
+    readonly data: TUpdate;
+  }): Promise<{ readonly count: number }>;
 }
 
 export interface DeviceCapabilityDatabaseCreateDataV1 {
@@ -302,15 +306,16 @@ class PrismaDeviceCapabilityTransactionAdapter implements DeviceCapabilityTransa
       current.opaqueLocalHandle !== capability.opaqueLocalHandle
     )
       throw new Error('DSO_IMMUTABLE_CAPABILITY');
-    if (!this.client.deviceCapabilityRecord.update) throw new Error('DSO_UPDATE_UNAVAILABLE');
-    await this.client.deviceCapabilityRecord.update({
-      where: { id: capability.capabilityId },
+    if (!this.client.deviceCapabilityRecord.updateMany) throw new Error('DSO_UPDATE_UNAVAILABLE');
+    const result = await this.client.deviceCapabilityRecord.updateMany({
+      where: { id: capability.capabilityId, revision: expectedRevision },
       data: {
         status: capability.status,
         reportedAt: new Date(capability.reportedAt),
         revision: capability.revision,
       },
     });
+    if (result.count !== 1) throw new Error('DSO_REVISION_CONFLICT');
   }
 
   public async replaceGrant(
@@ -329,11 +334,13 @@ class PrismaDeviceCapabilityTransactionAdapter implements DeviceCapabilityTransa
       current.authorizationEpoch !== grant.authorizationEpoch
     )
       throw new Error('DSO_IMMUTABLE_GRANT');
-    if (!this.client.deviceOperationalGrantRecord.update) throw new Error('DSO_UPDATE_UNAVAILABLE');
-    await this.client.deviceOperationalGrantRecord.update({
-      where: { id: grant.grantId },
+    if (!this.client.deviceOperationalGrantRecord.updateMany)
+      throw new Error('DSO_UPDATE_UNAVAILABLE');
+    const result = await this.client.deviceOperationalGrantRecord.updateMany({
+      where: { id: grant.grantId, revision: expectedRevision },
       data: { status: grant.status, revision: grant.revision },
     });
+    if (result.count !== 1) throw new Error('DSO_REVISION_CONFLICT');
   }
 }
 

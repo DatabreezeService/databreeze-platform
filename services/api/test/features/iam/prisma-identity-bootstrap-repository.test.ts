@@ -40,6 +40,7 @@ function createDatabase(): {
   readonly workspaces: Map<string, WorkspaceIdentityDatabaseRowV1>;
   readonly projects: Map<string, ProjectIdentityDatabaseRowV1>;
   readonly memberships: Map<string, MembershipIdentityDatabaseRowV1>;
+  readonly transactionCalls: { value: number };
 } {
   const users = new Map<string, UserIdentityDatabaseRowV1>([
     [
@@ -59,6 +60,7 @@ function createDatabase(): {
   const workspaces = new Map<string, WorkspaceIdentityDatabaseRowV1>();
   const projects = new Map<string, ProjectIdentityDatabaseRowV1>();
   const memberships = new Map<string, MembershipIdentityDatabaseRowV1>();
+  const transactionCalls = { value: 0 };
   const client = {
     userIdentity: {
       findUnique: async ({ where }: { readonly where: { readonly id: string } }) =>
@@ -117,6 +119,7 @@ function createDatabase(): {
     $transaction: async <TValue>(
       work: (transaction: IdentityBootstrapDatabaseClientV1) => Promise<TValue>,
     ) => {
+      transactionCalls.value += 1;
       const before = {
         organizations: new Map(organizations),
         workspaces: new Map(workspaces),
@@ -138,17 +141,19 @@ function createDatabase(): {
       }
     },
   } as unknown as IdentityBootstrapDatabaseClientV1;
-  return { client, users, organizations, workspaces, projects, memberships };
+  return { client, users, organizations, workspaces, projects, memberships, transactionCalls };
 }
 
 void test('[IAM-001, IAM-009, IAM-011] Prisma bootstrap persists and reconstructs a personal owner hierarchy', async () => {
-  const { client, organizations, workspaces, projects, memberships } = createDatabase();
+  const { client, organizations, workspaces, projects, memberships, transactionCalls } =
+    createDatabase();
   const adapter = new PrismaIdentityBootstrapRepositoryAdapter(client);
   const validated = bootstrapPersonalOrganizationV1(input);
   assert.equal(validated.accepted, true);
   if (!validated.accepted) return;
 
   await adapter.save(validated.value);
+  assert.equal(transactionCalls.value, 1);
   assert.equal(organizations.size, 1);
   assert.equal(workspaces.size, 1);
   assert.equal(projects.size, 1);

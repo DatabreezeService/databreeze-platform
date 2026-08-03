@@ -2,6 +2,7 @@ import {
   createArtifactVersionV1,
   createContentPlacementV1,
   createEvidenceReferenceV1,
+  type ArtifactScanStateV1,
   type ArtifactVersionV1,
   type ContentPlacementV1,
   type EvidenceReferenceV1,
@@ -33,6 +34,7 @@ export interface ArtifactVersionDatabaseRowV1 {
   readonly displayName: string;
   readonly createdAt: Date;
   readonly status: string;
+  readonly scanState?: string;
 }
 
 export interface ContentPlacementDatabaseRowV1 {
@@ -84,8 +86,12 @@ export interface ArtifactDatabaseClientV1 {
     }): Promise<ArtifactVersionDatabaseRowV1 | null>;
     update(input: {
       readonly where: { readonly id: string };
-      readonly data: { readonly status: string };
+      readonly data: { readonly status: string; readonly scanState: ArtifactScanStateV1 };
     }): Promise<ArtifactVersionDatabaseRowV1>;
+    updateMany(input: {
+      readonly where: { readonly id: string; readonly status: string; readonly scanState: string };
+      readonly data: { readonly status: string; readonly scanState: ArtifactScanStateV1 };
+    }): Promise<{ readonly count: number }>;
   };
   readonly contentPlacement: {
     create(input: {
@@ -101,9 +107,16 @@ export interface ArtifactDatabaseClientV1 {
       readonly where: { readonly id: string };
       readonly data: { readonly available: boolean; readonly revision: number };
     }): Promise<ContentPlacementDatabaseRowV1>;
+    updateMany(input: {
+      readonly where: { readonly id: string; readonly revision: number };
+      readonly data: { readonly available: boolean; readonly revision: number };
+    }): Promise<{ readonly count: number }>;
   };
   readonly evidenceReference: {
     create(input: { readonly data: EvidenceCreateDataV1 }): Promise<EvidenceDatabaseRowV1>;
+    findUnique(input: {
+      readonly where: { readonly id: string };
+    }): Promise<EvidenceDatabaseRowV1 | null>;
     findMany(input: {
       readonly where: Readonly<Record<string, string>>;
     }): Promise<readonly EvidenceDatabaseRowV1[]>;
@@ -149,6 +162,7 @@ function rowToVersion(row: ArtifactVersionDatabaseRowV1): ArtifactVersionV1 {
     displayName: row.displayName,
     createdAt: row.createdAt.toISOString(),
     status: row.status,
+    scanState: row.scanState ?? 'PENDING',
   });
   if (!parsed.accepted) throw new Error('IAE_PERSISTED_ARTIFACT_INVALID');
   return parsed.value;
@@ -223,6 +237,7 @@ class PrismaArtifactTransactionAdapter implements ArtifactTransactionPortV1 {
         displayName: version.displayName,
         createdAt: new Date(version.createdAt),
         status: version.status,
+        scanState: version.scanState,
       },
     });
   }
@@ -243,6 +258,7 @@ class PrismaArtifactTransactionAdapter implements ArtifactTransactionPortV1 {
     context: IamTenantContextV1,
     versionId: ArtifactVersionV1['versionId'],
     status: ArtifactVersionV1['status'],
+    scanState?: ArtifactScanStateV1,
   ): Promise<ArtifactVersionV1 | undefined> {
     const row = await this.client.artifactVersion.findUnique({ where: { id: versionId } });
     if (row === null || !visible(context.tenantScope, row)) return undefined;
@@ -253,10 +269,13 @@ class PrismaArtifactTransactionAdapter implements ArtifactTransactionPortV1 {
       throw new Error('IAE_INVALID_STATUS');
     if (current.status === 'DELETED' && status !== 'DELETED')
       throw new Error('IAE_TERMINAL_STATUS');
-    const updated = await this.client.artifactVersion.update({
-      where: { id: versionId },
-      data: { status },
+    const result = await this.client.artifactVersion.updateMany({
+      where: { id: versionId, status: current.status, scanState: current.scanState },
+      data: { status, scanState: scanState ?? current.scanState },
     });
+    if (result.count !== 1) throw new Error('IAE_REVISION_CONFLICT');
+    const updated = await this.client.artifactVersion.findUnique({ where: { id: versionId } });
+    if (updated === null) throw new Error('IAE_VERSION_NOT_FOUND');
     return rowToVersion(updated);
   }
 
@@ -333,10 +352,11 @@ class PrismaArtifactTransactionAdapter implements ArtifactTransactionPortV1 {
       current.contentSha256 !== placement.contentSha256
     )
       throw new Error('IAE_IMMUTABLE_PLACEMENT');
-    await this.client.contentPlacement.update({
-      where: { id: placement.placementId },
+    const result = await this.client.contentPlacement.updateMany({
+      where: { id: placement.placementId, revision: current.revision },
       data: { available: placement.available, revision: placement.revision },
     });
+    if (result.count !== 1) throw new Error('IAE_REVISION_CONFLICT');
   }
 
   public async saveEvidence(
@@ -349,6 +369,14 @@ class PrismaArtifactTransactionAdapter implements ArtifactTransactionPortV1 {
     if (versionRow === null) throw new Error('IAE_VERSION_NOT_FOUND');
     if (!tenantScopeContainsV1(context.tenantScope, evidence.tenantScope))
       throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
+    const existing = await this.client.evidenceReference.findUnique({
+      where: { id: evidence.evidenceId },
+    });
+    if (existing !== null) {
+      const persisted = rowToEvidence(existing, rowToVersion(versionRow));
+      if (JSON.stringify(persisted) === JSON.stringify(evidence)) return;
+      throw new Error('IAE_IMMUTABLE_EVIDENCE');
+    }
     await this.client.evidenceReference.create({
       data: {
         ...databaseScope(evidence.tenantScope),

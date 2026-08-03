@@ -37,7 +37,10 @@ function context() {
   return result.value;
 }
 
-function client(rows: ArtifactRetentionDatabaseRowV1[]): ArtifactRetentionDatabaseClientV1 {
+function client(
+  rows: ArtifactRetentionDatabaseRowV1[],
+  options: { readonly forceRevisionConflict?: boolean } = {},
+): ArtifactRetentionDatabaseClientV1 {
   return {
     artifactDeletionRequestRecord: {
       create({ data }) {
@@ -54,6 +57,14 @@ function client(rows: ArtifactRetentionDatabaseRowV1[]): ArtifactRetentionDataba
         const next = { ...current, ...data };
         rows[rows.indexOf(current)] = next;
         return Promise.resolve(next);
+      },
+      updateMany({ where, data }) {
+        const current = rows.find((row) => row.id === where.id);
+        if (options.forceRevisionConflict || !current || current.revision !== where.revision)
+          return Promise.resolve({ count: 0 });
+        const next = { ...current, ...data };
+        rows[rows.indexOf(current)] = next;
+        return Promise.resolve({ count: 1 });
       },
     },
     $transaction(work) {
@@ -79,4 +90,32 @@ void test('[IAE-016, IAE-021, IAM-009] Prisma retention adapter preserves immuta
   await repository.save(tenantContext, created.value);
   assert.deepEqual(await repository.find(tenantContext, requestId), created.value);
   assert.equal(rows.length, 1);
+});
+
+void test('[IAE-016] Prisma retention adapter rejects a database revision race', async () => {
+  const rows: ArtifactRetentionDatabaseRowV1[] = [];
+  const repository = new PrismaArtifactRetentionRepositoryAdapter(
+    client(rows, { forceRevisionConflict: true }),
+  );
+  const tenantContext = context();
+  const created = createArtifactDeletionRequestV1({
+    requestId,
+    artifactVersionId: '00000000-0000-4000-8000-000000000826',
+    tenantScope: tenantContext.tenantScope,
+    requestedBy: tenantContext.actorId,
+    requestedAt: '2026-01-03T00:00:00.000Z',
+  });
+  assert.equal(created.accepted, true);
+  if (!created.accepted) return;
+  await repository.save(tenantContext, created.value);
+  await assert.rejects(
+    repository.save(tenantContext, {
+      ...created.value,
+      state: 'BLOCKED',
+      blockers: ['LEGAL_HOLD'],
+      revision: 2,
+    }),
+    /IAE_REVISION_CONFLICT/u,
+  );
+  assert.equal(rows[0]?.revision, 1);
 });

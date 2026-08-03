@@ -31,7 +31,19 @@ void test('[IAE-001, IAE-003] artifact versions normalize and freeze immutable m
   assert.equal(result.accepted, true);
   if (!result.accepted) return;
   assert.equal(result.value.contentSha256, 'a'.repeat(64));
+  assert.equal(result.value.scanState, 'PENDING');
   assert.equal(Object.isFrozen(result.value), true);
+});
+
+void test('[IAE-009, IAE-010] artifact scan state is bounded and immutable metadata includes it', () => {
+  const result = createArtifactVersionV1({ ...base, scanState: 'MALICIOUS' });
+  assert.equal(result.accepted, true);
+  if (!result.accepted) return;
+  assert.equal(result.value.scanState, 'MALICIOUS');
+  assert.deepEqual(createArtifactVersionV1({ ...base, scanState: 'UNKNOWN' }), {
+    accepted: false,
+    code: 'INVALID_SCAN_STATE',
+  });
 });
 
 void test('[IAE-002, DSO-003] Local artifacts accept only opaque local placements', () => {
@@ -112,5 +124,16 @@ void test('[IAE-006] evidence coordinates are validated against exact source geo
   assert.deepEqual(
     validateEvidenceCoordinateV1({ kind: 'PAGE', page: 4 }, { kind: 'PAGED', maxPage: 3 }),
     { accepted: false, code: 'COORDINATE_OUT_OF_BOUNDS' },
+  );
+  assert.deepEqual(
+    validateEvidenceCoordinateV1(
+      { kind: 'CELL', sheet: 'Sheet1', address: 'B4' },
+      { kind: 'SPREADSHEET', sheets: null },
+    ),
+    { accepted: false, code: 'INVALID_COORDINATE' },
+  );
+  assert.deepEqual(
+    validateEvidenceCoordinateV1({ kind: 'PAGE', page: 1 }, { kind: 'PAGED', maxPage: '3' }),
+    { accepted: false, code: 'INVALID_COORDINATE' },
   );
 });

@@ -132,7 +132,7 @@ function matches(row: Record<string, unknown>, where: Readonly<Record<string, un
   return Object.entries(where).every(([key, value]) => row[key] === value);
 }
 
-function delegate(rows: Record<string, unknown>[]) {
+function delegate(rows: Record<string, unknown>[], forceRevisionConflict = false) {
   return {
     create({ data }: { readonly data: Record<string, unknown> }) {
       const persisted = { ...data };
@@ -180,16 +180,33 @@ function delegate(rows: Record<string, unknown>[]) {
       rows[index] = { ...rows[index], ...data };
       return Promise.resolve(rows[index]);
     },
+    updateMany({
+      where,
+      data,
+    }: {
+      readonly where: { readonly id: string; readonly revision: number };
+      readonly data: Record<string, unknown>;
+    }) {
+      if (forceRevisionConflict) return Promise.resolve({ count: 0 });
+      const index = rows.findIndex(
+        (row) => row['id'] === where.id && row['revision'] === where.revision,
+      );
+      if (index < 0) return Promise.resolve({ count: 0 });
+      rows[index] = { ...rows[index], ...data };
+      return Promise.resolve({ count: 1 });
+    },
   };
 }
 
-function client(): DeviceSyncDatabaseClientV1 {
+function client(
+  options: { readonly forceRevisionConflict?: boolean } = {},
+): DeviceSyncDatabaseClientV1 {
   const operationRows: Record<string, unknown>[] = [];
   const conflictRows: Record<string, unknown>[] = [];
   const packageRows: Record<string, unknown>[] = [];
   const receiptRows: Record<string, unknown>[] = [];
   const database = {
-    deviceSyncOperationRecord: delegate(operationRows),
+    deviceSyncOperationRecord: delegate(operationRows, options.forceRevisionConflict),
     deviceSyncConflictRecord: delegate(conflictRows),
     strictLocalPackageManifestRecord: delegate(packageRows),
     deviceTransferReceiptRecord: delegate(receiptRows),
@@ -239,5 +256,20 @@ void test('[DSO-018, DSO-019, DSO-021] Prisma DSO adapter keeps conflict and tra
   await assert.rejects(
     repository.saveReceipt(context(siblingWorkspaceId, 'sibling-receipt'), receipt()),
     /DSO_SCOPE_NARROWING_REQUIRED/u,
+  );
+});
+
+void test('[DSO-011, DSO-016] Prisma sync-operation transitions reject a database revision race', async () => {
+  const repository = new PrismaDeviceSyncRepositoryAdapter(client({ forceRevisionConflict: true }));
+  const first = operation();
+  await repository.saveOperation(context(workspaceId, 'race-save'), first);
+  const accepted = transitionDeviceSyncOperationV1(first, 'ACCEPT', '2026-01-01T00:00:01.000Z');
+  assert.equal(accepted.accepted, true);
+  if (!accepted.accepted) return;
+  await assert.rejects(
+    repository.saveOperation(context(workspaceId, 'race-accept', 1), accepted.value, {
+      expectedRevision: 1,
+    }),
+    /DSO_REVISION_CONFLICT/u,
   );
 });

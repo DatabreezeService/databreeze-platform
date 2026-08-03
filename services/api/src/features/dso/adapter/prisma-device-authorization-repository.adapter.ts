@@ -62,6 +62,10 @@ interface DelegateV1<TRow, TCreate, TUpdate = never> {
     readonly where: { readonly id: string };
     readonly data: TUpdate;
   }): Promise<TRow>;
+  updateMany?(input: {
+    readonly where: { readonly id: string; readonly revision: number };
+    readonly data: TUpdate;
+  }): Promise<{ readonly count: number }>;
 }
 
 export interface DeviceAuthorizationDatabaseClientV1 {
@@ -292,16 +296,17 @@ class PrismaDeviceAuthorizationTransactionAdapter implements DeviceAuthorization
     if (!tenantScopeContainsV1(context.tenantScope, current.tenantScope))
       throw new Error('DSO_SCOPE_NARROWING_REQUIRED');
     if (current.revision !== expectedRevision) throw new Error('DSO_REVISION_CONFLICT');
-    if (!this.client.deviceGrantRecord.update) throw new Error('DSO_UPDATE_UNAVAILABLE');
     const next = Object.freeze({
       ...current,
       status: current.status === 'ACTIVE' ? ('REVOKED' as const) : current.status,
       revision: current.status === 'ACTIVE' ? current.revision + 1 : current.revision,
     });
-    await this.client.deviceGrantRecord.update({
-      where: { id: grantId },
+    if (!this.client.deviceGrantRecord.updateMany) throw new Error('DSO_UPDATE_UNAVAILABLE');
+    const result = await this.client.deviceGrantRecord.updateMany({
+      where: { id: grantId, revision: expectedRevision },
       data: { status: next.status, revision: next.revision },
     });
+    if (result.count !== 1) throw new Error('DSO_REVISION_CONFLICT');
     return next;
   }
 }

@@ -72,7 +72,10 @@ function snapshot(): EntitlementSnapshotV1 {
   };
 }
 
-function delegate<TRow extends Record<string, unknown>>(rows: TRow[]) {
+function delegate<TRow extends Record<string, unknown>>(
+  rows: TRow[],
+  forceRevisionConflict = false,
+) {
   return {
     create({ data }: { readonly data: TRow }) {
       const persisted = { ...data };
@@ -121,10 +124,27 @@ function delegate<TRow extends Record<string, unknown>>(rows: TRow[]) {
       rows[index] = { ...rows[index], ...data } as TRow;
       return Promise.resolve(rows[index]);
     },
+    updateMany({
+      where,
+      data,
+    }: {
+      readonly where: { readonly id: string; readonly revision: number };
+      readonly data: Record<string, unknown>;
+    }) {
+      if (forceRevisionConflict) return Promise.resolve({ count: 0 });
+      const index = rows.findIndex(
+        (row) => row['id'] === where.id && row['revision'] === where.revision,
+      );
+      if (index < 0) return Promise.resolve({ count: 0 });
+      rows[index] = { ...rows[index], ...data } as TRow;
+      return Promise.resolve({ count: 1 });
+    },
   };
 }
 
-function client(): EntitlementDatabaseClientV1 {
+function client(
+  options: { readonly forceRevisionConflict?: boolean } = {},
+): EntitlementDatabaseClientV1 {
   const planRows: Record<string, unknown>[] = [];
   const snapshotRows: Record<string, unknown>[] = [];
   const entryRows: Record<string, unknown>[] = [];
@@ -133,7 +153,7 @@ function client(): EntitlementDatabaseClientV1 {
     entitlementPlanRecord: delegate(planRows),
     entitlementSnapshotRecord: delegate(snapshotRows),
     usageLedgerEntryRecord: delegate(entryRows),
-    usageReservationRecord: delegate(reservationRows),
+    usageReservationRecord: delegate(reservationRows, options.forceRevisionConflict),
     async $transaction<TValue>(
       work: (transaction: EntitlementDatabaseClientV1) => Promise<TValue>,
     ): Promise<TValue> {
@@ -222,5 +242,30 @@ void test('[BUA-012] Prisma entitlement adapter applies reservation status revis
       idempotencyKey: 'finish-2',
     }),
     finalized,
+  );
+});
+
+void test('[BUA-012] Prisma entitlement adapter rejects a reservation settlement race', async () => {
+  const repository = new PrismaEntitlementRepositoryAdapter(
+    client({ forceRevisionConflict: true }),
+  );
+  await repository.saveSnapshot(context(workspaceId, 'seed-race'), snapshot());
+  const service = new EntitlementAdmissionService(repository);
+  const admitted = await service.admit(
+    context(workspaceId, 'admit-race'),
+    admissionInput('admit-race', '1'),
+  );
+  assert.equal(admitted.accepted, true);
+  if (!admitted.accepted) return;
+  await assert.rejects(
+    service.finalize(context(workspaceId, 'finish-race'), {
+      reservationId: admitted.value.reservation.reservationId,
+      releaseEntryId: stable('00000000-0000-4000-8000-000000000241'),
+      commitEntryId: stable('00000000-0000-4000-8000-000000000242'),
+      committedUnits: 1,
+      now: '2026-01-01T00:02:00.000Z',
+      idempotencyKey: 'finish-race',
+    }),
+    /BUA_RESERVATION_CONFLICT/u,
   );
 });

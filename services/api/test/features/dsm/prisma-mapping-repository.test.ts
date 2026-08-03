@@ -91,4 +91,11 @@ void test('[DSM-007, IAM-009] Prisma mapping adapter persists and lists typed ma
     (await repository.list(context('list'), datasetId)).map((item) => item.versionId),
     [versionId],
   );
+  const persisted = rows[0];
+  if (!persisted) throw new Error('fixture mapping was not persisted');
+  rows[0] = { ...persisted, revision: 2 };
+  await assert.rejects(
+    repository.find(context('invalid-revision'), versionId),
+    /DSM_PERSISTED_REVISION_INVALID/u,
+  );
 });
