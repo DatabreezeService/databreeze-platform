@@ -128,6 +128,25 @@ void test('[IAM-004] membership administration listing requires a settings-manag
   });
 });
 
+void test('[IAM-004] membership listing maps authority outages to a stable availability code', async () => {
+  const base = repository();
+  const unavailable: IamRepositoryPortV1 = {
+    findMembership: async () => {
+      throw new Error('membership store unavailable');
+    },
+    listMemberships: async () => {
+      throw new Error('membership store unavailable');
+    },
+    saveMembership: base.saveMembership.bind(base),
+    withTransaction: base.withTransaction.bind(base),
+  };
+  const service = new IamMembershipService(unavailable, idsFrom(ids.invitation), clock);
+  assert.deepEqual(await service.list(context('membership-service-list-002')), {
+    accepted: false,
+    code: 'UNAVAILABLE',
+  });
+});
+
 void test('[IAM-004] owner invitations are organization-only and cannot be delegated by an admin', async () => {
   const admin = repository('admin');
   const adminService = new IamMembershipService(admin, idsFrom(ids.invitation), clock);
