@@ -27,6 +27,7 @@ test('AWS container validation command is pinned, isolated, and non-applying', (
   assert.match(source, /'fmt',\s*'-check',\s*'-recursive'/u);
   assert.match(source, /'init',\s*'-backend=false',\s*'-input=false',\s*'-lockfile=readonly'/u);
   assert.match(source, /'validate', '-no-color'/u);
+  assert.match(source, /'test', '-no-color'/u);
   assert.match(source, /TF_DATA_DIR=\/tmp\/databreeze-tofu/u);
   assert.doesNotMatch(source, /['"]apply['"]/u);
   assert.match(

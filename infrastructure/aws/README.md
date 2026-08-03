@@ -26,6 +26,9 @@ native CLI release, or the official
 available. Do not use a floating container tag for validation evidence.
 The alpha composition commits `.terraform.lock.hcl`; initialization uses it
 read-only so provider selections cannot drift during a validation run.
+`pnpm infra:validate` also executes a mocked plan test for the safe alpha
+defaults, exercising plan-time evaluation without AWS credentials or remote
+side effects.
 
 ```text
 pnpm infra:check

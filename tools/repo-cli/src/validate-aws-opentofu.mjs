@@ -94,6 +94,7 @@ export function main(argv = process.argv.slice(2)) {
       '-no-color',
     ]);
     runDocker([...base, 'validate', '-no-color']);
+    runDocker([...base, 'test', '-no-color']);
   } finally {
     removeValidationDirectory(validationDirectory);
   }

@@ -12,6 +12,7 @@ const requiredFiles = [
   '.opentofu-version',
   'environments/alpha/main.tf',
   'environments/alpha/.terraform.lock.hcl',
+  'environments/alpha/tests/alpha-plan.tofutest.hcl',
   'environments/alpha/variables.tf',
   'environments/alpha/versions.tf',
   'modules/network/main.tf',
