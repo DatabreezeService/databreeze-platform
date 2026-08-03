@@ -93,10 +93,7 @@ function valuesEqual(left: unknown, right: unknown): boolean {
   return left === right;
 }
 
-function ownedFieldsMatch<TRow extends object>(
-  existing: TRow,
-  expected: TRow,
-): boolean {
+function ownedFieldsMatch<TRow extends object>(existing: TRow, expected: TRow): boolean {
   const existingRecord = existing as Record<string, unknown>;
   const expectedRecord = expected as Record<string, unknown>;
   return Object.keys(expectedRecord).every((key) =>
@@ -305,8 +302,7 @@ class PrismaIdentityBootstrapTransactionAdapter implements IdentityBootstrapTran
   ): Promise<void> {
     const existing = await delegate.findUnique({ where: { id: expected.id } });
     if (existing) {
-      if (!ownedFieldsMatch(existing, expected))
-        throw new Error('IAM_BOOTSTRAP_CONFLICT');
+      if (!ownedFieldsMatch(existing, expected)) throw new Error('IAM_BOOTSTRAP_CONFLICT');
       return;
     }
     await delegate.create({ data: expected });
