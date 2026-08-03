@@ -15,9 +15,7 @@ const ids = {
 };
 const scope = { scopeType: 'organization', organizationId: ids.organization };
 const issuedAt = '2026-08-03T00:00:00.000Z';
-const expiresAt = new Date(
-  Date.parse(issuedAt) + INVITATION_MAX_SECONDS_V1 * 1_000,
-).toISOString();
+const expiresAt = new Date(Date.parse(issuedAt) + INVITATION_MAX_SECONDS_V1 * 1_000).toISOString();
 
 function input(overrides = {}) {
   return {
@@ -56,7 +54,9 @@ void test('[IAM-010] invitation token cannot exceed seven days or carry invalid 
   assert.deepEqual(
     createInvitationTokenV1({
       ...input(),
-      expiresAt: new Date(Date.parse(issuedAt) + (INVITATION_MAX_SECONDS_V1 + 1) * 1_000).toISOString(),
+      expiresAt: new Date(
+        Date.parse(issuedAt) + (INVITATION_MAX_SECONDS_V1 + 1) * 1_000,
+      ).toISOString(),
     }),
     { accepted: false, code: 'INVALID_LIFETIME' },
   );

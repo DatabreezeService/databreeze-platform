@@ -1,7 +1,4 @@
-import {
-  INVITATION_MAX_SECONDS_V1,
-  type InitialRoleIdForIdentityV1,
-} from '../identity/v1.js';
+import { INVITATION_MAX_SECONDS_V1, type InitialRoleIdForIdentityV1 } from '../identity/v1.js';
 import {
   parseStableIdentifierV1,
   parseStrictUtcTimestampV1,
