@@ -12,6 +12,10 @@ import { PrismaCredentialLookupAdapter } from '../../src/features/iam/adapter/pr
 import { PrismaSessionLifecycleAdapter } from '../../src/features/iam/adapter/prisma-session-lifecycle.adapter.js';
 import { SESSION_LIFECYCLE_PORT } from '../../src/features/iam/application/session-lifecycle.port.js';
 import { IDENTITY_BOOTSTRAP_REPOSITORY_PORT } from '../../src/features/iam/application/identity-bootstrap-repository.port.js';
+import {
+  IDENTITY_BOOTSTRAP_SERVICE,
+  IdentityBootstrapService,
+} from '../../src/features/iam/application/identity-bootstrap.service.js';
 import { PrismaIdentityBootstrapRepositoryAdapter } from '../../src/features/iam/adapter/prisma-identity-bootstrap-repository.adapter.js';
 import { MFA_REPOSITORY_PORT } from '../../src/features/iam/application/mfa-repository.port.js';
 import { PrismaMfaRepositoryAdapter } from '../../src/features/iam/adapter/prisma-mfa-repository.adapter.js';
@@ -236,6 +240,20 @@ void test('[IAM-001, IAM-011] configured identity bootstrap persistence uses the
   assert.ok(provider && 'useValue' in provider);
   if (!provider || !('useValue' in provider)) return;
   assert.ok(provider.useValue instanceof PrismaIdentityBootstrapRepositoryAdapter);
+});
+
+void test('[IAM-001, IAM-011] configured identity bootstrap persistence composes its application service', () => {
+  const registered = IamModule.register({ identityBootstrapDatabase: {} as never });
+  const provider = registered.providers?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === IDENTITY_BOOTSTRAP_SERVICE,
+  );
+  assert.ok(provider && 'useValue' in provider);
+  if (!provider || !('useValue' in provider)) return;
+  assert.ok(provider.useValue instanceof IdentityBootstrapService);
 });
 
 void test('[IAM-012, IAM-014] configured MFA persistence uses the Prisma adapter', () => {

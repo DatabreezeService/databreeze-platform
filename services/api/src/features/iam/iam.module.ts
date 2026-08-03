@@ -21,6 +21,10 @@ import {
   type IdentityBootstrapRepositoryPortV1,
 } from './application/identity-bootstrap-repository.port.js';
 import {
+  IDENTITY_BOOTSTRAP_SERVICE,
+  IdentityBootstrapService,
+} from './application/identity-bootstrap.service.js';
+import {
   MFA_REPOSITORY_PORT,
   type MfaRepositoryPortV1,
 } from './application/mfa-repository.port.js';
@@ -104,6 +108,7 @@ export interface IamModuleOptions {
   readonly sessionDatabase?: SessionLifecycleDatabaseClientV1;
   readonly identityBootstrapRepository?: IdentityBootstrapRepositoryPortV1;
   readonly identityBootstrapDatabase?: IdentityBootstrapDatabaseClientV1;
+  readonly identityBootstrapService?: IdentityBootstrapService;
   readonly mfaRepository?: MfaRepositoryPortV1;
   readonly mfaDatabase?: MfaDatabaseClientV1;
   readonly mfaService?: MfaService;
@@ -166,6 +171,11 @@ export class IamModule {
       (options.identityBootstrapDatabase === undefined
         ? undefined
         : new PrismaIdentityBootstrapRepositoryAdapter(options.identityBootstrapDatabase));
+    const identityBootstrapService =
+      options.identityBootstrapService ??
+      (identityBootstrapRepository === undefined
+        ? undefined
+        : new IdentityBootstrapService(identityBootstrapRepository));
     const mfaRepository =
       options.mfaRepository ??
       (options.mfaDatabase === undefined
@@ -224,6 +234,7 @@ export class IamModule {
     if (credentials) exports.unshift(CREDENTIAL_LOOKUP_PORT);
     if (sessions) exports.unshift(SESSION_LIFECYCLE_PORT);
     if (identityBootstrapRepository) exports.unshift(IDENTITY_BOOTSTRAP_REPOSITORY_PORT);
+    if (identityBootstrapService) exports.unshift(IDENTITY_BOOTSTRAP_SERVICE);
     if (mfaRepository) exports.unshift(MFA_REPOSITORY_PORT);
     if (mfaService) exports.unshift(MFA_SERVICE);
     if (iamRepository) exports.unshift(IAM_REPOSITORY_PORT);
@@ -263,6 +274,14 @@ export class IamModule {
               {
                 provide: IDENTITY_BOOTSTRAP_REPOSITORY_PORT,
                 useValue: identityBootstrapRepository,
+              },
+            ]
+          : []),
+        ...(identityBootstrapService
+          ? [
+              {
+                provide: IDENTITY_BOOTSTRAP_SERVICE,
+                useValue: identityBootstrapService,
               },
             ]
           : []),

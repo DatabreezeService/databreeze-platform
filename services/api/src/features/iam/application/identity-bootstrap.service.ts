@@ -5,6 +5,8 @@ import type {
   IdentityBootstrapResultV1,
 } from './identity-bootstrap-repository.port.js';
 
+export const IDENTITY_BOOTSTRAP_SERVICE = Symbol('IDENTITY_BOOTSTRAP_SERVICE');
+
 function conflict(): IdentityBootstrapResultV1 {
   return Object.freeze({ accepted: false, code: 'BOOTSTRAP_CONFLICT' });
 }
