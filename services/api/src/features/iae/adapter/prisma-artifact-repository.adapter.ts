@@ -429,11 +429,13 @@ export class PrismaArtifactRepositoryAdapter implements ArtifactRepositoryPortV1
     context: IamTenantContextV1,
     versionId: ArtifactVersionV1['versionId'],
     status: ArtifactVersionV1['status'],
+    scanState?: ArtifactScanStateV1,
   ): Promise<ArtifactVersionV1 | undefined> {
     return new PrismaArtifactTransactionAdapter(this.client).updateVersionStatus(
       context,
       versionId,
       status,
+      scanState,
     );
   }
   public savePlacement(context: IamTenantContextV1, placement: ContentPlacementV1): Promise<void> {

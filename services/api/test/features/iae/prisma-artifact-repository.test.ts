@@ -239,6 +239,39 @@ void test('[IAE-009, IAE-010] Prisma artifact status transitions reject a scan-s
   assert.equal(versions[0]?.status, 'ACTIVE');
 });
 
+void test('[IAE-009, IAE-010] direct Prisma artifact status updates persist the supplied scan state', async () => {
+  const createdAt = parseStrictUtcTimestampV1('2026-01-01T00:00:00.000Z');
+  assert.equal(createdAt.accepted, true);
+  if (!createdAt.accepted) throw new Error('fixture timestamp rejected');
+  const artifact = createArtifactVersionV1({
+    artifactId,
+    versionId,
+    tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+    sourceKind: 'FILE',
+    dataMode: 'Hybrid',
+    contentSha256: 'b'.repeat(64),
+    byteSize: 8,
+    mediaType: 'text/csv',
+    displayName: 'orders.csv',
+    createdAt: createdAt.value,
+  });
+  assert.equal(artifact.accepted, true);
+  if (!artifact.accepted) throw new Error('fixture artifact rejected');
+  const versions: ArtifactVersionDatabaseRowV1[] = [];
+  const repository = new PrismaArtifactRepositoryAdapter(client(versions, [], []));
+  await repository.saveVersion(context('scan-version'), artifact.value);
+
+  const clean = await repository.updateVersionStatus(
+    context('scan-clean'),
+    versionId,
+    'ACTIVE',
+    'CLEAN',
+  );
+
+  assert.equal(clean?.scanState, 'CLEAN');
+  assert.equal(versions[0]?.scanState, 'CLEAN');
+});
+
 void test('[IAE-020, DSO-006] Prisma placement adapter rejects a stale revision after a concurrent update', async () => {
   const createdAt = parseStrictUtcTimestampV1('2026-01-01T00:00:00.000Z');
   assert.equal(createdAt.accepted, true);
