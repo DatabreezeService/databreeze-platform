@@ -63,7 +63,10 @@ export class AuditController {
         limit,
         ...(cursor === undefined ? {} : { cursor }),
       });
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message === 'AUD_CHAIN_INVALID') {
+        throw new AuditProblemError('AUDIT_INTEGRITY_INVALID');
+      }
       throw new AuditProblemError('AUDIT_UNAVAILABLE');
     }
   }
@@ -91,7 +94,10 @@ export class AuditController {
         limit,
         ...(cursor === undefined ? {} : { cursor }),
       });
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message === 'AUD_CHAIN_INVALID') {
+        throw new AuditProblemError('AUDIT_INTEGRITY_INVALID');
+      }
       throw new AuditProblemError('AUDIT_UNAVAILABLE');
     }
   }

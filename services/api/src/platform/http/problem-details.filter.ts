@@ -98,12 +98,15 @@ function describe(error: unknown, correlationId: string): ProblemInput {
     };
   }
   if (error instanceof AuditProblemError) {
+    const integrityInvalid = error.code === 'AUDIT_INTEGRITY_INVALID';
     return {
       code: error.code,
       correlationId,
-      messageKey: 'api.error.audit_unavailable',
-      retryable: true,
-      status: HttpStatus.SERVICE_UNAVAILABLE,
+      messageKey: integrityInvalid
+        ? 'api.error.audit_integrity_invalid'
+        : 'api.error.audit_unavailable',
+      retryable: !integrityInvalid,
+      status: integrityInvalid ? HttpStatus.INTERNAL_SERVER_ERROR : HttpStatus.SERVICE_UNAVAILABLE,
     };
   }
   if (error instanceof ArtifactExportProblemError) {
