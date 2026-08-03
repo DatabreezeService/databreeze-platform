@@ -59,7 +59,9 @@ export class MfaController {
   ): Promise<unknown> {
     const mfa = this.requireService();
     const context = await this.requestContext.resolve(request);
-    const result = await this.execute(() => mfa.verifyFactor(context.actorId, factorId, input.at));
+    const result = await this.execute(() =>
+      mfa.verifyFactor(context.actorId, factorId, input.proof, input.at),
+    );
     if (!result.accepted) throw new MfaProblemError('MFA_REQUEST_REJECTED');
     return result.value;
   }

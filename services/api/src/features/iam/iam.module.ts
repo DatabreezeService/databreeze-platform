@@ -22,7 +22,12 @@ import {
   MFA_REPOSITORY_PORT,
   type MfaRepositoryPortV1,
 } from './application/mfa-repository.port.js';
-import { MFA_SERVICE, MfaService } from './application/mfa.service.js';
+import {
+  MFA_SERVICE,
+  MfaService,
+  UnavailableMfaFactorProofVerifier,
+  type MfaFactorProofVerifierV1,
+} from './application/mfa.service.js';
 import {
   IAM_REPOSITORY_PORT,
   type IamRepositoryPortV1,
@@ -83,6 +88,7 @@ export interface IamModuleOptions {
   readonly mfaRepository?: MfaRepositoryPortV1;
   readonly mfaDatabase?: MfaDatabaseClientV1;
   readonly mfaService?: MfaService;
+  readonly mfaFactorProofVerifier?: MfaFactorProofVerifierV1;
   readonly recoveryCodeMatcher?: {
     matches(presentedDigest: string, storedDigest: string): boolean;
   };
@@ -150,6 +156,7 @@ export class IamModule {
             options.recoveryCodeMatcher ?? {
               matches: constantTimeRecoveryCodeMatchV1,
             },
+            options.mfaFactorProofVerifier ?? new UnavailableMfaFactorProofVerifier(),
           ));
     const iamRepository =
       options.iamRepository ??

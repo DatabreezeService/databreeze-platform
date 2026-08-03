@@ -717,9 +717,15 @@ void test('audit read outages return retryable service-unavailable problems', as
 
 void test('MFA HTTP lifecycle derives the user from the authenticated tenant context and returns redacted state', async () => {
   const actorId = '00000000-0000-4000-8000-000000000001';
-  const mfaService = new MfaService(new InMemoryMfaRepositoryAdapter(), {
-    matches: (presented, stored) => presented === stored,
-  });
+  const mfaService = new MfaService(
+    new InMemoryMfaRepositoryAdapter(),
+    {
+      matches: (presented, stored) => presented === stored,
+    },
+    {
+      verify: ({ proof }) => Promise.resolve(proof === '654321'),
+    },
+  );
   const contextResult = createIamTenantContextV1({
     tenantScope: {
       scopeType: 'workspace',
@@ -755,7 +761,7 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
     const verified = await app.inject({
       method: 'POST',
       url: '/v1/auth/mfa/factors/00000000-0000-4000-8000-000000000010/verify',
-      payload: { at: '2026-01-01T00:01:00.000Z' },
+      payload: { proof: '654321', at: '2026-01-01T00:01:00.000Z' },
     });
     assert.equal(verified.statusCode, 200);
     const verifiedBody = parsedBody<{ readonly factors: readonly [{ readonly status: string }] }>(
@@ -766,7 +772,7 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
     const invalid = await app.inject({
       method: 'POST',
       url: '/v1/auth/mfa/factors/00000000-0000-4000-8000-000000000099/verify',
-      payload: { at: '2026-01-01T00:02:00.000Z' },
+      payload: { proof: '654321', at: '2026-01-01T00:02:00.000Z' },
     });
     assertProblem(invalid, 400, 'MFA_REQUEST_REJECTED');
   });

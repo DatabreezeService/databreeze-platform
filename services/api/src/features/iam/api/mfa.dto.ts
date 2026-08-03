@@ -34,6 +34,12 @@ export class EnrollMfaFactorDto {
 }
 
 export class VerifyMfaFactorDto {
+  @ApiProperty({ minLength: 1, maxLength: 4096, writeOnly: true })
+  @IsString()
+  @MinLength(1)
+  @MaxLength(4096)
+  proof!: string;
+
   @ApiProperty({ format: 'date-time' })
   @IsISO8601()
   at!: string;

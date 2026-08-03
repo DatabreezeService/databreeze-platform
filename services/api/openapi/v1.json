@@ -7431,8 +7431,11 @@
       },
       "VerifyMfaFactorDto": {
         "type": "object",
-        "properties": { "at": { "type": "string", "format": "date-time" } },
-        "required": ["at"]
+        "properties": {
+          "proof": { "type": "string", "minLength": 1, "maxLength": 4096, "writeOnly": true },
+          "at": { "type": "string", "format": "date-time" }
+        },
+        "required": ["proof", "at"]
       },
       "RedeemMfaRecoveryCodeDto": {
         "type": "object",
