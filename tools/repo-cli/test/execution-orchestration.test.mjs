@@ -205,7 +205,7 @@ test('repository checker validates the committed orchestration package', () => {
 
 test('ledger records verified task evidence before advancing the next task', () => {
   const ledger = readJson('docs/plans/execution-orchestration.json');
-  assert.equal(ledger.nextTaskId, 'FND-004');
+  assert.equal(ledger.nextTaskId, 'FND-005');
   assert.equal(ledger.activeBatchId, 'B01');
   assert.equal(ledger.checkpoint.remoteDev, '783a4710c0aa2a2808d78ad7f0643e6731150bd7');
   assert.equal(ledger.checkpoint.remoteMain, '3ed3d77d0281ef239d0509c81ded447d8fffd213');

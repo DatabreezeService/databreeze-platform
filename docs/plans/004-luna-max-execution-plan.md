@@ -64,7 +64,7 @@ Each batch may require multiple normal integration PR slices before its exit gat
 
 | Batch | Branch | Tasks | Dependencies | Commit budget | Exit gate |
 |---|---|---|---|---|---|
-| `B01` | `feat/foundation-identity-reconciliation` | `FND-004..007`, all Plan 020 tasks | Verified `FND-001..003` | 30–50 target; exceptional ceiling 79 | Foundation external gates recorded; IAM/AUD/BUA obligations reconciled and completed |
+| `B01` | `feat/foundation-identity-reconciliation` | `FND-005..007`, all Plan 020 tasks | Verified `FND-001..004` | 30–50 target; exceptional ceiling 79 | Foundation external gates recorded; IAM/AUD/BUA obligations reconciled and completed |
 | `B02` | `feat/artifacts-datasets-completion` | All Plan 030 tasks | `B01` | 30–50 target; exceptional ceiling 79 | Immutable artifact/evidence/dataset foundations verified |
 | `B03` | `feat/jobs-processing-completion` | All Plan 040 tasks | `B02` | 30–50 target; exceptional ceiling 79 | Signed typed jobs execute locally/cloud with approvals and durable recovery |
 | `B04` | `feat/devices-sync-completion` | All Plan 050 tasks | `B03` | 30–50 target; exceptional ceiling 79 | Desktop/Android sync, offline, conflict, transfer, and revocation gates pass |
@@ -145,10 +145,10 @@ corepack pnpm orchestration:check
 corepack pnpm requirements:check
 ```
 
-Live Docker verification closed `FND-003` on 2026-08-03. Resume `FND-004`:
+Live Docker and containerized OpenTofu verification closed `FND-003` and `FND-004` on 2026-08-03. Resume `FND-005`:
 
-1. Run pinned OpenTofu formatting, initialization without a backend, and validation for the portable AWS modules without applying infrastructure.
-2. If OpenTofu remains unavailable, preserve `FND-004` as implemented but unverified, record the exact external gate, and continue only credential-independent `FND-005..007` reconciliation.
+1. Reconcile correlation propagation, allowlisted telemetry, and safe diagnostics across TypeScript, Kotlin, and Python against the merged implementation.
+2. Preserve any hosted or platform-specific telemetry gap as explicit evidence; do not promote the task solely from static source presence.
 3. Reconcile Plans 020–050 against merged code before implementing any missing behavior. For `B01`, complete Plan 020 only after the remaining foundation boundaries are explicit.
 4. End every session with the handoff record from `003-luna-handoff-runbook.md`, including exact branch/HEAD, open PRs, checks, task/batch status, rollback points, and safest next command.
 

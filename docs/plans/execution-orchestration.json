@@ -54,7 +54,7 @@
     "post-ga-planned",
     "blocked"
   ],
-  "nextTaskId": "FND-004",
+  "nextTaskId": "FND-005",
   "activeBatchId": "B01",
   "taskState": {
     "FND-001": {
@@ -95,15 +95,20 @@
       "note": "Docker Engine 29.5.3 and Compose 5.1.4 live verification passed on 2026-08-03: all long-running services became healthy, MinIO initialization exited successfully, all 19 module schemas existed, restart and Redis persistence checks passed, collision and disk-pressure probes failed closed, and safe stop preserved containers and named volumes."
     },
     "FND-004": {
-      "status": "implemented",
-      "commit": "3ed3d77d0281ef239d0509c81ded447d8fffd213",
+      "status": "verified",
+      "commit": "c18c7b0a65b5bfae0c5991223bfbee527018cf52",
       "evidence": [
         "infrastructure/aws/README.md",
+        "infrastructure/aws/.opentofu-version",
         "infrastructure/aws/environments/alpha/main.tf",
+        "infrastructure/aws/environments/alpha/.terraform.lock.hcl",
+        "infrastructure/aws/environments/alpha/tests/alpha-plan.tofutest.hcl",
+        "tools/repo-cli/src/validate-aws-opentofu.mjs",
         "tools/repo-cli/src/check-aws-infrastructure.mjs",
-        "tools/repo-cli/test/aws-infrastructure.test.mjs"
+        "tools/repo-cli/test/aws-infrastructure.test.mjs",
+        "docs/operations/foundation-aws-opentofu-2026-08-03.md"
       ],
-      "note": "Portable AWS modules and static safety checks are promoted. Pinned OpenTofu fmt/init/validate and any reviewed plan/apply evidence remain external gates."
+      "note": "OpenTofu 1.12.5 official-container formatting, backend-disabled locked initialization, validation, and one credential-free mocked alpha plan passed on 2026-08-03. Static safety tests cover encryption, private networking, OIDC scope, recovery, destroy protection, and production image digests; no AWS credentials, remote state, real plan, or apply were used."
     },
     "FND-005": {
       "status": "implemented",
@@ -150,7 +155,6 @@
       "commitBudget": { "minimum": 30, "target": 45, "maximum": 79 },
       "maximumChangedFiles": 260,
       "taskIds": [
-        "FND-004",
         "FND-005",
         "FND-006",
         "FND-007",
