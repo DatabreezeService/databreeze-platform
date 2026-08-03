@@ -22,7 +22,7 @@ data "aws_iam_policy_document" "platform_key" {
     actions   = ["kms:Decrypt", "kms:DescribeKey", "kms:Encrypt", "kms:GenerateDataKey*", "kms:ReEncrypt*"]
     resources = ["*"]
     principals {
-      type        = "Service"
+      type = "Service"
       identifiers = [
         "logs.${var.region}.amazonaws.com",
         "s3.amazonaws.com",
@@ -37,7 +37,7 @@ data "aws_iam_policy_document" "platform_key" {
     condition {
       test     = "StringLike"
       variable = "kms:ViaService"
-      values   = [
+      values = [
         "logs.${var.region}.amazonaws.com",
         "s3.${var.region}.amazonaws.com",
         "secretsmanager.${var.region}.amazonaws.com"
@@ -141,8 +141,8 @@ resource "aws_iam_role_policy" "github_deploy" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect   = "Allow"
-      Action   = ["s3:GetObject", "s3:PutObject", "s3:ListBucket"]
+      Effect = "Allow"
+      Action = ["s3:GetObject", "s3:PutObject", "s3:ListBucket"]
       Resource = [
         "arn:aws:s3:::databreeze-${var.name}-web",
         "arn:aws:s3:::databreeze-${var.name}-web/*"

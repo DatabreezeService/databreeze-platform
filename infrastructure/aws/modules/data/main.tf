@@ -12,35 +12,35 @@ resource "aws_db_subnet_group" "this" {
 resource "aws_db_instance" "postgres" {
   count = var.enable_database ? 1 : 0
 
-  identifier                  = "databreeze-${var.name}"
-  engine                     = "postgres"
-  engine_version             = "17.5"
-  instance_class             = var.database_instance_class
-  allocated_storage          = 20
-  max_allocated_storage      = 100
-  storage_type               = "gp3"
-  storage_encrypted          = true
-  kms_key_id                 = var.kms_key_arn
-  db_name                    = var.database_name
-  username                   = var.database_username
-  port                       = 5432
-  manage_master_user_password = true
-  master_user_secret_kms_key_id = var.kms_key_arn
-  db_subnet_group_name       = aws_db_subnet_group.this[0].name
-  vpc_security_group_ids     = [var.database_security_group_id]
-  publicly_accessible        = false
-  multi_az                   = var.database_multi_az
-  backup_retention_period    = var.backup_retention_period
-  backup_window              = "17:00-17:30"
-  maintenance_window         = "sun:18:00-sun:18:30"
-  deletion_protection        = var.deletion_protection
-  skip_final_snapshot        = false
-  final_snapshot_identifier  = "databreeze-${var.name}-final"
-  auto_minor_version_upgrade = true
-  copy_tags_to_snapshot      = true
+  identifier                      = "databreeze-${var.name}"
+  engine                          = "postgres"
+  engine_version                  = "17.5"
+  instance_class                  = var.database_instance_class
+  allocated_storage               = 20
+  max_allocated_storage           = 100
+  storage_type                    = "gp3"
+  storage_encrypted               = true
+  kms_key_id                      = var.kms_key_arn
+  db_name                         = var.database_name
+  username                        = var.database_username
+  port                            = 5432
+  manage_master_user_password     = true
+  master_user_secret_kms_key_id   = var.kms_key_arn
+  db_subnet_group_name            = aws_db_subnet_group.this[0].name
+  vpc_security_group_ids          = [var.database_security_group_id]
+  publicly_accessible             = false
+  multi_az                        = var.database_multi_az
+  backup_retention_period         = var.backup_retention_period
+  backup_window                   = "17:00-17:30"
+  maintenance_window              = "sun:18:00-sun:18:30"
+  deletion_protection             = var.deletion_protection
+  skip_final_snapshot             = false
+  final_snapshot_identifier       = "databreeze-${var.name}-final"
+  auto_minor_version_upgrade      = true
+  copy_tags_to_snapshot           = true
   performance_insights_enabled    = var.environment == "production"
   performance_insights_kms_key_id = var.environment == "production" ? var.kms_key_arn : null
-  tags                       = merge(local.common_tags, { Name = "databreeze-${var.name}" })
+  tags                            = merge(local.common_tags, { Name = "databreeze-${var.name}" })
 }
 
 resource "aws_elasticache_subnet_group" "this" {
