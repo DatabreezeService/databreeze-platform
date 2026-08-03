@@ -68,6 +68,9 @@ export class AuthenticationController {
         : { workspaceId: context.tenantScope.workspaceId }),
       authorizationEpoch: context.authorizationEpoch,
       mfaRequired: context.mfaRequired ?? false,
+      ...(context.mfaReenrollmentRequired === undefined
+        ? {}
+        : { mfaReenrollmentRequired: context.mfaReenrollmentRequired }),
     };
   }
 
@@ -109,6 +112,9 @@ export class AuthenticationController {
       accessExpiresAt: result.value.session.accessExpiresAt,
       securityEpoch: result.value.principal.securityEpoch,
       mfaRequired: result.value.principal.mfaRequired,
+      ...(result.value.principal.mfaReenrollmentRequired === undefined
+        ? {}
+        : { mfaReenrollmentRequired: result.value.principal.mfaReenrollmentRequired }),
     };
   }
 

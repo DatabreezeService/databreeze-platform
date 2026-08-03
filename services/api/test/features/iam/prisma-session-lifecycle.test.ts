@@ -172,6 +172,23 @@ void test('[IAM-005, IAM-006] Prisma sessions persist opaque bounded access and 
   assert.equal(await adapter.findPrincipalByAccessToken('not-a-token'), undefined);
 });
 
+void test('[IAM-015] live session lookup carries the MFA re-enrollment gate from the user record', async () => {
+  const { client } = createDatabase();
+  const adapter = new PrismaSessionLifecycleAdapter(client, {
+    clock: () => new Date('2026-01-01T00:00:00.000Z'),
+  });
+  const original = client.userIdentity.findUnique;
+  client.userIdentity.findUnique = async () => ({
+    id: userId,
+    status: 'ACTIVE',
+    securityEpoch: 4,
+    mfaReenrollmentRequired: true,
+  });
+  const session = await adapter.issue(principal, 'web');
+  assert.equal((await adapter.findPrincipal(session.sessionId))?.mfaReenrollmentRequired, true);
+  client.userIdentity.findUnique = original;
+});
+
 void test('[IAM-005] refresh rotation is transactional and reuse revokes the complete family', async () => {
   const { client, refreshTokens } = createDatabase();
   const adapter = new PrismaSessionLifecycleAdapter(client, {

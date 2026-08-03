@@ -83,6 +83,18 @@ void test('uses the request id for read-only calls and rejects unsafe principal 
   );
 });
 
+void test('[IAM-015] carries the live recovery re-enrollment gate into protected request context', async () => {
+  const adapter = new SessionRequestTenantContextAdapter({
+    findPrincipalByAccessToken: () =>
+      Promise.resolve({ ...principal, mfaReenrollmentRequired: true }),
+  });
+  const context = await adapter.resolve({
+    method: 'GET',
+    headers: { authorization: 'Bearer opaque-access-token-123456789' },
+  });
+  assert.equal(context.mfaReenrollmentRequired, true);
+});
+
 void test('requires an explicit idempotency key for authenticated mutations', async () => {
   const adapter = new SessionRequestTenantContextAdapter({
     findPrincipalByAccessToken: () => Promise.resolve(principal),

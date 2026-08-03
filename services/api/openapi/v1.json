@@ -9414,7 +9414,8 @@
           "organizationId": { "type": "string", "format": "uuid" },
           "workspaceId": { "type": "string", "format": "uuid" },
           "authorizationEpoch": { "type": "number", "minimum": 1 },
-          "mfaRequired": { "type": "boolean" }
+          "mfaRequired": { "type": "boolean" },
+          "mfaReenrollmentRequired": { "type": "boolean" }
         },
         "required": ["userId", "organizationId", "authorizationEpoch", "mfaRequired"]
       },
@@ -9438,7 +9439,8 @@
           "refreshToken": { "type": "string", "minLength": 1, "maxLength": 4096 },
           "accessExpiresAt": { "type": "string", "format": "date-time" },
           "securityEpoch": { "type": "number", "minimum": 1 },
-          "mfaRequired": { "type": "boolean" }
+          "mfaRequired": { "type": "boolean" },
+          "mfaReenrollmentRequired": { "type": "boolean" }
         },
         "required": [
           "sessionId",
