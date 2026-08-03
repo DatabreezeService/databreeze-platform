@@ -134,6 +134,15 @@ void test('[IAM-012] high-risk operations require a fresh step-up assertion', ()
     accepted: false,
     code: 'MFA_REENROLLMENT_REQUIRED',
   });
+  assert.deepEqual(
+    service.requireStepUpForContext(
+      { actorId: userId as never, mfaReenrollmentRequired: true },
+      'HIGH',
+      assertion,
+      at,
+    ),
+    { accepted: false, code: 'MFA_REENROLLMENT_REQUIRED' },
+  );
 });
 
 void test('[IAM-015] default recovery-code matching compares normalized bytes safely', () => {
