@@ -6,7 +6,11 @@ import {
   validateMembershipV1,
   type MembershipIdentityV1,
 } from '@databreeze/domain/identity/v1';
-import { PERMISSIONS_V1, roleHasPermissionV1 } from '@databreeze/domain/permissions/v1';
+import {
+  PERMISSIONS_V1,
+  roleHasPermissionV1,
+  type PermissionV1,
+} from '@databreeze/domain/permissions/v1';
 import {
   parseStableIdentifierV1,
   parseTenantScopeV1,
@@ -15,7 +19,11 @@ import {
   type TenantScopeV1,
 } from '@databreeze/domain/tenant-scope/v1';
 
-import type { IamMembershipRecordV1, IamRepositoryPortV1 } from './iam-repository.port.js';
+import type {
+  IamMembershipRecordV1,
+  IamRepositoryPortV1,
+  IamTransactionPortV1,
+} from './iam-repository.port.js';
 import type { IamTenantContextV1 } from './tenant-context.js';
 
 export const IAM_MEMBERSHIP_SERVICE = Symbol('IAM_MEMBERSHIP_SERVICE');
@@ -120,11 +128,13 @@ export class IamMembershipService {
   private async authorize(
     context: IamTenantContextV1,
     scope: TenantScopeV1,
+    permission: PermissionV1 = permissionFor(scope),
+    repository: IamTransactionPortV1 = this.repository,
   ): Promise<'ALLOWED' | 'DENIED' | 'UNAVAILABLE'> {
     if (!tenantScopeContainsV1(context.tenantScope, scope)) return 'DENIED';
     try {
-      const membership = await this.repository.findMembership(context, context.actorId);
-      return membership && roleHasPermissionV1(membership.roleId, permissionFor(scope))
+      const membership = await repository.findMembership(context, context.actorId);
+      return membership && roleHasPermissionV1(membership.roleId, permission)
         ? 'ALLOWED'
         : 'DENIED';
     } catch {
@@ -220,7 +230,7 @@ export class IamMembershipService {
         const memberships = await transaction.listMemberships(context);
         const current = memberships.find((membership) => membership.id === membershipId.value);
         if (!current) return rejected('NOT_FOUND');
-        const authorization = await this.authorize(context, current.scope);
+        const authorization = await this.authorize(context, current.scope, undefined, transaction);
         if (authorization !== 'ALLOWED')
           return rejected(authorization === 'UNAVAILABLE' ? 'UNAVAILABLE' : 'SCOPE_DENIED');
         if (current.revision !== expectedRevisionInput) return rejected('CONFLICT');
@@ -241,6 +251,75 @@ export class IamMembershipService {
         const mutationContext = Object.freeze({ ...context, expectedRevision: current.revision });
         await transaction.saveMembership(mutationContext, next);
         return accepted(next);
+      });
+    } catch (error) {
+      return rejected(applicationError(error));
+    }
+  }
+
+  /** Transfer organization ownership in one optimistic transaction. */
+  public async transferOwnership(
+    context: IamTenantContextV1,
+    targetMembershipIdInput: unknown,
+    targetExpectedRevisionInput: unknown,
+  ): Promise<IamMembershipApplicationResultV1<IamMembershipRecordV1>> {
+    const targetMembershipId = parseId(targetMembershipIdInput);
+    if (!targetMembershipId.accepted) return rejected(targetMembershipId.code);
+    if (
+      typeof targetExpectedRevisionInput !== 'number' ||
+      !Number.isSafeInteger(targetExpectedRevisionInput) ||
+      targetExpectedRevisionInput < 1
+    )
+      return rejected('CONFLICT');
+    if (context.tenantScope.scopeType !== 'organization') return rejected('SCOPE_DENIED');
+    try {
+      return await this.repository.withTransaction(context, async (transaction) => {
+        const actor = await transaction.findMembership(context, context.actorId);
+        if (
+          !actor ||
+          actor.scope.scopeType !== 'organization' ||
+          actor.scope.organizationId !== context.tenantScope.organizationId
+        )
+          return rejected('SCOPE_DENIED');
+        const authorization = await this.authorize(
+          context,
+          actor.scope,
+          PERMISSIONS_V1.ORGANIZATION_OWNERSHIP_TRANSFER,
+          transaction,
+        );
+        if (authorization !== 'ALLOWED')
+          return rejected(authorization === 'UNAVAILABLE' ? 'UNAVAILABLE' : 'SCOPE_DENIED');
+        const memberships = await transaction.listMemberships(context);
+        const target = memberships.find((membership) => membership.id === targetMembershipId.value);
+        if (!target) return rejected('NOT_FOUND');
+        if (
+          target.id === actor.id ||
+          target.scope.scopeType !== 'organization' ||
+          target.scope.organizationId !== context.tenantScope.organizationId
+        )
+          return rejected('SCOPE_DENIED');
+        if (target.status !== 'ACTIVE' || target.roleId === 'owner')
+          return rejected('INVALID_STATE');
+        if (target.revision !== targetExpectedRevisionInput) return rejected('CONFLICT');
+        const nextActor: IamMembershipRecordV1 = Object.freeze({
+          ...actor,
+          roleId: 'admin',
+          revision: actor.revision + 1,
+        });
+        const nextTarget: IamMembershipRecordV1 = Object.freeze({
+          ...target,
+          roleId: 'owner',
+          revision: target.revision + 1,
+        });
+        await transaction.saveMembership(
+          Object.freeze({ ...context, expectedRevision: actor.revision }),
+          nextActor,
+        );
+        await transaction.saveMembership(
+          Object.freeze({ ...context, expectedRevision: target.revision }),
+          nextTarget,
+        );
+        return accepted(nextTarget);
       });
     } catch (error) {
       return rejected(applicationError(error));

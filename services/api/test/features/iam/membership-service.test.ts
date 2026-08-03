@@ -16,10 +16,12 @@ const ids = {
   principal: '00000000-0000-4000-8000-000000000161',
   invited: '00000000-0000-4000-8000-000000000162',
   outsider: '00000000-0000-4000-8000-000000000167',
+  successor: '00000000-0000-4000-8000-000000000168',
   correlation: '00000000-0000-4000-8000-000000000163',
   organization: '00000000-0000-4000-8000-000000000164',
   membership: '00000000-0000-4000-8000-000000000165',
   invitation: '00000000-0000-4000-8000-000000000166',
+  successorMembership: '00000000-0000-4000-8000-000000000169',
 };
 const now = new Date('2026-01-03T00:00:00.000Z');
 
@@ -191,4 +193,52 @@ void test('[IAM-004] invitation acceptance fails closed for an outsider, expiry,
     await expired.accept(contextFor(ids.invited, 'membership-service-013'), invitation.value.id, 1),
     { accepted: false, code: 'EXPIRED' },
   );
+});
+
+void test('[IAM-004] owner transfer atomically promotes an active organization member', async () => {
+  const value = repository();
+  await value.saveMembership(context('membership-service-014'), {
+    id: stable(ids.successorMembership),
+    principalId: stable(ids.successor),
+    scope: { scopeType: 'organization', organizationId: stable(ids.organization) },
+    roleId: 'admin',
+    status: 'ACTIVE',
+    revision: 4,
+  });
+  const service = new IamMembershipService(value, idsFrom(ids.invitation), clock);
+  const transferred = await service.transferOwnership(
+    context('membership-service-015'),
+    ids.successorMembership,
+    4,
+  );
+  assert.equal(transferred.accepted, true);
+  if (!transferred.accepted) return;
+  assert.equal(transferred.value.id, stable(ids.successorMembership));
+  assert.equal(transferred.value.roleId, 'owner');
+  assert.equal(transferred.value.revision, 5);
+  assert.equal((await value.findMembership(context('membership-service-016'), stable(ids.principal)))?.roleId, 'admin');
+  assert.equal((await value.findMembership(contextFor(ids.successor, 'membership-service-017'), stable(ids.successor)))?.roleId, 'owner');
+});
+
+void test('[IAM-004] owner transfer requires an owner and rolls back when target revision is stale', async () => {
+  const value = repository();
+  await value.saveMembership(context('membership-service-018'), {
+    id: stable(ids.successorMembership),
+    principalId: stable(ids.successor),
+    scope: { scopeType: 'organization', organizationId: stable(ids.organization) },
+    roleId: 'admin',
+    status: 'ACTIVE',
+    revision: 1,
+  });
+  const service = new IamMembershipService(value, idsFrom(ids.invitation), clock);
+  assert.deepEqual(
+    await service.transferOwnership(contextFor(ids.outsider, 'membership-service-019'), ids.successorMembership, 1),
+    { accepted: false, code: 'SCOPE_DENIED' },
+  );
+  assert.deepEqual(
+    await service.transferOwnership(context('membership-service-020'), ids.successorMembership, 2),
+    { accepted: false, code: 'CONFLICT' },
+  );
+  assert.equal((await value.findMembership(context('membership-service-021'), stable(ids.principal)))?.roleId, 'owner');
+  assert.equal((await value.findMembership(contextFor(ids.successor, 'membership-service-022'), stable(ids.successor)))?.roleId, 'admin');
 });
