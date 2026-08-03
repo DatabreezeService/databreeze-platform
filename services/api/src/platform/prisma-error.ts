@@ -1,3 +1,4 @@
+/** Returns true for Prisma's bounded unique-constraint error shape. */
 export function isPrismaUniqueConstraintViolationV1(error: unknown): boolean {
   return (
     typeof error === 'object' &&

@@ -86,6 +86,7 @@ class TelemetryContractTest {
             TelemetryContract.assertSafeAttributes(hostileAttributes)
         }
         assertEquals("telemetry attributes are not readable", attributeError.message)
+        assertTrue(attributeError.cause == null)
 
         val hostileHeaders = object : Map<String, List<String>> by emptyMap() {
             override val entries: Set<Map.Entry<String, List<String>>>
@@ -96,5 +97,6 @@ class TelemetryContractTest {
         }
         assertTrue(headerError.message.orEmpty().contains("not readable"))
         assertTrue(!headerError.message.orEmpty().contains("provider header cause"))
+        assertTrue(headerError.cause == null)
     }
 }

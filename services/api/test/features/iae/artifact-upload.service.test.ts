@@ -1,7 +1,16 @@
 import { strict as assert } from 'node:assert';
 import test from 'node:test';
 
+import {
+  createArtifactUploadSessionV1,
+  expireArtifactUploadSessionV1,
+  type ArtifactUploadSessionV1,
+} from '@databreeze/domain/artifact-upload/v1';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
+import type {
+  ArtifactUploadRepositoryPortV1,
+  ArtifactUploadTransactionPortV1,
+} from '../../../src/features/iae/application/artifact-upload-repository.port.js';
 import { ArtifactUploadService } from '../../../src/features/iae/application/artifact-upload.service.js';
 import { InMemoryArtifactUploadRepositoryAdapter } from '../../../src/features/iae/adapter/in-memory-artifact-upload-repository.adapter.js';
 import { InMemoryArtifactUploadStorageAdapter } from '../../../src/features/iae/adapter/in-memory-artifact-upload-storage.adapter.js';
@@ -14,6 +23,32 @@ class TrackingStorageAdapter extends InMemoryArtifactUploadStorageAdapter {
   ): Promise<void> {
     this.abortCalls += 1;
     await super.abort(...argumentsList);
+  }
+}
+
+class RevalidatingUploadRepository implements ArtifactUploadRepositoryPortV1 {
+  private reads = 0;
+
+  public constructor(
+    private readonly open: ArtifactUploadSessionV1,
+    private readonly expired: ArtifactUploadSessionV1,
+  ) {}
+
+  public async save(): Promise<void> {}
+
+  public find(): Promise<ArtifactUploadSessionV1 | undefined> {
+    this.reads += 1;
+    return Promise.resolve(this.reads === 1 ? this.open : this.expired);
+  }
+
+  public withTransaction<TValue>(
+    _context: Parameters<ArtifactUploadRepositoryPortV1['withTransaction']>[0],
+    work: (transaction: ArtifactUploadTransactionPortV1) => Promise<TValue>,
+  ): Promise<TValue> {
+    return work({
+      save: this.save.bind(this),
+      find: this.find.bind(this),
+    });
   }
 }
 
@@ -98,4 +133,32 @@ void test('IAE-014 expiration revokes storage-side partial state before persisti
   assert.equal(storage.abortCalls, 1);
   const transfer = await service.issuePartTransfer(context, created.value.sessionId, 1);
   assert.deepEqual(transfer, { accepted: false, code: 'UPLOAD_SESSION_EXPIRED' });
+});
+
+void test('IAE-014 transfer issuance revalidates the session before returning a grant', async () => {
+  const created = createArtifactUploadSessionV1({
+    sessionId: '99999999-9999-4999-8999-999999999991',
+    artifactId: '99999999-9999-4999-8999-999999999992',
+    tenantScope: context.tenantScope,
+    expectedSha256: 'a'.repeat(64),
+    expectedByteSize: 4,
+    mediaType: 'application/octet-stream',
+    partSize: 4,
+    createdAt: '2026-08-02T00:00:00.000Z',
+    expiresAt: '2026-08-02T01:00:00.000Z',
+  });
+  assert.equal(created.accepted, true);
+  if (!created.accepted) return;
+  const expired = expireArtifactUploadSessionV1(created.value, created.value.expiresAt);
+  assert.equal(expired.accepted, true);
+  if (!expired.accepted) return;
+
+  const service = new ArtifactUploadService(
+    new RevalidatingUploadRepository(created.value, expired.value),
+    new InMemoryArtifactUploadStorageAdapter(),
+  );
+  assert.deepEqual(await service.issuePartTransfer(context, created.value.sessionId, 1), {
+    accepted: false,
+    code: 'UPLOAD_SESSION_EXPIRED',
+  });
 });
