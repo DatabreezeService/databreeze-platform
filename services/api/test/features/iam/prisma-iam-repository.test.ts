@@ -69,13 +69,23 @@ function createDatabase(rows: readonly IamMembershipDatabaseRowV1[] = []): {
   readonly client: IamDatabaseClientV1;
   readonly memberships: Map<string, IamMembershipDatabaseRowV1>;
   readonly forceUpdateConflict: { value: boolean };
+  readonly firstQueries: ReadonlyArray<Readonly<Record<string, unknown>>>;
 } {
   const memberships = new Map(rows.map((value) => [value.id, value]));
   const forceUpdateConflict = { value: false };
+  const firstQueries: Array<Readonly<Record<string, unknown>>> = [];
   const client = {
     membershipIdentity: {
-      findUnique: async ({ where }: { readonly where: { readonly id: string } }) =>
-        memberships.get(where.id) ?? null,
+      findFirst: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) => {
+        firstQueries.push(where);
+        return (
+          [...memberships.values()].find((candidate) =>
+            Object.entries(where).every(
+              ([key, value]) => candidate[key as keyof IamMembershipDatabaseRowV1] === value,
+            ),
+          ) ?? null
+        );
+      },
       findMany: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) =>
         [...memberships.values()].filter((candidate) =>
           Object.entries(where).every(
@@ -112,7 +122,7 @@ function createDatabase(rows: readonly IamMembershipDatabaseRowV1[] = []): {
       }
     },
   } as unknown as IamDatabaseClientV1;
-  return { client, memberships, forceUpdateConflict };
+  return { client, memberships, forceUpdateConflict, firstQueries };
 }
 
 void test('[IAM-009, IAM-019] Prisma IAM membership reads are tenant scoped and hide siblings', async () => {
@@ -233,4 +243,21 @@ void test('[IAM-009] Prisma IAM transaction rollback leaves no staged membership
     /rollback/u,
   );
   assert.equal(memberships.size, 0);
+});
+
+void test('[IAM-009, IAM-019] Prisma membership mutation lookup includes tenant ancestry', async () => {
+  const workspaceScope = { scopeType: 'workspace', organizationId, workspaceId } as const;
+  const { client, firstQueries } = createDatabase();
+  const repository = new PrismaIamRepositoryAdapter(client);
+
+  await repository.saveMembership(context(workspaceScope), {
+    id: stable('23'),
+    principalId,
+    scope: workspaceScope,
+    roleId: 'viewer',
+    status: 'ACTIVE',
+    revision: 1,
+  });
+
+  assert.deepEqual(firstQueries, [{ id: stable('23'), organizationId }]);
 });

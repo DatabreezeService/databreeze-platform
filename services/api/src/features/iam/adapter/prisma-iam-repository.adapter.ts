@@ -30,8 +30,8 @@ export interface IamMembershipDatabaseRowV1 {
 }
 
 interface IamMembershipDelegateV1 {
-  findUnique(input: {
-    readonly where: { readonly id: string };
+  findFirst(input: {
+    readonly where: Readonly<Record<string, unknown>>;
   }): Promise<IamMembershipDatabaseRowV1 | null>;
   findMany(input: {
     readonly where: Readonly<Record<string, unknown>>;
@@ -173,8 +173,11 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
       throw new Error('IAM_SCOPE_NARROWING_REQUIRED');
     const validated = validateMembershipV1({ ...membership, principalType: 'USER' });
     if (!validated.accepted) throw new Error(`IAM_${validated.code}`);
-    const existingRow = await this.client.membershipIdentity.findUnique({
-      where: { id: membership.id },
+    const existingRow = await this.client.membershipIdentity.findFirst({
+      where: {
+        id: membership.id,
+        organizationId: context.tenantScope.organizationId,
+      },
     });
     if (!existingRow) {
       if (context.expectedRevision !== undefined) throw new Error('IAM_REVISION_CONFLICT');
