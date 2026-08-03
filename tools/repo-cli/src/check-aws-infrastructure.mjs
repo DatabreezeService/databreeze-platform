@@ -35,7 +35,7 @@ const opentofuVersion = readFileSync(
   path.join(infrastructureRoot, '.opentofu-version'),
   'utf8',
 ).trim();
-if (!/^\d+\.\d+\.\d+$/u.test(opentofuVersion)) {
+if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u.test(opentofuVersion)) {
   fail('the OpenTofu version pin must be one exact semantic version');
 }
 

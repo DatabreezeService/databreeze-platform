@@ -54,7 +54,8 @@ export function main(argv = process.argv.slice(2)) {
   if (argv.length > 0) fail(`unknown argument: ${argv[0]}`);
 
   const version = readFileSync(path.join(infrastructureRoot, '.opentofu-version'), 'utf8').trim();
-  if (!/^\d+\.\d+\.\d+$/u.test(version)) fail('version pin is not an exact semantic version');
+  if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u.test(version))
+    fail('version pin is not an exact semantic version');
   const image = `ghcr.io/opentofu/opentofu:${version}`;
   const sourceMount = `type=bind,source=${infrastructureRoot},target=/workspace`;
   const validationDirectory = mkdtempSync(path.join(os.tmpdir(), 'databreeze-tofu-'));
