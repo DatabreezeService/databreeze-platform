@@ -1,4 +1,9 @@
-import { tenantScopeContainsV1, type InboxItemV1, type TenantScopeV1 } from '@databreeze/domain/v1';
+import {
+  tenantScopeContainsV1,
+  updateInboxMetadataV1,
+  type InboxItemV1,
+  type TenantScopeV1,
+} from '@databreeze/domain/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type {
@@ -39,6 +44,22 @@ export class InMemoryArtifactIntakeRepositoryAdapter implements ArtifactIntakeRe
         item.revision !== existing.revision + 1
       )
         throw new Error('IAE_IMMUTABLE_INBOX_ITEM');
+      if (existing.state === item.state) {
+        const metadataInput = {
+          ...(Object.hasOwn(item, 'assigneeId') || Object.hasOwn(existing, 'assigneeId')
+            ? { assigneeId: Object.hasOwn(item, 'assigneeId') ? item.assigneeId : null }
+            : {}),
+          ...(Object.hasOwn(item, 'labels') ? { labels: item.labels } : {}),
+          ...(Object.hasOwn(item, 'priority') ? { priority: item.priority } : {}),
+          ...(Object.hasOwn(item, 'dueAt') || Object.hasOwn(existing, 'dueAt')
+            ? { dueAt: Object.hasOwn(item, 'dueAt') ? item.dueAt : null }
+            : {}),
+          expectedRevision: existing.revision,
+        };
+        const metadata = updateInboxMetadataV1(existing, metadataInput);
+        if (!metadata.accepted || JSON.stringify(metadata.value) !== JSON.stringify(item))
+          throw new Error('IAE_INVALID_INBOX_METADATA');
+      }
     }
     const sameKey = [...this.items.values()].find(
       (candidate) =>

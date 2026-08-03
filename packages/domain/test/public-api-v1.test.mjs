@@ -26,8 +26,16 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
     './artifact/v1',
     './artifact-intake/v1',
     './artifact-governance/v1',
+    './artifact-retention/v1',
+    './artifact-export/v1',
+    './artifact-upload/v1',
+    './protected-document/v1',
     './dataset/v1',
     './dataset-governance/v1',
+    './dataset-quality/v1',
+    './dataset-profile/v1',
+    './dataset-export/v1',
+    './spreadsheet-audit/v1',
     './jobs/v1',
     './approval/v1',
     './execution-attempt/v1',
@@ -63,7 +71,13 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
   assert.equal(aggregate.DEVICE_AUTHORIZATION_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.AUDIT_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.DATASET_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.DATASET_QUALITY_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.DATASET_PROFILE_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.DATASET_EXPORT_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.SPREADSHEET_AUDIT_SCHEMA_VERSION_V1, 1);
   assert.equal(typeof aggregate.parseTenantScopeV1, 'function');
+  assert.equal(aggregate.ARTIFACT_UPLOAD_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.PROTECTED_DOCUMENT_SCHEMA_VERSION_V1, 1);
   assert.equal(typeof aggregate.createScopedAuthorizationEvaluatorV1, 'function');
   assert.equal(aggregate.MAPPING_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.RULE_SET_SCHEMA_VERSION_V1, 1);

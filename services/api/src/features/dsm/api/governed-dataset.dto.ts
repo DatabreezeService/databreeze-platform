@@ -96,3 +96,13 @@ export class CreateGovernedDatasetDto {
   @MaxLength(64)
   canonicalHash!: string;
 }
+
+export class PublishGovernedDatasetDto {
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
+  nextVersionId!: string;
+
+  @ApiProperty({ format: 'date-time' })
+  @IsISO8601()
+  publishedAt!: string;
+}

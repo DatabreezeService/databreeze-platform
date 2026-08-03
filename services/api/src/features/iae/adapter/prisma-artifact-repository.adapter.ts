@@ -82,6 +82,10 @@ export interface ArtifactDatabaseClientV1 {
     findUnique(input: {
       readonly where: { readonly id: string };
     }): Promise<ArtifactVersionDatabaseRowV1 | null>;
+    update(input: {
+      readonly where: { readonly id: string };
+      readonly data: { readonly status: string };
+    }): Promise<ArtifactVersionDatabaseRowV1>;
   };
   readonly contentPlacement: {
     create(input: {
@@ -90,6 +94,13 @@ export interface ArtifactDatabaseClientV1 {
     findMany(input: {
       readonly where: Readonly<Record<string, string>>;
     }): Promise<readonly ContentPlacementDatabaseRowV1[]>;
+    findUnique(input: {
+      readonly where: { readonly id: string };
+    }): Promise<ContentPlacementDatabaseRowV1 | null>;
+    update(input: {
+      readonly where: { readonly id: string };
+      readonly data: { readonly available: boolean; readonly revision: number };
+    }): Promise<ContentPlacementDatabaseRowV1>;
   };
   readonly evidenceReference: {
     create(input: { readonly data: EvidenceCreateDataV1 }): Promise<EvidenceDatabaseRowV1>;
@@ -228,6 +239,27 @@ class PrismaArtifactTransactionAdapter implements ArtifactTransactionPortV1 {
         : undefined;
   }
 
+  public async updateVersionStatus(
+    context: IamTenantContextV1,
+    versionId: ArtifactVersionV1['versionId'],
+    status: ArtifactVersionV1['status'],
+  ): Promise<ArtifactVersionV1 | undefined> {
+    const row = await this.client.artifactVersion.findUnique({ where: { id: versionId } });
+    if (row === null || !visible(context.tenantScope, row)) return undefined;
+    if (!tenantScopeContainsV1(context.tenantScope, rowScope(row)))
+      throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
+    const current = rowToVersion(row);
+    if (!['QUARANTINED', 'ACTIVE', 'DELETED'].includes(status))
+      throw new Error('IAE_INVALID_STATUS');
+    if (current.status === 'DELETED' && status !== 'DELETED')
+      throw new Error('IAE_TERMINAL_STATUS');
+    const updated = await this.client.artifactVersion.update({
+      where: { id: versionId },
+      data: { status },
+    });
+    return rowToVersion(updated);
+  }
+
   public async savePlacement(
     context: IamTenantContextV1,
     placement: ContentPlacementV1,
@@ -238,6 +270,14 @@ class PrismaArtifactTransactionAdapter implements ArtifactTransactionPortV1 {
     if (version === null) throw new Error('IAE_VERSION_NOT_FOUND');
     if (!tenantScopeContainsV1(context.tenantScope, placement.tenantScope))
       throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
+    const existing = await this.client.contentPlacement.findUnique({
+      where: { id: placement.placementId },
+    });
+    if (existing !== null) {
+      const persisted = rowToPlacement(existing, rowToVersion(version));
+      if (JSON.stringify(persisted) === JSON.stringify(placement)) return;
+      throw new Error('IAE_IMMUTABLE_PLACEMENT');
+    }
     await this.client.contentPlacement.create({
       data: {
         ...databaseScope(placement.tenantScope),
@@ -267,6 +307,36 @@ class PrismaArtifactTransactionAdapter implements ArtifactTransactionPortV1 {
     return rows
       .filter((row) => visible(context.tenantScope, row))
       .map((row) => rowToPlacement(row, version));
+  }
+
+  public async updatePlacement(
+    context: IamTenantContextV1,
+    placement: ContentPlacementV1,
+  ): Promise<void> {
+    const existing = await this.client.contentPlacement.findUnique({
+      where: { id: placement.placementId },
+    });
+    if (existing === null) throw new Error('IAE_PLACEMENT_NOT_FOUND');
+    if (!tenantScopeContainsV1(context.tenantScope, placement.tenantScope))
+      throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
+    const versionRow = await this.client.artifactVersion.findUnique({
+      where: { id: placement.artifactVersionId },
+    });
+    if (versionRow === null) throw new Error('IAE_VERSION_NOT_FOUND');
+    const current = rowToPlacement(existing, rowToVersion(versionRow));
+    if (JSON.stringify(current) === JSON.stringify(placement)) return;
+    if (placement.revision !== current.revision + 1) throw new Error('IAE_REVISION_CONFLICT');
+    if (
+      current.artifactVersionId !== placement.artifactVersionId ||
+      current.kind !== placement.kind ||
+      current.opaqueReference !== placement.opaqueReference ||
+      current.contentSha256 !== placement.contentSha256
+    )
+      throw new Error('IAE_IMMUTABLE_PLACEMENT');
+    await this.client.contentPlacement.update({
+      where: { id: placement.placementId },
+      data: { available: placement.available, revision: placement.revision },
+    });
   }
 
   public async saveEvidence(
@@ -327,8 +397,25 @@ export class PrismaArtifactRepositoryAdapter implements ArtifactRepositoryPortV1
   ): Promise<ArtifactVersionV1 | undefined> {
     return new PrismaArtifactTransactionAdapter(this.client).findVersion(context, versionId);
   }
+  public updateVersionStatus(
+    context: IamTenantContextV1,
+    versionId: ArtifactVersionV1['versionId'],
+    status: ArtifactVersionV1['status'],
+  ): Promise<ArtifactVersionV1 | undefined> {
+    return new PrismaArtifactTransactionAdapter(this.client).updateVersionStatus(
+      context,
+      versionId,
+      status,
+    );
+  }
   public savePlacement(context: IamTenantContextV1, placement: ContentPlacementV1): Promise<void> {
     return new PrismaArtifactTransactionAdapter(this.client).savePlacement(context, placement);
+  }
+  public updatePlacement(
+    context: IamTenantContextV1,
+    placement: ContentPlacementV1,
+  ): Promise<void> {
+    return new PrismaArtifactTransactionAdapter(this.client).updatePlacement(context, placement);
   }
   public listPlacements(
     context: IamTenantContextV1,

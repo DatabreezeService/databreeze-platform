@@ -8,8 +8,16 @@ const [
   artifact,
   artifactIntake,
   artifactGovernance,
+  artifactRetention,
+  artifactExport,
+  artifactUpload,
+  protectedDocument,
   dataset,
   datasetGovernance,
+  datasetQuality,
+  datasetProfile,
+  datasetExport,
+  spreadsheetAudit,
   dataMode,
   jobs,
   approval,
@@ -30,8 +38,16 @@ const [
   import('@databreeze/domain/artifact/v1'),
   import('@databreeze/domain/artifact-intake/v1'),
   import('@databreeze/domain/artifact-governance/v1'),
+  import('@databreeze/domain/artifact-retention/v1'),
+  import('@databreeze/domain/artifact-export/v1'),
+  import('@databreeze/domain/artifact-upload/v1'),
+  import('@databreeze/domain/protected-document/v1'),
   import('@databreeze/domain/dataset/v1'),
   import('@databreeze/domain/dataset-governance/v1'),
+  import('@databreeze/domain/dataset-quality/v1'),
+  import('@databreeze/domain/dataset-profile/v1'),
+  import('@databreeze/domain/dataset-export/v1'),
+  import('@databreeze/domain/spreadsheet-audit/v1'),
   import('@databreeze/domain/data-mode/v1'),
   import('@databreeze/domain/jobs/v1'),
   import('@databreeze/domain/approval/v1'),
@@ -54,8 +70,16 @@ assert.equal(typeof authorization.createScopedAuthorizationEvaluatorV1, 'functio
 assert.equal(artifact.ARTIFACT_SCHEMA_VERSION_V1, 1);
 assert.equal(artifactIntake.ARTIFACT_INTAKE_SCHEMA_VERSION_V1, 1);
 assert.equal(artifactGovernance.ARTIFACT_GOVERNANCE_SCHEMA_VERSION_V1, 1);
+assert.equal(artifactRetention.ARTIFACT_RETENTION_SCHEMA_VERSION_V1, 1);
+assert.equal(artifactExport.ARTIFACT_EXPORT_SCHEMA_VERSION_V1, 1);
+assert.equal(artifactUpload.ARTIFACT_UPLOAD_SCHEMA_VERSION_V1, 1);
+assert.equal(protectedDocument.PROTECTED_DOCUMENT_SCHEMA_VERSION_V1, 1);
 assert.equal(dataset.DATASET_SCHEMA_VERSION_V1, 1);
 assert.equal(datasetGovernance.DATASET_GOVERNANCE_SCHEMA_VERSION_V1, 1);
+assert.equal(datasetQuality.DATASET_QUALITY_SCHEMA_VERSION_V1, 1);
+assert.equal(datasetProfile.DATASET_PROFILE_SCHEMA_VERSION_V1, 1);
+assert.equal(datasetExport.DATASET_EXPORT_SCHEMA_VERSION_V1, 1);
+assert.equal(spreadsheetAudit.SPREADSHEET_AUDIT_SCHEMA_VERSION_V1, 1);
 assert.equal(dataMode.DATA_MODE_POLICY_SCHEMA_VERSION_V1, 1);
 assert.equal(jobs.JOB_SCHEMA_VERSION_V1, 1);
 assert.equal(approval.APPROVAL_SCHEMA_VERSION_V1, 1);

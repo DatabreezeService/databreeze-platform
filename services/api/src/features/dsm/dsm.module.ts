@@ -4,6 +4,20 @@ import { GovernedDatasetController } from './api/governed-dataset.controller.js'
 import { MappingController } from './api/mapping.controller.js';
 import { ReferenceEntityController } from './api/reference-entity.controller.js';
 import { RuleSetController } from './api/rule-set.controller.js';
+import { DatasetVersionController } from './api/dataset-version.controller.js';
+import { DatasetQualityController } from './api/dataset-quality.controller.js';
+import { DatasetProfileController } from './api/dataset-profile.controller.js';
+import { DatasetExportController } from './api/dataset-export.controller.js';
+import { InMemoryDatasetProfileRepositoryAdapter } from './adapter/in-memory-dataset-profile-repository.adapter.js';
+import { InMemoryDatasetExportRepositoryAdapter } from './adapter/in-memory-dataset-export-repository.adapter.js';
+import {
+  PrismaDatasetExportRepositoryAdapter,
+  type DatasetExportDatabaseClientV1,
+} from './adapter/prisma-dataset-export-repository.adapter.js';
+import {
+  PrismaDatasetProfileRepositoryAdapter,
+  type DatasetProfileDatabaseClientV1,
+} from './adapter/prisma-dataset-profile-repository.adapter.js';
 import { InMemoryGovernedDatasetRepositoryAdapter } from './adapter/in-memory-governed-dataset-repository.adapter.js';
 import {
   PrismaGovernedDatasetRepositoryAdapter,
@@ -20,6 +34,16 @@ import {
   type ReferenceEntityDatabaseClientV1,
 } from './adapter/prisma-reference-entity-repository.adapter.js';
 import { InMemoryRuleSetRepositoryAdapter } from './adapter/in-memory-rule-set-repository.adapter.js';
+import { InMemoryDatasetVersionRepositoryAdapter } from './adapter/in-memory-dataset-version-repository.adapter.js';
+import {
+  PrismaDatasetVersionRepositoryAdapter,
+  type DatasetVersionDatabaseClientV1,
+} from './adapter/prisma-dataset-version-repository.adapter.js';
+import { InMemoryDatasetQualityRepositoryAdapter } from './adapter/in-memory-dataset-quality-repository.adapter.js';
+import {
+  PrismaDatasetQualityRepositoryAdapter,
+  type DatasetQualityDatabaseClientV1,
+} from './adapter/prisma-dataset-quality-repository.adapter.js';
 import {
   PrismaRuleSetRepositoryAdapter,
   type RuleSetDatabaseClientV1,
@@ -41,6 +65,22 @@ import {
   type RuleSetRepositoryPortV1,
 } from './application/rule-set-repository.port.js';
 import {
+  DATASET_VERSION_REPOSITORY_PORT,
+  type DatasetVersionRepositoryPortV1,
+} from './application/dataset-version-repository.port.js';
+import {
+  DATASET_QUALITY_REPOSITORY_PORT,
+  type DatasetQualityRepositoryPortV1,
+} from './application/dataset-quality-repository.port.js';
+import {
+  DATASET_PROFILE_REPOSITORY_PORT,
+  type DatasetProfileRepositoryPortV1,
+} from './application/dataset-profile-repository.port.js';
+import {
+  DATASET_EXPORT_REPOSITORY_PORT,
+  type DatasetExportRepositoryPortV1,
+} from './application/dataset-export-repository.port.js';
+import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
   UnavailableRequestTenantContextAdapter,
@@ -59,6 +99,18 @@ export interface DsmModuleOptions {
   readonly referenceEntityRepository?: ReferenceEntityRepositoryPortV1;
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly referenceEntityDatabase?: ReferenceEntityDatabaseClientV1;
+  readonly datasetVersionRepository?: DatasetVersionRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly datasetVersionDatabase?: DatasetVersionDatabaseClientV1;
+  readonly datasetQualityRepository?: DatasetQualityRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly datasetQualityDatabase?: DatasetQualityDatabaseClientV1;
+  readonly datasetProfileRepository?: DatasetProfileRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly datasetProfileDatabase?: DatasetProfileDatabaseClientV1;
+  readonly datasetExportRepository?: DatasetExportRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
+  readonly datasetExportDatabase?: DatasetExportDatabaseClientV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
 }
 
@@ -72,6 +124,10 @@ export class DsmModule {
         MappingController,
         RuleSetController,
         ReferenceEntityController,
+        DatasetVersionController,
+        DatasetQualityController,
+        DatasetProfileController,
+        DatasetExportController,
       ],
       providers: [
         {
@@ -105,6 +161,38 @@ export class DsmModule {
             (options.referenceEntityDatabase === undefined
               ? new InMemoryReferenceEntityRepositoryAdapter()
               : new PrismaReferenceEntityRepositoryAdapter(options.referenceEntityDatabase)),
+        },
+        {
+          provide: DATASET_VERSION_REPOSITORY_PORT,
+          useValue:
+            options.datasetVersionRepository ??
+            (options.datasetVersionDatabase === undefined
+              ? new InMemoryDatasetVersionRepositoryAdapter()
+              : new PrismaDatasetVersionRepositoryAdapter(options.datasetVersionDatabase)),
+        },
+        {
+          provide: DATASET_QUALITY_REPOSITORY_PORT,
+          useValue:
+            options.datasetQualityRepository ??
+            (options.datasetQualityDatabase === undefined
+              ? new InMemoryDatasetQualityRepositoryAdapter()
+              : new PrismaDatasetQualityRepositoryAdapter(options.datasetQualityDatabase)),
+        },
+        {
+          provide: DATASET_PROFILE_REPOSITORY_PORT,
+          useValue:
+            options.datasetProfileRepository ??
+            (options.datasetProfileDatabase === undefined
+              ? new InMemoryDatasetProfileRepositoryAdapter()
+              : new PrismaDatasetProfileRepositoryAdapter(options.datasetProfileDatabase)),
+        },
+        {
+          provide: DATASET_EXPORT_REPOSITORY_PORT,
+          useValue:
+            options.datasetExportRepository ??
+            (options.datasetExportDatabase === undefined
+              ? new InMemoryDatasetExportRepositoryAdapter()
+              : new PrismaDatasetExportRepositoryAdapter(options.datasetExportDatabase)),
         },
         {
           provide: REQUEST_TENANT_CONTEXT,
