@@ -22,8 +22,21 @@ const MEMBERSHIP_ROLE_IDS = [
   'approver',
   'viewer',
 ] as const;
+const MEMBERSHIP_ERROR_CODES = [
+  'INVALID_IDENTIFIER',
+  'INVALID_SCOPE',
+  'INVALID_ROLE',
+  'INVALID_STATE',
+  'SCOPE_DENIED',
+  'NOT_FOUND',
+  'CONFLICT',
+  'EXPIRED',
+  'LAST_OWNER',
+  'UNAVAILABLE',
+] as const;
 type MembershipScopeTypeDtoV1 = (typeof MEMBERSHIP_SCOPE_TYPES)[number];
 type MembershipRoleIdDtoV1 = (typeof MEMBERSHIP_ROLE_IDS)[number];
+type MembershipErrorCodeDtoV1 = (typeof MEMBERSHIP_ERROR_CODES)[number];
 
 @ValidatorConstraint({ name: 'membershipScopeShape', async: false })
 class MembershipScopeShapeConstraint implements ValidatorConstraintInterface {
@@ -76,6 +89,14 @@ export class InviteMembershipDto {
   @ApiProperty({ enum: MEMBERSHIP_ROLE_IDS })
   @IsIn(MEMBERSHIP_ROLE_IDS)
   roleId!: MembershipRoleIdDtoV1;
+}
+
+export class MembershipRejectedResponseDto {
+  @ApiProperty({ enum: [false], example: false })
+  accepted!: false;
+
+  @ApiProperty({ enum: MEMBERSHIP_ERROR_CODES })
+  code!: MembershipErrorCodeDtoV1;
 }
 
 export class TransitionMembershipDto {
