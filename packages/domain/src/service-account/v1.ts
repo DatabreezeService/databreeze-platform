@@ -187,6 +187,7 @@ export function rotateServiceAccountSecretV1(
     return rejected('INVALID_TIMESTAMP');
   if (expiresAt === undefined) {
     const { secretExpiresAt: _previousExpiry, ...withoutExpiry } = current;
+    void _previousExpiry;
     return accepted(
       Object.freeze({
         ...withoutExpiry,
