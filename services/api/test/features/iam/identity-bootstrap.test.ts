@@ -51,6 +51,22 @@ void test('[IAM-001, IAM-009] bootstrap reads reject malformed identities and hi
   );
 });
 
+void test('[IAM-001] bootstrap reads map repository failures to a stable availability code', async () => {
+  const service = new IdentityBootstrapService({
+    findByUserId: async () => {
+      throw new Error('database details must not escape');
+    },
+    save: async () => undefined,
+    withTransaction: async () => {
+      throw new Error('database details must not escape');
+    },
+  });
+  assert.deepEqual(
+    await service.find(input.user.id),
+    { accepted: false, code: 'UNAVAILABLE' },
+  );
+});
+
 void test('[IAM-011] conflicting bootstrap identity is rejected without replacing the owner', async () => {
   const repository = new InMemoryIdentityBootstrapRepositoryAdapter();
   const service = new IdentityBootstrapService(repository);
