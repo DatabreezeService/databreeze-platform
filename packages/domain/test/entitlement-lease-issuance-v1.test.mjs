@@ -90,4 +90,43 @@ void test('[BUA-017, BUA-018] suspended snapshots and overlong leases fail close
     ),
     { accepted: false, code: 'LEASE_INVALID' },
   );
+  assert.deepEqual(
+    createEntitlementLeaseV1(
+      snapshot(),
+      {
+        leaseId: '00000000-0000-4000-8000-000000000756',
+        issuedAt: '2025-12-31T23:59:59.000Z',
+        expiresAt: '2026-01-01T01:00:00.000Z',
+      },
+      signer,
+    ),
+    { accepted: false, code: 'LEASE_INVALID' },
+  );
+});
+
+void test('[BUA-018] acceptance rejects payloads that do not canonically bind lease fields', () => {
+  const lease = createEntitlementLeaseV1(
+    snapshot(),
+    {
+      leaseId: '00000000-0000-4000-8000-000000000757',
+      issuedAt: '2026-01-01T00:00:00.000Z',
+      expiresAt: '2026-01-01T01:00:00.000Z',
+    },
+    signer,
+  );
+  assert.equal(lease.accepted, true);
+  if (!lease.accepted) return;
+  assert.deepEqual(
+    acceptEntitlementLeaseV1(
+      { ...lease.value, payload: `${lease.value.payload} ` },
+      {
+        now: '2026-01-01T00:15:00.000Z',
+        tenantScope: scope,
+        snapshotRevision: 3,
+        securityEpoch: 2,
+      },
+      signer,
+    ),
+    { accepted: false, code: 'LEASE_INVALID' },
+  );
 });

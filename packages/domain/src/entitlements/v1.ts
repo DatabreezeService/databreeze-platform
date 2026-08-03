@@ -290,6 +290,7 @@ export function createEntitlementLeaseV1(
   if (
     !Number.isFinite(Date.parse(issuedAt)) ||
     !Number.isFinite(Date.parse(expiresAt)) ||
+    Date.parse(issuedAt) < Date.parse(snapshot.effectiveAt) ||
     Date.parse(expiresAt) <= Date.parse(issuedAt) ||
     Date.parse(expiresAt) - Date.parse(issuedAt) > OFFLINE_LEASE_MAX_SECONDS_V1 * 1_000 ||
     (snapshot.expiresAt !== undefined && Date.parse(expiresAt) > Date.parse(snapshot.expiresAt))
@@ -580,19 +581,53 @@ export function acceptEntitlementLeaseV1(
 ): EntitlementResultV1<true> {
   const now = timestamp(input.now);
   const tenantScope = scope(input.tenantScope);
+  const leaseId = stableId(lease.leaseId);
+  const leaseScope = scope(lease.tenantScope);
+  const issuedAt = timestamp(lease.issuedAt);
+  const expiresAt = timestamp(lease.expiresAt);
   const snapshotRevision = positiveInteger(input.snapshotRevision);
   const securityEpoch = positiveInteger(input.securityEpoch);
   if (!now) return rejected('INVALID_TIMESTAMP');
   if (!tenantScope) return rejected('INVALID_SCOPE');
   if (!snapshotRevision || !securityEpoch) return rejected('INVALID_STATE');
-  if (!sameScope(lease.tenantScope, tenantScope)) return rejected('LEASE_STALE');
+  if (
+    !leaseId ||
+    !leaseScope ||
+    leaseScope.scopeType === 'project' ||
+    !issuedAt ||
+    !expiresAt ||
+    lease.schemaVersion !== ENTITLEMENT_SCHEMA_VERSION_V1 ||
+    !positiveInteger(lease.snapshotRevision) ||
+    !positiveInteger(lease.securityEpoch) ||
+    !text(lease.payload, 10000) ||
+    !text(lease.signature, 2048) ||
+    Date.parse(expiresAt) <= Date.parse(issuedAt) ||
+    Date.parse(expiresAt) - Date.parse(issuedAt) > OFFLINE_LEASE_MAX_SECONDS_V1 * 1_000 ||
+    lease.payload !==
+      canonicalLease({
+        schemaVersion: ENTITLEMENT_SCHEMA_VERSION_V1,
+        leaseId,
+        tenantScope: leaseScope,
+        snapshotRevision: lease.snapshotRevision,
+        securityEpoch: lease.securityEpoch,
+        issuedAt,
+        expiresAt,
+      })
+  )
+    return rejected('LEASE_INVALID');
+  if (!sameScope(leaseScope, tenantScope)) return rejected('LEASE_STALE');
   if (lease.snapshotRevision !== snapshotRevision || lease.securityEpoch !== securityEpoch)
     return rejected('LEASE_STALE');
-  if (!verifier.verify(lease.payload, lease.signature)) return rejected('LEASE_INVALID');
+  let signatureValid = false;
+  try {
+    signatureValid = verifier.verify(lease.payload, lease.signature);
+  } catch {
+    signatureValid = false;
+  }
+  if (!signatureValid) return rejected('LEASE_INVALID');
   if (
-    Date.parse(now) < Date.parse(lease.issuedAt) ||
-    Date.parse(now) >= Date.parse(lease.expiresAt) ||
-    Date.parse(lease.expiresAt) - Date.parse(lease.issuedAt) > OFFLINE_LEASE_MAX_SECONDS_V1 * 1_000
+    Date.parse(now) < Date.parse(issuedAt) ||
+    Date.parse(now) >= Date.parse(expiresAt)
   )
     return rejected('LEASE_INVALID');
   return Object.freeze({ accepted: true, value: true });
