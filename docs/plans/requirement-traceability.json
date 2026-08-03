@@ -8985,7 +8985,9 @@
       "priority": "P0",
       "primaryPlan": "020-identity-audit-entitlements.md",
       "primaryTask": "Task 1: IAM identity and permissions",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "IAM-010 durable invitation token persistence slice"
+      ],
       "codePaths": [
         "packages/domain/src/identity/v1.ts",
         "packages/domain/src/permissions/v1.ts",
@@ -8993,12 +8995,16 @@
         "packages/domain/src/mfa/v1.ts",
         "packages/domain/src/csrf/v1.ts",
         "services/api/src/features/iam/",
-        "services/api/prisma/schema/iam.prisma"
+        "services/api/src/features/iam/adapter/prisma-iam-invitation-repository.adapter.ts",
+        "services/api/prisma/schema/iam.prisma",
+        "services/api/prisma/migrations/20260803040000_iam_invitation_tokens/migration.sql"
       ],
       "testPaths": [
         "packages/domain/test/identity-v1.test.mjs",
         "packages/domain/test/permissions-v1.test.mjs",
         "services/api/test/features/iam/",
+        "services/api/test/features/iam/prisma-iam-invitation-repository.test.ts",
+        "services/api/test/prisma-foundation.test.mjs",
         "services/api/test/platform/http/session-tenant-context.test.ts",
         "services/api/test/platform/http/csrf-protection.test.ts"
       ],
@@ -9283,11 +9289,12 @@
       ],
       "releaseEvidence": [
         "requirement-linked-tests",
+        "docs/operations/iam-010-invitation-token-2026-08-03.md",
         "security-and-tenant-gate",
         "release-manager-approval"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
