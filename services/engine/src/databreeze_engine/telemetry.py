@@ -160,7 +160,7 @@ def _validate_key(key: object) -> str:
     return key
 
 
-def sanitize_attributes(attributes: dict[str, Any]) -> dict[str, str | int | float | bool]:
+def sanitize_attributes(attributes: Mapping[str, Any]) -> dict[str, str | int | float | bool]:
     """Return only bounded, allowlisted scalar attributes."""
 
     if not isinstance(attributes, Mapping):
@@ -336,7 +336,7 @@ def emit_record(
         "event": event,
         "component": component,
         "correlationId": normalized.correlation_id,
-        "attributes": sanitize_attributes(dict(attributes or {})),
+        "attributes": sanitize_attributes(attributes if attributes is not None else {}),
     }
     if normalized.trace_id and normalized.span_id:
         record["traceId"] = normalized.trace_id

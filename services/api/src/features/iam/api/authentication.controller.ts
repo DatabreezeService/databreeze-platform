@@ -176,9 +176,9 @@ export class AuthenticationController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<void> {
     if (this.sessions === undefined) throw new SessionProblemError('SESSION_UNAVAILABLE');
+    if (this.requestContext === undefined) throw new SessionProblemError('SESSION_UNAVAILABLE');
+    const context = await this.requestContext.resolve(request);
     try {
-      if (this.requestContext === undefined) throw new SessionProblemError('SESSION_UNAVAILABLE');
-      const context = await this.requestContext.resolve(request);
       const principal = await this.sessions.findPrincipal(input.sessionId);
       if (
         !principal ||

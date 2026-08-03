@@ -104,7 +104,8 @@ function ownedFieldsMatch<TRow extends object>(existing: TRow, expected: TRow): 
 
 export interface IdentityBootstrapDatabaseClientV1 {
   readonly userIdentity: UserDelegateV1;
-  readonly organizationIdentity: IdentityDelegateV1<OrganizationIdentityDatabaseRowV1>;
+  readonly organizationIdentity: IdentityDelegateV1<OrganizationIdentityDatabaseRowV1> &
+    ListDelegateV1<OrganizationIdentityDatabaseRowV1>;
   readonly workspaceIdentity: IdentityDelegateV1<WorkspaceIdentityDatabaseRowV1> &
     ListDelegateV1<WorkspaceIdentityDatabaseRowV1>;
   readonly projectIdentity: IdentityDelegateV1<ProjectIdentityDatabaseRowV1> &
@@ -122,8 +123,12 @@ function stableId(input: unknown): StableIdentifierV1 | undefined {
 
 function timestamp(input: Date | null | undefined): StrictUtcTimestampV1 | undefined {
   if (!input) return undefined;
-  const parsed = parseStrictUtcTimestampV1(input.toISOString());
-  return parsed.accepted ? parsed.value : undefined;
+  try {
+    const parsed = parseStrictUtcTimestampV1(input.toISOString());
+    return parsed.accepted ? parsed.value : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function safeText(input: unknown, maxLength: number): string | undefined {
@@ -198,6 +203,13 @@ function bootstrapFromRows(
     project.status !== 'ACTIVE'
   )
     throw new Error('IAM_PERSISTED_PROJECT_INVALID');
+  const startsAt = timestamp(membership.startsAt);
+  const expiresAt = timestamp(membership.expiresAt);
+  if (
+    (membership.startsAt !== null && membership.startsAt !== undefined && !startsAt) ||
+    (membership.expiresAt !== null && membership.expiresAt !== undefined && !expiresAt)
+  )
+    throw new Error('IAM_PERSISTED_MEMBERSHIP_INVALID');
   const parsedMembership = validateMembershipV1({
     id: membership.id,
     principalType: membership.principalType,
@@ -205,8 +217,8 @@ function bootstrapFromRows(
     scope: { scopeType: 'organization', organizationId: membership.organizationId },
     roleId: membership.roleId,
     status: membership.status,
-    ...(membership.startsAt ? { startsAt: timestamp(membership.startsAt) } : {}),
-    ...(membership.expiresAt ? { expiresAt: timestamp(membership.expiresAt) } : {}),
+    ...(startsAt ? { startsAt } : {}),
+    ...(expiresAt ? { expiresAt } : {}),
     revision: membership.revision,
   });
   if (
@@ -272,18 +284,26 @@ class PrismaIdentityBootstrapTransactionAdapter implements IdentityBootstrapTran
         projectId: null,
       },
     });
+    const sortedMemberships = [...memberships].sort((left, right) =>
+      left.id.localeCompare(right.id),
+    );
+    const candidateOrganizationIds = sortedMemberships.map((membership) => {
+      const candidateOrganizationId = stableId(membership.organizationId);
+      if (!candidateOrganizationId) throw new Error('IAM_PERSISTED_MEMBERSHIP_INVALID');
+      return candidateOrganizationId;
+    });
+    const organizations = await this.client.organizationIdentity.findMany({
+      where: { id: { in: candidateOrganizationIds }, personal: true },
+    });
+    const organizationsById = new Map(
+      organizations.map((organization) => [organization.id, organization]),
+    );
     const personalCandidates: Array<{
       readonly membership: MembershipIdentityDatabaseRowV1;
       readonly organization: OrganizationIdentityDatabaseRowV1;
     }> = [];
-    for (const membership of [...memberships].sort((left, right) =>
-      left.id.localeCompare(right.id),
-    )) {
-      const candidateOrganizationId = stableId(membership.organizationId);
-      if (!candidateOrganizationId) throw new Error('IAM_PERSISTED_MEMBERSHIP_INVALID');
-      const candidate = await this.client.organizationIdentity.findUnique({
-        where: { id: candidateOrganizationId },
-      });
+    for (const membership of sortedMemberships) {
+      const candidate = organizationsById.get(membership.organizationId);
       if (candidate?.personal) personalCandidates.push({ membership, organization: candidate });
     }
     if (personalCandidates.length === 0) return undefined;

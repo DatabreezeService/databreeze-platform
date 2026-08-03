@@ -181,6 +181,11 @@ function recoveryRow(code: RecoveryCodeV1): MfaRecoveryCodeDatabaseRowV1 {
 }
 
 function immutableState(existing: MfaStateV1, next: MfaStateV1): boolean {
+  if (
+    new Set(next.factors.map((factor) => factor.id)).size !== next.factors.length ||
+    new Set(next.recoveryCodes.map((code) => code.id)).size !== next.recoveryCodes.length
+  )
+    return false;
   const existingFactors = new Map(existing.factors.map((factor) => [factor.id, factor]));
   const existingCodes = new Map(existing.recoveryCodes.map((code) => [code.id, code]));
   if (

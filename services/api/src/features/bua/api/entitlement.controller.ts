@@ -3,6 +3,7 @@ import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiServiceUnavailableResponse,
   ApiTags,
@@ -20,6 +21,21 @@ import {
 } from '../../../platform/http/request-tenant-context.port.js';
 import { EntitlementProblemError } from '../application/entitlement-problem.error.js';
 
+const ENTITLEMENT_SNAPSHOT_RESPONSE_SCHEMA = {
+  type: 'object',
+  additionalProperties: true,
+};
+
+const USAGE_LEDGER_RESPONSE_SCHEMA = {
+  type: 'object',
+  required: ['entries', 'reservations'] as string[],
+  properties: {
+    entries: { type: 'array', items: { type: 'object', additionalProperties: true } },
+    reservations: { type: 'array', items: { type: 'object', additionalProperties: true } },
+  },
+  additionalProperties: false,
+};
+
 @ApiTags('entitlements')
 @ApiBearerAuth()
 @Controller('v1/entitlements')
@@ -33,6 +49,7 @@ export class EntitlementController {
 
   @Get('snapshots/:snapshotId')
   @ApiOperation({ summary: 'Read one immutable entitlement snapshot in the caller scope' })
+  @ApiOkResponse({ schema: ENTITLEMENT_SNAPSHOT_RESPONSE_SCHEMA })
   @ApiBadRequestResponse({ description: 'The snapshot identifier is invalid.' })
   @ApiNotFoundResponse({ description: 'The entitlement snapshot is not visible.' })
   @ApiServiceUnavailableResponse({ description: 'Entitlement persistence is unavailable.' })
@@ -55,6 +72,7 @@ export class EntitlementController {
 
   @Get('usage')
   @ApiOperation({ summary: 'Read the append-only usage ledger state in the caller scope' })
+  @ApiOkResponse({ schema: USAGE_LEDGER_RESPONSE_SCHEMA })
   @ApiServiceUnavailableResponse({ description: 'Usage persistence is unavailable.' })
   async usage(@Req() request: unknown): Promise<UsageLedgerStateV1> {
     const context = await this.requestContext.resolve(request);

@@ -10,15 +10,10 @@ import type {
   IamTransactionPortV1,
 } from '../application/iam-repository.port.js';
 import type { IamTenantContextV1 } from '../application/tenant-context.js';
+import { selectAuthoritativeMembership } from '../application/membership-authority.js';
 
 function visibleInScope(context: TenantScopeV1, membership: TenantScopeV1): boolean {
   return tenantScopeContainsV1(context, membership) || tenantScopeContainsV1(membership, context);
-}
-
-function scopeSpecificity(scope: TenantScopeV1): number {
-  if (scope.scopeType === 'project') return 3;
-  if (scope.scopeType === 'workspace') return 2;
-  return 1;
 }
 
 function cloneMemberships(source: readonly IamMembershipRecordV1[]): IamMembershipRecordV1[] {
@@ -41,18 +36,7 @@ export class InMemoryIamRepositoryAdapter implements IamRepositoryPortV1 {
     principalId: StableIdentifierV1,
   ): Promise<IamMembershipRecordV1 | undefined> {
     await Promise.resolve();
-    return this.memberships
-      .filter(
-        (membership) =>
-          membership.principalId === principalId &&
-          membership.status === 'ACTIVE' &&
-          tenantScopeContainsV1(membership.scope, context.tenantScope),
-      )
-      .sort(
-        (left, right) =>
-          scopeSpecificity(right.scope) - scopeSpecificity(left.scope) ||
-          left.id.localeCompare(right.id),
-      )[0];
+    return selectAuthoritativeMembership(this.memberships, context, principalId);
   }
 
   async listMemberships(context: IamTenantContextV1): Promise<readonly IamMembershipRecordV1[]> {

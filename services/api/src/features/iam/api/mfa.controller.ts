@@ -26,7 +26,10 @@ export class MfaController {
   private async execute<TValue>(work: () => Promise<TValue>): Promise<TValue> {
     try {
       return await work();
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message === 'IAM_MFA_REVISION_CONFLICT') {
+        throw new MfaProblemError('IAM_MFA_REVISION_CONFLICT');
+      }
       throw new MfaProblemError('MFA_UNAVAILABLE');
     }
   }
