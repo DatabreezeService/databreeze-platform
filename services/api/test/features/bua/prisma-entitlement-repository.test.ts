@@ -175,6 +175,7 @@ function client(
   options: {
     readonly forceRevisionConflict?: boolean;
     readonly firstQueries?: Array<Readonly<Record<string, unknown>>>;
+    readonly transactionCalls?: { value: number };
   } = {},
 ): EntitlementDatabaseClientV1 {
   const planRows: Record<string, unknown>[] = [];
@@ -193,6 +194,7 @@ function client(
     async $transaction<TValue>(
       work: (transaction: EntitlementDatabaseClientV1) => Promise<TValue>,
     ): Promise<TValue> {
+      if (options.transactionCalls) options.transactionCalls.value += 1;
       return work(database as unknown as EntitlementDatabaseClientV1);
     },
   };
@@ -275,6 +277,18 @@ void test('[BUA-008, IAM-009] Prisma entitlement adapter round-trips project-sco
     workspaceId,
     projectId,
   });
+});
+
+void test('[BUA-008, BUA-011] direct usage persistence executes in one database transaction', async () => {
+  const transactionCalls = { value: 0 };
+  const repository = new PrismaEntitlementRepositoryAdapter(client({ transactionCalls }));
+
+  await repository.persistUsageState(context(workspaceId, 'transactional-usage'), {
+    entries: [],
+    reservations: [],
+  });
+
+  assert.equal(transactionCalls.value, 1);
 });
 
 void test('[BUA-012] Prisma entitlement adapter applies reservation status revisions and preserves idempotent settlement', async () => {

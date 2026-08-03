@@ -677,6 +677,8 @@ export class PrismaEntitlementRepositoryAdapter implements EntitlementRepository
   }
 
   public persistUsageState(context: IamTenantContextV1, state: UsageLedgerStateV1): Promise<void> {
-    return new PrismaEntitlementTransactionAdapter(this.client).persistUsageState(context, state);
+    return this.client.$transaction((transaction) =>
+      new PrismaEntitlementTransactionAdapter(transaction).persistUsageState(context, state),
+    );
   }
 }
