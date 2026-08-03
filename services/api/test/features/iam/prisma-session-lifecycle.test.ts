@@ -242,11 +242,14 @@ void test('[IAM-005] refresh cannot restart an expired inactivity window', async
 });
 
 void test('[IAM-005] revocation is idempotent and hides session principals afterward', async () => {
-  const { client } = createDatabase();
+  const { client, sessions } = createDatabase();
   const adapter = new PrismaSessionLifecycleAdapter(client);
   const session = await adapter.issue(principal, 'web');
   assert.equal(await adapter.revoke(session.sessionId), true);
+  const firstRevokedAt = sessions.get(session.sessionId)?.revokedAt?.getTime();
+  assert.equal(typeof firstRevokedAt, 'number');
   assert.equal(await adapter.revoke(session.sessionId), true);
+  assert.equal(sessions.get(session.sessionId)?.revokedAt?.getTime(), firstRevokedAt);
   assert.equal(await adapter.findPrincipal(session.sessionId), undefined);
   assert.equal(await adapter.findPrincipalByAccessToken(session.accessToken), undefined);
 });
