@@ -13,7 +13,7 @@ import type {
   DatasetProfileRepositoryPortV1,
   DatasetProfileTransactionPortV1,
 } from '../application/dataset-profile-repository.port.js';
-import { isPrismaUniqueConstraintViolationV1 } from './prisma-error.js';
+import { isPrismaUniqueConstraintViolationV1 } from '../../../platform/prisma-error.js';
 
 export interface DatasetProfileDatabaseRowV1 {
   readonly id: string;

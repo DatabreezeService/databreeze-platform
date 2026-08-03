@@ -13,6 +13,7 @@ import type {
   ArtifactLineageRepositoryPortV1,
   ArtifactLineageTransactionPortV1,
 } from '../application/artifact-lineage-repository.port.js';
+import { isPrismaUniqueConstraintViolationV1 } from '../../../platform/prisma-error.js';
 
 export interface ArtifactLineageDatabaseRowV1 {
   readonly id: string;
@@ -96,15 +97,6 @@ function visible(context: TenantScopeV1, row: ArtifactLineageDatabaseRowV1): boo
   return tenantScopeContainsV1(context, candidate) || tenantScopeContainsV1(candidate, context);
 }
 
-function isUniqueConstraintViolation(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    (error as { readonly code?: unknown }).code === 'P2002'
-  );
-}
-
 class PrismaArtifactLineageTransactionAdapter implements ArtifactLineageTransactionPortV1 {
   public constructor(private readonly client: ArtifactLineageDatabaseClientV1) {}
 
@@ -122,7 +114,7 @@ class PrismaArtifactLineageTransactionAdapter implements ArtifactLineageTransact
     try {
       await this.client.artifactLineageRecord.create({ data: domainToCreate(lineage) });
     } catch (error) {
-      if (isUniqueConstraintViolation(error))
+      if (isPrismaUniqueConstraintViolationV1(error))
         throw new Error('IAE_DERIVED_LINEAGE_CONFLICT', { cause: error });
       throw error;
     }

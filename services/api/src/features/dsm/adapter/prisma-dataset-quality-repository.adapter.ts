@@ -13,7 +13,7 @@ import type {
   DatasetQualityRepositoryPortV1,
   DatasetQualityTransactionPortV1,
 } from '../application/dataset-quality-repository.port.js';
-import { isPrismaUniqueConstraintViolationV1 } from './prisma-error.js';
+import { isPrismaUniqueConstraintViolationV1 } from '../../../platform/prisma-error.js';
 
 export interface DatasetQualityDatabaseRowV1 {
   readonly id: string;
