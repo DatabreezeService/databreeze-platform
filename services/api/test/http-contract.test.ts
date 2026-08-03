@@ -462,6 +462,13 @@ void test('refresh rotates Web cookies without returning the refresh token and p
 
 void test('sign-out revokes idempotently and clears browser credentials', async () => {
   const revoked: string[] = [];
+  const signOutPrincipal = {
+    userId: '00000000-0000-4000-8000-000000000001',
+    organizationId: '00000000-0000-4000-8000-000000000002',
+    workspaceId: '00000000-0000-4000-8000-000000000003',
+    securityEpoch: 1,
+    mfaRequired: false,
+  };
   await withApp(
     {
       sessions: {
@@ -471,7 +478,17 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
           revoked.push(String(sessionId));
           return Promise.resolve(false);
         },
-        findPrincipal: () => Promise.resolve(undefined),
+        findPrincipal: (sessionId) =>
+          Promise.resolve(
+            sessionId === '00000000-0000-4000-8000-000000000099'
+              ? {
+                  ...signOutPrincipal,
+                  userId: '00000000-0000-4000-8000-000000000099',
+                }
+              : signOutPrincipal,
+          ),
+        findPrincipalByAccessToken: (token) =>
+          Promise.resolve(token === 'sign-out-access-token' ? signOutPrincipal : undefined),
       },
     },
     async (app) => {
@@ -482,6 +499,7 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
           cookie: `databreeze_refresh=current-refresh-token; databreeze_csrf=${csrfToken}`,
           'x-csrf-token': csrfToken,
           origin: 'http://localhost:3000',
+          authorization: 'Bearer sign-out-access-token',
         },
         payload: {
           clientPlatform: 'web',
@@ -501,6 +519,7 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
       const native = await app.inject({
         method: 'POST',
         url: '/v1/auth/sign-out',
+        headers: { authorization: 'Bearer sign-out-access-token' },
         payload: {
           clientPlatform: 'android',
           sessionId: '00000000-0000-4000-8000-000000000011',
@@ -512,6 +531,17 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
         '00000000-0000-4000-8000-000000000010',
         '00000000-0000-4000-8000-000000000011',
       ]);
+
+      const crossUser = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/sign-out',
+        headers: { authorization: 'Bearer sign-out-access-token' },
+        payload: {
+          clientPlatform: 'android',
+          sessionId: '00000000-0000-4000-8000-000000000099',
+        },
+      });
+      assertProblem(crossUser, 401, 'SESSION_INVALID');
     },
   );
 
@@ -521,13 +551,16 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
         issue: () => Promise.reject(new Error('not used')),
         refresh: () => Promise.reject(new Error('not used')),
         revoke: () => Promise.reject(new Error('database unavailable')),
-        findPrincipal: () => Promise.resolve(undefined),
+        findPrincipal: () => Promise.resolve(signOutPrincipal),
+        findPrincipalByAccessToken: (token) =>
+          Promise.resolve(token === 'sign-out-access-token' ? signOutPrincipal : undefined),
       },
     },
     async (app) => {
       const response = await app.inject({
         method: 'POST',
         url: '/v1/auth/sign-out',
+        headers: { authorization: 'Bearer sign-out-access-token' },
         payload: {
           clientPlatform: 'android',
           sessionId: '00000000-0000-4000-8000-000000000011',

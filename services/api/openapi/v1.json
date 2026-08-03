@@ -418,6 +418,7 @@
             }
           }
         },
+        "security": [{ "bearer": [] }],
         "summary": "Read the redacted authenticated session identity",
         "tags": ["auth"]
       }
@@ -710,6 +711,7 @@
             }
           }
         },
+        "security": [{ "bearer": [] }],
         "summary": "Revoke a session and clear browser credentials",
         "tags": ["auth"]
       }
