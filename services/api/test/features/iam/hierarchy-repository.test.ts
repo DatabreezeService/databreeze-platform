@@ -148,6 +148,16 @@ void test('[IAM-019] hierarchy writes reject missing parents, sibling scopes, an
     ),
     /IAM_HIERARCHY_CONFLICT/u,
   );
+  const equivalentWorkspace = workspace(ids.otherWorkspace, ids.organization, 'Finance');
+  await repository.saveWorkspace(organizationContext, {
+    name: equivalentWorkspace.name,
+    id: equivalentWorkspace.id,
+    organizationId: equivalentWorkspace.organizationId,
+    schemaVersion: equivalentWorkspace.schemaVersion,
+    status: equivalentWorkspace.status,
+    authorizationEpoch: equivalentWorkspace.authorizationEpoch,
+    createdAt: equivalentWorkspace.createdAt,
+  });
 });
 
 void test('[IAM-001] hierarchy transaction rolls back all staged writes', async () => {
@@ -172,6 +182,10 @@ void test('[IAM-001] hierarchy transaction rolls back all staged writes', async 
   );
   assert.equal(
     await repository.findOrganization(transactionContext, stable(ids.organization)),
+    undefined,
+  );
+  assert.equal(
+    await repository.findWorkspace(transactionContext, stable(ids.workspace)),
     undefined,
   );
 });

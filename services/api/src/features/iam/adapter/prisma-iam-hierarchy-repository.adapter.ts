@@ -326,9 +326,7 @@ class PrismaIamHierarchyTransactionAdapter implements IamHierarchyTransactionPor
       where: { organizationId },
       orderBy: { id: 'asc' },
     });
-    return rows
-      .map((row) => workspaceFromRowWithDiagnostics(row, this.diagnostics))
-      .filter((workspace) => workspace.organizationId === organizationId);
+    return rows.map((row) => workspaceFromRowWithDiagnostics(row, this.diagnostics));
   }
 
   public async findProject(
@@ -348,14 +346,15 @@ class PrismaIamHierarchyTransactionAdapter implements IamHierarchyTransactionPor
     workspaceId: StableIdentifierV1,
   ): Promise<readonly ProjectIdentityV1[]> {
     const rows = await this.client.projectIdentity.findMany({
-      where: { workspaceId },
+      where: { organizationId: context.tenantScope.organizationId, workspaceId },
       orderBy: { id: 'asc' },
     });
     return rows
-      .map((row) => projectFromRowWithDiagnostics(row, this.diagnostics))
-      .filter((project) =>
-        projectVisible(context, project.organizationId, project.workspaceId, project.id),
-      );
+      .filter(
+        (row) =>
+          context.tenantScope.scopeType !== 'project' || row.id === context.tenantScope.projectId,
+      )
+      .map((row) => projectFromRowWithDiagnostics(row, this.diagnostics));
   }
 
   public async saveOrganization(
