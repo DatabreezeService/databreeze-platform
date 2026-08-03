@@ -79,6 +79,12 @@ interface MfaRecoveryCodeDelegateV1 {
 export interface MfaDatabaseClientV1 {
   readonly mfaFactor: MfaFactorDelegateV1;
   readonly mfaRecoveryCode: MfaRecoveryCodeDelegateV1;
+  readonly userIdentity?: {
+    updateMany(input: {
+      readonly where: Readonly<Record<string, unknown>>;
+      readonly data: Readonly<Record<string, unknown>>;
+    }): Promise<{ readonly count: number }>;
+  };
   $transaction<TValue>(
     work: (transaction: MfaDatabaseClientV1) => Promise<TValue>,
   ): Promise<TValue>;
@@ -285,6 +291,15 @@ class PrismaMfaTransactionAdapter implements MfaTransactionPortV1 {
       });
       if (updated.count !== 1) throw new Error('IAM_MFA_REVISION_CONFLICT');
     }
+  }
+
+  public async clearRecoveryReenrollment(userId: string): Promise<boolean> {
+    if (!this.client.userIdentity) return false;
+    const updated = await this.client.userIdentity.updateMany({
+      where: { id: userId, mfaReenrollmentRequired: true },
+      data: { mfaReenrollmentRequired: false },
+    });
+    return updated.count === 1;
   }
 }
 

@@ -10,6 +10,8 @@ export interface AuthenticatedPrincipalV1 {
   readonly workspaceId: string;
   readonly securityEpoch: number;
   readonly mfaRequired: boolean;
+  /** Recovery keeps this gate live until a new factor is verified. */
+  readonly mfaReenrollmentRequired?: boolean;
 }
 
 export interface CredentialLookupPortV1 {

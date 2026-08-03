@@ -41,7 +41,7 @@ const ids = {
   changedDecisionId: stable(changedDecisionId),
 };
 
-function context(key: string) {
+function context(key: string, options: { readonly mfaReenrollmentRequired?: boolean } = {}) {
   const result = createIamTenantContextV1({
     tenantScope: {
       scopeType: 'workspace',
@@ -52,11 +52,38 @@ function context(key: string) {
     correlationId: ids.correlationId,
     idempotencyKey: key,
     authorizationEpoch: 1,
+    ...options,
   });
   assert.equal(result.accepted, true);
   if (!result.accepted) throw new Error('invalid context');
   return result.value;
 }
+
+void test('[IAM-015, JRA-011] recovery-forced MFA re-enrollment blocks privileged approval decisions', async () => {
+  const service = new ApprovalService(new InMemoryApprovalRepositoryAdapter());
+  assert.equal(
+    (await service.publishPolicy(context('policy-gated'), policyInput())).accepted,
+    true,
+  );
+  assert.equal(
+    (await service.openRequest(context('request-gated'), requestInput())).accepted,
+    true,
+  );
+
+  assert.deepEqual(
+    await service.decide(context('decision-gated', { mfaReenrollmentRequired: true }), {
+      requestId: ids.requestId,
+      decisionId: ids.decisionId,
+      actorId: ids.approverId,
+      decision: 'APPROVE',
+      subjectHash,
+      mfaAssertionId: '00000000-0000-4000-8000-000000000023',
+      decidedAt: '2026-01-01T00:01:00.000Z',
+      actorRole: 'ADMIN',
+    }),
+    { accepted: false, code: 'MFA_REENROLLMENT_REQUIRED' },
+  );
+});
 
 function policyInput() {
   return {

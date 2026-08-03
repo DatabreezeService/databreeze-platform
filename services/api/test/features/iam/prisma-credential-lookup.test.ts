@@ -108,6 +108,26 @@ void test('[IAM-001, IAM-009] lookup fails closed when persisted tenancy is inac
   assert.equal(await malformed.findCredential('user@example.com'), undefined);
 });
 
+void test('[IAM-015] credential lookup carries the live MFA re-enrollment gate when recovery set it', async () => {
+  const adapter = new PrismaCredentialLookupAdapter(
+    database({
+      userIdentity: {
+        findUnique: async () => ({
+          id: userId,
+          email: 'user@example.com',
+          status: 'ACTIVE',
+          securityEpoch: 4,
+          mfaReenrollmentRequired: true,
+        }),
+      },
+    }),
+  );
+  assert.equal(
+    (await adapter.findCredential('user@example.com'))?.principal.mfaReenrollmentRequired,
+    true,
+  );
+});
+
 void test('[IAM-001, IAM-002] lookup does not authenticate users without an active workspace membership', async () => {
   const adapter = new PrismaCredentialLookupAdapter(
     database({

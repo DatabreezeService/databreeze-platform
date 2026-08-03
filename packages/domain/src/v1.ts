@@ -27,6 +27,7 @@ export * from './evidence-grant/v1.js';
 export * from './identity/v1.js';
 export * from './entitlements/v1.js';
 export * from './mfa/v1.js';
+export * from './invitation/v1.js';
 export * from './device-authorization/v1.js';
 export * from './device-sync/v1.js';
 export * from './device-capability/v1.js';

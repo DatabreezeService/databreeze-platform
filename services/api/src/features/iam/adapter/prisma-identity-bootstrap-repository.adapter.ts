@@ -265,7 +265,9 @@ function bootstrapFromRows(
   });
 }
 
-class PrismaIdentityBootstrapTransactionAdapter implements IdentityBootstrapTransactionPortV1 {
+export class PrismaIdentityBootstrapTransactionAdapter
+  implements IdentityBootstrapTransactionPortV1
+{
   public constructor(private readonly client: IdentityBootstrapDatabaseClientV1) {}
 
   public async findByUserId(

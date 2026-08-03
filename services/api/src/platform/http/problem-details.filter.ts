@@ -12,6 +12,9 @@ import { SessionProblemError } from '../../features/iam/application/session-prob
 import { MfaProblemError } from '../../features/iam/application/mfa-problem.error.js';
 import { EntitlementProblemError } from '../../features/bua/application/entitlement-problem.error.js';
 import { DeviceIdentityProblemError } from '../../features/iam/application/device-identity-problem.error.js';
+import { InvitationProblemError } from '../../features/iam/application/invitation-problem.error.js';
+import { RegistrationProblemError } from '../../features/iam/application/registration-problem.error.js';
+import { RecoveryProblemError } from '../../features/iam/application/recovery-problem.error.js';
 import { AuditProblemError } from '../../features/aud/application/audit-problem.error.js';
 import { ArtifactExportProblemError } from '../../features/iae/application/artifact-export-problem.error.js';
 import { RequestTenantContextProblemError } from './request-tenant-context.port.js';
@@ -104,6 +107,52 @@ function describe(error: unknown, correlationId: string): ProblemInput {
       messageKey: `api.error.${error.code.toLowerCase()}`,
       retryable: error.code === 'DEVICE_UNAVAILABLE',
       status,
+    };
+  }
+  if (error instanceof InvitationProblemError) {
+    const status =
+      error.code === 'INVITATION_UNAVAILABLE' || error.code === 'INVITATION_DELIVERY_UNAVAILABLE'
+        ? HttpStatus.SERVICE_UNAVAILABLE
+        : error.code === 'INVITATION_SCOPE_DENIED'
+          ? HttpStatus.FORBIDDEN
+          : error.code === 'INVITATION_NOT_FOUND'
+            ? HttpStatus.NOT_FOUND
+            : error.code === 'INVITATION_CONFLICT'
+              ? HttpStatus.CONFLICT
+              : HttpStatus.BAD_REQUEST;
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: `api.error.${error.code.toLowerCase()}`,
+      retryable:
+        error.code === 'INVITATION_UNAVAILABLE' || error.code === 'INVITATION_DELIVERY_UNAVAILABLE',
+      status,
+    };
+  }
+  if (error instanceof RegistrationProblemError) {
+    const unavailable = error.code === 'REGISTRATION_UNAVAILABLE';
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: unavailable
+        ? 'api.error.registration_unavailable'
+        : 'api.error.registration_request_rejected',
+      retryable: unavailable,
+      status: unavailable ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.BAD_REQUEST,
+    };
+  }
+  if (error instanceof RecoveryProblemError) {
+    const unavailable = error.code === 'RECOVERY_UNAVAILABLE';
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: unavailable
+        ? 'api.error.recovery_unavailable'
+        : error.code === 'RECOVERY_TOKEN_INVALID'
+          ? 'api.error.recovery_token_invalid'
+          : 'api.error.recovery_request_rejected',
+      retryable: unavailable,
+      status: unavailable ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.BAD_REQUEST,
     };
   }
   if (error instanceof AuditProblemError) {

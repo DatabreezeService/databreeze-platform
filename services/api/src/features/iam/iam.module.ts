@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { type DynamicModule, Module } from '@nestjs/common';
 
 import { AuthenticationController } from './api/authentication.controller.js';
@@ -45,6 +45,21 @@ import {
 } from './application/hierarchy-repository.port.js';
 import { IAM_HIERARCHY_SERVICE, IamHierarchyService } from './application/hierarchy.service.js';
 import { IAM_MEMBERSHIP_SERVICE, IamMembershipService } from './application/membership.service.js';
+import {
+  IAM_INVITATION_SERVICE,
+  IAM_PRINCIPAL_EMAIL_LOOKUP_PORT,
+  IamInvitationService,
+  type IamInvitationClockV1,
+  type IamInvitationDeliveryPortV1,
+  type IamInvitationDigestPortV1,
+  type IamInvitationIdGeneratorV1,
+  type IamPrincipalEmailLookupPortV1,
+  type IamInvitationTokenGeneratorV1,
+} from './application/invitation.service.js';
+import {
+  IAM_INVITATION_REPOSITORY_PORT,
+  type IamInvitationRepositoryPortV1,
+} from './application/invitation-repository.port.js';
 import type { PasswordCredentialService } from './application/password-credential.service.js';
 import { UnavailableAuthenticationAdapter } from './adapter/unavailable-authentication.adapter.js';
 import {
@@ -67,12 +82,75 @@ import {
   PrismaIamRepositoryAdapter,
   type IamDatabaseClientV1,
 } from './adapter/prisma-iam-repository.adapter.js';
+import {
+  PrismaIamInvitationRepositoryAdapter,
+  type IamInvitationDatabaseClientV1,
+} from './adapter/prisma-iam-invitation-repository.adapter.js';
+import {
+  HmacSha256IamInvitationDigestAdapter,
+  randomIamInvitationIdV1,
+  randomIamInvitationTokenV1,
+  type IamInvitationDigestKeyV1,
+} from './adapter/iam-invitation-crypto.adapter.js';
+import {
+  PrismaIamPrincipalEmailLookupAdapter,
+  type IamPrincipalEmailDatabaseClientV1,
+} from './adapter/prisma-principal-email-lookup.adapter.js';
+import {
+  PrismaRegistrationRepositoryAdapter,
+  type RegistrationDatabaseClientV1,
+} from './adapter/prisma-registration-repository.adapter.js';
+import {
+  IAM_REGISTRATION_REPOSITORY_PORT,
+  type RegistrationRepositoryPortV1,
+} from './application/registration-repository.port.js';
+import {
+  IAM_REGISTRATION_SERVICE,
+  RegistrationService,
+  type RegistrationClockV1,
+  type RegistrationIdGeneratorV1,
+} from './application/registration.service.js';
+import {
+  IAM_RECOVERY_SERVICE,
+  RecoveryService,
+  type RecoveryClockV1,
+  type RecoveryIdGeneratorV1,
+  type RecoveryTokenGeneratorV1,
+} from './application/recovery.service.js';
+import {
+  IAM_RECOVERY_REPOSITORY_PORT,
+  IAM_RECOVERY_ADMISSION_PORT,
+  IAM_RECOVERY_COMPLETION_ADMISSION_PORT,
+  type RecoveryAdmissionPortV1,
+  type RecoveryDigestPortV1,
+  type RecoveryDeliveryPortV1,
+  type RecoveryRepositoryPortV1,
+} from './application/recovery-repository.port.js';
+import {
+  HmacSha256IamRecoveryDigestAdapter,
+  randomIamRecoveryIdV1,
+  randomIamRecoveryTokenV1,
+  type IamRecoveryDigestKeyV1,
+} from './adapter/iam-recovery-crypto.adapter.js';
+import { InMemoryRecoveryAdmissionAdapter } from './adapter/in-memory-recovery-admission.adapter.js';
+import {
+  RedisRecoveryAdmissionAdapter,
+  type RecoveryAdmissionCounterPortV1,
+  type RedisRecoveryAdmissionOptionsV1,
+} from './adapter/redis-recovery-admission.adapter.js';
+import {
+  PrismaRecoveryRepositoryAdapter,
+  type RecoveryDatabaseClientV1,
+} from './adapter/prisma-recovery-repository.adapter.js';
 import { InMemoryIamHierarchyRepositoryAdapter } from './adapter/in-memory-iam-hierarchy-repository.adapter.js';
 import {
   PrismaIamHierarchyRepositoryAdapter,
   type IamHierarchyDatabaseClientV1,
 } from './adapter/prisma-iam-hierarchy-repository.adapter.js';
 import { DeviceIdentityController } from './api/device-identity.controller.js';
+import { IamInvitationController } from './api/invitation.controller.js';
+import { RegistrationController } from './api/registration.controller.js';
+import { RecoveryController } from './api/recovery.controller.js';
 import { InMemoryDeviceIdentityRepositoryAdapter } from './adapter/in-memory-device-identity-repository.adapter.js';
 import {
   PrismaDeviceIdentityRepositoryAdapter,
@@ -118,6 +196,37 @@ export interface IamModuleOptions {
   readonly hierarchyDatabase?: IamHierarchyDatabaseClientV1;
   readonly hierarchyService?: IamHierarchyService;
   readonly membershipService?: IamMembershipService;
+  readonly invitationRepository?: IamInvitationRepositoryPortV1;
+  readonly invitationDatabase?: IamInvitationDatabaseClientV1;
+  readonly invitationService?: IamInvitationService;
+  readonly invitationPrincipalEmails?: IamPrincipalEmailLookupPortV1;
+  readonly invitationPrincipalEmailDatabase?: IamPrincipalEmailDatabaseClientV1;
+  readonly invitationDelivery?: IamInvitationDeliveryPortV1;
+  readonly invitationDigest?: IamInvitationDigestPortV1;
+  readonly invitationDigestKey?: IamInvitationDigestKeyV1;
+  readonly invitationIdGenerator?: IamInvitationIdGeneratorV1;
+  readonly invitationTokenGenerator?: IamInvitationTokenGeneratorV1;
+  readonly invitationClock?: IamInvitationClockV1;
+  readonly registrationRepository?: RegistrationRepositoryPortV1;
+  readonly registrationDatabase?: RegistrationDatabaseClientV1;
+  readonly registrationService?: RegistrationService;
+  readonly registrationIdGenerator?: RegistrationIdGeneratorV1;
+  readonly registrationClock?: RegistrationClockV1;
+  readonly recoveryRepository?: RecoveryRepositoryPortV1;
+  readonly recoveryDatabase?: RecoveryDatabaseClientV1;
+  readonly recoveryService?: RecoveryService;
+  readonly recoveryDelivery?: RecoveryDeliveryPortV1;
+  readonly recoveryDigest?: RecoveryDigestPortV1;
+  readonly recoveryDigestKey?: IamRecoveryDigestKeyV1;
+  readonly recoveryIdGenerator?: RecoveryIdGeneratorV1;
+  readonly recoveryTokenGenerator?: RecoveryTokenGeneratorV1;
+  readonly recoveryClock?: RecoveryClockV1;
+  readonly recoveryAdmission?: RecoveryAdmissionPortV1;
+  readonly recoveryAdmissionCounter?: RecoveryAdmissionCounterPortV1;
+  readonly recoveryAdmissionOptions?: RedisRecoveryAdmissionOptionsV1;
+  readonly recoveryCompletionAdmission?: RecoveryAdmissionPortV1;
+  readonly recoveryCompletionAdmissionCounter?: RecoveryAdmissionCounterPortV1;
+  readonly recoveryCompletionAdmissionOptions?: RedisRecoveryAdmissionOptionsV1;
   readonly deviceIdentityService?: DeviceIdentityService;
   readonly deviceIdentityRepository?: DeviceIdentityRepositoryPortV1;
   readonly deviceIdentityDatabase?: DeviceIdentityDatabaseClientV1;
@@ -204,6 +313,96 @@ export class IamModule {
     const membershipService =
       options.membershipService ??
       (iamRepository === undefined ? undefined : new IamMembershipService(iamRepository));
+    const invitationRepository =
+      options.invitationRepository ??
+      (options.invitationDatabase === undefined
+        ? undefined
+        : new PrismaIamInvitationRepositoryAdapter(options.invitationDatabase));
+    const invitationDigest =
+      options.invitationDigest ??
+      (options.invitationDigestKey === undefined
+        ? undefined
+        : new HmacSha256IamInvitationDigestAdapter(options.invitationDigestKey));
+    const invitationPrincipalEmails =
+      options.invitationPrincipalEmails ??
+      (options.invitationPrincipalEmailDatabase === undefined
+        ? undefined
+        : new PrismaIamPrincipalEmailLookupAdapter(options.invitationPrincipalEmailDatabase));
+    const invitationService =
+      options.invitationService ??
+      (invitationRepository &&
+      invitationPrincipalEmails &&
+      options.invitationDelivery &&
+      invitationDigest
+        ? new IamInvitationService(
+            invitationRepository,
+            invitationPrincipalEmails,
+            options.invitationIdGenerator ?? randomIamInvitationIdV1,
+            options.invitationTokenGenerator ?? randomIamInvitationTokenV1,
+            invitationDigest,
+            options.invitationDelivery,
+            options.invitationClock,
+          )
+        : undefined);
+    const registrationRepository =
+      options.registrationRepository ??
+      (options.registrationDatabase === undefined
+        ? undefined
+        : new PrismaRegistrationRepositoryAdapter(options.registrationDatabase));
+    const registrationService =
+      options.registrationService ??
+      (registrationRepository && options.passwordCredentials
+        ? new RegistrationService({
+            repository: registrationRepository,
+            passwordCredentials: options.passwordCredentials,
+            ids: options.registrationIdGenerator ?? { next: () => randomUUID() },
+            ...(options.registrationClock ? { clock: options.registrationClock } : {}),
+          })
+        : undefined);
+    const recoveryRepository =
+      options.recoveryRepository ??
+      (options.recoveryDatabase === undefined
+        ? undefined
+        : new PrismaRecoveryRepositoryAdapter(options.recoveryDatabase));
+    const recoveryDigest =
+      options.recoveryDigest ??
+      (options.recoveryDigestKey === undefined
+        ? undefined
+        : new HmacSha256IamRecoveryDigestAdapter(options.recoveryDigestKey));
+    const recoveryAdmission =
+      options.recoveryAdmission ??
+      (options.recoveryAdmissionCounter === undefined
+        ? new InMemoryRecoveryAdmissionAdapter()
+        : new RedisRecoveryAdmissionAdapter(
+            options.recoveryAdmissionCounter,
+            options.recoveryAdmissionOptions,
+          ));
+    const recoveryCompletionAdmission =
+      options.recoveryCompletionAdmission ??
+      (options.recoveryCompletionAdmissionCounter === undefined
+        ? new InMemoryRecoveryAdmissionAdapter()
+        : new RedisRecoveryAdmissionAdapter(options.recoveryCompletionAdmissionCounter, {
+            keyPrefix: 'databreeze:iam:recovery:completion:v1:',
+            ...options.recoveryCompletionAdmissionOptions,
+          }));
+    const recoveryService =
+      options.recoveryService ??
+      (recoveryRepository &&
+      options.passwordCredentials &&
+      options.recoveryDelivery &&
+      recoveryDigest
+        ? new RecoveryService({
+            repository: recoveryRepository,
+            passwordCredentials: options.passwordCredentials,
+            digest: recoveryDigest,
+            delivery: options.recoveryDelivery,
+            ids: options.recoveryIdGenerator ?? randomIamRecoveryIdV1,
+            tokens: options.recoveryTokenGenerator ?? randomIamRecoveryTokenV1,
+            admission: recoveryAdmission,
+            completionAdmission: recoveryCompletionAdmission,
+            ...(options.recoveryClock ? { clock: options.recoveryClock } : {}),
+          })
+        : undefined);
     const authentication =
       options.authentication ??
       (credentials && sessions
@@ -234,6 +433,15 @@ export class IamModule {
     if (mfaService) exports.unshift(MFA_SERVICE);
     if (iamRepository) exports.unshift(IAM_REPOSITORY_PORT);
     if (membershipService) exports.unshift(IAM_MEMBERSHIP_SERVICE);
+    if (invitationRepository) exports.unshift(IAM_INVITATION_REPOSITORY_PORT);
+    if (invitationService) exports.unshift(IAM_INVITATION_SERVICE);
+    if (invitationPrincipalEmails) exports.unshift(IAM_PRINCIPAL_EMAIL_LOOKUP_PORT);
+    if (registrationRepository) exports.unshift(IAM_REGISTRATION_REPOSITORY_PORT);
+    if (registrationService) exports.unshift(IAM_REGISTRATION_SERVICE);
+    if (recoveryRepository) exports.unshift(IAM_RECOVERY_REPOSITORY_PORT);
+    if (recoveryService) exports.unshift(IAM_RECOVERY_ADMISSION_PORT);
+    if (recoveryService) exports.unshift(IAM_RECOVERY_COMPLETION_ADMISSION_PORT);
+    if (recoveryService) exports.unshift(IAM_RECOVERY_SERVICE);
     return {
       module: IamModule,
       controllers: [
@@ -242,6 +450,9 @@ export class IamModule {
         MfaController,
         IamHierarchyController,
         IamMembershipController,
+        IamInvitationController,
+        RegistrationController,
+        RecoveryController,
         IamBootstrapController,
       ],
       providers: [
@@ -318,6 +529,70 @@ export class IamModule {
               {
                 provide: IAM_MEMBERSHIP_SERVICE,
                 useValue: membershipService,
+              },
+            ]
+          : []),
+        ...(invitationRepository
+          ? [
+              {
+                provide: IAM_INVITATION_REPOSITORY_PORT,
+                useValue: invitationRepository,
+              },
+            ]
+          : []),
+        ...(invitationService
+          ? [
+              {
+                provide: IAM_INVITATION_SERVICE,
+                useValue: invitationService,
+              },
+            ]
+          : []),
+        ...(invitationPrincipalEmails
+          ? [
+              {
+                provide: IAM_PRINCIPAL_EMAIL_LOOKUP_PORT,
+                useValue: invitationPrincipalEmails,
+              },
+            ]
+          : []),
+        ...(registrationRepository
+          ? [
+              {
+                provide: IAM_REGISTRATION_REPOSITORY_PORT,
+                useValue: registrationRepository,
+              },
+            ]
+          : []),
+        ...(registrationService
+          ? [
+              {
+                provide: IAM_REGISTRATION_SERVICE,
+                useValue: registrationService,
+              },
+            ]
+          : []),
+        ...(recoveryRepository
+          ? [
+              {
+                provide: IAM_RECOVERY_REPOSITORY_PORT,
+                useValue: recoveryRepository,
+              },
+            ]
+          : []),
+        ...(recoveryService
+          ? [
+              {
+                provide: IAM_RECOVERY_SERVICE,
+                useValue: recoveryService,
+              },
+              {
+                provide: IAM_RECOVERY_ADMISSION_PORT,
+                useValue: recoveryAdmission,
+              },
+              {
+                provide: IAM_RECOVERY_COMPLETION_ADMISSION_PORT,
+                useValue: recoveryCompletionAdmission,
               },
             ]
           : []),

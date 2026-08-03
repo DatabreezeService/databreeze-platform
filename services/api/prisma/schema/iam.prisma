@@ -7,6 +7,7 @@ model UserIdentity {
   locale         String   @default("vi-VN") @db.VarChar(16)
   status         String   @default("ACTIVE") @db.VarChar(24)
   securityEpoch  Int      @default(1) @map("security_epoch")
+  mfaReenrollmentRequired Boolean @default(false) @map("mfa_reenrollment_required")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -88,6 +89,53 @@ model MembershipIdentity {
   @@index([principalId, status], map: "memberships_principal_status_idx")
   @@index([organizationId, workspaceId, projectId], map: "memberships_scope_idx")
   @@map("memberships")
+  @@schema("iam")
+}
+
+/// IAM-010: raw invitation bearer values are never persisted; only keyed digests are stored.
+model InvitationTokenRecord {
+  id             String    @id @db.Uuid
+  membershipId   String    @map("membership_id") @db.Uuid
+  principalId    String    @map("principal_id") @db.Uuid
+  scopeType      String    @map("scope_type") @db.VarChar(24)
+  organizationId String    @map("organization_id") @db.Uuid
+  workspaceId    String?   @map("workspace_id") @db.Uuid
+  projectId      String?   @map("project_id") @db.Uuid
+  roleId         String    @map("role_id") @db.VarChar(32)
+  tokenDigest    String    @unique(map: "invitation_tokens_token_digest_key") @map("token_digest") @db.Char(64)
+  emailDigest    String    @map("email_digest") @db.Char(64)
+  issuedAt       DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt      DateTime  @map("expires_at") @db.Timestamptz(6)
+  status         String    @default("ACTIVE") @db.VarChar(16)
+  consumedAt     DateTime? @map("consumed_at") @db.Timestamptz(6)
+  revision       Int       @default(1)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([membershipId, status], map: "invitation_tokens_membership_status_idx")
+  @@index([organizationId, scopeType, workspaceId, projectId], map: "invitation_tokens_scope_idx")
+  @@map("invitation_tokens")
+  @@schema("iam")
+}
+
+/// IAM-015: recovery bearers are short-lived, email-bound, and hashed at rest.
+model RecoveryChallengeRecord {
+  id           String    @id @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  tokenDigest  String    @unique(map: "recovery_challenges_token_digest_key") @map("token_digest") @db.Char(64)
+  emailDigest  String    @map("email_digest") @db.Char(64)
+  issuedAt     DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(6)
+  status       String    @default("ACTIVE") @db.VarChar(16)
+  consumedAt   DateTime? @map("consumed_at") @db.Timestamptz(6)
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revision     Int       @default(1)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([userId, status], map: "recovery_challenges_user_status_idx")
+  @@index([expiresAt, status], map: "recovery_challenges_expiry_status_idx")
+  @@map("recovery_challenges")
   @@schema("iam")
 }
 

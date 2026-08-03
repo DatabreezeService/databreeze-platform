@@ -28,7 +28,25 @@ function createDatabase(): {
 } {
   const factors = new Map<string, MfaFactorDatabaseRowV1>();
   const recoveryCodes = new Map<string, MfaRecoveryCodeDatabaseRowV1>();
+  const users = new Map<string, { mfaReenrollmentRequired: boolean }>([
+    [userId, { mfaReenrollmentRequired: true }],
+  ]);
   const client = {
+    userIdentity: {
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        readonly where: Readonly<Record<string, unknown>>;
+        readonly data: Readonly<Record<string, unknown>>;
+      }) => {
+        const user = users.get(String(where['id']));
+        if (!user || user.mfaReenrollmentRequired !== where['mfaReenrollmentRequired'])
+          return { count: 0 };
+        user.mfaReenrollmentRequired = Boolean(data['mfaReenrollmentRequired']);
+        return { count: 1 };
+      },
+    },
     mfaFactor: {
       findMany: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) =>
         [...factors.values()].filter((row) =>
@@ -156,6 +174,14 @@ void test('[IAM-012, IAM-014] Prisma MFA persistence round-trips opaque factors 
   assert.equal(factors.size, 1);
   assert.equal(recoveryCodes.size, 1);
   assert.deepEqual(await adapter.findState(factor.userId), input);
+});
+
+void test('[IAM-015] Prisma MFA transaction clears the recovery re-enrollment gate by compare-and-set', async () => {
+  const { client } = createDatabase();
+  const adapter = new PrismaMfaRepositoryAdapter(client);
+  const transaction = await adapter.withTransaction(async (current) => current);
+  assert.equal(await transaction.clearRecoveryReenrollment?.(userId as never), true);
+  assert.equal(await transaction.clearRecoveryReenrollment?.(userId as never), false);
 });
 
 void test('[IAM-012, IAM-014] status transitions persist by revision while immutable secrets and digests remain fixed', async () => {

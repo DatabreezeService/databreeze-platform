@@ -22,4 +22,9 @@ export class CurrentSessionDto {
   @ApiProperty()
   @IsBoolean()
   mfaRequired!: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsBoolean()
+  mfaReenrollmentRequired?: boolean;
 }
