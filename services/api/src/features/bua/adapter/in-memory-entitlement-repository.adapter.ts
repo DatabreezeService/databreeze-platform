@@ -140,6 +140,12 @@ export class InMemoryEntitlementRepositoryAdapter implements EntitlementReposito
 
   async persistUsageState(context: IamTenantContextV1, state: UsageLedgerStateV1): Promise<void> {
     await Promise.resolve();
+    if (
+      new Set(state.entries.map((entry) => entry.entryId)).size !== state.entries.length ||
+      new Set(state.reservations.map((reservation) => reservation.reservationId)).size !==
+        state.reservations.length
+    )
+      throw new Error('BUA_USAGE_STATE_CONFLICT');
     for (const entry of state.entries) {
       const existing = this.entries.get(entry.entryId);
       if (existing) {

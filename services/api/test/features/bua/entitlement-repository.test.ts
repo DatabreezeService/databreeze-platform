@@ -161,6 +161,23 @@ void test('[BUA-008, BUA-009, BUA-010, BUA-011] usage state persists append-only
     }),
     /BUA_IMMUTABLE_USAGE_ENTRY/,
   );
+  const persistedEntry = reserved.value.state.entries[0];
+  if (!persistedEntry) throw new Error('fixture entry missing');
+  await assert.rejects(
+    repository.persistUsageState(context(workspaceId), {
+      ...reserved.value.state,
+      entries: [persistedEntry, persistedEntry],
+    }),
+    /BUA_USAGE_STATE_CONFLICT/u,
+  );
+  if (!activeReservation) throw new Error('fixture reservation missing');
+  await assert.rejects(
+    repository.persistUsageState(context(workspaceId), {
+      ...reserved.value.state,
+      reservations: [activeReservation, activeReservation],
+    }),
+    /BUA_USAGE_STATE_CONFLICT/u,
+  );
   await assert.rejects(
     repository.withTransaction(context(workspaceId), async (transaction) => {
       const second = reserveUsageV1(storedSnapshot, reserved.value.state, {
