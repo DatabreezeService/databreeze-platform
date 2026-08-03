@@ -445,6 +445,13 @@ function sameReservationExceptStatus(left: UsageReservationV1, right: UsageReser
   return sameUsageReservationExceptStatusV1(left, right);
 }
 
+function validReservationTransition(
+  current: UsageReservationV1,
+  next: UsageReservationV1,
+): boolean {
+  return current.status === 'ACTIVE' && (next.status === 'FINALIZED' || next.status === 'RELEASED');
+}
+
 class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV1 {
   public constructor(private readonly client: EntitlementDatabaseClientV1) {}
 
@@ -587,7 +594,8 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
       if (sameUsageReservationV1(current, reservation)) continue;
       if (
         !sameReservationExceptStatus(current, reservation) ||
-        reservation.revision !== current.revision + 1
+        reservation.revision !== current.revision + 1 ||
+        !validReservationTransition(current, reservation)
       )
         throw new Error('BUA_RESERVATION_CONFLICT');
       if (!this.client.usageReservationRecord.updateMany) throw new Error('BUA_UPDATE_UNAVAILABLE');

@@ -77,6 +77,13 @@ function sameReservationExceptStatus(left: UsageReservationV1, right: UsageReser
   return sameUsageReservationExceptStatusV1(left, right);
 }
 
+function validReservationTransition(
+  current: UsageReservationV1,
+  next: UsageReservationV1,
+): boolean {
+  return current.status === 'ACTIVE' && (next.status === 'FINALIZED' || next.status === 'RELEASED');
+}
+
 /** In-memory adapter with append-only usage and immutable plan/snapshot semantics. */
 export class InMemoryEntitlementRepositoryAdapter implements EntitlementRepositoryPortV1 {
   private plans = new Map<string, EntitlementPlanV1>();
@@ -164,7 +171,8 @@ export class InMemoryEntitlementRepositoryAdapter implements EntitlementReposito
       if (sameUsageReservationV1(existing, reservation)) continue;
       if (
         existing.revision + 1 !== reservation.revision ||
-        !sameReservationExceptStatus(existing, reservation)
+        !sameReservationExceptStatus(existing, reservation) ||
+        !validReservationTransition(existing, reservation)
       )
         throw new Error('BUA_RESERVATION_CONFLICT');
       this.reservations.set(reservation.reservationId, cloneReservation(reservation));
