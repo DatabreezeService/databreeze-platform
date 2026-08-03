@@ -186,6 +186,19 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       'refreshToken'
     ];
     assert.equal(refreshToken?.['writeOnly'], undefined);
+    for (const [schemaName, propertyName, maxItems] of [
+      ['CreateArtifactExportDto', 'versionIds', 1024],
+      ['CreateGovernedDatasetDto', 'fields', 256],
+      ['CreateMappingDto', 'steps', 512],
+      ['CreateRuleSetDto', 'rules', 512],
+      ['RegisterDatasetVersionDto', 'inputArtifactVersionIds', 1024],
+      ['DatasetQualityFindingDto', 'evidenceIds', 128],
+      ['RegisterDatasetQualityResultDto', 'findings', 512],
+    ] as const) {
+      const schema = firstDocument.components?.schemas?.[schemaName] as Record<string, unknown>;
+      const property = (schema['properties'] as Record<string, Record<string, unknown>>)[propertyName];
+      assert.equal(property?.['maxItems'], maxItems, `${schemaName}.${propertyName} must be bounded`);
+    }
 
     for (const operation of operations(firstDocument)) {
       const headerNames = (operation.parameters ?? [])

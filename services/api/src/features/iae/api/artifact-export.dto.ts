@@ -6,7 +6,7 @@ export class CreateArtifactExportDto {
   @IsUUID()
   manifestId!: string;
 
-  @ApiProperty({ type: [String], format: 'uuid' })
+  @ApiProperty({ type: [String], format: 'uuid', minItems: 1, maxItems: 1024 })
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(1024)

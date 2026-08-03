@@ -18,7 +18,7 @@ export class RegisterDatasetVersionDto {
   @IsUUID()
   datasetId!: string;
 
-  @ApiProperty({ format: 'uuid', type: [String] })
+  @ApiProperty({ format: 'uuid', type: [String], maxItems: 1024 })
   @IsArray()
   @ArrayMaxSize(1024)
   @IsUUID('4', { each: true })

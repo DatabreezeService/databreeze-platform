@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsIn,
   IsISO8601,
@@ -54,8 +55,9 @@ export class CreateMappingDto {
   @IsUUID()
   targetSchemaVersionId!: string;
 
-  @ApiProperty({ type: [MappingStepDto] })
+  @ApiProperty({ type: [MappingStepDto], maxItems: 512 })
   @IsArray()
+  @ArrayMaxSize(512)
   @ValidateNested({ each: true })
   @Type(() => MappingStepDto)
   steps!: MappingStepDto[];
@@ -80,8 +82,9 @@ export class CreateRuleSetDto {
   @IsUUID()
   schemaVersionId!: string;
 
-  @ApiProperty({ type: [Object] })
+  @ApiProperty({ type: [Object], maxItems: 512 })
   @IsArray()
+  @ArrayMaxSize(512)
   @IsObject({ each: true })
   rules!: Record<string, unknown>[];
 

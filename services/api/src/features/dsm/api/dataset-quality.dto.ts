@@ -100,7 +100,7 @@ export class DatasetQualityFindingDto {
   @Max(Number.MAX_SAFE_INTEGER)
   occurrenceCount!: number;
 
-  @ApiProperty({ type: [String], format: 'uuid' })
+  @ApiProperty({ type: [String], format: 'uuid', maxItems: 128 })
   @IsArray()
   @ArrayMaxSize(128)
   @IsUUID('4', { each: true })
@@ -162,7 +162,7 @@ export class RegisterDatasetQualityResultDto {
   @IsIn(['PASS', 'PASS_WITH_WARNINGS', 'BLOCKED', 'INCOMPLETE'])
   qualityState!: 'PASS' | 'PASS_WITH_WARNINGS' | 'BLOCKED' | 'INCOMPLETE';
 
-  @ApiProperty({ type: [DatasetQualityFindingDto] })
+  @ApiProperty({ type: [DatasetQualityFindingDto], maxItems: 512 })
   @IsArray()
   @ArrayMaxSize(512)
   @ValidateNested({ each: true })
