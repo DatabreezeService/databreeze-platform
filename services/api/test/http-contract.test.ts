@@ -82,7 +82,6 @@ void test('reports ready only through the injectable readiness port and minimize
       assert.doesNotMatch(response.body, /postgres/i);
     },
   );
-
 });
 
 void test('maps an unconfigured tenant context provider to authentication unavailability', async () => {
@@ -481,7 +480,6 @@ void test('refresh rotates Web cookies without returning the refresh token and p
       assertProblem(response, 503, 'SESSION_UNAVAILABLE');
     },
   );
-
 });
 
 void test('sign-out revokes idempotently and clears browser credentials', async () => {
@@ -607,7 +605,8 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
   await withApp(
     {
       requestTenantContext: {
-        resolve: () => Promise.reject(new RequestTenantContextProblemError('AUTHENTICATION_FAILED')),
+        resolve: () =>
+          Promise.reject(new RequestTenantContextProblemError('AUTHENTICATION_FAILED')),
       },
       sessions: {
         issue: () => Promise.reject(new Error('not used')),

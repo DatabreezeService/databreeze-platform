@@ -12,10 +12,7 @@ import type {
   AuditRepositoryPortV1,
   AuditTransactionPortV1,
 } from '../application/audit-repository.port.js';
-import {
-  createAuditPageCursorV1,
-  auditPageOffsetV1,
-} from '../application/audit-page-cursor.js';
+import { createAuditPageCursorV1, auditPageOffsetV1 } from '../application/audit-page-cursor.js';
 import { sameAuditEventV1, sameAuditSealV1 } from '../application/audit-equality.js';
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 
@@ -95,7 +92,9 @@ export class InMemoryAuditRepositoryAdapter implements AuditRepositoryPortV1 {
         const scopeOrder = tenantScopeKeyV1(left.tenantScope).localeCompare(
           tenantScopeKeyV1(right.tenantScope),
         );
-        return scopeOrder || left.sequence - right.sequence || left.eventId.localeCompare(right.eventId);
+        return (
+          scopeOrder || left.sequence - right.sequence || left.eventId.localeCompare(right.eventId)
+        );
       });
     const items = visible.slice(offset, offset + input.limit).map(cloneEvent);
     return Object.freeze({

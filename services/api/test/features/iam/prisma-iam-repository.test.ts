@@ -96,12 +96,12 @@ function createDatabase(rows: readonly IamMembershipDatabaseRowV1[] = []): {
     membershipIdentity: {
       findFirst: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) => {
         firstQueries.push(where);
-        return (
-          [...memberships.values()].find((candidate) => matches(candidate, where)) ?? null
-        );
+        return [...memberships.values()].find((candidate) => matches(candidate, where)) ?? null;
       },
-      findMany: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) =>
-        (manyQueries.push(where), [...memberships.values()].filter((candidate) => matches(candidate, where))),
+      findMany: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) => (
+        manyQueries.push(where),
+        [...memberships.values()].filter((candidate) => matches(candidate, where))
+      ),
       create: async ({ data }: { readonly data: IamMembershipDatabaseRowV1 }) => {
         memberships.set(data.id, data);
         return data;
@@ -311,7 +311,10 @@ void test('[IAM-009, IAM-019] Prisma membership mutation lookup includes tenant 
 
 void test('[IAM-009] Prisma membership writes reject cross-organization identifier collisions', async () => {
   const foreignOrganizationId = id('99');
-  const foreign = { ...row(id('24'), 'WORKSPACE', workspaceId, 'viewer'), organizationId: foreignOrganizationId };
+  const foreign = {
+    ...row(id('24'), 'WORKSPACE', workspaceId, 'viewer'),
+    organizationId: foreignOrganizationId,
+  };
   const { client, memberships } = createDatabase([foreign]);
   const repository = new PrismaIamRepositoryAdapter(client);
   const workspaceScope = { scopeType: 'workspace', organizationId, workspaceId } as const;

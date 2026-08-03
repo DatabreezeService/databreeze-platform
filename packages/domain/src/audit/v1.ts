@@ -238,7 +238,7 @@ export function appendAuditEventV1(
 
   const existing = state.events.find(
     (event) =>
-    event.idempotencyKey === idempotencyKey &&
+      event.idempotencyKey === idempotencyKey &&
       tenantScopeKeyV1(event.tenantScope) === tenantScopeKeyV1(scope),
   );
   if (existing) {

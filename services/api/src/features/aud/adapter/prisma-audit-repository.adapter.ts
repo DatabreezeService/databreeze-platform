@@ -25,10 +25,7 @@ import type {
   AuditRepositoryPortV1,
   AuditTransactionPortV1,
 } from '../application/audit-repository.port.js';
-import {
-  createAuditPageCursorV1,
-  auditPageOffsetV1,
-} from '../application/audit-page-cursor.js';
+import { createAuditPageCursorV1, auditPageOffsetV1 } from '../application/audit-page-cursor.js';
 import { sameAuditEventV1, sameAuditSealV1 } from '../application/audit-equality.js';
 
 export interface AuditEventDatabaseRowV1 {

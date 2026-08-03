@@ -193,9 +193,8 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
     });
     return selectAuthoritativeMembership(
       rows
-      .map((row) => membershipFromRowOrSkip(row, this.diagnostics.onMalformedMembershipRow))
-      .filter((membership): membership is IamMembershipRecordV1 => membership !== undefined)
-      ,
+        .map((row) => membershipFromRowOrSkip(row, this.diagnostics.onMalformedMembershipRow))
+        .filter((membership): membership is IamMembershipRecordV1 => membership !== undefined),
       context,
       principalId,
     );
@@ -225,10 +224,7 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
     const existingById = await this.client.membershipIdentity.findFirst({
       where: { id: membership.id },
     });
-    if (
-      existingById !== null &&
-      existingById.organizationId !== context.tenantScope.organizationId
-    )
+    if (existingById !== null && existingById.organizationId !== context.tenantScope.organizationId)
       throw new Error('IAM_REVISION_CONFLICT');
     const existingRow = existingById;
     if (!existingRow) {

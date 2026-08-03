@@ -1,7 +1,4 @@
-import {
-  tenantScopeKeyV1,
-  type TenantScopeV1,
-} from '@databreeze/domain/tenant-scope/v1';
+import { tenantScopeKeyV1, type TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 import type { AuditPageInputV1 } from './audit-repository.port.js';
 
 export type AuditPageKindV1 = 'events' | 'seals';

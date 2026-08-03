@@ -205,8 +205,10 @@ function bootstrapFromRows(
     throw new Error('IAM_PERSISTED_PROJECT_INVALID');
   const startsAt = timestamp(membership.startsAt);
   const expiresAt = timestamp(membership.expiresAt);
-  if ((membership.startsAt !== null && membership.startsAt !== undefined && !startsAt) ||
-      (membership.expiresAt !== null && membership.expiresAt !== undefined && !expiresAt))
+  if (
+    (membership.startsAt !== null && membership.startsAt !== undefined && !startsAt) ||
+    (membership.expiresAt !== null && membership.expiresAt !== undefined && !expiresAt)
+  )
     throw new Error('IAM_PERSISTED_MEMBERSHIP_INVALID');
   const parsedMembership = validateMembershipV1({
     id: membership.id,
@@ -293,7 +295,9 @@ class PrismaIdentityBootstrapTransactionAdapter implements IdentityBootstrapTran
     const organizations = await this.client.organizationIdentity.findMany({
       where: { id: { in: candidateOrganizationIds }, personal: true },
     });
-    const organizationsById = new Map(organizations.map((organization) => [organization.id, organization]));
+    const organizationsById = new Map(
+      organizations.map((organization) => [organization.id, organization]),
+    );
     const personalCandidates: Array<{
       readonly membership: MembershipIdentityDatabaseRowV1;
       readonly organization: OrganizationIdentityDatabaseRowV1;

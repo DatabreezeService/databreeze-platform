@@ -505,11 +505,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     /CREATE UNIQUE INDEX "artifact_lineage_derived_version_key"\s+ON "iae"\."artifact_lineage"\("derived_artifact_version_id"\);/u,
   );
   const sessionScopeMigration = await readFile(
-    path.join(
-      migrationsDirectory,
-      '20260803010000_iam_session_scope_binding',
-      'migration.sql',
-    ),
+    path.join(migrationsDirectory, '20260803010000_iam_session_scope_binding', 'migration.sql'),
     'utf8',
   );
   for (const statement of [

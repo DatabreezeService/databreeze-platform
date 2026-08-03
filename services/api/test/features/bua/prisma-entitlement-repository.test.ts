@@ -109,7 +109,7 @@ function delegate<TRow extends Record<string, unknown>>(
         'in' in value &&
         Array.isArray((value as { readonly in?: unknown }).in)
       ) {
-        return ((value as { readonly in: readonly unknown[] }).in).includes(row[key]);
+        return (value as { readonly in: readonly unknown[] }).in.includes(row[key]);
       }
       return row[key] === value;
     });
@@ -195,12 +195,7 @@ function client(
   const database = {
     entitlementPlanRecord: delegate(planRows),
     entitlementSnapshotRecord: delegate(snapshotRows, false, options.firstQueries),
-    usageLedgerEntryRecord: delegate(
-      entryRows,
-      false,
-      options.firstQueries,
-      options.manyQueries,
-    ),
+    usageLedgerEntryRecord: delegate(entryRows, false, options.firstQueries, options.manyQueries),
     usageReservationRecord: delegate(
       reservationRows,
       options.forceRevisionConflict,
