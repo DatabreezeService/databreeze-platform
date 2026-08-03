@@ -254,3 +254,17 @@ test('structured logger isolates exporter outages from product workflows', () =>
   assert.deepEqual(record.attributes, { outcome: 'degraded' });
   assert.doesNotMatch(JSON.stringify(record), /provider cause|customer source|must not/u);
 });
+
+test('structured logger uses a safe fallback when a clock adapter fails', () => {
+  const logger = createStructuredLoggerV1({
+    component: 'engine',
+    clock() {
+      throw new Error('provider clock cause');
+    },
+    sink: () => undefined,
+  });
+
+  const record = logger.emit('info', 'processor.started', { correlationId }, {});
+  assert.match(record.timestamp, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u);
+  assert.doesNotMatch(JSON.stringify(record), /provider clock cause/u);
+});
