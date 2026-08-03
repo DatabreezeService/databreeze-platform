@@ -10,6 +10,7 @@ import {
   type IamMembershipClockV1,
   type IamMembershipIdGeneratorV1,
 } from '../../../src/features/iam/application/membership.service.js';
+import type { IamRepositoryPortV1 } from '../../../src/features/iam/application/iam-repository.port.js';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
 
 const ids = {
@@ -307,4 +308,41 @@ void test('[IAM-004] owner transfer requires an owner and rolls back when target
   );
   assert.equal((await value.findMembership(context('membership-service-021'), stable(ids.principal)))?.roleId, 'owner');
   assert.equal((await value.findMembership(contextFor(ids.successor, 'membership-service-022'), stable(ids.successor)))?.roleId, 'admin');
+});
+
+void test('[IAM-004] owner transfer rolls back when the second optimistic write fails', async () => {
+  const base = repository();
+  await base.saveMembership(context('membership-service-transfer-rollback-001'), {
+    id: stable(ids.successorMembership),
+    principalId: stable(ids.successor),
+    scope: { scopeType: 'organization', organizationId: stable(ids.organization) },
+    roleId: 'admin',
+    status: 'ACTIVE',
+    revision: 1,
+  });
+  let writes = 0;
+  const failing: IamRepositoryPortV1 = {
+    findMembership: base.findMembership.bind(base),
+    listMemberships: base.listMemberships.bind(base),
+    saveMembership: base.saveMembership.bind(base),
+    withTransaction: (requestContext, work) =>
+      base.withTransaction(requestContext, (transaction) =>
+        work({
+          findMembership: transaction.findMembership.bind(transaction),
+          listMemberships: transaction.listMemberships.bind(transaction),
+          saveMembership: async (mutationContext, membership) => {
+            writes += 1;
+            if (writes === 2) throw new Error('target write failed');
+            return transaction.saveMembership(mutationContext, membership);
+          },
+        }),
+      ),
+  };
+  const service = new IamMembershipService(failing, idsFrom(ids.invitation), clock);
+  assert.deepEqual(
+    await service.transferOwnership(context('membership-service-transfer-rollback-002'), ids.successorMembership, 1),
+    { accepted: false, code: 'UNAVAILABLE' },
+  );
+  assert.equal((await base.findMembership(context('membership-service-transfer-rollback-003'), stable(ids.principal)))?.roleId, 'owner');
+  assert.equal((await base.findMembership(contextFor(ids.successor, 'membership-service-transfer-rollback-004'), stable(ids.successor)))?.roleId, 'admin');
 });
