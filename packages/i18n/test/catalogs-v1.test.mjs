@@ -112,6 +112,8 @@ const REQUIRED_KEYS = Object.freeze([
   'retry.later',
   'retry.afterSeconds.one',
   'retry.afterSeconds.other',
+  'api.error.registration_request_rejected',
+  'api.error.registration_unavailable',
   'module.folderAutopilot',
   'module.spreadsheetAuditor',
   'module.quoteIntelligence',

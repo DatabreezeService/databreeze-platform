@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { type DynamicModule, Module } from '@nestjs/common';
 
 import { AuthenticationController } from './api/authentication.controller.js';
@@ -96,6 +96,20 @@ import {
   PrismaIamPrincipalEmailLookupAdapter,
   type IamPrincipalEmailDatabaseClientV1,
 } from './adapter/prisma-principal-email-lookup.adapter.js';
+import {
+  PrismaRegistrationRepositoryAdapter,
+  type RegistrationDatabaseClientV1,
+} from './adapter/prisma-registration-repository.adapter.js';
+import {
+  IAM_REGISTRATION_REPOSITORY_PORT,
+  type RegistrationRepositoryPortV1,
+} from './application/registration-repository.port.js';
+import {
+  IAM_REGISTRATION_SERVICE,
+  RegistrationService,
+  type RegistrationClockV1,
+  type RegistrationIdGeneratorV1,
+} from './application/registration.service.js';
 import { InMemoryIamHierarchyRepositoryAdapter } from './adapter/in-memory-iam-hierarchy-repository.adapter.js';
 import {
   PrismaIamHierarchyRepositoryAdapter,
@@ -103,6 +117,7 @@ import {
 } from './adapter/prisma-iam-hierarchy-repository.adapter.js';
 import { DeviceIdentityController } from './api/device-identity.controller.js';
 import { IamInvitationController } from './api/invitation.controller.js';
+import { RegistrationController } from './api/registration.controller.js';
 import { InMemoryDeviceIdentityRepositoryAdapter } from './adapter/in-memory-device-identity-repository.adapter.js';
 import {
   PrismaDeviceIdentityRepositoryAdapter,
@@ -159,6 +174,11 @@ export interface IamModuleOptions {
   readonly invitationIdGenerator?: IamInvitationIdGeneratorV1;
   readonly invitationTokenGenerator?: IamInvitationTokenGeneratorV1;
   readonly invitationClock?: IamInvitationClockV1;
+  readonly registrationRepository?: RegistrationRepositoryPortV1;
+  readonly registrationDatabase?: RegistrationDatabaseClientV1;
+  readonly registrationService?: RegistrationService;
+  readonly registrationIdGenerator?: RegistrationIdGeneratorV1;
+  readonly registrationClock?: RegistrationClockV1;
   readonly deviceIdentityService?: DeviceIdentityService;
   readonly deviceIdentityRepository?: DeviceIdentityRepositoryPortV1;
   readonly deviceIdentityDatabase?: DeviceIdentityDatabaseClientV1;
@@ -276,6 +296,21 @@ export class IamModule {
             options.invitationClock,
           )
         : undefined);
+    const registrationRepository =
+      options.registrationRepository ??
+      (options.registrationDatabase === undefined
+        ? undefined
+        : new PrismaRegistrationRepositoryAdapter(options.registrationDatabase));
+    const registrationService =
+      options.registrationService ??
+      (registrationRepository && options.passwordCredentials
+        ? new RegistrationService({
+            repository: registrationRepository,
+            passwordCredentials: options.passwordCredentials,
+            ids: options.registrationIdGenerator ?? { next: () => randomUUID() },
+            ...(options.registrationClock ? { clock: options.registrationClock } : {}),
+          })
+        : undefined);
     const authentication =
       options.authentication ??
       (credentials && sessions
@@ -309,6 +344,8 @@ export class IamModule {
     if (invitationRepository) exports.unshift(IAM_INVITATION_REPOSITORY_PORT);
     if (invitationService) exports.unshift(IAM_INVITATION_SERVICE);
     if (invitationPrincipalEmails) exports.unshift(IAM_PRINCIPAL_EMAIL_LOOKUP_PORT);
+    if (registrationRepository) exports.unshift(IAM_REGISTRATION_REPOSITORY_PORT);
+    if (registrationService) exports.unshift(IAM_REGISTRATION_SERVICE);
     return {
       module: IamModule,
       controllers: [
@@ -318,6 +355,7 @@ export class IamModule {
         IamHierarchyController,
         IamMembershipController,
         IamInvitationController,
+        RegistrationController,
         IamBootstrapController,
       ],
       providers: [
@@ -418,6 +456,22 @@ export class IamModule {
               {
                 provide: IAM_PRINCIPAL_EMAIL_LOOKUP_PORT,
                 useValue: invitationPrincipalEmails,
+              },
+            ]
+          : []),
+        ...(registrationRepository
+          ? [
+              {
+                provide: IAM_REGISTRATION_REPOSITORY_PORT,
+                useValue: registrationRepository,
+              },
+            ]
+          : []),
+        ...(registrationService
+          ? [
+              {
+                provide: IAM_REGISTRATION_SERVICE,
+                useValue: registrationService,
               },
             ]
           : []),

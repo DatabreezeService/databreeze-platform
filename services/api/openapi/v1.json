@@ -3063,6 +3063,93 @@
         "tags": ["identity"]
       }
     },
+    "/v1/auth/register": {
+      "post": {
+        "description": "Registration does not return bearer material; sign in separately after creation.",
+        "operationId": "RegistrationController.register",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RegistrationDto" } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RegistrationResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The registration request was rejected.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "503": {
+            "description": "Registration persistence is unavailable.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "summary": "Create an account and personal organization hierarchy",
+        "tags": ["auth"]
+      }
+    },
     "/v1/me/bootstrap": {
       "get": {
         "operationId": "IamBootstrapController.bootstrap",
@@ -9397,6 +9484,35 @@
           "token": { "type": "string", "minLength": 32, "maxLength": 512, "writeOnly": true }
         },
         "required": ["token"]
+      },
+      "RegistrationDto": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string", "example": "ngu***@example.com", "maxLength": 254 },
+          "displayName": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "password": { "type": "string", "minLength": 12, "maxLength": 128, "writeOnly": true },
+          "locale": { "type": "string", "enum": ["vi-VN", "en"], "default": "vi-VN" }
+        },
+        "required": ["email", "displayName", "password"]
+      },
+      "RegistrationResponseDto": {
+        "type": "object",
+        "properties": {
+          "userId": { "type": "string", "format": "uuid" },
+          "organizationId": { "type": "string", "format": "uuid" },
+          "workspaceId": { "type": "string", "format": "uuid" },
+          "projectId": { "type": "string", "format": "uuid" },
+          "membershipId": { "type": "string", "format": "uuid" },
+          "locale": { "type": "string", "enum": ["vi-VN", "en"] }
+        },
+        "required": [
+          "userId",
+          "organizationId",
+          "workspaceId",
+          "projectId",
+          "membershipId",
+          "locale"
+        ]
       },
       "BootstrapUserDto": {
         "type": "object",

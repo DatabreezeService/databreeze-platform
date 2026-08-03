@@ -8986,7 +8986,8 @@
       "primaryPlan": "020-identity-audit-entitlements.md",
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [
-        "IAM-010 durable invitation token persistence slice"
+        "IAM-010 durable invitation token persistence slice",
+        "IAM registration and personal-tenant persistence slice"
       ],
       "codePaths": [
         "packages/domain/src/identity/v1.ts",
@@ -8996,6 +8997,7 @@
         "packages/domain/src/csrf/v1.ts",
         "services/api/src/features/iam/",
         "services/api/src/features/iam/adapter/prisma-iam-invitation-repository.adapter.ts",
+        "services/api/src/features/iam/adapter/prisma-registration-repository.adapter.ts",
         "services/api/prisma/schema/iam.prisma",
         "services/api/prisma/migrations/20260803040000_iam_invitation_tokens/migration.sql"
       ],
@@ -9004,12 +9006,16 @@
         "packages/domain/test/permissions-v1.test.mjs",
         "services/api/test/features/iam/",
         "services/api/test/features/iam/prisma-iam-invitation-repository.test.ts",
+        "services/api/test/features/iam/prisma-registration-repository.test.ts",
+        "services/api/test/features/iam/registration.service.test.ts",
+        "services/api/test/features/iam/registration-http.test.ts",
         "services/api/test/prisma-foundation.test.mjs",
         "services/api/test/platform/http/session-tenant-context.test.ts",
         "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md",
+        "docs/operations/iam-registration-2026-08-03.md"
       ],
       "status": "partial",
       "coverage": "partial",
