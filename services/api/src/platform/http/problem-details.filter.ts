@@ -13,7 +13,7 @@ import { MfaProblemError } from '../../features/iam/application/mfa-problem.erro
 import { EntitlementProblemError } from '../../features/bua/application/entitlement-problem.error.js';
 import { DeviceIdentityProblemError } from '../../features/iam/application/device-identity-problem.error.js';
 import { AuditProblemError } from '../../features/aud/application/audit-problem.error.js';
-import { RequestTenantContextProblemError } from './session-tenant-context.adapter.js';
+import { RequestTenantContextProblemError } from './request-tenant-context.port.js';
 import { NotReadyError } from '../../features/system/application/not-ready.error.js';
 import { InputValidationException } from './input-validation.exception.js';
 import { createProblem, type ProblemInput } from './problem-details.js';
