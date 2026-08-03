@@ -102,6 +102,28 @@ export interface AuditSealV1 {
   readonly sealedAt: StrictUtcTimestampV1;
 }
 
+/** AUD-015/016: an independently stored signature over an immutable seal range. */
+export const AUDIT_ATTESTATION_SCHEMA_VERSION_V1 = 1 as const;
+
+export interface AuditSealAttestationV1 {
+  readonly schemaVersion: typeof AUDIT_ATTESTATION_SCHEMA_VERSION_V1;
+  readonly attestationId: StableIdentifierV1;
+  readonly tenantScope: TenantScopeV1;
+  readonly firstSequence: number;
+  readonly lastSequence: number;
+  readonly eventCount: number;
+  readonly rootDigest: string;
+  readonly sealedAt: StrictUtcTimestampV1;
+  readonly signerKeyId: string;
+  readonly payload: string;
+  readonly signature: string;
+}
+
+export interface AuditSealAttestationSignerV1 {
+  sign(payload: string): string;
+  verify(payload: string, signature: string): boolean;
+}
+
 export type AuditErrorCodeV1 =
   | 'INVALID_IDENTIFIER'
   | 'INVALID_TIMESTAMP'
@@ -185,6 +207,22 @@ function canonicalEvent(event: Omit<AuditEventV1, 'digest'>): string {
     idempotencyKey: event.idempotencyKey,
     summary: JSON.parse(canonicalSummary(event.summary)) as AuditSummaryV1,
     previousDigest: event.previousDigest,
+  });
+}
+
+function canonicalAttestation(
+  input: Omit<AuditSealAttestationV1, 'payload' | 'signature'>,
+): string {
+  return JSON.stringify({
+    schemaVersion: input.schemaVersion,
+    attestationId: input.attestationId,
+    tenantScope: input.tenantScope,
+    firstSequence: input.firstSequence,
+    lastSequence: input.lastSequence,
+    eventCount: input.eventCount,
+    rootDigest: input.rootDigest,
+    sealedAt: input.sealedAt,
+    signerKeyId: input.signerKeyId,
   });
 }
 
@@ -355,4 +393,53 @@ export function createAuditSealV1(
       sealedAt,
     }),
   });
+}
+
+export function createAuditSealAttestationV1(
+  seal: AuditSealV1,
+  input: { readonly attestationId: unknown; readonly signerKeyId: unknown },
+  signer: AuditSealAttestationSignerV1,
+): AuditResultV1<AuditSealAttestationV1> {
+  const attestationId = stableId(input.attestationId);
+  const signerKeyId = text(input.signerKeyId, 200);
+  if (!attestationId || !signerKeyId) return rejected('INVALID_IDENTIFIER');
+  const unsigned: Omit<AuditSealAttestationV1, 'payload' | 'signature'> = {
+    schemaVersion: AUDIT_ATTESTATION_SCHEMA_VERSION_V1,
+    attestationId,
+    tenantScope: seal.tenantScope,
+    firstSequence: seal.firstSequence,
+    lastSequence: seal.lastSequence,
+    eventCount: seal.eventCount,
+    rootDigest: seal.rootDigest,
+    sealedAt: seal.sealedAt,
+    signerKeyId,
+  };
+  const payload = canonicalAttestation(unsigned);
+  const signature = text(signer.sign(payload), 2048);
+  if (!signature) return rejected('INVALID_TEXT');
+  return Object.freeze({
+    accepted: true,
+    value: Object.freeze({ ...unsigned, payload, signature }),
+  });
+}
+
+export function verifyAuditSealAttestationV1(
+  attestation: AuditSealAttestationV1,
+  seal: AuditSealV1,
+  signer: AuditSealAttestationSignerV1,
+): AuditResultV1<true> {
+  if (
+    attestation.schemaVersion !== AUDIT_ATTESTATION_SCHEMA_VERSION_V1 ||
+    tenantScopeKeyV1(attestation.tenantScope) !== tenantScopeKeyV1(seal.tenantScope) ||
+    attestation.firstSequence !== seal.firstSequence ||
+    attestation.lastSequence !== seal.lastSequence ||
+    attestation.eventCount !== seal.eventCount ||
+    attestation.rootDigest !== seal.rootDigest ||
+    attestation.sealedAt !== seal.sealedAt
+  )
+    return rejected('CHAIN_INVALID');
+  const { payload, signature, ...unsigned } = attestation;
+  if (canonicalAttestation(unsigned) !== payload || !signer.verify(payload, signature))
+    return rejected('CHAIN_INVALID');
+  return Object.freeze({ accepted: true, value: true });
 }
