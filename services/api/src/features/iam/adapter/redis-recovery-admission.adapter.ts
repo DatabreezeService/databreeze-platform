@@ -5,6 +5,46 @@ export interface RecoveryAdmissionCounterPortV1 {
   incrementWindow(input: { readonly key: string; readonly ttlMs: number }): Promise<number>;
 }
 
+export interface RedisEvalClientPortV1 {
+  eval(script: string, keys: readonly string[], arguments_: readonly string[]): Promise<unknown>;
+}
+
+export const REDIS_RECOVERY_ADMISSION_INCREMENT_SCRIPT_V1 = [
+  'local count = redis.call("INCR", KEYS[1])',
+  'if count == 1 then redis.call("PEXPIRE", KEYS[1], ARGV[1]) end',
+  'return count',
+].join('\n');
+
+/** Binds the counter contract to clients that expose Redis EVAL with explicit keys/arguments. */
+export class RedisEvalRecoveryAdmissionCounterAdapter implements RecoveryAdmissionCounterPortV1 {
+  public constructor(private readonly client: RedisEvalClientPortV1) {}
+
+  public async incrementWindow(input: {
+    readonly key: string;
+    readonly ttlMs: number;
+  }): Promise<number> {
+    if (
+      typeof input.key !== 'string' ||
+      input.key.length === 0 ||
+      !Number.isSafeInteger(input.ttlMs) ||
+      input.ttlMs < 1_000 ||
+      input.ttlMs > 86_400_000
+    ) {
+      throw new Error('IAM_RECOVERY_ADMISSION_COUNTER_INVALID');
+    }
+    const result = await this.client.eval(
+      REDIS_RECOVERY_ADMISSION_INCREMENT_SCRIPT_V1,
+      [input.key],
+      [String(input.ttlMs)],
+    );
+    const count = typeof result === 'number' ? result : Number(result);
+    if (!Number.isSafeInteger(count) || count < 1) {
+      throw new Error('IAM_RECOVERY_ADMISSION_COUNTER_INVALID');
+    }
+    return count;
+  }
+}
+
 export interface RedisRecoveryAdmissionOptionsV1 {
   readonly maxAttempts?: number;
   readonly windowSeconds?: number;

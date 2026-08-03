@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { RedisRecoveryAdmissionAdapter } from '../../../src/features/iam/adapter/redis-recovery-admission.adapter.js';
+import {
+  REDIS_RECOVERY_ADMISSION_INCREMENT_SCRIPT_V1,
+  RedisEvalRecoveryAdmissionCounterAdapter,
+  RedisRecoveryAdmissionAdapter,
+} from '../../../src/features/iam/adapter/redis-recovery-admission.adapter.js';
 
 const digest = 'a'.repeat(64);
 const issuedAt = '2026-08-03T00:00:00.000Z';
@@ -53,5 +57,42 @@ void test('[IAM-015] shared recovery admission rejects unsafe configuration', ()
         { keyPrefix: 'raw email ' },
       ),
     /IAM_RECOVERY_ADMISSION_INVALID/u,
+  );
+});
+
+void test('[IAM-015] Redis counter wrapper uses one atomic script and validates returned counts', async () => {
+  const calls: Array<{
+    readonly script: string;
+    readonly keys: readonly string[];
+    readonly args: readonly string[];
+  }> = [];
+  const counter = new RedisEvalRecoveryAdmissionCounterAdapter({
+    eval: async (script, keys, args) => {
+      calls.push({ script, keys, args });
+      return '4';
+    },
+  });
+
+  assert.equal(await counter.incrementWindow({ key: 'databreeze:key', ttlMs: 15_000 }), 4);
+  assert.deepEqual(calls, [
+    {
+      script: REDIS_RECOVERY_ADMISSION_INCREMENT_SCRIPT_V1,
+      keys: ['databreeze:key'],
+      args: ['15000'],
+    },
+  ]);
+});
+
+void test('[IAM-015] Redis counter wrapper rejects invalid TTLs and malformed replies', async () => {
+  const counter = new RedisEvalRecoveryAdmissionCounterAdapter({
+    eval: async () => 'not-a-count',
+  });
+  await assert.rejects(
+    counter.incrementWindow({ key: 'databreeze:key', ttlMs: 999 }),
+    /IAM_RECOVERY_ADMISSION_COUNTER_INVALID/u,
+  );
+  await assert.rejects(
+    counter.incrementWindow({ key: 'databreeze:key', ttlMs: 15_000 }),
+    /IAM_RECOVERY_ADMISSION_COUNTER_INVALID/u,
   );
 });
