@@ -83,6 +83,23 @@ void test('requires a valid double-submit token for cookie-authenticated mutatio
   );
 });
 
+void test('accepts standard token characters in unrelated cookie names', () => {
+  assert.deepEqual(
+    evaluateCsrfRequestV1(
+      {
+        method: 'POST',
+        headers: {
+          cookie: `analytics-id=value; preference.v1=value; databreeze_refresh=session-value; databreeze_csrf=${token}`,
+          origin: 'https://app.databreeze.example',
+          'x-csrf-token': token,
+        },
+      },
+      { allowedOrigins },
+    ),
+    { accepted: true },
+  );
+});
+
 void test('rejects hostile, ambiguous, or missing browser origin signals', () => {
   const headers = {
     cookie: `databreeze_refresh=session-value; databreeze_csrf=${token}`,

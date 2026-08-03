@@ -44,10 +44,13 @@ interface IamMembershipDelegateV1 {
   }): Promise<{ readonly count: number }>;
 }
 
-export interface IamDatabaseClientV1 {
+export interface IamTransactionDatabaseClientV1 {
   readonly membershipIdentity: IamMembershipDelegateV1;
+}
+
+export interface IamDatabaseClientV1 extends IamTransactionDatabaseClientV1 {
   $transaction<TValue>(
-    work: (transaction: IamDatabaseClientV1) => Promise<TValue>,
+    work: (transaction: IamTransactionDatabaseClientV1) => Promise<TValue>,
   ): Promise<TValue>;
 }
 
@@ -95,6 +98,16 @@ function membershipFromRow(row: IamMembershipDatabaseRowV1): IamMembershipRecord
   return validated.value;
 }
 
+function membershipFromRowOrSkip(
+  row: IamMembershipDatabaseRowV1,
+): IamMembershipRecordV1 | undefined {
+  try {
+    return membershipFromRow(row);
+  } catch {
+    return undefined;
+  }
+}
+
 function membershipRow(membership: MembershipIdentityV1): IamMembershipDatabaseRowV1 {
   return {
     id: membership.id,
@@ -124,7 +137,7 @@ function scopeSpecificity(scope: TenantScopeV1): number {
 }
 
 class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
-  public constructor(private readonly client: IamDatabaseClientV1) {}
+  public constructor(private readonly client: IamTransactionDatabaseClientV1) {}
 
   public async findMembership(
     context: IamTenantContextV1,
@@ -139,7 +152,8 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
       orderBy: { id: 'asc' },
     });
     return rows
-      .map(membershipFromRow)
+      .map(membershipFromRowOrSkip)
+      .filter((membership): membership is IamMembershipRecordV1 => membership !== undefined)
       .filter(
         (membership) =>
           membership.principalId === principalId &&
@@ -161,7 +175,8 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
       orderBy: { id: 'asc' },
     });
     return rows
-      .map(membershipFromRow)
+      .map(membershipFromRowOrSkip)
+      .filter((membership): membership is IamMembershipRecordV1 => membership !== undefined)
       .filter((membership) => visibleInScope(context.tenantScope, membership.scope));
   }
 

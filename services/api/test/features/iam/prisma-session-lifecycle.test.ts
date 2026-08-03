@@ -194,6 +194,21 @@ void test('[IAM-005] refresh rotation is transactional and reuse revokes the com
   assert.equal(await adapter.findPrincipal(first.sessionId), undefined);
 });
 
+void test('[IAM-005] refresh fails closed when a family has no active token', async () => {
+  const { client, refreshTokens, sessions } = createDatabase();
+  const adapter = new PrismaSessionLifecycleAdapter(client, {
+    clock: () => new Date('2026-01-01T00:00:00.000Z'),
+  });
+  const issued = await adapter.issue(principal, 'desktop');
+  for (const [id, row] of refreshTokens) refreshTokens.set(id, { ...row, status: 'USED' });
+
+  assert.deepEqual(await adapter.refresh(issued.refreshToken, 'desktop'), {
+    accepted: false,
+    code: 'REUSE_DETECTED',
+  });
+  assert.equal(sessions.get(issued.sessionId)?.status, 'REVOKED');
+});
+
 void test('[IAM-005] expired refresh tokens fail closed without returning token material', async () => {
   let now = new Date('2026-01-01T00:00:00.000Z');
   const { client } = createDatabase();
@@ -208,6 +223,22 @@ void test('[IAM-005] expired refresh tokens fail closed without returning token 
     accepted: false,
     code: 'INVALID_REFRESH_TOKEN',
   });
+});
+
+void test('[IAM-005] refresh cannot restart an expired inactivity window', async () => {
+  let now = new Date('2026-01-01T00:00:00.000Z');
+  const { client, sessions, refreshTokens, accessTokens } = createDatabase();
+  const adapter = new PrismaSessionLifecycleAdapter(client, { clock: () => new Date(now) });
+  const session = await adapter.issue(principal, 'android');
+  now = new Date('2026-01-01T01:00:00.000Z');
+
+  assert.deepEqual(await adapter.refresh(session.refreshToken, 'android'), {
+    accepted: false,
+    code: 'EXPIRED',
+  });
+  assert.equal(sessions.get(session.sessionId)?.status, 'EXPIRED');
+  assert.equal([...refreshTokens.values()][0]?.status, 'EXPIRED');
+  assert.equal([...accessTokens.values()][0]?.status, 'EXPIRED');
 });
 
 void test('[IAM-005] revocation is idempotent and hides session principals afterward', async () => {

@@ -21,6 +21,7 @@ interface ResponseLike {
 interface OperationLike {
   readonly parameters?: readonly ParameterLike[];
   readonly responses: Record<string, ResponseLike>;
+  readonly security?: readonly Readonly<Record<string, readonly string[]>>[];
 }
 
 type PathItemLike = Partial<Record<(typeof httpMethods)[number], OperationLike>>;
@@ -178,6 +179,13 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
     assert.equal(documentedClientVersion.test('1.2.3'), true);
     assert.equal(documentedClientVersion.test('1.2.3-beta.1'), true);
     assert.equal(documentedClientVersion.test('1.2.3garbage'), false);
+    const refreshResponse = firstDocument.components?.schemas?.[
+      'SessionRefreshResponseDto'
+    ] as Record<string, unknown>;
+    const refreshToken = (refreshResponse['properties'] as Record<string, Record<string, unknown>>)[
+      'refreshToken'
+    ];
+    assert.equal(refreshToken?.['writeOnly'], undefined);
 
     for (const operation of operations(firstDocument)) {
       const headerNames = (operation.parameters ?? [])
@@ -190,6 +198,29 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
         if (response.$ref !== undefined) continue;
         assert.ok(response.headers?.['X-Request-Id']);
         assert.ok(response.headers?.['X-Correlation-Id']);
+      }
+    }
+
+    const publicOperations = new Set([
+      'GET /health/live',
+      'GET /health/ready',
+      'GET /v1/system/compatibility',
+      'POST /v1/system/compatibility/check',
+      'POST /v1/auth/sign-in',
+      'POST /v1/auth/refresh',
+    ]);
+    for (const [path, pathItem] of Object.entries(firstDocument.paths) as Array<
+      [string, PathItemLike]
+    >) {
+      for (const method of httpMethods) {
+        const operation = pathItem[method];
+        if (operation === undefined) continue;
+        const key = `${method.toUpperCase()} ${path}`;
+        if (publicOperations.has(key)) {
+          assert.equal(operation.security, undefined, `${key} must remain explicitly public`);
+        } else {
+          assert.deepEqual(operation.security, [{ bearer: [] }], `${key} must require bearer auth`);
+        }
       }
     }
 

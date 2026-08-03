@@ -18,6 +18,7 @@ export class RequestTenantContextProblemError extends Error {
 }
 
 type HeaderValueV1 = string | readonly string[] | undefined;
+const SAFE_METHODS_V1 = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 interface RequestLikeV1 {
   readonly id?: unknown;
@@ -58,6 +59,9 @@ function correlationId(request: RequestLikeV1): string {
 function idempotencyKey(request: RequestLikeV1): string {
   const header = oneHeader(request, 'idempotency-key');
   if (header !== undefined) return header;
+  if (typeof request.method !== 'string' || !SAFE_METHODS_V1.has(request.method.toUpperCase())) {
+    throw new RequestTenantContextProblemError('CONTEXT_INVALID');
+  }
   if (typeof request.id === 'string' && request.id.length > 0) return request.id;
   return randomUUID();
 }

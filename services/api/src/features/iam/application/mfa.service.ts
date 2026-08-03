@@ -15,6 +15,22 @@ import type { MfaRepositoryPortV1 } from './mfa-repository.port.js';
 
 export const MFA_SERVICE = Symbol('MFA_SERVICE');
 
+export interface MfaFactorProofVerifierV1 {
+  verify(input: {
+    readonly userId: StableIdentifierV1;
+    readonly factorId: StableIdentifierV1;
+    readonly method: MfaStateV1['factors'][number]['method'];
+    readonly secretReference: string;
+    readonly proof: string;
+  }): Promise<boolean>;
+}
+
+export class UnavailableMfaFactorProofVerifier implements MfaFactorProofVerifierV1 {
+  public verify(): Promise<boolean> {
+    return Promise.resolve(false);
+  }
+}
+
 function invalidState(): MfaResultV1<never> {
   return Object.freeze({ accepted: false, code: 'INVALID_STATE' });
 }
@@ -22,6 +38,12 @@ function invalidState(): MfaResultV1<never> {
 function stable(input: unknown): StableIdentifierV1 | undefined {
   const result = parseStableIdentifierV1(input);
   return result.accepted ? result.value : undefined;
+}
+
+function proof(input: unknown): string | undefined {
+  if (typeof input !== 'string' || input.length === 0 || input.length > 4_096) return undefined;
+  if (/\p{Cc}/u.test(input)) return undefined;
+  return input;
 }
 
 export interface MfaStateViewV1 {
@@ -63,12 +85,17 @@ export class MfaService {
     private readonly recoveryMatcher: {
       matches(presentedDigest: string, storedDigest: string): boolean;
     },
+    private readonly factorProofVerifier: MfaFactorProofVerifierV1 = new UnavailableMfaFactorProofVerifier(),
+    private readonly clock: () => Date = () => new Date(),
   ) {}
 
-  public async enroll(
-    input: Parameters<typeof createMfaFactorV1>[0],
-  ): Promise<MfaResultV1<MfaStateViewV1>> {
-    const factor = createMfaFactorV1(input);
+  public async enroll(input: {
+    readonly id: unknown;
+    readonly userId: unknown;
+    readonly method: unknown;
+    readonly secretReference: unknown;
+  }): Promise<MfaResultV1<MfaStateViewV1>> {
+    const factor = createMfaFactorV1({ ...input, enrolledAt: this.clock().toISOString() });
     if (!factor.accepted) return Object.freeze({ accepted: false, code: factor.code });
     return this.repository.withTransaction(async (transaction) => {
       const state = await transaction.findState(factor.value.userId);
@@ -89,16 +116,28 @@ export class MfaService {
   public async verifyFactor(
     userIdInput: unknown,
     factorIdInput: unknown,
-    at: unknown,
+    proofInput: unknown,
   ): Promise<MfaResultV1<MfaStateViewV1>> {
     const userId = stable(userIdInput);
     const factorId = stable(factorIdInput);
     if (!userId || !factorId) return Object.freeze({ accepted: false, code: 'INVALID_IDENTIFIER' });
+    const factorProof = proof(proofInput);
+    if (!factorProof) return Object.freeze({ accepted: false, code: 'FACTOR_PROOF_INVALID' });
     return this.repository.withTransaction(async (transaction) => {
       const state = await transaction.findState(userId);
       const factor = state.factors.find((item) => item.id === factorId);
       if (!factor) return invalidState();
-      const transitioned = transitionMfaFactorV1(factor, 'VERIFY', at);
+      if (factor.status !== 'PENDING') return invalidState();
+      const verified = await this.factorProofVerifier.verify({
+        userId,
+        factorId,
+        method: factor.method,
+        secretReference: factor.secretReference,
+        proof: factorProof,
+      });
+      if (!verified)
+        return Object.freeze({ accepted: false as const, code: 'FACTOR_PROOF_INVALID' as const });
+      const transitioned = transitionMfaFactorV1(factor, 'VERIFY', this.clock().toISOString());
       if (!transitioned.accepted)
         return Object.freeze({ accepted: false, code: transitioned.code });
       const next = Object.freeze({
@@ -113,7 +152,6 @@ export class MfaService {
   public async redeemRecovery(
     userIdInput: unknown,
     presentedDigest: unknown,
-    at: unknown,
   ): Promise<MfaResultV1<MfaStateViewV1>> {
     const userId = stable(userIdInput);
     if (!userId) return Object.freeze({ accepted: false, code: 'INVALID_IDENTIFIER' });
@@ -121,7 +159,7 @@ export class MfaService {
       const state = await transaction.findState(userId);
       const redeemed = redeemRecoveryCodeV1(
         state,
-        { userId, presentedDigest, at },
+        { userId, presentedDigest, at: this.clock().toISOString() },
         this.recoveryMatcher,
       );
       if (!redeemed.accepted) return Object.freeze({ accepted: false, code: redeemed.code });

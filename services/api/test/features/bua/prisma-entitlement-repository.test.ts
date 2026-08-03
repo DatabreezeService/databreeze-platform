@@ -21,6 +21,7 @@ import { createIamTenantContextV1 } from '../../../src/features/iam/application/
 const organizationId = '00000000-0000-4000-8000-000000000201';
 const workspaceId = '00000000-0000-4000-8000-000000000202';
 const siblingWorkspaceId = '00000000-0000-4000-8000-000000000203';
+const projectId = '00000000-0000-4000-8000-000000000204';
 const actorId = '00000000-0000-4000-8000-000000000210';
 const correlationId = '00000000-0000-4000-8000-000000000211';
 
@@ -41,6 +42,19 @@ function context(workspace = workspaceId, idempotencyKey = 'bua') {
   });
   assert.equal(result.accepted, true);
   if (!result.accepted) throw new Error('invalid entitlement context');
+  return result.value;
+}
+
+function projectContext(idempotencyKey: string) {
+  const result = createIamTenantContextV1({
+    tenantScope: { scopeType: 'project', organizationId, workspaceId, projectId },
+    actorId,
+    correlationId,
+    idempotencyKey,
+    authorizationEpoch: 1,
+  });
+  assert.equal(result.accepted, true);
+  if (!result.accepted) throw new Error('invalid project entitlement context');
   return result.value;
 }
 
@@ -161,6 +175,7 @@ function client(
   options: {
     readonly forceRevisionConflict?: boolean;
     readonly firstQueries?: Array<Readonly<Record<string, unknown>>>;
+    readonly transactionCalls?: { value: number };
   } = {},
 ): EntitlementDatabaseClientV1 {
   const planRows: Record<string, unknown>[] = [];
@@ -179,6 +194,7 @@ function client(
     async $transaction<TValue>(
       work: (transaction: EntitlementDatabaseClientV1) => Promise<TValue>,
     ): Promise<TValue> {
+      if (options.transactionCalls) options.transactionCalls.value += 1;
       return work(database as unknown as EntitlementDatabaseClientV1);
     },
   };
@@ -233,6 +249,46 @@ void test('[BUA-001, BUA-002, BUA-008, IAM-009] Prisma entitlement adapter persi
     ),
     undefined,
   );
+});
+
+void test('[BUA-008, IAM-009] Prisma entitlement adapter round-trips project-scoped usage', async () => {
+  const repository = new PrismaEntitlementRepositoryAdapter(client());
+  await repository.saveSnapshot(context(workspaceId, 'project-snapshot'), snapshot());
+  const service = new EntitlementAdmissionService(repository);
+  const input = admissionInput('project-admit', '1');
+  const admitted = await service.admit(projectContext('project-admit'), {
+    ...input,
+    tenantScope: { scopeType: 'project', organizationId, workspaceId, projectId },
+  });
+  assert.equal(admitted.accepted, true);
+
+  const state = await repository.listUsageState(projectContext('project-read'));
+  assert.equal(state.entries.length, 1);
+  assert.equal(state.reservations.length, 1);
+  assert.deepEqual(state.entries[0]?.tenantScope, {
+    scopeType: 'project',
+    organizationId,
+    workspaceId,
+    projectId,
+  });
+  assert.deepEqual(state.reservations[0]?.tenantScope, {
+    scopeType: 'project',
+    organizationId,
+    workspaceId,
+    projectId,
+  });
+});
+
+void test('[BUA-008, BUA-011] direct usage persistence executes in one database transaction', async () => {
+  const transactionCalls = { value: 0 };
+  const repository = new PrismaEntitlementRepositoryAdapter(client({ transactionCalls }));
+
+  await repository.persistUsageState(context(workspaceId, 'transactional-usage'), {
+    entries: [],
+    reservations: [],
+  });
+
+  assert.equal(transactionCalls.value, 1);
 });
 
 void test('[BUA-012] Prisma entitlement adapter applies reservation status revisions and preserves idempotent settlement', async () => {

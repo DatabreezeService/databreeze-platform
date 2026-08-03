@@ -304,12 +304,20 @@ export function verifyAuditChainV1(
       if (!event) return rejected('CHAIN_INVALID');
       if (event.sequence !== index + 1 || event.previousDigest !== previousDigest)
         return rejected('CHAIN_INVALID');
-      const { digest, ...withoutDigest } = event;
-      if (digestPort.digest(canonicalEvent(withoutDigest)) !== digest)
-        return rejected('CHAIN_INVALID');
-      previousDigest = digest;
+      if (!verifyAuditEventDigestV1(event, digestPort).accepted) return rejected('CHAIN_INVALID');
+      previousDigest = event.digest;
     }
   }
+  return Object.freeze({ accepted: true, value: true });
+}
+
+/** Verify one immutable event when a bounded page does not contain the full scope chain. */
+export function verifyAuditEventDigestV1(
+  event: AuditEventV1,
+  digestPort: AuditDigestPortV1,
+): AuditResultV1<true> {
+  const { digest, ...withoutDigest } = event;
+  if (digestPort.digest(canonicalEvent(withoutDigest)) !== digest) return rejected('CHAIN_INVALID');
   return Object.freeze({ accepted: true, value: true });
 }
 

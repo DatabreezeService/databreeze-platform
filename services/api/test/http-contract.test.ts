@@ -501,6 +501,7 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
           'x-csrf-token': csrfToken,
           origin: 'http://localhost:3000',
           authorization: 'Bearer sign-out-access-token',
+          'idempotency-key': 'sign-out-web-001',
         },
         payload: {
           clientPlatform: 'web',
@@ -520,7 +521,10 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
       const native = await app.inject({
         method: 'POST',
         url: '/v1/auth/sign-out',
-        headers: { authorization: 'Bearer sign-out-access-token' },
+        headers: {
+          authorization: 'Bearer sign-out-access-token',
+          'idempotency-key': 'sign-out-native-001',
+        },
         payload: {
           clientPlatform: 'android',
           sessionId: '00000000-0000-4000-8000-000000000011',
@@ -536,7 +540,10 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
       const crossUser = await app.inject({
         method: 'POST',
         url: '/v1/auth/sign-out',
-        headers: { authorization: 'Bearer sign-out-access-token' },
+        headers: {
+          authorization: 'Bearer sign-out-access-token',
+          'idempotency-key': 'sign-out-cross-user-001',
+        },
         payload: {
           clientPlatform: 'android',
           sessionId: '00000000-0000-4000-8000-000000000099',
@@ -561,7 +568,10 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
       const response = await app.inject({
         method: 'POST',
         url: '/v1/auth/sign-out',
-        headers: { authorization: 'Bearer sign-out-access-token' },
+        headers: {
+          authorization: 'Bearer sign-out-access-token',
+          'idempotency-key': 'sign-out-unavailable-001',
+        },
         payload: {
           clientPlatform: 'android',
           sessionId: '00000000-0000-4000-8000-000000000011',
@@ -623,7 +633,21 @@ void test('protected artifact reads derive tenant scope from an authenticated ac
         headers: { authorization: 'Bearer access-token-for-context-1' },
       });
       assert.equal(auditEvents.statusCode, 200);
-      assert.deepEqual(auditEvents.json(), []);
+      assert.deepEqual(auditEvents.json(), { items: [] });
+
+      const invalidAuditCursor = await app.inject({
+        method: 'GET',
+        url: '/v1/audit/events?cursor=not-a-cursor',
+        headers: { authorization: 'Bearer access-token-for-context-1' },
+      });
+      assertProblem(invalidAuditCursor, 400, 'VALIDATION_FAILED');
+
+      const invalidAuditLimit = await app.inject({
+        method: 'GET',
+        url: '/v1/audit/events?limit=101',
+        headers: { authorization: 'Bearer access-token-for-context-1' },
+      });
+      assertProblem(invalidAuditLimit, 400, 'VALIDATION_FAILED');
 
       const auditSeals = await app.inject({
         method: 'GET',
@@ -631,7 +655,7 @@ void test('protected artifact reads derive tenant scope from an authenticated ac
         headers: { authorization: 'Bearer access-token-for-context-1' },
       });
       assert.equal(auditSeals.statusCode, 200);
-      assert.deepEqual(auditSeals.json(), []);
+      assert.deepEqual(auditSeals.json(), { items: [] });
 
       const usage = await app.inject({
         method: 'GET',
@@ -680,8 +704,8 @@ void test('protected artifact reads derive tenant scope from an authenticated ac
 
 void test('audit read outages return retryable service-unavailable problems', async () => {
   const auditRepository = Object.assign(new InMemoryAuditRepositoryAdapter(), {
-    listEvents: () => Promise.reject(new Error(`database ${leakedMarker}`)),
-    listSeals: () => Promise.reject(new Error(`database ${leakedMarker}`)),
+    listEventPage: () => Promise.reject(new Error(`database ${leakedMarker}`)),
+    listSealPage: () => Promise.reject(new Error(`database ${leakedMarker}`)),
   });
   const principal = {
     userId: '00000000-0000-4000-8000-000000000001',
@@ -717,9 +741,16 @@ void test('audit read outages return retryable service-unavailable problems', as
 
 void test('MFA HTTP lifecycle derives the user from the authenticated tenant context and returns redacted state', async () => {
   const actorId = '00000000-0000-4000-8000-000000000001';
-  const mfaService = new MfaService(new InMemoryMfaRepositoryAdapter(), {
-    matches: (presented, stored) => presented === stored,
-  });
+  const mfaService = new MfaService(
+    new InMemoryMfaRepositoryAdapter(),
+    {
+      matches: (presented, stored) => presented === stored,
+    },
+    {
+      verify: ({ proof }) => Promise.resolve(proof === '654321'),
+    },
+    () => new Date('2026-01-01T00:00:00.000Z'),
+  );
   const contextResult = createIamTenantContextV1({
     tenantScope: {
       scopeType: 'workspace',
@@ -735,6 +766,18 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
   if (!contextResult.accepted) return;
   const requestTenantContext = { resolve: () => Promise.resolve(contextResult.value) };
   await withApp({ mfaService, requestTenantContext }, async (app) => {
+    const forgedEnrollmentTime = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/mfa/factors',
+      payload: {
+        id: '00000000-0000-4000-8000-000000000010',
+        method: 'TOTP',
+        secretReference: 'vault://iam/mfa/test-factor',
+        enrolledAt: '2000-01-01T00:00:00.000Z',
+      },
+    });
+    assertProblem(forgedEnrollmentTime, 400, 'VALIDATION_FAILED');
+
     const enrolled = await app.inject({
       method: 'POST',
       url: '/v1/auth/mfa/factors',
@@ -742,7 +785,6 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
         id: '00000000-0000-4000-8000-000000000010',
         method: 'TOTP',
         secretReference: 'vault://iam/mfa/test-factor',
-        enrolledAt: '2026-01-01T00:00:00.000Z',
       },
     });
     assert.equal(enrolled.statusCode, 200);
@@ -755,7 +797,7 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
     const verified = await app.inject({
       method: 'POST',
       url: '/v1/auth/mfa/factors/00000000-0000-4000-8000-000000000010/verify',
-      payload: { at: '2026-01-01T00:01:00.000Z' },
+      payload: { proof: '654321' },
     });
     assert.equal(verified.statusCode, 200);
     const verifiedBody = parsedBody<{ readonly factors: readonly [{ readonly status: string }] }>(
@@ -766,7 +808,7 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
     const invalid = await app.inject({
       method: 'POST',
       url: '/v1/auth/mfa/factors/00000000-0000-4000-8000-000000000099/verify',
-      payload: { at: '2026-01-01T00:02:00.000Z' },
+      payload: { proof: '654321' },
     });
     assertProblem(invalid, 400, 'MFA_REQUEST_REJECTED');
   });
@@ -782,7 +824,6 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
         id: '00000000-0000-4000-8000-000000000010',
         method: 'TOTP',
         secretReference: 'vault://iam/mfa/test-factor',
-        enrolledAt: '2026-01-01T00:00:00.000Z',
       },
     });
     assertProblem(response, 503, 'MFA_UNAVAILABLE');

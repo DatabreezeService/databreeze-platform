@@ -123,6 +123,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802300000_sa_spreadsheet_audits',
     '20260803000000_iae_lineage_uniqueness',
     '20260803010000_iam_session_scope_binding',
+    '20260803020000_bua_project_usage_scope',
     'migration_lock.toml',
   ]);
   const migration = await readFile(

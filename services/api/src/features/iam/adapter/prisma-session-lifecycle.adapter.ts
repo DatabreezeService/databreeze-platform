@@ -107,6 +107,7 @@ interface RefreshTokenDelegateV1 {
   }): Promise<RefreshTokenDatabaseRowV1 | null>;
   findMany(input: {
     readonly where: Readonly<Record<string, unknown>>;
+    readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
   }): Promise<readonly RefreshTokenDatabaseRowV1[]>;
   updateMany(input: {
     readonly where: Readonly<Record<string, unknown>>;
@@ -237,6 +238,45 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
     this.clock = options.clock ?? (() => new Date());
   }
 
+  private async revokeRefreshFamily(
+    transaction: SessionLifecycleDatabaseClientV1,
+    sessionId: StableIdentifierV1,
+    familyId: StableIdentifierV1,
+    now: Date,
+  ): Promise<void> {
+    await transaction.refreshTokenRecord.updateMany({
+      where: { familyId, status: 'ACTIVE' },
+      data: { status: 'REVOKED' },
+    });
+    await transaction.sessionRecord.update({
+      where: { id: sessionId },
+      data: { status: 'REVOKED', revokedAt: now },
+    });
+    await transaction.accessTokenRecord.updateMany({
+      where: { sessionId, status: 'ACTIVE' },
+      data: { status: 'REVOKED', revokedAt: now },
+    });
+  }
+
+  private async expireSession(
+    transaction: SessionLifecycleDatabaseClientV1,
+    sessionId: StableIdentifierV1,
+    familyId: StableIdentifierV1,
+  ): Promise<void> {
+    await transaction.refreshTokenRecord.updateMany({
+      where: { familyId, status: 'ACTIVE' },
+      data: { status: 'EXPIRED' },
+    });
+    await transaction.sessionRecord.update({
+      where: { id: sessionId },
+      data: { status: 'EXPIRED' },
+    });
+    await transaction.accessTokenRecord.updateMany({
+      where: { sessionId, status: 'ACTIVE' },
+      data: { status: 'EXPIRED' },
+    });
+  }
+
   public async issue(
     principal: AuthenticatedPrincipalV1,
     clientPlatform: 'android' | 'desktop' | 'web',
@@ -330,32 +370,35 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
       });
       if (!sessionRow) return { accepted: false, code: 'INVALID_REFRESH_TOKEN' };
       const session = sessionFromRow(sessionRow);
+      if (session.status === 'REVOKED') return { accepted: false, code: 'REVOKED_FAMILY' };
+      if (session.status === 'EXPIRED') return { accepted: false, code: 'EXPIRED' };
+      if (
+        now.getTime() >= Date.parse(session.inactivityExpiresAt) ||
+        now.getTime() >= Date.parse(session.absoluteExpiresAt)
+      ) {
+        await this.expireSession(transaction, token.sessionId, token.familyId);
+        return { accepted: false, code: 'EXPIRED' };
+      }
       const active = await transaction.refreshTokenRecord.findMany({
         where: { sessionId: token.sessionId, familyId: token.familyId, status: 'ACTIVE' },
+        orderBy: { issuedAt: 'desc' },
       });
-      const activeToken = active[0] ? tokenFromRow(active[0]) : undefined;
+      if (active.length !== 1 || !active[0]) {
+        await this.revokeRefreshFamily(transaction, token.sessionId, token.familyId, now);
+        return { accepted: false, code: 'REUSE_DETECTED' };
+      }
+      const activeToken = tokenFromRow(active[0]);
       const rotated = rotateRefreshFamilyV1({
         now: now.toISOString(),
         presentedTokenId: token.id,
-        activeTokenId: activeToken?.id ?? token.id,
+        activeTokenId: activeToken.id,
         nextTokenId: stableIdentifier(randomUUID()),
         familyStatus: session.status === 'ACTIVE' ? 'ACTIVE' : 'REVOKED',
         tokenExpiresAt: token.expiresAt,
       });
       if (!rotated.accepted || !rotated.nextTokenId) {
         if (rotated.code === 'REUSE_DETECTED') {
-          await transaction.refreshTokenRecord.updateMany({
-            where: { familyId: token.familyId, status: 'ACTIVE' },
-            data: { status: 'REVOKED' },
-          });
-          await transaction.sessionRecord.update({
-            where: { id: token.sessionId },
-            data: { status: 'REVOKED', revokedAt: now },
-          });
-          await transaction.accessTokenRecord.updateMany({
-            where: { sessionId: token.sessionId, status: 'ACTIVE' },
-            data: { status: 'REVOKED', revokedAt: now },
-          });
+          await this.revokeRefreshFamily(transaction, token.sessionId, token.familyId, now);
         } else if (rotated.code === 'EXPIRED' && token.status === 'ACTIVE') {
           await transaction.refreshTokenRecord.updateMany({
             where: { id: token.id, status: 'ACTIVE' },

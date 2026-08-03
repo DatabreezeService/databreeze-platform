@@ -77,6 +77,7 @@ export interface UsageLedgerEntryDatabaseRowV1 {
   readonly scopeType: string;
   readonly organizationId: string;
   readonly workspaceId: string | null;
+  readonly projectId: string | null;
   readonly metric: string;
   readonly bucket: string;
   readonly deltaUnits: bigint | number;
@@ -93,6 +94,7 @@ export interface UsageReservationDatabaseRowV1 {
   readonly scopeType: string;
   readonly organizationId: string;
   readonly workspaceId: string | null;
+  readonly projectId: string | null;
   readonly metric: string;
   readonly reservedUnits: bigint | number;
   readonly status: string;
@@ -179,6 +181,13 @@ function databaseScope(scope: TenantScopeV1) {
     scopeType: scope.scopeType,
     organizationId: scope.organizationId,
     workspaceId: scope.scopeType === 'organization' ? null : scope.workspaceId,
+  } as const;
+}
+
+function databaseUsageScope(scope: TenantScopeV1) {
+  return {
+    ...databaseScope(scope),
+    projectId: scope.scopeType === 'project' ? scope.projectId : null,
   } as const;
 }
 
@@ -301,7 +310,7 @@ function persistedEntry(row: UsageLedgerEntryDatabaseRowV1): UsageLedgerEntryV1 
   const reservationId =
     row.reservationId === null ? undefined : parseStableIdentifierV1(row.reservationId);
   const occurredAt = parseStrictUtcTimestampV1(row.occurredAt.toISOString());
-  const scope = persistedScope({ ...row, projectId: null });
+  const scope = persistedScope(row);
   if (
     row.schemaVersion !== 1 ||
     !entryId.accepted ||
@@ -332,7 +341,7 @@ function persistedEntry(row: UsageLedgerEntryDatabaseRowV1): UsageLedgerEntryV1 
 function persistedReservation(row: UsageReservationDatabaseRowV1): UsageReservationV1 {
   const reservationId = parseStableIdentifierV1(row.id);
   const occurredAt = parseStrictUtcTimestampV1(row.createdAt.toISOString());
-  const scope = persistedScope({ ...row, projectId: null });
+  const scope = persistedScope(row);
   if (
     !reservationId.accepted ||
     !occurredAt.accepted ||
@@ -401,7 +410,7 @@ function snapshotCreateData(snapshot: EntitlementSnapshotV1): EntitlementSnapsho
 
 function entryCreateData(entry: UsageLedgerEntryV1): UsageLedgerEntryCreateDataV1 {
   return {
-    ...databaseScope(entry.tenantScope),
+    ...databaseUsageScope(entry.tenantScope),
     id: entry.entryId,
     schemaVersion: entry.schemaVersion,
     scopeKey: scopeKey(entry.tenantScope),
@@ -418,7 +427,7 @@ function entryCreateData(entry: UsageLedgerEntryV1): UsageLedgerEntryCreateDataV
 
 function reservationCreateData(reservation: UsageReservationV1): UsageReservationCreateDataV1 {
   return {
-    ...databaseScope(reservation.tenantScope),
+    ...databaseUsageScope(reservation.tenantScope),
     id: reservation.reservationId,
     scopeKey: scopeKey(reservation.tenantScope),
     metric: reservation.metric,
@@ -436,10 +445,12 @@ function visible(context: TenantScopeV1, candidate: TenantScopeV1): boolean {
 
 function inheritedUsageScopeKeys(scope: TenantScopeV1): readonly string[] | undefined {
   if (scope.scopeType === 'organization') return undefined;
-  return Object.freeze([
+  const inherited = [
     `organization:${scope.organizationId}`,
     `workspace:${scope.organizationId}:${scope.workspaceId}`,
-  ]);
+  ];
+  if (scope.scopeType === 'project') inherited.push(scopeKey(scope));
+  return Object.freeze(inherited);
 }
 
 function sameReservationExceptStatus(left: UsageReservationV1, right: UsageReservationV1): boolean {
@@ -559,16 +570,12 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
     return Object.freeze({
       entries: Object.freeze(
         entryRows
-          .filter((row) =>
-            visible(context.tenantScope, persistedScope({ ...row, projectId: null })),
-          )
+          .filter((row) => visible(context.tenantScope, persistedScope(row)))
           .map(persistedEntry),
       ),
       reservations: Object.freeze(
         reservationRows
-          .filter((row) =>
-            visible(context.tenantScope, persistedScope({ ...row, projectId: null })),
-          )
+          .filter((row) => visible(context.tenantScope, persistedScope(row)))
           .map(persistedReservation),
       ),
     });
@@ -670,6 +677,8 @@ export class PrismaEntitlementRepositoryAdapter implements EntitlementRepository
   }
 
   public persistUsageState(context: IamTenantContextV1, state: UsageLedgerStateV1): Promise<void> {
-    return new PrismaEntitlementTransactionAdapter(this.client).persistUsageState(context, state);
+    return this.client.$transaction((transaction) =>
+      new PrismaEntitlementTransactionAdapter(transaction).persistUsageState(context, state),
+    );
   }
 }

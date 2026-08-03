@@ -9,6 +9,7 @@ import { AudModule, type AudModuleOptions } from './features/aud/aud.module.js';
 import { BuaModule, type BuaModuleOptions } from './features/bua/bua.module.js';
 import { SaModule, type SaModuleOptions } from './features/sa/sa.module.js';
 import { SessionRequestTenantContextAdapter } from './platform/http/session-tenant-context.adapter.js';
+import { PrismaSessionLifecycleAdapter } from './features/iam/adapter/prisma-session-lifecycle.adapter.js';
 
 export type AppModuleOptions = SystemModuleOptions &
   IamModuleOptions &
@@ -22,7 +23,11 @@ export type AppModuleOptions = SystemModuleOptions &
 @Module({})
 export class AppModule {
   static register(options: AppModuleOptions = {}): DynamicModule {
-    const sessions = options.sessions;
+    const sessions =
+      options.sessions ??
+      (options.sessionDatabase === undefined
+        ? undefined
+        : new PrismaSessionLifecycleAdapter(options.sessionDatabase));
     const requestTenantContext =
       options.requestTenantContext ??
       (typeof sessions?.findPrincipalByAccessToken === 'function'
@@ -30,8 +35,11 @@ export class AppModule {
             findPrincipalByAccessToken: sessions.findPrincipalByAccessToken.bind(sessions),
           })
         : undefined);
-    const composedOptions =
-      requestTenantContext === undefined ? options : { ...options, requestTenantContext };
+    const composedOptions = {
+      ...options,
+      ...(sessions === undefined ? {} : { sessions }),
+      ...(requestTenantContext === undefined ? {} : { requestTenantContext }),
+    };
     return {
       module: AppModule,
       imports: [

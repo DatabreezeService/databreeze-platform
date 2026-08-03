@@ -11,6 +11,7 @@ import {
 import {
   PrismaIamRepositoryAdapter,
   type IamDatabaseClientV1,
+  type IamTransactionDatabaseClientV1,
   type IamMembershipDatabaseRowV1,
 } from '../../../src/features/iam/adapter/prisma-iam-repository.adapter.js';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
@@ -111,10 +112,12 @@ function createDatabase(rows: readonly IamMembershipDatabaseRowV1[] = []): {
         return { count: 1 };
       },
     },
-    $transaction: async <TValue>(work: (transaction: IamDatabaseClientV1) => Promise<TValue>) => {
+    $transaction: async <TValue>(
+      work: (transaction: IamTransactionDatabaseClientV1) => Promise<TValue>,
+    ) => {
       const before = new Map(memberships);
       try {
-        return await work(client);
+        return await work({ membershipIdentity: client.membershipIdentity });
       } catch (error) {
         memberships.clear();
         for (const [key, value] of before) memberships.set(key, value);
@@ -142,6 +145,24 @@ void test('[IAM-009, IAM-019] Prisma IAM membership reads are tenant scoped and 
   assert.equal(
     (await repository.findMembership(context(workspaceScope), principalId))?.id,
     stable('10'),
+  );
+});
+
+void test('[IAM-009, IAM-019] malformed membership rows fail closed without blocking valid reads', async () => {
+  const valid = row(id('20'), 'WORKSPACE', workspaceId, 'viewer');
+  const malformed = {
+    ...row(id('21'), 'WORKSPACE', workspaceId, 'viewer'),
+    workspaceId: 'not-a-workspace-id',
+  };
+  const repository = new PrismaIamRepositoryAdapter(createDatabase([valid, malformed]).client);
+
+  assert.deepEqual(
+    (
+      await repository.listMemberships(
+        context({ scopeType: 'workspace', organizationId, workspaceId }),
+      )
+    ).map((membership) => membership.id),
+    [valid.id],
   );
 });
 

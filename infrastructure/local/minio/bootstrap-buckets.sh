@@ -1,4 +1,5 @@
 #!/bin/sh
+# Mounted into a Linux container; repository attributes keep this script LF-only.
 set -eu
 
 : "${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}"

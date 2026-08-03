@@ -80,7 +80,7 @@ function parseCookies(raw: string): {
     if (
       name.length > MAX_COOKIE_NAME_LENGTH ||
       value.length > MAX_COOKIE_VALUE_LENGTH ||
-      !/^[A-Za-z0-9_]+$/u.test(name) ||
+      !/^[!#$%&'*+\-.^_`|~A-Za-z0-9]+$/u.test(name) ||
       value.includes('\r') ||
       value.includes('\n')
     ) {

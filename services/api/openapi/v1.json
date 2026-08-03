@@ -6748,6 +6748,18 @@
         "operationId": "AuditController.events",
         "parameters": [
           {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": { "minimum": 1, "maximum": 100, "type": "number" }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": { "maxLength": 512, "type": "string" }
+          },
+          {
             "name": "X-Correlation-Id",
             "in": "header",
             "required": false,
@@ -6828,6 +6840,18 @@
       "get": {
         "operationId": "AuditController.seals",
         "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": { "minimum": 1, "maximum": 100, "type": "number" }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": { "maxLength": 512, "type": "string" }
+          },
           {
             "name": "X-Correlation-Id",
             "in": "header",
@@ -7353,12 +7377,7 @@
         "properties": {
           "sessionId": { "type": "string", "format": "uuid" },
           "accessToken": { "type": "string", "minLength": 1, "maxLength": 4096 },
-          "refreshToken": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 4096,
-            "writeOnly": true
-          },
+          "refreshToken": { "type": "string", "minLength": 1, "maxLength": 4096 },
           "accessExpiresAt": { "type": "string", "format": "date-time" }
         },
         "required": ["sessionId", "accessToken", "accessExpiresAt"]
@@ -7423,24 +7442,23 @@
         "properties": {
           "id": { "type": "string", "format": "uuid" },
           "method": { "type": "string", "enum": ["TOTP", "WEBAUTHN"] },
-          "secretReference": { "type": "string", "maxLength": 512, "writeOnly": true },
-          "enrolledAt": { "type": "string", "format": "date-time" },
-          "revision": { "type": "number", "minimum": 1 }
+          "secretReference": { "type": "string", "maxLength": 512, "writeOnly": true }
         },
-        "required": ["id", "method", "secretReference", "enrolledAt"]
+        "required": ["id", "method", "secretReference"]
       },
       "VerifyMfaFactorDto": {
         "type": "object",
-        "properties": { "at": { "type": "string", "format": "date-time" } },
-        "required": ["at"]
+        "properties": {
+          "proof": { "type": "string", "minLength": 1, "maxLength": 4096, "writeOnly": true }
+        },
+        "required": ["proof"]
       },
       "RedeemMfaRecoveryCodeDto": {
         "type": "object",
         "properties": {
-          "presentedDigest": { "type": "string", "maxLength": 256, "writeOnly": true },
-          "at": { "type": "string", "format": "date-time" }
+          "presentedDigest": { "type": "string", "maxLength": 256, "writeOnly": true }
         },
-        "required": ["presentedDigest", "at"]
+        "required": ["presentedDigest"]
       },
       "CreateInboxItemDto": {
         "type": "object",
