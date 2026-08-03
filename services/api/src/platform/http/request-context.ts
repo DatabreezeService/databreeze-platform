@@ -16,9 +16,19 @@ export interface RequestContext {
 
 const requestContexts = new WeakMap<FastifyRequest, RequestContext>();
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const traceparentPattern = /^([0-9a-f]{2})-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/i;
 
 export type CorrelationHeaderResult =
   | { readonly accepted: true; readonly correlationId: string }
+  | { readonly accepted: false };
+
+export type TraceparentHeaderResult =
+  | {
+      readonly accepted: true;
+      readonly traceId?: string;
+      readonly spanId?: string;
+      readonly traceFlags?: string;
+    }
   | { readonly accepted: false };
 
 export interface RequestContextOptions {
@@ -57,6 +67,33 @@ export function parseCorrelationHeader(
     return { accepted: false };
   }
   return { accepted: true, correlationId: value };
+}
+
+/** Parses one W3C traceparent without reflecting malformed or provider values. */
+export function parseTraceparentHeader(values: readonly string[]): TraceparentHeaderResult {
+  if (values.length === 0) return { accepted: true };
+  if (values.length !== 1) return { accepted: false };
+  const value = values[0];
+  if (value === undefined) return { accepted: false };
+  const match = traceparentPattern.exec(value);
+  if (!match) return { accepted: false };
+  const [, version, traceId, spanId, traceFlags] = match;
+  if (
+    !version ||
+    version.toLowerCase() === 'ff' ||
+    !traceId ||
+    traceId === '0'.repeat(32) ||
+    !spanId ||
+    spanId === '0'.repeat(16) ||
+    !traceFlags
+  )
+    return { accepted: false };
+  return {
+    accepted: true,
+    traceId: traceId.toLowerCase(),
+    spanId: spanId.toLowerCase(),
+    traceFlags: traceFlags.toLowerCase(),
+  };
 }
 
 export function getRequestContext(request: FastifyRequest): RequestContext {
