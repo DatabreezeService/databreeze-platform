@@ -31,7 +31,7 @@ export class ArtifactAdmissionService {
     return this.repository.withTransaction(context, async (transaction) => {
       const artifact = await transaction.findVersion(context, versionId);
       if (!artifact) return Object.freeze({ accepted: false, code: 'ARTIFACT_NOT_FOUND' as const });
-      const admission = finalizeArtifactAdmissionV1({ artifact, ...input });
+      const admission = finalizeArtifactAdmissionV1({ ...input, artifact });
       if (!admission.accepted) return admission;
       const updated = await transaction.updateVersionStatus(
         context,

@@ -59,3 +59,51 @@ void test('IAE-009/010 admission updates only the status projection after scanne
   });
   assert.deepEqual(rejected, { accepted: false, code: 'DIGEST_MISMATCH' });
 });
+
+void test('IAE-009 admission never lets request input replace the repository artifact', async () => {
+  const repository = new InMemoryArtifactRepositoryAdapter();
+  const service = new ArtifactAdmissionService(repository);
+  const artifact = createArtifactVersionV1({
+    artifactId: '55555555-5555-4555-8555-555555555555',
+    versionId: '66666666-6666-4666-8666-666666666666',
+    tenantScope: context.tenantScope,
+    sourceKind: 'FILE',
+    dataMode: 'Hybrid',
+    contentSha256: 'a'.repeat(64),
+    byteSize: 4,
+    mediaType: 'text/csv',
+    displayName: 'orders.csv',
+    createdAt: '2026-08-02T00:00:00.000Z',
+    status: 'QUARANTINED',
+  });
+  const attackerArtifact = createArtifactVersionV1({
+    artifactId: '77777777-7777-4777-8777-777777777777',
+    versionId: '88888888-8888-4888-8888-888888888888',
+    tenantScope: context.tenantScope,
+    sourceKind: 'FILE',
+    dataMode: 'Hybrid',
+    contentSha256: 'b'.repeat(64),
+    byteSize: 4,
+    mediaType: 'text/csv',
+    displayName: 'attacker.csv',
+    createdAt: '2026-08-02T00:00:00.000Z',
+    status: 'QUARANTINED',
+  });
+  assert.equal(artifact.accepted, true);
+  assert.equal(attackerArtifact.accepted, true);
+  if (!artifact.accepted || !attackerArtifact.accepted) return;
+  await repository.saveVersion(context, artifact.value);
+
+  const untrustedInput = {
+    actualSha256: 'b'.repeat(64),
+    actualByteSize: 4,
+    detectedMediaType: 'text/csv',
+    scanState: 'CLEAN' as const,
+    maxByteSize: 100,
+    artifact: attackerArtifact.value,
+  };
+  const result = await service.admit(context, artifact.value.versionId, untrustedInput);
+
+  assert.deepEqual(result, { accepted: false, code: 'DIGEST_MISMATCH' });
+  assert.equal((await repository.findVersion(context, artifact.value.versionId))?.status, 'QUARANTINED');
+});
