@@ -53,13 +53,13 @@ void test('[IAE-014] upload sessions require every bounded part before completio
   });
   assert.equal(second.accepted, true);
   if (!second.accepted) return;
-  assert.equal(
-    completeArtifactUploadSessionV1(second.value, {
-      assembledSha256: base.expectedSha256,
-      expectedRevision: 3,
-    }).value.state,
-    'COMPLETED',
-  );
+  const completed = completeArtifactUploadSessionV1(second.value, {
+    assembledSha256: base.expectedSha256,
+    expectedRevision: 3,
+  });
+  assert.equal(completed.accepted, true);
+  if (!completed.accepted) return;
+  assert.equal(completed.value.state, 'COMPLETED');
 });
 
 void test('[IAE-014] upload sessions reject a premature expiration timestamp', () => {
