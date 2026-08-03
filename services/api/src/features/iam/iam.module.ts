@@ -32,6 +32,14 @@ import {
   IAM_REPOSITORY_PORT,
   type IamRepositoryPortV1,
 } from './application/iam-repository.port.js';
+import {
+  IAM_HIERARCHY_REPOSITORY,
+  type IamHierarchyRepositoryPortV1,
+} from './application/hierarchy-repository.port.js';
+import {
+  IAM_HIERARCHY_SERVICE,
+  IamHierarchyService,
+} from './application/hierarchy.service.js';
 import type { PasswordCredentialService } from './application/password-credential.service.js';
 import { UnavailableAuthenticationAdapter } from './adapter/unavailable-authentication.adapter.js';
 import {
@@ -54,6 +62,11 @@ import {
   PrismaIamRepositoryAdapter,
   type IamDatabaseClientV1,
 } from './adapter/prisma-iam-repository.adapter.js';
+import { InMemoryIamHierarchyRepositoryAdapter } from './adapter/in-memory-iam-hierarchy-repository.adapter.js';
+import {
+  PrismaIamHierarchyRepositoryAdapter,
+  type IamHierarchyDatabaseClientV1,
+} from './adapter/prisma-iam-hierarchy-repository.adapter.js';
 import { DeviceIdentityController } from './api/device-identity.controller.js';
 import { InMemoryDeviceIdentityRepositoryAdapter } from './adapter/in-memory-device-identity-repository.adapter.js';
 import {
@@ -95,6 +108,9 @@ export interface IamModuleOptions {
   };
   readonly iamRepository?: IamRepositoryPortV1;
   readonly iamDatabase?: IamDatabaseClientV1;
+  readonly hierarchyRepository?: IamHierarchyRepositoryPortV1;
+  readonly hierarchyDatabase?: IamHierarchyDatabaseClientV1;
+  readonly hierarchyService?: IamHierarchyService;
   readonly deviceIdentityService?: DeviceIdentityService;
   readonly deviceIdentityRepository?: DeviceIdentityRepositoryPortV1;
   readonly deviceIdentityDatabase?: DeviceIdentityDatabaseClientV1;
@@ -165,6 +181,13 @@ export class IamModule {
       (options.iamDatabase === undefined
         ? undefined
         : new PrismaIamRepositoryAdapter(options.iamDatabase));
+    const hierarchyRepository =
+      options.hierarchyRepository ??
+      (options.hierarchyDatabase === undefined
+        ? new InMemoryIamHierarchyRepositoryAdapter()
+        : new PrismaIamHierarchyRepositoryAdapter(options.hierarchyDatabase));
+    const hierarchyService =
+      options.hierarchyService ?? new IamHierarchyService(hierarchyRepository);
     const authentication =
       options.authentication ??
       (credentials && sessions
@@ -181,7 +204,12 @@ export class IamModule {
         deviceIdentityRepository,
         options.deviceEnrollmentProofVerifier ?? new UnavailableDeviceEnrollmentProofVerifier(),
       );
-    const exports = [DEVICE_IDENTITY_REPOSITORY_PORT, DEVICE_IDENTITY_SERVICE];
+    const exports = [
+      DEVICE_IDENTITY_REPOSITORY_PORT,
+      DEVICE_IDENTITY_SERVICE,
+      IAM_HIERARCHY_REPOSITORY,
+      IAM_HIERARCHY_SERVICE,
+    ];
     if (credentials) exports.unshift(CREDENTIAL_LOOKUP_PORT);
     if (sessions) exports.unshift(SESSION_LIFECYCLE_PORT);
     if (identityBootstrapRepository) exports.unshift(IDENTITY_BOOTSTRAP_REPOSITORY_PORT);
@@ -244,6 +272,14 @@ export class IamModule {
               },
             ]
           : []),
+        {
+          provide: IAM_HIERARCHY_REPOSITORY,
+          useValue: hierarchyRepository,
+        },
+        {
+          provide: IAM_HIERARCHY_SERVICE,
+          useValue: hierarchyService,
+        },
         {
           provide: DEVICE_IDENTITY_REPOSITORY_PORT,
           useValue: deviceIdentityRepository,
