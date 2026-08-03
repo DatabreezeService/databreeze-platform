@@ -6977,6 +6977,22 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": { "schema": { "type": "object", "additionalProperties": true } }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
           "400": {
             "description": "The snapshot identifier is invalid.",
             "headers": {
@@ -7053,6 +7069,38 @@
           }
         ],
         "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["entries", "reservations"],
+                  "properties": {
+                    "entries": {
+                      "type": "array",
+                      "items": { "type": "object", "additionalProperties": true }
+                    },
+                    "reservations": {
+                      "type": "array",
+                      "items": { "type": "object", "additionalProperties": true }
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
           "400": {
             "description": "The request was malformed or failed closed validation.",
             "content": {
