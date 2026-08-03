@@ -73,9 +73,6 @@ interface AuditSealCreateDataV1 extends Omit<AuditSealDatabaseRowV1, 'createdAt'
 
 interface AuditEventDelegateV1 {
   create(input: { readonly data: AuditEventCreateDataV1 }): Promise<AuditEventDatabaseRowV1>;
-  findUnique(input: {
-    readonly where: { readonly id: string };
-  }): Promise<AuditEventDatabaseRowV1 | null>;
   findFirst(input: {
     readonly where: Readonly<Record<string, unknown>>;
     readonly orderBy?: { readonly sequence: 'asc' | 'desc' };
@@ -284,8 +281,11 @@ class PrismaAuditTransactionAdapter implements AuditTransactionPortV1 {
   ): Promise<AuditEventV1> {
     if (!tenantScopeContainsV1(context.tenantScope, event.tenantScope))
       throw new Error('AUD_SCOPE_NARROWING_REQUIRED');
-    const existing = await this.client.auditEventRecord.findUnique({
-      where: { id: event.eventId },
+    const existing = await this.client.auditEventRecord.findFirst({
+      where: {
+        id: event.eventId,
+        organizationId: context.tenantScope.organizationId,
+      },
     });
     if (existing !== null) {
       const current = persistedEvent(existing);
