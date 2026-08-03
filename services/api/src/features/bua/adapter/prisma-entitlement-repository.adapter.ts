@@ -22,6 +22,13 @@ import type {
   EntitlementRepositoryPortV1,
   EntitlementTransactionPortV1,
 } from '../application/entitlement-repository.port.js';
+import {
+  sameEntitlementPlanV1,
+  sameEntitlementSnapshotV1,
+  sameUsageEntryV1,
+  sameUsageReservationExceptStatusV1,
+  sameUsageReservationV1,
+} from '../application/entitlement-equality.js';
 
 const planCodes = new Set(['free', 'development', 'admin_granted']);
 const statuses = new Set(['ACTIVE', 'SUSPENDED', 'EXPIRED']);
@@ -70,6 +77,7 @@ export interface UsageLedgerEntryDatabaseRowV1 {
   readonly scopeType: string;
   readonly organizationId: string;
   readonly workspaceId: string | null;
+  readonly projectId: string | null;
   readonly metric: string;
   readonly bucket: string;
   readonly deltaUnits: bigint | number;
@@ -86,6 +94,7 @@ export interface UsageReservationDatabaseRowV1 {
   readonly scopeType: string;
   readonly organizationId: string;
   readonly workspaceId: string | null;
+  readonly projectId: string | null;
   readonly metric: string;
   readonly reservedUnits: bigint | number;
   readonly status: string;
@@ -113,6 +122,7 @@ interface DelegateV1<TRow, TCreate> {
   findUnique(input: {
     readonly where: { readonly id?: string; readonly planCode?: string };
   }): Promise<TRow | null>;
+  findFirst(input: { readonly where: Readonly<Record<string, unknown>> }): Promise<TRow | null>;
   findMany(input: {
     readonly where: Readonly<Record<string, unknown>>;
     readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
@@ -122,7 +132,7 @@ interface DelegateV1<TRow, TCreate> {
     readonly data: Readonly<Record<string, unknown>>;
   }): Promise<TRow>;
   updateMany?(input: {
-    readonly where: { readonly id: string; readonly revision: number };
+    readonly where: Readonly<Record<string, unknown>>;
     readonly data: Readonly<Record<string, unknown>>;
   }): Promise<{ readonly count: number }>;
 }
@@ -171,6 +181,13 @@ function databaseScope(scope: TenantScopeV1) {
     scopeType: scope.scopeType,
     organizationId: scope.organizationId,
     workspaceId: scope.scopeType === 'organization' ? null : scope.workspaceId,
+  } as const;
+}
+
+function databaseUsageScope(scope: TenantScopeV1) {
+  return {
+    ...databaseScope(scope),
+    projectId: scope.scopeType === 'project' ? scope.projectId : null,
   } as const;
 }
 
@@ -293,7 +310,7 @@ function persistedEntry(row: UsageLedgerEntryDatabaseRowV1): UsageLedgerEntryV1 
   const reservationId =
     row.reservationId === null ? undefined : parseStableIdentifierV1(row.reservationId);
   const occurredAt = parseStrictUtcTimestampV1(row.occurredAt.toISOString());
-  const scope = persistedScope({ ...row, projectId: null });
+  const scope = persistedScope(row);
   if (
     row.schemaVersion !== 1 ||
     !entryId.accepted ||
@@ -324,7 +341,7 @@ function persistedEntry(row: UsageLedgerEntryDatabaseRowV1): UsageLedgerEntryV1 
 function persistedReservation(row: UsageReservationDatabaseRowV1): UsageReservationV1 {
   const reservationId = parseStableIdentifierV1(row.id);
   const occurredAt = parseStrictUtcTimestampV1(row.createdAt.toISOString());
-  const scope = persistedScope({ ...row, projectId: null });
+  const scope = persistedScope(row);
   if (
     !reservationId.accepted ||
     !occurredAt.accepted ||
@@ -393,7 +410,7 @@ function snapshotCreateData(snapshot: EntitlementSnapshotV1): EntitlementSnapsho
 
 function entryCreateData(entry: UsageLedgerEntryV1): UsageLedgerEntryCreateDataV1 {
   return {
-    ...databaseScope(entry.tenantScope),
+    ...databaseUsageScope(entry.tenantScope),
     id: entry.entryId,
     schemaVersion: entry.schemaVersion,
     scopeKey: scopeKey(entry.tenantScope),
@@ -410,7 +427,7 @@ function entryCreateData(entry: UsageLedgerEntryV1): UsageLedgerEntryCreateDataV
 
 function reservationCreateData(reservation: UsageReservationV1): UsageReservationCreateDataV1 {
   return {
-    ...databaseScope(reservation.tenantScope),
+    ...databaseUsageScope(reservation.tenantScope),
     id: reservation.reservationId,
     scopeKey: scopeKey(reservation.tenantScope),
     metric: reservation.metric,
@@ -426,14 +443,25 @@ function visible(context: TenantScopeV1, candidate: TenantScopeV1): boolean {
   return tenantScopeContainsV1(context, candidate) || tenantScopeContainsV1(candidate, context);
 }
 
+function inheritedUsageScopeKeys(scope: TenantScopeV1): readonly string[] | undefined {
+  if (scope.scopeType === 'organization') return undefined;
+  const inherited = [
+    `organization:${scope.organizationId}`,
+    `workspace:${scope.organizationId}:${scope.workspaceId}`,
+  ];
+  if (scope.scopeType === 'project') inherited.push(scopeKey(scope));
+  return Object.freeze(inherited);
+}
+
 function sameReservationExceptStatus(left: UsageReservationV1, right: UsageReservationV1): boolean {
-  return (
-    left.reservationId === right.reservationId &&
-    left.metric === right.metric &&
-    left.reservedUnits === right.reservedUnits &&
-    JSON.stringify(left.tenantScope) === JSON.stringify(right.tenantScope) &&
-    left.createdAt === right.createdAt
-  );
+  return sameUsageReservationExceptStatusV1(left, right);
+}
+
+function validReservationTransition(
+  current: UsageReservationV1,
+  next: UsageReservationV1,
+): boolean {
+  return current.status === 'ACTIVE' && (next.status === 'FINALIZED' || next.status === 'RELEASED');
 }
 
 class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV1 {
@@ -444,7 +472,7 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
       where: { planCode: plan.planCode },
     });
     if (existing !== null) {
-      if (JSON.stringify(persistedPlan(existing)) !== JSON.stringify(plan))
+      if (!sameEntitlementPlanV1(persistedPlan(existing), plan))
         throw new Error('BUA_IMMUTABLE_PLAN');
       return;
     }
@@ -471,11 +499,15 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
       : { scopeType: 'organization' as const, organizationId: snapshot.organizationId };
     if (!tenantScopeContainsV1(context.tenantScope, scope))
       throw new Error('BUA_SCOPE_NARROWING_REQUIRED');
-    const existing = await this.client.entitlementSnapshotRecord.findUnique({
-      where: { id: snapshot.snapshotId },
+    const existing = await this.client.entitlementSnapshotRecord.findFirst({
+      where: {
+        id: snapshot.snapshotId,
+        organizationId: snapshot.organizationId,
+        scopeKey: scopeKey(scope),
+      },
     });
     if (existing !== null) {
-      if (JSON.stringify(persistedSnapshot(existing)) !== JSON.stringify(snapshot))
+      if (!sameEntitlementSnapshotV1(persistedSnapshot(existing), snapshot))
         throw new Error('BUA_IMMUTABLE_SNAPSHOT');
       return;
     }
@@ -486,8 +518,16 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
     context: IamTenantContextV1,
     snapshotId: EntitlementSnapshotV1['snapshotId'],
   ): Promise<EntitlementSnapshotV1 | undefined> {
-    const row = await this.client.entitlementSnapshotRecord.findUnique({
-      where: { id: snapshotId },
+    const workspaceId =
+      context.tenantScope.scopeType === 'organization'
+        ? undefined
+        : context.tenantScope.workspaceId;
+    const row = await this.client.entitlementSnapshotRecord.findFirst({
+      where: {
+        id: snapshotId,
+        organizationId: context.tenantScope.organizationId,
+        ...(workspaceId === undefined ? {} : { OR: [{ workspaceId: null }, { workspaceId }] }),
+      },
     });
     if (row === null) return undefined;
     const snapshot = persistedSnapshot(row);
@@ -502,29 +542,40 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
   }
 
   public async listUsageState(context: IamTenantContextV1): Promise<UsageLedgerStateV1> {
-    const [entryRows, reservationRows] = await Promise.all([
+    const scopeKeys = inheritedUsageScopeKeys(context.tenantScope);
+    const entryQueries = (scopeKeys ?? [undefined]).map((key) =>
       this.client.usageLedgerEntryRecord.findMany({
-        where: { organizationId: context.tenantScope.organizationId },
+        where:
+          key === undefined
+            ? { organizationId: context.tenantScope.organizationId }
+            : { scopeKey: key },
         orderBy: { sequence: 'asc' },
       }),
+    );
+    const reservationQueries = (scopeKeys ?? [undefined]).map((key) =>
       this.client.usageReservationRecord.findMany({
-        where: { organizationId: context.tenantScope.organizationId },
+        where:
+          key === undefined
+            ? { organizationId: context.tenantScope.organizationId }
+            : { scopeKey: key },
         orderBy: { createdAt: 'asc' },
       }),
+    );
+    const [entryGroups, reservationGroups] = await Promise.all([
+      Promise.all(entryQueries),
+      Promise.all(reservationQueries),
     ]);
+    const entryRows = entryGroups.flat();
+    const reservationRows = reservationGroups.flat();
     return Object.freeze({
       entries: Object.freeze(
         entryRows
-          .filter((row) =>
-            visible(context.tenantScope, persistedScope({ ...row, projectId: null })),
-          )
+          .filter((row) => visible(context.tenantScope, persistedScope(row)))
           .map(persistedEntry),
       ),
       reservations: Object.freeze(
         reservationRows
-          .filter((row) =>
-            visible(context.tenantScope, persistedScope({ ...row, projectId: null })),
-          )
+          .filter((row) => visible(context.tenantScope, persistedScope(row)))
           .map(persistedReservation),
       ),
     });
@@ -537,11 +588,15 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
     for (const entry of state.entries) {
       if (!tenantScopeContainsV1(context.tenantScope, entry.tenantScope))
         throw new Error('BUA_SCOPE_NARROWING_REQUIRED');
-      const existing = await this.client.usageLedgerEntryRecord.findUnique({
-        where: { id: entry.entryId },
+      const existing = await this.client.usageLedgerEntryRecord.findFirst({
+        where: {
+          id: entry.entryId,
+          organizationId: entry.tenantScope.organizationId,
+          scopeKey: scopeKey(entry.tenantScope),
+        },
       });
       if (existing !== null) {
-        if (JSON.stringify(persistedEntry(existing)) !== JSON.stringify(entry))
+        if (!sameUsageEntryV1(persistedEntry(existing), entry))
           throw new Error('BUA_IMMUTABLE_USAGE_ENTRY');
         continue;
       }
@@ -550,8 +605,12 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
     for (const reservation of state.reservations) {
       if (!tenantScopeContainsV1(context.tenantScope, reservation.tenantScope))
         throw new Error('BUA_SCOPE_NARROWING_REQUIRED');
-      const existing = await this.client.usageReservationRecord.findUnique({
-        where: { id: reservation.reservationId },
+      const existing = await this.client.usageReservationRecord.findFirst({
+        where: {
+          id: reservation.reservationId,
+          organizationId: reservation.tenantScope.organizationId,
+          scopeKey: scopeKey(reservation.tenantScope),
+        },
       });
       if (existing === null) {
         await this.client.usageReservationRecord.create({
@@ -560,15 +619,21 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
         continue;
       }
       const current = persistedReservation(existing);
-      if (JSON.stringify(current) === JSON.stringify(reservation)) continue;
+      if (sameUsageReservationV1(current, reservation)) continue;
       if (
         !sameReservationExceptStatus(current, reservation) ||
-        reservation.revision !== current.revision + 1
+        reservation.revision !== current.revision + 1 ||
+        !validReservationTransition(current, reservation)
       )
         throw new Error('BUA_RESERVATION_CONFLICT');
       if (!this.client.usageReservationRecord.updateMany) throw new Error('BUA_UPDATE_UNAVAILABLE');
       const result = await this.client.usageReservationRecord.updateMany({
-        where: { id: reservation.reservationId, revision: current.revision },
+        where: {
+          id: reservation.reservationId,
+          organizationId: reservation.tenantScope.organizationId,
+          scopeKey: scopeKey(reservation.tenantScope),
+          revision: current.revision,
+        },
         data: { status: reservation.status, revision: reservation.revision, updatedAt: new Date() },
       });
       if (result.count !== 1) throw new Error('BUA_RESERVATION_CONFLICT');
@@ -612,6 +677,8 @@ export class PrismaEntitlementRepositoryAdapter implements EntitlementRepository
   }
 
   public persistUsageState(context: IamTenantContextV1, state: UsageLedgerStateV1): Promise<void> {
-    return new PrismaEntitlementTransactionAdapter(this.client).persistUsageState(context, state);
+    return this.client.$transaction((transaction) =>
+      new PrismaEntitlementTransactionAdapter(transaction).persistUsageState(context, state),
+    );
   }
 }

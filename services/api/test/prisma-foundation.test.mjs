@@ -122,6 +122,8 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260802290000_dsm_export_manifests',
     '20260802300000_sa_spreadsheet_audits',
     '20260803000000_iae_lineage_uniqueness',
+    '20260803010000_iam_session_scope_binding',
+    '20260803020000_bua_project_usage_scope',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -502,4 +504,19 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     lineageUniquenessMigration,
     /CREATE UNIQUE INDEX "artifact_lineage_derived_version_key"/,
   );
+  const sessionScopeMigration = await readFile(
+    path.join(migrationsDirectory, inventory[33], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'ALTER TABLE "iam"."sessions"',
+    'ADD COLUMN "organization_id" UUID NOT NULL',
+    'ADD COLUMN "workspace_id" UUID NOT NULL',
+    'CREATE INDEX "sessions_scope_user_status_idx"',
+  ]) {
+    assert.match(
+      sessionScopeMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
 });

@@ -162,13 +162,20 @@ void test('[IAM-001, IAM-009, IAM-011] Prisma bootstrap persists and reconstruct
 });
 
 void test('[IAM-011] repeated bootstrap is immutable and conflicting hierarchy is rejected', async () => {
-  const { client } = createDatabase();
+  const { client, organizations } = createDatabase();
   const adapter = new PrismaIdentityBootstrapRepositoryAdapter(client);
   const validated = bootstrapPersonalOrganizationV1(input);
   assert.equal(validated.accepted, true);
   if (!validated.accepted) return;
 
   await adapter.save(validated.value);
+  const organization = organizations.get(organizationId);
+  assert.ok(organization);
+  organizations.set(organizationId, {
+    ...organization,
+    updatedAt: new Date('2026-01-01T00:00:01.000Z'),
+    createdAt: organization.createdAt,
+  } as typeof organization);
   await assert.doesNotReject(() => adapter.save(validated.value));
   await assert.rejects(
     adapter.save({
@@ -177,6 +184,62 @@ void test('[IAM-011] repeated bootstrap is immutable and conflicting hierarchy i
     }),
     /IAM_BOOTSTRAP_CONFLICT/,
   );
+});
+
+void test('[IAM-001, IAM-011] bootstrap lookup selects the personal organization among multiple ownerships', async () => {
+  const state = createDatabase();
+  const validated = bootstrapPersonalOrganizationV1(input);
+  assert.equal(validated.accepted, true);
+  if (!validated.accepted) return;
+  const unrelatedOrganizationId = '00000000-0000-4000-8000-000000000006';
+  const unrelatedMembershipId = '00000000-0000-4000-8000-000000000007';
+  state.organizations.set(unrelatedOrganizationId, {
+    id: unrelatedOrganizationId,
+    name: 'Client organization',
+    personal: false,
+    status: 'ACTIVE',
+    createdAt,
+  });
+  state.memberships.set(unrelatedMembershipId, {
+    id: unrelatedMembershipId,
+    principalType: 'USER',
+    principalId: userId,
+    scopeType: 'ORGANIZATION',
+    organizationId: unrelatedOrganizationId,
+    workspaceId: null,
+    projectId: null,
+    roleId: 'owner',
+    status: 'ACTIVE',
+    startsAt: null,
+    expiresAt: null,
+    revision: 1,
+  });
+  const adapter = new PrismaIdentityBootstrapRepositoryAdapter(state.client);
+  await adapter.save(validated.value);
+
+  assert.equal(
+    (await adapter.findByUserId(validated.value.user.id))?.organization.id,
+    organizationId,
+  );
+});
+
+void test('[IAM-001, IAM-011] bootstrap lookup survives personal workspace and project renames', async () => {
+  const state = createDatabase();
+  const validated = bootstrapPersonalOrganizationV1(input);
+  assert.equal(validated.accepted, true);
+  if (!validated.accepted) return;
+  const adapter = new PrismaIdentityBootstrapRepositoryAdapter(state.client);
+  await adapter.save(validated.value);
+  const workspace = state.workspaces.get(workspaceId);
+  const project = state.projects.get(projectId);
+  assert.ok(workspace);
+  assert.ok(project);
+  state.workspaces.set(workspaceId, { ...workspace, name: 'Finance workspace' });
+  state.projects.set(projectId, { ...project, name: 'Monthly close' });
+
+  const loaded = await adapter.findByUserId(validated.value.user.id);
+  assert.equal(loaded?.workspace.name, 'Finance workspace');
+  assert.equal(loaded?.project.name, 'Monthly close');
 });
 
 void test('[IAM-001] bootstrap transaction rollback does not retain a partially written hierarchy', async () => {

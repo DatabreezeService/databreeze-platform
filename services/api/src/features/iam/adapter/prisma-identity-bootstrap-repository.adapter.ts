@@ -1,13 +1,14 @@
 import {
-  bootstrapPersonalOrganizationV1,
   createUserIdentityV1,
-  type MembershipIdentityV1,
+  validateMembershipV1,
   type PersonalOrganizationBootstrapV1,
   type UserIdentityV1,
 } from '@databreeze/domain/identity/v1';
 import {
   parseStableIdentifierV1,
   parseStrictUtcTimestampV1,
+  type StableIdentifierV1,
+  type StrictUtcTimestampV1,
 } from '@databreeze/domain/tenant-scope/v1';
 
 import type {
@@ -88,6 +89,19 @@ interface MembershipDelegateV1 extends IdentityDelegateV1<MembershipIdentityData
   }): Promise<readonly MembershipIdentityDatabaseRowV1[]>;
 }
 
+function valuesEqual(left: unknown, right: unknown): boolean {
+  if (left instanceof Date && right instanceof Date) return left.getTime() === right.getTime();
+  return left === right;
+}
+
+function ownedFieldsMatch<TRow extends object>(existing: TRow, expected: TRow): boolean {
+  const existingRecord = existing as Record<string, unknown>;
+  const expectedRecord = expected as Record<string, unknown>;
+  return Object.keys(expectedRecord).every((key) =>
+    valuesEqual(existingRecord[key], expectedRecord[key]),
+  );
+}
+
 export interface IdentityBootstrapDatabaseClientV1 {
   readonly userIdentity: UserDelegateV1;
   readonly organizationIdentity: IdentityDelegateV1<OrganizationIdentityDatabaseRowV1>;
@@ -101,15 +115,30 @@ export interface IdentityBootstrapDatabaseClientV1 {
   ): Promise<TValue>;
 }
 
-function stableId(input: unknown): string | undefined {
+function stableId(input: unknown): StableIdentifierV1 | undefined {
   const parsed = parseStableIdentifierV1(input);
   return parsed.accepted ? parsed.value : undefined;
 }
 
-function timestamp(input: Date | null | undefined): string | undefined {
+function timestamp(input: Date | null | undefined): StrictUtcTimestampV1 | undefined {
   if (!input) return undefined;
   const parsed = parseStrictUtcTimestampV1(input.toISOString());
   return parsed.accepted ? parsed.value : undefined;
+}
+
+function safeText(input: unknown, maxLength: number): string | undefined {
+  if (typeof input !== 'string' || input.length === 0 || input.length > maxLength) return undefined;
+  if (/\p{Cc}/u.test(input)) return undefined;
+  const normalized = input.normalize('NFC').trim();
+  return normalized.length > 0 && normalized.length <= maxLength ? normalized : undefined;
+}
+
+function compareCreatedIdentity(
+  left: { readonly id: string; readonly createdAt: Date },
+  right: { readonly id: string; readonly createdAt: Date },
+): number {
+  const time = left.createdAt.getTime() - right.createdAt.getTime();
+  return time === 0 ? left.id.localeCompare(right.id) : time;
 }
 
 function userFromRow(row: UserIdentityDatabaseRowV1): UserIdentityV1 {
@@ -125,54 +154,103 @@ function userFromRow(row: UserIdentityDatabaseRowV1): UserIdentityV1 {
   return created.value;
 }
 
-function membershipMatches(
-  row: MembershipIdentityDatabaseRowV1,
-  expected: MembershipIdentityV1,
-): boolean {
-  return (
-    row.id === expected.id &&
-    row.principalType === expected.principalType &&
-    row.principalId === expected.principalId &&
-    row.scopeType === 'ORGANIZATION' &&
-    row.organizationId === expected.scope.organizationId &&
-    row.workspaceId === null &&
-    row.projectId === null &&
-    row.roleId === expected.roleId &&
-    row.status === expected.status &&
-    row.revision === expected.revision &&
-    row.startsAt === null &&
-    row.expiresAt === null
-  );
-}
-
-function bootstrapRowsMatch(
-  bootstrap: PersonalOrganizationBootstrapV1,
+function bootstrapFromRows(
+  user: UserIdentityV1,
   organization: OrganizationIdentityDatabaseRowV1,
   workspace: WorkspaceIdentityDatabaseRowV1,
   project: ProjectIdentityDatabaseRowV1,
   membership: MembershipIdentityDatabaseRowV1,
-): boolean {
-  return (
-    organization.id === bootstrap.organization.id &&
-    organization.name === bootstrap.organization.name &&
-    organization.personal === bootstrap.organization.personal &&
-    organization.status === bootstrap.organization.status &&
-    timestamp(organization.createdAt) === bootstrap.organization.createdAt &&
-    workspace.id === bootstrap.workspace.id &&
-    workspace.organizationId === bootstrap.workspace.organizationId &&
-    workspace.name === bootstrap.workspace.name &&
-    workspace.status === bootstrap.workspace.status &&
-    workspace.authorizationEpoch === bootstrap.workspace.authorizationEpoch &&
-    timestamp(workspace.createdAt) === bootstrap.workspace.createdAt &&
-    project.id === bootstrap.project.id &&
-    project.organizationId === bootstrap.project.organizationId &&
-    project.workspaceId === bootstrap.project.workspaceId &&
-    project.kind === bootstrap.project.kind &&
-    project.name === bootstrap.project.name &&
-    project.status === bootstrap.project.status &&
-    timestamp(project.createdAt) === bootstrap.project.createdAt &&
-    membershipMatches(membership, bootstrap.membership)
-  );
+): PersonalOrganizationBootstrapV1 {
+  const organizationId = stableId(organization.id);
+  const workspaceId = stableId(workspace.id);
+  const projectId = stableId(project.id);
+  const organizationName = safeText(organization.name, 200);
+  const workspaceName = safeText(workspace.name, 200);
+  const projectName = safeText(project.name, 200);
+  const organizationCreatedAt = timestamp(organization.createdAt);
+  const workspaceCreatedAt = timestamp(workspace.createdAt);
+  const projectCreatedAt = timestamp(project.createdAt);
+  if (
+    !organizationId ||
+    !organizationName ||
+    !organizationCreatedAt ||
+    !organization.personal ||
+    organization.status !== 'ACTIVE'
+  )
+    throw new Error('IAM_PERSISTED_ORGANIZATION_INVALID');
+  if (
+    !workspaceId ||
+    !workspaceName ||
+    !workspaceCreatedAt ||
+    workspace.organizationId !== organizationId ||
+    workspace.status !== 'ACTIVE' ||
+    !Number.isSafeInteger(workspace.authorizationEpoch) ||
+    workspace.authorizationEpoch < 1
+  )
+    throw new Error('IAM_PERSISTED_WORKSPACE_INVALID');
+  if (
+    !projectId ||
+    !projectName ||
+    !projectCreatedAt ||
+    project.organizationId !== organizationId ||
+    project.workspaceId !== workspaceId ||
+    project.kind !== 'INTERNAL' ||
+    project.status !== 'ACTIVE'
+  )
+    throw new Error('IAM_PERSISTED_PROJECT_INVALID');
+  const parsedMembership = validateMembershipV1({
+    id: membership.id,
+    principalType: membership.principalType,
+    principalId: membership.principalId,
+    scope: { scopeType: 'organization', organizationId: membership.organizationId },
+    roleId: membership.roleId,
+    status: membership.status,
+    ...(membership.startsAt ? { startsAt: timestamp(membership.startsAt) } : {}),
+    ...(membership.expiresAt ? { expiresAt: timestamp(membership.expiresAt) } : {}),
+    revision: membership.revision,
+  });
+  if (
+    !parsedMembership.accepted ||
+    membership.scopeType !== 'ORGANIZATION' ||
+    membership.workspaceId !== null ||
+    membership.projectId !== null ||
+    parsedMembership.value.principalId !== user.id ||
+    parsedMembership.value.scope.organizationId !== organizationId ||
+    parsedMembership.value.roleId !== 'owner' ||
+    parsedMembership.value.status !== 'ACTIVE'
+  )
+    throw new Error('IAM_PERSISTED_MEMBERSHIP_INVALID');
+  return Object.freeze({
+    user,
+    organization: Object.freeze({
+      schemaVersion: 1,
+      id: organizationId,
+      name: organizationName,
+      personal: true,
+      status: 'ACTIVE',
+      createdAt: organizationCreatedAt,
+    }),
+    workspace: Object.freeze({
+      schemaVersion: 1,
+      id: workspaceId,
+      organizationId,
+      name: workspaceName,
+      status: 'ACTIVE',
+      authorizationEpoch: workspace.authorizationEpoch,
+      createdAt: workspaceCreatedAt,
+    }),
+    project: Object.freeze({
+      schemaVersion: 1,
+      id: projectId,
+      organizationId,
+      workspaceId,
+      kind: 'INTERNAL',
+      name: projectName,
+      status: 'ACTIVE',
+      createdAt: projectCreatedAt,
+    }),
+    membership: parsedMembership.value,
+  });
 }
 
 class PrismaIdentityBootstrapTransactionAdapter implements IdentityBootstrapTransactionPortV1 {
@@ -185,59 +263,52 @@ class PrismaIdentityBootstrapTransactionAdapter implements IdentityBootstrapTran
     if (!userRow) return undefined;
     const user = userFromRow(userRow);
     const memberships = await this.client.membershipIdentity.findMany({
-      where: { principalId: user.id, status: 'ACTIVE', scopeType: 'ORGANIZATION' },
+      where: {
+        principalId: user.id,
+        status: 'ACTIVE',
+        scopeType: 'ORGANIZATION',
+        roleId: 'owner',
+        workspaceId: null,
+        projectId: null,
+      },
     });
-    const membershipRow = memberships.find(
-      (candidate) =>
-        candidate.principalId === user.id &&
-        candidate.scopeType === 'ORGANIZATION' &&
-        candidate.workspaceId === null &&
-        candidate.projectId === null &&
-        candidate.roleId === 'owner',
-    );
-    if (!membershipRow) return undefined;
-    const organizationId = stableId(membershipRow.organizationId);
-    if (!organizationId) throw new Error('IAM_PERSISTED_MEMBERSHIP_INVALID');
-    const organization = await this.client.organizationIdentity.findUnique({
-      where: { id: organizationId },
-    });
-    if (!organization || !organization.personal)
-      throw new Error('IAM_PERSISTED_ORGANIZATION_INVALID');
+    const personalCandidates: Array<{
+      readonly membership: MembershipIdentityDatabaseRowV1;
+      readonly organization: OrganizationIdentityDatabaseRowV1;
+    }> = [];
+    for (const membership of [...memberships].sort((left, right) =>
+      left.id.localeCompare(right.id),
+    )) {
+      const candidateOrganizationId = stableId(membership.organizationId);
+      if (!candidateOrganizationId) throw new Error('IAM_PERSISTED_MEMBERSHIP_INVALID');
+      const candidate = await this.client.organizationIdentity.findUnique({
+        where: { id: candidateOrganizationId },
+      });
+      if (candidate?.personal) personalCandidates.push({ membership, organization: candidate });
+    }
+    if (personalCandidates.length === 0) return undefined;
+    if (personalCandidates.length !== 1) throw new Error('IAM_PERSISTED_ORGANIZATION_INVALID');
+    const selected = personalCandidates[0];
+    if (!selected) throw new Error('IAM_PERSISTED_ORGANIZATION_INVALID');
+    const { membership: membershipRow, organization } = selected;
+    const organizationId = organization.id;
     const workspaceRows = await this.client.workspaceIdentity.findMany({
       where: { organizationId, status: 'ACTIVE' },
     });
-    const workspace = workspaceRows.find((candidate) => candidate.name === 'Personal workspace');
+    const workspace = [...workspaceRows].sort(compareCreatedIdentity)[0];
     if (!workspace) throw new Error('IAM_PERSISTED_WORKSPACE_INVALID');
     const projectRows = await this.client.projectIdentity.findMany({
-      where: { organizationId, workspaceId: workspace.id, status: 'ACTIVE' },
+      where: { organizationId, workspaceId: workspace.id, status: 'ACTIVE', kind: 'INTERNAL' },
     });
-    const project = projectRows.find((candidate) => candidate.kind === 'INTERNAL');
+    const project = [...projectRows].sort(compareCreatedIdentity)[0];
     if (!project) throw new Error('IAM_PERSISTED_PROJECT_INVALID');
-    const canonical = bootstrapPersonalOrganizationV1({
-      user: {
-        id: user.id,
-        displayName: user.displayName,
-        locale: user.locale,
-        securityEpoch: user.securityEpoch,
-        status: user.status,
-        createdAt: user.createdAt,
-      },
-      organizationId,
-      workspaceId: workspace.id,
-      projectId: project.id,
-      membershipId: membershipRow.id,
-      createdAt: organization.createdAt.toISOString(),
-    });
-    if (!canonical.accepted) throw new Error('IAM_PERSISTED_BOOTSTRAP_INVALID');
-    if (!bootstrapRowsMatch(canonical.value, organization, workspace, project, membershipRow))
-      throw new Error('IAM_PERSISTED_BOOTSTRAP_INVALID');
-    return canonical.value;
+    return bootstrapFromRows(user, organization, workspace, project, membershipRow);
   }
 
   public async save(bootstrap: PersonalOrganizationBootstrapV1): Promise<void> {
     const userRow = await this.client.userIdentity.findUnique({ where: { id: bootstrap.user.id } });
     if (!userRow) throw new Error('IAM_USER_NOT_FOUND');
-    if (JSON.stringify(userFromRow(userRow)) !== JSON.stringify(bootstrap.user))
+    if (!ownedFieldsMatch(userFromRow(userRow), bootstrap.user))
       throw new Error('IAM_BOOTSTRAP_CONFLICT');
     const organizationData: OrganizationIdentityDatabaseRowV1 = {
       id: bootstrap.organization.id,
@@ -289,8 +360,7 @@ class PrismaIdentityBootstrapTransactionAdapter implements IdentityBootstrapTran
   ): Promise<void> {
     const existing = await delegate.findUnique({ where: { id: expected.id } });
     if (existing) {
-      if (JSON.stringify(existing) !== JSON.stringify(expected))
-        throw new Error('IAM_BOOTSTRAP_CONFLICT');
+      if (!ownedFieldsMatch(existing, expected)) throw new Error('IAM_BOOTSTRAP_CONFLICT');
       return;
     }
     await delegate.create({ data: expected });

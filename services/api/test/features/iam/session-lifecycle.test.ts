@@ -53,3 +53,15 @@ void test('[IAM-005] expired and malformed refresh tokens fail without token dis
     code: 'INVALID_REFRESH_TOKEN',
   });
 });
+
+void test('[IAM-005] access-token lookup fails closed at expiry', async () => {
+  let now = new Date('2026-01-01T00:00:00.000Z');
+  const adapter = new InMemorySessionLifecycleAdapter({ clock: () => new Date(now) });
+  const session = await adapter.issue(principal, 'web');
+  assert.equal(
+    (await adapter.findPrincipalByAccessToken(session.accessToken))?.userId,
+    principal.userId,
+  );
+  now = new Date('2026-01-01T00:15:00.000Z');
+  assert.equal(await adapter.findPrincipalByAccessToken(session.accessToken), undefined);
+});

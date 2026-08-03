@@ -39,6 +39,12 @@ function input(eventId: string) {
 
 void test('[AUD-001, AUD-003, AUD-005, IAM-009] service binds audit identity to the authorized context', async () => {
   const repository = new InMemoryAuditRepositoryAdapter();
+  let broadReads = 0;
+  const broadList = repository.listEvents.bind(repository);
+  repository.listEvents = async (...args) => {
+    broadReads += 1;
+    return broadList(...args);
+  };
   const service = new AuditLedgerService(repository, {
     digest: (value) => createHash('sha256').update(value).digest('base64url'),
   });
@@ -61,6 +67,28 @@ void test('[AUD-001, AUD-003, AUD-005, IAM-009] service binds audit identity to 
   );
   assert.deepEqual(repeated, first);
   assert.equal((await repository.listEvents(context('read'))).length, 1);
+  assert.equal(broadReads, 1);
+});
+
+void test('[AUD-001, AUD-015] append and seal use the exact scope chain instead of loading visible tenant descendants', async () => {
+  const repository = new InMemoryAuditRepositoryAdapter();
+  let scopedReads = 0;
+  const scopedList = repository.listEventsForScope.bind(repository);
+  repository.listEventsForScope = async (...args) => {
+    scopedReads += 1;
+    return scopedList(...args);
+  };
+  const service = new AuditLedgerService(repository, {
+    digest: (value) => createHash('sha256').update(value).digest('base64url'),
+  });
+  const appended = await service.append(
+    context('scoped-1'),
+    input('00000000-0000-4000-8000-000000000024'),
+  );
+  assert.equal(appended.accepted, true);
+  const sealed = await service.seal(context('scoped-seal'), '2026-01-01T00:05:00.000Z');
+  assert.equal(sealed.accepted, true);
+  assert.equal(scopedReads, 2);
 });
 
 void test('[AUD-003, AUD-005] invalid actor and unsafe summary fail before persistence', async () => {

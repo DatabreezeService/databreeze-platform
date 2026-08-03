@@ -28,6 +28,10 @@ const COOKIE_AUTH_NAMES = new Set([
   'databreeze_session',
 ]);
 const CSRF_COOKIE_NAME = 'databreeze_csrf';
+const MAX_COOKIE_HEADER_LENGTH = 8_192;
+const MAX_COOKIE_NAME_LENGTH = 64;
+const MAX_COOKIE_VALUE_LENGTH = 4_096;
+const MAX_COOKIE_SEGMENTS = 64;
 
 function oneHeader(
   headers: CsrfRequestV1['headers'],
@@ -51,11 +55,19 @@ function parseCookies(raw: string): {
   readonly values: ReadonlyMap<string, string>;
   readonly duplicateNames: ReadonlySet<string>;
   readonly malformed: boolean;
+  readonly resourceLimitExceeded: boolean;
 } {
   const values = new Map<string, string>();
   const duplicateNames = new Set<string>();
   let malformed = false;
-  for (const segment of raw.split(';')) {
+  if (raw.length > MAX_COOKIE_HEADER_LENGTH) {
+    return { values, duplicateNames, malformed, resourceLimitExceeded: true };
+  }
+  const segments = raw.split(';');
+  if (segments.length > MAX_COOKIE_SEGMENTS) {
+    return { values, duplicateNames, malformed, resourceLimitExceeded: true };
+  }
+  for (const segment of segments) {
     const trimmed = segment.trim();
     if (trimmed.length === 0) continue;
     const equals = trimmed.indexOf('=');
@@ -65,14 +77,20 @@ function parseCookies(raw: string): {
     }
     const name = trimmed.slice(0, equals).trim();
     const value = trimmed.slice(equals + 1).trim();
-    if (!/^[A-Za-z0-9_]+$/u.test(name) || value.includes('\r') || value.includes('\n')) {
+    if (
+      name.length > MAX_COOKIE_NAME_LENGTH ||
+      value.length > MAX_COOKIE_VALUE_LENGTH ||
+      !/^[!#$%&'*+\-.^_`|~A-Za-z0-9]+$/u.test(name) ||
+      value.includes('\r') ||
+      value.includes('\n')
+    ) {
       malformed = true;
       continue;
     }
     if (values.has(name)) duplicateNames.add(name);
     values.set(name, value);
   }
-  return { values, duplicateNames, malformed };
+  return { values, duplicateNames, malformed, resourceLimitExceeded: false };
 }
 
 function hasCookieAuth(cookies: ReturnType<typeof parseCookies>): boolean {
@@ -113,6 +131,9 @@ export function evaluateCsrfRequestV1(
     return Object.freeze({ accepted: false as const, code: 'CSRF_INVALID' as const });
 
   const cookies = parseCookies(cookie.value);
+  if (cookies.resourceLimitExceeded) {
+    return Object.freeze({ accepted: false as const, code: 'CSRF_INVALID' as const });
+  }
   if (!hasCookieAuth(cookies)) return Object.freeze({ accepted: true as const });
   if (!originAccepted(request.headers, options)) {
     return Object.freeze({ accepted: false as const, code: 'ORIGIN_INVALID' as const });

@@ -5,7 +5,10 @@ import { createIamTenantContextV1 } from '../../features/iam/application/tenant-
 import type { RequestTenantContextPortV1 } from './request-tenant-context.port.js';
 import { getRequestContext } from './request-context.js';
 
-export type RequestTenantContextProblemCodeV1 = 'AUTHENTICATION_FAILED' | 'CONTEXT_INVALID';
+export type RequestTenantContextProblemCodeV1 =
+  | 'AUTHENTICATION_FAILED'
+  | 'AUTHENTICATION_UNAVAILABLE'
+  | 'CONTEXT_INVALID';
 
 export class RequestTenantContextProblemError extends Error {
   constructor(readonly code: RequestTenantContextProblemCodeV1) {
@@ -15,6 +18,7 @@ export class RequestTenantContextProblemError extends Error {
 }
 
 type HeaderValueV1 = string | readonly string[] | undefined;
+const SAFE_METHODS_V1 = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 interface RequestLikeV1 {
   readonly id?: unknown;
@@ -55,6 +59,9 @@ function correlationId(request: RequestLikeV1): string {
 function idempotencyKey(request: RequestLikeV1): string {
   const header = oneHeader(request, 'idempotency-key');
   if (header !== undefined) return header;
+  if (typeof request.method !== 'string' || !SAFE_METHODS_V1.has(request.method.toUpperCase())) {
+    throw new RequestTenantContextProblemError('CONTEXT_INVALID');
+  }
   if (typeof request.id === 'string' && request.id.length > 0) return request.id;
   return randomUUID();
 }
@@ -80,7 +87,7 @@ export class SessionRequestTenantContextAdapter implements RequestTenantContextP
     try {
       principal = await this.sessions.findPrincipalByAccessToken(token);
     } catch {
-      throw new RequestTenantContextProblemError('AUTHENTICATION_FAILED');
+      throw new RequestTenantContextProblemError('AUTHENTICATION_UNAVAILABLE');
     }
     if (principal === undefined)
       throw new RequestTenantContextProblemError('AUTHENTICATION_FAILED');

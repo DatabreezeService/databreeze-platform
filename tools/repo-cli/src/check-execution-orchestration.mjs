@@ -25,7 +25,7 @@ const expectedPlans = new Map([
 ]);
 const expectedPriorityTotals = { P0: 444, P1: 154, P2: 13 };
 const expectedReviewPolicy = {
-  commitBudget: { hardMaximum: 99, preferredMaximum: 70, preferredMinimum: 30 },
+  commitBudget: { hardMaximum: 79, preferredMaximum: 50, preferredMinimum: 30 },
   featurePullRequest: { base: 'dev', codeRabbit: false, mergeAfterHostedChecks: true },
   promotionPullRequest: {
     base: 'main',
@@ -160,8 +160,8 @@ function validateDeliveryBatches({ ledger, plans, taskIds, taskToPlan, diagnosti
     ) {
       diagnostics.push(`batch ${batch.batchId} commit target is outside its budget`);
     }
-    if (!Number.isInteger(budget.maximum) || budget.maximum >= 100) {
-      diagnostics.push(`batch ${batch.batchId} commit maximum must remain below 100`);
+    if (!Number.isInteger(budget.maximum) || budget.maximum > 79) {
+      diagnostics.push(`batch ${batch.batchId} exceptional commit maximum must not exceed 79`);
     }
     if (
       !Number.isInteger(batch.maximumChangedFiles) ||

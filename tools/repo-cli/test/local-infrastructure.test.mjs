@@ -5,8 +5,16 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { composeOperationTimeoutMs } from '../src/local-services.mjs';
+
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const read = (relativePath) => readFileSync(path.join(repositoryRoot, relativePath), 'utf8');
+
+test('local lifecycle grants image pulls the bounded readiness window plus teardown margin', () => {
+  assert.equal(composeOperationTimeoutMs(1), 31_000);
+  assert.equal(composeOperationTimeoutMs(60), 90_000);
+  assert.equal(composeOperationTimeoutMs(3600), 3_630_000);
+});
 
 test('local compose defines pinned, healthy disposable dependencies', () => {
   const compose = read('infrastructure/local/compose.yml');
@@ -25,7 +33,10 @@ test('local compose defines pinned, healthy disposable dependencies', () => {
   }
   assert.match(compose, /postgres:17\.5-alpine/);
   assert.match(compose, /redis:7\.4\.5-alpine/);
-  assert.match(compose, /RELEASE\.2025-06-13T11-33-47Z/);
+  assert.match(compose, /MINIO_IMAGE:-quay\.io\/minio\/minio:RELEASE\.2025-06-13T11-33-47Z/u);
+  assert.match(compose, /MINIO_MC_IMAGE:-quay\.io\/minio\/mc:RELEASE\.2025-08-13T08-35-41Z/u);
+  assert.match(envExample, /^MINIO_IMAGE=quay\.io\/minio\/minio:RELEASE\.2025-06-13T11-33-47Z$/m);
+  assert.match(envExample, /^MINIO_MC_IMAGE=quay\.io\/minio\/mc:RELEASE\.2025-08-13T08-35-41Z$/m);
   assert.match(compose, /mailpit:v1\.21\.8/);
   assert.match(compose, /collector-contrib:0\.128\.0/);
   assert.match(compose, /curlimages\/curl:8\.14\.1/);
@@ -79,6 +90,8 @@ test('local bootstrap is credential-free and creates every owned module schema',
   assert.doesNotMatch(sql, /DROP\s+SCHEMA|DROP\s+DATABASE|TRUNCATE/u);
 
   const bucketScript = read('infrastructure/local/minio/bootstrap-buckets.sh');
+  assert.doesNotMatch(bucketScript, /\r/u);
+  assert.match(read('.gitattributes'), /^\*\.sh text eol=lf$/m);
   assert.match(bucketScript, /MINIO_ROOT_PASSWORD/);
   assert.match(bucketScript, /mc mb --ignore-existing/u);
   assert.match(bucketScript, /mc anonymous set none/u);

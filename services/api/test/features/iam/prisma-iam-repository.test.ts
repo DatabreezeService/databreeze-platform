@@ -11,6 +11,7 @@ import {
 import {
   PrismaIamRepositoryAdapter,
   type IamDatabaseClientV1,
+  type IamTransactionDatabaseClientV1,
   type IamMembershipDatabaseRowV1,
 } from '../../../src/features/iam/adapter/prisma-iam-repository.adapter.js';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
@@ -26,6 +27,7 @@ const organizationId = stable('1');
 const workspaceId = stable('2');
 const siblingWorkspaceId = stable('3');
 const principalId = stable('4');
+const projectId = stable('6');
 
 function context(scope: TenantScopeV1, expectedRevision?: number) {
   const result = createIamTenantContextV1({
@@ -43,9 +45,10 @@ function context(scope: TenantScopeV1, expectedRevision?: number) {
 
 function row(
   idValue: string,
-  scope: 'WORKSPACE' | 'ORGANIZATION',
+  scope: 'PROJECT' | 'WORKSPACE' | 'ORGANIZATION',
   workspace: string | null,
   roleId: string,
+  project: string | null = null,
 ): IamMembershipDatabaseRowV1 {
   return {
     id: idValue,
@@ -54,7 +57,7 @@ function row(
     scopeType: scope,
     organizationId,
     workspaceId: workspace,
-    projectId: null,
+    projectId: project,
     roleId,
     status: 'ACTIVE',
     startsAt: null,
@@ -67,13 +70,23 @@ function createDatabase(rows: readonly IamMembershipDatabaseRowV1[] = []): {
   readonly client: IamDatabaseClientV1;
   readonly memberships: Map<string, IamMembershipDatabaseRowV1>;
   readonly forceUpdateConflict: { value: boolean };
+  readonly firstQueries: ReadonlyArray<Readonly<Record<string, unknown>>>;
 } {
   const memberships = new Map(rows.map((value) => [value.id, value]));
   const forceUpdateConflict = { value: false };
+  const firstQueries: Array<Readonly<Record<string, unknown>>> = [];
   const client = {
     membershipIdentity: {
-      findUnique: async ({ where }: { readonly where: { readonly id: string } }) =>
-        memberships.get(where.id) ?? null,
+      findFirst: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) => {
+        firstQueries.push(where);
+        return (
+          [...memberships.values()].find((candidate) =>
+            Object.entries(where).every(
+              ([key, value]) => candidate[key as keyof IamMembershipDatabaseRowV1] === value,
+            ),
+          ) ?? null
+        );
+      },
       findMany: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) =>
         [...memberships.values()].filter((candidate) =>
           Object.entries(where).every(
@@ -99,10 +112,12 @@ function createDatabase(rows: readonly IamMembershipDatabaseRowV1[] = []): {
         return { count: 1 };
       },
     },
-    $transaction: async <TValue>(work: (transaction: IamDatabaseClientV1) => Promise<TValue>) => {
+    $transaction: async <TValue>(
+      work: (transaction: IamTransactionDatabaseClientV1) => Promise<TValue>,
+    ) => {
       const before = new Map(memberships);
       try {
-        return await work(client);
+        return await work({ membershipIdentity: client.membershipIdentity });
       } catch (error) {
         memberships.clear();
         for (const [key, value] of before) memberships.set(key, value);
@@ -110,7 +125,7 @@ function createDatabase(rows: readonly IamMembershipDatabaseRowV1[] = []): {
       }
     },
   } as unknown as IamDatabaseClientV1;
-  return { client, memberships, forceUpdateConflict };
+  return { client, memberships, forceUpdateConflict, firstQueries };
 }
 
 void test('[IAM-009, IAM-019] Prisma IAM membership reads are tenant scoped and hide siblings', async () => {
@@ -130,6 +145,53 @@ void test('[IAM-009, IAM-019] Prisma IAM membership reads are tenant scoped and 
   assert.equal(
     (await repository.findMembership(context(workspaceScope), principalId))?.id,
     stable('10'),
+  );
+});
+
+void test('[IAM-009, IAM-019] malformed membership rows fail closed without blocking valid reads', async () => {
+  const valid = row(id('20'), 'WORKSPACE', workspaceId, 'viewer');
+  const malformed = {
+    ...row(id('21'), 'WORKSPACE', workspaceId, 'viewer'),
+    workspaceId: 'not-a-workspace-id',
+  };
+  const repository = new PrismaIamRepositoryAdapter(createDatabase([valid, malformed]).client);
+
+  assert.deepEqual(
+    (
+      await repository.listMemberships(
+        context({ scopeType: 'workspace', organizationId, workspaceId }),
+      )
+    ).map((membership) => membership.id),
+    [valid.id],
+  );
+});
+
+void test('[IAM-003, IAM-014] Prisma membership authority chooses the narrowest containing scope', async () => {
+  const projectScope = {
+    scopeType: 'project',
+    organizationId,
+    workspaceId,
+    projectId,
+  } as const;
+  const { client } = createDatabase([
+    row(id('09'), 'ORGANIZATION', null, 'owner'),
+    row(id('10'), 'WORKSPACE', workspaceId, 'viewer'),
+    row(id('11'), 'PROJECT', workspaceId, 'operator', projectId),
+  ]);
+  const repository = new PrismaIamRepositoryAdapter(client);
+
+  assert.equal(
+    (await repository.findMembership(context(projectScope), principalId))?.roleId,
+    'operator',
+  );
+
+  const descendantOnly = createDatabase([row(id('12'), 'WORKSPACE', workspaceId, 'owner')]);
+  assert.equal(
+    await new PrismaIamRepositoryAdapter(descendantOnly.client).findMembership(
+      context({ scopeType: 'organization', organizationId }),
+      principalId,
+    ),
+    undefined,
   );
 });
 
@@ -202,4 +264,21 @@ void test('[IAM-009] Prisma IAM transaction rollback leaves no staged membership
     /rollback/u,
   );
   assert.equal(memberships.size, 0);
+});
+
+void test('[IAM-009, IAM-019] Prisma membership mutation lookup includes tenant ancestry', async () => {
+  const workspaceScope = { scopeType: 'workspace', organizationId, workspaceId } as const;
+  const { client, firstQueries } = createDatabase();
+  const repository = new PrismaIamRepositoryAdapter(client);
+
+  await repository.saveMembership(context(workspaceScope), {
+    id: stable('23'),
+    principalId,
+    scope: workspaceScope,
+    roleId: 'viewer',
+    status: 'ACTIVE',
+    revision: 1,
+  });
+
+  assert.deepEqual(firstQueries, [{ id: stable('23'), organizationId }]);
 });

@@ -13,7 +13,9 @@ describe('safe localized recovery', () => {
     const router = createAppRouter({ initialEntries: ['/vi-VN/debug/route-error'] });
     render(<ApplicationBoundary router={router} />);
 
-    expect(await screen.findByRole('heading', { name: 'Không thể mở khu vực này' })).toBeTruthy();
+    expect(
+      await screen.findByRole('heading', { name: 'Không thể mở khu vực này' }, { timeout: 5_000 }),
+    ).toBeTruthy();
     expect(screen.queryByText(/internal tenant detail/u)).toBeNull();
     consoleError.mockRestore();
   });

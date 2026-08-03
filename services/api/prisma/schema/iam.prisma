@@ -92,6 +92,8 @@ model MembershipIdentity {
 model SessionRecord {
   id                 String   @id @db.Uuid
   userId             String   @map("user_id") @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  workspaceId        String   @map("workspace_id") @db.Uuid
   familyId           String   @map("family_id") @db.Uuid
   issuedAt           DateTime @map("issued_at") @db.Timestamptz(6)
   accessExpiresAt    DateTime @map("access_expires_at") @db.Timestamptz(6)
@@ -102,6 +104,7 @@ model SessionRecord {
   revokedAt          DateTime? @map("revoked_at") @db.Timestamptz(6)
 
   @@index([userId, status], map: "sessions_user_status_idx")
+  @@index([organizationId, workspaceId, userId, status], map: "sessions_scope_user_status_idx")
   @@index([familyId], map: "sessions_family_idx")
   @@map("sessions")
   @@schema("iam")

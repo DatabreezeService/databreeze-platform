@@ -148,6 +148,44 @@ void test('[IAM-009] a session access-token lookup composes one live tenant-cont
   assert.ok(provider.useValue instanceof SessionRequestTenantContextAdapter);
 });
 
+void test('[IAM-005, IAM-009] a configured session database composes the live tenant-context adapter', () => {
+  const registered = AppModule.register({ sessionDatabase: {} as never });
+  const iam = registered.imports?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'module' in candidate &&
+      candidate.module === IamModule,
+  );
+  assert.ok(iam && typeof iam === 'object' && 'providers' in iam);
+  if (!iam || typeof iam !== 'object' || !('providers' in iam)) return;
+  const contextProvider = iam.providers?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === REQUEST_TENANT_CONTEXT,
+  );
+  const sessionProvider = iam.providers?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === SESSION_LIFECYCLE_PORT,
+  );
+  assert.ok(contextProvider && 'useValue' in contextProvider);
+  assert.ok(sessionProvider && 'useValue' in sessionProvider);
+  if (
+    !contextProvider ||
+    !('useValue' in contextProvider) ||
+    !sessionProvider ||
+    !('useValue' in sessionProvider)
+  )
+    return;
+  assert.ok(contextProvider.useValue instanceof SessionRequestTenantContextAdapter);
+  assert.ok(sessionProvider.useValue instanceof PrismaSessionLifecycleAdapter);
+});
+
 void test('[IAM-001, IAM-011] configured identity bootstrap persistence uses the Prisma adapter', () => {
   const database = {} as never;
   const registered = IamModule.register({ identityBootstrapDatabase: database });

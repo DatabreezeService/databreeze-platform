@@ -26,6 +26,8 @@ import type {
 export interface SessionRecordDatabaseRowV1 {
   readonly id: string;
   readonly userId: string;
+  readonly organizationId: string;
+  readonly workspaceId: string;
   readonly familyId: string;
   readonly issuedAt: Date;
   readonly accessExpiresAt: Date;
@@ -105,6 +107,7 @@ interface RefreshTokenDelegateV1 {
   }): Promise<RefreshTokenDatabaseRowV1 | null>;
   findMany(input: {
     readonly where: Readonly<Record<string, unknown>>;
+    readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
   }): Promise<readonly RefreshTokenDatabaseRowV1[]>;
   updateMany(input: {
     readonly where: Readonly<Record<string, unknown>>;
@@ -183,6 +186,8 @@ function sessionFromRow(row: SessionRecordDatabaseRowV1): SessionRecordV1 {
   const created = createSessionRecordV1({
     sessionId: row.id,
     userId: row.userId,
+    organizationId: row.organizationId,
+    workspaceId: row.workspaceId,
     familyId: row.familyId,
     issuedAt: timestamp(row.issuedAt),
     accessExpiresAt: timestamp(row.accessExpiresAt),
@@ -233,6 +238,45 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
     this.clock = options.clock ?? (() => new Date());
   }
 
+  private async revokeRefreshFamily(
+    transaction: SessionLifecycleDatabaseClientV1,
+    sessionId: StableIdentifierV1,
+    familyId: StableIdentifierV1,
+    now: Date,
+  ): Promise<void> {
+    await transaction.refreshTokenRecord.updateMany({
+      where: { familyId, status: 'ACTIVE' },
+      data: { status: 'REVOKED' },
+    });
+    await transaction.sessionRecord.update({
+      where: { id: sessionId },
+      data: { status: 'REVOKED', revokedAt: now },
+    });
+    await transaction.accessTokenRecord.updateMany({
+      where: { sessionId, status: 'ACTIVE' },
+      data: { status: 'REVOKED', revokedAt: now },
+    });
+  }
+
+  private async expireSession(
+    transaction: SessionLifecycleDatabaseClientV1,
+    sessionId: StableIdentifierV1,
+    familyId: StableIdentifierV1,
+  ): Promise<void> {
+    await transaction.refreshTokenRecord.updateMany({
+      where: { familyId, status: 'ACTIVE' },
+      data: { status: 'EXPIRED' },
+    });
+    await transaction.sessionRecord.update({
+      where: { id: sessionId },
+      data: { status: 'EXPIRED' },
+    });
+    await transaction.accessTokenRecord.updateMany({
+      where: { sessionId, status: 'ACTIVE' },
+      data: { status: 'EXPIRED' },
+    });
+  }
+
   public async issue(
     principal: AuthenticatedPrincipalV1,
     clientPlatform: 'android' | 'desktop' | 'web',
@@ -245,6 +289,8 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
     const created = createSessionRecordV1({
       sessionId,
       userId: principal.userId,
+      organizationId: principal.organizationId,
+      workspaceId: principal.workspaceId,
       familyId,
       issuedAt: now.toISOString(),
       accessExpiresAt: addSeconds(now, ACCESS_TOKEN_SECONDS_V1),
@@ -261,6 +307,8 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
         data: {
           id: record.sessionId,
           userId: record.userId,
+          organizationId: record.organizationId,
+          workspaceId: record.workspaceId,
           familyId: record.familyId,
           issuedAt: new Date(record.issuedAt),
           accessExpiresAt: new Date(record.accessExpiresAt),
@@ -322,32 +370,35 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
       });
       if (!sessionRow) return { accepted: false, code: 'INVALID_REFRESH_TOKEN' };
       const session = sessionFromRow(sessionRow);
+      if (session.status === 'REVOKED') return { accepted: false, code: 'REVOKED_FAMILY' };
+      if (session.status === 'EXPIRED') return { accepted: false, code: 'EXPIRED' };
+      if (
+        now.getTime() >= Date.parse(session.inactivityExpiresAt) ||
+        now.getTime() >= Date.parse(session.absoluteExpiresAt)
+      ) {
+        await this.expireSession(transaction, token.sessionId, token.familyId);
+        return { accepted: false, code: 'EXPIRED' };
+      }
       const active = await transaction.refreshTokenRecord.findMany({
         where: { sessionId: token.sessionId, familyId: token.familyId, status: 'ACTIVE' },
+        orderBy: { issuedAt: 'desc' },
       });
-      const activeToken = active[0] ? tokenFromRow(active[0]) : undefined;
+      if (active.length !== 1 || !active[0]) {
+        await this.revokeRefreshFamily(transaction, token.sessionId, token.familyId, now);
+        return { accepted: false, code: 'REUSE_DETECTED' };
+      }
+      const activeToken = tokenFromRow(active[0]);
       const rotated = rotateRefreshFamilyV1({
         now: now.toISOString(),
         presentedTokenId: token.id,
-        activeTokenId: activeToken?.id ?? token.id,
+        activeTokenId: activeToken.id,
         nextTokenId: stableIdentifier(randomUUID()),
         familyStatus: session.status === 'ACTIVE' ? 'ACTIVE' : 'REVOKED',
         tokenExpiresAt: token.expiresAt,
       });
       if (!rotated.accepted || !rotated.nextTokenId) {
         if (rotated.code === 'REUSE_DETECTED') {
-          await transaction.refreshTokenRecord.updateMany({
-            where: { familyId: token.familyId, status: 'ACTIVE' },
-            data: { status: 'REVOKED' },
-          });
-          await transaction.sessionRecord.update({
-            where: { id: token.sessionId },
-            data: { status: 'REVOKED', revokedAt: now },
-          });
-          await transaction.accessTokenRecord.updateMany({
-            where: { sessionId: token.sessionId, status: 'ACTIVE' },
-            data: { status: 'REVOKED', revokedAt: now },
-          });
+          await this.revokeRefreshFamily(transaction, token.sessionId, token.familyId, now);
         } else if (rotated.code === 'EXPIRED' && token.status === 'ACTIVE') {
           await transaction.refreshTokenRecord.updateMany({
             where: { id: token.id, status: 'ACTIVE' },
@@ -444,16 +495,12 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
     accessTokenInput: unknown,
   ): Promise<AuthenticatedPrincipalV1 | undefined> {
     if (typeof accessTokenInput !== 'string' || accessTokenInput.length < 80) return undefined;
-    try {
-      const row = await this.client.accessTokenRecord.findUnique({
-        where: { tokenDigest: digestToken(accessTokenInput) },
-      });
-      if (!row || row.status !== 'ACTIVE' || row.expiresAt.getTime() <= this.clock().getTime())
-        return undefined;
-      return this.findPrincipal(row.sessionId);
-    } catch {
+    const row = await this.client.accessTokenRecord.findUnique({
+      where: { tokenDigest: digestToken(accessTokenInput) },
+    });
+    if (!row || row.status !== 'ACTIVE' || row.expiresAt.getTime() <= this.clock().getTime())
       return undefined;
-    }
+    return this.findPrincipal(row.sessionId);
   }
 
   public async findPrincipal(
@@ -462,62 +509,62 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
     if (typeof sessionIdInput !== 'string') return undefined;
     const parsed = parseStableIdentifierV1(sessionIdInput);
     if (!parsed.accepted) return undefined;
-    try {
-      const sessionRow = await this.client.sessionRecord.findUnique({
-        where: { id: parsed.value },
-      });
-      if (!sessionRow) return undefined;
-      const session = sessionFromRow(sessionRow);
-      const now = Date.parse(this.clock().toISOString());
-      if (
-        session.status !== 'ACTIVE' ||
-        now >= Date.parse(session.inactivityExpiresAt) ||
-        now >= Date.parse(session.absoluteExpiresAt)
-      )
-        return undefined;
-      const user = await this.client.userIdentity.findUnique({ where: { id: session.userId } });
-      if (!user || user.status !== 'ACTIVE' || user.id !== session.userId) return undefined;
-      if (!Number.isSafeInteger(user.securityEpoch) || user.securityEpoch < 1) return undefined;
-      const memberships = await this.client.membershipIdentity.findMany({
-        where: { principalId: session.userId, status: 'ACTIVE' },
-      });
-      const membership = memberships.find(
-        (candidate) =>
-          candidate.principalId === session.userId &&
-          candidate.scopeType === 'WORKSPACE' &&
-          candidate.projectId === null &&
-          parseStableIdentifierV1(candidate.organizationId).accepted &&
-          parseStableIdentifierV1(candidate.workspaceId).accepted,
-      );
-      if (!membership || !membership.workspaceId) return undefined;
-      const organizationId = parseStableIdentifierV1(membership.organizationId);
-      const workspaceId = parseStableIdentifierV1(membership.workspaceId);
-      if (!organizationId.accepted || !workspaceId.accepted) return undefined;
-      const [organization, workspace, factors] = await Promise.all([
-        this.client.organizationIdentity.findUnique({ where: { id: organizationId.value } }),
-        this.client.workspaceIdentity.findUnique({ where: { id: workspaceId.value } }),
-        this.client.mfaFactor.findMany({ where: { userId: session.userId, status: 'ACTIVE' } }),
-      ]);
-      if (
-        !organization ||
-        organization.id !== organizationId.value ||
-        organization.status !== 'ACTIVE' ||
-        !workspace ||
-        workspace.id !== workspaceId.value ||
-        workspace.organizationId !== organizationId.value ||
-        workspace.status !== 'ACTIVE'
-      )
-        return undefined;
-      return Object.freeze({
-        userId: session.userId,
-        organizationId: organizationId.value,
-        workspaceId: workspaceId.value,
-        securityEpoch: user.securityEpoch,
-        mfaRequired: factors.length > 0,
-      });
-    } catch {
+    const sessionRow = await this.client.sessionRecord.findUnique({
+      where: { id: parsed.value },
+    });
+    if (!sessionRow) return undefined;
+    const session = sessionFromRow(sessionRow);
+    const now = Date.parse(this.clock().toISOString());
+    if (
+      session.status !== 'ACTIVE' ||
+      now >= Date.parse(session.inactivityExpiresAt) ||
+      now >= Date.parse(session.absoluteExpiresAt)
+    )
       return undefined;
-    }
+    const user = await this.client.userIdentity.findUnique({ where: { id: session.userId } });
+    if (!user || user.status !== 'ACTIVE' || user.id !== session.userId) return undefined;
+    if (!Number.isSafeInteger(user.securityEpoch) || user.securityEpoch < 1) return undefined;
+    const memberships = await this.client.membershipIdentity.findMany({
+      where: {
+        principalId: session.userId,
+        organizationId: session.organizationId,
+        status: 'ACTIVE',
+      },
+    });
+    const membership = memberships.find(
+      (candidate) =>
+        candidate.principalId === session.userId &&
+        candidate.organizationId === session.organizationId &&
+        candidate.projectId === null &&
+        ((candidate.scopeType === 'ORGANIZATION' && candidate.workspaceId === null) ||
+          (candidate.scopeType === 'WORKSPACE' && candidate.workspaceId === session.workspaceId)),
+    );
+    if (!membership) return undefined;
+    const organizationId = parseStableIdentifierV1(session.organizationId);
+    const workspaceId = parseStableIdentifierV1(session.workspaceId);
+    if (!organizationId.accepted || !workspaceId.accepted) return undefined;
+    const [organization, workspace, factors] = await Promise.all([
+      this.client.organizationIdentity.findUnique({ where: { id: organizationId.value } }),
+      this.client.workspaceIdentity.findUnique({ where: { id: workspaceId.value } }),
+      this.client.mfaFactor.findMany({ where: { userId: session.userId, status: 'ACTIVE' } }),
+    ]);
+    if (
+      !organization ||
+      organization.id !== organizationId.value ||
+      organization.status !== 'ACTIVE' ||
+      !workspace ||
+      workspace.id !== workspaceId.value ||
+      workspace.organizationId !== organizationId.value ||
+      workspace.status !== 'ACTIVE'
+    )
+      return undefined;
+    return Object.freeze({
+      userId: session.userId,
+      organizationId: organizationId.value,
+      workspaceId: workspaceId.value,
+      securityEpoch: user.securityEpoch,
+      mfaRequired: factors.length > 0,
+    });
   }
 }
 

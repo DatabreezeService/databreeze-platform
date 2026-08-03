@@ -82,15 +82,23 @@ function device(): DeviceIdentityV1 {
   return result.value;
 }
 
-function delegate(rows: Record<string, unknown>[], forceRevisionConflict = false) {
+function delegate(
+  rows: Record<string, unknown>[],
+  forceRevisionConflict = false,
+  firstQueries?: Array<Readonly<Record<string, unknown>>>,
+) {
   return {
     create({ data }: { readonly data: Record<string, unknown> }) {
       const persisted = { ...data };
       rows.push(persisted);
       return Promise.resolve(persisted);
     },
-    findUnique({ where }: { readonly where: { readonly id: string } }) {
-      return Promise.resolve(rows.find((row) => row['id'] === where.id) ?? null);
+    findFirst({ where }: { readonly where: Readonly<Record<string, unknown>> }) {
+      firstQueries?.push(where);
+      return Promise.resolve(
+        rows.find((row) => Object.entries(where).every(([key, value]) => row[key] === value)) ??
+          null,
+      );
     },
     findMany({ where }: { readonly where: Readonly<Record<string, unknown>> }) {
       return Promise.resolve(
@@ -113,12 +121,12 @@ function delegate(rows: Record<string, unknown>[], forceRevisionConflict = false
       where,
       data,
     }: {
-      readonly where: { readonly id: string; readonly revision: number };
+      readonly where: Readonly<Record<string, unknown>>;
       readonly data: Record<string, unknown>;
     }) {
       if (forceRevisionConflict) return Promise.resolve({ count: 0 });
-      const index = rows.findIndex(
-        (row) => row['id'] === where.id && row['revision'] === where.revision,
+      const index = rows.findIndex((row) =>
+        Object.entries(where).every(([key, value]) => row[key] === value),
       );
       if (index < 0) return Promise.resolve({ count: 0 });
       rows[index] = { ...rows[index], ...data };
@@ -128,13 +136,20 @@ function delegate(rows: Record<string, unknown>[], forceRevisionConflict = false
 }
 
 function client(
-  options: { readonly forceRevisionConflict?: boolean } = {},
+  options: {
+    readonly forceRevisionConflict?: boolean;
+    readonly firstQueries?: Array<Readonly<Record<string, unknown>>>;
+  } = {},
 ): DeviceIdentityDatabaseClientV1 {
   const challengeRows: Record<string, unknown>[] = [];
   const deviceRows: Record<string, unknown>[] = [];
   const database = {
-    deviceEnrollmentChallenge: delegate(challengeRows, options.forceRevisionConflict),
-    deviceIdentity: delegate(deviceRows, options.forceRevisionConflict),
+    deviceEnrollmentChallenge: delegate(
+      challengeRows,
+      options.forceRevisionConflict,
+      options.firstQueries,
+    ),
+    deviceIdentity: delegate(deviceRows, options.forceRevisionConflict, options.firstQueries),
     async $transaction<TValue>(
       work: (transaction: DeviceIdentityDatabaseClientV1) => Promise<TValue>,
     ) {
@@ -196,4 +211,16 @@ void test('[IAM-007, IAM-021] Prisma device identity transitions reject database
     activatedAt: timestamp('2026-01-01T00:01:00.000Z'),
   };
   await assert.rejects(repository.replaceDevice(context(), active, 1), /REVISION_CONFLICT/u);
+});
+
+void test('[IAM-009, IAM-019] Prisma device lookups bind identifiers to organization scope', async () => {
+  const firstQueries: Array<Readonly<Record<string, unknown>>> = [];
+  const repository = new PrismaDeviceIdentityRepositoryAdapter(client({ firstQueries }));
+  await repository.saveChallenge(context(), challenge());
+  await repository.saveDevice(context(), device());
+  await repository.findChallenge(context(), stable(challengeId));
+  await repository.findDevice(context(), stable(deviceId));
+
+  assert.equal(firstQueries.length, 4);
+  for (const query of firstQueries) assert.equal(query['organizationId'], organizationId);
 });

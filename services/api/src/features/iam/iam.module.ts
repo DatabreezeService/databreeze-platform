@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { type DynamicModule, Module } from '@nestjs/common';
 
 import { AuthenticationController } from './api/authentication.controller.js';
@@ -21,7 +22,12 @@ import {
   MFA_REPOSITORY_PORT,
   type MfaRepositoryPortV1,
 } from './application/mfa-repository.port.js';
-import { MFA_SERVICE, MfaService } from './application/mfa.service.js';
+import {
+  MFA_SERVICE,
+  MfaService,
+  UnavailableMfaFactorProofVerifier,
+  type MfaFactorProofVerifierV1,
+} from './application/mfa.service.js';
 import {
   IAM_REPOSITORY_PORT,
   type IamRepositoryPortV1,
@@ -82,6 +88,8 @@ export interface IamModuleOptions {
   readonly mfaRepository?: MfaRepositoryPortV1;
   readonly mfaDatabase?: MfaDatabaseClientV1;
   readonly mfaService?: MfaService;
+  readonly mfaFactorProofVerifier?: MfaFactorProofVerifierV1;
+  readonly mfaClock?: () => Date;
   readonly recoveryCodeMatcher?: {
     matches(presentedDigest: string, storedDigest: string): boolean;
   };
@@ -92,6 +100,17 @@ export interface IamModuleOptions {
   readonly deviceIdentityDatabase?: DeviceIdentityDatabaseClientV1;
   readonly deviceEnrollmentProofVerifier?: DeviceEnrollmentProofVerifierV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
+}
+
+/** Compare already-normalized recovery-code digests without data-dependent byte comparisons. */
+export function constantTimeRecoveryCodeMatchV1(
+  presentedDigest: string,
+  storedDigest: string,
+): boolean {
+  const presented = Buffer.from(presentedDigest, 'utf8');
+  const stored = Buffer.from(storedDigest, 'utf8');
+  if (presented.length !== stored.length) return false;
+  return timingSafeEqual(presented, stored);
 }
 
 export function composeAuthenticationUseCase(options: IamModuleOptions): AuthenticationUseCaseV1 {
@@ -136,15 +155,10 @@ export class IamModule {
         : new MfaService(
             mfaRepository,
             options.recoveryCodeMatcher ?? {
-              matches: (presentedDigest, storedDigest) => {
-                if (presentedDigest.length !== storedDigest.length) return false;
-                let difference = 0;
-                for (let index = 0; index < presentedDigest.length; index += 1) {
-                  difference |= presentedDigest.charCodeAt(index) ^ storedDigest.charCodeAt(index);
-                }
-                return difference === 0;
-              },
+              matches: constantTimeRecoveryCodeMatchV1,
             },
+            options.mfaFactorProofVerifier ?? new UnavailableMfaFactorProofVerifier(),
+            options.mfaClock,
           ));
     const iamRepository =
       options.iamRepository ??

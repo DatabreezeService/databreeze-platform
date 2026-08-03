@@ -10,6 +10,9 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { AuthenticationProblemError } from '../../features/iam/application/authentication-problem.error.js';
 import { SessionProblemError } from '../../features/iam/application/session-problem.error.js';
 import { MfaProblemError } from '../../features/iam/application/mfa-problem.error.js';
+import { EntitlementProblemError } from '../../features/bua/application/entitlement-problem.error.js';
+import { DeviceIdentityProblemError } from '../../features/iam/application/device-identity-problem.error.js';
+import { AuditProblemError } from '../../features/aud/application/audit-problem.error.js';
 import { RequestTenantContextProblemError } from './session-tenant-context.adapter.js';
 import { NotReadyError } from '../../features/system/application/not-ready.error.js';
 import { InputValidationException } from './input-validation.exception.js';
@@ -55,14 +58,74 @@ function describe(error: unknown, correlationId: string): ProblemInput {
       status: unavailable ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.BAD_REQUEST,
     };
   }
+  if (error instanceof EntitlementProblemError) {
+    const unavailable = error.code === 'ENTITLEMENT_UNAVAILABLE';
+    const notFound = error.code === 'ENTITLEMENT_NOT_FOUND';
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: unavailable
+        ? 'api.error.entitlement_unavailable'
+        : notFound
+          ? 'api.error.entitlement_not_found'
+          : 'api.error.entitlement_request_invalid',
+      retryable: unavailable,
+      status: unavailable
+        ? HttpStatus.SERVICE_UNAVAILABLE
+        : notFound
+          ? HttpStatus.NOT_FOUND
+          : HttpStatus.BAD_REQUEST,
+    };
+  }
+  if (error instanceof DeviceIdentityProblemError) {
+    const status =
+      error.code === 'DEVICE_UNAVAILABLE'
+        ? HttpStatus.SERVICE_UNAVAILABLE
+        : error.code === 'DEVICE_NOT_FOUND'
+          ? HttpStatus.NOT_FOUND
+          : error.code === 'DEVICE_SCOPE_DENIED'
+            ? HttpStatus.FORBIDDEN
+            : error.code === 'DEVICE_REVISION_CONFLICT'
+              ? HttpStatus.CONFLICT
+              : HttpStatus.BAD_REQUEST;
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: `api.error.${error.code.toLowerCase()}`,
+      retryable: error.code === 'DEVICE_UNAVAILABLE',
+      status,
+    };
+  }
+  if (error instanceof AuditProblemError) {
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: 'api.error.audit_unavailable',
+      retryable: true,
+      status: HttpStatus.SERVICE_UNAVAILABLE,
+    };
+  }
   if (error instanceof RequestTenantContextProblemError) {
     const invalidContext = error.code === 'CONTEXT_INVALID';
+    const unavailable = error.code === 'AUTHENTICATION_UNAVAILABLE';
     return {
-      code: invalidContext ? 'CONTEXT_INVALID' : 'AUTHENTICATION_FAILED',
+      code: invalidContext
+        ? 'CONTEXT_INVALID'
+        : unavailable
+          ? 'AUTHENTICATION_UNAVAILABLE'
+          : 'AUTHENTICATION_FAILED',
       correlationId,
-      messageKey: invalidContext ? 'api.error.context_invalid' : 'api.error.authentication_failed',
-      retryable: false,
-      status: invalidContext ? HttpStatus.BAD_REQUEST : HttpStatus.UNAUTHORIZED,
+      messageKey: invalidContext
+        ? 'api.error.context_invalid'
+        : unavailable
+          ? 'api.error.authentication_unavailable'
+          : 'api.error.authentication_failed',
+      retryable: unavailable,
+      status: invalidContext
+        ? HttpStatus.BAD_REQUEST
+        : unavailable
+          ? HttpStatus.SERVICE_UNAVAILABLE
+          : HttpStatus.UNAUTHORIZED,
     };
   }
   if (error instanceof InputValidationException) {

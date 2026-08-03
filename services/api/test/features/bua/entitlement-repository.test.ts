@@ -86,7 +86,19 @@ void test('[BUA-001, BUA-002, BUA-003] plans and snapshots are immutable and sco
   const repository = new InMemoryEntitlementRepositoryAdapter();
   await repository.savePlan(plan());
   assert.deepEqual(await repository.findPlan('development'), plan());
+  const reorderedPlan = {
+    ...plan(),
+    features: ['job.execute', 'artifact.register'],
+  };
+  await repository.savePlan({
+    ...reorderedPlan,
+  });
+  assert.deepEqual(await repository.findPlan('development'), reorderedPlan);
   await repository.saveSnapshot(context(workspaceId), snapshot());
+  await repository.saveSnapshot(context(workspaceId), {
+    ...snapshot(),
+    features: ['job.execute', 'artifact.register'],
+  });
   assert.equal(
     (
       await repository.findSnapshot(
@@ -133,6 +145,15 @@ void test('[BUA-008, BUA-009, BUA-010, BUA-011] usage state persists append-only
   if (!reserved.accepted) return;
   await repository.persistUsageState(context(workspaceId), reserved.value.state);
   assert.equal((await repository.listUsageState(context(workspaceId))).entries.length, 1);
+  const activeReservation = reserved.value.state.reservations[0];
+  if (!activeReservation) throw new Error('fixture reservation missing');
+  await assert.rejects(
+    repository.persistUsageState(context(workspaceId), {
+      entries: reserved.value.state.entries,
+      reservations: [{ ...activeReservation, revision: 2 }],
+    }),
+    /BUA_RESERVATION_CONFLICT/,
+  );
   await assert.rejects(
     repository.persistUsageState(context(workspaceId), {
       ...reserved.value.state,

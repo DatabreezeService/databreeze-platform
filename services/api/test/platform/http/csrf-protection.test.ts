@@ -1,11 +1,31 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { validateRequestContextOptionsV1 } from '../../../src/platform/http/request-context.js';
+
 import { evaluateCsrfRequestV1 } from '../../../src/platform/http/csrf-protection.js';
 
 const token = 'QmFzZTY0dXJsVG9rZW5fMDEyMzQ1Njc4OWFiY2RlZg';
 
 const allowedOrigins = ['https://app.databreeze.example'];
+
+void test('production request context requires explicit HTTPS browser origins', () => {
+  assert.throws(
+    () => validateRequestContextOptionsV1({}, 'production'),
+    /CSRF_ALLOWED_ORIGINS_REQUIRED/,
+  );
+  assert.throws(
+    () =>
+      validateRequestContextOptionsV1(
+        { csrf: { allowedOrigins: ['http://localhost:3000'] } },
+        'production',
+      ),
+    /CSRF_ALLOWED_ORIGINS_INVALID/,
+  );
+  assert.doesNotThrow(() =>
+    validateRequestContextOptionsV1({ csrf: { allowedOrigins } }, 'production'),
+  );
+});
 
 void test('allows safe methods and non-cookie clients without a CSRF token', () => {
   assert.deepEqual(evaluateCsrfRequestV1({ method: 'GET', headers: {} }, { allowedOrigins }), {
@@ -54,6 +74,23 @@ void test('requires a valid double-submit token for cookie-authenticated mutatio
         headers: {
           ...base.headers,
           cookie: `databreeze_refresh=session-value; databreeze_csrf=${token}`,
+          'x-csrf-token': token,
+        },
+      },
+      { allowedOrigins },
+    ),
+    { accepted: true },
+  );
+});
+
+void test('accepts standard token characters in unrelated cookie names', () => {
+  assert.deepEqual(
+    evaluateCsrfRequestV1(
+      {
+        method: 'POST',
+        headers: {
+          cookie: `analytics-id=value; preference.v1=value; databreeze_refresh=session-value; databreeze_csrf=${token}`,
+          origin: 'https://app.databreeze.example',
           'x-csrf-token': token,
         },
       },
@@ -113,6 +150,34 @@ void test('fails closed for duplicate cookies and duplicate token headers', () =
           'x-csrf-token': [token, token],
         },
       },
+      { allowedOrigins },
+    ),
+    { accepted: false, code: 'CSRF_INVALID' },
+  );
+});
+
+void test('fails closed when cookie parsing exceeds resource bounds', () => {
+  const request = (cookie: string) => ({
+    method: 'POST',
+    headers: {
+      cookie,
+      origin: 'https://app.databreeze.example',
+      'x-csrf-token': token,
+    },
+  });
+
+  assert.deepEqual(
+    evaluateCsrfRequestV1(
+      request(`databreeze_refresh=session-value; padding=${'a'.repeat(8_192)}`),
+      { allowedOrigins },
+    ),
+    { accepted: false, code: 'CSRF_INVALID' },
+  );
+  assert.deepEqual(
+    evaluateCsrfRequestV1(
+      request(
+        `databreeze_refresh=session-value; ${Array.from({ length: 64 }, (_, index) => `c${index}=v`).join('; ')}`,
+      ),
       { allowedOrigins },
     ),
     { accepted: false, code: 'CSRF_INVALID' },

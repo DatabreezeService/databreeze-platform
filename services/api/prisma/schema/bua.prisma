@@ -45,6 +45,7 @@ model UsageLedgerEntryRecord {
   scopeType      String   @map("scope_type") @db.VarChar(24)
   organizationId String   @map("organization_id") @db.Uuid
   workspaceId    String?  @map("workspace_id") @db.Uuid
+  projectId      String?  @map("project_id") @db.Uuid
   metric         String   @db.VarChar(40)
   bucket         String   @db.VarChar(16)
   deltaUnits     BigInt   @map("delta_units")
@@ -56,7 +57,7 @@ model UsageLedgerEntryRecord {
 
   @@unique([scopeKey, metric, sequence], map: "usage_ledger_scope_metric_sequence_key")
   @@unique([scopeKey, idempotencyKey], map: "usage_ledger_scope_idempotency_key")
-  @@index([organizationId, workspaceId, metric, sequence], map: "usage_ledger_scope_idx")
+  @@index([organizationId, workspaceId, projectId, metric, sequence], map: "usage_ledger_scope_idx")
   @@index([reservationId], map: "usage_ledger_reservation_idx")
   @@map("usage_ledger_entries")
   @@schema("bua")
@@ -68,6 +69,7 @@ model UsageReservationRecord {
   scopeType      String   @map("scope_type") @db.VarChar(24)
   organizationId String   @map("organization_id") @db.Uuid
   workspaceId    String?  @map("workspace_id") @db.Uuid
+  projectId      String?  @map("project_id") @db.Uuid
   metric         String   @db.VarChar(40)
   reservedUnits  BigInt   @map("reserved_units")
   status         String   @db.VarChar(16)
@@ -75,7 +77,7 @@ model UsageReservationRecord {
   revision       Int
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@index([organizationId, workspaceId, status], map: "usage_reservations_scope_idx")
+  @@index([organizationId, workspaceId, projectId, status], map: "usage_reservations_scope_idx")
   @@index([scopeKey, metric], map: "usage_reservations_metric_idx")
   @@map("usage_reservations")
   @@schema("bua")

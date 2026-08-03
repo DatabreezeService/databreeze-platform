@@ -1,5 +1,9 @@
 const COOKIE_NAME_PATTERN_V1 = /^[A-Za-z0-9_]+$/u;
 const COOKIE_VALUE_PATTERN_V1 = /^[A-Za-z0-9._~-]+$/u;
+const MAX_COOKIE_HEADER_LENGTH_V1 = 8_192;
+const MAX_COOKIE_NAME_LENGTH_V1 = 64;
+const MAX_COOKIE_VALUE_LENGTH_V1 = 4_096;
+const MAX_COOKIE_SEGMENTS_V1 = 64;
 
 export const REFRESH_COOKIE_NAME_V1 = 'databreeze_refresh';
 export const CSRF_COOKIE_NAME_V1 = 'databreeze_csrf';
@@ -10,11 +14,11 @@ export interface CookieOptionsV1 {
 }
 
 function validCookieNameV1(name: string): boolean {
-  return COOKIE_NAME_PATTERN_V1.test(name);
+  return name.length <= MAX_COOKIE_NAME_LENGTH_V1 && COOKIE_NAME_PATTERN_V1.test(name);
 }
 
 function validCookieValueV1(value: string): boolean {
-  return COOKIE_VALUE_PATTERN_V1.test(value);
+  return value.length <= MAX_COOKIE_VALUE_LENGTH_V1 && COOKIE_VALUE_PATTERN_V1.test(value);
 }
 
 export function serializeCookieV1(name: string, value: string, options: CookieOptionsV1): string {
@@ -52,9 +56,17 @@ export function clearCookieV1(name: string, options: Pick<CookieOptionsV1, 'http
 
 /** Read one unencoded, token-shaped cookie without accepting duplicate names. */
 export function readCookieValueV1(rawCookie: unknown, name: string): string | undefined {
-  if (typeof rawCookie !== 'string' || !validCookieNameV1(name)) return undefined;
+  if (
+    typeof rawCookie !== 'string' ||
+    rawCookie.length > MAX_COOKIE_HEADER_LENGTH_V1 ||
+    !validCookieNameV1(name)
+  ) {
+    return undefined;
+  }
+  const segments = rawCookie.split(';');
+  if (segments.length > MAX_COOKIE_SEGMENTS_V1) return undefined;
   let found: string | undefined;
-  for (const segment of rawCookie.split(';')) {
+  for (const segment of segments) {
     const trimmed = segment.trim();
     if (trimmed.length === 0) continue;
     const equals = trimmed.indexOf('=');

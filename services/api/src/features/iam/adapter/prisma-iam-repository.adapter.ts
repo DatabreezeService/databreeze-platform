@@ -30,11 +30,12 @@ export interface IamMembershipDatabaseRowV1 {
 }
 
 interface IamMembershipDelegateV1 {
-  findUnique(input: {
-    readonly where: { readonly id: string };
+  findFirst(input: {
+    readonly where: Readonly<Record<string, unknown>>;
   }): Promise<IamMembershipDatabaseRowV1 | null>;
   findMany(input: {
     readonly where: Readonly<Record<string, unknown>>;
+    readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
   }): Promise<readonly IamMembershipDatabaseRowV1[]>;
   create(input: { readonly data: IamMembershipDatabaseRowV1 }): Promise<IamMembershipDatabaseRowV1>;
   updateMany(input: {
@@ -43,10 +44,13 @@ interface IamMembershipDelegateV1 {
   }): Promise<{ readonly count: number }>;
 }
 
-export interface IamDatabaseClientV1 {
+export interface IamTransactionDatabaseClientV1 {
   readonly membershipIdentity: IamMembershipDelegateV1;
+}
+
+export interface IamDatabaseClientV1 extends IamTransactionDatabaseClientV1 {
   $transaction<TValue>(
-    work: (transaction: IamDatabaseClientV1) => Promise<TValue>,
+    work: (transaction: IamTransactionDatabaseClientV1) => Promise<TValue>,
   ): Promise<TValue>;
 }
 
@@ -94,6 +98,16 @@ function membershipFromRow(row: IamMembershipDatabaseRowV1): IamMembershipRecord
   return validated.value;
 }
 
+function membershipFromRowOrSkip(
+  row: IamMembershipDatabaseRowV1,
+): IamMembershipRecordV1 | undefined {
+  try {
+    return membershipFromRow(row);
+  } catch {
+    return undefined;
+  }
+}
+
 function membershipRow(membership: MembershipIdentityV1): IamMembershipDatabaseRowV1 {
   return {
     id: membership.id,
@@ -116,30 +130,53 @@ function visibleInScope(context: TenantScopeV1, membership: TenantScopeV1): bool
   return tenantScopeContainsV1(context, membership) || tenantScopeContainsV1(membership, context);
 }
 
+function scopeSpecificity(scope: TenantScopeV1): number {
+  if (scope.scopeType === 'project') return 3;
+  if (scope.scopeType === 'workspace') return 2;
+  return 1;
+}
+
 class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
-  public constructor(private readonly client: IamDatabaseClientV1) {}
+  public constructor(private readonly client: IamTransactionDatabaseClientV1) {}
 
   public async findMembership(
     context: IamTenantContextV1,
     principalId: StableIdentifierV1,
   ): Promise<IamMembershipRecordV1 | undefined> {
-    const rows = await this.client.membershipIdentity.findMany({ where: { principalId } });
+    const rows = await this.client.membershipIdentity.findMany({
+      where: {
+        organizationId: context.tenantScope.organizationId,
+        principalId,
+        status: 'ACTIVE',
+      },
+      orderBy: { id: 'asc' },
+    });
     return rows
-      .map(membershipFromRow)
-      .find(
+      .map(membershipFromRowOrSkip)
+      .filter((membership): membership is IamMembershipRecordV1 => membership !== undefined)
+      .filter(
         (membership) =>
           membership.principalId === principalId &&
           membership.status === 'ACTIVE' &&
-          visibleInScope(context.tenantScope, membership.scope),
-      );
+          tenantScopeContainsV1(membership.scope, context.tenantScope),
+      )
+      .sort(
+        (left, right) =>
+          scopeSpecificity(right.scope) - scopeSpecificity(left.scope) ||
+          left.id.localeCompare(right.id),
+      )[0];
   }
 
   public async listMemberships(
     context: IamTenantContextV1,
   ): Promise<readonly IamMembershipRecordV1[]> {
-    const rows = await this.client.membershipIdentity.findMany({ where: {} });
+    const rows = await this.client.membershipIdentity.findMany({
+      where: { organizationId: context.tenantScope.organizationId },
+      orderBy: { id: 'asc' },
+    });
     return rows
-      .map(membershipFromRow)
+      .map(membershipFromRowOrSkip)
+      .filter((membership): membership is IamMembershipRecordV1 => membership !== undefined)
       .filter((membership) => visibleInScope(context.tenantScope, membership.scope));
   }
 
@@ -151,8 +188,11 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
       throw new Error('IAM_SCOPE_NARROWING_REQUIRED');
     const validated = validateMembershipV1({ ...membership, principalType: 'USER' });
     if (!validated.accepted) throw new Error(`IAM_${validated.code}`);
-    const existingRow = await this.client.membershipIdentity.findUnique({
-      where: { id: membership.id },
+    const existingRow = await this.client.membershipIdentity.findFirst({
+      where: {
+        id: membership.id,
+        organizationId: context.tenantScope.organizationId,
+      },
     });
     if (!existingRow) {
       if (context.expectedRevision !== undefined) throw new Error('IAM_REVISION_CONFLICT');

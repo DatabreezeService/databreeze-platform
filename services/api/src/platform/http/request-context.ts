@@ -25,6 +25,27 @@ export interface RequestContextOptions {
   readonly csrf?: Partial<CsrfProtectionOptionsV1>;
 }
 
+/** Production must explicitly declare browser origins; development defaults are not deployable. */
+export function validateRequestContextOptionsV1(
+  options: RequestContextOptions = {},
+  environment = process.env['NODE_ENV'],
+): void {
+  if (environment !== 'production') return;
+  const origins = options.csrf?.allowedOrigins;
+  if (!origins || origins.length === 0) throw new Error('CSRF_ALLOWED_ORIGINS_REQUIRED');
+  if (
+    origins.some((origin) => {
+      try {
+        const parsed = new URL(origin);
+        return parsed.protocol !== 'https:' || parsed.username !== '' || parsed.password !== '';
+      } catch {
+        return true;
+      }
+    })
+  )
+    throw new Error('CSRF_ALLOWED_ORIGINS_INVALID');
+}
+
 export function parseCorrelationHeader(
   values: readonly string[],
   requestId: string,
@@ -48,6 +69,7 @@ export function installRequestContext(
   fastify: FastifyInstance,
   options: RequestContextOptions = {},
 ): void {
+  validateRequestContextOptionsV1(options);
   fastify.addHook('onRequest', (request, reply, done) => {
     const requestId = randomUUID();
     const context: RequestContext = { correlationId: requestId, requestId };

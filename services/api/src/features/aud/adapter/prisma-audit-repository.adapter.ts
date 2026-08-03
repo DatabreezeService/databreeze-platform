@@ -2,6 +2,7 @@ import {
   AUDIT_ACTIONS_V1,
   sanitizeAuditSummaryV1,
   verifyAuditChainV1,
+  verifyAuditEventDigestV1,
   type AuditActorTypeV1,
   type AuditEventV1,
   type AuditSealV1,
@@ -18,9 +19,16 @@ import { randomUUID } from 'node:crypto';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type {
+  AuditPageInputV1,
+  AuditPageV1,
   AuditRepositoryPortV1,
   AuditTransactionPortV1,
 } from '../application/audit-repository.port.js';
+import {
+  createAuditPageCursorV1,
+  parseAuditPageCursorV1,
+} from '../application/audit-page-cursor.js';
+import { sameAuditEventV1, sameAuditSealV1 } from '../application/audit-equality.js';
 
 export interface AuditEventDatabaseRowV1 {
   readonly id: string;
@@ -72,12 +80,17 @@ interface AuditSealCreateDataV1 extends Omit<AuditSealDatabaseRowV1, 'createdAt'
 
 interface AuditEventDelegateV1 {
   create(input: { readonly data: AuditEventCreateDataV1 }): Promise<AuditEventDatabaseRowV1>;
-  findUnique(input: {
-    readonly where: { readonly id: string };
+  findFirst(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+    readonly orderBy?: { readonly sequence: 'asc' | 'desc' };
   }): Promise<AuditEventDatabaseRowV1 | null>;
   findMany(input: {
     readonly where: Readonly<Record<string, unknown>>;
-    readonly orderBy: { readonly sequence: 'asc' | 'desc' };
+    readonly orderBy:
+      | Readonly<Record<string, 'asc' | 'desc'>>
+      | readonly Readonly<Record<string, 'asc' | 'desc'>>[];
+    readonly skip?: number;
+    readonly take?: number;
   }): Promise<readonly AuditEventDatabaseRowV1[]>;
 }
 
@@ -88,7 +101,11 @@ interface AuditSealDelegateV1 {
   }): Promise<AuditSealDatabaseRowV1 | null>;
   findMany(input: {
     readonly where: Readonly<Record<string, unknown>>;
-    readonly orderBy: { readonly lastSequence: 'asc' | 'desc' };
+    readonly orderBy:
+      | Readonly<Record<string, 'asc' | 'desc'>>
+      | readonly Readonly<Record<string, 'asc' | 'desc'>>[];
+    readonly skip?: number;
+    readonly take?: number;
   }): Promise<readonly AuditSealDatabaseRowV1[]>;
 }
 
@@ -267,6 +284,37 @@ function visible(context: TenantScopeV1, candidate: TenantScopeV1): boolean {
   return tenantScopeContainsV1(context, candidate) || tenantScopeContainsV1(candidate, context);
 }
 
+function visibilityWhere(scope: TenantScopeV1): Readonly<Record<string, unknown>> {
+  if (scope.scopeType === 'organization') return { organizationId: scope.organizationId };
+  if (scope.scopeType === 'workspace') {
+    return {
+      organizationId: scope.organizationId,
+      OR: [{ scopeType: 'organization' }, { workspaceId: scope.workspaceId }],
+    };
+  }
+  return {
+    organizationId: scope.organizationId,
+    OR: [
+      { scopeType: 'organization' },
+      { scopeType: 'workspace', workspaceId: scope.workspaceId },
+      { scopeType: 'project', projectId: scope.projectId },
+    ],
+  };
+}
+
+function pageOffset(
+  input: AuditPageInputV1,
+  kind: 'events' | 'seals',
+  scope: TenantScopeV1,
+): number {
+  if (!Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > 100)
+    throw new Error('AUD_PAGE_LIMIT_INVALID');
+  if (input.cursor === undefined) return 0;
+  const parsed = parseAuditPageCursorV1(input.cursor, kind, scope);
+  if (!parsed.accepted) throw new Error('AUD_CURSOR_INVALID');
+  return parsed.offset;
+}
+
 class PrismaAuditTransactionAdapter implements AuditTransactionPortV1 {
   public constructor(
     private readonly client: AuditDatabaseClientV1,
@@ -279,23 +327,30 @@ class PrismaAuditTransactionAdapter implements AuditTransactionPortV1 {
   ): Promise<AuditEventV1> {
     if (!tenantScopeContainsV1(context.tenantScope, event.tenantScope))
       throw new Error('AUD_SCOPE_NARROWING_REQUIRED');
-    const existing = await this.client.auditEventRecord.findUnique({
-      where: { id: event.eventId },
+    const existing = await this.client.auditEventRecord.findFirst({
+      where: {
+        id: event.eventId,
+        organizationId: context.tenantScope.organizationId,
+      },
     });
     if (existing !== null) {
       const current = persistedEvent(existing);
-      if (JSON.stringify(current) !== JSON.stringify(event)) throw new Error('AUD_IMMUTABLE_EVENT');
+      if (!sameAuditEventV1(current, event)) throw new Error('AUD_IMMUTABLE_EVENT');
       return current;
     }
-    const siblings = await this.client.auditEventRecord.findMany({
-      where: { scopeKey: scopeKey(event.tenantScope) },
-      orderBy: { sequence: 'desc' },
-    });
-    const duplicate = siblings.find((row) => row.idempotencyKey === event.idempotencyKey);
-    if (duplicate !== undefined) throw new Error('AUD_IDEMPOTENCY_CONFLICT');
-    const latest = siblings[0];
+    const eventScopeKey = scopeKey(event.tenantScope);
+    const [duplicate, latest] = await Promise.all([
+      this.client.auditEventRecord.findFirst({
+        where: { scopeKey: eventScopeKey, idempotencyKey: event.idempotencyKey },
+      }),
+      this.client.auditEventRecord.findFirst({
+        where: { scopeKey: eventScopeKey },
+        orderBy: { sequence: 'desc' },
+      }),
+    ]);
+    if (duplicate !== null) throw new Error('AUD_IDEMPOTENCY_CONFLICT');
     if (
-      latest !== undefined &&
+      latest !== null &&
       (event.sequence !== latest.sequence + 1 || event.previousDigest !== latest.digest)
     ) {
       throw new Error('AUD_SEQUENCE_CONFLICT');
@@ -317,6 +372,22 @@ class PrismaAuditTransactionAdapter implements AuditTransactionPortV1 {
     return events;
   }
 
+  public async listEventsForScope(
+    context: IamTenantContextV1,
+    scope: TenantScopeV1,
+  ): Promise<readonly AuditEventV1[]> {
+    if (!tenantScopeContainsV1(context.tenantScope, scope))
+      throw new Error('AUD_SCOPE_NARROWING_REQUIRED');
+    const rows = await this.client.auditEventRecord.findMany({
+      where: { scopeKey: scopeKey(scope) },
+      orderBy: { sequence: 'asc' },
+    });
+    const events = rows.map(persistedEvent);
+    const verified = verifyAuditChainV1(events, this.digestPort);
+    if (!verified.accepted) throw new Error('AUD_CHAIN_INVALID');
+    return events;
+  }
+
   public async saveSeal(context: IamTenantContextV1, seal: AuditSealV1): Promise<void> {
     if (!tenantScopeContainsV1(context.tenantScope, seal.tenantScope))
       throw new Error('AUD_SCOPE_NARROWING_REQUIRED');
@@ -328,8 +399,7 @@ class PrismaAuditTransactionAdapter implements AuditTransactionPortV1 {
       },
     });
     if (existing !== null) {
-      if (JSON.stringify(persistedSeal(existing)) !== JSON.stringify(seal))
-        throw new Error('AUD_IMMUTABLE_SEAL');
+      if (!sameAuditSealV1(persistedSeal(existing), seal)) throw new Error('AUD_IMMUTABLE_SEAL');
       return;
     }
     await this.client.auditSealRecord.create({ data: sealCreateData(seal) });
@@ -368,8 +438,75 @@ export class PrismaAuditRepositoryAdapter implements AuditRepositoryPortV1 {
     );
   }
 
+  public async listEventPage(
+    context: IamTenantContextV1,
+    input: AuditPageInputV1,
+  ): Promise<AuditPageV1<AuditEventV1>> {
+    const offset = pageOffset(input, 'events', context.tenantScope);
+    const rows = await this.client.auditEventRecord.findMany({
+      where: visibilityWhere(context.tenantScope),
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      skip: offset,
+      take: input.limit + 1,
+    });
+    const visibleRows = rows.filter((row) => visible(context.tenantScope, persistedScope(row)));
+    const pageRows = visibleRows.slice(0, input.limit);
+    const items = pageRows.map(persistedEvent);
+    if (items.some((event) => !verifyAuditEventDigestV1(event, this.digestPort).accepted))
+      throw new Error('AUD_CHAIN_INVALID');
+    return Object.freeze({
+      items: Object.freeze(items),
+      ...(visibleRows.length > pageRows.length
+        ? {
+            nextCursor: createAuditPageCursorV1(
+              'events',
+              context.tenantScope,
+              offset + pageRows.length,
+            ),
+          }
+        : {}),
+    });
+  }
+
   public listEvents(context: IamTenantContextV1): Promise<readonly AuditEventV1[]> {
     return new PrismaAuditTransactionAdapter(this.client, this.digestPort).listEvents(context);
+  }
+
+  public async listSealPage(
+    context: IamTenantContextV1,
+    input: AuditPageInputV1,
+  ): Promise<AuditPageV1<AuditSealV1>> {
+    const offset = pageOffset(input, 'seals', context.tenantScope);
+    const rows = await this.client.auditSealRecord.findMany({
+      where: visibilityWhere(context.tenantScope),
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      skip: offset,
+      take: input.limit + 1,
+    });
+    const visibleRows = rows.filter((row) => visible(context.tenantScope, persistedScope(row)));
+    const pageRows = visibleRows.slice(0, input.limit);
+    return Object.freeze({
+      items: Object.freeze(pageRows.map(persistedSeal)),
+      ...(visibleRows.length > pageRows.length
+        ? {
+            nextCursor: createAuditPageCursorV1(
+              'seals',
+              context.tenantScope,
+              offset + pageRows.length,
+            ),
+          }
+        : {}),
+    });
+  }
+
+  public listEventsForScope(
+    context: IamTenantContextV1,
+    scope: TenantScopeV1,
+  ): Promise<readonly AuditEventV1[]> {
+    return new PrismaAuditTransactionAdapter(this.client, this.digestPort).listEventsForScope(
+      context,
+      scope,
+    );
   }
 
   public saveSeal(context: IamTenantContextV1, seal: AuditSealV1): Promise<void> {

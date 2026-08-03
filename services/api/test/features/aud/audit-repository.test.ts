@@ -48,7 +48,7 @@ function event(eventId: string, idempotencyKey: string, workspace = workspaceId)
       occurredAt: '2026-01-01T00:00:00.000Z',
       correlationId,
       idempotencyKey,
-      summary: { outcome: 'accepted' },
+      summary: { status: 'accepted', outcome: 'accepted' },
     },
     digestPort,
   );
@@ -62,6 +62,13 @@ void test('[AUD-001, AUD-004, AUD-006, IAM-009] audit events are append-only and
   const stored = event('00000000-0000-4000-8000-000000000021', 'invite-1');
   await repository.appendEvent(context(workspaceId), stored);
   assert.deepEqual(await repository.listEvents(context(workspaceId)), [stored]);
+  assert.deepEqual(
+    await repository.appendEvent(context(workspaceId), {
+      ...stored,
+      summary: { outcome: 'accepted', status: 'accepted' },
+    }),
+    stored,
+  );
   assert.deepEqual(await repository.listEvents(context(siblingWorkspaceId)), []);
   assert.deepEqual(await repository.appendEvent(context(workspaceId), stored), stored);
   await assert.rejects(
