@@ -188,7 +188,8 @@ export class IamModule {
         ? new InMemoryIamHierarchyRepositoryAdapter()
         : new PrismaIamHierarchyRepositoryAdapter(options.hierarchyDatabase));
     const hierarchyService =
-      options.hierarchyService ?? new IamHierarchyService(hierarchyRepository);
+      options.hierarchyService ??
+      new IamHierarchyService(hierarchyRepository, undefined, undefined, iamRepository);
     const authentication =
       options.authentication ??
       (credentials && sessions

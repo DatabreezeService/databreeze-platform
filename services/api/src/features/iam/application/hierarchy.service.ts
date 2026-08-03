@@ -13,7 +13,9 @@ import {
   tenantScopeContainsV1,
   type StableIdentifierV1,
 } from '@databreeze/domain/tenant-scope/v1';
+import { roleHasPermissionV1, PERMISSIONS_V1 } from '@databreeze/domain/permissions/v1';
 
+import type { IamRepositoryPortV1 } from './iam-repository.port.js';
 import type {
   IamHierarchyRepositoryPortV1,
   IamHierarchyTransactionPortV1,
@@ -101,7 +103,23 @@ export class IamHierarchyService {
     private readonly repository: IamHierarchyRepositoryPortV1,
     private readonly idGenerator: IamHierarchyIdGeneratorV1 = () => randomUUID(),
     private readonly clock: IamHierarchyClockV1 = () => new Date(),
+    private readonly authority?: IamRepositoryPortV1,
   ) {}
+
+  private async authorizeMutation(
+    context: IamTenantContextV1,
+    permission: (typeof PERMISSIONS_V1)[keyof typeof PERMISSIONS_V1],
+  ): Promise<'ALLOWED' | 'DENIED' | 'UNAVAILABLE'> {
+    if (!this.authority) return 'UNAVAILABLE';
+    try {
+      const membership = await this.authority.findMembership(context, context.actorId);
+      return membership && roleHasPermissionV1(membership.roleId, permission)
+        ? 'ALLOWED'
+        : 'DENIED';
+    } catch {
+      return 'UNAVAILABLE';
+    }
+  }
 
   public async getOrganization(
     context: IamTenantContextV1,
@@ -170,6 +188,12 @@ export class IamHierarchyService {
       createdAt,
     });
     if (!inputCheck.accepted) return rejected(identityCode(inputCheck.code));
+    const authorization = await this.authorizeMutation(
+      context,
+      PERMISSIONS_V1.ORGANIZATION_SETTINGS_MANAGE,
+    );
+    if (authorization !== 'ALLOWED')
+      return rejected(authorization === 'UNAVAILABLE' ? 'UNAVAILABLE' : 'SCOPE_DENIED');
     try {
       return await this.repository.withTransaction(context, async (transaction) => {
         const parent = await transaction.findOrganization(context, organizationId.value);
@@ -245,6 +269,12 @@ export class IamHierarchyService {
       createdAt,
     });
     if (!inputCheck.accepted) return rejected(identityCode(inputCheck.code));
+    const authorization = await this.authorizeMutation(
+      context,
+      PERMISSIONS_V1.WORKSPACE_SETTINGS_MANAGE,
+    );
+    if (authorization !== 'ALLOWED')
+      return rejected(authorization === 'UNAVAILABLE' ? 'UNAVAILABLE' : 'SCOPE_DENIED');
     try {
       return await this.repository.withTransaction(context, async (transaction) => {
         const parent = await transaction.findWorkspace(context, workspaceId.value);

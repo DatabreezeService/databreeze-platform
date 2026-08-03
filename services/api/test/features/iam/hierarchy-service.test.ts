@@ -8,6 +8,7 @@ import {
 import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import { InMemoryIamHierarchyRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-iam-hierarchy-repository.adapter.js';
+import { InMemoryIamRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-iam-repository.adapter.js';
 import {
   IamHierarchyService,
   type IamHierarchyClockV1,
@@ -66,6 +67,21 @@ function deterministicIds(...values: string[]): IamHierarchyIdGeneratorV1 {
 
 const clock: IamHierarchyClockV1 = () => createdAt;
 
+function authority(roleId: 'owner' | 'admin' | 'viewer' = 'owner') {
+  const repository = new InMemoryIamRepositoryAdapter();
+  repository.seed([
+    {
+      id: stable('00000000-0000-4000-8000-000000000151'),
+      principalId: stable(ids.principal),
+      scope: { scopeType: 'organization', organizationId: stable(ids.organization) },
+      roleId,
+      status: 'ACTIVE',
+      revision: 1,
+    },
+  ]);
+  return repository;
+}
+
 void test('[IAM-001, IAM-003] service creates server-identified workspaces and projects in one scoped transaction', async () => {
   const repository = new InMemoryIamHierarchyRepositoryAdapter();
   await repository.seed({ organizations: [organization()], workspaces: [], projects: [] });
@@ -73,6 +89,7 @@ void test('[IAM-001, IAM-003] service creates server-identified workspaces and p
     repository,
     deterministicIds(ids.workspace, ids.project),
     clock,
+    authority(),
   );
   const organizationContext = context(
     { scopeType: 'organization', organizationId: stable(ids.organization) },
@@ -101,10 +118,44 @@ void test('[IAM-001, IAM-003] service creates server-identified workspaces and p
   assert.equal(project.value.workspaceId, stable(ids.workspace));
 });
 
+void test('[IAM-003, IAM-004] hierarchy mutations require an authoritative role permission', async () => {
+  const organizationContext = context(
+    { scopeType: 'organization', organizationId: stable(ids.organization) },
+    'hierarchy-service-004',
+  );
+  const withoutAuthority = new IamHierarchyService(
+    new InMemoryIamHierarchyRepositoryAdapter(),
+    deterministicIds(ids.workspace),
+    clock,
+  );
+  assert.deepEqual(
+    await withoutAuthority.createWorkspace(organizationContext, ids.organization, 'Operations'),
+    { accepted: false, code: 'UNAVAILABLE' },
+  );
+
+  const viewerRepository = new InMemoryIamHierarchyRepositoryAdapter();
+  await viewerRepository.seed({ organizations: [organization()], workspaces: [], projects: [] });
+  const viewer = new IamHierarchyService(
+    viewerRepository,
+    deterministicIds(ids.workspace),
+    clock,
+    authority('viewer'),
+  );
+  assert.deepEqual(
+    await viewer.createWorkspace(organizationContext, ids.organization, 'Operations'),
+    { accepted: false, code: 'SCOPE_DENIED' },
+  );
+});
+
 void test('[IAM-003, IAM-019] service rejects path scope that is not the authenticated organization', async () => {
   const repository = new InMemoryIamHierarchyRepositoryAdapter();
   await repository.seed({ organizations: [organization()], workspaces: [], projects: [] });
-  const service = new IamHierarchyService(repository, deterministicIds(ids.workspace), clock);
+  const service = new IamHierarchyService(
+    repository,
+    deterministicIds(ids.workspace),
+    clock,
+    authority(),
+  );
   const organizationContext = context(
     { scopeType: 'organization', organizationId: stable(ids.organization) },
     'hierarchy-service-002',
@@ -120,7 +171,12 @@ void test('[IAM-003, IAM-019] service rejects path scope that is not the authent
 
 void test('[IAM-001] service returns stable input and parent errors without leaking adapter details', async () => {
   const repository = new InMemoryIamHierarchyRepositoryAdapter();
-  const service = new IamHierarchyService(repository, deterministicIds(ids.workspace), clock);
+  const service = new IamHierarchyService(
+    repository,
+    deterministicIds(ids.workspace),
+    clock,
+    authority(),
+  );
   const organizationContext = context(
     { scopeType: 'organization', organizationId: stable(ids.organization) },
     'hierarchy-service-003',
