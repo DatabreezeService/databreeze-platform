@@ -33,6 +33,18 @@ function delegate<TRow extends Record<string, unknown>>(
   rows: TRow[],
   firstQueries: Array<Readonly<Record<string, unknown>>>,
 ) {
+  const matches = (row: TRow, where: Readonly<Record<string, unknown>>): boolean =>
+    Object.entries(where).every(([key, value]) => {
+      if (key === 'OR' && Array.isArray(value)) {
+        return value.some(
+          (candidate) =>
+            typeof candidate === 'object' &&
+            candidate !== null &&
+            matches(row, candidate as Readonly<Record<string, unknown>>),
+        );
+      }
+      return row[key] === value;
+    });
   return {
     create({ data }: { readonly data: TRow }) {
       const persisted = { ...data };
@@ -47,9 +59,7 @@ function delegate<TRow extends Record<string, unknown>>(
       readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
     }) {
       firstQueries.push(where);
-      const matching = rows.filter((row) =>
-        Object.entries(where).every(([key, value]) => row[key] === value),
-      );
+      const matching = rows.filter((row) => matches(row, where));
       const [field, direction] = Object.entries(orderBy ?? {})[0] ?? [];
       if (field) {
         matching.sort((left, right) => {
@@ -63,23 +73,33 @@ function delegate<TRow extends Record<string, unknown>>(
     findMany({
       where,
       orderBy,
+      skip = 0,
+      take,
     }: {
       readonly where: Readonly<Record<string, unknown>>;
-      readonly orderBy: Readonly<Record<string, 'asc' | 'desc'>>;
+      readonly orderBy:
+        | Readonly<Record<string, 'asc' | 'desc'>>
+        | readonly Readonly<Record<string, 'asc' | 'desc'>>[];
+      readonly skip?: number;
+      readonly take?: number;
     }) {
-      const filtered = rows.filter((row) =>
-        Object.entries(where).every(([key, value]) => row[key] === value),
-      );
-      const [field, direction] = Object.entries(orderBy)[0] ?? [];
+      const filtered = rows.filter((row) => matches(row, where));
+      const ordering = Array.isArray(orderBy) ? orderBy : [orderBy];
       return Promise.resolve(
-        [...filtered].sort((left, right) => {
-          if (!field) return 0;
-          const leftValue = left[field];
-          const rightValue = right[field];
-          if (leftValue === rightValue) return 0;
-          const comparison = leftValue! < rightValue! ? -1 : 1;
-          return direction === 'desc' ? -comparison : comparison;
-        }),
+        [...filtered]
+          .sort((left, right) => {
+            for (const order of ordering) {
+              const [field, direction] = Object.entries(order)[0] ?? [];
+              if (!field) continue;
+              const leftValue = left[field];
+              const rightValue = right[field];
+              if (leftValue === rightValue) continue;
+              const comparison = leftValue! < rightValue! ? -1 : 1;
+              return direction === 'desc' ? -comparison : comparison;
+            }
+            return 0;
+          })
+          .slice(skip, take === undefined ? undefined : skip + take),
       );
     },
   };
@@ -140,6 +160,16 @@ void test('[AUD-001, AUD-003, AUD-008, IAM-009] Prisma audit adapter persists an
     input('00000000-0000-4000-8000-000000000122', 'job.completed'),
   );
   assert.equal(second.accepted, true);
+  const firstPage = await repository.listEventPage(context(workspaceId, 'page-1'), { limit: 1 });
+  assert.equal(firstPage.items.length, 1);
+  assert.ok(firstPage.nextCursor);
+  const secondPage = await repository.listEventPage(context(workspaceId, 'page-2'), {
+    limit: 1,
+    cursor: firstPage.nextCursor,
+  });
+  assert.equal(secondPage.items.length, 1);
+  assert.equal(secondPage.nextCursor, undefined);
+  assert.notEqual(firstPage.items[0]?.eventId, secondPage.items[0]?.eventId);
   assert.equal((await repository.listEvents(context(workspaceId, 'read'))).length, 2);
   assert.equal((await repository.listEvents(context(siblingWorkspaceId, 'sibling'))).length, 0);
   assert.equal((await repository.listEvents(context(organizationId, 'organization'))).length, 0);
@@ -154,6 +184,10 @@ void test('[AUD-015, AUD-018] Prisma audit adapter persists and reads immutable 
   );
   const sealed = await service.seal(context(workspaceId, 'seal-1'), '2026-01-01T00:01:00.000Z');
   assert.equal(sealed.accepted, true);
+  assert.equal(
+    (await repository.listSealPage(context(workspaceId, 'seal-page'), { limit: 1 })).items.length,
+    1,
+  );
   assert.equal((await repository.listSeals(context(workspaceId, 'read'))).length, 1);
   assert.equal((await repository.listSeals(context(siblingWorkspaceId, 'sibling'))).length, 0);
 });

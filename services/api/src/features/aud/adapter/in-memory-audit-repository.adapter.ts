@@ -6,9 +6,15 @@ import {
 } from '@databreeze/domain/v1';
 
 import type {
+  AuditPageInputV1,
+  AuditPageV1,
   AuditRepositoryPortV1,
   AuditTransactionPortV1,
 } from '../application/audit-repository.port.js';
+import {
+  createAuditPageCursorV1,
+  parseAuditPageCursorV1,
+} from '../application/audit-page-cursor.js';
 import { sameAuditEventV1, sameAuditSealV1 } from '../application/audit-equality.js';
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 
@@ -31,6 +37,19 @@ function cloneEvent(event: AuditEventV1): AuditEventV1 {
 
 function cloneSeal(seal: AuditSealV1): AuditSealV1 {
   return Object.freeze({ ...seal, tenantScope: Object.freeze({ ...seal.tenantScope }) });
+}
+
+function pageOffset(
+  input: AuditPageInputV1,
+  kind: 'events' | 'seals',
+  scope: TenantScopeV1,
+): number {
+  if (!Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > 100)
+    throw new Error('AUD_PAGE_LIMIT_INVALID');
+  if (input.cursor === undefined) return 0;
+  const parsed = parseAuditPageCursorV1(input.cursor, kind, scope);
+  if (!parsed.accepted) throw new Error('AUD_CURSOR_INVALID');
+  return parsed.offset;
 }
 
 /** In-memory adapter with PostgreSQL-equivalent append-only and scope checks. */
@@ -76,6 +95,34 @@ export class InMemoryAuditRepositoryAdapter implements AuditRepositoryPortV1 {
       .map(cloneEvent);
   }
 
+  async listEventPage(
+    context: IamTenantContextV1,
+    input: AuditPageInputV1,
+  ): Promise<AuditPageV1<AuditEventV1>> {
+    await Promise.resolve();
+    const offset = pageOffset(input, 'events', context.tenantScope);
+    const visible = [...this.events.values()]
+      .filter((event) => visibleInScope(context.tenantScope, event.tenantScope))
+      .sort((left, right) =>
+        left.occurredAt === right.occurredAt
+          ? left.eventId.localeCompare(right.eventId)
+          : left.occurredAt.localeCompare(right.occurredAt),
+      );
+    const items = visible.slice(offset, offset + input.limit).map(cloneEvent);
+    return Object.freeze({
+      items: Object.freeze(items),
+      ...(visible.length > offset + items.length
+        ? {
+            nextCursor: createAuditPageCursorV1(
+              'events',
+              context.tenantScope,
+              offset + items.length,
+            ),
+          }
+        : {}),
+    });
+  }
+
   async listEventsForScope(
     context: IamTenantContextV1,
     scope: TenantScopeV1,
@@ -113,6 +160,34 @@ export class InMemoryAuditRepositoryAdapter implements AuditRepositoryPortV1 {
       .filter((seal) => visibleInScope(context.tenantScope, seal.tenantScope))
       .sort((left, right) => left.firstSequence - right.firstSequence)
       .map(cloneSeal);
+  }
+
+  async listSealPage(
+    context: IamTenantContextV1,
+    input: AuditPageInputV1,
+  ): Promise<AuditPageV1<AuditSealV1>> {
+    await Promise.resolve();
+    const offset = pageOffset(input, 'seals', context.tenantScope);
+    const visible = [...this.seals.values()]
+      .filter((seal) => visibleInScope(context.tenantScope, seal.tenantScope))
+      .sort((left, right) =>
+        left.sealedAt === right.sealedAt
+          ? left.rootDigest.localeCompare(right.rootDigest)
+          : left.sealedAt.localeCompare(right.sealedAt),
+      );
+    const items = visible.slice(offset, offset + input.limit).map(cloneSeal);
+    return Object.freeze({
+      items: Object.freeze(items),
+      ...(visible.length > offset + items.length
+        ? {
+            nextCursor: createAuditPageCursorV1(
+              'seals',
+              context.tenantScope,
+              offset + items.length,
+            ),
+          }
+        : {}),
+    });
   }
 
   async withTransaction<TValue>(

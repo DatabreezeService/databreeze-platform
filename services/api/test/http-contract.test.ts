@@ -633,7 +633,21 @@ void test('protected artifact reads derive tenant scope from an authenticated ac
         headers: { authorization: 'Bearer access-token-for-context-1' },
       });
       assert.equal(auditEvents.statusCode, 200);
-      assert.deepEqual(auditEvents.json(), []);
+      assert.deepEqual(auditEvents.json(), { items: [] });
+
+      const invalidAuditCursor = await app.inject({
+        method: 'GET',
+        url: '/v1/audit/events?cursor=not-a-cursor',
+        headers: { authorization: 'Bearer access-token-for-context-1' },
+      });
+      assertProblem(invalidAuditCursor, 400, 'VALIDATION_FAILED');
+
+      const invalidAuditLimit = await app.inject({
+        method: 'GET',
+        url: '/v1/audit/events?limit=101',
+        headers: { authorization: 'Bearer access-token-for-context-1' },
+      });
+      assertProblem(invalidAuditLimit, 400, 'VALIDATION_FAILED');
 
       const auditSeals = await app.inject({
         method: 'GET',
@@ -641,7 +655,7 @@ void test('protected artifact reads derive tenant scope from an authenticated ac
         headers: { authorization: 'Bearer access-token-for-context-1' },
       });
       assert.equal(auditSeals.statusCode, 200);
-      assert.deepEqual(auditSeals.json(), []);
+      assert.deepEqual(auditSeals.json(), { items: [] });
 
       const usage = await app.inject({
         method: 'GET',
@@ -690,8 +704,8 @@ void test('protected artifact reads derive tenant scope from an authenticated ac
 
 void test('audit read outages return retryable service-unavailable problems', async () => {
   const auditRepository = Object.assign(new InMemoryAuditRepositoryAdapter(), {
-    listEvents: () => Promise.reject(new Error(`database ${leakedMarker}`)),
-    listSeals: () => Promise.reject(new Error(`database ${leakedMarker}`)),
+    listEventPage: () => Promise.reject(new Error(`database ${leakedMarker}`)),
+    listSealPage: () => Promise.reject(new Error(`database ${leakedMarker}`)),
   });
   const principal = {
     userId: '00000000-0000-4000-8000-000000000001',
