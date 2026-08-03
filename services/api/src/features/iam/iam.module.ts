@@ -41,6 +41,10 @@ import {
   IAM_HIERARCHY_SERVICE,
   IamHierarchyService,
 } from './application/hierarchy.service.js';
+import {
+  IAM_MEMBERSHIP_SERVICE,
+  IamMembershipService,
+} from './application/membership.service.js';
 import type { PasswordCredentialService } from './application/password-credential.service.js';
 import { UnavailableAuthenticationAdapter } from './adapter/unavailable-authentication.adapter.js';
 import {
@@ -112,6 +116,7 @@ export interface IamModuleOptions {
   readonly hierarchyRepository?: IamHierarchyRepositoryPortV1;
   readonly hierarchyDatabase?: IamHierarchyDatabaseClientV1;
   readonly hierarchyService?: IamHierarchyService;
+  readonly membershipService?: IamMembershipService;
   readonly deviceIdentityService?: DeviceIdentityService;
   readonly deviceIdentityRepository?: DeviceIdentityRepositoryPortV1;
   readonly deviceIdentityDatabase?: DeviceIdentityDatabaseClientV1;
@@ -190,6 +195,9 @@ export class IamModule {
     const hierarchyService =
       options.hierarchyService ??
       new IamHierarchyService(hierarchyRepository, undefined, undefined, iamRepository);
+    const membershipService =
+      options.membershipService ??
+      (iamRepository === undefined ? undefined : new IamMembershipService(iamRepository));
     const authentication =
       options.authentication ??
       (credentials && sessions
@@ -218,6 +226,7 @@ export class IamModule {
     if (mfaRepository) exports.unshift(MFA_REPOSITORY_PORT);
     if (mfaService) exports.unshift(MFA_SERVICE);
     if (iamRepository) exports.unshift(IAM_REPOSITORY_PORT);
+    if (membershipService) exports.unshift(IAM_MEMBERSHIP_SERVICE);
     return {
       module: IamModule,
       controllers: [
@@ -287,6 +296,14 @@ export class IamModule {
           provide: IAM_HIERARCHY_SERVICE,
           useValue: hierarchyService,
         },
+        ...(membershipService
+          ? [
+              {
+                provide: IAM_MEMBERSHIP_SERVICE,
+                useValue: membershipService,
+              },
+            ]
+          : []),
         {
           provide: DEVICE_IDENTITY_REPOSITORY_PORT,
           useValue: deviceIdentityRepository,

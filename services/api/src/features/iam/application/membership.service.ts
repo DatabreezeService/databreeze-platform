@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import {
   checkOwnerRemovalV1,
   INVITATION_MAX_SECONDS_V1,
@@ -110,8 +112,8 @@ function identityFromRecord(record: IamMembershipRecordV1): MembershipIdentityV1
 export class IamMembershipService {
   public constructor(
     private readonly repository: IamRepositoryPortV1,
-    private readonly idGenerator: IamMembershipIdGeneratorV1,
-    private readonly clock: IamMembershipClockV1,
+    private readonly idGenerator: IamMembershipIdGeneratorV1 = () => randomUUID(),
+    private readonly clock: IamMembershipClockV1 = () => new Date(),
   ) {}
 
   private async authorize(

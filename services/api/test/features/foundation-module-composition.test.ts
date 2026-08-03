@@ -25,6 +25,10 @@ import {
 } from '../../src/features/iam/application/hierarchy.service.js';
 import { InMemoryIamHierarchyRepositoryAdapter } from '../../src/features/iam/adapter/in-memory-iam-hierarchy-repository.adapter.js';
 import { PrismaIamHierarchyRepositoryAdapter } from '../../src/features/iam/adapter/prisma-iam-hierarchy-repository.adapter.js';
+import {
+  IAM_MEMBERSHIP_SERVICE,
+  IamMembershipService,
+} from '../../src/features/iam/application/membership.service.js';
 import { AudModule } from '../../src/features/aud/aud.module.js';
 import { AUDIT_REPOSITORY_PORT } from '../../src/features/aud/application/audit-repository.port.js';
 import { PrismaAuditRepositoryAdapter } from '../../src/features/aud/adapter/prisma-audit-repository.adapter.js';
@@ -323,6 +327,20 @@ void test('[IAM-001] default hierarchy composition remains locally testable and 
   if (!repository || !('useValue' in repository) || !service || !('useValue' in service)) return;
   assert.ok(repository.useValue instanceof InMemoryIamHierarchyRepositoryAdapter);
   assert.ok(service.useValue instanceof IamHierarchyService);
+});
+
+void test('[IAM-004] configured IAM membership persistence composes the lifecycle service', () => {
+  const registered = IamModule.register({ iamDatabase: {} as never });
+  const provider = registered.providers?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === IAM_MEMBERSHIP_SERVICE,
+  );
+  assert.ok(provider && 'useValue' in provider);
+  if (!provider || !('useValue' in provider)) return;
+  assert.ok(provider.useValue instanceof IamMembershipService);
 });
 
 void test('[BUA-001] configured entitlement persistence uses the Prisma adapter instead of the local fallback', () => {
