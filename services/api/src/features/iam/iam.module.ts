@@ -3,6 +3,9 @@ import { type DynamicModule, Module } from '@nestjs/common';
 
 import { AuthenticationController } from './api/authentication.controller.js';
 import { MfaController } from './api/mfa.controller.js';
+import { IamHierarchyController } from './api/hierarchy.controller.js';
+import { IamMembershipController } from './api/membership.controller.js';
+import { IamBootstrapController } from './api/bootstrap.controller.js';
 import { AuthenticationService } from './application/authentication.service.js';
 import {
   AUTHENTICATION_USE_CASE,
@@ -19,6 +22,10 @@ import {
   type IdentityBootstrapRepositoryPortV1,
 } from './application/identity-bootstrap-repository.port.js';
 import {
+  IDENTITY_BOOTSTRAP_SERVICE,
+  IdentityBootstrapService,
+} from './application/identity-bootstrap.service.js';
+import {
   MFA_REPOSITORY_PORT,
   type MfaRepositoryPortV1,
 } from './application/mfa-repository.port.js';
@@ -32,6 +39,12 @@ import {
   IAM_REPOSITORY_PORT,
   type IamRepositoryPortV1,
 } from './application/iam-repository.port.js';
+import {
+  IAM_HIERARCHY_REPOSITORY,
+  type IamHierarchyRepositoryPortV1,
+} from './application/hierarchy-repository.port.js';
+import { IAM_HIERARCHY_SERVICE, IamHierarchyService } from './application/hierarchy.service.js';
+import { IAM_MEMBERSHIP_SERVICE, IamMembershipService } from './application/membership.service.js';
 import type { PasswordCredentialService } from './application/password-credential.service.js';
 import { UnavailableAuthenticationAdapter } from './adapter/unavailable-authentication.adapter.js';
 import {
@@ -54,6 +67,11 @@ import {
   PrismaIamRepositoryAdapter,
   type IamDatabaseClientV1,
 } from './adapter/prisma-iam-repository.adapter.js';
+import { InMemoryIamHierarchyRepositoryAdapter } from './adapter/in-memory-iam-hierarchy-repository.adapter.js';
+import {
+  PrismaIamHierarchyRepositoryAdapter,
+  type IamHierarchyDatabaseClientV1,
+} from './adapter/prisma-iam-hierarchy-repository.adapter.js';
 import { DeviceIdentityController } from './api/device-identity.controller.js';
 import { InMemoryDeviceIdentityRepositoryAdapter } from './adapter/in-memory-device-identity-repository.adapter.js';
 import {
@@ -85,6 +103,7 @@ export interface IamModuleOptions {
   readonly sessionDatabase?: SessionLifecycleDatabaseClientV1;
   readonly identityBootstrapRepository?: IdentityBootstrapRepositoryPortV1;
   readonly identityBootstrapDatabase?: IdentityBootstrapDatabaseClientV1;
+  readonly identityBootstrapService?: IdentityBootstrapService;
   readonly mfaRepository?: MfaRepositoryPortV1;
   readonly mfaDatabase?: MfaDatabaseClientV1;
   readonly mfaService?: MfaService;
@@ -95,6 +114,10 @@ export interface IamModuleOptions {
   };
   readonly iamRepository?: IamRepositoryPortV1;
   readonly iamDatabase?: IamDatabaseClientV1;
+  readonly hierarchyRepository?: IamHierarchyRepositoryPortV1;
+  readonly hierarchyDatabase?: IamHierarchyDatabaseClientV1;
+  readonly hierarchyService?: IamHierarchyService;
+  readonly membershipService?: IamMembershipService;
   readonly deviceIdentityService?: DeviceIdentityService;
   readonly deviceIdentityRepository?: DeviceIdentityRepositoryPortV1;
   readonly deviceIdentityDatabase?: DeviceIdentityDatabaseClientV1;
@@ -143,6 +166,11 @@ export class IamModule {
       (options.identityBootstrapDatabase === undefined
         ? undefined
         : new PrismaIdentityBootstrapRepositoryAdapter(options.identityBootstrapDatabase));
+    const identityBootstrapService =
+      options.identityBootstrapService ??
+      (identityBootstrapRepository === undefined
+        ? undefined
+        : new IdentityBootstrapService(identityBootstrapRepository));
     const mfaRepository =
       options.mfaRepository ??
       (options.mfaDatabase === undefined
@@ -165,6 +193,17 @@ export class IamModule {
       (options.iamDatabase === undefined
         ? undefined
         : new PrismaIamRepositoryAdapter(options.iamDatabase));
+    const hierarchyRepository =
+      options.hierarchyRepository ??
+      (options.hierarchyDatabase === undefined
+        ? new InMemoryIamHierarchyRepositoryAdapter()
+        : new PrismaIamHierarchyRepositoryAdapter(options.hierarchyDatabase));
+    const hierarchyService =
+      options.hierarchyService ??
+      new IamHierarchyService(hierarchyRepository, undefined, undefined, iamRepository);
+    const membershipService =
+      options.membershipService ??
+      (iamRepository === undefined ? undefined : new IamMembershipService(iamRepository));
     const authentication =
       options.authentication ??
       (credentials && sessions
@@ -181,16 +220,30 @@ export class IamModule {
         deviceIdentityRepository,
         options.deviceEnrollmentProofVerifier ?? new UnavailableDeviceEnrollmentProofVerifier(),
       );
-    const exports = [DEVICE_IDENTITY_REPOSITORY_PORT, DEVICE_IDENTITY_SERVICE];
+    const exports = [
+      DEVICE_IDENTITY_REPOSITORY_PORT,
+      DEVICE_IDENTITY_SERVICE,
+      IAM_HIERARCHY_REPOSITORY,
+      IAM_HIERARCHY_SERVICE,
+    ];
     if (credentials) exports.unshift(CREDENTIAL_LOOKUP_PORT);
     if (sessions) exports.unshift(SESSION_LIFECYCLE_PORT);
     if (identityBootstrapRepository) exports.unshift(IDENTITY_BOOTSTRAP_REPOSITORY_PORT);
+    if (identityBootstrapService) exports.unshift(IDENTITY_BOOTSTRAP_SERVICE);
     if (mfaRepository) exports.unshift(MFA_REPOSITORY_PORT);
     if (mfaService) exports.unshift(MFA_SERVICE);
     if (iamRepository) exports.unshift(IAM_REPOSITORY_PORT);
+    if (membershipService) exports.unshift(IAM_MEMBERSHIP_SERVICE);
     return {
       module: IamModule,
-      controllers: [AuthenticationController, DeviceIdentityController, MfaController],
+      controllers: [
+        AuthenticationController,
+        DeviceIdentityController,
+        MfaController,
+        IamHierarchyController,
+        IamMembershipController,
+        IamBootstrapController,
+      ],
       providers: [
         {
           provide: AUTHENTICATION_USE_CASE,
@@ -220,6 +273,14 @@ export class IamModule {
               },
             ]
           : []),
+        ...(identityBootstrapService
+          ? [
+              {
+                provide: IDENTITY_BOOTSTRAP_SERVICE,
+                useValue: identityBootstrapService,
+              },
+            ]
+          : []),
         ...(mfaRepository
           ? [
               {
@@ -241,6 +302,22 @@ export class IamModule {
               {
                 provide: IAM_REPOSITORY_PORT,
                 useValue: iamRepository,
+              },
+            ]
+          : []),
+        {
+          provide: IAM_HIERARCHY_REPOSITORY,
+          useValue: hierarchyRepository,
+        },
+        {
+          provide: IAM_HIERARCHY_SERVICE,
+          useValue: hierarchyService,
+        },
+        ...(membershipService
+          ? [
+              {
+                provide: IAM_MEMBERSHIP_SERVICE,
+                useValue: membershipService,
               },
             ]
           : []),

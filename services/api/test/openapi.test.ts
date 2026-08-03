@@ -60,6 +60,17 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       'https://json-schema.org/draft/2020-12/schema',
     );
     assert.equal(firstDocument.info.version, '1.0.0');
+    const bootstrapResponse = (
+      firstDocument.paths['/v1/me/bootstrap']?.get as OperationLike | undefined
+    )?.responses['200'];
+    assert.equal(
+      (
+        bootstrapResponse?.content?.['application/json'] as
+          | { readonly schema?: { readonly $ref?: string } }
+          | undefined
+      )?.schema?.$ref,
+      '#/components/schemas/BootstrapResponseDto',
+    );
 
     const paths = Object.keys(firstDocument.paths).sort();
     assert.deepEqual(paths, [
@@ -135,7 +146,15 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       '/v1/devices/{deviceId}/revoke',
       '/v1/entitlements/snapshots/{snapshotId}',
       '/v1/entitlements/usage',
+      '/v1/me/bootstrap',
+      '/v1/memberships',
+      '/v1/memberships/{membershipId}/accept',
+      '/v1/memberships/{membershipId}/transfer-ownership',
+      '/v1/memberships/{membershipId}/transition',
+      '/v1/organizations/{organizationId}',
       '/v1/organizations/{organizationId}/devices',
+      '/v1/organizations/{organizationId}/workspaces',
+      '/v1/projects/{projectId}',
       '/v1/protected-document-unlocks',
       '/v1/protected-document-unlocks/{requestId}',
       '/v1/protected-document-unlocks/{requestId}/expire',
@@ -150,6 +169,8 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       '/v1/spreadsheet-audits/{auditId}',
       '/v1/system/compatibility',
       '/v1/system/compatibility/check',
+      '/v1/workspaces/{workspaceId}',
+      '/v1/workspaces/{workspaceId}/projects',
     ]);
     assert.ok(
       paths.filter((path) => !path.startsWith('/health/')).every((path) => path.startsWith('/v1/')),

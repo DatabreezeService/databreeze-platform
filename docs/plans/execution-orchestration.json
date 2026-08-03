@@ -16,14 +16,14 @@
     }
   },
   "checkpoint": {
-    "observedAt": "2026-08-02T13:38:28Z",
-    "remoteDev": "783a4710c0aa2a2808d78ad7f0643e6731150bd7",
-    "remoteMain": "3ed3d77d0281ef239d0509c81ded447d8fffd213",
-    "lastFeaturePullRequest": 19,
-    "lastPromotionPullRequest": 20,
-    "lastPromotionFixPullRequest": 23,
+    "observedAt": "2026-08-03T00:00:00Z",
+    "remoteDev": "9265e15125c2e50cfcaca455524c903b6b92383e",
+    "remoteMain": "8a4c0af52ed872715103710e3c89ca832f999bd4",
+    "lastFeaturePullRequest": 36,
+    "lastPromotionPullRequest": 38,
+    "lastPromotionFixPullRequest": 37,
     "openPullRequestsObserved": 0,
-    "note": "PR 19 merged a 73-commit foundation batch to dev; PR 20 promoted dev to main after CodeRabbit review and PRs 21-23 delivered validated review fixes. Historical observation only; every session must fetch and recompute current state."
+    "note": "PRs 37 and 38 promoted the remaining foundation commits to main. PR 37 received one CodeRabbit review cycle and valid findings were reconciled; PR 38's one full-review request was rate-limited after hosted checks. Historical observation only; every session must fetch and recompute current state."
   },
   "reviewPolicy": {
     "featurePullRequest": {
@@ -54,7 +54,7 @@
     "post-ga-planned",
     "blocked"
   ],
-  "nextTaskId": "FND-005",
+  "nextTaskId": "IAM-001",
   "activeBatchId": "B01",
   "taskState": {
     "FND-001": {
@@ -111,14 +111,17 @@
       "note": "OpenTofu 1.12.5 official-container formatting, backend-disabled locked initialization, validation, and one credential-free mocked alpha plan passed on 2026-08-03. Static safety tests cover encryption, private networking, OIDC scope, recovery, destroy protection, and production image digests; no AWS credentials, remote state, real plan, or apply were used."
     },
     "FND-005": {
-      "status": "implemented",
-      "commit": "3ed3d77d0281ef239d0509c81ded447d8fffd213",
+      "status": "verified",
+      "commit": "adba0aac0fdd2060a6dd965f726c0bc245b96b77",
       "evidence": [
         "docs/operations/telemetry-safety.md",
+        "docs/operations/foundation-telemetry-diagnostics-2026-08-03.md",
+        "tools/repo-cli/test/foundation-telemetry-reconciliation.test.mjs",
         "packages/telemetry/test/telemetry-v1.test.mjs",
-        "services/engine/tests/test_telemetry.py"
+        "services/engine/tests/test_telemetry.py",
+        "apps/android/app/src/test/java/com/databreeze/android/TelemetryContractTest.kt"
       ],
-      "note": "TypeScript and Python telemetry boundaries, hostile-input normalization, and redaction tests are promoted; final clean-checkout reconciliation remains in B01."
+      "note": "Cross-runtime TypeScript, Python, and Kotlin allowlist/correlation boundaries, hostile-input normalization, exporter isolation, and privacy probes were reconciled. Android unit evidence uses the documented SDK environment; instrumentation and hosted exporter gates remain external."
     },
     "FND-006": {
       "status": "implemented",
@@ -133,31 +136,31 @@
       "note": "Hosted checks, supply-chain policy, SBOM, and provenance safeguards are promoted. GitHub release-environment protection remains an administrator-recorded external gate."
     },
     "FND-007": {
-      "status": "partial-needs-reconciliation",
-      "commit": "3ed3d77d0281ef239d0509c81ded447d8fffd213",
+      "status": "verified",
+      "commit": "7670ee6798f9ce50368aca626ef3fbe237cba61d",
       "evidence": [
+        "docs/operations/foundation-handoff-2026-08-03.md",
         "docs/development/README.md",
         "docs/operations/engineering-foundation-verification.md",
         "docs/operations/deployment-and-rollback.md",
         "docs/operations/secret-rotation.md",
-        "docs/operations/provider-adapters.md"
+        "docs/operations/provider-adapters.md",
+        "tools/repo-cli/test/foundation-handoff.test.mjs"
       ],
-      "note": "Runbooks and static evidence exist; B01 must reconcile live external gates and publish the final foundation handoff before advancing plan status."
+      "note": "Development, deployment, rollback, provider, support, telemetry, and clean-checkpoint evidence is published. External release-environment and hosted-toolchain gates remain explicit rather than being represented as product completion."
     }
   },
   "deliveryBatches": [
     {
       "batchId": "B01",
-      "name": "Foundation verification and identity completion",
+      "name": "Foundation external gate and identity completion",
       "branch": "feat/foundation-identity-reconciliation",
       "dependencies": [],
       "status": "in-progress",
       "commitBudget": { "minimum": 30, "target": 45, "maximum": 79 },
       "maximumChangedFiles": 260,
       "taskIds": [
-        "FND-005",
         "FND-006",
-        "FND-007",
         "IAM-001",
         "IAM-002",
         "IAM-003",

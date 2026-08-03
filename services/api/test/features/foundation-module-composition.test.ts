@@ -12,12 +12,27 @@ import { PrismaCredentialLookupAdapter } from '../../src/features/iam/adapter/pr
 import { PrismaSessionLifecycleAdapter } from '../../src/features/iam/adapter/prisma-session-lifecycle.adapter.js';
 import { SESSION_LIFECYCLE_PORT } from '../../src/features/iam/application/session-lifecycle.port.js';
 import { IDENTITY_BOOTSTRAP_REPOSITORY_PORT } from '../../src/features/iam/application/identity-bootstrap-repository.port.js';
+import {
+  IDENTITY_BOOTSTRAP_SERVICE,
+  IdentityBootstrapService,
+} from '../../src/features/iam/application/identity-bootstrap.service.js';
 import { PrismaIdentityBootstrapRepositoryAdapter } from '../../src/features/iam/adapter/prisma-identity-bootstrap-repository.adapter.js';
 import { MFA_REPOSITORY_PORT } from '../../src/features/iam/application/mfa-repository.port.js';
 import { PrismaMfaRepositoryAdapter } from '../../src/features/iam/adapter/prisma-mfa-repository.adapter.js';
 import { MFA_SERVICE, MfaService } from '../../src/features/iam/application/mfa.service.js';
 import { IAM_REPOSITORY_PORT } from '../../src/features/iam/application/iam-repository.port.js';
 import { PrismaIamRepositoryAdapter } from '../../src/features/iam/adapter/prisma-iam-repository.adapter.js';
+import { IAM_HIERARCHY_REPOSITORY } from '../../src/features/iam/application/hierarchy-repository.port.js';
+import {
+  IAM_HIERARCHY_SERVICE,
+  IamHierarchyService,
+} from '../../src/features/iam/application/hierarchy.service.js';
+import { InMemoryIamHierarchyRepositoryAdapter } from '../../src/features/iam/adapter/in-memory-iam-hierarchy-repository.adapter.js';
+import { PrismaIamHierarchyRepositoryAdapter } from '../../src/features/iam/adapter/prisma-iam-hierarchy-repository.adapter.js';
+import {
+  IAM_MEMBERSHIP_SERVICE,
+  IamMembershipService,
+} from '../../src/features/iam/application/membership.service.js';
 import { AudModule } from '../../src/features/aud/aud.module.js';
 import { AUDIT_REPOSITORY_PORT } from '../../src/features/aud/application/audit-repository.port.js';
 import { PrismaAuditRepositoryAdapter } from '../../src/features/aud/adapter/prisma-audit-repository.adapter.js';
@@ -227,6 +242,20 @@ void test('[IAM-001, IAM-011] configured identity bootstrap persistence uses the
   assert.ok(provider.useValue instanceof PrismaIdentityBootstrapRepositoryAdapter);
 });
 
+void test('[IAM-001, IAM-011] configured identity bootstrap persistence composes its application service', () => {
+  const registered = IamModule.register({ identityBootstrapDatabase: {} as never });
+  const provider = registered.providers?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === IDENTITY_BOOTSTRAP_SERVICE,
+  );
+  assert.ok(provider && 'useValue' in provider);
+  if (!provider || !('useValue' in provider)) return;
+  assert.ok(provider.useValue instanceof IdentityBootstrapService);
+});
+
 void test('[IAM-012, IAM-014] configured MFA persistence uses the Prisma adapter', () => {
   const database = {} as never;
   const registered = IamModule.register({ mfaDatabase: database });
@@ -270,6 +299,66 @@ void test('[IAM-009, IAM-019] configured IAM membership persistence uses the Pri
   assert.ok(provider && 'useValue' in provider);
   if (!provider || !('useValue' in provider)) return;
   assert.ok(provider.useValue instanceof PrismaIamRepositoryAdapter);
+});
+
+void test('[IAM-001, IAM-003, IAM-019] configured hierarchy persistence and service use the Prisma boundary', () => {
+  const registered = IamModule.register({ hierarchyDatabase: {} as never });
+  const repository = registered.providers?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === IAM_HIERARCHY_REPOSITORY,
+  );
+  const service = registered.providers?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === IAM_HIERARCHY_SERVICE,
+  );
+  assert.ok(repository && 'useValue' in repository);
+  assert.ok(service && 'useValue' in service);
+  if (!repository || !('useValue' in repository) || !service || !('useValue' in service)) return;
+  assert.ok(repository.useValue instanceof PrismaIamHierarchyRepositoryAdapter);
+  assert.ok(service.useValue instanceof IamHierarchyService);
+});
+
+void test('[IAM-001] default hierarchy composition remains locally testable and fail-closed', () => {
+  const registered = IamModule.register();
+  const repository = registered.providers?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === IAM_HIERARCHY_REPOSITORY,
+  );
+  const service = registered.providers?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === IAM_HIERARCHY_SERVICE,
+  );
+  assert.ok(repository && 'useValue' in repository);
+  assert.ok(service && 'useValue' in service);
+  if (!repository || !('useValue' in repository) || !service || !('useValue' in service)) return;
+  assert.ok(repository.useValue instanceof InMemoryIamHierarchyRepositoryAdapter);
+  assert.ok(service.useValue instanceof IamHierarchyService);
+});
+
+void test('[IAM-004] configured IAM membership persistence composes the lifecycle service', () => {
+  const registered = IamModule.register({ iamDatabase: {} as never });
+  const provider = registered.providers?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === IAM_MEMBERSHIP_SERVICE,
+  );
+  assert.ok(provider && 'useValue' in provider);
+  if (!provider || !('useValue' in provider)) return;
+  assert.ok(provider.useValue instanceof IamMembershipService);
 });
 
 void test('[BUA-001] configured entitlement persistence uses the Prisma adapter instead of the local fallback', () => {
