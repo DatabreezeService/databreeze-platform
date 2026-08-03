@@ -47,7 +47,7 @@ export interface DeviceEnrollmentChallengeDatabaseRowV1 {
 
 interface DelegateV1<TRow, TCreate, TUpdate = never> {
   create(input: { readonly data: TCreate }): Promise<TRow>;
-  findUnique(input: { readonly where: { readonly id: string } }): Promise<TRow | null>;
+  findFirst(input: { readonly where: Readonly<Record<string, unknown>> }): Promise<TRow | null>;
   findMany(input: {
     readonly where: Readonly<Record<string, unknown>>;
     readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
@@ -57,7 +57,7 @@ interface DelegateV1<TRow, TCreate, TUpdate = never> {
     readonly data: TUpdate;
   }): Promise<TRow>;
   updateMany?(input: {
-    readonly where: { readonly id: string; readonly revision: number };
+    readonly where: Readonly<Record<string, unknown>>;
     readonly data: TUpdate;
   }): Promise<{ readonly count: number }>;
 }
@@ -234,8 +234,8 @@ class PrismaDeviceIdentityTransactionAdapter implements DeviceIdentityTransactio
     challenge: DeviceEnrollmentChallengeV1,
   ): Promise<void> {
     if (!organizationScope(context, challenge.organizationId)) throw new Error('SCOPE_DENIED');
-    const existing = await this.client.deviceEnrollmentChallenge.findUnique({
-      where: { id: challenge.id },
+    const existing = await this.client.deviceEnrollmentChallenge.findFirst({
+      where: { id: challenge.id, organizationId: context.tenantScope.organizationId },
     });
     if (!existing) {
       await this.client.deviceEnrollmentChallenge.create({ data: challengeData(challenge) });
@@ -251,7 +251,11 @@ class PrismaDeviceIdentityTransactionAdapter implements DeviceIdentityTransactio
       throw new Error('IMMUTABLE_CHALLENGE');
     if (!this.client.deviceEnrollmentChallenge.updateMany) throw new Error('UPDATE_UNAVAILABLE');
     const result = await this.client.deviceEnrollmentChallenge.updateMany({
-      where: { id: challenge.id, revision: current.revision },
+      where: {
+        id: challenge.id,
+        organizationId: context.tenantScope.organizationId,
+        revision: current.revision,
+      },
       data: { status: challenge.status, revision: challenge.revision },
     });
     if (result.count !== 1) throw new Error('REVISION_CONFLICT');
@@ -261,16 +265,22 @@ class PrismaDeviceIdentityTransactionAdapter implements DeviceIdentityTransactio
     context: IamTenantContextV1,
     challengeId: StableIdentifierV1,
   ): Promise<DeviceEnrollmentChallengeV1 | undefined> {
-    const row = await this.client.deviceEnrollmentChallenge.findUnique({
-      where: { id: challengeId },
+    if (context.tenantScope.scopeType !== 'organization') return undefined;
+    const row = await this.client.deviceEnrollmentChallenge.findFirst({
+      where: {
+        id: challengeId,
+        organizationId: context.tenantScope.organizationId,
+      },
     });
-    if (!row || !organizationScope(context, row.organizationId)) return undefined;
+    if (!row) return undefined;
     return challengeFromRow(row);
   }
 
   public async saveDevice(context: IamTenantContextV1, device: DeviceIdentityV1): Promise<void> {
     if (!organizationScope(context, device.organizationId)) throw new Error('SCOPE_DENIED');
-    const existing = await this.client.deviceIdentity.findUnique({ where: { id: device.id } });
+    const existing = await this.client.deviceIdentity.findFirst({
+      where: { id: device.id, organizationId: context.tenantScope.organizationId },
+    });
     if (existing) {
       if (JSON.stringify(deviceFromRow(existing)) !== JSON.stringify(device))
         throw new Error('IMMUTABLE_DEVICE');
@@ -283,8 +293,11 @@ class PrismaDeviceIdentityTransactionAdapter implements DeviceIdentityTransactio
     context: IamTenantContextV1,
     deviceId: StableIdentifierV1,
   ): Promise<DeviceIdentityV1 | undefined> {
-    const row = await this.client.deviceIdentity.findUnique({ where: { id: deviceId } });
-    if (!row || !organizationScope(context, row.organizationId)) return undefined;
+    if (context.tenantScope.scopeType !== 'organization') return undefined;
+    const row = await this.client.deviceIdentity.findFirst({
+      where: { id: deviceId, organizationId: context.tenantScope.organizationId },
+    });
+    if (!row) return undefined;
     return deviceFromRow(row);
   }
 
@@ -308,7 +321,11 @@ class PrismaDeviceIdentityTransactionAdapter implements DeviceIdentityTransactio
     if (device.revision !== expectedRevision + 1) throw new Error('INVALID_REVISION');
     if (!this.client.deviceIdentity.updateMany) throw new Error('UPDATE_UNAVAILABLE');
     const result = await this.client.deviceIdentity.updateMany({
-      where: { id: device.id, revision: expectedRevision },
+      where: {
+        id: device.id,
+        organizationId: context.tenantScope.organizationId,
+        revision: expectedRevision,
+      },
       data: {
         publicKey: device.publicKey,
         status: device.status,
