@@ -22,6 +22,13 @@ import type {
   EntitlementRepositoryPortV1,
   EntitlementTransactionPortV1,
 } from '../application/entitlement-repository.port.js';
+import {
+  sameEntitlementPlanV1,
+  sameEntitlementSnapshotV1,
+  sameUsageEntryV1,
+  sameUsageReservationExceptStatusV1,
+  sameUsageReservationV1,
+} from '../application/entitlement-equality.js';
 
 const planCodes = new Set(['free', 'development', 'admin_granted']);
 const statuses = new Set(['ACTIVE', 'SUSPENDED', 'EXPIRED']);
@@ -427,13 +434,7 @@ function visible(context: TenantScopeV1, candidate: TenantScopeV1): boolean {
 }
 
 function sameReservationExceptStatus(left: UsageReservationV1, right: UsageReservationV1): boolean {
-  return (
-    left.reservationId === right.reservationId &&
-    left.metric === right.metric &&
-    left.reservedUnits === right.reservedUnits &&
-    JSON.stringify(left.tenantScope) === JSON.stringify(right.tenantScope) &&
-    left.createdAt === right.createdAt
-  );
+  return sameUsageReservationExceptStatusV1(left, right);
 }
 
 class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV1 {
@@ -444,7 +445,7 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
       where: { planCode: plan.planCode },
     });
     if (existing !== null) {
-      if (JSON.stringify(persistedPlan(existing)) !== JSON.stringify(plan))
+      if (!sameEntitlementPlanV1(persistedPlan(existing), plan))
         throw new Error('BUA_IMMUTABLE_PLAN');
       return;
     }
@@ -475,7 +476,7 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
       where: { id: snapshot.snapshotId },
     });
     if (existing !== null) {
-      if (JSON.stringify(persistedSnapshot(existing)) !== JSON.stringify(snapshot))
+      if (!sameEntitlementSnapshotV1(persistedSnapshot(existing), snapshot))
         throw new Error('BUA_IMMUTABLE_SNAPSHOT');
       return;
     }
@@ -541,7 +542,7 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
         where: { id: entry.entryId },
       });
       if (existing !== null) {
-        if (JSON.stringify(persistedEntry(existing)) !== JSON.stringify(entry))
+        if (!sameUsageEntryV1(persistedEntry(existing), entry))
           throw new Error('BUA_IMMUTABLE_USAGE_ENTRY');
         continue;
       }
@@ -560,7 +561,7 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
         continue;
       }
       const current = persistedReservation(existing);
-      if (JSON.stringify(current) === JSON.stringify(reservation)) continue;
+      if (sameUsageReservationV1(current, reservation)) continue;
       if (
         !sameReservationExceptStatus(current, reservation) ||
         reservation.revision !== current.revision + 1

@@ -86,7 +86,19 @@ void test('[BUA-001, BUA-002, BUA-003] plans and snapshots are immutable and sco
   const repository = new InMemoryEntitlementRepositoryAdapter();
   await repository.savePlan(plan());
   assert.deepEqual(await repository.findPlan('development'), plan());
+  const reorderedPlan = {
+    ...plan(),
+    features: ['job.execute', 'artifact.register'],
+  };
+  await repository.savePlan({
+    ...reorderedPlan,
+  });
+  assert.deepEqual(await repository.findPlan('development'), reorderedPlan);
   await repository.saveSnapshot(context(workspaceId), snapshot());
+  await repository.saveSnapshot(context(workspaceId), {
+    ...snapshot(),
+    features: ['job.execute', 'artifact.register'],
+  });
   assert.equal(
     (
       await repository.findSnapshot(

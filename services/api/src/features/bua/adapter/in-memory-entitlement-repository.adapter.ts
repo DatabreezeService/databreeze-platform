@@ -13,6 +13,13 @@ import type {
   EntitlementTransactionPortV1,
 } from '../application/entitlement-repository.port.js';
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
+import {
+  sameEntitlementPlanV1,
+  sameEntitlementSnapshotV1,
+  sameUsageEntryV1,
+  sameUsageReservationExceptStatusV1,
+  sameUsageReservationV1,
+} from '../application/entitlement-equality.js';
 
 function visibleInScope(context: TenantScopeV1, record: TenantScopeV1): boolean {
   return tenantScopeContainsV1(context, record) || tenantScopeContainsV1(record, context);
@@ -67,11 +74,7 @@ function cloneState(state: UsageLedgerStateV1): UsageLedgerStateV1 {
 }
 
 function sameReservationExceptStatus(left: UsageReservationV1, right: UsageReservationV1): boolean {
-  return (
-    left.reservationId === right.reservationId &&
-    JSON.stringify({ ...left, status: undefined, revision: undefined }) ===
-      JSON.stringify({ ...right, status: undefined, revision: undefined })
-  );
+  return sameUsageReservationExceptStatusV1(left, right);
 }
 
 /** In-memory adapter with append-only usage and immutable plan/snapshot semantics. */
@@ -85,8 +88,7 @@ export class InMemoryEntitlementRepositoryAdapter implements EntitlementReposito
   async savePlan(plan: EntitlementPlanV1): Promise<void> {
     await Promise.resolve();
     const existing = this.plans.get(plan.planCode);
-    if (existing && JSON.stringify(existing) !== JSON.stringify(plan))
-      throw new Error('BUA_IMMUTABLE_PLAN');
+    if (existing && !sameEntitlementPlanV1(existing, plan)) throw new Error('BUA_IMMUTABLE_PLAN');
     this.plans.set(plan.planCode, clonePlan(plan));
   }
 
@@ -101,7 +103,7 @@ export class InMemoryEntitlementRepositoryAdapter implements EntitlementReposito
     if (!scopeAllowsMutation(context, snapshotScope(snapshot)))
       throw new Error('BUA_SCOPE_NARROWING_REQUIRED');
     const existing = this.snapshots.get(snapshot.snapshotId);
-    if (existing && JSON.stringify(existing) !== JSON.stringify(snapshot))
+    if (existing && !sameEntitlementSnapshotV1(existing, snapshot))
       throw new Error('BUA_IMMUTABLE_SNAPSHOT');
     this.snapshots.set(snapshot.snapshotId, cloneSnapshot(snapshot));
   }
@@ -134,8 +136,7 @@ export class InMemoryEntitlementRepositoryAdapter implements EntitlementReposito
     for (const entry of state.entries) {
       const existing = this.entries.get(entry.entryId);
       if (existing) {
-        if (JSON.stringify(existing) !== JSON.stringify(entry))
-          throw new Error('BUA_IMMUTABLE_USAGE_ENTRY');
+        if (!sameUsageEntryV1(existing, entry)) throw new Error('BUA_IMMUTABLE_USAGE_ENTRY');
         continue;
       }
       if (!scopeAllowsMutation(context, entry.tenantScope))
@@ -160,7 +161,7 @@ export class InMemoryEntitlementRepositoryAdapter implements EntitlementReposito
         this.reservations.set(reservation.reservationId, cloneReservation(reservation));
         continue;
       }
-      if (JSON.stringify(existing) === JSON.stringify(reservation)) continue;
+      if (sameUsageReservationV1(existing, reservation)) continue;
       if (
         existing.revision + 1 !== reservation.revision ||
         !sameReservationExceptStatus(existing, reservation)
