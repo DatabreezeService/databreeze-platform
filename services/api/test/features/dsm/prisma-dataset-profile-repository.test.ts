@@ -98,6 +98,21 @@ void test('[DSM-011, IAM-009] Prisma profile adapter persists immutable disclosu
     created.value,
   ]);
   assert.equal(rows.length, 1);
+  const persisted = rows[0];
+  if (!persisted) throw new Error('fixture profile was not persisted');
+  await assert.rejects(
+    new PrismaDatasetProfileRepositoryAdapter(
+      client([
+        {
+          ...persisted,
+          organizationId: '00000000-0000-4000-8000-000000000771',
+          workspaceId: '00000000-0000-4000-8000-000000000772',
+          rowCountScanned: -1,
+        },
+      ]),
+    ).save(tenantContext, created.value),
+    /DSM_IMMUTABLE_DATASET_PROFILE/u,
+  );
   await assert.rejects(
     new PrismaDatasetProfileRepositoryAdapter(client([], true)).save(tenantContext, created.value),
     /DSM_IMMUTABLE_DATASET_PROFILE/u,

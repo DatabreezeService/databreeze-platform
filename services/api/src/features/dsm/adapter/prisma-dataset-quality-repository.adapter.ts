@@ -126,6 +126,8 @@ class PrismaDatasetQualityTransactionAdapter implements DatasetQualityTransactio
       where: { id: result.resultId },
     });
     if (existing !== null) {
+      if (!visible(context.tenantScope, existing))
+        throw new Error('DSM_IMMUTABLE_QUALITY_RESULT');
       if (JSON.stringify(rowToDomain(existing)) !== JSON.stringify(result))
         throw new Error('DSM_IMMUTABLE_QUALITY_RESULT');
       return;

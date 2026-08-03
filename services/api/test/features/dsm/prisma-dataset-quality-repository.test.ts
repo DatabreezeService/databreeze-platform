@@ -97,6 +97,21 @@ void test('[DSM-011, DSM-013, IAM-009] Prisma quality adapter persists immutable
     created.value,
   ]);
   assert.equal(rows.length, 1);
+  const persisted = rows[0];
+  if (!persisted) throw new Error('fixture quality result was not persisted');
+  await assert.rejects(
+    new PrismaDatasetQualityRepositoryAdapter(
+      client([
+        {
+          ...persisted,
+          organizationId: '00000000-0000-4000-8000-000000000911',
+          workspaceId: '00000000-0000-4000-8000-000000000912',
+          rowCountScanned: -1,
+        },
+      ]),
+    ).save(tenantContext, created.value),
+    /DSM_IMMUTABLE_QUALITY_RESULT/u,
+  );
   await assert.rejects(
     new PrismaDatasetQualityRepositoryAdapter(client([], true)).save(tenantContext, created.value),
     /DSM_IMMUTABLE_QUALITY_RESULT/u,
