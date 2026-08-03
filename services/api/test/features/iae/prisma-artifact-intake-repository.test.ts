@@ -174,10 +174,9 @@ void test('[IAE-013] Prisma adapter persists only validated state transitions wi
     { ...context(workspaceId, 'transition-update'), expectedRevision: 1 },
     { ...item, state: 'ROUTED', revision: 2 },
   );
-  assert.equal(
-    (await repository.find(context(workspaceId, 'transition-read'), itemId))?.state,
-    'ROUTED',
-  );
+  const transitioned = await repository.find(context(workspaceId, 'transition-read'), itemId);
+  assert.equal(transitioned?.state, 'ROUTED');
+  assert.equal(transitioned?.revision, 2);
   await assert.rejects(
     repository.save(
       { ...context(workspaceId, 'transition-stale'), expectedRevision: 1 },
