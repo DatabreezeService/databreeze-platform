@@ -92,6 +92,8 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
     const created = createSessionRecordV1({
       sessionId: sessionIdentifier,
       userId: principal.userId,
+      organizationId: principal.organizationId,
+      workspaceId: principal.workspaceId,
       familyId: familyIdentifier,
       issuedAt: now.toISOString(),
       accessExpiresAt: addSeconds(now, ACCESS_TOKEN_SECONDS_V1),
