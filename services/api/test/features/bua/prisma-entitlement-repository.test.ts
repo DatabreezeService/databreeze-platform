@@ -8,6 +8,7 @@ import {
 } from '@databreeze/domain/entitlements/v1';
 import {
   parseStableIdentifierV1,
+  tenantScopeKeyV1,
   type StrictUtcTimestampV1,
 } from '@databreeze/domain/tenant-scope/v1';
 
@@ -90,6 +91,7 @@ function delegate<TRow extends Record<string, unknown>>(
   rows: TRow[],
   forceRevisionConflict = false,
   firstQueries?: Array<Readonly<Record<string, unknown>>>,
+  manyQueries?: Array<Readonly<Record<string, unknown>>>,
 ) {
   const matches = (row: TRow, where: Readonly<Record<string, unknown>>): boolean =>
     Object.entries(where).every(([key, value]) => {
@@ -100,6 +102,14 @@ function delegate<TRow extends Record<string, unknown>>(
             candidate !== null &&
             matches(row, candidate as Readonly<Record<string, unknown>>),
         );
+      }
+      if (
+        typeof value === 'object' &&
+        value !== null &&
+        'in' in value &&
+        Array.isArray((value as { readonly in?: unknown }).in)
+      ) {
+        return ((value as { readonly in: readonly unknown[] }).in).includes(row[key]);
       }
       return row[key] === value;
     });
@@ -130,9 +140,8 @@ function delegate<TRow extends Record<string, unknown>>(
       readonly where: Readonly<Record<string, unknown>>;
       readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
     }) {
-      const filtered = rows.filter((row) =>
-        Object.entries(where).every(([key, value]) => row[key] === value),
-      );
+      manyQueries?.push(where);
+      const filtered = rows.filter((row) => matches(row, where));
       const [field, direction] = Object.entries(orderBy ?? {})[0] ?? [];
       return Promise.resolve(
         [...filtered].sort((left, right) => {
@@ -175,6 +184,7 @@ function client(
   options: {
     readonly forceRevisionConflict?: boolean;
     readonly firstQueries?: Array<Readonly<Record<string, unknown>>>;
+    readonly manyQueries?: Array<Readonly<Record<string, unknown>>>;
     readonly transactionCalls?: { value: number };
   } = {},
 ): EntitlementDatabaseClientV1 {
@@ -185,11 +195,17 @@ function client(
   const database = {
     entitlementPlanRecord: delegate(planRows),
     entitlementSnapshotRecord: delegate(snapshotRows, false, options.firstQueries),
-    usageLedgerEntryRecord: delegate(entryRows, false, options.firstQueries),
+    usageLedgerEntryRecord: delegate(
+      entryRows,
+      false,
+      options.firstQueries,
+      options.manyQueries,
+    ),
     usageReservationRecord: delegate(
       reservationRows,
       options.forceRevisionConflict,
       options.firstQueries,
+      options.manyQueries,
     ),
     async $transaction<TValue>(
       work: (transaction: EntitlementDatabaseClientV1) => Promise<TValue>,
@@ -306,6 +322,38 @@ void test('[BUA-008, IAM-009] Prisma entitlement adapter round-trips project-sco
     workspaceId,
     projectId,
   });
+});
+
+void test('[BUA-008, IAM-009] inherited usage reads use one scope-key query per record family', async () => {
+  const manyQueries: Array<Readonly<Record<string, unknown>>> = [];
+  const repository = new PrismaEntitlementRepositoryAdapter(client({ manyQueries }));
+  await repository.saveSnapshot(context(workspaceId, 'batched-snapshot'), snapshot());
+  const service = new EntitlementAdmissionService(repository);
+  const admitted = await service.admit(projectContext('batched-admit'), {
+    ...admissionInput('batched-admit', '1'),
+    tenantScope: { scopeType: 'project', organizationId, workspaceId, projectId },
+  });
+  assert.equal(admitted.accepted, true);
+
+  await repository.listUsageState(projectContext('batched-read'));
+  assert.equal(manyQueries.length, 2);
+  const expectedKeys = [
+    tenantScopeKeyV1({ scopeType: 'organization', organizationId: stable(organizationId) }),
+    tenantScopeKeyV1({
+      scopeType: 'workspace',
+      organizationId: stable(organizationId),
+      workspaceId: stable(workspaceId),
+    }),
+    tenantScopeKeyV1({
+      scopeType: 'project',
+      organizationId: stable(organizationId),
+      workspaceId: stable(workspaceId),
+      projectId: stable(projectId),
+    }),
+  ];
+  for (const query of manyQueries) {
+    assert.deepEqual(query['scopeKey'], { in: expectedKeys });
+  }
 });
 
 void test('[BUA-008, BUA-011] direct usage persistence executes in one database transaction', async () => {
