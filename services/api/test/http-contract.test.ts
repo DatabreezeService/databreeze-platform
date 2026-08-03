@@ -759,6 +759,43 @@ void test('audit read outages return retryable service-unavailable problems', as
   );
 });
 
+void test('audit integrity failures are non-retryable and do not look transient', async () => {
+  const auditRepository = Object.assign(new InMemoryAuditRepositoryAdapter(), {
+    listEventPage: () => Promise.reject(new Error('AUD_CHAIN_INVALID')),
+    listSealPage: () => Promise.reject(new Error('AUD_CHAIN_INVALID')),
+  });
+  const principal = {
+    userId: '00000000-0000-4000-8000-000000000001',
+    organizationId: '00000000-0000-4000-8000-000000000002',
+    workspaceId: '00000000-0000-4000-8000-000000000003',
+    securityEpoch: 1,
+    mfaRequired: false,
+  } as const;
+  await withApp(
+    {
+      auditRepository,
+      sessions: {
+        issue: () => Promise.reject(new Error('not used')),
+        refresh: () => Promise.reject(new Error('not used')),
+        revoke: () => Promise.resolve(true),
+        findPrincipal: () => Promise.resolve(principal),
+        findPrincipalByAccessToken: () => Promise.resolve(principal),
+      },
+    },
+    async (app) => {
+      for (const url of ['/v1/audit/events', '/v1/audit/seals']) {
+        const response = await app.inject({
+          method: 'GET',
+          url,
+          headers: { authorization: 'Bearer audit-access-token-123456789' },
+        });
+        assertProblem(response, 500, 'AUDIT_INTEGRITY_INVALID');
+        assert.doesNotMatch(response.body, /AUD_CHAIN_INVALID/u);
+      }
+    },
+  );
+});
+
 void test('MFA HTTP lifecycle derives the user from the authenticated tenant context and returns redacted state', async () => {
   const actorId = '00000000-0000-4000-8000-000000000001';
   const mfaService = new MfaService(
