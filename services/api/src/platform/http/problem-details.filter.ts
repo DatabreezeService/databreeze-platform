@@ -51,12 +51,21 @@ function describe(error: unknown, correlationId: string): ProblemInput {
   }
   if (error instanceof MfaProblemError) {
     const unavailable = error.code === 'MFA_UNAVAILABLE';
+    const revisionConflict = error.code === 'IAM_MFA_REVISION_CONFLICT';
     return {
       code: error.code,
       correlationId,
-      messageKey: unavailable ? 'api.error.mfa_unavailable' : 'api.error.mfa_request_rejected',
+      messageKey: unavailable
+        ? 'api.error.mfa_unavailable'
+        : revisionConflict
+          ? 'api.error.mfa_revision_conflict'
+          : 'api.error.mfa_request_rejected',
       retryable: unavailable,
-      status: unavailable ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.BAD_REQUEST,
+      status: unavailable
+        ? HttpStatus.SERVICE_UNAVAILABLE
+        : revisionConflict
+          ? HttpStatus.CONFLICT
+          : HttpStatus.BAD_REQUEST,
     };
   }
   if (error instanceof EntitlementProblemError) {
