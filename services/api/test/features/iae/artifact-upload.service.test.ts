@@ -97,5 +97,5 @@ void test('IAE-014 expiration revokes storage-side partial state before persisti
   assert.equal(expired.value.state, 'EXPIRED');
   assert.equal(storage.abortCalls, 1);
   const transfer = await service.issuePartTransfer(context, created.value.sessionId, 1);
-  assert.deepEqual(transfer, { accepted: false, code: 'UPLOAD_STORAGE_NOT_READY' });
+  assert.deepEqual(transfer, { accepted: false, code: 'UPLOAD_SESSION_EXPIRED' });
 });
