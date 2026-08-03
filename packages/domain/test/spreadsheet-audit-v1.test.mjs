@@ -34,8 +34,8 @@ void test('[SA-001, SA-004] audit results retain exact value-free evidence coord
   assert.equal(result.accepted, true);
   if (!result.accepted) return;
   assert.equal(result.value.findings[0]?.address, 'C1');
-  assert.equal(Object.hasOwn(result.value, 'formula'), false);
-  assert.equal(Object.hasOwn(result.value, 'sourceValue'), false);
+  assert.equal(Object.hasOwn(result.value.findings[0], 'formula'), false);
+  assert.equal(Object.hasOwn(result.value.findings[0], 'sourceValue'), false);
 });
 
 void test('[SA-005] findings cannot reference an unknown sheet or duplicate IDs', () => {
