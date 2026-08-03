@@ -37,6 +37,16 @@ function client(rows: ArtifactLineageDatabaseRowV1[]): ArtifactLineageDatabaseCl
   return {
     artifactLineageRecord: {
       create({ data }) {
+        if (
+          rows.some(
+            (candidate) =>
+              candidate.id === data.id ||
+              candidate.derivedArtifactVersionId === data.derivedArtifactVersionId,
+          )
+        )
+          return Promise.reject(
+            Object.assign(new Error('fixture unique constraint'), { code: 'P2002' }),
+          );
         rows.push({ ...data });
         return Promise.resolve({ ...data });
       },
@@ -80,5 +90,22 @@ void test('IAE-007 Prisma lineage adapter preserves immutable lineage and source
   const sourceVersionId = lineage.sourceArtifactVersionIds[0];
   if (!sourceVersionId) throw new Error('fixture source id missing');
   assert.deepEqual(await repository.listBySource(context, sourceVersionId), [lineage]);
+  assert.equal(rows.length, 1);
+});
+
+void test('IAE-007 lineage test storage enforces one record per derived artifact version', async () => {
+  const rows: ArtifactLineageDatabaseRowV1[] = [];
+  const database = client(rows);
+  const repository = new PrismaArtifactLineageRepositoryAdapter(database);
+  await repository.save(context, lineage);
+  const persisted = rows[0];
+  if (!persisted) throw new Error('fixture lineage was not persisted');
+
+  await assert.rejects(
+    database.artifactLineageRecord.create({
+      data: { ...persisted, id: '88888888-8888-4888-8888-888888888888' },
+    }),
+    (error: unknown) => error instanceof Error && 'code' in error && error.code === 'P2002',
+  );
   assert.equal(rows.length, 1);
 });

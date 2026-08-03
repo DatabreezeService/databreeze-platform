@@ -7521,7 +7521,12 @@
           "activeApproval": { "type": "boolean" },
           "legalHold": { "type": "boolean" },
           "requestId": { "type": "string", "format": "uuid" },
-          "requestedBy": { "type": "string", "format": "uuid" },
+          "requestedBy": {
+            "type": "string",
+            "format": "uuid",
+            "deprecated": true,
+            "description": "Ignored. Attribution always uses the authenticated actor."
+          },
           "requestedAt": { "type": "string", "format": "date-time" }
         },
         "required": [
@@ -7533,7 +7538,6 @@
           "activeApproval",
           "legalHold",
           "requestId",
-          "requestedBy",
           "requestedAt"
         ]
       },
