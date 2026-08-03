@@ -733,20 +733,15 @@
       "codePaths": [
         "packages/domain/src/audit/v1.ts",
         "services/api/src/features/aud/",
-        "services/api/prisma/schema/aud.prisma",
-        "services/api/src/features/aud/application/audit-attestation.service.ts",
-        "services/api/src/features/aud/adapter/prisma-audit-attestation-repository.adapter.ts",
-        "services/api/prisma/migrations/20260803080000_aud_seal_attestations/migration.sql"
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
         "packages/domain/test/audit-v1.test.mjs",
         "services/api/test/features/aud/",
-        "services/api/test/http-contract.test.ts",
-        "services/api/test/features/aud/audit-attestation.service.test.ts",
-        "services/api/test/features/aud/prisma-audit-attestation-repository.test.ts"
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/iam-bua-security-slice-2026-08-03.md"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "partial",
       "coverage": "partial",
@@ -763,18 +758,12 @@
       "codePaths": [
         "packages/domain/src/audit/v1.ts",
         "services/api/src/features/aud/",
-        "services/api/prisma/schema/aud.prisma",
-        "services/api/src/features/aud/application/audit-attestation.service.ts",
-        "services/api/src/features/aud/api/audit-attestation.controller.ts",
-        "services/api/src/features/aud/adapter/in-memory-audit-attestation-repository.adapter.ts",
-        "services/api/prisma/migrations/20260803080000_aud_seal_attestations/migration.sql"
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
         "packages/domain/test/audit-v1.test.mjs",
         "services/api/test/features/aud/",
-        "services/api/test/http-contract.test.ts",
-        "services/api/test/features/aud/audit-attestation.controller.test.ts",
-        "services/api/test/features/aud/audit-attestation-repository.test.ts"
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
         "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
@@ -1056,8 +1045,8 @@
         "security-and-tenant-gate",
         "release-manager-approval"
       ],
-      "status": "partial",
-      "coverage": "partial",
+      "status": "planned",
+      "coverage": "planned",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
