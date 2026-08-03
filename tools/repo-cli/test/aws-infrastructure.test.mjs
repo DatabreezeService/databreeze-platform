@@ -36,7 +36,7 @@ test('AWS container validation command is pinned, isolated, and non-applying', (
   });
   assert.equal(help.status, 0, help.stderr);
   assert.match(help.stdout, /official pinned OpenTofu container/u);
-  assert.match(help.stdout, /mocked plan test/u);
+  assert.match(help.stdout, /mocked plan\s+test/u);
   assert.match(help.stdout, /does not\s+apply infrastructure/u);
   const source = read('tools/repo-cli/src/validate-aws-opentofu.mjs');
   assert.match(source, /'fmt',\s*'-check',\s*'-recursive'/u);
