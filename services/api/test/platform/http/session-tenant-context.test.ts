@@ -71,9 +71,12 @@ void test('uses the request id for read-only calls and rejects unsafe principal 
     findPrincipalByAccessToken: () => Promise.resolve({ ...principal, securityEpoch: 0 }),
   });
   await assert.rejects(
-    adapter.resolve({ id: 'request-read-001', headers: { authorization: 'Bearer token' } }),
+    adapter.resolve({
+      id: 'request-read-001',
+      headers: { authorization: 'Bearer opaque-access-token-123456789' },
+    }),
     (error: unknown) => {
-      assert.equal((error as { code?: unknown }).code, 'AUTHENTICATION_FAILED');
+      assert.equal((error as { code?: unknown }).code, 'CONTEXT_INVALID');
       return true;
     },
   );
