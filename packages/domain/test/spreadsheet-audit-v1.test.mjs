@@ -70,6 +70,13 @@ void test('[SA-006] findings must stay inside the exact sheet geometry', () => {
     }),
     { accepted: false, code: 'INVALID_COORDINATE' },
   );
+  assert.equal(
+    createSpreadsheetAuditResultV1({
+      ...base,
+      sheets: [{ ...base.sheets[0], maxRow: 1_048_576 }],
+    }).accepted,
+    true,
+  );
 });
 
 void test('[SA-004] finding validation preserves structural error codes', () => {

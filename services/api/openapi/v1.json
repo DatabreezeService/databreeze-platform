@@ -8372,7 +8372,7 @@
         "properties": {
           "sheetId": { "type": "string", "format": "uuid" },
           "name": { "type": "string", "maxLength": 128 },
-          "maxRow": { "type": "number", "minimum": 0, "maximum": 1000000 },
+          "maxRow": { "type": "number", "minimum": 0, "maximum": 1048576 },
           "maxColumn": { "type": "number", "minimum": 0, "maximum": 16384 },
           "formulaCount": { "type": "number", "minimum": 0, "maximum": 1000000 }
         },

@@ -200,6 +200,15 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       const property = (schema['properties'] as Record<string, Record<string, unknown>>)[propertyName];
       assert.equal(property?.['maxItems'], maxItems, `${schemaName}.${propertyName} must be bounded`);
     }
+    const spreadsheetSheet = firstDocument.components?.schemas?.[
+      'SpreadsheetAuditSheetDto'
+    ] as Record<string, unknown>;
+    assert.equal(
+      (spreadsheetSheet['properties'] as Record<string, Record<string, unknown>>)['maxRow']?.[
+        'maximum'
+      ],
+      1_048_576,
+    );
 
     for (const operation of operations(firstDocument)) {
       const headerNames = (operation.parameters ?? [])

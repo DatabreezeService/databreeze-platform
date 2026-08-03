@@ -29,10 +29,10 @@ export class SpreadsheetAuditSheetDto {
   @MaxLength(128)
   name!: string;
 
-  @ApiProperty({ minimum: 0, maximum: 1_000_000 })
+  @ApiProperty({ minimum: 0, maximum: 1_048_576 })
   @IsInt()
   @Min(0)
-  @Max(1_000_000)
+  @Max(1_048_576)
   maxRow!: number;
 
   @ApiProperty({ minimum: 0, maximum: 16_384 })

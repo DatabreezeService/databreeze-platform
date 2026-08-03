@@ -119,7 +119,7 @@ function sheet(input: unknown): SpreadsheetAuditSheetV1 | undefined {
     formulaCount === undefined
   )
     return undefined;
-  if (maxRow > 1_000_000 || maxColumn > 16_384 || formulaCount > 1_000_000) return undefined;
+  if (maxRow > 1_048_576 || maxColumn > 16_384 || formulaCount > 1_000_000) return undefined;
   return Object.freeze({ sheetId, name, maxRow, maxColumn, formulaCount });
 }
 
