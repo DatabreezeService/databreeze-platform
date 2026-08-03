@@ -433,6 +433,14 @@ function visible(context: TenantScopeV1, candidate: TenantScopeV1): boolean {
   return tenantScopeContainsV1(context, candidate) || tenantScopeContainsV1(candidate, context);
 }
 
+function inheritedUsageScopeKeys(scope: TenantScopeV1): readonly string[] | undefined {
+  if (scope.scopeType === 'organization') return undefined;
+  return Object.freeze([
+    `organization:${scope.organizationId}`,
+    `workspace:${scope.organizationId}:${scope.workspaceId}`,
+  ]);
+}
+
 function sameReservationExceptStatus(left: UsageReservationV1, right: UsageReservationV1): boolean {
   return sameUsageReservationExceptStatusV1(left, right);
 }
@@ -503,16 +511,31 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
   }
 
   public async listUsageState(context: IamTenantContextV1): Promise<UsageLedgerStateV1> {
-    const [entryRows, reservationRows] = await Promise.all([
+    const scopeKeys = inheritedUsageScopeKeys(context.tenantScope);
+    const entryQueries = (scopeKeys ?? [undefined]).map((key) =>
       this.client.usageLedgerEntryRecord.findMany({
-        where: { organizationId: context.tenantScope.organizationId },
+        where:
+          key === undefined
+            ? { organizationId: context.tenantScope.organizationId }
+            : { scopeKey: key },
         orderBy: { sequence: 'asc' },
       }),
+    );
+    const reservationQueries = (scopeKeys ?? [undefined]).map((key) =>
       this.client.usageReservationRecord.findMany({
-        where: { organizationId: context.tenantScope.organizationId },
+        where:
+          key === undefined
+            ? { organizationId: context.tenantScope.organizationId }
+            : { scopeKey: key },
         orderBy: { createdAt: 'asc' },
       }),
+    );
+    const [entryGroups, reservationGroups] = await Promise.all([
+      Promise.all(entryQueries),
+      Promise.all(reservationQueries),
     ]);
+    const entryRows = entryGroups.flat();
+    const reservationRows = reservationGroups.flat();
     return Object.freeze({
       entries: Object.freeze(
         entryRows
