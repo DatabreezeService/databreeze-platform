@@ -101,10 +101,16 @@ function membershipFromRow(row: IamMembershipDatabaseRowV1): IamMembershipRecord
 
 function membershipFromRowOrSkip(
   row: IamMembershipDatabaseRowV1,
+  onMalformedMembershipRow?: (membershipId: string) => void,
 ): IamMembershipRecordV1 | undefined {
   try {
     return membershipFromRow(row);
   } catch {
+    try {
+      onMalformedMembershipRow?.(row.id);
+    } catch {
+      // Diagnostics are best-effort and must not change fail-closed authority selection.
+    }
     return undefined;
   }
 }
@@ -163,8 +169,15 @@ function isUniqueConstraintViolation(error: unknown): boolean {
   );
 }
 
+interface IamRepositoryDiagnosticsV1 {
+  readonly onMalformedMembershipRow?: (membershipId: string) => void;
+}
+
 class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
-  public constructor(private readonly client: IamTransactionDatabaseClientV1) {}
+  public constructor(
+    private readonly client: IamTransactionDatabaseClientV1,
+    private readonly diagnostics: IamRepositoryDiagnosticsV1 = {},
+  ) {}
 
   public async findMembership(
     context: IamTenantContextV1,
@@ -180,7 +193,7 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
     });
     return selectAuthoritativeMembership(
       rows
-      .map(membershipFromRowOrSkip)
+      .map((row) => membershipFromRowOrSkip(row, this.diagnostics.onMalformedMembershipRow))
       .filter((membership): membership is IamMembershipRecordV1 => membership !== undefined)
       ,
       context,
@@ -196,7 +209,7 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
       orderBy: { id: 'asc' },
     });
     return rows
-      .map(membershipFromRowOrSkip)
+      .map((row) => membershipFromRowOrSkip(row, this.diagnostics.onMalformedMembershipRow))
       .filter((membership): membership is IamMembershipRecordV1 => membership !== undefined)
       .filter((membership) => visibleInScope(context.tenantScope, membership.scope));
   }
@@ -249,19 +262,28 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
 }
 
 export class PrismaIamRepositoryAdapter implements IamRepositoryPortV1 {
-  public constructor(private readonly client: IamDatabaseClientV1) {}
+  public constructor(
+    private readonly client: IamDatabaseClientV1,
+    private readonly diagnostics: IamRepositoryDiagnosticsV1 = {},
+  ) {}
 
   public findMembership(context: IamTenantContextV1, principalId: StableIdentifierV1) {
-    return new PrismaIamTransactionAdapter(this.client).findMembership(context, principalId);
+    return new PrismaIamTransactionAdapter(this.client, this.diagnostics).findMembership(
+      context,
+      principalId,
+    );
   }
 
   public listMemberships(context: IamTenantContextV1) {
-    return new PrismaIamTransactionAdapter(this.client).listMemberships(context);
+    return new PrismaIamTransactionAdapter(this.client, this.diagnostics).listMemberships(context);
   }
 
   public saveMembership(context: IamTenantContextV1, membership: IamMembershipRecordV1) {
     return this.client.$transaction((transaction) =>
-      new PrismaIamTransactionAdapter(transaction).saveMembership(context, membership),
+      new PrismaIamTransactionAdapter(transaction, this.diagnostics).saveMembership(
+        context,
+        membership,
+      ),
     );
   }
 
@@ -270,7 +292,7 @@ export class PrismaIamRepositoryAdapter implements IamRepositoryPortV1 {
     work: (transaction: IamTransactionPortV1) => Promise<TValue>,
   ): Promise<TValue> {
     return this.client.$transaction((transaction) =>
-      work(new PrismaIamTransactionAdapter(transaction)),
+      work(new PrismaIamTransactionAdapter(transaction, this.diagnostics)),
     );
   }
 }
