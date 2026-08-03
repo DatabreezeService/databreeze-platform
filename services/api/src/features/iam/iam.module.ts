@@ -119,6 +119,7 @@ import {
 } from './application/recovery.service.js';
 import {
   IAM_RECOVERY_REPOSITORY_PORT,
+  IAM_RECOVERY_ADMISSION_PORT,
   type RecoveryAdmissionPortV1,
   type RecoveryDigestPortV1,
   type RecoveryDeliveryPortV1,
@@ -131,6 +132,11 @@ import {
   type IamRecoveryDigestKeyV1,
 } from './adapter/iam-recovery-crypto.adapter.js';
 import { InMemoryRecoveryAdmissionAdapter } from './adapter/in-memory-recovery-admission.adapter.js';
+import {
+  RedisRecoveryAdmissionAdapter,
+  type RecoveryAdmissionCounterPortV1,
+  type RedisRecoveryAdmissionOptionsV1,
+} from './adapter/redis-recovery-admission.adapter.js';
 import {
   PrismaRecoveryRepositoryAdapter,
   type RecoveryDatabaseClientV1,
@@ -215,6 +221,8 @@ export interface IamModuleOptions {
   readonly recoveryTokenGenerator?: RecoveryTokenGeneratorV1;
   readonly recoveryClock?: RecoveryClockV1;
   readonly recoveryAdmission?: RecoveryAdmissionPortV1;
+  readonly recoveryAdmissionCounter?: RecoveryAdmissionCounterPortV1;
+  readonly recoveryAdmissionOptions?: RedisRecoveryAdmissionOptionsV1;
   readonly deviceIdentityService?: DeviceIdentityService;
   readonly deviceIdentityRepository?: DeviceIdentityRepositoryPortV1;
   readonly deviceIdentityDatabase?: DeviceIdentityDatabaseClientV1;
@@ -357,6 +365,14 @@ export class IamModule {
       (options.recoveryDigestKey === undefined
         ? undefined
         : new HmacSha256IamRecoveryDigestAdapter(options.recoveryDigestKey));
+    const recoveryAdmission =
+      options.recoveryAdmission ??
+      (options.recoveryAdmissionCounter === undefined
+        ? new InMemoryRecoveryAdmissionAdapter()
+        : new RedisRecoveryAdmissionAdapter(
+            options.recoveryAdmissionCounter,
+            options.recoveryAdmissionOptions,
+          ));
     const recoveryService =
       options.recoveryService ??
       (recoveryRepository &&
@@ -370,7 +386,7 @@ export class IamModule {
             delivery: options.recoveryDelivery,
             ids: options.recoveryIdGenerator ?? randomIamRecoveryIdV1,
             tokens: options.recoveryTokenGenerator ?? randomIamRecoveryTokenV1,
-            admission: options.recoveryAdmission ?? new InMemoryRecoveryAdmissionAdapter(),
+            admission: recoveryAdmission,
             ...(options.recoveryClock ? { clock: options.recoveryClock } : {}),
           })
         : undefined);
@@ -410,6 +426,7 @@ export class IamModule {
     if (registrationRepository) exports.unshift(IAM_REGISTRATION_REPOSITORY_PORT);
     if (registrationService) exports.unshift(IAM_REGISTRATION_SERVICE);
     if (recoveryRepository) exports.unshift(IAM_RECOVERY_REPOSITORY_PORT);
+    if (recoveryService) exports.unshift(IAM_RECOVERY_ADMISSION_PORT);
     if (recoveryService) exports.unshift(IAM_RECOVERY_SERVICE);
     return {
       module: IamModule,
@@ -554,6 +571,10 @@ export class IamModule {
               {
                 provide: IAM_RECOVERY_SERVICE,
                 useValue: recoveryService,
+              },
+              {
+                provide: IAM_RECOVERY_ADMISSION_PORT,
+                useValue: recoveryAdmission,
               },
             ]
           : []),

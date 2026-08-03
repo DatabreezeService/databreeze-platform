@@ -4,6 +4,7 @@ import type { StableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 import type { PasswordCredentialV1 } from '../domain/password-credential.js';
 
 export const IAM_RECOVERY_REPOSITORY_PORT = Symbol('IAM_RECOVERY_REPOSITORY_PORT');
+export const IAM_RECOVERY_ADMISSION_PORT = Symbol('IAM_RECOVERY_ADMISSION_PORT');
 
 export interface RecoveryCompletionInputV1 {
   readonly challenge: RecoveryChallengeV1;
