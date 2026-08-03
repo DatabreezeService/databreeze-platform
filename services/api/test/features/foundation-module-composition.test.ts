@@ -40,12 +40,38 @@ function moduleTypes(): readonly unknown[] {
 }
 
 void test('[AUD-001, BUA-001] API application options expose durable module adapters', () => {
+  const auditRepository = {} as never;
+  const entitlementRepository = {} as never;
   const options = {
-    auditRepository: {} as never,
-    entitlementRepository: {} as never,
+    auditRepository,
+    entitlementRepository,
   } satisfies ApiApplicationOptions;
   const registered = AppModule.register(options);
   assert.equal(registered.module, AppModule);
+  for (const [moduleType, token, expected] of [
+    [AudModule, AUDIT_REPOSITORY_PORT, auditRepository],
+    [BuaModule, ENTITLEMENT_REPOSITORY_PORT, entitlementRepository],
+  ] as const) {
+    const child = registered.imports?.find(
+      (candidate) =>
+        typeof candidate === 'object' &&
+        candidate !== null &&
+        'module' in candidate &&
+        candidate.module === moduleType,
+    );
+    assert.ok(child && typeof child === 'object' && 'providers' in child);
+    if (!child || typeof child !== 'object' || !('providers' in child)) return;
+    const provider = child.providers?.find(
+      (candidate) =>
+        typeof candidate === 'object' &&
+        candidate !== null &&
+        'provide' in candidate &&
+        candidate.provide === token,
+    );
+    assert.ok(provider && 'useValue' in provider);
+    if (!provider || !('useValue' in provider)) return;
+    assert.equal(provider.useValue, expected);
+  }
 });
 
 void test('[IAM-001, AUD-001, BUA-001] application composition includes identity, audit, and entitlements modules', () => {
