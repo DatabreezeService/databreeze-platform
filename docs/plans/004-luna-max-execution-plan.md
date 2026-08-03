@@ -17,7 +17,7 @@
 - Workers, Desktop, and Android accept signed typed actions and scoped handles only; they never receive arbitrary commands, unrestricted paths, or database credentials.
 - Vietnamese is the complete default locale and English is complete for every delivered client slice.
 - Requirement status is evidence-based: merged code is not automatically `verified` or `released`.
-- Normal feature PRs contain at least 30 commits, target about 70, and remain below 100. Empty, padding, or artificially split commits are forbidden.
+- Normal feature PR slices contain 30–50 commits. If an atomic task crosses 50, finish that task and split immediately; the exceptional ceiling is 79, preserving margin below CodeRabbit's 100-commit limit. Empty, padding, or artificially split commits are forbidden.
 - Feature/fix PRs target `dev` without CodeRabbit. The corresponding `dev` to `main` promotion receives exactly one full CodeRabbit review after hosted checks are otherwise ready.
 - Keep the promotion diff at or below 260 changed files, leaving safety margin under the 280-file review stop gate.
 - Never run package-manager commands concurrently in the same worktree. `pnpm install`, checks, tests, and builds share `node_modules` and execute sequentially there.
@@ -36,7 +36,7 @@ This checkpoint was reconciled on 2026-08-02 after the latest promotion:
 | Last promotion PR | PR #20, `dev` to `main` |
 | Promotion review fixes | PRs #21, #22, and #23 back to `dev` |
 | Open PRs observed | None |
-| Requirement ledger | 611 total: 608 `planned`, 3 `partial`, 0 `verified` |
+| Requirement ledger | 611 total: 565 `planned`, 46 `partial`, 0 `verified` |
 | Next orchestration task | `FND-003` |
 | Active delivery batch | `B01` |
 
@@ -60,27 +60,27 @@ Some early child plans contain generic aggregate `Paths` examples. Do not create
 
 ## 3. Delivery-batch map
 
-Each batch is one normal integration PR and one promotion PR unless the changed-file safety gate forces a split. Commit ranges are planning budgets, not quotas. If a coherent batch finishes below 30 commits, keep the branch open and continue the next compatible task; do not open a small PR merely to reset the counter.
+Each batch may require multiple normal integration PR slices before its exit gate passes. Every slice is followed by its own promotion PR. Commit ranges are review budgets, not quotas. If a coherent slice finishes below 30 commits, keep the branch open and continue the next compatible task; do not create padding merely to reset the counter.
 
 | Batch | Branch | Tasks | Dependencies | Commit budget | Exit gate |
 |---|---|---|---|---|---|
-| `B01` | `feat/foundation-identity-completion` | `FND-003..007`, all Plan 020 tasks | Verified `FND-001/002` | 50–85, target 70 | Foundation external gates recorded; IAM/AUD/BUA obligations reconciled and completed |
-| `B02` | `feat/artifacts-datasets-completion` | All Plan 030 tasks | `B01` | 40–75, target 65 | Immutable artifact/evidence/dataset foundations verified |
-| `B03` | `feat/jobs-processing-completion` | All Plan 040 tasks | `B02` | 45–80, target 70 | Signed typed jobs execute locally/cloud with approvals and durable recovery |
-| `B04` | `feat/devices-sync-completion` | All Plan 050 tasks | `B03` | 45–80, target 70 | Desktop/Android sync, offline, conflict, transfer, and revocation gates pass |
-| `B05` | `feat/collaboration-integrations` | All Plan 060 tasks | `B04` | 45–80, target 70 | Notifications, collaboration, public API, connectors, and webhooks pass |
-| `B06` | `feat/dogfood-autopilot-core` | `DOG-001..007`, `FA-001..003` | `B05` | 45–75, target 65 | Ten-condition dogfood record accepted; safe Autopilot intake/routing exists |
-| `B07` | `feat/autopilot-spreadsheet-auditor` | `FA-004..007`, `SA-001..007` | `B06` | 50–85, target 70 | Folder Autopilot and Spreadsheet Auditor P0/P1 gates pass |
-| `B08` | `feat/quote-invoice-intelligence` | `QI-001..007`, then `ILD-001..007` | `B06` | 60–90, target 75 | Quote Intelligence and Invoice Leak Detector P0/P1 gates pass |
-| `B09` | `feat/operations-capture` | `OC-001..008` | `B06` | 40–75, target 65 | Offline native capture, immutable submission, supervision, and reconciliation pass |
-| `B10` | `feat/client-report-factory` | `CRF-001..007` | `B07`, `B08` | 40–75, target 65 | Evidence-linked multi-format reports and revocable sharing pass |
-| `B11` | `feat/private-data-analyst` | `PDA-001..008` | `B09`, `B10` | 45–80, target 70 | Deterministic governed analysis and optional-AI boundaries pass |
-| `B12` | `feat/migration-quality-suite` | `MR-001..007`, then `DQG-001..008` | `B08`, `B11` | 65–95, target 80 | Migration Ready and Data Quality Guard P0/P1 gates pass |
-| `B13` | `feat/embedded-importer` | `EI-001..007` | `B05` | 35–70, target 60 | Hosted importer and outbound-only local gateway pass hostile tests |
-| `B14` | `feat/production-readiness` | `GA-001..012` | `B12`, `B13` | 60–90, target 75 | Every P0/P1 requirement is verified and coordinated GA is released |
-| `B15` | `feat/post-ga-extensions` | `P2-001..004` | `B14` | 35–70, target 60 | All 13 P2 requirements are opt-in, revocable, and verified |
+| `B01` | `feat/foundation-identity-reconciliation` | `FND-003..007`, all Plan 020 tasks | Verified `FND-001/002` | 30–50 target; exceptional ceiling 79 | Foundation external gates recorded; IAM/AUD/BUA obligations reconciled and completed |
+| `B02` | `feat/artifacts-datasets-completion` | All Plan 030 tasks | `B01` | 30–50 target; exceptional ceiling 79 | Immutable artifact/evidence/dataset foundations verified |
+| `B03` | `feat/jobs-processing-completion` | All Plan 040 tasks | `B02` | 30–50 target; exceptional ceiling 79 | Signed typed jobs execute locally/cloud with approvals and durable recovery |
+| `B04` | `feat/devices-sync-completion` | All Plan 050 tasks | `B03` | 30–50 target; exceptional ceiling 79 | Desktop/Android sync, offline, conflict, transfer, and revocation gates pass |
+| `B05` | `feat/collaboration-integrations` | All Plan 060 tasks | `B04` | 30–50 target; exceptional ceiling 79 | Notifications, collaboration, public API, connectors, and webhooks pass |
+| `B06` | `feat/dogfood-autopilot-core` | `DOG-001..007`, `FA-001..003` | `B05` | 30–50 target; exceptional ceiling 79 | Ten-condition dogfood record accepted; safe Autopilot intake/routing exists |
+| `B07` | `feat/autopilot-spreadsheet-auditor` | `FA-004..007`, `SA-001..007` | `B06` | 30–50 target; exceptional ceiling 79 | Folder Autopilot and Spreadsheet Auditor P0/P1 gates pass |
+| `B08` | `feat/quote-invoice-intelligence` | `QI-001..007`, then `ILD-001..007` | `B06` | 30–50 target; exceptional ceiling 79 | Quote Intelligence and Invoice Leak Detector P0/P1 gates pass |
+| `B09` | `feat/operations-capture` | `OC-001..008` | `B06` | 30–50 target; exceptional ceiling 79 | Offline native capture, immutable submission, supervision, and reconciliation pass |
+| `B10` | `feat/client-report-factory` | `CRF-001..007` | `B07`, `B08` | 30–50 target; exceptional ceiling 79 | Evidence-linked multi-format reports and revocable sharing pass |
+| `B11` | `feat/private-data-analyst` | `PDA-001..008` | `B09`, `B10` | 30–50 target; exceptional ceiling 79 | Deterministic governed analysis and optional-AI boundaries pass |
+| `B12` | `feat/migration-quality-suite` | `MR-001..007`, then `DQG-001..008` | `B08`, `B11` | 30–50 target; exceptional ceiling 79 | Migration Ready and Data Quality Guard P0/P1 gates pass |
+| `B13` | `feat/embedded-importer` | `EI-001..007` | `B05` | 30–50 target; exceptional ceiling 79 | Hosted importer and outbound-only local gateway pass hostile tests |
+| `B14` | `feat/production-readiness` | `GA-001..012` | `B12`, `B13` | 30–50 target; exceptional ceiling 79 | Every P0/P1 requirement is verified and coordinated GA is released |
+| `B15` | `feat/post-ga-extensions` | `P2-001..004` | `B14` | 30–50 target; exceptional ceiling 79 | All 13 P2 requirements are opt-in, revocable, and verified |
 
-The machine-readable `deliveryBatches` array is authoritative for exact task membership. Its checker rejects missing or duplicate task ownership, dependency cycles, a batch below the 30-commit minimum, a maximum of 100 or more, and an active batch that does not contain `nextTaskId`.
+The machine-readable `deliveryBatches` array is authoritative for exact task membership. Its checker rejects missing or duplicate task ownership, dependency cycles, a PR-slice minimum below 30, an exceptional maximum above 79, and an active batch that does not contain `nextTaskId`.
 
 ## 4. Parallel execution and integration ownership
 
@@ -118,7 +118,7 @@ Typical reversible commits inside a task are: canonical contract, domain behavio
 ## 6. PR and promotion algorithm
 
 1. Count commits and changed files against the batch base before opening anything.
-2. Do not open the normal PR below 30 commits. At 60–75 commits, finish the current atomic task and prepare the PR. At 90 commits, stop accepting new tasks. At 99 commits, the branch is at the hard boundary and must not receive another commit before scope is split or promoted.
+2. Do not open the normal PR below 30 commits. At 30–50 commits, finish the current atomic task and prepare the PR. At 50, stop accepting new tasks and split at the next completed-task boundary. An exceptional boundary must never exceed 79 commits.
 3. If the branch exceeds 260 changed files, split at a completed task boundary before review. Do not split a migration from its code/tests or a canonical schema from generated consumers.
 4. Open `feat/*` or `fix/*` to `dev`. Run hosted checks and merge with a merge commit that preserves atomic commits. Do not invoke CodeRabbit.
 5. Immediately open `dev` to `main`. When otherwise ready, request one full CodeRabbit review and record the invocation.
@@ -129,7 +129,7 @@ Focused promotion-gate fixes may use a smaller PR to `dev` because they close an
 
 ## 7. First Luna Max session
 
-The active branch is `feat/foundation-identity-completion`, based on `origin/dev` at `783a4710c0aa2a2808d78ad7f0643e6731150bd7`. Its first commit is this orchestration update; continue on the same branch until `B01` reaches a coherent 50–85 commit boundary.
+The active B01 PR slice is `feat/foundation-identity-reconciliation`, based on the fetched `origin/dev` merge checkpoint. Continue B01 through additional branches after each 30–50 commit slice; do not claim the batch complete until its exit gate passes.
 
 Run these commands sequentially:
 

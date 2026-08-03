@@ -91,7 +91,7 @@ For each `#### TASK-ID —` item in `002-complete-execution-orchestration.md`:
 
 10. Inspect generated/runtime debris before commit. Do not commit `.venv`, `node_modules`, Gradle state, build output, logs, caches, secrets, local databases, Terraform state, or test reports unless the repository explicitly tracks a sanitized fixture.
 11. Commit one independently reversible outcome with a semantic message. Do not combine contracts, an unrelated fix, and a different feature just to increase commit count.
-12. Recount the active batch against its base. Do not open a normal PR below 30 commits; target about 70, stop accepting new tasks at 90, and never exceed 99. Split before the promotion diff reaches 280 changed files; the packet target is 260.
+12. Recount the active PR slice against its base. Do not open below 30 commits; target 30–50, stop accepting new tasks at 50, and split at the next completed-task boundary. An exceptional boundary must never exceed 79 commits, preserving margin below CodeRabbit's 100-commit limit. Split before the promotion diff reaches 280 changed files; the packet target is 260.
 13. Push after each stable task boundary. Update the ledger/checkpoint only with verified facts and leave a handoff record if stopping.
 
 ## Pull-request and CodeRabbit protocol
