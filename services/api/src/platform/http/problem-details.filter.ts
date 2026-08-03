@@ -14,6 +14,7 @@ import { EntitlementProblemError } from '../../features/bua/application/entitlem
 import { DeviceIdentityProblemError } from '../../features/iam/application/device-identity-problem.error.js';
 import { InvitationProblemError } from '../../features/iam/application/invitation-problem.error.js';
 import { RegistrationProblemError } from '../../features/iam/application/registration-problem.error.js';
+import { RecoveryProblemError } from '../../features/iam/application/recovery-problem.error.js';
 import { AuditProblemError } from '../../features/aud/application/audit-problem.error.js';
 import { ArtifactExportProblemError } from '../../features/iae/application/artifact-export-problem.error.js';
 import { RequestTenantContextProblemError } from './request-tenant-context.port.js';
@@ -136,6 +137,20 @@ function describe(error: unknown, correlationId: string): ProblemInput {
       messageKey: unavailable
         ? 'api.error.registration_unavailable'
         : 'api.error.registration_request_rejected',
+      retryable: unavailable,
+      status: unavailable ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.BAD_REQUEST,
+    };
+  }
+  if (error instanceof RecoveryProblemError) {
+    const unavailable = error.code === 'RECOVERY_UNAVAILABLE';
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: unavailable
+        ? 'api.error.recovery_unavailable'
+        : error.code === 'RECOVERY_TOKEN_INVALID'
+          ? 'api.error.recovery_token_invalid'
+          : 'api.error.recovery_request_rejected',
       retryable: unavailable,
       status: unavailable ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.BAD_REQUEST,
     };

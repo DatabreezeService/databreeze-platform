@@ -9443,23 +9443,33 @@
         "packages/domain/src/authorization/v1.ts",
         "packages/domain/src/mfa/v1.ts",
         "packages/domain/src/csrf/v1.ts",
+        "packages/domain/src/recovery/v1.ts",
         "services/api/src/features/iam/",
-        "services/api/prisma/schema/iam.prisma"
+        "services/api/prisma/schema/iam.prisma",
+        "services/api/prisma/migrations/20260803050000_iam_recovery_challenges/migration.sql",
+        "services/api/src/features/iam/application/recovery.service.ts",
+        "services/api/src/features/iam/adapter/prisma-recovery-repository.adapter.ts",
+        "services/api/src/features/iam/adapter/iam-recovery-crypto.adapter.ts",
+        "services/api/src/features/iam/api/recovery.controller.ts"
       ],
       "testPaths": [
         "packages/domain/test/identity-v1.test.mjs",
         "packages/domain/test/permissions-v1.test.mjs",
-        "services/api/test/features/iam/",
+        "packages/domain/test/recovery-v1.test.mjs",
+        "services/api/test/features/iam/recovery.service.test.ts",
+        "services/api/test/features/iam/prisma-recovery-repository.test.ts",
+        "services/api/test/features/iam/recovery-crypto.test.ts",
+        "services/api/test/features/iam/recovery-composition.test.ts",
+        "services/api/test/features/iam/recovery-controller.test.ts",
+        "services/api/test/features/iam/recovery-http.test.ts",
         "services/api/test/platform/http/session-tenant-context.test.ts",
         "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/iam-recovery-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "ga-completion"

@@ -110,6 +110,29 @@ import {
   type RegistrationClockV1,
   type RegistrationIdGeneratorV1,
 } from './application/registration.service.js';
+import {
+  IAM_RECOVERY_SERVICE,
+  RecoveryService,
+  type RecoveryClockV1,
+  type RecoveryIdGeneratorV1,
+  type RecoveryTokenGeneratorV1,
+} from './application/recovery.service.js';
+import {
+  IAM_RECOVERY_REPOSITORY_PORT,
+  type RecoveryDigestPortV1,
+  type RecoveryDeliveryPortV1,
+  type RecoveryRepositoryPortV1,
+} from './application/recovery-repository.port.js';
+import {
+  HmacSha256IamRecoveryDigestAdapter,
+  randomIamRecoveryIdV1,
+  randomIamRecoveryTokenV1,
+  type IamRecoveryDigestKeyV1,
+} from './adapter/iam-recovery-crypto.adapter.js';
+import {
+  PrismaRecoveryRepositoryAdapter,
+  type RecoveryDatabaseClientV1,
+} from './adapter/prisma-recovery-repository.adapter.js';
 import { InMemoryIamHierarchyRepositoryAdapter } from './adapter/in-memory-iam-hierarchy-repository.adapter.js';
 import {
   PrismaIamHierarchyRepositoryAdapter,
@@ -118,6 +141,7 @@ import {
 import { DeviceIdentityController } from './api/device-identity.controller.js';
 import { IamInvitationController } from './api/invitation.controller.js';
 import { RegistrationController } from './api/registration.controller.js';
+import { RecoveryController } from './api/recovery.controller.js';
 import { InMemoryDeviceIdentityRepositoryAdapter } from './adapter/in-memory-device-identity-repository.adapter.js';
 import {
   PrismaDeviceIdentityRepositoryAdapter,
@@ -179,6 +203,15 @@ export interface IamModuleOptions {
   readonly registrationService?: RegistrationService;
   readonly registrationIdGenerator?: RegistrationIdGeneratorV1;
   readonly registrationClock?: RegistrationClockV1;
+  readonly recoveryRepository?: RecoveryRepositoryPortV1;
+  readonly recoveryDatabase?: RecoveryDatabaseClientV1;
+  readonly recoveryService?: RecoveryService;
+  readonly recoveryDelivery?: RecoveryDeliveryPortV1;
+  readonly recoveryDigest?: RecoveryDigestPortV1;
+  readonly recoveryDigestKey?: IamRecoveryDigestKeyV1;
+  readonly recoveryIdGenerator?: RecoveryIdGeneratorV1;
+  readonly recoveryTokenGenerator?: RecoveryTokenGeneratorV1;
+  readonly recoveryClock?: RecoveryClockV1;
   readonly deviceIdentityService?: DeviceIdentityService;
   readonly deviceIdentityRepository?: DeviceIdentityRepositoryPortV1;
   readonly deviceIdentityDatabase?: DeviceIdentityDatabaseClientV1;
@@ -311,6 +344,32 @@ export class IamModule {
             ...(options.registrationClock ? { clock: options.registrationClock } : {}),
           })
         : undefined);
+    const recoveryRepository =
+      options.recoveryRepository ??
+      (options.recoveryDatabase === undefined
+        ? undefined
+        : new PrismaRecoveryRepositoryAdapter(options.recoveryDatabase));
+    const recoveryDigest =
+      options.recoveryDigest ??
+      (options.recoveryDigestKey === undefined
+        ? undefined
+        : new HmacSha256IamRecoveryDigestAdapter(options.recoveryDigestKey));
+    const recoveryService =
+      options.recoveryService ??
+      (recoveryRepository &&
+      options.passwordCredentials &&
+      options.recoveryDelivery &&
+      recoveryDigest
+        ? new RecoveryService({
+            repository: recoveryRepository,
+            passwordCredentials: options.passwordCredentials,
+            digest: recoveryDigest,
+            delivery: options.recoveryDelivery,
+            ids: options.recoveryIdGenerator ?? randomIamRecoveryIdV1,
+            tokens: options.recoveryTokenGenerator ?? randomIamRecoveryTokenV1,
+            ...(options.recoveryClock ? { clock: options.recoveryClock } : {}),
+          })
+        : undefined);
     const authentication =
       options.authentication ??
       (credentials && sessions
@@ -346,6 +405,8 @@ export class IamModule {
     if (invitationPrincipalEmails) exports.unshift(IAM_PRINCIPAL_EMAIL_LOOKUP_PORT);
     if (registrationRepository) exports.unshift(IAM_REGISTRATION_REPOSITORY_PORT);
     if (registrationService) exports.unshift(IAM_REGISTRATION_SERVICE);
+    if (recoveryRepository) exports.unshift(IAM_RECOVERY_REPOSITORY_PORT);
+    if (recoveryService) exports.unshift(IAM_RECOVERY_SERVICE);
     return {
       module: IamModule,
       controllers: [
@@ -356,6 +417,7 @@ export class IamModule {
         IamMembershipController,
         IamInvitationController,
         RegistrationController,
+        RecoveryController,
         IamBootstrapController,
       ],
       providers: [
@@ -472,6 +534,22 @@ export class IamModule {
               {
                 provide: IAM_REGISTRATION_SERVICE,
                 useValue: registrationService,
+              },
+            ]
+          : []),
+        ...(recoveryRepository
+          ? [
+              {
+                provide: IAM_RECOVERY_REPOSITORY_PORT,
+                useValue: recoveryRepository,
+              },
+            ]
+          : []),
+        ...(recoveryService
+          ? [
+              {
+                provide: IAM_RECOVERY_SERVICE,
+                useValue: recoveryService,
               },
             ]
           : []),

@@ -3150,6 +3150,180 @@
         "tags": ["auth"]
       }
     },
+    "/v1/auth/recovery": {
+      "post": {
+        "description": "The accepted response is intentionally identical for known and unknown emails.",
+        "operationId": "RecoveryController.request",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RecoveryRequestDto" } }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RecoveryRequestResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The recovery request was rejected.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "503": {
+            "description": "Recovery delivery is unavailable.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "summary": "Request an account recovery link",
+        "tags": ["auth"]
+      }
+    },
+    "/v1/auth/recovery/complete": {
+      "post": {
+        "description": "Consumes a single-use link, revokes sessions, and requires MFA re-enrollment.",
+        "operationId": "RecoveryController.complete",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RecoveryCompleteDto" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RecoveryCompleteResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The recovery token or password was rejected.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "503": {
+            "description": "Recovery persistence is unavailable.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "summary": "Complete account recovery",
+        "tags": ["auth"]
+      }
+    },
     "/v1/me/bootstrap": {
       "get": {
         "operationId": "IamBootstrapController.bootstrap",
@@ -9513,6 +9687,32 @@
           "membershipId",
           "locale"
         ]
+      },
+      "RecoveryRequestDto": {
+        "type": "object",
+        "properties": { "email": { "type": "string", "format": "email", "maxLength": 254 } },
+        "required": ["email"]
+      },
+      "RecoveryRequestResponseDto": {
+        "type": "object",
+        "properties": { "requested": { "type": "boolean", "enum": [true], "example": true } },
+        "required": ["requested"]
+      },
+      "RecoveryCompleteDto": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string", "minLength": 32, "maxLength": 512, "writeOnly": true },
+          "newPassword": { "type": "string", "minLength": 12, "maxLength": 128, "writeOnly": true }
+        },
+        "required": ["token", "newPassword"]
+      },
+      "RecoveryCompleteResponseDto": {
+        "type": "object",
+        "properties": {
+          "userId": { "type": "string", "format": "uuid" },
+          "mfaReenrollmentRequired": { "type": "boolean", "enum": [true], "example": true }
+        },
+        "required": ["userId", "mfaReenrollmentRequired"]
       },
       "BootstrapUserDto": {
         "type": "object",

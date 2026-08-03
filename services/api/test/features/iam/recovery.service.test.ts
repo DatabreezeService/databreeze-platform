@@ -99,3 +99,21 @@ void test('[IAM-015] recovery delivery failures do not persist a usable challeng
   });
   assert.equal(repository.challenge('a'.repeat(64)), undefined);
 });
+
+void test('[IAM-015] recovery delivery failure preserves an existing active challenge', async () => {
+  const repository = new InMemoryRecoveryRepositoryAdapter();
+  repository.seed({ email: 'user@example.com', userId });
+  let failDelivery = false;
+  const recovery = service(repository, {
+    deliver: async () => {
+      if (failDelivery) throw new Error('provider down');
+    },
+  });
+  assert.equal((await recovery.request('user@example.com')).accepted, true);
+  failDelivery = true;
+  assert.deepEqual(await recovery.request('user@example.com'), {
+    accepted: false,
+    code: 'RECOVERY_UNAVAILABLE',
+  });
+  assert.equal(repository.challenge('a'.repeat(64))?.status, 'ACTIVE');
+});

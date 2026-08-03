@@ -2,7 +2,7 @@ import {
   consumeRecoveryChallengeV1,
   createRecoveryChallengeV1,
   RECOVERY_CHALLENGE_MAX_SECONDS_V1,
-  type RecoveryChallengeV1,
+  revokeRecoveryChallengeV1,
 } from '@databreeze/domain/recovery/v1';
 import { normalizeEmailAddressV1 } from '@databreeze/domain/identity/v1';
 import {
@@ -103,53 +103,40 @@ export class RecoveryService {
     } catch {
       return unavailable();
     }
-    const challenge = createRecoveryChallengeV1({
-      id: challengeId,
-      userId: '00000000-0000-4000-8000-000000000001',
-      tokenDigest,
-      emailDigest,
-      issuedAt,
-      expiresAt: new Date(
-        Date.parse(issuedAt) + RECOVERY_CHALLENGE_MAX_SECONDS_V1 * 1_000,
-      ).toISOString(),
-    });
-    // The placeholder user ID is replaced inside the transaction after the exact email lookup.
-    if (!challenge.accepted) return unavailable();
+    const expiresAt = new Date(
+      Date.parse(issuedAt) + RECOVERY_CHALLENGE_MAX_SECONDS_V1 * 1_000,
+    ).toISOString();
     try {
       return await this.ports.repository.withTransaction(async (transaction) => {
         const userId = await transaction.findUserIdByEmail(normalized.value);
         if (!userId)
           return Object.freeze({ accepted: true as const, value: { requested: true as const } });
         const active = await transaction.findActiveChallengeForUser(userId);
-        if (active) {
-          const revoked = {
-            ...active,
-            status: 'REVOKED' as const,
-            revokedAt: issuedAt,
-            revision: active.revision + 1,
-          } satisfies RecoveryChallengeV1;
-          await transaction.saveChallenge(Object.freeze(revoked));
-        }
-        const bound = createRecoveryChallengeV1({
-          id: challenge.value.id,
+        const challenge = createRecoveryChallengeV1({
+          id: challengeId,
           userId,
-          tokenDigest: challenge.value.tokenDigest,
-          emailDigest: challenge.value.emailDigest,
-          issuedAt: challenge.value.issuedAt,
-          expiresAt: challenge.value.expiresAt,
+          tokenDigest,
+          emailDigest,
+          issuedAt,
+          expiresAt,
         });
-        if (!bound.accepted) return unavailable();
+        if (!challenge.accepted) return unavailable();
         try {
           await this.ports.delivery.deliver({
-            challengeId: bound.value.id,
+            challengeId: challenge.value.id,
             recipientEmail: normalized.value,
             rawToken: raw,
-            expiresAt: bound.value.expiresAt,
+            expiresAt: challenge.value.expiresAt,
           });
         } catch {
           return unavailable();
         }
-        await transaction.saveChallenge(bound.value);
+        if (active) {
+          const revoked = revokeRecoveryChallengeV1(active, issuedAt);
+          if (!revoked.accepted) return unavailable();
+          await transaction.saveChallenge(revoked.value);
+        }
+        await transaction.saveChallenge(challenge.value);
         return Object.freeze({ accepted: true as const, value: { requested: true as const } });
       });
     } catch {
