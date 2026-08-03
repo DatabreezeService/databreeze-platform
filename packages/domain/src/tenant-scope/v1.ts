@@ -164,6 +164,14 @@ export function tenantScopeContainsV1(container: TenantScopeV1, candidate: Tenan
   return candidate.scopeType === 'project' && container.projectId === candidate.projectId;
 }
 
+/** Stable storage and cursor key for a fully qualified tenant scope. */
+export function tenantScopeKeyV1(scope: TenantScopeV1): string {
+  if (scope.scopeType === 'organization') return `organization:${scope.organizationId}`;
+  if (scope.scopeType === 'workspace')
+    return `workspace:${scope.organizationId}:${scope.workspaceId}`;
+  return `project:${scope.organizationId}:${scope.workspaceId}:${scope.projectId}`;
+}
+
 export function narrowTenantScopeV1(
   current: TenantScopeV1,
   candidate: TenantScopeV1,

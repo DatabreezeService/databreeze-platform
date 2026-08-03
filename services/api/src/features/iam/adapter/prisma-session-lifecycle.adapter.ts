@@ -238,24 +238,32 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
     this.clock = options.clock ?? (() => new Date());
   }
 
+  private async revokeSession(
+    transaction: SessionLifecycleDatabaseClientV1,
+    session: Pick<SessionRecordDatabaseRowV1, 'id' | 'familyId' | 'revokedAt'>,
+    now: Date,
+  ): Promise<void> {
+    await transaction.refreshTokenRecord.updateMany({
+      where: { familyId: session.familyId, status: 'ACTIVE' },
+      data: { status: 'REVOKED' },
+    });
+    await transaction.sessionRecord.update({
+      where: { id: session.id },
+      data: { status: 'REVOKED', revokedAt: session.revokedAt ?? now },
+    });
+    await transaction.accessTokenRecord.updateMany({
+      where: { sessionId: session.id, status: 'ACTIVE' },
+      data: { status: 'REVOKED', revokedAt: now },
+    });
+  }
+
   private async revokeRefreshFamily(
     transaction: SessionLifecycleDatabaseClientV1,
     sessionId: StableIdentifierV1,
     familyId: StableIdentifierV1,
     now: Date,
   ): Promise<void> {
-    await transaction.refreshTokenRecord.updateMany({
-      where: { familyId, status: 'ACTIVE' },
-      data: { status: 'REVOKED' },
-    });
-    await transaction.sessionRecord.update({
-      where: { id: sessionId },
-      data: { status: 'REVOKED', revokedAt: now },
-    });
-    await transaction.accessTokenRecord.updateMany({
-      where: { sessionId, status: 'ACTIVE' },
-      data: { status: 'REVOKED', revokedAt: now },
-    });
+    await this.revokeSession(transaction, { id: sessionId, familyId }, now);
   }
 
   private async expireSession(
@@ -475,18 +483,7 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
         where: { id: sessionId.value },
       });
       if (!session) return false;
-      await transaction.sessionRecord.update({
-        where: { id: sessionId.value },
-        data: { status: 'REVOKED', revokedAt: session.revokedAt ?? now },
-      });
-      await transaction.refreshTokenRecord.updateMany({
-        where: { familyId: session.familyId, status: 'ACTIVE' },
-        data: { status: 'REVOKED' },
-      });
-      await transaction.accessTokenRecord.updateMany({
-        where: { sessionId: session.id, status: 'ACTIVE' },
-        data: { status: 'REVOKED', revokedAt: now },
-      });
+      await this.revokeSession(transaction, session, now);
       return true;
     });
   }

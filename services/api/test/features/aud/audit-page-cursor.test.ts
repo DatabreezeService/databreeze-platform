@@ -49,3 +49,19 @@ void test('[AUD-001] audit page cursors fail closed for malformed or oversized v
     });
   }
 });
+
+void test('[AUD-001] audit page cursors reject forged offsets and unknown fields', () => {
+  const forge = (payload: Record<string, unknown>) =>
+    Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+  const scope = `workspace:${organizationId}:${workspaceId}`;
+  for (const payload of [
+    { version: 1, kind: 'events', scope, offset: -1 },
+    { version: 1, kind: 'events', scope, offset: 1.5 },
+    { version: 1, kind: 'events', scope, offset: 0, extra: 'x' },
+  ]) {
+    assert.deepEqual(parseAuditPageCursorV1(forge(payload), 'events', workspaceScope), {
+      accepted: false,
+      code: 'INVALID_CURSOR',
+    });
+  }
+});

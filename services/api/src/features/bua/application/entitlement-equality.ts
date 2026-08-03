@@ -114,3 +114,10 @@ export function sameUsageReservationExceptStatusV1(
     left.createdAt === right.createdAt
   );
 }
+
+export function validUsageReservationTransitionV1(
+  current: UsageReservationV1,
+  next: UsageReservationV1,
+): boolean {
+  return current.status === 'ACTIVE' && (next.status === 'FINALIZED' || next.status === 'RELEASED');
+}

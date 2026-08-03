@@ -13,6 +13,7 @@ import {
   parseStrictUtcTimestampV1,
   parseTenantScopeV1,
   tenantScopeContainsV1,
+  tenantScopeKeyV1,
   type TenantScopeV1,
 } from '@databreeze/domain/tenant-scope/v1';
 import { randomUUID } from 'node:crypto';
@@ -24,10 +25,7 @@ import type {
   AuditRepositoryPortV1,
   AuditTransactionPortV1,
 } from '../application/audit-repository.port.js';
-import {
-  createAuditPageCursorV1,
-  parseAuditPageCursorV1,
-} from '../application/audit-page-cursor.js';
+import { createAuditPageCursorV1, auditPageOffsetV1 } from '../application/audit-page-cursor.js';
 import { sameAuditEventV1, sameAuditSealV1 } from '../application/audit-equality.js';
 
 export interface AuditEventDatabaseRowV1 {
@@ -124,13 +122,6 @@ function databaseScope(scope: TenantScopeV1) {
     workspaceId: scope.scopeType === 'organization' ? null : scope.workspaceId,
     projectId: scope.scopeType === 'project' ? scope.projectId : null,
   } as const;
-}
-
-function scopeKey(scope: TenantScopeV1): string {
-  if (scope.scopeType === 'organization') return `organization:${scope.organizationId}`;
-  if (scope.scopeType === 'workspace')
-    return `workspace:${scope.organizationId}:${scope.workspaceId}`;
-  return `project:${scope.organizationId}:${scope.workspaceId}:${scope.projectId}`;
 }
 
 function persistedScope(row: {
@@ -248,7 +239,7 @@ function eventCreateData(event: AuditEventV1): AuditEventCreateDataV1 {
     id: event.eventId,
     schemaVersion: event.schemaVersion,
     action: event.action,
-    scopeKey: scopeKey(event.tenantScope),
+    scopeKey: tenantScopeKeyV1(event.tenantScope),
     actorType: event.actor.actorType,
     actorId: event.actor.actorId,
     entityType: event.entityType,
@@ -270,7 +261,7 @@ function sealCreateData(seal: AuditSealV1): AuditSealCreateDataV1 {
     ...databaseScope(seal.tenantScope),
     id: randomUUID(),
     schemaVersion: seal.schemaVersion,
-    scopeKey: scopeKey(seal.tenantScope),
+    scopeKey: tenantScopeKeyV1(seal.tenantScope),
     firstSequence: seal.firstSequence,
     lastSequence: seal.lastSequence,
     eventCount: seal.eventCount,
@@ -302,19 +293,6 @@ function visibilityWhere(scope: TenantScopeV1): Readonly<Record<string, unknown>
   };
 }
 
-function pageOffset(
-  input: AuditPageInputV1,
-  kind: 'events' | 'seals',
-  scope: TenantScopeV1,
-): number {
-  if (!Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > 100)
-    throw new Error('AUD_PAGE_LIMIT_INVALID');
-  if (input.cursor === undefined) return 0;
-  const parsed = parseAuditPageCursorV1(input.cursor, kind, scope);
-  if (!parsed.accepted) throw new Error('AUD_CURSOR_INVALID');
-  return parsed.offset;
-}
-
 class PrismaAuditTransactionAdapter implements AuditTransactionPortV1 {
   public constructor(
     private readonly client: AuditDatabaseClientV1,
@@ -338,7 +316,7 @@ class PrismaAuditTransactionAdapter implements AuditTransactionPortV1 {
       if (!sameAuditEventV1(current, event)) throw new Error('AUD_IMMUTABLE_EVENT');
       return current;
     }
-    const eventScopeKey = scopeKey(event.tenantScope);
+    const eventScopeKey = tenantScopeKeyV1(event.tenantScope);
     const [duplicate, latest] = await Promise.all([
       this.client.auditEventRecord.findFirst({
         where: { scopeKey: eventScopeKey, idempotencyKey: event.idempotencyKey },
@@ -379,7 +357,7 @@ class PrismaAuditTransactionAdapter implements AuditTransactionPortV1 {
     if (!tenantScopeContainsV1(context.tenantScope, scope))
       throw new Error('AUD_SCOPE_NARROWING_REQUIRED');
     const rows = await this.client.auditEventRecord.findMany({
-      where: { scopeKey: scopeKey(scope) },
+      where: { scopeKey: tenantScopeKeyV1(scope) },
       orderBy: { sequence: 'asc' },
     });
     const events = rows.map(persistedEvent);
@@ -393,7 +371,7 @@ class PrismaAuditTransactionAdapter implements AuditTransactionPortV1 {
       throw new Error('AUD_SCOPE_NARROWING_REQUIRED');
     const existing = await this.client.auditSealRecord.findFirst({
       where: {
-        scopeKey: scopeKey(seal.tenantScope),
+        scopeKey: tenantScopeKeyV1(seal.tenantScope),
         firstSequence: seal.firstSequence,
         lastSequence: seal.lastSequence,
       },
@@ -442,10 +420,10 @@ export class PrismaAuditRepositoryAdapter implements AuditRepositoryPortV1 {
     context: IamTenantContextV1,
     input: AuditPageInputV1,
   ): Promise<AuditPageV1<AuditEventV1>> {
-    const offset = pageOffset(input, 'events', context.tenantScope);
+    const offset = auditPageOffsetV1(input, 'events', context.tenantScope);
     const rows = await this.client.auditEventRecord.findMany({
       where: visibilityWhere(context.tenantScope),
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      orderBy: [{ scopeKey: 'asc' }, { sequence: 'asc' }, { id: 'asc' }],
       skip: offset,
       take: input.limit + 1,
     });
@@ -476,10 +454,10 @@ export class PrismaAuditRepositoryAdapter implements AuditRepositoryPortV1 {
     context: IamTenantContextV1,
     input: AuditPageInputV1,
   ): Promise<AuditPageV1<AuditSealV1>> {
-    const offset = pageOffset(input, 'seals', context.tenantScope);
+    const offset = auditPageOffsetV1(input, 'seals', context.tenantScope);
     const rows = await this.client.auditSealRecord.findMany({
       where: visibilityWhere(context.tenantScope),
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      orderBy: [{ scopeKey: 'asc' }, { lastSequence: 'asc' }, { id: 'asc' }],
       skip: offset,
       take: input.limit + 1,
     });

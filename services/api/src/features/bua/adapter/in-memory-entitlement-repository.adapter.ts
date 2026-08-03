@@ -19,6 +19,7 @@ import {
   sameUsageEntryV1,
   sameUsageReservationExceptStatusV1,
   sameUsageReservationV1,
+  validUsageReservationTransitionV1,
 } from '../application/entitlement-equality.js';
 
 function visibleInScope(context: TenantScopeV1, record: TenantScopeV1): boolean {
@@ -71,17 +72,6 @@ function cloneState(state: UsageLedgerStateV1): UsageLedgerStateV1 {
     entries: Object.freeze(state.entries.map(cloneEntry)),
     reservations: Object.freeze(state.reservations.map(cloneReservation)),
   });
-}
-
-function sameReservationExceptStatus(left: UsageReservationV1, right: UsageReservationV1): boolean {
-  return sameUsageReservationExceptStatusV1(left, right);
-}
-
-function validReservationTransition(
-  current: UsageReservationV1,
-  next: UsageReservationV1,
-): boolean {
-  return current.status === 'ACTIVE' && (next.status === 'FINALIZED' || next.status === 'RELEASED');
 }
 
 /** In-memory adapter with append-only usage and immutable plan/snapshot semantics. */
@@ -172,9 +162,9 @@ export class InMemoryEntitlementRepositoryAdapter implements EntitlementReposito
         if (sameUsageReservationV1(existing, reservation)) {
           if (visibleInScope(context.tenantScope, reservation.tenantScope)) continue;
         } else if (
-          !sameReservationExceptStatus(existing, reservation) ||
+          !sameUsageReservationExceptStatusV1(existing, reservation) ||
           existing.revision + 1 !== reservation.revision ||
-          !validReservationTransition(existing, reservation)
+          !validUsageReservationTransitionV1(existing, reservation)
         ) {
           throw new Error('BUA_RESERVATION_CONFLICT');
         }
@@ -187,8 +177,8 @@ export class InMemoryEntitlementRepositoryAdapter implements EntitlementReposito
       }
       if (
         existing.revision + 1 !== reservation.revision ||
-        !sameReservationExceptStatus(existing, reservation) ||
-        !validReservationTransition(existing, reservation)
+        !sameUsageReservationExceptStatusV1(existing, reservation) ||
+        !validUsageReservationTransitionV1(existing, reservation)
       )
         throw new Error('BUA_RESERVATION_CONFLICT');
       this.reservations.set(reservation.reservationId, cloneReservation(reservation));

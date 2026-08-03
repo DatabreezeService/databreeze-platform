@@ -1041,7 +1041,9 @@
         "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1116,7 +1118,9 @@
         "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1141,7 +1145,9 @@
         "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1166,7 +1172,9 @@
         "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1216,7 +1224,9 @@
         "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1241,7 +1251,9 @@
         "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1266,7 +1278,9 @@
         "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1291,7 +1305,9 @@
         "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1466,7 +1482,9 @@
         "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1541,7 +1559,9 @@
         "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1566,7 +1586,9 @@
         "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1591,7 +1613,9 @@
         "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1641,7 +1665,9 @@
         "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1666,7 +1692,9 @@
         "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1716,7 +1744,9 @@
         "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1741,7 +1771,9 @@
         "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1766,7 +1798,9 @@
         "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1791,7 +1825,9 @@
         "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1816,7 +1852,9 @@
         "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -9244,7 +9282,9 @@
         "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -9337,7 +9377,9 @@
         "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -9399,7 +9441,9 @@
         "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -9461,7 +9505,9 @@
         "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -9492,7 +9538,9 @@
         "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
       ],
       "status": "planned",
       "coverage": "planned",

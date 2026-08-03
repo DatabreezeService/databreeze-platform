@@ -42,6 +42,7 @@ function createDatabase(): {
   readonly memberships: Map<string, MembershipIdentityDatabaseRowV1>;
   readonly transactionCalls: { value: number };
   readonly transactionWriteCalls: { value: number };
+  readonly organizationFindManyCalls: { value: number };
 } {
   const users = new Map<string, UserIdentityDatabaseRowV1>([
     [
@@ -63,6 +64,7 @@ function createDatabase(): {
   const memberships = new Map<string, MembershipIdentityDatabaseRowV1>();
   const transactionCalls = { value: 0 };
   const transactionWriteCalls = { value: 0 };
+  const organizationFindManyCalls = { value: 0 };
   const client = {
     userIdentity: {
       findUnique: async ({ where }: { readonly where: { readonly id: string } }) =>
@@ -75,6 +77,16 @@ function createDatabase(): {
       },
       findUnique: async ({ where }: { readonly where: { readonly id: string } }) =>
         organizations.get(where.id) ?? null,
+      findMany: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) => {
+        organizationFindManyCalls.value += 1;
+        const ids =
+          typeof where['id'] === 'object' && where['id'] !== null && 'in' in where['id']
+            ? ((where['id'] as { readonly in?: readonly string[] }).in ?? [])
+            : [];
+        return [...organizations.values()].filter(
+          (row) => ids.includes(row.id) && where['personal'] === row.personal,
+        );
+      },
     },
     workspaceIdentity: {
       create: async ({ data }: { readonly data: WorkspaceIdentityDatabaseRowV1 }) => {
@@ -183,6 +195,7 @@ function createDatabase(): {
     memberships,
     transactionCalls,
     transactionWriteCalls,
+    organizationFindManyCalls,
   };
 }
 
@@ -195,6 +208,7 @@ void test('[IAM-001, IAM-009, IAM-011] Prisma bootstrap persists and reconstruct
     memberships,
     transactionCalls,
     transactionWriteCalls,
+    organizationFindManyCalls,
   } = createDatabase();
   const adapter = new PrismaIdentityBootstrapRepositoryAdapter(client);
   const validated = bootstrapPersonalOrganizationV1(input);
@@ -209,6 +223,7 @@ void test('[IAM-001, IAM-009, IAM-011] Prisma bootstrap persists and reconstruct
   assert.equal(projects.size, 1);
   assert.equal(memberships.size, 1);
   assert.deepEqual(await adapter.findByUserId(validated.value.user.id), validated.value);
+  assert.equal(organizationFindManyCalls.value, 1);
 });
 
 void test('[IAM-011] repeated bootstrap is immutable and conflicting hierarchy is rejected', async () => {
@@ -270,6 +285,60 @@ void test('[IAM-001, IAM-011] bootstrap lookup selects the personal organization
   assert.equal(
     (await adapter.findByUserId(validated.value.user.id))?.organization.id,
     organizationId,
+  );
+});
+
+void test('[IAM-011] bootstrap lookup rejects two personal organizations', async () => {
+  const state = createDatabase();
+  const validated = bootstrapPersonalOrganizationV1(input);
+  assert.equal(validated.accepted, true);
+  if (!validated.accepted) return;
+  const secondOrganizationId = '00000000-0000-4000-8000-000000000008';
+  const secondMembershipId = '00000000-0000-4000-8000-000000000009';
+  const adapter = new PrismaIdentityBootstrapRepositoryAdapter(state.client);
+  await adapter.save(validated.value);
+  state.organizations.set(secondOrganizationId, {
+    id: secondOrganizationId,
+    name: 'Second personal organization',
+    personal: true,
+    status: 'ACTIVE',
+    createdAt,
+  });
+  state.memberships.set(secondMembershipId, {
+    id: secondMembershipId,
+    principalType: 'USER',
+    principalId: userId,
+    scopeType: 'ORGANIZATION',
+    organizationId: secondOrganizationId,
+    workspaceId: null,
+    projectId: null,
+    roleId: 'owner',
+    status: 'ACTIVE',
+    startsAt: null,
+    expiresAt: null,
+    revision: 1,
+  });
+
+  await assert.rejects(
+    adapter.findByUserId(validated.value.user.id),
+    /IAM_PERSISTED_ORGANIZATION_INVALID/u,
+  );
+});
+
+void test('[IAM-009] bootstrap lookup rejects unparseable membership timestamps', async () => {
+  const state = createDatabase();
+  const validated = bootstrapPersonalOrganizationV1(input);
+  assert.equal(validated.accepted, true);
+  if (!validated.accepted) return;
+  const adapter = new PrismaIdentityBootstrapRepositoryAdapter(state.client);
+  await adapter.save(validated.value);
+  const membership = state.memberships.get(membershipId);
+  assert.ok(membership);
+  state.memberships.set(membershipId, { ...membership, expiresAt: new Date('invalid') });
+
+  await assert.rejects(
+    adapter.findByUserId(validated.value.user.id),
+    /IAM_PERSISTED_MEMBERSHIP_INVALID/u,
   );
 });
 

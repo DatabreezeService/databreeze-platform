@@ -1,4 +1,7 @@
-export type MfaProblemCodeV1 = 'MFA_REQUEST_REJECTED' | 'MFA_UNAVAILABLE';
+export type MfaProblemCodeV1 =
+  | 'MFA_REQUEST_REJECTED'
+  | 'MFA_UNAVAILABLE'
+  | 'IAM_MFA_REVISION_CONFLICT';
 
 export class MfaProblemError extends Error {
   constructor(readonly code: MfaProblemCodeV1) {
