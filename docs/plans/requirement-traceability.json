@@ -731,26 +731,20 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -762,26 +756,20 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -793,26 +781,20 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -824,26 +806,20 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -855,26 +831,20 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -886,26 +856,20 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -917,26 +881,20 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -948,26 +906,20 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -979,26 +931,20 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -1010,26 +956,20 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -1041,26 +981,20 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -1072,26 +1006,20 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -1103,23 +1031,17 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1134,26 +1056,20 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -1165,26 +1081,20 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -1196,23 +1106,17 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1227,23 +1131,17 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1258,23 +1156,17 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1289,26 +1181,20 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -1320,23 +1206,17 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1351,23 +1231,17 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1382,23 +1256,17 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1413,23 +1281,17 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1444,26 +1306,20 @@
       "primaryTask": "Task 2: AUD immutable ledger",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/audit/v1.ts",
+        "services/api/src/features/aud/",
+        "services/api/prisma/schema/aud.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/audit-v1.test.mjs",
+        "services/api/test/features/aud/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "ga-completion"
@@ -1475,26 +1331,20 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -1506,26 +1356,20 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -1537,26 +1381,20 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -1568,26 +1406,20 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -1599,26 +1431,20 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -1630,23 +1456,17 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1661,26 +1481,20 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -1692,26 +1506,20 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -1723,23 +1531,17 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1754,23 +1556,17 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1785,23 +1581,17 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1816,26 +1606,20 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -1847,23 +1631,17 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1878,23 +1656,17 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1909,26 +1681,20 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "ga-completion"
@@ -1940,23 +1706,17 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -1971,23 +1731,17 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -2002,23 +1756,17 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -2033,23 +1781,17 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -2064,23 +1806,17 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -2095,26 +1831,20 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -2126,26 +1856,20 @@
       "primaryTask": "Task 3: BUA billing and usage",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/entitlements/v1.ts",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/bua.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/entitlements-v1.test.mjs",
+        "services/api/test/features/bua/",
+        "services/api/test/http-contract.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -9225,26 +8949,26 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -9256,26 +8980,26 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -9287,26 +9011,26 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -9318,26 +9042,26 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -9349,26 +9073,26 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -9380,26 +9104,26 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -9411,26 +9135,26 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -9442,26 +9166,26 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -9473,26 +9197,26 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -9504,23 +9228,23 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -9535,26 +9259,26 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -9566,26 +9290,26 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -9597,23 +9321,23 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -9628,26 +9352,26 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "ga-completion"
@@ -9659,23 +9383,23 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -9690,26 +9414,26 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "ga-completion"
@@ -9721,23 +9445,23 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -9752,23 +9476,23 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -9783,26 +9507,26 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -9814,26 +9538,26 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -9845,26 +9569,26 @@
       "primaryTask": "Task 1: IAM identity and permissions",
       "supportingTasks": [],
       "codePaths": [
-        "services/api/src/features/identity-audit-entitlements/{domain,application,adapter,api}/",
-        "services/api/prisma/schema/identity-audit-entitlements.prisma",
-        "packages/contracts/schemas/v1/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/",
-        "apps/desktop/src/features/identity-audit-entitlements/",
-        "apps/android/app/src/main/kotlin/com/databreeze/identityauditentitlements/",
-        "services/engine/src/databreeze_engine/processors/identity-audit-entitlements/"
+        "packages/domain/src/identity/v1.ts",
+        "packages/domain/src/permissions/v1.ts",
+        "packages/domain/src/authorization/v1.ts",
+        "packages/domain/src/mfa/v1.ts",
+        "packages/domain/src/csrf/v1.ts",
+        "services/api/src/features/iam/",
+        "services/api/prisma/schema/iam.prisma"
       ],
       "testPaths": [
-        "services/api/test/features/identity-audit-entitlements/",
-        "apps/web/src/features/identity-audit-entitlements/__tests__/",
-        "services/engine/tests/processors/identity-audit-entitlements/"
+        "packages/domain/test/identity-v1.test.mjs",
+        "packages/domain/test/permissions-v1.test.mjs",
+        "services/api/test/features/iam/",
+        "services/api/test/platform/http/session-tenant-context.test.ts",
+        "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
