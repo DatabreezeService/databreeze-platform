@@ -71,28 +71,37 @@ function createDatabase(rows: readonly IamMembershipDatabaseRowV1[] = []): {
   readonly memberships: Map<string, IamMembershipDatabaseRowV1>;
   readonly forceUpdateConflict: { value: boolean };
   readonly firstQueries: ReadonlyArray<Readonly<Record<string, unknown>>>;
+  readonly manyQueries: ReadonlyArray<Readonly<Record<string, unknown>>>;
 } {
   const memberships = new Map(rows.map((value) => [value.id, value]));
   const forceUpdateConflict = { value: false };
   const firstQueries: Array<Readonly<Record<string, unknown>>> = [];
+  const manyQueries: Array<Readonly<Record<string, unknown>>> = [];
+  const matches = (
+    candidate: IamMembershipDatabaseRowV1,
+    where: Readonly<Record<string, unknown>>,
+  ): boolean =>
+    Object.entries(where).every(([key, value]) => {
+      if (key === 'OR' && Array.isArray(value)) {
+        return value.some(
+          (alternative) =>
+            typeof alternative === 'object' &&
+            alternative !== null &&
+            matches(candidate, alternative as Readonly<Record<string, unknown>>),
+        );
+      }
+      return candidate[key as keyof IamMembershipDatabaseRowV1] === value;
+    });
   const client = {
     membershipIdentity: {
       findFirst: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) => {
         firstQueries.push(where);
         return (
-          [...memberships.values()].find((candidate) =>
-            Object.entries(where).every(
-              ([key, value]) => candidate[key as keyof IamMembershipDatabaseRowV1] === value,
-            ),
-          ) ?? null
+          [...memberships.values()].find((candidate) => matches(candidate, where)) ?? null
         );
       },
       findMany: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) =>
-        [...memberships.values()].filter((candidate) =>
-          Object.entries(where).every(
-            ([key, value]) => candidate[key as keyof IamMembershipDatabaseRowV1] === value,
-          ),
-        ),
+        (manyQueries.push(where), [...memberships.values()].filter((candidate) => matches(candidate, where))),
       create: async ({ data }: { readonly data: IamMembershipDatabaseRowV1 }) => {
         memberships.set(data.id, data);
         return data;
@@ -125,11 +134,11 @@ function createDatabase(rows: readonly IamMembershipDatabaseRowV1[] = []): {
       }
     },
   } as unknown as IamDatabaseClientV1;
-  return { client, memberships, forceUpdateConflict, firstQueries };
+  return { client, memberships, forceUpdateConflict, firstQueries, manyQueries };
 }
 
 void test('[IAM-009, IAM-019] Prisma IAM membership reads are tenant scoped and hide siblings', async () => {
-  const { client } = createDatabase([
+  const { client, manyQueries } = createDatabase([
     row(id('10'), 'WORKSPACE', workspaceId, 'viewer'),
     row(id('11'), 'WORKSPACE', siblingWorkspaceId, 'owner'),
     row(id('12'), 'ORGANIZATION', null, 'admin'),
@@ -145,6 +154,19 @@ void test('[IAM-009, IAM-019] Prisma IAM membership reads are tenant scoped and 
   assert.equal(
     (await repository.findMembership(context(workspaceScope), principalId))?.id,
     stable('10'),
+  );
+  assert.ok(
+    manyQueries.some(
+      (query) =>
+        Array.isArray(query['OR']) &&
+        query['organizationId'] === organizationId &&
+        (query['OR'] as readonly unknown[]).some(
+          (candidate) =>
+            typeof candidate === 'object' &&
+            candidate !== null &&
+            (candidate as Record<string, unknown>)['scopeType'] === 'PROJECT',
+        ),
+    ),
   );
 });
 
