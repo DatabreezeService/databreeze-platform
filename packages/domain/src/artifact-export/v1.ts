@@ -64,11 +64,10 @@ function timestamp(input: unknown): StrictUtcTimestampV1 | undefined {
 }
 
 function text(input: unknown): string | undefined {
-  return typeof input === 'string' &&
-    input.length > 0 &&
-    input.length <= 128 &&
-    !/\p{Cc}/u.test(input)
-    ? input.normalize('NFC').trim()
+  if (typeof input !== 'string') return undefined;
+  const normalized = input.normalize('NFC').trim();
+  return normalized.length > 0 && normalized.length <= 128 && !/\p{Cc}/u.test(normalized)
+    ? normalized
     : undefined;
 }
 
