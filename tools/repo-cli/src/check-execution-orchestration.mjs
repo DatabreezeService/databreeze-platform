@@ -244,7 +244,6 @@ function validateDeliveryBatches({ ledger, plans, taskIds, taskToPlan, diagnosti
   for (const taskId of taskIds) {
     if (verifiedTasks.has(taskId)) {
       const batchId = batchByTask.get(taskId);
-      const batch = batchId === undefined ? undefined : byId.get(batchId);
       if (batchId !== undefined && !handoffTaskIdsByBatch.get(batchId)?.includes(taskId)) {
         diagnostics.push(`verified task ${taskId} remains batched without handoff declaration`);
       }
