@@ -1,8 +1,9 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
 
 import {
   createServiceAccountV1,
   isServiceAccountSecretUsableV1,
+  markServiceAccountUsedV1,
   revokeServiceAccountV1,
   rotateServiceAccountSecretV1,
   type ServiceAccountV1,
@@ -46,6 +47,8 @@ export interface IssuedServiceAccountV1 {
   readonly secret: string;
 }
 
+export type ServiceAccountPrincipalV1 = ServiceAccountSafeViewV1;
+
 export type ServiceAccountApplicationCodeV1 =
   | 'INVALID_IDENTIFIER'
   | 'INVALID_SCOPE'
@@ -53,6 +56,7 @@ export type ServiceAccountApplicationCodeV1 =
   | 'SCOPE_DENIED'
   | 'NOT_FOUND'
   | 'CONFLICT'
+  | 'INVALID_CREDENTIALS'
   | 'REVOKED'
   | 'EXPIRED'
   | 'UNAVAILABLE';
@@ -102,6 +106,18 @@ function mapRepositoryError(error: unknown): ServiceAccountApplicationCodeV1 {
   if (message === 'REVISION_CONFLICT' || message === 'INVALID_REVISION' || message.endsWith('CONFLICT'))
     return 'CONFLICT';
   return 'UNAVAILABLE';
+}
+
+function digestSecret(input: unknown): string | undefined {
+  if (typeof input !== 'string' || input.length === 0 || input.length > 512 || /\p{Cc}/u.test(input))
+    return undefined;
+  return createHash('sha256').update(input, 'utf8').digest('hex');
+}
+
+function safeDigestEqual(left: string, right: string): boolean {
+  const leftBytes = Buffer.from(left, 'utf8');
+  const rightBytes = Buffer.from(right, 'utf8');
+  return leftBytes.length === rightBytes.length && timingSafeEqual(leftBytes, rightBytes);
 }
 
 function identifier(input: unknown): StableIdentifierV1 | undefined {
@@ -215,6 +231,34 @@ export class ServiceAccountService {
     } catch (error) {
       return rejected(mapRepositoryError(error));
     }
+  }
+
+  /** Authenticate an already-scoped service-account bearer and advance last-use atomically. */
+  public async authenticate(
+    context: IamTenantContextV1,
+    presentedSecret: unknown,
+    nowInput: unknown,
+  ): Promise<ServiceAccountApplicationResultV1<ServiceAccountPrincipalV1>> {
+    const digest = digestSecret(presentedSecret);
+    if (!digest) return rejected('INVALID_CREDENTIALS');
+    return this.repository
+      .withTransaction(context, async (transaction) => {
+        const current = await transaction.findServiceAccountByDigest(context, digest);
+        if (!current || !safeDigestEqual(current.secretDigest, digest))
+          return rejected('INVALID_CREDENTIALS');
+        const usable = isServiceAccountSecretUsableV1(current, nowInput);
+        if (!usable.accepted) return rejected('INVALID_CREDENTIALS');
+        const used = markServiceAccountUsedV1(current, nowInput);
+        if (!used.accepted) return rejected('INVALID_CREDENTIALS');
+        try {
+          await transaction.replaceServiceAccount(context, used.value, current.revision);
+          return accepted(safeView(used.value));
+        } catch (error) {
+          const mapped = mapRepositoryError(error);
+          return rejected(mapped === 'CONFLICT' ? 'CONFLICT' : 'UNAVAILABLE');
+        }
+      })
+      .catch((error) => rejected(mapRepositoryError(error)));
   }
 
   public async rotate(

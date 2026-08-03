@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { createHash } from 'node:crypto';
 
 import { InMemoryIamRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-iam-repository.adapter.js';
 import { InMemoryServiceAccountRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-service-account-repository.adapter.js';
@@ -54,9 +55,10 @@ function membership(roleId = 'owner', scope: unknown = { scopeType: 'organizatio
 function service() {
   const iam = new InMemoryIamRepositoryAdapter();
   iam.seed([membership()]);
+  const digest = (secret: string) => createHash('sha256').update(secret, 'utf8').digest('hex');
   const secrets = [
-    { secret: 'dbsa_first', digest: 'a'.repeat(64) },
-    { secret: 'dbsa_second', digest: 'b'.repeat(64) },
+    { secret: 'dbsa_first', digest: digest('dbsa_first') },
+    { secret: 'dbsa_second', digest: digest('dbsa_second') },
   ];
   const service = new ServiceAccountService(
     new InMemoryServiceAccountRepositoryAdapter(),
@@ -132,4 +134,31 @@ void test('[IAM-013] rotation is revision guarded and revocation is permanent', 
     code: 'REVOKED',
   });
   assert.equal((await accountService.list(organizationContext)).accepted, true);
+});
+
+void test('[IAM-013] credential authentication is digest-bound, updates last use, and fails closed', async () => {
+  const accountService = service();
+  const organizationContext = context({ scopeType: 'organization', organizationId }, 'authenticate');
+  const created = await accountService.create(organizationContext, {
+    name: 'Auth worker',
+    permissions: ['artifact.record.read'],
+  });
+  assert.equal(created.accepted, true);
+  const authenticated = await accountService.authenticate(
+    organizationContext,
+    'dbsa_first',
+    '2026-01-01T00:01:00.000Z',
+  );
+  assert.equal(authenticated.accepted, true);
+  if (!authenticated.accepted) return;
+  assert.equal(authenticated.value.id, accountId);
+  assert.equal(authenticated.value.lastUsedAt, '2026-01-01T00:01:00.000Z');
+  assert.deepEqual(
+    await accountService.authenticate(organizationContext, 'wrong-secret', '2026-01-01T00:02:00.000Z'),
+    { accepted: false, code: 'INVALID_CREDENTIALS' },
+  );
+  assert.deepEqual(
+    await accountService.authenticate(organizationContext, 'dbsa_first', '2026-01-01T00:00:30.000Z'),
+    { accepted: false, code: 'INVALID_CREDENTIALS' },
+  );
 });
