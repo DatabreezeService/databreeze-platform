@@ -7,8 +7,7 @@ import { createApiApplication } from '../src/bootstrap.js';
 import { CLIENT_VERSION_PATTERN_SOURCE } from '../src/features/system/api/client-compatibility.dto.js';
 
 const httpMethods = ['delete', 'get', 'head', 'options', 'patch', 'post', 'put', 'trace'] as const;
-const strictUtcTimestampPattern =
-  '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$';
+const strictUtcTimestampPattern = '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$';
 
 interface ParameterLike {
   readonly in?: string;
@@ -252,10 +251,9 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
     const inboxProperties = (
       firstDocument.components?.schemas?.['UpdateInboxMetadataDto'] as Record<string, unknown>
     )['properties'] as Record<string, Record<string, unknown>>;
-    const dueAtStringSchema = (inboxProperties['dueAt']?.['oneOf'] as readonly Record<
-      string,
-      unknown
-    >[]).find((candidate) => candidate['type'] === 'string');
+    const dueAtStringSchema = (
+      inboxProperties['dueAt']?.['oneOf'] as readonly Record<string, unknown>[]
+    ).find((candidate) => candidate['type'] === 'string');
     assert.equal(dueAtStringSchema?.['pattern'], strictUtcTimestampPattern);
     const auditResult = firstDocument.components?.schemas?.[
       'CreateSpreadsheetAuditResultDto'

@@ -22,8 +22,7 @@ test('AWS validators accept strict semantic versions without leading zero compon
   for (const version of ['01.2.3', '1.02.3', '1.2.03', '1.2', 'v1.2.3'])
     assert.equal(strictSemanticVersion.test(version), false, version);
 
-  const expectedLiteral =
-    '/^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$/u';
+  const expectedLiteral = '/^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$/u';
   assert.ok(read('tools/repo-cli/src/check-aws-infrastructure.mjs').includes(expectedLiteral));
   assert.ok(read('tools/repo-cli/src/validate-aws-opentofu.mjs').includes(expectedLiteral));
 });
