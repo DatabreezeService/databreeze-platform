@@ -136,6 +136,15 @@ function scopeSpecificity(scope: TenantScopeV1): number {
   return 1;
 }
 
+function isUniqueConstraintViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { readonly code?: unknown }).code === 'P2002'
+  );
+}
+
 class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
   public constructor(private readonly client: IamTransactionDatabaseClientV1) {}
 
@@ -188,15 +197,23 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
       throw new Error('IAM_SCOPE_NARROWING_REQUIRED');
     const validated = validateMembershipV1({ ...membership, principalType: 'USER' });
     if (!validated.accepted) throw new Error(`IAM_${validated.code}`);
-    const existingRow = await this.client.membershipIdentity.findFirst({
-      where: {
-        id: membership.id,
-        organizationId: context.tenantScope.organizationId,
-      },
+    const existingById = await this.client.membershipIdentity.findFirst({
+      where: { id: membership.id },
     });
+    if (
+      existingById !== null &&
+      existingById.organizationId !== context.tenantScope.organizationId
+    )
+      throw new Error('IAM_REVISION_CONFLICT');
+    const existingRow = existingById;
     if (!existingRow) {
       if (context.expectedRevision !== undefined) throw new Error('IAM_REVISION_CONFLICT');
-      await this.client.membershipIdentity.create({ data: membershipRow(validated.value) });
+      try {
+        await this.client.membershipIdentity.create({ data: membershipRow(validated.value) });
+      } catch (error) {
+        if (isUniqueConstraintViolation(error)) throw new Error('IAM_REVISION_CONFLICT');
+        throw error;
+      }
       return;
     }
     const existing = membershipFromRow(existingRow);
