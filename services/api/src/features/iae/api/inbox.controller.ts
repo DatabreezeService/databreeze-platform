@@ -88,8 +88,7 @@ export class InboxController {
       return Object.freeze({ accepted: false, code: 'INVALID_IDENTIFIER' as const });
     if (expectedRevision === undefined)
       return Object.freeze({ accepted: false, code: 'INVALID_METADATA' as const });
-    const mutationContext =
-      expectedRevision === undefined ? context : Object.freeze({ ...context, expectedRevision });
+    const mutationContext = Object.freeze({ ...context, expectedRevision });
     return this.intake.updateMetadata(mutationContext, parsedId.value, {
       ...(Object.hasOwn(input, 'assigneeId') ? { assigneeId: input.assigneeId } : {}),
       ...(Object.hasOwn(input, 'labels') ? { labels: input.labels } : {}),
