@@ -56,6 +56,9 @@ function client(rows: ArtifactIntakeDatabaseRowV1[]): ArtifactIntakeDatabaseClie
       create(input) {
         const created = { ...input.data };
         const persisted = { ...created } as ArtifactIntakeDatabaseRowV1;
+        if (rows.some((candidate) => candidate.id === persisted.id)) {
+          throw Object.assign(new Error('fixture unique constraint violation'), { code: 'P2002' });
+        }
         rows.push(persisted);
         return Promise.resolve(persisted);
       },
@@ -171,10 +174,9 @@ void test('[IAE-013] Prisma adapter persists only validated state transitions wi
     { ...context(workspaceId, 'transition-update'), expectedRevision: 1 },
     { ...item, state: 'ROUTED', revision: 2 },
   );
-  assert.equal(
-    (await repository.find(context(workspaceId, 'transition-read'), itemId))?.state,
-    'ROUTED',
-  );
+  const transitioned = await repository.find(context(workspaceId, 'transition-read'), itemId);
+  assert.equal(transitioned?.state, 'ROUTED');
+  assert.equal(transitioned?.revision, 2);
   await assert.rejects(
     repository.save(
       { ...context(workspaceId, 'transition-stale'), expectedRevision: 1 },

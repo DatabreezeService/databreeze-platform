@@ -2,20 +2,11 @@ import { randomUUID } from 'node:crypto';
 
 import { type AuthenticatedPrincipalV1 } from '../../features/iam/application/authentication.port.js';
 import { createIamTenantContextV1 } from '../../features/iam/application/tenant-context.js';
-import type { RequestTenantContextPortV1 } from './request-tenant-context.port.js';
+import {
+  RequestTenantContextProblemError,
+  type RequestTenantContextPortV1,
+} from './request-tenant-context.port.js';
 import { getRequestContext } from './request-context.js';
-
-export type RequestTenantContextProblemCodeV1 =
-  | 'AUTHENTICATION_FAILED'
-  | 'AUTHENTICATION_UNAVAILABLE'
-  | 'CONTEXT_INVALID';
-
-export class RequestTenantContextProblemError extends Error {
-  constructor(readonly code: RequestTenantContextProblemCodeV1) {
-    super(code);
-    this.name = 'RequestTenantContextProblemError';
-  }
-}
 
 type HeaderValueV1 = string | readonly string[] | undefined;
 const SAFE_METHODS_V1 = new Set(['GET', 'HEAD', 'OPTIONS']);

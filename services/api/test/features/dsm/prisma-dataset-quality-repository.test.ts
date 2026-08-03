@@ -37,10 +37,15 @@ function context() {
   return result.value;
 }
 
-function client(rows: DatasetQualityDatabaseRowV1[]): DatasetQualityDatabaseClientV1 {
+function client(
+  rows: DatasetQualityDatabaseRowV1[],
+  createConflict = false,
+): DatasetQualityDatabaseClientV1 {
   return {
     datasetQualityResultRecord: {
       create({ data }) {
+        if (createConflict)
+          throw Object.assign(new Error('unique constraint violation'), { code: 'P2002' });
         const persisted = { ...data } as DatasetQualityDatabaseRowV1;
         rows.push(persisted);
         return Promise.resolve(persisted);
@@ -92,4 +97,8 @@ void test('[DSM-011, DSM-013, IAM-009] Prisma quality adapter persists immutable
     created.value,
   ]);
   assert.equal(rows.length, 1);
+  await assert.rejects(
+    new PrismaDatasetQualityRepositoryAdapter(client([], true)).save(tenantContext, created.value),
+    /DSM_IMMUTABLE_QUALITY_RESULT/u,
+  );
 });

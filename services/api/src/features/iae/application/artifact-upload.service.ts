@@ -17,7 +17,10 @@ import type {
   ArtifactUploadStorageResultV1,
 } from './artifact-upload-storage.port.js';
 
-export type ArtifactUploadServiceErrorV1 = 'UPLOAD_NOT_FOUND' | 'UPLOAD_SCOPE_NARROWING_REQUIRED';
+export type ArtifactUploadServiceErrorV1 =
+  | 'UPLOAD_NOT_FOUND'
+  | 'UPLOAD_SCOPE_NARROWING_REQUIRED'
+  | 'UPLOAD_SESSION_EXPIRED';
 export type ArtifactUploadServiceResultV1<TValue> =
   | ArtifactUploadResultV1<TValue>
   | ArtifactUploadStorageResultV1<TValue>
@@ -129,6 +132,8 @@ export class ArtifactUploadService {
   ): Promise<ArtifactUploadServiceResultV1<ArtifactUploadPartTransferV1>> {
     const session = await this.repository.find(context, sessionId);
     if (!session) return Object.freeze({ accepted: false, code: 'UPLOAD_NOT_FOUND' as const });
+    if (session.state === 'EXPIRED')
+      return Object.freeze({ accepted: false, code: 'UPLOAD_SESSION_EXPIRED' as const });
     return this.storage.issuePartTransfer(context, session, partNumber);
   }
 
