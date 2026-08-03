@@ -2,6 +2,7 @@ import {
   parseStableIdentifierV1,
   parseStrictUtcTimestampV1,
   parseTenantScopeV1,
+  tenantScopeKeyV1,
   type StableIdentifierV1,
   type StrictUtcTimestampV1,
   type TenantScopeV1,
@@ -157,13 +158,6 @@ function positiveInteger(input: unknown): number | undefined {
   return typeof input === 'number' && Number.isSafeInteger(input) && input >= 1 ? input : undefined;
 }
 
-function scopeKey(scope: TenantScopeV1): string {
-  if (scope.scopeType === 'organization') return `organization:${scope.organizationId}`;
-  if (scope.scopeType === 'workspace')
-    return `workspace:${scope.organizationId}:${scope.workspaceId}`;
-  return `project:${scope.organizationId}:${scope.workspaceId}:${scope.projectId}`;
-}
-
 function canonicalSummary(summary: AuditSummaryV1): string {
   return JSON.stringify(
     Object.fromEntries(
@@ -244,7 +238,8 @@ export function appendAuditEventV1(
 
   const existing = state.events.find(
     (event) =>
-      event.idempotencyKey === idempotencyKey && scopeKey(event.tenantScope) === scopeKey(scope),
+    event.idempotencyKey === idempotencyKey &&
+      tenantScopeKeyV1(event.tenantScope) === tenantScopeKeyV1(scope),
   );
   if (existing) {
     return existing.eventId === eventId
@@ -253,7 +248,7 @@ export function appendAuditEventV1(
   }
 
   const scopedEvents = state.events.filter(
-    (event) => scopeKey(event.tenantScope) === scopeKey(scope),
+    (event) => tenantScopeKeyV1(event.tenantScope) === tenantScopeKeyV1(scope),
   );
   const previous = scopedEvents.at(-1);
   const sequence = (previous?.sequence ?? 0) + 1;
@@ -291,7 +286,7 @@ export function verifyAuditChainV1(
 ): AuditResultV1<true> {
   const byScope = new Map<string, AuditEventV1[]>();
   for (const event of events) {
-    const key = scopeKey(event.tenantScope);
+    const key = tenantScopeKeyV1(event.tenantScope);
     const list = byScope.get(key) ?? [];
     list.push(event);
     byScope.set(key, list);
@@ -332,7 +327,7 @@ export function createAuditSealV1(
   if (!scope) return rejected('INVALID_SCOPE');
   if (!sealedAt) return rejected('INVALID_TIMESTAMP');
   const scopedEvents = events
-    .filter((event) => scopeKey(event.tenantScope) === scopeKey(scope))
+    .filter((event) => tenantScopeKeyV1(event.tenantScope) === tenantScopeKeyV1(scope))
     .sort((left, right) => left.sequence - right.sequence);
   if (scopedEvents.length === 0) return rejected('INVALID_SEQUENCE');
   const chain = verifyAuditChainV1(scopedEvents, digestPort);
