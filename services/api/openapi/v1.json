@@ -7353,12 +7353,7 @@
         "properties": {
           "sessionId": { "type": "string", "format": "uuid" },
           "accessToken": { "type": "string", "minLength": 1, "maxLength": 4096 },
-          "refreshToken": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 4096,
-            "writeOnly": true
-          },
+          "refreshToken": { "type": "string", "minLength": 1, "maxLength": 4096 },
           "accessExpiresAt": { "type": "string", "format": "date-time" }
         },
         "required": ["sessionId", "accessToken", "accessExpiresAt"]

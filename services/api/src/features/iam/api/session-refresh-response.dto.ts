@@ -12,7 +12,7 @@ export class SessionRefreshResponseDto {
   @MaxLength(4096)
   accessToken!: string;
 
-  @ApiProperty({ minLength: 1, maxLength: 4096, required: false, writeOnly: true })
+  @ApiProperty({ minLength: 1, maxLength: 4096, required: false })
   @IsOptional()
   @IsString()
   @MinLength(1)

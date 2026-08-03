@@ -178,6 +178,13 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
     assert.equal(documentedClientVersion.test('1.2.3'), true);
     assert.equal(documentedClientVersion.test('1.2.3-beta.1'), true);
     assert.equal(documentedClientVersion.test('1.2.3garbage'), false);
+    const refreshResponse = firstDocument.components?.schemas?.[
+      'SessionRefreshResponseDto'
+    ] as Record<string, unknown>;
+    const refreshToken = (refreshResponse['properties'] as Record<string, Record<string, unknown>>)[
+      'refreshToken'
+    ];
+    assert.equal(refreshToken?.['writeOnly'], undefined);
 
     for (const operation of operations(firstDocument)) {
       const headerNames = (operation.parameters ?? [])
