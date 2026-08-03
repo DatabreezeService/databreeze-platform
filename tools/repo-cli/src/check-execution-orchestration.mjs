@@ -176,6 +176,12 @@ function validateDeliveryBatches({ ledger, plans, taskIds, taskToPlan, diagnosti
       diagnostics.push(`batch ${batch.batchId} has no tasks`);
       continue;
     }
+    const handoffTaskIds = new Set(batch.handoffTaskIds ?? []);
+    for (const taskId of handoffTaskIds) {
+      if (!batch.taskIds.includes(taskId)) {
+        diagnostics.push(`batch ${batch.batchId} handoff task ${taskId} is not in taskIds`);
+      }
+    }
     for (const taskId of batch.taskIds) {
       if (!taskIds.has(taskId))
         diagnostics.push(`batch ${batch.batchId} has unknown task ${taskId}`);
@@ -216,9 +222,20 @@ function validateDeliveryBatches({ ledger, plans, taskIds, taskToPlan, diagnosti
       .filter(([, state]) => ['verified', 'released'].includes(state?.status))
       .map(([taskId]) => taskId),
   );
+  for (const batch of batches) {
+    for (const taskId of batch.handoffTaskIds ?? []) {
+      if (!verifiedTasks.has(taskId)) {
+        diagnostics.push(`batch ${batch.batchId} handoff task ${taskId} is not verified`);
+      }
+    }
+  }
   for (const taskId of taskIds) {
     if (verifiedTasks.has(taskId)) {
-      if (batchByTask.has(taskId)) diagnostics.push(`verified task ${taskId} remains batched`);
+      const batchId = batchByTask.get(taskId);
+      const batch = batchId === undefined ? undefined : byId.get(batchId);
+      if (batchId !== undefined && !batch?.handoffTaskIds?.includes(taskId)) {
+        diagnostics.push(`verified task ${taskId} remains batched without handoff declaration`);
+      }
     } else if (!batchByTask.has(taskId)) {
       diagnostics.push(`unfinished task ${taskId} has no delivery batch`);
     }

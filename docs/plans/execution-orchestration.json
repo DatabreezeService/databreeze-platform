@@ -161,6 +161,7 @@
       "maximumChangedFiles": 260,
       "taskIds": [
         "FND-006",
+        "FND-007",
         "IAM-001",
         "IAM-002",
         "IAM-003",
@@ -173,6 +174,7 @@
         "IAM-006",
         "IAM-007"
       ],
+      "handoffTaskIds": ["FND-007"],
       "exitGate": "Foundation external gates are explicit and IAM, AUD, and BUA requirements are reconciled, completed, tested, and evidenced."
     },
     {
