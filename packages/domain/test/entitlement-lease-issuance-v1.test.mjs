@@ -130,3 +130,26 @@ void test('[BUA-018] acceptance rejects payloads that do not canonically bind le
     { accepted: false, code: 'LEASE_INVALID' },
   );
 });
+
+void test('[BUA-001] snapshots reject malformed plan projections instead of trusting caller fields', () => {
+  const plan = createPlanV1({
+    planCode: 'development',
+    displayNameKey: 'plan.development',
+    features: ['job.execute'],
+    quotas: [{ metric: 'job_count', limit: 20 }],
+  });
+  assert.equal(plan.accepted, true);
+  if (!plan.accepted) return;
+  assert.deepEqual(
+    createEntitlementSnapshotV1({
+      snapshotId: '00000000-0000-4000-8000-000000000758',
+      tenantScope: scope,
+      plan: { ...plan.value, quotas: [{ metric: 'unknown', limit: 20 }] },
+      status: 'ACTIVE',
+      revision: 1,
+      securityEpoch: 1,
+      effectiveAt: '2026-01-01T00:00:00.000Z',
+    }),
+    { accepted: false, code: 'INVALID_PLAN' },
+  );
+});

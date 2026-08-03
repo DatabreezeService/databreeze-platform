@@ -233,13 +233,20 @@ export function createEntitlementSnapshotV1(input: {
     (plan as Partial<EntitlementPlanV1>).providerIndependent !== true
   )
     return rejected('INVALID_PLAN');
+  const normalizedPlan = createPlanV1({
+    planCode: (plan as Partial<EntitlementPlanV1>).planCode,
+    displayNameKey: (plan as Partial<EntitlementPlanV1>).displayNameKey,
+    features: (plan as Partial<EntitlementPlanV1>).features,
+    quotas: (plan as Partial<EntitlementPlanV1>).quotas,
+  });
+  if (!normalizedPlan.accepted) return rejected('INVALID_PLAN');
   if (!validSnapshotStatus(input.status)) return rejected('INVALID_STATE');
   if (!revision || !securityEpoch) return rejected('INVALID_STATE');
   if (!effectiveAt || (input.expiresAt !== undefined && !expiresAt))
     return rejected('INVALID_TIMESTAMP');
   if (expiresAt && Date.parse(expiresAt) <= Date.parse(effectiveAt))
     return rejected('INVALID_TIMESTAMP');
-  const typedPlan = plan as EntitlementPlanV1;
+  const typedPlan = normalizedPlan.value;
   return Object.freeze({
     accepted: true,
     value: Object.freeze({
