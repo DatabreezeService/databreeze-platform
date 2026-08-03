@@ -225,6 +225,8 @@ export interface IamModuleOptions {
   readonly recoveryAdmissionCounter?: RecoveryAdmissionCounterPortV1;
   readonly recoveryAdmissionOptions?: RedisRecoveryAdmissionOptionsV1;
   readonly recoveryCompletionAdmission?: RecoveryAdmissionPortV1;
+  readonly recoveryCompletionAdmissionCounter?: RecoveryAdmissionCounterPortV1;
+  readonly recoveryCompletionAdmissionOptions?: RedisRecoveryAdmissionOptionsV1;
   readonly deviceIdentityService?: DeviceIdentityService;
   readonly deviceIdentityRepository?: DeviceIdentityRepositoryPortV1;
   readonly deviceIdentityDatabase?: DeviceIdentityDatabaseClientV1;
@@ -376,7 +378,13 @@ export class IamModule {
             options.recoveryAdmissionOptions,
           ));
     const recoveryCompletionAdmission =
-      options.recoveryCompletionAdmission ?? new InMemoryRecoveryAdmissionAdapter();
+      options.recoveryCompletionAdmission ??
+      (options.recoveryCompletionAdmissionCounter === undefined
+        ? new InMemoryRecoveryAdmissionAdapter()
+        : new RedisRecoveryAdmissionAdapter(options.recoveryCompletionAdmissionCounter, {
+            keyPrefix: 'databreeze:iam:recovery:completion:v1:',
+            ...options.recoveryCompletionAdmissionOptions,
+          }));
     const recoveryService =
       options.recoveryService ??
       (recoveryRepository &&

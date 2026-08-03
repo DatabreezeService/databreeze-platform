@@ -12,6 +12,7 @@ It does not claim that IAM-015 or the IAM plan is complete.
 - Carry the live gate through credential lookup, session lookup, protected request context, and sign-in/current-session projections without trusting client-supplied state.
 - Apply a bounded, replaceable recovery-admission port before account lookup; unknown and throttled addresses receive the same generic response.
 - The `RedisRecoveryAdmissionAdapter` implements that port for horizontally scaled deployments. It accepts only keyed digests, namespaces counter keys, requires an injected atomic `INCR`/`PEXPIRE` implementation, and fails closed on malformed input or counter failure. The in-memory adapter remains the alpha default until a Redis client is provisioned.
+- Completion attempts use a separate admission port and, when Redis is configured, a distinct `databreeze:iam:recovery:completion:v1:` namespace so email-request and token-brute-force limits cannot collide.
 - Keep the public completion response free of bearer material; no session is automatically created.
 - Select the Prisma recovery adapter only when persistence is configured, and fail closed when the delivery, digest, or password boundary is missing.
 

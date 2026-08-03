@@ -5,6 +5,7 @@ import { PrismaRecoveryRepositoryAdapter } from '../../../src/features/iam/adapt
 import { RedisRecoveryAdmissionAdapter } from '../../../src/features/iam/adapter/redis-recovery-admission.adapter.js';
 import {
   IAM_RECOVERY_ADMISSION_PORT,
+  IAM_RECOVERY_COMPLETION_ADMISSION_PORT,
   IAM_RECOVERY_REPOSITORY_PORT,
 } from '../../../src/features/iam/application/recovery-repository.port.js';
 import {
@@ -71,6 +72,20 @@ void test('[IAM-015] recovery composition selects the shared admission adapter w
     recoveryAdmissionOptions: { maxAttempts: 5, windowSeconds: 30 },
   });
   const admission = provider(configured, IAM_RECOVERY_ADMISSION_PORT);
+  assert.ok(admission && 'useValue' in admission);
+  if (!admission || !('useValue' in admission)) return;
+  assert.ok(admission.useValue instanceof RedisRecoveryAdmissionAdapter);
+});
+
+void test('[IAM-015] recovery composition gives completion counters a separate Redis namespace', () => {
+  const configured = IamModule.register({
+    recoveryDatabase: {} as never,
+    passwordCredentials,
+    recoveryDigestKey: 'test-recovery-key',
+    recoveryDelivery: { deliver: async () => undefined },
+    recoveryCompletionAdmissionCounter: { incrementWindow: async () => 1 },
+  });
+  const admission = provider(configured, IAM_RECOVERY_COMPLETION_ADMISSION_PORT);
   assert.ok(admission && 'useValue' in admission);
   if (!admission || !('useValue' in admission)) return;
   assert.ok(admission.useValue instanceof RedisRecoveryAdmissionAdapter);
