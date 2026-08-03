@@ -118,6 +118,33 @@ void test('[IAM-003, IAM-004] viewer and out-of-scope invitations are denied', a
   );
 });
 
+void test('[IAM-004] owner invitations are organization-only and cannot be delegated by an admin', async () => {
+  const admin = repository('admin');
+  const adminService = new IamMembershipService(admin, idsFrom(ids.invitation), clock);
+  assert.deepEqual(
+    await adminService.invite(context('membership-service-owner-role-001'), {
+      principalId: ids.invited,
+      scope: { scopeType: 'organization', organizationId: ids.organization },
+      roleId: 'owner',
+    }),
+    { accepted: false, code: 'SCOPE_DENIED' },
+  );
+  const owner = repository();
+  const ownerService = new IamMembershipService(owner, idsFrom(ids.invitation), clock);
+  assert.deepEqual(
+    await ownerService.invite(context('membership-service-owner-role-002'), {
+      principalId: ids.invited,
+      scope: {
+        scopeType: 'workspace',
+        organizationId: ids.organization,
+        workspaceId: '00000000-0000-4000-8000-000000000170',
+      },
+      roleId: 'owner',
+    }),
+    { accepted: false, code: 'INVALID_STATE' },
+  );
+});
+
 void test('[IAM-004] status transitions enforce revisions and cannot remove the last owner', async () => {
   const value = repository();
   const service = new IamMembershipService(value, idsFrom(ids.invitation), clock);

@@ -163,6 +163,15 @@ export class IamMembershipService {
     const authorization = await this.authorize(context, scope.value);
     if (authorization !== 'ALLOWED')
       return rejected(authorization === 'UNAVAILABLE' ? 'UNAVAILABLE' : 'SCOPE_DENIED');
+    if (input.roleId === 'owner') {
+      if (scope.value.scopeType !== 'organization') return rejected('INVALID_STATE');
+      try {
+        const actor = await this.repository.findMembership(context, context.actorId);
+        if (!actor || actor.roleId !== 'owner') return rejected('SCOPE_DENIED');
+      } catch {
+        return rejected('UNAVAILABLE');
+      }
+    }
     const startedAt = isoNow(this.clock);
     if (!startedAt) return rejected('UNAVAILABLE');
     const expiresAt = new Date(
