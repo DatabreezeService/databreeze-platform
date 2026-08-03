@@ -9,7 +9,11 @@ import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
 } from '../../../platform/http/request-tenant-context.port.js';
-import { InviteMembershipDto, TransitionMembershipDto } from './membership.dto.js';
+import {
+  AcceptMembershipDto,
+  InviteMembershipDto,
+  TransitionMembershipDto,
+} from './membership.dto.js';
 
 /** IAM-004: membership administration never accepts client-selected authority. */
 @ApiTags('identity')
@@ -56,6 +60,22 @@ export class IamMembershipController {
     const context = await this.requestContext.resolve(request);
     return (
       this.memberships?.transition(context, membershipId, input.expectedRevision, input.status) ??
+      this.unavailable()
+    );
+  }
+
+  @Post(':membershipId/accept')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Accept an invitation as the invited principal' })
+  @ApiBody({ type: AcceptMembershipDto })
+  async accept(
+    @Req() request: unknown,
+    @Param('membershipId') membershipId: string,
+    @Body() input: AcceptMembershipDto,
+  ): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    return (
+      this.memberships?.accept(context, membershipId, input.expectedRevision) ??
       this.unavailable()
     );
   }

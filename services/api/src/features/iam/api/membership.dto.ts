@@ -57,3 +57,11 @@ export class TransitionMembershipDto {
   @IsIn(['ACTIVE', 'SUSPENDED', 'REMOVED'])
   status!: 'ACTIVE' | 'SUSPENDED' | 'REMOVED';
 }
+
+export class AcceptMembershipDto {
+  @ApiProperty({ minimum: 1, maximum: Number.MAX_SAFE_INTEGER })
+  @IsInt()
+  @Min(1)
+  @Max(Number.MAX_SAFE_INTEGER)
+  expectedRevision!: number;
+}
