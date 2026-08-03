@@ -283,3 +283,26 @@ model AuthorizationSnapshot {
   @@map("authorization_snapshots")
   @@schema("iam")
 }
+
+/// IAM-013: non-interactive identities retain only a digest of their one-time secret.
+model ServiceAccountRecord {
+  id             String    @id @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  workspaceId    String?   @map("workspace_id") @db.Uuid
+  name           String    @db.VarChar(200)
+  permissions    Json
+  status         String    @default("ACTIVE") @db.VarChar(16)
+  secretDigest   String    @unique(map: "service_accounts_secret_digest_key") @map("secret_digest") @db.Char(64)
+  secretVersion  Int       @default(1) @map("secret_version")
+  secretIssuedAt DateTime  @map("secret_issued_at") @db.Timestamptz(6)
+  secretExpiresAt DateTime? @map("secret_expires_at") @db.Timestamptz(6)
+  lastUsedAt     DateTime? @map("last_used_at") @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  revokedAt      DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revision       Int       @default(1)
+
+  @@index([organizationId, workspaceId, status], map: "service_accounts_scope_status_idx")
+  @@index([secretExpiresAt, status], map: "service_accounts_expiry_status_idx")
+  @@map("service_accounts")
+  @@schema("iam")
+}
