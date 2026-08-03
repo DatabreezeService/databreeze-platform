@@ -160,24 +160,44 @@ export class RecoveryService {
   ): Promise<RecoveryCompletionResultV1> {
     const raw = rawToken(rawTokenInput);
     if (!raw) return inputRejected('INVALID_TOKEN');
+    let digest: string;
+    try {
+      digest = this.ports.digest.digestToken(raw);
+    } catch {
+      return unavailable();
+    }
+    const now = timestamp(this.ports.clock);
+    if (!now) return unavailable();
+
+    // Resolve and validate the challenge before doing expensive password work. This
+    // keeps unknown, expired, and already-consumed tokens cheap and indistinguishable.
+    let candidate: ReturnType<typeof consumeRecoveryChallengeV1> | undefined;
+    try {
+      candidate = await this.ports.repository.withTransaction(async (transaction) => {
+        const challenge = await transaction.findChallengeByTokenDigest(digest);
+        return challenge ? consumeRecoveryChallengeV1(challenge, now) : undefined;
+      });
+    } catch {
+      return unavailable();
+    }
+    if (!candidate?.accepted) return inputRejected('INVALID_TOKEN');
+
     const credential = await this.ports.passwordCredentials.create(newPassword);
     if (!credential.accepted) {
       return inputRejected(
         credential.code === 'INVALID_PASSWORD' ? 'INVALID_INPUT' : 'RECOVERY_UNAVAILABLE',
       );
     }
-    let digest: string;
+
     let credentialId: StableIdentifierV1;
     try {
-      digest = this.ports.digest.digestToken(raw);
       const parsedId = stable(this.ports.ids.next());
       if (!parsedId) return unavailable();
       credentialId = parsedId;
     } catch {
       return unavailable();
     }
-    const now = timestamp(this.ports.clock);
-    if (!now) return unavailable();
+
     try {
       return await this.ports.repository.withTransaction(async (transaction) => {
         const challenge = await transaction.findChallengeByTokenDigest(digest);

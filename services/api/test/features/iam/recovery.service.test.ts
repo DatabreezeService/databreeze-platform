@@ -21,15 +21,30 @@ function credentials() {
   });
 }
 
+function countingCredentials(counter: { value: number }) {
+  return new PasswordCredentialService({
+    hash: async (password) => {
+      counter.value += 1;
+      return {
+        schemaVersion: 1,
+        algorithm: 'argon2id',
+        encodedHash: `$argon2id$v=19$m=65536,p=1,t=3$YWJjZA==$${Buffer.from(password).toString('base64')}`,
+      };
+    },
+    verify: async () => true,
+  });
+}
+
 function service(
   repository: InMemoryRecoveryRepositoryAdapter,
   delivery: RecoveryDeliveryPortV1 = { deliver: async () => undefined },
   admission?: InMemoryRecoveryAdmissionAdapter,
+  passwordCredentials: PasswordCredentialService = credentials(),
 ) {
   let id = 2;
   return new RecoveryService({
     repository,
-    passwordCredentials: credentials(),
+    passwordCredentials,
     digest: {
       digestToken: () => 'a'.repeat(64),
       digestEmail: () => 'b'.repeat(64),
@@ -41,6 +56,24 @@ function service(
     ...(admission ? { admission } : {}),
   });
 }
+
+void test('[IAM-015] invalid recovery tokens do not invoke the password hasher', async () => {
+  const repository = new InMemoryRecoveryRepositoryAdapter();
+  const counter = { value: 0 };
+  const recovery = service(repository, undefined, undefined, countingCredentials(counter));
+
+  assert.deepEqual(
+    await recovery.complete(
+      'invalid-token-abcdefghijklmnopqrstuvwxyz-123456',
+      'new correct horse battery staple',
+    ),
+    {
+      accepted: false,
+      code: 'INVALID_TOKEN',
+    },
+  );
+  assert.equal(counter.value, 0);
+});
 
 void test('[IAM-015] recovery request is generic for unknown email and stores a delivered hashed challenge for a known account', async () => {
   const repository = new InMemoryRecoveryRepositoryAdapter();
