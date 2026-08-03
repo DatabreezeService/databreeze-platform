@@ -101,6 +101,16 @@ void test('IAE-007 lineage test storage enforces one record per derived artifact
   const persisted = rows[0];
   if (!persisted) throw new Error('fixture lineage was not persisted');
 
+  const conflictingLineageResult = createArtifactLineageV1({
+    ...lineage,
+    lineageId: '88888888-8888-4888-8888-888888888888',
+  });
+  if (!conflictingLineageResult.accepted) throw new Error('fixture conflict lineage invalid');
+  await assert.rejects(
+    repository.save(context, conflictingLineageResult.value),
+    /IAE_DERIVED_LINEAGE_CONFLICT/u,
+  );
+
   await assert.rejects(
     database.artifactLineageRecord.create({
       data: { ...persisted, id: '88888888-8888-4888-8888-888888888888' },
