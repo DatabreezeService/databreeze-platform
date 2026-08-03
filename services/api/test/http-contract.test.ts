@@ -885,4 +885,20 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
     });
     assertProblem(response, 503, 'MFA_UNAVAILABLE');
   });
+
+  const conflictingMfa = {
+    enroll: () => Promise.reject(new Error('IAM_MFA_REVISION_CONFLICT')),
+  } as unknown as MfaService;
+  await withApp({ mfaService: conflictingMfa, requestTenantContext }, async (app) => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/mfa/factors',
+      payload: {
+        id: '00000000-0000-4000-8000-000000000010',
+        method: 'TOTP',
+        secretReference: 'vault://iam/mfa/test-factor',
+      },
+    });
+    assertProblem(response, 409, 'IAM_MFA_REVISION_CONFLICT');
+  });
 });
