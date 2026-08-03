@@ -24,6 +24,7 @@ import {
   PrismaEntitlementLeaseRepositoryAdapter,
   type EntitlementLeaseDatabaseClientV1,
 } from './adapter/prisma-entitlement-lease-repository.adapter.js';
+import { HmacEntitlementLeaseSignerAdapter } from './adapter/hmac-entitlement-lease-signer.adapter.js';
 import {
   ENTITLEMENT_REPOSITORY_PORT,
   type EntitlementRepositoryPortV1,
@@ -47,6 +48,8 @@ export interface BuaModuleOptions {
     | EntitlementLeaseServicePortV1
     | UnavailableEntitlementLeaseService;
   readonly entitlementLeaseSigner?: EntitlementLeaseSignerV1;
+  /** Secret-manager supplied key; direct signer injection remains available for HSM/KMS adapters. */
+  readonly entitlementLeaseSigningKey?: Uint8Array | string;
   readonly entitlementLeaseClock?: EntitlementLeaseClockV1;
   readonly entitlementLeaseIdGenerator?: EntitlementLeaseIdGeneratorV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
@@ -66,14 +69,19 @@ export class BuaModule {
       (options.entitlementLeaseDatabase === undefined
         ? new InMemoryEntitlementLeaseRepositoryAdapter()
         : new PrismaEntitlementLeaseRepositoryAdapter(options.entitlementLeaseDatabase));
+    const leaseSigner =
+      options.entitlementLeaseSigner ??
+      (options.entitlementLeaseSigningKey === undefined
+        ? undefined
+        : new HmacEntitlementLeaseSignerAdapter(options.entitlementLeaseSigningKey));
     const leaseService =
       options.entitlementLeaseService ??
-      (options.entitlementLeaseSigner === undefined
+      (leaseSigner === undefined
         ? new UnavailableEntitlementLeaseService()
         : new EntitlementLeaseService(
             leaseRepository,
             repository,
-            options.entitlementLeaseSigner,
+            leaseSigner,
             options.entitlementLeaseClock,
             options.entitlementLeaseIdGenerator,
           ));
