@@ -3,7 +3,6 @@ import {
   IsISO8601,
   IsIn,
   IsInt,
-  IsNumber,
   IsOptional,
   IsString,
   Min,
@@ -15,8 +14,8 @@ export class AdmitArtifactDto {
   @Matches(/^[0-9a-f]{64}$/u)
   actualSha256!: string;
 
-  @ApiProperty({ minimum: 0 })
-  @IsNumber()
+  @ApiProperty({ type: 'integer', minimum: 0 })
+  @IsInt()
   @Min(0)
   actualByteSize!: number;
 

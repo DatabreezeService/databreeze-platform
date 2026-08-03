@@ -7646,7 +7646,7 @@
         "type": "object",
         "properties": {
           "actualSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-          "actualByteSize": { "type": "number", "minimum": 0 },
+          "actualByteSize": { "type": "integer", "minimum": 0 },
           "detectedMediaType": { "type": "string" },
           "scanState": { "type": "string", "enum": ["PENDING", "CLEAN", "MALICIOUS", "FAILED"] },
           "maxByteSize": { "type": "number", "minimum": 0 },
