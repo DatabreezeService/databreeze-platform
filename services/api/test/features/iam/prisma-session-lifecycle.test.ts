@@ -26,10 +26,23 @@ function createDatabase(): {
   readonly sessions: Map<string, SessionRecordDatabaseRowV1>;
   readonly refreshTokens: Map<string, RefreshTokenDatabaseRowV1>;
   readonly accessTokens: Map<string, AccessTokenDatabaseRowV1>;
+  readonly membershipQueries: ReadonlyArray<Readonly<Record<string, unknown>>>;
 } {
   const sessions = new Map<string, SessionRecordDatabaseRowV1>();
   const refreshTokens = new Map<string, RefreshTokenDatabaseRowV1>();
   const accessTokens = new Map<string, AccessTokenDatabaseRowV1>();
+  const membershipQueries: Array<Readonly<Record<string, unknown>>> = [];
+  const membershipRows = [
+    {
+      id: '00000000-0000-4000-8000-000000000004',
+      principalId: userId,
+      organizationId,
+      workspaceId,
+      projectId: null,
+      scopeType: 'WORKSPACE',
+      status: 'ACTIVE',
+    },
+  ];
   const client = {
     sessionRecord: {
       create: async ({ data }: { readonly data: SessionRecordDatabaseRowV1 }) => {
@@ -118,17 +131,12 @@ function createDatabase(): {
       findUnique: async () => ({ id: userId, status: 'ACTIVE', securityEpoch: 4 }),
     },
     membershipIdentity: {
-      findMany: async () => [
-        {
-          id: '00000000-0000-4000-8000-000000000004',
-          principalId: userId,
-          organizationId,
-          workspaceId,
-          projectId: null,
-          scopeType: 'WORKSPACE',
-          status: 'ACTIVE',
-        },
-      ],
+      findMany: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) => {
+        membershipQueries.push(where);
+        return membershipRows.filter((row) =>
+          Object.entries(where).every(([key, value]) => row[key as keyof typeof row] === value),
+        );
+      },
     },
     workspaceIdentity: {
       findUnique: async () => ({ id: workspaceId, organizationId, status: 'ACTIVE' }),
@@ -143,7 +151,7 @@ function createDatabase(): {
       work: (transaction: SessionLifecycleDatabaseClientV1) => Promise<TValue>,
     ) => work(client),
   } as unknown as SessionLifecycleDatabaseClientV1;
-  return { client, sessions, refreshTokens, accessTokens };
+  return { client, sessions, refreshTokens, accessTokens, membershipQueries };
 }
 
 void test('[IAM-005, IAM-006] Prisma sessions persist opaque bounded access and refresh credentials', async () => {
@@ -210,4 +218,45 @@ void test('[IAM-005] revocation is idempotent and hides session principals after
   assert.equal(await adapter.revoke(session.sessionId), true);
   assert.equal(await adapter.findPrincipal(session.sessionId), undefined);
   assert.equal(await adapter.findPrincipalByAccessToken(session.accessToken), undefined);
+});
+
+void test('[IAM-005] session authority database failures propagate to the HTTP availability boundary', async () => {
+  const accessDatabase = createDatabase();
+  const accessAdapter = new PrismaSessionLifecycleAdapter(accessDatabase.client);
+  const accessSession = await accessAdapter.issue(principal, 'web');
+  const accessDelegate = accessDatabase.client.accessTokenRecord as unknown as {
+    findUnique(input: unknown): Promise<AccessTokenDatabaseRowV1 | null>;
+  };
+  accessDelegate.findUnique = () => Promise.reject(new Error('access database unavailable'));
+  await assert.rejects(
+    accessAdapter.findPrincipalByAccessToken(accessSession.accessToken),
+    /access database unavailable/u,
+  );
+
+  const sessionDatabase = createDatabase();
+  const sessionAdapter = new PrismaSessionLifecycleAdapter(sessionDatabase.client);
+  const session = await sessionAdapter.issue(principal, 'desktop');
+  const sessionDelegate = sessionDatabase.client.sessionRecord as unknown as {
+    findUnique(input: unknown): Promise<SessionRecordDatabaseRowV1 | null>;
+  };
+  sessionDelegate.findUnique = () => Promise.reject(new Error('session database unavailable'));
+  await assert.rejects(
+    sessionAdapter.findPrincipal(session.sessionId),
+    /session database unavailable/u,
+  );
+});
+
+void test('[IAM-005, IAM-019] persisted sessions retain the exact sign-in tenant scope', async () => {
+  const { client, sessions, membershipQueries } = createDatabase();
+  const adapter = new PrismaSessionLifecycleAdapter(client);
+  const session = await adapter.issue(principal, 'web');
+
+  assert.equal(sessions.get(session.sessionId)?.organizationId, organizationId);
+  assert.equal(sessions.get(session.sessionId)?.workspaceId, workspaceId);
+  assert.equal((await adapter.findPrincipal(session.sessionId))?.workspaceId, workspaceId);
+  assert.deepEqual(membershipQueries.at(-1), {
+    principalId: userId,
+    organizationId,
+    status: 'ACTIVE',
+  });
 });

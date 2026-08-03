@@ -1,5 +1,11 @@
 import { Controller, Get, Inject, Req } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiServiceUnavailableResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import {
   AUDIT_REPOSITORY_PORT,
@@ -9,6 +15,7 @@ import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
 } from '../../../platform/http/request-tenant-context.port.js';
+import { AuditProblemError } from '../application/audit-problem.error.js';
 
 @ApiTags('audit')
 @ApiBearerAuth()
@@ -21,15 +28,27 @@ export class AuditController {
 
   @Get('events')
   @ApiOperation({ summary: 'List immutable audit events visible to the caller' })
+  @ApiOkResponse()
+  @ApiServiceUnavailableResponse({ description: 'Audit persistence is unavailable.' })
   async events(@Req() request: unknown): Promise<readonly unknown[]> {
     const context = await this.requestContext.resolve(request);
-    return this.repository.listEvents(context);
+    try {
+      return await this.repository.listEvents(context);
+    } catch {
+      throw new AuditProblemError('AUDIT_UNAVAILABLE');
+    }
   }
 
   @Get('seals')
   @ApiOperation({ summary: 'List verified audit seals visible to the caller' })
+  @ApiOkResponse()
+  @ApiServiceUnavailableResponse({ description: 'Audit persistence is unavailable.' })
   async seals(@Req() request: unknown): Promise<readonly unknown[]> {
     const context = await this.requestContext.resolve(request);
-    return this.repository.listSeals(context);
+    try {
+      return await this.repository.listSeals(context);
+    } catch {
+      throw new AuditProblemError('AUDIT_UNAVAILABLE');
+    }
   }
 }

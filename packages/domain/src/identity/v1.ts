@@ -95,6 +95,8 @@ export interface SessionRecordV1 {
   readonly schemaVersion: typeof IDENTITY_SCHEMA_VERSION_V1;
   readonly sessionId: StableIdentifierV1;
   readonly userId: StableIdentifierV1;
+  readonly organizationId: StableIdentifierV1;
+  readonly workspaceId: StableIdentifierV1;
   readonly familyId: StableIdentifierV1;
   readonly issuedAt: StrictUtcTimestampV1;
   readonly accessExpiresAt: StrictUtcTimestampV1;
@@ -420,13 +422,21 @@ export function checkOwnerRemovalV1(
 export function createSessionRecordV1(input: {
   readonly sessionId: unknown;
   readonly userId: unknown;
+  readonly organizationId: unknown;
+  readonly workspaceId: unknown;
   readonly familyId: unknown;
   readonly issuedAt: unknown;
   readonly accessExpiresAt: unknown;
   readonly inactivityExpiresAt: unknown;
   readonly absoluteExpiresAt: unknown;
 }): IdentityResultV1<SessionRecordV1> {
-  const ids = [stableId(input.sessionId), stableId(input.userId), stableId(input.familyId)];
+  const ids = [
+    stableId(input.sessionId),
+    stableId(input.userId),
+    stableId(input.organizationId),
+    stableId(input.workspaceId),
+    stableId(input.familyId),
+  ];
   const times = [
     timestamp(input.issuedAt),
     timestamp(input.accessExpiresAt),
@@ -451,7 +461,9 @@ export function createSessionRecordV1(input: {
       schemaVersion: 1,
       sessionId: ids[0] as StableIdentifierV1,
       userId: ids[1] as StableIdentifierV1,
-      familyId: ids[2] as StableIdentifierV1,
+      organizationId: ids[2] as StableIdentifierV1,
+      workspaceId: ids[3] as StableIdentifierV1,
+      familyId: ids[4] as StableIdentifierV1,
       issuedAt,
       accessExpiresAt,
       inactivityExpiresAt,

@@ -43,7 +43,7 @@ Child plans are written and approved before their product slice begins. Each nam
 
 docs/plans/requirement-traceability.json records all 611 IDs with requested trace fields, one primary plan/task, release status, and verified paths only after evidence exists.
 
-`docs/plans/004-luna-max-execution-plan.md` packages the unfinished orchestration tasks into 15 dependency-safe delivery batches. Normal batches contain 30–99 atomic commits, target about 70, keep promotion diffs at or below 260 changed files, and use the `feat/*` or `fix/*` → `dev` → reviewed `main` flow below.
+`docs/plans/004-luna-max-execution-plan.md` packages the unfinished orchestration tasks into 15 dependency-safe delivery batches. A normal PR slice contains 30–50 atomic commits; an exceptional completed-task boundary may extend to 79 but never to CodeRabbit's 100-commit limit. Promotion diffs stay at or below 260 changed files and use the `feat/*` or `fix/*` → `dev` → reviewed `main` flow below.
 
 ## Branch, commit, and review policy
 

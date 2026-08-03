@@ -162,13 +162,20 @@ void test('[IAM-001, IAM-009, IAM-011] Prisma bootstrap persists and reconstruct
 });
 
 void test('[IAM-011] repeated bootstrap is immutable and conflicting hierarchy is rejected', async () => {
-  const { client } = createDatabase();
+  const { client, organizations } = createDatabase();
   const adapter = new PrismaIdentityBootstrapRepositoryAdapter(client);
   const validated = bootstrapPersonalOrganizationV1(input);
   assert.equal(validated.accepted, true);
   if (!validated.accepted) return;
 
   await adapter.save(validated.value);
+  const organization = organizations.get(organizationId);
+  assert.ok(organization);
+  organizations.set(organizationId, {
+    ...organization,
+    updatedAt: new Date('2026-01-01T00:00:01.000Z'),
+    createdAt: organization.createdAt,
+  } as typeof organization);
   await assert.doesNotReject(() => adapter.save(validated.value));
   await assert.rejects(
     adapter.save({

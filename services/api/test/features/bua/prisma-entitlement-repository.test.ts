@@ -75,7 +75,20 @@ function snapshot(): EntitlementSnapshotV1 {
 function delegate<TRow extends Record<string, unknown>>(
   rows: TRow[],
   forceRevisionConflict = false,
+  firstQueries?: Array<Readonly<Record<string, unknown>>>,
 ) {
+  const matches = (row: TRow, where: Readonly<Record<string, unknown>>): boolean =>
+    Object.entries(where).every(([key, value]) => {
+      if (key === 'OR' && Array.isArray(value)) {
+        return value.some(
+          (candidate) =>
+            typeof candidate === 'object' &&
+            candidate !== null &&
+            matches(row, candidate as Readonly<Record<string, unknown>>),
+        );
+      }
+      return row[key] === value;
+    });
   return {
     create({ data }: { readonly data: TRow }) {
       const persisted = { ...data };
@@ -91,6 +104,10 @@ function delegate<TRow extends Record<string, unknown>>(
       return Promise.resolve(
         rows.find((row) => row['id'] === key || row['planCode'] === key) ?? null,
       );
+    },
+    findFirst({ where }: { readonly where: Readonly<Record<string, unknown>> }) {
+      firstQueries?.push(where);
+      return Promise.resolve(rows.find((row) => matches(row, where)) ?? null);
     },
     findMany({
       where,
@@ -132,9 +149,7 @@ function delegate<TRow extends Record<string, unknown>>(
       readonly data: Record<string, unknown>;
     }) {
       if (forceRevisionConflict) return Promise.resolve({ count: 0 });
-      const index = rows.findIndex(
-        (row) => row['id'] === where.id && row['revision'] === where.revision,
-      );
+      const index = rows.findIndex((row) => matches(row, where));
       if (index < 0) return Promise.resolve({ count: 0 });
       rows[index] = { ...rows[index], ...data } as TRow;
       return Promise.resolve({ count: 1 });
@@ -143,7 +158,10 @@ function delegate<TRow extends Record<string, unknown>>(
 }
 
 function client(
-  options: { readonly forceRevisionConflict?: boolean } = {},
+  options: {
+    readonly forceRevisionConflict?: boolean;
+    readonly firstQueries?: Array<Readonly<Record<string, unknown>>>;
+  } = {},
 ): EntitlementDatabaseClientV1 {
   const planRows: Record<string, unknown>[] = [];
   const snapshotRows: Record<string, unknown>[] = [];
@@ -151,9 +169,13 @@ function client(
   const reservationRows: Record<string, unknown>[] = [];
   const database = {
     entitlementPlanRecord: delegate(planRows),
-    entitlementSnapshotRecord: delegate(snapshotRows),
-    usageLedgerEntryRecord: delegate(entryRows),
-    usageReservationRecord: delegate(reservationRows, options.forceRevisionConflict),
+    entitlementSnapshotRecord: delegate(snapshotRows, false, options.firstQueries),
+    usageLedgerEntryRecord: delegate(entryRows, false, options.firstQueries),
+    usageReservationRecord: delegate(
+      reservationRows,
+      options.forceRevisionConflict,
+      options.firstQueries,
+    ),
     async $transaction<TValue>(
       work: (transaction: EntitlementDatabaseClientV1) => Promise<TValue>,
     ): Promise<TValue> {
@@ -268,4 +290,21 @@ void test('[BUA-012] Prisma entitlement adapter rejects a reservation settlement
     }),
     /BUA_RESERVATION_CONFLICT/u,
   );
+});
+
+void test('[BUA-003, BUA-004, IAM-009] Prisma entitlement identity lookups include tenant scope', async () => {
+  const firstQueries: Array<Readonly<Record<string, unknown>>> = [];
+  const repository = new PrismaEntitlementRepositoryAdapter(client({ firstQueries }));
+  await repository.saveSnapshot(context(workspaceId, 'scope-snapshot'), snapshot());
+  await repository.findSnapshot(context(workspaceId, 'scope-read'), snapshot().snapshotId);
+  const service = new EntitlementAdmissionService(repository);
+  const admitted = await service.admit(
+    context(workspaceId, 'scope-admit'),
+    admissionInput('scope-admit', '1'),
+  );
+  assert.equal(admitted.accepted, true);
+
+  const tenantQueries = firstQueries.filter((query) => query['id'] !== undefined);
+  assert.ok(tenantQueries.length >= 4);
+  for (const query of tenantQueries) assert.equal(query['organizationId'], organizationId);
 });

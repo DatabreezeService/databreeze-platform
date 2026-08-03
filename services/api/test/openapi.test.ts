@@ -193,6 +193,12 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       }
     }
 
+    for (const path of ['/v1/audit/events', '/v1/audit/seals'] as const) {
+      const auditRead = firstDocument.paths[path]?.get as OperationLike | undefined;
+      assert.ok(auditRead?.responses['200'], `${path} must document its successful response`);
+      assert.ok(auditRead.responses['503'], `${path} must document audit persistence outages`);
+    }
+
     const served = await first.app.inject({ method: 'GET', url: '/v1/openapi.json' });
     assert.equal(served.statusCode, 200);
     assert.deepEqual(served.json(), firstDocument);

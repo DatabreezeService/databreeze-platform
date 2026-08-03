@@ -49,6 +49,39 @@ void test('reads one exact cookie value and fails closed for ambiguity or malfor
   assert.equal(readCookieValueV1(undefined, REFRESH_COOKIE_NAME_V1), undefined);
 });
 
+void test('rejects cookie headers and fields beyond parser resource bounds', () => {
+  assert.equal(
+    readCookieValueV1(
+      `${REFRESH_COOKIE_NAME_V1}=${refreshToken}; padding=${'a'.repeat(8_192)}`,
+      REFRESH_COOKIE_NAME_V1,
+    ),
+    undefined,
+  );
+  assert.equal(
+    readCookieValueV1(
+      `${REFRESH_COOKIE_NAME_V1}=${refreshToken}; ${Array.from({ length: 64 }, (_, index) => `c${index}=v`).join('; ')}`,
+      REFRESH_COOKIE_NAME_V1,
+    ),
+    undefined,
+  );
+  assert.equal(
+    readCookieValueV1(`${REFRESH_COOKIE_NAME_V1}=${'a'.repeat(4_097)}`, REFRESH_COOKIE_NAME_V1),
+    undefined,
+  );
+  assert.throws(
+    () => serializeCookieV1('a'.repeat(65), token, { httpOnly: true, maxAgeSeconds: 1 }),
+    /Cookie name or value is invalid/,
+  );
+  assert.throws(
+    () =>
+      serializeCookieV1(REFRESH_COOKIE_NAME_V1, 'a'.repeat(4_097), {
+        httpOnly: true,
+        maxAgeSeconds: 1,
+      }),
+    /Cookie name or value is invalid/,
+  );
+});
+
 void test('creates deletion cookies without weakening the original security attributes', () => {
   assert.equal(
     clearCookieV1(REFRESH_COOKIE_NAME_V1, { httpOnly: true }),

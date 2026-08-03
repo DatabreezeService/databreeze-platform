@@ -52,6 +52,7 @@ interface UniqueDelegateV1<TRow> {
 interface WorkspaceLookupDelegateV1 extends UniqueDelegateV1<WorkspaceIdentityDatabaseRowV1> {
   readonly findMany?: (input: {
     readonly where: Readonly<Record<string, unknown>>;
+    readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
   }) => Promise<readonly WorkspaceIdentityDatabaseRowV1[]>;
 }
 
@@ -140,7 +141,13 @@ export class PrismaCredentialLookupAdapter implements CredentialLookupPortV1 {
 
     const selected = memberships
       .map((membership) => activeMembership(membership, userId))
-      .find((membership): membership is ActiveMembershipV1 => membership !== undefined);
+      .filter((membership): membership is ActiveMembershipV1 => membership !== undefined)
+      .sort((left, right) =>
+        `${left.organizationId}:${left.workspaceId ?? ''}`.localeCompare(
+          `${right.organizationId}:${right.workspaceId ?? ''}`,
+        ),
+      )
+      .at(0);
     if (!selected) return undefined;
 
     const [organization, factors] = await Promise.all([
@@ -152,6 +159,7 @@ export class PrismaCredentialLookupAdapter implements CredentialLookupPortV1 {
       if (!this.client.workspaceIdentity.findMany) return undefined;
       const workspaces = await this.client.workspaceIdentity.findMany({
         where: { organizationId: selected.organizationId, status: 'ACTIVE' },
+        orderBy: { id: 'asc' },
       });
       const workspace = workspaces.find(
         (candidate) =>

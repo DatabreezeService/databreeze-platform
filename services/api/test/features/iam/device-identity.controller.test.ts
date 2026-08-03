@@ -85,6 +85,46 @@ void test('[IAM-007, IAM-021] device identity HTTP endpoints use the authenticat
     const devicesValue = jsonObject(devices)['value'];
     assert.ok(Array.isArray(devicesValue));
     assert.equal(devicesValue.length, 1);
+
+    const denied = await app.inject({
+      method: 'GET',
+      url: '/v1/organizations/00000000-0000-4000-8000-000000000699/devices',
+    });
+    assert.equal(denied.statusCode, 403);
+    assert.equal(jsonObject(denied)['code'], 'DEVICE_SCOPE_DENIED');
+  } finally {
+    await app.close();
+  }
+});
+
+void test('[IAM-007] device identity persistence failures return a retryable unavailable problem', async () => {
+  const requestTenantContext: RequestTenantContextPortV1 = {
+    resolve: () => Promise.resolve(context()),
+  };
+  const unavailableService = {
+    issueEnrollmentChallenge: () => Promise.reject(new Error('database unavailable')),
+  } as unknown as DeviceIdentityService;
+  const { app } = await createApiApplication({
+    deviceIdentityService: unavailableService,
+    requestTenantContext,
+  });
+  try {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/devices/enrollment-challenges',
+      payload: {
+        challengeId,
+        platform: 'WINDOWS',
+        installationIdHash: 'a'.repeat(64),
+        challengeDigest: 'b'.repeat(64),
+        issuedAt: '2026-01-01T00:00:00.000Z',
+        expiresAt: '2026-01-01T00:05:00.000Z',
+      },
+    });
+    assert.equal(response.statusCode, 503);
+    const problem = jsonObject(response);
+    assert.equal(problem['code'], 'DEVICE_UNAVAILABLE');
+    assert.equal(problem['retryable'], true);
   } finally {
     await app.close();
   }

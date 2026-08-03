@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { Body, Controller, Get, HttpCode, Inject, Optional, Post, Req, Res } from '@nestjs/common';
 import {
   ApiBody,
+  ApiBearerAuth,
   ApiOkResponse,
   ApiOperation,
   ApiServiceUnavailableResponse,
@@ -53,6 +54,7 @@ export class AuthenticationController {
   ) {}
 
   @Get('me')
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Read the redacted authenticated session identity' })
   @ApiOkResponse({ type: CurrentSessionDto })
   async me(@Req() request: FastifyRequest): Promise<CurrentSessionDto> {
@@ -133,7 +135,12 @@ export class AuthenticationController {
     ) {
       throw new SessionProblemError('SESSION_INVALID');
     }
-    const result = await this.sessions.refresh(refreshToken, input.clientPlatform);
+    let result: Awaited<ReturnType<SessionLifecyclePortV1['refresh']>>;
+    try {
+      result = await this.sessions.refresh(refreshToken, input.clientPlatform);
+    } catch {
+      throw new SessionProblemError('SESSION_UNAVAILABLE');
+    }
     if (!result.accepted) throw new SessionProblemError('SESSION_INVALID');
     if (input.clientPlatform === 'web') {
       const csrfToken = randomBytes(32).toString('base64url');
@@ -158,16 +165,34 @@ export class AuthenticationController {
 
   @Post('sign-out')
   @HttpCode(204)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Revoke a session and clear browser credentials' })
   @ApiBody({ type: SessionSignOutDto })
   @ApiUnauthorizedResponse({ description: 'The session could not be authenticated.' })
   @ApiServiceUnavailableResponse({ description: 'Session persistence is unavailable.' })
   async signOut(
     @Body() input: SessionSignOutDto,
+    @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<void> {
     if (this.sessions === undefined) throw new SessionProblemError('SESSION_UNAVAILABLE');
-    await this.sessions.revoke(input.sessionId);
+    try {
+      if (this.requestContext === undefined) throw new SessionProblemError('SESSION_UNAVAILABLE');
+      const context = await this.requestContext.resolve(request);
+      const principal = await this.sessions.findPrincipal(input.sessionId);
+      if (
+        !principal ||
+        principal.userId !== context.actorId ||
+        principal.organizationId !== context.tenantScope.organizationId ||
+        (context.tenantScope.scopeType !== 'organization' &&
+          principal.workspaceId !== context.tenantScope.workspaceId)
+      )
+        throw new SessionProblemError('SESSION_INVALID');
+      await this.sessions.revoke(input.sessionId);
+    } catch (error) {
+      if (error instanceof SessionProblemError) throw error;
+      throw new SessionProblemError('SESSION_UNAVAILABLE');
+    }
     if (input.clientPlatform === 'web') {
       reply.header('Set-Cookie', [
         clearCookieV1(REFRESH_COOKIE_NAME_V1, { httpOnly: true }),

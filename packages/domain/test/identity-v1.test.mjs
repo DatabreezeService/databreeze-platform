@@ -123,6 +123,8 @@ test('[IAM-005, IAM-012] session access lifetime and fresh step-up are bounded',
   const session = createSessionRecordV1({
     sessionId: id('30'),
     userId: id('1'),
+    organizationId: id('2'),
+    workspaceId: id('3'),
     familyId: id('31'),
     issuedAt: createdAt,
     accessExpiresAt: '2026-01-01T00:15:00.000Z',

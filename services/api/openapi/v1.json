@@ -418,6 +418,7 @@
             }
           }
         },
+        "security": [{ "bearer": [] }],
         "summary": "Read the redacted authenticated session identity",
         "tags": ["auth"]
       }
@@ -710,6 +711,7 @@
             }
           }
         },
+        "security": [{ "bearer": [] }],
         "summary": "Revoke a session and clear browser credentials",
         "tags": ["auth"]
       }
@@ -6802,6 +6804,19 @@
                 "schema": { "format": "uuid", "type": "string" }
               }
             }
+          },
+          "503": {
+            "description": "Audit persistence is unavailable.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
           }
         },
         "security": [{ "bearer": [] }],
@@ -6870,6 +6885,19 @@
                 "schema": { "format": "uuid", "type": "string" }
               }
             }
+          },
+          "503": {
+            "description": "Audit persistence is unavailable.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
           }
         },
         "security": [{ "bearer": [] }],
@@ -6891,8 +6919,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "",
+          "400": {
+            "description": "The snapshot identifier is invalid.",
             "headers": {
               "X-Correlation-Id": {
                 "description": "Stable UUID that correlates related requests and errors.",
@@ -6904,13 +6932,8 @@
               }
             }
           },
-          "400": {
-            "description": "The request was malformed or failed closed validation.",
-            "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
-              }
-            },
+          "404": {
+            "description": "The entitlement snapshot is not visible.",
             "headers": {
               "X-Correlation-Id": {
                 "description": "Stable UUID that correlates related requests and errors.",
@@ -6929,6 +6952,19 @@
                 "schema": { "$ref": "#/components/schemas/ProblemDetails" }
               }
             },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "503": {
+            "description": "Entitlement persistence is unavailable.",
             "headers": {
               "X-Correlation-Id": {
                 "description": "Stable UUID that correlates related requests and errors.",
@@ -6959,19 +6995,6 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "",
-            "headers": {
-              "X-Correlation-Id": {
-                "description": "Stable UUID that correlates related requests and errors.",
-                "schema": { "format": "uuid", "type": "string" }
-              },
-              "X-Request-Id": {
-                "description": "Unique UUID generated for this HTTP request.",
-                "schema": { "format": "uuid", "type": "string" }
-              }
-            }
-          },
           "400": {
             "description": "The request was malformed or failed closed validation.",
             "content": {
@@ -6997,6 +7020,19 @@
                 "schema": { "$ref": "#/components/schemas/ProblemDetails" }
               }
             },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "503": {
+            "description": "Usage persistence is unavailable.",
             "headers": {
               "X-Correlation-Id": {
                 "description": "Stable UUID that correlates related requests and errors.",

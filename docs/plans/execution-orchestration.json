@@ -40,8 +40,8 @@
     },
     "commitBudget": {
       "preferredMinimum": 30,
-      "preferredMaximum": 70,
-      "hardMaximum": 99
+      "preferredMaximum": 50,
+      "hardMaximum": 79
     }
   },
   "statusVocabulary": [
@@ -144,10 +144,10 @@
     {
       "batchId": "B01",
       "name": "Foundation verification and identity completion",
-      "branch": "feat/foundation-identity-completion",
+      "branch": "feat/foundation-identity-reconciliation",
       "dependencies": [],
       "status": "in-progress",
-      "commitBudget": { "minimum": 30, "target": 70, "maximum": 85 },
+      "commitBudget": { "minimum": 30, "target": 45, "maximum": 79 },
       "maximumChangedFiles": 260,
       "taskIds": [
         "FND-003",
@@ -175,7 +175,7 @@
       "branch": "feat/artifacts-datasets-completion",
       "dependencies": ["B01"],
       "status": "planned",
-      "commitBudget": { "minimum": 30, "target": 65, "maximum": 75 },
+      "commitBudget": { "minimum": 30, "target": 45, "maximum": 79 },
       "maximumChangedFiles": 260,
       "taskIds": ["IAE-001", "IAE-002", "IAE-003", "IAE-004", "IAE-005", "DSM-001", "DSM-002", "DSM-003", "IAE-006", "IAE-007"],
       "exitGate": "Local, Hybrid, and Cloud artifact, evidence, dataset, definition, retention, and deletion gates pass."
@@ -186,7 +186,7 @@
       "branch": "feat/jobs-processing-completion",
       "dependencies": ["B02"],
       "status": "planned",
-      "commitBudget": { "minimum": 30, "target": 70, "maximum": 80 },
+      "commitBudget": { "minimum": 30, "target": 45, "maximum": 79 },
       "maximumChangedFiles": 260,
       "taskIds": ["JRA-001", "JRA-002", "JRA-003", "JRA-004", "JRA-005", "JRA-006", "JRA-007", "JRA-008", "JRA-009", "JRA-010", "JRA-011"],
       "exitGate": "The same signed typed action executes locally or in cloud with durable admission, evidence, approval, recovery, usage, and audit outcomes."
@@ -197,7 +197,7 @@
       "branch": "feat/devices-sync-completion",
       "dependencies": ["B03"],
       "status": "planned",
-      "commitBudget": { "minimum": 30, "target": 70, "maximum": 80 },
+      "commitBudget": { "minimum": 30, "target": 45, "maximum": 79 },
       "maximumChangedFiles": 260,
       "taskIds": ["DSO-001", "DSO-002", "DSO-003", "DSO-004", "DSO-005", "DSO-006", "DSO-007", "DSO-008", "DSO-009", "DSO-010"],
       "exitGate": "Desktop and Android operate offline, resume idempotently, expose conflicts, preserve data modes, and fail closed after revocation."
@@ -208,7 +208,7 @@
       "branch": "feat/collaboration-integrations",
       "dependencies": ["B04"],
       "status": "planned",
-      "commitBudget": { "minimum": 30, "target": 70, "maximum": 80 },
+      "commitBudget": { "minimum": 30, "target": 45, "maximum": 79 },
       "maximumChangedFiles": 260,
       "taskIds": ["NCO-001", "NCO-002", "NCO-003", "NCO-004", "INT-001", "INT-002", "INT-003", "INT-004", "NCO-005", "INT-005"],
       "exitGate": "Collaboration and external access use shared contracts and replaceable adapters without restricted or undocumented APIs."
@@ -219,7 +219,7 @@
       "branch": "feat/dogfood-autopilot-core",
       "dependencies": ["B05"],
       "status": "planned",
-      "commitBudget": { "minimum": 30, "target": 65, "maximum": 75 },
+      "commitBudget": { "minimum": 30, "target": 45, "maximum": 79 },
       "maximumChangedFiles": 260,
       "taskIds": ["DOG-001", "DOG-002", "DOG-003", "DOG-004", "DOG-005", "DOG-006", "DOG-007", "FA-001", "FA-002", "FA-003"],
       "exitGate": "All ten dogfood conditions pass and Autopilot has governed bindings, routing, watchers, and reconciliation."
@@ -230,7 +230,7 @@
       "branch": "feat/autopilot-spreadsheet-auditor",
       "dependencies": ["B06"],
       "status": "planned",
-      "commitBudget": { "minimum": 30, "target": 70, "maximum": 85 },
+      "commitBudget": { "minimum": 30, "target": 45, "maximum": 79 },
       "maximumChangedFiles": 260,
       "taskIds": ["FA-004", "FA-005", "FA-006", "FA-007", "SA-001", "SA-002", "SA-003", "SA-004", "SA-005", "SA-006", "SA-007"],
       "exitGate": "Folder Autopilot and Spreadsheet Auditor P0/P1 requirements are verified without mutating originals."
@@ -241,7 +241,7 @@
       "branch": "feat/quote-invoice-intelligence",
       "dependencies": ["B06"],
       "status": "planned",
-      "commitBudget": { "minimum": 30, "target": 75, "maximum": 90 },
+      "commitBudget": { "minimum": 30, "target": 45, "maximum": 79 },
       "maximumChangedFiles": 260,
       "taskIds": ["QI-001", "QI-002", "QI-003", "QI-004", "QI-005", "QI-006", "QI-007", "ILD-001", "ILD-002", "ILD-003", "ILD-004", "ILD-005", "ILD-006", "ILD-007"],
       "exitGate": "Quote Intelligence and Invoice Leak Detector P0/P1 requirements are verified with exact source evidence and no vendor API dependency."
@@ -252,7 +252,7 @@
       "branch": "feat/operations-capture",
       "dependencies": ["B06"],
       "status": "planned",
-      "commitBudget": { "minimum": 30, "target": 65, "maximum": 75 },
+      "commitBudget": { "minimum": 30, "target": 45, "maximum": 79 },
       "maximumChangedFiles": 260,
       "taskIds": ["OC-001", "OC-002", "OC-003", "OC-004", "OC-005", "OC-006", "OC-007", "OC-008"],
       "exitGate": "Offline native capture, immutable submissions, correction, supervision, and Desktop reconciliation pass P0/P1 gates."
@@ -263,7 +263,7 @@
       "branch": "feat/client-report-factory",
       "dependencies": ["B07", "B08"],
       "status": "planned",
-      "commitBudget": { "minimum": 30, "target": 65, "maximum": 75 },
+      "commitBudget": { "minimum": 30, "target": 45, "maximum": 79 },
       "maximumChangedFiles": 260,
       "taskIds": ["CRF-001", "CRF-002", "CRF-003", "CRF-004", "CRF-005", "CRF-006", "CRF-007"],
       "exitGate": "Evidence-linked multi-format reports, review, release, scheduling, and revocable sharing pass P0/P1 gates."
@@ -274,7 +274,7 @@
       "branch": "feat/private-data-analyst",
       "dependencies": ["B09", "B10"],
       "status": "planned",
-      "commitBudget": { "minimum": 30, "target": 70, "maximum": 80 },
+      "commitBudget": { "minimum": 30, "target": 45, "maximum": 79 },
       "maximumChangedFiles": 260,
       "taskIds": ["PDA-001", "PDA-002", "PDA-003", "PDA-004", "PDA-005", "PDA-006", "PDA-007", "PDA-008"],
       "exitGate": "Governed analysis is deterministic and reproducible; optional AI can propose but never supply numeric truth."
@@ -285,7 +285,7 @@
       "branch": "feat/migration-quality-suite",
       "dependencies": ["B08", "B11"],
       "status": "planned",
-      "commitBudget": { "minimum": 30, "target": 80, "maximum": 95 },
+      "commitBudget": { "minimum": 30, "target": 45, "maximum": 79 },
       "maximumChangedFiles": 260,
       "taskIds": ["MR-001", "MR-002", "MR-003", "MR-004", "MR-005", "MR-006", "MR-007", "DQG-001", "DQG-002", "DQG-003", "DQG-004", "DQG-005", "DQG-006", "DQG-007", "DQG-008"],
       "exitGate": "Migration Ready and Data Quality Guard P0/P1 requirements are verified with export-first, immutable, evidence-backed behavior."
@@ -296,7 +296,7 @@
       "branch": "feat/embedded-importer",
       "dependencies": ["B05"],
       "status": "planned",
-      "commitBudget": { "minimum": 30, "target": 60, "maximum": 70 },
+      "commitBudget": { "minimum": 30, "target": 45, "maximum": 79 },
       "maximumChangedFiles": 260,
       "taskIds": ["EI-001", "EI-002", "EI-003", "EI-004", "EI-005", "EI-006", "EI-007"],
       "exitGate": "Hosted importer and outbound-only Desktop gateway pass tenant, origin, upload, replay, accessibility, and local/cloud parity gates."
@@ -307,7 +307,7 @@
       "branch": "feat/production-readiness",
       "dependencies": ["B12", "B13"],
       "status": "planned",
-      "commitBudget": { "minimum": 30, "target": 75, "maximum": 90 },
+      "commitBudget": { "minimum": 30, "target": 45, "maximum": 79 },
       "maximumChangedFiles": 260,
       "taskIds": ["GA-001", "GA-002", "GA-003", "GA-004", "GA-005", "GA-006", "GA-007", "GA-008", "GA-009", "GA-010", "GA-011", "GA-012"],
       "exitGate": "Every P0/P1 requirement is verified, artifacts are signed and recoverable, and the coordinated GA release is observed and recorded."
@@ -318,7 +318,7 @@
       "branch": "feat/post-ga-extensions",
       "dependencies": ["B14"],
       "status": "post-ga-planned",
-      "commitBudget": { "minimum": 30, "target": 60, "maximum": 70 },
+      "commitBudget": { "minimum": 30, "target": 45, "maximum": 79 },
       "maximumChangedFiles": 260,
       "taskIds": ["P2-001", "P2-002", "P2-003", "P2-004"],
       "exitGate": "All 13 P2 requirements are opt-in, disabled by default, provider-exitable, revocable, and verified."

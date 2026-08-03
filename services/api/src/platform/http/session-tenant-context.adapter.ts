@@ -5,7 +5,10 @@ import { createIamTenantContextV1 } from '../../features/iam/application/tenant-
 import type { RequestTenantContextPortV1 } from './request-tenant-context.port.js';
 import { getRequestContext } from './request-context.js';
 
-export type RequestTenantContextProblemCodeV1 = 'AUTHENTICATION_FAILED' | 'CONTEXT_INVALID';
+export type RequestTenantContextProblemCodeV1 =
+  | 'AUTHENTICATION_FAILED'
+  | 'AUTHENTICATION_UNAVAILABLE'
+  | 'CONTEXT_INVALID';
 
 export class RequestTenantContextProblemError extends Error {
   constructor(readonly code: RequestTenantContextProblemCodeV1) {
@@ -80,7 +83,7 @@ export class SessionRequestTenantContextAdapter implements RequestTenantContextP
     try {
       principal = await this.sessions.findPrincipalByAccessToken(token);
     } catch {
-      throw new RequestTenantContextProblemError('AUTHENTICATION_FAILED');
+      throw new RequestTenantContextProblemError('AUTHENTICATION_UNAVAILABLE');
     }
     if (principal === undefined)
       throw new RequestTenantContextProblemError('AUTHENTICATION_FAILED');

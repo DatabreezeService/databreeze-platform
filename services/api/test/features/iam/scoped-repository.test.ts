@@ -21,6 +21,7 @@ const organizationId = stable('1');
 const workspaceId = stable('2');
 const siblingWorkspaceId = stable('3');
 const principalId = stable('4');
+const projectId = stable('6');
 
 function context(scope: unknown, expectedRevision?: number) {
   const result = createIamTenantContextV1({
@@ -97,6 +98,64 @@ void test('[IAM-009, IAM-019] repository reads never cross sibling workspace sco
       .findMembership(context(workspaceScope), principalId)
       .then((value) => value?.id),
     stable('10'),
+  );
+});
+
+void test('[IAM-003, IAM-014] membership authority only flows downward and the narrowest role wins', async () => {
+  const repository = new InMemoryIamRepositoryAdapter();
+  const organizationScope: TenantScopeV1 = { scopeType: 'organization', organizationId };
+  const projectScope: TenantScopeV1 = {
+    scopeType: 'project',
+    organizationId,
+    workspaceId,
+    projectId,
+  };
+  repository.seed([
+    {
+      id: stable('30'),
+      principalId,
+      scope: organizationScope,
+      roleId: 'owner',
+      status: 'ACTIVE',
+      revision: 1,
+    },
+    {
+      id: stable('31'),
+      principalId,
+      scope: workspaceScope,
+      roleId: 'viewer',
+      status: 'ACTIVE',
+      revision: 1,
+    },
+    {
+      id: stable('32'),
+      principalId,
+      scope: projectScope,
+      roleId: 'operator',
+      status: 'ACTIVE',
+      revision: 1,
+    },
+  ]);
+
+  assert.equal(
+    (await repository.findMembership(context(projectScope), principalId))?.roleId,
+    'operator',
+  );
+
+  const descendantOnly = new InMemoryIamRepositoryAdapter();
+  descendantOnly.seed([
+    {
+      id: stable('33'),
+      principalId,
+      scope: workspaceScope,
+      roleId: 'owner',
+      status: 'ACTIVE',
+      revision: 1,
+    },
+  ]);
+  assert.equal(
+    await descendantOnly.findMembership(context(organizationScope), principalId),
+    undefined,
   );
 });
 

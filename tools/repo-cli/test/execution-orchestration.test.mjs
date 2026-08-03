@@ -142,8 +142,8 @@ test('handoff policy preserves the requested dev and main review flow', () => {
   });
   assert.deepEqual(ledger.reviewPolicy.commitBudget, {
     preferredMinimum: 30,
-    preferredMaximum: 70,
-    hardMaximum: 99,
+    preferredMaximum: 50,
+    hardMaximum: 79,
   });
 });
 
@@ -167,7 +167,7 @@ test('delivery batches cover every unfinished task once within review budgets', 
     assert.ok(batch.commitBudget.minimum >= 30);
     assert.ok(batch.commitBudget.target >= batch.commitBudget.minimum);
     assert.ok(batch.commitBudget.target <= batch.commitBudget.maximum);
-    assert.ok(batch.commitBudget.maximum < 100);
+    assert.ok(batch.commitBudget.maximum <= 79);
     assert.ok(batch.maximumChangedFiles <= 260);
   }
   const activeBatch = ledger.deliveryBatches.find(

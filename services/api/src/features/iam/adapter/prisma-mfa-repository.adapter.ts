@@ -50,6 +50,10 @@ interface MfaFactorDelegateV1 {
     readonly where: { readonly id: string };
     readonly data: Partial<MfaFactorDatabaseRowV1>;
   }): Promise<MfaFactorDatabaseRowV1>;
+  updateMany(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+    readonly data: Partial<MfaFactorDatabaseRowV1>;
+  }): Promise<{ readonly count: number }>;
 }
 
 interface MfaRecoveryCodeDelegateV1 {
@@ -66,6 +70,10 @@ interface MfaRecoveryCodeDelegateV1 {
     readonly where: { readonly id: string };
     readonly data: Partial<MfaRecoveryCodeDatabaseRowV1>;
   }): Promise<MfaRecoveryCodeDatabaseRowV1>;
+  updateMany(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+    readonly data: Partial<MfaRecoveryCodeDatabaseRowV1>;
+  }): Promise<{ readonly count: number }>;
 }
 
 export interface MfaDatabaseClientV1 {
@@ -244,8 +252,8 @@ class PrismaMfaTransactionAdapter implements MfaTransactionPortV1 {
         continue;
       }
       if (JSON.stringify(prior) === JSON.stringify(factor)) continue;
-      await this.client.mfaFactor.update({
-        where: { id: factor.id },
+      const updated = await this.client.mfaFactor.updateMany({
+        where: { id: factor.id, revision: prior.revision },
         data: {
           status: factor.status,
           verifiedAt: factor.verifiedAt ? new Date(factor.verifiedAt) : null,
@@ -253,6 +261,7 @@ class PrismaMfaTransactionAdapter implements MfaTransactionPortV1 {
           revision: factor.revision,
         },
       });
+      if (updated.count !== 1) throw new Error('IAM_MFA_REVISION_CONFLICT');
     }
     for (const code of state.recoveryCodes) {
       const prior = existing.recoveryCodes.find((candidate) => candidate.id === code.id);
@@ -261,14 +270,15 @@ class PrismaMfaTransactionAdapter implements MfaTransactionPortV1 {
         continue;
       }
       if (JSON.stringify(prior) === JSON.stringify(code)) continue;
-      await this.client.mfaRecoveryCode.update({
-        where: { id: code.id },
+      const updated = await this.client.mfaRecoveryCode.updateMany({
+        where: { id: code.id, revision: prior.revision },
         data: {
           status: code.status,
           usedAt: code.usedAt ? new Date(code.usedAt) : null,
           revision: code.revision,
         },
       });
+      if (updated.count !== 1) throw new Error('IAM_MFA_REVISION_CONFLICT');
     }
   }
 }

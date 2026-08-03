@@ -29,21 +29,36 @@ function context(workspace = workspaceId, idempotencyKey = 'audit') {
   return result.value;
 }
 
-function delegate<TRow extends Record<string, unknown>>(rows: TRow[]) {
+function delegate<TRow extends Record<string, unknown>>(
+  rows: TRow[],
+  firstQueries: Array<Readonly<Record<string, unknown>>>,
+) {
   return {
     create({ data }: { readonly data: TRow }) {
       const persisted = { ...data };
       rows.push(persisted);
       return Promise.resolve(persisted);
     },
-    findUnique({ where }: { readonly where: { readonly id: string } }) {
-      return Promise.resolve(rows.find((row) => row['id'] === where.id) ?? null);
-    },
-    findFirst({ where }: { readonly where: Readonly<Record<string, unknown>> }) {
-      return Promise.resolve(
-        rows.find((row) => Object.entries(where).every(([key, value]) => row[key] === value)) ??
-          null,
+    findFirst({
+      where,
+      orderBy,
+    }: {
+      readonly where: Readonly<Record<string, unknown>>;
+      readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
+    }) {
+      firstQueries.push(where);
+      const matching = rows.filter((row) =>
+        Object.entries(where).every(([key, value]) => row[key] === value),
       );
+      const [field, direction] = Object.entries(orderBy ?? {})[0] ?? [];
+      if (field) {
+        matching.sort((left, right) => {
+          if (left[field] === right[field]) return 0;
+          const comparison = left[field]! < right[field]! ? -1 : 1;
+          return direction === 'desc' ? -comparison : comparison;
+        });
+      }
+      return Promise.resolve(matching[0] ?? null);
     },
     findMany({
       where,
@@ -70,12 +85,14 @@ function delegate<TRow extends Record<string, unknown>>(rows: TRow[]) {
   };
 }
 
-function client(): AuditDatabaseClientV1 {
+function client(
+  firstQueries: Array<Readonly<Record<string, unknown>>> = [],
+): AuditDatabaseClientV1 {
   const eventRows: Record<string, unknown>[] = [];
   const sealRows: Record<string, unknown>[] = [];
   const database = {
-    auditEventRecord: delegate(eventRows),
-    auditSealRecord: delegate(sealRows),
+    auditEventRecord: delegate(eventRows, firstQueries),
+    auditSealRecord: delegate(sealRows, firstQueries),
     async $transaction<TValue>(
       work: (transaction: AuditDatabaseClientV1) => Promise<TValue>,
     ): Promise<TValue> {
@@ -165,4 +182,22 @@ void test('[AUD-002] Prisma audit transactions do not retain an event when the u
     /rollback-me/u,
   );
   assert.equal((await repository.listEvents(context(workspaceId, 'after'))).length, 0);
+});
+
+void test('[AUD-003, IAM-009] Prisma audit event identity checks include tenant scope', async () => {
+  const firstQueries: Array<Readonly<Record<string, unknown>>> = [];
+  const repository = new PrismaAuditRepositoryAdapter(client(firstQueries), digest);
+  const service = new AuditLedgerService(repository, digest);
+  const eventId = '00000000-0000-4000-8000-000000000125';
+
+  const appended = await service.append(
+    context(workspaceId, 'event-scoped'),
+    input(eventId, 'job.started'),
+  );
+  assert.equal(appended.accepted, true);
+  assert.ok(
+    firstQueries.some(
+      (query) => query['id'] === eventId && query['organizationId'] === organizationId,
+    ),
+  );
 });

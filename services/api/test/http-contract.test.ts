@@ -9,6 +9,7 @@ import { createApiApplication } from '../src/bootstrap.js';
 import { createIamTenantContextV1 } from '../src/features/iam/application/tenant-context.js';
 import { InMemoryMfaRepositoryAdapter } from '../src/features/iam/adapter/in-memory-mfa-repository.adapter.js';
 import { MfaService } from '../src/features/iam/application/mfa.service.js';
+import { InMemoryAuditRepositoryAdapter } from '../src/features/aud/adapter/in-memory-audit-repository.adapter.js';
 
 interface InjectResponse {
   readonly body: string;
@@ -439,10 +440,36 @@ void test('refresh rotates Web cookies without returning the refresh token and p
       assert.doesNotMatch(response.body, /REUSE_DETECTED/);
     },
   );
+
+  await withApp(
+    {
+      sessions: {
+        issue: () => Promise.reject(new Error('not used')),
+        refresh: () => Promise.reject(new Error('database unavailable')),
+        revoke: () => Promise.resolve(true),
+        findPrincipal: () => Promise.resolve(undefined),
+      },
+    },
+    async (app) => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/refresh',
+        payload: { clientPlatform: 'desktop', refreshToken: 'database-refresh-token' },
+      });
+      assertProblem(response, 503, 'SESSION_UNAVAILABLE');
+    },
+  );
 });
 
 void test('sign-out revokes idempotently and clears browser credentials', async () => {
   const revoked: string[] = [];
+  const signOutPrincipal = {
+    userId: '00000000-0000-4000-8000-000000000001',
+    organizationId: '00000000-0000-4000-8000-000000000002',
+    workspaceId: '00000000-0000-4000-8000-000000000003',
+    securityEpoch: 1,
+    mfaRequired: false,
+  };
   await withApp(
     {
       sessions: {
@@ -452,7 +479,17 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
           revoked.push(String(sessionId));
           return Promise.resolve(false);
         },
-        findPrincipal: () => Promise.resolve(undefined),
+        findPrincipal: (sessionId) =>
+          Promise.resolve(
+            sessionId === '00000000-0000-4000-8000-000000000099'
+              ? {
+                  ...signOutPrincipal,
+                  userId: '00000000-0000-4000-8000-000000000099',
+                }
+              : signOutPrincipal,
+          ),
+        findPrincipalByAccessToken: (token) =>
+          Promise.resolve(token === 'sign-out-access-token' ? signOutPrincipal : undefined),
       },
     },
     async (app) => {
@@ -463,6 +500,7 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
           cookie: `databreeze_refresh=current-refresh-token; databreeze_csrf=${csrfToken}`,
           'x-csrf-token': csrfToken,
           origin: 'http://localhost:3000',
+          authorization: 'Bearer sign-out-access-token',
         },
         payload: {
           clientPlatform: 'web',
@@ -482,6 +520,7 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
       const native = await app.inject({
         method: 'POST',
         url: '/v1/auth/sign-out',
+        headers: { authorization: 'Bearer sign-out-access-token' },
         payload: {
           clientPlatform: 'android',
           sessionId: '00000000-0000-4000-8000-000000000011',
@@ -493,6 +532,42 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
         '00000000-0000-4000-8000-000000000010',
         '00000000-0000-4000-8000-000000000011',
       ]);
+
+      const crossUser = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/sign-out',
+        headers: { authorization: 'Bearer sign-out-access-token' },
+        payload: {
+          clientPlatform: 'android',
+          sessionId: '00000000-0000-4000-8000-000000000099',
+        },
+      });
+      assertProblem(crossUser, 401, 'SESSION_INVALID');
+    },
+  );
+
+  await withApp(
+    {
+      sessions: {
+        issue: () => Promise.reject(new Error('not used')),
+        refresh: () => Promise.reject(new Error('not used')),
+        revoke: () => Promise.reject(new Error('database unavailable')),
+        findPrincipal: () => Promise.resolve(signOutPrincipal),
+        findPrincipalByAccessToken: (token) =>
+          Promise.resolve(token === 'sign-out-access-token' ? signOutPrincipal : undefined),
+      },
+    },
+    async (app) => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/sign-out',
+        headers: { authorization: 'Bearer sign-out-access-token' },
+        payload: {
+          clientPlatform: 'android',
+          sessionId: '00000000-0000-4000-8000-000000000011',
+        },
+      });
+      assertProblem(response, 503, 'SESSION_UNAVAILABLE');
     },
   );
 });
@@ -571,22 +646,71 @@ void test('protected artifact reads derive tenant scope from an authenticated ac
         url: '/v1/entitlements/snapshots/80000000-0000-4000-8000-000000000099',
         headers: { authorization: 'Bearer access-token-for-context-1' },
       });
-      assert.equal(missingSnapshot.statusCode, 200);
-      assert.deepEqual(missingSnapshot.json(), {
-        accepted: false,
-        code: 'ENTITLEMENT_NOT_FOUND',
-      });
+      assertProblem(missingSnapshot, 404, 'ENTITLEMENT_NOT_FOUND');
 
       const invalidSnapshot = await app.inject({
         method: 'GET',
         url: '/v1/entitlements/snapshots/not-an-id',
         headers: { authorization: 'Bearer access-token-for-context-1' },
       });
-      assert.equal(invalidSnapshot.statusCode, 200);
-      assert.deepEqual(invalidSnapshot.json(), {
-        accepted: false,
-        code: 'INVALID_IDENTIFIER',
+      assertProblem(invalidSnapshot, 400, 'ENTITLEMENT_REQUEST_INVALID');
+    },
+  );
+
+  await withApp(
+    {
+      sessions: {
+        issue: () => Promise.reject(new Error('not used')),
+        refresh: () => Promise.reject(new Error('not used')),
+        revoke: () => Promise.resolve(true),
+        findPrincipal: () => Promise.resolve(undefined),
+        findPrincipalByAccessToken: () => Promise.reject(new Error('database unavailable')),
+      },
+    },
+    async (app) => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/artifacts/inbox',
+        headers: { authorization: 'Bearer unavailable-access-token-12345' },
       });
+      assertProblem(response, 503, 'AUTHENTICATION_UNAVAILABLE');
+    },
+  );
+});
+
+void test('audit read outages return retryable service-unavailable problems', async () => {
+  const auditRepository = Object.assign(new InMemoryAuditRepositoryAdapter(), {
+    listEvents: () => Promise.reject(new Error(`database ${leakedMarker}`)),
+    listSeals: () => Promise.reject(new Error(`database ${leakedMarker}`)),
+  });
+  const principal = {
+    userId: '00000000-0000-4000-8000-000000000001',
+    organizationId: '00000000-0000-4000-8000-000000000002',
+    workspaceId: '00000000-0000-4000-8000-000000000003',
+    securityEpoch: 1,
+    mfaRequired: false,
+  } as const;
+  await withApp(
+    {
+      auditRepository,
+      sessions: {
+        issue: () => Promise.reject(new Error('not used')),
+        refresh: () => Promise.reject(new Error('not used')),
+        revoke: () => Promise.resolve(true),
+        findPrincipal: () => Promise.resolve(principal),
+        findPrincipalByAccessToken: () => Promise.resolve(principal),
+      },
+    },
+    async (app) => {
+      for (const url of ['/v1/audit/events', '/v1/audit/seals']) {
+        const response = await app.inject({
+          method: 'GET',
+          url,
+          headers: { authorization: 'Bearer audit-access-token-123456789' },
+        });
+        assertProblem(response, 503, 'AUDIT_UNAVAILABLE');
+        assert.doesNotMatch(response.body, new RegExp(leakedMarker));
+      }
     },
   );
 });
@@ -645,5 +769,22 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
       payload: { at: '2026-01-01T00:02:00.000Z' },
     });
     assertProblem(invalid, 400, 'MFA_REQUEST_REJECTED');
+  });
+
+  const unavailableMfa = {
+    enroll: () => Promise.reject(new Error('database unavailable')),
+  } as unknown as MfaService;
+  await withApp({ mfaService: unavailableMfa, requestTenantContext }, async (app) => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/mfa/factors',
+      payload: {
+        id: '00000000-0000-4000-8000-000000000010',
+        method: 'TOTP',
+        secretReference: 'vault://iam/mfa/test-factor',
+        enrolledAt: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    assertProblem(response, 503, 'MFA_UNAVAILABLE');
   });
 });

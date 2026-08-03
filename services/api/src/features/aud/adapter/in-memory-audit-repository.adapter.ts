@@ -9,6 +9,7 @@ import type {
   AuditRepositoryPortV1,
   AuditTransactionPortV1,
 } from '../application/audit-repository.port.js';
+import { sameAuditEventV1, sameAuditSealV1 } from '../application/audit-equality.js';
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 
 function visibleInScope(context: TenantScopeV1, record: TenantScopeV1): boolean {
@@ -44,8 +45,7 @@ export class InMemoryAuditRepositoryAdapter implements AuditRepositoryPortV1 {
       throw new Error('AUD_SCOPE_NARROWING_REQUIRED');
     const existing = this.events.get(event.eventId);
     if (existing) {
-      if (JSON.stringify(existing) !== JSON.stringify(event))
-        throw new Error('AUD_IMMUTABLE_EVENT');
+      if (!sameAuditEventV1(existing, event)) throw new Error('AUD_IMMUTABLE_EVENT');
       return cloneEvent(existing);
     }
     const scopedEvents = [...this.events.values()]
@@ -76,6 +76,22 @@ export class InMemoryAuditRepositoryAdapter implements AuditRepositoryPortV1 {
       .map(cloneEvent);
   }
 
+  async listEventsForScope(
+    context: IamTenantContextV1,
+    scope: TenantScopeV1,
+  ): Promise<readonly AuditEventV1[]> {
+    await Promise.resolve();
+    if (!scopeAllowsMutation(context, scope)) throw new Error('AUD_SCOPE_NARROWING_REQUIRED');
+    return [...this.events.values()]
+      .filter(
+        (event) =>
+          tenantScopeContainsV1(event.tenantScope, scope) &&
+          tenantScopeContainsV1(scope, event.tenantScope),
+      )
+      .sort((left, right) => left.sequence - right.sequence)
+      .map(cloneEvent);
+  }
+
   async saveSeal(context: IamTenantContextV1, seal: AuditSealV1): Promise<void> {
     await Promise.resolve();
     if (!scopeAllowsMutation(context, seal.tenantScope))
@@ -87,8 +103,7 @@ export class InMemoryAuditRepositoryAdapter implements AuditRepositoryPortV1 {
         tenantScopeContainsV1(item.tenantScope, seal.tenantScope) &&
         tenantScopeContainsV1(seal.tenantScope, item.tenantScope),
     );
-    if (existing && JSON.stringify(existing) !== JSON.stringify(seal))
-      throw new Error('AUD_IMMUTABLE_SEAL');
+    if (existing && !sameAuditSealV1(existing, seal)) throw new Error('AUD_IMMUTABLE_SEAL');
     this.seals.set(seal.rootDigest, cloneSeal(seal));
   }
 
@@ -116,6 +131,7 @@ export class InMemoryAuditRepositoryAdapter implements AuditRepositoryPortV1 {
       return await work({
         appendEvent: this.appendEvent.bind(this),
         listEvents: this.listEvents.bind(this),
+        listEventsForScope: this.listEventsForScope.bind(this),
         saveSeal: this.saveSeal.bind(this),
         listSeals: this.listSeals.bind(this),
       });
