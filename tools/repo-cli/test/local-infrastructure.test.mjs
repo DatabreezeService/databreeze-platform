@@ -90,6 +90,8 @@ test('local bootstrap is credential-free and creates every owned module schema',
   assert.doesNotMatch(sql, /DROP\s+SCHEMA|DROP\s+DATABASE|TRUNCATE/u);
 
   const bucketScript = read('infrastructure/local/minio/bootstrap-buckets.sh');
+  assert.doesNotMatch(bucketScript, /\r/u);
+  assert.match(read('.gitattributes'), /^\*\.sh text eol=lf$/m);
   assert.match(bucketScript, /MINIO_ROOT_PASSWORD/);
   assert.match(bucketScript, /mc mb --ignore-existing/u);
   assert.match(bucketScript, /mc anonymous set none/u);
