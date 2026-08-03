@@ -14,7 +14,12 @@ import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js
 import type { ApprovalRepositoryPortV1 } from './approval-repository.port.js';
 
 function rejected<TValue>(
-  code: 'INVALID_IDENTIFIER' | 'INVALID_ROLE' | 'REQUEST_NOT_OPEN' | 'SUBJECT_HASH_MISMATCH',
+  code:
+    | 'INVALID_IDENTIFIER'
+    | 'INVALID_ROLE'
+    | 'REQUEST_NOT_OPEN'
+    | 'SUBJECT_HASH_MISMATCH'
+    | 'MFA_REENROLLMENT_REQUIRED',
 ): ApprovalResultV1<TValue> {
   return Object.freeze({ accepted: false, code });
 }
@@ -72,6 +77,7 @@ export class ApprovalService {
       readonly decision: ApprovalDecisionRecordV1;
     }>
   > {
+    if (context.mfaReenrollmentRequired === true) return rejected('MFA_REENROLLMENT_REQUIRED');
     return this.repository.withTransaction(context, async (transaction) => {
       const request = await transaction.findRequest(context, input.requestId);
       if (!request) return rejected('INVALID_IDENTIFIER');
