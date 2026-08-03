@@ -1,4 +1,7 @@
-import { bootstrapPersonalOrganizationV1 } from '@databreeze/domain/identity/v1';
+import {
+  bootstrapPersonalOrganizationV1,
+  type PersonalOrganizationBootstrapV1,
+} from '@databreeze/domain/identity/v1';
 import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type {
@@ -9,10 +12,7 @@ import type {
 export const IDENTITY_BOOTSTRAP_SERVICE = Symbol('IDENTITY_BOOTSTRAP_SERVICE');
 
 export type IdentityBootstrapReadResultV1 =
-  | {
-      readonly accepted: true;
-      readonly value: Awaited<ReturnType<IdentityBootstrapRepositoryPortV1['findByUserId']>> & {};
-    }
+  | { readonly accepted: true; readonly value: PersonalOrganizationBootstrapV1 }
   | { readonly accepted: false; readonly code: 'INVALID_IDENTIFIER' | 'NOT_FOUND' | 'UNAVAILABLE' };
 
 function conflict(): IdentityBootstrapResultV1 {
