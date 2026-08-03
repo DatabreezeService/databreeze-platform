@@ -361,9 +361,15 @@ export function createStructuredLoggerV1(options: StructuredLoggerOptionsV1) {
       if (!levelSet.has(level)) throw new Error('Invalid telemetry level');
       if (!eventPattern.test(event)) throw new Error('Invalid telemetry event');
       const normalized = createCorrelationContextV1(correlation);
+      let timestamp: string;
+      try {
+        timestamp = clock().toISOString();
+      } catch {
+        timestamp = new Date().toISOString();
+      }
       const record: TelemetryRecordV1 = {
         schemaVersion: TELEMETRY_SCHEMA_VERSION_V1,
-        timestamp: clock().toISOString(),
+        timestamp,
         level,
         event,
         component: options.component,
@@ -375,7 +381,11 @@ export function createStructuredLoggerV1(options: StructuredLoggerOptionsV1) {
         record.spanId = normalized.spanId;
         if (normalized.traceFlags !== undefined) record.traceFlags = normalized.traceFlags;
       }
-      sink(record);
+      try {
+        sink(record);
+      } catch {
+        // Exporters are best-effort adapters and cannot become product authority.
+      }
       return record;
     },
   };

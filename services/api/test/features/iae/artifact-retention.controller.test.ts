@@ -82,7 +82,6 @@ void test('[IAE-016, IAM-009] retention HTTP binds requester to the authenticate
       url: `/v1/artifact-versions/${versionId}/deletion-requests`,
       payload: {
         requestId,
-        requestedBy: '00000000-0000-4000-8000-000000000739',
         requestedAt: '2026-08-02T01:00:00.000Z',
         evaluatedAt: '2026-08-02T01:00:00.000Z',
         workspaceRetentionUntil: '2026-07-01T00:00:00.000Z',

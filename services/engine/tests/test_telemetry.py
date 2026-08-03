@@ -1,3 +1,5 @@
+from collections.abc import Iterator, Mapping
+
 import pytest
 
 from databreeze_engine.telemetry import (
@@ -128,3 +130,28 @@ def test_engine_accepts_mixed_case_header_names() -> None:
         )
         == context
     )
+
+
+def test_engine_record_builder_isolates_hostile_attribute_mappings() -> None:
+    class HostileAttributes(Mapping[str, object]):
+        def __getitem__(self, key: str) -> object:
+            raise RuntimeError("provider source value must not escape")
+
+        def __iter__(self) -> Iterator[str]:
+            raise RuntimeError("provider source value must not escape")
+
+        def __len__(self) -> int:
+            return 1
+
+        def items(self):  # type: ignore[override]
+            raise RuntimeError("provider source value must not escape")
+
+    record = emit_record(
+        "warn",
+        "processor.degraded",
+        "engine",
+        CorrelationContext("00000000-0000-4000-8000-000000000001"),
+        HostileAttributes(),
+    )
+    assert record["attributes"] == {}
+    assert "provider source" not in str(record)

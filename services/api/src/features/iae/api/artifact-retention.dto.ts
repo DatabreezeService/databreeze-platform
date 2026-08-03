@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsISO8601, IsInt, IsUUID, Matches, Min } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsBoolean, IsISO8601, IsInt, IsOptional, IsUUID, Matches, Min } from 'class-validator';
 
 const strictUtcTimestamp = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 
@@ -43,9 +43,14 @@ export class CreateArtifactDeletionRequestDto extends RetentionEvaluationDto {
   @IsUUID()
   requestId!: string;
 
-  @ApiProperty({ format: 'uuid' })
+  @ApiPropertyOptional({
+    format: 'uuid',
+    deprecated: true,
+    description: 'Ignored. Attribution always uses the authenticated actor.',
+  })
+  @IsOptional()
   @IsUUID()
-  requestedBy!: string;
+  requestedBy?: string;
 
   @ApiProperty({ format: 'date-time' })
   @IsISO8601({ strict: true, strictSeparator: true })

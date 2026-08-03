@@ -1,5 +1,6 @@
 import {
   tenantScopeContainsV1,
+  tenantScopesEqualV1,
   type ArtifactScanStateV1,
   type ArtifactVersionV1,
   type ContentPlacementV1,
@@ -115,14 +116,17 @@ export class InMemoryArtifactRepositoryAdapter implements ArtifactRepositoryPort
 
   async updatePlacement(context: IamTenantContextV1, placement: ContentPlacementV1): Promise<void> {
     await Promise.resolve();
-    if (!scopeAllowsMutation(context, placement.tenantScope))
-      throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
     const existing = this.placements.get(placement.placementId);
     if (!existing) throw new Error('IAE_PLACEMENT_NOT_FOUND');
+    if (!scopeAllowsMutation(context, existing.tenantScope))
+      throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
+    if (!scopeAllowsMutation(context, placement.tenantScope))
+      throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
     if (JSON.stringify(existing) === JSON.stringify(placement)) return;
     if (placement.revision !== existing.revision + 1) throw new Error('IAE_REVISION_CONFLICT');
     if (
       existing.artifactVersionId !== placement.artifactVersionId ||
+      !tenantScopesEqualV1(existing.tenantScope, placement.tenantScope) ||
       existing.kind !== placement.kind ||
       existing.opaqueReference !== placement.opaqueReference ||
       existing.contentSha256 !== placement.contentSha256

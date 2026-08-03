@@ -1,5 +1,8 @@
 package com.databreeze.android.telemetry
 
+import java.time.Instant
+import java.time.format.DateTimeParseException
+
 /** Cross-runtime names and safe record helpers shared with @databreeze/telemetry/v1. */
 object TelemetryContract {
     const val SchemaVersion = 1
@@ -50,7 +53,8 @@ object TelemetryContract {
 
     fun sanitizeAttributes(input: Map<String, Any?>): Map<String, Any> {
         val result = linkedMapOf<String, Any>()
-        input.forEach { (key, value) ->
+        val entries = readAttributeEntries(input) ?: return emptyMap()
+        entries.forEach { (key, value) ->
             require(key.matches(Regex("^[A-Za-z][A-Za-z0-9]{0,63}$"))) {
                 "invalid telemetry key"
             }
@@ -62,12 +66,21 @@ object TelemetryContract {
     }
 
     fun assertSafeAttributes(input: Map<String, Any?>) {
-        input.forEach { (key, value) ->
+        val entries = readAttributeEntries(input)
+            ?: throw IllegalArgumentException("telemetry attributes are not readable")
+        entries.forEach { (key, value) ->
             require(key in SafeAttributeKeys && safeScalar(key, value) != null) {
                 "telemetry attribute is not allowed: $key"
             }
         }
     }
+
+    private fun readAttributeEntries(input: Map<String, Any?>): List<Pair<String, Any?>>? =
+        try {
+            input.entries.map { entry -> entry.key to entry.value }
+        } catch (_: Exception) {
+            null
+        }
 
     private fun safeScalar(key: String, value: Any?): Any? {
         if (key == "sampled") return value as? Boolean
@@ -133,9 +146,14 @@ object TelemetryContract {
             correlation.spanId,
             correlation.traceFlags,
         )
+        val normalizedTimestamp = try {
+            Instant.parse(timestamp).toString()
+        } catch (_: DateTimeParseException) {
+            throw IllegalArgumentException("invalid telemetry timestamp")
+        }
         return TelemetryRecord(
             SchemaVersion,
-            timestamp,
+            normalizedTimestamp,
             level,
             event,
             component,
@@ -148,9 +166,14 @@ object TelemetryContract {
     }
 
     private fun singleHeader(headers: Map<String, List<String>>, name: String): String? {
-        val values = headers.entries
-            .filter { it.key.lowercase() == name }
-            .flatMap { it.value }
+        val entries = try {
+            headers.entries.map { entry -> entry.key to entry.value.toList() }
+        } catch (_: Exception) {
+            throw IllegalArgumentException("telemetry headers are not readable")
+        }
+        val values = entries
+            .filter { it.first.lowercase() == name }
+            .flatMap { it.second }
         require(values.size <= 1) { "ambiguous telemetry $name header" }
         return values.singleOrNull()?.also { require(it.isNotEmpty()) { "empty telemetry $name header" } }
     }

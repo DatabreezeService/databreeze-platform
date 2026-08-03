@@ -385,7 +385,9 @@ export function validateEvidenceCoordinateV1(
   if (!isEvidenceGeometry(geometry)) return rejected('INVALID_COORDINATE');
   if (coordinate.kind === 'CELL') {
     if (geometry.kind !== 'SPREADSHEET') return rejected('COORDINATE_OUT_OF_BOUNDS');
-    const sheet = geometry.sheets.find((candidate) => candidate.name === coordinate.sheet);
+    const sheet = geometry.sheets.find(
+      (candidate) => boundedText(candidate.name, 255) === coordinate.sheet,
+    );
     const address = /^\$?([A-Z]{1,3})\$?([1-9][0-9]*)$/u.exec(coordinate.address.toUpperCase());
     if (!sheet || !address) return rejected('COORDINATE_OUT_OF_BOUNDS');
     const column = spreadsheetColumnNumber(address[1] ?? '');

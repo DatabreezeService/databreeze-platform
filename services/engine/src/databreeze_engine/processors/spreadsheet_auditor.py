@@ -258,32 +258,31 @@ def audit_workbook(
                 cells_by_column.setdefault(column, {})[row] = formula
             gap_keys: set[tuple[str, str]] = set()
             for column, rows in cells_by_column.items():
-                formula_rows = sorted(row for row, formula in rows.items() if formula is not None)
-                for previous_row, next_row in itertools.pairwise(formula_rows):
-                    if next_row - previous_row <= 1:
-                        continue
-                    previous_formula = rows[previous_row]
-                    next_formula = rows[next_row]
-                    if previous_formula is None or next_formula is None:
-                        continue
-                    previous_family = _normalized_formula(previous_formula)
-                    if previous_family != _normalized_formula(next_formula):
-                        continue
-                    populated_rows = sorted(row for row in rows if previous_row < row < next_row)
-                    for row in populated_rows:
-                        address = f"{_column_name(column)}{row}"
-                        key = (address, previous_family)
-                        if key in gap_keys:
+                rows_by_family: dict[str, list[int]] = {}
+                for row, formula in rows.items():
+                    if formula is not None:
+                        rows_by_family.setdefault(_normalized_formula(formula), []).append(row)
+                for family, formula_rows in rows_by_family.items():
+                    for previous_row, next_row in itertools.pairwise(sorted(formula_rows)):
+                        if next_row - previous_row <= 1:
                             continue
-                        gap_keys.add(key)
-                        findings.append(
-                            SpreadsheetFinding(
-                                sheet=sheet_name,
-                                address=address,
-                                kind="FORMULA_GAP",
-                                formulaFingerprint=_fingerprint(previous_family),
-                            )
+                        populated_rows = sorted(
+                            row for row in rows if previous_row < row < next_row
                         )
+                        for row in populated_rows:
+                            address = f"{_column_name(column)}{row}"
+                            key = (address, family)
+                            if key in gap_keys:
+                                continue
+                            gap_keys.add(key)
+                            findings.append(
+                                SpreadsheetFinding(
+                                    sheet=sheet_name,
+                                    address=address,
+                                    kind="FORMULA_GAP",
+                                    formulaFingerprint=_fingerprint(family),
+                                )
+                            )
             summaries.append(
                 SpreadsheetSheetSummary(
                     name=sheet_name,

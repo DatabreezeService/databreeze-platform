@@ -116,6 +116,13 @@ void test('[IAE-006] evidence coordinates are validated against exact source geo
   );
   assert.deepEqual(
     validateEvidenceCoordinateV1(
+      { kind: 'CELL', sheet: 'Sheet1', address: 'B4' },
+      { kind: 'SPREADSHEET', sheets: [{ name: '  Sheet1  ', maxRow: 10, maxColumn: 3 }] },
+    ),
+    { accepted: true, value: true },
+  );
+  assert.deepEqual(
+    validateEvidenceCoordinateV1(
       { kind: 'CELL', sheet: 'Sheet1', address: 'D4' },
       { kind: 'SPREADSHEET', sheets: [{ name: 'Sheet1', maxRow: 10, maxColumn: 3 }] },
     ),

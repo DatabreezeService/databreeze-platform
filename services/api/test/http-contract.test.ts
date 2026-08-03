@@ -124,6 +124,19 @@ void test('rejects malformed and multiple correlation values without reflecting 
   });
 });
 
+void test('rejects malformed traceparent values without reflecting the header', async () => {
+  await withApp({}, async (app) => {
+    const leakedMarker = '00-00000000000000000000000000000000-0123456789abcdef-01';
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/health',
+      headers: { traceparent: leakedMarker },
+    });
+    assert.equal(response.statusCode, 400);
+    assert.doesNotMatch(response.body, new RegExp(leakedMarker));
+  });
+});
+
 void test('maps unknown routes to safe Problem Details without exposing the path or query', async () => {
   await withApp({}, async (app) => {
     const response = await app.inject({

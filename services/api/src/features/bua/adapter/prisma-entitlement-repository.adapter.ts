@@ -585,6 +585,12 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
     context: IamTenantContextV1,
     state: UsageLedgerStateV1,
   ): Promise<void> {
+    if (
+      new Set(state.entries.map((entry) => entry.entryId)).size !== state.entries.length ||
+      new Set(state.reservations.map((reservation) => reservation.reservationId)).size !==
+        state.reservations.length
+    )
+      throw new Error('BUA_USAGE_STATE_CONFLICT');
     for (const entry of state.entries) {
       if (!tenantScopeContainsV1(context.tenantScope, entry.tenantScope))
         throw new Error('BUA_SCOPE_NARROWING_REQUIRED');

@@ -298,6 +298,7 @@ class PrismaDeviceCapabilityTransactionAdapter implements DeviceCapabilityTransa
     const current = await this.findCapability(context, capability.capabilityId);
     if (!current) throw new Error('DSO_CAPABILITY_NOT_FOUND');
     if (current.revision !== expectedRevision) throw new Error('DSO_REVISION_CONFLICT');
+    if (capability.revision !== expectedRevision + 1) throw new Error('DSO_REVISION_CONFLICT');
     if (
       current.deviceId !== capability.deviceId ||
       current.organizationId !== capability.organizationId ||
@@ -326,6 +327,7 @@ class PrismaDeviceCapabilityTransactionAdapter implements DeviceCapabilityTransa
     const current = await this.findGrant(context, grant.grantId);
     if (!current) throw new Error('DSO_GRANT_NOT_FOUND');
     if (current.revision !== expectedRevision) throw new Error('DSO_REVISION_CONFLICT');
+    if (grant.revision !== expectedRevision + 1) throw new Error('DSO_REVISION_CONFLICT');
     if (
       current.deviceId !== grant.deviceId ||
       current.organizationId !== grant.organizationId ||

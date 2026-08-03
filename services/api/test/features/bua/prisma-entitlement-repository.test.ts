@@ -251,6 +251,35 @@ void test('[BUA-001, BUA-002, BUA-008, IAM-009] Prisma entitlement adapter persi
   );
 });
 
+void test('[BUA-008, BUA-011] Prisma entitlement adapter rejects duplicate usage identities', async () => {
+  const repository = new PrismaEntitlementRepositoryAdapter(client());
+  await repository.saveSnapshot(context(workspaceId, 'duplicate-snapshot'), snapshot());
+  const service = new EntitlementAdmissionService(repository);
+  const admitted = await service.admit(
+    context(workspaceId, 'duplicate-admit'),
+    admissionInput('duplicate-admit', '1'),
+  );
+  assert.equal(admitted.accepted, true);
+  if (!admitted.accepted) return;
+  const entry = admitted.value.state.entries[0];
+  const reservation = admitted.value.state.reservations[0];
+  if (!entry || !reservation) throw new Error('fixture usage state missing');
+  await assert.rejects(
+    repository.persistUsageState(context(workspaceId, 'duplicate-entry'), {
+      ...admitted.value.state,
+      entries: [entry, entry],
+    }),
+    /BUA_USAGE_STATE_CONFLICT/u,
+  );
+  await assert.rejects(
+    repository.persistUsageState(context(workspaceId, 'duplicate-reservation'), {
+      ...admitted.value.state,
+      reservations: [reservation, reservation],
+    }),
+    /BUA_USAGE_STATE_CONFLICT/u,
+  );
+});
+
 void test('[BUA-008, IAM-009] Prisma entitlement adapter round-trips project-scoped usage', async () => {
   const repository = new PrismaEntitlementRepositoryAdapter(client());
   await repository.saveSnapshot(context(workspaceId, 'project-snapshot'), snapshot());

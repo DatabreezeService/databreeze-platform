@@ -215,3 +215,26 @@ void test('[DSO-005, DSO-016] Prisma capability and grant replacements reject da
     /DSO_REVISION_CONFLICT/u,
   );
 });
+
+void test('[DSO-005, DSO-016] Prisma capability and grant replacements require one revision step', async () => {
+  const repository = new PrismaDeviceCapabilityRepositoryAdapter(client());
+  await repository.saveCapability(context(workspaceId, 'cap-step-save'), capability());
+  await assert.rejects(
+    repository.replaceCapability(
+      context(workspaceId, 'cap-step-replace'),
+      { ...capability(), status: 'PAUSED', revision: 1 },
+      1,
+    ),
+    /DSO_REVISION_CONFLICT/u,
+  );
+
+  await repository.saveGrant(context(workspaceId, 'grant-step-save'), grant());
+  await assert.rejects(
+    repository.replaceGrant(
+      context(workspaceId, 'grant-step-replace'),
+      { ...grant(), status: 'REVOKED', revision: 3 },
+      1,
+    ),
+    /DSO_REVISION_CONFLICT/u,
+  );
+});

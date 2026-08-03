@@ -227,6 +227,30 @@ void test('[IAM-012, IAM-014] Prisma MFA persistence rejects a changed stale rev
   );
 });
 
+void test('[IAM-012, IAM-014] Prisma MFA persistence rejects duplicate state identities', async () => {
+  const { client } = createDatabase();
+  const adapter = new PrismaMfaRepositoryAdapter(client);
+  const input = state();
+  const factor = input.factors[0];
+  const code = input.recoveryCodes[0];
+  if (!factor || !code) throw new Error('fixture missing MFA state');
+
+  await assert.rejects(
+    adapter.saveState(factor.userId, {
+      factors: [factor, factor],
+      recoveryCodes: [code],
+    }),
+    /IAM_MFA_REVISION_CONFLICT/u,
+  );
+  await assert.rejects(
+    adapter.saveState(factor.userId, {
+      factors: [factor],
+      recoveryCodes: [code, code],
+    }),
+    /IAM_MFA_REVISION_CONFLICT/u,
+  );
+});
+
 void test('[IAM-012, IAM-016] Prisma MFA persistence rejects a redemption race with compare-and-set', async () => {
   const { client } = createDatabase();
   const adapter = new PrismaMfaRepositoryAdapter(client);

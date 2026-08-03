@@ -502,7 +502,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   );
   assert.match(
     lineageUniquenessMigration,
-    /CREATE UNIQUE INDEX "artifact_lineage_derived_version_key"/,
+    /CREATE UNIQUE INDEX "artifact_lineage_derived_version_key"\s+ON "iae"\."artifact_lineage"\("derived_artifact_version_id"\);/u,
   );
   const sessionScopeMigration = await readFile(
     path.join(migrationsDirectory, inventory[33], 'migration.sql'),
