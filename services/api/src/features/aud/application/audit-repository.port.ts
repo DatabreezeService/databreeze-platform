@@ -39,6 +39,7 @@ export interface AuditRepositoryPortV1 extends AuditTransactionPortV1 {
     context: IamTenantContextV1,
     input: AuditPageInputV1,
   ): Promise<AuditPageV1<AuditSealV1>>;
+  listSeals(context: IamTenantContextV1): Promise<readonly AuditSealV1[]>;
   withTransaction<TValue>(
     context: IamTenantContextV1,
     work: (transaction: AuditTransactionPortV1) => Promise<TValue>,
