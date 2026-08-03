@@ -96,6 +96,15 @@ function visible(context: TenantScopeV1, row: ArtifactLineageDatabaseRowV1): boo
   return tenantScopeContainsV1(context, candidate) || tenantScopeContainsV1(candidate, context);
 }
 
+function isUniqueConstraintViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { readonly code?: unknown }).code === 'P2002'
+  );
+}
+
 class PrismaArtifactLineageTransactionAdapter implements ArtifactLineageTransactionPortV1 {
   public constructor(private readonly client: ArtifactLineageDatabaseClientV1) {}
 
@@ -110,7 +119,13 @@ class PrismaArtifactLineageTransactionAdapter implements ArtifactLineageTransact
         throw new Error('IAE_IMMUTABLE_LINEAGE');
       return;
     }
-    await this.client.artifactLineageRecord.create({ data: domainToCreate(lineage) });
+    try {
+      await this.client.artifactLineageRecord.create({ data: domainToCreate(lineage) });
+    } catch (error) {
+      if (isUniqueConstraintViolation(error))
+        throw new Error('IAE_DERIVED_LINEAGE_CONFLICT', { cause: error });
+      throw error;
+    }
   }
 
   public async findByDerived(
