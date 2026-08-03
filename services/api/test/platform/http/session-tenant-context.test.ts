@@ -73,6 +73,25 @@ void test('uses the request id for read-only calls and rejects unsafe principal 
   await assert.rejects(
     adapter.resolve({
       id: 'request-read-001',
+      method: 'GET',
+      headers: { authorization: 'Bearer opaque-access-token-123456789' },
+    }),
+    (error: unknown) => {
+      assert.equal((error as { code?: unknown }).code, 'CONTEXT_INVALID');
+      return true;
+    },
+  );
+});
+
+void test('requires an explicit idempotency key for authenticated mutations', async () => {
+  const adapter = new SessionRequestTenantContextAdapter({
+    findPrincipalByAccessToken: () => Promise.resolve(principal),
+  });
+
+  await assert.rejects(
+    adapter.resolve({
+      id: 'request-mutation-001',
+      method: 'POST',
       headers: { authorization: 'Bearer opaque-access-token-123456789' },
     }),
     (error: unknown) => {

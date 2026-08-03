@@ -501,6 +501,7 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
           'x-csrf-token': csrfToken,
           origin: 'http://localhost:3000',
           authorization: 'Bearer sign-out-access-token',
+          'idempotency-key': 'sign-out-web-001',
         },
         payload: {
           clientPlatform: 'web',
@@ -520,7 +521,10 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
       const native = await app.inject({
         method: 'POST',
         url: '/v1/auth/sign-out',
-        headers: { authorization: 'Bearer sign-out-access-token' },
+        headers: {
+          authorization: 'Bearer sign-out-access-token',
+          'idempotency-key': 'sign-out-native-001',
+        },
         payload: {
           clientPlatform: 'android',
           sessionId: '00000000-0000-4000-8000-000000000011',
@@ -536,7 +540,10 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
       const crossUser = await app.inject({
         method: 'POST',
         url: '/v1/auth/sign-out',
-        headers: { authorization: 'Bearer sign-out-access-token' },
+        headers: {
+          authorization: 'Bearer sign-out-access-token',
+          'idempotency-key': 'sign-out-cross-user-001',
+        },
         payload: {
           clientPlatform: 'android',
           sessionId: '00000000-0000-4000-8000-000000000099',
@@ -561,7 +568,10 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
       const response = await app.inject({
         method: 'POST',
         url: '/v1/auth/sign-out',
-        headers: { authorization: 'Bearer sign-out-access-token' },
+        headers: {
+          authorization: 'Bearer sign-out-access-token',
+          'idempotency-key': 'sign-out-unavailable-001',
+        },
         payload: {
           clientPlatform: 'android',
           sessionId: '00000000-0000-4000-8000-000000000011',
