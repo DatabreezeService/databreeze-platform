@@ -94,7 +94,11 @@ export class ArtifactService {
       if (!evidence) return undefined;
       const version = await transaction.findVersion(context, versionId);
       if (!version) return undefined;
-      if (version.status === 'DELETED' || evidence.sourceState !== 'AVAILABLE')
+      if (
+        version.status === 'DELETED' ||
+        version.status === 'QUARANTINED' ||
+        evidence.sourceState !== 'AVAILABLE'
+      )
         return Object.freeze({ evidence, version, action: 'UNAVAILABLE' as const });
       const placements = await transaction.listPlacements(context, version.versionId);
       const cloud = placements.find(

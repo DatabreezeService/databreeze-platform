@@ -131,3 +131,29 @@ void test('[IAE-005, IAE-006] evidence resolution returns an opaque device actio
     undefined,
   );
 });
+
+void test('[IAE-009, IAE-010] quarantined artifact evidence never resolves to an open handle', async () => {
+  const repository = new InMemoryArtifactRepositoryAdapter();
+  const service = new ArtifactService(repository);
+  const registered = await service.register(
+    context(workspaceId, 'resolve-quarantined'),
+    input('Hybrid'),
+  );
+  assert.equal(registered.accepted, true);
+  if (!registered.accepted || !registered.value.evidence) return;
+  await repository.updateVersionStatus(
+    context(workspaceId, 'quarantine-version'),
+    registered.value.version.versionId,
+    'QUARANTINED',
+    'FAILED',
+  );
+
+  const resolved = await service.resolveEvidence(
+    context(workspaceId, 'resolve-quarantined-read'),
+    registered.value.version.versionId,
+    registered.value.evidence.evidenceId,
+  );
+
+  assert.equal(resolved?.action, 'UNAVAILABLE');
+  assert.equal('placementReference' in (resolved ?? {}), false);
+});
