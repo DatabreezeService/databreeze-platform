@@ -29,6 +29,7 @@ import {
 } from './adapter/prisma-audit-repository.adapter.js';
 import { Sha256AuditDigestAdapter } from './adapter/sha256-audit-digest.adapter.js';
 import { AuditController } from './api/audit.controller.js';
+import { AuditAttestationController } from './api/audit-attestation.controller.js';
 import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
@@ -78,7 +79,7 @@ export class AudModule {
           ));
     return {
       module: AudModule,
-      controllers: [AuditController],
+      controllers: [AuditController, AuditAttestationController],
       providers: [
         { provide: AUDIT_REPOSITORY_PORT, useValue: repository },
         { provide: AUDIT_LEDGER_SERVICE, useValue: service },
