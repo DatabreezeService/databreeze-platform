@@ -7710,7 +7710,7 @@
           "actualByteSize": { "type": "integer", "minimum": 0 },
           "detectedMediaType": { "type": "string" },
           "scanState": { "type": "string", "enum": ["PENDING", "CLEAN", "MALICIOUS", "FAILED"] },
-          "maxByteSize": { "type": "number", "minimum": 0 },
+          "maxByteSize": { "type": "integer", "minimum": 0 },
           "scannedAt": { "type": "string", "format": "date-time" }
         },
         "required": [

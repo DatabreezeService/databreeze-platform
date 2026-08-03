@@ -263,6 +263,11 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       Record<string, unknown>
     >;
     assert.equal(auditResultProperties['createdAt']?.['pattern'], strictUtcTimestampPattern);
+    const admissionProperties = (
+      firstDocument.components?.schemas?.['AdmitArtifactDto'] as Record<string, unknown>
+    )['properties'] as Record<string, Record<string, unknown>>;
+    assert.equal(admissionProperties['actualByteSize']?.['type'], 'integer');
+    assert.equal(admissionProperties['maxByteSize']?.['type'], 'integer');
 
     for (const operation of operations(firstDocument)) {
       const headerNames = (operation.parameters ?? [])

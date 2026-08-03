@@ -19,7 +19,7 @@ export class AdmitArtifactDto {
   @IsIn(['PENDING', 'CLEAN', 'MALICIOUS', 'FAILED'])
   scanState!: 'PENDING' | 'CLEAN' | 'MALICIOUS' | 'FAILED';
 
-  @ApiProperty({ minimum: 0 })
+  @ApiProperty({ type: 'integer', minimum: 0 })
   @IsInt()
   @Min(0)
   maxByteSize!: number;
