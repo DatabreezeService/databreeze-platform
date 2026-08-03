@@ -76,6 +76,10 @@ interface AuditEventDelegateV1 {
   findUnique(input: {
     readonly where: { readonly id: string };
   }): Promise<AuditEventDatabaseRowV1 | null>;
+  findFirst(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+    readonly orderBy?: { readonly sequence: 'asc' | 'desc' };
+  }): Promise<AuditEventDatabaseRowV1 | null>;
   findMany(input: {
     readonly where: Readonly<Record<string, unknown>>;
     readonly orderBy: { readonly sequence: 'asc' | 'desc' };
@@ -288,15 +292,19 @@ class PrismaAuditTransactionAdapter implements AuditTransactionPortV1 {
       if (!sameAuditEventV1(current, event)) throw new Error('AUD_IMMUTABLE_EVENT');
       return current;
     }
-    const siblings = await this.client.auditEventRecord.findMany({
-      where: { scopeKey: scopeKey(event.tenantScope) },
-      orderBy: { sequence: 'desc' },
-    });
-    const duplicate = siblings.find((row) => row.idempotencyKey === event.idempotencyKey);
-    if (duplicate !== undefined) throw new Error('AUD_IDEMPOTENCY_CONFLICT');
-    const latest = siblings[0];
+    const eventScopeKey = scopeKey(event.tenantScope);
+    const [duplicate, latest] = await Promise.all([
+      this.client.auditEventRecord.findFirst({
+        where: { scopeKey: eventScopeKey, idempotencyKey: event.idempotencyKey },
+      }),
+      this.client.auditEventRecord.findFirst({
+        where: { scopeKey: eventScopeKey },
+        orderBy: { sequence: 'desc' },
+      }),
+    ]);
+    if (duplicate !== null) throw new Error('AUD_IDEMPOTENCY_CONFLICT');
     if (
-      latest !== undefined &&
+      latest !== null &&
       (event.sequence !== latest.sequence + 1 || event.previousDigest !== latest.digest)
     ) {
       throw new Error('AUD_SEQUENCE_CONFLICT');

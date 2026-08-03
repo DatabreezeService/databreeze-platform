@@ -39,11 +39,25 @@ function delegate<TRow extends Record<string, unknown>>(rows: TRow[]) {
     findUnique({ where }: { readonly where: { readonly id: string } }) {
       return Promise.resolve(rows.find((row) => row['id'] === where.id) ?? null);
     },
-    findFirst({ where }: { readonly where: Readonly<Record<string, unknown>> }) {
-      return Promise.resolve(
-        rows.find((row) => Object.entries(where).every(([key, value]) => row[key] === value)) ??
-          null,
+    findFirst({
+      where,
+      orderBy,
+    }: {
+      readonly where: Readonly<Record<string, unknown>>;
+      readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
+    }) {
+      const matching = rows.filter((row) =>
+        Object.entries(where).every(([key, value]) => row[key] === value),
       );
+      const [field, direction] = Object.entries(orderBy ?? {})[0] ?? [];
+      if (field) {
+        matching.sort((left, right) => {
+          if (left[field] === right[field]) return 0;
+          const comparison = left[field]! < right[field]! ? -1 : 1;
+          return direction === 'desc' ? -comparison : comparison;
+        });
+      }
+      return Promise.resolve(matching[0] ?? null);
     },
     findMany({
       where,
