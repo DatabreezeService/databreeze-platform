@@ -120,6 +120,7 @@ interface DelegateV1<TRow, TCreate> {
   findUnique(input: {
     readonly where: { readonly id?: string; readonly planCode?: string };
   }): Promise<TRow | null>;
+  findFirst(input: { readonly where: Readonly<Record<string, unknown>> }): Promise<TRow | null>;
   findMany(input: {
     readonly where: Readonly<Record<string, unknown>>;
     readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
@@ -129,7 +130,7 @@ interface DelegateV1<TRow, TCreate> {
     readonly data: Readonly<Record<string, unknown>>;
   }): Promise<TRow>;
   updateMany?(input: {
-    readonly where: { readonly id: string; readonly revision: number };
+    readonly where: Readonly<Record<string, unknown>>;
     readonly data: Readonly<Record<string, unknown>>;
   }): Promise<{ readonly count: number }>;
 }
@@ -487,8 +488,12 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
       : { scopeType: 'organization' as const, organizationId: snapshot.organizationId };
     if (!tenantScopeContainsV1(context.tenantScope, scope))
       throw new Error('BUA_SCOPE_NARROWING_REQUIRED');
-    const existing = await this.client.entitlementSnapshotRecord.findUnique({
-      where: { id: snapshot.snapshotId },
+    const existing = await this.client.entitlementSnapshotRecord.findFirst({
+      where: {
+        id: snapshot.snapshotId,
+        organizationId: snapshot.organizationId,
+        scopeKey: scopeKey(scope),
+      },
     });
     if (existing !== null) {
       if (!sameEntitlementSnapshotV1(persistedSnapshot(existing), snapshot))
@@ -502,8 +507,16 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
     context: IamTenantContextV1,
     snapshotId: EntitlementSnapshotV1['snapshotId'],
   ): Promise<EntitlementSnapshotV1 | undefined> {
-    const row = await this.client.entitlementSnapshotRecord.findUnique({
-      where: { id: snapshotId },
+    const workspaceId =
+      context.tenantScope.scopeType === 'organization'
+        ? undefined
+        : context.tenantScope.workspaceId;
+    const row = await this.client.entitlementSnapshotRecord.findFirst({
+      where: {
+        id: snapshotId,
+        organizationId: context.tenantScope.organizationId,
+        ...(workspaceId === undefined ? {} : { OR: [{ workspaceId: null }, { workspaceId }] }),
+      },
     });
     if (row === null) return undefined;
     const snapshot = persistedSnapshot(row);
@@ -568,8 +581,12 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
     for (const entry of state.entries) {
       if (!tenantScopeContainsV1(context.tenantScope, entry.tenantScope))
         throw new Error('BUA_SCOPE_NARROWING_REQUIRED');
-      const existing = await this.client.usageLedgerEntryRecord.findUnique({
-        where: { id: entry.entryId },
+      const existing = await this.client.usageLedgerEntryRecord.findFirst({
+        where: {
+          id: entry.entryId,
+          organizationId: entry.tenantScope.organizationId,
+          scopeKey: scopeKey(entry.tenantScope),
+        },
       });
       if (existing !== null) {
         if (!sameUsageEntryV1(persistedEntry(existing), entry))
@@ -581,8 +598,12 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
     for (const reservation of state.reservations) {
       if (!tenantScopeContainsV1(context.tenantScope, reservation.tenantScope))
         throw new Error('BUA_SCOPE_NARROWING_REQUIRED');
-      const existing = await this.client.usageReservationRecord.findUnique({
-        where: { id: reservation.reservationId },
+      const existing = await this.client.usageReservationRecord.findFirst({
+        where: {
+          id: reservation.reservationId,
+          organizationId: reservation.tenantScope.organizationId,
+          scopeKey: scopeKey(reservation.tenantScope),
+        },
       });
       if (existing === null) {
         await this.client.usageReservationRecord.create({
@@ -600,7 +621,12 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
         throw new Error('BUA_RESERVATION_CONFLICT');
       if (!this.client.usageReservationRecord.updateMany) throw new Error('BUA_UPDATE_UNAVAILABLE');
       const result = await this.client.usageReservationRecord.updateMany({
-        where: { id: reservation.reservationId, revision: current.revision },
+        where: {
+          id: reservation.reservationId,
+          organizationId: reservation.tenantScope.organizationId,
+          scopeKey: scopeKey(reservation.tenantScope),
+          revision: current.revision,
+        },
         data: { status: reservation.status, revision: reservation.revision, updatedAt: new Date() },
       });
       if (result.count !== 1) throw new Error('BUA_RESERVATION_CONFLICT');
