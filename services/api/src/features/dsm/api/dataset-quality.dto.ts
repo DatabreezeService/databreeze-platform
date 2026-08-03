@@ -2,7 +2,6 @@ import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
-  Allow,
   IsArray,
   IsIn,
   IsInt,
@@ -15,7 +14,21 @@ import {
   Min,
   MinLength,
   ValidateNested,
+  Validate,
+  ValidatorConstraint,
+  type ValidatorConstraintInterface,
 } from 'class-validator';
+
+@ValidatorConstraint({ name: 'isDatasetQualityScalar', async: false })
+class DatasetQualityScalarConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    return (
+      typeof value === 'string' ||
+      typeof value === 'boolean' ||
+      (typeof value === 'number' && Number.isFinite(value))
+    );
+  }
+}
 
 export class DatasetQualitySafeValueDto {
   @ApiProperty({
@@ -55,7 +68,7 @@ export class DatasetQualitySafeValueDto {
     oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'boolean' }],
   })
   @IsOptional()
-  @Allow()
+  @Validate(DatasetQualityScalarConstraint)
   value?: string | number | boolean;
 }
 

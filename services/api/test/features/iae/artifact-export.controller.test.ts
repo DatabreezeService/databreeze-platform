@@ -21,6 +21,11 @@ const contextResult = createIamTenantContextV1({
 if (!contextResult.accepted) throw new Error('fixture context invalid');
 const context = contextResult.value;
 
+function problemCode(body: string): unknown {
+  const parsed: unknown = JSON.parse(body);
+  return typeof parsed === 'object' && parsed !== null && 'code' in parsed ? parsed.code : undefined;
+}
+
 void test('IAE-018 export HTTP maps rejected service outcomes to problem responses', async () => {
   const { app } = await createApiApplication({
     artifactExportRepository: new InMemoryArtifactExportRepositoryAdapter(),
@@ -32,14 +37,14 @@ void test('IAE-018 export HTTP maps rejected service outcomes to problem respons
     const invalid = await app.inject({ method: 'GET', url: '/v1/artifacts/exports/not-a-uuid' });
     assert.equal(invalid.statusCode, 400);
     assert.match(String(invalid.headers['content-type']), /^application\/problem\+json/u);
-    assert.equal((invalid.json() as { code: string }).code, 'INVALID_IDENTIFIER');
+    assert.equal(problemCode(invalid.body), 'INVALID_IDENTIFIER');
 
     const missing = await app.inject({
       method: 'GET',
       url: '/v1/artifacts/exports/55555555-5555-4555-8555-555555555555',
     });
     assert.equal(missing.statusCode, 404);
-    assert.equal((missing.json() as { code: string }).code, 'ARTIFACT_NOT_FOUND');
+    assert.equal(problemCode(missing.body), 'ARTIFACT_NOT_FOUND');
 
     const missingSource = await app.inject({
       method: 'POST',
@@ -52,7 +57,7 @@ void test('IAE-018 export HTTP maps rejected service outcomes to problem respons
       },
     });
     assert.equal(missingSource.statusCode, 404);
-    assert.equal((missingSource.json() as { code: string }).code, 'ARTIFACT_NOT_FOUND');
+    assert.equal(problemCode(missingSource.body), 'ARTIFACT_NOT_FOUND');
   } finally {
     await app.close();
   }
