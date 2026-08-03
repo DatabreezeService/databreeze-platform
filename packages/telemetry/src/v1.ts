@@ -375,7 +375,11 @@ export function createStructuredLoggerV1(options: StructuredLoggerOptionsV1) {
         record.spanId = normalized.spanId;
         if (normalized.traceFlags !== undefined) record.traceFlags = normalized.traceFlags;
       }
-      sink(record);
+      try {
+        sink(record);
+      } catch {
+        // Exporters are best-effort adapters and cannot become product authority.
+      }
       return record;
     },
   };

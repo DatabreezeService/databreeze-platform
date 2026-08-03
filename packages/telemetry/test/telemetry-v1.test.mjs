@@ -233,3 +233,24 @@ test('structured logger carries normalized trace context into the record', () =>
   assert.equal(record.spanId, '0123456789abcdef');
   assert.equal(record.traceFlags, '00');
 });
+
+test('structured logger isolates exporter outages from product workflows', () => {
+  const logger = createStructuredLoggerV1({
+    component: 'api',
+    clock: () => new Date('2026-01-01T00:00:00.000Z'),
+    sink() {
+      throw new Error('provider cause with customer source value');
+    },
+  });
+
+  const record = logger.emit(
+    'warn',
+    'telemetry.export_failed',
+    createCorrelationContextV1({ correlationId }),
+    { outcome: 'degraded', payload: 'must not be serialized' },
+  );
+
+  assert.equal(record.event, 'telemetry.export_failed');
+  assert.deepEqual(record.attributes, { outcome: 'degraded' });
+  assert.doesNotMatch(JSON.stringify(record), /provider cause|customer source|must not/u);
+});
