@@ -37,10 +37,15 @@ function context() {
   return result.value;
 }
 
-function client(rows: DatasetVersionDatabaseRowV1[]): DatasetVersionDatabaseClientV1 {
+function client(
+  rows: DatasetVersionDatabaseRowV1[],
+  createConflict = false,
+): DatasetVersionDatabaseClientV1 {
   return {
     datasetVersionRecord: {
       create({ data }) {
+        if (createConflict)
+          throw Object.assign(new Error('unique constraint violation'), { code: 'P2002' });
         const persisted = { ...data } as DatasetVersionDatabaseRowV1;
         rows.push(persisted);
         return Promise.resolve(persisted);
@@ -91,4 +96,8 @@ void test('[DSM-002, DSM-003, IAM-009] Prisma dataset version adapter is immutab
   assert.deepEqual(await repository.find(tenantContext, versionId), created.value);
   assert.deepEqual(await repository.list(tenantContext, created.value.datasetId), [created.value]);
   assert.equal(rows.length, 1);
+  await assert.rejects(
+    new PrismaDatasetVersionRepositoryAdapter(client([], true)).save(tenantContext, created.value),
+    /DSM_IMMUTABLE_DATASET_VERSION/u,
+  );
 });
