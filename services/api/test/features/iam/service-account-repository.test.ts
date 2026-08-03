@@ -62,6 +62,14 @@ void test('[IAM-013] service account repository preserves tenant scope and immut
   assert.deepEqual(found, account());
   assert.notEqual(found, account());
   assert.equal(
+    (await repository.findServiceAccountByDigest(organizationContext, 'a'.repeat(64)))?.id,
+    stableAccountId,
+  );
+  assert.equal(
+    await repository.findServiceAccountByDigest(organizationContext, 'b'.repeat(64)),
+    undefined,
+  );
+  assert.equal(
     (await repository.findServiceAccount(context({ scopeType: 'organization', organizationId: otherOrganizationId }), stableAccountId)),
     undefined,
   );

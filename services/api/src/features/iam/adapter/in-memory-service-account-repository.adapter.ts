@@ -47,6 +47,17 @@ export class InMemoryServiceAccountRepositoryAdapter implements ServiceAccountRe
     return account && visibleInScope(context, account) ? clone(account) : undefined;
   }
 
+  public async findServiceAccountByDigest(
+    context: IamTenantContextV1,
+    secretDigest: string,
+  ): Promise<ServiceAccountV1 | undefined> {
+    await Promise.resolve();
+    const account = [...this.accounts.values()].find(
+      (candidate) => candidate.secretDigest === secretDigest && visibleInScope(context, candidate),
+    );
+    return account ? clone(account) : undefined;
+  }
+
   public async listServiceAccounts(
     context: IamTenantContextV1,
   ): Promise<readonly ServiceAccountV1[]> {
@@ -107,6 +118,7 @@ export class InMemoryServiceAccountRepositoryAdapter implements ServiceAccountRe
     try {
       return await work({
         findServiceAccount: this.findServiceAccount.bind(this),
+        findServiceAccountByDigest: this.findServiceAccountByDigest.bind(this),
         listServiceAccounts: this.listServiceAccounts.bind(this),
         saveServiceAccount: this.saveServiceAccount.bind(this),
         replaceServiceAccount: this.replaceServiceAccount.bind(this),

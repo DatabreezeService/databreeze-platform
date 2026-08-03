@@ -157,6 +157,10 @@ void test('[IAM-013] Prisma service-account adapter persists and filters workspa
     (await repository.findServiceAccount(context({ scopeType: 'workspace', organizationId, workspaceId: siblingWorkspaceId }), stable(accountId))),
     undefined,
   );
+  assert.equal(
+    (await repository.findServiceAccountByDigest(context({ scopeType: 'organization', organizationId }), 'a'.repeat(64)))?.id,
+    stable(accountId),
+  );
   assert.equal((await repository.listServiceAccounts(context({ scopeType: 'organization', organizationId }))).length, 1);
 });
 

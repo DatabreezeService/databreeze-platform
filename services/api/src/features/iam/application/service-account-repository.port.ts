@@ -10,6 +10,10 @@ export interface ServiceAccountTransactionPortV1 {
     context: IamTenantContextV1,
     serviceAccountId: StableIdentifierV1,
   ): Promise<ServiceAccountV1 | undefined>;
+  findServiceAccountByDigest(
+    context: IamTenantContextV1,
+    secretDigest: string,
+  ): Promise<ServiceAccountV1 | undefined>;
   listServiceAccounts(context: IamTenantContextV1): Promise<readonly ServiceAccountV1[]>;
   saveServiceAccount(context: IamTenantContextV1, account: ServiceAccountV1): Promise<void>;
   replaceServiceAccount(

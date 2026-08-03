@@ -167,6 +167,16 @@ class PrismaServiceAccountTransactionAdapter implements ServiceAccountTransactio
     return row ? accountFromRow(row) : undefined;
   }
 
+  public async findServiceAccountByDigest(
+    context: IamTenantContextV1,
+    secretDigest: string,
+  ): Promise<ServiceAccountV1 | undefined> {
+    const row = await this.client.serviceAccount.findFirst({
+      where: { secretDigest, ...scopeWhere(context) },
+    });
+    return row ? accountFromRow(row) : undefined;
+  }
+
   public async listServiceAccounts(
     context: IamTenantContextV1,
   ): Promise<readonly ServiceAccountV1[]> {
@@ -247,6 +257,13 @@ export class PrismaServiceAccountRepositoryAdapter implements ServiceAccountRepo
     return new PrismaServiceAccountTransactionAdapter(this.client).findServiceAccount(
       context,
       serviceAccountId,
+    );
+  }
+
+  public findServiceAccountByDigest(context: IamTenantContextV1, secretDigest: string) {
+    return new PrismaServiceAccountTransactionAdapter(this.client).findServiceAccountByDigest(
+      context,
+      secretDigest,
     );
   }
 
