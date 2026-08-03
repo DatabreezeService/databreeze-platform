@@ -15,6 +15,26 @@ test('AWS validation pins one OpenTofu CLI and official container release', () =
   assert.match(readme, /ghcr\.io\/opentofu\/opentofu:1\.12\.5/u);
 });
 
+test('AWS container validation command is pinned, isolated, and non-applying', () => {
+  const script = path.join(repositoryRoot, 'tools/repo-cli/src/validate-aws-opentofu.mjs');
+  const help = spawnSync(process.execPath, [script, '--help'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  });
+  assert.equal(help.status, 0, help.stderr);
+  assert.match(help.stdout, /official pinned OpenTofu container/u);
+  const source = read('tools/repo-cli/src/validate-aws-opentofu.mjs');
+  assert.match(source, /'fmt',\s*'-check',\s*'-recursive'/u);
+  assert.match(source, /'init',\s*'-backend=false',\s*'-input=false',\s*'-lockfile=readonly'/u);
+  assert.match(source, /'validate', '-no-color'/u);
+  assert.match(source, /TF_DATA_DIR=\/tmp\/databreeze-tofu/u);
+  assert.doesNotMatch(source, /['"]apply['"]/u);
+  assert.match(
+    read('package.json'),
+    /"infra:validate": "node tools\/repo-cli\/src\/validate-aws-opentofu\.mjs"/u,
+  );
+});
+
 test('AWS foundation has reusable modules and safe alpha composition', () => {
   for (const relativePath of [
     'infrastructure/aws/modules/network/main.tf',
