@@ -7,6 +7,7 @@ import {
   createAuditSealV1,
   sanitizeAuditSummaryV1,
   verifyAuditChainV1,
+  verifyAuditEventDigestV1,
 } from '../dist/audit/v1.js';
 
 const id = (tail) => `00000000-0000-4000-8000-${tail.padStart(12, '0')}`;
@@ -93,4 +94,21 @@ test('[AUD-015, AUD-016] seal contains an independently verifiable scoped root',
     accepted: false,
     code: 'CHAIN_INVALID',
   });
+});
+
+test('[AUD-001] an independently paged event retains verifiable content integrity', () => {
+  const appended = appendAuditEventV1({ events: [] }, input('30', 'invite-30'), digestPort);
+  assert.equal(appended.accepted, true);
+  if (!appended.accepted) return;
+  assert.deepEqual(verifyAuditEventDigestV1(appended.value.event, digestPort), {
+    accepted: true,
+    value: true,
+  });
+  assert.deepEqual(
+    verifyAuditEventDigestV1(
+      { ...appended.value.event, summary: { outcome: 'tampered' } },
+      digestPort,
+    ),
+    { accepted: false, code: 'CHAIN_INVALID' },
+  );
 });
