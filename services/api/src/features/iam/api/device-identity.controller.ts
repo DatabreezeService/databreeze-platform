@@ -4,8 +4,10 @@ import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import {
   DEVICE_IDENTITY_SERVICE,
+  type DeviceIdentityApplicationResultV1,
   type DeviceIdentityService,
 } from '../application/device-identity.service.js';
+import { DeviceIdentityProblemError } from '../application/device-identity-problem.error.js';
 import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
@@ -28,6 +30,24 @@ export class DeviceIdentityController {
     private readonly requestContext: RequestTenantContextPortV1,
   ) {}
 
+  private async execute<TValue>(
+    work: () => Promise<DeviceIdentityApplicationResultV1<TValue>>,
+  ): Promise<DeviceIdentityApplicationResultV1<TValue>> {
+    let result: DeviceIdentityApplicationResultV1<TValue>;
+    try {
+      result = await work();
+    } catch {
+      throw new DeviceIdentityProblemError('DEVICE_UNAVAILABLE');
+    }
+    if (result.accepted) return result;
+    if (result.code === 'SCOPE_DENIED') throw new DeviceIdentityProblemError('DEVICE_SCOPE_DENIED');
+    if (result.code === 'DEVICE_NOT_FOUND')
+      throw new DeviceIdentityProblemError('DEVICE_NOT_FOUND');
+    if (result.code === 'REVISION_CONFLICT' || result.code === 'DEVICE_REVOKED')
+      throw new DeviceIdentityProblemError('DEVICE_REVISION_CONFLICT');
+    throw new DeviceIdentityProblemError('DEVICE_REQUEST_REJECTED');
+  }
+
   @Post('devices/enrollment-challenges')
   @HttpCode(200)
   @ApiOperation({ summary: 'Issue a short-lived device proof-of-possession challenge' })
@@ -39,7 +59,7 @@ export class DeviceIdentityController {
   ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
     void idempotencyKey;
-    return this.devices.issueEnrollmentChallenge(context, input);
+    return this.execute(() => this.devices.issueEnrollmentChallenge(context, input));
   }
 
   @Post('devices/enroll')
@@ -48,7 +68,7 @@ export class DeviceIdentityController {
   @ApiBody({ type: EnrollDeviceDto })
   async enroll(@Req() request: unknown, @Body() input: EnrollDeviceDto): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
-    return this.devices.enroll(context, input);
+    return this.execute(() => this.devices.enroll(context, input));
   }
 
   @Post('devices/:deviceId/activate')
@@ -61,7 +81,9 @@ export class DeviceIdentityController {
     @Body() input: DeviceRevisionDto,
   ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
-    return this.devices.activate(context, deviceId, input.expectedRevision, input.at);
+    return this.execute(() =>
+      this.devices.activate(context, deviceId, input.expectedRevision, input.at),
+    );
   }
 
   @Get('organizations/:organizationId/devices')
@@ -77,8 +99,8 @@ export class DeviceIdentityController {
       context.tenantScope.scopeType !== 'organization' ||
       parsed.value !== context.tenantScope.organizationId
     )
-      return { accepted: false, code: 'SCOPE_DENIED' as const };
-    return this.devices.list(context);
+      throw new DeviceIdentityProblemError('DEVICE_SCOPE_DENIED');
+    return this.execute(() => this.devices.list(context));
   }
 
   @Post('devices/:deviceId/revoke')
@@ -91,7 +113,9 @@ export class DeviceIdentityController {
     @Body() input: DeviceRevisionDto,
   ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
-    return this.devices.revoke(context, deviceId, input.expectedRevision, input.at);
+    return this.execute(() =>
+      this.devices.revoke(context, deviceId, input.expectedRevision, input.at),
+    );
   }
 
   @Post('devices/:deviceId/key')
@@ -104,12 +128,14 @@ export class DeviceIdentityController {
     @Body() input: RotateDeviceKeyDto,
   ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
-    return this.devices.rotateKey(
-      context,
-      deviceId,
-      input.expectedRevision,
-      input.nextPublicKey,
-      input.at,
+    return this.execute(() =>
+      this.devices.rotateKey(
+        context,
+        deviceId,
+        input.expectedRevision,
+        input.nextPublicKey,
+        input.at,
+      ),
     );
   }
 }

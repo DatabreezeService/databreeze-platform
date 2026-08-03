@@ -11,6 +11,7 @@ import { AuthenticationProblemError } from '../../features/iam/application/authe
 import { SessionProblemError } from '../../features/iam/application/session-problem.error.js';
 import { MfaProblemError } from '../../features/iam/application/mfa-problem.error.js';
 import { EntitlementProblemError } from '../../features/bua/application/entitlement-problem.error.js';
+import { DeviceIdentityProblemError } from '../../features/iam/application/device-identity-problem.error.js';
 import { RequestTenantContextProblemError } from './session-tenant-context.adapter.js';
 import { NotReadyError } from '../../features/system/application/not-ready.error.js';
 import { InputValidationException } from './input-validation.exception.js';
@@ -73,6 +74,25 @@ function describe(error: unknown, correlationId: string): ProblemInput {
         : notFound
           ? HttpStatus.NOT_FOUND
           : HttpStatus.BAD_REQUEST,
+    };
+  }
+  if (error instanceof DeviceIdentityProblemError) {
+    const status =
+      error.code === 'DEVICE_UNAVAILABLE'
+        ? HttpStatus.SERVICE_UNAVAILABLE
+        : error.code === 'DEVICE_NOT_FOUND'
+          ? HttpStatus.NOT_FOUND
+          : error.code === 'DEVICE_SCOPE_DENIED'
+            ? HttpStatus.FORBIDDEN
+            : error.code === 'DEVICE_REVISION_CONFLICT'
+              ? HttpStatus.CONFLICT
+              : HttpStatus.BAD_REQUEST;
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: `api.error.${error.code.toLowerCase()}`,
+      retryable: error.code === 'DEVICE_UNAVAILABLE',
+      status,
     };
   }
   if (error instanceof RequestTenantContextProblemError) {
