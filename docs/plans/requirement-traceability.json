@@ -733,15 +733,20 @@
       "codePaths": [
         "packages/domain/src/audit/v1.ts",
         "services/api/src/features/aud/",
-        "services/api/prisma/schema/aud.prisma"
+        "services/api/prisma/schema/aud.prisma",
+        "services/api/src/features/aud/application/audit-attestation.service.ts",
+        "services/api/src/features/aud/adapter/prisma-audit-attestation-repository.adapter.ts",
+        "services/api/prisma/migrations/20260803080000_aud_seal_attestations/migration.sql"
       ],
       "testPaths": [
         "packages/domain/test/audit-v1.test.mjs",
         "services/api/test/features/aud/",
-        "services/api/test/http-contract.test.ts"
+        "services/api/test/http-contract.test.ts",
+        "services/api/test/features/aud/audit-attestation.service.test.ts",
+        "services/api/test/features/aud/prisma-audit-attestation-repository.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "docs/operations/iam-bua-security-slice-2026-08-03.md"
       ],
       "status": "partial",
       "coverage": "partial",
@@ -758,12 +763,18 @@
       "codePaths": [
         "packages/domain/src/audit/v1.ts",
         "services/api/src/features/aud/",
-        "services/api/prisma/schema/aud.prisma"
+        "services/api/prisma/schema/aud.prisma",
+        "services/api/src/features/aud/application/audit-attestation.service.ts",
+        "services/api/src/features/aud/api/audit-attestation.controller.ts",
+        "services/api/src/features/aud/adapter/in-memory-audit-attestation-repository.adapter.ts",
+        "services/api/prisma/migrations/20260803080000_aud_seal_attestations/migration.sql"
       ],
       "testPaths": [
         "packages/domain/test/audit-v1.test.mjs",
         "services/api/test/features/aud/",
-        "services/api/test/http-contract.test.ts"
+        "services/api/test/http-contract.test.ts",
+        "services/api/test/features/aud/audit-attestation.controller.test.ts",
+        "services/api/test/features/aud/audit-attestation-repository.test.ts"
       ],
       "releaseEvidence": [
         "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
@@ -1045,8 +1056,8 @@
         "security-and-tenant-gate",
         "release-manager-approval"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -1085,15 +1096,20 @@
       "codePaths": [
         "packages/domain/src/audit/v1.ts",
         "services/api/src/features/aud/",
-        "services/api/prisma/schema/aud.prisma"
+        "services/api/prisma/schema/aud.prisma",
+        "services/api/src/features/aud/application/audit-attestation.service.ts",
+        "services/api/src/features/aud/adapter/prisma-audit-attestation-repository.adapter.ts",
+        "services/api/prisma/migrations/20260803080000_aud_seal_attestations/migration.sql"
       ],
       "testPaths": [
         "packages/domain/test/audit-v1.test.mjs",
         "services/api/test/features/aud/",
-        "services/api/test/http-contract.test.ts"
+        "services/api/test/http-contract.test.ts",
+        "services/api/test/features/aud/audit-attestation.service.test.ts",
+        "services/api/test/features/aud/prisma-audit-attestation-repository.test.ts"
       ],
       "releaseEvidence": [
-        "docs/operations/identity-audit-entitlement-reconciliation-2026-08-03.md"
+        "docs/operations/iam-bua-security-slice-2026-08-03.md"
       ],
       "status": "partial",
       "coverage": "partial",
@@ -1110,20 +1126,24 @@
       "codePaths": [
         "packages/domain/src/audit/v1.ts",
         "services/api/src/features/aud/",
-        "services/api/prisma/schema/aud.prisma"
+        "services/api/prisma/schema/aud.prisma",
+        "services/api/src/features/aud/application/audit-attestation.service.ts",
+        "services/api/src/features/aud/api/audit-attestation.controller.ts",
+        "services/api/src/features/aud/adapter/in-memory-audit-attestation-repository.adapter.ts",
+        "services/api/prisma/migrations/20260803080000_aud_seal_attestations/migration.sql"
       ],
       "testPaths": [
         "packages/domain/test/audit-v1.test.mjs",
         "services/api/test/features/aud/",
-        "services/api/test/http-contract.test.ts"
+        "services/api/test/http-contract.test.ts",
+        "services/api/test/features/aud/audit-attestation.controller.test.ts",
+        "services/api/test/features/aud/audit-attestation-repository.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/iam-bua-security-slice-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -1763,20 +1783,23 @@
       "codePaths": [
         "packages/domain/src/entitlements/v1.ts",
         "services/api/src/features/bua/",
-        "services/api/prisma/schema/bua.prisma"
+        "services/api/prisma/schema/bua.prisma",
+        "services/api/src/features/bua/application/entitlement-lease.service.ts",
+        "services/api/src/features/bua/adapter/prisma-entitlement-lease-repository.adapter.ts",
+        "services/api/prisma/migrations/20260803070000_bua_entitlement_leases/migration.sql"
       ],
       "testPaths": [
         "packages/domain/test/entitlements-v1.test.mjs",
         "services/api/test/features/bua/",
-        "services/api/test/http-contract.test.ts"
+        "services/api/test/http-contract.test.ts",
+        "services/api/test/features/bua/entitlement-lease.service.test.ts",
+        "services/api/test/features/bua/prisma-entitlement-lease-repository.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/iam-bua-security-slice-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "ga-completion"
@@ -1790,20 +1813,23 @@
       "codePaths": [
         "packages/domain/src/entitlements/v1.ts",
         "services/api/src/features/bua/",
-        "services/api/prisma/schema/bua.prisma"
+        "services/api/prisma/schema/bua.prisma",
+        "services/api/src/features/bua/api/entitlement.controller.ts",
+        "services/api/src/features/bua/adapter/hmac-entitlement-lease-signer.adapter.ts",
+        "services/api/prisma/migrations/20260803070000_bua_entitlement_leases/migration.sql"
       ],
       "testPaths": [
         "packages/domain/test/entitlements-v1.test.mjs",
         "services/api/test/features/bua/",
-        "services/api/test/http-contract.test.ts"
+        "services/api/test/http-contract.test.ts",
+        "services/api/test/features/bua/entitlement.controller.test.ts",
+        "services/api/test/features/bua/hmac-entitlement-lease-signer.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/iam-bua-security-slice-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "ga-completion"
@@ -9379,23 +9405,26 @@
         "packages/domain/src/authorization/v1.ts",
         "packages/domain/src/mfa/v1.ts",
         "packages/domain/src/csrf/v1.ts",
+        "packages/domain/src/service-account/v1.ts",
+        "packages/domain/src/audit/v1.ts",
         "services/api/src/features/iam/",
-        "services/api/prisma/schema/iam.prisma"
+        "services/api/prisma/schema/iam.prisma",
+        "services/api/prisma/migrations/20260803060000_iam_service_accounts/migration.sql"
       ],
       "testPaths": [
         "packages/domain/test/identity-v1.test.mjs",
         "packages/domain/test/permissions-v1.test.mjs",
         "services/api/test/features/iam/",
+        "services/api/test/features/iam/service-account.service.test.ts",
+        "services/api/test/features/iam/prisma-service-account-repository.test.ts",
         "services/api/test/platform/http/session-tenant-context.test.ts",
         "services/api/test/platform/http/csrf-protection.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-and-tenant-gate",
-        "release-manager-approval"
+        "docs/operations/iam-bua-security-slice-2026-08-03.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
