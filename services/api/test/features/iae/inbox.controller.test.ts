@@ -49,7 +49,7 @@ void test('[IAE-001, IAM-009] HTTP inbox listing uses the configured tenant cont
     const response = await app.inject({ method: 'GET', url: '/v1/artifacts/inbox' });
     assert.equal(response.statusCode, 200);
     assert.deepEqual(response.json(), [created.accepted ? created.value : undefined]);
-    assert.doesNotMatch(response.body, /opaque|path|byte|excerpt/u);
+    assert.doesNotMatch(response.body, /opaque|path|byte|excerpt/iu);
   } finally {
     await app.close();
   }
@@ -103,7 +103,7 @@ void test('[IAE-013] HTTP inbox metadata patch uses a revision precondition and 
     const body: unknown = JSON.parse(accepted.body);
     assert.ok(typeof body === 'object' && body !== null && 'accepted' in body);
     assert.equal((body as { readonly accepted: boolean }).accepted, true);
-    assert.doesNotMatch(accepted.body, /path|source|byte|excerpt/u);
+    assert.doesNotMatch(accepted.body, /path|source|byte|excerpt/iu);
   } finally {
     await app.close();
   }
