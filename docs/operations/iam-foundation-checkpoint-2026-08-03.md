@@ -20,6 +20,7 @@ This checkpoint records the work on `feat/foundation-fnd005-reconciliation-20260
 - Identity bootstrap direct run: 5 passing tests.
 - Bootstrap controller direct run: 2 passing tests.
 - Deterministic OpenAPI test and `openapi:check` pass; the checked-in `services/api/openapi/v1.json` includes `/v1/me/bootstrap`, invitation acceptance, and ownership transfer.
+- Repository gates pass on this branch: formatting, lint, strict typecheck, orchestration and 611-requirement validation, contract drift, infrastructure static checks, 81 repository tests, 21 workspace test tasks (including 336 API tests), and the complete workspace build.
 
 ## Deliberate remaining gaps
 
@@ -29,6 +30,6 @@ The following requirements remain partial and must not be promoted to `verified`
 - recent-MFA step-up assertions and the specified seven-day signed ownership-transfer request/explicit recipient acceptance flow;
 - audit/outbox events for every membership mutation and authorization-epoch invalidation;
 - account registration/recovery orchestration and full organization enumeration for non-personal team tenants;
-- production migration/restore evidence and the root `repo:check`/`repo:build` gates for this branch.
+- production migration/restore evidence.
 
-The next integration action is to complete those foundation boundaries, run the root checks from a clean tree, and only then prepare the feature PR to `dev`. A promotion PR to `main` receives the single CodeRabbit review cycle required by the repository workflow.
+The next integration action is to prepare the feature PR to `dev` from this clean, verified branch. A promotion PR to `main` receives the single CodeRabbit review cycle required by the repository workflow. This checkpoint still represents a partial IAM slice and does not promote any requirement to `verified` beyond the already recorded foundation evidence.
