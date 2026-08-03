@@ -158,6 +158,7 @@ export type IdentityErrorCodeV1 =
   | 'INVALID_EPOCH'
   | 'INVALID_SCOPE'
   | 'INVALID_LIFETIME'
+  | 'INVALID_KIND'
   | 'INVALID_ROLE'
   | 'INVALID_PLATFORM'
   | 'INVALID_PUBLIC_KEY'
@@ -190,6 +191,11 @@ function boundedText(input: unknown, maxLength: number): string | undefined {
   if (containsControlCharacterV1(input)) return undefined;
   const normalized = input.normalize('NFC').trim();
   return normalized.length > 0 && normalized.length <= maxLength ? normalized : undefined;
+}
+
+/** Shared bounded-text predicate for application-layer preflight without placeholder identities. */
+export function isBoundedTextV1(input: unknown, maxLength: number): input is string {
+  return boundedText(input, maxLength) !== undefined;
 }
 
 function containsControlCharacterV1(input: string): boolean {
@@ -300,6 +306,118 @@ export function createUserIdentityV1(input: {
     return rejected('INVALID_STATE');
   return accepted(
     Object.freeze({ schemaVersion: 1, id, status, displayName, locale, securityEpoch, createdAt }),
+  );
+}
+
+export type ProjectKindV1 = 'INTERNAL' | 'CLIENT' | 'LOCATION' | 'ENGAGEMENT';
+
+export function isProjectKindV1(input: unknown): input is ProjectKindV1 {
+  return (
+    input === 'INTERNAL' || input === 'CLIENT' || input === 'LOCATION' || input === 'ENGAGEMENT'
+  );
+}
+
+function activeOrArchived(input: unknown): input is 'ACTIVE' | 'ARCHIVED' {
+  return input === 'ACTIVE' || input === 'ARCHIVED';
+}
+
+/** IAM-001, IAM-003: validate a team organization before persistence. */
+export function createOrganizationIdentityV1(input: {
+  readonly id: unknown;
+  readonly name: unknown;
+  readonly personal?: unknown;
+  readonly status?: unknown;
+  readonly createdAt: unknown;
+}): IdentityResultV1<OrganizationIdentityV1> {
+  const id = stableId(input.id);
+  const name = boundedText(input.name, 200);
+  const createdAt = timestamp(input.createdAt);
+  const personal = input.personal ?? false;
+  const status = input.status ?? 'ACTIVE';
+  if (!id) return rejected('INVALID_IDENTIFIER');
+  if (!name) return rejected('INVALID_TEXT');
+  if (!createdAt) return rejected('INVALID_TIMESTAMP');
+  if (typeof personal !== 'boolean') return rejected('INVALID_STATE');
+  if (status !== 'ACTIVE' && status !== 'SUSPENDED' && status !== 'DEACTIVATED')
+    return rejected('INVALID_STATE');
+  return accepted(
+    Object.freeze({
+      schemaVersion: 1 as const,
+      id,
+      name,
+      personal,
+      status,
+      createdAt,
+    }),
+  );
+}
+
+/** IAM-001, IAM-019: validate workspace identity and its organization ancestry. */
+export function createWorkspaceIdentityV1(input: {
+  readonly id: unknown;
+  readonly organizationId: unknown;
+  readonly name: unknown;
+  readonly status?: unknown;
+  readonly authorizationEpoch?: unknown;
+  readonly createdAt: unknown;
+}): IdentityResultV1<WorkspaceIdentityV1> {
+  const id = stableId(input.id);
+  const organizationId = stableId(input.organizationId);
+  const name = boundedText(input.name, 200);
+  const createdAt = timestamp(input.createdAt);
+  const status = input.status ?? 'ACTIVE';
+  const authorizationEpoch =
+    input.authorizationEpoch === undefined ? 1 : positiveEpoch(input.authorizationEpoch);
+  if (!id || !organizationId) return rejected('INVALID_IDENTIFIER');
+  if (!name) return rejected('INVALID_TEXT');
+  if (!createdAt) return rejected('INVALID_TIMESTAMP');
+  if (!activeOrArchived(status)) return rejected('INVALID_STATE');
+  if (!authorizationEpoch) return rejected('INVALID_EPOCH');
+  return accepted(
+    Object.freeze({
+      schemaVersion: 1 as const,
+      id,
+      organizationId,
+      name,
+      status,
+      authorizationEpoch,
+      createdAt,
+    }),
+  );
+}
+
+/** IAM-001, IAM-014, IAM-019: validate project identity without widening ancestry. */
+export function createProjectIdentityV1(input: {
+  readonly id: unknown;
+  readonly organizationId: unknown;
+  readonly workspaceId: unknown;
+  readonly kind: unknown;
+  readonly name: unknown;
+  readonly status?: unknown;
+  readonly createdAt: unknown;
+}): IdentityResultV1<ProjectIdentityV1> {
+  const id = stableId(input.id);
+  const organizationId = stableId(input.organizationId);
+  const workspaceId = stableId(input.workspaceId);
+  const name = boundedText(input.name, 200);
+  const createdAt = timestamp(input.createdAt);
+  const status = input.status ?? 'ACTIVE';
+  if (!id || !organizationId || !workspaceId) return rejected('INVALID_IDENTIFIER');
+  if (!name) return rejected('INVALID_TEXT');
+  if (!createdAt) return rejected('INVALID_TIMESTAMP');
+  if (!isProjectKindV1(input.kind)) return rejected('INVALID_KIND');
+  if (!activeOrArchived(status)) return rejected('INVALID_STATE');
+  return accepted(
+    Object.freeze({
+      schemaVersion: 1 as const,
+      id,
+      organizationId,
+      workspaceId,
+      kind: input.kind,
+      name,
+      status,
+      createdAt,
+    }),
   );
 }
 

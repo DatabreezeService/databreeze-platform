@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await -- repository double mirrors async storage. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
@@ -39,6 +40,32 @@ void test('[IAM-001, IAM-009, IAM-011, IAM-016] bootstrap creates a personal own
   assert.deepEqual(await service.create(input), first);
   const stored = await repository.findByUserId(first.value.user.id);
   assert.deepEqual(stored, first.value);
+  assert.deepEqual(await service.find(input.user.id), { accepted: true, value: first.value });
+});
+
+void test('[IAM-001, IAM-009] bootstrap reads reject malformed identities and hide absent users', async () => {
+  const service = new IdentityBootstrapService(new InMemoryIdentityBootstrapRepositoryAdapter());
+  assert.deepEqual(await service.find('not-an-id'), {
+    accepted: false,
+    code: 'INVALID_IDENTIFIER',
+  });
+  assert.deepEqual(await service.find('00000000-0000-4000-8000-000000000099'), {
+    accepted: false,
+    code: 'NOT_FOUND',
+  });
+});
+
+void test('[IAM-001] bootstrap reads map repository failures to a stable availability code', async () => {
+  const service = new IdentityBootstrapService({
+    findByUserId: async () => {
+      throw new Error('database details must not escape');
+    },
+    save: async () => undefined,
+    withTransaction: async () => {
+      throw new Error('database details must not escape');
+    },
+  });
+  assert.deepEqual(await service.find(input.user.id), { accepted: false, code: 'UNAVAILABLE' });
 });
 
 void test('[IAM-011] conflicting bootstrap identity is rejected without replacing the owner', async () => {

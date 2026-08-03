@@ -271,6 +271,31 @@ void test('[IAM-009, IAM-019] Prisma IAM writes require narrowing and enforce op
   assert.equal(memberships.get(id('21'))?.roleId, 'viewer');
 });
 
+void test('[IAM-004] Prisma IAM membership updates persist cleared invitation lifetime fields', async () => {
+  const workspaceScope = { scopeType: 'workspace', organizationId, workspaceId } as const;
+  const invitation = {
+    ...row(id('25'), 'WORKSPACE', workspaceId, 'viewer'),
+    status: 'INVITED',
+    startsAt: new Date('2026-01-01T00:00:00.000Z'),
+    expiresAt: new Date('2026-01-02T00:00:00.000Z'),
+  } satisfies IamMembershipDatabaseRowV1;
+  const { client, memberships } = createDatabase([invitation]);
+  const repository = new PrismaIamRepositoryAdapter(client);
+
+  await repository.saveMembership(context(workspaceScope, 1), {
+    id: stable('25'),
+    principalId,
+    scope: workspaceScope,
+    roleId: 'viewer',
+    status: 'ACTIVE',
+    revision: 2,
+  });
+  assert.equal(memberships.get(id('25'))?.startsAt, null);
+  assert.equal(memberships.get(id('25'))?.expiresAt, null);
+  assert.equal(memberships.get(id('25'))?.status, 'ACTIVE');
+  assert.equal(memberships.get(id('25'))?.revision, 2);
+});
+
 void test('[IAM-009] Prisma IAM transaction rollback leaves no staged membership', async () => {
   const { client, memberships } = createDatabase();
   const repository = new PrismaIamRepositoryAdapter(client);

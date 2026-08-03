@@ -250,6 +250,8 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
       data: {
         roleId: membership.roleId,
         status: membership.status,
+        startsAt: membership.startsAt ? new Date(membership.startsAt) : null,
+        expiresAt: membership.expiresAt ? new Date(membership.expiresAt) : null,
         revision: membership.revision,
       },
     });

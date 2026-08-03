@@ -160,7 +160,7 @@ test('delivery batches cover every unfinished task once within review budgets', 
   assert.equal(ledger.deliveryBatches.length, 15);
   assert.equal(new Set(batchedTasks).size, batchedTasks.length);
   assert.deepEqual(
-    new Set(batchedTasks),
+    new Set(batchedTasks.filter((taskId) => !verifiedTasks.has(taskId))),
     new Set([...allTasks].filter((taskId) => !verifiedTasks.has(taskId))),
   );
   for (const batch of ledger.deliveryBatches) {
@@ -174,6 +174,8 @@ test('delivery batches cover every unfinished task once within review budgets', 
     (batch) => batch.batchId === ledger.activeBatchId,
   );
   assert.ok(activeBatch.taskIds.includes(ledger.nextTaskId));
+  assert.deepEqual(activeBatch.taskIds.slice(0, 3), ['FND-006', 'FND-007', 'IAM-001']);
+  assert.deepEqual(activeBatch.handoffTaskIds, ['FND-007']);
 });
 
 test('the handoff runbook contains deterministic resume and failure protocols', () => {
@@ -205,13 +207,13 @@ test('repository checker validates the committed orchestration package', () => {
 
 test('ledger records verified task evidence before advancing the next task', () => {
   const ledger = readJson('docs/plans/execution-orchestration.json');
-  assert.equal(ledger.nextTaskId, 'FND-005');
+  assert.equal(ledger.nextTaskId, 'IAM-001');
   assert.equal(ledger.activeBatchId, 'B01');
-  assert.equal(ledger.checkpoint.remoteDev, '783a4710c0aa2a2808d78ad7f0643e6731150bd7');
-  assert.equal(ledger.checkpoint.remoteMain, '3ed3d77d0281ef239d0509c81ded447d8fffd213');
-  assert.equal(ledger.checkpoint.lastFeaturePullRequest, 19);
-  assert.equal(ledger.checkpoint.lastPromotionPullRequest, 20);
-  assert.equal(ledger.checkpoint.lastPromotionFixPullRequest, 23);
+  assert.equal(ledger.checkpoint.remoteDev, '9265e15125c2e50cfcaca455524c903b6b92383e');
+  assert.equal(ledger.checkpoint.remoteMain, '8a4c0af52ed872715103710e3c89ca832f999bd4');
+  assert.equal(ledger.checkpoint.lastFeaturePullRequest, 36);
+  assert.equal(ledger.checkpoint.lastPromotionPullRequest, 38);
+  assert.equal(ledger.checkpoint.lastPromotionFixPullRequest, 37);
   assert.deepEqual(ledger.taskState?.['FND-001']?.status, 'verified');
   assert.match(ledger.taskState?.['FND-001']?.commit ?? '', /^[0-9a-f]{40}$/u);
   assert.ok(
@@ -318,4 +320,18 @@ test('repository checker rejects delivery-batch drift from the Luna plan', () =>
       assert.match(result.stderr, /Luna Max execution plan does not document B01/u);
     },
   );
+});
+
+test('repository checker rejects malformed handoff task lists', () => {
+  for (const malformed of [{ invalid: true }, 'FND-007']) {
+    withTemporaryPlans(
+      ({ ledger }) => {
+        ledger.deliveryBatches[0].handoffTaskIds = malformed;
+      },
+      (result) => {
+        assert.notEqual(result.status, 0);
+        assert.match(result.stderr, /handoffTaskIds must be an array/u);
+      },
+    );
+  }
 });

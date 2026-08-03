@@ -135,6 +135,7 @@ function validateDeliveryBatches({ ledger, plans, taskIds, taskToPlan, diagnosti
   const batches = Array.isArray(ledger.deliveryBatches) ? ledger.deliveryBatches : [];
   const byId = new Map();
   const batchByTask = new Map();
+  const handoffTaskIdsByBatch = new Map();
 
   for (const batch of batches) {
     if (typeof batch.batchId !== 'string' || batch.batchId.trim() === '') {
@@ -176,6 +177,23 @@ function validateDeliveryBatches({ ledger, plans, taskIds, taskToPlan, diagnosti
       diagnostics.push(`batch ${batch.batchId} has no tasks`);
       continue;
     }
+    const rawHandoffTaskIds = batch.handoffTaskIds;
+    const normalizedHandoffTaskIds =
+      rawHandoffTaskIds === undefined
+        ? []
+        : Array.isArray(rawHandoffTaskIds)
+          ? rawHandoffTaskIds
+          : [];
+    if (rawHandoffTaskIds !== undefined && !Array.isArray(rawHandoffTaskIds)) {
+      diagnostics.push(`batch ${batch.batchId} handoffTaskIds must be an array`);
+    }
+    handoffTaskIdsByBatch.set(batch.batchId, normalizedHandoffTaskIds);
+    const handoffTaskIds = new Set(normalizedHandoffTaskIds);
+    for (const taskId of handoffTaskIds) {
+      if (!batch.taskIds.includes(taskId)) {
+        diagnostics.push(`batch ${batch.batchId} handoff task ${taskId} is not in taskIds`);
+      }
+    }
     for (const taskId of batch.taskIds) {
       if (!taskIds.has(taskId))
         diagnostics.push(`batch ${batch.batchId} has unknown task ${taskId}`);
@@ -216,9 +234,19 @@ function validateDeliveryBatches({ ledger, plans, taskIds, taskToPlan, diagnosti
       .filter(([, state]) => ['verified', 'released'].includes(state?.status))
       .map(([taskId]) => taskId),
   );
+  for (const batch of batches) {
+    for (const taskId of handoffTaskIdsByBatch.get(batch.batchId) ?? []) {
+      if (!verifiedTasks.has(taskId)) {
+        diagnostics.push(`batch ${batch.batchId} handoff task ${taskId} is not verified`);
+      }
+    }
+  }
   for (const taskId of taskIds) {
     if (verifiedTasks.has(taskId)) {
-      if (batchByTask.has(taskId)) diagnostics.push(`verified task ${taskId} remains batched`);
+      const batchId = batchByTask.get(taskId);
+      if (batchId !== undefined && !handoffTaskIdsByBatch.get(batchId)?.includes(taskId)) {
+        diagnostics.push(`verified task ${taskId} remains batched without handoff declaration`);
+      }
     } else if (!batchByTask.has(taskId)) {
       diagnostics.push(`unfinished task ${taskId} has no delivery batch`);
     }
