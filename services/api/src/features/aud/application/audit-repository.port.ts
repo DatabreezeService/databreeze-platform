@@ -15,15 +15,19 @@ export interface AuditPageV1<TItem> {
   readonly nextCursor?: string;
 }
 
+/**
+ * Paginated events are ordered by tenant scope key, chain sequence, and event id;
+ * seals use tenant scope key, last sequence, and seal id. The tie-breakers keep
+ * in-memory and PostgreSQL adapters cursor-compatible.
+ */
+
 export interface AuditTransactionPortV1 {
   appendEvent(context: IamTenantContextV1, event: AuditEventV1): Promise<AuditEventV1>;
-  listEvents(context: IamTenantContextV1): Promise<readonly AuditEventV1[]>;
   listEventsForScope(
     context: IamTenantContextV1,
     scope: TenantScopeV1,
   ): Promise<readonly AuditEventV1[]>;
   saveSeal(context: IamTenantContextV1, seal: AuditSealV1): Promise<void>;
-  listSeals(context: IamTenantContextV1): Promise<readonly AuditSealV1[]>;
 }
 
 export interface AuditRepositoryPortV1 extends AuditTransactionPortV1 {

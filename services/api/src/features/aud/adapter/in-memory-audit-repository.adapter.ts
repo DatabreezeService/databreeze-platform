@@ -1,4 +1,5 @@
 import {
+  tenantScopeKeyV1,
   tenantScopeContainsV1,
   type AuditEventV1,
   type AuditSealV1,
@@ -90,11 +91,12 @@ export class InMemoryAuditRepositoryAdapter implements AuditRepositoryPortV1 {
     const offset = auditPageOffsetV1(input, 'events', context.tenantScope);
     const visible = [...this.events.values()]
       .filter((event) => visibleInScope(context.tenantScope, event.tenantScope))
-      .sort((left, right) =>
-        left.occurredAt === right.occurredAt
-          ? left.eventId.localeCompare(right.eventId)
-          : left.occurredAt.localeCompare(right.occurredAt),
-      );
+      .sort((left, right) => {
+        const scopeOrder = tenantScopeKeyV1(left.tenantScope).localeCompare(
+          tenantScopeKeyV1(right.tenantScope),
+        );
+        return scopeOrder || left.sequence - right.sequence || left.eventId.localeCompare(right.eventId);
+      });
     const items = visible.slice(offset, offset + input.limit).map(cloneEvent);
     return Object.freeze({
       items: Object.freeze(items),
@@ -157,11 +159,16 @@ export class InMemoryAuditRepositoryAdapter implements AuditRepositoryPortV1 {
     const offset = auditPageOffsetV1(input, 'seals', context.tenantScope);
     const visible = [...this.seals.values()]
       .filter((seal) => visibleInScope(context.tenantScope, seal.tenantScope))
-      .sort((left, right) =>
-        left.sealedAt === right.sealedAt
-          ? left.rootDigest.localeCompare(right.rootDigest)
-          : left.sealedAt.localeCompare(right.sealedAt),
-      );
+      .sort((left, right) => {
+        const scopeOrder = tenantScopeKeyV1(left.tenantScope).localeCompare(
+          tenantScopeKeyV1(right.tenantScope),
+        );
+        return (
+          scopeOrder ||
+          left.lastSequence - right.lastSequence ||
+          left.rootDigest.localeCompare(right.rootDigest)
+        );
+      });
     const items = visible.slice(offset, offset + input.limit).map(cloneSeal);
     return Object.freeze({
       items: Object.freeze(items),
@@ -192,10 +199,8 @@ export class InMemoryAuditRepositoryAdapter implements AuditRepositoryPortV1 {
     try {
       return await work({
         appendEvent: this.appendEvent.bind(this),
-        listEvents: this.listEvents.bind(this),
         listEventsForScope: this.listEventsForScope.bind(this),
         saveSeal: this.saveSeal.bind(this),
-        listSeals: this.listSeals.bind(this),
       });
     } catch (error) {
       this.events = beforeEvents;

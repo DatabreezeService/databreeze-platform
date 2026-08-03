@@ -426,7 +426,7 @@ export class PrismaAuditRepositoryAdapter implements AuditRepositoryPortV1 {
     const offset = auditPageOffsetV1(input, 'events', context.tenantScope);
     const rows = await this.client.auditEventRecord.findMany({
       where: visibilityWhere(context.tenantScope),
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      orderBy: [{ scopeKey: 'asc' }, { sequence: 'asc' }, { id: 'asc' }],
       skip: offset,
       take: input.limit + 1,
     });
@@ -460,7 +460,7 @@ export class PrismaAuditRepositoryAdapter implements AuditRepositoryPortV1 {
     const offset = auditPageOffsetV1(input, 'seals', context.tenantScope);
     const rows = await this.client.auditSealRecord.findMany({
       where: visibilityWhere(context.tenantScope),
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      orderBy: [{ scopeKey: 'asc' }, { lastSequence: 'asc' }, { id: 'asc' }],
       skip: offset,
       take: input.limit + 1,
     });
