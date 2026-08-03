@@ -725,6 +725,7 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
     {
       verify: ({ proof }) => Promise.resolve(proof === '654321'),
     },
+    () => new Date('2026-01-01T00:00:00.000Z'),
   );
   const contextResult = createIamTenantContextV1({
     tenantScope: {
@@ -741,6 +742,18 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
   if (!contextResult.accepted) return;
   const requestTenantContext = { resolve: () => Promise.resolve(contextResult.value) };
   await withApp({ mfaService, requestTenantContext }, async (app) => {
+    const forgedEnrollmentTime = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/mfa/factors',
+      payload: {
+        id: '00000000-0000-4000-8000-000000000010',
+        method: 'TOTP',
+        secretReference: 'vault://iam/mfa/test-factor',
+        enrolledAt: '2000-01-01T00:00:00.000Z',
+      },
+    });
+    assertProblem(forgedEnrollmentTime, 400, 'VALIDATION_FAILED');
+
     const enrolled = await app.inject({
       method: 'POST',
       url: '/v1/auth/mfa/factors',
@@ -748,7 +761,6 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
         id: '00000000-0000-4000-8000-000000000010',
         method: 'TOTP',
         secretReference: 'vault://iam/mfa/test-factor',
-        enrolledAt: '2026-01-01T00:00:00.000Z',
       },
     });
     assert.equal(enrolled.statusCode, 200);
@@ -761,7 +773,7 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
     const verified = await app.inject({
       method: 'POST',
       url: '/v1/auth/mfa/factors/00000000-0000-4000-8000-000000000010/verify',
-      payload: { proof: '654321', at: '2026-01-01T00:01:00.000Z' },
+      payload: { proof: '654321' },
     });
     assert.equal(verified.statusCode, 200);
     const verifiedBody = parsedBody<{ readonly factors: readonly [{ readonly status: string }] }>(
@@ -772,7 +784,7 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
     const invalid = await app.inject({
       method: 'POST',
       url: '/v1/auth/mfa/factors/00000000-0000-4000-8000-000000000099/verify',
-      payload: { proof: '654321', at: '2026-01-01T00:02:00.000Z' },
+      payload: { proof: '654321' },
     });
     assertProblem(invalid, 400, 'MFA_REQUEST_REJECTED');
   });
@@ -788,7 +800,6 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
         id: '00000000-0000-4000-8000-000000000010',
         method: 'TOTP',
         secretReference: 'vault://iam/mfa/test-factor',
-        enrolledAt: '2026-01-01T00:00:00.000Z',
       },
     });
     assertProblem(response, 503, 'MFA_UNAVAILABLE');

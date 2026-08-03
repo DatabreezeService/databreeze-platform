@@ -22,38 +22,27 @@ void test('[IAM-012, IAM-013, IAM-014] MFA enrollment and verification are revis
     {
       verify: ({ proof }) => Promise.resolve(proof === '654321'),
     },
+    () => new Date(at),
   );
   const enrolled = await service.enroll({
     id: factorId,
     userId,
     method: 'TOTP',
     secretReference: 'secret-ref:totp:1',
-    enrolledAt: at,
   });
   assert.equal(enrolled.accepted, true);
   if (!enrolled.accepted) return;
   assert.equal(enrolled.value.factors[0]?.status, 'PENDING');
-  const invalidProof = await service.verifyFactor(
-    userId,
-    factorId,
-    '000000',
-    '2026-01-01T00:01:00.000Z',
-  );
+  assert.equal(enrolled.value.factors[0]?.enrolledAt, at);
+  const invalidProof = await service.verifyFactor(userId, factorId, '000000');
   assert.deepEqual(invalidProof, { accepted: false, code: 'FACTOR_PROOF_INVALID' });
-  const verified = await service.verifyFactor(
-    userId,
-    factorId,
-    '654321',
-    '2026-01-01T00:01:00.000Z',
-  );
+  const verified = await service.verifyFactor(userId, factorId, '654321');
   assert.equal(verified.accepted, true);
-  if (verified.accepted) assert.equal(verified.value.factors[0]?.status, 'ACTIVE');
-  const secondVerify = await service.verifyFactor(
-    userId,
-    factorId,
-    '654321',
-    '2026-01-01T00:02:00.000Z',
-  );
+  if (verified.accepted) {
+    assert.equal(verified.value.factors[0]?.status, 'ACTIVE');
+    assert.equal(verified.value.factors[0]?.verifiedAt, at);
+  }
+  const secondVerify = await service.verifyFactor(userId, factorId, '654321');
   assert.deepEqual(secondVerify, { accepted: false, code: 'INVALID_STATE' });
 });
 
@@ -63,15 +52,20 @@ void test('[IAM-015, IAM-016] recovery code redemption is one-time and does not 
   assert.equal(code.accepted, true);
   if (!code.accepted) return;
   await repository.saveState(userId as never, { factors: [], recoveryCodes: [code.value] });
-  const service = new MfaService(repository, {
-    matches: (presented, stored) => presented === stored,
-  });
-  const redeemed = await service.redeemRecovery(userId, 'digest-1', '2026-01-01T00:01:00.000Z');
+  const service = new MfaService(
+    repository,
+    {
+      matches: (presented, stored) => presented === stored,
+    },
+    undefined,
+    () => new Date(at),
+  );
+  const redeemed = await service.redeemRecovery(userId, 'digest-1');
   assert.equal(redeemed.accepted, true);
   if (!redeemed.accepted) return;
   assert.equal(redeemed.value.recoveryCodesRemaining, 0);
   assert.equal('digest' in redeemed.value, false);
-  assert.deepEqual(await service.redeemRecovery(userId, 'digest-1', '2026-01-01T00:02:00.000Z'), {
+  assert.deepEqual(await service.redeemRecovery(userId, 'digest-1'), {
     accepted: false,
     code: 'RECOVERY_CODE_USED',
   });

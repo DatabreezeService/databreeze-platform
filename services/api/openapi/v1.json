@@ -7423,27 +7423,23 @@
         "properties": {
           "id": { "type": "string", "format": "uuid" },
           "method": { "type": "string", "enum": ["TOTP", "WEBAUTHN"] },
-          "secretReference": { "type": "string", "maxLength": 512, "writeOnly": true },
-          "enrolledAt": { "type": "string", "format": "date-time" },
-          "revision": { "type": "number", "minimum": 1 }
+          "secretReference": { "type": "string", "maxLength": 512, "writeOnly": true }
         },
-        "required": ["id", "method", "secretReference", "enrolledAt"]
+        "required": ["id", "method", "secretReference"]
       },
       "VerifyMfaFactorDto": {
         "type": "object",
         "properties": {
-          "proof": { "type": "string", "minLength": 1, "maxLength": 4096, "writeOnly": true },
-          "at": { "type": "string", "format": "date-time" }
+          "proof": { "type": "string", "minLength": 1, "maxLength": 4096, "writeOnly": true }
         },
-        "required": ["proof", "at"]
+        "required": ["proof"]
       },
       "RedeemMfaRecoveryCodeDto": {
         "type": "object",
         "properties": {
-          "presentedDigest": { "type": "string", "maxLength": 256, "writeOnly": true },
-          "at": { "type": "string", "format": "date-time" }
+          "presentedDigest": { "type": "string", "maxLength": 256, "writeOnly": true }
         },
-        "required": ["presentedDigest", "at"]
+        "required": ["presentedDigest"]
       },
       "CreateInboxItemDto": {
         "type": "object",

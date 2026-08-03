@@ -89,6 +89,7 @@ export interface IamModuleOptions {
   readonly mfaDatabase?: MfaDatabaseClientV1;
   readonly mfaService?: MfaService;
   readonly mfaFactorProofVerifier?: MfaFactorProofVerifierV1;
+  readonly mfaClock?: () => Date;
   readonly recoveryCodeMatcher?: {
     matches(presentedDigest: string, storedDigest: string): boolean;
   };
@@ -157,6 +158,7 @@ export class IamModule {
               matches: constantTimeRecoveryCodeMatchV1,
             },
             options.mfaFactorProofVerifier ?? new UnavailableMfaFactorProofVerifier(),
+            options.mfaClock,
           ));
     const iamRepository =
       options.iamRepository ??
