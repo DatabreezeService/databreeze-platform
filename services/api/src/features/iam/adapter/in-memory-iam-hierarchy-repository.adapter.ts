@@ -28,6 +28,14 @@ function cloneProject(value: ProjectIdentityV1): ProjectIdentityV1 {
   return Object.freeze({ ...value });
 }
 
+function ownedFieldsMatch<TValue extends object>(existing: TValue, expected: TValue): boolean {
+  const existingRecord = existing as Record<string, unknown>;
+  const expectedRecord = expected as Record<string, unknown>;
+  return Object.keys(expectedRecord).every((key) =>
+    Object.is(existingRecord[key], expectedRecord[key]),
+  );
+}
+
 function organizationScope(organizationId: StableIdentifierV1): TenantScopeV1 {
   return Object.freeze({ scopeType: 'organization', organizationId });
 }
@@ -188,8 +196,7 @@ export class InMemoryIamHierarchyRepositoryAdapter implements IamHierarchyReposi
     await Promise.resolve();
     if (!organizationVisible(context, value.id)) throw new Error('IAM_SCOPE_DENIED');
     const existing = this.organizations.get(value.id);
-    if (existing && JSON.stringify(existing) !== JSON.stringify(value))
-      throw new Error('IAM_HIERARCHY_CONFLICT');
+    if (existing && !ownedFieldsMatch(existing, value)) throw new Error('IAM_HIERARCHY_CONFLICT');
     if (!existing) this.organizations.set(value.id, cloneOrganization(value));
   }
 
@@ -201,8 +208,7 @@ export class InMemoryIamHierarchyRepositoryAdapter implements IamHierarchyReposi
     if (!organizationVisible(context, value.organizationId)) throw new Error('IAM_SCOPE_DENIED');
     if (!this.organizations.has(value.organizationId)) throw new Error('IAM_PARENT_NOT_FOUND');
     const existing = this.workspaces.get(value.id);
-    if (existing && JSON.stringify(existing) !== JSON.stringify(value))
-      throw new Error('IAM_HIERARCHY_CONFLICT');
+    if (existing && !ownedFieldsMatch(existing, value)) throw new Error('IAM_HIERARCHY_CONFLICT');
     if (!existing) this.workspaces.set(value.id, cloneWorkspace(value));
   }
 
@@ -216,8 +222,7 @@ export class InMemoryIamHierarchyRepositoryAdapter implements IamHierarchyReposi
     )
       throw new Error('IAM_PARENT_NOT_FOUND');
     const existing = this.projects.get(value.id);
-    if (existing && JSON.stringify(existing) !== JSON.stringify(value))
-      throw new Error('IAM_HIERARCHY_CONFLICT');
+    if (existing && !ownedFieldsMatch(existing, value)) throw new Error('IAM_HIERARCHY_CONFLICT');
     if (!existing) this.projects.set(value.id, cloneProject(value));
   }
 

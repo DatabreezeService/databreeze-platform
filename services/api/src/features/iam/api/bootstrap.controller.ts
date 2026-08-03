@@ -79,6 +79,9 @@ export class IamBootstrapController {
           ...(context.tenantScope.scopeType === 'organization'
             ? {}
             : { workspaceId: context.tenantScope.workspaceId }),
+          ...(context.tenantScope.scopeType === 'project'
+            ? { projectId: context.tenantScope.projectId }
+            : {}),
           authorizationEpoch: context.authorizationEpoch,
         }),
         platform: Object.freeze({ apiVersion: 'v1' as const }),

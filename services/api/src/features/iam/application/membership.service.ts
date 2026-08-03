@@ -93,7 +93,8 @@ function applicationError(error: unknown): IamMembershipApplicationCodeV1 {
   const message = error instanceof Error ? error.message : '';
   if (message === 'IAM_SCOPE_DENIED' || message === 'IAM_SCOPE_NARROWING_REQUIRED')
     return 'SCOPE_DENIED';
-  if (message === 'IAM_REVISION_CONFLICT') return 'CONFLICT';
+  if (message === 'IAM_REVISION_CONFLICT' || message === 'IAM_MEMBERSHIP_CONFLICT')
+    return 'CONFLICT';
   if (message.endsWith('_NOT_FOUND')) return 'NOT_FOUND';
   return 'UNAVAILABLE';
 }
@@ -248,7 +249,7 @@ export class IamMembershipService {
         if (authorization !== 'ALLOWED')
           return rejected(authorization === 'UNAVAILABLE' ? 'UNAVAILABLE' : 'SCOPE_DENIED');
         if (current.revision !== expectedRevisionInput) return rejected('CONFLICT');
-        if (statusInput !== 'ACTIVE' && current.status !== 'ACTIVE') return rejected('CONFLICT');
+        if (current.status !== 'ACTIVE') return rejected('CONFLICT');
         if (statusInput !== 'ACTIVE' && current.roleId === 'owner') {
           const actor = await transaction.findMembership(context, context.actorId);
           if (!actor || actor.roleId !== 'owner') return rejected('SCOPE_DENIED');

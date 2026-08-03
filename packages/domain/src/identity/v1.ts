@@ -193,6 +193,11 @@ function boundedText(input: unknown, maxLength: number): string | undefined {
   return normalized.length > 0 && normalized.length <= maxLength ? normalized : undefined;
 }
 
+/** Shared bounded-text predicate for application-layer preflight without placeholder identities. */
+export function isBoundedTextV1(input: unknown, maxLength: number): input is string {
+  return boundedText(input, maxLength) !== undefined;
+}
+
 function containsControlCharacterV1(input: string): boolean {
   for (const character of input) {
     const codePoint = character.codePointAt(0);
@@ -306,7 +311,7 @@ export function createUserIdentityV1(input: {
 
 export type ProjectKindV1 = 'INTERNAL' | 'CLIENT' | 'LOCATION' | 'ENGAGEMENT';
 
-function isProjectKind(input: unknown): input is ProjectKindV1 {
+export function isProjectKindV1(input: unknown): input is ProjectKindV1 {
   return (
     input === 'INTERNAL' || input === 'CLIENT' || input === 'LOCATION' || input === 'ENGAGEMENT'
   );
@@ -400,7 +405,7 @@ export function createProjectIdentityV1(input: {
   if (!id || !organizationId || !workspaceId) return rejected('INVALID_IDENTIFIER');
   if (!name) return rejected('INVALID_TEXT');
   if (!createdAt) return rejected('INVALID_TIMESTAMP');
-  if (!isProjectKind(input.kind)) return rejected('INVALID_KIND');
+  if (!isProjectKindV1(input.kind)) return rejected('INVALID_KIND');
   if (!activeOrArchived(status)) return rejected('INVALID_STATE');
   return accepted(
     Object.freeze({

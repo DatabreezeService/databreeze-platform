@@ -94,6 +94,26 @@ void test('[IAM-004] owner can create a server-identified, expiring invitation i
   assert.equal(result.value.scope.scopeType, 'organization');
 });
 
+void test('[IAM-004] duplicate principal and scope invitations are rejected', async () => {
+  const value = repository();
+  const service = new IamMembershipService(
+    value,
+    idsFrom(ids.invitation, ids.successorMembership),
+    clock,
+  );
+  const input = {
+    principalId: ids.invited,
+    scope: { scopeType: 'organization', organizationId: ids.organization },
+    roleId: 'viewer' as const,
+  };
+  const first = await service.invite(context('membership-service-duplicate-001'), input);
+  assert.equal(first.accepted, true);
+  assert.deepEqual(await service.invite(context('membership-service-duplicate-002'), input), {
+    accepted: false,
+    code: 'CONFLICT',
+  });
+});
+
 void test('[IAM-003, IAM-004] viewer and out-of-scope invitations are denied', async () => {
   const viewer = repository('viewer');
   const service = new IamMembershipService(viewer, idsFrom(ids.invitation), clock);
@@ -245,6 +265,28 @@ void test('[IAM-004] invitee can accept an unexpired invitation and invitation l
       (membership) => membership.id === invited.value.id,
     ),
     accepted.value,
+  );
+});
+
+void test('[IAM-004] administrators cannot activate invitations outside the accept flow', async () => {
+  const value = repository();
+  const service = new IamMembershipService(value, idsFrom(ids.invitation), clock);
+  const invitation = await service.invite(context('membership-service-006b'), {
+    principalId: ids.invited,
+    scope: { scopeType: 'organization', organizationId: ids.organization },
+    roleId: 'viewer',
+  });
+  assert.equal(invitation.accepted, true);
+  if (!invitation.accepted) return;
+  assert.deepEqual(
+    await service.transition(context('membership-service-006c'), invitation.value.id, 1, 'ACTIVE'),
+    { accepted: false, code: 'CONFLICT' },
+  );
+  assert.equal(
+    (await value.listMemberships(context('membership-service-006d'))).find(
+      (membership) => membership.id === invitation.value.id,
+    )?.status,
+    'INVITED',
   );
 });
 

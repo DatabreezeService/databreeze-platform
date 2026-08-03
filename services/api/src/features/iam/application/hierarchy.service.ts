@@ -3,6 +3,8 @@ import { randomUUID } from 'node:crypto';
 import {
   createProjectIdentityV1,
   createWorkspaceIdentityV1,
+  isBoundedTextV1,
+  isProjectKindV1,
   type OrganizationIdentityV1,
   type ProjectIdentityV1,
   type WorkspaceIdentityV1,
@@ -172,13 +174,7 @@ export class IamHierarchyService {
       return rejected('SCOPE_DENIED');
     const createdAt = isoNow(this.clock);
     if (!createdAt) return rejected('UNAVAILABLE');
-    const inputCheck = createWorkspaceIdentityV1({
-      id: organizationId.value,
-      organizationId: organizationId.value,
-      name: nameInput,
-      createdAt,
-    });
-    if (!inputCheck.accepted) return rejected(identityCode(inputCheck.code));
+    if (!isBoundedTextV1(nameInput, 200)) return rejected('INVALID_TEXT');
     const authorization = await this.authorizeMutation(
       context,
       PERMISSIONS_V1.ORGANIZATION_SETTINGS_MANAGE,
@@ -251,15 +247,8 @@ export class IamHierarchyService {
       return rejected('SCOPE_DENIED');
     const createdAt = isoNow(this.clock);
     if (!createdAt) return rejected('UNAVAILABLE');
-    const inputCheck = createProjectIdentityV1({
-      id: workspaceId.value,
-      organizationId: context.tenantScope.organizationId,
-      workspaceId: workspaceId.value,
-      kind: kindInput,
-      name: nameInput,
-      createdAt,
-    });
-    if (!inputCheck.accepted) return rejected(identityCode(inputCheck.code));
+    if (!isProjectKindV1(kindInput)) return rejected('INVALID_KIND');
+    if (!isBoundedTextV1(nameInput, 200)) return rejected('INVALID_TEXT');
     const authorization = await this.authorizeMutation(
       context,
       PERMISSIONS_V1.WORKSPACE_SETTINGS_MANAGE,

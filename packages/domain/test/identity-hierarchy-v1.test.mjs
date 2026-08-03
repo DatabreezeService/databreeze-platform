@@ -87,4 +87,14 @@ void test('[IAM-001] hierarchy constructors reject malformed identifiers, names,
     }),
     { accepted: false, code: 'INVALID_KIND' },
   );
+  assert.deepEqual(
+    createWorkspaceIdentityV1({
+      id: ids.workspace,
+      organizationId: ids.organization,
+      name: 'Operations',
+      status: 'DELETED',
+      createdAt,
+    }),
+    { accepted: false, code: 'INVALID_STATE' },
+  );
 });

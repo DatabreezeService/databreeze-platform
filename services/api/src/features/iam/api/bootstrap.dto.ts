@@ -77,12 +77,15 @@ export class BootstrapSessionDto {
   @ApiPropertyOptional({ format: 'uuid' })
   workspaceId?: string;
 
+  @ApiPropertyOptional({ format: 'uuid' })
+  projectId?: string;
+
   @ApiProperty({ minimum: 1 })
   authorizationEpoch!: number;
 }
 
 export class BootstrapPlatformDto {
-  @ApiProperty()
+  @ApiProperty({ enum: ['v1'] })
   apiVersion!: 'v1';
 }
 

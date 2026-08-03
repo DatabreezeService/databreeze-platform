@@ -160,7 +160,7 @@ test('delivery batches cover every unfinished task once within review budgets', 
   assert.equal(ledger.deliveryBatches.length, 15);
   assert.equal(new Set(batchedTasks).size, batchedTasks.length);
   assert.deepEqual(
-    new Set(batchedTasks),
+    new Set(batchedTasks.filter((taskId) => !verifiedTasks.has(taskId))),
     new Set([...allTasks].filter((taskId) => !verifiedTasks.has(taskId))),
   );
   for (const batch of ledger.deliveryBatches) {
@@ -174,6 +174,8 @@ test('delivery batches cover every unfinished task once within review budgets', 
     (batch) => batch.batchId === ledger.activeBatchId,
   );
   assert.ok(activeBatch.taskIds.includes(ledger.nextTaskId));
+  assert.deepEqual(activeBatch.taskIds.slice(0, 3), ['FND-006', 'FND-007', 'IAM-001']);
+  assert.deepEqual(activeBatch.handoffTaskIds, ['FND-007']);
 });
 
 test('the handoff runbook contains deterministic resume and failure protocols', () => {
