@@ -147,10 +147,12 @@
             }
           },
           "503": {
-            "description": "",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" } }
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
             },
+            "description": "",
             "headers": {
               "X-Correlation-Id": {
                 "description": "Stable UUID that correlates related requests and errors.",
@@ -7476,7 +7478,16 @@
           "assigneeId": { "oneOf": [{ "type": "string", "format": "uuid" }, { "type": "null" }] },
           "labels": { "maxItems": 32, "type": "array", "items": { "type": "string" } },
           "priority": { "type": "string", "enum": ["LOW", "NORMAL", "HIGH", "URGENT"] },
-          "dueAt": { "oneOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }] },
+          "dueAt": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+              },
+              { "type": "null" }
+            ]
+          },
           "expectedRevision": { "type": "number", "minimum": 1 }
         }
       },
@@ -7511,16 +7522,45 @@
       "CreateArtifactDeletionRequestDto": {
         "type": "object",
         "properties": {
-          "evaluatedAt": { "type": "string", "format": "date-time" },
-          "workspaceRetentionUntil": { "type": "string", "format": "date-time" },
-          "resourceRetentionUntil": { "type": "string", "format": "date-time" },
-          "auditRetentionUntil": { "type": "string", "format": "date-time" },
-          "recoveryWindowUntil": { "type": "string", "format": "date-time" },
+          "evaluatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          },
+          "workspaceRetentionUntil": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          },
+          "resourceRetentionUntil": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          },
+          "auditRetentionUntil": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          },
+          "recoveryWindowUntil": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          },
           "activeApproval": { "type": "boolean" },
           "legalHold": { "type": "boolean" },
           "requestId": { "type": "string", "format": "uuid" },
-          "requestedBy": { "type": "string", "format": "uuid" },
-          "requestedAt": { "type": "string", "format": "date-time" }
+          "requestedBy": {
+            "type": "string",
+            "format": "uuid",
+            "deprecated": true,
+            "description": "Ignored. Attribution always uses the authenticated actor."
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          }
         },
         "required": [
           "evaluatedAt",
@@ -7531,21 +7571,44 @@
           "activeApproval",
           "legalHold",
           "requestId",
-          "requestedBy",
           "requestedAt"
         ]
       },
       "AuthorizeArtifactDeletionRequestDto": {
         "type": "object",
         "properties": {
-          "evaluatedAt": { "type": "string", "format": "date-time" },
-          "workspaceRetentionUntil": { "type": "string", "format": "date-time" },
-          "resourceRetentionUntil": { "type": "string", "format": "date-time" },
-          "auditRetentionUntil": { "type": "string", "format": "date-time" },
-          "recoveryWindowUntil": { "type": "string", "format": "date-time" },
+          "evaluatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          },
+          "workspaceRetentionUntil": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          },
+          "resourceRetentionUntil": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          },
+          "auditRetentionUntil": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          },
+          "recoveryWindowUntil": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          },
           "activeApproval": { "type": "boolean" },
           "legalHold": { "type": "boolean" },
-          "approvedAt": { "type": "string", "format": "date-time" },
+          "approvedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          },
           "mfaSatisfied": { "type": "boolean" },
           "expectedRevision": { "type": "number", "minimum": 1 }
         },
@@ -7566,7 +7629,12 @@
         "type": "object",
         "properties": {
           "manifestId": { "type": "string", "format": "uuid" },
-          "versionIds": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "versionIds": {
+            "minItems": 1,
+            "maxItems": 1024,
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" }
+          },
           "approvalState": {
             "type": "string",
             "enum": ["NOT_REQUIRED", "PENDING", "APPROVED", "REJECTED"]
@@ -7639,10 +7707,10 @@
         "type": "object",
         "properties": {
           "actualSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-          "actualByteSize": { "type": "number", "minimum": 0 },
+          "actualByteSize": { "type": "integer", "minimum": 0 },
           "detectedMediaType": { "type": "string" },
           "scanState": { "type": "string", "enum": ["PENDING", "CLEAN", "MALICIOUS", "FAILED"] },
-          "maxByteSize": { "type": "number", "minimum": 0 },
+          "maxByteSize": { "type": "integer", "minimum": 0 },
           "scannedAt": { "type": "string", "format": "date-time" }
         },
         "required": [
@@ -7716,6 +7784,7 @@
           "versionId": { "type": "string", "format": "uuid" },
           "name": { "type": "string", "maxLength": 200 },
           "fields": {
+            "maxItems": 256,
             "type": "array",
             "items": { "$ref": "#/components/schemas/GovernedDatasetFieldDto" }
           },
@@ -7759,7 +7828,11 @@
           "versionId": { "type": "string", "format": "uuid" },
           "sourceSchemaVersionId": { "type": "string", "format": "uuid" },
           "targetSchemaVersionId": { "type": "string", "format": "uuid" },
-          "steps": { "type": "array", "items": { "$ref": "#/components/schemas/MappingStepDto" } },
+          "steps": {
+            "maxItems": 512,
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MappingStepDto" }
+          },
           "createdAt": { "type": "string", "format": "date-time" },
           "canonicalHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
         },
@@ -7785,7 +7858,7 @@
         "properties": {
           "versionId": { "type": "string", "format": "uuid" },
           "schemaVersionId": { "type": "string", "format": "uuid" },
-          "rules": { "type": "array", "items": { "type": "object" } },
+          "rules": { "maxItems": 512, "type": "array", "items": { "type": "object" } },
           "createdAt": { "type": "string", "format": "date-time" },
           "canonicalHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
         },
@@ -7832,6 +7905,7 @@
         "properties": {
           "datasetId": { "type": "string", "format": "uuid" },
           "inputArtifactVersionIds": {
+            "maxItems": 1024,
             "type": "array",
             "items": { "type": "string", "format": "uuid" }
           },
@@ -7903,7 +7977,11 @@
           "severity": { "type": "string", "enum": ["INFO", "WARNING", "ERROR"] },
           "messageCode": { "type": "string", "minLength": 1, "maxLength": 96 },
           "occurrenceCount": { "type": "number", "minimum": 0 },
-          "evidenceIds": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "evidenceIds": {
+            "maxItems": 128,
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" }
+          },
           "detailHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
           "subject": { "$ref": "#/components/schemas/DatasetQualityFindingSubjectDto" },
           "actual": { "$ref": "#/components/schemas/DatasetQualitySafeValueDto" },
@@ -7933,6 +8011,7 @@
             "enum": ["PASS", "PASS_WITH_WARNINGS", "BLOCKED", "INCOMPLETE"]
           },
           "findings": {
+            "maxItems": 512,
             "type": "array",
             "items": { "$ref": "#/components/schemas/DatasetQualityFindingDto" }
           },
@@ -8354,9 +8433,9 @@
         "properties": {
           "sheetId": { "type": "string", "format": "uuid" },
           "name": { "type": "string", "maxLength": 128 },
-          "maxRow": { "type": "number", "minimum": 0, "maximum": 1000000 },
-          "maxColumn": { "type": "number", "minimum": 0, "maximum": 16384 },
-          "formulaCount": { "type": "number", "minimum": 0, "maximum": 1000000 }
+          "maxRow": { "type": "integer", "minimum": 0, "maximum": 1048576 },
+          "maxColumn": { "type": "integer", "minimum": 0, "maximum": 16384 },
+          "formulaCount": { "type": "integer", "minimum": 0, "maximum": 1000000 }
         },
         "required": ["sheetId", "name", "maxRow", "maxColumn", "formulaCount"]
       },
@@ -8394,7 +8473,11 @@
             "items": { "type": "string", "enum": ["MACRO", "EXTERNAL_LINK", "UNSUPPORTED_XML"] }
           },
           "processorVersion": { "type": "string", "maxLength": 128 },
-          "createdAt": { "type": "string", "format": "date-time" }
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          }
         },
         "required": [
           "auditId",

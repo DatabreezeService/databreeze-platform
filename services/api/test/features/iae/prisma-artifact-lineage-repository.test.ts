@@ -37,6 +37,27 @@ function client(rows: ArtifactLineageDatabaseRowV1[]): ArtifactLineageDatabaseCl
   return {
     artifactLineageRecord: {
       create({ data }) {
+        if (
+          rows.some(
+            (candidate) =>
+              candidate.id === data.id ||
+              candidate.derivedArtifactVersionId === data.derivedArtifactVersionId,
+          )
+        ) {
+          const duplicate = rows.find(
+            (candidate) =>
+              candidate.id === data.id ||
+              candidate.derivedArtifactVersionId === data.derivedArtifactVersionId,
+          );
+          return Promise.reject(
+            Object.assign(new Error('fixture unique constraint'), {
+              code: 'P2002',
+              meta: {
+                target: duplicate?.id === data.id ? ['id'] : ['derivedArtifactVersionId'],
+              },
+            }),
+          );
+        }
         rows.push({ ...data });
         return Promise.resolve({ ...data });
       },
@@ -80,5 +101,81 @@ void test('IAE-007 Prisma lineage adapter preserves immutable lineage and source
   const sourceVersionId = lineage.sourceArtifactVersionIds[0];
   if (!sourceVersionId) throw new Error('fixture source id missing');
   assert.deepEqual(await repository.listBySource(context, sourceVersionId), [lineage]);
+  assert.equal(rows.length, 1);
+});
+
+void test('IAE-007 same-id lineage races preserve immutable identity errors', async () => {
+  const persisted: ArtifactLineageDatabaseRowV1 = {
+    id: lineage.lineageId,
+    scopeType: 'workspace',
+    organizationId: context.tenantScope.organizationId,
+    workspaceId:
+      context.tenantScope.scopeType === 'organization' ? null : context.tenantScope.workspaceId,
+    projectId: null,
+    derivedArtifactVersionId: lineage.derivedArtifactVersionId,
+    sourceVersionIds: lineage.sourceArtifactVersionIds,
+    processorVersion: 'different-processor@1',
+    recipeVersion: null,
+    coordinateLineage: lineage.coordinateLineage,
+  };
+  let initialLookup = true;
+  const raceClient: ArtifactLineageDatabaseClientV1 = {
+    artifactLineageRecord: {
+      create() {
+        return Promise.reject(
+          Object.assign(new Error('fixture id race'), {
+            code: 'P2002',
+            meta: { target: ['id'] },
+          }),
+        );
+      },
+      findUnique({ where }) {
+        if ('id' in where) {
+          if (initialLookup) {
+            initialLookup = false;
+            return Promise.resolve(null);
+          }
+          return Promise.resolve(persisted);
+        }
+        return Promise.resolve(null);
+      },
+      findMany() {
+        return Promise.resolve([]);
+      },
+    },
+    $transaction(work) {
+      return work(this);
+    },
+  };
+  await assert.rejects(
+    new PrismaArtifactLineageRepositoryAdapter(raceClient).save(context, lineage),
+    /IAE_IMMUTABLE_LINEAGE/u,
+  );
+});
+
+void test('IAE-007 lineage test storage enforces one record per derived artifact version', async () => {
+  const rows: ArtifactLineageDatabaseRowV1[] = [];
+  const database = client(rows);
+  const repository = new PrismaArtifactLineageRepositoryAdapter(database);
+  await repository.save(context, lineage);
+  const persisted = rows[0];
+  if (!persisted) throw new Error('fixture lineage was not persisted');
+
+  const conflictingLineageResult = createArtifactLineageV1({
+    ...lineage,
+    lineageId: '88888888-8888-4888-8888-888888888888',
+  });
+  if (!conflictingLineageResult.accepted) throw new Error('fixture conflict lineage invalid');
+  await assert.rejects(
+    repository.save(context, conflictingLineageResult.value),
+    /IAE_DERIVED_LINEAGE_CONFLICT/u,
+  );
+
+  await assert.rejects(
+    database.artifactLineageRecord.create({
+      data: { ...persisted, id: '88888888-8888-4888-8888-888888888888' },
+    }),
+    (error: unknown) => error instanceof Error && 'code' in error && error.code === 'P2002',
+  );
   assert.equal(rows.length, 1);
 });

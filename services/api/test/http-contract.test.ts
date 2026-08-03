@@ -83,6 +83,13 @@ void test('reports ready only through the injectable readiness port and minimize
   );
 });
 
+void test('maps an unconfigured tenant context provider to authentication unavailability', async () => {
+  await withApp({}, async (app) => {
+    const response = await app.inject({ method: 'GET', url: '/v1/artifacts/inbox' });
+    assertProblem(response, 503, 'AUTHENTICATION_UNAVAILABLE');
+  });
+});
+
 void test('propagates one valid correlation UUID while generating a distinct request UUID', async () => {
   await withApp({}, async (app) => {
     const response = await app.inject({

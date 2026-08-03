@@ -64,6 +64,8 @@ const [
 
 assert.equal(aggregate.PERMISSION_SCHEMA_VERSION_V1, 1);
 assert.equal(aggregate.AUTHORIZATION_SCHEMA_VERSION_V1, 1);
+assert.equal(aggregate.ARTIFACT_RETENTION_SCHEMA_VERSION_V1, 1);
+assert.equal(aggregate.ARTIFACT_EXPORT_SCHEMA_VERSION_V1, 1);
 assert.equal(permissions.PERMISSION_SCHEMA_VERSION_V1, 1);
 assert.equal(typeof tenantScope.parseTenantScopeV1, 'function');
 assert.equal(typeof authorization.createScopedAuthorizationEvaluatorV1, 'function');

@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { composeOperationTimeoutMs } from '../src/local-services.mjs';
+import { classifyCompletionStatus, composeOperationTimeoutMs } from '../src/local-services.mjs';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const read = (relativePath) => readFileSync(path.join(repositoryRoot, relativePath), 'utf8');
@@ -14,6 +14,29 @@ test('local lifecycle grants image pulls the bounded readiness window plus teard
   assert.equal(composeOperationTimeoutMs(1), 31_000);
   assert.equal(composeOperationTimeoutMs(60), 90_000);
   assert.equal(composeOperationTimeoutMs(3600), 3_630_000);
+});
+
+test('local readiness requires successful completion jobs', () => {
+  assert.deepEqual(classifyCompletionStatus('created', 0), {
+    state: 'pending',
+    detail: 'created',
+  });
+  assert.deepEqual(classifyCompletionStatus('running', 0), {
+    state: 'pending',
+    detail: 'running',
+  });
+  assert.deepEqual(classifyCompletionStatus('exited', 0), {
+    state: 'complete',
+    detail: 'exited/0',
+  });
+  assert.deepEqual(classifyCompletionStatus('exited', 2), {
+    state: 'failed',
+    detail: 'exited/2',
+  });
+  assert.deepEqual(classifyCompletionStatus('dead', 137), {
+    state: 'failed',
+    detail: 'dead/137',
+  });
 });
 
 test('local compose defines pinned, healthy disposable dependencies', () => {

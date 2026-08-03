@@ -41,6 +41,7 @@ function createDatabase(): {
   readonly projects: Map<string, ProjectIdentityDatabaseRowV1>;
   readonly memberships: Map<string, MembershipIdentityDatabaseRowV1>;
   readonly transactionCalls: { value: number };
+  readonly transactionWriteCalls: { value: number };
 } {
   const users = new Map<string, UserIdentityDatabaseRowV1>([
     [
@@ -61,6 +62,7 @@ function createDatabase(): {
   const projects = new Map<string, ProjectIdentityDatabaseRowV1>();
   const memberships = new Map<string, MembershipIdentityDatabaseRowV1>();
   const transactionCalls = { value: 0 };
+  const transactionWriteCalls = { value: 0 };
   const client = {
     userIdentity: {
       findUnique: async ({ where }: { readonly where: { readonly id: string } }) =>
@@ -126,8 +128,39 @@ function createDatabase(): {
         projects: new Map(projects),
         memberships: new Map(memberships),
       };
+      const transaction = {
+        ...client,
+        organizationIdentity: {
+          ...client.organizationIdentity,
+          create: async (input: { readonly data: OrganizationIdentityDatabaseRowV1 }) => {
+            transactionWriteCalls.value += 1;
+            return client.organizationIdentity.create(input);
+          },
+        },
+        workspaceIdentity: {
+          ...client.workspaceIdentity,
+          create: async (input: { readonly data: WorkspaceIdentityDatabaseRowV1 }) => {
+            transactionWriteCalls.value += 1;
+            return client.workspaceIdentity.create(input);
+          },
+        },
+        projectIdentity: {
+          ...client.projectIdentity,
+          create: async (input: { readonly data: ProjectIdentityDatabaseRowV1 }) => {
+            transactionWriteCalls.value += 1;
+            return client.projectIdentity.create(input);
+          },
+        },
+        membershipIdentity: {
+          ...client.membershipIdentity,
+          create: async (input: { readonly data: MembershipIdentityDatabaseRowV1 }) => {
+            transactionWriteCalls.value += 1;
+            return client.membershipIdentity.create(input);
+          },
+        },
+      } as IdentityBootstrapDatabaseClientV1;
       try {
-        return await work(client);
+        return await work(transaction);
       } catch (error) {
         organizations.clear();
         workspaces.clear();
@@ -141,12 +174,28 @@ function createDatabase(): {
       }
     },
   } as unknown as IdentityBootstrapDatabaseClientV1;
-  return { client, users, organizations, workspaces, projects, memberships, transactionCalls };
+  return {
+    client,
+    users,
+    organizations,
+    workspaces,
+    projects,
+    memberships,
+    transactionCalls,
+    transactionWriteCalls,
+  };
 }
 
 void test('[IAM-001, IAM-009, IAM-011] Prisma bootstrap persists and reconstructs a personal owner hierarchy', async () => {
-  const { client, organizations, workspaces, projects, memberships, transactionCalls } =
-    createDatabase();
+  const {
+    client,
+    organizations,
+    workspaces,
+    projects,
+    memberships,
+    transactionCalls,
+    transactionWriteCalls,
+  } = createDatabase();
   const adapter = new PrismaIdentityBootstrapRepositoryAdapter(client);
   const validated = bootstrapPersonalOrganizationV1(input);
   assert.equal(validated.accepted, true);
@@ -154,6 +203,7 @@ void test('[IAM-001, IAM-009, IAM-011] Prisma bootstrap persists and reconstruct
 
   await adapter.save(validated.value);
   assert.equal(transactionCalls.value, 1);
+  assert.equal(transactionWriteCalls.value, 4);
   assert.equal(organizations.size, 1);
   assert.equal(workspaces.size, 1);
   assert.equal(projects.size, 1);

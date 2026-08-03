@@ -18,6 +18,7 @@ const services = [
   'otel-collector',
   'otel-collector-health',
 ];
+const completionServices = ['minio-init'];
 const logServices = [...services, 'minio-init'];
 const hostPorts = [
   { service: 'postgres', key: 'POSTGRES_PORT', fallback: 5432 },
@@ -142,6 +143,15 @@ export function composeOperationTimeoutMs(waitSeconds) {
   return (waitSeconds + 30) * 1000;
 }
 
+export function classifyCompletionStatus(status, exitCode) {
+  const detail = `${status}/${exitCode}`;
+  if (status === 'exited') {
+    return exitCode === 0 ? { state: 'complete', detail } : { state: 'failed', detail };
+  }
+  if (status === 'dead' || status === 'removing') return { state: 'failed', detail };
+  return { state: 'pending', detail: status };
+}
+
 function requireDocker() {
   const result = spawnSync('docker', ['info', '--format', '{{.ServerVersion}}'], {
     cwd: repositoryRoot,
@@ -249,24 +259,60 @@ function inspectHealth(service, values) {
   return { state, health, detail: `${state}/${health}` };
 }
 
+function inspectCompletion(service, values) {
+  const idResult = runDocker([...composeArgs(values), 'ps', '-aq', service], {
+    allowFailure: true,
+  });
+  const id = idResult.stdout.trim();
+  if (!id) return { state: 'pending', detail: 'no container' };
+  const inspect = runDocker(['inspect', '--format', '{{.State.Status}}|{{.State.ExitCode}}', id], {
+    allowFailure: true,
+  });
+  const inspection = inspect.stdout?.trim();
+  if (inspect.error || inspect.status !== 0 || !inspection) {
+    return { state: 'pending', detail: 'inspect unavailable' };
+  }
+  const [status, rawExitCode] = inspection.split('|');
+  return classifyCompletionStatus(status, Number(rawExitCode));
+}
+
 async function waitForReady(values, waitSeconds) {
   const deadline = Date.now() + waitSeconds * 1000;
   let last = new Map();
+  let lastCompletions = new Map();
   while (Date.now() <= deadline) {
     last = new Map(services.map((service) => [service, inspectHealth(service, values)]));
+    lastCompletions = new Map(
+      completionServices.map((service) => [service, inspectCompletion(service, values)]),
+    );
+    const failedCompletion = [...lastCompletions.entries()].find(
+      ([, result]) => result.state === 'failed',
+    );
+    if (failedCompletion) {
+      fail(`${failedCompletion[0]} failed (${failedCompletion[1].detail})`);
+    }
     if (
-      [...last.values()].every(({ state, health }) => state === 'running' && health === 'healthy')
+      [...last.values()].every(
+        ({ state, health }) => state === 'running' && health === 'healthy',
+      ) &&
+      [...lastCompletions.values()].every(({ state }) => state === 'complete')
     ) {
-      console.log(`Local services ready (${services.join(', ')}).`);
+      console.log(`Local services ready (${[...services, ...completionServices].join(', ')}).`);
       return;
     }
-    const summary = services.map((service) => `${service}=${last.get(service).detail}`).join(' ');
+    const summary = [
+      ...services.map((service) => `${service}=${last.get(service).detail}`),
+      ...completionServices.map((service) => `${service}=${lastCompletions.get(service).detail}`),
+    ].join(' ');
     process.stdout.write(`Waiting for local services: ${summary}\r`);
     await delay(1000);
   }
   console.error('\nLocal services did not become ready:');
   for (const service of services)
     console.error(`- ${service}: ${last.get(service)?.detail ?? 'unknown'}`);
+  for (const service of completionServices) {
+    console.error(`- ${service}: ${lastCompletions.get(service)?.detail ?? 'unknown'}`);
+  }
   fail(`readiness timeout after ${waitSeconds}s`);
 }
 
@@ -368,6 +414,8 @@ export async function main(argv = process.argv.slice(2)) {
   if (command === 'status') {
     for (const service of services)
       console.log(`${service}: ${inspectHealth(service, values).detail}`);
+    for (const service of completionServices)
+      console.log(`${service}: ${inspectCompletion(service, values).detail}`);
     return;
   }
   if (command === 'logs') {

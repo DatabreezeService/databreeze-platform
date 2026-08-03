@@ -13,6 +13,7 @@ import type {
   DatasetVersionRepositoryPortV1,
   DatasetVersionTransactionPortV1,
 } from '../application/dataset-version-repository.port.js';
+import { isPrismaUniqueConstraintViolationV1 } from '../../../platform/prisma-error.js';
 
 export interface DatasetVersionDatabaseRowV1 {
   readonly id: string;
@@ -129,11 +130,18 @@ class PrismaDatasetVersionTransactionAdapter implements DatasetVersionTransactio
       where: { id: version.versionId },
     });
     if (existing !== null) {
+      if (!visible(context.tenantScope, existing)) throw new Error('DSM_IMMUTABLE_DATASET_VERSION');
       if (JSON.stringify(rowToDomain(existing)) !== JSON.stringify(version))
         throw new Error('DSM_IMMUTABLE_DATASET_VERSION');
       return;
     }
-    await this.client.datasetVersionRecord.create({ data: domainToCreate(version) });
+    try {
+      await this.client.datasetVersionRecord.create({ data: domainToCreate(version) });
+    } catch (error) {
+      if (isPrismaUniqueConstraintViolationV1(error))
+        throw new Error('DSM_IMMUTABLE_DATASET_VERSION');
+      throw error;
+    }
   }
 
   public async find(

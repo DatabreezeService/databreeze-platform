@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayMinSize,
+  ArrayUnique,
   IsArray,
   IsIn,
   IsInt,
@@ -17,6 +18,7 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 
 const sha256Pattern = '^[0-9a-f]{64}$';
+const strictUtcTimestampPattern = '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$';
 
 export class SpreadsheetAuditSheetDto {
   @ApiProperty({ format: 'uuid' })
@@ -28,19 +30,19 @@ export class SpreadsheetAuditSheetDto {
   @MaxLength(128)
   name!: string;
 
-  @ApiProperty({ minimum: 0, maximum: 1_000_000 })
+  @ApiProperty({ type: 'integer', minimum: 0, maximum: 1_048_576 })
   @IsInt()
   @Min(0)
-  @Max(1_000_000)
+  @Max(1_048_576)
   maxRow!: number;
 
-  @ApiProperty({ minimum: 0, maximum: 16_384 })
+  @ApiProperty({ type: 'integer', minimum: 0, maximum: 16_384 })
   @IsInt()
   @Min(0)
   @Max(16_384)
   maxColumn!: number;
 
-  @ApiProperty({ minimum: 0, maximum: 1_000_000 })
+  @ApiProperty({ type: 'integer', minimum: 0, maximum: 1_000_000 })
   @IsInt()
   @Min(0)
   @Max(1_000_000)
@@ -107,6 +109,7 @@ export class CreateSpreadsheetAuditResultDto {
   @ApiProperty({ enum: ['MACRO', 'EXTERNAL_LINK', 'UNSUPPORTED_XML'], isArray: true })
   @IsArray()
   @ArrayMaxSize(3)
+  @ArrayUnique()
   @IsIn(['MACRO', 'EXTERNAL_LINK', 'UNSUPPORTED_XML'], { each: true })
   blockedReasons!: Array<'MACRO' | 'EXTERNAL_LINK' | 'UNSUPPORTED_XML'>;
 
@@ -115,7 +118,8 @@ export class CreateSpreadsheetAuditResultDto {
   @MaxLength(128)
   processorVersion!: string;
 
-  @ApiProperty({ format: 'date-time' })
-  @IsISO8601()
+  @ApiProperty({ format: 'date-time', pattern: strictUtcTimestampPattern })
+  @IsISO8601({ strict: true, strictSeparator: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u)
   createdAt!: string;
 }

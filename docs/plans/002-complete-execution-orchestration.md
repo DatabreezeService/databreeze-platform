@@ -66,7 +66,7 @@ This plan was reconciled on 2026-08-02 from remote `dev` at `783a4710c0aa2a2808d
 
 Merged PRs 1–23 establish substantial engineering, IAM/AUD/BUA, IAE/DSM, JRA, and DSO code. PR 19 delivered the normal 73-commit foundation batch to `dev`; PR 20 promoted it to `main`; PRs 21–23 carried validated promotion-review fixes back through `dev`. Plans 010–050 must therefore start with evidence reconciliation, not blind reimplementation. Plans 060–500 remain unverified and must be treated as planned until their gates pass.
 
-The active execution packet is `B01` in `004-luna-max-execution-plan.md`, starting with `FND-003` on `feat/foundation-identity-completion`. The packet preserves the requested 30–99 commit rule, targets about 70 commits, and carries the implementation forward without opening a documentation-only PR.
+The active execution packet is `B01` in `004-luna-max-execution-plan.md`, continuing with `FND-005` after live verification closed `FND-003` and containerized OpenTofu verification closed `FND-004`. The packet preserves the requested 30–50 commit target and exceptional 79-commit ceiling, and carries implementation forward without opening a documentation-only PR.
 
 The hashes above are an audit anchor, not a branch lock. Every session must fetch and recompute live state; update the ledger checkpoint only as part of a committed task/PR handoff so session-local observations do not create meaningless dirty files.
 

@@ -29,6 +29,7 @@
     "local:smoke": "node tools/repo-cli/src/local-services-smoke.mjs",
     "local:services": "node tools/repo-cli/src/local-services.mjs",
     "infra:check": "node tools/repo-cli/src/check-aws-infrastructure.mjs",
+    "infra:validate": "node tools/repo-cli/src/validate-aws-opentofu.mjs",
     "orchestration:check": "node tools/repo-cli/src/check-execution-orchestration.mjs",
     "repo:bootstrap": "corepack pnpm install --frozen-lockfile",
     "repo:build": "corepack pnpm build",

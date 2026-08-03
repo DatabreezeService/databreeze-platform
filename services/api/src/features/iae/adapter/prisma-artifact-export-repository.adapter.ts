@@ -14,6 +14,7 @@ import type {
   ArtifactExportRepositoryPortV1,
   ArtifactExportTransactionPortV1,
 } from '../application/artifact-export-repository.port.js';
+import { isPrismaUniqueConstraintViolationV1 } from '../../../platform/prisma-error.js';
 
 export interface ArtifactExportDatabaseRowV1 {
   readonly id: string;
@@ -106,12 +107,19 @@ class PrismaArtifactExportTransactionAdapter implements ArtifactExportTransactio
       where: { id: manifest.manifestId },
     });
     if (existing !== null) {
+      if (!visible(context.tenantScope, existing)) throw new Error('IAE_IMMUTABLE_EXPORT_MANIFEST');
       const current = rowToDomain(existing);
       if (JSON.stringify(current) !== JSON.stringify(manifest))
         throw new Error('IAE_IMMUTABLE_EXPORT_MANIFEST');
       return;
     }
-    await this.client.artifactExportManifestRecord.create({ data: domainToCreate(manifest) });
+    try {
+      await this.client.artifactExportManifestRecord.create({ data: domainToCreate(manifest) });
+    } catch (error) {
+      if (isPrismaUniqueConstraintViolationV1(error))
+        throw new Error('IAE_IMMUTABLE_EXPORT_MANIFEST');
+      throw error;
+    }
   }
 
   public async find(
@@ -142,7 +150,7 @@ export class PrismaArtifactExportRepositoryAdapter implements ArtifactExportRepo
   }
 
   public save(context: IamTenantContextV1, manifest: ArtifactExportManifestV1): Promise<void> {
-    return new PrismaArtifactExportTransactionAdapter(this.client).save(context, manifest);
+    return this.withTransaction(context, (transaction) => transaction.save(context, manifest));
   }
 
   public find(

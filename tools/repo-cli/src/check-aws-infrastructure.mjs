@@ -9,7 +9,10 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const infrastructureRoot = path.join(repositoryRoot, 'infrastructure', 'aws');
 const requiredFiles = [
   'README.md',
+  '.opentofu-version',
   'environments/alpha/main.tf',
+  'environments/alpha/.terraform.lock.hcl',
+  'environments/alpha/tests/alpha-plan.tofutest.hcl',
   'environments/alpha/variables.tf',
   'environments/alpha/versions.tf',
   'modules/network/main.tf',
@@ -26,6 +29,14 @@ function fail(message) {
 
 for (const relativePath of requiredFiles) {
   if (!existsSync(path.join(infrastructureRoot, relativePath))) fail(`missing ${relativePath}`);
+}
+
+const opentofuVersion = readFileSync(
+  path.join(infrastructureRoot, '.opentofu-version'),
+  'utf8',
+).trim();
+if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u.test(opentofuVersion)) {
+  fail('the OpenTofu version pin must be one exact semantic version');
 }
 
 const allTerraform = requiredFiles
@@ -97,11 +108,15 @@ if (tofu.error?.code === 'ENOENT') {
   const tofuDataDirectory = mkdtempSync(path.join(os.tmpdir(), 'databreeze-tofu-'));
   const tofuEnvironment = { ...process.env, TF_DATA_DIR: tofuDataDirectory };
   try {
-    const init = spawnSync('tofu', ['init', '-backend=false', '-input=false', '-no-color'], {
-      cwd: alphaDirectory,
-      env: tofuEnvironment,
-      encoding: 'utf8',
-    });
+    const init = spawnSync(
+      'tofu',
+      ['init', '-backend=false', '-input=false', '-lockfile=readonly', '-no-color'],
+      {
+        cwd: alphaDirectory,
+        env: tofuEnvironment,
+        encoding: 'utf8',
+      },
+    );
     if (init.status !== 0) {
       console.error(init.stdout || init.stderr);
       process.exitCode = init.status ?? 1;

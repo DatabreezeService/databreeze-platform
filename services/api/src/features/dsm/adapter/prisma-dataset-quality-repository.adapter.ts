@@ -13,6 +13,7 @@ import type {
   DatasetQualityRepositoryPortV1,
   DatasetQualityTransactionPortV1,
 } from '../application/dataset-quality-repository.port.js';
+import { isPrismaUniqueConstraintViolationV1 } from '../../../platform/prisma-error.js';
 
 export interface DatasetQualityDatabaseRowV1 {
   readonly id: string;
@@ -125,11 +126,18 @@ class PrismaDatasetQualityTransactionAdapter implements DatasetQualityTransactio
       where: { id: result.resultId },
     });
     if (existing !== null) {
+      if (!visible(context.tenantScope, existing)) throw new Error('DSM_IMMUTABLE_QUALITY_RESULT');
       if (JSON.stringify(rowToDomain(existing)) !== JSON.stringify(result))
         throw new Error('DSM_IMMUTABLE_QUALITY_RESULT');
       return;
     }
-    await this.client.datasetQualityResultRecord.create({ data: domainToCreate(result) });
+    try {
+      await this.client.datasetQualityResultRecord.create({ data: domainToCreate(result) });
+    } catch (error) {
+      if (isPrismaUniqueConstraintViolationV1(error))
+        throw new Error('DSM_IMMUTABLE_QUALITY_RESULT');
+      throw error;
+    }
   }
 
   public async find(

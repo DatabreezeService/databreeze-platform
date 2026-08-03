@@ -68,6 +68,20 @@ void test('SA-001/SA-004 HTTP stores value-free audit results and rejects source
     delete rejectedWithoutCorrelation['correlationId'];
     assert.doesNotMatch(JSON.stringify(rejectedWithoutCorrelation), /SUM|42|sourceValue/iu);
 
+    const duplicateReason = await app.inject({
+      method: 'POST',
+      url: '/v1/spreadsheet-audits',
+      payload: { ...payload, blockedReasons: ['MACRO', 'MACRO'] },
+    });
+    assert.equal(duplicateReason.statusCode, 400);
+
+    const nonUtcTimestamp = await app.inject({
+      method: 'POST',
+      url: '/v1/spreadsheet-audits',
+      payload: { ...payload, createdAt: '2026-08-04T07:00:00.000+07:00' },
+    });
+    assert.equal(nonUtcTimestamp.statusCode, 400);
+
     const created = await app.inject({
       method: 'POST',
       url: '/v1/spreadsheet-audits',

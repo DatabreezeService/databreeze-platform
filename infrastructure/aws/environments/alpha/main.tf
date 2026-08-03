@@ -5,21 +5,21 @@ locals {
 }
 
 module "network" {
-  source              = "../../modules/network"
-  name                = var.name
-  region              = var.aws_region
-  azs                 = var.availability_zones
-  vpc_cidr            = var.vpc_cidr
-  enable_nat_gateway  = var.enable_nat_gateway
-  tags                = local.tags
+  source             = "../../modules/network"
+  name               = var.name
+  region             = var.aws_region
+  azs                = var.availability_zones
+  vpc_cidr           = var.vpc_cidr
+  enable_nat_gateway = var.enable_nat_gateway
+  tags               = local.tags
 }
 
 module "security" {
-  source             = "../../modules/security"
-  name               = var.name
-  region             = var.aws_region
-  github_repository  = var.github_repository
-  tags               = local.tags
+  source            = "../../modules/security"
+  name              = var.name
+  region            = var.aws_region
+  github_repository = var.github_repository
+  tags              = local.tags
 }
 
 module "web" {
@@ -32,22 +32,22 @@ module "web" {
 }
 
 module "data" {
-  source                    = "../../modules/data"
-  name                      = var.name
-  environment               = var.environment
-  private_subnet_ids        = module.network.private_subnet_ids
-  database_security_group_id = module.network.database_security_group_id
-  cache_security_group_id   = module.network.cache_security_group_id
-  kms_key_arn               = module.security.kms_key_arn
-  enable_database           = var.enable_database
-  database_instance_class  = var.database_instance_class
-  backup_retention_period   = var.backup_retention_period
-  deletion_protection       = var.deletion_protection
-  database_multi_az         = var.database_multi_az
-  redis_num_cache_clusters  = var.redis_num_cache_clusters
+  source                           = "../../modules/data"
+  name                             = var.name
+  environment                      = var.environment
+  private_subnet_ids               = module.network.private_subnet_ids
+  database_security_group_id       = module.network.database_security_group_id
+  cache_security_group_id          = module.network.cache_security_group_id
+  kms_key_arn                      = module.security.kms_key_arn
+  enable_database                  = var.enable_database
+  database_instance_class          = var.database_instance_class
+  backup_retention_period          = var.backup_retention_period
+  deletion_protection              = var.deletion_protection
+  database_multi_az                = var.database_multi_az
+  redis_num_cache_clusters         = var.redis_num_cache_clusters
   redis_automatic_failover_enabled = var.redis_automatic_failover_enabled
-  redis_multi_az_enabled    = var.redis_multi_az_enabled
-  tags                      = local.tags
+  redis_multi_az_enabled           = var.redis_multi_az_enabled
+  tags                             = local.tags
 }
 
 module "compute" {

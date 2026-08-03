@@ -41,13 +41,13 @@ variable "database_instance_class" {
 }
 
 variable "database_name" {
-  type        = string
-  default     = "databreeze"
+  type    = string
+  default = "databreeze"
 }
 
 variable "database_username" {
-  type        = string
-  default     = "databreeze"
+  type    = string
+  default = "databreeze"
 }
 
 variable "backup_retention_period" {
@@ -57,8 +57,8 @@ variable "backup_retention_period" {
 }
 
 variable "deletion_protection" {
-  type        = bool
-  default     = false
+  type    = bool
+  default = false
 }
 
 variable "database_multi_az" {
@@ -90,6 +90,6 @@ variable "redis_engine_version" {
 }
 
 variable "tags" {
-  type        = map(string)
-  default     = {}
+  type    = map(string)
+  default = {}
 }

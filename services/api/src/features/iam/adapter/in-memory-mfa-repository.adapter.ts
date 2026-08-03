@@ -16,6 +16,16 @@ function cloneState(state: MfaStateV1): MfaStateV1 {
 function immutableState(existing: MfaStateV1, next: MfaStateV1): boolean {
   const existingFactors = new Map(existing.factors.map((factor) => [factor.id, factor]));
   const existingCodes = new Map(existing.recoveryCodes.map((code) => [code.id, code]));
+  if (
+    existing.factors.some((factor) => !next.factors.some((candidate) => candidate.id === factor.id))
+  )
+    return false;
+  if (
+    existing.recoveryCodes.some(
+      (code) => !next.recoveryCodes.some((candidate) => candidate.id === code.id),
+    )
+  )
+    return false;
   for (const factor of next.factors) {
     const prior = existingFactors.get(factor.id);
     if (
@@ -29,6 +39,7 @@ function immutableState(existing: MfaStateV1, next: MfaStateV1): boolean {
       factor.revision !== prior.revision + 1
     )
       return false;
+    if (!prior && factor.revision !== 1) return false;
   }
   for (const code of next.recoveryCodes) {
     const prior = existingCodes.get(code.id);
@@ -39,6 +50,7 @@ function immutableState(existing: MfaStateV1, next: MfaStateV1): boolean {
       code.revision !== prior.revision + 1
     )
       return false;
+    if (!prior && code.revision !== 1) return false;
   }
   return true;
 }

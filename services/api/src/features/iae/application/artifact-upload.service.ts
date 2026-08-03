@@ -17,7 +17,10 @@ import type {
   ArtifactUploadStorageResultV1,
 } from './artifact-upload-storage.port.js';
 
-export type ArtifactUploadServiceErrorV1 = 'UPLOAD_NOT_FOUND' | 'UPLOAD_SCOPE_NARROWING_REQUIRED';
+export type ArtifactUploadServiceErrorV1 =
+  | 'UPLOAD_NOT_FOUND'
+  | 'UPLOAD_SCOPE_NARROWING_REQUIRED'
+  | 'UPLOAD_SESSION_EXPIRED';
 export type ArtifactUploadServiceResultV1<TValue> =
   | ArtifactUploadResultV1<TValue>
   | ArtifactUploadStorageResultV1<TValue>
@@ -127,9 +130,29 @@ export class ArtifactUploadService {
     sessionId: ArtifactUploadSessionV1['sessionId'],
     partNumber: number,
   ): Promise<ArtifactUploadServiceResultV1<ArtifactUploadPartTransferV1>> {
-    const session = await this.repository.find(context, sessionId);
-    if (!session) return Object.freeze({ accepted: false, code: 'UPLOAD_NOT_FOUND' as const });
-    return this.storage.issuePartTransfer(context, session, partNumber);
+    return this.repository.withTransaction(context, async (transaction) => {
+      const session = await transaction.find(context, sessionId);
+      if (!session) return Object.freeze({ accepted: false, code: 'UPLOAD_NOT_FOUND' as const });
+      if (session.state === 'EXPIRED')
+        return Object.freeze({ accepted: false, code: 'UPLOAD_SESSION_EXPIRED' as const });
+      const transfer = await this.storage.issuePartTransfer(context, session, partNumber);
+      if (!transfer.accepted) return transfer;
+
+      const current = await transaction.find(context, sessionId);
+      if (!current) {
+        await this.storage.abort(context, session);
+        return Object.freeze({ accepted: false, code: 'UPLOAD_NOT_FOUND' as const });
+      }
+      if (current.state === 'EXPIRED') {
+        await this.storage.abort(context, current);
+        return Object.freeze({ accepted: false, code: 'UPLOAD_SESSION_EXPIRED' as const });
+      }
+      if (current.state !== 'OPEN' || current.revision !== session.revision) {
+        await this.storage.abort(context, current);
+        return Object.freeze({ accepted: false, code: 'REVISION_CONFLICT' as const });
+      }
+      return transfer;
+    });
   }
 
   private async mutate(

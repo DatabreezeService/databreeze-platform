@@ -34,8 +34,8 @@ void test('[SA-001, SA-004] audit results retain exact value-free evidence coord
   assert.equal(result.accepted, true);
   if (!result.accepted) return;
   assert.equal(result.value.findings[0]?.address, 'C1');
-  assert.equal(Object.hasOwn(result.value, 'formula'), false);
-  assert.equal(Object.hasOwn(result.value, 'sourceValue'), false);
+  assert.equal(Object.hasOwn(result.value.findings[0], 'formula'), false);
+  assert.equal(Object.hasOwn(result.value.findings[0], 'sourceValue'), false);
 });
 
 void test('[SA-005] findings cannot reference an unknown sheet or duplicate IDs', () => {
@@ -70,4 +70,24 @@ void test('[SA-006] findings must stay inside the exact sheet geometry', () => {
     }),
     { accepted: false, code: 'INVALID_COORDINATE' },
   );
+  assert.equal(
+    createSpreadsheetAuditResultV1({
+      ...base,
+      sheets: [{ ...base.sheets[0], maxRow: 1_048_576 }],
+    }).accepted,
+    true,
+  );
+});
+
+void test('[SA-004] finding validation preserves structural error codes', () => {
+  for (const [finding, code] of [
+    [{ ...base.findings[0], address: 'not-a-cell' }, 'INVALID_COORDINATE'],
+    [{ ...base.findings[0], severity: 'CRITICAL' }, 'INVALID_SEVERITY'],
+    [{ ...base.findings[0], kind: 'UNKNOWN' }, 'INVALID_KIND'],
+  ]) {
+    assert.deepEqual(createSpreadsheetAuditResultV1({ ...base, findings: [finding] }), {
+      accepted: false,
+      code,
+    });
+  }
 });

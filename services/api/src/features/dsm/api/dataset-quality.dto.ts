@@ -2,7 +2,6 @@ import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
-  Allow,
   IsArray,
   IsIn,
   IsInt,
@@ -14,8 +13,23 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateIf,
   ValidateNested,
+  Validate,
+  ValidatorConstraint,
+  type ValidatorConstraintInterface,
 } from 'class-validator';
+
+@ValidatorConstraint({ name: 'isDatasetQualityScalar', async: false })
+class DatasetQualityScalarConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    return (
+      typeof value === 'string' ||
+      typeof value === 'boolean' ||
+      (typeof value === 'number' && Number.isFinite(value))
+    );
+  }
+}
 
 export class DatasetQualitySafeValueDto {
   @ApiProperty({
@@ -54,8 +68,8 @@ export class DatasetQualitySafeValueDto {
     required: false,
     oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'boolean' }],
   })
-  @IsOptional()
-  @Allow()
+  @ValidateIf((_object, value) => value !== undefined)
+  @Validate(DatasetQualityScalarConstraint)
   value?: string | number | boolean;
 }
 
@@ -100,7 +114,7 @@ export class DatasetQualityFindingDto {
   @Max(Number.MAX_SAFE_INTEGER)
   occurrenceCount!: number;
 
-  @ApiProperty({ type: [String], format: 'uuid' })
+  @ApiProperty({ type: [String], format: 'uuid', maxItems: 128 })
   @IsArray()
   @ArrayMaxSize(128)
   @IsUUID('4', { each: true })
@@ -162,7 +176,7 @@ export class RegisterDatasetQualityResultDto {
   @IsIn(['PASS', 'PASS_WITH_WARNINGS', 'BLOCKED', 'INCOMPLETE'])
   qualityState!: 'PASS' | 'PASS_WITH_WARNINGS' | 'BLOCKED' | 'INCOMPLETE';
 
-  @ApiProperty({ type: [DatasetQualityFindingDto] })
+  @ApiProperty({ type: [DatasetQualityFindingDto], maxItems: 512 })
   @IsArray()
   @ArrayMaxSize(512)
   @ValidateNested({ each: true })

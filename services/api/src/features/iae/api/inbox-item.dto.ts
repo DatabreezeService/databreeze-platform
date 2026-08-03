@@ -9,12 +9,15 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   MaxLength,
   Min,
   MinLength,
 } from 'class-validator';
 
 import type { InboxPriorityV1 } from '@databreeze/domain/artifact-intake/v1';
+
+const strictUtcTimestampPattern = '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$';
 
 /** IAE-001: content-free, idempotent intake registration request. */
 export class CreateInboxItemDto {
@@ -61,11 +64,15 @@ export class UpdateInboxMetadataDto {
   priority?: InboxPriorityV1;
 
   @ApiProperty({
-    oneOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }],
+    oneOf: [
+      { type: 'string', format: 'date-time', pattern: strictUtcTimestampPattern },
+      { type: 'null' },
+    ],
     required: false,
   })
   @IsOptional()
-  @IsISO8601()
+  @IsISO8601({ strict: true, strictSeparator: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u)
   dueAt?: string | null;
 
   @ApiProperty({ minimum: 1, required: false })

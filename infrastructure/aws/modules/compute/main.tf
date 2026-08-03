@@ -74,15 +74,15 @@ resource "aws_iam_role" "task" {
 
 locals {
   api_container = {
-    name      = "api"
-    image     = var.api_image
-    essential = true
+    name                   = "api"
+    image                  = var.api_image
+    essential              = true
     readonlyRootFilesystem = true
-    privileged              = false
-    user                    = "10001"
-    stopTimeout             = 30
-    cpu       = var.api_cpu
-    memory    = var.api_memory
+    privileged             = false
+    user                   = "10001"
+    stopTimeout            = 30
+    cpu                    = var.api_cpu
+    memory                 = var.api_memory
     portMappings = [{
       containerPort = 3000
       hostPort      = 3000
@@ -135,13 +135,13 @@ resource "aws_ecs_task_definition" "worker" {
   execution_role_arn       = aws_iam_role.execution.arn
   task_role_arn            = aws_iam_role.task.arn
   container_definitions = jsonencode([{
-    name      = "worker"
-    image     = var.worker_image
-    essential = true
+    name                   = "worker"
+    image                  = var.worker_image
+    essential              = true
     readonlyRootFilesystem = true
-    privileged              = false
-    user                    = "10001"
-    stopTimeout             = 30
+    privileged             = false
+    user                   = "10001"
+    stopTimeout            = 30
     logConfiguration = {
       logDriver = "awslogs"
       options = {

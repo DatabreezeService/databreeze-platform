@@ -1,6 +1,8 @@
 import { strict as assert } from 'node:assert';
 import test from 'node:test';
 
+import { createSpreadsheetAuditResultV1 } from '@databreeze/domain/spreadsheet-audit/v1';
+
 import { InMemorySpreadsheetAuditRepositoryAdapter } from '../../../src/features/sa/adapter/in-memory-spreadsheet-audit-repository.adapter.js';
 import { SpreadsheetAuditService } from '../../../src/features/sa/application/spreadsheet-audit.service.js';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
@@ -87,4 +89,32 @@ void test('[SA-005] service hides results from a different organization', async 
     accepted: false,
     code: 'AUDIT_NOT_FOUND',
   });
+});
+
+void test('SA repository serializes public saves after a rolling-back transaction', async () => {
+  const repository = new InMemorySpreadsheetAuditRepositoryAdapter();
+  const created = createSpreadsheetAuditResultV1(input);
+  assert.equal(created.accepted, true);
+  if (!created.accepted) return;
+  let enterTransaction!: () => void;
+  const transactionEntered = new Promise<void>((resolve) => {
+    enterTransaction = resolve;
+  });
+  let releaseTransaction!: () => void;
+  const transactionRelease = new Promise<void>((resolve) => {
+    releaseTransaction = resolve;
+  });
+  const rollingBack = repository.withTransaction(context, async () => {
+    enterTransaction();
+    await transactionRelease;
+    throw new Error('ROLLBACK');
+  });
+  await transactionEntered;
+
+  const saving = repository.save(context, created.value);
+  releaseTransaction();
+  await assert.rejects(rollingBack, /ROLLBACK/u);
+  await saving;
+
+  assert.deepEqual(await repository.find(context, created.value.auditId), created.value);
 });

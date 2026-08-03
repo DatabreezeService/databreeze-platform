@@ -17,8 +17,8 @@ variable "name" {
 }
 
 variable "availability_zones" {
-  type        = list(string)
-  default     = ["ap-southeast-1a", "ap-southeast-1b"]
+  type    = list(string)
+  default = ["ap-southeast-1a", "ap-southeast-1b"]
 }
 
 variable "vpc_cidr" {
@@ -38,7 +38,7 @@ variable "enable_cloudfront" {
 }
 
 variable "enable_database" {
-  type    = bool
+  type        = bool
   description = "Create managed RDS/ElastiCache resources; disabled by default to prevent accidental recurring spend."
   default     = false
 }
