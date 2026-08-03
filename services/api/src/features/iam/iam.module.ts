@@ -174,6 +174,7 @@ import {
 import {
   SERVICE_ACCOUNT_SERVICE,
   ServiceAccountService,
+  UnavailableServiceAccountService,
   type ServiceAccountClockV1,
   type ServiceAccountIdGeneratorV1,
   type ServiceAccountSecretIssuerV1,
@@ -451,7 +452,7 @@ export class IamModule {
     const serviceAccountService =
       options.serviceAccountService ??
       (options.iamRepository === undefined
-        ? undefined
+        ? new UnavailableServiceAccountService()
         : new ServiceAccountService(
             serviceAccountRepository,
             options.iamRepository,
@@ -483,7 +484,7 @@ export class IamModule {
     if (recoveryService) exports.unshift(IAM_RECOVERY_ADMISSION_PORT);
     if (recoveryService) exports.unshift(IAM_RECOVERY_COMPLETION_ADMISSION_PORT);
     if (recoveryService) exports.unshift(IAM_RECOVERY_SERVICE);
-    if (serviceAccountService) exports.unshift(SERVICE_ACCOUNT_SERVICE);
+    exports.unshift(SERVICE_ACCOUNT_SERVICE);
     return {
       module: IamModule,
       controllers: [
@@ -496,7 +497,7 @@ export class IamModule {
         RegistrationController,
         RecoveryController,
         IamBootstrapController,
-        ...(serviceAccountService ? [ServiceAccountController] : []),
+        ServiceAccountController,
       ],
       providers: [
         {
@@ -651,14 +652,10 @@ export class IamModule {
           provide: SERVICE_ACCOUNT_REPOSITORY_PORT,
           useValue: serviceAccountRepository,
         },
-        ...(serviceAccountService
-          ? [
-              {
-                provide: SERVICE_ACCOUNT_SERVICE,
-                useValue: serviceAccountService,
-              },
-            ]
-          : []),
+        {
+          provide: SERVICE_ACCOUNT_SERVICE,
+          useValue: serviceAccountService,
+        },
         {
           provide: REQUEST_TENANT_CONTEXT,
           useValue: options.requestTenantContext ?? new UnavailableRequestTenantContextAdapter(),

@@ -80,6 +80,10 @@ function rejected(code: ServiceAccountApplicationCodeV1): ServiceAccountApplicat
   return Object.freeze({ accepted: false, code });
 }
 
+function unavailable<TValue>(): ServiceAccountApplicationResultV1<TValue> {
+  return rejected('UNAVAILABLE');
+}
+
 function safeView(account: ServiceAccountV1): ServiceAccountSafeViewV1 {
   const { secretDigest: _secretDigest, ...withoutDigest } = account;
   void _secretDigest;
@@ -378,5 +382,59 @@ export class ServiceAccountService {
     } catch {
       return 'UNAVAILABLE';
     }
+  }
+}
+
+/** Safe default for hosts that have not composed an IAM membership repository yet. */
+export class UnavailableServiceAccountService {
+  public create(
+    _context: IamTenantContextV1,
+    _input: CreateServiceAccountInputV1,
+  ): Promise<ServiceAccountApplicationResultV1<IssuedServiceAccountV1>> {
+    void _context;
+    void _input;
+    return Promise.resolve(unavailable());
+  }
+
+  public list(
+    _context: IamTenantContextV1,
+  ): Promise<ServiceAccountApplicationResultV1<readonly ServiceAccountSafeViewV1[]>> {
+    void _context;
+    return Promise.resolve(unavailable());
+  }
+
+  public rotate(
+    _context: IamTenantContextV1,
+    _serviceAccountId: unknown,
+    _expectedRevision: unknown,
+    _secretExpiresAt?: unknown,
+  ): Promise<ServiceAccountApplicationResultV1<IssuedServiceAccountV1>> {
+    void _context;
+    void _serviceAccountId;
+    void _expectedRevision;
+    void _secretExpiresAt;
+    return Promise.resolve(unavailable());
+  }
+
+  public revoke(
+    _context: IamTenantContextV1,
+    _serviceAccountId: unknown,
+    _expectedRevision: unknown,
+  ): Promise<ServiceAccountApplicationResultV1<ServiceAccountSafeViewV1>> {
+    void _context;
+    void _serviceAccountId;
+    void _expectedRevision;
+    return Promise.resolve(unavailable());
+  }
+
+  public authenticate(
+    _context: IamTenantContextV1,
+    _presentedSecret: unknown,
+    _now: unknown,
+  ): Promise<ServiceAccountApplicationResultV1<ServiceAccountPrincipalV1>> {
+    void _context;
+    void _presentedSecret;
+    void _now;
+    return Promise.resolve(unavailable());
   }
 }
