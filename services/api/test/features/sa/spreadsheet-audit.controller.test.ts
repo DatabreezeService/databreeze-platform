@@ -75,6 +75,13 @@ void test('SA-001/SA-004 HTTP stores value-free audit results and rejects source
     });
     assert.equal(duplicateReason.statusCode, 400);
 
+    const nonUtcTimestamp = await app.inject({
+      method: 'POST',
+      url: '/v1/spreadsheet-audits',
+      payload: { ...payload, createdAt: '2026-08-04T07:00:00.000+07:00' },
+    });
+    assert.equal(nonUtcTimestamp.statusCode, 400);
+
     const created = await app.inject({
       method: 'POST',
       url: '/v1/spreadsheet-audits',
