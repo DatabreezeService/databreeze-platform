@@ -138,6 +138,10 @@ function runDocker(args, { allowFailure = false, capture = true, timeoutMs = 30_
   return result;
 }
 
+export function composeOperationTimeoutMs(waitSeconds) {
+  return (waitSeconds + 30) * 1000;
+}
+
 function requireDocker() {
   const result = spawnSync('docker', ['info', '--format', '{{.ServerVersion}}'], {
     cwd: repositoryRoot,
@@ -341,6 +345,7 @@ function parseArguments(argv, values = environment()) {
 export async function main(argv = process.argv.slice(2)) {
   const values = environment();
   const { command, options } = parseArguments(argv, values);
+  const operationTimeoutMs = composeOperationTimeoutMs(options.waitSeconds);
   if (command === 'help') {
     usage();
     return;
@@ -374,7 +379,7 @@ export async function main(argv = process.argv.slice(2)) {
     return;
   }
   if (command === 'stop') {
-    runDocker([...composeArgs(values), 'stop']);
+    runDocker([...composeArgs(values), 'stop'], { timeoutMs: operationTimeoutMs });
     console.log('Local services stopped; named volumes and containers were preserved.');
     return;
   }
@@ -392,14 +397,16 @@ export async function main(argv = process.argv.slice(2)) {
     return;
   }
   if (command === 'reset') {
-    runDocker([...composeArgs(values), 'down', '--remove-orphans']);
-    runDocker([...composeArgs(values), 'up', '-d']);
+    runDocker([...composeArgs(values), 'down', '--remove-orphans'], {
+      timeoutMs: operationTimeoutMs,
+    });
+    runDocker([...composeArgs(values), 'up', '-d'], { timeoutMs: operationTimeoutMs });
     await waitForReady(values, options.waitSeconds);
     console.log('Local services reset without removing named volumes.');
     return;
   }
   if (command === 'restart-check') {
-    runDocker([...composeArgs(values), 'restart']);
+    runDocker([...composeArgs(values), 'restart'], { timeoutMs: operationTimeoutMs });
     await waitForReady(values, options.waitSeconds);
     console.log(
       'Local service restart and health checks passed. Use persistence-check for a Redis sentinel probe.',
@@ -423,7 +430,7 @@ export async function main(argv = process.argv.slice(2)) {
         'EX',
         '300',
       ]);
-      runDocker([...composeArgs(values), 'restart', 'redis']);
+      runDocker([...composeArgs(values), 'restart', 'redis'], { timeoutMs: operationTimeoutMs });
       await waitForReady(values, options.waitSeconds);
       const result = runDocker([
         ...composeArgs(values),
@@ -446,7 +453,8 @@ export async function main(argv = process.argv.slice(2)) {
     console.log('Local Redis persistence check passed; sentinel was removed.');
     return;
   }
-  if (shouldStart) runDocker([...composeArgs(values), 'up', '-d']);
+  if (shouldStart)
+    runDocker([...composeArgs(values), 'up', '-d'], { timeoutMs: operationTimeoutMs });
   await waitForReady(values, options.waitSeconds);
 }
 
