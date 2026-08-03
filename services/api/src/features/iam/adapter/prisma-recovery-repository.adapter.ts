@@ -63,6 +63,10 @@ interface ChallengeDelegateV1 extends UniqueDelegateV1<RecoveryChallengeDatabase
     readonly where: Readonly<Record<string, string>>;
     readonly data: Readonly<Record<string, unknown>>;
   }): Promise<RecoveryChallengeDatabaseRowV1>;
+  updateMany(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+    readonly data: Readonly<Record<string, unknown>>;
+  }): Promise<{ readonly count: number }>;
 }
 
 interface PasswordCredentialDelegateV1 {
@@ -217,10 +221,11 @@ class PrismaRecoveryTransactionAdapter implements RecoveryTransactionPortV1 {
         return;
       if (challenge.revision !== existing.revision + 1)
         throw new Error('IAM_RECOVERY_REVISION_CONFLICT');
-      await this.client.recoveryChallenge.update({
-        where: { id: challenge.id },
+      const updated = await this.client.recoveryChallenge.updateMany({
+        where: { id: challenge.id, revision: existing.revision },
         data: challengeData(challenge),
       });
+      if (updated.count !== 1) throw new Error('IAM_RECOVERY_REVISION_CONFLICT');
     } catch (error) {
       if (isConflict(error)) throw new Error('IAM_RECOVERY_CONFLICT');
       throw error;

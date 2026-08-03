@@ -122,6 +122,18 @@ function database() {
         challenges.set(String(where['id']), { ...row, ...data });
         return { ...row, ...data };
       },
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: Record<string, unknown>;
+        data: Record<string, unknown>;
+      }) => {
+        const row = challenges.get(String(where['id']));
+        if (!row || row['revision'] !== where['revision']) return { count: 0 };
+        challenges.set(String(where['id']), { ...row, ...data });
+        return { count: 1 };
+      },
     },
     passwordCredential: {
       update: async ({
@@ -234,4 +246,29 @@ void test('[IAM-015] Prisma recovery completion rotates credential, epoch, MFA s
   assert.equal(state.calls.access, 1);
   assert.equal(state.calls.mfa, 1);
   assert.equal(state.challenges.get(challengeId)?.['status'], 'CONSUMED');
+});
+
+void test('[IAM-015] Prisma recovery challenge compare-and-set rejects a stale terminal transition', async () => {
+  const state = database();
+  const adapter = new PrismaRecoveryRepositoryAdapter(state.client);
+  await adapter.withTransaction((transaction) => transaction.saveChallenge(challenge()));
+  const stale = challenge();
+  state.challenges.set(challengeId, {
+    ...state.challenges.get(challengeId),
+    revision: 2,
+    status: 'REVOKED',
+    revokedAt: new Date('2026-08-03T00:05:00.000Z'),
+  });
+  state.client.recoveryChallenge.updateMany = async () => ({ count: 0 });
+  await assert.rejects(
+    adapter.withTransaction((transaction) =>
+      transaction.saveChallenge({
+        ...stale,
+        status: 'CONSUMED',
+        consumedAt: '2026-08-03T00:10:00.000Z',
+        revision: 3,
+      }),
+    ),
+    /IAM_RECOVERY_REVISION_CONFLICT/u,
+  );
 });
