@@ -28,6 +28,7 @@ import {
   sameUsageEntryV1,
   sameUsageReservationExceptStatusV1,
   sameUsageReservationV1,
+  validUsageReservationTransitionV1,
 } from '../application/entitlement-equality.js';
 
 const planCodes = new Set(['free', 'development', 'admin_granted']);
@@ -453,17 +454,6 @@ function inheritedUsageScopeKeys(scope: TenantScopeV1): readonly string[] | unde
   return Object.freeze(inherited);
 }
 
-function sameReservationExceptStatus(left: UsageReservationV1, right: UsageReservationV1): boolean {
-  return sameUsageReservationExceptStatusV1(left, right);
-}
-
-function validReservationTransition(
-  current: UsageReservationV1,
-  next: UsageReservationV1,
-): boolean {
-  return current.status === 'ACTIVE' && (next.status === 'FINALIZED' || next.status === 'RELEASED');
-}
-
 class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV1 {
   public constructor(private readonly client: EntitlementDatabaseClientV1) {}
 
@@ -627,9 +617,9 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
       const current = persistedReservation(existing);
       if (sameUsageReservationV1(current, reservation)) continue;
       if (
-        !sameReservationExceptStatus(current, reservation) ||
+        !sameUsageReservationExceptStatusV1(current, reservation) ||
         reservation.revision !== current.revision + 1 ||
-        !validReservationTransition(current, reservation)
+        !validUsageReservationTransitionV1(current, reservation)
       )
         throw new Error('BUA_RESERVATION_CONFLICT');
       if (!this.client.usageReservationRecord.updateMany) throw new Error('BUA_UPDATE_UNAVAILABLE');
