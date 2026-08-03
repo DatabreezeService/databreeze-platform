@@ -534,6 +534,6 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     membershipUniquenessMigration,
     /CREATE UNIQUE INDEX "memberships_principal_scope_identity_key"/u,
   );
-assert.match(membershipUniquenessMigration, /COALESCE\("workspace_id"::text, ''\)/u);
-assert.match(membershipUniquenessMigration, /COALESCE\("project_id"::text, ''\)/u);
+  assert.match(membershipUniquenessMigration, /COALESCE\("workspace_id"::text, ''\)/u);
+  assert.match(membershipUniquenessMigration, /COALESCE\("project_id"::text, ''\)/u);
 });
