@@ -9454,6 +9454,9 @@
         "services/api/src/features/iam/adapter/prisma-mfa-repository.adapter.ts",
         "services/api/src/features/iam/adapter/iam-recovery-crypto.adapter.ts",
         "services/api/src/features/iam/adapter/in-memory-recovery-admission.adapter.ts",
+        "services/api/src/features/iam/adapter/redis-recovery-admission.adapter.ts",
+        "services/api/src/features/iam/application/recovery-repository.port.ts",
+        "services/api/src/features/iam/iam.module.ts",
         "services/api/src/features/iam/api/recovery.controller.ts"
       ],
       "testPaths": [
@@ -9464,6 +9467,7 @@
         "services/api/test/features/iam/prisma-recovery-repository.test.ts",
         "services/api/test/features/iam/recovery-crypto.test.ts",
         "services/api/test/features/iam/recovery-admission.test.ts",
+        "services/api/test/features/iam/redis-recovery-admission.adapter.test.ts",
         "services/api/test/features/iam/mfa.service.test.ts",
         "services/api/test/features/iam/prisma-mfa-repository.test.ts",
         "services/api/test/features/iam/recovery-composition.test.ts",

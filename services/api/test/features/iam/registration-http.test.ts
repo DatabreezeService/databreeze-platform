@@ -7,12 +7,18 @@ import { PasswordCredentialService } from '../../../src/features/iam/application
 
 function credentials() {
   return new PasswordCredentialService({
-    hash: async () => ({
-      schemaVersion: 1,
-      algorithm: 'argon2id',
-      encodedHash: '$argon2id$v=19$m=65536,p=1,t=3$YWJjZA==$ZWZmZw==',
-    }),
-    verify: async () => true,
+    hash: async () => {
+      await Promise.resolve();
+      return {
+        schemaVersion: 1,
+        algorithm: 'argon2id',
+        encodedHash: '$argon2id$v=19$m=65536,p=1,t=3$YWJjZA==$ZWZmZw==',
+      };
+    },
+    verify: async () => {
+      await Promise.resolve();
+      return true;
+    },
   });
 }
 

@@ -18,7 +18,10 @@ const value = {
 
 void test('[IAM-001] registration controller returns hierarchy identifiers without bearer material', async () => {
   const controller = new RegistrationController({
-    register: async () => ({ accepted: true as const, value }),
+    register: async () => {
+      await Promise.resolve();
+      return { accepted: true as const, value };
+    },
   } as unknown as RegistrationService);
   const response = await controller.register({
     email: 'user@example.com',
@@ -39,7 +42,10 @@ void test('[IAM-001] registration controller returns hierarchy identifiers witho
 
 void test('[IAM-001] registration controller maps rejected and unavailable outcomes to stable problems', async () => {
   const rejected = new RegistrationController({
-    register: async () => ({ accepted: false as const, code: 'REGISTRATION_REJECTED' as const }),
+    register: async () => {
+      await Promise.resolve();
+      return { accepted: false as const, code: 'REGISTRATION_REJECTED' as const };
+    },
   } as unknown as RegistrationService);
   await assert.rejects(
     rejected.register({
@@ -51,7 +57,10 @@ void test('[IAM-001] registration controller maps rejected and unavailable outco
       error instanceof RegistrationProblemError && error.code === 'REGISTRATION_REQUEST_REJECTED',
   );
   const unavailable = new RegistrationController({
-    register: async () => ({ accepted: false as const, code: 'REGISTRATION_UNAVAILABLE' as const }),
+    register: async () => {
+      await Promise.resolve();
+      return { accepted: false as const, code: 'REGISTRATION_UNAVAILABLE' as const };
+    },
   } as unknown as RegistrationService);
   await assert.rejects(
     unavailable.register({

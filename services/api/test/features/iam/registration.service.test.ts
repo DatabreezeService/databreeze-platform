@@ -14,12 +14,18 @@ function ids() {
 
 function passwordCredentials() {
   return new PasswordCredentialService({
-    hash: async () => ({
-      schemaVersion: 1 as const,
-      algorithm: 'argon2id' as const,
-      encodedHash: '$argon2id$v=19$m=65536,p=1,t=3$YWJjZA==$ZWZmZw==',
-    }),
-    verify: async () => true,
+    hash: async () => {
+      await Promise.resolve();
+      return {
+        schemaVersion: 1 as const,
+        algorithm: 'argon2id' as const,
+        encodedHash: '$argon2id$v=19$m=65536,p=1,t=3$YWJjZA==$ZWZmZw==',
+      };
+    },
+    verify: async () => {
+      await Promise.resolve();
+      return true;
+    },
   });
 }
 
@@ -95,9 +101,13 @@ void test('[IAM-001] registration validates input before persistence and maps ha
     repository,
     passwordCredentials: new PasswordCredentialService({
       hash: async () => {
+        await Promise.resolve();
         throw new Error('hash');
       },
-      verify: async () => false,
+      verify: async () => {
+        await Promise.resolve();
+        return false;
+      },
     }),
     ids: ids(),
   });
@@ -117,8 +127,12 @@ void test('[IAM-001] registration rolls back when persistence fails after stagin
     repository: {
       withTransaction: async (work) =>
         work({
-          findByEmail: async () => false,
+          findByEmail: async () => {
+            await Promise.resolve();
+            return false;
+          },
           save: async () => {
+            await Promise.resolve();
             throw new Error('database unavailable');
           },
         }),

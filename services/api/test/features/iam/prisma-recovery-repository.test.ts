@@ -71,9 +71,9 @@ function database() {
     ],
   ]);
   const calls = { transactions: 0, refresh: 0, access: 0, sessions: 0, mfa: 0 };
-  let client!: RecoveryDatabaseClientV1;
   const unique = (records: Map<string, Record<string, unknown>>) => ({
     findUnique: async ({ where }: { readonly where: Record<string, string> }) => {
+      await Promise.resolve();
       if (where['id']) return records.get(where['id']) ?? null;
       if (where['email'])
         return [...records.values()].find((row) => row['email'] === where['email']) ?? null;
@@ -84,7 +84,7 @@ function database() {
       return null;
     },
   });
-  client = {
+  const client = {
     userIdentity: {
       ...unique(users),
       updateMany: async ({
@@ -94,6 +94,7 @@ function database() {
         where: Record<string, unknown>;
         data: Record<string, unknown>;
       }) => {
+        await Promise.resolve();
         const row = users.get(String(where['id']));
         if (!row || row['securityEpoch'] !== where['securityEpoch']) return { count: 0 };
         users.set(String(where['id']), { ...row, ...data });
@@ -102,11 +103,14 @@ function database() {
     },
     recoveryChallenge: {
       ...unique(challenges),
-      findMany: async ({ where }: { where: Record<string, unknown> }) =>
-        [...challenges.values()].filter(
+      findMany: async ({ where }: { where: Record<string, unknown> }) => {
+        await Promise.resolve();
+        return [...challenges.values()].filter(
           (row) => row['userId'] === where['userId'] && row['status'] === where['status'],
-        ),
+        );
+      },
       create: async ({ data }: { data: Record<string, unknown> }) => {
+        await Promise.resolve();
         challenges.set(String(data['id']), data);
         return data;
       },
@@ -117,6 +121,7 @@ function database() {
         where: Record<string, string>;
         data: Record<string, unknown>;
       }) => {
+        await Promise.resolve();
         const row = challenges.get(String(where['id']));
         if (!row) throw new Error('missing');
         challenges.set(String(where['id']), { ...row, ...data });
@@ -129,6 +134,7 @@ function database() {
         where: Record<string, unknown>;
         data: Record<string, unknown>;
       }) => {
+        await Promise.resolve();
         const row = challenges.get(String(where['id']));
         if (!row || row['revision'] !== where['revision']) return { count: 0 };
         challenges.set(String(where['id']), { ...row, ...data });
@@ -143,6 +149,7 @@ function database() {
         where: Record<string, string>;
         data: Record<string, unknown>;
       }) => {
+        await Promise.resolve();
         const row = credentials.get(String(where['userId']));
         if (!row) throw new Error('credential missing');
         credentials.set(String(where['userId']), { ...row, ...data });
@@ -150,7 +157,10 @@ function database() {
       },
     },
     sessionRecord: {
-      findMany: async () => [...sessions.values()],
+      findMany: async () => {
+        await Promise.resolve();
+        return [...sessions.values()];
+      },
       update: async ({
         where,
         data,
@@ -158,6 +168,7 @@ function database() {
         where: Record<string, string>;
         data: Record<string, unknown>;
       }) => {
+        await Promise.resolve();
         calls.sessions += 1;
         const row = sessions.get(String(where['id']));
         if (!row) throw new Error('session missing');
@@ -167,23 +178,27 @@ function database() {
     },
     refreshTokenRecord: {
       updateMany: async () => {
+        await Promise.resolve();
         calls.refresh += 1;
         return { count: 1 };
       },
     },
     accessTokenRecord: {
       updateMany: async () => {
+        await Promise.resolve();
         calls.access += 1;
         return { count: 1 };
       },
     },
     mfaFactor: {
       updateMany: async () => {
+        await Promise.resolve();
         calls.mfa += 1;
         return { count: 1 };
       },
     },
     $transaction: async (work: (transaction: RecoveryDatabaseClientV1) => Promise<unknown>) => {
+      await Promise.resolve();
       calls.transactions += 1;
       return work(client);
     },
@@ -259,7 +274,10 @@ void test('[IAM-015] Prisma recovery challenge compare-and-set rejects a stale t
     status: 'REVOKED',
     revokedAt: new Date('2026-08-03T00:05:00.000Z'),
   });
-  state.client.recoveryChallenge.updateMany = async () => ({ count: 0 });
+  state.client.recoveryChallenge.updateMany = async () => {
+    await Promise.resolve();
+    return { count: 0 };
+  };
   await assert.rejects(
     adapter.withTransaction((transaction) =>
       transaction.saveChallenge({

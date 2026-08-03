@@ -2,7 +2,6 @@ import {
   parseStableIdentifierV1,
   parseStrictUtcTimestampV1,
   type StableIdentifierV1,
-  type StrictUtcTimestampV1,
 } from '../tenant-scope/v1.js';
 
 /** IAM-015: short-lived recovery bearers are hashed and single-use at rest. */

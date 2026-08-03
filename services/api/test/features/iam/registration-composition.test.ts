@@ -21,12 +21,18 @@ function provider(module: ReturnType<typeof IamModule.register>, token: symbol) 
 }
 
 const passwordCredentials = new PasswordCredentialService({
-  hash: async () => ({
-    schemaVersion: 1,
-    algorithm: 'argon2id',
-    encodedHash: '$argon2id$v=19$m=65536,p=1,t=3$YWJjZA==$ZWZmZw==',
-  }),
-  verify: async () => true,
+  hash: async () => {
+    await Promise.resolve();
+    return {
+      schemaVersion: 1,
+      algorithm: 'argon2id',
+      encodedHash: '$argon2id$v=19$m=65536,p=1,t=3$YWJjZA==$ZWZmZw==',
+    };
+  },
+  verify: async () => {
+    await Promise.resolve();
+    return true;
+  },
 });
 
 void test('[IAM-001] registration composition exports an explicitly supplied service and controller', () => {

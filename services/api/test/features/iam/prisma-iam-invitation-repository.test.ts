@@ -10,7 +10,6 @@ import {
   type IamInvitationDatabaseRowV1,
   type IamInvitationMembershipDatabaseRowV1,
 } from '../../../src/features/iam/adapter/prisma-iam-invitation-repository.adapter.js';
-import type { IamMembershipRecordV1 } from '../../../src/features/iam/application/iam-repository.port.js';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
 
 const ids = {
@@ -83,16 +82,19 @@ function client(options: { readonly updateCount?: number } = {}) {
   const database: IamInvitationDatabaseClientV1 = {
     membershipIdentity: {
       findUnique: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) => {
+        await Promise.resolve();
         calls.push({ operation: 'membership.findUnique', input: where });
         return memberships.find((row) => row.id === where['id']) ?? null;
       },
       findMany: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) => {
+        await Promise.resolve();
         calls.push({ operation: 'membership.findMany', input: where });
         return memberships.filter((row) =>
           Object.entries(where).every(([key, value]) => row[key as keyof typeof row] === value),
         );
       },
       create: async ({ data }: { readonly data: IamInvitationMembershipDatabaseRowV1 }) => {
+        await Promise.resolve();
         memberships.push(data);
         return data;
       },
@@ -103,6 +105,7 @@ function client(options: { readonly updateCount?: number } = {}) {
         readonly where: Readonly<Record<string, unknown>>;
         readonly data: Partial<IamInvitationMembershipDatabaseRowV1>;
       }) => {
+        await Promise.resolve();
         const index = memberships.findIndex(
           (row) => row.id === where['id'] && row.revision === where['revision'],
         );
@@ -116,6 +119,7 @@ function client(options: { readonly updateCount?: number } = {}) {
     },
     invitationTokenRecord: {
       findUnique: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) => {
+        await Promise.resolve();
         calls.push({ operation: 'invitation.findUnique', input: where });
         return (
           invitations.find(
@@ -124,6 +128,7 @@ function client(options: { readonly updateCount?: number } = {}) {
         );
       },
       findFirst: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) => {
+        await Promise.resolve();
         calls.push({ operation: 'invitation.findFirst', input: where });
         return (
           invitations.find(
@@ -132,6 +137,7 @@ function client(options: { readonly updateCount?: number } = {}) {
         );
       },
       create: async ({ data }: { readonly data: IamInvitationDatabaseRowV1 }) => {
+        await Promise.resolve();
         invitations.push(data);
         return data;
       },
@@ -142,6 +148,7 @@ function client(options: { readonly updateCount?: number } = {}) {
         readonly where: Readonly<Record<string, unknown>>;
         readonly data: Partial<IamInvitationDatabaseRowV1>;
       }) => {
+        await Promise.resolve();
         const index = invitations.findIndex(
           (row) =>
             row.id === where['id'] &&
@@ -153,8 +160,10 @@ function client(options: { readonly updateCount?: number } = {}) {
         return { count: options.updateCount ?? 1 };
       },
     },
-    $transaction: async <TValue>(work: (transaction: typeof database) => Promise<TValue>) =>
-      work(database),
+    $transaction: async <TValue>(work: (transaction: typeof database) => Promise<TValue>) => {
+      await Promise.resolve();
+      return work(database);
+    },
   };
   return { database, memberships, invitations, calls };
 }

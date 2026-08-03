@@ -7,11 +7,17 @@ import type { RecoveryService } from '../../../src/features/iam/application/reco
 
 void test('[IAM-015] recovery controller returns generic request and safe completion values', async () => {
   const controller = new RecoveryController({
-    request: async () => ({ accepted: true as const, value: { requested: true as const } }),
-    complete: async () => ({
-      accepted: true as const,
-      value: { userId: 'user-id' as never, mfaReenrollmentRequired: true as const },
-    }),
+    request: async () => {
+      await Promise.resolve();
+      return { accepted: true as const, value: { requested: true as const } };
+    },
+    complete: async () => {
+      await Promise.resolve();
+      return {
+        accepted: true as const,
+        value: { userId: 'user-id' as never, mfaReenrollmentRequired: true as const },
+      };
+    },
   } as unknown as RecoveryService);
   assert.deepEqual(await controller.request({ email: 'user@example.com' }), { requested: true });
   assert.deepEqual(
@@ -25,8 +31,14 @@ void test('[IAM-015] recovery controller returns generic request and safe comple
 
 void test('[IAM-015] recovery controller maps rejected and unavailable outcomes without account disclosure', async () => {
   const controller = new RecoveryController({
-    request: async () => ({ accepted: false as const, code: 'INVALID_INPUT' as const }),
-    complete: async () => ({ accepted: false as const, code: 'INVALID_TOKEN' as const }),
+    request: async () => {
+      await Promise.resolve();
+      return { accepted: false as const, code: 'INVALID_INPUT' as const };
+    },
+    complete: async () => {
+      await Promise.resolve();
+      return { accepted: false as const, code: 'INVALID_TOKEN' as const };
+    },
   } as unknown as RecoveryService);
   await assert.rejects(
     controller.request({ email: 'bad' }),

@@ -9,6 +9,7 @@ void test('[IAM-010] invitation controller forwards bounded issue and accept com
   const calls: Array<readonly unknown[]> = [];
   const service = {
     issue: async (...input: unknown[]) => {
+      await Promise.resolve();
       calls.push(input);
       return {
         accepted: true as const,
@@ -21,6 +22,7 @@ void test('[IAM-010] invitation controller forwards bounded issue and accept com
       };
     },
     accept: async (...input: unknown[]) => {
+      await Promise.resolve();
       calls.push(input);
       return {
         accepted: true as const,
@@ -29,7 +31,12 @@ void test('[IAM-010] invitation controller forwards bounded issue and accept com
     },
   } as unknown as IamInvitationService;
   const context = { actorId: 'actor', tenantScope: { scopeType: 'organization' } } as never;
-  const controller = new IamInvitationController(service, { resolve: async () => context });
+  const controller = new IamInvitationController(service, {
+    resolve: async () => {
+      await Promise.resolve();
+      return context;
+    },
+  });
   const issued = await controller.issue(
     {},
     { membershipId: 'membership-id', recipientEmail: 'invitee@example.com' },
@@ -55,10 +62,21 @@ void test('[IAM-010] invitation controller forwards bounded issue and accept com
 
 void test('[IAM-010] invitation controller maps rejected application outcomes to safe problem codes', async () => {
   const service = {
-    issue: async () => ({ accepted: false as const, code: 'SCOPE_DENIED' as const }),
-    accept: async () => ({ accepted: false as const, code: 'INVALID_TOKEN' as const }),
+    issue: async () => {
+      await Promise.resolve();
+      return { accepted: false as const, code: 'SCOPE_DENIED' as const };
+    },
+    accept: async () => {
+      await Promise.resolve();
+      return { accepted: false as const, code: 'INVALID_TOKEN' as const };
+    },
   } as unknown as IamInvitationService;
-  const controller = new IamInvitationController(service, { resolve: async () => ({}) as never });
+  const controller = new IamInvitationController(service, {
+    resolve: async () => {
+      await Promise.resolve();
+      return {} as never;
+    },
+  });
   await assert.rejects(
     controller.issue({}, { membershipId: 'membership-id', recipientEmail: 'invitee@example.com' }),
     (error: unknown) =>
@@ -72,7 +90,12 @@ void test('[IAM-010] invitation controller maps rejected application outcomes to
 });
 
 void test('[IAM-010] invitation controller fails closed when service composition is incomplete', async () => {
-  const controller = new IamInvitationController(undefined, { resolve: async () => ({}) as never });
+  const controller = new IamInvitationController(undefined, {
+    resolve: async () => {
+      await Promise.resolve();
+      return {} as never;
+    },
+  });
   await assert.rejects(
     controller.issue({}, { membershipId: 'membership-id', recipientEmail: 'invitee@example.com' }),
     (error: unknown) =>

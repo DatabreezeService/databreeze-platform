@@ -45,8 +45,17 @@ void test('[IAM-010] durable invitation composition requires all secret and deli
 void test('[IAM-010] durable invitation composition selects Prisma persistence when configured', () => {
   const registered = IamModule.register({
     invitationDatabase: {} as never,
-    invitationPrincipalEmails: { findEmail: async () => 'invitee@example.com' },
-    invitationDelivery: { deliver: async () => undefined },
+    invitationPrincipalEmails: {
+      findEmail: async () => {
+        await Promise.resolve();
+        return 'invitee@example.com';
+      },
+    },
+    invitationDelivery: {
+      deliver: async () => {
+        await Promise.resolve();
+      },
+    },
     invitationDigest: {
       digestToken: () => 'a'.repeat(64),
       digestEmail: () => 'b'.repeat(64),

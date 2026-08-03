@@ -12,12 +12,18 @@ const rawToken = 'recovery-token-abcdefghijklmnopqrstuvwxyz-1234567890';
 
 function credentials() {
   return new PasswordCredentialService({
-    hash: async () => ({
-      schemaVersion: 1,
-      algorithm: 'argon2id',
-      encodedHash: '$argon2id$v=19$m=1,p=1,t=1$YWJjZA==$ZWZmZw==',
-    }),
-    verify: async () => true,
+    hash: async () => {
+      await Promise.resolve();
+      return {
+        schemaVersion: 1,
+        algorithm: 'argon2id',
+        encodedHash: '$argon2id$v=19$m=1,p=1,t=1$YWJjZA==$ZWZmZw==',
+      };
+    },
+    verify: async () => {
+      await Promise.resolve();
+      return true;
+    },
   });
 }
 
@@ -31,6 +37,7 @@ void test('[IAM-015] recovery HTTP keeps known and unknown requests generic and 
     recoveryDigest: new HmacSha256IamRecoveryDigestAdapter('test-recovery-key'),
     recoveryDelivery: {
       deliver: async ({ rawToken: deliveredToken }) => {
+        await Promise.resolve();
         delivered.push({ rawToken: deliveredToken });
       },
     },

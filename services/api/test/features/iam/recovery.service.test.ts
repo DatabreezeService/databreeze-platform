@@ -12,18 +12,25 @@ const token = 'recovery-token-abcdefghijklmnopqrstuvwxyz-123456';
 
 function credentials() {
   return new PasswordCredentialService({
-    hash: async (password) => ({
-      schemaVersion: 1,
-      algorithm: 'argon2id',
-      encodedHash: `$argon2id$v=19$m=65536,p=1,t=3$YWJjZA==$${Buffer.from(password).toString('base64')}`,
-    }),
-    verify: async () => true,
+    hash: async (password) => {
+      await Promise.resolve();
+      return {
+        schemaVersion: 1,
+        algorithm: 'argon2id',
+        encodedHash: `$argon2id$v=19$m=65536,p=1,t=3$YWJjZA==$${Buffer.from(password).toString('base64')}`,
+      };
+    },
+    verify: async () => {
+      await Promise.resolve();
+      return true;
+    },
   });
 }
 
 function countingCredentials(counter: { value: number }) {
   return new PasswordCredentialService({
     hash: async (password) => {
+      await Promise.resolve();
       counter.value += 1;
       return {
         schemaVersion: 1,
@@ -31,13 +38,20 @@ function countingCredentials(counter: { value: number }) {
         encodedHash: `$argon2id$v=19$m=65536,p=1,t=3$YWJjZA==$${Buffer.from(password).toString('base64')}`,
       };
     },
-    verify: async () => true,
+    verify: async () => {
+      await Promise.resolve();
+      return true;
+    },
   });
 }
 
 function service(
   repository: InMemoryRecoveryRepositoryAdapter,
-  delivery: RecoveryDeliveryPortV1 = { deliver: async () => undefined },
+  delivery: RecoveryDeliveryPortV1 = {
+    deliver: async () => {
+      await Promise.resolve();
+    },
+  },
   admission?: InMemoryRecoveryAdmissionAdapter,
   passwordCredentials: PasswordCredentialService = credentials(),
   completionAdmission?: InMemoryRecoveryAdmissionAdapter,
@@ -104,6 +118,7 @@ void test('[IAM-015] recovery request is generic for unknown email and stores a 
   const delivered: string[] = [];
   const recovery = service(repository, {
     deliver: async (input: Parameters<RecoveryDeliveryPortV1['deliver']>[0]) => {
+      await Promise.resolve();
       delivered.push(input.rawToken);
     },
   });
@@ -127,7 +142,12 @@ void test('[IAM-015] recovery admission throttles known and unknown requests thr
   const admission = new InMemoryRecoveryAdmissionAdapter({ maxAttempts: 1, windowSeconds: 60 });
   const recovery = service(
     repository,
-    { deliver: async ({ rawToken }) => void delivered.push(rawToken) },
+    {
+      deliver: async ({ rawToken }) => {
+        await Promise.resolve();
+        delivered.push(rawToken);
+      },
+    },
     admission,
   );
   assert.deepEqual(await recovery.request('unknown@example.com'), {
@@ -171,6 +191,7 @@ void test('[IAM-015] recovery delivery failures do not persist a usable challeng
   repository.seed({ email: 'user@example.com', userId });
   const recovery = service(repository, {
     deliver: async () => {
+      await Promise.resolve();
       throw new Error('provider down');
     },
   });
@@ -187,6 +208,7 @@ void test('[IAM-015] recovery delivery failure preserves an existing active chal
   let failDelivery = false;
   const recovery = service(repository, {
     deliver: async () => {
+      await Promise.resolve();
       if (failDelivery) throw new Error('provider down');
     },
   });

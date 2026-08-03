@@ -87,6 +87,7 @@ export class InMemoryIamInvitationRepositoryAdapter implements IamInvitationRepo
     context: IamTenantContextV1,
     principalId: StableIdentifierV1,
   ): Promise<IamMembershipRecordV1 | undefined> {
+    await Promise.resolve();
     const visibleMemberships = this.memberships.filter((membership) =>
       visible(context.tenantScope, membership.scope),
     );
@@ -97,6 +98,7 @@ export class InMemoryIamInvitationRepositoryAdapter implements IamInvitationRepo
     context: IamTenantContextV1,
     membershipId: StableIdentifierV1,
   ): Promise<IamMembershipRecordV1 | undefined> {
+    await Promise.resolve();
     const membership = this.memberships.find((item) => item.id === membershipId);
     return membership && visible(context.tenantScope, membership.scope)
       ? cloneMembership(membership)
@@ -107,6 +109,7 @@ export class InMemoryIamInvitationRepositoryAdapter implements IamInvitationRepo
     context: IamTenantContextV1,
     tokenDigest: string,
   ): Promise<InvitationTokenV1 | undefined> {
+    await Promise.resolve();
     const invitation = this.invitations.find(
       (item) =>
         item.tokenDigest === tokenDigest && tenantScopeContainsV1(context.tenantScope, item.scope),
@@ -118,6 +121,7 @@ export class InMemoryIamInvitationRepositoryAdapter implements IamInvitationRepo
     context: IamTenantContextV1,
     membershipId: StableIdentifierV1,
   ): Promise<InvitationTokenV1 | undefined> {
+    await Promise.resolve();
     const invitation = this.invitations.find(
       (item) =>
         item.membershipId === membershipId &&
@@ -131,6 +135,7 @@ export class InMemoryIamInvitationRepositoryAdapter implements IamInvitationRepo
     context: IamTenantContextV1,
     invitation: InvitationTokenV1,
   ): Promise<void> {
+    await Promise.resolve();
     if (!tenantScopeContainsV1(context.tenantScope, invitation.scope))
       throw new Error('IAM_SCOPE_NARROWING_REQUIRED');
     const existing = this.invitations.find((item) => item.id === invitation.id);
@@ -161,6 +166,7 @@ export class InMemoryIamInvitationRepositoryAdapter implements IamInvitationRepo
     context: IamTenantContextV1,
     membership: IamMembershipRecordV1,
   ): Promise<void> {
+    await Promise.resolve();
     if (!tenantScopeContainsV1(context.tenantScope, membership.scope))
       throw new Error('IAM_SCOPE_NARROWING_REQUIRED');
     const index = this.memberships.findIndex((item) => item.id === membership.id);

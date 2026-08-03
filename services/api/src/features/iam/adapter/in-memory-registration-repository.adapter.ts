@@ -25,8 +25,12 @@ export class InMemoryRegistrationRepositoryAdapter implements RegistrationReposi
     await previous;
     const before = new Map(this.records);
     const transaction: RegistrationTransactionPortV1 = {
-      findByEmail: async (email) => this.records.has(email),
+      findByEmail: async (email) => {
+        await Promise.resolve();
+        return this.records.has(email);
+      },
       save: async (input) => {
+        await Promise.resolve();
         if (this.records.has(input.email)) throw new RegistrationConflictError();
         this.records.set(input.email, clone(input));
       },

@@ -96,21 +96,30 @@ class Repository implements IamInvitationRepositoryPortV1 {
     const invitations = [...this.invitations];
     try {
       return await work({
-        findMembershipForPrincipal: async (_context, principalId) =>
-          this.memberships.find(
+        findMembershipForPrincipal: async (_context, principalId) => {
+          await Promise.resolve();
+          return this.memberships.find(
             (membership) =>
               membership.principalId === principalId && membership.status === 'ACTIVE',
-          ),
-        findMembershipById: async (_context, id) =>
-          this.memberships.find((membership) => membership.id === id),
-        findInvitationByDigest: async (_context, digest) =>
-          this.invitations.find((invitation) => invitation.tokenDigest === digest),
-        findActiveInvitationForMembership: async (_context, membershipId) =>
-          this.invitations.find(
+          );
+        },
+        findMembershipById: async (_context, id) => {
+          await Promise.resolve();
+          return this.memberships.find((membership) => membership.id === id);
+        },
+        findInvitationByDigest: async (_context, digest) => {
+          await Promise.resolve();
+          return this.invitations.find((invitation) => invitation.tokenDigest === digest);
+        },
+        findActiveInvitationForMembership: async (_context, membershipId) => {
+          await Promise.resolve();
+          return this.invitations.find(
             (invitation) =>
               invitation.membershipId === membershipId && invitation.status === 'ACTIVE',
-          ),
+          );
+        },
         saveInvitation: async (_context, invitation) => {
+          await Promise.resolve();
           const index = this.invitations.findIndex((item) => item.id === invitation.id);
           if (index >= 0) {
             if (this.invitations[index]?.revision !== invitation.revision - 1)
@@ -123,6 +132,7 @@ class Repository implements IamInvitationRepositoryPortV1 {
           }
         },
         saveMembership: async (_context, membership) => {
+          await Promise.resolve();
           const index = this.memberships.findIndex((item) => item.id === membership.id);
           if (index < 0 || this.memberships[index]?.revision !== membership.revision - 1)
             throw new Error('IAM_REVISION_CONFLICT');
@@ -141,6 +151,7 @@ class Repository implements IamInvitationRepositoryPortV1 {
 
 class EmailLookup implements IamPrincipalEmailLookupPortV1 {
   async findEmail(principalId: string): Promise<string | undefined> {
+    await Promise.resolve();
     return principalId === ids.invitee ? 'invitee@example.com' : 'owner@example.com';
   }
 }
@@ -162,6 +173,7 @@ class Delivery implements IamInvitationDeliveryPortV1 {
     readonly rawToken: string;
     readonly recipientEmail: string;
   }): Promise<void> {
+    await Promise.resolve();
     this.sent.push({ token: input.rawToken, email: input.recipientEmail });
   }
 }

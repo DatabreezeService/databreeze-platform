@@ -177,7 +177,7 @@ void test('[IAM-015] live session lookup carries the MFA re-enrollment gate from
   const adapter = new PrismaSessionLifecycleAdapter(client, {
     clock: () => new Date('2026-01-01T00:00:00.000Z'),
   });
-  const original = client.userIdentity.findUnique;
+  const original = client.userIdentity.findUnique.bind(client.userIdentity);
   client.userIdentity.findUnique = async () => ({
     id: userId,
     status: 'ACTIVE',

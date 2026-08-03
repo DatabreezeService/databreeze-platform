@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { PasswordCredentialV1 } from '../../../src/features/iam/domain/password-credential.js';
 import {
   PrismaRegistrationRepositoryAdapter,
   type RegistrationDatabaseClientV1,
@@ -106,10 +105,10 @@ function createDatabase() {
     projects: new Map(),
     memberships: new Map(),
   };
-  let client!: RegistrationDatabaseClientV1;
   const transactionCalls = { value: 0 };
   const makeIdentityDelegate = (records: Map<string, Record<string, unknown>>) => ({
     findUnique: async ({ where }: { readonly where: Record<string, string> }) => {
+      await Promise.resolve();
       const id = where['id'];
       if (id) return records.get(id) ?? null;
       const email = where['email'];
@@ -117,17 +116,20 @@ function createDatabase() {
       return null;
     },
     create: async ({ data }: { readonly data: Record<string, unknown> }) => {
+      await Promise.resolve();
       if (records.has(String(data['id'])))
         throw Object.assign(new Error('P2002'), { code: 'P2002' });
       records.set(String(data['id']), data);
       return data;
     },
-    findMany: async ({ where }: { readonly where: Record<string, unknown> }) =>
-      [...records.values()].filter((row) =>
+    findMany: async ({ where }: { readonly where: Record<string, unknown> }) => {
+      await Promise.resolve();
+      return [...records.values()].filter((row) =>
         Object.entries(where).every(([key, value]) => row[key] === value),
-      ),
+      );
+    },
   });
-  client = {
+  const client = {
     userIdentity: makeIdentityDelegate(state.users),
     passwordCredential: makeIdentityDelegate(state.credentials),
     organizationIdentity: makeIdentityDelegate(state.organizations),
@@ -190,12 +192,12 @@ void test('[IAM-001] Prisma registration maps an existing normalized email and c
 
 void test('[IAM-001] Prisma registration rolls back user and credential when hierarchy persistence fails', async () => {
   const database = createDatabase();
-  let failing!: RegistrationDatabaseClientV1;
-  failing = {
+  const failing = {
     ...database.client,
     projectIdentity: {
       ...database.client.projectIdentity,
       create: async () => {
+        await Promise.resolve();
         throw new Error('project write failed');
       },
     },

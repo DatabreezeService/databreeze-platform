@@ -180,24 +180,6 @@ function invitationFromRow(row: IamInvitationDatabaseRowV1): InvitationTokenV1 {
   });
 }
 
-function membershipRow(membership: IamMembershipRecordV1): IamInvitationMembershipDatabaseRowV1 {
-  return {
-    id: membership.id,
-    principalType: 'USER',
-    principalId: membership.principalId,
-    scopeType: membership.scope.scopeType.toUpperCase(),
-    organizationId: membership.scope.organizationId,
-    workspaceId:
-      membership.scope.scopeType === 'organization' ? null : membership.scope.workspaceId,
-    projectId: membership.scope.scopeType === 'project' ? membership.scope.projectId : null,
-    roleId: membership.roleId,
-    status: membership.status,
-    startsAt: membership.startsAt ? new Date(membership.startsAt) : null,
-    expiresAt: membership.expiresAt ? new Date(membership.expiresAt) : null,
-    revision: membership.revision,
-  };
-}
-
 function invitationRow(invitation: InvitationTokenV1): IamInvitationDatabaseRowV1 {
   return {
     id: invitation.id,

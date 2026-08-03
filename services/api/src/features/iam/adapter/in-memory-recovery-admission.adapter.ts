@@ -21,6 +21,7 @@ export class InMemoryRecoveryAdmissionAdapter implements RecoveryAdmissionPortV1
   }
 
   public async allow(keyDigest: string, issuedAt: string): Promise<boolean> {
+    await Promise.resolve();
     const at = Date.parse(issuedAt);
     if (!/^[a-f0-9]{64}$/u.test(keyDigest) || !Number.isFinite(at)) return false;
     const current = this.attempts.get(keyDigest) ?? [];

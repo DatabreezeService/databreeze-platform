@@ -70,23 +70,30 @@ export class InMemoryRecoveryRepositoryAdapter implements RecoveryRepositoryPort
     );
     const beforeChallenges = new Map(this.challenges);
     const transaction: RecoveryTransactionPortV1 = {
-      findUserIdByEmail: async (email) =>
-        this.accounts.get(email)?.userId as StableIdentifierV1 | undefined,
+      findUserIdByEmail: async (email) => {
+        await Promise.resolve();
+        return this.accounts.get(email)?.userId as StableIdentifierV1 | undefined;
+      },
       findChallengeByTokenDigest: async (tokenDigest) => {
+        await Promise.resolve();
         const challenge = this.challenges.get(tokenDigest);
         return challenge ? cloneChallenge(challenge) : undefined;
       },
-      findActiveChallengeForUser: async (userId) =>
-        [...this.challenges.values()].find(
+      findActiveChallengeForUser: async (userId) => {
+        await Promise.resolve();
+        return [...this.challenges.values()].find(
           (challenge) => challenge.userId === userId && challenge.status === 'ACTIVE',
-        ),
+        );
+      },
       saveChallenge: async (challenge) => {
+        await Promise.resolve();
         const existing = this.challenges.get(challenge.tokenDigest);
         if (existing && existing.revision + 1 !== challenge.revision)
           throw new Error('IAM_RECOVERY_REVISION_CONFLICT');
         this.challenges.set(challenge.tokenDigest, cloneChallenge(challenge));
       },
       completeRecovery: async (input: RecoveryCompletionInputV1) => {
+        await Promise.resolve();
         const account = [...this.accounts.values()].find(
           (candidate) => candidate.userId === input.challenge.userId,
         );

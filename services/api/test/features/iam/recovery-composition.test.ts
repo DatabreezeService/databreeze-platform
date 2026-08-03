@@ -26,12 +26,18 @@ function provider(module: ReturnType<typeof IamModule.register>, token: symbol) 
 }
 
 const passwordCredentials = new PasswordCredentialService({
-  hash: async () => ({
-    schemaVersion: 1,
-    algorithm: 'argon2id',
-    encodedHash: '$argon2id$v=19$m=65536,p=1,t=3$YWJjZA==$ZWZmZw==',
-  }),
-  verify: async () => true,
+  hash: async () => {
+    await Promise.resolve();
+    return {
+      schemaVersion: 1,
+      algorithm: 'argon2id',
+      encodedHash: '$argon2id$v=19$m=65536,p=1,t=3$YWJjZA==$ZWZmZw==',
+    };
+  },
+  verify: async () => {
+    await Promise.resolve();
+    return true;
+  },
 });
 
 void test('[IAM-015] explicitly supplied recovery service is exported with a public controller', () => {
@@ -51,7 +57,11 @@ void test('[IAM-015] durable recovery composition requires password, digest, del
     recoveryDatabase: {} as never,
     passwordCredentials,
     recoveryDigestKey: 'test-recovery-key',
-    recoveryDelivery: { deliver: async () => undefined },
+    recoveryDelivery: {
+      deliver: async () => {
+        await Promise.resolve();
+      },
+    },
   });
   const repository = provider(configured, IAM_RECOVERY_REPOSITORY_PORT);
   const service = provider(configured, IAM_RECOVERY_SERVICE);
@@ -67,8 +77,17 @@ void test('[IAM-015] recovery composition selects the shared admission adapter w
     recoveryDatabase: {} as never,
     passwordCredentials,
     recoveryDigestKey: 'test-recovery-key',
-    recoveryDelivery: { deliver: async () => undefined },
-    recoveryAdmissionCounter: { incrementWindow: async () => 1 },
+    recoveryDelivery: {
+      deliver: async () => {
+        await Promise.resolve();
+      },
+    },
+    recoveryAdmissionCounter: {
+      incrementWindow: async () => {
+        await Promise.resolve();
+        return 1;
+      },
+    },
     recoveryAdmissionOptions: { maxAttempts: 5, windowSeconds: 30 },
   });
   const admission = provider(configured, IAM_RECOVERY_ADMISSION_PORT);
@@ -82,8 +101,17 @@ void test('[IAM-015] recovery composition gives completion counters a separate R
     recoveryDatabase: {} as never,
     passwordCredentials,
     recoveryDigestKey: 'test-recovery-key',
-    recoveryDelivery: { deliver: async () => undefined },
-    recoveryCompletionAdmissionCounter: { incrementWindow: async () => 1 },
+    recoveryDelivery: {
+      deliver: async () => {
+        await Promise.resolve();
+      },
+    },
+    recoveryCompletionAdmissionCounter: {
+      incrementWindow: async () => {
+        await Promise.resolve();
+        return 1;
+      },
+    },
   });
   const admission = provider(configured, IAM_RECOVERY_COMPLETION_ADMISSION_PORT);
   assert.ok(admission && 'useValue' in admission);

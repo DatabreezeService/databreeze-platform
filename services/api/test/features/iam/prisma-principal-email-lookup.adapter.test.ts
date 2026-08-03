@@ -22,6 +22,7 @@ function client(row: IamPrincipalEmailDatabaseRowV1 | null) {
     calls,
     userIdentity: {
       findUnique: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) => {
+        await Promise.resolve();
         calls.push(where);
         return row;
       },

@@ -39,6 +39,8 @@ void test('[IAM-010] generated invitation identifiers and tokens are fresh and n
   assert.equal(parsed.accepted, true);
   const token = randomIamInvitationTokenV1();
   assert.ok(token.length >= 43);
+  // This assertion intentionally checks the full C0/control range.
+  // eslint-disable-next-line no-control-regex
   assert.doesNotMatch(token, /[\u0000-\u001f\u007f]/u);
   assert.notEqual(token, randomIamInvitationTokenV1());
 });

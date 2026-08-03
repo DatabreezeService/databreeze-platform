@@ -16,6 +16,7 @@ void test('[IAM-015] shared recovery admission uses a namespaced digest key and 
   const admission = new RedisRecoveryAdmissionAdapter(
     {
       incrementWindow: async (input) => {
+        await Promise.resolve();
         calls.push(input);
         count += 1;
         return count;
@@ -38,6 +39,7 @@ void test('[IAM-015] shared recovery admission fails closed for malformed input 
   let calls = 0;
   const admission = new RedisRecoveryAdmissionAdapter({
     incrementWindow: async () => {
+      await Promise.resolve();
       calls += 1;
       throw new Error('redis unavailable');
     },
@@ -53,7 +55,12 @@ void test('[IAM-015] shared recovery admission rejects unsafe configuration', ()
   assert.throws(
     () =>
       new RedisRecoveryAdmissionAdapter(
-        { incrementWindow: async () => 1 },
+        {
+          incrementWindow: async () => {
+            await Promise.resolve();
+            return 1;
+          },
+        },
         { keyPrefix: 'raw email ' },
       ),
     /IAM_RECOVERY_ADMISSION_INVALID/u,
@@ -68,6 +75,7 @@ void test('[IAM-015] Redis counter wrapper uses one atomic script and validates 
   }> = [];
   const counter = new RedisEvalRecoveryAdmissionCounterAdapter({
     eval: async (script, keys, args) => {
+      await Promise.resolve();
       calls.push({ script, keys, args });
       return '4';
     },
@@ -85,7 +93,10 @@ void test('[IAM-015] Redis counter wrapper uses one atomic script and validates 
 
 void test('[IAM-015] Redis counter wrapper rejects invalid TTLs and malformed replies', async () => {
   const counter = new RedisEvalRecoveryAdmissionCounterAdapter({
-    eval: async () => 'not-a-count',
+    eval: async () => {
+      await Promise.resolve();
+      return 'not-a-count';
+    },
   });
   await assert.rejects(
     counter.incrementWindow({ key: 'databreeze:key', ttlMs: 999 }),
