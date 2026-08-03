@@ -15,6 +15,19 @@ test('AWS validation pins one OpenTofu CLI and official container release', () =
   assert.match(readme, /ghcr\.io\/opentofu\/opentofu:1\.12\.5/u);
 });
 
+test('AWS validators accept strict semantic versions without leading zero components', () => {
+  const strictSemanticVersion = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u;
+  for (const version of ['0.0.0', '1.2.3', '10.20.30'])
+    assert.equal(strictSemanticVersion.test(version), true, version);
+  for (const version of ['01.2.3', '1.02.3', '1.2.03', '1.2', 'v1.2.3'])
+    assert.equal(strictSemanticVersion.test(version), false, version);
+
+  const expectedLiteral =
+    '/^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$/u';
+  assert.ok(read('tools/repo-cli/src/check-aws-infrastructure.mjs').includes(expectedLiteral));
+  assert.ok(read('tools/repo-cli/src/validate-aws-opentofu.mjs').includes(expectedLiteral));
+});
+
 test('AWS container validation command is pinned, isolated, and non-applying', () => {
   const script = path.join(repositoryRoot, 'tools/repo-cli/src/validate-aws-opentofu.mjs');
   const help = spawnSync(process.execPath, [script, '--help'], {
