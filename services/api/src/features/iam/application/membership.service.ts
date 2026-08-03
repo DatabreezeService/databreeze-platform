@@ -28,6 +28,7 @@ export type IamMembershipApplicationCodeV1 =
   | 'SCOPE_DENIED'
   | 'NOT_FOUND'
   | 'CONFLICT'
+  | 'EXPIRED'
   | 'LAST_OWNER'
   | 'UNAVAILABLE';
 
@@ -235,6 +236,55 @@ export class IamMembershipService {
         const next = Object.freeze({
           ...current,
           status: statusInput,
+          revision: current.revision + 1,
+        });
+        const mutationContext = Object.freeze({ ...context, expectedRevision: current.revision });
+        await transaction.saveMembership(mutationContext, next);
+        return accepted(next);
+      });
+    } catch (error) {
+      return rejected(applicationError(error));
+    }
+  }
+
+  /** Accept an invitation only by the invited principal, clearing invitation-only expiry. */
+  public async accept(
+    context: IamTenantContextV1,
+    membershipIdInput: unknown,
+    expectedRevisionInput: unknown,
+  ): Promise<IamMembershipApplicationResultV1<IamMembershipRecordV1>> {
+    const membershipId = parseId(membershipIdInput);
+    if (!membershipId.accepted) return rejected(membershipId.code);
+    if (
+      typeof expectedRevisionInput !== 'number' ||
+      !Number.isSafeInteger(expectedRevisionInput) ||
+      expectedRevisionInput < 1
+    )
+      return rejected('CONFLICT');
+    const startedAt = isoNow(this.clock);
+    if (!startedAt) return rejected('UNAVAILABLE');
+    const nowMs = Date.parse(startedAt);
+    try {
+      return await this.repository.withTransaction(context, async (transaction) => {
+        const current = (await transaction.listMemberships(context)).find(
+          (membership) => membership.id === membershipId.value,
+        );
+        if (!current) return rejected('NOT_FOUND');
+        if (
+          current.principalId !== context.actorId ||
+          !tenantScopeContainsV1(context.tenantScope, current.scope)
+        )
+          return rejected('SCOPE_DENIED');
+        if (current.revision !== expectedRevisionInput) return rejected('CONFLICT');
+        if (current.status !== 'INVITED') return rejected('CONFLICT');
+        if (current.expiresAt !== undefined && Date.parse(current.expiresAt) <= nowMs)
+          return rejected('EXPIRED');
+        if (current.startsAt !== undefined && Date.parse(current.startsAt) > nowMs)
+          return rejected('CONFLICT');
+        const { startsAt: _startsAt, expiresAt: _expiresAt, ...withoutInvitationLifetime } = current;
+        const next: IamMembershipRecordV1 = Object.freeze({
+          ...withoutInvitationLifetime,
+          status: 'ACTIVE',
           revision: current.revision + 1,
         });
         const mutationContext = Object.freeze({ ...context, expectedRevision: current.revision });

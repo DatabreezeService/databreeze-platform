@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
+import { INVITATION_MAX_SECONDS_V1 } from '@databreeze/domain/identity/v1';
 
 import { InMemoryIamRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-iam-repository.adapter.js';
 import {
@@ -14,6 +15,7 @@ import { createIamTenantContextV1 } from '../../../src/features/iam/application/
 const ids = {
   principal: '00000000-0000-4000-8000-000000000161',
   invited: '00000000-0000-4000-8000-000000000162',
+  outsider: '00000000-0000-4000-8000-000000000167',
   correlation: '00000000-0000-4000-8000-000000000163',
   organization: '00000000-0000-4000-8000-000000000164',
   membership: '00000000-0000-4000-8000-000000000165',
@@ -28,10 +30,10 @@ function stable(value: string) {
   return result.value;
 }
 
-function context(idempotencyKey: string) {
+function contextFor(actorId: string, idempotencyKey: string) {
   const result = createIamTenantContextV1({
     tenantScope: { scopeType: 'organization', organizationId: stable(ids.organization) },
-    actorId: stable(ids.principal),
+    actorId: stable(actorId),
     correlationId: stable(ids.correlation),
     idempotencyKey,
     authorizationEpoch: 1,
@@ -39,6 +41,10 @@ function context(idempotencyKey: string) {
   assert.equal(result.accepted, true);
   if (!result.accepted) throw new Error('invalid membership service fixture context');
   return result.value;
+}
+
+function context(idempotencyKey: string) {
+  return contextFor(ids.principal, idempotencyKey);
 }
 
 function idsFrom(...values: string[]): IamMembershipIdGeneratorV1 {
@@ -120,5 +126,69 @@ void test('[IAM-004] status transitions enforce revisions and cannot remove the 
   assert.deepEqual(
     await service.transition(context('membership-service-005'), ids.membership, 2, 'SUSPENDED'),
     { accepted: false, code: 'CONFLICT' },
+  );
+});
+
+void test('[IAM-004] invitee can accept an unexpired invitation and invitation lifetime is cleared', async () => {
+  const value = repository();
+  const service = new IamMembershipService(value, idsFrom(ids.invitation), clock);
+  const invited = await service.invite(context('membership-service-006'), {
+    principalId: ids.invited,
+    scope: { scopeType: 'organization', organizationId: ids.organization },
+    roleId: 'viewer',
+  });
+  assert.equal(invited.accepted, true);
+  if (!invited.accepted) return;
+
+  const accepted = await service.accept(
+    contextFor(ids.invited, 'membership-service-007'),
+    invited.value.id,
+    invited.value.revision,
+  );
+  assert.equal(accepted.accepted, true);
+  if (!accepted.accepted) return;
+  assert.equal(accepted.value.status, 'ACTIVE');
+  assert.equal(accepted.value.revision, 2);
+  assert.equal(accepted.value.startsAt, undefined);
+  assert.equal(accepted.value.expiresAt, undefined);
+  assert.deepEqual((await value.listMemberships(context('membership-service-008'))).find(
+    (membership) => membership.id === invited.value.id,
+  ), accepted.value);
+});
+
+void test('[IAM-004] invitation acceptance fails closed for an outsider, expiry, and stale revisions', async () => {
+  const value = repository();
+  const service = new IamMembershipService(value, idsFrom(ids.invitation), clock);
+  const invited = await service.invite(context('membership-service-009'), {
+    principalId: ids.invited,
+    scope: { scopeType: 'organization', organizationId: ids.organization },
+    roleId: 'viewer',
+  });
+  assert.equal(invited.accepted, true);
+  if (!invited.accepted) return;
+  assert.deepEqual(
+    await service.accept(contextFor(ids.outsider, 'membership-service-010'), invited.value.id, 1),
+    { accepted: false, code: 'SCOPE_DENIED' },
+  );
+  assert.deepEqual(
+    await service.accept(contextFor(ids.invited, 'membership-service-011'), invited.value.id, 2),
+    { accepted: false, code: 'CONFLICT' },
+  );
+
+  const expiredClock: IamMembershipClockV1 = () =>
+    new Date(Date.parse(now.toISOString()) + INVITATION_MAX_SECONDS_V1 * 1_000);
+  const expiringValue = repository();
+  const expiring = new IamMembershipService(expiringValue, idsFrom(ids.invitation), clock);
+  const invitation = await expiring.invite(context('membership-service-012'), {
+    principalId: ids.invited,
+    scope: { scopeType: 'organization', organizationId: ids.organization },
+    roleId: 'viewer',
+  });
+  assert.equal(invitation.accepted, true);
+  if (!invitation.accepted) return;
+  const expired = new IamMembershipService(expiringValue, idsFrom(), expiredClock);
+  assert.deepEqual(
+    await expired.accept(contextFor(ids.invited, 'membership-service-013'), invitation.value.id, 1),
+    { accepted: false, code: 'EXPIRED' },
   );
 });
