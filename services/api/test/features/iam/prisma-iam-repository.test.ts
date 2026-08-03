@@ -280,5 +280,26 @@ void test('[IAM-009, IAM-019] Prisma membership mutation lookup includes tenant 
     revision: 1,
   });
 
-  assert.deepEqual(firstQueries, [{ id: stable('23'), organizationId }]);
+  assert.deepEqual(firstQueries, [{ id: stable('23') }]);
+});
+
+void test('[IAM-009] Prisma membership writes reject cross-organization identifier collisions', async () => {
+  const foreignOrganizationId = id('99');
+  const foreign = { ...row(id('24'), 'WORKSPACE', workspaceId, 'viewer'), organizationId: foreignOrganizationId };
+  const { client, memberships } = createDatabase([foreign]);
+  const repository = new PrismaIamRepositoryAdapter(client);
+  const workspaceScope = { scopeType: 'workspace', organizationId, workspaceId } as const;
+
+  await assert.rejects(
+    repository.saveMembership(context(workspaceScope), {
+      id: stable('24'),
+      principalId,
+      scope: workspaceScope,
+      roleId: 'operator',
+      status: 'ACTIVE',
+      revision: 1,
+    }),
+    /IAM_REVISION_CONFLICT/u,
+  );
+  assert.equal(memberships.get(id('24'))?.organizationId, foreignOrganizationId);
 });
