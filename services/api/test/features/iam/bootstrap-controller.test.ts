@@ -83,6 +83,63 @@ void test('[IAM-001, IAM-009] bootstrap controller derives the actor from the au
     (result as { readonly value: { readonly user: { readonly id: string } } }).value.user.id,
     bootstrap.user.id,
   );
+  const value = (result as { readonly value: unknown }).value;
+  assert.equal(
+    (value as { readonly user: { readonly mfaState: string } }).user.mfaState,
+    'ENABLED',
+  );
+  assert.deepEqual((value as { readonly session: unknown }).session, {
+    organizationId: bootstrap.organization.id,
+    workspaceId: bootstrap.workspace.id,
+    authorizationEpoch: 1,
+  });
+  const organizations = (
+    value as {
+      readonly organizations: readonly {
+        readonly workspaces: readonly { readonly projects: readonly unknown[] }[];
+      }[];
+    }
+  ).organizations;
+  assert.deepEqual(organizations[0]?.workspaces[0]?.projects[0], {
+    id: bootstrap.project.id,
+    name: bootstrap.project.name,
+    kind: bootstrap.project.kind,
+    status: bootstrap.project.status,
+  });
+  assert.deepEqual((value as { readonly recentScopes: unknown }).recentScopes, [
+    {
+      organizationId: bootstrap.organization.id,
+      workspaceId: bootstrap.workspace.id,
+      projectId: bootstrap.project.id,
+    },
+  ]);
+});
+
+void test('[IAM-001] bootstrap session preserves an authenticated project scope', async () => {
+  const context = {
+    actorId: bootstrap.user.id,
+    tenantScope: {
+      scopeType: 'project' as const,
+      organizationId: bootstrap.organization.id,
+      workspaceId: bootstrap.workspace.id,
+      projectId: bootstrap.project.id,
+    },
+    authorizationEpoch: 4,
+    mfaRequired: false,
+  } as never;
+  const controller = new IamBootstrapController(
+    { find: async () => ({ accepted: true as const, value: bootstrap }) } as never,
+    { resolve: async () => context },
+  );
+  const result = await controller.bootstrap({});
+  assert.equal((result as { readonly accepted: boolean }).accepted, true);
+  if (!(result as { readonly accepted: boolean }).accepted) return;
+  assert.deepEqual((result as { readonly value: { readonly session: unknown } }).value.session, {
+    organizationId: bootstrap.organization.id,
+    workspaceId: bootstrap.workspace.id,
+    projectId: bootstrap.project.id,
+    authorizationEpoch: 4,
+  });
 });
 
 void test('[IAM-001] bootstrap controller fails closed when durable identity storage is unavailable', async () => {

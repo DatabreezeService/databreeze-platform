@@ -8662,13 +8662,14 @@
         "properties": {
           "organizationId": { "type": "string", "format": "uuid" },
           "workspaceId": { "type": "string", "format": "uuid" },
+          "projectId": { "type": "string", "format": "uuid" },
           "authorizationEpoch": { "type": "number", "minimum": 1 }
         },
         "required": ["organizationId", "authorizationEpoch"]
       },
       "BootstrapPlatformDto": {
         "type": "object",
-        "properties": { "apiVersion": { "type": "string" } },
+        "properties": { "apiVersion": { "type": "string", "enum": ["v1"] } },
         "required": ["apiVersion"]
       },
       "BootstrapValueDto": {
