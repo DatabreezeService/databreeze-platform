@@ -56,6 +56,9 @@ function client(rows: ArtifactIntakeDatabaseRowV1[]): ArtifactIntakeDatabaseClie
       create(input) {
         const created = { ...input.data };
         const persisted = { ...created } as ArtifactIntakeDatabaseRowV1;
+        if (rows.some((candidate) => candidate.id === persisted.id)) {
+          throw Object.assign(new Error('fixture unique constraint violation'), { code: 'P2002' });
+        }
         rows.push(persisted);
         return Promise.resolve(persisted);
       },

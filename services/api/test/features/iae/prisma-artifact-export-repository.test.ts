@@ -53,6 +53,9 @@ void test('IAE-018 Prisma export adapter preserves immutable manifests and scope
     artifactExportManifestRecord: {
       create({ data }) {
         const row = { ...data };
+        if (rows.has(row.id)) {
+          throw Object.assign(new Error('fixture unique constraint violation'), { code: 'P2002' });
+        }
         rows.set(row.id, row);
         return Promise.resolve(row);
       },
