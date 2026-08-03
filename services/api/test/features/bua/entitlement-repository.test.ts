@@ -145,6 +145,10 @@ void test('[BUA-008, BUA-009, BUA-010, BUA-011] usage state persists append-only
   if (!reserved.accepted) return;
   await repository.persistUsageState(context(workspaceId), reserved.value.state);
   assert.equal((await repository.listUsageState(context(workspaceId))).entries.length, 1);
+  await assert.rejects(
+    repository.persistUsageState(context(siblingWorkspaceId), reserved.value.state),
+    /BUA_SCOPE_NARROWING_REQUIRED/u,
+  );
   const activeReservation = reserved.value.state.reservations[0];
   if (!activeReservation) throw new Error('fixture reservation missing');
   await assert.rejects(
