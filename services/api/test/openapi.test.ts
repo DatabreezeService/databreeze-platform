@@ -7,6 +7,8 @@ import { createApiApplication } from '../src/bootstrap.js';
 import { CLIENT_VERSION_PATTERN_SOURCE } from '../src/features/system/api/client-compatibility.dto.js';
 
 const httpMethods = ['delete', 'get', 'head', 'options', 'patch', 'post', 'put', 'trace'] as const;
+const strictUtcTimestampPattern =
+  '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$';
 
 interface ParameterLike {
   readonly in?: string;
@@ -217,12 +219,52 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
     const spreadsheetSheet = firstDocument.components?.schemas?.[
       'SpreadsheetAuditSheetDto'
     ] as Record<string, unknown>;
-    assert.equal(
-      (spreadsheetSheet['properties'] as Record<string, Record<string, unknown>>)['maxRow']?.[
-        'maximum'
-      ],
-      1_048_576,
-    );
+    const spreadsheetSheetProperties = spreadsheetSheet['properties'] as Record<
+      string,
+      Record<string, unknown>
+    >;
+    assert.equal(spreadsheetSheetProperties['maxRow']?.['type'], 'integer');
+    assert.equal(spreadsheetSheetProperties['maxColumn']?.['type'], 'integer');
+    assert.equal(spreadsheetSheetProperties['formulaCount']?.['type'], 'integer');
+    assert.equal(spreadsheetSheetProperties['maxRow']?.['maximum'], 1_048_576);
+
+    for (const schemaName of [
+      'CreateArtifactDeletionRequestDto',
+      'AuthorizeArtifactDeletionRequestDto',
+    ] as const) {
+      const schema = firstDocument.components?.schemas?.[schemaName] as Record<string, unknown>;
+      const properties = schema['properties'] as Record<string, Record<string, unknown>>;
+      for (const propertyName of [
+        'evaluatedAt',
+        'workspaceRetentionUntil',
+        'resourceRetentionUntil',
+        'auditRetentionUntil',
+        'recoveryWindowUntil',
+        schemaName === 'CreateArtifactDeletionRequestDto' ? 'requestedAt' : 'approvedAt',
+      ]) {
+        assert.equal(
+          properties[propertyName]?.['pattern'],
+          strictUtcTimestampPattern,
+          `${schemaName}.${propertyName} must document the strict UTC timestamp`,
+        );
+      }
+    }
+    const inboxProperties = (
+      firstDocument.components?.schemas?.['UpdateInboxMetadataDto'] as Record<string, unknown>
+    )['properties'] as Record<string, Record<string, unknown>>;
+    const dueAtStringSchema = (inboxProperties['dueAt']?.['oneOf'] as readonly Record<
+      string,
+      unknown
+    >[]).find((candidate) => candidate['type'] === 'string');
+    assert.equal(dueAtStringSchema?.['pattern'], strictUtcTimestampPattern);
+    const auditResult = firstDocument.components?.schemas?.[
+      'CreateSpreadsheetAuditResultDto'
+    ] as Record<string, unknown>;
+    const auditResultProperties = auditResult['properties'] as Record<
+      string,
+      Record<string, unknown>
+    >;
+    assert.equal(auditResultProperties['createdAt']?.['pattern'], strictUtcTimestampPattern);
 
     for (const operation of operations(firstDocument)) {
       const headerNames = (operation.parameters ?? [])
