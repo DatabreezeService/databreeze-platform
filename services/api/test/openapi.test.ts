@@ -190,13 +190,10 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
     const deletionRequest = firstDocument.components?.schemas?.[
       'CreateArtifactDeletionRequestDto'
     ] as Record<string, unknown>;
-    assert.equal(
-      (deletionRequest['required'] as readonly string[]).includes('requestedBy'),
-      false,
-    );
-    const requestedBy = (
-      deletionRequest['properties'] as Record<string, Record<string, unknown>>
-    )['requestedBy'];
+    assert.equal((deletionRequest['required'] as readonly string[]).includes('requestedBy'), false);
+    const requestedBy = (deletionRequest['properties'] as Record<string, Record<string, unknown>>)[
+      'requestedBy'
+    ];
     assert.equal(requestedBy?.['deprecated'], true);
     for (const [schemaName, propertyName, maxItems] of [
       ['CreateArtifactExportDto', 'versionIds', 1024],

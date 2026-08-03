@@ -358,7 +358,10 @@ void test('[IAE-003, IAM-009] Prisma placement updates authorize the persisted w
   assert.equal(placement.accepted, true);
   if (!placement.accepted) throw new Error('fixture placement rejected');
   const repository = new PrismaArtifactRepositoryAdapter(client([], [], []));
-  await repository.saveVersion(contextForWorkspace(siblingWorkspaceId, 'scope-version'), artifact.value);
+  await repository.saveVersion(
+    contextForWorkspace(siblingWorkspaceId, 'scope-version'),
+    artifact.value,
+  );
   await repository.savePlacement(
     contextForWorkspace(siblingWorkspaceId, 'scope-placement'),
     placement.value,
