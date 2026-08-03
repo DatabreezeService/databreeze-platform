@@ -65,3 +65,11 @@ export class AcceptMembershipDto {
   @Max(Number.MAX_SAFE_INTEGER)
   expectedRevision!: number;
 }
+
+export class TransferOwnershipDto {
+  @ApiProperty({ minimum: 1, maximum: Number.MAX_SAFE_INTEGER })
+  @IsInt()
+  @Min(1)
+  @Max(Number.MAX_SAFE_INTEGER)
+  expectedRevision!: number;
+}

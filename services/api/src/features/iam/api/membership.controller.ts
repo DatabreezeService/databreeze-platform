@@ -12,6 +12,7 @@ import {
 import {
   AcceptMembershipDto,
   InviteMembershipDto,
+  TransferOwnershipDto,
   TransitionMembershipDto,
 } from './membership.dto.js';
 
@@ -76,6 +77,22 @@ export class IamMembershipController {
     const context = await this.requestContext.resolve(request);
     return (
       this.memberships?.accept(context, membershipId, input.expectedRevision) ??
+      this.unavailable()
+    );
+  }
+
+  @Post(':membershipId/transfer-ownership')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Transfer organization ownership to an active member' })
+  @ApiBody({ type: TransferOwnershipDto })
+  async transferOwnership(
+    @Req() request: unknown,
+    @Param('membershipId') membershipId: string,
+    @Body() input: TransferOwnershipDto,
+  ): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    return (
+      this.memberships?.transferOwnership(context, membershipId, input.expectedRevision) ??
       this.unavailable()
     );
   }
