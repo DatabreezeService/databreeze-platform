@@ -194,6 +194,21 @@ void test('[IAM-005] refresh rotation is transactional and reuse revokes the com
   assert.equal(await adapter.findPrincipal(first.sessionId), undefined);
 });
 
+void test('[IAM-005] refresh fails closed when a family has no active token', async () => {
+  const { client, refreshTokens, sessions } = createDatabase();
+  const adapter = new PrismaSessionLifecycleAdapter(client, {
+    clock: () => new Date('2026-01-01T00:00:00.000Z'),
+  });
+  const issued = await adapter.issue(principal, 'desktop');
+  for (const [id, row] of refreshTokens) refreshTokens.set(id, { ...row, status: 'USED' });
+
+  assert.deepEqual(await adapter.refresh(issued.refreshToken, 'desktop'), {
+    accepted: false,
+    code: 'REUSE_DETECTED',
+  });
+  assert.equal(sessions.get(issued.sessionId)?.status, 'REVOKED');
+});
+
 void test('[IAM-005] expired refresh tokens fail closed without returning token material', async () => {
   let now = new Date('2026-01-01T00:00:00.000Z');
   const { client } = createDatabase();
