@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createRecoveryCodeV1 } from '@databreeze/domain/mfa/v1';
+import { createMfaFactorV1, createRecoveryCodeV1 } from '@databreeze/domain/mfa/v1';
 
 import { InMemoryMfaRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-mfa-repository.adapter.js';
 import { constantTimeRecoveryCodeMatchV1 } from '../../../src/features/iam/iam.module.js';
@@ -93,4 +93,54 @@ void test('[IAM-015] default recovery-code matching compares normalized bytes sa
   assert.equal(constantTimeRecoveryCodeMatchV1('digest-1', 'digest-1'), true);
   assert.equal(constantTimeRecoveryCodeMatchV1('digest-1', 'digest-2'), false);
   assert.equal(constantTimeRecoveryCodeMatchV1('digest-1', 'digest-10'), false);
+});
+
+void test('[IAM-012, IAM-014] in-memory MFA state rejects removal and invalid new revisions', async () => {
+  const factor = createMfaFactorV1({
+    id: factorId,
+    userId,
+    method: 'TOTP',
+    secretReference: 'secret-ref:totp:1',
+    enrolledAt: at,
+  });
+  const code = createRecoveryCodeV1({ id: recoveryId, userId, digest: 'digest-1', createdAt: at });
+  assert.equal(factor.accepted, true);
+  assert.equal(code.accepted, true);
+  if (!factor.accepted || !code.accepted) return;
+  const repository = new InMemoryMfaRepositoryAdapter();
+  await repository.saveState(userId as never, {
+    factors: [factor.value],
+    recoveryCodes: [code.value],
+  });
+
+  await assert.rejects(
+    repository.saveState(userId as never, { factors: [], recoveryCodes: [code.value] }),
+    /IAM_MFA_REVISION_CONFLICT/u,
+  );
+  await assert.rejects(
+    repository.saveState(userId as never, { factors: [factor.value], recoveryCodes: [] }),
+    /IAM_MFA_REVISION_CONFLICT/u,
+  );
+  await assert.rejects(
+    repository.saveState(userId as never, {
+      factors: [
+        { ...factor.value, id: '00000000-0000-4000-8000-000000000004' as never, revision: 2 },
+      ],
+      recoveryCodes: [code.value],
+    }),
+    /IAM_MFA_REVISION_CONFLICT/u,
+  );
+  await assert.rejects(
+    repository.saveState(userId as never, {
+      factors: [factor.value],
+      recoveryCodes: [
+        {
+          ...code.value,
+          id: '00000000-0000-4000-8000-000000000005' as never,
+          revision: 2,
+        },
+      ],
+    }),
+    /IAM_MFA_REVISION_CONFLICT/u,
+  );
 });

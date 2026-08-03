@@ -37,10 +37,15 @@ function context() {
   return result.value;
 }
 
-function client(rows: DatasetProfileDatabaseRowV1[]): DatasetProfileDatabaseClientV1 {
+function client(
+  rows: DatasetProfileDatabaseRowV1[],
+  createConflict = false,
+): DatasetProfileDatabaseClientV1 {
   return {
     datasetProfileRecord: {
       create({ data }) {
+        if (createConflict)
+          throw Object.assign(new Error('unique constraint violation'), { code: 'P2002' });
         const persisted = { ...data } as DatasetProfileDatabaseRowV1;
         rows.push(persisted);
         return Promise.resolve(persisted);
@@ -93,4 +98,8 @@ void test('[DSM-011, IAM-009] Prisma profile adapter persists immutable disclosu
     created.value,
   ]);
   assert.equal(rows.length, 1);
+  await assert.rejects(
+    new PrismaDatasetProfileRepositoryAdapter(client([], true)).save(tenantContext, created.value),
+    /DSM_IMMUTABLE_DATASET_PROFILE/u,
+  );
 });

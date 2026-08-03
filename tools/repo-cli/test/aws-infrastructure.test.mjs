@@ -8,6 +8,34 @@ import { fileURLToPath } from 'node:url';
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const read = (relativePath) => readFileSync(path.join(repositoryRoot, relativePath), 'utf8');
 
+test('AWS validation pins one OpenTofu CLI and official container release', () => {
+  const version = read('infrastructure/aws/.opentofu-version').trim();
+  const readme = read('infrastructure/aws/README.md');
+  assert.equal(version, '1.12.5');
+  assert.match(readme, /ghcr\.io\/opentofu\/opentofu:1\.12\.5/u);
+});
+
+test('AWS container validation command is pinned, isolated, and non-applying', () => {
+  const script = path.join(repositoryRoot, 'tools/repo-cli/src/validate-aws-opentofu.mjs');
+  const help = spawnSync(process.execPath, [script, '--help'], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+  });
+  assert.equal(help.status, 0, help.stderr);
+  assert.match(help.stdout, /official pinned OpenTofu container/u);
+  const source = read('tools/repo-cli/src/validate-aws-opentofu.mjs');
+  assert.match(source, /'fmt',\s*'-check',\s*'-recursive'/u);
+  assert.match(source, /'init',\s*'-backend=false',\s*'-input=false',\s*'-lockfile=readonly'/u);
+  assert.match(source, /'validate', '-no-color'/u);
+  assert.match(source, /'test', '-no-color'/u);
+  assert.match(source, /TF_DATA_DIR=\/tmp\/databreeze-tofu/u);
+  assert.doesNotMatch(source, /['"]apply['"]/u);
+  assert.match(
+    read('package.json'),
+    /"infra:validate": "node tools\/repo-cli\/src\/validate-aws-opentofu\.mjs"/u,
+  );
+});
+
 test('AWS foundation has reusable modules and safe alpha composition', () => {
   for (const relativePath of [
     'infrastructure/aws/modules/network/main.tf',
@@ -59,11 +87,11 @@ test('AWS sources expose encryption, private data, and OIDC boundaries without s
     'master_user_secret_kms_key_id',
     'block_public_policy',
     'storage_encrypted',
-    'manage_master_user_password = true',
-    'publicly_accessible        = false',
-    'transit_encryption_enabled = true',
   ])
     assert.match(sources, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(sources, /manage_master_user_password\s*=\s*true/u);
+  assert.match(sources, /publicly_accessible\s*=\s*false/u);
+  assert.match(sources, /transit_encryption_enabled\s*=\s*true/u);
   assert.doesNotMatch(sources, /AKIA[0-9A-Z]{16}|BEGIN (RSA|OPENSSH) PRIVATE KEY/);
   assert.doesNotMatch(sources, /ingress[\s\S]*?cidr_blocks\s*=\s*\["0\.0\.0\.0\/0"\]/u);
   assert.doesNotMatch(sources, /principals[\s\S]*?identifiers\s*=\s*\[[^\]]*"\*"/u);
@@ -89,10 +117,19 @@ test('AWS validation script is non-applying and reports missing OpenTofu clearly
   );
   const source = read('tools/repo-cli/src/check-aws-infrastructure.mjs');
   assert.match(source, /init', '-backend=false/);
+  assert.match(source, /'-lockfile=readonly'/u);
   assert.match(source, /validate', '-no-color/);
   assert.match(source, /process\.exitCode \?\? 0/);
   assert.match(source, /missing required safety boundary/u);
   assert.doesNotMatch(source, /tofu',\s*\['apply'/u);
+});
+
+test('AWS provider selection is locked for reproducible validation', () => {
+  const lock = read('infrastructure/aws/environments/alpha/.terraform.lock.hcl');
+  assert.match(lock, /registry\.opentofu\.org\/hashicorp\/aws/u);
+  assert.match(lock, /version\s+=\s+"6\.0\.0"/u);
+  assert.match(lock, /constraints\s+=\s+"6\.0\.0"/u);
+  assert.match(read('.gitattributes'), /^\*\.hcl text eol=lf$/m);
 });
 
 test('AWS production profile enables recovery and prevents public data paths', () => {

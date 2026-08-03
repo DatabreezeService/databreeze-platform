@@ -106,5 +106,7 @@ void test('[IAE-016, IAE-021] retention service preserves blocked requests and a
     assert.equal(authorized.value.state, 'AUTHORIZED');
     const found = await service.find(tenantContext, authorized.value.requestId);
     assert.deepEqual(found, authorized);
+  } else {
+    assert.fail('expected artifact deletion authorization to succeed');
   }
 });

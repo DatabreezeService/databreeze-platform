@@ -45,6 +45,26 @@ def test_missing_profiled_field_is_disclosed_and_error_blocks() -> None:
     assert result.findings[0].occurrenceCount == 1
 
 
+def test_required_quality_treats_omitted_zero_state_counts_as_zero() -> None:
+    profile = profile_records([{"code": "A"}], ["code"])
+    summary = profile.fields[0].model_copy(update={"stateCounts": {"VALUE": 1}})
+    sparse_profile = profile.model_copy(update={"fields": (summary,)})
+
+    result = evaluate_required_fields(
+        sparse_profile,
+        [
+            {
+                "ruleId": "00000000-0000-4000-8000-000000000003",
+                "field": "code",
+                "severity": "ERROR",
+            }
+        ],
+    )
+
+    assert result.qualityState == "PASS"
+    assert result.findings == ()
+
+
 def test_invalid_rule_shape_fails_closed() -> None:
     profile = profile_records([{"code": "A"}], ["code"])
     try:

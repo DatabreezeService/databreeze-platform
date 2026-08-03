@@ -111,6 +111,35 @@ void test('[DSM-013] quality DTO rejects unsupported source-bearing fields and m
       },
     });
     assert.equal(response.statusCode, 400);
+
+    const nestedValue = await app.inject({
+      method: 'POST',
+      url: '/v1/dataset-quality-results',
+      payload: {
+        resultId,
+        datasetId: '00000000-0000-4000-8000-000000000927',
+        datasetVersionId,
+        ruleSetVersionId: '00000000-0000-4000-8000-000000000928',
+        profileFingerprint: 'a'.repeat(64),
+        rowCountScanned: 1,
+        qualityState: 'BLOCKED',
+        findings: [
+          {
+            findingId: '00000000-0000-4000-8000-000000000929',
+            ruleId: '00000000-0000-4000-8000-000000000930',
+            severity: 'ERROR',
+            messageCode: 'INVALID_VALUE',
+            occurrenceCount: 1,
+            evidenceIds: [],
+            detailHash: 'b'.repeat(64),
+            actual: { kind: 'TEXT', value: { source: 'must-not-be-accepted' } },
+          },
+        ],
+        resultFingerprint: 'c'.repeat(64),
+        createdAt: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    assert.equal(nestedValue.statusCode, 400);
   } finally {
     await app.close();
   }

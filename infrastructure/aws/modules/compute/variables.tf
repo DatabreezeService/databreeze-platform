@@ -41,13 +41,13 @@ variable "private_egress_enabled" {
 }
 
 variable "api_image" {
-  type        = string
-  default     = "ghcr.io/databreeze/api:dev"
+  type    = string
+  default = "ghcr.io/databreeze/api:dev"
 }
 
 variable "worker_image" {
-  type        = string
-  default     = "ghcr.io/databreeze/worker:dev"
+  type    = string
+  default = "ghcr.io/databreeze/worker:dev"
 }
 
 variable "enable_services" {

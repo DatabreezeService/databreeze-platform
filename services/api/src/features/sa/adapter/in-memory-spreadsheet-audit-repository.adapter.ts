@@ -26,6 +26,13 @@ export class InMemorySpreadsheetAuditRepositoryAdapter implements SpreadsheetAud
   private transactionTail: Promise<void> = Promise.resolve();
 
   public async save(context: IamTenantContextV1, result: SpreadsheetAuditResultV1): Promise<void> {
+    await this.withTransaction(context, (transaction) => transaction.save(context, result));
+  }
+
+  private async saveUnlocked(
+    context: IamTenantContextV1,
+    result: SpreadsheetAuditResultV1,
+  ): Promise<void> {
     await Promise.resolve();
     if (!tenantScopeContainsV1(context.tenantScope, result.tenantScope))
       throw new Error('SA_SCOPE_NARROWING_REQUIRED');
@@ -39,12 +46,26 @@ export class InMemorySpreadsheetAuditRepositoryAdapter implements SpreadsheetAud
     context: IamTenantContextV1,
     auditId: SpreadsheetAuditResultV1['auditId'],
   ): Promise<SpreadsheetAuditResultV1 | undefined> {
+    return this.findUnlocked(context, auditId);
+  }
+
+  private async findUnlocked(
+    context: IamTenantContextV1,
+    auditId: SpreadsheetAuditResultV1['auditId'],
+  ): Promise<SpreadsheetAuditResultV1 | undefined> {
     await Promise.resolve();
     const result = this.results.get(auditId);
     return result && visible(context.tenantScope, result.tenantScope) ? clone(result) : undefined;
   }
 
   public async list(
+    context: IamTenantContextV1,
+    artifactVersionId: SpreadsheetAuditResultV1['artifactVersionId'],
+  ): Promise<readonly SpreadsheetAuditResultV1[]> {
+    return this.listUnlocked(context, artifactVersionId);
+  }
+
+  private async listUnlocked(
     context: IamTenantContextV1,
     artifactVersionId: SpreadsheetAuditResultV1['artifactVersionId'],
   ): Promise<readonly SpreadsheetAuditResultV1[]> {
@@ -72,9 +93,9 @@ export class InMemorySpreadsheetAuditRepositoryAdapter implements SpreadsheetAud
     const before = new Map(this.results);
     try {
       return await work({
-        save: this.save.bind(this),
-        find: this.find.bind(this),
-        list: this.list.bind(this),
+        save: this.saveUnlocked.bind(this),
+        find: this.findUnlocked.bind(this),
+        list: this.listUnlocked.bind(this),
       });
     } catch (error) {
       this.results = before;

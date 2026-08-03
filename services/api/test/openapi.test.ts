@@ -15,6 +15,7 @@ interface ParameterLike {
 
 interface ResponseLike {
   readonly $ref?: string;
+  readonly content?: Record<string, unknown>;
   readonly headers?: Record<string, unknown>;
 }
 
@@ -186,6 +187,42 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       'refreshToken'
     ];
     assert.equal(refreshToken?.['writeOnly'], undefined);
+    const deletionRequest = firstDocument.components?.schemas?.[
+      'CreateArtifactDeletionRequestDto'
+    ] as Record<string, unknown>;
+    assert.equal((deletionRequest['required'] as readonly string[]).includes('requestedBy'), false);
+    const requestedBy = (deletionRequest['properties'] as Record<string, Record<string, unknown>>)[
+      'requestedBy'
+    ];
+    assert.equal(requestedBy?.['deprecated'], true);
+    for (const [schemaName, propertyName, maxItems] of [
+      ['CreateArtifactExportDto', 'versionIds', 1024],
+      ['CreateGovernedDatasetDto', 'fields', 256],
+      ['CreateMappingDto', 'steps', 512],
+      ['CreateRuleSetDto', 'rules', 512],
+      ['RegisterDatasetVersionDto', 'inputArtifactVersionIds', 1024],
+      ['DatasetQualityFindingDto', 'evidenceIds', 128],
+      ['RegisterDatasetQualityResultDto', 'findings', 512],
+    ] as const) {
+      const schema = firstDocument.components?.schemas?.[schemaName] as Record<string, unknown>;
+      const property = (schema['properties'] as Record<string, Record<string, unknown>>)[
+        propertyName
+      ];
+      assert.equal(
+        property?.['maxItems'],
+        maxItems,
+        `${schemaName}.${propertyName} must be bounded`,
+      );
+    }
+    const spreadsheetSheet = firstDocument.components?.schemas?.[
+      'SpreadsheetAuditSheetDto'
+    ] as Record<string, unknown>;
+    assert.equal(
+      (spreadsheetSheet['properties'] as Record<string, Record<string, unknown>>)['maxRow']?.[
+        'maximum'
+      ],
+      1_048_576,
+    );
 
     for (const operation of operations(firstDocument)) {
       const headerNames = (operation.parameters ?? [])
@@ -229,6 +266,8 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       assert.ok(auditRead?.responses['200'], `${path} must document its successful response`);
       assert.ok(auditRead.responses['503'], `${path} must document audit persistence outages`);
     }
+    const readiness = firstDocument.paths['/health/ready']?.get as OperationLike | undefined;
+    assert.ok(readiness?.responses['503']?.content?.['application/problem+json']);
 
     const served = await first.app.inject({ method: 'GET', url: '/v1/openapi.json' });
     assert.equal(served.statusCode, 200);

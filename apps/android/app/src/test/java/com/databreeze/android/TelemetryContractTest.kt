@@ -4,6 +4,7 @@ import com.databreeze.android.telemetry.CorrelationContext
 import com.databreeze.android.telemetry.TelemetryContract
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TelemetryContractTest {
@@ -72,5 +73,28 @@ class TelemetryContractTest {
                 mapOf(TelemetryContract.CorrelationHeader to listOf(correlationId, correlationId)),
             )
         }
+    }
+
+    @Test
+    fun providerBackedMapsFailClosedWithoutLeakingTheirCause() {
+        val hostileAttributes = object : Map<String, Any?> by emptyMap() {
+            override val entries: Set<Map.Entry<String, Any?>>
+                get() = throw IllegalStateException("provider attribute cause")
+        }
+        assertEquals(emptyMap<String, Any>(), TelemetryContract.sanitizeAttributes(hostileAttributes))
+        val attributeError = assertThrows(IllegalArgumentException::class.java) {
+            TelemetryContract.assertSafeAttributes(hostileAttributes)
+        }
+        assertEquals("telemetry attributes are not readable", attributeError.message)
+
+        val hostileHeaders = object : Map<String, List<String>> by emptyMap() {
+            override val entries: Set<Map.Entry<String, List<String>>>
+                get() = throw IllegalStateException("provider header cause")
+        }
+        val headerError = assertThrows(IllegalArgumentException::class.java) {
+            TelemetryContract.correlationFromHeaders(hostileHeaders)
+        }
+        assertTrue(headerError.message.orEmpty().contains("not readable"))
+        assertTrue(!headerError.message.orEmpty().contains("provider header cause"))
     }
 }

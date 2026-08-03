@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsIn,
@@ -80,8 +81,9 @@ export class CreateGovernedDatasetDto {
   @MaxLength(200)
   name!: string;
 
-  @ApiProperty({ type: [GovernedDatasetFieldDto] })
+  @ApiProperty({ type: [GovernedDatasetFieldDto], maxItems: 256 })
   @IsArray()
+  @ArrayMaxSize(256)
   @ValidateNested({ each: true })
   @Type(() => GovernedDatasetFieldDto)
   fields!: GovernedDatasetFieldDto[];

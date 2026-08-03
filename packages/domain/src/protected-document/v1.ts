@@ -196,7 +196,7 @@ export function expireProtectedDocumentUnlockRequestV1(
   const timestampValue = timestamp(now);
   if (!timestampValue) return rejected('INVALID_TIMESTAMP');
   if (request.state !== 'REQUESTED') return rejected('INVALID_STATE');
-  if (Date.parse(timestampValue) < Date.parse(request.expiresAt)) return rejected('EXPIRED');
+  if (Date.parse(timestampValue) < Date.parse(request.expiresAt)) return rejected('INVALID_STATE');
   return accepted(
     Object.freeze({ ...request, state: 'EXPIRED' as const, revision: request.revision + 1 }),
   );

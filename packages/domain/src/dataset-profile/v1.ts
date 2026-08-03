@@ -151,6 +151,7 @@ export function createDatasetProfileV1(input: {
   const maxBytes = limit(limitRecord['maxBytes'], 1024 * 1024 * 1024 * 1024);
   const maxDurationMs = limit(limitRecord['maxDurationMs'], 86_400_000);
   if (!maxRows || !maxBytes || !maxDurationMs) return rejected('INVALID_LIMITS');
+  if (rowCountScanned > maxRows) return rejected('INVALID_COUNT');
   if (!profileFingerprint) return rejected('INVALID_HASH');
   if (!createdAt) return rejected('INVALID_TIMESTAMP');
   return accepted(

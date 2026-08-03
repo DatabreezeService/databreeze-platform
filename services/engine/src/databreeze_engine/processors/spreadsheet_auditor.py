@@ -80,6 +80,13 @@ def _xml(data: bytes) -> Xml.Element:
         raise SpreadsheetAuditError("MALFORMED_XML") from None
 
 
+def _xml_member(archive: zipfile.ZipFile, name: str) -> Xml.Element:
+    """Read at most one byte beyond the XML budget before rejecting a member."""
+    with archive.open(name, "r") as member:
+        data = member.read(_MAX_XML_BYTES + 1)
+    return _xml(data)
+
+
 def _column_number(column: str) -> int:
     value = 0
     for character in column.upper():
@@ -140,8 +147,8 @@ def _relationships(root: Xml.Element) -> dict[str, str]:
 
 
 def _sheet_targets(archive: zipfile.ZipFile) -> list[tuple[str, str]]:
-    workbook = _xml(archive.read("xl/workbook.xml"))
-    relationships = _relationships(_xml(archive.read("xl/_rels/workbook.xml.rels")))
+    workbook = _xml_member(archive, "xl/workbook.xml")
+    relationships = _relationships(_xml_member(archive, "xl/_rels/workbook.xml.rels"))
     sheets: list[tuple[str, str]] = []
     for sheet in workbook.findall(f"{{{_SHEET_NS}}}sheets/{{{_SHEET_NS}}}sheet"):
         name = sheet.attrib.get("name")
@@ -213,7 +220,7 @@ def audit_workbook(
         for sheet_name, target in targets:
             if target not in names:
                 raise SpreadsheetAuditError("INVALID_ARCHIVE")
-            root = _xml(archive.read(target))
+            root = _xml_member(archive, target)
             max_row = 0
             max_column = 0
             cells: list[tuple[str, str | None]] = []
@@ -251,32 +258,31 @@ def audit_workbook(
                 cells_by_column.setdefault(column, {})[row] = formula
             gap_keys: set[tuple[str, str]] = set()
             for column, rows in cells_by_column.items():
-                formula_rows = sorted(row for row, formula in rows.items() if formula is not None)
-                for previous_row, next_row in itertools.pairwise(formula_rows):
-                    if next_row - previous_row <= 1:
-                        continue
-                    previous_formula = rows[previous_row]
-                    next_formula = rows[next_row]
-                    if previous_formula is None or next_formula is None:
-                        continue
-                    previous_family = _normalized_formula(previous_formula)
-                    if previous_family != _normalized_formula(next_formula):
-                        continue
-                    populated_rows = sorted(row for row in rows if previous_row < row < next_row)
-                    for row in populated_rows:
-                        address = f"{_column_name(column)}{row}"
-                        key = (address, previous_family)
-                        if key in gap_keys:
+                rows_by_family: dict[str, list[int]] = {}
+                for row, formula in rows.items():
+                    if formula is not None:
+                        rows_by_family.setdefault(_normalized_formula(formula), []).append(row)
+                for family, formula_rows in rows_by_family.items():
+                    for previous_row, next_row in itertools.pairwise(sorted(formula_rows)):
+                        if next_row - previous_row <= 1:
                             continue
-                        gap_keys.add(key)
-                        findings.append(
-                            SpreadsheetFinding(
-                                sheet=sheet_name,
-                                address=address,
-                                kind="FORMULA_GAP",
-                                formulaFingerprint=_fingerprint(previous_family),
-                            )
+                        populated_rows = sorted(
+                            row for row in rows if previous_row < row < next_row
                         )
+                        for row in populated_rows:
+                            address = f"{_column_name(column)}{row}"
+                            key = (address, family)
+                            if key in gap_keys:
+                                continue
+                            gap_keys.add(key)
+                            findings.append(
+                                SpreadsheetFinding(
+                                    sheet=sheet_name,
+                                    address=address,
+                                    kind="FORMULA_GAP",
+                                    formulaFingerprint=_fingerprint(family),
+                                )
+                            )
             summaries.append(
                 SpreadsheetSheetSummary(
                     name=sheet_name,

@@ -17,6 +17,7 @@ def _workbook(
     macro: bool = False,
     external_link: bool = False,
     formula_gap: bool = False,
+    mixed_formula_gap: bool = False,
     absolute_reference: bool = False,
 ) -> bytes:
     workbook = (
@@ -32,6 +33,12 @@ def _workbook(
         sheet_rows = (
             b'<row r="1"><c r="A1"><f>SUM($B$1:C1)</f><v>3</v></c></row>'
             b'<row r="2"><c r="A2"><f>SUM(B2:C2)</f><v>3</v></c></row>'
+            b'<row r="3"><c r="A3"><f>SUM(B3:C3)</f><v>3</v></c></row>'
+        )
+    elif mixed_formula_gap:
+        sheet_rows = (
+            b'<row r="1"><c r="A1"><f>SUM(B1:C1)</f><v>3</v></c></row>'
+            b'<row r="2"><c r="A2"><f>B2*C2</f><v>9</v></c></row>'
             b'<row r="3"><c r="A3"><f>SUM(B3:C3)</f><v>3</v></c></row>'
         )
     elif formula_gap:
@@ -80,6 +87,15 @@ def test_audit_reports_a_formula_gap_without_returning_the_intervening_value() -
     assert all("value" not in finding.model_dump() for finding in result.findings)
 
 
+def test_audit_pairs_matching_formula_families_across_an_intervening_family() -> None:
+    result = audit_workbook(_workbook(mixed_formula_gap=True))
+    assert [
+        (finding.address, finding.kind)
+        for finding in result.findings
+        if finding.kind == "FORMULA_GAP"
+    ] == [("A2", "FORMULA_GAP")]
+
+
 def test_formula_family_normalization_preserves_absolute_references() -> None:
     result = audit_workbook(_workbook(absolute_reference=True))
     assert [(finding.address, finding.kind) for finding in result.findings] == [
@@ -104,6 +120,19 @@ def test_audit_rejects_archive_traversal_and_cell_resource_exhaustion() -> None:
         audit_workbook(output.getvalue())
     with pytest.raises(SpreadsheetAuditError, match="RESOURCE_LIMIT"):
         audit_workbook(_workbook(), max_cells=1)
+
+
+def test_audit_streams_xml_members_through_a_bounded_reader(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def reject_unbounded_read(*_args: object, **_kwargs: object) -> bytes:
+        raise AssertionError("ZipFile.read must not decompress untrusted XML without a bound")
+
+    monkeypatch.setattr(zipfile.ZipFile, "read", reject_unbounded_read)
+
+    result = audit_workbook(_workbook())
+
+    assert result.sheets[0].name == "Inventory"
 
 
 def test_manifest_adds_opaque_identities_without_source_values() -> None:

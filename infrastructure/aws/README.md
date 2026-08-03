@@ -20,6 +20,16 @@ repository.
 
 ## Validate without applying
 
+The repository pins OpenTofu `1.12.5` in `.opentofu-version`. Use that exact
+native CLI release, or the official
+`ghcr.io/opentofu/opentofu:1.12.5` container when a host installation is not
+available. Do not use a floating container tag for validation evidence.
+The alpha composition commits `.terraform.lock.hcl`; initialization uses it
+read-only so provider selections cannot drift during a validation run.
+`pnpm infra:validate` also executes a mocked plan test for the safe alpha
+defaults, exercising plan-time evaluation without AWS credentials or remote
+side effects.
+
 ```text
 pnpm infra:check
 cd infrastructure/aws/environments/alpha

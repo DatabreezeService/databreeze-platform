@@ -49,10 +49,14 @@ if (!manifest.accepted) throw new Error('fixture manifest invalid');
 
 void test('IAE-018 Prisma export adapter preserves immutable manifests and scopes reads', async () => {
   const rows = new Map<string, ArtifactExportDatabaseRowV1>();
+  let transactions = 0;
   const client: ArtifactExportDatabaseClientV1 = {
     artifactExportManifestRecord: {
       create({ data }) {
         const row = { ...data };
+        if (rows.has(row.id)) {
+          throw Object.assign(new Error('fixture unique constraint violation'), { code: 'P2002' });
+        }
         rows.set(row.id, row);
         return Promise.resolve(row);
       },
@@ -61,6 +65,7 @@ void test('IAE-018 Prisma export adapter preserves immutable manifests and scope
       },
     },
     $transaction(work) {
+      transactions += 1;
       return work(client);
     },
   };
@@ -69,4 +74,43 @@ void test('IAE-018 Prisma export adapter preserves immutable manifests and scope
   await repository.save(context, manifest.value);
   assert.deepEqual(await repository.find(context, manifest.value.manifestId), manifest.value);
   assert.equal(rows.size, 1);
+  assert.equal(transactions, 2);
+});
+
+void test('IAE-018 Prisma export adapter hides colliding tenants and translates create races', async () => {
+  const hiddenRow: ArtifactExportDatabaseRowV1 = {
+    id: manifest.value.manifestId,
+    scopeType: 'workspace',
+    organizationId: '77777777-7777-4777-8777-777777777777',
+    workspaceId: '88888888-8888-4888-8888-888888888888',
+    projectId: null,
+    entries: 'must-not-be-parsed',
+    approvalState: 'PENDING',
+    createdAt: new Date('2026-08-02T00:00:00.000Z'),
+    canonicalHash: 'b'.repeat(64),
+  };
+  const hiddenClient: ArtifactExportDatabaseClientV1 = {
+    artifactExportManifestRecord: {
+      create: () => Promise.reject(new Error('unexpected create')),
+      findUnique: () => Promise.resolve(hiddenRow),
+    },
+    $transaction: (work) => work(hiddenClient),
+  };
+  await assert.rejects(
+    new PrismaArtifactExportRepositoryAdapter(hiddenClient).save(context, manifest.value),
+    /IAE_IMMUTABLE_EXPORT_MANIFEST/u,
+  );
+
+  const raceClient: ArtifactExportDatabaseClientV1 = {
+    artifactExportManifestRecord: {
+      create: () =>
+        Promise.reject(Object.assign(new Error('unique constraint violation'), { code: 'P2002' })),
+      findUnique: () => Promise.resolve(null),
+    },
+    $transaction: (work) => work(raceClient),
+  };
+  await assert.rejects(
+    new PrismaArtifactExportRepositoryAdapter(raceClient).save(context, manifest.value),
+    /IAE_IMMUTABLE_EXPORT_MANIFEST/u,
+  );
 });

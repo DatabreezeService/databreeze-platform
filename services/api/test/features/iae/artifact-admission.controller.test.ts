@@ -47,6 +47,19 @@ void test('IAE-009/010 admission HTTP endpoint persists clean status without sou
     requestTenantContext,
   });
   try {
+    const fractional = await app.inject({
+      method: 'POST',
+      url: `/v1/artifact-versions/${artifact.value.versionId}/admit`,
+      payload: {
+        actualSha256: 'a'.repeat(64),
+        actualByteSize: 4.5,
+        detectedMediaType: 'text/csv',
+        scanState: 'CLEAN',
+        maxByteSize: 100,
+      },
+    });
+    assert.equal(fractional.statusCode, 400);
+
     const response = await app.inject({
       method: 'POST',
       url: `/v1/artifact-versions/${artifact.value.versionId}/admit`,
