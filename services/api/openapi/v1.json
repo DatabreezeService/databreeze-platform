@@ -1966,8 +1966,8 @@
           "400": {
             "description": "The request is invalid.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -1984,8 +1984,8 @@
           "403": {
             "description": "The authenticated actor lacks the required scope.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2002,8 +2002,8 @@
           "404": {
             "description": "The membership is not visible.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2020,8 +2020,8 @@
           "409": {
             "description": "The membership revision or ownership invariant conflicts.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2038,8 +2038,8 @@
           "410": {
             "description": "The invitation has expired.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2074,8 +2074,8 @@
           "503": {
             "description": "Membership persistence is unavailable.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2128,8 +2128,8 @@
           "400": {
             "description": "The request is invalid.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2146,8 +2146,8 @@
           "403": {
             "description": "The authenticated actor lacks the required scope.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2164,8 +2164,8 @@
           "404": {
             "description": "The membership is not visible.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2182,8 +2182,8 @@
           "409": {
             "description": "The membership revision or ownership invariant conflicts.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2200,8 +2200,8 @@
           "410": {
             "description": "The invitation has expired.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2236,8 +2236,8 @@
           "503": {
             "description": "Membership persistence is unavailable.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2300,8 +2300,8 @@
           "400": {
             "description": "The request is invalid.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2318,8 +2318,8 @@
           "403": {
             "description": "The authenticated actor lacks the required scope.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2336,8 +2336,8 @@
           "404": {
             "description": "The membership is not visible.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2354,8 +2354,8 @@
           "409": {
             "description": "The membership revision or ownership invariant conflicts.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2372,8 +2372,8 @@
           "410": {
             "description": "The invitation has expired.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2408,8 +2408,8 @@
           "503": {
             "description": "Membership persistence is unavailable.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2470,8 +2470,8 @@
           "400": {
             "description": "The request is invalid.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2488,8 +2488,8 @@
           "403": {
             "description": "The authenticated actor lacks the required scope.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2506,8 +2506,8 @@
           "404": {
             "description": "The membership is not visible.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2524,8 +2524,8 @@
           "409": {
             "description": "The membership revision or ownership invariant conflicts.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2542,8 +2542,8 @@
           "410": {
             "description": "The invitation has expired.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2578,8 +2578,8 @@
           "503": {
             "description": "Membership persistence is unavailable.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2642,8 +2642,8 @@
           "400": {
             "description": "The request is invalid.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2660,8 +2660,8 @@
           "403": {
             "description": "The authenticated actor lacks the required scope.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2678,8 +2678,8 @@
           "404": {
             "description": "The membership is not visible.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2696,8 +2696,8 @@
           "409": {
             "description": "The membership revision or ownership invariant conflicts.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2714,8 +2714,8 @@
           "410": {
             "description": "The invitation has expired.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -2750,8 +2750,8 @@
           "503": {
             "description": "Membership persistence is unavailable.",
             "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
               }
             },
             "headers": {
@@ -9006,6 +9006,28 @@
           "name": { "type": "string", "minLength": 1, "maxLength": 200 }
         },
         "required": ["kind", "name"]
+      },
+      "MembershipRejectedResponseDto": {
+        "type": "object",
+        "properties": {
+          "accepted": { "type": "boolean", "enum": [false], "example": false },
+          "code": {
+            "type": "string",
+            "enum": [
+              "INVALID_IDENTIFIER",
+              "INVALID_SCOPE",
+              "INVALID_ROLE",
+              "INVALID_STATE",
+              "SCOPE_DENIED",
+              "NOT_FOUND",
+              "CONFLICT",
+              "EXPIRED",
+              "LAST_OWNER",
+              "UNAVAILABLE"
+            ]
+          }
+        },
+        "required": ["accepted", "code"]
       },
       "MembershipScopeDto": {
         "type": "object",

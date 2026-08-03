@@ -71,6 +71,19 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       )?.schema?.$ref,
       '#/components/schemas/BootstrapResponseDto',
     );
+    const membershipResponses = (
+      firstDocument.paths['/v1/memberships']?.get as OperationLike | undefined
+    )?.responses;
+    for (const status of ['400', '403', '404', '409', '410', '503']) {
+      assert.equal(
+        (
+          membershipResponses?.[status]?.content?.['application/json'] as
+            | { readonly schema?: { readonly $ref?: string } }
+            | undefined
+        )?.schema?.$ref,
+        '#/components/schemas/MembershipRejectedResponseDto',
+      );
+    }
 
     const paths = Object.keys(firstDocument.paths).sort();
     assert.deepEqual(paths, [

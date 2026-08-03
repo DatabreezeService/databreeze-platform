@@ -38,6 +38,7 @@ import {
 import {
   AcceptMembershipDto,
   InviteMembershipDto,
+  MembershipRejectedResponseDto,
   TransferOwnershipDto,
   TransitionMembershipDto,
 } from './membership.dto.js';
@@ -70,24 +71,30 @@ function preserveMembershipStatus<TValue>(result: TValue, reply?: FastifyReply):
 }
 
 function applyMembershipOutcomeResponses(): MethodDecorator {
-  const content = {
-    'application/problem+json': { schema: { $ref: '#/components/schemas/ProblemDetails' } },
-  };
   return applyDecorators(
-    ApiBadRequestResponse({ description: 'The request is invalid.', content }),
+    ApiBadRequestResponse({
+      description: 'The request is invalid.',
+      type: MembershipRejectedResponseDto,
+    }),
     ApiForbiddenResponse({
       description: 'The authenticated actor lacks the required scope.',
-      content,
+      type: MembershipRejectedResponseDto,
     }),
-    ApiNotFoundResponse({ description: 'The membership is not visible.', content }),
+    ApiNotFoundResponse({
+      description: 'The membership is not visible.',
+      type: MembershipRejectedResponseDto,
+    }),
     ApiConflictResponse({
       description: 'The membership revision or ownership invariant conflicts.',
-      content,
+      type: MembershipRejectedResponseDto,
     }),
-    ApiGoneResponse({ description: 'The invitation has expired.', content }),
+    ApiGoneResponse({
+      description: 'The invitation has expired.',
+      type: MembershipRejectedResponseDto,
+    }),
     ApiServiceUnavailableResponse({
       description: 'Membership persistence is unavailable.',
-      content,
+      type: MembershipRejectedResponseDto,
     }),
   );
 }
