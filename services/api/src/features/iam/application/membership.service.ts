@@ -249,6 +249,8 @@ export class IamMembershipService {
         if (statusInput !== 'ACTIVE' && current.status !== 'ACTIVE')
           return rejected('CONFLICT');
         if (statusInput !== 'ACTIVE' && current.roleId === 'owner') {
+          const actor = await transaction.findMembership(context, context.actorId);
+          if (!actor || actor.roleId !== 'owner') return rejected('SCOPE_DENIED');
           const ownerDecision = checkOwnerRemovalV1(
             memberships.map(identityFromRecord),
             current.id,

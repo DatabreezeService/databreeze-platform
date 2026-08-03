@@ -167,6 +167,36 @@ void test('[IAM-004] status transitions enforce revisions and cannot remove the 
   );
 });
 
+void test('[IAM-004] an admin cannot remove an owner even when another owner exists', async () => {
+  const value = repository('admin');
+  await value.saveMembership(context('membership-service-admin-owner-001'), {
+    id: stable(ids.successorMembership),
+    principalId: stable(ids.successor),
+    scope: { scopeType: 'organization', organizationId: stable(ids.organization) },
+    roleId: 'owner',
+    status: 'ACTIVE',
+    revision: 1,
+  });
+  await value.saveMembership(context('membership-service-admin-owner-003'), {
+    id: stable(ids.invitation),
+    principalId: stable(ids.invited),
+    scope: { scopeType: 'organization', organizationId: stable(ids.organization) },
+    roleId: 'owner',
+    status: 'ACTIVE',
+    revision: 1,
+  });
+  const service = new IamMembershipService(value, idsFrom(ids.invitation), clock);
+  assert.deepEqual(
+    await service.transition(
+      context('membership-service-admin-owner-002'),
+      ids.successorMembership,
+      1,
+      'REMOVED',
+    ),
+    { accepted: false, code: 'SCOPE_DENIED' },
+  );
+});
+
 void test('[IAM-004] invitee can accept an unexpired invitation and invitation lifetime is cleared', async () => {
   const value = repository();
   const service = new IamMembershipService(value, idsFrom(ids.invitation), clock);
