@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayMinSize,
+  ArrayUnique,
   IsArray,
   IsIn,
   IsInt,
@@ -107,6 +108,7 @@ export class CreateSpreadsheetAuditResultDto {
   @ApiProperty({ enum: ['MACRO', 'EXTERNAL_LINK', 'UNSUPPORTED_XML'], isArray: true })
   @IsArray()
   @ArrayMaxSize(3)
+  @ArrayUnique()
   @IsIn(['MACRO', 'EXTERNAL_LINK', 'UNSUPPORTED_XML'], { each: true })
   blockedReasons!: Array<'MACRO' | 'EXTERNAL_LINK' | 'UNSUPPORTED_XML'>;
 
