@@ -97,4 +97,27 @@ class TelemetryContractTest {
         assertTrue(headerError.message.orEmpty().contains("not readable"))
         assertTrue(!headerError.message.orEmpty().contains("provider header cause"))
     }
+
+    @Test
+    fun recordRequiresAndNormalizesAnAbsoluteTimestamp() {
+        val normalized = TelemetryContract.createRecord(
+            "info",
+            "sync.completed",
+            "android",
+            CorrelationContext(correlationId),
+            timestamp = "2026-01-01T07:00:00+07:00",
+        )
+        assertEquals("2026-01-01T00:00:00Z", normalized.timestamp)
+
+        val error = assertThrows(IllegalArgumentException::class.java) {
+            TelemetryContract.createRecord(
+                "info",
+                "sync.completed",
+                "android",
+                CorrelationContext(correlationId),
+                timestamp = "tomorrow in a provider timezone",
+            )
+        }
+        assertEquals("invalid telemetry timestamp", error.message)
+    }
 }

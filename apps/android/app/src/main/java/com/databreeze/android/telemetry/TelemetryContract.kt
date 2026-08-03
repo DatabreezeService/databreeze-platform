@@ -1,5 +1,8 @@
 package com.databreeze.android.telemetry
 
+import java.time.Instant
+import java.time.format.DateTimeParseException
+
 /** Cross-runtime names and safe record helpers shared with @databreeze/telemetry/v1. */
 object TelemetryContract {
     const val SchemaVersion = 1
@@ -143,9 +146,14 @@ object TelemetryContract {
             correlation.spanId,
             correlation.traceFlags,
         )
+        val normalizedTimestamp = try {
+            Instant.parse(timestamp).toString()
+        } catch (_: DateTimeParseException) {
+            throw IllegalArgumentException("invalid telemetry timestamp")
+        }
         return TelemetryRecord(
             SchemaVersion,
-            timestamp,
+            normalizedTimestamp,
             level,
             event,
             component,
