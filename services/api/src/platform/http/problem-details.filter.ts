@@ -156,15 +156,34 @@ function describe(error: unknown, correlationId: string): ProblemInput {
     };
   }
   if (error instanceof AuditProblemError) {
+    const attestationUnavailable = error.code === 'AUDIT_ATTESTATION_UNAVAILABLE';
+    const attestationNotFound = error.code === 'AUDIT_ATTESTATION_NOT_FOUND';
+    const attestationInvalid = error.code === 'AUDIT_ATTESTATION_REQUEST_INVALID';
     const integrityInvalid = error.code === 'AUDIT_INTEGRITY_INVALID';
     return {
       code: error.code,
       correlationId,
       messageKey: integrityInvalid
         ? 'api.error.audit_integrity_invalid'
-        : 'api.error.audit_unavailable',
-      retryable: !integrityInvalid,
-      status: integrityInvalid ? HttpStatus.INTERNAL_SERVER_ERROR : HttpStatus.SERVICE_UNAVAILABLE,
+        : attestationUnavailable
+          ? 'api.error.audit_attestation_unavailable'
+          : attestationNotFound
+            ? 'api.error.audit_attestation_not_found'
+            : attestationInvalid
+              ? 'api.error.audit_attestation_invalid'
+              : 'api.error.audit_unavailable',
+      retryable:
+        attestationUnavailable ||
+        (!integrityInvalid && !attestationNotFound && !attestationInvalid),
+      status: integrityInvalid
+        ? HttpStatus.INTERNAL_SERVER_ERROR
+        : attestationUnavailable
+          ? HttpStatus.SERVICE_UNAVAILABLE
+          : attestationNotFound
+            ? HttpStatus.NOT_FOUND
+            : attestationInvalid
+              ? HttpStatus.BAD_REQUEST
+              : HttpStatus.SERVICE_UNAVAILABLE,
     };
   }
   if (error instanceof ArtifactExportProblemError) {

@@ -1,7 +1,8 @@
-import { Controller, Get, Inject, Param, Req } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Post, Query, Req } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -20,6 +21,12 @@ import {
   type RequestTenantContextPortV1,
 } from '../../../platform/http/request-tenant-context.port.js';
 import { EntitlementProblemError } from '../application/entitlement-problem.error.js';
+import {
+  ENTITLEMENT_LEASE_SERVICE,
+  type EntitlementLeaseApplicationResultV1,
+  type EntitlementLeaseService,
+} from '../application/entitlement-lease.service.js';
+import { IssueEntitlementLeaseDto, VerifyEntitlementLeaseDto } from './entitlement-lease.dto.js';
 
 const ENTITLEMENT_SNAPSHOT_RESPONSE_SCHEMA = {
   type: 'object',
@@ -45,7 +52,28 @@ export class EntitlementController {
     private readonly repository: EntitlementRepositoryPortV1,
     @Inject(REQUEST_TENANT_CONTEXT)
     private readonly requestContext: RequestTenantContextPortV1,
+    @Inject(ENTITLEMENT_LEASE_SERVICE)
+    private readonly leases: EntitlementLeaseService,
   ) {}
+
+  private async executeLease<TValue>(
+    work: () => Promise<EntitlementLeaseApplicationResultV1<TValue>>,
+  ): Promise<TValue> {
+    let result: EntitlementLeaseApplicationResultV1<TValue>;
+    try {
+      result = await work();
+    } catch {
+      throw new EntitlementProblemError('ENTITLEMENT_UNAVAILABLE');
+    }
+    if (result.accepted) return result.value;
+    if (result.code === 'ENTITLEMENT_NOT_FOUND')
+      throw new EntitlementProblemError('ENTITLEMENT_NOT_FOUND');
+    if (result.code === 'LEASE_INVALID')
+      throw new EntitlementProblemError('ENTITLEMENT_LEASE_INVALID');
+    if (result.code === 'LEASE_STALE') throw new EntitlementProblemError('ENTITLEMENT_LEASE_STALE');
+    if (result.code === 'UNAVAILABLE') throw new EntitlementProblemError('ENTITLEMENT_UNAVAILABLE');
+    throw new EntitlementProblemError('ENTITLEMENT_REQUEST_INVALID');
+  }
 
   @Get('snapshots/:snapshotId')
   @ApiOperation({ summary: 'Read one immutable entitlement snapshot in the caller scope' })
@@ -81,5 +109,49 @@ export class EntitlementController {
     } catch {
       throw new EntitlementProblemError('ENTITLEMENT_UNAVAILABLE');
     }
+  }
+
+  @Post('snapshots/:snapshotId/leases')
+  @ApiOperation({ summary: 'Issue a signed, bounded offline entitlement lease' })
+  @ApiCreatedResponse({ schema: { type: 'object', additionalProperties: true } })
+  @ApiBadRequestResponse({ description: 'The snapshot or expiry is invalid.' })
+  @ApiNotFoundResponse({ description: 'The entitlement snapshot is not visible.' })
+  @ApiServiceUnavailableResponse({ description: 'Lease signing or persistence is unavailable.' })
+  async issueLease(
+    @Req() request: unknown,
+    @Param('snapshotId') snapshotId: string,
+    @Body() input: IssueEntitlementLeaseDto,
+  ): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    return this.executeLease(() =>
+      this.leases.issue(context, { snapshotId, expiresAt: input.expiresAt }),
+    );
+  }
+
+  @Get('leases/:leaseId/verify')
+  @ApiOperation({
+    summary: 'Verify an offline entitlement lease against the current revision and epoch',
+  })
+  @ApiOkResponse({
+    schema: { type: 'object', required: ['valid'], properties: { valid: { type: 'boolean' } } },
+  })
+  @ApiBadRequestResponse({ description: 'The lease verification input is invalid or stale.' })
+  @ApiNotFoundResponse({ description: 'The lease is not visible.' })
+  @ApiServiceUnavailableResponse({ description: 'Lease verification is unavailable.' })
+  async verifyLease(
+    @Req() request: unknown,
+    @Param('leaseId') leaseId: string,
+    @Query() input: VerifyEntitlementLeaseDto,
+  ): Promise<{ readonly valid: true }> {
+    const context = await this.requestContext.resolve(request);
+    await this.executeLease(() =>
+      this.leases.verify(context, {
+        leaseId,
+        now: input.now,
+        snapshotRevision: input.snapshotRevision,
+        securityEpoch: input.securityEpoch,
+      }),
+    );
+    return Object.freeze({ valid: true });
   }
 }

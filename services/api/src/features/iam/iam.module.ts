@@ -151,6 +151,7 @@ import { DeviceIdentityController } from './api/device-identity.controller.js';
 import { IamInvitationController } from './api/invitation.controller.js';
 import { RegistrationController } from './api/registration.controller.js';
 import { RecoveryController } from './api/recovery.controller.js';
+import { ServiceAccountController } from './api/service-account.controller.js';
 import { InMemoryDeviceIdentityRepositoryAdapter } from './adapter/in-memory-device-identity-repository.adapter.js';
 import {
   PrismaDeviceIdentityRepositoryAdapter,
@@ -166,6 +167,24 @@ import {
   DEVICE_IDENTITY_REPOSITORY_PORT,
   type DeviceIdentityRepositoryPortV1,
 } from './application/device-identity-repository.port.js';
+import {
+  SERVICE_ACCOUNT_REPOSITORY_PORT,
+  type ServiceAccountRepositoryPortV1,
+} from './application/service-account-repository.port.js';
+import {
+  SERVICE_ACCOUNT_SERVICE,
+  ServiceAccountService,
+  UnavailableServiceAccountService,
+  type ServiceAccountClockV1,
+  type ServiceAccountIdGeneratorV1,
+  type ServiceAccountSecretIssuerV1,
+} from './application/service-account.service.js';
+import { InMemoryServiceAccountRepositoryAdapter } from './adapter/in-memory-service-account-repository.adapter.js';
+import {
+  PrismaServiceAccountRepositoryAdapter,
+  type ServiceAccountDatabaseClientV1,
+} from './adapter/prisma-service-account-repository.adapter.js';
+import { RandomServiceAccountSecretIssuer } from './adapter/random-service-account-secret.adapter.js';
 import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
@@ -231,6 +250,12 @@ export interface IamModuleOptions {
   readonly deviceIdentityRepository?: DeviceIdentityRepositoryPortV1;
   readonly deviceIdentityDatabase?: DeviceIdentityDatabaseClientV1;
   readonly deviceEnrollmentProofVerifier?: DeviceEnrollmentProofVerifierV1;
+  readonly serviceAccountService?: ServiceAccountService;
+  readonly serviceAccountRepository?: ServiceAccountRepositoryPortV1;
+  readonly serviceAccountDatabase?: ServiceAccountDatabaseClientV1;
+  readonly serviceAccountSecretIssuer?: ServiceAccountSecretIssuerV1;
+  readonly serviceAccountClock?: ServiceAccountClockV1;
+  readonly serviceAccountIdGenerator?: ServiceAccountIdGeneratorV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
 }
 
@@ -419,11 +444,28 @@ export class IamModule {
         deviceIdentityRepository,
         options.deviceEnrollmentProofVerifier ?? new UnavailableDeviceEnrollmentProofVerifier(),
       );
+    const serviceAccountRepository =
+      options.serviceAccountRepository ??
+      (options.serviceAccountDatabase === undefined
+        ? new InMemoryServiceAccountRepositoryAdapter()
+        : new PrismaServiceAccountRepositoryAdapter(options.serviceAccountDatabase));
+    const serviceAccountService =
+      options.serviceAccountService ??
+      (options.iamRepository === undefined
+        ? new UnavailableServiceAccountService()
+        : new ServiceAccountService(
+            serviceAccountRepository,
+            options.iamRepository,
+            options.serviceAccountSecretIssuer ?? new RandomServiceAccountSecretIssuer(),
+            options.serviceAccountClock,
+            options.serviceAccountIdGenerator,
+          ));
     const exports = [
       DEVICE_IDENTITY_REPOSITORY_PORT,
       DEVICE_IDENTITY_SERVICE,
       IAM_HIERARCHY_REPOSITORY,
       IAM_HIERARCHY_SERVICE,
+      SERVICE_ACCOUNT_REPOSITORY_PORT,
     ];
     if (credentials) exports.unshift(CREDENTIAL_LOOKUP_PORT);
     if (sessions) exports.unshift(SESSION_LIFECYCLE_PORT);
@@ -442,6 +484,7 @@ export class IamModule {
     if (recoveryService) exports.unshift(IAM_RECOVERY_ADMISSION_PORT);
     if (recoveryService) exports.unshift(IAM_RECOVERY_COMPLETION_ADMISSION_PORT);
     if (recoveryService) exports.unshift(IAM_RECOVERY_SERVICE);
+    exports.unshift(SERVICE_ACCOUNT_SERVICE);
     return {
       module: IamModule,
       controllers: [
@@ -454,6 +497,7 @@ export class IamModule {
         RegistrationController,
         RecoveryController,
         IamBootstrapController,
+        ServiceAccountController,
       ],
       providers: [
         {
@@ -603,6 +647,14 @@ export class IamModule {
         {
           provide: DEVICE_IDENTITY_SERVICE,
           useValue: deviceIdentityService,
+        },
+        {
+          provide: SERVICE_ACCOUNT_REPOSITORY_PORT,
+          useValue: serviceAccountRepository,
+        },
+        {
+          provide: SERVICE_ACCOUNT_SERVICE,
+          useValue: serviceAccountService,
         },
         {
           provide: REQUEST_TENANT_CONTEXT,

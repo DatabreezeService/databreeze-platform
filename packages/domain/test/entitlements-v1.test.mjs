@@ -133,11 +133,19 @@ test('[BUA-017, BUA-018] offline leases require a valid signature, current epoch
     securityEpoch: 4,
     issuedAt: '2026-01-01T00:00:00.000Z',
     expiresAt: '2026-01-02T00:00:00.000Z',
-    payload: 'signed-payload',
+    payload: JSON.stringify({
+      schemaVersion: 1,
+      leaseId: id('30'),
+      tenantScope: scope,
+      snapshotRevision: 3,
+      securityEpoch: 4,
+      issuedAt: '2026-01-01T00:00:00.000Z',
+      expiresAt: '2026-01-02T00:00:00.000Z',
+    }),
     signature: 'signature',
   };
   const verifier = {
-    verify: (payload, signature) => payload === 'signed-payload' && signature === 'signature',
+    verify: (payload, signature) => payload === lease.payload && signature === 'signature',
   };
   assert.deepEqual(
     acceptEntitlementLeaseV1(

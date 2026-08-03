@@ -27,6 +27,9 @@ export const PERMISSIONS_V1 = Object.freeze({
   BILLING_ACCOUNT_MANAGE: 'billing.account.manage',
   DEVICE_IDENTITY_READ: 'device.identity.read',
   DEVICE_IDENTITY_REVOKE: 'device.identity.revoke',
+  SERVICE_ACCOUNT_READ: 'service.account.read',
+  SERVICE_ACCOUNT_MANAGE: 'service.account.manage',
+  SERVICE_ACCOUNT_REVOKE: 'service.account.revoke',
 } as const);
 
 export type PermissionV1 = (typeof PERMISSIONS_V1)[keyof typeof PERMISSIONS_V1];
@@ -49,6 +52,7 @@ export const RESOURCE_TYPES_V1 = Object.freeze([
   'artifact',
   'billing-account',
   'device',
+  'service-account',
   'job',
   'organization',
   'project',
@@ -147,6 +151,9 @@ export const PERMISSION_APPLICABILITY_V1: Readonly<
   'billing.account.manage': immutableApplicability('billing-account', ['api', 'web']),
   'device.identity.read': immutableApplicability('device', ['api', 'web']),
   'device.identity.revoke': immutableApplicability('device', ['api', 'web']),
+  'service.account.read': immutableApplicability('service-account', ['api', 'web']),
+  'service.account.manage': immutableApplicability('service-account', ['api', 'web']),
+  'service.account.revoke': immutableApplicability('service-account', ['api', 'web']),
 });
 
 export const INITIAL_ROLE_IDS_V1 = Object.freeze([
@@ -190,6 +197,9 @@ const adminPermissions = [
   PERMISSIONS_V1.JOB_EXECUTION_READ,
   PERMISSIONS_V1.DEVICE_IDENTITY_READ,
   PERMISSIONS_V1.DEVICE_IDENTITY_REVOKE,
+  PERMISSIONS_V1.SERVICE_ACCOUNT_READ,
+  PERMISSIONS_V1.SERVICE_ACCOUNT_MANAGE,
+  PERMISSIONS_V1.SERVICE_ACCOUNT_REVOKE,
 ] as const;
 
 const ownerPermissionSet = new Set<PermissionV1>([

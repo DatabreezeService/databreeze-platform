@@ -25,6 +25,7 @@ export * from './mapping/v1.js';
 export * from './rule-set/v1.js';
 export * from './evidence-grant/v1.js';
 export * from './identity/v1.js';
+export * from './service-account/v1.js';
 export * from './entitlements/v1.js';
 export * from './mfa/v1.js';
 export * from './invitation/v1.js';

@@ -51,3 +51,27 @@ model AuditSealRecord {
   @@map("audit_seals")
   @@schema("aud")
 }
+
+/// AUD-015/016: independent signatures bind an immutable seal range and signer key.
+model AuditSealAttestationRecord {
+  id             String   @id @db.Uuid
+  schemaVersion  Int      @map("schema_version")
+  scopeKey       String   @map("scope_key") @db.VarChar(200)
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String?  @map("workspace_id") @db.Uuid
+  projectId      String?  @map("project_id") @db.Uuid
+  firstSequence  Int      @map("first_sequence")
+  lastSequence   Int      @map("last_sequence")
+  eventCount     Int      @map("event_count")
+  rootDigest     String   @map("root_digest") @db.VarChar(512)
+  sealedAt       DateTime @map("sealed_at") @db.Timestamptz(6)
+  signerKeyId    String   @map("signer_key_id") @db.VarChar(200)
+  payload        String   @db.Text
+  signature      String   @db.VarChar(2048)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([organizationId, workspaceId, projectId, lastSequence], map: "audit_attestations_scope_idx")
+  @@map("audit_seal_attestations")
+  @@schema("aud")
+}
