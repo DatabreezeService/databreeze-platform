@@ -64,7 +64,11 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       firstDocument.paths['/v1/me/bootstrap']?.get as OperationLike | undefined
     )?.responses['200'];
     assert.equal(
-      (bootstrapResponse?.content?.['application/json'] as { readonly schema?: { readonly $ref?: string } } | undefined)?.schema?.$ref,
+      (
+        bootstrapResponse?.content?.['application/json'] as
+          | { readonly schema?: { readonly $ref?: string } }
+          | undefined
+      )?.schema?.$ref,
       '#/components/schemas/BootstrapResponseDto',
     );
 

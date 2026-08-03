@@ -199,10 +199,7 @@ function workspaceVisible(
   organizationId: StableIdentifierV1,
   workspaceId: StableIdentifierV1,
 ): boolean {
-  return tenantScopeContainsV1(
-    context.tenantScope,
-    workspaceScope(organizationId, workspaceId),
-  );
+  return tenantScopeContainsV1(context.tenantScope, workspaceScope(organizationId, workspaceId));
 }
 
 function projectVisible(
@@ -291,7 +288,9 @@ class PrismaIamHierarchyTransactionAdapter implements IamHierarchyTransactionPor
     organizationId: StableIdentifierV1,
   ): Promise<OrganizationIdentityV1 | undefined> {
     if (!organizationVisible(context, organizationId)) return undefined;
-    const row = await this.client.organizationIdentity.findUnique({ where: { id: organizationId } });
+    const row = await this.client.organizationIdentity.findUnique({
+      where: { id: organizationId },
+    });
     return row ? organizationFromRowWithDiagnostics(row, this.diagnostics) : undefined;
   }
 
@@ -313,7 +312,9 @@ class PrismaIamHierarchyTransactionAdapter implements IamHierarchyTransactionPor
     const row = await this.client.workspaceIdentity.findUnique({ where: { id: workspaceId } });
     if (!row) return undefined;
     const workspace = workspaceFromRowWithDiagnostics(row, this.diagnostics);
-    return workspaceVisible(context, workspace.organizationId, workspace.id) ? workspace : undefined;
+    return workspaceVisible(context, workspace.organizationId, workspace.id)
+      ? workspace
+      : undefined;
   }
 
   public async listWorkspaces(
@@ -337,12 +338,7 @@ class PrismaIamHierarchyTransactionAdapter implements IamHierarchyTransactionPor
     const row = await this.client.projectIdentity.findUnique({ where: { id: projectId } });
     if (!row) return undefined;
     const project = projectFromRowWithDiagnostics(row, this.diagnostics);
-    return projectVisible(
-      context,
-      project.organizationId,
-      project.workspaceId,
-      project.id,
-    )
+    return projectVisible(context, project.organizationId, project.workspaceId, project.id)
       ? project
       : undefined;
   }
@@ -396,19 +392,10 @@ class PrismaIamHierarchyTransactionAdapter implements IamHierarchyTransactionPor
     );
   }
 
-  public async saveProject(
-    context: IamTenantContextV1,
-    value: ProjectIdentityV1,
-  ): Promise<void> {
+  public async saveProject(context: IamTenantContextV1, value: ProjectIdentityV1): Promise<void> {
     const validated = createProjectIdentityV1(value);
     if (!validated.accepted) throw new Error(`IAM_${validated.code}`);
-    if (
-      !workspaceVisible(
-        context,
-        validated.value.organizationId,
-        validated.value.workspaceId,
-      )
-    )
+    if (!workspaceVisible(context, validated.value.organizationId, validated.value.workspaceId))
       throw new Error('IAM_SCOPE_DENIED');
     const parent = await this.client.workspaceIdentity.findUnique({
       where: { id: validated.value.workspaceId },

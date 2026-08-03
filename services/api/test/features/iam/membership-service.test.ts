@@ -239,9 +239,12 @@ void test('[IAM-004] invitee can accept an unexpired invitation and invitation l
   assert.equal(accepted.value.revision, 2);
   assert.equal(accepted.value.startsAt, undefined);
   assert.equal(accepted.value.expiresAt, undefined);
-  assert.deepEqual((await value.listMemberships(context('membership-service-008'))).find(
-    (membership) => membership.id === invited.value.id,
-  ), accepted.value);
+  assert.deepEqual(
+    (await value.listMemberships(context('membership-service-008'))).find(
+      (membership) => membership.id === invited.value.id,
+    ),
+    accepted.value,
+  );
 });
 
 void test('[IAM-004] invitation acceptance fails closed for an outsider, expiry, and stale revisions', async () => {
@@ -302,8 +305,19 @@ void test('[IAM-004] owner transfer atomically promotes an active organization m
   assert.equal(transferred.value.id, stable(ids.successorMembership));
   assert.equal(transferred.value.roleId, 'owner');
   assert.equal(transferred.value.revision, 5);
-  assert.equal((await value.findMembership(context('membership-service-016'), stable(ids.principal)))?.roleId, 'admin');
-  assert.equal((await value.findMembership(contextFor(ids.successor, 'membership-service-017'), stable(ids.successor)))?.roleId, 'owner');
+  assert.equal(
+    (await value.findMembership(context('membership-service-016'), stable(ids.principal)))?.roleId,
+    'admin',
+  );
+  assert.equal(
+    (
+      await value.findMembership(
+        contextFor(ids.successor, 'membership-service-017'),
+        stable(ids.successor),
+      )
+    )?.roleId,
+    'owner',
+  );
 });
 
 void test('[IAM-004] owner transfer requires an owner and rolls back when target revision is stale', async () => {
@@ -318,15 +332,30 @@ void test('[IAM-004] owner transfer requires an owner and rolls back when target
   });
   const service = new IamMembershipService(value, idsFrom(ids.invitation), clock);
   assert.deepEqual(
-    await service.transferOwnership(contextFor(ids.outsider, 'membership-service-019'), ids.successorMembership, 1),
+    await service.transferOwnership(
+      contextFor(ids.outsider, 'membership-service-019'),
+      ids.successorMembership,
+      1,
+    ),
     { accepted: false, code: 'SCOPE_DENIED' },
   );
   assert.deepEqual(
     await service.transferOwnership(context('membership-service-020'), ids.successorMembership, 2),
     { accepted: false, code: 'CONFLICT' },
   );
-  assert.equal((await value.findMembership(context('membership-service-021'), stable(ids.principal)))?.roleId, 'owner');
-  assert.equal((await value.findMembership(contextFor(ids.successor, 'membership-service-022'), stable(ids.successor)))?.roleId, 'admin');
+  assert.equal(
+    (await value.findMembership(context('membership-service-021'), stable(ids.principal)))?.roleId,
+    'owner',
+  );
+  assert.equal(
+    (
+      await value.findMembership(
+        contextFor(ids.successor, 'membership-service-022'),
+        stable(ids.successor),
+      )
+    )?.roleId,
+    'admin',
+  );
 });
 
 void test('[IAM-004] owner transfer rolls back when the second optimistic write fails', async () => {
@@ -359,9 +388,29 @@ void test('[IAM-004] owner transfer rolls back when the second optimistic write 
   };
   const service = new IamMembershipService(failing, idsFrom(ids.invitation), clock);
   assert.deepEqual(
-    await service.transferOwnership(context('membership-service-transfer-rollback-002'), ids.successorMembership, 1),
+    await service.transferOwnership(
+      context('membership-service-transfer-rollback-002'),
+      ids.successorMembership,
+      1,
+    ),
     { accepted: false, code: 'UNAVAILABLE' },
   );
-  assert.equal((await base.findMembership(context('membership-service-transfer-rollback-003'), stable(ids.principal)))?.roleId, 'owner');
-  assert.equal((await base.findMembership(contextFor(ids.successor, 'membership-service-transfer-rollback-004'), stable(ids.successor)))?.roleId, 'admin');
+  assert.equal(
+    (
+      await base.findMembership(
+        context('membership-service-transfer-rollback-003'),
+        stable(ids.principal),
+      )
+    )?.roleId,
+    'owner',
+  );
+  assert.equal(
+    (
+      await base.findMembership(
+        contextFor(ids.successor, 'membership-service-transfer-rollback-004'),
+        stable(ids.successor),
+      )
+    )?.roleId,
+    'admin',
+  );
 });

@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpCode, Inject, Optional, Param, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Inject,
+  Optional,
+  Param,
+  Post,
+  Req,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import {
@@ -76,8 +86,7 @@ export class IamMembershipController {
   ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
     return (
-      this.memberships?.accept(context, membershipId, input.expectedRevision) ??
-      this.unavailable()
+      this.memberships?.accept(context, membershipId, input.expectedRevision) ?? this.unavailable()
     );
   }
 

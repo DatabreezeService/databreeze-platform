@@ -78,7 +78,10 @@ void test('[IAM-001, IAM-009] bootstrap controller derives the actor from the au
   const result = await controller.bootstrap({});
   assert.equal((result as { readonly accepted: boolean }).accepted, true);
   assert.deepEqual(calls, [bootstrap.user.id]);
-  assert.equal((result as { readonly value: { readonly user: { readonly id: string } } }).value.user.id, bootstrap.user.id);
+  assert.equal(
+    (result as { readonly value: { readonly user: { readonly id: string } } }).value.user.id,
+    bootstrap.user.id,
+  );
 });
 
 void test('[IAM-001] bootstrap controller fails closed when durable identity storage is unavailable', async () => {

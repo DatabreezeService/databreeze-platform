@@ -53,10 +53,10 @@ void test('[IAM-003, IAM-014] hierarchy constructors preserve ancestry and narro
 });
 
 void test('[IAM-001] hierarchy constructors reject malformed identifiers, names, epochs, and states', () => {
-  assert.deepEqual(
-    createOrganizationIdentityV1({ id: 'not-an-id', name: 'Org', createdAt }),
-    { accepted: false, code: 'INVALID_IDENTIFIER' },
-  );
+  assert.deepEqual(createOrganizationIdentityV1({ id: 'not-an-id', name: 'Org', createdAt }), {
+    accepted: false,
+    code: 'INVALID_IDENTIFIER',
+  });
   assert.deepEqual(
     createWorkspaceIdentityV1({
       id: ids.workspace,

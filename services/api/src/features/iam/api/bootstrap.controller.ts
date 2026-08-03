@@ -41,7 +41,8 @@ export class IamBootstrapController {
           id: value.user.id,
           displayName: value.user.displayName,
           locale: value.user.locale,
-          mfaState: context.mfaRequired === true ? ('ENABLED' as const) : ('NOT_CONFIGURED' as const),
+          mfaState:
+            context.mfaRequired === true ? ('ENABLED' as const) : ('NOT_CONFIGURED' as const),
         }),
         organizations: Object.freeze([
           Object.freeze({

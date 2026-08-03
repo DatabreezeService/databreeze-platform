@@ -57,20 +57,22 @@ function accepted<TValue>(value: TValue): IamMembershipApplicationResultV1<TValu
   return Object.freeze({ accepted: true, value });
 }
 
-function rejected(
-  code: IamMembershipApplicationCodeV1,
-): IamMembershipApplicationResultV1<never> {
+function rejected(code: IamMembershipApplicationCodeV1): IamMembershipApplicationResultV1<never> {
   return Object.freeze({ accepted: false, code });
 }
 
-function parseId(input: unknown):
+function parseId(
+  input: unknown,
+):
   | { readonly accepted: true; readonly value: StableIdentifierV1 }
   | { readonly accepted: false; readonly code: 'INVALID_IDENTIFIER' } {
   const parsed = parseStableIdentifierV1(input);
   return parsed.accepted ? parsed : { accepted: false, code: 'INVALID_IDENTIFIER' };
 }
 
-function parseScope(input: unknown):
+function parseScope(
+  input: unknown,
+):
   | { readonly accepted: true; readonly value: TenantScopeV1 }
   | { readonly accepted: false; readonly code: 'INVALID_SCOPE' } {
   const parsed = parseTenantScopeV1(input);
@@ -246,8 +248,7 @@ export class IamMembershipService {
         if (authorization !== 'ALLOWED')
           return rejected(authorization === 'UNAVAILABLE' ? 'UNAVAILABLE' : 'SCOPE_DENIED');
         if (current.revision !== expectedRevisionInput) return rejected('CONFLICT');
-        if (statusInput !== 'ACTIVE' && current.status !== 'ACTIVE')
-          return rejected('CONFLICT');
+        if (statusInput !== 'ACTIVE' && current.status !== 'ACTIVE') return rejected('CONFLICT');
         if (statusInput !== 'ACTIVE' && current.roleId === 'owner') {
           const actor = await transaction.findMembership(context, context.actorId);
           if (!actor || actor.roleId !== 'owner') return rejected('SCOPE_DENIED');
@@ -374,7 +375,11 @@ export class IamMembershipService {
           return rejected('EXPIRED');
         if (current.startsAt !== undefined && Date.parse(current.startsAt) > nowMs)
           return rejected('CONFLICT');
-        const { startsAt: _startsAt, expiresAt: _expiresAt, ...withoutInvitationLifetime } = current;
+        const {
+          startsAt: _startsAt,
+          expiresAt: _expiresAt,
+          ...withoutInvitationLifetime
+        } = current;
         const next: IamMembershipRecordV1 = Object.freeze({
           ...withoutInvitationLifetime,
           status: 'ACTIVE',

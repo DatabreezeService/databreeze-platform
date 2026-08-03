@@ -49,16 +49,19 @@ void test('[IAM-004] membership controller forwards invitation and transition fi
     }),
     { accepted: true, value: { id: 'membership' } },
   );
-  assert.deepEqual(
-    await controller.accept({}, 'membership-id', { expectedRevision: 1 }),
-    { accepted: true, value: { id: 'accepted-membership' } },
-  );
+  assert.deepEqual(await controller.accept({}, 'membership-id', { expectedRevision: 1 }), {
+    accepted: true,
+    value: { id: 'accepted-membership' },
+  });
   assert.deepEqual(
     await controller.transferOwnership({}, 'membership-id', { expectedRevision: 1 }),
     { accepted: true, value: { id: 'transferred-membership' } },
   );
   assert.equal(calls.length, 5);
-  assert.equal((calls[1]?.[1] as { readonly principalId?: unknown } | undefined)?.principalId, 'principal');
+  assert.equal(
+    (calls[1]?.[1] as { readonly principalId?: unknown } | undefined)?.principalId,
+    'principal',
+  );
   assert.equal(calls[2]?.[1], 'membership-id');
   assert.equal(calls[2]?.[2], 1);
   assert.equal(calls[2]?.[3], 'SUSPENDED');

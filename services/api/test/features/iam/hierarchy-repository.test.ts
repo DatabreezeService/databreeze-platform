@@ -89,15 +89,27 @@ void test('[IAM-003, IAM-019] hierarchy repository only exposes records inside t
     },
     'hierarchy-read-001',
   );
-  assert.equal((await repository.findWorkspace(workspaceContext, stable(ids.workspace)))?.name, 'Operations');
-  assert.equal(await repository.findWorkspace(workspaceContext, stable(ids.otherWorkspace)), undefined);
-  assert.equal((await repository.findProject(workspaceContext, stable(ids.project)))?.id, stable(ids.project));
+  assert.equal(
+    (await repository.findWorkspace(workspaceContext, stable(ids.workspace)))?.name,
+    'Operations',
+  );
+  assert.equal(
+    await repository.findWorkspace(workspaceContext, stable(ids.otherWorkspace)),
+    undefined,
+  );
+  assert.equal(
+    (await repository.findProject(workspaceContext, stable(ids.project)))?.id,
+    stable(ids.project),
+  );
 
   const siblingOrganizationContext = context(
     { scopeType: 'organization', organizationId: stable(ids.otherOrganization) },
     'hierarchy-read-002',
   );
-  assert.equal(await repository.findOrganization(siblingOrganizationContext, stable(ids.organization)), undefined);
+  assert.equal(
+    await repository.findOrganization(siblingOrganizationContext, stable(ids.organization)),
+    undefined,
+  );
 });
 
 void test('[IAM-019] hierarchy writes reject missing parents, sibling scopes, and conflicting immutable identities', async () => {
@@ -125,9 +137,15 @@ void test('[IAM-019] hierarchy writes reject missing parents, sibling scopes, an
     ),
     /IAM_PARENT_NOT_FOUND/u,
   );
-  await repository.saveWorkspace(organizationContext, workspace(ids.otherWorkspace, ids.organization, 'Finance'));
+  await repository.saveWorkspace(
+    organizationContext,
+    workspace(ids.otherWorkspace, ids.organization, 'Finance'),
+  );
   await assert.rejects(
-    repository.saveWorkspace(organizationContext, workspace(ids.otherWorkspace, ids.organization, 'Renamed')),
+    repository.saveWorkspace(
+      organizationContext,
+      workspace(ids.otherWorkspace, ids.organization, 'Renamed'),
+    ),
     /IAM_HIERARCHY_CONFLICT/u,
   );
 });
@@ -140,7 +158,10 @@ void test('[IAM-001] hierarchy transaction rolls back all staged writes', async 
   );
   await assert.rejects(
     repository.withTransaction(transactionContext, async (transaction) => {
-      await transaction.saveOrganization(transactionContext, organization(ids.organization, 'Acme'));
+      await transaction.saveOrganization(
+        transactionContext,
+        organization(ids.organization, 'Acme'),
+      );
       await transaction.saveWorkspace(
         transactionContext,
         workspace(ids.workspace, ids.organization, 'Operations'),
@@ -149,5 +170,8 @@ void test('[IAM-001] hierarchy transaction rolls back all staged writes', async 
     }),
     /hierarchy rollback/u,
   );
-  assert.equal(await repository.findOrganization(transactionContext, stable(ids.organization)), undefined);
+  assert.equal(
+    await repository.findOrganization(transactionContext, stable(ids.organization)),
+    undefined,
+  );
 });

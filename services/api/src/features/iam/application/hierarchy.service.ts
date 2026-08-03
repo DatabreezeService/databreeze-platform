@@ -44,9 +44,7 @@ function accepted<TValue>(value: TValue): IamHierarchyApplicationResultV1<TValue
   return Object.freeze({ accepted: true, value });
 }
 
-function rejected(
-  code: IamHierarchyApplicationCodeV1,
-): IamHierarchyApplicationResultV1<never> {
+function rejected(code: IamHierarchyApplicationCodeV1): IamHierarchyApplicationResultV1<never> {
   return Object.freeze({ accepted: false, code });
 }
 
@@ -60,16 +58,16 @@ function applicationError(error: unknown): IamHierarchyApplicationCodeV1 {
   return 'UNAVAILABLE';
 }
 
-function identityCode(
-  code: string,
-): IamHierarchyApplicationCodeV1 {
+function identityCode(code: string): IamHierarchyApplicationCodeV1 {
   if (code === 'INVALID_IDENTIFIER') return 'INVALID_IDENTIFIER';
   if (code === 'INVALID_TEXT') return 'INVALID_TEXT';
   if (code === 'INVALID_KIND') return 'INVALID_KIND';
   return 'UNAVAILABLE';
 }
 
-function parseId(input: unknown):
+function parseId(
+  input: unknown,
+):
   | { readonly accepted: true; readonly value: StableIdentifierV1 }
   | { readonly accepted: false; readonly code: 'INVALID_IDENTIFIER' } {
   const parsed = parseStableIdentifierV1(input);
@@ -86,10 +84,7 @@ function isoNow(clock: IamHierarchyClockV1): string | undefined {
   }
 }
 
-function workspaceScopeFor(
-  context: IamTenantContextV1,
-  workspaceId: StableIdentifierV1,
-) {
+function workspaceScopeFor(context: IamTenantContextV1, workspaceId: StableIdentifierV1) {
   return {
     scopeType: 'workspace' as const,
     organizationId: context.tenantScope.organizationId,

@@ -308,10 +308,7 @@ export type ProjectKindV1 = 'INTERNAL' | 'CLIENT' | 'LOCATION' | 'ENGAGEMENT';
 
 function isProjectKind(input: unknown): input is ProjectKindV1 {
   return (
-    input === 'INTERNAL' ||
-    input === 'CLIENT' ||
-    input === 'LOCATION' ||
-    input === 'ENGAGEMENT'
+    input === 'INTERNAL' || input === 'CLIENT' || input === 'LOCATION' || input === 'ENGAGEMENT'
   );
 }
 

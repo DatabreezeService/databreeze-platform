@@ -182,10 +182,10 @@ void test('[IAM-001] service returns stable input and parent errors without leak
     'hierarchy-service-003',
   );
 
-  assert.deepEqual(
-    await service.createWorkspace(organizationContext, ids.organization, ''),
-    { accepted: false, code: 'INVALID_TEXT' },
-  );
+  assert.deepEqual(await service.createWorkspace(organizationContext, ids.organization, ''), {
+    accepted: false,
+    code: 'INVALID_TEXT',
+  });
   assert.deepEqual(
     await service.createWorkspace(organizationContext, ids.organization, 'Operations'),
     { accepted: false, code: 'NOT_FOUND' },

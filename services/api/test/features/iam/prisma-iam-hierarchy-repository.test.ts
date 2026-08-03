@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createOrganizationIdentityV1, createWorkspaceIdentityV1 } from '@databreeze/domain/identity/v1';
+import {
+  createOrganizationIdentityV1,
+  createWorkspaceIdentityV1,
+} from '@databreeze/domain/identity/v1';
 import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import {
@@ -55,13 +58,17 @@ function createDatabase(): {
   const workspaces = new Map<string, WorkspaceIdentityDatabaseRowV1>();
   const projects = new Map<string, ProjectIdentityDatabaseRowV1>();
   const transactionCalls = { value: 0 };
-  const filter = <TRow extends object>(rows: Map<string, TRow>, where: Readonly<Record<string, unknown>>) =>
+  const filter = <TRow extends object>(
+    rows: Map<string, TRow>,
+    where: Readonly<Record<string, unknown>>,
+  ) =>
     [...rows.values()].filter((row) =>
       Object.entries(where).every(([key, value]) => {
         if (key === 'OR' && Array.isArray(value)) {
           return value.some((candidate) =>
             Object.entries(candidate as Record<string, unknown>).every(
-              ([candidateKey, candidateValue]) => row[candidateKey as keyof TRow] === candidateValue,
+              ([candidateKey, candidateValue]) =>
+                row[candidateKey as keyof TRow] === candidateValue,
             ),
           );
         }
@@ -102,7 +109,9 @@ function createDatabase(): {
   };
   const client = {
     ...delegates,
-    $transaction: async <TValue>(work: (transaction: IamHierarchyDatabaseClientV1) => Promise<TValue>) => {
+    $transaction: async <TValue>(
+      work: (transaction: IamHierarchyDatabaseClientV1) => Promise<TValue>,
+    ) => {
       transactionCalls.value += 1;
       const before = {
         organizations: new Map(organizations),

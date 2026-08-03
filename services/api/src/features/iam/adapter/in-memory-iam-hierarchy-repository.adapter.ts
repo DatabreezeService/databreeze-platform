@@ -65,7 +65,10 @@ function cloneMaps(source: {
   };
 }
 
-function organizationVisible(context: IamTenantContextV1, organizationId: StableIdentifierV1): boolean {
+function organizationVisible(
+  context: IamTenantContextV1,
+  organizationId: StableIdentifierV1,
+): boolean {
   return tenantScopesEqualV1(context.tenantScope, organizationScope(organizationId));
 }
 
@@ -74,10 +77,7 @@ function workspaceVisible(
   organizationId: StableIdentifierV1,
   workspaceId: StableIdentifierV1,
 ): boolean {
-  return tenantScopeContainsV1(
-    context.tenantScope,
-    workspaceScope(organizationId, workspaceId),
-  );
+  return tenantScopeContainsV1(context.tenantScope, workspaceScope(organizationId, workspaceId));
 }
 
 function projectVisible(
@@ -105,7 +105,9 @@ export class InMemoryIamHierarchyRepositoryAdapter implements IamHierarchyReposi
     readonly projects: readonly ProjectIdentityV1[];
   }): Promise<void> {
     await Promise.resolve();
-    this.organizations = new Map(input.organizations.map((value) => [value.id, cloneOrganization(value)]));
+    this.organizations = new Map(
+      input.organizations.map((value) => [value.id, cloneOrganization(value)]),
+    );
     this.workspaces = new Map(input.workspaces.map((value) => [value.id, cloneWorkspace(value)]));
     this.projects = new Map(input.projects.map((value) => [value.id, cloneProject(value)]));
   }
@@ -116,7 +118,9 @@ export class InMemoryIamHierarchyRepositoryAdapter implements IamHierarchyReposi
   ): Promise<OrganizationIdentityV1 | undefined> {
     await Promise.resolve();
     const value = this.organizations.get(organizationId);
-    return value && organizationVisible(context, organizationId) ? cloneOrganization(value) : undefined;
+    return value && organizationVisible(context, organizationId)
+      ? cloneOrganization(value)
+      : undefined;
   }
 
   public async listOrganizations(
@@ -202,10 +206,7 @@ export class InMemoryIamHierarchyRepositoryAdapter implements IamHierarchyReposi
     if (!existing) this.workspaces.set(value.id, cloneWorkspace(value));
   }
 
-  public async saveProject(
-    context: IamTenantContextV1,
-    value: ProjectIdentityV1,
-  ): Promise<void> {
+  public async saveProject(context: IamTenantContextV1, value: ProjectIdentityV1): Promise<void> {
     await Promise.resolve();
     if (!workspaceVisible(context, value.organizationId, value.workspaceId))
       throw new Error('IAM_SCOPE_DENIED');

@@ -132,8 +132,11 @@ void test('[IAM-003, IAM-019] hierarchy controller preserves safe rejected servi
     accepted: false,
     code: 'NOT_FOUND',
   });
-  assert.deepEqual(await controller.createProject({}, ids.workspace, { kind: 'CLIENT', name: 'x' }), {
-    accepted: false,
-    code: 'INVALID_KIND',
-  });
+  assert.deepEqual(
+    await controller.createProject({}, ids.workspace, { kind: 'CLIENT', name: 'x' }),
+    {
+      accepted: false,
+      code: 'INVALID_KIND',
+    },
+  );
 });

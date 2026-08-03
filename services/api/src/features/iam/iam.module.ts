@@ -43,14 +43,8 @@ import {
   IAM_HIERARCHY_REPOSITORY,
   type IamHierarchyRepositoryPortV1,
 } from './application/hierarchy-repository.port.js';
-import {
-  IAM_HIERARCHY_SERVICE,
-  IamHierarchyService,
-} from './application/hierarchy.service.js';
-import {
-  IAM_MEMBERSHIP_SERVICE,
-  IamMembershipService,
-} from './application/membership.service.js';
+import { IAM_HIERARCHY_SERVICE, IamHierarchyService } from './application/hierarchy.service.js';
+import { IAM_MEMBERSHIP_SERVICE, IamMembershipService } from './application/membership.service.js';
 import type { PasswordCredentialService } from './application/password-credential.service.js';
 import { UnavailableAuthenticationAdapter } from './adapter/unavailable-authentication.adapter.js';
 import {
