@@ -18,6 +18,7 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
     './entitlements/v1',
     './mfa/v1',
     './invitation/v1',
+    './recovery/v1',
     './device-authorization/v1',
     './device-sync/v1',
     './device-capability/v1',
