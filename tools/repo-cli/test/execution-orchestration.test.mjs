@@ -95,7 +95,7 @@ test('execution ledger covers the complete dependency-ordered implementation pro
     'utf8',
   );
 
-  assert.equal(ledger.version, 1);
+  assert.equal(ledger.version, 2);
   assert.deepEqual(
     ledger.plans.map((plan) => plan.planId),
     [...expectedPlans.keys()],
@@ -147,6 +147,35 @@ test('handoff policy preserves the requested dev and main review flow', () => {
   });
 });
 
+test('delivery batches cover every unfinished task once within review budgets', () => {
+  const ledger = readJson('docs/plans/execution-orchestration.json');
+  const allTasks = new Set(ledger.plans.flatMap((plan) => plan.taskIds));
+  const verifiedTasks = new Set(
+    Object.entries(ledger.taskState)
+      .filter(([, state]) => ['verified', 'released'].includes(state.status))
+      .map(([taskId]) => taskId),
+  );
+  const batchedTasks = ledger.deliveryBatches.flatMap((batch) => batch.taskIds);
+
+  assert.equal(ledger.deliveryBatches.length, 15);
+  assert.equal(new Set(batchedTasks).size, batchedTasks.length);
+  assert.deepEqual(
+    new Set(batchedTasks),
+    new Set([...allTasks].filter((taskId) => !verifiedTasks.has(taskId))),
+  );
+  for (const batch of ledger.deliveryBatches) {
+    assert.ok(batch.commitBudget.minimum >= 30);
+    assert.ok(batch.commitBudget.target >= batch.commitBudget.minimum);
+    assert.ok(batch.commitBudget.target <= batch.commitBudget.maximum);
+    assert.ok(batch.commitBudget.maximum < 100);
+    assert.ok(batch.maximumChangedFiles <= 260);
+  }
+  const activeBatch = ledger.deliveryBatches.find(
+    (batch) => batch.batchId === ledger.activeBatchId,
+  );
+  assert.ok(activeBatch.taskIds.includes(ledger.nextTaskId));
+});
+
 test('the handoff runbook contains deterministic resume and failure protocols', () => {
   const runbook = readFileSync(
     path.join(repositoryRoot, 'docs', 'plans', '003-luna-handoff-runbook.md'),
@@ -177,8 +206,12 @@ test('repository checker validates the committed orchestration package', () => {
 test('ledger records verified task evidence before advancing the next task', () => {
   const ledger = readJson('docs/plans/execution-orchestration.json');
   assert.equal(ledger.nextTaskId, 'FND-003');
-  assert.equal(ledger.checkpoint.lastFeaturePullRequest, 18);
-  assert.equal(ledger.checkpoint.lastPromotionPullRequest, 14);
+  assert.equal(ledger.activeBatchId, 'B01');
+  assert.equal(ledger.checkpoint.remoteDev, '783a4710c0aa2a2808d78ad7f0643e6731150bd7');
+  assert.equal(ledger.checkpoint.remoteMain, '3ed3d77d0281ef239d0509c81ded447d8fffd213');
+  assert.equal(ledger.checkpoint.lastFeaturePullRequest, 19);
+  assert.equal(ledger.checkpoint.lastPromotionPullRequest, 20);
+  assert.equal(ledger.checkpoint.lastPromotionFixPullRequest, 23);
   assert.deepEqual(ledger.taskState?.['FND-001']?.status, 'verified');
   assert.match(ledger.taskState?.['FND-001']?.commit ?? '', /^[0-9a-f]{40}$/u);
   assert.ok(
@@ -247,6 +280,42 @@ test('repository checker rejects task evidence paths that escape the repository 
     (result) => {
       assert.notEqual(result.status, 0);
       assert.match(result.stderr, /verified task FND-001 has missing evidence paths/u);
+    },
+  );
+});
+
+test('repository checker rejects duplicate delivery-task ownership', () => {
+  withTemporaryPlans(
+    ({ ledger }) => {
+      ledger.deliveryBatches[1].taskIds.push(ledger.deliveryBatches[0].taskIds[0]);
+    },
+    (result) => {
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /is assigned to both/u);
+    },
+  );
+});
+
+test('repository checker rejects undersized normal delivery batches', () => {
+  withTemporaryPlans(
+    ({ ledger }) => {
+      ledger.deliveryBatches[0].commitBudget.minimum = 29;
+    },
+    (result) => {
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /commit minimum must be at least 30/u);
+    },
+  );
+});
+
+test('repository checker rejects delivery-batch drift from the Luna plan', () => {
+  withTemporaryPlans(
+    ({ ledger }) => {
+      ledger.deliveryBatches[0].branch = 'feat/undocumented-batch';
+    },
+    (result) => {
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /Luna Max execution plan does not document B01/u);
     },
   );
 });

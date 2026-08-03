@@ -2,6 +2,8 @@ import type { StableIdentifierV1, TenantScopeV1 } from '@databreeze/domain/tenan
 
 import type { IamTenantContextV1 } from './tenant-context.js';
 
+export const IAM_REPOSITORY_PORT = Symbol('IAM_REPOSITORY_PORT');
+
 export interface IamMembershipRecordV1 {
   readonly id: StableIdentifierV1;
   readonly principalId: StableIdentifierV1;

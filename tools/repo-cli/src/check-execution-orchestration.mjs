@@ -44,6 +44,16 @@ const requiredRunbookHeadings = [
   '## End-of-session handoff record',
   '## Luna bootstrap prompt',
 ];
+const requiredExecutionPlanHeadings = [
+  '## 1. Verified starting checkpoint',
+  '## 3. Delivery-batch map',
+  '## 4. Parallel execution and integration ownership',
+  '## 5. Atomic task recipe',
+  '## 6. PR and promotion algorithm',
+  '## 7. First Luna Max session',
+  '## 8. Completion and stop rules',
+];
+const batchChangedFileMaximum = 260;
 const traceStatuses = new Set(['planned', 'partial', 'implemented', 'verified', 'released']);
 
 function parseOptions(argumentsList) {
@@ -121,6 +131,145 @@ function validateDag(plans, diagnostics) {
   for (const planId of byId.keys()) visit(planId);
 }
 
+function validateDeliveryBatches({ ledger, plans, taskIds, taskToPlan, diagnostics }) {
+  const batches = Array.isArray(ledger.deliveryBatches) ? ledger.deliveryBatches : [];
+  const byId = new Map();
+  const batchByTask = new Map();
+
+  for (const batch of batches) {
+    if (typeof batch.batchId !== 'string' || batch.batchId.trim() === '') {
+      diagnostics.push('delivery batch has no batchId');
+      continue;
+    }
+    if (byId.has(batch.batchId)) diagnostics.push(`duplicate delivery batch ${batch.batchId}`);
+    byId.set(batch.batchId, batch);
+    if (!/^feat\/[a-z0-9-]+$|^fix\/[a-z0-9-]+$/u.test(batch.branch ?? '')) {
+      diagnostics.push(`batch ${batch.batchId} has invalid branch ${batch.branch}`);
+    }
+    if (!ledger.statusVocabulary?.includes(batch.status)) {
+      diagnostics.push(`batch ${batch.batchId} has unsupported status ${batch.status}`);
+    }
+    const budget = batch.commitBudget ?? {};
+    if (!Number.isInteger(budget.minimum) || budget.minimum < 30) {
+      diagnostics.push(`batch ${batch.batchId} commit minimum must be at least 30`);
+    }
+    if (
+      !Number.isInteger(budget.target) ||
+      budget.target < budget.minimum ||
+      budget.target > budget.maximum
+    ) {
+      diagnostics.push(`batch ${batch.batchId} commit target is outside its budget`);
+    }
+    if (!Number.isInteger(budget.maximum) || budget.maximum >= 100) {
+      diagnostics.push(`batch ${batch.batchId} commit maximum must remain below 100`);
+    }
+    if (
+      !Number.isInteger(batch.maximumChangedFiles) ||
+      batch.maximumChangedFiles < 1 ||
+      batch.maximumChangedFiles > batchChangedFileMaximum
+    ) {
+      diagnostics.push(
+        `batch ${batch.batchId} changed-file maximum must be between 1 and ${batchChangedFileMaximum}`,
+      );
+    }
+    if (!Array.isArray(batch.taskIds) || batch.taskIds.length === 0) {
+      diagnostics.push(`batch ${batch.batchId} has no tasks`);
+      continue;
+    }
+    for (const taskId of batch.taskIds) {
+      if (!taskIds.has(taskId))
+        diagnostics.push(`batch ${batch.batchId} has unknown task ${taskId}`);
+      if (batchByTask.has(taskId)) {
+        diagnostics.push(
+          `task ${taskId} is assigned to both ${batchByTask.get(taskId)} and ${batch.batchId}`,
+        );
+      }
+      batchByTask.set(taskId, batch.batchId);
+    }
+  }
+
+  for (const batch of batches) {
+    for (const dependency of batch.dependencies ?? []) {
+      if (!byId.has(dependency)) {
+        diagnostics.push(`batch ${batch.batchId} has unknown dependency ${dependency}`);
+      }
+    }
+  }
+
+  const active = new Set();
+  const complete = new Set();
+  function visit(batchId) {
+    if (complete.has(batchId)) return;
+    if (active.has(batchId)) {
+      diagnostics.push(`delivery batch dependency cycle includes ${batchId}`);
+      return;
+    }
+    active.add(batchId);
+    for (const dependency of byId.get(batchId)?.dependencies ?? []) visit(dependency);
+    active.delete(batchId);
+    complete.add(batchId);
+  }
+  for (const batchId of byId.keys()) visit(batchId);
+
+  const verifiedTasks = new Set(
+    Object.entries(ledger.taskState ?? {})
+      .filter(([, state]) => ['verified', 'released'].includes(state?.status))
+      .map(([taskId]) => taskId),
+  );
+  for (const taskId of taskIds) {
+    if (verifiedTasks.has(taskId)) {
+      if (batchByTask.has(taskId)) diagnostics.push(`verified task ${taskId} remains batched`);
+    } else if (!batchByTask.has(taskId)) {
+      diagnostics.push(`unfinished task ${taskId} has no delivery batch`);
+    }
+  }
+
+  if (!byId.has(ledger.activeBatchId)) {
+    diagnostics.push(`activeBatchId ${ledger.activeBatchId} is not a delivery batch`);
+  } else if (!byId.get(ledger.activeBatchId).taskIds.includes(ledger.nextTaskId)) {
+    diagnostics.push(
+      `active batch ${ledger.activeBatchId} does not contain nextTaskId ${ledger.nextTaskId}`,
+    );
+  }
+
+  function dependsOn(batchId, expectedDependency, seen = new Set()) {
+    if (batchId === expectedDependency) return true;
+    if (seen.has(batchId)) return false;
+    seen.add(batchId);
+    return (byId.get(batchId)?.dependencies ?? []).some((dependency) =>
+      dependsOn(dependency, expectedDependency, seen),
+    );
+  }
+
+  const planById = new Map(plans.map((plan) => [plan.planId, plan]));
+  for (const [taskId, planId] of taskToPlan) {
+    const consumerBatchId = batchByTask.get(taskId);
+    if (consumerBatchId === undefined) continue;
+    const consumerBatch = byId.get(consumerBatchId);
+    for (const dependencyPlanId of planById.get(planId)?.dependencies ?? []) {
+      const dependencyTaskIds = planById.get(dependencyPlanId)?.taskIds ?? [];
+      for (const dependencyTaskId of dependencyTaskIds) {
+        if (verifiedTasks.has(dependencyTaskId)) continue;
+        const producerBatchId = batchByTask.get(dependencyTaskId);
+        if (producerBatchId === undefined) continue;
+        if (producerBatchId === consumerBatchId) {
+          if (
+            consumerBatch.taskIds.indexOf(dependencyTaskId) > consumerBatch.taskIds.indexOf(taskId)
+          ) {
+            diagnostics.push(
+              `batch ${consumerBatchId} orders dependent task ${taskId} before ${dependencyTaskId}`,
+            );
+          }
+        } else if (!dependsOn(consumerBatchId, producerBatchId)) {
+          diagnostics.push(
+            `batch ${consumerBatchId} containing ${taskId} does not depend on ${producerBatchId} containing ${dependencyTaskId}`,
+          );
+        }
+      }
+    }
+  }
+}
+
 function run(argumentsList) {
   const { root } = parseOptions(argumentsList);
   const plansDirectory = path.join(root, 'docs', 'plans');
@@ -128,7 +277,14 @@ function run(argumentsList) {
   const traceabilityPath = path.join(plansDirectory, 'requirement-traceability.json');
   const orchestrationPath = path.join(plansDirectory, '002-complete-execution-orchestration.md');
   const runbookPath = path.join(plansDirectory, '003-luna-handoff-runbook.md');
-  const requiredFiles = [ledgerPath, traceabilityPath, orchestrationPath, runbookPath];
+  const executionPlanPath = path.join(plansDirectory, '004-luna-max-execution-plan.md');
+  const requiredFiles = [
+    ledgerPath,
+    traceabilityPath,
+    orchestrationPath,
+    runbookPath,
+    executionPlanPath,
+  ];
   const missingFiles = requiredFiles.filter((filePath) => !existsSync(filePath));
   if (missingFiles.length > 0) {
     throw new Error(`Missing orchestration files:\n${missingFiles.join('\n')}`);
@@ -138,9 +294,13 @@ function run(argumentsList) {
   const traceability = readJson(traceabilityPath);
   const orchestration = readFileSync(orchestrationPath, 'utf8');
   const runbook = readFileSync(runbookPath, 'utf8');
+  const executionPlan = readFileSync(executionPlanPath, 'utf8');
   const diagnostics = [];
 
-  if (ledger.version !== 1) diagnostics.push(`unsupported ledger version ${ledger.version}`);
+  if (ledger.version !== 2) diagnostics.push(`unsupported ledger version ${ledger.version}`);
+  if (ledger.authority?.deliveryBatches !== 'docs/plans/004-luna-max-execution-plan.md') {
+    diagnostics.push('delivery-batch authority must point to the Luna Max execution plan');
+  }
   if (!sameJson(ledger.reviewPolicy, expectedReviewPolicy)) {
     diagnostics.push('reviewPolicy does not preserve the approved dev/main/CodeRabbit flow');
   }
@@ -210,6 +370,7 @@ function run(argumentsList) {
   const planIds = new Set();
   const planFiles = new Set();
   const taskIds = new Set();
+  const taskToPlan = new Map();
   for (const plan of plans) {
     if (planIds.has(plan.planId)) diagnostics.push(`duplicate plan ${plan.planId}`);
     planIds.add(plan.planId);
@@ -246,6 +407,7 @@ function run(argumentsList) {
     for (const taskId of plan.taskIds) {
       if (taskIds.has(taskId)) diagnostics.push(`duplicate orchestration task ${taskId}`);
       taskIds.add(taskId);
+      taskToPlan.set(taskId, plan.planId);
       const heading = new RegExp(`^#### ${escapeRegExp(taskId)} —`, 'mu');
       if (!heading.test(orchestration)) {
         diagnostics.push(`orchestration heading is missing for task ${taskId}`);
@@ -285,9 +447,23 @@ function run(argumentsList) {
       }
     }
   }
+  validateDeliveryBatches({ ledger, plans, taskIds, taskToPlan, diagnostics });
   for (const heading of requiredRunbookHeadings) {
     if (!runbook.split(/\r?\n/u).includes(heading))
       diagnostics.push(`runbook heading missing: ${heading}`);
+  }
+  for (const heading of requiredExecutionPlanHeadings) {
+    if (!executionPlan.split(/\r?\n/u).includes(heading)) {
+      diagnostics.push(`Luna Max execution plan heading missing: ${heading}`);
+    }
+  }
+  for (const batch of ledger.deliveryBatches ?? []) {
+    const documentedRow = `| \`${batch.batchId}\` | \`${batch.branch}\` |`;
+    if (!executionPlan.includes(documentedRow)) {
+      diagnostics.push(
+        `Luna Max execution plan does not document ${batch.batchId} on ${batch.branch}`,
+      );
+    }
   }
 
   if (diagnostics.length > 0) {
@@ -298,6 +474,8 @@ function run(argumentsList) {
   process.stdout.write(
     `${JSON.stringify({
       nextTaskId: ledger.nextTaskId,
+      activeBatchId: ledger.activeBatchId,
+      batchCount: ledger.deliveryBatches.length,
       planCount: plans.length,
       requirementCount: requirements.length,
       taskCount: taskIds.size,

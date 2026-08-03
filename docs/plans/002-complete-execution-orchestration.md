@@ -4,7 +4,7 @@
 
 **Goal:** Finish all 611 DataBreeze requirements through dependency-ordered, independently reversible tasks and preserve enough verified state that a new model can resume without guessing.
 
-**Architecture:** The numbered child plans remain the requirement owners. This document adds the execution DAG, atomic task boundaries, parallel-work rules, cross-plan gates, failure handling, and handoff contract that bind those child plans into one program. `execution-orchestration.json` is the machine-readable control record; `requirement-traceability.json` remains the requirement-to-code-and-evidence authority.
+**Architecture:** The numbered child plans remain the requirement owners. This document adds the execution DAG, atomic task boundaries, parallel-work rules, cross-plan gates, failure handling, and handoff contract that bind those child plans into one program. `004-luna-max-execution-plan.md` packages unfinished tasks into reviewable delivery batches, `execution-orchestration.json` is the machine-readable control record, and `requirement-traceability.json` remains the requirement-to-code-and-evidence authority.
 
 **Tech Stack:** pnpm/Turborepo and strict TypeScript, NestJS/Fastify, PostgreSQL 17 with Prisma, Redis 7.4, S3-compatible storage, Electron, Kotlin/Compose, Python 3.13, OpenAPI/JSON Schema, OpenTofu/AWS Singapore, GitHub Actions, and CodeRabbit.
 
@@ -33,8 +33,9 @@ Read sources in this order when they disagree:
 3. Normative requirements under `docs/specs/` and `docs/specs/requirement-index.json`.
 4. Product and architecture documents under `docs/product/` and `docs/architecture/`.
 5. The requirement-owning child plan under `docs/plans/`.
-6. This orchestration plan and `execution-orchestration.json`.
-7. Existing code and historical implementation reports.
+6. This orchestration plan.
+7. `004-luna-max-execution-plan.md` and `execution-orchestration.json`.
+8. Existing code and historical implementation reports.
 
 Code is evidence of work, not evidence of full requirement completion. Use these states consistently:
 
@@ -57,11 +58,15 @@ The ledger also uses these plan/task states; they are not requirement statuses a
 
 Never infer `verified` from a merged PR, a green unit test, file existence, or a previous model's prose.
 
+The numbered child plans own requirement scope and release obligations. Their early generated `Paths` examples are not repository path authority. Section 4 of this document supersedes generic aggregate names such as `identity-audit-entitlements`, `production-readiness`, or hyphenated Python processor directories; use the module-owned roots and deterministic platform keys below.
+
 ## 2. Recorded checkpoint
 
-This plan was prepared on 2026-08-02 from remote `dev` at `b21642b` and remote `main` at `8ac8bca`; promotion PR 8 had merged and no PR was open. The requirement manifest contained 611 records: 444 P0, 154 P1, 13 P2; 608 were `planned` and 3 were `partial`.
+This plan was reconciled on 2026-08-02 from remote `dev` at `783a4710c0aa2a2808d78ad7f0643e6731150bd7` and remote `main` at `3ed3d77d0281ef239d0509c81ded447d8fffd213`; promotion PR 20 had merged and no PR was open. The requirement manifest contained 611 records: 444 P0, 154 P1, 13 P2; 608 were `planned` and 3 were `partial`.
 
-Merged PRs 1–8 establish substantial engineering, IAM/AUD/BUA, IAE/DSM, JRA, and DSO code. Plans 010–050 must therefore start with evidence reconciliation, not blind reimplementation. Plans 060–500 remain unverified and must be treated as planned until their gates pass.
+Merged PRs 1–23 establish substantial engineering, IAM/AUD/BUA, IAE/DSM, JRA, and DSO code. PR 19 delivered the normal 73-commit foundation batch to `dev`; PR 20 promoted it to `main`; PRs 21–23 carried validated promotion-review fixes back through `dev`. Plans 010–050 must therefore start with evidence reconciliation, not blind reimplementation. Plans 060–500 remain unverified and must be treated as planned until their gates pass.
+
+The active execution packet is `B01` in `004-luna-max-execution-plan.md`, starting with `FND-003` on `feat/foundation-identity-completion`. The packet preserves the requested 30–99 commit rule, targets about 70 commits, and carries the implementation forward without opening a documentation-only PR.
 
 The hashes above are an audit anchor, not a branch lock. Every session must fetch and recompute live state; update the ledger checkpoint only as part of a committed task/PR handoff so session-local observations do not create meaningless dirty files.
 
