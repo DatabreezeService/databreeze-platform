@@ -35,6 +35,9 @@ test('[IAM-004] publishes a closed versioned permission vocabulary', async () =>
     'billing.account.manage',
     'device.identity.read',
     'device.identity.revoke',
+    'service.account.read',
+    'service.account.manage',
+    'service.account.revoke',
   ]);
   assert.ok(Object.isFrozen(api.PERMISSIONS_V1));
 });
@@ -66,6 +69,9 @@ test('[IAM-004] maps exactly six immutable initial role bundles', async () => {
       'billing.account.manage',
       'device.identity.read',
       'device.identity.revoke',
+      'service.account.read',
+      'service.account.manage',
+      'service.account.revoke',
     ],
     admin: [
       'organization.profile.read',
@@ -77,6 +83,9 @@ test('[IAM-004] maps exactly six immutable initial role bundles', async () => {
       'job.execution.read',
       'device.identity.read',
       'device.identity.revoke',
+      'service.account.read',
+      'service.account.manage',
+      'service.account.revoke',
     ],
     analyst: [
       'organization.profile.read',

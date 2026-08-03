@@ -26,6 +26,9 @@ const expectedChannels = Object.freeze({
   'billing.account.manage': ['api', 'web'],
   'device.identity.read': ['api', 'web'],
   'device.identity.revoke': ['api', 'web'],
+  'service.account.read': ['api', 'web'],
+  'service.account.manage': ['api', 'web'],
+  'service.account.revoke': ['api', 'web'],
 });
 
 test('[IAM-002, IAM-003] every permission has an explicit closed channel policy', () => {
@@ -61,6 +64,8 @@ test('[IAM-002, IAM-003] sensitive actions are closed to shared-link, stream, an
     'approval.decision.create',
     'billing.account.manage',
     'device.identity.revoke',
+    'service.account.manage',
+    'service.account.revoke',
   ];
 
   for (const permission of sensitive) {
