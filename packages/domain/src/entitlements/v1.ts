@@ -95,6 +95,10 @@ export interface LeaseSignatureVerifierV1 {
   verify(payload: string, signature: string): boolean;
 }
 
+export interface LeaseSignatureIssuerV1 {
+  sign(payload: string): string;
+}
+
 export type EntitlementErrorCodeV1 =
   | 'INVALID_IDENTIFIER'
   | 'INVALID_SCOPE'
@@ -196,6 +200,117 @@ function snapshotAllows(
   if (snapshot.expiresAt && Date.parse(now) >= Date.parse(snapshot.expiresAt))
     return 'ENTITLEMENT_EXPIRED';
   return undefined;
+}
+
+function validSnapshotStatus(input: unknown): input is EntitlementStatusV1 {
+  return input === 'ACTIVE' || input === 'SUSPENDED' || input === 'EXPIRED';
+}
+
+/** Create an immutable organization/workspace entitlement snapshot from a governed plan. */
+export function createEntitlementSnapshotV1(input: {
+  readonly snapshotId: unknown;
+  readonly tenantScope: unknown;
+  readonly plan: unknown;
+  readonly status: unknown;
+  readonly revision: unknown;
+  readonly securityEpoch: unknown;
+  readonly effectiveAt: unknown;
+  readonly expiresAt?: unknown;
+}): EntitlementResultV1<EntitlementSnapshotV1> {
+  const snapshotId = stableId(input.snapshotId);
+  const tenantScope = scope(input.tenantScope);
+  const plan = input.plan;
+  const revision = positiveInteger(input.revision);
+  const securityEpoch = positiveInteger(input.securityEpoch);
+  const effectiveAt = timestamp(input.effectiveAt);
+  const expiresAt = input.expiresAt === undefined ? undefined : timestamp(input.expiresAt);
+  if (!snapshotId) return rejected('INVALID_IDENTIFIER');
+  if (!tenantScope || tenantScope.scopeType === 'project') return rejected('INVALID_SCOPE');
+  if (
+    typeof plan !== 'object' ||
+    plan === null ||
+    (plan as Partial<EntitlementPlanV1>).schemaVersion !== ENTITLEMENT_SCHEMA_VERSION_V1 ||
+    (plan as Partial<EntitlementPlanV1>).providerIndependent !== true
+  )
+    return rejected('INVALID_PLAN');
+  if (!validSnapshotStatus(input.status)) return rejected('INVALID_STATE');
+  if (!revision || !securityEpoch) return rejected('INVALID_STATE');
+  if (!effectiveAt || (input.expiresAt !== undefined && !expiresAt))
+    return rejected('INVALID_TIMESTAMP');
+  if (expiresAt && Date.parse(expiresAt) <= Date.parse(effectiveAt))
+    return rejected('INVALID_TIMESTAMP');
+  const typedPlan = plan as EntitlementPlanV1;
+  return Object.freeze({
+    accepted: true,
+    value: Object.freeze({
+      schemaVersion: ENTITLEMENT_SCHEMA_VERSION_V1,
+      snapshotId,
+      organizationId: tenantScope.organizationId,
+      ...(tenantScope.scopeType === 'workspace' ? { workspaceId: tenantScope.workspaceId } : {}),
+      planCode: typedPlan.planCode,
+      status: input.status,
+      revision,
+      securityEpoch,
+      effectiveAt,
+      ...(expiresAt ? { expiresAt } : {}),
+      features: Object.freeze([...typedPlan.features]),
+      quotas: Object.freeze(typedPlan.quotas.map((quota) => Object.freeze({ ...quota }))),
+    }),
+  });
+}
+
+function canonicalLease(input: Omit<EntitlementLeaseV1, 'payload' | 'signature'>): string {
+  return JSON.stringify({
+    schemaVersion: input.schemaVersion,
+    leaseId: input.leaseId,
+    tenantScope: input.tenantScope,
+    snapshotRevision: input.snapshotRevision,
+    securityEpoch: input.securityEpoch,
+    issuedAt: input.issuedAt,
+    expiresAt: input.expiresAt,
+  });
+}
+
+/** Issue a bounded, signed offline entitlement lease tied to a snapshot revision and epoch. */
+export function createEntitlementLeaseV1(
+  snapshot: EntitlementSnapshotV1,
+  input: { readonly leaseId: unknown; readonly issuedAt: unknown; readonly expiresAt: unknown },
+  signer: LeaseSignatureIssuerV1,
+): EntitlementResultV1<EntitlementLeaseV1> {
+  const leaseId = stableId(input.leaseId);
+  const issuedAt = timestamp(input.issuedAt);
+  const expiresAt = timestamp(input.expiresAt);
+  const snapshotScope: TenantScopeV1 = snapshot.workspaceId
+    ? { scopeType: 'workspace', organizationId: snapshot.organizationId, workspaceId: snapshot.workspaceId }
+    : { scopeType: 'organization', organizationId: snapshot.organizationId };
+  if (!leaseId) return rejected('INVALID_IDENTIFIER');
+  if (!issuedAt || !expiresAt) return rejected('INVALID_TIMESTAMP');
+  const blocked = snapshotAllows(snapshot, issuedAt);
+  if (blocked) return rejected(blocked);
+  if (
+    !Number.isFinite(Date.parse(issuedAt)) ||
+    !Number.isFinite(Date.parse(expiresAt)) ||
+    Date.parse(expiresAt) <= Date.parse(issuedAt) ||
+    Date.parse(expiresAt) - Date.parse(issuedAt) > OFFLINE_LEASE_MAX_SECONDS_V1 * 1_000 ||
+    (snapshot.expiresAt !== undefined && Date.parse(expiresAt) > Date.parse(snapshot.expiresAt))
+  )
+    return rejected('LEASE_INVALID');
+  const unsigned: Omit<EntitlementLeaseV1, 'payload' | 'signature'> = {
+    schemaVersion: ENTITLEMENT_SCHEMA_VERSION_V1,
+    leaseId,
+    tenantScope: snapshotScope,
+    snapshotRevision: snapshot.revision,
+    securityEpoch: snapshot.securityEpoch,
+    issuedAt,
+    expiresAt,
+  };
+  const payload = canonicalLease(unsigned);
+  const signature = text(signer.sign(payload), 2048);
+  if (!signature) return rejected('LEASE_INVALID');
+  return Object.freeze({
+    accepted: true,
+    value: Object.freeze({ ...unsigned, payload, signature }),
+  });
 }
 
 export function createPlanV1(input: {
