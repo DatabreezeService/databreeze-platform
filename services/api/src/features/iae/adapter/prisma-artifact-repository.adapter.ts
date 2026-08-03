@@ -10,6 +10,7 @@ import {
 import {
   parseTenantScopeV1,
   tenantScopeContainsV1,
+  tenantScopesEqualV1,
   type TenantScopeV1,
 } from '@databreeze/domain/tenant-scope/v1';
 
@@ -336,17 +337,22 @@ class PrismaArtifactTransactionAdapter implements ArtifactTransactionPortV1 {
       where: { id: placement.placementId },
     });
     if (existing === null) throw new Error('IAE_PLACEMENT_NOT_FOUND');
+    if (!tenantScopeContainsV1(context.tenantScope, rowScope(existing)))
+      throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
     if (!tenantScopeContainsV1(context.tenantScope, placement.tenantScope))
       throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
     const versionRow = await this.client.artifactVersion.findUnique({
       where: { id: placement.artifactVersionId },
     });
     if (versionRow === null) throw new Error('IAE_VERSION_NOT_FOUND');
+    if (!tenantScopeContainsV1(context.tenantScope, rowScope(versionRow)))
+      throw new Error('IAE_SCOPE_NARROWING_REQUIRED');
     const current = rowToPlacement(existing, rowToVersion(versionRow));
     if (JSON.stringify(current) === JSON.stringify(placement)) return;
     if (placement.revision !== current.revision + 1) throw new Error('IAE_REVISION_CONFLICT');
     if (
       current.artifactVersionId !== placement.artifactVersionId ||
+      !tenantScopesEqualV1(current.tenantScope, placement.tenantScope) ||
       current.kind !== placement.kind ||
       current.opaqueReference !== placement.opaqueReference ||
       current.contentSha256 !== placement.contentSha256

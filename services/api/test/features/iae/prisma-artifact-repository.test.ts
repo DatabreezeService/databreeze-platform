@@ -28,15 +28,16 @@ function id(value: string): StableIdentifierV1 {
 }
 const organizationId = id('00000000-0000-4000-8000-000000000501');
 const workspaceId = id('00000000-0000-4000-8000-000000000502');
+const siblingWorkspaceId = id('00000000-0000-4000-8000-000000000509');
 const artifactId = id('00000000-0000-4000-8000-000000000503');
 const versionId = id('00000000-0000-4000-8000-000000000504');
 const placementId = id('00000000-0000-4000-8000-000000000505');
 const evidenceId = id('00000000-0000-4000-8000-000000000506');
 
-function context(key: string) {
+function contextForWorkspace(candidateWorkspaceId: StableIdentifierV1, key: string) {
   const result = createIamTenantContextV1({
     actorId: '00000000-0000-4000-8000-000000000507',
-    tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+    tenantScope: { scopeType: 'workspace', organizationId, workspaceId: candidateWorkspaceId },
     authorizationEpoch: 1,
     correlationId: '00000000-0000-4000-8000-000000000508',
     idempotencyKey: key,
@@ -44,6 +45,10 @@ function context(key: string) {
   assert.equal(result.accepted, true);
   if (!result.accepted) throw new Error('fixture context rejected');
   return result.value;
+}
+
+function context(key: string) {
+  return contextForWorkspace(workspaceId, key);
 }
 
 function client(
@@ -322,4 +327,50 @@ void test('[IAE-020, DSO-006] Prisma placement adapter rejects a stale revision 
   );
   assert.equal(placements[0]?.available, false);
   assert.equal(placements[0]?.revision, 2);
+});
+
+void test('[IAE-003, IAM-009] Prisma placement updates authorize the persisted workspace scope', async () => {
+  const createdAt = parseStrictUtcTimestampV1('2026-01-01T00:00:00.000Z');
+  assert.equal(createdAt.accepted, true);
+  if (!createdAt.accepted) throw new Error('fixture timestamp rejected');
+  const artifact = createArtifactVersionV1({
+    artifactId,
+    versionId,
+    tenantScope: { scopeType: 'workspace', organizationId, workspaceId: siblingWorkspaceId },
+    sourceKind: 'FILE',
+    dataMode: 'Hybrid',
+    contentSha256: 'c'.repeat(64),
+    byteSize: 8,
+    mediaType: 'text/csv',
+    displayName: 'orders.csv',
+    createdAt: createdAt.value,
+  });
+  assert.equal(artifact.accepted, true);
+  if (!artifact.accepted) throw new Error('fixture artifact rejected');
+  const placement = createContentPlacementV1({
+    placementId,
+    artifactVersion: artifact.value,
+    tenantScope: artifact.value.tenantScope,
+    kind: 'CLOUD',
+    opaqueReference: 'opaque-reference-5678',
+    contentSha256: artifact.value.contentSha256,
+  });
+  assert.equal(placement.accepted, true);
+  if (!placement.accepted) throw new Error('fixture placement rejected');
+  const repository = new PrismaArtifactRepositoryAdapter(client([], [], []));
+  await repository.saveVersion(contextForWorkspace(siblingWorkspaceId, 'scope-version'), artifact.value);
+  await repository.savePlacement(
+    contextForWorkspace(siblingWorkspaceId, 'scope-placement'),
+    placement.value,
+  );
+
+  await assert.rejects(
+    repository.updatePlacement(context('scope-forgery'), {
+      ...placement.value,
+      tenantScope: context('scope-forgery-input').tenantScope,
+      available: false,
+      revision: 2,
+    }),
+    /IAE_SCOPE_NARROWING_REQUIRED/u,
+  );
 });

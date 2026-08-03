@@ -83,6 +83,33 @@ void test('[IAE-003, IAE-004] versions are immutable and placements require matc
   assert.equal((await repository.listPlacements(context(workspaceId), stored.versionId)).length, 1);
 });
 
+void test('[IAE-003, IAM-009] placement updates authorize the persisted workspace scope', async () => {
+  const repository = new InMemoryArtifactRepositoryAdapter();
+  const stored = version(otherWorkspaceId);
+  await repository.saveVersion(context(otherWorkspaceId), stored);
+  const placement = createContentPlacementV1({
+    placementId: '00000000-0000-4000-8000-000000000024',
+    artifactVersion: stored,
+    tenantScope: stored.tenantScope,
+    kind: 'CLOUD',
+    opaqueReference: 'cloud-reference_5678',
+    contentSha256: stored.contentSha256,
+  });
+  assert.equal(placement.accepted, true);
+  if (!placement.accepted) return;
+  await repository.savePlacement(context(otherWorkspaceId), placement.value);
+
+  await assert.rejects(
+    repository.updatePlacement(context(workspaceId), {
+      ...placement.value,
+      tenantScope: context(workspaceId).tenantScope,
+      available: false,
+      revision: 2,
+    }),
+    /IAE_SCOPE_NARROWING_REQUIRED/u,
+  );
+});
+
 void test('[IAE-001, IAM-009] transaction rollback does not leak a staged artifact', async () => {
   const repository = new InMemoryArtifactRepositoryAdapter();
   const stored = version(workspaceId);
