@@ -26,14 +26,16 @@ function context() {
 function controller(overrides: Record<string, unknown> = {}) {
   const service = {
     list: () => Promise.resolve({ accepted: true as const, value: [{ id: serviceAccountId }] }),
-    create: () => Promise.resolve({
-      accepted: true as const,
-      value: { account: { id: serviceAccountId }, secret: 'one-time' },
-    }),
-    rotate: () => Promise.resolve({
-      accepted: true as const,
-      value: { account: { id: serviceAccountId }, secret: 'successor' },
-    }),
+    create: () =>
+      Promise.resolve({
+        accepted: true as const,
+        value: { account: { id: serviceAccountId }, secret: 'one-time' },
+      }),
+    rotate: () =>
+      Promise.resolve({
+        accepted: true as const,
+        value: { account: { id: serviceAccountId }, secret: 'successor' },
+      }),
     revoke: () => Promise.resolve({ accepted: true as const, value: { id: serviceAccountId } }),
     ...overrides,
   };
@@ -44,10 +46,13 @@ function controller(overrides: Record<string, unknown> = {}) {
 void test('[IAM-013] controller exposes safe list/create/rotate/revoke results', async () => {
   const instance = controller();
   assert.deepEqual(await instance.list({}, organizationId), [{ id: serviceAccountId }]);
-  assert.deepEqual(await instance.create({}, 'request-key', {
-    name: 'Import worker',
-    permissions: ['artifact.record.read'],
-  }), { account: { id: serviceAccountId }, secret: 'one-time' });
+  assert.deepEqual(
+    await instance.create({}, 'request-key', {
+      name: 'Import worker',
+      permissions: ['artifact.record.read'],
+    }),
+    { account: { id: serviceAccountId }, secret: 'one-time' },
+  );
   assert.deepEqual(await instance.rotate({}, serviceAccountId, { expectedRevision: 1 }), {
     account: { id: serviceAccountId },
     secret: 'successor',
@@ -67,11 +72,9 @@ void test('[IAM-013] controller rejects a path outside the authenticated organiz
 
 void test('[IAM-013] controller maps lifecycle failures to stable problem codes', async () => {
   await assert.rejects(
-    controller({ revoke: () => Promise.resolve({ accepted: false as const, code: 'CONFLICT' as const }) }).revoke(
-      {},
-      serviceAccountId,
-      { expectedRevision: 1 },
-    ),
+    controller({
+      revoke: () => Promise.resolve({ accepted: false as const, code: 'CONFLICT' as const }),
+    }).revoke({}, serviceAccountId, { expectedRevision: 1 }),
     (error: unknown) =>
       error instanceof ServiceAccountProblemError && error.code === 'SERVICE_ACCOUNT_CONFLICT',
   );

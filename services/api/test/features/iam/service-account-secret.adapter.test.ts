@@ -9,10 +9,7 @@ void test('[IAM-013] random service-account secrets are high-entropy and digesta
   const issuer = new RandomServiceAccountSecretIssuer(() => Buffer.alloc(32, 7));
   const issued = issuer.issue();
   assert.match(issued.secret, /^dbsa_[A-Za-z0-9_-]{43}$/u);
-  assert.equal(
-    issued.digest,
-    createHash('sha256').update(issued.secret, 'utf8').digest('hex'),
-  );
+  assert.equal(issued.digest, createHash('sha256').update(issued.secret, 'utf8').digest('hex'));
   assert.equal(issued.digest.length, 64);
 });
 

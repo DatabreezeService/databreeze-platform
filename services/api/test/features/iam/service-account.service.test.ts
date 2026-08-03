@@ -6,7 +6,12 @@ import { InMemoryIamRepositoryAdapter } from '../../../src/features/iam/adapter/
 import { InMemoryServiceAccountRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-service-account-repository.adapter.js';
 import { ServiceAccountService } from '../../../src/features/iam/application/service-account.service.js';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
-import { parseStableIdentifierV1, parseTenantScopeV1, type StableIdentifierV1, type TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
+import {
+  parseStableIdentifierV1,
+  parseTenantScopeV1,
+  type StableIdentifierV1,
+  type TenantScopeV1,
+} from '@databreeze/domain/tenant-scope/v1';
 
 const organizationId = '00000000-0000-4000-8000-000000000711';
 const workspaceId = '00000000-0000-4000-8000-000000000712';
@@ -41,7 +46,10 @@ function context(scope: unknown, key = 'service-account-service') {
   return result.value;
 }
 
-function membership(roleId = 'owner', scope: unknown = { scopeType: 'organization', organizationId }) {
+function membership(
+  roleId = 'owner',
+  scope: unknown = { scopeType: 'organization', organizationId },
+) {
   return {
     id: stable('00000000-0000-4000-8000-000000000717'),
     principalId: stable(actorId),
@@ -72,10 +80,13 @@ function service() {
 
 void test('[IAM-013] authorized creation returns a one-time secret but never the persisted digest', async () => {
   const accountService = service();
-  const result = await accountService.create(context({ scopeType: 'organization', organizationId }), {
-    name: 'Import worker',
-    permissions: ['artifact.record.read'],
-  });
+  const result = await accountService.create(
+    context({ scopeType: 'organization', organizationId }),
+    {
+      name: 'Import worker',
+      permissions: ['artifact.record.read'],
+    },
+  );
   assert.equal(result.accepted, true);
   if (!result.accepted) return;
   assert.equal(result.value.secret, 'dbsa_first');
@@ -138,7 +149,10 @@ void test('[IAM-013] rotation is revision guarded and revocation is permanent', 
 
 void test('[IAM-013] credential authentication is digest-bound, updates last use, and fails closed', async () => {
   const accountService = service();
-  const organizationContext = context({ scopeType: 'organization', organizationId }, 'authenticate');
+  const organizationContext = context(
+    { scopeType: 'organization', organizationId },
+    'authenticate',
+  );
   const created = await accountService.create(organizationContext, {
     name: 'Auth worker',
     permissions: ['artifact.record.read'],
@@ -154,11 +168,19 @@ void test('[IAM-013] credential authentication is digest-bound, updates last use
   assert.equal(authenticated.value.id, accountId);
   assert.equal(authenticated.value.lastUsedAt, '2026-01-01T00:01:00.000Z');
   assert.deepEqual(
-    await accountService.authenticate(organizationContext, 'wrong-secret', '2026-01-01T00:02:00.000Z'),
+    await accountService.authenticate(
+      organizationContext,
+      'wrong-secret',
+      '2026-01-01T00:02:00.000Z',
+    ),
     { accepted: false, code: 'INVALID_CREDENTIALS' },
   );
   assert.deepEqual(
-    await accountService.authenticate(organizationContext, 'dbsa_first', '2026-01-01T00:00:30.000Z'),
+    await accountService.authenticate(
+      organizationContext,
+      'dbsa_first',
+      '2026-01-01T00:00:30.000Z',
+    ),
     { accepted: false, code: 'INVALID_CREDENTIALS' },
   );
 });

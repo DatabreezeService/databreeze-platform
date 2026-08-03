@@ -107,13 +107,22 @@ function mapRepositoryError(error: unknown): ServiceAccountApplicationCodeV1 {
   const message = error instanceof Error ? error.message : '';
   if (message === 'SCOPE_DENIED') return 'SCOPE_DENIED';
   if (message === 'SERVICE_ACCOUNT_NOT_FOUND') return 'NOT_FOUND';
-  if (message === 'REVISION_CONFLICT' || message === 'INVALID_REVISION' || message.endsWith('CONFLICT'))
+  if (
+    message === 'REVISION_CONFLICT' ||
+    message === 'INVALID_REVISION' ||
+    message.endsWith('CONFLICT')
+  )
     return 'CONFLICT';
   return 'UNAVAILABLE';
 }
 
 function digestSecret(input: unknown): string | undefined {
-  if (typeof input !== 'string' || input.length === 0 || input.length > 512 || /\p{Cc}/u.test(input))
+  if (
+    typeof input !== 'string' ||
+    input.length === 0 ||
+    input.length > 512 ||
+    /\p{Cc}/u.test(input)
+  )
     return undefined;
   return createHash('sha256').update(input, 'utf8').digest('hex');
 }
@@ -182,13 +191,16 @@ export class ServiceAccountService {
     context: IamTenantContextV1,
     input: CreateServiceAccountInputV1,
   ): Promise<ServiceAccountApplicationResultV1<IssuedServiceAccountV1>> {
-    const workspaceId =
-      input.workspaceId === undefined ? undefined : identifier(input.workspaceId);
+    const workspaceId = input.workspaceId === undefined ? undefined : identifier(input.workspaceId);
     if (input.workspaceId !== undefined && workspaceId === undefined)
       return rejected('INVALID_IDENTIFIER');
     const targetScope = scopeForAccount(context, workspaceId);
     if (!targetScope) return rejected('SCOPE_DENIED');
-    const authorization = await this.authorize(context, targetScope, PERMISSIONS_V1.SERVICE_ACCOUNT_MANAGE);
+    const authorization = await this.authorize(
+      context,
+      targetScope,
+      PERMISSIONS_V1.SERVICE_ACCOUNT_MANAGE,
+    );
     if (authorization !== 'ALLOWED') return rejected(authorization);
     if (!serviceAccountPermissions(input.permissions)) return rejected('INVALID_INPUT');
     let now: string;
@@ -279,37 +291,41 @@ export class ServiceAccountService {
       expectedRevisionInput < 1
     )
       return rejected('CONFLICT');
-    return this.repository.withTransaction(context, async (transaction) => {
-      const current = await transaction.findServiceAccount(context, serviceAccountId);
-      if (!current) return rejected('NOT_FOUND');
-      const authorization = await this.authorize(
-        context,
-        accountScope(current),
-        PERMISSIONS_V1.SERVICE_ACCOUNT_MANAGE,
-      );
-      if (authorization !== 'ALLOWED') return rejected(authorization);
-      let now: string;
-      let secret: ServiceAccountSecretIssueV1;
-      try {
-        now = this.clock().toISOString();
-        secret = this.secretIssuer.issue();
-      } catch {
-        return rejected('UNAVAILABLE');
-      }
-      const rotated = rotateServiceAccountSecretV1(current, {
-        secretDigest: secret.digest,
-        issuedAt: now,
-        ...(secretExpiresAt === undefined ? {} : { expiresAt: secretExpiresAt }),
-        expectedRevision: expectedRevisionInput,
-      });
-      if (!rotated.accepted) return rejected(mapDomainCode(rotated.code));
-      try {
-        await transaction.replaceServiceAccount(context, rotated.value, current.revision);
-        return accepted(Object.freeze({ account: safeView(rotated.value), secret: secret.secret }));
-      } catch (error) {
-        return rejected(mapRepositoryError(error));
-      }
-    }).catch((error) => rejected(mapRepositoryError(error)));
+    return this.repository
+      .withTransaction(context, async (transaction) => {
+        const current = await transaction.findServiceAccount(context, serviceAccountId);
+        if (!current) return rejected('NOT_FOUND');
+        const authorization = await this.authorize(
+          context,
+          accountScope(current),
+          PERMISSIONS_V1.SERVICE_ACCOUNT_MANAGE,
+        );
+        if (authorization !== 'ALLOWED') return rejected(authorization);
+        let now: string;
+        let secret: ServiceAccountSecretIssueV1;
+        try {
+          now = this.clock().toISOString();
+          secret = this.secretIssuer.issue();
+        } catch {
+          return rejected('UNAVAILABLE');
+        }
+        const rotated = rotateServiceAccountSecretV1(current, {
+          secretDigest: secret.digest,
+          issuedAt: now,
+          ...(secretExpiresAt === undefined ? {} : { expiresAt: secretExpiresAt }),
+          expectedRevision: expectedRevisionInput,
+        });
+        if (!rotated.accepted) return rejected(mapDomainCode(rotated.code));
+        try {
+          await transaction.replaceServiceAccount(context, rotated.value, current.revision);
+          return accepted(
+            Object.freeze({ account: safeView(rotated.value), secret: secret.secret }),
+          );
+        } catch (error) {
+          return rejected(mapRepositoryError(error));
+        }
+      })
+      .catch((error) => rejected(mapRepositoryError(error)));
   }
 
   public async revoke(
@@ -325,26 +341,28 @@ export class ServiceAccountService {
       expectedRevisionInput < 1
     )
       return rejected('CONFLICT');
-    return this.repository.withTransaction(context, async (transaction) => {
-      const current = await transaction.findServiceAccount(context, serviceAccountId);
-      if (!current) return rejected('NOT_FOUND');
-      const authorization = await this.authorize(
-        context,
-        accountScope(current),
-        PERMISSIONS_V1.SERVICE_ACCOUNT_REVOKE,
-      );
-      if (authorization !== 'ALLOWED') return rejected(authorization);
-      const now = this.now();
-      if (!now) return rejected('UNAVAILABLE');
-      const revoked = revokeServiceAccountV1(current, now, expectedRevisionInput);
-      if (!revoked.accepted) return rejected(mapDomainCode(revoked.code));
-      try {
-        await transaction.replaceServiceAccount(context, revoked.value, current.revision);
-        return accepted(safeView(revoked.value));
-      } catch (error) {
-        return rejected(mapRepositoryError(error));
-      }
-    }).catch((error) => rejected(mapRepositoryError(error)));
+    return this.repository
+      .withTransaction(context, async (transaction) => {
+        const current = await transaction.findServiceAccount(context, serviceAccountId);
+        if (!current) return rejected('NOT_FOUND');
+        const authorization = await this.authorize(
+          context,
+          accountScope(current),
+          PERMISSIONS_V1.SERVICE_ACCOUNT_REVOKE,
+        );
+        if (authorization !== 'ALLOWED') return rejected(authorization);
+        const now = this.now();
+        if (!now) return rejected('UNAVAILABLE');
+        const revoked = revokeServiceAccountV1(current, now, expectedRevisionInput);
+        if (!revoked.accepted) return rejected(mapDomainCode(revoked.code));
+        try {
+          await transaction.replaceServiceAccount(context, revoked.value, current.revision);
+          return accepted(safeView(revoked.value));
+        } catch (error) {
+          return rejected(mapRepositoryError(error));
+        }
+      })
+      .catch((error) => rejected(mapRepositoryError(error)));
   }
 
   public validateSecret(

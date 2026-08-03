@@ -38,7 +38,10 @@ void test('[AUD-015, AUD-016] attestations bind an immutable seal range and sign
   const sealResult = createAuditSealV1([event()], scope, '2026-01-01T00:01:00.000Z', digest);
   assert.equal(sealResult.accepted, true);
   if (!sealResult.accepted) return;
-  const signer = { sign: (payload) => `sig:${payload}`, verify: (payload, signature) => signature === `sig:${payload}` };
+  const signer = {
+    sign: (payload) => `sig:${payload}`,
+    verify: (payload, signature) => signature === `sig:${payload}`,
+  };
   const attestation = createAuditSealAttestationV1(
     sealResult.value,
     { attestationId: '00000000-0000-4000-8000-000000000746', signerKeyId: 'audit-key-1' },
@@ -52,7 +55,10 @@ void test('[AUD-015, AUD-016] attestations bind an immutable seal range and sign
   });
   assert.deepEqual(
     verifyAuditSealAttestationV1(
-      { ...attestation.value, tenantScope: { ...scope, organizationId: '00000000-0000-4000-8000-000000000747' } },
+      {
+        ...attestation.value,
+        tenantScope: { ...scope, organizationId: '00000000-0000-4000-8000-000000000747' },
+      },
       sealResult.value,
       signer,
     ),

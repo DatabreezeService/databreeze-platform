@@ -3,10 +3,11 @@ import test from 'node:test';
 
 import { ServiceAccountController } from '../../../src/features/iam/api/service-account.controller.js';
 import { InMemoryServiceAccountRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-service-account-repository.adapter.js';
+import { SERVICE_ACCOUNT_REPOSITORY_PORT } from '../../../src/features/iam/application/service-account-repository.port.js';
 import {
-  SERVICE_ACCOUNT_REPOSITORY_PORT,
-} from '../../../src/features/iam/application/service-account-repository.port.js';
-import { SERVICE_ACCOUNT_SERVICE, ServiceAccountService } from '../../../src/features/iam/application/service-account.service.js';
+  SERVICE_ACCOUNT_SERVICE,
+  ServiceAccountService,
+} from '../../../src/features/iam/application/service-account.service.js';
 import { IamModule } from '../../../src/features/iam/iam.module.js';
 
 void test('[IAM-013] IAM composition registers a replaceable service-account repository and lifecycle service', () => {
@@ -21,7 +22,11 @@ void test('[IAM-013] IAM composition registers a replaceable service-account rep
   assert.ok(registered.exports?.includes(SERVICE_ACCOUNT_SERVICE));
   assert.ok(
     registered.providers?.some(
-      (provider) => typeof provider === 'object' && provider !== null && 'provide' in provider && provider.provide === SERVICE_ACCOUNT_SERVICE,
+      (provider) =>
+        typeof provider === 'object' &&
+        provider !== null &&
+        'provide' in provider &&
+        provider.provide === SERVICE_ACCOUNT_SERVICE,
     ),
   );
 });

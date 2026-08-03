@@ -288,7 +288,11 @@ export function createEntitlementLeaseV1(
   const issuedAt = timestamp(input.issuedAt);
   const expiresAt = timestamp(input.expiresAt);
   const snapshotScope: TenantScopeV1 = snapshot.workspaceId
-    ? { scopeType: 'workspace', organizationId: snapshot.organizationId, workspaceId: snapshot.workspaceId }
+    ? {
+        scopeType: 'workspace',
+        organizationId: snapshot.organizationId,
+        workspaceId: snapshot.workspaceId,
+      }
     : { scopeType: 'organization', organizationId: snapshot.organizationId };
   if (!leaseId) return rejected('INVALID_IDENTIFIER');
   if (!issuedAt || !expiresAt) return rejected('INVALID_TIMESTAMP');
@@ -632,10 +636,7 @@ export function acceptEntitlementLeaseV1(
     signatureValid = false;
   }
   if (!signatureValid) return rejected('LEASE_INVALID');
-  if (
-    Date.parse(now) < Date.parse(issuedAt) ||
-    Date.parse(now) >= Date.parse(expiresAt)
-  )
+  if (Date.parse(now) < Date.parse(issuedAt) || Date.parse(now) >= Date.parse(expiresAt))
     return rejected('LEASE_INVALID');
   return Object.freeze({ accepted: true, value: true });
 }

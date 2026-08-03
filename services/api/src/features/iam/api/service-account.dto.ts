@@ -21,7 +21,10 @@ export class CreateServiceAccountDto {
   @MaxLength(200)
   name!: string;
 
-  @ApiPropertyOptional({ format: 'uuid', description: 'Optional workspace narrowing for the identity' })
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Optional workspace narrowing for the identity',
+  })
   @IsOptional()
   @IsUUID()
   workspaceId?: string;
@@ -33,7 +36,10 @@ export class CreateServiceAccountDto {
   @IsString({ each: true })
   permissions!: string[];
 
-  @ApiPropertyOptional({ format: 'date-time', description: 'Optional expiry, at most 365 days after issue' })
+  @ApiPropertyOptional({
+    format: 'date-time',
+    description: 'Optional expiry, at most 365 days after issue',
+  })
   @IsOptional()
   @IsISO8601()
   secretExpiresAt?: string;

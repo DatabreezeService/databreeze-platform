@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createServiceAccountV1, type ServiceAccountV1 } from '@databreeze/domain/service-account/v1';
+import {
+  createServiceAccountV1,
+  type ServiceAccountV1,
+} from '@databreeze/domain/service-account/v1';
 import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import {
@@ -148,26 +151,50 @@ function client(
 void test('[IAM-013] Prisma service-account adapter persists and filters workspace scope', async () => {
   const rows: Record<string, unknown>[] = [];
   const repository = new PrismaServiceAccountRepositoryAdapter(client(rows));
-  await repository.saveServiceAccount(context({ scopeType: 'organization', organizationId }), account());
+  await repository.saveServiceAccount(
+    context({ scopeType: 'organization', organizationId }),
+    account(),
+  );
   assert.equal(
-    (await repository.findServiceAccount(context({ scopeType: 'workspace', organizationId, workspaceId }), stable(accountId)))?.name,
+    (
+      await repository.findServiceAccount(
+        context({ scopeType: 'workspace', organizationId, workspaceId }),
+        stable(accountId),
+      )
+    )?.name,
     'Import worker',
   );
   assert.equal(
-    (await repository.findServiceAccount(context({ scopeType: 'workspace', organizationId, workspaceId: siblingWorkspaceId }), stable(accountId))),
+    await repository.findServiceAccount(
+      context({ scopeType: 'workspace', organizationId, workspaceId: siblingWorkspaceId }),
+      stable(accountId),
+    ),
     undefined,
   );
   assert.equal(
-    (await repository.findServiceAccountByDigest(context({ scopeType: 'organization', organizationId }), 'a'.repeat(64)))?.id,
+    (
+      await repository.findServiceAccountByDigest(
+        context({ scopeType: 'organization', organizationId }),
+        'a'.repeat(64),
+      )
+    )?.id,
     stable(accountId),
   );
-  assert.equal((await repository.listServiceAccounts(context({ scopeType: 'organization', organizationId }))).length, 1);
+  assert.equal(
+    (await repository.listServiceAccounts(context({ scopeType: 'organization', organizationId })))
+      .length,
+    1,
+  );
 });
 
 void test('[IAM-013] Prisma service-account adapter uses optimistic revisions and rejects races', async () => {
   const repository = new PrismaServiceAccountRepositoryAdapter(client([rowFor()]));
   const next = Object.freeze({ ...account(), name: 'Changed', revision: 2 });
-  await repository.replaceServiceAccount(context({ scopeType: 'organization', organizationId }), next, 1);
+  await repository.replaceServiceAccount(
+    context({ scopeType: 'organization', organizationId }),
+    next,
+    1,
+  );
   await assert.rejects(
     new PrismaServiceAccountRepositoryAdapter(client([rowFor()], true)).replaceServiceAccount(
       context({ scopeType: 'organization', organizationId }),
@@ -181,11 +208,12 @@ void test('[IAM-013] Prisma service-account adapter uses optimistic revisions an
 void test('[IAM-013] Prisma service-account adapter fails closed on malformed persisted state', async () => {
   const malformed = rowFor();
   malformed['secretDigest'] = 'not-a-digest';
-  const repository = new PrismaServiceAccountRepositoryAdapter(
-    client([malformed]),
-  );
+  const repository = new PrismaServiceAccountRepositoryAdapter(client([malformed]));
   await assert.rejects(
-    repository.findServiceAccount(context({ scopeType: 'organization', organizationId }), stable(accountId)),
+    repository.findServiceAccount(
+      context({ scopeType: 'organization', organizationId }),
+      stable(accountId),
+    ),
     /IAM_PERSISTED_SERVICE_ACCOUNT_INVALID/u,
   );
 });

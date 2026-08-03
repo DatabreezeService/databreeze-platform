@@ -41,18 +41,21 @@ export class ServiceAccountController {
       throw new ServiceAccountProblemError('SERVICE_ACCOUNT_NOT_FOUND');
     if (result.code === 'CONFLICT')
       throw new ServiceAccountProblemError('SERVICE_ACCOUNT_CONFLICT');
-    if (result.code === 'REVOKED')
-      throw new ServiceAccountProblemError('SERVICE_ACCOUNT_REVOKED');
-    if (result.code === 'EXPIRED')
-      throw new ServiceAccountProblemError('SERVICE_ACCOUNT_EXPIRED');
+    if (result.code === 'REVOKED') throw new ServiceAccountProblemError('SERVICE_ACCOUNT_REVOKED');
+    if (result.code === 'EXPIRED') throw new ServiceAccountProblemError('SERVICE_ACCOUNT_EXPIRED');
     if (result.code === 'UNAVAILABLE')
       throw new ServiceAccountProblemError('SERVICE_ACCOUNT_UNAVAILABLE');
     throw new ServiceAccountProblemError('SERVICE_ACCOUNT_REQUEST_REJECTED');
   }
 
   @Get('organizations/:organizationId/service-accounts')
-  @ApiOperation({ summary: 'List content-free service-account identities in an organization scope' })
-  async list(@Req() request: unknown, @Param('organizationId') organizationId: string): Promise<unknown> {
+  @ApiOperation({
+    summary: 'List content-free service-account identities in an organization scope',
+  })
+  async list(
+    @Req() request: unknown,
+    @Param('organizationId') organizationId: string,
+  ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
     const parsed = parseStableIdentifierV1(organizationId);
     if (!parsed.accepted || parsed.value !== context.tenantScope.organizationId)
@@ -62,7 +65,9 @@ export class ServiceAccountController {
 
   @Post('service-accounts')
   @HttpCode(201)
-  @ApiOperation({ summary: 'Create an action-scoped service account and return its one-time secret' })
+  @ApiOperation({
+    summary: 'Create an action-scoped service account and return its one-time secret',
+  })
   @ApiBody({ type: CreateServiceAccountDto })
   async create(
     @Req() request: unknown,
@@ -84,7 +89,9 @@ export class ServiceAccountController {
     @Body() input: ServiceAccountRevisionDto,
   ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
-    return this.execute(() => this.serviceAccounts.rotate(context, serviceAccountId, input.expectedRevision));
+    return this.execute(() =>
+      this.serviceAccounts.rotate(context, serviceAccountId, input.expectedRevision),
+    );
   }
 
   @Post('service-accounts/:serviceAccountId/revoke')
@@ -97,6 +104,8 @@ export class ServiceAccountController {
     @Body() input: ServiceAccountRevisionDto,
   ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
-    return this.execute(() => this.serviceAccounts.revoke(context, serviceAccountId, input.expectedRevision));
+    return this.execute(() =>
+      this.serviceAccounts.revoke(context, serviceAccountId, input.expectedRevision),
+    );
   }
 }

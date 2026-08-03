@@ -250,7 +250,10 @@ export class PrismaServiceAccountRepositoryAdapter implements ServiceAccountRepo
   }
 
   public saveServiceAccount(context: IamTenantContextV1, account: ServiceAccountV1) {
-    return new PrismaServiceAccountTransactionAdapter(this.client).saveServiceAccount(context, account);
+    return new PrismaServiceAccountTransactionAdapter(this.client).saveServiceAccount(
+      context,
+      account,
+    );
   }
 
   public findServiceAccount(context: IamTenantContextV1, serviceAccountId: StableIdentifierV1) {

@@ -82,9 +82,7 @@ void test('[IAM-013] secret rotation requires the current revision and increment
 });
 
 void test('[IAM-013] last-use is monotonic and unusable secrets fail closed', () => {
-  const created = createServiceAccountV1(
-    input({ secretExpiresAt: '2026-08-03T01:00:00.000Z' }),
-  );
+  const created = createServiceAccountV1(input({ secretExpiresAt: '2026-08-03T01:00:00.000Z' }));
   assert.equal(created.accepted, true);
   if (!created.accepted) return;
   const used = markServiceAccountUsedV1(created.value, '2026-08-03T00:10:00.000Z');

@@ -1,7 +1,4 @@
-import {
-  tenantScopeContainsV1,
-  type EntitlementLeaseV1,
-} from '@databreeze/domain/v1';
+import { tenantScopeContainsV1, type EntitlementLeaseV1 } from '@databreeze/domain/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type {
@@ -38,7 +35,9 @@ export class InMemoryEntitlementLeaseRepositoryAdapter implements EntitlementLea
   ): Promise<EntitlementLeaseV1 | undefined> {
     await Promise.resolve();
     const lease = this.leases.get(leaseId);
-    return lease && (tenantScopeContainsV1(context.tenantScope, leaseScope(lease)) || tenantScopeContainsV1(leaseScope(lease), context.tenantScope))
+    return lease &&
+      (tenantScopeContainsV1(context.tenantScope, leaseScope(lease)) ||
+        tenantScopeContainsV1(leaseScope(lease), context.tenantScope))
       ? clone(lease)
       : undefined;
   }
@@ -55,7 +54,10 @@ export class InMemoryEntitlementLeaseRepositoryAdapter implements EntitlementLea
     await previous;
     const before = new Map(this.leases);
     try {
-      return await work({ saveLease: this.saveLease.bind(this), findLease: this.findLease.bind(this) });
+      return await work({
+        saveLease: this.saveLease.bind(this),
+        findLease: this.findLease.bind(this),
+      });
     } catch (error) {
       this.leases = before;
       throw error;

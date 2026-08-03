@@ -1,7 +1,4 @@
-import {
-  tenantScopeContainsV1,
-  type TenantScopeV1,
-} from '@databreeze/domain/tenant-scope/v1';
+import { tenantScopeContainsV1, type TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { ServiceAccountV1 } from '@databreeze/domain/service-account/v1';
 import type { IamTenantContextV1 } from '../application/tenant-context.js';
@@ -22,7 +19,10 @@ function accountScope(account: ServiceAccountV1): TenantScopeV1 {
 
 function visibleInScope(context: IamTenantContextV1, account: ServiceAccountV1): boolean {
   const scope = accountScope(account);
-  return tenantScopeContainsV1(context.tenantScope, scope) || tenantScopeContainsV1(scope, context.tenantScope);
+  return (
+    tenantScopeContainsV1(context.tenantScope, scope) ||
+    tenantScopeContainsV1(scope, context.tenantScope)
+  );
 }
 
 function writableInScope(context: IamTenantContextV1, account: ServiceAccountV1): boolean {
@@ -76,7 +76,8 @@ export class InMemoryServiceAccountRepositoryAdapter implements ServiceAccountRe
     if (!writableInScope(context, account)) throw new Error('SCOPE_DENIED');
     const existing = this.accounts.get(account.id);
     if (existing) {
-      if (JSON.stringify(existing) !== JSON.stringify(account)) throw new Error('IMMUTABLE_SERVICE_ACCOUNT');
+      if (JSON.stringify(existing) !== JSON.stringify(account))
+        throw new Error('IMMUTABLE_SERVICE_ACCOUNT');
       return;
     }
     const duplicateDigest = [...this.accounts.values()].find(

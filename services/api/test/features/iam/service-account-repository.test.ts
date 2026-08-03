@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createServiceAccountV1 } from '@databreeze/domain/service-account/v1';
-import { parseStableIdentifierV1, type StableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
+import {
+  parseStableIdentifierV1,
+  type StableIdentifierV1,
+} from '@databreeze/domain/tenant-scope/v1';
 
 import { InMemoryServiceAccountRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-service-account-repository.adapter.js';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
@@ -70,7 +73,10 @@ void test('[IAM-013] service account repository preserves tenant scope and immut
     undefined,
   );
   assert.equal(
-    (await repository.findServiceAccount(context({ scopeType: 'organization', organizationId: otherOrganizationId }), stableAccountId)),
+    await repository.findServiceAccount(
+      context({ scopeType: 'organization', organizationId: otherOrganizationId }),
+      stableAccountId,
+    ),
     undefined,
   );
   assert.equal((await repository.listServiceAccounts(organizationContext)).length, 1);
@@ -81,11 +87,22 @@ void test('[IAM-013] workspace scope is visible to its parent and child context 
   const organizationContext = context({ scopeType: 'organization', organizationId }, 'parent');
   await repository.saveServiceAccount(organizationContext, account());
   assert.equal(
-    (await repository.listServiceAccounts(context({ scopeType: 'workspace', organizationId, workspaceId }, 'child'))).length,
+    (
+      await repository.listServiceAccounts(
+        context({ scopeType: 'workspace', organizationId, workspaceId }, 'child'),
+      )
+    ).length,
     1,
   );
   assert.equal(
-    (await repository.listServiceAccounts(context({ scopeType: 'workspace', organizationId, workspaceId: otherOrganizationId }, 'sibling'))).length,
+    (
+      await repository.listServiceAccounts(
+        context(
+          { scopeType: 'workspace', organizationId, workspaceId: otherOrganizationId },
+          'sibling',
+        ),
+      )
+    ).length,
     0,
   );
 });
@@ -106,5 +123,8 @@ void test('[IAM-013] replacement is revision guarded and transactions roll back 
     }),
     /ROLLBACK/,
   );
-  assert.equal((await repository.findServiceAccount(organizationContext, stableAccountId))?.name, 'Import worker');
+  assert.equal(
+    (await repository.findServiceAccount(organizationContext, stableAccountId))?.name,
+    'Import worker',
+  );
 });

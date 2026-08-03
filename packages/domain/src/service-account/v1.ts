@@ -81,10 +81,7 @@ function positiveInteger(input: unknown): number | undefined {
   return typeof input === 'number' && Number.isSafeInteger(input) && input >= 1 ? input : undefined;
 }
 
-function lifetimeWithin(
-  issuedAt: StrictUtcTimestampV1,
-  expiresAt: StrictUtcTimestampV1,
-): boolean {
+function lifetimeWithin(issuedAt: StrictUtcTimestampV1, expiresAt: StrictUtcTimestampV1): boolean {
   const issued = Date.parse(issuedAt);
   const expires = Date.parse(expiresAt);
   return (
@@ -96,9 +93,15 @@ function lifetimeWithin(
 }
 
 function permissions(input: unknown): readonly PermissionV1[] | undefined {
-  if (!Array.isArray(input) || input.length === 0 || input.length > SERVICE_ACCOUNT_MAX_PERMISSION_COUNT_V1)
+  if (
+    !Array.isArray(input) ||
+    input.length === 0 ||
+    input.length > SERVICE_ACCOUNT_MAX_PERMISSION_COUNT_V1
+  )
     return undefined;
-  const values = input.filter((permission): permission is PermissionV1 => isPermissionV1(permission));
+  const values = input.filter((permission): permission is PermissionV1 =>
+    isPermissionV1(permission),
+  );
   if (values.length !== input.length) return undefined;
   return Object.freeze([...new Set(values)]);
 }
@@ -138,8 +141,7 @@ export function createServiceAccountV1(input: {
   if (!permissionValues) return rejected('INVALID_PERMISSION');
   if (!secretDigest) return rejected('INVALID_DIGEST');
   if (!secretIssuedAt || !createdAt) return rejected('INVALID_TIMESTAMP');
-  if (input.secretExpiresAt !== undefined && !secretExpiresAt)
-    return rejected('INVALID_TIMESTAMP');
+  if (input.secretExpiresAt !== undefined && !secretExpiresAt) return rejected('INVALID_TIMESTAMP');
   if (!validSecretWindow(secretIssuedAt, secretExpiresAt)) return rejected('INVALID_LIFETIME');
   return accepted(
     Object.freeze({
@@ -175,11 +177,14 @@ export function rotateServiceAccountSecretV1(
   const expiresAt = input.expiresAt === undefined ? undefined : timestamp(input.expiresAt);
   const expectedRevision = positiveInteger(input.expectedRevision);
   if (!secretDigest) return rejected('INVALID_DIGEST');
-  if (!issuedAt || (input.expiresAt !== undefined && !expiresAt)) return rejected('INVALID_TIMESTAMP');
-  if (!expectedRevision || expectedRevision !== current.revision) return rejected('REVISION_CONFLICT');
+  if (!issuedAt || (input.expiresAt !== undefined && !expiresAt))
+    return rejected('INVALID_TIMESTAMP');
+  if (!expectedRevision || expectedRevision !== current.revision)
+    return rejected('REVISION_CONFLICT');
   if (current.status !== 'ACTIVE') return rejected('SECRET_REVOKED');
   if (!validSecretWindow(issuedAt, expiresAt)) return rejected('INVALID_LIFETIME');
-  if (Date.parse(issuedAt) < Date.parse(current.secretIssuedAt)) return rejected('INVALID_TIMESTAMP');
+  if (Date.parse(issuedAt) < Date.parse(current.secretIssuedAt))
+    return rejected('INVALID_TIMESTAMP');
   if (expiresAt === undefined) {
     const { secretExpiresAt: _previousExpiry, ...withoutExpiry } = current;
     return accepted(
@@ -235,7 +240,8 @@ export function revokeServiceAccountV1(
   const revokedAt = timestamp(revokedAtInput);
   const expectedRevision = positiveInteger(expectedRevisionInput);
   if (!revokedAt) return rejected('INVALID_TIMESTAMP');
-  if (!expectedRevision || expectedRevision !== current.revision) return rejected('REVISION_CONFLICT');
+  if (!expectedRevision || expectedRevision !== current.revision)
+    return rejected('REVISION_CONFLICT');
   if (current.status !== 'ACTIVE') return rejected('SECRET_REVOKED');
   if (Date.parse(revokedAt) < Date.parse(current.createdAt)) return rejected('INVALID_TIMESTAMP');
   return accepted(
