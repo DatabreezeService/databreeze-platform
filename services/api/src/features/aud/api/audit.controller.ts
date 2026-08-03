@@ -17,12 +17,15 @@ import {
   type RequestTenantContextPortV1,
 } from '../../../platform/http/request-tenant-context.port.js';
 import { AuditProblemError } from '../application/audit-problem.error.js';
-import { parseAuditPageCursorV1 } from '../application/audit-page-cursor.js';
+import {
+  AUDIT_PAGE_LIMIT_MAX_V1,
+  parseAuditPageCursorV1,
+} from '../application/audit-page-cursor.js';
 import { InputValidationException } from '../../../platform/http/input-validation.exception.js';
 
 function pageLimit(input: string | undefined): number {
   const value = input === undefined ? 50 : Number(input);
-  if (!Number.isSafeInteger(value) || value < 1 || value > 100) {
+  if (!Number.isSafeInteger(value) || value < 1 || value > AUDIT_PAGE_LIMIT_MAX_V1) {
     throw new InputValidationException([{ field: 'limit', code: 'INVALID_PAGE_LIMIT' }]);
   }
   return value;

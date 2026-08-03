@@ -1,19 +1,17 @@
-import type { TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
+import {
+  tenantScopeKeyV1,
+  type TenantScopeV1,
+} from '@databreeze/domain/tenant-scope/v1';
+import type { AuditPageInputV1 } from './audit-repository.port.js';
 
 export type AuditPageKindV1 = 'events' | 'seals';
+export const AUDIT_PAGE_LIMIT_MAX_V1 = 100 as const;
 
 export type AuditPageCursorResultV1 =
   | { readonly accepted: true; readonly offset: number }
   | { readonly accepted: false; readonly code: 'INVALID_CURSOR' };
 
 const MAX_CURSOR_LENGTH_V1 = 512;
-
-function scopeKey(scope: TenantScopeV1): string {
-  if (scope.scopeType === 'organization') return `organization:${scope.organizationId}`;
-  if (scope.scopeType === 'workspace')
-    return `workspace:${scope.organizationId}:${scope.workspaceId}`;
-  return `project:${scope.organizationId}:${scope.workspaceId}:${scope.projectId}`;
-}
 
 function rejected(): AuditPageCursorResultV1 {
   return Object.freeze({ accepted: false, code: 'INVALID_CURSOR' });
@@ -26,7 +24,7 @@ export function createAuditPageCursorV1(
 ): string {
   if (!Number.isSafeInteger(offset) || offset < 0) throw new Error('AUD_CURSOR_OFFSET_INVALID');
   return Buffer.from(
-    JSON.stringify({ version: 1, kind, scope: scopeKey(scope), offset }),
+    JSON.stringify({ version: 1, kind, scope: tenantScopeKeyV1(scope), offset }),
     'utf8',
   ).toString('base64url');
 }
@@ -52,7 +50,7 @@ export function parseAuditPageCursorV1(
       Object.keys(record).sort().join(',') !== 'kind,offset,scope,version' ||
       record['version'] !== 1 ||
       record['kind'] !== kind ||
-      record['scope'] !== scopeKey(scope) ||
+      record['scope'] !== tenantScopeKeyV1(scope) ||
       !Number.isSafeInteger(record['offset']) ||
       (record['offset'] as number) < 0
     )
@@ -61,4 +59,21 @@ export function parseAuditPageCursorV1(
   } catch {
     return rejected();
   }
+}
+
+export function auditPageOffsetV1(
+  input: AuditPageInputV1,
+  kind: AuditPageKindV1,
+  scope: TenantScopeV1,
+): number {
+  if (
+    !Number.isSafeInteger(input.limit) ||
+    input.limit < 1 ||
+    input.limit > AUDIT_PAGE_LIMIT_MAX_V1
+  )
+    throw new Error('AUD_PAGE_LIMIT_INVALID');
+  if (input.cursor === undefined) return 0;
+  const parsed = parseAuditPageCursorV1(input.cursor, kind, scope);
+  if (!parsed.accepted) throw new Error('AUD_CURSOR_INVALID');
+  return parsed.offset;
 }

@@ -26,7 +26,7 @@ import type {
 } from '../application/audit-repository.port.js';
 import {
   createAuditPageCursorV1,
-  parseAuditPageCursorV1,
+  auditPageOffsetV1,
 } from '../application/audit-page-cursor.js';
 import { sameAuditEventV1, sameAuditSealV1 } from '../application/audit-equality.js';
 
@@ -302,19 +302,6 @@ function visibilityWhere(scope: TenantScopeV1): Readonly<Record<string, unknown>
   };
 }
 
-function pageOffset(
-  input: AuditPageInputV1,
-  kind: 'events' | 'seals',
-  scope: TenantScopeV1,
-): number {
-  if (!Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > 100)
-    throw new Error('AUD_PAGE_LIMIT_INVALID');
-  if (input.cursor === undefined) return 0;
-  const parsed = parseAuditPageCursorV1(input.cursor, kind, scope);
-  if (!parsed.accepted) throw new Error('AUD_CURSOR_INVALID');
-  return parsed.offset;
-}
-
 class PrismaAuditTransactionAdapter implements AuditTransactionPortV1 {
   public constructor(
     private readonly client: AuditDatabaseClientV1,
@@ -442,7 +429,7 @@ export class PrismaAuditRepositoryAdapter implements AuditRepositoryPortV1 {
     context: IamTenantContextV1,
     input: AuditPageInputV1,
   ): Promise<AuditPageV1<AuditEventV1>> {
-    const offset = pageOffset(input, 'events', context.tenantScope);
+    const offset = auditPageOffsetV1(input, 'events', context.tenantScope);
     const rows = await this.client.auditEventRecord.findMany({
       where: visibilityWhere(context.tenantScope),
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
@@ -476,7 +463,7 @@ export class PrismaAuditRepositoryAdapter implements AuditRepositoryPortV1 {
     context: IamTenantContextV1,
     input: AuditPageInputV1,
   ): Promise<AuditPageV1<AuditSealV1>> {
-    const offset = pageOffset(input, 'seals', context.tenantScope);
+    const offset = auditPageOffsetV1(input, 'seals', context.tenantScope);
     const rows = await this.client.auditSealRecord.findMany({
       where: visibilityWhere(context.tenantScope),
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
