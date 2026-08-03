@@ -12,6 +12,7 @@ const [
   artifactExport,
   artifactUpload,
   protectedDocument,
+  serviceAccount,
   dataset,
   datasetGovernance,
   datasetQuality,
@@ -43,6 +44,7 @@ const [
   import('@databreeze/domain/artifact-export/v1'),
   import('@databreeze/domain/artifact-upload/v1'),
   import('@databreeze/domain/protected-document/v1'),
+  import('@databreeze/domain/service-account/v1'),
   import('@databreeze/domain/dataset/v1'),
   import('@databreeze/domain/dataset-governance/v1'),
   import('@databreeze/domain/dataset-quality/v1'),
@@ -97,4 +99,5 @@ assert.equal(mapping.MAPPING_SCHEMA_VERSION_V1, 1);
 assert.equal(ruleSet.RULE_SET_SCHEMA_VERSION_V1, 1);
 assert.equal(evidenceGrant.EVIDENCE_GRANT_SCHEMA_VERSION_V1, 1);
 assert.equal(recovery.RECOVERY_CHALLENGE_SCHEMA_VERSION_V1, 1);
+assert.equal(serviceAccount.SERVICE_ACCOUNT_SCHEMA_VERSION_V1, 1);
 await assert.rejects(import('@databreeze/domain'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });

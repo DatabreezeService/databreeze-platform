@@ -28,6 +28,10 @@
       "types": "./src/identity/v1.ts",
       "import": "./dist/identity/v1.js"
     },
+    "./service-account/v1": {
+      "types": "./src/service-account/v1.ts",
+      "import": "./dist/service-account/v1.js"
+    },
     "./entitlements/v1": {
       "types": "./src/entitlements/v1.ts",
       "import": "./dist/entitlements/v1.js"
