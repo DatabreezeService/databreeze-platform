@@ -15,6 +15,18 @@ test('AWS validation pins one OpenTofu CLI and official container release', () =
   assert.match(readme, /ghcr\.io\/opentofu\/opentofu:1\.12\.5/u);
 });
 
+test('AWS validators accept strict semantic versions without leading zero components', () => {
+  const strictSemanticVersion = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u;
+  for (const version of ['0.0.0', '1.2.3', '10.20.30'])
+    assert.equal(strictSemanticVersion.test(version), true, version);
+  for (const version of ['01.2.3', '1.02.3', '1.2.03', '1.2', 'v1.2.3'])
+    assert.equal(strictSemanticVersion.test(version), false, version);
+
+  const expectedLiteral = '/^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$/u';
+  assert.ok(read('tools/repo-cli/src/check-aws-infrastructure.mjs').includes(expectedLiteral));
+  assert.ok(read('tools/repo-cli/src/validate-aws-opentofu.mjs').includes(expectedLiteral));
+});
+
 test('AWS container validation command is pinned, isolated, and non-applying', () => {
   const script = path.join(repositoryRoot, 'tools/repo-cli/src/validate-aws-opentofu.mjs');
   const help = spawnSync(process.execPath, [script, '--help'], {
@@ -23,16 +35,23 @@ test('AWS container validation command is pinned, isolated, and non-applying', (
   });
   assert.equal(help.status, 0, help.stderr);
   assert.match(help.stdout, /official pinned OpenTofu container/u);
+  assert.match(help.stdout, /mocked plan\s+test/u);
+  assert.match(help.stdout, /does not\s+apply infrastructure/u);
   const source = read('tools/repo-cli/src/validate-aws-opentofu.mjs');
   assert.match(source, /'fmt',\s*'-check',\s*'-recursive'/u);
   assert.match(source, /'init',\s*'-backend=false',\s*'-input=false',\s*'-lockfile=readonly'/u);
   assert.match(source, /'validate', '-no-color'/u);
   assert.match(source, /'test', '-no-color'/u);
+  assert.match(source, /target=\/workspace,readonly/u);
   assert.match(source, /TF_DATA_DIR=\/tmp\/databreeze-tofu/u);
   assert.doesNotMatch(source, /['"]apply['"]/u);
   assert.match(
     read('package.json'),
     /"infra:validate": "node tools\/repo-cli\/src\/validate-aws-opentofu\.mjs"/u,
+  );
+  assert.match(
+    read('infrastructure/aws/README.md'),
+    /tofu init -backend=false -lockfile=readonly/u,
   );
 });
 
