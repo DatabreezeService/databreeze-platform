@@ -84,7 +84,11 @@ function delegate<TRow extends Record<string, unknown>>(
       readonly take?: number;
     }) {
       const filtered = rows.filter((row) => matches(row, where));
-      const ordering = Array.isArray(orderBy) ? orderBy : [orderBy];
+      const ordering: readonly Readonly<
+        Record<string, 'asc' | 'desc'>
+      >[] = Array.isArray(orderBy)
+        ? (orderBy as readonly Readonly<Record<string, 'asc' | 'desc'>>[])
+        : [orderBy as Readonly<Record<string, 'asc' | 'desc'>>];
       return Promise.resolve(
         [...filtered]
           .sort((left, right) => {
