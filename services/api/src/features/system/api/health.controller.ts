@@ -27,7 +27,11 @@ export class HealthController {
   @ApiOkResponse({
     schema: { properties: { status: { enum: ['ready'], type: 'string' } }, type: 'object' },
   })
-  @ApiServiceUnavailableResponse({ schema: { $ref: '#/components/schemas/ProblemDetails' } })
+  @ApiServiceUnavailableResponse({
+    content: {
+      'application/problem+json': { schema: { $ref: '#/components/schemas/ProblemDetails' } },
+    },
+  })
   async readinessStatus(): Promise<{ readonly status: 'ready' }> {
     try {
       if (await this.readiness.check()) return { status: 'ready' };

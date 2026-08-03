@@ -15,6 +15,7 @@ interface ParameterLike {
 
 interface ResponseLike {
   readonly $ref?: string;
+  readonly content?: Record<string, unknown>;
   readonly headers?: Record<string, unknown>;
 }
 
@@ -242,6 +243,8 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       assert.ok(auditRead?.responses['200'], `${path} must document its successful response`);
       assert.ok(auditRead.responses['503'], `${path} must document audit persistence outages`);
     }
+    const readiness = firstDocument.paths['/health/ready']?.get as OperationLike | undefined;
+    assert.ok(readiness?.responses['503']?.content?.['application/problem+json']);
 
     const served = await first.app.inject({ method: 'GET', url: '/v1/openapi.json' });
     assert.equal(served.statusCode, 200);

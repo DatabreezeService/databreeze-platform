@@ -147,10 +147,12 @@
             }
           },
           "503": {
-            "description": "",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" } }
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
             },
+            "description": "",
             "headers": {
               "X-Correlation-Id": {
                 "description": "Stable UUID that correlates related requests and errors.",
