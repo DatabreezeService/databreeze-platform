@@ -15,10 +15,10 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
     './authorization/v1',
     './audit/v1',
     './identity/v1',
-  './entitlements/v1',
-  './mfa/v1',
-  './invitation/v1',
-  './device-authorization/v1',
+    './entitlements/v1',
+    './mfa/v1',
+    './invitation/v1',
+    './device-authorization/v1',
     './device-sync/v1',
     './device-capability/v1',
     './data-mode/v1',
@@ -67,6 +67,7 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
   assert.equal(aggregate.IDENTITY_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.ENTITLEMENT_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.MFA_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.INVITATION_TOKEN_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.PKCE_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.CSRF_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.DEVICE_AUTHORIZATION_SCHEMA_VERSION_V1, 1);
