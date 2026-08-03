@@ -1,5 +1,5 @@
 import { Controller, Get, Inject, Optional, Req } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import {
   IDENTITY_BOOTSTRAP_SERVICE,
@@ -9,6 +9,7 @@ import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
 } from '../../../platform/http/request-tenant-context.port.js';
+import { BootstrapResponseDto } from './bootstrap.dto.js';
 
 /** IAM-001/IAM-009: bootstrap is derived from the authenticated principal, never request scope. */
 @ApiTags('identity')
@@ -25,6 +26,7 @@ export class IamBootstrapController {
 
   @Get('bootstrap')
   @ApiOperation({ summary: 'Load safe identity and personal-tenant bootstrap state' })
+  @ApiOkResponse({ type: BootstrapResponseDto })
   async bootstrap(@Req() request: unknown): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
     if (this.identityBootstrap === undefined)

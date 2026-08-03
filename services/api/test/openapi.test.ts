@@ -60,6 +60,13 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       'https://json-schema.org/draft/2020-12/schema',
     );
     assert.equal(firstDocument.info.version, '1.0.0');
+    const bootstrapResponse = (
+      firstDocument.paths['/v1/me/bootstrap']?.get as OperationLike | undefined
+    )?.responses['200'];
+    assert.equal(
+      (bootstrapResponse?.content?.['application/json'] as { readonly schema?: { readonly $ref?: string } } | undefined)?.schema?.$ref,
+      '#/components/schemas/BootstrapResponseDto',
+    );
 
     const paths = Object.keys(firstDocument.paths).sort();
     assert.deepEqual(paths, [

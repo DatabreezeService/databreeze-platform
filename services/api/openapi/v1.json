@@ -2336,6 +2336,11 @@
         "responses": {
           "200": {
             "description": "",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BootstrapResponseDto" }
+              }
+            },
             "headers": {
               "X-Correlation-Id": {
                 "description": "Stable UUID that correlates related requests and errors.",
@@ -8595,6 +8600,102 @@
           "expectedRevision": { "type": "number", "minimum": 1, "maximum": 9007199254740991 }
         },
         "required": ["expectedRevision"]
+      },
+      "BootstrapUserDto": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "displayName": { "type": "string" },
+          "locale": { "type": "string", "enum": ["vi-VN", "en"] },
+          "mfaState": { "type": "string", "enum": ["ENABLED", "NOT_CONFIGURED"] }
+        },
+        "required": ["id", "displayName", "locale", "mfaState"]
+      },
+      "BootstrapProjectDto": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "kind": { "type": "string", "enum": ["INTERNAL", "CLIENT", "LOCATION", "ENGAGEMENT"] },
+          "status": { "type": "string", "enum": ["ACTIVE", "ARCHIVED"] }
+        },
+        "required": ["id", "name", "kind", "status"]
+      },
+      "BootstrapWorkspaceDto": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "status": { "type": "string", "enum": ["ACTIVE", "ARCHIVED"] },
+          "projects": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/BootstrapProjectDto" }
+          }
+        },
+        "required": ["id", "name", "status", "projects"]
+      },
+      "BootstrapOrganizationDto": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "personal": { "type": "boolean" },
+          "status": { "type": "string", "enum": ["ACTIVE", "SUSPENDED", "DEACTIVATED"] },
+          "workspaces": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/BootstrapWorkspaceDto" }
+          }
+        },
+        "required": ["id", "name", "personal", "status", "workspaces"]
+      },
+      "BootstrapScopeDto": {
+        "type": "object",
+        "properties": {
+          "organizationId": { "type": "string", "format": "uuid" },
+          "workspaceId": { "type": "string", "format": "uuid" },
+          "projectId": { "type": "string", "format": "uuid" }
+        },
+        "required": ["organizationId"]
+      },
+      "BootstrapSessionDto": {
+        "type": "object",
+        "properties": {
+          "organizationId": { "type": "string", "format": "uuid" },
+          "workspaceId": { "type": "string", "format": "uuid" },
+          "authorizationEpoch": { "type": "number", "minimum": 1 }
+        },
+        "required": ["organizationId", "authorizationEpoch"]
+      },
+      "BootstrapPlatformDto": {
+        "type": "object",
+        "properties": { "apiVersion": { "type": "string" } },
+        "required": ["apiVersion"]
+      },
+      "BootstrapValueDto": {
+        "type": "object",
+        "properties": {
+          "user": { "$ref": "#/components/schemas/BootstrapUserDto" },
+          "organizations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/BootstrapOrganizationDto" }
+          },
+          "recentScopes": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/BootstrapScopeDto" }
+          },
+          "session": { "$ref": "#/components/schemas/BootstrapSessionDto" },
+          "platform": { "$ref": "#/components/schemas/BootstrapPlatformDto" }
+        },
+        "required": ["user", "organizations", "recentScopes", "session", "platform"]
+      },
+      "BootstrapResponseDto": {
+        "type": "object",
+        "properties": {
+          "accepted": { "type": "boolean" },
+          "value": { "$ref": "#/components/schemas/BootstrapValueDto" },
+          "code": { "type": "string", "enum": ["INVALID_IDENTIFIER", "NOT_FOUND", "UNAVAILABLE"] }
+        },
+        "required": ["accepted"]
       },
       "CreateInboxItemDto": {
         "type": "object",
