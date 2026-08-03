@@ -174,7 +174,7 @@ void test('[IAM-009, IAM-019] malformed membership rows fail closed without bloc
   const valid = row(id('20'), 'WORKSPACE', workspaceId, 'viewer');
   const malformed = {
     ...row(id('21'), 'WORKSPACE', workspaceId, 'viewer'),
-    workspaceId: 'not-a-workspace-id',
+    roleId: 'malformed-role',
   };
   const skipped: string[] = [];
   const repository = new PrismaIamRepositoryAdapter(createDatabase([valid, malformed]).client, {
