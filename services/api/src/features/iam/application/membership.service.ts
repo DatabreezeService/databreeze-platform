@@ -145,6 +145,9 @@ export class IamMembershipService {
   public async list(
     context: IamTenantContextV1,
   ): Promise<IamMembershipApplicationResultV1<readonly IamMembershipRecordV1[]>> {
+    const authorization = await this.authorize(context, context.tenantScope);
+    if (authorization !== 'ALLOWED')
+      return rejected(authorization === 'UNAVAILABLE' ? 'UNAVAILABLE' : 'SCOPE_DENIED');
     try {
       return accepted(await this.repository.listMemberships(context));
     } catch (error) {

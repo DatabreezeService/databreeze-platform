@@ -118,6 +118,15 @@ void test('[IAM-003, IAM-004] viewer and out-of-scope invitations are denied', a
   );
 });
 
+void test('[IAM-004] membership administration listing requires a settings-management permission', async () => {
+  const viewer = repository('viewer');
+  const service = new IamMembershipService(viewer, idsFrom(ids.invitation), clock);
+  assert.deepEqual(await service.list(context('membership-service-list-001')), {
+    accepted: false,
+    code: 'SCOPE_DENIED',
+  });
+});
+
 void test('[IAM-004] owner invitations are organization-only and cannot be delegated by an admin', async () => {
   const admin = repository('admin');
   const adminService = new IamMembershipService(admin, idsFrom(ids.invitation), clock);
