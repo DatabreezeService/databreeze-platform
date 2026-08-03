@@ -63,7 +63,16 @@ function immutableState(existing: MfaStateV1, next: MfaStateV1): boolean {
 /** In-memory MFA state adapter; secrets remain opaque references and codes remain digests. */
 export class InMemoryMfaRepositoryAdapter implements MfaRepositoryPortV1 {
   private states = new Map<string, MfaStateV1>();
+  private recoveryReenrollment = new Map<string, boolean>();
   private transactionTail: Promise<void> = Promise.resolve();
+
+  public setRecoveryReenrollmentRequired(userId: StableIdentifierV1, required = true): void {
+    this.recoveryReenrollment.set(userId, required);
+  }
+
+  public isRecoveryReenrollmentRequired(userId: StableIdentifierV1): boolean {
+    return this.recoveryReenrollment.get(userId) === true;
+  }
 
   public async findState(userId: StableIdentifierV1): Promise<MfaStateV1> {
     await Promise.resolve();
@@ -82,6 +91,13 @@ export class InMemoryMfaRepositoryAdapter implements MfaRepositoryPortV1 {
     this.states.set(userId, cloneState(state));
   }
 
+  public async clearRecoveryReenrollment(userId: StableIdentifierV1): Promise<boolean> {
+    await Promise.resolve();
+    if (this.recoveryReenrollment.get(userId) !== true) return false;
+    this.recoveryReenrollment.set(userId, false);
+    return true;
+  }
+
   public async withTransaction<TValue>(
     work: (transaction: MfaTransactionPortV1) => Promise<TValue>,
   ): Promise<TValue> {
@@ -92,13 +108,16 @@ export class InMemoryMfaRepositoryAdapter implements MfaRepositoryPortV1 {
     });
     await previous;
     const before = new Map(this.states);
+    const beforeReenrollment = new Map(this.recoveryReenrollment);
     try {
       return await work({
         findState: this.findState.bind(this),
         saveState: this.saveState.bind(this),
+        clearRecoveryReenrollment: this.clearRecoveryReenrollment.bind(this),
       });
     } catch (error) {
       this.states = before;
+      this.recoveryReenrollment = beforeReenrollment;
       throw error;
     } finally {
       release();

@@ -162,6 +162,9 @@ export class MfaService {
         recoveryCodes: state.recoveryCodes,
       });
       await transaction.saveState(userId, next);
+      if (transaction.clearRecoveryReenrollment) {
+        await transaction.clearRecoveryReenrollment(userId);
+      }
       return Object.freeze({ accepted: true, value: view(next) });
     });
   }

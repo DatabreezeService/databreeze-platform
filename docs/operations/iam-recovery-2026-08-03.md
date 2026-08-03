@@ -8,6 +8,7 @@ It does not claim that IAM-015 or the IAM plan is complete.
 - Validate a bounded recovery request and return the same accepted response for known and unknown email addresses.
 - Generate a short-lived, single-use bearer, deliver the raw value only through the delivery port, and persist only keyed HMAC digests.
 - Consume the bearer exactly once and atomically rotate the Argon2id credential, advance the user security epoch, revoke active sessions and MFA factors, and mark MFA re-enrollment required.
+- Clear the re-enrollment gate in the same MFA transaction when a newly enrolled factor is successfully verified; failed proofs do not clear it.
 - Keep the public completion response free of bearer material; no session is automatically created.
 - Select the Prisma recovery adapter only when persistence is configured, and fail closed when the delivery, digest, or password boundary is missing.
 
@@ -16,6 +17,7 @@ It does not claim that IAM-015 or the IAM plan is complete.
 - Recovery state-machine tests: `packages/domain/test/recovery-v1.test.mjs`.
 - In-memory transaction/service tests: `services/api/test/features/iam/recovery.service.test.ts`.
 - Durable schema adapter and atomic side-effect tests: `services/api/test/features/iam/prisma-recovery-repository.test.ts`.
+- MFA re-enrollment transaction tests: `services/api/test/features/iam/mfa.service.test.ts` and `services/api/test/features/iam/prisma-mfa-repository.test.ts`.
 - Composition/controller/HTTP tests: `services/api/test/features/iam/recovery-composition.test.ts`, `recovery-controller.test.ts`, and `recovery-http.test.ts`.
 - Public routes: `services/api/openapi/v1.json` (`POST /v1/auth/recovery` and `POST /v1/auth/recovery/complete`).
 - Bilingual problem copy: `packages/i18n/src/catalogs-v1.ts` and `packages/i18n/test/catalogs-v1.test.mjs`.

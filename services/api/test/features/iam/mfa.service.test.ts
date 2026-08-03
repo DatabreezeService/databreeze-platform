@@ -14,6 +14,7 @@ const at = '2026-01-01T00:00:00.000Z';
 
 void test('[IAM-012, IAM-013, IAM-014] MFA enrollment and verification are revisioned', async () => {
   const repository = new InMemoryMfaRepositoryAdapter();
+  repository.setRecoveryReenrollmentRequired(userId as never);
   const service = new MfaService(
     repository,
     {
@@ -41,6 +42,7 @@ void test('[IAM-012, IAM-013, IAM-014] MFA enrollment and verification are revis
   if (verified.accepted) {
     assert.equal(verified.value.factors[0]?.status, 'ACTIVE');
     assert.equal(verified.value.factors[0]?.verifiedAt, at);
+    assert.equal(repository.isRecoveryReenrollmentRequired(userId as never), false);
   }
   const secondVerify = await service.verifyFactor(userId, factorId, '654321');
   assert.deepEqual(secondVerify, { accepted: false, code: 'INVALID_STATE' });
