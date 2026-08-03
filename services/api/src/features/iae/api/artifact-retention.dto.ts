@@ -1,25 +1,32 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsISO8601, IsInt, IsUUID, Min } from 'class-validator';
+import { IsBoolean, IsISO8601, IsInt, IsUUID, Matches, Min } from 'class-validator';
+
+const strictUtcTimestamp = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 
 export class RetentionEvaluationDto {
   @ApiProperty({ format: 'date-time' })
-  @IsISO8601()
+  @IsISO8601({ strict: true, strictSeparator: true })
+  @Matches(strictUtcTimestamp)
   evaluatedAt!: string;
 
   @ApiProperty({ format: 'date-time' })
-  @IsISO8601()
+  @IsISO8601({ strict: true, strictSeparator: true })
+  @Matches(strictUtcTimestamp)
   workspaceRetentionUntil!: string;
 
   @ApiProperty({ format: 'date-time' })
-  @IsISO8601()
+  @IsISO8601({ strict: true, strictSeparator: true })
+  @Matches(strictUtcTimestamp)
   resourceRetentionUntil!: string;
 
   @ApiProperty({ format: 'date-time' })
-  @IsISO8601()
+  @IsISO8601({ strict: true, strictSeparator: true })
+  @Matches(strictUtcTimestamp)
   auditRetentionUntil!: string;
 
   @ApiProperty({ format: 'date-time' })
-  @IsISO8601()
+  @IsISO8601({ strict: true, strictSeparator: true })
+  @Matches(strictUtcTimestamp)
   recoveryWindowUntil!: string;
 
   @ApiProperty()
@@ -41,13 +48,15 @@ export class CreateArtifactDeletionRequestDto extends RetentionEvaluationDto {
   requestedBy!: string;
 
   @ApiProperty({ format: 'date-time' })
-  @IsISO8601()
+  @IsISO8601({ strict: true, strictSeparator: true })
+  @Matches(strictUtcTimestamp)
   requestedAt!: string;
 }
 
 export class AuthorizeArtifactDeletionRequestDto extends RetentionEvaluationDto {
   @ApiProperty({ format: 'date-time' })
-  @IsISO8601()
+  @IsISO8601({ strict: true, strictSeparator: true })
+  @Matches(strictUtcTimestamp)
   approvedAt!: string;
 
   @ApiProperty()

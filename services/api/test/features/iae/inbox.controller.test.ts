@@ -104,6 +104,22 @@ void test('[IAE-013] HTTP inbox metadata patch uses a revision precondition and 
     assert.ok(typeof body === 'object' && body !== null && 'accepted' in body);
     assert.equal((body as { readonly accepted: boolean }).accepted, true);
     assert.doesNotMatch(accepted.body, /path|source|byte|excerpt/iu);
+
+    const nonUtc = await app.inject({
+      method: 'PATCH',
+      url: `/v1/artifacts/inbox/${inboxItemId}`,
+      headers: { 'if-match': '2' },
+      payload: { dueAt: '2026-01-02T07:00:00.000+07:00' },
+    });
+    assert.equal(nonUtc.statusCode, 400);
+
+    const cleared = await app.inject({
+      method: 'PATCH',
+      url: `/v1/artifacts/inbox/${inboxItemId}`,
+      headers: { 'if-match': '2' },
+      payload: { dueAt: null },
+    });
+    assert.equal(cleared.statusCode, 200);
   } finally {
     await app.close();
   }
