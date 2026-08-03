@@ -57,9 +57,9 @@ def _required_count(profile: DatasetProfile, field: str) -> int | None:
     for summary in profile.fields:
         if summary.field == field:
             return (
-                summary.stateCounts["MISSING"]
-                + summary.stateCounts["NULL"]
-                + summary.stateCounts["BLANK"]
+                summary.stateCounts.get("MISSING", 0)
+                + summary.stateCounts.get("NULL", 0)
+                + summary.stateCounts.get("BLANK", 0)
             )
     return None
 
