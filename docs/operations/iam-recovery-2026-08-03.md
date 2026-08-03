@@ -10,12 +10,14 @@ It does not claim that IAM-015 or the IAM plan is complete.
 - Consume the bearer exactly once and atomically rotate the Argon2id credential, advance the user security epoch, revoke active sessions and MFA factors, and mark MFA re-enrollment required.
 - Clear the re-enrollment gate in the same MFA transaction when a newly enrolled factor is successfully verified; failed proofs do not clear it.
 - Carry the live gate through credential lookup, session lookup, protected request context, and sign-in/current-session projections without trusting client-supplied state.
+- Apply a bounded, replaceable recovery-admission port before account lookup; unknown and throttled addresses receive the same generic response.
 - Keep the public completion response free of bearer material; no session is automatically created.
 - Select the Prisma recovery adapter only when persistence is configured, and fail closed when the delivery, digest, or password boundary is missing.
 
 ## Evidence
 
 - Recovery state-machine tests: `packages/domain/test/recovery-v1.test.mjs`.
+- Abuse-control tests: `services/api/test/features/iam/recovery-admission.test.ts`.
 - In-memory transaction/service tests: `services/api/test/features/iam/recovery.service.test.ts`.
 - Durable schema adapter and atomic side-effect tests: `services/api/test/features/iam/prisma-recovery-repository.test.ts`.
 - MFA re-enrollment transaction tests: `services/api/test/features/iam/mfa.service.test.ts` and `services/api/test/features/iam/prisma-mfa-repository.test.ts`.

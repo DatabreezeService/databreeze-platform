@@ -30,6 +30,11 @@ export interface RecoveryDigestPortV1 {
   digestEmail(normalizedEmail: string): string;
 }
 
+/** Optional abuse-control boundary; callers must not use it to reveal account existence. */
+export interface RecoveryAdmissionPortV1 {
+  allow(keyDigest: string, issuedAt: string): Promise<boolean>;
+}
+
 export interface RecoveryDeliveryPortV1 {
   deliver(input: {
     readonly challengeId: StableIdentifierV1;

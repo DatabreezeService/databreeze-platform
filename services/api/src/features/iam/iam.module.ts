@@ -119,6 +119,7 @@ import {
 } from './application/recovery.service.js';
 import {
   IAM_RECOVERY_REPOSITORY_PORT,
+  type RecoveryAdmissionPortV1,
   type RecoveryDigestPortV1,
   type RecoveryDeliveryPortV1,
   type RecoveryRepositoryPortV1,
@@ -129,6 +130,7 @@ import {
   randomIamRecoveryTokenV1,
   type IamRecoveryDigestKeyV1,
 } from './adapter/iam-recovery-crypto.adapter.js';
+import { InMemoryRecoveryAdmissionAdapter } from './adapter/in-memory-recovery-admission.adapter.js';
 import {
   PrismaRecoveryRepositoryAdapter,
   type RecoveryDatabaseClientV1,
@@ -212,6 +214,7 @@ export interface IamModuleOptions {
   readonly recoveryIdGenerator?: RecoveryIdGeneratorV1;
   readonly recoveryTokenGenerator?: RecoveryTokenGeneratorV1;
   readonly recoveryClock?: RecoveryClockV1;
+  readonly recoveryAdmission?: RecoveryAdmissionPortV1;
   readonly deviceIdentityService?: DeviceIdentityService;
   readonly deviceIdentityRepository?: DeviceIdentityRepositoryPortV1;
   readonly deviceIdentityDatabase?: DeviceIdentityDatabaseClientV1;
@@ -367,6 +370,7 @@ export class IamModule {
             delivery: options.recoveryDelivery,
             ids: options.recoveryIdGenerator ?? randomIamRecoveryIdV1,
             tokens: options.recoveryTokenGenerator ?? randomIamRecoveryTokenV1,
+            admission: options.recoveryAdmission ?? new InMemoryRecoveryAdmissionAdapter(),
             ...(options.recoveryClock ? { clock: options.recoveryClock } : {}),
           })
         : undefined);

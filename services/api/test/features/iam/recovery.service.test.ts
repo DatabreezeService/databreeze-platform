@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { InMemoryRecoveryRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-recovery-repository.adapter.js';
+import { InMemoryRecoveryAdmissionAdapter } from '../../../src/features/iam/adapter/in-memory-recovery-admission.adapter.js';
 import { PasswordCredentialService } from '../../../src/features/iam/application/password-credential.service.js';
 import { RecoveryService } from '../../../src/features/iam/application/recovery.service.js';
 import type { RecoveryDeliveryPortV1 } from '../../../src/features/iam/application/recovery-repository.port.js';
@@ -23,6 +24,7 @@ function credentials() {
 function service(
   repository: InMemoryRecoveryRepositoryAdapter,
   delivery: RecoveryDeliveryPortV1 = { deliver: async () => undefined },
+  admission?: InMemoryRecoveryAdmissionAdapter,
 ) {
   let id = 2;
   return new RecoveryService({
@@ -36,6 +38,7 @@ function service(
     ids: { next: () => `00000000-0000-4000-8000-${String(id++).padStart(12, '0')}` },
     tokens: { next: () => token },
     clock: { now: () => new Date('2026-08-03T00:00:00.000Z') },
+    ...(admission ? { admission } : {}),
   });
 }
 
@@ -59,6 +62,28 @@ void test('[IAM-015] recovery request is generic for unknown email and stores a 
   assert.deepEqual(delivered, [token]);
   assert.equal(repository.challenge('a'.repeat(64))?.userId, userId);
   assert.equal(repository.challenge('a'.repeat(64))?.status, 'ACTIVE');
+});
+
+void test('[IAM-015] recovery admission throttles known and unknown requests through one generic outcome', async () => {
+  const repository = new InMemoryRecoveryRepositoryAdapter();
+  repository.seed({ email: 'user@example.com', userId });
+  const delivered: string[] = [];
+  const admission = new InMemoryRecoveryAdmissionAdapter({ maxAttempts: 1, windowSeconds: 60 });
+  const recovery = service(
+    repository,
+    { deliver: async ({ rawToken }) => void delivered.push(rawToken) },
+    admission,
+  );
+  assert.deepEqual(await recovery.request('unknown@example.com'), {
+    accepted: true,
+    value: { requested: true },
+  });
+  assert.deepEqual(await recovery.request('user@example.com'), {
+    accepted: true,
+    value: { requested: true },
+  });
+  assert.deepEqual(delivered, []);
+  assert.equal(repository.challenge('a'.repeat(64)), undefined);
 });
 
 void test('[IAM-015] completion atomically consumes the challenge, rotates the credential, advances the epoch, revokes sessions, and requires MFA re-enrollment', async () => {

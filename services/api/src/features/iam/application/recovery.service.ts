@@ -13,6 +13,7 @@ import {
 import type { PasswordCredentialService } from './password-credential.service.js';
 import type {
   RecoveryCompletionResultV1,
+  RecoveryAdmissionPortV1,
   RecoveryDeliveryPortV1,
   RecoveryDigestPortV1,
   RecoveryFailureCodeV1,
@@ -42,6 +43,7 @@ export interface RecoveryServicePortsV1 {
   readonly ids: RecoveryIdGeneratorV1;
   readonly tokens: RecoveryTokenGeneratorV1;
   readonly clock?: RecoveryClockV1;
+  readonly admission?: RecoveryAdmissionPortV1;
 }
 
 function stable(input: unknown): StableIdentifierV1 | undefined {
@@ -102,6 +104,14 @@ export class RecoveryService {
       emailDigest = this.ports.digest.digestEmail(normalized.value);
     } catch {
       return unavailable();
+    }
+    if (this.ports.admission) {
+      try {
+        if (!(await this.ports.admission.allow(emailDigest, issuedAt)))
+          return Object.freeze({ accepted: true as const, value: { requested: true as const } });
+      } catch {
+        return unavailable();
+      }
     }
     const expiresAt = new Date(
       Date.parse(issuedAt) + RECOVERY_CHALLENGE_MAX_SECONDS_V1 * 1_000,
