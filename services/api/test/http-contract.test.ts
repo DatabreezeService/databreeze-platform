@@ -712,4 +712,21 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
     });
     assertProblem(invalid, 400, 'MFA_REQUEST_REJECTED');
   });
+
+  const unavailableMfa = {
+    enroll: () => Promise.reject(new Error('database unavailable')),
+  } as unknown as MfaService;
+  await withApp({ mfaService: unavailableMfa, requestTenantContext }, async (app) => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/mfa/factors',
+      payload: {
+        id: '00000000-0000-4000-8000-000000000010',
+        method: 'TOTP',
+        secretReference: 'vault://iam/mfa/test-factor',
+        enrolledAt: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    assertProblem(response, 503, 'MFA_UNAVAILABLE');
+  });
 });

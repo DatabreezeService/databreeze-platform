@@ -18,17 +18,32 @@ export class MfaController {
     @Inject(REQUEST_TENANT_CONTEXT) private readonly requestContext: RequestTenantContextPortV1,
   ) {}
 
+  private requireService(): MfaService {
+    if (this.mfa === undefined) throw new MfaProblemError('MFA_UNAVAILABLE');
+    return this.mfa;
+  }
+
+  private async execute<TValue>(work: () => Promise<TValue>): Promise<TValue> {
+    try {
+      return await work();
+    } catch {
+      throw new MfaProblemError('MFA_UNAVAILABLE');
+    }
+  }
+
   @Post('factors')
   @HttpCode(200)
   @ApiOperation({ summary: 'Enroll a pending MFA factor for the authenticated user' })
   @ApiBody({ type: EnrollMfaFactorDto })
   async enroll(@Req() request: unknown, @Body() input: EnrollMfaFactorDto): Promise<unknown> {
-    if (this.mfa === undefined) throw new MfaProblemError('MFA_UNAVAILABLE');
+    const mfa = this.requireService();
     const context = await this.requestContext.resolve(request);
-    const result = await this.mfa.enroll({
-      ...input,
-      userId: context.actorId,
-    });
+    const result = await this.execute(() =>
+      mfa.enroll({
+        ...input,
+        userId: context.actorId,
+      }),
+    );
     if (!result.accepted) throw new MfaProblemError('MFA_REQUEST_REJECTED');
     return result.value;
   }
@@ -42,9 +57,9 @@ export class MfaController {
     @Param('factorId') factorId: string,
     @Body() input: VerifyMfaFactorDto,
   ): Promise<unknown> {
-    if (this.mfa === undefined) throw new MfaProblemError('MFA_UNAVAILABLE');
+    const mfa = this.requireService();
     const context = await this.requestContext.resolve(request);
-    const result = await this.mfa.verifyFactor(context.actorId, factorId, input.at);
+    const result = await this.execute(() => mfa.verifyFactor(context.actorId, factorId, input.at));
     if (!result.accepted) throw new MfaProblemError('MFA_REQUEST_REJECTED');
     return result.value;
   }
@@ -57,9 +72,11 @@ export class MfaController {
     @Req() request: unknown,
     @Body() input: RedeemMfaRecoveryCodeDto,
   ): Promise<unknown> {
-    if (this.mfa === undefined) throw new MfaProblemError('MFA_UNAVAILABLE');
+    const mfa = this.requireService();
     const context = await this.requestContext.resolve(request);
-    const result = await this.mfa.redeemRecovery(context.actorId, input.presentedDigest, input.at);
+    const result = await this.execute(() =>
+      mfa.redeemRecovery(context.actorId, input.presentedDigest, input.at),
+    );
     if (!result.accepted) throw new MfaProblemError('MFA_REQUEST_REJECTED');
     return result.value;
   }
