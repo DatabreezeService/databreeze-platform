@@ -117,6 +117,12 @@ function visibleInScope(context: TenantScopeV1, membership: TenantScopeV1): bool
   return tenantScopeContainsV1(context, membership) || tenantScopeContainsV1(membership, context);
 }
 
+function scopeSpecificity(scope: TenantScopeV1): number {
+  if (scope.scopeType === 'project') return 3;
+  if (scope.scopeType === 'workspace') return 2;
+  return 1;
+}
+
 class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
   public constructor(private readonly client: IamDatabaseClientV1) {}
 
@@ -134,12 +140,17 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
     });
     return rows
       .map(membershipFromRow)
-      .find(
+      .filter(
         (membership) =>
           membership.principalId === principalId &&
           membership.status === 'ACTIVE' &&
-          visibleInScope(context.tenantScope, membership.scope),
-      );
+          tenantScopeContainsV1(membership.scope, context.tenantScope),
+      )
+      .sort(
+        (left, right) =>
+          scopeSpecificity(right.scope) - scopeSpecificity(left.scope) ||
+          left.id.localeCompare(right.id),
+      )[0];
   }
 
   public async listMemberships(

@@ -26,6 +26,7 @@ const organizationId = stable('1');
 const workspaceId = stable('2');
 const siblingWorkspaceId = stable('3');
 const principalId = stable('4');
+const projectId = stable('6');
 
 function context(scope: TenantScopeV1, expectedRevision?: number) {
   const result = createIamTenantContextV1({
@@ -43,9 +44,10 @@ function context(scope: TenantScopeV1, expectedRevision?: number) {
 
 function row(
   idValue: string,
-  scope: 'WORKSPACE' | 'ORGANIZATION',
+  scope: 'PROJECT' | 'WORKSPACE' | 'ORGANIZATION',
   workspace: string | null,
   roleId: string,
+  project: string | null = null,
 ): IamMembershipDatabaseRowV1 {
   return {
     id: idValue,
@@ -54,7 +56,7 @@ function row(
     scopeType: scope,
     organizationId,
     workspaceId: workspace,
-    projectId: null,
+    projectId: project,
     roleId,
     status: 'ACTIVE',
     startsAt: null,
@@ -130,6 +132,35 @@ void test('[IAM-009, IAM-019] Prisma IAM membership reads are tenant scoped and 
   assert.equal(
     (await repository.findMembership(context(workspaceScope), principalId))?.id,
     stable('10'),
+  );
+});
+
+void test('[IAM-003, IAM-014] Prisma membership authority chooses the narrowest containing scope', async () => {
+  const projectScope = {
+    scopeType: 'project',
+    organizationId,
+    workspaceId,
+    projectId,
+  } as const;
+  const { client } = createDatabase([
+    row(id('09'), 'ORGANIZATION', null, 'owner'),
+    row(id('10'), 'WORKSPACE', workspaceId, 'viewer'),
+    row(id('11'), 'PROJECT', workspaceId, 'operator', projectId),
+  ]);
+  const repository = new PrismaIamRepositoryAdapter(client);
+
+  assert.equal(
+    (await repository.findMembership(context(projectScope), principalId))?.roleId,
+    'operator',
+  );
+
+  const descendantOnly = createDatabase([row(id('12'), 'WORKSPACE', workspaceId, 'owner')]);
+  assert.equal(
+    await new PrismaIamRepositoryAdapter(descendantOnly.client).findMembership(
+      context({ scopeType: 'organization', organizationId }),
+      principalId,
+    ),
+    undefined,
   );
 });
 
