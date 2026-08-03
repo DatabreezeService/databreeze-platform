@@ -20,6 +20,11 @@ repository.
 
 ## Validate without applying
 
+The repository pins OpenTofu `1.12.5` in `.opentofu-version`. Use that exact
+native CLI release, or the official
+`ghcr.io/opentofu/opentofu:1.12.5` container when a host installation is not
+available. Do not use a floating container tag for validation evidence.
+
 ```text
 pnpm infra:check
 cd infrastructure/aws/environments/alpha

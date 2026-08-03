@@ -8,6 +8,13 @@ import { fileURLToPath } from 'node:url';
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const read = (relativePath) => readFileSync(path.join(repositoryRoot, relativePath), 'utf8');
 
+test('AWS validation pins one OpenTofu CLI and official container release', () => {
+  const version = read('infrastructure/aws/.opentofu-version').trim();
+  const readme = read('infrastructure/aws/README.md');
+  assert.equal(version, '1.12.5');
+  assert.match(readme, /ghcr\.io\/opentofu\/opentofu:1\.12\.5/u);
+});
+
 test('AWS foundation has reusable modules and safe alpha composition', () => {
   for (const relativePath of [
     'infrastructure/aws/modules/network/main.tf',

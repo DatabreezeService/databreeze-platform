@@ -9,6 +9,7 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const infrastructureRoot = path.join(repositoryRoot, 'infrastructure', 'aws');
 const requiredFiles = [
   'README.md',
+  '.opentofu-version',
   'environments/alpha/main.tf',
   'environments/alpha/variables.tf',
   'environments/alpha/versions.tf',
@@ -26,6 +27,14 @@ function fail(message) {
 
 for (const relativePath of requiredFiles) {
   if (!existsSync(path.join(infrastructureRoot, relativePath))) fail(`missing ${relativePath}`);
+}
+
+const opentofuVersion = readFileSync(
+  path.join(infrastructureRoot, '.opentofu-version'),
+  'utf8',
+).trim();
+if (!/^\d+\.\d+\.\d+$/u.test(opentofuVersion)) {
+  fail('the OpenTofu version pin must be one exact semantic version');
 }
 
 const allTerraform = requiredFiles
