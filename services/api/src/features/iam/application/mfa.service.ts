@@ -89,13 +89,23 @@ export class MfaService {
     private readonly clock: () => Date = () => new Date(),
   ) {}
 
+  private timestamp(): string | undefined {
+    try {
+      return this.clock().toISOString();
+    } catch {
+      return undefined;
+    }
+  }
+
   public async enroll(input: {
     readonly id: unknown;
     readonly userId: unknown;
     readonly method: unknown;
     readonly secretReference: unknown;
   }): Promise<MfaResultV1<MfaStateViewV1>> {
-    const factor = createMfaFactorV1({ ...input, enrolledAt: this.clock().toISOString() });
+    const enrolledAt = this.timestamp();
+    if (!enrolledAt) return Object.freeze({ accepted: false, code: 'INVALID_TIMESTAMP' });
+    const factor = createMfaFactorV1({ ...input, enrolledAt });
     if (!factor.accepted) return Object.freeze({ accepted: false, code: factor.code });
     return this.repository.withTransaction(async (transaction) => {
       const state = await transaction.findState(factor.value.userId);
@@ -142,7 +152,9 @@ export class MfaService {
       }
       if (!verified)
         return Object.freeze({ accepted: false as const, code: 'FACTOR_PROOF_INVALID' as const });
-      const transitioned = transitionMfaFactorV1(factor, 'VERIFY', this.clock().toISOString());
+      const verifiedAt = this.timestamp();
+      if (!verifiedAt) return Object.freeze({ accepted: false, code: 'INVALID_TIMESTAMP' });
+      const transitioned = transitionMfaFactorV1(factor, 'VERIFY', verifiedAt);
       if (!transitioned.accepted)
         return Object.freeze({ accepted: false, code: transitioned.code });
       const next = Object.freeze({
@@ -162,9 +174,11 @@ export class MfaService {
     if (!userId) return Object.freeze({ accepted: false, code: 'INVALID_IDENTIFIER' });
     return this.repository.withTransaction(async (transaction) => {
       const state = await transaction.findState(userId);
+      const redeemedAt = this.timestamp();
+      if (!redeemedAt) return Object.freeze({ accepted: false, code: 'INVALID_TIMESTAMP' });
       const redeemed = redeemRecoveryCodeV1(
         state,
-        { userId, presentedDigest, at: this.clock().toISOString() },
+        { userId, presentedDigest, at: redeemedAt },
         this.recoveryMatcher,
       );
       if (!redeemed.accepted) return Object.freeze({ accepted: false, code: redeemed.code });
