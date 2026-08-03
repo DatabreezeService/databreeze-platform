@@ -4,6 +4,7 @@ import { type DynamicModule, Module } from '@nestjs/common';
 import { AuthenticationController } from './api/authentication.controller.js';
 import { MfaController } from './api/mfa.controller.js';
 import { IamHierarchyController } from './api/hierarchy.controller.js';
+import { IamMembershipController } from './api/membership.controller.js';
 import { AuthenticationService } from './application/authentication.service.js';
 import {
   AUTHENTICATION_USE_CASE,
@@ -234,6 +235,7 @@ export class IamModule {
         DeviceIdentityController,
         MfaController,
         IamHierarchyController,
+        IamMembershipController,
       ],
       providers: [
         {
