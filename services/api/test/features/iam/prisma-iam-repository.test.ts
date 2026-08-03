@@ -176,7 +176,10 @@ void test('[IAM-009, IAM-019] malformed membership rows fail closed without bloc
     ...row(id('21'), 'WORKSPACE', workspaceId, 'viewer'),
     workspaceId: 'not-a-workspace-id',
   };
-  const repository = new PrismaIamRepositoryAdapter(createDatabase([valid, malformed]).client);
+  const skipped: string[] = [];
+  const repository = new PrismaIamRepositoryAdapter(createDatabase([valid, malformed]).client, {
+    onMalformedMembershipRow: (membershipId) => skipped.push(membershipId),
+  });
 
   assert.deepEqual(
     (
@@ -186,6 +189,7 @@ void test('[IAM-009, IAM-019] malformed membership rows fail closed without bloc
     ).map((membership) => membership.id),
     [valid.id],
   );
+  assert.deepEqual(skipped, [malformed.id]);
 });
 
 void test('[IAM-003, IAM-014] Prisma membership authority chooses the narrowest containing scope', async () => {
