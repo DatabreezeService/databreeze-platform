@@ -38,6 +38,27 @@ model EntitlementSnapshotRecord {
   @@schema("bua")
 }
 
+/// BUA-017/018: signed offline leases are immutable and bound to a snapshot revision/epoch.
+model EntitlementLeaseRecord {
+  id              String   @id @db.Uuid
+  schemaVersion   Int      @map("schema_version")
+  scopeKey        String   @map("scope_key") @db.VarChar(200)
+  scopeType       String   @map("scope_type") @db.VarChar(24)
+  organizationId  String   @map("organization_id") @db.Uuid
+  workspaceId     String?  @map("workspace_id") @db.Uuid
+  snapshotRevision Int     @map("snapshot_revision")
+  securityEpoch   Int      @map("security_epoch")
+  issuedAt        DateTime @map("issued_at") @db.Timestamptz(6)
+  expiresAt       DateTime @map("expires_at") @db.Timestamptz(6)
+  payload         String   @db.Text
+  signature       String   @db.VarChar(2048)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([organizationId, workspaceId, expiresAt], map: "entitlement_leases_scope_expiry_idx")
+  @@map("entitlement_leases")
+  @@schema("bua")
+}
+
 model UsageLedgerEntryRecord {
   id             String   @id @db.Uuid
   schemaVersion  Int      @map("schema_version")
