@@ -71,3 +71,16 @@ void test('[SA-006] findings must stay inside the exact sheet geometry', () => {
     { accepted: false, code: 'INVALID_COORDINATE' },
   );
 });
+
+void test('[SA-004] finding validation preserves structural error codes', () => {
+  for (const [finding, code] of [
+    [{ ...base.findings[0], address: 'not-a-cell' }, 'INVALID_COORDINATE'],
+    [{ ...base.findings[0], severity: 'CRITICAL' }, 'INVALID_SEVERITY'],
+    [{ ...base.findings[0], kind: 'UNKNOWN' }, 'INVALID_KIND'],
+  ]) {
+    assert.deepEqual(createSpreadsheetAuditResultV1({ ...base, findings: [finding] }), {
+      accepted: false,
+      code,
+    });
+  }
+});

@@ -123,8 +123,9 @@ function sheet(input: unknown): SpreadsheetAuditSheetV1 | undefined {
   return Object.freeze({ sheetId, name, maxRow, maxColumn, formulaCount });
 }
 
-function finding(input: unknown): SpreadsheetAuditFindingV1 | undefined {
-  if (typeof input !== 'object' || input === null || Array.isArray(input)) return undefined;
+function finding(input: unknown): SpreadsheetAuditResultValidationV1<SpreadsheetAuditFindingV1> {
+  if (typeof input !== 'object' || input === null || Array.isArray(input))
+    return rejected('INVALID_IDENTIFIER');
   const record = input as Record<string, unknown>;
   const findingId = identifier(record['findingId']);
   const sheetId = identifier(record['sheetId']);
@@ -132,18 +133,24 @@ function finding(input: unknown): SpreadsheetAuditFindingV1 | undefined {
   const kind = record['kind'];
   const severity = record['severity'];
   const formulaFingerprint = hash(record['formulaFingerprint']);
-  if (!findingId || !sheetId || !address || !/^[A-Z]{1,3}[1-9][0-9]*$/u.test(address.toUpperCase()))
-    return undefined;
-  if (kind !== 'FORMULA_FAMILY_OUTLIER' && kind !== 'FORMULA_GAP') return undefined;
-  if (severity !== 'INFO' && severity !== 'WARNING' && severity !== 'ERROR') return undefined;
-  if (!formulaFingerprint) return undefined;
+  if (!findingId || !sheetId) return rejected('INVALID_IDENTIFIER');
+  if (!address || !/^[A-Z]{1,3}[1-9][0-9]*$/u.test(address.toUpperCase()))
+    return rejected('INVALID_COORDINATE');
+  if (kind !== 'FORMULA_FAMILY_OUTLIER' && kind !== 'FORMULA_GAP')
+    return rejected('INVALID_KIND');
+  if (severity !== 'INFO' && severity !== 'WARNING' && severity !== 'ERROR')
+    return rejected('INVALID_SEVERITY');
+  if (!formulaFingerprint) return rejected('INVALID_HASH');
   return Object.freeze({
-    findingId,
-    sheetId,
-    address: address.toUpperCase(),
-    kind: kind as SpreadsheetAuditFindingKindV1,
-    severity: severity as SpreadsheetAuditSeverityV1,
-    formulaFingerprint,
+    accepted: true,
+    value: Object.freeze({
+      findingId,
+      sheetId,
+      address: address.toUpperCase(),
+      kind: kind as SpreadsheetAuditFindingKindV1,
+      severity: severity as SpreadsheetAuditSeverityV1,
+      formulaFingerprint,
+    }),
   });
 }
 
@@ -181,10 +188,12 @@ export function createSpreadsheetAuditResultV1(input: {
     return rejected('DUPLICATE_SHEET');
   if (!Array.isArray(input.findings) || input.findings.length > 10_000)
     return rejected('INVALID_COUNT');
-  const findings = input.findings.map(finding);
-  if (findings.some((candidate): candidate is undefined => candidate === undefined))
-    return rejected('INVALID_COUNT');
-  const validFindings = findings as SpreadsheetAuditFindingV1[];
+  const validFindings: SpreadsheetAuditFindingV1[] = [];
+  for (const candidate of input.findings) {
+    const parsed = finding(candidate);
+    if (!parsed.accepted) return parsed;
+    validFindings.push(parsed.value);
+  }
   if (new Set(validFindings.map((candidate) => candidate.findingId)).size !== validFindings.length)
     return rejected('DUPLICATE_IDENTIFIER');
   const sheetsById = new Map(validSheets.map((candidate) => [candidate.sheetId, candidate]));
