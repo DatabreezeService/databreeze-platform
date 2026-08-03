@@ -22,6 +22,7 @@ import type {
 import type { IamTenantContextV1 } from './tenant-context.js';
 
 export const IAM_INVITATION_SERVICE = Symbol('IAM_INVITATION_SERVICE');
+export const IAM_PRINCIPAL_EMAIL_LOOKUP_PORT = Symbol('IAM_PRINCIPAL_EMAIL_LOOKUP_PORT');
 
 export type IamInvitationApplicationCodeV1 =
   | 'INVALID_IDENTIFIER'

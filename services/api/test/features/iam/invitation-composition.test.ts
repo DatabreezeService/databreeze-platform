@@ -5,9 +5,11 @@ import { IAM_INVITATION_REPOSITORY_PORT } from '../../../src/features/iam/applic
 import {
   IAM_INVITATION_SERVICE,
   IamInvitationService,
+  IAM_PRINCIPAL_EMAIL_LOOKUP_PORT,
 } from '../../../src/features/iam/application/invitation.service.js';
 import { IamModule } from '../../../src/features/iam/iam.module.js';
 import { PrismaIamInvitationRepositoryAdapter } from '../../../src/features/iam/adapter/prisma-iam-invitation-repository.adapter.js';
+import { PrismaIamPrincipalEmailLookupAdapter } from '../../../src/features/iam/adapter/prisma-principal-email-lookup.adapter.js';
 
 function provider(module: ReturnType<typeof IamModule.register>, token: symbol) {
   return module.providers?.find(
@@ -57,4 +59,15 @@ void test('[IAM-010] durable invitation composition selects Prisma persistence w
   if (!repository || !('useValue' in repository) || !service || !('useValue' in service)) return;
   assert.ok(repository.useValue instanceof PrismaIamInvitationRepositoryAdapter);
   assert.ok(service.useValue instanceof IamInvitationService);
+});
+
+void test('[IAM-010] durable invitation composition can source principal email from IAM', () => {
+  const registered = IamModule.register({
+    invitationPrincipalEmailDatabase: {} as never,
+  });
+  assert.equal(provider(registered, IAM_INVITATION_SERVICE), undefined);
+  const lookup = provider(registered, IAM_PRINCIPAL_EMAIL_LOOKUP_PORT);
+  assert.ok(lookup && 'useValue' in lookup);
+  if (!lookup || !('useValue' in lookup)) return;
+  assert.ok(lookup.useValue instanceof PrismaIamPrincipalEmailLookupAdapter);
 });

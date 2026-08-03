@@ -47,6 +47,7 @@ import { IAM_HIERARCHY_SERVICE, IamHierarchyService } from './application/hierar
 import { IAM_MEMBERSHIP_SERVICE, IamMembershipService } from './application/membership.service.js';
 import {
   IAM_INVITATION_SERVICE,
+  IAM_PRINCIPAL_EMAIL_LOOKUP_PORT,
   IamInvitationService,
   type IamInvitationClockV1,
   type IamInvitationDeliveryPortV1,
@@ -91,6 +92,10 @@ import {
   randomIamInvitationTokenV1,
   type IamInvitationDigestKeyV1,
 } from './adapter/iam-invitation-crypto.adapter.js';
+import {
+  PrismaIamPrincipalEmailLookupAdapter,
+  type IamPrincipalEmailDatabaseClientV1,
+} from './adapter/prisma-principal-email-lookup.adapter.js';
 import { InMemoryIamHierarchyRepositoryAdapter } from './adapter/in-memory-iam-hierarchy-repository.adapter.js';
 import {
   PrismaIamHierarchyRepositoryAdapter,
@@ -147,6 +152,7 @@ export interface IamModuleOptions {
   readonly invitationDatabase?: IamInvitationDatabaseClientV1;
   readonly invitationService?: IamInvitationService;
   readonly invitationPrincipalEmails?: IamPrincipalEmailLookupPortV1;
+  readonly invitationPrincipalEmailDatabase?: IamPrincipalEmailDatabaseClientV1;
   readonly invitationDelivery?: IamInvitationDeliveryPortV1;
   readonly invitationDigest?: IamInvitationDigestPortV1;
   readonly invitationDigestKey?: IamInvitationDigestKeyV1;
@@ -249,15 +255,20 @@ export class IamModule {
       (options.invitationDigestKey === undefined
         ? undefined
         : new HmacSha256IamInvitationDigestAdapter(options.invitationDigestKey));
+    const invitationPrincipalEmails =
+      options.invitationPrincipalEmails ??
+      (options.invitationPrincipalEmailDatabase === undefined
+        ? undefined
+        : new PrismaIamPrincipalEmailLookupAdapter(options.invitationPrincipalEmailDatabase));
     const invitationService =
       options.invitationService ??
       (invitationRepository &&
-      options.invitationPrincipalEmails &&
+      invitationPrincipalEmails &&
       options.invitationDelivery &&
       invitationDigest
         ? new IamInvitationService(
             invitationRepository,
-            options.invitationPrincipalEmails,
+            invitationPrincipalEmails,
             options.invitationIdGenerator ?? randomIamInvitationIdV1,
             options.invitationTokenGenerator ?? randomIamInvitationTokenV1,
             invitationDigest,
@@ -297,6 +308,7 @@ export class IamModule {
     if (membershipService) exports.unshift(IAM_MEMBERSHIP_SERVICE);
     if (invitationRepository) exports.unshift(IAM_INVITATION_REPOSITORY_PORT);
     if (invitationService) exports.unshift(IAM_INVITATION_SERVICE);
+    if (invitationPrincipalEmails) exports.unshift(IAM_PRINCIPAL_EMAIL_LOOKUP_PORT);
     return {
       module: IamModule,
       controllers: [
@@ -398,6 +410,14 @@ export class IamModule {
               {
                 provide: IAM_INVITATION_SERVICE,
                 useValue: invitationService,
+              },
+            ]
+          : []),
+        ...(invitationPrincipalEmails
+          ? [
+              {
+                provide: IAM_PRINCIPAL_EMAIL_LOOKUP_PORT,
+                useValue: invitationPrincipalEmails,
               },
             ]
           : []),
