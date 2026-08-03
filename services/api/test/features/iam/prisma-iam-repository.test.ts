@@ -148,6 +148,24 @@ void test('[IAM-009, IAM-019] Prisma IAM membership reads are tenant scoped and 
   );
 });
 
+void test('[IAM-009, IAM-019] malformed membership rows fail closed without blocking valid reads', async () => {
+  const valid = row(id('20'), 'WORKSPACE', workspaceId, 'viewer');
+  const malformed = {
+    ...row(id('21'), 'WORKSPACE', workspaceId, 'viewer'),
+    workspaceId: 'not-a-workspace-id',
+  };
+  const repository = new PrismaIamRepositoryAdapter(createDatabase([valid, malformed]).client);
+
+  assert.deepEqual(
+    (
+      await repository.listMemberships(
+        context({ scopeType: 'workspace', organizationId, workspaceId }),
+      )
+    ).map((membership) => membership.id),
+    [valid.id],
+  );
+});
+
 void test('[IAM-003, IAM-014] Prisma membership authority chooses the narrowest containing scope', async () => {
   const projectScope = {
     scopeType: 'project',

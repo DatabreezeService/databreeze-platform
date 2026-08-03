@@ -98,6 +98,16 @@ function membershipFromRow(row: IamMembershipDatabaseRowV1): IamMembershipRecord
   return validated.value;
 }
 
+function membershipFromRowOrSkip(
+  row: IamMembershipDatabaseRowV1,
+): IamMembershipRecordV1 | undefined {
+  try {
+    return membershipFromRow(row);
+  } catch {
+    return undefined;
+  }
+}
+
 function membershipRow(membership: MembershipIdentityV1): IamMembershipDatabaseRowV1 {
   return {
     id: membership.id,
@@ -142,7 +152,8 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
       orderBy: { id: 'asc' },
     });
     return rows
-      .map(membershipFromRow)
+      .map(membershipFromRowOrSkip)
+      .filter((membership): membership is IamMembershipRecordV1 => membership !== undefined)
       .filter(
         (membership) =>
           membership.principalId === principalId &&
@@ -164,7 +175,8 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
       orderBy: { id: 'asc' },
     });
     return rows
-      .map(membershipFromRow)
+      .map(membershipFromRowOrSkip)
+      .filter((membership): membership is IamMembershipRecordV1 => membership !== undefined)
       .filter((membership) => visibleInScope(context.tenantScope, membership.scope));
   }
 
