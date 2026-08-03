@@ -321,3 +321,17 @@ test('repository checker rejects delivery-batch drift from the Luna plan', () =>
     },
   );
 });
+
+test('repository checker rejects malformed handoff task lists', () => {
+  for (const malformed of [{ invalid: true }, 'FND-007']) {
+    withTemporaryPlans(
+      ({ ledger }) => {
+        ledger.deliveryBatches[0].handoffTaskIds = malformed;
+      },
+      (result) => {
+        assert.notEqual(result.status, 0);
+        assert.match(result.stderr, /handoffTaskIds must be an array/u);
+      },
+    );
+  }
+});
