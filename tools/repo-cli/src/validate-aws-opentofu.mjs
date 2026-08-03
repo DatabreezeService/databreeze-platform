@@ -12,9 +12,9 @@ const containerDataDirectory = '/tmp/databreeze-tofu';
 function usage() {
   console.log(`Usage: pnpm infra:validate
 
-Runs format, backend-disabled initialization, and validation through the
-official pinned OpenTofu container. The command never plans or applies
-infrastructure and removes its isolated provider cache on completion.`);
+Runs format, backend-disabled initialization, validation, and a mocked plan
+test through the official pinned OpenTofu container. The command does not
+apply infrastructure and removes its isolated provider cache on completion.`);
 }
 
 function fail(message) {
@@ -57,7 +57,7 @@ export function main(argv = process.argv.slice(2)) {
   if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u.test(version))
     fail('version pin is not an exact semantic version');
   const image = `ghcr.io/opentofu/opentofu:${version}`;
-  const sourceMount = `type=bind,source=${infrastructureRoot},target=/workspace`;
+  const sourceMount = `type=bind,source=${infrastructureRoot},target=/workspace,readonly`;
   const validationDirectory = mkdtempSync(path.join(os.tmpdir(), 'databreeze-tofu-'));
   const dataMount = `type=bind,source=${validationDirectory},target=${containerDataDirectory}`;
 
@@ -100,7 +100,9 @@ export function main(argv = process.argv.slice(2)) {
     removeValidationDirectory(validationDirectory);
   }
 
-  console.log(`AWS OpenTofu ${version} container validation passed without planning or applying.`);
+  console.log(
+    `AWS OpenTofu ${version} container validation passed format, validation, and mocked plan tests without applying infrastructure.`,
+  );
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

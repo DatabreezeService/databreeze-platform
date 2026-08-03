@@ -33,7 +33,7 @@ side effects.
 ```text
 pnpm infra:check
 cd infrastructure/aws/environments/alpha
-tofu init -backend=false
+tofu init -backend=false -lockfile=readonly
 tofu validate
 tofu plan -var-file=terraform.tfvars
 ```
