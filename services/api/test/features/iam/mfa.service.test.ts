@@ -143,4 +143,19 @@ void test('[IAM-012, IAM-014] in-memory MFA state rejects removal and invalid ne
     }),
     /IAM_MFA_REVISION_CONFLICT/u,
   );
+
+  await assert.rejects(
+    repository.saveState(userId as never, {
+      factors: [factor.value, factor.value],
+      recoveryCodes: [code.value],
+    }),
+    /IAM_MFA_REVISION_CONFLICT/u,
+  );
+  await assert.rejects(
+    repository.saveState(userId as never, {
+      factors: [factor.value],
+      recoveryCodes: [code.value, code.value],
+    }),
+    /IAM_MFA_REVISION_CONFLICT/u,
+  );
 });
