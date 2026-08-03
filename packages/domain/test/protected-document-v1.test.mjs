@@ -52,6 +52,10 @@ void test('[IAE-015] device-keychain requests require a device and expire withou
   const created = createProtectedDocumentUnlockRequestV1(base);
   assert.equal(created.accepted, true);
   if (!created.accepted) return;
+  assert.deepEqual(
+    expireProtectedDocumentUnlockRequestV1(created.value, '2026-08-02T00:29:59.999Z'),
+    { accepted: false, code: 'INVALID_STATE' },
+  );
   const expired = expireProtectedDocumentUnlockRequestV1(created.value, '2026-08-02T00:30:00.000Z');
   assert.equal(expired.accepted, true);
   if (expired.accepted) assert.equal(expired.value.state, 'EXPIRED');
