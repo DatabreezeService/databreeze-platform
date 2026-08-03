@@ -12,6 +12,9 @@ import { createProblem } from './problem-details.js';
 export interface RequestContext {
   readonly correlationId: string;
   readonly requestId: string;
+  readonly traceId?: string;
+  readonly spanId?: string;
+  readonly traceFlags?: string;
 }
 
 const requestContexts = new WeakMap<FastifyRequest, RequestContext>();
@@ -113,10 +116,15 @@ export function installRequestContext(
     requestContexts.set(request, context);
     reply.header('X-Request-Id', context.requestId);
     const values: string[] = [];
+    const traceValues: string[] = [];
     for (let index = 0; index < request.raw.rawHeaders.length; index += 2) {
-      if (request.raw.rawHeaders[index]?.toLowerCase() === 'x-correlation-id') {
+      const name = request.raw.rawHeaders[index]?.toLowerCase();
+      if (name === 'x-correlation-id') {
         const value = request.raw.rawHeaders[index + 1];
         if (value !== undefined) values.push(value);
+      } else if (name === 'traceparent') {
+        const value = request.raw.rawHeaders[index + 1];
+        if (value !== undefined) traceValues.push(value);
       }
     }
     const parsed = parseCorrelationHeader(values, requestId);
@@ -136,7 +144,34 @@ export function installRequestContext(
         );
       return;
     }
-    const acceptedContext = { correlationId: parsed.correlationId, requestId };
+    const parsedTrace = parseTraceparentHeader(traceValues);
+    if (!parsedTrace.accepted) {
+      reply.header('X-Correlation-Id', requestId);
+      reply
+        .code(400)
+        .type('application/problem+json')
+        .send(
+          createProblem({
+            code: 'CORRELATION_ID_INVALID',
+            correlationId: requestId,
+            messageKey: 'api.error.correlation_id_invalid',
+            retryable: false,
+            status: 400,
+          }),
+        );
+      return;
+    }
+    const acceptedContext = {
+      correlationId: parsed.correlationId,
+      requestId,
+      ...(parsedTrace.traceId
+        ? {
+            traceId: parsedTrace.traceId,
+            spanId: parsedTrace.spanId,
+            traceFlags: parsedTrace.traceFlags,
+          }
+        : {}),
+    };
     requestContexts.set(request, acceptedContext);
     reply.header('X-Correlation-Id', acceptedContext.correlationId);
     const csrf = evaluateCsrfRequestV1(
