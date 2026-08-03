@@ -45,6 +45,20 @@ import {
 } from './application/hierarchy-repository.port.js';
 import { IAM_HIERARCHY_SERVICE, IamHierarchyService } from './application/hierarchy.service.js';
 import { IAM_MEMBERSHIP_SERVICE, IamMembershipService } from './application/membership.service.js';
+import {
+  IAM_INVITATION_SERVICE,
+  IamInvitationService,
+  type IamInvitationClockV1,
+  type IamInvitationDeliveryPortV1,
+  type IamInvitationDigestPortV1,
+  type IamInvitationIdGeneratorV1,
+  type IamPrincipalEmailLookupPortV1,
+  type IamInvitationTokenGeneratorV1,
+} from './application/invitation.service.js';
+import {
+  IAM_INVITATION_REPOSITORY_PORT,
+  type IamInvitationRepositoryPortV1,
+} from './application/invitation-repository.port.js';
 import type { PasswordCredentialService } from './application/password-credential.service.js';
 import { UnavailableAuthenticationAdapter } from './adapter/unavailable-authentication.adapter.js';
 import {
@@ -67,12 +81,23 @@ import {
   PrismaIamRepositoryAdapter,
   type IamDatabaseClientV1,
 } from './adapter/prisma-iam-repository.adapter.js';
+import {
+  PrismaIamInvitationRepositoryAdapter,
+  type IamInvitationDatabaseClientV1,
+} from './adapter/prisma-iam-invitation-repository.adapter.js';
+import {
+  HmacSha256IamInvitationDigestAdapter,
+  randomIamInvitationIdV1,
+  randomIamInvitationTokenV1,
+  type IamInvitationDigestKeyV1,
+} from './adapter/iam-invitation-crypto.adapter.js';
 import { InMemoryIamHierarchyRepositoryAdapter } from './adapter/in-memory-iam-hierarchy-repository.adapter.js';
 import {
   PrismaIamHierarchyRepositoryAdapter,
   type IamHierarchyDatabaseClientV1,
 } from './adapter/prisma-iam-hierarchy-repository.adapter.js';
 import { DeviceIdentityController } from './api/device-identity.controller.js';
+import { IamInvitationController } from './api/invitation.controller.js';
 import { InMemoryDeviceIdentityRepositoryAdapter } from './adapter/in-memory-device-identity-repository.adapter.js';
 import {
   PrismaDeviceIdentityRepositoryAdapter,
@@ -118,6 +143,16 @@ export interface IamModuleOptions {
   readonly hierarchyDatabase?: IamHierarchyDatabaseClientV1;
   readonly hierarchyService?: IamHierarchyService;
   readonly membershipService?: IamMembershipService;
+  readonly invitationRepository?: IamInvitationRepositoryPortV1;
+  readonly invitationDatabase?: IamInvitationDatabaseClientV1;
+  readonly invitationService?: IamInvitationService;
+  readonly invitationPrincipalEmails?: IamPrincipalEmailLookupPortV1;
+  readonly invitationDelivery?: IamInvitationDeliveryPortV1;
+  readonly invitationDigest?: IamInvitationDigestPortV1;
+  readonly invitationDigestKey?: IamInvitationDigestKeyV1;
+  readonly invitationIdGenerator?: IamInvitationIdGeneratorV1;
+  readonly invitationTokenGenerator?: IamInvitationTokenGeneratorV1;
+  readonly invitationClock?: IamInvitationClockV1;
   readonly deviceIdentityService?: DeviceIdentityService;
   readonly deviceIdentityRepository?: DeviceIdentityRepositoryPortV1;
   readonly deviceIdentityDatabase?: DeviceIdentityDatabaseClientV1;
@@ -204,6 +239,32 @@ export class IamModule {
     const membershipService =
       options.membershipService ??
       (iamRepository === undefined ? undefined : new IamMembershipService(iamRepository));
+    const invitationRepository =
+      options.invitationRepository ??
+      (options.invitationDatabase === undefined
+        ? undefined
+        : new PrismaIamInvitationRepositoryAdapter(options.invitationDatabase));
+    const invitationDigest =
+      options.invitationDigest ??
+      (options.invitationDigestKey === undefined
+        ? undefined
+        : new HmacSha256IamInvitationDigestAdapter(options.invitationDigestKey));
+    const invitationService =
+      options.invitationService ??
+      (invitationRepository &&
+      options.invitationPrincipalEmails &&
+      options.invitationDelivery &&
+      invitationDigest
+        ? new IamInvitationService(
+            invitationRepository,
+            options.invitationPrincipalEmails,
+            options.invitationIdGenerator ?? randomIamInvitationIdV1,
+            options.invitationTokenGenerator ?? randomIamInvitationTokenV1,
+            invitationDigest,
+            options.invitationDelivery,
+            options.invitationClock,
+          )
+        : undefined);
     const authentication =
       options.authentication ??
       (credentials && sessions
@@ -234,6 +295,8 @@ export class IamModule {
     if (mfaService) exports.unshift(MFA_SERVICE);
     if (iamRepository) exports.unshift(IAM_REPOSITORY_PORT);
     if (membershipService) exports.unshift(IAM_MEMBERSHIP_SERVICE);
+    if (invitationRepository) exports.unshift(IAM_INVITATION_REPOSITORY_PORT);
+    if (invitationService) exports.unshift(IAM_INVITATION_SERVICE);
     return {
       module: IamModule,
       controllers: [
@@ -242,6 +305,7 @@ export class IamModule {
         MfaController,
         IamHierarchyController,
         IamMembershipController,
+        IamInvitationController,
         IamBootstrapController,
       ],
       providers: [
@@ -318,6 +382,22 @@ export class IamModule {
               {
                 provide: IAM_MEMBERSHIP_SERVICE,
                 useValue: membershipService,
+              },
+            ]
+          : []),
+        ...(invitationRepository
+          ? [
+              {
+                provide: IAM_INVITATION_REPOSITORY_PORT,
+                useValue: invitationRepository,
+              },
+            ]
+          : []),
+        ...(invitationService
+          ? [
+              {
+                provide: IAM_INVITATION_SERVICE,
+                useValue: invitationService,
               },
             ]
           : []),

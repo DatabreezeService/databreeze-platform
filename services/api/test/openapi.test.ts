@@ -84,6 +84,19 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
         '#/components/schemas/MembershipRejectedResponseDto',
       );
     }
+    const invitationResponses = (
+      firstDocument.paths['/v1/invitations']?.post as OperationLike | undefined
+    )?.responses;
+    for (const status of ['400', '403', '404', '409', '503']) {
+      assert.equal(
+        (
+          invitationResponses?.[status]?.content?.['application/json'] as
+            | { readonly schema?: { readonly $ref?: string } }
+            | undefined
+        )?.schema?.$ref,
+        '#/components/schemas/InvitationRejectedResponseDto',
+      );
+    }
 
     const paths = Object.keys(firstDocument.paths).sort();
     assert.deepEqual(paths, [
@@ -159,6 +172,8 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       '/v1/devices/{deviceId}/revoke',
       '/v1/entitlements/snapshots/{snapshotId}',
       '/v1/entitlements/usage',
+      '/v1/invitations',
+      '/v1/invitations/accept',
       '/v1/me/bootstrap',
       '/v1/memberships',
       '/v1/memberships/{membershipId}/accept',
