@@ -138,3 +138,31 @@ void test('fails closed for duplicate cookies and duplicate token headers', () =
     { accepted: false, code: 'CSRF_INVALID' },
   );
 });
+
+void test('fails closed when cookie parsing exceeds resource bounds', () => {
+  const request = (cookie: string) => ({
+    method: 'POST',
+    headers: {
+      cookie,
+      origin: 'https://app.databreeze.example',
+      'x-csrf-token': token,
+    },
+  });
+
+  assert.deepEqual(
+    evaluateCsrfRequestV1(
+      request(`databreeze_refresh=session-value; padding=${'a'.repeat(8_192)}`),
+      { allowedOrigins },
+    ),
+    { accepted: false, code: 'CSRF_INVALID' },
+  );
+  assert.deepEqual(
+    evaluateCsrfRequestV1(
+      request(
+        `databreeze_refresh=session-value; ${Array.from({ length: 64 }, (_, index) => `c${index}=v`).join('; ')}`,
+      ),
+      { allowedOrigins },
+    ),
+    { accepted: false, code: 'CSRF_INVALID' },
+  );
+});
