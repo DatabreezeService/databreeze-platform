@@ -90,4 +90,8 @@ test('[IAM-012] high-risk operations require a fresh, principal-bound step-up as
     accepted: false,
     code: 'STEP_UP_REQUIRED',
   });
+  assert.deepEqual(requiresStepUpV1('HIGH', assertion, id('2'), '2026-01-01T00:05:00.000Z', true), {
+    accepted: false,
+    code: 'MFA_REENROLLMENT_REQUIRED',
+  });
 });

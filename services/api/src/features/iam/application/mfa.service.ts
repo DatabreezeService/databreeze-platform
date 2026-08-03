@@ -195,7 +195,8 @@ export class MfaService {
     assertion: Parameters<typeof requiresStepUpV1>[1],
     principalId: StableIdentifierV1,
     now: unknown,
+    mfaReenrollmentRequired = false,
   ): MfaResultV1<true> {
-    return requiresStepUpV1(risk, assertion, principalId, now);
+    return requiresStepUpV1(risk, assertion, principalId, now, mfaReenrollmentRequired);
   }
 }

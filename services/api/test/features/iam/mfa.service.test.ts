@@ -130,6 +130,10 @@ void test('[IAM-012] high-risk operations require a fresh step-up assertion', ()
     service.requireStepUp('HIGH', assertion, userId as never, '2026-01-01T00:05:00.000Z').accepted,
     true,
   );
+  assert.deepEqual(service.requireStepUp('HIGH', assertion, userId as never, at, true), {
+    accepted: false,
+    code: 'MFA_REENROLLMENT_REQUIRED',
+  });
 });
 
 void test('[IAM-015] default recovery-code matching compares normalized bytes safely', () => {
