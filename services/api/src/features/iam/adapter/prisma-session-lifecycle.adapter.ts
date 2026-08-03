@@ -258,6 +258,25 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
     });
   }
 
+  private async expireSession(
+    transaction: SessionLifecycleDatabaseClientV1,
+    sessionId: StableIdentifierV1,
+    familyId: StableIdentifierV1,
+  ): Promise<void> {
+    await transaction.refreshTokenRecord.updateMany({
+      where: { familyId, status: 'ACTIVE' },
+      data: { status: 'EXPIRED' },
+    });
+    await transaction.sessionRecord.update({
+      where: { id: sessionId },
+      data: { status: 'EXPIRED' },
+    });
+    await transaction.accessTokenRecord.updateMany({
+      where: { sessionId, status: 'ACTIVE' },
+      data: { status: 'EXPIRED' },
+    });
+  }
+
   public async issue(
     principal: AuthenticatedPrincipalV1,
     clientPlatform: 'android' | 'desktop' | 'web',
@@ -351,7 +370,15 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
       });
       if (!sessionRow) return { accepted: false, code: 'INVALID_REFRESH_TOKEN' };
       const session = sessionFromRow(sessionRow);
-      if (session.status !== 'ACTIVE') return { accepted: false, code: 'REVOKED_FAMILY' };
+      if (session.status === 'REVOKED') return { accepted: false, code: 'REVOKED_FAMILY' };
+      if (session.status === 'EXPIRED') return { accepted: false, code: 'EXPIRED' };
+      if (
+        now.getTime() >= Date.parse(session.inactivityExpiresAt) ||
+        now.getTime() >= Date.parse(session.absoluteExpiresAt)
+      ) {
+        await this.expireSession(transaction, token.sessionId, token.familyId);
+        return { accepted: false, code: 'EXPIRED' };
+      }
       const active = await transaction.refreshTokenRecord.findMany({
         where: { sessionId: token.sessionId, familyId: token.familyId, status: 'ACTIVE' },
         orderBy: { issuedAt: 'desc' },

@@ -225,6 +225,22 @@ void test('[IAM-005] expired refresh tokens fail closed without returning token 
   });
 });
 
+void test('[IAM-005] refresh cannot restart an expired inactivity window', async () => {
+  let now = new Date('2026-01-01T00:00:00.000Z');
+  const { client, sessions, refreshTokens, accessTokens } = createDatabase();
+  const adapter = new PrismaSessionLifecycleAdapter(client, { clock: () => new Date(now) });
+  const session = await adapter.issue(principal, 'android');
+  now = new Date('2026-01-01T01:00:00.000Z');
+
+  assert.deepEqual(await adapter.refresh(session.refreshToken, 'android'), {
+    accepted: false,
+    code: 'EXPIRED',
+  });
+  assert.equal(sessions.get(session.sessionId)?.status, 'EXPIRED');
+  assert.equal([...refreshTokens.values()][0]?.status, 'EXPIRED');
+  assert.equal([...accessTokens.values()][0]?.status, 'EXPIRED');
+});
+
 void test('[IAM-005] revocation is idempotent and hides session principals afterward', async () => {
   const { client } = createDatabase();
   const adapter = new PrismaSessionLifecycleAdapter(client);
