@@ -1,4 +1,8 @@
-import type { StableIdentifierV1, TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
+import type {
+  StableIdentifierV1,
+  StrictUtcTimestampV1,
+  TenantScopeV1,
+} from '@databreeze/domain/tenant-scope/v1';
 
 import type { IamTenantContextV1 } from './tenant-context.js';
 
@@ -10,6 +14,8 @@ export interface IamMembershipRecordV1 {
   readonly scope: TenantScopeV1;
   readonly roleId: string;
   readonly status: 'INVITED' | 'ACTIVE' | 'SUSPENDED' | 'REMOVED';
+  readonly startsAt?: StrictUtcTimestampV1;
+  readonly expiresAt?: StrictUtcTimestampV1;
   readonly revision: number;
 }
 
