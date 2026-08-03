@@ -13,6 +13,7 @@ import { MfaProblemError } from '../../features/iam/application/mfa-problem.erro
 import { EntitlementProblemError } from '../../features/bua/application/entitlement-problem.error.js';
 import { DeviceIdentityProblemError } from '../../features/iam/application/device-identity-problem.error.js';
 import { AuditProblemError } from '../../features/aud/application/audit-problem.error.js';
+import { ArtifactExportProblemError } from '../../features/iae/application/artifact-export-problem.error.js';
 import { RequestTenantContextProblemError } from './request-tenant-context.port.js';
 import { NotReadyError } from '../../features/system/application/not-ready.error.js';
 import { InputValidationException } from './input-validation.exception.js';
@@ -103,6 +104,18 @@ function describe(error: unknown, correlationId: string): ProblemInput {
       messageKey: 'api.error.audit_unavailable',
       retryable: true,
       status: HttpStatus.SERVICE_UNAVAILABLE,
+    };
+  }
+  if (error instanceof ArtifactExportProblemError) {
+    const notFound = error.code === 'ARTIFACT_NOT_FOUND';
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: notFound
+        ? 'api.error.artifact_export_not_found'
+        : 'api.error.artifact_export_invalid',
+      retryable: false,
+      status: notFound ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST,
     };
   }
   if (error instanceof RequestTenantContextProblemError) {
