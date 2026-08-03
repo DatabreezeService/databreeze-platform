@@ -7,3 +7,15 @@ export function isPrismaUniqueConstraintViolationV1(error: unknown): boolean {
     (error as { readonly code?: unknown }).code === 'P2002'
   );
 }
+
+export function prismaUniqueConstraintTargetV1(error: unknown): readonly string[] | undefined {
+  if (!isPrismaUniqueConstraintViolationV1(error)) return undefined;
+  const target =
+    typeof error === 'object' && error !== null && 'meta' in error
+      ? (error as { readonly meta?: { readonly target?: unknown } }).meta?.target
+      : undefined;
+  return Array.isArray(target) &&
+    target.every((field): field is string => typeof field === 'string')
+    ? target
+    : undefined;
+}

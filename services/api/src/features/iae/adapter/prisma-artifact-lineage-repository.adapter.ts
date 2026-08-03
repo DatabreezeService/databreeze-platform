@@ -13,7 +13,10 @@ import type {
   ArtifactLineageRepositoryPortV1,
   ArtifactLineageTransactionPortV1,
 } from '../application/artifact-lineage-repository.port.js';
-import { isPrismaUniqueConstraintViolationV1 } from '../../../platform/prisma-error.js';
+import {
+  isPrismaUniqueConstraintViolationV1,
+  prismaUniqueConstraintTargetV1,
+} from '../../../platform/prisma-error.js';
 
 export interface ArtifactLineageDatabaseRowV1 {
   readonly id: string;
@@ -114,8 +117,27 @@ class PrismaArtifactLineageTransactionAdapter implements ArtifactLineageTransact
     try {
       await this.client.artifactLineageRecord.create({ data: domainToCreate(lineage) });
     } catch (error) {
-      if (isPrismaUniqueConstraintViolationV1(error))
-        throw new Error('IAE_DERIVED_LINEAGE_CONFLICT', { cause: error });
+      if (isPrismaUniqueConstraintViolationV1(error)) {
+        const target = prismaUniqueConstraintTargetV1(error);
+        if (target?.includes('derivedArtifactVersionId'))
+          throw new Error('IAE_DERIVED_LINEAGE_CONFLICT', { cause: error });
+
+        const racedById = await this.client.artifactLineageRecord.findUnique({
+          where: { id: lineage.lineageId },
+        });
+        if (racedById !== null) {
+          if (JSON.stringify(rowToDomain(racedById)) !== JSON.stringify(lineage))
+            throw new Error('IAE_IMMUTABLE_LINEAGE', { cause: error });
+          return;
+        }
+        if (target?.includes('id')) throw error;
+
+        const racedByDerived = await this.client.artifactLineageRecord.findUnique({
+          where: { derivedArtifactVersionId: lineage.derivedArtifactVersionId },
+        });
+        if (racedByDerived !== null)
+          throw new Error('IAE_DERIVED_LINEAGE_CONFLICT', { cause: error });
+      }
       throw error;
     }
   }
