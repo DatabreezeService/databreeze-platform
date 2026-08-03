@@ -1,4 +1,15 @@
-import { Body, Controller, Get, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Inject,
+  Param,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -17,6 +28,17 @@ import {
   type RequestTenantContextPortV1,
 } from '../../../platform/http/request-tenant-context.port.js';
 import { CreateProjectDto, CreateWorkspaceDto } from './hierarchy.dto.js';
+import type { FastifyReply } from 'fastify';
+
+type HierarchyResult = { readonly accepted: boolean; readonly code?: string };
+
+function preserveNotFoundStatus<TValue extends HierarchyResult>(
+  result: TValue,
+  reply?: FastifyReply,
+): TValue {
+  if (!result.accepted && result.code === 'NOT_FOUND') reply?.code(HttpStatus.NOT_FOUND);
+  return result;
+}
 
 /** IAM-001, IAM-003, IAM-019: content-free tenant hierarchy administration. */
 @ApiTags('identity')
@@ -36,9 +58,13 @@ export class IamHierarchyController {
   async getOrganization(
     @Req() request: unknown,
     @Param('organizationId') organizationId: string,
+    @Res({ passthrough: true }) reply?: FastifyReply,
   ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
-    return this.hierarchy.getOrganization(context, organizationId);
+    return preserveNotFoundStatus(
+      await this.hierarchy.getOrganization(context, organizationId),
+      reply,
+    );
   }
 
   @Get('organizations/:organizationId/workspaces')
@@ -69,9 +95,13 @@ export class IamHierarchyController {
   @ApiOperation({ summary: 'Read one workspace inside the authenticated tenant scope' })
   @ApiOkResponse({ description: 'The workspace metadata.' })
   @ApiNotFoundResponse({ description: 'The workspace is not visible.' })
-  async getWorkspace(@Req() request: unknown, @Param('workspaceId') workspaceId: string) {
+  async getWorkspace(
+    @Req() request: unknown,
+    @Param('workspaceId') workspaceId: string,
+    @Res({ passthrough: true }) reply?: FastifyReply,
+  ) {
     const context = await this.requestContext.resolve(request);
-    return this.hierarchy.getWorkspace(context, workspaceId);
+    return preserveNotFoundStatus(await this.hierarchy.getWorkspace(context, workspaceId), reply);
   }
 
   @Get('workspaces/:workspaceId/projects')
@@ -99,8 +129,12 @@ export class IamHierarchyController {
   @ApiOperation({ summary: 'Read one project inside the authenticated tenant scope' })
   @ApiOkResponse({ description: 'The project metadata.' })
   @ApiNotFoundResponse({ description: 'The project is not visible.' })
-  async getProject(@Req() request: unknown, @Param('projectId') projectId: string) {
+  async getProject(
+    @Req() request: unknown,
+    @Param('projectId') projectId: string,
+    @Res({ passthrough: true }) reply?: FastifyReply,
+  ) {
     const context = await this.requestContext.resolve(request);
-    return this.hierarchy.getProject(context, projectId);
+    return preserveNotFoundStatus(await this.hierarchy.getProject(context, projectId), reply);
   }
 }

@@ -76,3 +76,40 @@ void test('[IAM-004] membership controller fails closed when durable membership 
   const controller = new IamMembershipController(undefined, { resolve: async () => ({}) as never });
   assert.deepEqual(await controller.list({}), { accepted: false, code: 'UNAVAILABLE' });
 });
+
+void test('[IAM-004] membership controller maps rejected results to HTTP status codes', async () => {
+  const statuses: number[] = [];
+  const reply = {
+    code(status: number) {
+      statuses.push(status);
+      return this;
+    },
+  };
+  const service = {
+    list: async () => ({ accepted: false as const, code: 'SCOPE_DENIED' as const }),
+    invite: async () => ({ accepted: false as const, code: 'NOT_FOUND' as const }),
+    transition: async () => ({ accepted: false as const, code: 'CONFLICT' as const }),
+    accept: async () => ({ accepted: false as const, code: 'EXPIRED' as const }),
+    transferOwnership: async () => ({ accepted: false as const, code: 'UNAVAILABLE' as const }),
+  } as unknown as IamMembershipService;
+  const controller = new IamMembershipController(service, { resolve: async () => ({}) as never });
+  await controller.list({}, reply as never);
+  await controller.invite(
+    {},
+    {
+      principalId: 'principal',
+      scope: { scopeType: 'organization', organizationId: 'org' },
+      roleId: 'viewer',
+    },
+    reply as never,
+  );
+  await controller.transition(
+    {},
+    'membership-id',
+    { expectedRevision: 1, status: 'SUSPENDED' },
+    reply as never,
+  );
+  await controller.accept({}, 'membership-id', { expectedRevision: 1 }, reply as never);
+  await controller.transferOwnership({}, 'membership-id', { expectedRevision: 1 }, reply as never);
+  assert.deepEqual(statuses, [403, 404, 409, 410, 503]);
+});

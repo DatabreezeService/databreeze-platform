@@ -109,6 +109,7 @@ void test('[IAM-001, IAM-003] hierarchy controller forwards authenticated contex
     value: { id: ids.project },
   });
   assert.equal(calls.length, 7);
+  for (const call of calls) assert.equal(call[0], context);
   assert.equal(calls[2]?.[1], ids.organization);
   assert.equal(calls[2]?.[2], 'Operations');
   assert.equal(calls[5]?.[1], ids.workspace);
@@ -121,10 +122,10 @@ void test('[IAM-003, IAM-019] hierarchy controller preserves safe rejected servi
     getOrganization: async () => ({ accepted: false as const, code: 'NOT_FOUND' as const }),
     listWorkspaces: async () => ({ accepted: false as const, code: 'SCOPE_DENIED' as const }),
     createWorkspace: async () => ({ accepted: false as const, code: 'CONFLICT' as const }),
-    getWorkspace: async () => ({ accepted: false as const, code: 'INVALID_IDENTIFIER' as const }),
+    getWorkspace: async () => ({ accepted: false as const, code: 'NOT_FOUND' as const }),
     listProjects: async () => ({ accepted: false as const, code: 'UNAVAILABLE' as const }),
     createProject: async () => ({ accepted: false as const, code: 'INVALID_KIND' as const }),
-    getProject: async () => ({ accepted: false as const, code: 'INVALID_IDENTIFIER' as const }),
+    getProject: async () => ({ accepted: false as const, code: 'NOT_FOUND' as const }),
   } as unknown as IamHierarchyService;
   const controller = new IamHierarchyController(service, {
     resolve: async () => tenantContext(),
@@ -133,6 +134,26 @@ void test('[IAM-003, IAM-019] hierarchy controller preserves safe rejected servi
     accepted: false,
     code: 'NOT_FOUND',
   });
+  const statuses: number[] = [];
+  const reply = {
+    code(status: number) {
+      statuses.push(status);
+      return this;
+    },
+  };
+  assert.deepEqual(await controller.getOrganization({}, ids.organization, reply as never), {
+    accepted: false,
+    code: 'NOT_FOUND',
+  });
+  assert.deepEqual(await controller.getWorkspace({}, ids.workspace, reply as never), {
+    accepted: false,
+    code: 'NOT_FOUND',
+  });
+  assert.deepEqual(await controller.getProject({}, ids.project, reply as never), {
+    accepted: false,
+    code: 'NOT_FOUND',
+  });
+  assert.deepEqual(statuses, [404, 404, 404]);
   assert.deepEqual(
     await controller.createProject({}, ids.workspace, { kind: 'CLIENT', name: 'x' }),
     {
