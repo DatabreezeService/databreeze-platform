@@ -31,6 +31,16 @@ function pageLimit(input: string | undefined): number {
   return value;
 }
 
+const AUDIT_PAGE_RESPONSE_SCHEMA = {
+  type: 'object',
+  required: ['items'] as string[],
+  properties: {
+    items: { type: 'array', items: { type: 'object', additionalProperties: true } },
+    nextCursor: { type: 'string', maxLength: 512 },
+  },
+  additionalProperties: false,
+};
+
 @ApiTags('audit')
 @ApiBearerAuth()
 @Controller('v1/audit')
@@ -42,7 +52,7 @@ export class AuditController {
 
   @Get('events')
   @ApiOperation({ summary: 'List immutable audit events visible to the caller' })
-  @ApiOkResponse()
+  @ApiOkResponse({ schema: AUDIT_PAGE_RESPONSE_SCHEMA })
   @ApiQuery({ name: 'limit', required: false, type: Number, minimum: 1, maximum: 100 })
   @ApiQuery({ name: 'cursor', required: false, type: String, maxLength: 512 })
   @ApiServiceUnavailableResponse({ description: 'Audit persistence is unavailable.' })
@@ -73,7 +83,7 @@ export class AuditController {
 
   @Get('seals')
   @ApiOperation({ summary: 'List verified audit seals visible to the caller' })
-  @ApiOkResponse()
+  @ApiOkResponse({ schema: AUDIT_PAGE_RESPONSE_SCHEMA })
   @ApiQuery({ name: 'limit', required: false, type: Number, minimum: 1, maximum: 100 })
   @ApiQuery({ name: 'cursor', required: false, type: String, maxLength: 512 })
   @ApiServiceUnavailableResponse({ description: 'Audit persistence is unavailable.' })
