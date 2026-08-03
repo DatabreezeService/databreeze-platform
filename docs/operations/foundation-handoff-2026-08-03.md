@@ -26,9 +26,12 @@ The following evidence is reproducible from the checkpoint:
   hostile-input, exporter-isolation, and cross-runtime source parity tests pass.
 - `uv run pytest tests/test_telemetry.py` from `services/engine` — Python
   telemetry tests pass.
-- `ANDROID_HOME=%LOCALAPPDATA%\\Android\\Sdk apps/android/gradlew.bat
-  :app:testDebugUnitTest --offline --no-daemon` — Android/Kotlin unit suite
-  passes when the SDK is supplied by the workstation/toolchain.
+- PowerShell: `$env:ANDROID_HOME = Join-Path $env:LOCALAPPDATA 'Android\\Sdk'`, then
+  `& .\\apps\\android\\gradlew.bat :app:testDebugUnitTest --offline --no-daemon` —
+  Android/Kotlin unit suite passes when the SDK is supplied by the workstation/toolchain.
+- cmd.exe: `set "ANDROID_HOME=%LOCALAPPDATA%\\Android\\Sdk"`, then
+  `call apps\\android\\gradlew.bat :app:testDebugUnitTest --offline --no-daemon` —
+  the same Android/Kotlin unit suite passes from a Windows command prompt.
 - `corepack pnpm orchestration:check` and `corepack pnpm requirements:check`
   pass with 611 requirement records and the B01 dependency graph intact.
 - Existing root checks, API tests, OpenAPI drift checks, infrastructure static
