@@ -612,22 +612,14 @@ void test('protected artifact reads derive tenant scope from an authenticated ac
         url: '/v1/entitlements/snapshots/80000000-0000-4000-8000-000000000099',
         headers: { authorization: 'Bearer access-token-for-context-1' },
       });
-      assert.equal(missingSnapshot.statusCode, 200);
-      assert.deepEqual(missingSnapshot.json(), {
-        accepted: false,
-        code: 'ENTITLEMENT_NOT_FOUND',
-      });
+      assertProblem(missingSnapshot, 404, 'ENTITLEMENT_NOT_FOUND');
 
       const invalidSnapshot = await app.inject({
         method: 'GET',
         url: '/v1/entitlements/snapshots/not-an-id',
         headers: { authorization: 'Bearer access-token-for-context-1' },
       });
-      assert.equal(invalidSnapshot.statusCode, 200);
-      assert.deepEqual(invalidSnapshot.json(), {
-        accepted: false,
-        code: 'INVALID_IDENTIFIER',
-      });
+      assertProblem(invalidSnapshot, 400, 'ENTITLEMENT_REQUEST_INVALID');
     },
   );
 });
