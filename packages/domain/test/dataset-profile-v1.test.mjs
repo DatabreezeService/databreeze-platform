@@ -56,4 +56,11 @@ void test('[DSM-011] complete profiles reject sample-only fields and impossible 
     createDatasetProfileV1({ ...base, completeness: 'COMPLETE', samplingSeed: 'a'.repeat(64) }),
     { accepted: false, code: 'INVALID_SAMPLING' },
   );
+  assert.deepEqual(
+    createDatasetProfileV1({
+      ...base,
+      resourceLimits: { ...base.resourceLimits, maxRows: base.rowCountScanned - 1 },
+    }),
+    { accepted: false, code: 'INVALID_COUNT' },
+  );
 });
