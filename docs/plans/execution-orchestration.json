@@ -54,7 +54,7 @@
     "post-ga-planned",
     "blocked"
   ],
-  "nextTaskId": "FND-003",
+  "nextTaskId": "FND-004",
   "activeBatchId": "B01",
   "taskState": {
     "FND-001": {
@@ -82,8 +82,8 @@
       "note": "Room, WorkManager, Keystore, bilingual resources, generated contracts/tokens, backup/network policy, account isolation, and process-recreation evidence are complete. No product requirement status was promoted."
     },
     "FND-003": {
-      "status": "in-progress",
-      "commit": "783a4710c0aa2a2808d78ad7f0643e6731150bd7",
+      "status": "verified",
+      "commit": "b3d000086cd786c3cdf9c812f48cf96f0bd7f213",
       "evidence": [
         "infrastructure/local/compose.yml",
         "infrastructure/local/README.md",
@@ -92,7 +92,7 @@
         "tools/repo-cli/test/local-infrastructure.test.mjs",
         "docs/operations/foundation-local-infrastructure-2026-08-02.md"
       ],
-      "note": "Static Compose/bootstrap/lifecycle checks, daemon-free config/preflight, bounded local diagnostics/log retention, AWS safety checks, telemetry redaction tests, and infrastructure path-aware CI are integrated and promoted. Live Docker health, port-collision, disk-pressure, and restart-persistence evidence remains pending because the Docker daemon was unavailable in the implementation environment."
+      "note": "Docker Engine 29.5.3 and Compose 5.1.4 live verification passed on 2026-08-03: all long-running services became healthy, MinIO initialization exited successfully, all 19 module schemas existed, restart and Redis persistence checks passed, collision and disk-pressure probes failed closed, and safe stop preserved containers and named volumes."
     },
     "FND-004": {
       "status": "implemented",
@@ -150,7 +150,6 @@
       "commitBudget": { "minimum": 30, "target": 45, "maximum": 79 },
       "maximumChangedFiles": 260,
       "taskIds": [
-        "FND-003",
         "FND-004",
         "FND-005",
         "FND-006",

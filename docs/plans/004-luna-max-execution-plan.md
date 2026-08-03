@@ -64,7 +64,7 @@ Each batch may require multiple normal integration PR slices before its exit gat
 
 | Batch | Branch | Tasks | Dependencies | Commit budget | Exit gate |
 |---|---|---|---|---|---|
-| `B01` | `feat/foundation-identity-reconciliation` | `FND-003..007`, all Plan 020 tasks | Verified `FND-001/002` | 30–50 target; exceptional ceiling 79 | Foundation external gates recorded; IAM/AUD/BUA obligations reconciled and completed |
+| `B01` | `feat/foundation-identity-reconciliation` | `FND-004..007`, all Plan 020 tasks | Verified `FND-001..003` | 30–50 target; exceptional ceiling 79 | Foundation external gates recorded; IAM/AUD/BUA obligations reconciled and completed |
 | `B02` | `feat/artifacts-datasets-completion` | All Plan 030 tasks | `B01` | 30–50 target; exceptional ceiling 79 | Immutable artifact/evidence/dataset foundations verified |
 | `B03` | `feat/jobs-processing-completion` | All Plan 040 tasks | `B02` | 30–50 target; exceptional ceiling 79 | Signed typed jobs execute locally/cloud with approvals and durable recovery |
 | `B04` | `feat/devices-sync-completion` | All Plan 050 tasks | `B03` | 30–50 target; exceptional ceiling 79 | Desktop/Android sync, offline, conflict, transfer, and revocation gates pass |
@@ -145,10 +145,10 @@ corepack pnpm orchestration:check
 corepack pnpm requirements:check
 ```
 
-Then resume `FND-003`:
+Live Docker verification closed `FND-003` on 2026-08-03. Resume `FND-004`:
 
-1. Run the Docker-capable checks in `docs/operations/foundation-local-infrastructure-2026-08-02.md` when Docker Desktop/Compose v2 is available.
-2. If Docker remains unavailable, preserve `FND-003` as incomplete, finish only credential-independent `FND-004..007` evidence, and record the external gate. Do not claim foundation verification.
+1. Run pinned OpenTofu formatting, initialization without a backend, and validation for the portable AWS modules without applying infrastructure.
+2. If OpenTofu remains unavailable, preserve `FND-004` as implemented but unverified, record the exact external gate, and continue only credential-independent `FND-005..007` reconciliation.
 3. Reconcile Plans 020–050 against merged code before implementing any missing behavior. For `B01`, complete Plan 020 only after the remaining foundation boundaries are explicit.
 4. End every session with the handoff record from `003-luna-handoff-runbook.md`, including exact branch/HEAD, open PRs, checks, task/batch status, rollback points, and safest next command.
 
