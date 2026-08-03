@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await -- test doubles mirror async ports. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 

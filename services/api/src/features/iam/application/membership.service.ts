@@ -380,6 +380,8 @@ export class IamMembershipService {
           expiresAt: _expiresAt,
           ...withoutInvitationLifetime
         } = current;
+        void _startsAt;
+        void _expiresAt;
         const next: IamMembershipRecordV1 = Object.freeze({
           ...withoutInvitationLifetime,
           status: 'ACTIVE',

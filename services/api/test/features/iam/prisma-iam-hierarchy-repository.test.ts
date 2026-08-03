@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await -- Prisma delegate doubles mirror async client signatures. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
@@ -119,7 +120,7 @@ function createDatabase(): {
         projects: new Map(projects),
       };
       try {
-        return await work(client as IamHierarchyDatabaseClientV1);
+        return await work(client);
       } catch (error) {
         organizations.clear();
         workspaces.clear();

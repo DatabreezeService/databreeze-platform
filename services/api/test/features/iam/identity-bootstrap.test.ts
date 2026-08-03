@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await -- repository double mirrors async storage. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 

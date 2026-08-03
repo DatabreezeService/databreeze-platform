@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
 import {
-  createOrganizationIdentityV1,
   createProjectIdentityV1,
   createWorkspaceIdentityV1,
   type OrganizationIdentityV1,
@@ -16,10 +15,7 @@ import {
 import { roleHasPermissionV1, PERMISSIONS_V1 } from '@databreeze/domain/permissions/v1';
 
 import type { IamRepositoryPortV1 } from './iam-repository.port.js';
-import type {
-  IamHierarchyRepositoryPortV1,
-  IamHierarchyTransactionPortV1,
-} from './hierarchy-repository.port.js';
+import type { IamHierarchyRepositoryPortV1 } from './hierarchy-repository.port.js';
 import type { IamTenantContextV1 } from './tenant-context.js';
 
 export const IAM_HIERARCHY_SERVICE = Symbol('IAM_HIERARCHY_SERVICE');

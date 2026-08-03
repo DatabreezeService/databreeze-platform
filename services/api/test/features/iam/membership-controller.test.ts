@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await -- controller double mirrors async services. */
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
