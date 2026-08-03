@@ -46,6 +46,47 @@ void test('[IAM-012, IAM-013, IAM-014] MFA enrollment and verification are revis
   assert.deepEqual(secondVerify, { accepted: false, code: 'INVALID_STATE' });
 });
 
+void test('[IAM-013] MFA proof-provider failures become a safe verification result', async () => {
+  const repository = new InMemoryMfaRepositoryAdapter();
+  const service = new MfaService(
+    repository,
+    { matches: (presented, stored) => presented === stored },
+    { verify: () => Promise.reject(new Error('provider secret details must not escape')) },
+    () => new Date(at),
+  );
+  const enrolled = await service.enroll({
+    id: factorId,
+    userId,
+    method: 'TOTP',
+    secretReference: 'secret-ref:totp:1',
+  });
+  assert.equal(enrolled.accepted, true);
+  assert.deepEqual(await service.verifyFactor(userId, factorId, '654321'), {
+    accepted: false,
+    code: 'FACTOR_PROOF_INVALID',
+  });
+});
+
+void test('[IAM-012, IAM-015] MFA clock-provider failures become a stable timestamp result', async () => {
+  const service = new MfaService(
+    new InMemoryMfaRepositoryAdapter(),
+    { matches: (presented, stored) => presented === stored },
+    undefined,
+    () => {
+      throw new Error('clock provider details must not escape');
+    },
+  );
+  assert.deepEqual(
+    await service.enroll({
+      id: factorId,
+      userId,
+      method: 'TOTP',
+      secretReference: 'secret-ref:totp:1',
+    }),
+    { accepted: false, code: 'INVALID_TIMESTAMP' },
+  );
+});
+
 void test('[IAM-015, IAM-016] recovery code redemption is one-time and does not expose digests', async () => {
   const repository = new InMemoryMfaRepositoryAdapter();
   const code = createRecoveryCodeV1({ id: recoveryId, userId, digest: 'digest-1', createdAt: at });
@@ -140,6 +181,21 @@ void test('[IAM-012, IAM-014] in-memory MFA state rejects removal and invalid ne
           revision: 2,
         },
       ],
+    }),
+    /IAM_MFA_REVISION_CONFLICT/u,
+  );
+
+  await assert.rejects(
+    repository.saveState(userId as never, {
+      factors: [factor.value, factor.value],
+      recoveryCodes: [code.value],
+    }),
+    /IAM_MFA_REVISION_CONFLICT/u,
+  );
+  await assert.rejects(
+    repository.saveState(userId as never, {
+      factors: [factor.value],
+      recoveryCodes: [code.value, code.value],
     }),
     /IAM_MFA_REVISION_CONFLICT/u,
   );

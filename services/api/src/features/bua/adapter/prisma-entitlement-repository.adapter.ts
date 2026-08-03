@@ -14,6 +14,7 @@ import {
   parseStrictUtcTimestampV1,
   parseTenantScopeV1,
   tenantScopeContainsV1,
+  tenantScopeKeyV1,
   type TenantScopeV1,
 } from '@databreeze/domain/tenant-scope/v1';
 
@@ -28,6 +29,7 @@ import {
   sameUsageEntryV1,
   sameUsageReservationExceptStatusV1,
   sameUsageReservationV1,
+  validUsageReservationTransitionV1,
 } from '../application/entitlement-equality.js';
 
 const planCodes = new Set(['free', 'development', 'admin_granted']);
@@ -446,22 +448,15 @@ function visible(context: TenantScopeV1, candidate: TenantScopeV1): boolean {
 function inheritedUsageScopeKeys(scope: TenantScopeV1): readonly string[] | undefined {
   if (scope.scopeType === 'organization') return undefined;
   const inherited = [
-    `organization:${scope.organizationId}`,
-    `workspace:${scope.organizationId}:${scope.workspaceId}`,
+    tenantScopeKeyV1({ scopeType: 'organization', organizationId: scope.organizationId }),
+    tenantScopeKeyV1({
+      scopeType: 'workspace',
+      organizationId: scope.organizationId,
+      workspaceId: scope.workspaceId,
+    }),
   ];
-  if (scope.scopeType === 'project') inherited.push(scopeKey(scope));
+  if (scope.scopeType === 'project') inherited.push(tenantScopeKeyV1(scope));
   return Object.freeze(inherited);
-}
-
-function sameReservationExceptStatus(left: UsageReservationV1, right: UsageReservationV1): boolean {
-  return sameUsageReservationExceptStatusV1(left, right);
-}
-
-function validReservationTransition(
-  current: UsageReservationV1,
-  next: UsageReservationV1,
-): boolean {
-  return current.status === 'ACTIVE' && (next.status === 'FINALIZED' || next.status === 'RELEASED');
 }
 
 class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV1 {
@@ -543,30 +538,20 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
 
   public async listUsageState(context: IamTenantContextV1): Promise<UsageLedgerStateV1> {
     const scopeKeys = inheritedUsageScopeKeys(context.tenantScope);
-    const entryQueries = (scopeKeys ?? [undefined]).map((key) =>
+    const where =
+      scopeKeys === undefined
+        ? { organizationId: context.tenantScope.organizationId }
+        : { scopeKey: { in: scopeKeys } };
+    const [entryRows, reservationRows] = await Promise.all([
       this.client.usageLedgerEntryRecord.findMany({
-        where:
-          key === undefined
-            ? { organizationId: context.tenantScope.organizationId }
-            : { scopeKey: key },
+        where,
         orderBy: { sequence: 'asc' },
       }),
-    );
-    const reservationQueries = (scopeKeys ?? [undefined]).map((key) =>
       this.client.usageReservationRecord.findMany({
-        where:
-          key === undefined
-            ? { organizationId: context.tenantScope.organizationId }
-            : { scopeKey: key },
+        where,
         orderBy: { createdAt: 'asc' },
       }),
-    );
-    const [entryGroups, reservationGroups] = await Promise.all([
-      Promise.all(entryQueries),
-      Promise.all(reservationQueries),
     ]);
-    const entryRows = entryGroups.flat();
-    const reservationRows = reservationGroups.flat();
     return Object.freeze({
       entries: Object.freeze(
         entryRows
@@ -585,6 +570,12 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
     context: IamTenantContextV1,
     state: UsageLedgerStateV1,
   ): Promise<void> {
+    if (
+      new Set(state.entries.map((entry) => entry.entryId)).size !== state.entries.length ||
+      new Set(state.reservations.map((reservation) => reservation.reservationId)).size !==
+        state.reservations.length
+    )
+      throw new Error('BUA_USAGE_STATE_CONFLICT');
     for (const entry of state.entries) {
       if (!tenantScopeContainsV1(context.tenantScope, entry.tenantScope))
         throw new Error('BUA_SCOPE_NARROWING_REQUIRED');
@@ -621,9 +612,9 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
       const current = persistedReservation(existing);
       if (sameUsageReservationV1(current, reservation)) continue;
       if (
-        !sameReservationExceptStatus(current, reservation) ||
+        !sameUsageReservationExceptStatusV1(current, reservation) ||
         reservation.revision !== current.revision + 1 ||
-        !validReservationTransition(current, reservation)
+        !validUsageReservationTransitionV1(current, reservation)
       )
         throw new Error('BUA_RESERVATION_CONFLICT');
       if (!this.client.usageReservationRecord.updateMany) throw new Error('BUA_UPDATE_UNAVAILABLE');

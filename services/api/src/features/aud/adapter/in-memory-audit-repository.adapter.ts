@@ -1,4 +1,5 @@
 import {
+  tenantScopeKeyV1,
   tenantScopeContainsV1,
   type AuditEventV1,
   type AuditSealV1,
@@ -11,10 +12,7 @@ import type {
   AuditRepositoryPortV1,
   AuditTransactionPortV1,
 } from '../application/audit-repository.port.js';
-import {
-  createAuditPageCursorV1,
-  parseAuditPageCursorV1,
-} from '../application/audit-page-cursor.js';
+import { createAuditPageCursorV1, auditPageOffsetV1 } from '../application/audit-page-cursor.js';
 import { sameAuditEventV1, sameAuditSealV1 } from '../application/audit-equality.js';
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 
@@ -37,19 +35,6 @@ function cloneEvent(event: AuditEventV1): AuditEventV1 {
 
 function cloneSeal(seal: AuditSealV1): AuditSealV1 {
   return Object.freeze({ ...seal, tenantScope: Object.freeze({ ...seal.tenantScope }) });
-}
-
-function pageOffset(
-  input: AuditPageInputV1,
-  kind: 'events' | 'seals',
-  scope: TenantScopeV1,
-): number {
-  if (!Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > 100)
-    throw new Error('AUD_PAGE_LIMIT_INVALID');
-  if (input.cursor === undefined) return 0;
-  const parsed = parseAuditPageCursorV1(input.cursor, kind, scope);
-  if (!parsed.accepted) throw new Error('AUD_CURSOR_INVALID');
-  return parsed.offset;
 }
 
 /** In-memory adapter with PostgreSQL-equivalent append-only and scope checks. */
@@ -100,14 +85,17 @@ export class InMemoryAuditRepositoryAdapter implements AuditRepositoryPortV1 {
     input: AuditPageInputV1,
   ): Promise<AuditPageV1<AuditEventV1>> {
     await Promise.resolve();
-    const offset = pageOffset(input, 'events', context.tenantScope);
+    const offset = auditPageOffsetV1(input, 'events', context.tenantScope);
     const visible = [...this.events.values()]
       .filter((event) => visibleInScope(context.tenantScope, event.tenantScope))
-      .sort((left, right) =>
-        left.occurredAt === right.occurredAt
-          ? left.eventId.localeCompare(right.eventId)
-          : left.occurredAt.localeCompare(right.occurredAt),
-      );
+      .sort((left, right) => {
+        const scopeOrder = tenantScopeKeyV1(left.tenantScope).localeCompare(
+          tenantScopeKeyV1(right.tenantScope),
+        );
+        return (
+          scopeOrder || left.sequence - right.sequence || left.eventId.localeCompare(right.eventId)
+        );
+      });
     const items = visible.slice(offset, offset + input.limit).map(cloneEvent);
     return Object.freeze({
       items: Object.freeze(items),
@@ -167,14 +155,19 @@ export class InMemoryAuditRepositoryAdapter implements AuditRepositoryPortV1 {
     input: AuditPageInputV1,
   ): Promise<AuditPageV1<AuditSealV1>> {
     await Promise.resolve();
-    const offset = pageOffset(input, 'seals', context.tenantScope);
+    const offset = auditPageOffsetV1(input, 'seals', context.tenantScope);
     const visible = [...this.seals.values()]
       .filter((seal) => visibleInScope(context.tenantScope, seal.tenantScope))
-      .sort((left, right) =>
-        left.sealedAt === right.sealedAt
-          ? left.rootDigest.localeCompare(right.rootDigest)
-          : left.sealedAt.localeCompare(right.sealedAt),
-      );
+      .sort((left, right) => {
+        const scopeOrder = tenantScopeKeyV1(left.tenantScope).localeCompare(
+          tenantScopeKeyV1(right.tenantScope),
+        );
+        return (
+          scopeOrder ||
+          left.lastSequence - right.lastSequence ||
+          left.rootDigest.localeCompare(right.rootDigest)
+        );
+      });
     const items = visible.slice(offset, offset + input.limit).map(cloneSeal);
     return Object.freeze({
       items: Object.freeze(items),
@@ -205,10 +198,8 @@ export class InMemoryAuditRepositoryAdapter implements AuditRepositoryPortV1 {
     try {
       return await work({
         appendEvent: this.appendEvent.bind(this),
-        listEvents: this.listEvents.bind(this),
         listEventsForScope: this.listEventsForScope.bind(this),
         saveSeal: this.saveSeal.bind(this),
-        listSeals: this.listSeals.bind(this),
       });
     } catch (error) {
       this.events = beforeEvents;

@@ -1,9 +1,12 @@
 const COOKIE_NAME_PATTERN_V1 = /^[A-Za-z0-9_]+$/u;
 const COOKIE_VALUE_PATTERN_V1 = /^[A-Za-z0-9._~-]+$/u;
-const MAX_COOKIE_HEADER_LENGTH_V1 = 8_192;
-const MAX_COOKIE_NAME_LENGTH_V1 = 64;
-const MAX_COOKIE_VALUE_LENGTH_V1 = 4_096;
-const MAX_COOKIE_SEGMENTS_V1 = 64;
+
+export const COOKIE_LIMITS_V1 = Object.freeze({
+  headerLength: 8_192,
+  nameLength: 64,
+  valueLength: 4_096,
+  segments: 64,
+} as const);
 
 export const REFRESH_COOKIE_NAME_V1 = 'databreeze_refresh';
 export const CSRF_COOKIE_NAME_V1 = 'databreeze_csrf';
@@ -14,11 +17,11 @@ export interface CookieOptionsV1 {
 }
 
 function validCookieNameV1(name: string): boolean {
-  return name.length <= MAX_COOKIE_NAME_LENGTH_V1 && COOKIE_NAME_PATTERN_V1.test(name);
+  return name.length <= COOKIE_LIMITS_V1.nameLength && COOKIE_NAME_PATTERN_V1.test(name);
 }
 
 function validCookieValueV1(value: string): boolean {
-  return value.length <= MAX_COOKIE_VALUE_LENGTH_V1 && COOKIE_VALUE_PATTERN_V1.test(value);
+  return value.length <= COOKIE_LIMITS_V1.valueLength && COOKIE_VALUE_PATTERN_V1.test(value);
 }
 
 export function serializeCookieV1(name: string, value: string, options: CookieOptionsV1): string {
@@ -58,13 +61,13 @@ export function clearCookieV1(name: string, options: Pick<CookieOptionsV1, 'http
 export function readCookieValueV1(rawCookie: unknown, name: string): string | undefined {
   if (
     typeof rawCookie !== 'string' ||
-    rawCookie.length > MAX_COOKIE_HEADER_LENGTH_V1 ||
+    rawCookie.length > COOKIE_LIMITS_V1.headerLength ||
     !validCookieNameV1(name)
   ) {
     return undefined;
   }
   const segments = rawCookie.split(';');
-  if (segments.length > MAX_COOKIE_SEGMENTS_V1) return undefined;
+  if (segments.length > COOKIE_LIMITS_V1.segments) return undefined;
   let found: string | undefined;
   for (const segment of segments) {
     const trimmed = segment.trim();

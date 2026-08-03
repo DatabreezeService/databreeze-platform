@@ -212,7 +212,6 @@ void test('[AUD-002] Prisma audit transactions do not retain an event when the u
       assert.equal(created.accepted, true);
       if (!created.accepted) return;
       await transaction.appendEvent(context(workspaceId, 'nested'), created.value.event);
-      await transaction.listEvents(context(workspaceId, 'inspect'));
       throw new Error('rollback-me');
     }),
     /rollback-me/u,

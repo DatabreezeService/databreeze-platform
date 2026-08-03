@@ -19,6 +19,7 @@ import {
   sameUsageEntryV1,
   sameUsageReservationExceptStatusV1,
   sameUsageReservationV1,
+  validUsageReservationTransitionV1,
 } from '../application/entitlement-equality.js';
 
 function visibleInScope(context: TenantScopeV1, record: TenantScopeV1): boolean {
@@ -71,17 +72,6 @@ function cloneState(state: UsageLedgerStateV1): UsageLedgerStateV1 {
     entries: Object.freeze(state.entries.map(cloneEntry)),
     reservations: Object.freeze(state.reservations.map(cloneReservation)),
   });
-}
-
-function sameReservationExceptStatus(left: UsageReservationV1, right: UsageReservationV1): boolean {
-  return sameUsageReservationExceptStatusV1(left, right);
-}
-
-function validReservationTransition(
-  current: UsageReservationV1,
-  next: UsageReservationV1,
-): boolean {
-  return current.status === 'ACTIVE' && (next.status === 'FINALIZED' || next.status === 'RELEASED');
 }
 
 /** In-memory adapter with append-only usage and immutable plan/snapshot semantics. */
@@ -140,11 +130,17 @@ export class InMemoryEntitlementRepositoryAdapter implements EntitlementReposito
 
   async persistUsageState(context: IamTenantContextV1, state: UsageLedgerStateV1): Promise<void> {
     await Promise.resolve();
+    if (
+      new Set(state.entries.map((entry) => entry.entryId)).size !== state.entries.length ||
+      new Set(state.reservations.map((reservation) => reservation.reservationId)).size !==
+        state.reservations.length
+    )
+      throw new Error('BUA_USAGE_STATE_CONFLICT');
     for (const entry of state.entries) {
       const existing = this.entries.get(entry.entryId);
       if (existing) {
         if (!sameUsageEntryV1(existing, entry)) throw new Error('BUA_IMMUTABLE_USAGE_ENTRY');
-        continue;
+        if (visibleInScope(context.tenantScope, entry.tenantScope)) continue;
       }
       if (!scopeAllowsMutation(context, entry.tenantScope))
         throw new Error('BUA_SCOPE_NARROWING_REQUIRED');
@@ -162,17 +158,27 @@ export class InMemoryEntitlementRepositoryAdapter implements EntitlementReposito
     }
     for (const reservation of state.reservations) {
       const existing = this.reservations.get(reservation.reservationId);
+      if (existing) {
+        if (sameUsageReservationV1(existing, reservation)) {
+          if (visibleInScope(context.tenantScope, reservation.tenantScope)) continue;
+        } else if (
+          !sameUsageReservationExceptStatusV1(existing, reservation) ||
+          existing.revision + 1 !== reservation.revision ||
+          !validUsageReservationTransitionV1(existing, reservation)
+        ) {
+          throw new Error('BUA_RESERVATION_CONFLICT');
+        }
+      }
+      if (!scopeAllowsMutation(context, reservation.tenantScope))
+        throw new Error('BUA_SCOPE_NARROWING_REQUIRED');
       if (!existing) {
-        if (!scopeAllowsMutation(context, reservation.tenantScope))
-          throw new Error('BUA_SCOPE_NARROWING_REQUIRED');
         this.reservations.set(reservation.reservationId, cloneReservation(reservation));
         continue;
       }
-      if (sameUsageReservationV1(existing, reservation)) continue;
       if (
         existing.revision + 1 !== reservation.revision ||
-        !sameReservationExceptStatus(existing, reservation) ||
-        !validReservationTransition(existing, reservation)
+        !sameUsageReservationExceptStatusV1(existing, reservation) ||
+        !validUsageReservationTransitionV1(existing, reservation)
       )
         throw new Error('BUA_RESERVATION_CONFLICT');
       this.reservations.set(reservation.reservationId, cloneReservation(reservation));

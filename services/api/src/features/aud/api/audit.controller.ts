@@ -17,16 +17,29 @@ import {
   type RequestTenantContextPortV1,
 } from '../../../platform/http/request-tenant-context.port.js';
 import { AuditProblemError } from '../application/audit-problem.error.js';
-import { parseAuditPageCursorV1 } from '../application/audit-page-cursor.js';
+import {
+  AUDIT_PAGE_LIMIT_MAX_V1,
+  parseAuditPageCursorV1,
+} from '../application/audit-page-cursor.js';
 import { InputValidationException } from '../../../platform/http/input-validation.exception.js';
 
 function pageLimit(input: string | undefined): number {
   const value = input === undefined ? 50 : Number(input);
-  if (!Number.isSafeInteger(value) || value < 1 || value > 100) {
+  if (!Number.isSafeInteger(value) || value < 1 || value > AUDIT_PAGE_LIMIT_MAX_V1) {
     throw new InputValidationException([{ field: 'limit', code: 'INVALID_PAGE_LIMIT' }]);
   }
   return value;
 }
+
+const AUDIT_PAGE_RESPONSE_SCHEMA = {
+  type: 'object',
+  required: ['items'] as string[],
+  properties: {
+    items: { type: 'array', items: { type: 'object', additionalProperties: true } },
+    nextCursor: { type: 'string', maxLength: 512 },
+  },
+  additionalProperties: false,
+};
 
 @ApiTags('audit')
 @ApiBearerAuth()
@@ -39,7 +52,7 @@ export class AuditController {
 
   @Get('events')
   @ApiOperation({ summary: 'List immutable audit events visible to the caller' })
-  @ApiOkResponse()
+  @ApiOkResponse({ schema: AUDIT_PAGE_RESPONSE_SCHEMA })
   @ApiQuery({ name: 'limit', required: false, type: Number, minimum: 1, maximum: 100 })
   @ApiQuery({ name: 'cursor', required: false, type: String, maxLength: 512 })
   @ApiServiceUnavailableResponse({ description: 'Audit persistence is unavailable.' })
@@ -60,14 +73,17 @@ export class AuditController {
         limit,
         ...(cursor === undefined ? {} : { cursor }),
       });
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message === 'AUD_CHAIN_INVALID') {
+        throw new AuditProblemError('AUDIT_INTEGRITY_INVALID');
+      }
       throw new AuditProblemError('AUDIT_UNAVAILABLE');
     }
   }
 
   @Get('seals')
   @ApiOperation({ summary: 'List verified audit seals visible to the caller' })
-  @ApiOkResponse()
+  @ApiOkResponse({ schema: AUDIT_PAGE_RESPONSE_SCHEMA })
   @ApiQuery({ name: 'limit', required: false, type: Number, minimum: 1, maximum: 100 })
   @ApiQuery({ name: 'cursor', required: false, type: String, maxLength: 512 })
   @ApiServiceUnavailableResponse({ description: 'Audit persistence is unavailable.' })
@@ -88,7 +104,10 @@ export class AuditController {
         limit,
         ...(cursor === undefined ? {} : { cursor }),
       });
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message === 'AUD_CHAIN_INVALID') {
+        throw new AuditProblemError('AUDIT_INTEGRITY_INVALID');
+      }
       throw new AuditProblemError('AUDIT_UNAVAILABLE');
     }
   }

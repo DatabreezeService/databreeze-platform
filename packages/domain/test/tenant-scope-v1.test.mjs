@@ -156,6 +156,20 @@ test('[IAM-019] equality and containment require complete matching ancestry', as
   assert.equal(api.tenantScopeContainsV1(projA, wsA), false);
 });
 
+test('[IAM-019] tenant scope keys preserve complete ancestry', async () => {
+  const api = await loadTenantScope();
+  assert.ok(api);
+  const orgA = expectAccepted(api.parseTenantScopeV1(organizationA));
+  const wsA = expectAccepted(api.parseTenantScopeV1(workspaceA));
+  const projA = expectAccepted(api.parseTenantScopeV1(projectA));
+  assert.equal(api.tenantScopeKeyV1(orgA), `organization:${ids.organizationA}`);
+  assert.equal(api.tenantScopeKeyV1(wsA), `workspace:${ids.organizationA}:${ids.workspaceA}`);
+  assert.equal(
+    api.tenantScopeKeyV1(projA),
+    `project:${ids.organizationA}:${ids.workspaceA}:${ids.projectA}`,
+  );
+});
+
 test('[IAM-019] narrowing permits descendants but never parents or siblings', async () => {
   const api = await loadTenantScope();
   assert.ok(api);

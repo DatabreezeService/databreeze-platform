@@ -233,3 +233,38 @@ test('structured logger carries normalized trace context into the record', () =>
   assert.equal(record.spanId, '0123456789abcdef');
   assert.equal(record.traceFlags, '00');
 });
+
+test('structured logger isolates exporter outages from product workflows', () => {
+  const logger = createStructuredLoggerV1({
+    component: 'api',
+    clock: () => new Date('2026-01-01T00:00:00.000Z'),
+    sink() {
+      throw new Error('provider cause with customer source value');
+    },
+  });
+
+  const record = logger.emit(
+    'warn',
+    'telemetry.export_failed',
+    createCorrelationContextV1({ correlationId }),
+    { outcome: 'degraded', payload: 'must not be serialized' },
+  );
+
+  assert.equal(record.event, 'telemetry.export_failed');
+  assert.deepEqual(record.attributes, { outcome: 'degraded' });
+  assert.doesNotMatch(JSON.stringify(record), /provider cause|customer source|must not/u);
+});
+
+test('structured logger uses a safe fallback when a clock adapter fails', () => {
+  const logger = createStructuredLoggerV1({
+    component: 'engine',
+    clock() {
+      throw new Error('provider clock cause');
+    },
+    sink: () => undefined,
+  });
+
+  const record = logger.emit('info', 'processor.started', { correlationId }, {});
+  assert.match(record.timestamp, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u);
+  assert.doesNotMatch(JSON.stringify(record), /provider clock cause/u);
+});

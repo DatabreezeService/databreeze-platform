@@ -10,6 +10,7 @@ import { createIamTenantContextV1 } from '../src/features/iam/application/tenant
 import { InMemoryMfaRepositoryAdapter } from '../src/features/iam/adapter/in-memory-mfa-repository.adapter.js';
 import { MfaService } from '../src/features/iam/application/mfa.service.js';
 import { InMemoryAuditRepositoryAdapter } from '../src/features/aud/adapter/in-memory-audit-repository.adapter.js';
+import { RequestTenantContextProblemError } from '../src/platform/http/request-tenant-context.port.js';
 
 interface InjectResponse {
   readonly body: string;
@@ -121,6 +122,19 @@ void test('rejects malformed and multiple correlation values without reflecting 
     assertProblem(multiple, 400, 'CORRELATION_ID_INVALID');
     assert.doesNotMatch(multiple.body, new RegExp(correlationId));
     assert.doesNotMatch(multiple.body, new RegExp(secondCorrelationId));
+  });
+});
+
+void test('rejects malformed traceparent values without reflecting the header', async () => {
+  await withApp({}, async (app) => {
+    const leakedMarker = '00-00000000000000000000000000000000-0123456789abcdef-01';
+    const response = await app.inject({
+      method: 'GET',
+      url: '/v1/health',
+      headers: { traceparent: leakedMarker },
+    });
+    assert.equal(response.statusCode, 400);
+    assert.doesNotMatch(response.body, new RegExp(leakedMarker));
   });
 });
 
@@ -587,6 +601,34 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
       assertProblem(response, 503, 'SESSION_UNAVAILABLE');
     },
   );
+
+  await withApp(
+    {
+      requestTenantContext: {
+        resolve: () =>
+          Promise.reject(new RequestTenantContextProblemError('AUTHENTICATION_FAILED')),
+      },
+      sessions: {
+        issue: () => Promise.reject(new Error('not used')),
+        refresh: () => Promise.reject(new Error('not used')),
+        revoke: () => Promise.resolve(true),
+        findPrincipal: () => Promise.resolve(signOutPrincipal),
+        findPrincipalByAccessToken: () => Promise.resolve(signOutPrincipal),
+      },
+    },
+    async (app) => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/sign-out',
+        headers: { 'idempotency-key': 'sign-out-auth-failure-001' },
+        payload: {
+          clientPlatform: 'android',
+          sessionId: '00000000-0000-4000-8000-000000000010',
+        },
+      });
+      assertProblem(response, 401, 'AUTHENTICATION_FAILED');
+    },
+  );
 });
 
 void test('protected artifact reads derive tenant scope from an authenticated access token', async () => {
@@ -746,6 +788,43 @@ void test('audit read outages return retryable service-unavailable problems', as
   );
 });
 
+void test('audit integrity failures are non-retryable and do not look transient', async () => {
+  const auditRepository = Object.assign(new InMemoryAuditRepositoryAdapter(), {
+    listEventPage: () => Promise.reject(new Error('AUD_CHAIN_INVALID')),
+    listSealPage: () => Promise.reject(new Error('AUD_CHAIN_INVALID')),
+  });
+  const principal = {
+    userId: '00000000-0000-4000-8000-000000000001',
+    organizationId: '00000000-0000-4000-8000-000000000002',
+    workspaceId: '00000000-0000-4000-8000-000000000003',
+    securityEpoch: 1,
+    mfaRequired: false,
+  } as const;
+  await withApp(
+    {
+      auditRepository,
+      sessions: {
+        issue: () => Promise.reject(new Error('not used')),
+        refresh: () => Promise.reject(new Error('not used')),
+        revoke: () => Promise.resolve(true),
+        findPrincipal: () => Promise.resolve(principal),
+        findPrincipalByAccessToken: () => Promise.resolve(principal),
+      },
+    },
+    async (app) => {
+      for (const url of ['/v1/audit/events', '/v1/audit/seals']) {
+        const response = await app.inject({
+          method: 'GET',
+          url,
+          headers: { authorization: 'Bearer audit-access-token-123456789' },
+        });
+        assertProblem(response, 500, 'AUDIT_INTEGRITY_INVALID');
+        assert.doesNotMatch(response.body, /AUD_CHAIN_INVALID/u);
+      }
+    },
+  );
+});
+
 void test('MFA HTTP lifecycle derives the user from the authenticated tenant context and returns redacted state', async () => {
   const actorId = '00000000-0000-4000-8000-000000000001';
   const mfaService = new MfaService(
@@ -834,5 +913,21 @@ void test('MFA HTTP lifecycle derives the user from the authenticated tenant con
       },
     });
     assertProblem(response, 503, 'MFA_UNAVAILABLE');
+  });
+
+  const conflictingMfa = {
+    enroll: () => Promise.reject(new Error('IAM_MFA_REVISION_CONFLICT')),
+  } as unknown as MfaService;
+  await withApp({ mfaService: conflictingMfa, requestTenantContext }, async (app) => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/mfa/factors',
+      payload: {
+        id: '00000000-0000-4000-8000-000000000010',
+        method: 'TOTP',
+        secretReference: 'vault://iam/mfa/test-factor',
+      },
+    });
+    assertProblem(response, 409, 'IAM_MFA_REVISION_CONFLICT');
   });
 });

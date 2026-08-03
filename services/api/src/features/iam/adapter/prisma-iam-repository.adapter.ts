@@ -13,6 +13,7 @@ import type {
   IamTransactionPortV1,
 } from '../application/iam-repository.port.js';
 import type { IamTenantContextV1 } from '../application/tenant-context.js';
+import { selectAuthoritativeMembership } from '../application/membership-authority.js';
 
 export interface IamMembershipDatabaseRowV1 {
   readonly id: string;
@@ -100,10 +101,16 @@ function membershipFromRow(row: IamMembershipDatabaseRowV1): IamMembershipRecord
 
 function membershipFromRowOrSkip(
   row: IamMembershipDatabaseRowV1,
+  onMalformedMembershipRow?: (membershipId: string) => void,
 ): IamMembershipRecordV1 | undefined {
   try {
     return membershipFromRow(row);
   } catch {
+    try {
+      onMalformedMembershipRow?.(row.id);
+    } catch {
+      // Diagnostics are best-effort and must not change fail-closed authority selection.
+    }
     return undefined;
   }
 }
@@ -130,14 +137,47 @@ function visibleInScope(context: TenantScopeV1, membership: TenantScopeV1): bool
   return tenantScopeContainsV1(context, membership) || tenantScopeContainsV1(membership, context);
 }
 
-function scopeSpecificity(scope: TenantScopeV1): number {
-  if (scope.scopeType === 'project') return 3;
-  if (scope.scopeType === 'workspace') return 2;
-  return 1;
+function membershipVisibilityWhere(context: IamTenantContextV1): Readonly<Record<string, unknown>> {
+  const scope = context.tenantScope;
+  if (scope.scopeType === 'organization') return { organizationId: scope.organizationId };
+  if (scope.scopeType === 'workspace') {
+    return {
+      organizationId: scope.organizationId,
+      OR: [
+        { scopeType: 'ORGANIZATION' },
+        { scopeType: 'WORKSPACE', workspaceId: scope.workspaceId },
+        { scopeType: 'PROJECT', workspaceId: scope.workspaceId },
+      ],
+    };
+  }
+  return {
+    organizationId: scope.organizationId,
+    OR: [
+      { scopeType: 'ORGANIZATION' },
+      { scopeType: 'WORKSPACE', workspaceId: scope.workspaceId },
+      { scopeType: 'PROJECT', projectId: scope.projectId },
+    ],
+  };
+}
+
+function isUniqueConstraintViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { readonly code?: unknown }).code === 'P2002'
+  );
+}
+
+interface IamRepositoryDiagnosticsV1 {
+  readonly onMalformedMembershipRow?: (membershipId: string) => void;
 }
 
 class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
-  public constructor(private readonly client: IamTransactionDatabaseClientV1) {}
+  public constructor(
+    private readonly client: IamTransactionDatabaseClientV1,
+    private readonly diagnostics: IamRepositoryDiagnosticsV1 = {},
+  ) {}
 
   public async findMembership(
     context: IamTenantContextV1,
@@ -151,31 +191,24 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
       },
       orderBy: { id: 'asc' },
     });
-    return rows
-      .map(membershipFromRowOrSkip)
-      .filter((membership): membership is IamMembershipRecordV1 => membership !== undefined)
-      .filter(
-        (membership) =>
-          membership.principalId === principalId &&
-          membership.status === 'ACTIVE' &&
-          tenantScopeContainsV1(membership.scope, context.tenantScope),
-      )
-      .sort(
-        (left, right) =>
-          scopeSpecificity(right.scope) - scopeSpecificity(left.scope) ||
-          left.id.localeCompare(right.id),
-      )[0];
+    return selectAuthoritativeMembership(
+      rows
+        .map((row) => membershipFromRowOrSkip(row, this.diagnostics.onMalformedMembershipRow))
+        .filter((membership): membership is IamMembershipRecordV1 => membership !== undefined),
+      context,
+      principalId,
+    );
   }
 
   public async listMemberships(
     context: IamTenantContextV1,
   ): Promise<readonly IamMembershipRecordV1[]> {
     const rows = await this.client.membershipIdentity.findMany({
-      where: { organizationId: context.tenantScope.organizationId },
+      where: membershipVisibilityWhere(context),
       orderBy: { id: 'asc' },
     });
     return rows
-      .map(membershipFromRowOrSkip)
+      .map((row) => membershipFromRowOrSkip(row, this.diagnostics.onMalformedMembershipRow))
       .filter((membership): membership is IamMembershipRecordV1 => membership !== undefined)
       .filter((membership) => visibleInScope(context.tenantScope, membership.scope));
   }
@@ -188,15 +221,20 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
       throw new Error('IAM_SCOPE_NARROWING_REQUIRED');
     const validated = validateMembershipV1({ ...membership, principalType: 'USER' });
     if (!validated.accepted) throw new Error(`IAM_${validated.code}`);
-    const existingRow = await this.client.membershipIdentity.findFirst({
-      where: {
-        id: membership.id,
-        organizationId: context.tenantScope.organizationId,
-      },
+    const existingById = await this.client.membershipIdentity.findFirst({
+      where: { id: membership.id },
     });
+    if (existingById !== null && existingById.organizationId !== context.tenantScope.organizationId)
+      throw new Error('IAM_REVISION_CONFLICT');
+    const existingRow = existingById;
     if (!existingRow) {
       if (context.expectedRevision !== undefined) throw new Error('IAM_REVISION_CONFLICT');
-      await this.client.membershipIdentity.create({ data: membershipRow(validated.value) });
+      try {
+        await this.client.membershipIdentity.create({ data: membershipRow(validated.value) });
+      } catch (error) {
+        if (isUniqueConstraintViolation(error)) throw new Error('IAM_REVISION_CONFLICT');
+        throw error;
+      }
       return;
     }
     const existing = membershipFromRow(existingRow);
@@ -220,19 +258,28 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
 }
 
 export class PrismaIamRepositoryAdapter implements IamRepositoryPortV1 {
-  public constructor(private readonly client: IamDatabaseClientV1) {}
+  public constructor(
+    private readonly client: IamDatabaseClientV1,
+    private readonly diagnostics: IamRepositoryDiagnosticsV1 = {},
+  ) {}
 
   public findMembership(context: IamTenantContextV1, principalId: StableIdentifierV1) {
-    return new PrismaIamTransactionAdapter(this.client).findMembership(context, principalId);
+    return new PrismaIamTransactionAdapter(this.client, this.diagnostics).findMembership(
+      context,
+      principalId,
+    );
   }
 
   public listMemberships(context: IamTenantContextV1) {
-    return new PrismaIamTransactionAdapter(this.client).listMemberships(context);
+    return new PrismaIamTransactionAdapter(this.client, this.diagnostics).listMemberships(context);
   }
 
   public saveMembership(context: IamTenantContextV1, membership: IamMembershipRecordV1) {
     return this.client.$transaction((transaction) =>
-      new PrismaIamTransactionAdapter(transaction).saveMembership(context, membership),
+      new PrismaIamTransactionAdapter(transaction, this.diagnostics).saveMembership(
+        context,
+        membership,
+      ),
     );
   }
 
@@ -241,7 +288,7 @@ export class PrismaIamRepositoryAdapter implements IamRepositoryPortV1 {
     work: (transaction: IamTransactionPortV1) => Promise<TValue>,
   ): Promise<TValue> {
     return this.client.$transaction((transaction) =>
-      work(new PrismaIamTransactionAdapter(transaction)),
+      work(new PrismaIamTransactionAdapter(transaction, this.diagnostics)),
     );
   }
 }

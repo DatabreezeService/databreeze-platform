@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   CSRF_COOKIE_NAME_V1,
+  COOKIE_LIMITS_V1,
   REFRESH_COOKIE_NAME_V1,
   clearCookieV1,
   readCookieValueV1,
@@ -50,31 +51,83 @@ void test('reads one exact cookie value and fails closed for ambiguity or malfor
 });
 
 void test('rejects cookie headers and fields beyond parser resource bounds', () => {
+  const headerPrefix = `${REFRESH_COOKIE_NAME_V1}=${refreshToken}; padding=`;
+  const secondSegmentPrefix = '; second=';
+  const secondValueLength =
+    COOKIE_LIMITS_V1.headerLength -
+    headerPrefix.length -
+    COOKIE_LIMITS_V1.valueLength -
+    secondSegmentPrefix.length;
+  const headerAtLimit =
+    headerPrefix +
+    'a'.repeat(COOKIE_LIMITS_V1.valueLength) +
+    secondSegmentPrefix +
+    'b'.repeat(secondValueLength);
+
+  assert.equal(headerAtLimit.length, COOKIE_LIMITS_V1.headerLength);
+  assert.equal(readCookieValueV1(headerAtLimit, REFRESH_COOKIE_NAME_V1), refreshToken);
+  assert.equal(readCookieValueV1(`${headerAtLimit}x`, REFRESH_COOKIE_NAME_V1), undefined);
   assert.equal(
     readCookieValueV1(
-      `${REFRESH_COOKIE_NAME_V1}=${refreshToken}; padding=${'a'.repeat(8_192)}`,
+      `${REFRESH_COOKIE_NAME_V1}=${refreshToken}; ${Array.from(
+        { length: COOKIE_LIMITS_V1.segments - 2 },
+        (_, index) => `c${index}=v`,
+      ).join('; ')}; last=v`,
+      REFRESH_COOKIE_NAME_V1,
+    ),
+    refreshToken,
+  );
+  assert.equal(
+    serializeCookieV1('a'.repeat(COOKIE_LIMITS_V1.nameLength), token, {
+      httpOnly: true,
+      maxAgeSeconds: 1,
+    }).startsWith(`${'a'.repeat(COOKIE_LIMITS_V1.nameLength)}=`),
+    true,
+  );
+  assert.equal(
+    serializeCookieV1(REFRESH_COOKIE_NAME_V1, 'a'.repeat(COOKIE_LIMITS_V1.valueLength), {
+      httpOnly: true,
+      maxAgeSeconds: 1,
+    }).includes(`=${'a'.repeat(COOKIE_LIMITS_V1.valueLength)};`),
+    true,
+  );
+  assert.equal(
+    readCookieValueV1(
+      `${REFRESH_COOKIE_NAME_V1}=${refreshToken}; padding=${'a'.repeat(
+        COOKIE_LIMITS_V1.headerLength,
+      )}`,
       REFRESH_COOKIE_NAME_V1,
     ),
     undefined,
   );
   assert.equal(
     readCookieValueV1(
-      `${REFRESH_COOKIE_NAME_V1}=${refreshToken}; ${Array.from({ length: 64 }, (_, index) => `c${index}=v`).join('; ')}`,
+      `${REFRESH_COOKIE_NAME_V1}=${refreshToken}; ${Array.from(
+        { length: COOKIE_LIMITS_V1.segments },
+        (_, index) => `c${index}=v`,
+      ).join('; ')}`,
       REFRESH_COOKIE_NAME_V1,
     ),
     undefined,
   );
   assert.equal(
-    readCookieValueV1(`${REFRESH_COOKIE_NAME_V1}=${'a'.repeat(4_097)}`, REFRESH_COOKIE_NAME_V1),
+    readCookieValueV1(
+      `${REFRESH_COOKIE_NAME_V1}=${'a'.repeat(COOKIE_LIMITS_V1.valueLength + 1)}`,
+      REFRESH_COOKIE_NAME_V1,
+    ),
     undefined,
   );
   assert.throws(
-    () => serializeCookieV1('a'.repeat(65), token, { httpOnly: true, maxAgeSeconds: 1 }),
+    () =>
+      serializeCookieV1('a'.repeat(COOKIE_LIMITS_V1.nameLength + 1), token, {
+        httpOnly: true,
+        maxAgeSeconds: 1,
+      }),
     /Cookie name or value is invalid/,
   );
   assert.throws(
     () =>
-      serializeCookieV1(REFRESH_COOKIE_NAME_V1, 'a'.repeat(4_097), {
+      serializeCookieV1(REFRESH_COOKIE_NAME_V1, 'a'.repeat(COOKIE_LIMITS_V1.valueLength + 1), {
         httpOnly: true,
         maxAgeSeconds: 1,
       }),
