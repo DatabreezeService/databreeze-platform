@@ -12,6 +12,7 @@ import { SessionProblemError } from '../../features/iam/application/session-prob
 import { MfaProblemError } from '../../features/iam/application/mfa-problem.error.js';
 import { EntitlementProblemError } from '../../features/bua/application/entitlement-problem.error.js';
 import { DeviceIdentityProblemError } from '../../features/iam/application/device-identity-problem.error.js';
+import { AuditProblemError } from '../../features/aud/application/audit-problem.error.js';
 import { RequestTenantContextProblemError } from './session-tenant-context.adapter.js';
 import { NotReadyError } from '../../features/system/application/not-ready.error.js';
 import { InputValidationException } from './input-validation.exception.js';
@@ -93,6 +94,15 @@ function describe(error: unknown, correlationId: string): ProblemInput {
       messageKey: `api.error.${error.code.toLowerCase()}`,
       retryable: error.code === 'DEVICE_UNAVAILABLE',
       status,
+    };
+  }
+  if (error instanceof AuditProblemError) {
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: 'api.error.audit_unavailable',
+      retryable: true,
+      status: HttpStatus.SERVICE_UNAVAILABLE,
     };
   }
   if (error instanceof RequestTenantContextProblemError) {

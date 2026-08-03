@@ -9,6 +9,7 @@ import { createApiApplication } from '../src/bootstrap.js';
 import { createIamTenantContextV1 } from '../src/features/iam/application/tenant-context.js';
 import { InMemoryMfaRepositoryAdapter } from '../src/features/iam/adapter/in-memory-mfa-repository.adapter.js';
 import { MfaService } from '../src/features/iam/application/mfa.service.js';
+import { InMemoryAuditRepositoryAdapter } from '../src/features/aud/adapter/in-memory-audit-repository.adapter.js';
 
 interface InjectResponse {
   readonly body: string;
@@ -673,6 +674,43 @@ void test('protected artifact reads derive tenant scope from an authenticated ac
         headers: { authorization: 'Bearer unavailable-access-token-12345' },
       });
       assertProblem(response, 503, 'AUTHENTICATION_UNAVAILABLE');
+    },
+  );
+});
+
+void test('audit read outages return retryable service-unavailable problems', async () => {
+  const auditRepository = Object.assign(new InMemoryAuditRepositoryAdapter(), {
+    listEvents: () => Promise.reject(new Error(`database ${leakedMarker}`)),
+    listSeals: () => Promise.reject(new Error(`database ${leakedMarker}`)),
+  });
+  const principal = {
+    userId: '00000000-0000-4000-8000-000000000001',
+    organizationId: '00000000-0000-4000-8000-000000000002',
+    workspaceId: '00000000-0000-4000-8000-000000000003',
+    securityEpoch: 1,
+    mfaRequired: false,
+  } as const;
+  await withApp(
+    {
+      auditRepository,
+      sessions: {
+        issue: () => Promise.reject(new Error('not used')),
+        refresh: () => Promise.reject(new Error('not used')),
+        revoke: () => Promise.resolve(true),
+        findPrincipal: () => Promise.resolve(principal),
+        findPrincipalByAccessToken: () => Promise.resolve(principal),
+      },
+    },
+    async (app) => {
+      for (const url of ['/v1/audit/events', '/v1/audit/seals']) {
+        const response = await app.inject({
+          method: 'GET',
+          url,
+          headers: { authorization: 'Bearer audit-access-token-123456789' },
+        });
+        assertProblem(response, 503, 'AUDIT_UNAVAILABLE');
+        assert.doesNotMatch(response.body, new RegExp(leakedMarker));
+      }
     },
   );
 });
