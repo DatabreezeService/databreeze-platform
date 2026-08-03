@@ -44,10 +44,13 @@ interface IamMembershipDelegateV1 {
   }): Promise<{ readonly count: number }>;
 }
 
-export interface IamDatabaseClientV1 {
+export interface IamTransactionDatabaseClientV1 {
   readonly membershipIdentity: IamMembershipDelegateV1;
+}
+
+export interface IamDatabaseClientV1 extends IamTransactionDatabaseClientV1 {
   $transaction<TValue>(
-    work: (transaction: IamDatabaseClientV1) => Promise<TValue>,
+    work: (transaction: IamTransactionDatabaseClientV1) => Promise<TValue>,
   ): Promise<TValue>;
 }
 
@@ -124,7 +127,7 @@ function scopeSpecificity(scope: TenantScopeV1): number {
 }
 
 class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
-  public constructor(private readonly client: IamDatabaseClientV1) {}
+  public constructor(private readonly client: IamTransactionDatabaseClientV1) {}
 
   public async findMembership(
     context: IamTenantContextV1,

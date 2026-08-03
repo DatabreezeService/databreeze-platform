@@ -11,6 +11,7 @@ import {
 import {
   PrismaIamRepositoryAdapter,
   type IamDatabaseClientV1,
+  type IamTransactionDatabaseClientV1,
   type IamMembershipDatabaseRowV1,
 } from '../../../src/features/iam/adapter/prisma-iam-repository.adapter.js';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
@@ -111,10 +112,12 @@ function createDatabase(rows: readonly IamMembershipDatabaseRowV1[] = []): {
         return { count: 1 };
       },
     },
-    $transaction: async <TValue>(work: (transaction: IamDatabaseClientV1) => Promise<TValue>) => {
+    $transaction: async <TValue>(
+      work: (transaction: IamTransactionDatabaseClientV1) => Promise<TValue>,
+    ) => {
       const before = new Map(memberships);
       try {
-        return await work(client);
+        return await work({ membershipIdentity: client.membershipIdentity });
       } catch (error) {
         memberships.clear();
         for (const [key, value] of before) memberships.set(key, value);
