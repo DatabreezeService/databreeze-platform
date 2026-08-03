@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   completeArtifactUploadSessionV1,
   createArtifactUploadSessionV1,
+  expireArtifactUploadSessionV1,
   recordArtifactUploadPartV1,
 } from '../dist/artifact-upload/v1.js';
 
@@ -59,4 +60,15 @@ void test('[IAE-014] upload sessions require every bounded part before completio
     }).value.state,
     'COMPLETED',
   );
+});
+
+void test('[IAE-014] upload sessions reject a premature expiration timestamp', () => {
+  const created = createArtifactUploadSessionV1(base);
+  assert.equal(created.accepted, true);
+  if (!created.accepted) return;
+
+  assert.deepEqual(expireArtifactUploadSessionV1(created.value, base.createdAt), {
+    accepted: false,
+    code: 'INVALID_TIMESTAMP',
+  });
 });

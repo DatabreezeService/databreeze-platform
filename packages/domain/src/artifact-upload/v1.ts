@@ -246,7 +246,7 @@ export function expireArtifactUploadSessionV1(
   const timestampValue = timestamp(now);
   if (!timestampValue) return rejected('INVALID_TIMESTAMP');
   if (session.state !== 'OPEN') return rejected('INVALID_STATE');
-  if (Date.parse(timestampValue) < Date.parse(session.expiresAt)) return rejected('EXPIRED');
+  if (Date.parse(timestampValue) < Date.parse(session.expiresAt)) return rejected('INVALID_TIMESTAMP');
   return accepted(
     Object.freeze({ ...session, state: 'EXPIRED' as const, revision: session.revision + 1 }),
   );
