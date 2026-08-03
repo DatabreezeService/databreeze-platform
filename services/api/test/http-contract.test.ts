@@ -10,6 +10,7 @@ import { createIamTenantContextV1 } from '../src/features/iam/application/tenant
 import { InMemoryMfaRepositoryAdapter } from '../src/features/iam/adapter/in-memory-mfa-repository.adapter.js';
 import { MfaService } from '../src/features/iam/application/mfa.service.js';
 import { InMemoryAuditRepositoryAdapter } from '../src/features/aud/adapter/in-memory-audit-repository.adapter.js';
+import { RequestTenantContextProblemError } from '../src/platform/http/request-tenant-context.port.js';
 
 interface InjectResponse {
   readonly body: string;
@@ -81,6 +82,7 @@ void test('reports ready only through the injectable readiness port and minimize
       assert.doesNotMatch(response.body, /postgres/i);
     },
   );
+
 });
 
 void test('maps an unconfigured tenant context provider to authentication unavailability', async () => {
@@ -479,6 +481,7 @@ void test('refresh rotates Web cookies without returning the refresh token and p
       assertProblem(response, 503, 'SESSION_UNAVAILABLE');
     },
   );
+
 });
 
 void test('sign-out revokes idempotently and clears browser credentials', async () => {
@@ -598,6 +601,33 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
         },
       });
       assertProblem(response, 503, 'SESSION_UNAVAILABLE');
+    },
+  );
+
+  await withApp(
+    {
+      requestTenantContext: {
+        resolve: () => Promise.reject(new RequestTenantContextProblemError('AUTHENTICATION_FAILED')),
+      },
+      sessions: {
+        issue: () => Promise.reject(new Error('not used')),
+        refresh: () => Promise.reject(new Error('not used')),
+        revoke: () => Promise.resolve(true),
+        findPrincipal: () => Promise.resolve(signOutPrincipal),
+        findPrincipalByAccessToken: () => Promise.resolve(signOutPrincipal),
+      },
+    },
+    async (app) => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/sign-out',
+        headers: { 'idempotency-key': 'sign-out-auth-failure-001' },
+        payload: {
+          clientPlatform: 'android',
+          sessionId: '00000000-0000-4000-8000-000000000010',
+        },
+      });
+      assertProblem(response, 401, 'AUTHENTICATION_FAILED');
     },
   );
 });
