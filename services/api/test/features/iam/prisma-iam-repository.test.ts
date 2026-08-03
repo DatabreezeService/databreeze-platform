@@ -292,6 +292,8 @@ void test('[IAM-004] Prisma IAM membership updates persist cleared invitation li
   });
   assert.equal(memberships.get(id('25'))?.startsAt, null);
   assert.equal(memberships.get(id('25'))?.expiresAt, null);
+  assert.equal(memberships.get(id('25'))?.status, 'ACTIVE');
+  assert.equal(memberships.get(id('25'))?.revision, 2);
 });
 
 void test('[IAM-009] Prisma IAM transaction rollback leaves no staged membership', async () => {

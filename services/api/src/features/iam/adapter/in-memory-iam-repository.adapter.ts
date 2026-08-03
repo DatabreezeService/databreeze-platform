@@ -1,5 +1,6 @@
 import {
   tenantScopeContainsV1,
+  tenantScopesEqualV1,
   type StableIdentifierV1,
   type TenantScopeV1,
 } from '@databreeze/domain/tenant-scope/v1';
@@ -54,6 +55,13 @@ export class InMemoryIamRepositoryAdapter implements IamRepositoryPortV1 {
     if (!tenantScopeContainsV1(context.tenantScope, membership.scope))
       throw new Error('IAM_SCOPE_NARROWING_REQUIRED');
     const existing = this.memberships.find((item) => item.id === membership.id);
+    const duplicate = this.memberships.find(
+      (item) =>
+        item.id !== membership.id &&
+        item.principalId === membership.principalId &&
+        tenantScopesEqualV1(item.scope, membership.scope),
+    );
+    if (duplicate) throw new Error('IAM_MEMBERSHIP_CONFLICT');
     if (existing && context.expectedRevision !== existing.revision)
       throw new Error('IAM_REVISION_CONFLICT');
     if (!existing && context.expectedRevision !== undefined)

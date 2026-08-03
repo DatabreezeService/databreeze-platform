@@ -124,6 +124,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260803000000_iae_lineage_uniqueness',
     '20260803010000_iam_session_scope_binding',
     '20260803020000_bua_project_usage_scope',
+    '20260803030000_iam_membership_scope_uniqueness',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -521,4 +522,17 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   }
   assert.match(sessionScopeMigration, /no production or legacy data migration/u);
   assert.match(sessionScopeMigration, /guessing tenant scope would be unsafe/u);
+  const membershipUniquenessMigration = await readFile(
+    path.join(
+      migrationsDirectory,
+      '20260803030000_iam_membership_scope_uniqueness',
+      'migration.sql',
+    ),
+    'utf8',
+  );
+  assert.match(
+    membershipUniquenessMigration,
+    /CREATE UNIQUE INDEX "memberships_principal_scope_identity_key"/u,
+  );
+  assert.match(membershipUniquenessMigration, /COALESCE\("workspace_id"::text, ''\)/u);
 });

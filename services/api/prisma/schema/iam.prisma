@@ -68,6 +68,8 @@ model ProjectIdentity {
 }
 
 model MembershipIdentity {
+  /// A null-safe raw expression index in 20260803030000_iam_membership_scope_uniqueness
+  /// enforces one principal/scope identity because Prisma composite uniques treat NULLs as distinct.
   id             String   @id @db.Uuid
   principalType  String   @map("principal_type") @db.VarChar(24)
   principalId    String   @map("principal_id") @db.Uuid
