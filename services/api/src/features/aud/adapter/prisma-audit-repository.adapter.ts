@@ -13,6 +13,7 @@ import {
   parseStrictUtcTimestampV1,
   parseTenantScopeV1,
   tenantScopeContainsV1,
+  tenantScopeKeyV1,
   type TenantScopeV1,
 } from '@databreeze/domain/tenant-scope/v1';
 import { randomUUID } from 'node:crypto';
@@ -124,13 +125,6 @@ function databaseScope(scope: TenantScopeV1) {
     workspaceId: scope.scopeType === 'organization' ? null : scope.workspaceId,
     projectId: scope.scopeType === 'project' ? scope.projectId : null,
   } as const;
-}
-
-function scopeKey(scope: TenantScopeV1): string {
-  if (scope.scopeType === 'organization') return `organization:${scope.organizationId}`;
-  if (scope.scopeType === 'workspace')
-    return `workspace:${scope.organizationId}:${scope.workspaceId}`;
-  return `project:${scope.organizationId}:${scope.workspaceId}:${scope.projectId}`;
 }
 
 function persistedScope(row: {
@@ -248,7 +242,7 @@ function eventCreateData(event: AuditEventV1): AuditEventCreateDataV1 {
     id: event.eventId,
     schemaVersion: event.schemaVersion,
     action: event.action,
-    scopeKey: scopeKey(event.tenantScope),
+    scopeKey: tenantScopeKeyV1(event.tenantScope),
     actorType: event.actor.actorType,
     actorId: event.actor.actorId,
     entityType: event.entityType,
@@ -270,7 +264,7 @@ function sealCreateData(seal: AuditSealV1): AuditSealCreateDataV1 {
     ...databaseScope(seal.tenantScope),
     id: randomUUID(),
     schemaVersion: seal.schemaVersion,
-    scopeKey: scopeKey(seal.tenantScope),
+    scopeKey: tenantScopeKeyV1(seal.tenantScope),
     firstSequence: seal.firstSequence,
     lastSequence: seal.lastSequence,
     eventCount: seal.eventCount,
@@ -325,7 +319,7 @@ class PrismaAuditTransactionAdapter implements AuditTransactionPortV1 {
       if (!sameAuditEventV1(current, event)) throw new Error('AUD_IMMUTABLE_EVENT');
       return current;
     }
-    const eventScopeKey = scopeKey(event.tenantScope);
+    const eventScopeKey = tenantScopeKeyV1(event.tenantScope);
     const [duplicate, latest] = await Promise.all([
       this.client.auditEventRecord.findFirst({
         where: { scopeKey: eventScopeKey, idempotencyKey: event.idempotencyKey },
@@ -366,7 +360,7 @@ class PrismaAuditTransactionAdapter implements AuditTransactionPortV1 {
     if (!tenantScopeContainsV1(context.tenantScope, scope))
       throw new Error('AUD_SCOPE_NARROWING_REQUIRED');
     const rows = await this.client.auditEventRecord.findMany({
-      where: { scopeKey: scopeKey(scope) },
+      where: { scopeKey: tenantScopeKeyV1(scope) },
       orderBy: { sequence: 'asc' },
     });
     const events = rows.map(persistedEvent);
@@ -380,7 +374,7 @@ class PrismaAuditTransactionAdapter implements AuditTransactionPortV1 {
       throw new Error('AUD_SCOPE_NARROWING_REQUIRED');
     const existing = await this.client.auditSealRecord.findFirst({
       where: {
-        scopeKey: scopeKey(seal.tenantScope),
+        scopeKey: tenantScopeKeyV1(seal.tenantScope),
         firstSequence: seal.firstSequence,
         lastSequence: seal.lastSequence,
       },
