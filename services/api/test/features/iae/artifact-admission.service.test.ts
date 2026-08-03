@@ -105,5 +105,8 @@ void test('IAE-009 admission never lets request input replace the repository art
   const result = await service.admit(context, artifact.value.versionId, untrustedInput);
 
   assert.deepEqual(result, { accepted: false, code: 'DIGEST_MISMATCH' });
-  assert.equal((await repository.findVersion(context, artifact.value.versionId))?.status, 'QUARANTINED');
+  assert.equal(
+    (await repository.findVersion(context, artifact.value.versionId))?.status,
+    'QUARANTINED',
+  );
 });

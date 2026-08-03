@@ -1,13 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsISO8601,
-  IsIn,
-  IsInt,
-  IsOptional,
-  IsString,
-  Min,
-  Matches,
-} from 'class-validator';
+import { IsISO8601, IsIn, IsInt, IsOptional, IsString, Min, Matches } from 'class-validator';
 
 export class AdmitArtifactDto {
   @ApiProperty({ pattern: '^[0-9a-f]{64}$' })

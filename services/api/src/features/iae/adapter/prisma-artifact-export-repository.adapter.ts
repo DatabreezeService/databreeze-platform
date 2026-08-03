@@ -115,8 +115,7 @@ class PrismaArtifactExportTransactionAdapter implements ArtifactExportTransactio
       where: { id: manifest.manifestId },
     });
     if (existing !== null) {
-      if (!visible(context.tenantScope, existing))
-        throw new Error('IAE_IMMUTABLE_EXPORT_MANIFEST');
+      if (!visible(context.tenantScope, existing)) throw new Error('IAE_IMMUTABLE_EXPORT_MANIFEST');
       const current = rowToDomain(existing);
       if (JSON.stringify(current) !== JSON.stringify(manifest))
         throw new Error('IAE_IMMUTABLE_EXPORT_MANIFEST');

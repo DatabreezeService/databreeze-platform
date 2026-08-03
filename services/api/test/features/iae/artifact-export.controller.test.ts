@@ -23,7 +23,9 @@ const context = contextResult.value;
 
 function problemCode(body: string): unknown {
   const parsed: unknown = JSON.parse(body);
-  return typeof parsed === 'object' && parsed !== null && 'code' in parsed ? parsed.code : undefined;
+  return typeof parsed === 'object' && parsed !== null && 'code' in parsed
+    ? parsed.code
+    : undefined;
 }
 
 void test('IAE-018 export HTTP maps rejected service outcomes to problem responses', async () => {

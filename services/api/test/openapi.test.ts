@@ -197,8 +197,14 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       ['RegisterDatasetQualityResultDto', 'findings', 512],
     ] as const) {
       const schema = firstDocument.components?.schemas?.[schemaName] as Record<string, unknown>;
-      const property = (schema['properties'] as Record<string, Record<string, unknown>>)[propertyName];
-      assert.equal(property?.['maxItems'], maxItems, `${schemaName}.${propertyName} must be bounded`);
+      const property = (schema['properties'] as Record<string, Record<string, unknown>>)[
+        propertyName
+      ];
+      assert.equal(
+        property?.['maxItems'],
+        maxItems,
+        `${schemaName}.${propertyName} must be bounded`,
+      );
     }
     const spreadsheetSheet = firstDocument.components?.schemas?.[
       'SpreadsheetAuditSheetDto'

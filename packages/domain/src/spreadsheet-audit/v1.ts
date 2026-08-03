@@ -136,8 +136,7 @@ function finding(input: unknown): SpreadsheetAuditResultValidationV1<Spreadsheet
   if (!findingId || !sheetId) return rejected('INVALID_IDENTIFIER');
   if (!address || !/^[A-Z]{1,3}[1-9][0-9]*$/u.test(address.toUpperCase()))
     return rejected('INVALID_COORDINATE');
-  if (kind !== 'FORMULA_FAMILY_OUTLIER' && kind !== 'FORMULA_GAP')
-    return rejected('INVALID_KIND');
+  if (kind !== 'FORMULA_FAMILY_OUTLIER' && kind !== 'FORMULA_GAP') return rejected('INVALID_KIND');
   if (severity !== 'INFO' && severity !== 'WARNING' && severity !== 'ERROR')
     return rejected('INVALID_SEVERITY');
   if (!formulaFingerprint) return rejected('INVALID_HASH');
