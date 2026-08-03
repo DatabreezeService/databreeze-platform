@@ -330,6 +330,7 @@ void test('[BUA-008, IAM-009] inherited usage reads use one scope-key query per 
   });
   assert.equal(admitted.accepted, true);
 
+  manyQueries.length = 0;
   await repository.listUsageState(projectContext('batched-read'));
   assert.equal(manyQueries.length, 2);
   const expectedKeys = [
