@@ -131,6 +131,29 @@ function visibleInScope(context: TenantScopeV1, membership: TenantScopeV1): bool
   return tenantScopeContainsV1(context, membership) || tenantScopeContainsV1(membership, context);
 }
 
+function membershipVisibilityWhere(context: IamTenantContextV1): Readonly<Record<string, unknown>> {
+  const scope = context.tenantScope;
+  if (scope.scopeType === 'organization') return { organizationId: scope.organizationId };
+  if (scope.scopeType === 'workspace') {
+    return {
+      organizationId: scope.organizationId,
+      OR: [
+        { scopeType: 'ORGANIZATION' },
+        { scopeType: 'WORKSPACE', workspaceId: scope.workspaceId },
+        { scopeType: 'PROJECT', workspaceId: scope.workspaceId },
+      ],
+    };
+  }
+  return {
+    organizationId: scope.organizationId,
+    OR: [
+      { scopeType: 'ORGANIZATION' },
+      { scopeType: 'WORKSPACE', workspaceId: scope.workspaceId },
+      { scopeType: 'PROJECT', projectId: scope.projectId },
+    ],
+  };
+}
+
 function isUniqueConstraintViolation(error: unknown): boolean {
   return (
     typeof error === 'object' &&
@@ -169,7 +192,7 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
     context: IamTenantContextV1,
   ): Promise<readonly IamMembershipRecordV1[]> {
     const rows = await this.client.membershipIdentity.findMany({
-      where: { organizationId: context.tenantScope.organizationId },
+      where: membershipVisibilityWhere(context),
       orderBy: { id: 'asc' },
     });
     return rows
