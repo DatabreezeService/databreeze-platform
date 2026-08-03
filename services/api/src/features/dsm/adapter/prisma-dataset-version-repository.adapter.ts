@@ -130,8 +130,7 @@ class PrismaDatasetVersionTransactionAdapter implements DatasetVersionTransactio
       where: { id: version.versionId },
     });
     if (existing !== null) {
-      if (!visible(context.tenantScope, existing))
-        throw new Error('DSM_IMMUTABLE_DATASET_VERSION');
+      if (!visible(context.tenantScope, existing)) throw new Error('DSM_IMMUTABLE_DATASET_VERSION');
       if (JSON.stringify(rowToDomain(existing)) !== JSON.stringify(version))
         throw new Error('DSM_IMMUTABLE_DATASET_VERSION');
       return;

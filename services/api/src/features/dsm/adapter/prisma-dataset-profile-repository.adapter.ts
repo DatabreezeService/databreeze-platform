@@ -152,8 +152,7 @@ class PrismaDatasetProfileTransactionAdapter implements DatasetProfileTransactio
       where: { id: profile.profileId },
     });
     if (existing !== null) {
-      if (!visible(context.tenantScope, existing))
-        throw new Error('DSM_IMMUTABLE_DATASET_PROFILE');
+      if (!visible(context.tenantScope, existing)) throw new Error('DSM_IMMUTABLE_DATASET_PROFILE');
       if (JSON.stringify(rowToDomain(existing)) !== JSON.stringify(profile))
         throw new Error('DSM_IMMUTABLE_DATASET_PROFILE');
       return;
