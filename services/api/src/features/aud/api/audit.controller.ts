@@ -1,6 +1,7 @@
 import { Controller, Get, Inject, Req } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiOkResponse,
   ApiOperation,
   ApiServiceUnavailableResponse,
   ApiTags,
@@ -27,6 +28,7 @@ export class AuditController {
 
   @Get('events')
   @ApiOperation({ summary: 'List immutable audit events visible to the caller' })
+  @ApiOkResponse()
   @ApiServiceUnavailableResponse({ description: 'Audit persistence is unavailable.' })
   async events(@Req() request: unknown): Promise<readonly unknown[]> {
     const context = await this.requestContext.resolve(request);
@@ -39,6 +41,7 @@ export class AuditController {
 
   @Get('seals')
   @ApiOperation({ summary: 'List verified audit seals visible to the caller' })
+  @ApiOkResponse()
   @ApiServiceUnavailableResponse({ description: 'Audit persistence is unavailable.' })
   async seals(@Req() request: unknown): Promise<readonly unknown[]> {
     const context = await this.requestContext.resolve(request);

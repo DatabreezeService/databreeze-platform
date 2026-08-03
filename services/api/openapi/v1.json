@@ -6804,6 +6804,19 @@
                 "schema": { "format": "uuid", "type": "string" }
               }
             }
+          },
+          "503": {
+            "description": "Audit persistence is unavailable.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
           }
         },
         "security": [{ "bearer": [] }],
@@ -6862,6 +6875,19 @@
                 "schema": { "$ref": "#/components/schemas/ProblemDetails" }
               }
             },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "503": {
+            "description": "Audit persistence is unavailable.",
             "headers": {
               "X-Correlation-Id": {
                 "description": "Stable UUID that correlates related requests and errors.",
