@@ -13,6 +13,7 @@ import type {
   IamTransactionPortV1,
 } from '../application/iam-repository.port.js';
 import type { IamTenantContextV1 } from '../application/tenant-context.js';
+import { selectAuthoritativeMembership } from '../application/membership-authority.js';
 
 export interface IamMembershipDatabaseRowV1 {
   readonly id: string;
@@ -130,12 +131,6 @@ function visibleInScope(context: TenantScopeV1, membership: TenantScopeV1): bool
   return tenantScopeContainsV1(context, membership) || tenantScopeContainsV1(membership, context);
 }
 
-function scopeSpecificity(scope: TenantScopeV1): number {
-  if (scope.scopeType === 'project') return 3;
-  if (scope.scopeType === 'workspace') return 2;
-  return 1;
-}
-
 function isUniqueConstraintViolation(error: unknown): boolean {
   return (
     typeof error === 'object' &&
@@ -160,20 +155,14 @@ class PrismaIamTransactionAdapter implements IamTransactionPortV1 {
       },
       orderBy: { id: 'asc' },
     });
-    return rows
+    return selectAuthoritativeMembership(
+      rows
       .map(membershipFromRowOrSkip)
       .filter((membership): membership is IamMembershipRecordV1 => membership !== undefined)
-      .filter(
-        (membership) =>
-          membership.principalId === principalId &&
-          membership.status === 'ACTIVE' &&
-          tenantScopeContainsV1(membership.scope, context.tenantScope),
-      )
-      .sort(
-        (left, right) =>
-          scopeSpecificity(right.scope) - scopeSpecificity(left.scope) ||
-          left.id.localeCompare(right.id),
-      )[0];
+      ,
+      context,
+      principalId,
+    );
   }
 
   public async listMemberships(
