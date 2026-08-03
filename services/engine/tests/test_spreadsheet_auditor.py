@@ -106,6 +106,19 @@ def test_audit_rejects_archive_traversal_and_cell_resource_exhaustion() -> None:
         audit_workbook(_workbook(), max_cells=1)
 
 
+def test_audit_streams_xml_members_through_a_bounded_reader(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def reject_unbounded_read(*_args: object, **_kwargs: object) -> bytes:
+        raise AssertionError("ZipFile.read must not decompress untrusted XML without a bound")
+
+    monkeypatch.setattr(zipfile.ZipFile, "read", reject_unbounded_read)
+
+    result = audit_workbook(_workbook())
+
+    assert result.sheets[0].name == "Inventory"
+
+
 def test_manifest_adds_opaque_identities_without_source_values() -> None:
     result = audit_workbook(_workbook())
     manifest = build_spreadsheet_audit_manifest(

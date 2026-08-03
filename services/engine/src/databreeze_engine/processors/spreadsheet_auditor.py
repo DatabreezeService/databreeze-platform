@@ -80,6 +80,13 @@ def _xml(data: bytes) -> Xml.Element:
         raise SpreadsheetAuditError("MALFORMED_XML") from None
 
 
+def _xml_member(archive: zipfile.ZipFile, name: str) -> Xml.Element:
+    """Read at most one byte beyond the XML budget before rejecting a member."""
+    with archive.open(name, "r") as member:
+        data = member.read(_MAX_XML_BYTES + 1)
+    return _xml(data)
+
+
 def _column_number(column: str) -> int:
     value = 0
     for character in column.upper():
@@ -140,8 +147,8 @@ def _relationships(root: Xml.Element) -> dict[str, str]:
 
 
 def _sheet_targets(archive: zipfile.ZipFile) -> list[tuple[str, str]]:
-    workbook = _xml(archive.read("xl/workbook.xml"))
-    relationships = _relationships(_xml(archive.read("xl/_rels/workbook.xml.rels")))
+    workbook = _xml_member(archive, "xl/workbook.xml")
+    relationships = _relationships(_xml_member(archive, "xl/_rels/workbook.xml.rels"))
     sheets: list[tuple[str, str]] = []
     for sheet in workbook.findall(f"{{{_SHEET_NS}}}sheets/{{{_SHEET_NS}}}sheet"):
         name = sheet.attrib.get("name")
@@ -213,7 +220,7 @@ def audit_workbook(
         for sheet_name, target in targets:
             if target not in names:
                 raise SpreadsheetAuditError("INVALID_ARCHIVE")
-            root = _xml(archive.read(target))
+            root = _xml_member(archive, target)
             max_row = 0
             max_column = 0
             cells: list[tuple[str, str | None]] = []
