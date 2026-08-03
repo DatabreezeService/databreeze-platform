@@ -29,9 +29,7 @@ void test('accepts zero or one valid bounded UUID correlation header and rejects
   }
 
   assert.deepEqual(
-    parseTraceparentHeader([
-      '00-0123456789abcdef0123456789abcdef-0123456789abcdef-01',
-    ]),
+    parseTraceparentHeader(['00-0123456789abcdef0123456789abcdef-0123456789abcdef-01']),
     {
       accepted: true,
       traceId: '0123456789abcdef0123456789abcdef',
@@ -44,7 +42,10 @@ void test('accepts zero or one valid bounded UUID correlation header and rejects
     ['00-00000000000000000000000000000000-0123456789abcdef-01'],
     ['00-0123456789abcdef0123456789abcdef-0000000000000000-01'],
     ['ff-0123456789abcdef0123456789abcdef-0123456789abcdef-01'],
-    ['00-0123456789abcdef0123456789abcdef-0123456789abcdef-01', '00-0123456789abcdef0123456789abcdef-0123456789abcdef-01'],
+    [
+      '00-0123456789abcdef0123456789abcdef-0123456789abcdef-01',
+      '00-0123456789abcdef0123456789abcdef-0123456789abcdef-01',
+    ],
   ]) {
     assert.deepEqual(parseTraceparentHeader(values), { accepted: false });
   }
