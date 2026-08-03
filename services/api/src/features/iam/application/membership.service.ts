@@ -248,7 +248,7 @@ export class IamMembershipService {
         if (authorization !== 'ALLOWED')
           return rejected(authorization === 'UNAVAILABLE' ? 'UNAVAILABLE' : 'SCOPE_DENIED');
         if (current.revision !== expectedRevisionInput) return rejected('CONFLICT');
-        if (statusInput !== 'ACTIVE' && current.status !== 'ACTIVE') return rejected('CONFLICT');
+        if (current.status !== 'ACTIVE') return rejected('CONFLICT');
         if (statusInput !== 'ACTIVE' && current.roleId === 'owner') {
           const actor = await transaction.findMembership(context, context.actorId);
           if (!actor || actor.roleId !== 'owner') return rejected('SCOPE_DENIED');

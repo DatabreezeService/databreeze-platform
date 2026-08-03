@@ -248,6 +248,28 @@ void test('[IAM-004] invitee can accept an unexpired invitation and invitation l
   );
 });
 
+void test('[IAM-004] administrators cannot activate invitations outside the accept flow', async () => {
+  const value = repository();
+  const service = new IamMembershipService(value, idsFrom(ids.invitation), clock);
+  const invitation = await service.invite(context('membership-service-006b'), {
+    principalId: ids.invited,
+    scope: { scopeType: 'organization', organizationId: ids.organization },
+    roleId: 'viewer',
+  });
+  assert.equal(invitation.accepted, true);
+  if (!invitation.accepted) return;
+  assert.deepEqual(
+    await service.transition(context('membership-service-006c'), invitation.value.id, 1, 'ACTIVE'),
+    { accepted: false, code: 'CONFLICT' },
+  );
+  assert.equal(
+    (await value.listMemberships(context('membership-service-006d'))).find(
+      (membership) => membership.id === invitation.value.id,
+    )?.status,
+    'INVITED',
+  );
+});
+
 void test('[IAM-004] invitation acceptance fails closed for an outsider, expiry, and stale revisions', async () => {
   const value = repository();
   const service = new IamMembershipService(value, idsFrom(ids.invitation), clock);
