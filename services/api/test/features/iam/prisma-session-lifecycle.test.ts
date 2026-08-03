@@ -211,3 +211,29 @@ void test('[IAM-005] revocation is idempotent and hides session principals after
   assert.equal(await adapter.findPrincipal(session.sessionId), undefined);
   assert.equal(await adapter.findPrincipalByAccessToken(session.accessToken), undefined);
 });
+
+void test('[IAM-005] session authority database failures propagate to the HTTP availability boundary', async () => {
+  const accessDatabase = createDatabase();
+  const accessAdapter = new PrismaSessionLifecycleAdapter(accessDatabase.client);
+  const accessSession = await accessAdapter.issue(principal, 'web');
+  const accessDelegate = accessDatabase.client.accessTokenRecord as unknown as {
+    findUnique(input: unknown): Promise<AccessTokenDatabaseRowV1 | null>;
+  };
+  accessDelegate.findUnique = () => Promise.reject(new Error('access database unavailable'));
+  await assert.rejects(
+    accessAdapter.findPrincipalByAccessToken(accessSession.accessToken),
+    /access database unavailable/u,
+  );
+
+  const sessionDatabase = createDatabase();
+  const sessionAdapter = new PrismaSessionLifecycleAdapter(sessionDatabase.client);
+  const session = await sessionAdapter.issue(principal, 'desktop');
+  const sessionDelegate = sessionDatabase.client.sessionRecord as unknown as {
+    findUnique(input: unknown): Promise<SessionRecordDatabaseRowV1 | null>;
+  };
+  sessionDelegate.findUnique = () => Promise.reject(new Error('session database unavailable'));
+  await assert.rejects(
+    sessionAdapter.findPrincipal(session.sessionId),
+    /session database unavailable/u,
+  );
+});
