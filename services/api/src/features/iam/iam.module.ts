@@ -5,6 +5,7 @@ import { AuthenticationController } from './api/authentication.controller.js';
 import { MfaController } from './api/mfa.controller.js';
 import { IamHierarchyController } from './api/hierarchy.controller.js';
 import { IamMembershipController } from './api/membership.controller.js';
+import { IamBootstrapController } from './api/bootstrap.controller.js';
 import { AuthenticationService } from './application/authentication.service.js';
 import {
   AUTHENTICATION_USE_CASE,
@@ -247,6 +248,7 @@ export class IamModule {
         MfaController,
         IamHierarchyController,
         IamMembershipController,
+        IamBootstrapController,
       ],
       providers: [
         {
