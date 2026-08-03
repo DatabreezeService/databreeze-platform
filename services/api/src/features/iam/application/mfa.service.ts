@@ -128,13 +128,18 @@ export class MfaService {
       const factor = state.factors.find((item) => item.id === factorId);
       if (!factor) return invalidState();
       if (factor.status !== 'PENDING') return invalidState();
-      const verified = await this.factorProofVerifier.verify({
-        userId,
-        factorId,
-        method: factor.method,
-        secretReference: factor.secretReference,
-        proof: factorProof,
-      });
+      let verified = false;
+      try {
+        verified = await this.factorProofVerifier.verify({
+          userId,
+          factorId,
+          method: factor.method,
+          secretReference: factor.secretReference,
+          proof: factorProof,
+        });
+      } catch {
+        verified = false;
+      }
       if (!verified)
         return Object.freeze({ accepted: false as const, code: 'FACTOR_PROOF_INVALID' as const });
       const transitioned = transitionMfaFactorV1(factor, 'VERIFY', this.clock().toISOString());
