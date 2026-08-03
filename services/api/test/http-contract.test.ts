@@ -655,6 +655,26 @@ void test('protected artifact reads derive tenant scope from an authenticated ac
       assertProblem(invalidSnapshot, 400, 'ENTITLEMENT_REQUEST_INVALID');
     },
   );
+
+  await withApp(
+    {
+      sessions: {
+        issue: () => Promise.reject(new Error('not used')),
+        refresh: () => Promise.reject(new Error('not used')),
+        revoke: () => Promise.resolve(true),
+        findPrincipal: () => Promise.resolve(undefined),
+        findPrincipalByAccessToken: () => Promise.reject(new Error('database unavailable')),
+      },
+    },
+    async (app) => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/v1/artifacts/inbox',
+        headers: { authorization: 'Bearer unavailable-access-token-12345' },
+      });
+      assertProblem(response, 503, 'AUTHENTICATION_UNAVAILABLE');
+    },
+  );
 });
 
 void test('MFA HTTP lifecycle derives the user from the authenticated tenant context and returns redacted state', async () => {

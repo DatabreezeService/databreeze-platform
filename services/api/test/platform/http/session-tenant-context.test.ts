@@ -78,3 +78,18 @@ void test('uses the request id for read-only calls and rejects unsafe principal 
     },
   );
 });
+
+void test('reports session authority outages separately from rejected bearer credentials', async () => {
+  const adapter = new SessionRequestTenantContextAdapter({
+    findPrincipalByAccessToken: () => Promise.reject(new Error('database unavailable')),
+  });
+  await assert.rejects(
+    adapter.resolve({
+      headers: { authorization: 'Bearer opaque-access-token-123456789' },
+    }),
+    (error: unknown) => {
+      assert.equal((error as { code?: unknown }).code, 'AUTHENTICATION_UNAVAILABLE');
+      return true;
+    },
+  );
+});

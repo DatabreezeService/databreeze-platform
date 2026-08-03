@@ -97,12 +97,25 @@ function describe(error: unknown, correlationId: string): ProblemInput {
   }
   if (error instanceof RequestTenantContextProblemError) {
     const invalidContext = error.code === 'CONTEXT_INVALID';
+    const unavailable = error.code === 'AUTHENTICATION_UNAVAILABLE';
     return {
-      code: invalidContext ? 'CONTEXT_INVALID' : 'AUTHENTICATION_FAILED',
+      code: invalidContext
+        ? 'CONTEXT_INVALID'
+        : unavailable
+          ? 'AUTHENTICATION_UNAVAILABLE'
+          : 'AUTHENTICATION_FAILED',
       correlationId,
-      messageKey: invalidContext ? 'api.error.context_invalid' : 'api.error.authentication_failed',
-      retryable: false,
-      status: invalidContext ? HttpStatus.BAD_REQUEST : HttpStatus.UNAUTHORIZED,
+      messageKey: invalidContext
+        ? 'api.error.context_invalid'
+        : unavailable
+          ? 'api.error.authentication_unavailable'
+          : 'api.error.authentication_failed',
+      retryable: unavailable,
+      status: invalidContext
+        ? HttpStatus.BAD_REQUEST
+        : unavailable
+          ? HttpStatus.SERVICE_UNAVAILABLE
+          : HttpStatus.UNAUTHORIZED,
     };
   }
   if (error instanceof InputValidationException) {
