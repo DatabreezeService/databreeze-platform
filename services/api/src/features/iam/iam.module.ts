@@ -120,6 +120,7 @@ import {
 import {
   IAM_RECOVERY_REPOSITORY_PORT,
   IAM_RECOVERY_ADMISSION_PORT,
+  IAM_RECOVERY_COMPLETION_ADMISSION_PORT,
   type RecoveryAdmissionPortV1,
   type RecoveryDigestPortV1,
   type RecoveryDeliveryPortV1,
@@ -223,6 +224,7 @@ export interface IamModuleOptions {
   readonly recoveryAdmission?: RecoveryAdmissionPortV1;
   readonly recoveryAdmissionCounter?: RecoveryAdmissionCounterPortV1;
   readonly recoveryAdmissionOptions?: RedisRecoveryAdmissionOptionsV1;
+  readonly recoveryCompletionAdmission?: RecoveryAdmissionPortV1;
   readonly deviceIdentityService?: DeviceIdentityService;
   readonly deviceIdentityRepository?: DeviceIdentityRepositoryPortV1;
   readonly deviceIdentityDatabase?: DeviceIdentityDatabaseClientV1;
@@ -373,6 +375,8 @@ export class IamModule {
             options.recoveryAdmissionCounter,
             options.recoveryAdmissionOptions,
           ));
+    const recoveryCompletionAdmission =
+      options.recoveryCompletionAdmission ?? new InMemoryRecoveryAdmissionAdapter();
     const recoveryService =
       options.recoveryService ??
       (recoveryRepository &&
@@ -387,6 +391,7 @@ export class IamModule {
             ids: options.recoveryIdGenerator ?? randomIamRecoveryIdV1,
             tokens: options.recoveryTokenGenerator ?? randomIamRecoveryTokenV1,
             admission: recoveryAdmission,
+            completionAdmission: recoveryCompletionAdmission,
             ...(options.recoveryClock ? { clock: options.recoveryClock } : {}),
           })
         : undefined);
@@ -427,6 +432,7 @@ export class IamModule {
     if (registrationService) exports.unshift(IAM_REGISTRATION_SERVICE);
     if (recoveryRepository) exports.unshift(IAM_RECOVERY_REPOSITORY_PORT);
     if (recoveryService) exports.unshift(IAM_RECOVERY_ADMISSION_PORT);
+    if (recoveryService) exports.unshift(IAM_RECOVERY_COMPLETION_ADMISSION_PORT);
     if (recoveryService) exports.unshift(IAM_RECOVERY_SERVICE);
     return {
       module: IamModule,
@@ -575,6 +581,10 @@ export class IamModule {
               {
                 provide: IAM_RECOVERY_ADMISSION_PORT,
                 useValue: recoveryAdmission,
+              },
+              {
+                provide: IAM_RECOVERY_COMPLETION_ADMISSION_PORT,
+                useValue: recoveryCompletionAdmission,
               },
             ]
           : []),

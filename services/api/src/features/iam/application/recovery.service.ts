@@ -44,6 +44,7 @@ export interface RecoveryServicePortsV1 {
   readonly tokens: RecoveryTokenGeneratorV1;
   readonly clock?: RecoveryClockV1;
   readonly admission?: RecoveryAdmissionPortV1;
+  readonly completionAdmission?: RecoveryAdmissionPortV1;
 }
 
 function stable(input: unknown): StableIdentifierV1 | undefined {
@@ -168,6 +169,15 @@ export class RecoveryService {
     }
     const now = timestamp(this.ports.clock);
     if (!now) return unavailable();
+
+    if (this.ports.completionAdmission) {
+      try {
+        if (!(await this.ports.completionAdmission.allow(digest, now)))
+          return inputRejected('INVALID_TOKEN');
+      } catch {
+        return unavailable();
+      }
+    }
 
     // Resolve and validate the challenge before doing expensive password work. This
     // keeps unknown, expired, and already-consumed tokens cheap and indistinguishable.

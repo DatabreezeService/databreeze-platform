@@ -40,6 +40,7 @@ function service(
   delivery: RecoveryDeliveryPortV1 = { deliver: async () => undefined },
   admission?: InMemoryRecoveryAdmissionAdapter,
   passwordCredentials: PasswordCredentialService = credentials(),
+  completionAdmission?: InMemoryRecoveryAdmissionAdapter,
 ) {
   let id = 2;
   return new RecoveryService({
@@ -54,6 +55,7 @@ function service(
     tokens: { next: () => token },
     clock: { now: () => new Date('2026-08-03T00:00:00.000Z') },
     ...(admission ? { admission } : {}),
+    ...(completionAdmission ? { completionAdmission } : {}),
   });
 }
 
@@ -73,6 +75,27 @@ void test('[IAM-015] invalid recovery tokens do not invoke the password hasher',
     },
   );
   assert.equal(counter.value, 0);
+});
+
+void test('[IAM-015] completion admission consumes unknown token attempts before challenge lookup', async () => {
+  const repository = new InMemoryRecoveryRepositoryAdapter();
+  repository.seed({ email: 'user@example.com', userId });
+  const completionAdmission = new InMemoryRecoveryAdmissionAdapter({
+    maxAttempts: 1,
+    windowSeconds: 60,
+  });
+  const recovery = service(repository, undefined, undefined, credentials(), completionAdmission);
+
+  assert.deepEqual(await recovery.complete(token, 'new correct horse battery staple'), {
+    accepted: false,
+    code: 'INVALID_TOKEN',
+  });
+  assert.equal((await recovery.request('user@example.com')).accepted, true);
+  assert.deepEqual(await recovery.complete(token, 'new correct horse battery staple'), {
+    accepted: false,
+    code: 'INVALID_TOKEN',
+  });
+  assert.equal(repository.challenge('a'.repeat(64))?.status, 'ACTIVE');
 });
 
 void test('[IAM-015] recovery request is generic for unknown email and stores a delivered hashed challenge for a known account', async () => {
