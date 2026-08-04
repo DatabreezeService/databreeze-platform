@@ -37,6 +37,7 @@ import com.databreeze.android.folderautopilot.FolderAutopilotAssignmentState
 import com.databreeze.android.folderautopilot.FolderAutopilotAssignmentSummary
 import com.databreeze.android.folderautopilot.FolderAutopilotExceptionSummary
 import com.databreeze.android.folderautopilot.FolderAutopilotMobileState
+import com.databreeze.android.folderautopilot.FolderAutopilotOfflineActionQueue
 import com.databreeze.android.folderautopilot.FolderAutopilotOutcome
 import com.databreeze.android.folderautopilot.FolderAutopilotOutcomeSummary
 import com.databreeze.android.folderautopilot.FolderAutopilotApprovalSummary
@@ -78,6 +79,10 @@ fun DataBreezeApp(
 ) {
     val navController = rememberNavController()
     var autopilotState by remember { mutableStateOf(sampleFolderAutopilotState()) }
+    val autopilotActions = remember(localStore, scope, syncScheduler) {
+        FolderAutopilotOfflineActionQueue(localStore, scope, syncScheduler)
+    }
+    val autopilotActionScope = rememberCoroutineScope()
     DataBreezeTheme {
         Scaffold(
             topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) },
@@ -104,20 +109,48 @@ fun DataBreezeApp(
                 composable(AppRoutes.AUTOPILOT) {
                     FolderAutopilotScreen(
                         state = autopilotState,
-                        onPause = { autopilotState = autopilotState.pauseAssignment() },
+                        onPause = {
+                            autopilotActionScope.launch {
+                                val current = autopilotState
+                                autopilotActions.enqueuePause(current.assignment)
+                                autopilotState = current.pauseAssignment()
+                            }
+                        },
                         onApprove = {
-                            autopilotState = autopilotState.decideApproval(
-                                FolderAutopilotApprovalDecision.APPROVED,
-                                autopilotState.approval.planHash,
-                            )
+                            autopilotActionScope.launch {
+                                val current = autopilotState
+                                autopilotActions.enqueueApproval(
+                                    current.approval,
+                                    FolderAutopilotApprovalDecision.APPROVED,
+                                    current.approval.planHash,
+                                )
+                                autopilotState = current.decideApproval(
+                                    FolderAutopilotApprovalDecision.APPROVED,
+                                    current.approval.planHash,
+                                )
+                            }
                         },
                         onReject = {
-                            autopilotState = autopilotState.decideApproval(
-                                FolderAutopilotApprovalDecision.REJECTED,
-                                autopilotState.approval.planHash,
-                            )
+                            autopilotActionScope.launch {
+                                val current = autopilotState
+                                autopilotActions.enqueueApproval(
+                                    current.approval,
+                                    FolderAutopilotApprovalDecision.REJECTED,
+                                    current.approval.planHash,
+                                )
+                                autopilotState = current.decideApproval(
+                                    FolderAutopilotApprovalDecision.REJECTED,
+                                    current.approval.planHash,
+                                )
+                            }
                         },
-                        onUndo = { autopilotState = autopilotState.requestUndo() },
+                        onUndo = {
+                            autopilotActionScope.launch {
+                                val current = autopilotState
+                                autopilotActions.enqueueUndo(current.recentOutcome)
+                                autopilotState = current.requestUndo()
+                            }
+                        },
                     )
                 }
             }
