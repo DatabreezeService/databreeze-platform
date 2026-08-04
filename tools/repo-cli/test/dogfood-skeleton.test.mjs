@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -31,7 +31,8 @@ void test('dogfood gate accepts the complete walking skeleton', () => {
 void test('dogfood gate reports missing vertical components', () => {
   const root = fixtureRoot();
   const missing = requiredFiles[1];
-  const result = evaluateDogfoodSkeleton(root, new Set([missing]));
+  unlinkSync(path.join(root, missing));
+  const result = evaluateDogfoodSkeleton(root);
   assert.equal(result.accepted, false);
   assert.deepEqual(result.missing, [missing]);
 });
