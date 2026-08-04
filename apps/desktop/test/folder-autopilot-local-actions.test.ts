@@ -84,6 +84,90 @@ describe('Folder Autopilot local typed actions', () => {
     expect(copyExclusive).not.toHaveBeenCalled();
   });
 
+  it('allocates a bounded deterministic unique name and returns the chosen destination', async () => {
+    const exists = vi
+      .fn<LocalFileSystem['exists']>()
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+    const deps = dependencies({ exists });
+    const copyExclusive = vi.spyOn(deps.fileSystem, 'copyExclusive');
+    await expect(
+      executeLocalPlan(
+        plan({
+          operationId: 'copy-unique-1',
+          action: 'COPY',
+          sourcePath,
+          destinationPath,
+          sourceFingerprint: 'a'.repeat(64),
+          collisionPolicy: 'UNIQUE_NAME',
+        }),
+        deps,
+      ),
+    ).resolves.toEqual([
+      {
+        operationId: 'copy-unique-1',
+        action: 'COPY',
+        status: 'APPLIED',
+        destinationPath: 'C:\\Output\\invoice-reviewed (2).csv',
+      },
+    ]);
+    expect(copyExclusive).toHaveBeenCalledWith(
+      sourcePath,
+      'C:\\Output\\invoice-reviewed (2).csv',
+    );
+    expect(deps.destinationGuard.assertContained).toHaveBeenNthCalledWith(
+      2,
+      'C:\\Output\\invoice-reviewed (1).csv',
+    );
+    expect(deps.destinationGuard.assertContained).toHaveBeenNthCalledWith(
+      3,
+      'C:\\Output\\invoice-reviewed (2).csv',
+    );
+  });
+
+  it('prefers the exclusive rename port when the adapter provides it', async () => {
+    const renameExclusive = vi.fn<NonNullable<LocalFileSystem['renameExclusive']>>(() =>
+      Promise.resolve(),
+    );
+    const deps = dependencies({ renameExclusive });
+    const rename = vi.spyOn(deps.fileSystem, 'rename');
+
+    await executeLocalPlan(
+      plan({
+        operationId: 'rename-exclusive-1',
+        action: 'RENAME',
+        sourcePath,
+        destinationPath,
+        sourceFingerprint: 'a'.repeat(64),
+      }),
+      deps,
+    );
+
+    expect(renameExclusive).toHaveBeenCalledWith(sourcePath, destinationPath);
+    expect(rename).not.toHaveBeenCalled();
+  });
+
+  it('rejects unique-name exhaustion at the bounded allocation limit', async () => {
+    const exists = vi.fn<LocalFileSystem['exists']>(() => Promise.resolve(true));
+    const deps = dependencies({ exists });
+
+    await expect(
+      executeLocalPlan(
+        plan({
+          operationId: 'copy-unique-exhausted',
+          action: 'COPY',
+          sourcePath,
+          destinationPath,
+          sourceFingerprint: 'a'.repeat(64),
+          collisionPolicy: 'UNIQUE_NAME',
+        }),
+        deps,
+      ),
+    ).rejects.toMatchObject({ code: 'DESTINATION_COLLISION' });
+    expect(exists).toHaveBeenCalledTimes(1_001);
+  });
+
   it('fails closed for collisions, stale plans, and unknown local effects', async () => {
     const collisionDeps = dependencies({ exists: vi.fn(() => Promise.resolve(true)) });
     await expect(

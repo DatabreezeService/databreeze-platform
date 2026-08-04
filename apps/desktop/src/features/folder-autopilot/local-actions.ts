@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 export type LocalAction = 'INSPECT' | 'VALIDATE' | 'RENAME' | 'COPY' | 'MOVE';
 export type LocalCollisionPolicy = 'REVIEW' | 'SKIP' | 'UNIQUE_NAME';
 export type LocalActionCode =
@@ -26,6 +28,8 @@ export interface LocalFileSystem {
   exists(path: string): Promise<boolean>;
   readFingerprint(path: string): Promise<string>;
   copyExclusive(source: string, destination: string): Promise<void>;
+  /** The adapter must reject rather than replace an existing destination. */
+  renameExclusive?(source: string, destination: string): Promise<void>;
   rename(source: string, destination: string): Promise<void>;
 }
 
@@ -53,9 +57,11 @@ export interface LocalActionReceipt {
   readonly operationId: string;
   readonly action: LocalAction;
   readonly status: 'APPLIED' | 'SKIPPED';
+  readonly destinationPath?: string;
 }
 
 const MAX_OPERATIONS = 100;
+const MAX_UNIQUE_NAME_ATTEMPTS = 1_000;
 const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 
@@ -102,6 +108,33 @@ function validateOperation(operation: LocalActionOperation): void {
   }
 }
 
+function uniqueDestinationName(destinationPath: string, index: number): string {
+  const parsed = path.win32.parse(destinationPath);
+  return path.win32.join(parsed.dir, `${parsed.name} (${index})${parsed.ext}`);
+}
+
+async function chooseDestination(
+  containedDestination: string,
+  collisionPolicy: LocalCollisionPolicy | undefined,
+  destinationGuard: LocalPathGuard,
+  fileSystem: LocalFileSystem,
+): Promise<{ readonly path: string; readonly generated: boolean; readonly skipped: boolean }> {
+  const destination = containedDestination;
+  if (!(await fileSystem.exists(destination))) {
+    return { path: destination, generated: false, skipped: false };
+  }
+  if (collisionPolicy === 'SKIP') return { path: destination, generated: false, skipped: true };
+  if (collisionPolicy !== 'UNIQUE_NAME') return reject('DESTINATION_COLLISION');
+
+  for (let index = 1; index <= MAX_UNIQUE_NAME_ATTEMPTS; index += 1) {
+    const candidate = destinationGuard.assertContained(uniqueDestinationName(destination, index));
+    if (!(await fileSystem.exists(candidate))) {
+      return { path: candidate, generated: true, skipped: false };
+    }
+  }
+  return reject('DESTINATION_COLLISION');
+}
+
 export async function executeLocalPlan(
   plan: LocalActionPlan,
   { sourceGuard, destinationGuard, fileSystem }: LocalActionDependencies,
@@ -126,8 +159,21 @@ export async function executeLocalPlan(
       continue;
     }
 
-    const destination = destinationGuard.assertContained(operation.destinationPath as string);
-    if (source.toLowerCase() === destination.toLowerCase()) return reject('DESTINATION_RECURSION');
+    const requestedDestination = destinationGuard.assertContained(operation.destinationPath as string);
+    if (source.toLowerCase() === requestedDestination.toLowerCase()) {
+      return reject('DESTINATION_RECURSION');
+    }
+    const destinationSelection = await chooseDestination(
+      requestedDestination,
+      operation.collisionPolicy,
+      destinationGuard,
+      fileSystem,
+    );
+    const destination = destinationSelection.path;
+    if (destinationSelection.skipped) {
+      receipts.push({ operationId: operation.operationId, action: operation.action, status: 'SKIPPED' });
+      continue;
+    }
     if (await fileSystem.exists(destination)) {
       if (operation.collisionPolicy === 'SKIP') {
         receipts.push({ operationId: operation.operationId, action: operation.action, status: 'SKIPPED' });
@@ -137,11 +183,22 @@ export async function executeLocalPlan(
     }
     try {
       if (operation.action === 'COPY') await fileSystem.copyExclusive(source, destination);
-      else await fileSystem.rename(source, destination);
+      else if (fileSystem.renameExclusive !== undefined) {
+        await fileSystem.renameExclusive(source, destination);
+      } else {
+        await fileSystem.rename(source, destination);
+      }
     } catch {
       return reject('LOCAL_IO_FAILED');
     }
-    receipts.push({ operationId: operation.operationId, action: operation.action, status: 'APPLIED' });
+    receipts.push({
+      operationId: operation.operationId,
+      action: operation.action,
+      status: 'APPLIED',
+      ...(destinationSelection.generated
+        ? { destinationPath: destination }
+        : {}),
+    });
   }
   return receipts;
 }
