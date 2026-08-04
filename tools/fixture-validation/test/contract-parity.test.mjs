@@ -246,9 +246,9 @@ test('the real TypeScript Python and Kotlin consumers agree on every shared fixt
   );
   assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
   assert.deepEqual(JSON.parse(run.stdout), {
-    caseCount: 28,
-    expectedAccepted: 14,
-    expectedRejected: 14,
+    caseCount: 34,
+    expectedAccepted: 17,
+    expectedRejected: 17,
     runtimes: ['typescript', 'python', 'kotlin'],
   });
   assert.deepEqual(
@@ -260,6 +260,6 @@ test('the real TypeScript Python and Kotlin consumers agree on every shared fixt
 
 test('fixture expectations stay independently balanced', () => {
   const manifest = JSON.parse(readFileSync(fixtureManifestPath, 'utf8'));
-  assert.equal(manifest.cases.filter((fixtureCase) => fixtureCase.expectedAcceptance).length, 14);
-  assert.equal(manifest.cases.filter((fixtureCase) => !fixtureCase.expectedAcceptance).length, 14);
+  assert.equal(manifest.cases.filter((fixtureCase) => fixtureCase.expectedAcceptance).length, 17);
+  assert.equal(manifest.cases.filter((fixtureCase) => !fixtureCase.expectedAcceptance).length, 17);
 });

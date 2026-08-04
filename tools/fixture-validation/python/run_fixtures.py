@@ -9,12 +9,15 @@ from pydantic import TypeAdapter, ValidationError
 
 from databreeze_contracts.v1 import (
     ActorMetadata,
+    AutopilotFolderBinding,
     CommandEnvelope,
     CorrelationMetadata,
     CursorPage,
     EventEnvelope,
+    FolderAutopilotProfile,
     Identifier,
     ProblemDetails,
+    RecipeAssignment,
     Revision,
     TenantScope,
     UtcTimestamp,
@@ -23,12 +26,15 @@ from databreeze_contracts.v1 import (
 SCHEMA_BASE = "https://schemas.databreeze.dev/contracts/v1"
 ADAPTERS: dict[str, TypeAdapter[Any]] = {
     f"{SCHEMA_BASE}/actor-metadata": TypeAdapter(ActorMetadata),
+    f"{SCHEMA_BASE}/autopilot-folder-binding": TypeAdapter(AutopilotFolderBinding),
     f"{SCHEMA_BASE}/command-envelope": TypeAdapter(CommandEnvelope[dict[str, Any]]),
     f"{SCHEMA_BASE}/correlation-metadata": TypeAdapter(CorrelationMetadata),
     f"{SCHEMA_BASE}/cursor-page": TypeAdapter(CursorPage[Any]),
     f"{SCHEMA_BASE}/event-envelope": TypeAdapter(EventEnvelope[dict[str, Any]]),
+    f"{SCHEMA_BASE}/folder-autopilot-profile": TypeAdapter(FolderAutopilotProfile),
     f"{SCHEMA_BASE}/identifier": TypeAdapter(Identifier),
     f"{SCHEMA_BASE}/problem-details": TypeAdapter(ProblemDetails),
+    f"{SCHEMA_BASE}/recipe-assignment": TypeAdapter(RecipeAssignment),
     f"{SCHEMA_BASE}/revision": TypeAdapter(Revision),
     f"{SCHEMA_BASE}/tenant-scope": TypeAdapter(TenantScope),
     f"{SCHEMA_BASE}/utc-timestamp": TypeAdapter(UtcTimestamp),
