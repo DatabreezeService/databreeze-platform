@@ -95,6 +95,24 @@ void test('[AUD-015, AUD-016] service signs only a persisted exact-scope seal an
     await attestationRepository.findAttestation(context(), stable(attestationId)),
     created.value,
   );
+  const replayed = await service.create(context(), {
+    attestationId,
+    signerKeyId: 'audit-key-1',
+    firstSequence: 1,
+    lastSequence: 3,
+    rootDigest: 'root-digest',
+  });
+  assert.deepEqual(replayed, created);
+  assert.deepEqual(
+    await service.create(context(), {
+      attestationId,
+      signerKeyId: 'different-key',
+      firstSequence: 1,
+      lastSequence: 3,
+      rootDigest: 'root-digest',
+    }),
+    { accepted: false, code: 'CONFLICT' },
+  );
 });
 
 void test('[AUD-015] service rejects missing seals and malformed selectors before signing', async () => {

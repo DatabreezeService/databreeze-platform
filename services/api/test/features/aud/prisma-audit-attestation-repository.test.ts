@@ -129,13 +129,15 @@ function client(rows: Record<string, unknown>[] = []): AuditAttestationDatabaseC
 void test('[AUD-015, AUD-016] Prisma attestation adapter persists immutable rows and scopes reads', async () => {
   const repository = new PrismaAuditAttestationRepositoryAdapter(client());
   const value = attestation();
-  await repository.saveAttestation(context(), value);
+  const created = await repository.saveAttestation(context(), value);
+  assert.deepEqual(created, { accepted: true, value, replayed: false });
   assert.deepEqual(await repository.findAttestation(context(), stable(value.attestationId)), value);
   assert.deepEqual(await repository.listAttestations(context()), [value]);
-  await repository.saveAttestation(context(), value);
-  await assert.rejects(
-    repository.saveAttestation(context(), { ...value, signature: 'tampered' }),
-    /AUD_IMMUTABLE_ATTESTATION/,
+  const replayed = await repository.saveAttestation(context(), value);
+  assert.deepEqual(replayed, { accepted: true, value, replayed: true });
+  assert.deepEqual(
+    await repository.saveAttestation(context(), { ...value, signature: 'tampered' }),
+    { accepted: false, code: 'CONFLICT' },
   );
 });
 

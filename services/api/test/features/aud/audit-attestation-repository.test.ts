@@ -77,13 +77,15 @@ function attestation(): AuditSealAttestationV1 {
 void test('[AUD-015, AUD-016] attestation storage is immutable and scope isolated', async () => {
   const repository = new InMemoryAuditAttestationRepositoryAdapter();
   const value = attestation();
-  await repository.saveAttestation(context(), value);
+  const created = await repository.saveAttestation(context(), value);
+  assert.deepEqual(created, { accepted: true, value, replayed: false });
   assert.deepEqual(await repository.findAttestation(context(), stable(value.attestationId)), value);
   assert.deepEqual(await repository.listAttestations(context(siblingWorkspaceId)), []);
-  await repository.saveAttestation(context(), value);
-  await assert.rejects(
-    repository.saveAttestation(context(), { ...value, signature: 'tampered' }),
-    /AUD_IMMUTABLE_ATTESTATION/,
+  const replayed = await repository.saveAttestation(context(), value);
+  assert.deepEqual(replayed, { accepted: true, value, replayed: true });
+  assert.deepEqual(
+    await repository.saveAttestation(context(), { ...value, signature: 'tampered' }),
+    { accepted: false, code: 'CONFLICT' },
   );
 });
 
@@ -92,7 +94,8 @@ void test('[AUD-007, AUD-015] attestation writes roll back transactionally', asy
   const value = attestation();
   await assert.rejects(
     repository.withTransaction(context(), async (transaction) => {
-      await transaction.saveAttestation(context(), value);
+      const result = await transaction.saveAttestation(context(), value);
+      assert.equal(result.accepted, true);
       throw new Error('rollback');
     }),
     /rollback/,

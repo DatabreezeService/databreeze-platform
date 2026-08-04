@@ -22,7 +22,11 @@ export const AUDIT_ATTESTATION_SERVICE = Symbol('AUDIT_ATTESTATION_SERVICE');
 export type AuditAttestationClockV1 = () => Date;
 export type AuditAttestationIdGeneratorV1 = () => string;
 
-export type AuditAttestationApplicationCodeV1 = AuditErrorCodeV1 | 'NOT_FOUND' | 'UNAVAILABLE';
+export type AuditAttestationApplicationCodeV1 =
+  | AuditErrorCodeV1
+  | 'NOT_FOUND'
+  | 'UNAVAILABLE'
+  | 'CONFLICT';
 
 export type AuditAttestationApplicationResultV1<TValue> =
   | { readonly accepted: true; readonly value: TValue }
@@ -102,10 +106,10 @@ export class AuditAttestationService {
       this.signer,
     );
     if (!created.accepted) return applicationResult(created);
-    await this.attestationRepository.withTransaction(context, async (transaction) => {
-      await transaction.saveAttestation(context, created.value);
+    const saved = await this.attestationRepository.withTransaction(context, async (transaction) => {
+      return transaction.saveAttestation(context, created.value);
     });
-    return created;
+    return saved.accepted ? { accepted: true, value: saved.value } : rejected('CONFLICT');
   }
 
   public async verify(

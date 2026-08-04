@@ -9,6 +9,7 @@ import {
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type {
   AuditAttestationRepositoryPortV1,
+  AuditAttestationSaveResultV1,
   AuditAttestationTransactionPortV1,
 } from '../application/audit-attestation-repository.port.js';
 import { sameAuditSealAttestationV1 } from '../application/audit-equality.js';
@@ -32,14 +33,19 @@ export class InMemoryAuditAttestationRepositoryAdapter implements AuditAttestati
   public async saveAttestation(
     context: IamTenantContextV1,
     attestation: AuditSealAttestationV1,
-  ): Promise<void> {
+  ): Promise<AuditAttestationSaveResultV1> {
     await Promise.resolve();
+    const existing = this.attestations.get(attestation.attestationId);
+    if (existing) {
+      return sameAuditSealAttestationV1(existing, attestation)
+        ? { accepted: true, value: clone(existing), replayed: true }
+        : { accepted: false, code: 'CONFLICT' };
+    }
     if (!tenantScopeContainsV1(context.tenantScope, attestation.tenantScope))
       throw new Error('AUD_SCOPE_NARROWING_REQUIRED');
-    const existing = this.attestations.get(attestation.attestationId);
-    if (existing && !sameAuditSealAttestationV1(existing, attestation))
-      throw new Error('AUD_IMMUTABLE_ATTESTATION');
-    this.attestations.set(attestation.attestationId, clone(attestation));
+    const stored = clone(attestation);
+    this.attestations.set(attestation.attestationId, stored);
+    return { accepted: true, value: clone(stored), replayed: false };
   }
 
   public async findAttestation(
