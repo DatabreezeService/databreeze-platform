@@ -46,14 +46,14 @@ def build_file_observation(
     content_sha256: str,
 ) -> FileObservation:
     """Build an immutable observation and derive its idempotency key."""
-    stable_key = _stable_execution_key(
-        observation_id=observation_id,
-        display_name=display_name,
-        size_bytes=size_bytes,
-        modified_at_ns=modified_at_ns,
-        content_sha256=content_sha256,
-    )
     try:
+        stable_key = _stable_execution_key(
+            observation_id=observation_id,
+            display_name=display_name,
+            size_bytes=size_bytes,
+            modified_at_ns=modified_at_ns,
+            content_sha256=content_sha256,
+        )
         return FileObservation(
             observationId=observation_id,
             displayName=display_name,

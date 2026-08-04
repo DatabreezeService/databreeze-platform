@@ -99,3 +99,14 @@ def test_observation_rejects_invalid_fingerprint_and_bounds() -> None:
                 "path": "C:\\secret",
             }
         )
+
+
+def test_observation_normalizes_invalid_timestamp_key_failures() -> None:
+    with pytest.raises(ValueError, match="INVALID_OBSERVATION"):
+        build_file_observation(
+            observation_id="obs-001",
+            display_name="report.csv",
+            size_bytes=1,
+            modified_at_ns="not-a-number",
+            content_sha256="a" * 64,
+        )
