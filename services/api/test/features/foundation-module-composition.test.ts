@@ -46,7 +46,7 @@ import { SPREADSHEET_AUDIT_REPOSITORY_PORT } from '../../src/features/sa/applica
 import { PrismaSpreadsheetAuditRepositoryAdapter } from '../../src/features/sa/adapter/prisma-spreadsheet-audit-repository.adapter.js';
 
 function moduleTypes(): readonly unknown[] {
-  const registered = AppModule.register();
+  const registered = AppModule.register({ allowInMemorySpreadsheetAuditRunRepository: true });
   return (registered.imports ?? []).map((entry) =>
     typeof entry === 'object' && entry !== null && 'module' in entry
       ? (entry as { readonly module: unknown }).module
@@ -60,6 +60,7 @@ void test('[AUD-001, BUA-001] API application options expose durable module adap
   const options = {
     auditRepository,
     entitlementRepository,
+    allowInMemorySpreadsheetAuditRunRepository: true,
   } satisfies ApiApplicationOptions;
   const registered = AppModule.register(options);
   assert.equal(registered.module, AppModule);
@@ -120,6 +121,22 @@ void test('[SA-001] production composition refuses an implicit in-memory run rep
   );
 });
 
+void test('[SA-001] AppModule defaults to durable storage and rejects production opt-in', () => {
+  const previousNodeEnv = process.env['NODE_ENV'];
+  try {
+    delete process.env['NODE_ENV'];
+    assert.throws(() => AppModule.register(), /SA_RUN_DURABLE_REPOSITORY_REQUIRED/u);
+    process.env['NODE_ENV'] = 'production';
+    assert.throws(
+      () => AppModule.register({ allowInMemorySpreadsheetAuditRunRepository: true }),
+      /SA_RUN_IN_MEMORY_PRODUCTION_FORBIDDEN/u,
+    );
+  } finally {
+    if (previousNodeEnv === undefined) delete process.env['NODE_ENV'];
+    else process.env['NODE_ENV'] = previousNodeEnv;
+  }
+});
+
 void test('[AUD-001] configured audit persistence uses the Prisma adapter instead of the local fallback', () => {
   const database = {} as never;
   const registered = AudModule.register({ auditDatabase: database });
@@ -177,7 +194,10 @@ void test('[IAM-009] a session access-token lookup composes one live tenant-cont
   const sessions = {
     findPrincipalByAccessToken: () => Promise.resolve(undefined),
   } as never;
-  const registered = AppModule.register({ sessions });
+  const registered = AppModule.register({
+    sessions,
+    allowInMemorySpreadsheetAuditRunRepository: true,
+  });
   const iam = registered.imports?.find(
     (candidate) =>
       typeof candidate === 'object' &&
@@ -200,7 +220,10 @@ void test('[IAM-009] a session access-token lookup composes one live tenant-cont
 });
 
 void test('[IAM-005, IAM-009] a configured session database composes the live tenant-context adapter', () => {
-  const registered = AppModule.register({ sessionDatabase: {} as never });
+  const registered = AppModule.register({
+    sessionDatabase: {} as never,
+    allowInMemorySpreadsheetAuditRunRepository: true,
+  });
   const iam = registered.imports?.find(
     (candidate) =>
       typeof candidate === 'object' &&

@@ -43,10 +43,18 @@ export interface ApiApplicationOptions
 export async function createApiApplication(
   options: ApiApplicationOptions = {},
 ): Promise<ApiApplication> {
+  const compositionOptions = {
+    ...options,
+    // The application factory is the local/test bootstrap boundary. Hosted production
+    // composition must pass a durable run repository and never receives this opt-in.
+    allowInMemorySpreadsheetAuditRunRepository:
+      options.allowInMemorySpreadsheetAuditRunRepository ??
+      process.env['NODE_ENV'] !== 'production',
+  };
   const adapter = new FastifyAdapter({ bodyLimit: 65_536, logger: false });
-  installRequestContext(adapter.getInstance(), options.requestContext);
+  installRequestContext(adapter.getInstance(), compositionOptions.requestContext);
   const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule.register(options),
+    AppModule.register(compositionOptions),
     adapter,
     {
       abortOnError: true,

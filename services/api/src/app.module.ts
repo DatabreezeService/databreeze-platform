@@ -23,6 +23,11 @@ export type AppModuleOptions = SystemModuleOptions &
 @Module({})
 export class AppModule {
   static register(options: AppModuleOptions = {}): DynamicModule {
+    const allowInMemorySpreadsheetAuditRunRepository =
+      options.allowInMemorySpreadsheetAuditRunRepository ?? false;
+    if (process.env['NODE_ENV'] === 'production' && allowInMemorySpreadsheetAuditRunRepository) {
+      throw new Error('SA_RUN_IN_MEMORY_PRODUCTION_FORBIDDEN');
+    }
     const sessions =
       options.sessions ??
       (options.sessionDatabase === undefined
@@ -39,9 +44,7 @@ export class AppModule {
       ...options,
       ...(sessions === undefined ? {} : { sessions }),
       ...(requestTenantContext === undefined ? {} : { requestTenantContext }),
-      allowInMemorySpreadsheetAuditRunRepository:
-        options.allowInMemorySpreadsheetAuditRunRepository ??
-        process.env['NODE_ENV'] !== 'production',
+      allowInMemorySpreadsheetAuditRunRepository,
     };
     return {
       module: AppModule,
