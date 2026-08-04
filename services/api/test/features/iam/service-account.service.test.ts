@@ -306,3 +306,58 @@ void test('[IAM-013] credential authentication is digest-bound, updates last use
     { accepted: false, code: 'INVALID_CREDENTIALS' },
   );
 });
+
+void test('[IAM-013, INT-004] reordered permissions replay the same create outcome', async () => {
+  const accountService = service();
+  const organizationContext = context(
+    { scopeType: 'organization', organizationId },
+    'permission-order-replay',
+  );
+  const first = await accountService.create(organizationContext, {
+    name: 'Ordered worker',
+    permissions: ['artifact.record.read', 'project.record.read'],
+  });
+  const replay = await accountService.create(organizationContext, {
+    name: 'Ordered worker',
+    permissions: ['project.record.read', 'artifact.record.read'],
+  });
+  assert.deepEqual(replay, first);
+});
+
+void test('[IAM-013, INT-004] rotation and revocation clear replay envelopes without reissuing', async () => {
+  const accountService = service();
+  const organizationContext = context(
+    { scopeType: 'organization', organizationId },
+    'lifecycle-replay',
+  );
+  const created = await accountService.create(organizationContext, {
+    name: 'Lifecycle replay worker',
+    permissions: ['artifact.record.read'],
+  });
+  assert.equal(created.accepted, true);
+  const rotated = await accountService.rotate(organizationContext, accountId, 1);
+  assert.equal(rotated.accepted, true);
+  assert.deepEqual(
+    await accountService.create(organizationContext, {
+      name: 'Lifecycle replay worker',
+      permissions: ['artifact.record.read'],
+    }),
+    { accepted: false, code: 'UNAVAILABLE' },
+  );
+
+  const revokeService = service();
+  const revokeContext = context({ scopeType: 'organization', organizationId }, 'revoke-replay');
+  const revokeCreated = await revokeService.create(revokeContext, {
+    name: 'Revoked replay worker',
+    permissions: ['artifact.record.read'],
+  });
+  assert.equal(revokeCreated.accepted, true);
+  assert.equal((await revokeService.revoke(revokeContext, accountId, 1)).accepted, true);
+  assert.deepEqual(
+    await revokeService.create(revokeContext, {
+      name: 'Revoked replay worker',
+      permissions: ['artifact.record.read'],
+    }),
+    { accepted: false, code: 'UNAVAILABLE' },
+  );
+});
