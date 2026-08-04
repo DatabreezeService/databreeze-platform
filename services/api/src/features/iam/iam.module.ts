@@ -101,7 +101,10 @@ import {
   type RegistrationDatabaseClientV1,
 } from './adapter/prisma-registration-repository.adapter.js';
 import {
+  IAM_REGISTRATION_EMAIL_ADMISSION,
+  IAM_REGISTRATION_IP_ADMISSION,
   IAM_REGISTRATION_REPOSITORY_PORT,
+  type RegistrationAdmissionPortV1,
   type RegistrationRepositoryPortV1,
 } from './application/registration-repository.port.js';
 import {
@@ -231,6 +234,12 @@ export interface IamModuleOptions {
   readonly registrationService?: RegistrationService;
   readonly registrationIdGenerator?: RegistrationIdGeneratorV1;
   readonly registrationClock?: RegistrationClockV1;
+  readonly registrationIpAdmission?: RegistrationAdmissionPortV1;
+  readonly registrationIpAdmissionCounter?: RecoveryAdmissionCounterPortV1;
+  readonly registrationIpAdmissionOptions?: RedisRecoveryAdmissionOptionsV1;
+  readonly registrationEmailAdmission?: RegistrationAdmissionPortV1;
+  readonly registrationEmailAdmissionCounter?: RecoveryAdmissionCounterPortV1;
+  readonly registrationEmailAdmissionOptions?: RedisRecoveryAdmissionOptionsV1;
   readonly recoveryRepository?: RecoveryRepositoryPortV1;
   readonly recoveryDatabase?: RecoveryDatabaseClientV1;
   readonly recoveryService?: RecoveryService;
@@ -384,6 +393,26 @@ export class IamModule {
             ...(options.registrationClock ? { clock: options.registrationClock } : {}),
           })
         : undefined);
+    const registrationIpAdmission =
+      options.registrationIpAdmission ??
+      (options.registrationIpAdmissionCounter === undefined
+        ? new InMemoryRecoveryAdmissionAdapter({ maxAttempts: 5, windowSeconds: 15 * 60 })
+        : new RedisRecoveryAdmissionAdapter(options.registrationIpAdmissionCounter, {
+            keyPrefix: 'databreeze:iam:registration:ip:v1:',
+            maxAttempts: 5,
+            windowSeconds: 15 * 60,
+            ...options.registrationIpAdmissionOptions,
+          }));
+    const registrationEmailAdmission =
+      options.registrationEmailAdmission ??
+      (options.registrationEmailAdmissionCounter === undefined
+        ? new InMemoryRecoveryAdmissionAdapter({ maxAttempts: 5, windowSeconds: 15 * 60 })
+        : new RedisRecoveryAdmissionAdapter(options.registrationEmailAdmissionCounter, {
+            keyPrefix: 'databreeze:iam:registration:email:v1:',
+            maxAttempts: 5,
+            windowSeconds: 15 * 60,
+            ...options.registrationEmailAdmissionOptions,
+          }));
     const recoveryRepository =
       options.recoveryRepository ??
       (options.recoveryDatabase === undefined
@@ -616,6 +645,14 @@ export class IamModule {
               },
             ]
           : []),
+        {
+          provide: IAM_REGISTRATION_IP_ADMISSION,
+          useValue: registrationIpAdmission,
+        },
+        {
+          provide: IAM_REGISTRATION_EMAIL_ADMISSION,
+          useValue: registrationEmailAdmission,
+        },
         ...(recoveryRepository
           ? [
               {

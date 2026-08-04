@@ -67,3 +67,49 @@ void test('[IAM-001] registration controller fails closed when registration is n
       error instanceof RegistrationProblemError && error.code === 'REGISTRATION_UNAVAILABLE',
   );
 });
+
+void test('[IAM-001] registration admission rejects before invoking password hashing or persistence', async () => {
+  let serviceCalls = 0;
+  let ipCalls = 0;
+  let emailCalls = 0;
+  const controller = new RegistrationController(
+    {
+      register: async () => {
+        serviceCalls += 1;
+        return { accepted: true as const, value: { email: 'user@example.com' } };
+      },
+    } as unknown as RegistrationService,
+    {
+      allow: async (keyDigest: string, issuedAt: string) => {
+        ipCalls += 1;
+        assert.match(keyDigest, /^[a-f0-9]{64}$/u);
+        assert.match(issuedAt, /^\\d{4}-\\d{2}-\\d{2}T/u);
+        return false;
+      },
+    },
+    {
+      allow: async (keyDigest: string, issuedAt: string) => {
+        emailCalls += 1;
+        assert.match(keyDigest, /^[a-f0-9]{64}$/u);
+        assert.match(issuedAt, /^\\d{4}-\\d{2}-\\d{2}T/u);
+        return true;
+      },
+    },
+  );
+
+  await assert.rejects(
+    controller.register(
+      {
+        email: 'User@example.com',
+        displayName: 'Name',
+        password: 'valid password here',
+      },
+      { ip: '203.0.113.10' },
+    ),
+    (error: unknown) =>
+      error instanceof RegistrationProblemError && error.code === 'REGISTRATION_REQUEST_REJECTED',
+  );
+  assert.equal(ipCalls, 1);
+  assert.equal(emailCalls, 1);
+  assert.equal(serviceCalls, 0);
+});
