@@ -187,6 +187,47 @@ void test('[IAM-013] Prisma service-account adapter persists and filters workspa
   );
 });
 
+void test('[IAM-013, INT-004] Prisma service-account adapter persists actor-scoped create idempotency metadata', async () => {
+  const rows: Record<string, unknown>[] = [];
+  const repository = new PrismaServiceAccountRepositoryAdapter(client(rows));
+  const organizationContext = context({ scopeType: 'organization', organizationId }, 'create-key');
+  const value = account();
+  await repository.saveServiceAccount(organizationContext, value, {
+    actorId: organizationContext.actorId,
+    idempotencyKey: 'create-key',
+    requestHash: 'b'.repeat(64),
+    secretEnvelope: 'v1.encrypted-envelope',
+  });
+  const replay = await repository.findServiceAccountByIdempotency(
+    organizationContext,
+    {
+      scopeType: 'workspace',
+      organizationId: stable(organizationId),
+      workspaceId: stable(workspaceId),
+    },
+    'create-key',
+  );
+  assert.equal(replay?.account.id, value.id);
+  assert.equal(replay?.requestHash, 'b'.repeat(64));
+  assert.equal(replay?.secretEnvelope, 'v1.encrypted-envelope');
+  assert.equal(JSON.stringify(rows[0]).includes('dbsa'), false);
+  await repository.replaceServiceAccount(
+    organizationContext,
+    Object.freeze({ ...value, name: 'Changed after create', revision: 2 }),
+    1,
+  );
+  const replayAfterLifecycleWrite = await repository.findServiceAccountByIdempotency(
+    organizationContext,
+    {
+      scopeType: 'workspace',
+      organizationId: stable(organizationId),
+      workspaceId: stable(workspaceId),
+    },
+    'create-key',
+  );
+  assert.equal(replayAfterLifecycleWrite?.secretEnvelope, 'v1.encrypted-envelope');
+});
+
 void test('[IAM-013] Prisma service-account adapter uses optimistic revisions and rejects races', async () => {
   const repository = new PrismaServiceAccountRepositoryAdapter(client([rowFor()]));
   const next = Object.freeze({ ...account(), name: 'Changed', revision: 2 });

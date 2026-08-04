@@ -4,6 +4,10 @@ import { createHash } from 'node:crypto';
 
 import { InMemoryIamRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-iam-repository.adapter.js';
 import { InMemoryServiceAccountRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-service-account-repository.adapter.js';
+import {
+  AesGcmServiceAccountSecretEnvelopeAdapter,
+  randomServiceAccountSecretEnvelopeAdapter,
+} from '../../../src/features/iam/adapter/service-account-secret-envelope.adapter.js';
 import { ServiceAccountService } from '../../../src/features/iam/application/service-account.service.js';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
 import {
@@ -18,6 +22,10 @@ const workspaceId = '00000000-0000-4000-8000-000000000712';
 const actorId = '00000000-0000-4000-8000-000000000713';
 const correlationId = '00000000-0000-4000-8000-000000000714';
 const accountId = '00000000-0000-4000-8000-000000000715';
+
+function digestSecret(secret: string): string {
+  return createHash('sha256').update(secret, 'utf8').digest('hex');
+}
 
 function stable(value: string): StableIdentifierV1 {
   const parsed = parseStableIdentifierV1(value);
@@ -60,7 +68,9 @@ function membership(
   };
 }
 
-function service() {
+function service(secretIssuerInput?: {
+  issue: () => { readonly secret: string; readonly digest: string };
+}) {
   const iam = new InMemoryIamRepositoryAdapter();
   iam.seed([membership()]);
   const digest = (secret: string) => createHash('sha256').update(secret, 'utf8').digest('hex');
@@ -68,12 +78,18 @@ function service() {
     { secret: 'dbsa_first', digest: digest('dbsa_first') },
     { secret: 'dbsa_second', digest: digest('dbsa_second') },
   ];
+  const secretIssuer =
+    secretIssuerInput ??
+    ({
+      issue: () => secrets.shift() ?? { secret: 'dbsa_fallback', digest: 'c'.repeat(64) },
+    } as const);
   const service = new ServiceAccountService(
     new InMemoryServiceAccountRepositoryAdapter(),
     iam,
-    { issue: () => secrets.shift() ?? { secret: 'dbsa_fallback', digest: 'c'.repeat(64) } },
+    secretIssuer,
     () => new Date('2026-01-01T00:00:00.000Z'),
     () => accountId,
+    randomServiceAccountSecretEnvelopeAdapter(),
   );
   return service;
 }
@@ -92,6 +108,113 @@ void test('[IAM-013] authorized creation returns a one-time secret but never the
   assert.equal(result.value.secret, 'dbsa_first');
   assert.equal('secretDigest' in result.value.account, false);
   assert.equal(result.value.account.status, 'ACTIVE');
+});
+
+void test('[IAM-013] service-account creation replays the same idempotent result without reissuing a secret', async () => {
+  const iam = new InMemoryIamRepositoryAdapter();
+  iam.seed([membership()]);
+  const repository = new InMemoryServiceAccountRepositoryAdapter();
+  let issued = 0;
+  const accountService = new ServiceAccountService(
+    repository,
+    iam,
+    {
+      issue: () => {
+        issued += 1;
+        const secret = issued === 1 ? 'dbsa_idempotent_first' : 'dbsa_idempotent_second';
+        return { secret, digest: createHash('sha256').update(secret, 'utf8').digest('hex') };
+      },
+    },
+    () => new Date('2026-01-01T00:00:00.000Z'),
+    () => accountId,
+    randomServiceAccountSecretEnvelopeAdapter(),
+  );
+  const request = {
+    name: 'Idempotent worker',
+    permissions: ['artifact.record.read'],
+  };
+  const first = await accountService.create(
+    context({ scopeType: 'organization', organizationId }, 'create-idempotency'),
+    request,
+  );
+  const replay = await accountService.create(
+    context({ scopeType: 'organization', organizationId }, 'create-idempotency'),
+    request,
+  );
+  assert.deepEqual(replay, first);
+  assert.equal(issued, 1);
+  assert.deepEqual(
+    await accountService.create(
+      context({ scopeType: 'organization', organizationId }, 'create-idempotency'),
+      { ...request, name: 'Changed request' },
+    ),
+    { accepted: false, code: 'CONFLICT' },
+  );
+  assert.equal(issued, 1);
+});
+
+void test('[IAM-013] a replay envelope that cannot be opened fails closed without issuing again', async () => {
+  const iam = new InMemoryIamRepositoryAdapter();
+  iam.seed([membership()]);
+  const repository = new InMemoryServiceAccountRepositoryAdapter();
+  const request = {
+    name: 'Tamper-resistant worker',
+    permissions: ['artifact.record.read'],
+  };
+  const first = new ServiceAccountService(
+    repository,
+    iam,
+    { issue: () => ({ secret: 'dbsa_tamper', digest: digestSecret('dbsa_tamper') }) },
+    () => new Date('2026-01-01T00:00:00.000Z'),
+    () => accountId,
+    new AesGcmServiceAccountSecretEnvelopeAdapter('a'.repeat(43)),
+  );
+  const created = await first.create(
+    context({ scopeType: 'organization', organizationId }, 'tampered-replay'),
+    request,
+  );
+  assert.equal(created.accepted, true);
+
+  let issued = 0;
+  const replay = new ServiceAccountService(
+    repository,
+    iam,
+    {
+      issue: () => {
+        issued += 1;
+        return { secret: 'dbsa_should-not-issue', digest: digestSecret('dbsa_should-not-issue') };
+      },
+    },
+    () => new Date('2026-01-01T00:00:00.000Z'),
+    () => accountId,
+    new AesGcmServiceAccountSecretEnvelopeAdapter('b'.repeat(43)),
+  );
+  assert.deepEqual(
+    await replay.create(
+      context({ scopeType: 'organization', organizationId }, 'tampered-replay'),
+      request,
+    ),
+    { accepted: false, code: 'UNAVAILABLE' },
+  );
+  assert.equal(issued, 0);
+});
+
+void test('[IAM-013] invalid service-account permissions fail before secret issuance', async () => {
+  let issued = 0;
+  const accountService = service({
+    issue: () => {
+      issued += 1;
+      return { secret: 'dbsa_invalid', digest: 'e'.repeat(64) };
+    },
+  });
+  assert.deepEqual(
+    await accountService.create(context({ scopeType: 'organization', organizationId }), {
+      name: 'Invalid worker',
+      permissions: [],
+    }),
+    { accepted: false, code: 'INVALID_INPUT' },
+  );
+  assert.equal(issued, 0);
 });
 
 void test('[IAM-013] service account management requires the delegated IAM permission and target scope', async () => {

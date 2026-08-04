@@ -30,3 +30,17 @@ void test('[IAM-013] IAM composition registers a replaceable service-account rep
     ),
   );
 });
+
+void test('[IAM-013] IAM database composition enables service-account lifecycle management', () => {
+  const registered = IamModule.register({ iamDatabase: {} as never });
+  const provider = registered.providers?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === SERVICE_ACCOUNT_SERVICE,
+  );
+  assert.ok(provider && 'useValue' in provider);
+  if (!provider || !('useValue' in provider)) return;
+  assert.ok(provider.useValue instanceof ServiceAccountService);
+});

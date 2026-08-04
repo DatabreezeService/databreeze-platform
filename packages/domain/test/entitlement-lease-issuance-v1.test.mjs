@@ -104,6 +104,25 @@ void test('[BUA-017, BUA-018] suspended snapshots and overlong leases fail close
   );
 });
 
+void test('[BUA-018] a signing-provider exception fails closed as an invalid lease', () => {
+  assert.deepEqual(
+    createEntitlementLeaseV1(
+      snapshot(),
+      {
+        leaseId: '00000000-0000-4000-8000-000000000759',
+        issuedAt: '2026-01-01T00:00:00.000Z',
+        expiresAt: '2026-01-01T01:00:00.000Z',
+      },
+      {
+        sign: () => {
+          throw new Error('provider unavailable');
+        },
+      },
+    ),
+    { accepted: false, code: 'LEASE_INVALID' },
+  );
+});
+
 void test('[BUA-018] acceptance rejects payloads that do not canonically bind lease fields', () => {
   const lease = createEntitlementLeaseV1(
     snapshot(),

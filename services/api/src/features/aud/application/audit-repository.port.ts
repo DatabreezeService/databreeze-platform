@@ -15,6 +15,13 @@ export interface AuditPageV1<TItem> {
   readonly nextCursor?: string;
 }
 
+export interface AuditSealSelectorV1 {
+  readonly tenantScope: TenantScopeV1;
+  readonly firstSequence: number;
+  readonly lastSequence: number;
+  readonly rootDigest: string;
+}
+
 /**
  * Paginated events are ordered by tenant scope key, chain sequence, and event id;
  * seals use tenant scope key, last sequence, and seal id. The tie-breakers keep
@@ -39,6 +46,10 @@ export interface AuditRepositoryPortV1 extends AuditTransactionPortV1 {
     context: IamTenantContextV1,
     input: AuditPageInputV1,
   ): Promise<AuditPageV1<AuditSealV1>>;
+  findSeal(
+    context: IamTenantContextV1,
+    selector: AuditSealSelectorV1,
+  ): Promise<AuditSealV1 | undefined>;
   listSeals(context: IamTenantContextV1): Promise<readonly AuditSealV1[]>;
   withTransaction<TValue>(
     context: IamTenantContextV1,

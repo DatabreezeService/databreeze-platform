@@ -71,3 +71,15 @@ void test('[BUA-018] controller maps stale and unavailable lease results', async
       error instanceof EntitlementProblemError && error.code === 'ENTITLEMENT_UNAVAILABLE',
   );
 });
+
+void test('[BUA-018] controller never forwards a caller-controlled verification time', async () => {
+  let received: unknown;
+  const instance = controller({
+    verify: (_context: unknown, input: unknown) => {
+      received = input;
+      return Promise.resolve({ accepted: true as const, value: true as const });
+    },
+  });
+  await instance.verifyLease({}, leaseId, { snapshotRevision: 4, securityEpoch: 2 });
+  assert.deepEqual(received, { leaseId, snapshotRevision: 4, securityEpoch: 2 });
+});

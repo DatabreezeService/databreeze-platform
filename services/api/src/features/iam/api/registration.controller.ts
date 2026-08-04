@@ -1,8 +1,10 @@
-import { Body, Controller, HttpCode, Inject, Optional, Post } from '@nestjs/common';
+import { createHash } from 'node:crypto';
+
+import { Body, Controller, HttpCode, Inject, Optional, Post, Req } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBody,
-  ApiCreatedResponse,
+  ApiAcceptedResponse,
   ApiOperation,
   ApiServiceUnavailableResponse,
   ApiTags,
@@ -12,8 +14,28 @@ import {
   IAM_REGISTRATION_SERVICE,
   type RegistrationService,
 } from '../application/registration.service.js';
+import {
+  IAM_REGISTRATION_EMAIL_ADMISSION,
+  IAM_REGISTRATION_IP_ADMISSION,
+  type RegistrationAdmissionPortV1,
+} from '../application/registration-repository.port.js';
 import { RegistrationProblemError } from '../application/registration-problem.error.js';
 import { RegistrationDto, RegistrationResponseDto } from './registration.dto.js';
+import { normalizeEmailAddressV1 } from '@databreeze/domain/identity/v1';
+
+function admissionDigest(kind: 'ip' | 'email', value: string): string {
+  return createHash('sha256')
+    .update(`databreeze:iam:registration:${kind}:v1:${value}`, 'utf8')
+    .digest('hex');
+}
+
+function requestIp(request: unknown): string {
+  if (typeof request !== 'object' || request === null || !('ip' in request)) return 'unknown';
+  const candidate = (request as { readonly ip?: unknown }).ip;
+  if (typeof candidate !== 'string') return 'unknown';
+  const normalized = candidate.trim();
+  return normalized.length > 0 && normalized.length <= 128 ? normalized : 'unknown';
+}
 
 /** IAM-001/IAM-009: account registration creates a safe personal hierarchy without a session. */
 @ApiTags('auth')
@@ -23,21 +45,50 @@ export class RegistrationController {
     @Optional()
     @Inject(IAM_REGISTRATION_SERVICE)
     private readonly registration: RegistrationService | undefined,
+    @Optional()
+    @Inject(IAM_REGISTRATION_IP_ADMISSION)
+    private readonly ipAdmission?: RegistrationAdmissionPortV1,
+    @Optional()
+    @Inject(IAM_REGISTRATION_EMAIL_ADMISSION)
+    private readonly emailAdmission?: RegistrationAdmissionPortV1,
   ) {}
 
   @Post('register')
-  @HttpCode(201)
+  @HttpCode(202)
   @ApiOperation({
     summary: 'Create an account and personal organization hierarchy',
     description: 'Registration does not return bearer material; sign in separately after creation.',
   })
   @ApiBody({ type: RegistrationDto })
-  @ApiCreatedResponse({ type: RegistrationResponseDto })
+  @ApiAcceptedResponse({ type: RegistrationResponseDto })
   @ApiBadRequestResponse({ description: 'The registration request was rejected.' })
   @ApiServiceUnavailableResponse({ description: 'Registration persistence is unavailable.' })
-  async register(@Body() input: RegistrationDto): Promise<RegistrationResponseDto> {
+  async register(
+    @Body() input: RegistrationDto,
+    @Req() _request?: unknown,
+  ): Promise<RegistrationResponseDto> {
     if (this.registration === undefined)
       throw new RegistrationProblemError('REGISTRATION_UNAVAILABLE');
+
+    // Admission happens before Argon2 work and never stores a raw IP or email. The in-memory
+    // unit-test fallback intentionally skips this gate when no providers are composed; the
+    // production module always supplies bounded adapters.
+    const normalizedEmail = normalizeEmailAddressV1(input.email);
+    if (normalizedEmail.accepted && this.ipAdmission && this.emailAdmission) {
+      const issuedAt = new Date().toISOString();
+      let admitted = false;
+      try {
+        const [ipAllowed, emailAllowed] = await Promise.all([
+          this.ipAdmission.allow(admissionDigest('ip', requestIp(_request)), issuedAt),
+          this.emailAdmission.allow(admissionDigest('email', normalizedEmail.value), issuedAt),
+        ]);
+        admitted = ipAllowed && emailAllowed;
+      } catch {
+        admitted = false;
+      }
+      if (!admitted) throw new RegistrationProblemError('REGISTRATION_REQUEST_REJECTED');
+    }
+
     const result = await this.registration.register(input);
     if (!result.accepted) {
       throw new RegistrationProblemError(
@@ -46,13 +97,6 @@ export class RegistrationController {
           : 'REGISTRATION_REQUEST_REJECTED',
       );
     }
-    return {
-      userId: result.value.bootstrap.user.id,
-      organizationId: result.value.bootstrap.organization.id,
-      workspaceId: result.value.bootstrap.workspace.id,
-      projectId: result.value.bootstrap.project.id,
-      membershipId: result.value.bootstrap.membership.id,
-      locale: result.value.bootstrap.user.locale,
-    };
+    return { accepted: true };
   }
 }

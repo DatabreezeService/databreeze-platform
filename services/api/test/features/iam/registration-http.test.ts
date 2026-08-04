@@ -37,10 +37,9 @@ void test('[IAM-001, IAM-009, IAM-016] registration HTTP creates a personal hier
         password: 'correct horse battery staple',
       },
     });
-    assert.equal(first.statusCode, 201);
+    assert.equal(first.statusCode, 202);
     const body = first.json<Record<string, unknown>>();
-    assert.match(String(body['userId']), /^[0-9a-f-]{36}$/u);
-    assert.equal(body['locale'], 'vi-VN');
+    assert.deepEqual(body, { accepted: true });
     assert.equal('accessToken' in body, false);
     assert.equal('email' in body, false);
 
@@ -53,9 +52,8 @@ void test('[IAM-001, IAM-009, IAM-016] registration HTTP creates a personal hier
         password: 'correct horse battery staple',
       },
     });
-    assert.equal(duplicate.statusCode, 400);
-    assert.match(duplicate.headers['content-type'] ?? '', /^application\/problem\+json/u);
-    assert.equal(duplicate.json<{ code: string }>().code, 'REGISTRATION_REQUEST_REJECTED');
+    assert.equal(duplicate.statusCode, 202);
+    assert.deepEqual(duplicate.json(), { accepted: true });
   } finally {
     await app.close();
   }

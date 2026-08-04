@@ -135,6 +135,8 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260803060000_iam_service_accounts',
     '20260803070000_bua_entitlement_leases',
     '20260803080000_aud_seal_attestations',
+    '20260804000000_iam_invitation_active_membership_unique',
+    '20260804010000_iam_service_account_create_idempotency',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -557,7 +559,38 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   ]) {
     assert.match(
       invitationMigration,
-      new RegExp(statement.replaceAll(/[.*+?^${}()|[\\]\\]/g, '\\$&')),
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const activeInvitationMigration = await readFile(
+    path.join(
+      migrationsDirectory,
+      '20260804000000_iam_invitation_active_membership_unique',
+      'migration.sql',
+    ),
+    'utf8',
+  );
+  assert.match(
+    activeInvitationMigration,
+    /CREATE UNIQUE INDEX "invitation_tokens_active_membership_key"/u,
+  );
+  const serviceAccountIdempotencyMigration = await readFile(
+    path.join(
+      migrationsDirectory,
+      '20260804010000_iam_service_account_create_idempotency',
+      'migration.sql',
+    ),
+    'utf8',
+  );
+  for (const statement of [
+    'ADD COLUMN "created_by_actor_id" UUID',
+    'ADD COLUMN "create_secret_envelope" TEXT',
+    'CREATE UNIQUE INDEX "service_accounts_create_idempotency_org_key"',
+    'CREATE UNIQUE INDEX "service_accounts_create_idempotency_workspace_key"',
+  ]) {
+    assert.match(
+      serviceAccountIdempotencyMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
   }
 });

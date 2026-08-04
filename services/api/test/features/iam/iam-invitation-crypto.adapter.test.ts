@@ -10,7 +10,7 @@ import {
 } from '../../../src/features/iam/adapter/iam-invitation-crypto.adapter.js';
 
 void test('[IAM-010] invitation digests are deterministic, keyed, domain-separated, and hex bounded', () => {
-  const digest = new HmacSha256IamInvitationDigestAdapter('test-key-v1');
+  const digest = new HmacSha256IamInvitationDigestAdapter('test-key-v1-012345678901234567890');
   const token = digest.digestToken('raw-token-abcdefghijklmnopqrstuvwxyz123456');
   const email = digest.digestEmail('invitee@example.com');
   assert.match(token, /^[a-f0-9]{64}$/u);
@@ -19,7 +19,7 @@ void test('[IAM-010] invitation digests are deterministic, keyed, domain-separat
   assert.notEqual(token, email);
   assert.notEqual(
     token,
-    new HmacSha256IamInvitationDigestAdapter('other-key-v1').digestToken(
+    new HmacSha256IamInvitationDigestAdapter('other-key-v1-012345678901234567890').digestToken(
       'raw-token-abcdefghijklmnopqrstuvwxyz123456',
     ),
   );
@@ -30,6 +30,14 @@ void test('[IAM-010] invitation crypto adapters reject unusable key material', (
   assert.throws(
     () => new HmacSha256IamInvitationDigestAdapter(new Uint8Array()),
     /IAM_INVITATION_KEY_INVALID/,
+  );
+  assert.throws(
+    () => new HmacSha256IamInvitationDigestAdapter('short-invitation-key'),
+    /IAM_INVITATION_KEY_INVALID/u,
+  );
+  assert.throws(
+    () => new HmacSha256IamInvitationDigestAdapter(new Uint8Array(31)),
+    /IAM_INVITATION_KEY_INVALID/u,
   );
 });
 

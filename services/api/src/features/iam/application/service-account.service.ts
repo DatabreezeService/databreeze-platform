@@ -6,23 +6,29 @@ import {
   markServiceAccountUsedV1,
   revokeServiceAccountV1,
   rotateServiceAccountSecretV1,
+  SERVICE_ACCOUNT_MAX_PERMISSION_COUNT_V1,
   type ServiceAccountV1,
   type ServiceAccountErrorCodeV1,
 } from '@databreeze/domain/service-account/v1';
 import {
   roleHasPermissionV1,
   PERMISSIONS_V1,
+  isPermissionV1,
   type PermissionV1,
 } from '@databreeze/domain/permissions/v1';
 import {
   parseStableIdentifierV1,
+  parseStrictUtcTimestampV1,
   tenantScopeContainsV1,
   type StableIdentifierV1,
   type TenantScopeV1,
 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { IamRepositoryPortV1 } from './iam-repository.port.js';
-import type { ServiceAccountRepositoryPortV1 } from './service-account-repository.port.js';
+import type {
+  ServiceAccountCreateReplayV1,
+  ServiceAccountRepositoryPortV1,
+} from './service-account-repository.port.js';
 import type { IamTenantContextV1 } from './tenant-context.js';
 
 export const SERVICE_ACCOUNT_SERVICE = Symbol('SERVICE_ACCOUNT_SERVICE');
@@ -34,6 +40,11 @@ export interface ServiceAccountSecretIssueV1 {
 
 export interface ServiceAccountSecretIssuerV1 {
   issue(): ServiceAccountSecretIssueV1;
+}
+
+export interface ServiceAccountSecretEnvelopePortV1 {
+  seal(secret: string): string;
+  open(envelope: string): string | undefined;
 }
 
 export type ServiceAccountClockV1 = () => Date;
@@ -168,13 +179,67 @@ function accountScope(account: ServiceAccountV1): TenantScopeV1 {
 function serviceAccountPermissions(input: unknown): input is readonly PermissionV1[] {
   return (
     Array.isArray(input) &&
-    !input.some(
-      (permission) =>
-        permission === PERMISSIONS_V1.SERVICE_ACCOUNT_READ ||
-        permission === PERMISSIONS_V1.SERVICE_ACCOUNT_MANAGE ||
-        permission === PERMISSIONS_V1.SERVICE_ACCOUNT_REVOKE,
+    input.length > 0 &&
+    input.length <= SERVICE_ACCOUNT_MAX_PERMISSION_COUNT_V1 &&
+    new Set(input).size === input.length &&
+    input.every(
+      (permission): permission is PermissionV1 =>
+        isPermissionV1(permission) &&
+        permission !== PERMISSIONS_V1.SERVICE_ACCOUNT_READ &&
+        permission !== PERMISSIONS_V1.SERVICE_ACCOUNT_MANAGE &&
+        permission !== PERMISSIONS_V1.SERVICE_ACCOUNT_REVOKE,
     )
   );
+}
+
+function normalizedName(input: unknown): string | undefined {
+  if (typeof input !== 'string' || input.length === 0 || input.length > 200) return undefined;
+  if (/\p{Cc}/u.test(input)) return undefined;
+  const normalized = input.normalize('NFC').trim();
+  return normalized.length > 0 && normalized.length <= 200 ? normalized : undefined;
+}
+
+function normalizedExpiry(input: unknown): string | undefined {
+  if (input === undefined) return undefined;
+  const parsed = parseStrictUtcTimestampV1(input);
+  return parsed.accepted ? parsed.value : undefined;
+}
+
+function createRequestHash(
+  input: CreateServiceAccountInputV1,
+  workspaceId: StableIdentifierV1 | undefined,
+): string | undefined {
+  const name = normalizedName(input.name);
+  const expiry = normalizedExpiry(input.secretExpiresAt);
+  if (!name || !serviceAccountPermissions(input.permissions)) return undefined;
+  if (input.secretExpiresAt !== undefined && expiry === undefined) return undefined;
+  try {
+    return createHash('sha256')
+      .update(
+        JSON.stringify({
+          name,
+          workspaceId: workspaceId ?? null,
+          permissions: input.permissions,
+          secretExpiresAt: expiry ?? null,
+        }),
+        'utf8',
+      )
+      .digest('hex');
+  } catch {
+    return undefined;
+  }
+}
+
+function replayCreate(
+  replay: ServiceAccountCreateReplayV1,
+  requestHash: string,
+  envelope: ServiceAccountSecretEnvelopePortV1,
+): ServiceAccountApplicationResultV1<IssuedServiceAccountV1> {
+  if (replay.requestHash !== requestHash) return rejected('CONFLICT');
+  const secret = envelope.open(replay.secretEnvelope);
+  if (!secret || !safeDigestEqual(digestSecret(secret) ?? '', replay.account.secretDigest))
+    return rejected('UNAVAILABLE');
+  return accepted(Object.freeze({ account: safeView(replay.account), secret }));
 }
 
 /** IAM-013: action-scoped service identities with one-time credential issuance. */
@@ -185,6 +250,7 @@ export class ServiceAccountService {
     private readonly secretIssuer: ServiceAccountSecretIssuerV1,
     private readonly clock: ServiceAccountClockV1 = () => new Date(),
     private readonly idGenerator: ServiceAccountIdGeneratorV1 = () => randomUUID(),
+    private readonly secretEnvelope?: ServiceAccountSecretEnvelopePortV1,
   ) {}
 
   public async create(
@@ -203,33 +269,80 @@ export class ServiceAccountService {
     );
     if (authorization !== 'ALLOWED') return rejected(authorization);
     if (!serviceAccountPermissions(input.permissions)) return rejected('INVALID_INPUT');
-    let now: string;
-    let id: string;
-    let secret: ServiceAccountSecretIssueV1;
+    const requestHash = createRequestHash(input, workspaceId);
+    if (!requestHash) return rejected('INVALID_INPUT');
+    if (!this.secretEnvelope) return rejected('UNAVAILABLE');
+    const secretEnvelopePort = this.secretEnvelope;
     try {
-      now = this.clock().toISOString();
-      id = this.idGenerator();
-      secret = this.secretIssuer.issue();
-    } catch {
-      return rejected('UNAVAILABLE');
-    }
-    const candidate = createServiceAccountV1({
-      id,
-      organizationId: context.tenantScope.organizationId,
-      ...(workspaceId === undefined ? {} : { workspaceId }),
-      name: input.name,
-      permissions: input.permissions,
-      secretDigest: secret.digest,
-      secretIssuedAt: now,
-      ...(input.secretExpiresAt === undefined ? {} : { secretExpiresAt: input.secretExpiresAt }),
-      createdAt: now,
-    });
-    if (!candidate.accepted) return rejected(mapDomainCode(candidate.code));
-    try {
-      await this.repository.saveServiceAccount(context, candidate.value);
-      return accepted(Object.freeze({ account: safeView(candidate.value), secret: secret.secret }));
+      return await this.repository.withTransaction(context, async (transaction) => {
+        const replay = await transaction.findServiceAccountByIdempotency(
+          context,
+          targetScope,
+          context.idempotencyKey,
+        );
+        if (replay) return replayCreate(replay, requestHash, secretEnvelopePort);
+
+        let now: string;
+        let id: string;
+        let secret: ServiceAccountSecretIssueV1;
+        try {
+          now = this.clock().toISOString();
+          id = this.idGenerator();
+          secret = this.secretIssuer.issue();
+        } catch {
+          return rejected('UNAVAILABLE');
+        }
+        const candidate = createServiceAccountV1({
+          id,
+          organizationId: context.tenantScope.organizationId,
+          ...(workspaceId === undefined ? {} : { workspaceId }),
+          name: input.name,
+          permissions: input.permissions,
+          secretDigest: secret.digest,
+          secretIssuedAt: now,
+          ...(input.secretExpiresAt === undefined
+            ? {}
+            : { secretExpiresAt: input.secretExpiresAt }),
+          createdAt: now,
+        });
+        if (!candidate.accepted) return rejected(mapDomainCode(candidate.code));
+        let secretEnvelope: string;
+        try {
+          secretEnvelope = secretEnvelopePort.seal(secret.secret);
+        } catch {
+          return rejected('UNAVAILABLE');
+        }
+        if (
+          secretEnvelope.length === 0 ||
+          secretEnvelope.length > 16_384 ||
+          /\p{Cc}/u.test(secretEnvelope)
+        )
+          return rejected('UNAVAILABLE');
+        await transaction.saveServiceAccount(context, candidate.value, {
+          actorId: context.actorId,
+          idempotencyKey: context.idempotencyKey,
+          requestHash,
+          secretEnvelope,
+        });
+        return accepted(
+          Object.freeze({ account: safeView(candidate.value), secret: secret.secret }),
+        );
+      });
     } catch (error) {
-      return rejected(mapRepositoryError(error));
+      const mapped = mapRepositoryError(error);
+      if (mapped === 'CONFLICT') {
+        try {
+          const replay = await this.repository.findServiceAccountByIdempotency(
+            context,
+            targetScope,
+            context.idempotencyKey,
+          );
+          if (replay) return replayCreate(replay, requestHash, secretEnvelopePort);
+        } catch {
+          return rejected('UNAVAILABLE');
+        }
+      }
+      return rejected(mapped);
     }
   }
 

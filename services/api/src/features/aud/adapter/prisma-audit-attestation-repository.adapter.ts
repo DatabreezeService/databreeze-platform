@@ -12,6 +12,7 @@ import {
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type {
   AuditAttestationRepositoryPortV1,
+  AuditAttestationSaveResultV1,
   AuditAttestationTransactionPortV1,
 } from '../application/audit-attestation-repository.port.js';
 import { sameAuditSealAttestationV1 } from '../application/audit-equality.js';
@@ -50,6 +51,10 @@ interface AuditAttestationDelegateV1 {
   findMany(input: {
     readonly where: Readonly<Record<string, unknown>>;
   }): Promise<readonly AuditAttestationDatabaseRowV1[]>;
+}
+
+function uniqueConflict(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002';
 }
 
 export interface AuditAttestationDatabaseClientV1 {
@@ -132,6 +137,7 @@ function scopeWhere(context: IamTenantContextV1): Readonly<Record<string, unknow
       OR: [
         { scopeType: 'organization' },
         { scopeType: 'workspace', workspaceId: context.tenantScope.workspaceId },
+        { scopeType: 'project', workspaceId: context.tenantScope.workspaceId },
       ],
     };
   }
@@ -175,18 +181,34 @@ class PrismaAuditAttestationTransactionAdapter implements AuditAttestationTransa
   public async saveAttestation(
     context: IamTenantContextV1,
     attestation: AuditSealAttestationV1,
-  ): Promise<void> {
-    if (!tenantScopeContainsV1(context.tenantScope, attestation.tenantScope))
-      throw new Error('AUD_SCOPE_NARROWING_REQUIRED');
+  ): Promise<AuditAttestationSaveResultV1> {
     const existing = await this.client.auditSealAttestationRecord.findFirst({
       where: { id: attestation.attestationId },
     });
     if (existing !== null) {
-      if (!sameAuditSealAttestationV1(persistedAttestation(existing), attestation))
-        throw new Error('AUD_IMMUTABLE_ATTESTATION');
-      return;
+      const persisted = persistedAttestation(existing);
+      return sameAuditSealAttestationV1(persisted, attestation)
+        ? { accepted: true, value: persisted, replayed: true }
+        : { accepted: false, code: 'CONFLICT' };
     }
-    await this.client.auditSealAttestationRecord.create({ data: attestationData(attestation) });
+    if (!tenantScopeContainsV1(context.tenantScope, attestation.tenantScope))
+      throw new Error('AUD_SCOPE_NARROWING_REQUIRED');
+    try {
+      const created = await this.client.auditSealAttestationRecord.create({
+        data: attestationData(attestation),
+      });
+      return { accepted: true, value: persistedAttestation(created), replayed: false };
+    } catch (error) {
+      if (!uniqueConflict(error)) throw error;
+      const raced = await this.client.auditSealAttestationRecord.findFirst({
+        where: { id: attestation.attestationId },
+      });
+      if (!raced) throw error;
+      const persisted = persistedAttestation(raced);
+      return sameAuditSealAttestationV1(persisted, attestation)
+        ? { accepted: true, value: persisted, replayed: true }
+        : { accepted: false, code: 'CONFLICT' };
+    }
   }
 
   public async findAttestation(
@@ -217,7 +239,7 @@ export class PrismaAuditAttestationRepositoryAdapter implements AuditAttestation
   public saveAttestation(
     context: IamTenantContextV1,
     attestation: AuditSealAttestationV1,
-  ): Promise<void> {
+  ): Promise<AuditAttestationSaveResultV1> {
     return new PrismaAuditAttestationTransactionAdapter(this.client).saveAttestation(
       context,
       attestation,

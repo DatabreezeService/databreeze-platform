@@ -10,7 +10,6 @@ import {
 } from '@databreeze/domain/audit/v1';
 import {
   parseStableIdentifierV1,
-  tenantScopeKeyV1,
   type StableIdentifierV1,
 } from '@databreeze/domain/tenant-scope/v1';
 
@@ -23,7 +22,11 @@ export const AUDIT_ATTESTATION_SERVICE = Symbol('AUDIT_ATTESTATION_SERVICE');
 export type AuditAttestationClockV1 = () => Date;
 export type AuditAttestationIdGeneratorV1 = () => string;
 
-export type AuditAttestationApplicationCodeV1 = AuditErrorCodeV1 | 'NOT_FOUND' | 'UNAVAILABLE';
+export type AuditAttestationApplicationCodeV1 =
+  | AuditErrorCodeV1
+  | 'NOT_FOUND'
+  | 'UNAVAILABLE'
+  | 'CONFLICT';
 
 export type AuditAttestationApplicationResultV1<TValue> =
   | { readonly accepted: true; readonly value: TValue }
@@ -90,14 +93,12 @@ export class AuditAttestationService {
     if (!firstSequence || !lastSequence || lastSequence < firstSequence)
       return rejected('INVALID_SEQUENCE');
     if (!rootDigest) return rejected('INVALID_TEXT');
-    const seals = await this.auditRepository.listSeals(context);
-    const seal = seals.find(
-      (candidate) =>
-        tenantScopeKeyV1(candidate.tenantScope) === tenantScopeKeyV1(context.tenantScope) &&
-        candidate.firstSequence === firstSequence &&
-        candidate.lastSequence === lastSequence &&
-        candidate.rootDigest === rootDigest,
-    );
+    const seal = await this.auditRepository.findSeal(context, {
+      tenantScope: context.tenantScope,
+      firstSequence,
+      lastSequence,
+      rootDigest,
+    });
     if (!seal) return rejected('NOT_FOUND');
     const created = createAuditSealAttestationV1(
       seal,
@@ -105,10 +106,10 @@ export class AuditAttestationService {
       this.signer,
     );
     if (!created.accepted) return applicationResult(created);
-    await this.attestationRepository.withTransaction(context, async (transaction) => {
-      await transaction.saveAttestation(context, created.value);
+    const saved = await this.attestationRepository.withTransaction(context, async (transaction) => {
+      return transaction.saveAttestation(context, created.value);
     });
-    return created;
+    return saved.accepted ? { accepted: true, value: saved.value } : rejected('CONFLICT');
   }
 
   public async verify(
@@ -119,14 +120,12 @@ export class AuditAttestationService {
     if (!attestationId) return rejected('INVALID_IDENTIFIER');
     const attestation = await this.attestationRepository.findAttestation(context, attestationId);
     if (!attestation) return rejected('NOT_FOUND');
-    const seals = await this.auditRepository.listSeals(context);
-    const seal = seals.find(
-      (candidate) =>
-        tenantScopeKeyV1(candidate.tenantScope) === tenantScopeKeyV1(attestation.tenantScope) &&
-        candidate.firstSequence === attestation.firstSequence &&
-        candidate.lastSequence === attestation.lastSequence &&
-        candidate.rootDigest === attestation.rootDigest,
-    );
+    const seal = await this.auditRepository.findSeal(context, {
+      tenantScope: attestation.tenantScope,
+      firstSequence: attestation.firstSequence,
+      lastSequence: attestation.lastSequence,
+      rootDigest: attestation.rootDigest,
+    });
     if (!seal) return rejected('NOT_FOUND');
     return applicationResult(verifyAuditSealAttestationV1(attestation, seal, this.signer));
   }

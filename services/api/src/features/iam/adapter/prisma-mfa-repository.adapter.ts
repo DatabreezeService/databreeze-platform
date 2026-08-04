@@ -316,6 +316,12 @@ export class PrismaMfaRepositoryAdapter implements MfaRepositoryPortV1 {
     );
   }
 
+  public clearRecoveryReenrollment(userId: string): Promise<boolean> {
+    return this.client.$transaction((transaction) =>
+      new PrismaMfaTransactionAdapter(transaction).clearRecoveryReenrollment(userId),
+    );
+  }
+
   public withTransaction<TValue>(
     work: (transaction: MfaTransactionPortV1) => Promise<TValue>,
   ): Promise<TValue> {

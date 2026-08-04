@@ -87,7 +87,10 @@ export class RegistrationService {
     try {
       return await this.ports.repository.withTransaction(async (transaction) => {
         if (await transaction.findByEmail(email.value))
-          return Object.freeze({ accepted: false, code: 'REGISTRATION_REJECTED' as const });
+          return Object.freeze({
+            accepted: true as const,
+            value: Object.freeze({ email: email.value }),
+          });
         await transaction.save({
           email: email.value,
           credentialId: this.ports.ids.next(),

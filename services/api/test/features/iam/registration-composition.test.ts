@@ -2,6 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { PrismaRegistrationRepositoryAdapter } from '../../../src/features/iam/adapter/prisma-registration-repository.adapter.js';
+import { RedisRecoveryAdmissionAdapter } from '../../../src/features/iam/adapter/redis-recovery-admission.adapter.js';
+import {
+  IAM_REGISTRATION_EMAIL_ADMISSION,
+  IAM_REGISTRATION_IP_ADMISSION,
+} from '../../../src/features/iam/application/registration-repository.port.js';
 import { IAM_REGISTRATION_REPOSITORY_PORT } from '../../../src/features/iam/application/registration-repository.port.js';
 import {
   IAM_REGISTRATION_SERVICE,
@@ -61,4 +66,31 @@ void test('[IAM-001] durable registration requires password credentials before c
   if (!repository || !('useValue' in repository) || !service || !('useValue' in service)) return;
   assert.ok(repository.useValue instanceof PrismaRegistrationRepositoryAdapter);
   assert.ok(service.useValue instanceof RegistrationService);
+});
+
+void test('[IAM-001] registration admission uses separate shared Redis namespaces for IP and email', async () => {
+  const keys: string[] = [];
+  const counter = {
+    incrementWindow: async (input: { readonly key: string; readonly ttlMs: number }) => {
+      await Promise.resolve();
+      keys.push(input.key);
+      return 1;
+    },
+  };
+  const configured = IamModule.register({
+    registrationService: {} as RegistrationService,
+    registrationIpAdmissionCounter: counter,
+    registrationEmailAdmissionCounter: counter,
+  });
+  const ip = provider(configured, IAM_REGISTRATION_IP_ADMISSION);
+  const email = provider(configured, IAM_REGISTRATION_EMAIL_ADMISSION);
+  assert.ok(ip && 'useValue' in ip && ip.useValue instanceof RedisRecoveryAdmissionAdapter);
+  assert.ok(
+    email && 'useValue' in email && email.useValue instanceof RedisRecoveryAdmissionAdapter,
+  );
+  if (!ip || !('useValue' in ip) || !email || !('useValue' in email)) return;
+  await ip.useValue.allow('a'.repeat(64), '2026-01-01T00:00:00.000Z');
+  await email.useValue.allow('b'.repeat(64), '2026-01-01T00:00:00.000Z');
+  assert.match(keys[0] ?? '', /databreeze:iam:registration:ip:v1:/u);
+  assert.match(keys[1] ?? '', /databreeze:iam:registration:email:v1:/u);
 });

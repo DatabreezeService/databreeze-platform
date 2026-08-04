@@ -22,13 +22,13 @@ export class CreateAuditAttestationDto {
   @MaxLength(200)
   signerKeyId!: string;
 
-  @ApiProperty({ minimum: 1 })
+  @ApiProperty({ type: 'integer', minimum: 1 })
   @IsInt()
   @Min(1)
   @Max(Number.MAX_SAFE_INTEGER)
   firstSequence!: number;
 
-  @ApiProperty({ minimum: 1 })
+  @ApiProperty({ type: 'integer', minimum: 1 })
   @IsInt()
   @Min(1)
   @Max(Number.MAX_SAFE_INTEGER)

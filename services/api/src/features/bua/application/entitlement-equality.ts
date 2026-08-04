@@ -1,4 +1,5 @@
 import type {
+  EntitlementLeaseV1,
   EntitlementPlanV1,
   EntitlementQuotaV1,
   EntitlementSnapshotV1,
@@ -69,6 +70,24 @@ export function sameEntitlementSnapshotV1(
     left.expiresAt === right.expiresAt &&
     sameFeatures(left.features, right.features) &&
     sameQuotas(left.quotas, right.quotas)
+  );
+}
+
+/** Compares the immutable lease value without relying on object key insertion order. */
+export function sameEntitlementLeaseV1(
+  left: EntitlementLeaseV1,
+  right: EntitlementLeaseV1,
+): boolean {
+  return (
+    left.schemaVersion === right.schemaVersion &&
+    left.leaseId === right.leaseId &&
+    sameScope(left.tenantScope, right.tenantScope) &&
+    left.snapshotRevision === right.snapshotRevision &&
+    left.securityEpoch === right.securityEpoch &&
+    left.issuedAt === right.issuedAt &&
+    left.expiresAt === right.expiresAt &&
+    left.payload === right.payload &&
+    left.signature === right.signature
   );
 }
 

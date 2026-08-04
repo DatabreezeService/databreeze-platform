@@ -4,6 +4,7 @@ import {
 } from '@databreeze/domain/service-account/v1';
 import {
   parseStrictUtcTimestampV1,
+  parseStableIdentifierV1,
   tenantScopeContainsV1,
   type StableIdentifierV1,
   type StrictUtcTimestampV1,
@@ -12,6 +13,8 @@ import {
 
 import type { IamTenantContextV1 } from '../application/tenant-context.js';
 import type {
+  ServiceAccountCreateIdempotencyV1,
+  ServiceAccountCreateReplayV1,
   ServiceAccountRepositoryPortV1,
   ServiceAccountTransactionPortV1,
 } from '../application/service-account-repository.port.js';
@@ -31,6 +34,10 @@ export interface ServiceAccountDatabaseRowV1 {
   readonly createdAt: Date;
   readonly revokedAt: Date | null;
   readonly revision: number;
+  readonly createdByActorId?: string | null;
+  readonly createIdempotencyKey?: string | null;
+  readonly createRequestHash?: string | null;
+  readonly createSecretEnvelope?: string | null;
 }
 
 interface ServiceAccountDelegateV1 {
@@ -122,8 +129,11 @@ function accountFromRow(row: ServiceAccountDatabaseRowV1): ServiceAccountV1 {
   });
 }
 
-function accountData(account: ServiceAccountV1): Readonly<Record<string, unknown>> {
-  return {
+function accountData(
+  account: ServiceAccountV1,
+  createIdempotency?: ServiceAccountCreateIdempotencyV1,
+): Readonly<Record<string, unknown>> {
+  const data: Record<string, unknown> = {
     id: account.id,
     organizationId: account.organizationId,
     workspaceId: account.workspaceId ?? null,
@@ -139,6 +149,47 @@ function accountData(account: ServiceAccountV1): Readonly<Record<string, unknown
     revokedAt: account.revokedAt ? new Date(account.revokedAt) : null,
     revision: account.revision,
   };
+  if (createIdempotency) {
+    data['createdByActorId'] = createIdempotency.actorId;
+    data['createIdempotencyKey'] = createIdempotency.idempotencyKey;
+    data['createRequestHash'] = createIdempotency.requestHash;
+    data['createSecretEnvelope'] = createIdempotency.secretEnvelope;
+  }
+  return data;
+}
+
+function persistedReplay(
+  row: ServiceAccountDatabaseRowV1,
+): ServiceAccountCreateReplayV1 | undefined {
+  const hasAny =
+    (row.createdByActorId !== undefined && row.createdByActorId !== null) ||
+    (row.createIdempotencyKey !== undefined && row.createIdempotencyKey !== null) ||
+    (row.createRequestHash !== undefined && row.createRequestHash !== null) ||
+    (row.createSecretEnvelope !== undefined && row.createSecretEnvelope !== null);
+  if (!hasAny) return undefined;
+  const actor = parseStableIdentifierV1(row.createdByActorId);
+  const requestHash = row.createRequestHash;
+  const secretEnvelope = row.createSecretEnvelope;
+  if (
+    !actor.accepted ||
+    typeof row.createIdempotencyKey !== 'string' ||
+    row.createIdempotencyKey.length === 0 ||
+    row.createIdempotencyKey.length > 200 ||
+    typeof requestHash !== 'string' ||
+    !/^[a-f0-9]{64}$/u.test(requestHash) ||
+    typeof secretEnvelope !== 'string' ||
+    secretEnvelope.length === 0 ||
+    secretEnvelope.length > 16_384 ||
+    /\p{Cc}/u.test(secretEnvelope)
+  )
+    throw new Error('IAM_PERSISTED_SERVICE_ACCOUNT_IDEMPOTENCY_INVALID');
+  return Object.freeze({
+    account: accountFromRow(row),
+    actorId: actor.value,
+    idempotencyKey: row.createIdempotencyKey,
+    requestHash,
+    secretEnvelope,
+  });
 }
 
 function scopeWhere(context: IamTenantContextV1): Readonly<Record<string, unknown>> {
@@ -187,11 +238,44 @@ class PrismaServiceAccountTransactionAdapter implements ServiceAccountTransactio
     return rows.map(accountFromRow);
   }
 
+  public async findServiceAccountByIdempotency(
+    context: IamTenantContextV1,
+    targetScope: TenantScopeV1,
+    idempotencyKey: string,
+  ): Promise<ServiceAccountCreateReplayV1 | undefined> {
+    if (
+      !tenantScopeContainsV1(context.tenantScope, targetScope) ||
+      (targetScope.scopeType !== 'organization' && targetScope.scopeType !== 'workspace')
+    )
+      return undefined;
+    const row = await this.client.serviceAccount.findFirst({
+      where: {
+        organizationId: targetScope.organizationId,
+        workspaceId: targetScope.scopeType === 'workspace' ? targetScope.workspaceId : null,
+        createdByActorId: context.actorId,
+        createIdempotencyKey: idempotencyKey,
+      },
+    });
+    return row ? persistedReplay(row) : undefined;
+  }
+
   public async saveServiceAccount(
     context: IamTenantContextV1,
     account: ServiceAccountV1,
+    createIdempotency?: ServiceAccountCreateIdempotencyV1,
   ): Promise<void> {
     if (!writableInScope(context, account)) throw new Error('SCOPE_DENIED');
+    if (
+      createIdempotency &&
+      (createIdempotency.actorId !== context.actorId ||
+        createIdempotency.idempotencyKey.length === 0 ||
+        createIdempotency.idempotencyKey.length > 200 ||
+        !/^[a-f0-9]{64}$/u.test(createIdempotency.requestHash) ||
+        createIdempotency.secretEnvelope.length === 0 ||
+        createIdempotency.secretEnvelope.length > 16_384 ||
+        /\p{Cc}/u.test(createIdempotency.secretEnvelope))
+    )
+      throw new Error('IAM_SERVICE_ACCOUNT_IDEMPOTENCY_INVALID');
     const existing = await this.client.serviceAccount.findFirst({
       where: { id: account.id, organizationId: account.organizationId },
     });
@@ -201,7 +285,7 @@ class PrismaServiceAccountTransactionAdapter implements ServiceAccountTransactio
       return;
     }
     try {
-      await this.client.serviceAccount.create({ data: accountData(account) });
+      await this.client.serviceAccount.create({ data: accountData(account, createIdempotency) });
     } catch (error) {
       if (isUniqueConflict(error)) throw new Error('SERVICE_ACCOUNT_CONFLICT');
       throw error;
@@ -249,10 +333,27 @@ export class PrismaServiceAccountRepositoryAdapter implements ServiceAccountRepo
     );
   }
 
-  public saveServiceAccount(context: IamTenantContextV1, account: ServiceAccountV1) {
+  public saveServiceAccount(
+    context: IamTenantContextV1,
+    account: ServiceAccountV1,
+    createIdempotency?: ServiceAccountCreateIdempotencyV1,
+  ) {
     return new PrismaServiceAccountTransactionAdapter(this.client).saveServiceAccount(
       context,
       account,
+      createIdempotency,
+    );
+  }
+
+  public findServiceAccountByIdempotency(
+    context: IamTenantContextV1,
+    targetScope: TenantScopeV1,
+    idempotencyKey: string,
+  ) {
+    return new PrismaServiceAccountTransactionAdapter(this.client).findServiceAccountByIdempotency(
+      context,
+      targetScope,
+      idempotencyKey,
     );
   }
 

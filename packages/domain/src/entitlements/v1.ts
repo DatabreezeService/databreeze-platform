@@ -317,7 +317,12 @@ export function createEntitlementLeaseV1(
     expiresAt,
   };
   const payload = canonicalLease(unsigned);
-  const signature = text(signer.sign(payload), 2048);
+  let signature: string | undefined;
+  try {
+    signature = text(signer.sign(payload), 2048);
+  } catch {
+    return rejected('LEASE_INVALID');
+  }
   if (!signature) return rejected('LEASE_INVALID');
   return Object.freeze({
     accepted: true,

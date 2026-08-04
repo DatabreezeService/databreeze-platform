@@ -15,6 +15,7 @@ import type {
   EntitlementLeaseRepositoryPortV1,
   EntitlementLeaseTransactionPortV1,
 } from '../application/entitlement-lease-repository.port.js';
+import { sameEntitlementLeaseV1 } from '../application/entitlement-equality.js';
 
 export interface EntitlementLeaseDatabaseRowV1 {
   readonly id: string;
@@ -142,7 +143,7 @@ class PrismaEntitlementLeaseTransactionAdapter implements EntitlementLeaseTransa
       where: { id: lease.leaseId },
     });
     if (existing) {
-      if (JSON.stringify(persistedLease(existing)) !== JSON.stringify(lease))
+      if (!sameEntitlementLeaseV1(persistedLease(existing), lease))
         throw new Error('BUA_IMMUTABLE_LEASE');
       return;
     }

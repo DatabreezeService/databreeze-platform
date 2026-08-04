@@ -42,7 +42,6 @@ export interface IssueEntitlementLeaseInputV1 {
 
 export interface VerifyEntitlementLeaseInputV1 {
   readonly leaseId: unknown;
-  readonly now?: unknown;
   readonly snapshotRevision: unknown;
   readonly securityEpoch: unknown;
 }
@@ -117,7 +116,10 @@ export class EntitlementLeaseService {
   ): Promise<EntitlementLeaseApplicationResultV1<true>> {
     const leaseId = stableId(input.leaseId);
     if (!leaseId) return rejected('INVALID_IDENTIFIER');
-    const now = input.now === undefined ? clockTimestamp(this.clock) : timestamp(input.now);
+    // Verification time is authoritative server state.  Accepting a caller-supplied
+    // timestamp would let an otherwise expired lease be replayed by choosing an
+    // earlier value, so the application clock is always used here.
+    const now = clockTimestamp(this.clock);
     if (!now) return rejected('INVALID_TIMESTAMP');
     const lease = await this.leaseRepository.findLease(context, leaseId);
     if (!lease) return rejected('ENTITLEMENT_NOT_FOUND');

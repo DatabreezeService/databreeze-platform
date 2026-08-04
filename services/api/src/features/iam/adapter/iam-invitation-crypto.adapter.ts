@@ -6,7 +6,8 @@ export type IamInvitationDigestKeyV1 = string | Uint8Array;
 
 function validKey(key: IamInvitationDigestKeyV1): boolean {
   return (
-    (typeof key === 'string' && key.length > 0) || (key instanceof Uint8Array && key.length > 0)
+    (typeof key === 'string' && Buffer.byteLength(key, 'utf8') >= 32) ||
+    (key instanceof Uint8Array && key.byteLength >= 32)
   );
 }
 

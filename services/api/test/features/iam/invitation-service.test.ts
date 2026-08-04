@@ -82,6 +82,8 @@ class Repository implements IamInvitationRepositoryPortV1 {
     },
   ];
   invitations: InvitationTokenV1[] = [];
+  saveInvitationError?: string;
+  saveMembershipError?: string;
   private tail: Promise<void> = Promise.resolve();
 
   async withTransaction<TValue>(
@@ -120,6 +122,7 @@ class Repository implements IamInvitationRepositoryPortV1 {
         },
         saveInvitation: async (_context, invitation) => {
           await Promise.resolve();
+          if (this.saveInvitationError) throw new Error(this.saveInvitationError);
           const index = this.invitations.findIndex((item) => item.id === invitation.id);
           if (index >= 0) {
             if (this.invitations[index]?.revision !== invitation.revision - 1)
@@ -133,6 +136,7 @@ class Repository implements IamInvitationRepositoryPortV1 {
         },
         saveMembership: async (_context, membership) => {
           await Promise.resolve();
+          if (this.saveMembershipError) throw new Error(this.saveMembershipError);
           const index = this.memberships.findIndex((item) => item.id === membership.id);
           if (index < 0 || this.memberships[index]?.revision !== membership.revision - 1)
             throw new Error('IAM_REVISION_CONFLICT');
@@ -169,11 +173,14 @@ class Digest implements IamInvitationDigestPortV1 {
 class Delivery implements IamInvitationDeliveryPortV1 {
   readonly sent: Array<{ readonly token: string; readonly email: string }> = [];
 
+  constructor(private readonly onDeliver?: () => void) {}
+
   async deliver(input: {
     readonly rawToken: string;
     readonly recipientEmail: string;
   }): Promise<void> {
     await Promise.resolve();
+    this.onDeliver?.();
     this.sent.push({ token: input.rawToken, email: input.recipientEmail });
   }
 }
@@ -215,6 +222,28 @@ void test('[IAM-010] issuing an invitation delivers a raw token but returns only
   assert.deepEqual(composed.delivery.sent, [{ token: RAW_TOKEN, email: 'invitee@example.com' }]);
 });
 
+void test('[IAM-010] invitation persistence commits before raw-token delivery', async () => {
+  const repository = new Repository();
+  let persistedDuringDelivery = false;
+  const composed = service(
+    repository,
+    new Delivery(() => {
+      persistedDuringDelivery = repository.invitations[0]?.status === 'ACTIVE';
+    }),
+  );
+
+  assert.equal(
+    (
+      await composed.service.issue(context(ids.owner, 'invitation-issue-persisted-first'), {
+        membershipId: ids.invitedMembership,
+        recipientEmail: 'invitee@example.com',
+      })
+    ).accepted,
+    true,
+  );
+  assert.equal(persistedDuringDelivery, true);
+});
+
 void test('[IAM-010] email mismatch and non-owner issuance are denied without persistence', async () => {
   const repository = new Repository();
   const composed = service(repository);
@@ -233,6 +262,39 @@ void test('[IAM-010] email mismatch and non-owner issuance are denied without pe
     { accepted: false, code: 'SCOPE_DENIED' },
   );
   assert.equal(repository.invitations.length, 0);
+});
+
+void test('[IAM-010] invitation invariant conflicts map to a stable conflict outcome', async () => {
+  const issueRepository = new Repository();
+  issueRepository.saveInvitationError = 'IAM_INVITATION_SCOPE_IMMUTABLE';
+  const issueComposed = service(issueRepository);
+  assert.deepEqual(
+    await issueComposed.service.issue(context(ids.owner, 'invitation-conflict-issue'), {
+      membershipId: ids.invitedMembership,
+      recipientEmail: 'invitee@example.com',
+    }),
+    { accepted: false, code: 'CONFLICT' },
+  );
+
+  const acceptRepository = new Repository();
+  const acceptComposed = service(acceptRepository);
+  assert.equal(
+    (
+      await acceptComposed.service.issue(context(ids.owner, 'invitation-conflict-accept-issue'), {
+        membershipId: ids.invitedMembership,
+        recipientEmail: 'invitee@example.com',
+      })
+    ).accepted,
+    true,
+  );
+  acceptRepository.saveMembershipError = 'IAM_MEMBERSHIP_SCOPE_IMMUTABLE';
+  assert.deepEqual(
+    await acceptComposed.service.accept(
+      context(ids.invitee, 'invitation-conflict-accept'),
+      RAW_TOKEN,
+    ),
+    { accepted: false, code: 'CONFLICT' },
+  );
 });
 
 void test('[IAM-010] acceptance binds token, principal, email, role, and scope then consumes once', async () => {

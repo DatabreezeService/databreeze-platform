@@ -9,6 +9,7 @@ import {
 import {
   parseStableIdentifierV1,
   parseStrictUtcTimestampV1,
+  type TenantScopeV1,
 } from '@databreeze/domain/tenant-scope/v1';
 
 import {
@@ -19,6 +20,8 @@ import { createIamTenantContextV1 } from '../../../src/features/iam/application/
 
 const organizationId = '00000000-0000-4000-8000-000000000821';
 const workspaceId = '00000000-0000-4000-8000-000000000822';
+const projectId = '00000000-0000-4000-8000-000000000826';
+const siblingWorkspaceId = '00000000-0000-4000-8000-000000000827';
 const actorId = '00000000-0000-4000-8000-000000000823';
 const correlationId = '00000000-0000-4000-8000-000000000824';
 
@@ -36,11 +39,19 @@ function timestamp(value: string) {
   return parsed.value;
 }
 
-function context() {
+function workspaceScope(id = workspaceId): TenantScopeV1 {
+  return {
+    scopeType: 'workspace',
+    organizationId: stable(organizationId),
+    workspaceId: stable(id),
+  };
+}
+
+function context(scope: TenantScopeV1 = workspaceScope()) {
   const result = createIamTenantContextV1({
     actorId,
     correlationId,
-    tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+    tenantScope: scope,
     idempotencyKey: 'prisma-attestation',
     authorizationEpoch: 1,
   });
@@ -49,13 +60,11 @@ function context() {
   return result.value;
 }
 
-function attestation(): AuditSealAttestationV1 {
+function attestation(scope: TenantScopeV1 = workspaceScope()): AuditSealAttestationV1 {
   const seal: AuditSealV1 = {
     schemaVersion: 1,
     tenantScope: {
-      scopeType: 'workspace',
-      organizationId: stable(organizationId),
-      workspaceId: stable(workspaceId),
+      ...scope,
     },
     firstSequence: 1,
     lastSequence: 2,
@@ -120,12 +129,37 @@ function client(rows: Record<string, unknown>[] = []): AuditAttestationDatabaseC
 void test('[AUD-015, AUD-016] Prisma attestation adapter persists immutable rows and scopes reads', async () => {
   const repository = new PrismaAuditAttestationRepositoryAdapter(client());
   const value = attestation();
-  await repository.saveAttestation(context(), value);
+  const created = await repository.saveAttestation(context(), value);
+  assert.deepEqual(created, { accepted: true, value, replayed: false });
   assert.deepEqual(await repository.findAttestation(context(), stable(value.attestationId)), value);
   assert.deepEqual(await repository.listAttestations(context()), [value]);
-  await repository.saveAttestation(context(), value);
-  await assert.rejects(
-    repository.saveAttestation(context(), { ...value, signature: 'tampered' }),
-    /AUD_IMMUTABLE_ATTESTATION/,
+  const replayed = await repository.saveAttestation(context(), value);
+  assert.deepEqual(replayed, { accepted: true, value, replayed: true });
+  assert.deepEqual(
+    await repository.saveAttestation(context(), { ...value, signature: 'tampered' }),
+    { accepted: false, code: 'CONFLICT' },
+  );
+});
+
+void test('[AUD-015, IAM-009] workspace reads include project-scoped attestations in that workspace only', async () => {
+  const repository = new PrismaAuditAttestationRepositoryAdapter(client());
+  const projectScope: TenantScopeV1 = {
+    scopeType: 'project',
+    organizationId: stable(organizationId),
+    workspaceId: stable(workspaceId),
+    projectId: stable(projectId),
+  };
+  const projectAttestation = attestation(projectScope);
+  await repository.saveAttestation(context(), projectAttestation);
+  assert.deepEqual(
+    await repository.findAttestation(context(), stable(projectAttestation.attestationId)),
+    projectAttestation,
+  );
+  assert.equal(
+    await repository.findAttestation(
+      context(workspaceScope(siblingWorkspaceId)),
+      stable(projectAttestation.attestationId),
+    ),
+    undefined,
   );
 });
