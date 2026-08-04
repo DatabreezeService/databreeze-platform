@@ -56,6 +56,9 @@ void test('[SA-001] HTTP admits a content-free Spreadsheet Auditor run idempoten
     assert.match(created.body, /"accepted":true/u);
     assert.match(created.body, /"state":"ADMITTED"/u);
     assert.doesNotMatch(created.body, /tenantScope|idempotencyKey|sourcePath/iu);
+    const createdBody = JSON.parse(created.body) as {
+      readonly value: { readonly runId: string };
+    };
 
     const replay = await app.inject({
       method: 'POST',
@@ -67,11 +70,14 @@ void test('[SA-001] HTTP admits a content-free Spreadsheet Auditor run idempoten
       },
     });
     assert.equal(replay.statusCode, 201);
-    assert.equal(JSON.parse(replay.body).value.runId, JSON.parse(created.body).value.runId);
+    const replayBody = JSON.parse(replay.body) as {
+      readonly value: { readonly runId: string };
+    };
+    assert.equal(replayBody.value.runId, createdBody.value.runId);
 
     const found = await app.inject({
       method: 'GET',
-      url: `/v1/spreadsheet-audit-runs/${JSON.parse(created.body).value.runId}`,
+      url: `/v1/spreadsheet-audit-runs/${createdBody.value.runId}`,
     });
     assert.equal(found.statusCode, 200);
     assert.match(found.body, /"jobId"/u);
