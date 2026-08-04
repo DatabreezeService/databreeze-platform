@@ -75,12 +75,14 @@ void test('[IAM-001] registration admission rejects before invoking password has
   const controller = new RegistrationController(
     {
       register: async () => {
+        await Promise.resolve();
         serviceCalls += 1;
         return { accepted: true as const, value: { email: 'user@example.com' } };
       },
     } as unknown as RegistrationService,
     {
       allow: async (keyDigest: string, issuedAt: string) => {
+        await Promise.resolve();
         ipCalls += 1;
         assert.match(keyDigest, /^[a-f0-9]{64}$/u);
         assert.match(issuedAt, /^\d{4}-\d{2}-\d{2}T/u);
@@ -89,6 +91,7 @@ void test('[IAM-001] registration admission rejects before invoking password has
     },
     {
       allow: async (keyDigest: string, issuedAt: string) => {
+        await Promise.resolve();
         emailCalls += 1;
         assert.match(keyDigest, /^[a-f0-9]{64}$/u);
         assert.match(issuedAt, /^\d{4}-\d{2}-\d{2}T/u);
@@ -119,16 +122,21 @@ void test('[IAM-001] registration admission digests are normalized, domain-separ
   const emailDigests: string[] = [];
   const controller = new RegistrationController(
     {
-      register: async () => ({ accepted: true as const, value: { email: 'user@example.com' } }),
+      register: async () => {
+        await Promise.resolve();
+        return { accepted: true as const, value: { email: 'user@example.com' } };
+      },
     } as unknown as RegistrationService,
     {
       allow: async (digest: string) => {
+        await Promise.resolve();
         ipDigests.push(digest);
         return true;
       },
     },
     {
       allow: async (digest: string) => {
+        await Promise.resolve();
         emailDigests.push(digest);
         return true;
       },

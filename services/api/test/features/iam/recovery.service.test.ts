@@ -142,6 +142,7 @@ void test('[IAM-015] recovery persists the challenge before delivery', async () 
   let persistedDuringDelivery = false;
   const recovery = service(repository, {
     deliver: async () => {
+      await Promise.resolve();
       persistedDuringDelivery = repository.challenge('a'.repeat(64))?.status === 'ACTIVE';
     },
   });
@@ -166,6 +167,7 @@ void test('[IAM-015] recovery revokes a previous challenge before delivering its
     repository,
     {
       deliver: async () => {
+        await Promise.resolve();
         replacementState = {
           previous: repository.challenge(digests[0])?.status,
           replacement: repository.challenge(digests[1])?.status,

@@ -72,6 +72,7 @@ void test('[IAM-001] registration admission uses separate shared Redis namespace
   const keys: string[] = [];
   const counter = {
     incrementWindow: async (input: { readonly key: string; readonly ttlMs: number }) => {
+      await Promise.resolve();
       keys.push(input.key);
       return 1;
     },
