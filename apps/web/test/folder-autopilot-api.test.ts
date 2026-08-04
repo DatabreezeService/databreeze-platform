@@ -137,18 +137,22 @@ describe('Folder Autopilot API boundary', () => {
 
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ ...dashboard, sourcePath: 'C:\\private\\invoices' })),
-      ),
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ ...dashboard, sourcePath: 'C:\\private\\invoices' })),
+        ),
     );
     await expect(getFolderAutopilotDashboard()).rejects.toThrow('AUTOPILOT_RESPONSE_INVALID');
   });
 
   it('sends only bounded identifiers and policy values for mutations', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ accepted: true, value: dashboard.assignments[0] }), {
-        status: 200,
-      }),
+    const fetchMock = vi.fn().mockImplementation(() =>
+      Promise.resolve(
+        new Response(JSON.stringify({ accepted: true, value: dashboard.assignments[0] }), {
+          status: 200,
+        }),
+      ),
     );
     vi.stubGlobal('fetch', fetchMock);
 
