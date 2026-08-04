@@ -18,6 +18,8 @@ export class AuthenticationService implements AuthenticationUseCaseV1 {
     try {
       const found = await this.ports.credentials.findCredential(email.value);
       if (!found) return { accepted: false, code: 'INVALID_CREDENTIALS' };
+      if (typeof found.principal.mfaReenrollmentRequired !== 'boolean')
+        return { accepted: false, code: 'AUTHENTICATION_UNAVAILABLE' };
       const valid = await this.ports.passwordCredentials.verify(found.credential, input.password);
       if (!valid) return { accepted: false, code: 'INVALID_CREDENTIALS' };
       const session = await this.ports.sessions.issue(found.principal, input.clientPlatform);

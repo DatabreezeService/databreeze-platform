@@ -13,6 +13,7 @@ const principal = {
   workspaceId: '00000000-0000-4000-8000-000000000003',
   securityEpoch: 1,
   mfaRequired: false,
+  mfaReenrollmentRequired: false,
 };
 
 void test('[IAM-001, IAM-005, IAM-006] configured credentials and sessions issue sign-in responses', async () => {

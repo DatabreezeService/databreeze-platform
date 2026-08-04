@@ -302,6 +302,7 @@ void test('sign-in returns a session DTO and maps authentication failures withou
                 workspaceId: '00000000-0000-4000-8000-000000000003',
                 securityEpoch: 2,
                 mfaRequired: true,
+                mfaReenrollmentRequired: false,
               },
               session: {
                 sessionId: '00000000-0000-4000-8000-000000000010',
@@ -491,6 +492,7 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
     workspaceId: '00000000-0000-4000-8000-000000000003',
     securityEpoch: 1,
     mfaRequired: false,
+    mfaReenrollmentRequired: false,
   };
   await withApp(
     {
@@ -639,6 +641,7 @@ void test('protected artifact reads derive tenant scope from an authenticated ac
     workspaceId: '00000000-0000-4000-8000-000000000003',
     securityEpoch: 3,
     mfaRequired: false,
+    mfaReenrollmentRequired: false,
   };
   await withApp(
     {
@@ -764,6 +767,7 @@ void test('audit read outages return retryable service-unavailable problems', as
     workspaceId: '00000000-0000-4000-8000-000000000003',
     securityEpoch: 1,
     mfaRequired: false,
+    mfaReenrollmentRequired: false,
   } as const;
   await withApp(
     {
@@ -801,6 +805,7 @@ void test('audit integrity failures are non-retryable and do not look transient'
     workspaceId: '00000000-0000-4000-8000-000000000003',
     securityEpoch: 1,
     mfaRequired: false,
+    mfaReenrollmentRequired: false,
   } as const;
   await withApp(
     {

@@ -82,6 +82,8 @@ export class SessionRequestTenantContextAdapter implements RequestTenantContextP
     }
     if (principal === undefined)
       throw new RequestTenantContextProblemError('AUTHENTICATION_FAILED');
+    if (typeof principal.mfaReenrollmentRequired !== 'boolean')
+      throw new RequestTenantContextProblemError('CONTEXT_INVALID');
     const context = createIamTenantContextV1({
       tenantScope: {
         scopeType: 'workspace',
@@ -93,9 +95,7 @@ export class SessionRequestTenantContextAdapter implements RequestTenantContextP
       idempotencyKey: idempotencyKey(input),
       authorizationEpoch: principal.securityEpoch,
       mfaRequired: principal.mfaRequired,
-      ...(principal.mfaReenrollmentRequired === undefined
-        ? {}
-        : { mfaReenrollmentRequired: principal.mfaReenrollmentRequired }),
+      mfaReenrollmentRequired: principal.mfaReenrollmentRequired,
     });
     if (!context.accepted) throw new RequestTenantContextProblemError('CONTEXT_INVALID');
     return context.value;

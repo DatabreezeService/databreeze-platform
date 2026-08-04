@@ -11,6 +11,7 @@ const principal = {
   workspaceId: '00000000-0000-4000-8000-000000000003',
   securityEpoch: 1,
   mfaRequired: false,
+  mfaReenrollmentRequired: false,
 };
 
 void test('[IAM-001, IAM-005, IAM-006] authentication normalizes email and delegates opaque session issuance', async () => {
@@ -111,6 +112,32 @@ void test('[IAM-006] authentication hides session-provider failures behind a ret
     sessions: {
       issue: () => Promise.reject(new Error('provider details must not escape')),
     },
+  });
+  assert.deepEqual(
+    await service.signIn({
+      email: 'user@example.com',
+      password: 'correct horse battery staple',
+      clientPlatform: 'web',
+    }),
+    { accepted: false, code: 'AUTHENTICATION_UNAVAILABLE' },
+  );
+});
+
+void test('[IAM-005] authentication rejects a principal without the MFA re-enrollment state', async () => {
+  const passwordCredentials = new PasswordCredentialService(new Argon2PasswordHasherAdapter());
+  const created = await passwordCredentials.create('correct horse battery staple');
+  assert.equal(created.accepted, true);
+  if (!created.accepted) return;
+  const service = new AuthenticationService({
+    passwordCredentials,
+    credentials: {
+      findCredential: () =>
+        Promise.resolve({
+          principal: { ...principal, mfaReenrollmentRequired: undefined } as never,
+          credential: created.value,
+        }),
+    },
+    sessions: { issue: () => Promise.reject(new Error('must not issue')) },
   });
   assert.deepEqual(
     await service.signIn({

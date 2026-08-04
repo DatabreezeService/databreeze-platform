@@ -9,6 +9,7 @@ const principal = {
   workspaceId: '00000000-0000-4000-8000-000000000003',
   securityEpoch: 7,
   mfaRequired: false,
+  mfaReenrollmentRequired: false,
 };
 const correlationId = '00000000-0000-4000-8000-000000000010';
 
@@ -46,6 +47,7 @@ void test('derives a workspace tenant context from a bearer session and never ac
     idempotencyKey: 'mutation-001',
     authorizationEpoch: principal.securityEpoch,
     mfaRequired: principal.mfaRequired,
+    mfaReenrollmentRequired: false,
   });
 });
 
@@ -93,6 +95,23 @@ void test('[IAM-015] carries the live recovery re-enrollment gate into protected
     headers: { authorization: 'Bearer opaque-access-token-123456789' },
   });
   assert.equal(context.mfaReenrollmentRequired, true);
+});
+
+void test('[IAM-005] rejects a session principal that omits the MFA re-enrollment state', async () => {
+  const adapter = new SessionRequestTenantContextAdapter({
+    findPrincipalByAccessToken: () =>
+      Promise.resolve({ ...principal, mfaReenrollmentRequired: undefined } as never),
+  });
+  await assert.rejects(
+    adapter.resolve({
+      method: 'GET',
+      headers: { authorization: 'Bearer opaque-access-token-123456789' },
+    }),
+    (error: unknown) => {
+      assert.equal((error as { code?: unknown }).code, 'CONTEXT_INVALID');
+      return true;
+    },
+  );
 });
 
 void test('requires an explicit idempotency key for authenticated mutations', async () => {

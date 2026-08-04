@@ -11,7 +11,7 @@ export interface AuthenticatedPrincipalV1 {
   readonly securityEpoch: number;
   readonly mfaRequired: boolean;
   /** Recovery keeps this gate live until a new factor is verified. */
-  readonly mfaReenrollmentRequired?: boolean;
+  readonly mfaReenrollmentRequired: boolean;
 }
 
 export interface CredentialLookupPortV1 {
