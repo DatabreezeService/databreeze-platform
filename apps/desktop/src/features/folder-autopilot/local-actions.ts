@@ -218,50 +218,42 @@ export async function executeLocalPlan(
 
   const receipts: LocalActionReceipt[] = [];
   for (const operation of operations) {
-    validateOperation(operation);
-    if (
-      (operation.action === 'RENAME' || operation.action === 'MOVE') &&
-      typeof fileSystem.renameExclusive !== 'function'
-    ) {
-      return reject('EXCLUSIVE_RENAME_REQUIRED');
-    }
-    const source = assertContained(sourceGuard, operation.sourcePath);
-    const expectedFingerprint = await readFingerprint(fileSystem, source);
-    if (expectedFingerprint !== operation.sourceFingerprint) return reject('STALE_PLAN');
+    try {
+      validateOperation(operation);
+      if (
+        (operation.action === 'RENAME' || operation.action === 'MOVE') &&
+        typeof fileSystem.renameExclusive !== 'function'
+      ) {
+        return reject('EXCLUSIVE_RENAME_REQUIRED');
+      }
+      const source = assertContained(sourceGuard, operation.sourcePath);
+      const expectedFingerprint = await readFingerprint(fileSystem, source);
+      if (expectedFingerprint !== operation.sourceFingerprint) return reject('STALE_PLAN');
 
-    if (!isWriteAction(operation.action)) {
-      receipts.push({
-        operationId: operation.operationId,
-        action: operation.action,
-        status: 'APPLIED',
-      });
-      continue;
-    }
+      if (!isWriteAction(operation.action)) {
+        receipts.push({
+          operationId: operation.operationId,
+          action: operation.action,
+          status: 'APPLIED',
+        });
+        continue;
+      }
 
-    const requestedDestination = assertContained(
-      destinationGuard,
-      operation.destinationPath as string,
-    );
-    if (source.toLowerCase() === requestedDestination.toLowerCase()) {
-      return reject('DESTINATION_RECURSION');
-    }
-    const destinationSelection = await chooseDestination(
-      requestedDestination,
-      operation.collisionPolicy,
-      destinationGuard,
-      fileSystem,
-    );
-    const destination = destinationSelection.path;
-    if (destinationSelection.skipped) {
-      receipts.push({
-        operationId: operation.operationId,
-        action: operation.action,
-        status: 'SKIPPED',
-      });
-      continue;
-    }
-    if (await pathExists(fileSystem, destination)) {
-      if (operation.collisionPolicy === 'SKIP') {
+      const requestedDestination = assertContained(
+        destinationGuard,
+        operation.destinationPath as string,
+      );
+      if (source.toLowerCase() === requestedDestination.toLowerCase()) {
+        return reject('DESTINATION_RECURSION');
+      }
+      const destinationSelection = await chooseDestination(
+        requestedDestination,
+        operation.collisionPolicy,
+        destinationGuard,
+        fileSystem,
+      );
+      const destination = destinationSelection.path;
+      if (destinationSelection.skipped) {
         receipts.push({
           operationId: operation.operationId,
           action: operation.action,
@@ -269,20 +261,39 @@ export async function executeLocalPlan(
         });
         continue;
       }
-      return reject('DESTINATION_COLLISION');
+      if (await pathExists(fileSystem, destination)) {
+        if (operation.collisionPolicy === 'SKIP') {
+          receipts.push({
+            operationId: operation.operationId,
+            action: operation.action,
+            status: 'SKIPPED',
+          });
+          continue;
+        }
+        return reject('DESTINATION_COLLISION');
+      }
+      try {
+        if (operation.action === 'COPY') await fileSystem.copyExclusive(source, destination);
+        else await fileSystem.renameExclusive!(source, destination);
+      } catch {
+        throw new LocalActionFailure('LOCAL_IO_FAILED', receipts);
+      }
+      receipts.push({
+        operationId: operation.operationId,
+        action: operation.action,
+        status: 'APPLIED',
+        ...(destinationSelection.generated ? { destinationPath: destination } : {}),
+      });
+    } catch (error) {
+      if (receipts.length > 0) {
+        if (error instanceof LocalActionFailure) throw error;
+        if (error instanceof LocalActionError) {
+          throw new LocalActionFailure(error.code, receipts);
+        }
+        throw new LocalActionFailure('LOCAL_IO_FAILED', receipts);
+      }
+      throw error;
     }
-    try {
-      if (operation.action === 'COPY') await fileSystem.copyExclusive(source, destination);
-      else await fileSystem.renameExclusive!(source, destination);
-    } catch {
-      throw new LocalActionFailure('LOCAL_IO_FAILED', receipts);
-    }
-    receipts.push({
-      operationId: operation.operationId,
-      action: operation.action,
-      status: 'APPLIED',
-      ...(destinationSelection.generated ? { destinationPath: destination } : {}),
-    });
   }
   return receipts;
 }

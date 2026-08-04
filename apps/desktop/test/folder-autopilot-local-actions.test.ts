@@ -299,6 +299,39 @@ describe('Folder Autopilot local typed actions', () => {
     }
   });
 
+  it('preserves receipts when a later operation has a stale source', async () => {
+    const readFingerprint = vi
+      .fn<LocalFileSystem['readFingerprint']>()
+      .mockResolvedValueOnce('a'.repeat(64))
+      .mockResolvedValueOnce('b'.repeat(64));
+    const deps = dependencies({ readFingerprint });
+
+    await expect(
+      executeLocalPlan(
+        plan(
+          {
+            operationId: 'copy-first',
+            action: 'COPY',
+            sourcePath,
+            destinationPath,
+            sourceFingerprint: 'a'.repeat(64),
+          },
+          {
+            operationId: 'copy-stale',
+            action: 'COPY',
+            sourcePath,
+            destinationPath: 'C:\\Output\\stale.csv',
+            sourceFingerprint: 'a'.repeat(64),
+          },
+        ),
+        deps,
+      ),
+    ).rejects.toMatchObject({
+      code: 'STALE_PLAN',
+      appliedReceipts: [{ operationId: 'copy-first', status: 'APPLIED' }],
+    });
+  });
+
   it('rejects missing operation identifiers before filesystem access', async () => {
     const deps = dependencies();
     const readFingerprint = vi.spyOn(deps.fileSystem, 'readFingerprint');
