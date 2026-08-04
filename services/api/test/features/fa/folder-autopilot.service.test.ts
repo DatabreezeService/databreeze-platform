@@ -20,7 +20,14 @@ const ids = {
   policyVersionId: '99999999-9999-4999-8999-999999999999',
 };
 
-function context(scope = { scopeType: 'workspace' as const, organizationId: ids.organizationId, workspaceId: ids.workspaceId }, idempotencyKey = 'fa-service') {
+function context(
+  scope = {
+    scopeType: 'workspace' as const,
+    organizationId: ids.organizationId,
+    workspaceId: ids.workspaceId,
+  },
+  idempotencyKey = 'fa-service',
+) {
   const result = createIamTenantContextV1({
     actorId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     correlationId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
@@ -34,10 +41,12 @@ function context(scope = { scopeType: 'workspace' as const, organizationId: ids.
 }
 
 const policy: FolderAutopilotDataModePolicyPortV1 = {
-  resolveNarrowed: async (_context, requested) =>
-    requested === 'LOCAL'
-      ? { accepted: true, value: { effectiveDataModePolicyRef: ids.policyVersionId } }
-      : { accepted: false, code: 'DATA_MODE_BROADENS_WORKSPACE' },
+  resolveNarrowed: (_context, requested) =>
+    Promise.resolve(
+      requested === 'LOCAL'
+        ? { accepted: true, value: { effectiveDataModePolicyRef: ids.policyVersionId } }
+        : { accepted: false, code: 'DATA_MODE_BROADENS_WORKSPACE' },
+    ),
 };
 
 const profileInput = {
@@ -76,7 +85,10 @@ const assignmentInput = {
 };
 
 void test('[FA-001..FA-007] service stores profile and binding idempotently without local path data', async () => {
-  const service = new FolderAutopilotService(new InMemoryFolderAutopilotRepositoryAdapter(), policy);
+  const service = new FolderAutopilotService(
+    new InMemoryFolderAutopilotRepositoryAdapter(),
+    policy,
+  );
   const tenant = context();
   const profile = await service.createProfile(tenant, profileInput);
   assert.equal(profile.accepted, true);
@@ -91,7 +103,10 @@ void test('[FA-001..FA-007] service stores profile and binding idempotently with
 });
 
 void test('[FA-014, FA-015, FA-031] assignment validates owned references and rejects a broader mode', async () => {
-  const service = new FolderAutopilotService(new InMemoryFolderAutopilotRepositoryAdapter(), policy);
+  const service = new FolderAutopilotService(
+    new InMemoryFolderAutopilotRepositoryAdapter(),
+    policy,
+  );
   const tenant = context();
   await service.createProfile(tenant, profileInput);
   await service.createBinding(tenant, bindingInput(ids.inputBindingId, 'INPUT'));
@@ -115,7 +130,11 @@ void test('[IAM-019, FA-003] sibling tenant cannot read a profile or assignment'
   const tenant = context();
   await service.createProfile(tenant, profileInput);
   const sibling = context(
-    { scopeType: 'workspace', organizationId: ids.organizationId, workspaceId: 'ffffffff-ffff-4fff-8fff-ffffffffffff' },
+    {
+      scopeType: 'workspace',
+      organizationId: ids.organizationId,
+      workspaceId: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+    },
     'fa-sibling',
   );
   assert.deepEqual(await service.findProfile(sibling, ids.profileId), {

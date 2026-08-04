@@ -15,12 +15,12 @@ import {
 import type { DataModeV1 } from '@databreeze/domain/data-mode/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
-import type {
-  FolderAutopilotRepositoryPortV1,
-} from './folder-autopilot-repository.port.js';
+import type { FolderAutopilotRepositoryPortV1 } from './folder-autopilot-repository.port.js';
 
 export const FOLDER_AUTOPILOT_SERVICE = Symbol('FOLDER_AUTOPILOT_SERVICE');
-export const FOLDER_AUTOPILOT_DATA_MODE_POLICY_PORT = Symbol('FOLDER_AUTOPILOT_DATA_MODE_POLICY_PORT');
+export const FOLDER_AUTOPILOT_DATA_MODE_POLICY_PORT = Symbol(
+  'FOLDER_AUTOPILOT_DATA_MODE_POLICY_PORT',
+);
 export const FOLDER_AUTOPILOT_JRA_FACADE_PORT = Symbol('FOLDER_AUTOPILOT_JRA_FACADE_PORT');
 
 export type FolderAutopilotDataModePolicyResultV1 =
@@ -42,9 +42,11 @@ export class UnavailableFolderAutopilotDataModePolicyAdapter
   implements FolderAutopilotDataModePolicyPortV1
 {
   public resolveNarrowed(
-    _context: IamTenantContextV1,
-    _requested: DataModeV1,
+    context: IamTenantContextV1,
+    requested: DataModeV1,
   ): Promise<FolderAutopilotDataModePolicyResultV1> {
+    void context;
+    void requested;
     return Promise.resolve({ accepted: false, code: 'DATA_MODE_POLICY_UNAVAILABLE' as const });
   }
 }
@@ -72,18 +74,27 @@ export type FolderAutopilotFacadeResultV1 =
 /** JRA remains the sole approval/effect authority; this adapter fails closed until composed. */
 export class UnavailableFolderAutopilotJraFacadeAdapter implements FolderAutopilotJraFacadePortV1 {
   public decideApproval(
-    _context: IamTenantContextV1,
-    _executionId: string,
-    _input: Readonly<Record<string, unknown>>,
+    context: IamTenantContextV1,
+    executionId: string,
+    input: Readonly<Record<string, unknown>>,
   ): Promise<FolderAutopilotFacadeResultV1> {
-    return Promise.resolve({ accepted: false, code: 'FA_JRA_APPROVAL_FACADE_UNAVAILABLE' as const });
+    void context;
+    void executionId;
+    void input;
+    return Promise.resolve({
+      accepted: false,
+      code: 'FA_JRA_APPROVAL_FACADE_UNAVAILABLE' as const,
+    });
   }
 
   public requestUndo(
-    _context: IamTenantContextV1,
-    _executionId: string,
-    _input: Readonly<Record<string, unknown>>,
+    context: IamTenantContextV1,
+    executionId: string,
+    input: Readonly<Record<string, unknown>>,
   ): Promise<FolderAutopilotFacadeResultV1> {
+    void context;
+    void executionId;
+    void input;
     return Promise.resolve({ accepted: false, code: 'FA_JRA_UNDO_FACADE_UNAVAILABLE' as const });
   }
 }
@@ -112,7 +123,9 @@ type ProfileInputV1 = Omit<Parameters<typeof createFolderAutopilotProfileV1>[0],
 type BindingInputV1 = Omit<Parameters<typeof createAutopilotFolderBindingV1>[0], 'tenantScope'>;
 type AssignmentInputV1 = Omit<Parameters<typeof createRecipeAssignmentV1>[0], 'tenantScope'>;
 
-function rejected<TValue>(code: FolderAutopilotServiceErrorV1): FolderAutopilotServiceResultV1<TValue> {
+function rejected<TValue>(
+  code: FolderAutopilotServiceErrorV1,
+): FolderAutopilotServiceResultV1<TValue> {
   return Object.freeze({ accepted: false, code });
 }
 
@@ -141,8 +154,7 @@ function parseId(input: unknown): StableIdentifierV1 | undefined {
 export class FolderAutopilotService {
   public constructor(
     private readonly repository: FolderAutopilotRepositoryPortV1,
-    private readonly dataModePolicy: FolderAutopilotDataModePolicyPortV1 =
-      new UnavailableFolderAutopilotDataModePolicyAdapter(),
+    private readonly dataModePolicy: FolderAutopilotDataModePolicyPortV1 = new UnavailableFolderAutopilotDataModePolicyAdapter(),
   ) {}
 
   public async createProfile(
@@ -157,21 +169,19 @@ export class FolderAutopilotService {
     return this.repository
       .withTransaction(
         context,
-        async (
-          transaction,
-        ): Promise<FolderAutopilotServiceResultV1<FolderAutopilotProfileV1>> => {
-        const existing = await transaction.findProfile(
-          context,
-          created.value.profileId,
-          created.value.version,
-        );
-        if (existing) {
-          if (JSON.stringify(existing) === JSON.stringify(created.value))
-            return Object.freeze({ accepted: true, value: existing });
-          return rejected('FA_IMMUTABLE_PROFILE');
-        }
-        await transaction.saveProfile(context, created.value);
-        return created;
+        async (transaction): Promise<FolderAutopilotServiceResultV1<FolderAutopilotProfileV1>> => {
+          const existing = await transaction.findProfile(
+            context,
+            created.value.profileId,
+            created.value.version,
+          );
+          if (existing) {
+            if (JSON.stringify(existing) === JSON.stringify(created.value))
+              return Object.freeze({ accepted: true, value: existing });
+            return rejected('FA_IMMUTABLE_PROFILE');
+          }
+          await transaction.saveProfile(context, created.value);
+          return created;
         },
       )
       .catch((error: unknown) => rejected(mapPersistenceError(error)));
@@ -189,17 +199,15 @@ export class FolderAutopilotService {
     return this.repository
       .withTransaction(
         context,
-        async (
-          transaction,
-        ): Promise<FolderAutopilotServiceResultV1<AutopilotFolderBindingV1>> => {
-        const existing = await transaction.findBinding(context, created.value.bindingId);
-        if (existing) {
-          if (JSON.stringify(existing) === JSON.stringify(created.value))
-            return Object.freeze({ accepted: true, value: existing });
-          return rejected('FA_IMMUTABLE_BINDING');
-        }
-        await transaction.saveBinding(context, created.value);
-        return created;
+        async (transaction): Promise<FolderAutopilotServiceResultV1<AutopilotFolderBindingV1>> => {
+          const existing = await transaction.findBinding(context, created.value.bindingId);
+          if (existing) {
+            if (JSON.stringify(existing) === JSON.stringify(created.value))
+              return Object.freeze({ accepted: true, value: existing });
+            return rejected('FA_IMMUTABLE_BINDING');
+          }
+          await transaction.saveBinding(context, created.value);
+          return created;
         },
       )
       .catch((error: unknown) => rejected(mapPersistenceError(error)));
@@ -228,35 +236,33 @@ export class FolderAutopilotService {
     return this.repository
       .withTransaction(
         context,
-        async (
-          transaction,
-        ): Promise<FolderAutopilotServiceResultV1<RecipeAssignmentV1>> => {
-        const profile = await transaction.findProfile(
-          context,
-          created.value.profileId,
-          created.value.profileVersion,
-        );
-        if (!profile) return rejected('FA_PROFILE_NOT_FOUND');
-        if (profile.payloadHash !== created.value.profileHash)
-          return rejected('FA_PROFILE_HASH_MISMATCH');
-        for (const bindingId of created.value.inputBindingIds) {
-          const binding = await transaction.findBinding(context, bindingId);
-          if (!binding) return rejected('FA_BINDING_NOT_FOUND');
-          if (binding.role !== 'INPUT') return rejected('FA_BINDING_ROLE_MISMATCH');
-        }
-        for (const bindingId of created.value.outputBindingIds) {
-          const binding = await transaction.findBinding(context, bindingId);
-          if (!binding) return rejected('FA_BINDING_NOT_FOUND');
-          if (binding.role !== 'OUTPUT') return rejected('FA_BINDING_ROLE_MISMATCH');
-        }
-        const existing = await transaction.findAssignment(context, created.value.assignmentId);
-        if (existing) {
-          if (JSON.stringify(existing) === JSON.stringify(created.value))
-            return Object.freeze({ accepted: true, value: existing });
-          return rejected('FA_IMMUTABLE_ASSIGNMENT');
-        }
-        await transaction.saveAssignment(context, created.value);
-        return created;
+        async (transaction): Promise<FolderAutopilotServiceResultV1<RecipeAssignmentV1>> => {
+          const profile = await transaction.findProfile(
+            context,
+            created.value.profileId,
+            created.value.profileVersion,
+          );
+          if (!profile) return rejected('FA_PROFILE_NOT_FOUND');
+          if (profile.payloadHash !== created.value.profileHash)
+            return rejected('FA_PROFILE_HASH_MISMATCH');
+          for (const bindingId of created.value.inputBindingIds) {
+            const binding = await transaction.findBinding(context, bindingId);
+            if (!binding) return rejected('FA_BINDING_NOT_FOUND');
+            if (binding.role !== 'INPUT') return rejected('FA_BINDING_ROLE_MISMATCH');
+          }
+          for (const bindingId of created.value.outputBindingIds) {
+            const binding = await transaction.findBinding(context, bindingId);
+            if (!binding) return rejected('FA_BINDING_NOT_FOUND');
+            if (binding.role !== 'OUTPUT') return rejected('FA_BINDING_ROLE_MISMATCH');
+          }
+          const existing = await transaction.findAssignment(context, created.value.assignmentId);
+          if (existing) {
+            if (JSON.stringify(existing) === JSON.stringify(created.value))
+              return Object.freeze({ accepted: true, value: existing });
+            return rejected('FA_IMMUTABLE_ASSIGNMENT');
+          }
+          await transaction.saveAssignment(context, created.value);
+          return created;
         },
       )
       .catch((error: unknown) => rejected(mapPersistenceError(error)));
@@ -272,8 +278,7 @@ export class FolderAutopilotService {
     if (!assignmentId) return rejected('INVALID_IDENTIFIER');
     if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1)
       return rejected('INVALID_REVISION');
-    if (!['DRAFT', 'ACTIVE', 'PAUSED', 'RETIRED'].includes(state))
-      return rejected('INVALID_STATE');
+    if (!['DRAFT', 'ACTIVE', 'PAUSED', 'RETIRED'].includes(state)) return rejected('INVALID_STATE');
     try {
       const value = await this.repository.updateAssignmentState(
         context,

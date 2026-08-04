@@ -59,7 +59,7 @@ void test('[FA-033] dashboard maps immutable records to a content-free projectio
   assert.equal(dashboard.profiles[0]?.stabilizationSeconds, 10);
   assert.equal(dashboard.profiles[0]?.undoWindowHours, 24);
   assert.equal(dashboard.assignments[0]?.displayName, 'Assignment 44444444');
-  assert.equal('tenantScope' in dashboard.profiles[0]!, false);
-  assert.equal('deviceGrantId' in dashboard.assignments[0]!, false);
+  assert.equal('tenantScope' in dashboard.profiles[0], false);
+  assert.equal('deviceGrantId' in dashboard.assignments[0], false);
   assert.doesNotMatch(JSON.stringify(dashboard), /path|handle|bytes|localHandle/iu);
 });

@@ -45,11 +45,20 @@ const profile = {
 };
 
 const policy: FolderAutopilotDataModePolicyPortV1 = {
-  resolveNarrowed: async (_context, requested) =>
-    requested === 'LOCAL'
-      ? { accepted: true, value: { effectiveDataModePolicyRef: ids.policyVersionId } }
-      : { accepted: false, code: 'DATA_MODE_BROADENS_WORKSPACE' },
+  resolveNarrowed: (_context, requested) =>
+    Promise.resolve(
+      requested === 'LOCAL'
+        ? { accepted: true, value: { effectiveDataModePolicyRef: ids.policyVersionId } }
+        : { accepted: false, code: 'DATA_MODE_BROADENS_WORKSPACE' },
+    ),
 };
+
+function jsonObject(response: { json(): unknown }): Record<string, unknown> {
+  const value = response.json();
+  assert.equal(typeof value, 'object');
+  assert.notEqual(value, null);
+  return value as Record<string, unknown>;
+}
 
 void test('[FA-001..FA-007, FA-014, FA-015, FA-031] HTTP is tenant-scoped and content-free', async () => {
   let current = context();
@@ -76,7 +85,7 @@ void test('[FA-001..FA-007, FA-014, FA-015, FA-031] HTTP is tenant-scoped and co
       payload: profile,
     });
     assert.equal(createdProfile.statusCode, 201);
-    assert.equal(createdProfile.json().accepted, true);
+    assert.equal(jsonObject(createdProfile)['accepted'], true);
 
     for (const [bindingId, role] of [
       [ids.inputBindingId, 'INPUT'],
@@ -94,7 +103,7 @@ void test('[FA-001..FA-007, FA-014, FA-015, FA-031] HTTP is tenant-scoped and co
         },
       });
       assert.equal(createdBinding.statusCode, 201);
-      assert.equal(createdBinding.json().accepted, true);
+      assert.equal(jsonObject(createdBinding)['accepted'], true);
     }
 
     const createdAssignment = await app.inject({
@@ -115,7 +124,14 @@ void test('[FA-001..FA-007, FA-014, FA-015, FA-031] HTTP is tenant-scoped and co
       },
     });
     assert.equal(createdAssignment.statusCode, 201);
-    assert.equal(createdAssignment.json().value.effectiveDataModePolicyRef, ids.policyVersionId);
+    const assignmentBody = jsonObject(createdAssignment);
+    const assignmentValue = assignmentBody['value'];
+    assert.equal(typeof assignmentValue, 'object');
+    assert.notEqual(assignmentValue, null);
+    assert.equal(
+      (assignmentValue as Record<string, unknown>)['effectiveDataModePolicyRef'],
+      ids.policyVersionId,
+    );
 
     const patched = await app.inject({
       method: 'PATCH',
@@ -123,12 +139,20 @@ void test('[FA-001..FA-007, FA-014, FA-015, FA-031] HTTP is tenant-scoped and co
       payload: { expectedRevision: 1, state: 'ACTIVE' },
     });
     assert.equal(patched.statusCode, 200);
-    assert.equal(patched.json().value.revision, 2);
+    const patchedBody = jsonObject(patched);
+    const patchedValue = patchedBody['value'];
+    assert.equal(typeof patchedValue, 'object');
+    assert.notEqual(patchedValue, null);
+    assert.equal((patchedValue as Record<string, unknown>)['revision'], 2);
 
     const dashboard = await app.inject({ method: 'GET', url: '/v1/autopilot-dashboard' });
     assert.equal(dashboard.statusCode, 200);
-    assert.equal(dashboard.json().accepted, true);
-    assert.equal(Array.isArray(dashboard.json().value.assignments), true);
+    const dashboardBody = jsonObject(dashboard);
+    assert.equal(dashboardBody['accepted'], true);
+    const dashboardValue = dashboardBody['value'];
+    assert.equal(typeof dashboardValue, 'object');
+    assert.notEqual(dashboardValue, null);
+    assert.equal(Array.isArray((dashboardValue as Record<string, unknown>)['assignments']), true);
 
     const pause = await app.inject({
       method: 'POST',
@@ -136,7 +160,11 @@ void test('[FA-001..FA-007, FA-014, FA-015, FA-031] HTTP is tenant-scoped and co
       payload: { expectedRevision: 2 },
     });
     assert.equal(pause.statusCode, 200);
-    assert.equal(pause.json().value.state, 'PAUSED');
+    const pauseBody = jsonObject(pause);
+    const pauseValue = pauseBody['value'];
+    assert.equal(typeof pauseValue, 'object');
+    assert.notEqual(pauseValue, null);
+    assert.equal((pauseValue as Record<string, unknown>)['state'], 'PAUSED');
 
     const approvalUnavailable = await app.inject({
       method: 'POST',
