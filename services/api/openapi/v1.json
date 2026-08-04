@@ -9808,13 +9808,6 @@
             "schema": { "minimum": 1, "type": "number" }
           },
           {
-            "name": "now",
-            "required": false,
-            "in": "query",
-            "description": "Verification time; server clock is used when omitted",
-            "schema": { "format": "date-time", "type": "string" }
-          },
-          {
             "name": "X-Correlation-Id",
             "in": "header",
             "required": false,

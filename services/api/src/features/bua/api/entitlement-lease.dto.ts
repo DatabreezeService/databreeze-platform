@@ -1,5 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsISO8601, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsISO8601, IsInt, Max, Min } from 'class-validator';
 
 export class IssueEntitlementLeaseDto {
   @ApiProperty({ format: 'date-time', description: 'UTC expiry no more than 24 hours after issue' })
@@ -19,12 +19,4 @@ export class VerifyEntitlementLeaseDto {
   @Min(1)
   @Max(Number.MAX_SAFE_INTEGER)
   securityEpoch!: number;
-
-  @ApiPropertyOptional({
-    format: 'date-time',
-    description: 'Verification time; server clock is used when omitted',
-  })
-  @IsOptional()
-  @IsISO8601()
-  now?: string;
 }
