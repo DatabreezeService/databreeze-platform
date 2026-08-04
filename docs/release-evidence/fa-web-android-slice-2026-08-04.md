@@ -31,6 +31,9 @@ feature. It is a client slice, not a claim that all FA P0/P1 requirements are co
 - `162f502` — Android offline action queue
 - `1047fa8` — Android UI persists actions before local transitions
 - `7aa7a3c` — bounded deterministic offline mutation identifiers
+- `e46f8a8` — Web profile list and detail projection
+- `175b0a4` — strict boundary lint hardening
+- `465ceae` — Vietnamese/English profile status parity
 
 ## Checks
 
