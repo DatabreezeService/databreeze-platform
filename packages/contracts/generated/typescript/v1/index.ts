@@ -9,6 +9,17 @@ export interface ActorMetadata {
   readonly actorType: string;
 }
 
+export interface AutopilotFolderBinding {
+  readonly bindingId: Identifier;
+  readonly createdAt: UtcTimestamp;
+  readonly deviceGrantId: Identifier;
+  readonly expectedCapabilityDigest: string;
+  readonly revision: Revision;
+  readonly role: string;
+  readonly schemaVersion: 1;
+  readonly tenantScope: TenantScope;
+}
+
 export interface CommandEnvelope<TData extends object = JsonObject> {
   readonly actor: ActorMetadata;
   readonly commandId: Identifier;
@@ -58,6 +69,21 @@ export interface EventEnvelopeEntity {
   readonly revision: Revision;
 }
 
+export interface FolderAutopilotProfile {
+  readonly collisionPolicy: string;
+  readonly createdAt: UtcTimestamp;
+  readonly maxFilesPerScan: number;
+  readonly outputLineageEnabled: boolean;
+  readonly payloadHash: string;
+  readonly profileId: Identifier;
+  readonly revision: Revision;
+  readonly schemaVersion: 1;
+  readonly stabilizationDelayMs: number;
+  readonly tenantScope: TenantScope;
+  readonly undoWindowSeconds: number;
+  readonly version: number;
+}
+
 export type Identifier = string;
 
 export interface OrganizationScope {
@@ -104,6 +130,26 @@ export interface ProjectScope {
   readonly workspaceId: Identifier;
 }
 
+export interface RecipeAssignment {
+  readonly assignmentId: Identifier;
+  readonly createdAt: UtcTimestamp;
+  readonly dataModeConstraint?: string;
+  readonly deviceId: Identifier;
+  readonly effectiveDataModePolicyRef?: Identifier;
+  readonly idempotencyKey: string;
+  readonly inputBindingIds: readonly Identifier[];
+  readonly jraRecipeVersionHash: string;
+  readonly jraRecipeVersionId: Identifier;
+  readonly outputBindingIds: readonly Identifier[];
+  readonly profileHash: string;
+  readonly profileId: Identifier;
+  readonly profileVersion: number;
+  readonly revision: Revision;
+  readonly schemaVersion: 1;
+  readonly state: string;
+  readonly tenantScope: TenantScope;
+}
+
 export type Revision = number;
 
 export type TenantScope = OrganizationScope | WorkspaceScope | ProjectScope;
@@ -116,7 +162,7 @@ export interface WorkspaceScope {
   readonly workspaceId: Identifier;
 }
 
-export type ContractV1SchemaId = "https://schemas.databreeze.dev/contracts/v1/actor-metadata" | "https://schemas.databreeze.dev/contracts/v1/command-envelope" | "https://schemas.databreeze.dev/contracts/v1/correlation-metadata" | "https://schemas.databreeze.dev/contracts/v1/cursor-page" | "https://schemas.databreeze.dev/contracts/v1/event-envelope" | "https://schemas.databreeze.dev/contracts/v1/identifier" | "https://schemas.databreeze.dev/contracts/v1/problem-details" | "https://schemas.databreeze.dev/contracts/v1/revision" | "https://schemas.databreeze.dev/contracts/v1/tenant-scope" | "https://schemas.databreeze.dev/contracts/v1/utc-timestamp";
+export type ContractV1SchemaId = "https://schemas.databreeze.dev/contracts/v1/actor-metadata" | "https://schemas.databreeze.dev/contracts/v1/autopilot-folder-binding" | "https://schemas.databreeze.dev/contracts/v1/command-envelope" | "https://schemas.databreeze.dev/contracts/v1/correlation-metadata" | "https://schemas.databreeze.dev/contracts/v1/cursor-page" | "https://schemas.databreeze.dev/contracts/v1/event-envelope" | "https://schemas.databreeze.dev/contracts/v1/folder-autopilot-profile" | "https://schemas.databreeze.dev/contracts/v1/identifier" | "https://schemas.databreeze.dev/contracts/v1/problem-details" | "https://schemas.databreeze.dev/contracts/v1/recipe-assignment" | "https://schemas.databreeze.dev/contracts/v1/revision" | "https://schemas.databreeze.dev/contracts/v1/tenant-scope" | "https://schemas.databreeze.dev/contracts/v1/utc-timestamp";
 
 export type ContractV1ParseResult<TValue = unknown> =
   | { readonly accepted: true; readonly value: TValue }

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/recipe-assignment",
+  "$comment": "FA-005..FA-007, FA-014, FA-015, FA-031: JRA and DSO are referenced by opaque IDs and hashes.",
+  "title": "Folder Autopilot Recipe Assignment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "assignmentId",
+    "tenantScope",
+    "profileId",
+    "profileVersion",
+    "profileHash",
+    "jraRecipeVersionId",
+    "jraRecipeVersionHash",
+    "deviceId",
+    "inputBindingIds",
+    "outputBindingIds",
+    "idempotencyKey",
+    "state",
+    "revision",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "assignmentId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "tenantScope": { "$ref": "https://schemas.databreeze.dev/contracts/v1/tenant-scope" },
+    "profileId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "profileVersion": { "type": "integer", "minimum": 1, "maximum": 10000 },
+    "profileHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "jraRecipeVersionId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "jraRecipeVersionHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "deviceId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "inputBindingIds": {
+      "type": "array",
+      "items": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+      "maxItems": 32
+    },
+    "outputBindingIds": {
+      "type": "array",
+      "items": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+      "maxItems": 32
+    },
+    "dataModeConstraint": { "type": "string", "pattern": "^(LOCAL|HYBRID|CLOUD)$" },
+    "effectiveDataModePolicyRef": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "state": { "type": "string", "pattern": "^(DRAFT|ACTIVE|PAUSED|RETIRED)$" },
+    "revision": { "$ref": "https://schemas.databreeze.dev/contracts/v1/revision" },
+    "createdAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" }
+  }
+}

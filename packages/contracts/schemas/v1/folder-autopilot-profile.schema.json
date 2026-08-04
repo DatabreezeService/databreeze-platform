@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/folder-autopilot-profile",
+  "$comment": "FA-001..FA-007: immutable typed profile payload; no local path or recipe authority.",
+  "title": "Folder Autopilot Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "profileId",
+    "tenantScope",
+    "version",
+    "payloadHash",
+    "stabilizationDelayMs",
+    "maxFilesPerScan",
+    "collisionPolicy",
+    "undoWindowSeconds",
+    "outputLineageEnabled",
+    "createdAt",
+    "revision"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "profileId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "tenantScope": { "$ref": "https://schemas.databreeze.dev/contracts/v1/tenant-scope" },
+    "version": { "type": "integer", "minimum": 1, "maximum": 10000 },
+    "payloadHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "stabilizationDelayMs": { "type": "integer", "minimum": 0, "maximum": 86400000 },
+    "maxFilesPerScan": { "type": "integer", "minimum": 1, "maximum": 100000 },
+    "collisionPolicy": { "type": "string", "pattern": "^(REVIEW|SKIP|UNIQUE_NAME)$" },
+    "undoWindowSeconds": { "type": "integer", "minimum": 0, "maximum": 604800 },
+    "outputLineageEnabled": { "type": "boolean" },
+    "createdAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" },
+    "revision": { "$ref": "https://schemas.databreeze.dev/contracts/v1/revision" }
+  }
+}

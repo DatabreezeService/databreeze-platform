@@ -10,6 +10,12 @@
       "sha256": "fb9d12675478ae805bbe0163866c1cf8e4bb810dbe32ac780b1c1bf4975c856c"
     },
     {
+      "name": "autopilot-folder-binding",
+      "id": "https://schemas.databreeze.dev/contracts/v1/autopilot-folder-binding",
+      "path": "schemas/v1/autopilot-folder-binding.schema.json",
+      "sha256": "4a65514c7ab3250d98cea3d227622f6c5461ba433042682e6b384bbe4cd765f4"
+    },
+    {
       "name": "command-envelope",
       "id": "https://schemas.databreeze.dev/contracts/v1/command-envelope",
       "path": "schemas/v1/command-envelope.schema.json",
@@ -34,6 +40,12 @@
       "sha256": "54780e954b80a07de08d428a03c972cb9fcfe6682691521fe6d6c357b45753dd"
     },
     {
+      "name": "folder-autopilot-profile",
+      "id": "https://schemas.databreeze.dev/contracts/v1/folder-autopilot-profile",
+      "path": "schemas/v1/folder-autopilot-profile.schema.json",
+      "sha256": "025fea468ae1a46630913acc5608bba6d4f3a49c53c40cc538b167bc956e762d"
+    },
+    {
       "name": "identifier",
       "id": "https://schemas.databreeze.dev/contracts/v1/identifier",
       "path": "schemas/v1/identifier.schema.json",
@@ -44,6 +56,12 @@
       "id": "https://schemas.databreeze.dev/contracts/v1/problem-details",
       "path": "schemas/v1/problem-details.schema.json",
       "sha256": "c1209d3d234e75b13a84e7cfbbd2bec9f6d9f1daa3602ec2443f682770892272"
+    },
+    {
+      "name": "recipe-assignment",
+      "id": "https://schemas.databreeze.dev/contracts/v1/recipe-assignment",
+      "path": "schemas/v1/recipe-assignment.schema.json",
+      "sha256": "108b3c18c704558787894fd12b0a2018d78a1cb26b5e0e2ede04e7f0df4cdcbf"
     },
     {
       "name": "revision",
@@ -71,11 +89,11 @@
   "generatedPublicOutputs": [
     {
       "path": "generated/kotlin/src/main/kotlin/com/databreeze/contracts/v1/Models.kt",
-      "sha256": "cd60b56f750e382ada6a9bbaba1baefef3a43e8fdb41ee6a12c89e1b8e1f9487"
+      "sha256": "b2192fb6261d08744a04415e3478dd56f477edcd1e57245415a6c3eb7f77d0a0"
     },
     {
       "path": "generated/kotlin/src/main/kotlin/com/databreeze/contracts/v1/Validation.kt",
-      "sha256": "f4c98e5f568968160687ffaf9ddbba4db51e25266c5baf927cde8b24e6a2442a"
+      "sha256": "36de7f3b631b7ae1cf2a0c8af21d5acab208d034d7344ee746cdae4bfeee76ff"
     },
     {
       "path": "generated/python/databreeze_contracts/__init__.py",
@@ -87,7 +105,7 @@
     },
     {
       "path": "generated/python/databreeze_contracts/v1/__init__.py",
-      "sha256": "785ff1b0fde763730070345f43b494203f149b10879683364fcbec0fcc35cb7e"
+      "sha256": "13fe14e8acc4331a59a3a8a78b2245defefaf3ea6c0bb119e3a50e87caa87d5d"
     },
     {
       "path": "generated/python/databreeze_contracts/v1/_validation.py",
@@ -95,7 +113,7 @@
     },
     {
       "path": "generated/python/databreeze_contracts/v1/models.py",
-      "sha256": "435a3af5a513fd14fbf232c0f289b901f4b3722a12b9f3a559d59df404fee4ab"
+      "sha256": "88b2b669895974cf9ae8fadf11ce4cbb9693333ff05f147f26c9a611a91c9723"
     },
     {
       "path": "generated/python/pyproject.toml",
@@ -103,11 +121,11 @@
     },
     {
       "path": "generated/typescript/v1/index.ts",
-      "sha256": "59e3b40f806d91a6d82b81a59e8937e6e0716d4eab44dbd5d2740e8eeb14912b"
+      "sha256": "d6e259477eff513ad79d0ebfb515d5a6a3cc491d52a9b1d7cf5af9f6c14200ad"
     },
     {
       "path": "generated/typescript/v1/validation.mjs",
-      "sha256": "0d48072b7dbc919e7ac1d9a3fbd8b864137594a98cf33e900d239564851fda7e"
+      "sha256": "dbb9e3201d1210ef0f638dbf65467001b5ebded40c1c02fa16c273f8fb73032b"
     }
   ],
   "publicPackageSurfaces": [
@@ -130,12 +148,15 @@
               "import": "./generated/typescript/v1/validation.mjs"
             },
             "./v1/actor-metadata": "./schemas/v1/actor-metadata.schema.json",
+            "./v1/autopilot-folder-binding": "./schemas/v1/autopilot-folder-binding.schema.json",
             "./v1/command-envelope": "./schemas/v1/command-envelope.schema.json",
             "./v1/correlation-metadata": "./schemas/v1/correlation-metadata.schema.json",
             "./v1/cursor-page": "./schemas/v1/cursor-page.schema.json",
             "./v1/event-envelope": "./schemas/v1/event-envelope.schema.json",
+            "./v1/folder-autopilot-profile": "./schemas/v1/folder-autopilot-profile.schema.json",
             "./v1/identifier": "./schemas/v1/identifier.schema.json",
             "./v1/problem-details": "./schemas/v1/problem-details.schema.json",
+            "./v1/recipe-assignment": "./schemas/v1/recipe-assignment.schema.json",
             "./v1/revision": "./schemas/v1/revision.schema.json",
             "./v1/tenant-scope": "./schemas/v1/tenant-scope.schema.json",
             "./v1/utc-timestamp": "./schemas/v1/utc-timestamp.schema.json"
