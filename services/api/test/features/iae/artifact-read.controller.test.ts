@@ -44,6 +44,7 @@ void test('[IAE-006, IAE-008, IAE-019, IAE-020] artifact reads return exact cont
       mediaType: 'text/csv',
       displayName: 'orders.csv',
       createdAt: '2026-01-01T00:00:00.000Z',
+      scanState: 'CLEAN',
     },
     placement: {
       placementId,
@@ -125,7 +126,7 @@ void test('[IAE-006, IAE-008, IAE-019, IAE-020] artifact reads return exact cont
           displayName: 'orders.csv',
           createdAt: '2026-01-01T00:00:00.000Z',
           status: 'ACTIVE',
-          scanState: 'PENDING',
+          scanState: 'CLEAN',
         },
         action: 'OPEN_ON_SOURCE_DEVICE',
         placementReference: 'local-placement-000001',

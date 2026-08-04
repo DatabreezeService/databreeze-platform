@@ -30,6 +30,14 @@ function installBridge() {
               protocolVersion: null,
             }),
         },
+        folder: {
+          grant: () =>
+            Promise.resolve({
+              fileCount: 0,
+              lastScanAt: null,
+              status: 'not-granted',
+            }),
+        },
       },
     },
   });

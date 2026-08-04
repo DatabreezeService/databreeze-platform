@@ -1,8 +1,10 @@
 import type { LocalStatePort } from '../application/local-state.port.ts';
+import type { FolderGrantPort } from '../application/folder-grant.port.ts';
 import type { SidecarLifecyclePort } from '../application/sidecar-lifecycle.port.ts';
 import {
   DESKTOP_IPC_CHANNELS,
   parseDesktopSafeState,
+  parseFolderGrantState,
   parseSidecarSafeStatus,
   type DesktopIpcChannel,
 } from '../shared/desktop-contract-v1.ts';
@@ -36,6 +38,7 @@ export interface DesktopIpcRegistrationInput {
   readonly expectedRendererUrl: string;
   readonly getActiveWindow: () => WindowLike | null;
   readonly ipcMain: IpcMainLike;
+  readonly folderGrant?: FolderGrantPort;
   readonly localState: LocalStatePort;
   readonly sidecar: SidecarLifecyclePort;
 }
@@ -99,6 +102,7 @@ export function registerDesktopIpcV1({
   expectedRendererUrl,
   getActiveWindow,
   ipcMain,
+  folderGrant,
   localState,
   sidecar,
 }: DesktopIpcRegistrationInput): () => void {
@@ -106,7 +110,17 @@ export function registerDesktopIpcV1({
   if (previous !== undefined) previous.active = false;
 
   for (const channel of Object.values(DESKTOP_IPC_CHANNELS)) ipcMain.removeHandler(channel);
-  const handlers: Record<DesktopIpcChannel, IpcHandler> = {
+  const handlers: Partial<Record<DesktopIpcChannel, IpcHandler>> = {
+    ...(folderGrant === undefined
+      ? {}
+      : {
+          [DESKTOP_IPC_CHANNELS.folderGrant]: guardedHandler(
+            expectedRendererUrl,
+            getActiveWindow,
+            () => folderGrant.grantFolder(),
+            parseFolderGrantState,
+          ),
+        }),
     [DESKTOP_IPC_CHANNELS.sessionGetSafeState]: guardedHandler(
       expectedRendererUrl,
       getActiveWindow,

@@ -9,6 +9,9 @@ and [support diagnostics](support-diagnostics.md).
 
 Foundation evidence is tracked in [engineering-foundation-verification](engineering-foundation-verification.md).
 
+Dogfood artifact/evidence work is tracked in
+[iae-local-artifact-registration-2026-08-04](iae-local-artifact-registration-2026-08-04.md).
+
 Every production deployable requires:
 
 - ownership and escalation

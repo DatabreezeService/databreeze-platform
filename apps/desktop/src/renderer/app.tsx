@@ -3,6 +3,7 @@ import wordmarkUrl from '@databreeze/design-tokens/brand/generated/web/navigatio
 import type {
   DesktopLocale,
   DesktopSafeState,
+  FolderGrantState,
   SidecarSafeStatus,
 } from '../shared/desktop-contract-v1.ts';
 
@@ -18,6 +19,11 @@ const messages = {
     privacy: 'Không có đường dẫn hoặc nội dung tệp nào được gửi tới giao diện này.',
     privacyTitle: 'Ranh giới riêng tư',
     version: 'Phiên bản ứng dụng',
+    folderTitle: 'Thư mục được cấp quyền',
+    folderPick: 'Chọn thư mục để kiểm tra',
+    folderGranted: 'Đã cấp quyền cục bộ',
+    folderNotGranted: 'Chưa cấp quyền',
+    folderFiles: 'Tệp đã phát hiện',
   },
   en: {
     agentDetail: 'The agent shows safe status only and contains no workspace data.',
@@ -30,6 +36,11 @@ const messages = {
     privacy: 'No file path or file content is sent to this interface.',
     privacyTitle: 'Privacy boundary',
     version: 'Application version',
+    folderTitle: 'Approved folder',
+    folderPick: 'Choose a folder to audit',
+    folderGranted: 'Local permission granted',
+    folderNotGranted: 'No folder granted',
+    folderFiles: 'Files discovered',
   },
 } as const;
 
@@ -45,12 +56,28 @@ const initialSidecar: SidecarSafeStatus = {
   lifecycle: 'not-installed',
   protocolVersion: null,
 };
+const initialFolder: FolderGrantState = {
+  fileCount: 0,
+  lastScanAt: null,
+  status: 'not-granted',
+};
 
 export function DesktopApp() {
   const [locale, setLocale] = useState<DesktopLocale>('vi-VN');
   const [safeState, setSafeState] = useState(initialState);
   const [sidecarStatus, setSidecarStatus] = useState(initialSidecar);
+  const [folderState, setFolderState] = useState(initialFolder);
   const copy = messages[locale];
+
+  async function grantFolder(): Promise<void> {
+    const folder = window.databreezeDesktop?.v1.folder;
+    if (folder === undefined) return;
+    try {
+      setFolderState(await folder.grant());
+    } catch {
+      setFolderState(initialFolder);
+    }
+  }
 
   useEffect(() => {
     let active = true;
@@ -126,6 +153,21 @@ export function DesktopApp() {
           <dd className="numeric">{safeState.applicationVersion}</dd>
         </div>
       </dl>
+
+      <section className="folder-grant" aria-labelledby="folder-title">
+        <div>
+          <h2 id="folder-title">{copy.folderTitle}</h2>
+          <p>{folderState.status === 'granted' ? copy.folderGranted : copy.folderNotGranted}</p>
+        </div>
+        <div className="folder-grant__actions">
+          <span className="numeric">
+            {copy.folderFiles}: {new Intl.NumberFormat(locale).format(folderState.fileCount)}
+          </span>
+          <button className="locale-button" onClick={() => void grantFolder()} type="button">
+            {copy.folderPick}
+          </button>
+        </div>
+      </section>
 
       <aside className="privacy-note" aria-labelledby="privacy-title">
         <span className="privacy-icon" aria-hidden="true">

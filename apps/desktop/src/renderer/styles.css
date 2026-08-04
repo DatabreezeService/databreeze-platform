@@ -169,6 +169,36 @@ h1 {
   background: var(--db-color-status-info-surface);
 }
 
+.folder-grant {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--db-spacing-6);
+  margin-block-start: var(--db-spacing-8);
+  padding: var(--db-spacing-4);
+  border: var(--db-elevation-level1) solid var(--db-color-border);
+  border-radius: var(--db-radius-medium);
+  background: var(--db-color-surface);
+}
+
+.folder-grant h2 {
+  font-size: var(--db-typography-font-size-heading-small);
+  line-height: var(--db-typography-line-height-compact);
+}
+
+.folder-grant p {
+  margin-block-start: var(--db-spacing-1);
+  color: var(--db-color-text-muted);
+}
+
+.folder-grant__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--db-spacing-3);
+  color: var(--db-color-text-muted);
+  font-size: var(--db-typography-font-size-label);
+}
+
 .privacy-note h2 {
   font-size: var(--db-typography-font-size-heading-small);
   line-height: var(--db-typography-line-height-compact);
@@ -216,12 +246,22 @@ h1 {
   }
 
   .agent-summary,
-  .status-row {
+  .status-row,
+  .folder-grant {
     grid-template-columns: 1fr;
   }
 
   .agent-summary {
     gap: var(--db-spacing-4);
+  }
+
+  .folder-grant {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .folder-grant__actions {
+    flex-wrap: wrap;
   }
 }
 
