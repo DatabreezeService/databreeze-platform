@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  StableFileError,
   captureStableObservation,
   fingerprintBytes,
   waitForStableFile,
@@ -17,7 +16,7 @@ const stableStat: StableFileStat = {
 describe('Folder Autopilot stable local observations', () => {
   it('waits for two identical metadata samples before hashing', async () => {
     const readStat = vi
-      .fn<() => Promise<StableFileStat>>()
+      .fn()
       .mockResolvedValueOnce({ ...stableStat, sizeBytes: 3 })
       .mockResolvedValue(stableStat);
     const sleep = vi.fn(() => Promise.resolve());
@@ -31,7 +30,7 @@ describe('Folder Autopilot stable local observations', () => {
 
   it('retries transient lock failures and reports a bounded stable result', async () => {
     const readStat = vi
-      .fn<() => Promise<StableFileStat>>()
+      .fn()
       .mockRejectedValueOnce(new Error('sharing violation'))
       .mockResolvedValue(stableStat);
 
@@ -41,11 +40,11 @@ describe('Folder Autopilot stable local observations', () => {
   });
 
   it('rejects links and non-files before bytes are read', async () => {
-    const readStat = vi.fn<() => Promise<StableFileStat>>().mockResolvedValue({
+    const readStat = vi.fn().mockResolvedValue({
       ...stableStat,
       isSymbolicLink: true,
     });
-    await expect(waitForStableFile(readStat)).rejects.toMatchObject<StableFileError>({
+    await expect(waitForStableFile(readStat)).rejects.toMatchObject({
       code: 'PATH_REPARSE_POINT',
     });
   });
@@ -58,7 +57,7 @@ describe('Folder Autopilot stable local observations', () => {
     const observation = await captureStableObservation({
       observationId: 'obs-001',
       displayName: 'Báo cáo.csv',
-      readStat: vi.fn<() => Promise<StableFileStat>>().mockResolvedValue(stableStat),
+      readStat: vi.fn().mockResolvedValue(stableStat),
       readBytes: vi.fn(() => Promise.resolve(bytes)),
       sleep: () => Promise.resolve(),
     });
@@ -71,7 +70,7 @@ describe('Folder Autopilot stable local observations', () => {
 
   it('refuses bytes when the file changes while it is being read', async () => {
     const readStat = vi
-      .fn<() => Promise<StableFileStat>>()
+      .fn()
       .mockResolvedValueOnce(stableStat)
       .mockResolvedValueOnce(stableStat)
       .mockResolvedValue({ ...stableStat, modifiedAtNs: 11 });
@@ -83,6 +82,6 @@ describe('Folder Autopilot stable local observations', () => {
         readBytes: () => Promise.resolve(new TextEncoder().encode('data')),
         sleep: () => Promise.resolve(),
       }),
-    ).rejects.toMatchObject<StableFileError>({ code: 'FILE_CHANGED_DURING_READ' });
+    ).rejects.toMatchObject({ code: 'FILE_CHANGED_DURING_READ' });
   });
 });

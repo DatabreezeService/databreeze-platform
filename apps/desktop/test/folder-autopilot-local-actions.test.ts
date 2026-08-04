@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  LocalActionError,
   executeLocalPlan,
   type LocalActionPlan,
   type LocalFileSystem,
@@ -60,7 +59,7 @@ describe('Folder Autopilot local typed actions', () => {
       deps,
     );
 
-    expect(result[0].status).toBe('APPLIED');
+    expect(result[0]!.status).toBe('APPLIED');
     expect(deps.sourceGuard.assertContained).toHaveBeenCalledWith(sourcePath);
     expect(deps.destinationGuard.assertContained).toHaveBeenCalledWith(destinationPath);
     expect(rename).toHaveBeenCalledWith(sourcePath, destinationPath);
@@ -98,7 +97,7 @@ describe('Folder Autopilot local typed actions', () => {
         }),
         collisionDeps,
       ),
-    ).rejects.toMatchObject<LocalActionError>({ code: 'DESTINATION_COLLISION' });
+    ).rejects.toMatchObject({ code: 'DESTINATION_COLLISION' });
 
     const staleDeps = dependencies({ readFingerprint: vi.fn(() => Promise.resolve('b'.repeat(64))) });
     await expect(
@@ -112,6 +111,6 @@ describe('Folder Autopilot local typed actions', () => {
         }),
         staleDeps,
       ),
-    ).rejects.toMatchObject<LocalActionError>({ code: 'STALE_PLAN' });
+    ).rejects.toMatchObject({ code: 'STALE_PLAN' });
   });
 });

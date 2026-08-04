@@ -179,7 +179,12 @@ export async function captureStableObservation({
   intervalMs,
   sleep,
 }: CaptureStableObservationInput): Promise<LocalFileObservation> {
-  const first = await waitForStableFile(readStat, { maxAttempts, intervalMs, sleep });
+  const options: StableFileOptions = {
+    ...(maxAttempts === undefined ? {} : { maxAttempts }),
+    ...(intervalMs === undefined ? {} : { intervalMs }),
+    ...(sleep === undefined ? {} : { sleep }),
+  };
+  const first = await waitForStableFile(readStat, options);
   let bytes: Uint8Array;
   try {
     bytes = await readBytes();
