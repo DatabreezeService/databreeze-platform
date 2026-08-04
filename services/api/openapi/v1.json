@@ -10338,6 +10338,1034 @@
         "summary": "Read a tenant-scoped Spreadsheet Auditor run handle",
         "tags": ["spreadsheet-audit-runs"]
       }
+    },
+    "/v1/autopilot-dashboard": {
+      "get": {
+        "operationId": "FolderAutopilotController.dashboard",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Read content-free Folder Autopilot dashboard projections",
+        "tags": ["folder-autopilot"]
+      }
+    },
+    "/v1/autopilot-profiles": {
+      "post": {
+        "operationId": "FolderAutopilotController.createProfile",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateFolderAutopilotProfileDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Register an immutable, content-free Folder Autopilot profile",
+        "tags": ["folder-autopilot"]
+      },
+      "get": {
+        "operationId": "FolderAutopilotController.listProfiles",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "List Folder Autopilot profile versions visible to the tenant",
+        "tags": ["folder-autopilot"]
+      }
+    },
+    "/v1/autopilot-profiles/{profileId}": {
+      "get": {
+        "operationId": "FolderAutopilotController.findProfile",
+        "parameters": [
+          { "name": "profileId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "version",
+            "required": false,
+            "in": "query",
+            "schema": { "minimum": 1, "type": "integer" }
+          },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Read an exact immutable Folder Autopilot profile version",
+        "tags": ["folder-autopilot"]
+      }
+    },
+    "/v1/autopilot-folder-bindings": {
+      "post": {
+        "operationId": "FolderAutopilotController.createBinding",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateAutopilotFolderBindingDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Register an opaque DSO-backed Folder Autopilot binding",
+        "tags": ["folder-autopilot"]
+      },
+      "get": {
+        "operationId": "FolderAutopilotController.listBindings",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "List opaque Folder Autopilot bindings visible to the tenant",
+        "tags": ["folder-autopilot"]
+      }
+    },
+    "/v1/autopilot-folder-bindings/{bindingId}": {
+      "get": {
+        "operationId": "FolderAutopilotController.findBinding",
+        "parameters": [
+          { "name": "bindingId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Read an opaque Folder Autopilot binding",
+        "tags": ["folder-autopilot"]
+      }
+    },
+    "/v1/autopilot-assignments": {
+      "post": {
+        "operationId": "FolderAutopilotController.createAssignment",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateRecipeAssignmentDto" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Create a tenant-scoped Folder Autopilot assignment projection",
+        "tags": ["folder-autopilot"]
+      },
+      "get": {
+        "operationId": "FolderAutopilotController.listAssignments",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "List Folder Autopilot assignments visible to the tenant",
+        "tags": ["folder-autopilot"]
+      }
+    },
+    "/v1/autopilot-assignments/{assignmentId}": {
+      "get": {
+        "operationId": "FolderAutopilotController.findAssignment",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Read a tenant-scoped Folder Autopilot assignment",
+        "tags": ["folder-autopilot"]
+      },
+      "patch": {
+        "operationId": "FolderAutopilotController.updateAssignment",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateRecipeAssignmentDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Advance an assignment projection with optimistic concurrency",
+        "tags": ["folder-autopilot"]
+      }
+    },
+    "/v1/autopilot-assignments/{assignmentId}/pause": {
+      "post": {
+        "operationId": "FolderAutopilotController.pauseAssignment",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PauseRecipeAssignmentDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Pause an assignment projection with optimistic concurrency",
+        "tags": ["folder-autopilot"]
+      }
+    },
+    "/v1/autopilot-approvals/{approvalId}/decision": {
+      "post": {
+        "operationId": "FolderAutopilotController.decideApproval",
+        "parameters": [
+          { "name": "approvalId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FolderAutopilotApprovalDecisionDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Submit a decision through the JRA-owned approval facade",
+        "tags": ["folder-autopilot"]
+      }
+    },
+    "/v1/autopilot-executions/{executionId}/undo": {
+      "post": {
+        "operationId": "FolderAutopilotController.requestUndo",
+        "parameters": [
+          { "name": "executionId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FolderAutopilotUndoRequestDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Request undo through the JRA/desktop effect facade",
+        "tags": ["folder-autopilot"]
+      }
     }
   },
   "info": {
@@ -11913,6 +12941,142 @@
           "processorVersion": { "type": "string", "maxLength": 128 }
         },
         "required": ["artifactVersionId", "processorVersion"]
+      },
+      "CreateFolderAutopilotProfileDto": {
+        "type": "object",
+        "properties": {
+          "profileId": { "type": "string", "format": "uuid" },
+          "version": { "type": "integer", "minimum": 1, "maximum": 10000 },
+          "payloadHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "stabilizationDelayMs": { "type": "integer", "minimum": 0, "maximum": 86400000 },
+          "maxFilesPerScan": { "type": "integer", "minimum": 1, "maximum": 100000 },
+          "collisionPolicy": { "type": "string", "enum": ["REVIEW", "SKIP", "UNIQUE_NAME"] },
+          "undoWindowSeconds": { "type": "integer", "minimum": 0, "maximum": 604800 },
+          "outputLineageEnabled": { "type": "boolean" },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          }
+        },
+        "required": [
+          "profileId",
+          "version",
+          "payloadHash",
+          "stabilizationDelayMs",
+          "maxFilesPerScan",
+          "collisionPolicy",
+          "undoWindowSeconds",
+          "outputLineageEnabled",
+          "createdAt"
+        ]
+      },
+      "CreateAutopilotFolderBindingDto": {
+        "type": "object",
+        "properties": {
+          "bindingId": { "type": "string", "format": "uuid" },
+          "deviceGrantId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Opaque DSO DeviceGrant identifier."
+          },
+          "role": { "type": "string", "enum": ["INPUT", "OUTPUT"] },
+          "expectedCapabilityDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          }
+        },
+        "required": ["bindingId", "deviceGrantId", "role", "expectedCapabilityDigest", "createdAt"]
+      },
+      "CreateRecipeAssignmentDto": {
+        "type": "object",
+        "properties": {
+          "assignmentId": { "type": "string", "format": "uuid" },
+          "profileId": { "type": "string", "format": "uuid" },
+          "profileVersion": { "type": "integer", "minimum": 1, "maximum": 10000 },
+          "profileHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "jraRecipeVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Opaque JRA RecipeVersion identifier."
+          },
+          "jraRecipeVersionHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "deviceId": { "type": "string", "format": "uuid" },
+          "inputBindingIds": {
+            "minItems": 1,
+            "maxItems": 32,
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" }
+          },
+          "outputBindingIds": {
+            "minItems": 1,
+            "maxItems": 32,
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" }
+          },
+          "dataModeConstraint": { "type": "string", "enum": ["LOCAL", "HYBRID", "CLOUD"] },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          }
+        },
+        "required": [
+          "assignmentId",
+          "profileId",
+          "profileVersion",
+          "profileHash",
+          "jraRecipeVersionId",
+          "jraRecipeVersionHash",
+          "deviceId",
+          "inputBindingIds",
+          "outputBindingIds",
+          "createdAt"
+        ]
+      },
+      "UpdateRecipeAssignmentDto": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": { "type": "integer", "minimum": 1 },
+          "state": { "type": "string", "enum": ["DRAFT", "ACTIVE", "PAUSED", "RETIRED"] }
+        },
+        "required": ["expectedRevision", "state"]
+      },
+      "PauseRecipeAssignmentDto": {
+        "type": "object",
+        "properties": { "expectedRevision": { "type": "integer", "minimum": 1 } },
+        "required": ["expectedRevision"]
+      },
+      "FolderAutopilotApprovalDecisionDto": {
+        "type": "object",
+        "properties": {
+          "jraApprovalRequestId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "JRA-owned approval request identifier."
+          },
+          "subjectHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "planHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "decision": { "type": "string", "enum": ["APPROVE", "REJECT"] },
+          "decisionReason": { "type": "string", "maxLength": 500 }
+        },
+        "required": [
+          "jraApprovalRequestId",
+          "subjectHash",
+          "planHash",
+          "decision",
+          "decisionReason"
+        ]
+      },
+      "FolderAutopilotUndoRequestDto": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": { "type": "integer", "minimum": 1 },
+          "planHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        },
+        "required": ["expectedRevision", "planHash"]
       },
       "Identifier": {
         "title": "Stable UUID Identifier",
