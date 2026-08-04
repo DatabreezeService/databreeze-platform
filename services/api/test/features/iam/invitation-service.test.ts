@@ -82,6 +82,8 @@ class Repository implements IamInvitationRepositoryPortV1 {
     },
   ];
   invitations: InvitationTokenV1[] = [];
+  saveInvitationError?: string;
+  saveMembershipError?: string;
   private tail: Promise<void> = Promise.resolve();
 
   async withTransaction<TValue>(
@@ -120,6 +122,7 @@ class Repository implements IamInvitationRepositoryPortV1 {
         },
         saveInvitation: async (_context, invitation) => {
           await Promise.resolve();
+          if (this.saveInvitationError) throw new Error(this.saveInvitationError);
           const index = this.invitations.findIndex((item) => item.id === invitation.id);
           if (index >= 0) {
             if (this.invitations[index]?.revision !== invitation.revision - 1)
@@ -133,6 +136,7 @@ class Repository implements IamInvitationRepositoryPortV1 {
         },
         saveMembership: async (_context, membership) => {
           await Promise.resolve();
+          if (this.saveMembershipError) throw new Error(this.saveMembershipError);
           const index = this.memberships.findIndex((item) => item.id === membership.id);
           if (index < 0 || this.memberships[index]?.revision !== membership.revision - 1)
             throw new Error('IAM_REVISION_CONFLICT');
@@ -258,6 +262,39 @@ void test('[IAM-010] email mismatch and non-owner issuance are denied without pe
     { accepted: false, code: 'SCOPE_DENIED' },
   );
   assert.equal(repository.invitations.length, 0);
+});
+
+void test('[IAM-010] invitation invariant conflicts map to a stable conflict outcome', async () => {
+  const issueRepository = new Repository();
+  issueRepository.saveInvitationError = 'IAM_INVITATION_SCOPE_IMMUTABLE';
+  const issueComposed = service(issueRepository);
+  assert.deepEqual(
+    await issueComposed.service.issue(context(ids.owner, 'invitation-conflict-issue'), {
+      membershipId: ids.invitedMembership,
+      recipientEmail: 'invitee@example.com',
+    }),
+    { accepted: false, code: 'CONFLICT' },
+  );
+
+  const acceptRepository = new Repository();
+  const acceptComposed = service(acceptRepository);
+  assert.equal(
+    (
+      await acceptComposed.service.issue(context(ids.owner, 'invitation-conflict-accept-issue'), {
+        membershipId: ids.invitedMembership,
+        recipientEmail: 'invitee@example.com',
+      })
+    ).accepted,
+    true,
+  );
+  acceptRepository.saveMembershipError = 'IAM_MEMBERSHIP_SCOPE_IMMUTABLE';
+  assert.deepEqual(
+    await acceptComposed.service.accept(
+      context(ids.invitee, 'invitation-conflict-accept'),
+      RAW_TOKEN,
+    ),
+    { accepted: false, code: 'CONFLICT' },
+  );
 });
 
 void test('[IAM-010] acceptance binds token, principal, email, role, and scope then consumes once', async () => {

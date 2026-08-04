@@ -101,7 +101,13 @@ function applicationError(error: unknown): IamInvitationApplicationCodeV1 {
   const message = error instanceof Error ? error.message : '';
   if (message === 'IAM_SCOPE_DENIED' || message === 'IAM_SCOPE_NARROWING_REQUIRED')
     return 'SCOPE_DENIED';
-  if (message === 'IAM_INVITATION_CONFLICT' || message === 'IAM_REVISION_CONFLICT')
+  if (
+    message === 'IAM_INVITATION_CONFLICT' ||
+    message === 'IAM_REVISION_CONFLICT' ||
+    message === 'IAM_INVITATION_REVISION_CONFLICT' ||
+    message === 'IAM_INVITATION_SCOPE_IMMUTABLE' ||
+    message === 'IAM_MEMBERSHIP_SCOPE_IMMUTABLE'
+  )
     return 'CONFLICT';
   if (message === 'IAM_INVITATION_INVALID') return 'INVALID_TOKEN';
   return 'UNAVAILABLE';
