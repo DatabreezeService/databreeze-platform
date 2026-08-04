@@ -5,9 +5,9 @@ import {
 
 const UUID_ERROR = 'AUTOPILOT_RESPONSE_INVALID';
 const SAFE_TOKEN = /^[A-Z][A-Z0-9_.-]{1,63}$/u;
-const SAFE_TEXT = /^[^\u0000-\u001f\u007f]{1,128}$/u;
+const SAFE_TEXT_LENGTH = 128;
 
-export type FolderAutopilotAssignmentState = 'ACTIVE' | 'PAUSED' | 'RETIRED' | 'INVALID';
+export type FolderAutopilotAssignmentState = 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'RETIRED' | 'INVALID';
 export type FolderAutopilotCollisionPolicy = 'REVIEW' | 'SKIP' | 'UNIQUE_NAME';
 export type FolderAutopilotDataMode = 'Local' | 'Hybrid' | 'Cloud';
 export type FolderAutopilotPreviewStatus = 'READY' | 'NEEDS_APPROVAL' | 'BLOCKED' | 'EXPIRED';
@@ -99,6 +99,7 @@ export interface FolderAutopilotPreview {
 export interface FolderAutopilotApproval {
   readonly approvalId: string;
   readonly previewId: string;
+  readonly subjectHash: string;
   readonly planHash: string;
   readonly decision: FolderAutopilotDecision;
   readonly expiresAt: string;
@@ -110,6 +111,8 @@ export interface FolderAutopilotExecution {
   readonly assignmentId: string;
   readonly jraJobId: string;
   readonly resultManifestId: string;
+  readonly planHash: string;
+  readonly revision: number;
   readonly outcome: FolderAutopilotOutcome;
   readonly affectedCount: number;
   readonly handledCount: number;
@@ -180,7 +183,16 @@ function timestamp(input: unknown): string {
 }
 
 function text(input: unknown): string {
-  if (typeof input !== 'string' || !SAFE_TEXT.test(input) || input.trim() !== input)
+  if (
+    typeof input !== 'string' ||
+    input.length === 0 ||
+    input.length > SAFE_TEXT_LENGTH ||
+    input.trim() !== input ||
+    Array.from(input).some((character) => {
+      const codePoint = character.codePointAt(0) ?? 0;
+      return codePoint <= 0x1f || codePoint === 0x7f;
+    })
+  )
     throw new Error(UUID_ERROR);
   return input;
 }
@@ -276,7 +288,7 @@ function parseAssignment(input: unknown): FolderAutopilotAssignment {
     deviceId: id(value['deviceId']),
     inputBindingId: id(value['inputBindingId']),
     outputBindingId: id(value['outputBindingId']),
-    state: oneOf(value['state'], ['ACTIVE', 'PAUSED', 'RETIRED', 'INVALID']),
+    state: oneOf(value['state'], ['DRAFT', 'ACTIVE', 'PAUSED', 'RETIRED', 'INVALID']),
     approvalRequired: value['approvalRequired'],
     revision: Math.max(1, count(value['revision'])),
     updatedAt: timestamp(value['updatedAt']),
@@ -350,10 +362,19 @@ function parsePreview(input: unknown): FolderAutopilotPreview {
 
 function parseApproval(input: unknown): FolderAutopilotApproval {
   const value = object(input);
-  only(value, ['approvalId', 'previewId', 'planHash', 'decision', 'expiresAt', 'updatedAt']);
+  only(value, [
+    'approvalId',
+    'previewId',
+    'subjectHash',
+    'planHash',
+    'decision',
+    'expiresAt',
+    'updatedAt',
+  ]);
   return Object.freeze({
     approvalId: id(value['approvalId']),
     previewId: id(value['previewId']),
+    subjectHash: hash(value['subjectHash']),
     planHash: hash(value['planHash']),
     decision: oneOf(value['decision'], ['PENDING', 'APPROVED', 'REJECTED', 'EXPIRED']),
     expiresAt: timestamp(value['expiresAt']),
@@ -368,6 +389,8 @@ function parseExecution(input: unknown): FolderAutopilotExecution {
     'assignmentId',
     'jraJobId',
     'resultManifestId',
+    'planHash',
+    'revision',
     'outcome',
     'affectedCount',
     'handledCount',
@@ -381,6 +404,8 @@ function parseExecution(input: unknown): FolderAutopilotExecution {
     assignmentId: id(value['assignmentId']),
     jraJobId: id(value['jraJobId']),
     resultManifestId: id(value['resultManifestId']),
+    planHash: hash(value['planHash']),
+    revision: Math.max(1, count(value['revision'])),
     outcome: oneOf(value['outcome'], [
       'QUEUED',
       'WAITING_FOR_APPROVAL',
@@ -487,6 +512,13 @@ function idempotencyKey(prefix: string): string {
   return `${prefix}-${random ?? 'client-generated'}`;
 }
 
+async function sha256Hex(value: string): Promise<string> {
+  const subtle = globalThis.crypto?.subtle;
+  if (subtle === undefined) throw new Error('AUTOPILOT_CRYPTO_UNAVAILABLE');
+  const digest = await subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
 async function mutate(
   path: string,
   body: Record<string, unknown>,
@@ -521,7 +553,22 @@ export async function createFolderAutopilotProfile(
   input: FolderAutopilotProfileInput,
   signal?: AbortSignal,
 ): Promise<unknown> {
-  return mutate('/v1/autopilot-profiles', input as unknown as Record<string, unknown>, signal);
+  const profileId = globalThis.crypto?.randomUUID?.();
+  if (profileId === undefined) throw new Error('AUTOPILOT_CRYPTO_UNAVAILABLE');
+  const stabilizationSeconds = boundedSeconds(input.stabilizationSeconds, 86_400);
+  const undoWindowHours = boundedSeconds(input.undoWindowHours, 168);
+  const payload = {
+    profileId,
+    version: 1,
+    stabilizationDelayMs: stabilizationSeconds * 1_000,
+    maxFilesPerScan: 10_000,
+    collisionPolicy: oneOf(input.collisionPolicy, ['REVIEW', 'SKIP', 'UNIQUE_NAME']),
+    undoWindowSeconds: undoWindowHours * 3_600,
+    outputLineageEnabled: true,
+    createdAt: new Date().toISOString(),
+  } as const;
+  const payloadHash = await sha256Hex(JSON.stringify(payload));
+  return mutate('/v1/autopilot-profiles', { ...payload, payloadHash }, signal);
 }
 
 export async function pauseFolderAutopilotAssignment(
@@ -538,20 +585,33 @@ export async function pauseFolderAutopilotAssignment(
 
 export async function decideFolderAutopilotApproval(
   approvalId: string,
+  subjectHash: string,
   decision: Exclude<FolderAutopilotDecision, 'PENDING' | 'EXPIRED'>,
   planHash: string,
   signal?: AbortSignal,
 ): Promise<unknown> {
   return mutate(
     `/v1/autopilot-approvals/${encodeURIComponent(approvalId)}/decision`,
-    { decision, planHash },
+    {
+      jraApprovalRequestId: approvalId,
+      subjectHash: hash(subjectHash),
+      planHash: hash(planHash),
+      decision: decision === 'APPROVED' ? 'APPROVE' : 'REJECT',
+      decisionReason: `Web ${decision.toLowerCase()} decision`,
+    },
     signal,
   );
 }
 
 export async function requestFolderAutopilotUndo(
   executionId: string,
+  planHash: string,
+  expectedRevision: number,
   signal?: AbortSignal,
 ): Promise<unknown> {
-  return mutate(`/v1/autopilot-executions/${encodeURIComponent(executionId)}/undo`, {}, signal);
+  return mutate(
+    `/v1/autopilot-executions/${encodeURIComponent(executionId)}/undo`,
+    { expectedRevision, planHash: hash(planHash) },
+    signal,
+  );
 }

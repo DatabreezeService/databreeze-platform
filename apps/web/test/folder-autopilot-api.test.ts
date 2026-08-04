@@ -82,6 +82,7 @@ const dashboard = {
     {
       approvalId: ids.approval,
       previewId: ids.preview,
+      subjectHash: 'c'.repeat(64),
       planHash: 'b'.repeat(64),
       decision: 'PENDING',
       expiresAt: '2026-08-05T00:00:00.000Z',
@@ -94,6 +95,8 @@ const dashboard = {
       assignmentId: ids.assignment,
       jraJobId: ids.job,
       resultManifestId: ids.manifest,
+      planHash: 'b'.repeat(64),
+      revision: 1,
       outcome: 'UNDO_AVAILABLE',
       affectedCount: 2,
       handledCount: 2,
@@ -166,13 +169,30 @@ describe('Folder Autopilot API boundary', () => {
       dataModeConstraint: 'Hybrid',
     });
     await pauseFolderAutopilotAssignment(ids.assignment, 3);
-    await decideFolderAutopilotApproval(ids.approval, 'APPROVED', 'b'.repeat(64));
-    await requestFolderAutopilotUndo(ids.execution);
+    await decideFolderAutopilotApproval(ids.approval, 'c'.repeat(64), 'APPROVED', 'b'.repeat(64));
+    await requestFolderAutopilotUndo(ids.execution, 'b'.repeat(64), 1);
 
-    for (const [, request] of fetchMock.mock.calls) {
+    const requests = fetchMock.mock.calls.map(([, request]) => {
       const init = request as RequestInit;
-      const body = String(init.body ?? '');
+      const body = typeof init.body === 'string' ? init.body : '';
       expect(body).not.toMatch(/path|bytes|formula|sourceValue|localHandle/iu);
-    }
+      return JSON.parse(body) as Record<string, unknown>;
+    });
+    expect(requests[0]).toMatchObject({
+      version: 1,
+      stabilizationDelayMs: 10_000,
+      undoWindowSeconds: 86_400,
+      collisionPolicy: 'REVIEW',
+      maxFilesPerScan: 10_000,
+      outputLineageEnabled: true,
+    });
+    expect(requests[0]?.['payloadHash']).toMatch(/^[0-9a-f]{64}$/u);
+    expect(requests[2]).toMatchObject({
+      jraApprovalRequestId: ids.approval,
+      subjectHash: 'c'.repeat(64),
+      planHash: 'b'.repeat(64),
+      decision: 'APPROVE',
+    });
+    expect(requests[3]).toEqual({ expectedRevision: 1, planHash: 'b'.repeat(64) });
   });
 });

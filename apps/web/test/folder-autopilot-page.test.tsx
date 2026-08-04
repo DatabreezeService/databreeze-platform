@@ -62,6 +62,7 @@ const dashboard = {
     {
       approvalId: '00000000-0000-4000-8000-000000000009',
       previewId: '00000000-0000-4000-8000-000000000007',
+      subjectHash: 'c'.repeat(64),
       planHash: 'b'.repeat(64),
       decision: 'PENDING',
       expiresAt: '2026-08-05T00:00:00.000Z',
@@ -74,6 +75,8 @@ const dashboard = {
       assignmentId: '00000000-0000-4000-8000-000000000002',
       jraJobId: '00000000-0000-4000-8000-00000000000b',
       resultManifestId: '00000000-0000-4000-8000-00000000000c',
+      planHash: 'b'.repeat(64),
+      revision: 1,
       outcome: 'UNDO_AVAILABLE',
       affectedCount: 2,
       handledCount: 2,
@@ -145,7 +148,8 @@ describe('Folder Autopilot workspace surface', () => {
 
   it('pauses an assignment and approves the exact preview plan through safe mutations', async () => {
     const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
-      const url = String(input);
+      const url =
+        typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
       if (url.includes('/v1/autopilot-dashboard'))
         return Promise.resolve(new Response(JSON.stringify(dashboard), { status: 200 }));
       return Promise.resolve(
@@ -169,7 +173,10 @@ describe('Folder Autopilot workspace surface', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
     const mutationBodies = fetchMock.mock.calls
       .slice(1)
-      .map(([, init]) => String((init as RequestInit).body ?? ''))
+      .map(([, init]) => {
+        const body = (init as RequestInit).body;
+        return typeof body === 'string' ? body : '';
+      })
       .join('\n');
     expect(mutationBodies).not.toMatch(/path|bytes|formula|sourceValue|localHandle/iu);
   }, 20_000);

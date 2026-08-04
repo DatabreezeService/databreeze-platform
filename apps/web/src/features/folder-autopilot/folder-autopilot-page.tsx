@@ -186,7 +186,7 @@ function ProfileAuthoring({
         <label>
           {appMessage(locale, 'autopilot.profile.undoWindow')}
           <input
-            max={8760}
+            max={168}
             min={0}
             type="number"
             value={input.undoWindowHours}
@@ -559,11 +559,16 @@ export function FolderAutopilotPage() {
     decision: 'APPROVED' | 'REJECTED',
     planHash: string,
   ) {
-    await decideFolderAutopilotApproval(approval.approvalId, decision, planHash);
+    await decideFolderAutopilotApproval(
+      approval.approvalId,
+      approval.subjectHash,
+      decision,
+      planHash,
+    );
     setDecisions((current) => ({ ...current, [approval.approvalId]: decision }));
   }
   async function undo(execution: FolderAutopilotExecution) {
-    await requestFolderAutopilotUndo(execution.executionId);
+    await requestFolderAutopilotUndo(execution.executionId, execution.planHash, execution.revision);
     setRequestedUndo((current) => ({ ...current, [execution.executionId]: true }));
   }
 
