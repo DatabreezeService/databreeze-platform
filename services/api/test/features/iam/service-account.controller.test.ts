@@ -47,10 +47,13 @@ void test('[IAM-013] controller exposes safe list/create/rotate/revoke results',
   const instance = controller();
   assert.deepEqual(await instance.list({}, organizationId), [{ id: serviceAccountId }]);
   assert.deepEqual(
-    await instance.create({}, 'request-key', {
-      name: 'Import worker',
-      permissions: ['artifact.record.read'],
-    }),
+    await instance.create(
+      {},
+      {
+        name: 'Import worker',
+        permissions: ['artifact.record.read'],
+      },
+    ),
     { account: { id: serviceAccountId }, secret: 'one-time' },
   );
   assert.deepEqual(await instance.rotate({}, serviceAccountId, { expectedRevision: 1 }), {

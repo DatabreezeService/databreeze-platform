@@ -180,6 +180,7 @@ import {
   UnavailableServiceAccountService,
   type ServiceAccountClockV1,
   type ServiceAccountIdGeneratorV1,
+  type ServiceAccountSecretEnvelopePortV1,
   type ServiceAccountSecretIssuerV1,
 } from './application/service-account.service.js';
 import { InMemoryServiceAccountRepositoryAdapter } from './adapter/in-memory-service-account-repository.adapter.js';
@@ -188,6 +189,10 @@ import {
   type ServiceAccountDatabaseClientV1,
 } from './adapter/prisma-service-account-repository.adapter.js';
 import { RandomServiceAccountSecretIssuer } from './adapter/random-service-account-secret.adapter.js';
+import {
+  AesGcmServiceAccountSecretEnvelopeAdapter,
+  randomServiceAccountSecretEnvelopeAdapter,
+} from './adapter/service-account-secret-envelope.adapter.js';
 import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
@@ -263,6 +268,9 @@ export interface IamModuleOptions {
   readonly serviceAccountRepository?: ServiceAccountRepositoryPortV1;
   readonly serviceAccountDatabase?: ServiceAccountDatabaseClientV1;
   readonly serviceAccountSecretIssuer?: ServiceAccountSecretIssuerV1;
+  readonly serviceAccountSecretEnvelope?: ServiceAccountSecretEnvelopePortV1;
+  /** Base64url-encoded 32-byte key; use a managed secret in durable environments. */
+  readonly serviceAccountSecretEnvelopeKey?: string;
   readonly serviceAccountClock?: ServiceAccountClockV1;
   readonly serviceAccountIdGenerator?: ServiceAccountIdGeneratorV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
@@ -478,6 +486,11 @@ export class IamModule {
       (options.serviceAccountDatabase === undefined
         ? new InMemoryServiceAccountRepositoryAdapter()
         : new PrismaServiceAccountRepositoryAdapter(options.serviceAccountDatabase));
+    const serviceAccountSecretEnvelope =
+      options.serviceAccountSecretEnvelope ??
+      (options.serviceAccountSecretEnvelopeKey
+        ? new AesGcmServiceAccountSecretEnvelopeAdapter(options.serviceAccountSecretEnvelopeKey)
+        : randomServiceAccountSecretEnvelopeAdapter());
     const serviceAccountService =
       options.serviceAccountService ??
       (iamRepository === undefined
@@ -488,6 +501,7 @@ export class IamModule {
             options.serviceAccountSecretIssuer ?? new RandomServiceAccountSecretIssuer(),
             options.serviceAccountClock,
             options.serviceAccountIdGenerator,
+            serviceAccountSecretEnvelope,
           ));
     const exports = [
       DEVICE_IDENTITY_REPOSITORY_PORT,

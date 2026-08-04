@@ -1,8 +1,14 @@
-import { tenantScopeContainsV1, type TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
+import {
+  tenantScopeContainsV1,
+  tenantScopeKeyV1,
+  type TenantScopeV1,
+} from '@databreeze/domain/tenant-scope/v1';
 
 import type { ServiceAccountV1 } from '@databreeze/domain/service-account/v1';
 import type { IamTenantContextV1 } from '../application/tenant-context.js';
 import type {
+  ServiceAccountCreateIdempotencyV1,
+  ServiceAccountCreateReplayV1,
   ServiceAccountRepositoryPortV1,
   ServiceAccountTransactionPortV1,
 } from '../application/service-account-repository.port.js';
@@ -33,9 +39,34 @@ function clone(account: ServiceAccountV1): ServiceAccountV1 {
   return Object.freeze({ ...account, permissions: Object.freeze([...account.permissions]) });
 }
 
+function cloneReplay(replay: ServiceAccountCreateReplayV1): ServiceAccountCreateReplayV1 {
+  return Object.freeze({
+    ...replay,
+    account: clone(replay.account),
+  });
+}
+
+function createKey(record: ServiceAccountCreateReplayV1): string {
+  return `${record.actorId}:${tenantScopeKeyV1(accountScope(record.account))}:${record.idempotencyKey}`;
+}
+
+function sameCreateRecord(
+  left: ServiceAccountCreateReplayV1,
+  right: ServiceAccountCreateReplayV1,
+): boolean {
+  return (
+    left.requestHash === right.requestHash &&
+    left.actorId === right.actorId &&
+    left.idempotencyKey === right.idempotencyKey &&
+    left.secretEnvelope === right.secretEnvelope &&
+    JSON.stringify(left.account) === JSON.stringify(right.account)
+  );
+}
+
 /** Deterministic local adapter with the same visibility and optimistic-write rules as PostgreSQL. */
 export class InMemoryServiceAccountRepositoryAdapter implements ServiceAccountRepositoryPortV1 {
   private accounts = new Map<string, ServiceAccountV1>();
+  private createRecords = new Map<string, ServiceAccountCreateReplayV1>();
   private transactionTail: Promise<void> = Promise.resolve();
 
   public async findServiceAccount(
@@ -68,9 +99,27 @@ export class InMemoryServiceAccountRepositoryAdapter implements ServiceAccountRe
       .map(clone);
   }
 
+  public async findServiceAccountByIdempotency(
+    context: IamTenantContextV1,
+    targetScope: TenantScopeV1,
+    idempotencyKey: string,
+  ): Promise<ServiceAccountCreateReplayV1 | undefined> {
+    await Promise.resolve();
+    if (!tenantScopeContainsV1(context.tenantScope, targetScope)) return undefined;
+    const record = [...this.createRecords.values()].find(
+      (candidate) =>
+        candidate.actorId === context.actorId &&
+        candidate.idempotencyKey === idempotencyKey &&
+        tenantScopeKeyV1(accountScope(candidate.account)) === tenantScopeKeyV1(targetScope) &&
+        visibleInScope(context, candidate.account),
+    );
+    return record ? cloneReplay(record) : undefined;
+  }
+
   public async saveServiceAccount(
     context: IamTenantContextV1,
     account: ServiceAccountV1,
+    createIdempotency?: ServiceAccountCreateIdempotencyV1,
   ): Promise<void> {
     await Promise.resolve();
     if (!writableInScope(context, account)) throw new Error('SCOPE_DENIED');
@@ -84,6 +133,29 @@ export class InMemoryServiceAccountRepositoryAdapter implements ServiceAccountRe
       (candidate) => candidate.secretDigest === account.secretDigest,
     );
     if (duplicateDigest) throw new Error('SERVICE_ACCOUNT_CONFLICT');
+    if (createIdempotency) {
+      if (
+        createIdempotency.actorId !== context.actorId ||
+        createIdempotency.idempotencyKey.length === 0 ||
+        createIdempotency.idempotencyKey.length > 200 ||
+        !/^[a-f0-9]{64}$/u.test(createIdempotency.requestHash) ||
+        createIdempotency.secretEnvelope.length === 0 ||
+        createIdempotency.secretEnvelope.length > 16_384 ||
+        /\p{Cc}/u.test(createIdempotency.secretEnvelope)
+      )
+        throw new Error('IAM_SERVICE_ACCOUNT_IDEMPOTENCY_INVALID');
+      const replay = Object.freeze({
+        account: clone(account),
+        actorId: createIdempotency.actorId,
+        idempotencyKey: createIdempotency.idempotencyKey,
+        requestHash: createIdempotency.requestHash,
+        secretEnvelope: createIdempotency.secretEnvelope,
+      });
+      const existingReplay = this.createRecords.get(createKey(replay));
+      if (existingReplay && !sameCreateRecord(existingReplay, replay))
+        throw new Error('IDEMPOTENCY_KEY_REUSED');
+      this.createRecords.set(createKey(replay), replay);
+    }
     this.accounts.set(account.id, clone(account));
   }
 
@@ -117,16 +189,19 @@ export class InMemoryServiceAccountRepositoryAdapter implements ServiceAccountRe
     });
     await previous;
     const before = new Map(this.accounts);
+    const beforeCreateRecords = new Map(this.createRecords);
     try {
       return await work({
         findServiceAccount: this.findServiceAccount.bind(this),
         findServiceAccountByDigest: this.findServiceAccountByDigest.bind(this),
         listServiceAccounts: this.listServiceAccounts.bind(this),
+        findServiceAccountByIdempotency: this.findServiceAccountByIdempotency.bind(this),
         saveServiceAccount: this.saveServiceAccount.bind(this),
         replaceServiceAccount: this.replaceServiceAccount.bind(this),
       });
     } catch (error) {
       this.accounts = before;
+      this.createRecords = beforeCreateRecords;
       throw error;
     } finally {
       release();

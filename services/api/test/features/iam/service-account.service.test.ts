@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 
 import { InMemoryIamRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-iam-repository.adapter.js';
 import { InMemoryServiceAccountRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-service-account-repository.adapter.js';
+import { randomServiceAccountSecretEnvelopeAdapter } from '../../../src/features/iam/adapter/service-account-secret-envelope.adapter.js';
 import { ServiceAccountService } from '../../../src/features/iam/application/service-account.service.js';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
 import {
@@ -81,6 +82,7 @@ function service(secretIssuerInput?: {
     secretIssuer,
     () => new Date('2026-01-01T00:00:00.000Z'),
     () => accountId,
+    randomServiceAccountSecretEnvelopeAdapter(),
   );
   return service;
 }
@@ -99,6 +101,49 @@ void test('[IAM-013] authorized creation returns a one-time secret but never the
   assert.equal(result.value.secret, 'dbsa_first');
   assert.equal('secretDigest' in result.value.account, false);
   assert.equal(result.value.account.status, 'ACTIVE');
+});
+
+void test('[IAM-013] service-account creation replays the same idempotent result without reissuing a secret', async () => {
+  const iam = new InMemoryIamRepositoryAdapter();
+  iam.seed([membership()]);
+  const repository = new InMemoryServiceAccountRepositoryAdapter();
+  let issued = 0;
+  const accountService = new ServiceAccountService(
+    repository,
+    iam,
+    {
+      issue: () => {
+        issued += 1;
+        const secret = issued === 1 ? 'dbsa_idempotent_first' : 'dbsa_idempotent_second';
+        return { secret, digest: createHash('sha256').update(secret, 'utf8').digest('hex') };
+      },
+    },
+    () => new Date('2026-01-01T00:00:00.000Z'),
+    () => accountId,
+    randomServiceAccountSecretEnvelopeAdapter(),
+  );
+  const request = {
+    name: 'Idempotent worker',
+    permissions: ['artifact.record.read'],
+  };
+  const first = await accountService.create(
+    context({ scopeType: 'organization', organizationId }, 'create-idempotency'),
+    request,
+  );
+  const replay = await accountService.create(
+    context({ scopeType: 'organization', organizationId }, 'create-idempotency'),
+    request,
+  );
+  assert.deepEqual(replay, first);
+  assert.equal(issued, 1);
+  assert.deepEqual(
+    await accountService.create(
+      context({ scopeType: 'organization', organizationId }, 'create-idempotency'),
+      { ...request, name: 'Changed request' },
+    ),
+    { accepted: false, code: 'CONFLICT' },
+  );
+  assert.equal(issued, 1);
 });
 
 void test('[IAM-013] invalid service-account permissions fail before secret issuance', async () => {

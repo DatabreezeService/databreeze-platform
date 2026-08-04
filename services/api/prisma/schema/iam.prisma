@@ -300,9 +300,14 @@ model ServiceAccountRecord {
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   revokedAt      DateTime? @map("revoked_at") @db.Timestamptz(6)
   revision       Int       @default(1)
+  createdByActorId String?  @map("created_by_actor_id") @db.Uuid
+  createIdempotencyKey String? @map("create_idempotency_key") @db.VarChar(200)
+  createRequestHash String? @map("create_request_hash") @db.Char(64)
+  createSecretEnvelope String? @map("create_secret_envelope") @db.Text
 
   @@index([organizationId, workspaceId, status], map: "service_accounts_scope_status_idx")
   @@index([secretExpiresAt, status], map: "service_accounts_expiry_status_idx")
+  @@unique([organizationId, workspaceId, createdByActorId, createIdempotencyKey], map: "service_accounts_create_idempotency_key")
   @@map("service_accounts")
   @@schema("iam")
 }
