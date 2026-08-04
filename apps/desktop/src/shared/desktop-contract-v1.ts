@@ -50,7 +50,12 @@ export interface DesktopBridgeV1 {
 }
 
 export function parseFolderGrantState(value: unknown): FolderGrantState {
-  const record = exactDataRecord(value, ['fileCount', 'lastScanAt', 'status']);
+  let record: Record<'fileCount' | 'lastScanAt' | 'status', unknown>;
+  try {
+    record = exactDataRecord(value, ['fileCount', 'lastScanAt', 'status']);
+  } catch {
+    throw new Error('INVALID_FOLDER_GRANT');
+  }
   if (
     typeof record.fileCount !== 'number' ||
     !Number.isSafeInteger(record.fileCount) ||
