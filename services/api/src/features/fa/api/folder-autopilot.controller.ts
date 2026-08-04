@@ -124,10 +124,13 @@ export class FolderAutopilotController {
     ]);
     if (!profiles.accepted) return preserveFolderAutopilotStatus(profiles, reply);
     if (!assignments.accepted) return preserveFolderAutopilotStatus(assignments, reply);
-    return preserveFolderAutopilotStatus({
-      accepted: true,
-      value: buildFolderAutopilotDashboardProjection(profiles.value, assignments.value),
-    }, reply);
+    return preserveFolderAutopilotStatus(
+      {
+        accepted: true,
+        value: buildFolderAutopilotDashboardProjection(profiles.value, assignments.value),
+      },
+      reply,
+    );
   }
 
   @Post('autopilot-profiles')
@@ -218,10 +221,13 @@ export class FolderAutopilotController {
     @Res({ passthrough: true }) reply?: FastifyReply,
   ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
-    return preserveFolderAutopilotStatus(await this.service.createAssignment(context, {
-      ...input,
-      idempotencyKey: context.idempotencyKey,
-    }), reply);
+    return preserveFolderAutopilotStatus(
+      await this.service.createAssignment(context, {
+        ...input,
+        idempotencyKey: context.idempotencyKey,
+      }),
+      reply,
+    );
   }
 
   @Get('autopilot-assignments')
@@ -261,12 +267,15 @@ export class FolderAutopilotController {
     @Res({ passthrough: true }) reply?: FastifyReply,
   ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
-    return preserveFolderAutopilotStatus(await this.service.updateAssignmentState(
-      context,
-      assignmentId,
-      input.expectedRevision,
-      input.state,
-    ), reply);
+    return preserveFolderAutopilotStatus(
+      await this.service.updateAssignmentState(
+        context,
+        assignmentId,
+        input.expectedRevision,
+        input.state,
+      ),
+      reply,
+    );
   }
 
   @Post('autopilot-assignments/:assignmentId/pause')
@@ -281,12 +290,15 @@ export class FolderAutopilotController {
     @Res({ passthrough: true }) reply?: FastifyReply,
   ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
-    return preserveFolderAutopilotStatus(await this.service.updateAssignmentState(
-      context,
-      assignmentId,
-      input.expectedRevision,
-      'PAUSED',
-    ), reply);
+    return preserveFolderAutopilotStatus(
+      await this.service.updateAssignmentState(
+        context,
+        assignmentId,
+        input.expectedRevision,
+        'PAUSED',
+      ),
+      reply,
+    );
   }
 
   @Post('autopilot-approvals/:approvalId/decision')

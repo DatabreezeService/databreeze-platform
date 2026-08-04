@@ -364,7 +364,10 @@ export class FolderAutopilotService {
     context: IamTenantContextV1,
   ): Promise<FolderAutopilotServiceResultV1<readonly RecipeAssignmentV1[]>> {
     try {
-      return Object.freeze({ accepted: true, value: await this.repository.listAssignments(context) });
+      return Object.freeze({
+        accepted: true,
+        value: await this.repository.listAssignments(context),
+      });
     } catch (error) {
       return rejected<readonly RecipeAssignmentV1[]>(mapPersistenceError(error));
     }

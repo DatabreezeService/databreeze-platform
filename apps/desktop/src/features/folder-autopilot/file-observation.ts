@@ -124,8 +124,7 @@ export async function waitForStableFile(
 
 function isByteArray(value: unknown): value is Uint8Array {
   return (
-    ArrayBuffer.isView(value) &&
-    Object.prototype.toString.call(value) === '[object Uint8Array]'
+    ArrayBuffer.isView(value) && Object.prototype.toString.call(value) === '[object Uint8Array]'
   );
 }
 
