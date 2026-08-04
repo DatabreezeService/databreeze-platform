@@ -88,6 +88,18 @@ describe('spreadsheet audit API client', () => {
         code: 'SPREADSHEET_AUDIT_RESPONSE_INVALID',
       }),
     );
+
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ accepted: true, value: [null] }), { status: 200 }),
+        ),
+    );
+    await expect(listSpreadsheetAudits(artifactVersionId)).rejects.toEqual(
+      expect.objectContaining({ code: 'SPREADSHEET_AUDIT_RESPONSE_INVALID' }),
+    );
   });
 
   it('rejects identifiers before making a request', async () => {

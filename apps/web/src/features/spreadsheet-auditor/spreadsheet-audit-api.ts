@@ -42,9 +42,14 @@ function parseResult(input: unknown): SpreadsheetAuditResultV1 {
     throw new SpreadsheetAuditClientError(API_ERROR);
   const envelope = input as Record<string, unknown>;
   if (envelope['accepted'] !== true) throw new SpreadsheetAuditClientError(API_ERROR);
-  const result = createSpreadsheetAuditResultV1(envelope['value'] as SpreadsheetAuditInput);
-  if (!result.accepted) throw new SpreadsheetAuditClientError(API_ERROR);
-  return result.value;
+  try {
+    const result = createSpreadsheetAuditResultV1(envelope['value'] as SpreadsheetAuditInput);
+    if (!result.accepted) throw new SpreadsheetAuditClientError(API_ERROR);
+    return result.value;
+  } catch (error) {
+    if (error instanceof SpreadsheetAuditClientError) throw error;
+    throw new SpreadsheetAuditClientError(API_ERROR);
+  }
 }
 
 function parseList(input: unknown): readonly SpreadsheetAuditResultV1[] {
@@ -58,9 +63,14 @@ function parseList(input: unknown): readonly SpreadsheetAuditResultV1[] {
 }
 
 function parseResultValue(input: unknown): SpreadsheetAuditResultV1 {
-  const result = createSpreadsheetAuditResultV1(input as SpreadsheetAuditInput);
-  if (!result.accepted) throw new SpreadsheetAuditClientError(API_ERROR);
-  return result.value;
+  try {
+    const result = createSpreadsheetAuditResultV1(input as SpreadsheetAuditInput);
+    if (!result.accepted) throw new SpreadsheetAuditClientError(API_ERROR);
+    return result.value;
+  } catch (error) {
+    if (error instanceof SpreadsheetAuditClientError) throw error;
+    throw new SpreadsheetAuditClientError(API_ERROR);
+  }
 }
 
 async function getJson(url: string, signal?: AbortSignal): Promise<unknown> {
