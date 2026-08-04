@@ -105,7 +105,7 @@ export class RegisterLocalArtifactDto {
   @Max(Number.MAX_SAFE_INTEGER)
   byteSize!: number;
 
-  @ApiProperty({ pattern: '^[a-z0-9][a-z0-9!#$&^_.+-]*\/[a-z0-9][a-z0-9!#$&^_.+-]*$' })
+  @ApiProperty({ pattern: '^[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*$' })
   @IsString()
   @Matches(/^[a-z0-9][a-z0-9!#$&^_.+-]*\/[a-z0-9][a-z0-9!#$&^_.+-]*$/iu)
   mediaType!: string;

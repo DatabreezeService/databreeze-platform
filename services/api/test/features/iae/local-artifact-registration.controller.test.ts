@@ -155,7 +155,8 @@ void test('IAE-004 local registration rejects caller paths, bytes, and tenant sc
       },
     });
     assert.equal(response.statusCode, 400);
-    assert.equal(JSON.parse(response.body).code, 'VALIDATION_FAILED');
+    const problem = JSON.parse(response.body) as { readonly code?: unknown };
+    assert.equal(problem.code, 'VALIDATION_FAILED');
     assert.doesNotMatch(response.body, /C:\\|alice|rawBytes|tenantScope/iu);
   } finally {
     await app.close();
