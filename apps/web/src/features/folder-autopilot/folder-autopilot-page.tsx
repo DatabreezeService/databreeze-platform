@@ -116,7 +116,11 @@ function ProfileAuthoring({
                 </div>
                 <div>
                   <dt>{appMessage(locale, 'autopilot.profile.approval')}</dt>
-                  <dd>{profile.approvalRequired ? 'Required' : 'Optional'}</dd>
+                  <dd>
+                    {profile.approvalRequired
+                      ? appMessage(locale, 'autopilot.profile.required')
+                      : appMessage(locale, 'autopilot.profile.optional')}
+                  </dd>
                 </div>
               </dl>
             </article>
