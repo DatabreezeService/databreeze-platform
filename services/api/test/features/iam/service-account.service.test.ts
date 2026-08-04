@@ -4,7 +4,10 @@ import { createHash } from 'node:crypto';
 
 import { InMemoryIamRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-iam-repository.adapter.js';
 import { InMemoryServiceAccountRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-service-account-repository.adapter.js';
-import { randomServiceAccountSecretEnvelopeAdapter } from '../../../src/features/iam/adapter/service-account-secret-envelope.adapter.js';
+import {
+  AesGcmServiceAccountSecretEnvelopeAdapter,
+  randomServiceAccountSecretEnvelopeAdapter,
+} from '../../../src/features/iam/adapter/service-account-secret-envelope.adapter.js';
 import { ServiceAccountService } from '../../../src/features/iam/application/service-account.service.js';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
 import {
@@ -19,6 +22,10 @@ const workspaceId = '00000000-0000-4000-8000-000000000712';
 const actorId = '00000000-0000-4000-8000-000000000713';
 const correlationId = '00000000-0000-4000-8000-000000000714';
 const accountId = '00000000-0000-4000-8000-000000000715';
+
+function digestSecret(secret: string): string {
+  return createHash('sha256').update(secret, 'utf8').digest('hex');
+}
 
 function stable(value: string): StableIdentifierV1 {
   const parsed = parseStableIdentifierV1(value);
@@ -144,6 +151,52 @@ void test('[IAM-013] service-account creation replays the same idempotent result
     { accepted: false, code: 'CONFLICT' },
   );
   assert.equal(issued, 1);
+});
+
+void test('[IAM-013] a replay envelope that cannot be opened fails closed without issuing again', async () => {
+  const iam = new InMemoryIamRepositoryAdapter();
+  iam.seed([membership()]);
+  const repository = new InMemoryServiceAccountRepositoryAdapter();
+  const request = {
+    name: 'Tamper-resistant worker',
+    permissions: ['artifact.record.read'],
+  };
+  const first = new ServiceAccountService(
+    repository,
+    iam,
+    { issue: () => ({ secret: 'dbsa_tamper', digest: digestSecret('dbsa_tamper') }) },
+    () => new Date('2026-01-01T00:00:00.000Z'),
+    () => accountId,
+    new AesGcmServiceAccountSecretEnvelopeAdapter('a'.repeat(43)),
+  );
+  const created = await first.create(
+    context({ scopeType: 'organization', organizationId }, 'tampered-replay'),
+    request,
+  );
+  assert.equal(created.accepted, true);
+
+  let issued = 0;
+  const replay = new ServiceAccountService(
+    repository,
+    iam,
+    {
+      issue: () => {
+        issued += 1;
+        return { secret: 'dbsa_should-not-issue', digest: digestSecret('dbsa_should-not-issue') };
+      },
+    },
+    () => new Date('2026-01-01T00:00:00.000Z'),
+    () => accountId,
+    new AesGcmServiceAccountSecretEnvelopeAdapter('b'.repeat(43)),
+  );
+  assert.deepEqual(
+    await replay.create(
+      context({ scopeType: 'organization', organizationId }, 'tampered-replay'),
+      request,
+    ),
+    { accepted: false, code: 'UNAVAILABLE' },
+  );
+  assert.equal(issued, 0);
 });
 
 void test('[IAM-013] invalid service-account permissions fail before secret issuance', async () => {
