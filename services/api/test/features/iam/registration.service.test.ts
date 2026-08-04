@@ -129,8 +129,8 @@ void test('[IAM-001] registration rolls back when persistence fails after stagin
         repository.withTransaction(async (transaction) =>
           work({
             findByEmail: transaction.findByEmail.bind(transaction),
-            save: async () => {
-              await Promise.resolve();
+            save: async (input) => {
+              await transaction.save(input);
               throw new Error('database unavailable');
             },
           }),
