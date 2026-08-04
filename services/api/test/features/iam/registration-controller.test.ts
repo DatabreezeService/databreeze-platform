@@ -83,7 +83,7 @@ void test('[IAM-001] registration admission rejects before invoking password has
       allow: async (keyDigest: string, issuedAt: string) => {
         ipCalls += 1;
         assert.match(keyDigest, /^[a-f0-9]{64}$/u);
-        assert.match(issuedAt, /^\\d{4}-\\d{2}-\\d{2}T/u);
+        assert.match(issuedAt, /^\d{4}-\d{2}-\d{2}T/u);
         return false;
       },
     },
@@ -91,7 +91,7 @@ void test('[IAM-001] registration admission rejects before invoking password has
       allow: async (keyDigest: string, issuedAt: string) => {
         emailCalls += 1;
         assert.match(keyDigest, /^[a-f0-9]{64}$/u);
-        assert.match(issuedAt, /^\\d{4}-\\d{2}-\\d{2}T/u);
+        assert.match(issuedAt, /^\d{4}-\d{2}-\d{2}T/u);
         return true;
       },
     },
