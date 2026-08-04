@@ -85,6 +85,19 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
         '#/components/schemas/MembershipRejectedResponseDto',
       );
     }
+    const invitationResponses = (
+      firstDocument.paths['/v1/invitations']?.post as OperationLike | undefined
+    )?.responses;
+    for (const status of ['400', '403', '404', '409', '503']) {
+      assert.equal(
+        (
+          invitationResponses?.[status]?.content?.['application/json'] as
+            | { readonly schema?: { readonly $ref?: string } }
+            | undefined
+        )?.schema?.$ref,
+        '#/components/schemas/InvitationRejectedResponseDto',
+      );
+    }
 
     const paths = Object.keys(firstDocument.paths).sort();
     assert.deepEqual(paths, [
@@ -112,13 +125,18 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       '/v1/artifacts/inbox',
       '/v1/artifacts/inbox/{inboxItemId}',
       '/v1/artifacts/{versionId}/evidence/{evidenceId}/grants',
+      '/v1/audit/attestations',
+      '/v1/audit/attestations/{attestationId}/verify',
       '/v1/audit/events',
       '/v1/audit/seals',
       '/v1/auth/me',
       '/v1/auth/mfa/factors',
       '/v1/auth/mfa/factors/{factorId}/verify',
       '/v1/auth/mfa/recovery/redeem',
+      '/v1/auth/recovery',
+      '/v1/auth/recovery/complete',
       '/v1/auth/refresh',
+      '/v1/auth/register',
       '/v1/auth/sign-in',
       '/v1/auth/sign-out',
       '/v1/data-mode-policies',
@@ -158,8 +176,12 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       '/v1/devices/{deviceId}/grants',
       '/v1/devices/{deviceId}/key',
       '/v1/devices/{deviceId}/revoke',
+      '/v1/entitlements/leases/{leaseId}/verify',
       '/v1/entitlements/snapshots/{snapshotId}',
+      '/v1/entitlements/snapshots/{snapshotId}/leases',
       '/v1/entitlements/usage',
+      '/v1/invitations',
+      '/v1/invitations/accept',
       '/v1/me/bootstrap',
       '/v1/memberships',
       '/v1/memberships/{membershipId}/accept',
@@ -167,6 +189,7 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       '/v1/memberships/{membershipId}/transition',
       '/v1/organizations/{organizationId}',
       '/v1/organizations/{organizationId}/devices',
+      '/v1/organizations/{organizationId}/service-accounts',
       '/v1/organizations/{organizationId}/workspaces',
       '/v1/projects/{projectId}',
       '/v1/protected-document-unlocks',
@@ -179,6 +202,9 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       '/v1/reference-entities/{entityId}/resolutions',
       '/v1/reference-entities/{entityId}/versions',
       '/v1/reference-entities/{entityId}/versions/{versionId}',
+      '/v1/service-accounts',
+      '/v1/service-accounts/{serviceAccountId}/revoke',
+      '/v1/service-accounts/{serviceAccountId}/rotate',
       '/v1/spreadsheet-audits',
       '/v1/spreadsheet-audits/{auditId}',
       '/v1/system/compatibility',
@@ -323,6 +349,9 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       'GET /v1/system/compatibility',
       'POST /v1/system/compatibility/check',
       'POST /v1/auth/sign-in',
+      'POST /v1/auth/register',
+      'POST /v1/auth/recovery',
+      'POST /v1/auth/recovery/complete',
       'POST /v1/auth/refresh',
     ]);
     for (const [path, pathItem] of Object.entries(firstDocument.paths) as Array<

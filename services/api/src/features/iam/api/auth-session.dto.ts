@@ -50,4 +50,9 @@ export class AuthSessionDto {
   @ApiProperty()
   @IsBoolean()
   mfaRequired!: boolean;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsBoolean()
+  mfaReenrollmentRequired?: boolean;
 }

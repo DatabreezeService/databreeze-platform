@@ -93,6 +93,9 @@ export class SessionRequestTenantContextAdapter implements RequestTenantContextP
       idempotencyKey: idempotencyKey(input),
       authorizationEpoch: principal.securityEpoch,
       mfaRequired: principal.mfaRequired,
+      ...(principal.mfaReenrollmentRequired === undefined
+        ? {}
+        : { mfaReenrollmentRequired: principal.mfaReenrollmentRequired }),
     });
     if (!context.accepted) throw new RequestTenantContextProblemError('CONTEXT_INVALID');
     return context.value;

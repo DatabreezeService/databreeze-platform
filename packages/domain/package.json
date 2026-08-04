@@ -28,6 +28,10 @@
       "types": "./src/identity/v1.ts",
       "import": "./dist/identity/v1.js"
     },
+    "./service-account/v1": {
+      "types": "./src/service-account/v1.ts",
+      "import": "./dist/service-account/v1.js"
+    },
     "./entitlements/v1": {
       "types": "./src/entitlements/v1.ts",
       "import": "./dist/entitlements/v1.js"
@@ -35,6 +39,14 @@
     "./mfa/v1": {
       "types": "./src/mfa/v1.ts",
       "import": "./dist/mfa/v1.js"
+    },
+    "./invitation/v1": {
+      "types": "./src/invitation/v1.ts",
+      "import": "./dist/invitation/v1.js"
+    },
+    "./recovery/v1": {
+      "types": "./src/recovery/v1.ts",
+      "import": "./dist/recovery/v1.js"
     },
     "./device-authorization/v1": {
       "types": "./src/device-authorization/v1.ts",

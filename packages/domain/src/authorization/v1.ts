@@ -143,6 +143,7 @@ const resourceScopeTypes: Readonly<Record<ResourceTypeV1, readonly TenantScopeV1
     artifact: Object.freeze(['workspace', 'project'] as const),
     'billing-account': Object.freeze(['organization'] as const),
     device: Object.freeze(['organization'] as const),
+    'service-account': Object.freeze(['organization', 'workspace'] as const),
     job: Object.freeze(['workspace', 'project'] as const),
     organization: Object.freeze(['organization'] as const),
     project: Object.freeze(['project'] as const),

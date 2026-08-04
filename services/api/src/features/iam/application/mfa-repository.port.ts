@@ -6,6 +6,8 @@ export const MFA_REPOSITORY_PORT = Symbol('MFA_REPOSITORY_PORT');
 export interface MfaTransactionPortV1 {
   findState(userId: StableIdentifierV1): Promise<MfaStateV1>;
   saveState(userId: StableIdentifierV1, state: MfaStateV1): Promise<void>;
+  /** Clears the post-recovery gate after a newly verified factor; returns whether a flag changed. */
+  clearRecoveryReenrollment?(userId: StableIdentifierV1): Promise<boolean>;
 }
 
 export interface MfaRepositoryPortV1 extends MfaTransactionPortV1 {

@@ -82,9 +82,14 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "sa"\."spreadsheet_audit_results"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."authorization_snapshots"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."mfa_recovery_codes"/);
+  assert.match(diff.stdout, /CREATE TABLE "iam"\."invitation_tokens"/);
+  assert.match(diff.stdout, /CREATE TABLE "iam"\."recovery_challenges"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."access_tokens"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."device_enrollment_challenges"/);
   assert.match(diff.stdout, /CREATE TABLE "dso"\."device_grants"/);
+  assert.match(diff.stdout, /CREATE TABLE "iam"\."service_accounts"/);
+  assert.match(diff.stdout, /CREATE TABLE "bua"\."entitlement_leases"/);
+  assert.match(diff.stdout, /CREATE TABLE "aud"\."audit_seal_attestations"/);
 
   const migrationsDirectory = path.join(apiDirectory, 'prisma', 'migrations');
   const inventory = (await readdir(migrationsDirectory)).sort();
@@ -125,6 +130,11 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260803010000_iam_session_scope_binding',
     '20260803020000_bua_project_usage_scope',
     '20260803030000_iam_membership_scope_uniqueness',
+    '20260803040000_iam_invitation_tokens',
+    '20260803050000_iam_recovery_challenges',
+    '20260803060000_iam_service_accounts',
+    '20260803070000_bua_entitlement_leases',
+    '20260803080000_aud_seal_attestations',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -536,4 +546,18 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   );
   assert.match(membershipUniquenessMigration, /COALESCE\("workspace_id"::text, ''\)/u);
   assert.match(membershipUniquenessMigration, /COALESCE\("project_id"::text, ''\)/u);
+  const invitationMigration = await readFile(
+    path.join(migrationsDirectory, '20260803040000_iam_invitation_tokens', 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE TABLE "iam"."invitation_tokens"',
+    'CREATE UNIQUE INDEX "invitation_tokens_token_digest_key"',
+    'CREATE INDEX "invitation_tokens_membership_status_idx"',
+  ]) {
+    assert.match(
+      invitationMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\\]\\]/g, '\\$&')),
+    );
+  }
 });

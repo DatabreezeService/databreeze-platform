@@ -1,4 +1,9 @@
-import type { AuditEventV1, AuditSealV1, AuditSummaryV1 } from '@databreeze/domain/audit/v1';
+import type {
+  AuditEventV1,
+  AuditSealAttestationV1,
+  AuditSealV1,
+  AuditSummaryV1,
+} from '@databreeze/domain/audit/v1';
 import type { TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
 function sameScope(left: TenantScopeV1, right: TenantScopeV1): boolean {
@@ -52,5 +57,24 @@ export function sameAuditSealV1(left: AuditSealV1, right: AuditSealV1): boolean 
     left.eventCount === right.eventCount &&
     left.rootDigest === right.rootDigest &&
     left.sealedAt === right.sealedAt
+  );
+}
+
+export function sameAuditSealAttestationV1(
+  left: AuditSealAttestationV1,
+  right: AuditSealAttestationV1,
+): boolean {
+  return (
+    left.schemaVersion === right.schemaVersion &&
+    left.attestationId === right.attestationId &&
+    sameScope(left.tenantScope, right.tenantScope) &&
+    left.firstSequence === right.firstSequence &&
+    left.lastSequence === right.lastSequence &&
+    left.eventCount === right.eventCount &&
+    left.rootDigest === right.rootDigest &&
+    left.sealedAt === right.sealedAt &&
+    left.signerKeyId === right.signerKeyId &&
+    left.payload === right.payload &&
+    left.signature === right.signature
   );
 }

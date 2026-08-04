@@ -73,6 +73,7 @@ export type ApprovalErrorCodeV1 =
   | 'SUBJECT_HASH_MISMATCH'
   | 'SELF_APPROVAL_FORBIDDEN'
   | 'MFA_REQUIRED'
+  | 'MFA_REENROLLMENT_REQUIRED'
   | 'REQUEST_NOT_OPEN';
 
 export type ApprovalResultV1<TValue> =

@@ -11,6 +11,7 @@ export interface UserIdentityDatabaseRowV1 {
   readonly email: string;
   readonly status: string;
   readonly securityEpoch: number;
+  readonly mfaReenrollmentRequired?: boolean;
 }
 
 export interface PasswordCredentialDatabaseRowV1 {
@@ -189,6 +190,9 @@ export class PrismaCredentialLookupAdapter implements CredentialLookupPortV1 {
         workspaceId,
         securityEpoch: user.securityEpoch,
         mfaRequired: factors.length > 0,
+        ...(user.mfaReenrollmentRequired === undefined
+          ? {}
+          : { mfaReenrollmentRequired: user.mfaReenrollmentRequired }),
       }),
       credential: Object.freeze({
         algorithm: 'argon2id' as const,

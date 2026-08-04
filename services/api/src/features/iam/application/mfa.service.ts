@@ -12,6 +12,7 @@ import {
 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { MfaRepositoryPortV1 } from './mfa-repository.port.js';
+import type { IamTenantContextV1 } from './tenant-context.js';
 
 export const MFA_SERVICE = Symbol('MFA_SERVICE');
 
@@ -162,6 +163,9 @@ export class MfaService {
         recoveryCodes: state.recoveryCodes,
       });
       await transaction.saveState(userId, next);
+      if (transaction.clearRecoveryReenrollment) {
+        await transaction.clearRecoveryReenrollment(userId);
+      }
       return Object.freeze({ accepted: true, value: view(next) });
     });
   }
@@ -192,7 +196,24 @@ export class MfaService {
     assertion: Parameters<typeof requiresStepUpV1>[1],
     principalId: StableIdentifierV1,
     now: unknown,
+    mfaReenrollmentRequired = false,
   ): MfaResultV1<true> {
-    return requiresStepUpV1(risk, assertion, principalId, now);
+    return requiresStepUpV1(risk, assertion, principalId, now, mfaReenrollmentRequired);
+  }
+
+  /** Prefer this boundary for authenticated actions so the recovery gate travels with context. */
+  public requireStepUpForContext(
+    context: Pick<IamTenantContextV1, 'actorId' | 'mfaReenrollmentRequired'>,
+    risk: unknown,
+    assertion: Parameters<typeof requiresStepUpV1>[1],
+    now: unknown,
+  ): MfaResultV1<true> {
+    return this.requireStepUp(
+      risk,
+      assertion,
+      context.actorId,
+      now,
+      context.mfaReenrollmentRequired === true,
+    );
   }
 }

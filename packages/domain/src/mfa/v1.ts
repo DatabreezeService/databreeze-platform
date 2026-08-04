@@ -57,6 +57,7 @@ export type MfaErrorCodeV1 =
   | 'FACTOR_PROOF_INVALID'
   | 'RECOVERY_CODE_INVALID'
   | 'RECOVERY_CODE_USED'
+  | 'MFA_REENROLLMENT_REQUIRED'
   | 'STEP_UP_REQUIRED';
 
 export type MfaResultV1<TValue> =
@@ -216,8 +217,11 @@ export function requiresStepUpV1(
   assertion: StepUpAssertionV1 | undefined,
   principalId: StableIdentifierV1,
   now: unknown,
+  mfaReenrollmentRequired = false,
 ): MfaResultV1<true> {
   if (risk !== 'NORMAL' && risk !== 'HIGH' && risk !== 'CRITICAL') return rejected('INVALID_STATE');
+  if (risk !== 'NORMAL' && mfaReenrollmentRequired === true)
+    return rejected('MFA_REENROLLMENT_REQUIRED');
   if (risk === 'NORMAL') return Object.freeze({ accepted: true, value: true });
   if (assertion && isFreshStepUpV1(assertion, principalId, now))
     return Object.freeze({ accepted: true, value: true });

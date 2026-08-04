@@ -12,6 +12,7 @@ export interface IamTenantContextV1 {
   readonly idempotencyKey: string;
   readonly authorizationEpoch: number;
   readonly mfaRequired?: boolean;
+  readonly mfaReenrollmentRequired?: boolean;
   readonly expectedRevision?: number;
 }
 
@@ -37,6 +38,7 @@ export function createIamTenantContextV1(input: {
   readonly idempotencyKey: unknown;
   readonly authorizationEpoch: unknown;
   readonly mfaRequired?: unknown;
+  readonly mfaReenrollmentRequired?: unknown;
   readonly expectedRevision?: unknown;
 }): IamContextResultV1<IamTenantContextV1> {
   const tenantScope = parseTenantScopeV1(input.tenantScope);
@@ -60,6 +62,11 @@ export function createIamTenantContextV1(input: {
   if (input.mfaRequired !== undefined && typeof input.mfaRequired !== 'boolean')
     return rejected('INVALID_TEXT');
   if (
+    input.mfaReenrollmentRequired !== undefined &&
+    typeof input.mfaReenrollmentRequired !== 'boolean'
+  )
+    return rejected('INVALID_TEXT');
+  if (
     input.expectedRevision !== undefined &&
     (typeof input.expectedRevision !== 'number' ||
       !Number.isSafeInteger(input.expectedRevision) ||
@@ -75,6 +82,9 @@ export function createIamTenantContextV1(input: {
       idempotencyKey: input.idempotencyKey,
       authorizationEpoch: input.authorizationEpoch,
       ...(input.mfaRequired === undefined ? {} : { mfaRequired: input.mfaRequired }),
+      ...(input.mfaReenrollmentRequired === undefined
+        ? {}
+        : { mfaReenrollmentRequired: input.mfaReenrollmentRequired }),
       ...(input.expectedRevision === undefined ? {} : { expectedRevision: input.expectedRevision }),
     }),
   });
