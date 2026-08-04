@@ -18,8 +18,18 @@ describe('dogfood folder grant contract', () => {
 
   it('rejects paths, file names, extra fields, and unsafe counts', () => {
     for (const value of [
-      { fileCount: 1, lastScanAt: null, status: 'not-granted', path: 'C:\\secret' },
-      { fileCount: 1, lastScanAt: null, status: 'not-granted', fileName: 'payroll.xlsx' },
+      {
+        fileCount: 1,
+        lastScanAt: '2026-08-04T00:00:00.000Z',
+        status: 'granted',
+        path: 'C:\\secret',
+      },
+      {
+        fileCount: 1,
+        lastScanAt: '2026-08-04T00:00:00.000Z',
+        status: 'granted',
+        fileName: 'payroll.xlsx',
+      },
       { fileCount: -1, lastScanAt: null, status: 'not-granted' },
       { fileCount: 10_001, lastScanAt: null, status: 'granted' },
       { fileCount: 1, lastScanAt: '2026-08-04T00:00:00Z', status: 'granted' },
