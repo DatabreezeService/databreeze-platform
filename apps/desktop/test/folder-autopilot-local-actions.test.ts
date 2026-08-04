@@ -35,8 +35,18 @@ describe('Folder Autopilot local typed actions', () => {
     const rename = vi.spyOn(deps.fileSystem, 'rename');
     const result = await executeLocalPlan(
       plan(
-        { operationId: 'inspect-1', action: 'INSPECT', sourcePath, sourceFingerprint: 'a'.repeat(64) },
-        { operationId: 'validate-1', action: 'VALIDATE', sourcePath, sourceFingerprint: 'a'.repeat(64) },
+        {
+          operationId: 'inspect-1',
+          action: 'INSPECT',
+          sourcePath,
+          sourceFingerprint: 'a'.repeat(64),
+        },
+        {
+          operationId: 'validate-1',
+          action: 'VALIDATE',
+          sourcePath,
+          sourceFingerprint: 'a'.repeat(64),
+        },
       ),
       deps,
     );
@@ -114,10 +124,7 @@ describe('Folder Autopilot local typed actions', () => {
         destinationPath: 'C:\\Output\\invoice-reviewed (2).csv',
       },
     ]);
-    expect(copyExclusive).toHaveBeenCalledWith(
-      sourcePath,
-      'C:\\Output\\invoice-reviewed (2).csv',
-    );
+    expect(copyExclusive).toHaveBeenCalledWith(sourcePath, 'C:\\Output\\invoice-reviewed (2).csv');
     expect(deps.destinationGuard.assertContained).toHaveBeenNthCalledWith(
       2,
       'C:\\Output\\invoice-reviewed (1).csv',
@@ -239,7 +246,9 @@ describe('Folder Autopilot local typed actions', () => {
       ),
     ).rejects.toMatchObject({ code: 'DESTINATION_COLLISION' });
 
-    const staleDeps = dependencies({ readFingerprint: vi.fn(() => Promise.resolve('b'.repeat(64))) });
+    const staleDeps = dependencies({
+      readFingerprint: vi.fn(() => Promise.resolve('b'.repeat(64))),
+    });
     await expect(
       executeLocalPlan(
         plan({

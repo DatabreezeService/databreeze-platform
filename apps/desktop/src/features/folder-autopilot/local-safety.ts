@@ -55,13 +55,21 @@ function reject(): never {
 }
 
 function validateAuthorization(value: unknown): LocalExecutionAuthorization {
-  if (typeof value !== 'object' || value === null || Object.getPrototypeOf(value) !== Object.prototype) {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    Object.getPrototypeOf(value) !== Object.prototype
+  ) {
     return reject();
   }
   const keys = Reflect.ownKeys(value);
   if (
     keys.length !== AUTHORIZATION_KEYS.length ||
-    keys.some((key) => typeof key !== 'string' || !AUTHORIZATION_KEYS.includes(key as (typeof AUTHORIZATION_KEYS)[number]))
+    keys.some(
+      (key) =>
+        typeof key !== 'string' ||
+        !AUTHORIZATION_KEYS.includes(key as (typeof AUTHORIZATION_KEYS)[number]),
+    )
   ) {
     return reject();
   }
@@ -89,14 +97,14 @@ function validateAuthorization(value: unknown): LocalExecutionAuthorization {
   return input as LocalExecutionAuthorization;
 }
 
-export function authorizeLocalExecution(value: LocalExecutionAuthorization): LocalExecutionDecision {
+export function authorizeLocalExecution(
+  value: LocalExecutionAuthorization,
+): LocalExecutionDecision {
   const authorization = validateAuthorization(value);
   return evaluateAuthorization(authorization);
 }
 
-function evaluateAuthorization(
-  authorization: LocalExecutionAuthorization,
-): LocalExecutionDecision {
+function evaluateAuthorization(authorization: LocalExecutionAuthorization): LocalExecutionDecision {
   if (authorization.grantStatus === 'REVOKED') {
     return { accepted: false, reasonCode: 'DEVICE_GRANT_REVOKED' };
   }

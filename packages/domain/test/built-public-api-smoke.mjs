@@ -88,7 +88,7 @@ assert.equal(datasetQuality.DATASET_QUALITY_SCHEMA_VERSION_V1, 1);
 assert.equal(datasetProfile.DATASET_PROFILE_SCHEMA_VERSION_V1, 1);
 assert.equal(datasetExport.DATASET_EXPORT_SCHEMA_VERSION_V1, 1);
 assert.equal(spreadsheetAudit.SPREADSHEET_AUDIT_SCHEMA_VERSION_V1, 1);
-  assert.equal(dataMode.DATA_MODE_POLICY_SCHEMA_VERSION_V1, 1);
+assert.equal(dataMode.DATA_MODE_POLICY_SCHEMA_VERSION_V1, 1);
 assert.equal(folderAutopilot.FOLDER_AUTOPILOT_SCHEMA_VERSION_V1, 1);
 assert.equal(jobs.JOB_SCHEMA_VERSION_V1, 1);
 assert.equal(approval.APPROVAL_SCHEMA_VERSION_V1, 1);

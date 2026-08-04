@@ -72,7 +72,9 @@ export interface FolderAutopilotAssignmentDatabaseRowV1 {
 
 export interface FolderAutopilotDatabaseClientV1 {
   readonly folderAutopilotProfileRecord: {
-    create(input: { readonly data: FolderAutopilotProfileDatabaseRowV1 }): Promise<FolderAutopilotProfileDatabaseRowV1>;
+    create(input: {
+      readonly data: FolderAutopilotProfileDatabaseRowV1;
+    }): Promise<FolderAutopilotProfileDatabaseRowV1>;
     findFirst(input: {
       readonly where: Readonly<Record<string, unknown>>;
       readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
@@ -83,16 +85,24 @@ export interface FolderAutopilotDatabaseClientV1 {
     }): Promise<readonly FolderAutopilotProfileDatabaseRowV1[]>;
   };
   readonly autopilotFolderBindingRecord: {
-    create(input: { readonly data: FolderAutopilotBindingDatabaseRowV1 }): Promise<FolderAutopilotBindingDatabaseRowV1>;
-    findUnique(input: { readonly where: { readonly id: string } }): Promise<FolderAutopilotBindingDatabaseRowV1 | null>;
+    create(input: {
+      readonly data: FolderAutopilotBindingDatabaseRowV1;
+    }): Promise<FolderAutopilotBindingDatabaseRowV1>;
+    findUnique(input: {
+      readonly where: { readonly id: string };
+    }): Promise<FolderAutopilotBindingDatabaseRowV1 | null>;
     findMany(input: {
       readonly where: Readonly<Record<string, unknown>>;
       readonly orderBy: Readonly<Record<string, 'asc' | 'desc'>>;
     }): Promise<readonly FolderAutopilotBindingDatabaseRowV1[]>;
   };
   readonly recipeAssignmentRecord: {
-    create(input: { readonly data: FolderAutopilotAssignmentDatabaseRowV1 }): Promise<FolderAutopilotAssignmentDatabaseRowV1>;
-    findUnique(input: { readonly where: { readonly id: string } }): Promise<FolderAutopilotAssignmentDatabaseRowV1 | null>;
+    create(input: {
+      readonly data: FolderAutopilotAssignmentDatabaseRowV1;
+    }): Promise<FolderAutopilotAssignmentDatabaseRowV1>;
+    findUnique(input: {
+      readonly where: { readonly id: string };
+    }): Promise<FolderAutopilotAssignmentDatabaseRowV1 | null>;
     findMany(input: {
       readonly where: Readonly<Record<string, unknown>>;
       readonly orderBy: Readonly<Record<string, 'asc' | 'desc'>>;
@@ -194,7 +204,10 @@ function visible(context: TenantScopeV1, candidate: TenantScopeV1): boolean {
 class PrismaFolderAutopilotTransactionAdapter implements FolderAutopilotTransactionPortV1 {
   public constructor(private readonly client: FolderAutopilotDatabaseClientV1) {}
 
-  public async saveProfile(context: IamTenantContextV1, profile: FolderAutopilotProfileV1): Promise<void> {
+  public async saveProfile(
+    context: IamTenantContextV1,
+    profile: FolderAutopilotProfileV1,
+  ): Promise<void> {
     if (!tenantScopeContainsV1(context.tenantScope, profile.tenantScope))
       throw new Error('FA_SCOPE_NARROWING_REQUIRED');
     const existing = await this.client.folderAutopilotProfileRecord.findFirst({
@@ -222,12 +235,18 @@ class PrismaFolderAutopilotTransactionAdapter implements FolderAutopilotTransact
     });
   }
 
-  public async findProfile(context: IamTenantContextV1, profileId: FolderAutopilotProfileV1['profileId'], version?: number) {
+  public async findProfile(
+    context: IamTenantContextV1,
+    profileId: FolderAutopilotProfileV1['profileId'],
+    version?: number,
+  ) {
     const row = await this.client.folderAutopilotProfileRecord.findFirst({
       where: { id: profileId, ...(version === undefined ? {} : { version }) },
       orderBy: { version: 'desc' },
     });
-    return row !== null && visible(context.tenantScope, rowScope(row)) ? profileFromRow(row) : undefined;
+    return row !== null && visible(context.tenantScope, rowScope(row))
+      ? profileFromRow(row)
+      : undefined;
   }
 
   public async listProfiles(context: IamTenantContextV1) {
@@ -238,7 +257,10 @@ class PrismaFolderAutopilotTransactionAdapter implements FolderAutopilotTransact
     return rows.filter((row) => visible(context.tenantScope, rowScope(row))).map(profileFromRow);
   }
 
-  public async saveBinding(context: IamTenantContextV1, binding: AutopilotFolderBindingV1): Promise<void> {
+  public async saveBinding(
+    context: IamTenantContextV1,
+    binding: AutopilotFolderBindingV1,
+  ): Promise<void> {
     if (!tenantScopeContainsV1(context.tenantScope, binding.tenantScope))
       throw new Error('FA_SCOPE_NARROWING_REQUIRED');
     const existing = await this.client.autopilotFolderBindingRecord.findUnique({
@@ -262,9 +284,16 @@ class PrismaFolderAutopilotTransactionAdapter implements FolderAutopilotTransact
     });
   }
 
-  public async findBinding(context: IamTenantContextV1, bindingId: AutopilotFolderBindingV1['bindingId']) {
-    const row = await this.client.autopilotFolderBindingRecord.findUnique({ where: { id: bindingId } });
-    return row !== null && visible(context.tenantScope, rowScope(row)) ? bindingFromRow(row) : undefined;
+  public async findBinding(
+    context: IamTenantContextV1,
+    bindingId: AutopilotFolderBindingV1['bindingId'],
+  ) {
+    const row = await this.client.autopilotFolderBindingRecord.findUnique({
+      where: { id: bindingId },
+    });
+    return row !== null && visible(context.tenantScope, rowScope(row))
+      ? bindingFromRow(row)
+      : undefined;
   }
 
   public async listBindings(context: IamTenantContextV1) {
@@ -275,10 +304,15 @@ class PrismaFolderAutopilotTransactionAdapter implements FolderAutopilotTransact
     return rows.filter((row) => visible(context.tenantScope, rowScope(row))).map(bindingFromRow);
   }
 
-  public async saveAssignment(context: IamTenantContextV1, assignment: RecipeAssignmentV1): Promise<void> {
+  public async saveAssignment(
+    context: IamTenantContextV1,
+    assignment: RecipeAssignmentV1,
+  ): Promise<void> {
     if (!tenantScopeContainsV1(context.tenantScope, assignment.tenantScope))
       throw new Error('FA_SCOPE_NARROWING_REQUIRED');
-    const existing = await this.client.recipeAssignmentRecord.findUnique({ where: { id: assignment.assignmentId } });
+    const existing = await this.client.recipeAssignmentRecord.findUnique({
+      where: { id: assignment.assignmentId },
+    });
     if (existing) {
       if (JSON.stringify(assignmentFromRow(existing)) !== JSON.stringify(assignment))
         throw new Error('FA_IMMUTABLE_ASSIGNMENT');
@@ -306,9 +340,16 @@ class PrismaFolderAutopilotTransactionAdapter implements FolderAutopilotTransact
     });
   }
 
-  public async findAssignment(context: IamTenantContextV1, assignmentId: RecipeAssignmentV1['assignmentId']) {
-    const row = await this.client.recipeAssignmentRecord.findUnique({ where: { id: assignmentId } });
-    return row !== null && visible(context.tenantScope, rowScope(row)) ? assignmentFromRow(row) : undefined;
+  public async findAssignment(
+    context: IamTenantContextV1,
+    assignmentId: RecipeAssignmentV1['assignmentId'],
+  ) {
+    const row = await this.client.recipeAssignmentRecord.findUnique({
+      where: { id: assignmentId },
+    });
+    return row !== null && visible(context.tenantScope, rowScope(row))
+      ? assignmentFromRow(row)
+      : undefined;
   }
 
   public async listAssignments(context: IamTenantContextV1) {
@@ -325,7 +366,9 @@ class PrismaFolderAutopilotTransactionAdapter implements FolderAutopilotTransact
     expectedRevision: number,
     state: RecipeAssignmentV1['state'],
   ): Promise<RecipeAssignmentV1> {
-    const existing = await this.client.recipeAssignmentRecord.findUnique({ where: { id: assignmentId } });
+    const existing = await this.client.recipeAssignmentRecord.findUnique({
+      where: { id: assignmentId },
+    });
     if (!existing || !visible(context.tenantScope, rowScope(existing)))
       throw new Error('FA_ASSIGNMENT_NOT_FOUND');
     if (!tenantScopeContainsV1(context.tenantScope, rowScope(existing)))
@@ -355,8 +398,16 @@ export class PrismaFolderAutopilotRepositoryAdapter implements FolderAutopilotRe
     return new PrismaFolderAutopilotTransactionAdapter(this.client).saveProfile(context, profile);
   }
 
-  public findProfile(context: IamTenantContextV1, profileId: FolderAutopilotProfileV1['profileId'], version?: number) {
-    return new PrismaFolderAutopilotTransactionAdapter(this.client).findProfile(context, profileId, version);
+  public findProfile(
+    context: IamTenantContextV1,
+    profileId: FolderAutopilotProfileV1['profileId'],
+    version?: number,
+  ) {
+    return new PrismaFolderAutopilotTransactionAdapter(this.client).findProfile(
+      context,
+      profileId,
+      version,
+    );
   }
 
   public listProfiles(context: IamTenantContextV1) {
@@ -367,7 +418,10 @@ export class PrismaFolderAutopilotRepositoryAdapter implements FolderAutopilotRe
     return new PrismaFolderAutopilotTransactionAdapter(this.client).saveBinding(context, binding);
   }
 
-  public findBinding(context: IamTenantContextV1, bindingId: AutopilotFolderBindingV1['bindingId']) {
+  public findBinding(
+    context: IamTenantContextV1,
+    bindingId: AutopilotFolderBindingV1['bindingId'],
+  ) {
     return new PrismaFolderAutopilotTransactionAdapter(this.client).findBinding(context, bindingId);
   }
 
@@ -376,11 +430,20 @@ export class PrismaFolderAutopilotRepositoryAdapter implements FolderAutopilotRe
   }
 
   public saveAssignment(context: IamTenantContextV1, assignment: RecipeAssignmentV1) {
-    return new PrismaFolderAutopilotTransactionAdapter(this.client).saveAssignment(context, assignment);
+    return new PrismaFolderAutopilotTransactionAdapter(this.client).saveAssignment(
+      context,
+      assignment,
+    );
   }
 
-  public findAssignment(context: IamTenantContextV1, assignmentId: RecipeAssignmentV1['assignmentId']) {
-    return new PrismaFolderAutopilotTransactionAdapter(this.client).findAssignment(context, assignmentId);
+  public findAssignment(
+    context: IamTenantContextV1,
+    assignmentId: RecipeAssignmentV1['assignmentId'],
+  ) {
+    return new PrismaFolderAutopilotTransactionAdapter(this.client).findAssignment(
+      context,
+      assignmentId,
+    );
   }
 
   public listAssignments(context: IamTenantContextV1) {

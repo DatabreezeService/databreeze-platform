@@ -17,25 +17,19 @@ export interface FolderAutopilotTransactionPortV1 {
     profileId: StableIdentifierV1,
     version?: number,
   ): Promise<FolderAutopilotProfileV1 | undefined>;
-  listProfiles(
-    context: IamTenantContextV1,
-  ): Promise<readonly FolderAutopilotProfileV1[]>;
+  listProfiles(context: IamTenantContextV1): Promise<readonly FolderAutopilotProfileV1[]>;
   saveBinding(context: IamTenantContextV1, binding: AutopilotFolderBindingV1): Promise<void>;
   findBinding(
     context: IamTenantContextV1,
     bindingId: StableIdentifierV1,
   ): Promise<AutopilotFolderBindingV1 | undefined>;
-  listBindings(
-    context: IamTenantContextV1,
-  ): Promise<readonly AutopilotFolderBindingV1[]>;
+  listBindings(context: IamTenantContextV1): Promise<readonly AutopilotFolderBindingV1[]>;
   saveAssignment(context: IamTenantContextV1, assignment: RecipeAssignmentV1): Promise<void>;
   findAssignment(
     context: IamTenantContextV1,
     assignmentId: StableIdentifierV1,
   ): Promise<RecipeAssignmentV1 | undefined>;
-  listAssignments(
-    context: IamTenantContextV1,
-  ): Promise<readonly RecipeAssignmentV1[]>;
+  listAssignments(context: IamTenantContextV1): Promise<readonly RecipeAssignmentV1[]>;
   updateAssignmentState(
     context: IamTenantContextV1,
     assignmentId: StableIdentifierV1,

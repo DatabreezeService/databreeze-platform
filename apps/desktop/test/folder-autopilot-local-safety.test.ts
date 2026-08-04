@@ -47,15 +47,15 @@ describe('Folder Autopilot local execution safety boundary', () => {
       accepted: false,
       reasonCode: 'APPROVAL_REQUIRED',
     });
-    expect(() =>
-      buildContentFreeExecutionPayload({ ...valid, grantStatus: 'REVOKED' }),
-    ).toThrow('LOCAL_EXECUTION_NOT_AUTHORIZED:DEVICE_GRANT_REVOKED');
+    expect(() => buildContentFreeExecutionPayload({ ...valid, grantStatus: 'REVOKED' })).toThrow(
+      'LOCAL_EXECUTION_NOT_AUTHORIZED:DEVICE_GRANT_REVOKED',
+    );
   });
 
   it('rejects malformed metadata before any local action can run', () => {
-    expect(() =>
-      authorizeLocalExecution({ ...valid, deviceGrantId: 'C:\\secret' }),
-    ).toThrow('INVALID_EXECUTION_AUTHORIZATION');
+    expect(() => authorizeLocalExecution({ ...valid, deviceGrantId: 'C:\\secret' })).toThrow(
+      'INVALID_EXECUTION_AUTHORIZATION',
+    );
     expect(() =>
       buildContentFreeExecutionPayload({ ...valid, sourceFingerprint: 'not-a-digest' }),
     ).toThrow('INVALID_EXECUTION_AUTHORIZATION');

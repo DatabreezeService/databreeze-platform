@@ -111,7 +111,10 @@ function hash(input: unknown): string | undefined {
 }
 
 function boundedInteger(input: unknown, minimum: number, maximum: number): number | undefined {
-  return typeof input === 'number' && Number.isSafeInteger(input) && input >= minimum && input <= maximum
+  return typeof input === 'number' &&
+    Number.isSafeInteger(input) &&
+    input >= minimum &&
+    input <= maximum
     ? input
     : undefined;
 }
@@ -139,9 +142,7 @@ function dataMode(input: unknown): DataModeV1 | undefined {
 }
 
 function revision(input: unknown, defaultValue = 1): number | undefined {
-  return input === undefined
-    ? defaultValue
-    : boundedInteger(input, 1, Number.MAX_SAFE_INTEGER);
+  return input === undefined ? defaultValue : boundedInteger(input, 1, Number.MAX_SAFE_INTEGER);
 }
 
 function freezeScope(value: TenantScopeV1): TenantScopeV1 {
@@ -266,7 +267,8 @@ export function createRecipeAssignmentV1(input: {
   const deviceId = stable(input.deviceId);
   const inputBindingIds = identifiers(input.inputBindingIds);
   const outputBindingIds = identifiers(input.outputBindingIds);
-  const constraint = input.dataModeConstraint === undefined ? undefined : dataMode(input.dataModeConstraint);
+  const constraint =
+    input.dataModeConstraint === undefined ? undefined : dataMode(input.dataModeConstraint);
   const effectiveDataModePolicyRef =
     input.effectiveDataModePolicyRef === undefined
       ? undefined
@@ -325,4 +327,3 @@ export function isFolderAutopilotDataModeNarrowingV1(
   const rank = (mode: DataModeV1): number => (mode === 'LOCAL' ? 0 : mode === 'HYBRID' ? 1 : 2);
   return rank(requested) <= rank(maximum);
 }
-

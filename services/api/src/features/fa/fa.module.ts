@@ -46,7 +46,8 @@ export class FaModule {
         ? new InMemoryFolderAutopilotRepositoryAdapter()
         : new PrismaFolderAutopilotRepositoryAdapter(options.folderAutopilotDatabase));
     const dataModePolicy =
-      options.folderAutopilotDataModePolicy ?? new UnavailableFolderAutopilotDataModePolicyAdapter();
+      options.folderAutopilotDataModePolicy ??
+      new UnavailableFolderAutopilotDataModePolicyAdapter();
     const jraFacade =
       options.folderAutopilotJraFacade ?? new UnavailableFolderAutopilotJraFacadeAdapter();
     return {

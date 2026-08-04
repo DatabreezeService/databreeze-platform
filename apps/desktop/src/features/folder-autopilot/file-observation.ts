@@ -153,7 +153,9 @@ function validateDisplayName(displayName: string): string {
     displayName === '..' ||
     displayName.includes('/') ||
     displayName.includes('\\') ||
-    [...displayName].some((character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127)
+    [...displayName].some(
+      (character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127,
+    )
   ) {
     return reject('INVALID_OBSERVATION');
   }

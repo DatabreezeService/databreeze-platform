@@ -184,10 +184,7 @@ async function chooseDestination(
   if (collisionPolicy !== 'UNIQUE_NAME') return reject('DESTINATION_COLLISION');
 
   for (let index = 1; index <= MAX_UNIQUE_NAME_ATTEMPTS; index += 1) {
-    const candidate = assertContained(
-      destinationGuard,
-      uniqueDestinationName(destination, index),
-    );
+    const candidate = assertContained(destinationGuard, uniqueDestinationName(destination, index));
     if (!(await pathExists(fileSystem, candidate))) {
       return { path: candidate, generated: true, skipped: false };
     }
@@ -221,7 +218,11 @@ export async function executeLocalPlan(
     if (expectedFingerprint !== operation.sourceFingerprint) return reject('STALE_PLAN');
 
     if (!isWriteAction(operation.action)) {
-      receipts.push({ operationId: operation.operationId, action: operation.action, status: 'APPLIED' });
+      receipts.push({
+        operationId: operation.operationId,
+        action: operation.action,
+        status: 'APPLIED',
+      });
       continue;
     }
 
@@ -240,12 +241,20 @@ export async function executeLocalPlan(
     );
     const destination = destinationSelection.path;
     if (destinationSelection.skipped) {
-      receipts.push({ operationId: operation.operationId, action: operation.action, status: 'SKIPPED' });
+      receipts.push({
+        operationId: operation.operationId,
+        action: operation.action,
+        status: 'SKIPPED',
+      });
       continue;
     }
     if (await pathExists(fileSystem, destination)) {
       if (operation.collisionPolicy === 'SKIP') {
-        receipts.push({ operationId: operation.operationId, action: operation.action, status: 'SKIPPED' });
+        receipts.push({
+          operationId: operation.operationId,
+          action: operation.action,
+          status: 'SKIPPED',
+        });
         continue;
       }
       return reject('DESTINATION_COLLISION');
@@ -260,9 +269,7 @@ export async function executeLocalPlan(
       operationId: operation.operationId,
       action: operation.action,
       status: 'APPLIED',
-      ...(destinationSelection.generated
-        ? { destinationPath: destination }
-        : {}),
+      ...(destinationSelection.generated ? { destinationPath: destination } : {}),
     });
   }
   return receipts;

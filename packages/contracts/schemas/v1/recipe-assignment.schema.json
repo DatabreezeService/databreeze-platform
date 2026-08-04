@@ -43,7 +43,9 @@
       "maxItems": 32
     },
     "dataModeConstraint": { "type": "string", "pattern": "^(LOCAL|HYBRID|CLOUD)$" },
-    "effectiveDataModePolicyRef": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "effectiveDataModePolicyRef": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
     "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 200 },
     "state": { "type": "string", "pattern": "^(DRAFT|ACTIVE|PAUSED|RETIRED)$" },
     "revision": { "$ref": "https://schemas.databreeze.dev/contracts/v1/revision" },
