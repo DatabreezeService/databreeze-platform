@@ -9,6 +9,7 @@ import {
   parseStableIdentifierV1,
   type StableIdentifierV1,
 } from '@databreeze/domain/tenant-scope/v1';
+import type { RecoveryChallengeV1 } from '@databreeze/domain/recovery/v1';
 
 import type { PasswordCredentialService } from './password-credential.service.js';
 import type {
@@ -117,11 +118,11 @@ export class RecoveryService {
     const expiresAt = new Date(
       Date.parse(issuedAt) + RECOVERY_CHALLENGE_MAX_SECONDS_V1 * 1_000,
     ).toISOString();
+    let issued: RecoveryChallengeV1 | undefined;
     try {
-      return await this.ports.repository.withTransaction(async (transaction) => {
+      const persisted = await this.ports.repository.withTransaction(async (transaction) => {
         const userId = await transaction.findUserIdByEmail(normalized.value);
-        if (!userId)
-          return Object.freeze({ accepted: true as const, value: { requested: true as const } });
+        if (!userId) return undefined;
         const active = await transaction.findActiveChallengeForUser(userId);
         const challenge = createRecoveryChallengeV1({
           id: challengeId,
@@ -131,28 +132,49 @@ export class RecoveryService {
           issuedAt,
           expiresAt,
         });
-        if (!challenge.accepted) return unavailable();
-        try {
-          await this.ports.delivery.deliver({
-            challengeId: challenge.value.id,
-            recipientEmail: normalized.value,
-            rawToken: raw,
-            expiresAt: challenge.value.expiresAt,
-          });
-        } catch {
-          return unavailable();
-        }
+        if (!challenge.accepted) throw new Error('IAM_RECOVERY_CHALLENGE_INVALID');
+        // Replace the prior bearer atomically so there is never more than one active token.
         if (active) {
           const revoked = revokeRecoveryChallengeV1(active, issuedAt);
-          if (!revoked.accepted) return unavailable();
+          if (!revoked.accepted) throw new Error('IAM_RECOVERY_REVOKE_INVALID');
           await transaction.saveChallenge(revoked.value);
         }
         await transaction.saveChallenge(challenge.value);
-        return Object.freeze({ accepted: true as const, value: { requested: true as const } });
+        return challenge.value;
       });
+      if (!persisted)
+        return Object.freeze({ accepted: true as const, value: { requested: true as const } });
+      issued = persisted;
     } catch {
       return unavailable();
     }
+
+    try {
+      await this.ports.delivery.deliver({
+        challengeId: issued.id,
+        recipientEmail: normalized.value,
+        rawToken: raw,
+        expiresAt: issued.expiresAt,
+      });
+    } catch {
+      try {
+        await this.ports.repository.withTransaction(async (transaction) => {
+          const current = await transaction.findChallengeByTokenDigest(issued.tokenDigest);
+          if (!current || current.status !== 'ACTIVE') return;
+          const revoked = revokeRecoveryChallengeV1(
+            current,
+            timestamp(this.ports.clock) ?? issuedAt,
+          );
+          if (!revoked.accepted) throw new Error('IAM_RECOVERY_REVOKE_INVALID');
+          await transaction.saveChallenge(revoked.value);
+        });
+      } catch {
+        // The challenge remains unusable only if the compensating revocation also fails.
+      }
+      return unavailable();
+    }
+
+    return Object.freeze({ accepted: true as const, value: { requested: true as const } });
   }
 
   public async complete(
