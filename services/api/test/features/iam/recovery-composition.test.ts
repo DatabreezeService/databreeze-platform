@@ -56,7 +56,7 @@ void test('[IAM-015] durable recovery composition requires password, digest, del
   const configured = IamModule.register({
     recoveryDatabase: {} as never,
     passwordCredentials,
-    recoveryDigestKey: 'test-recovery-key',
+    recoveryDigestKey: 'test-recovery-key-v1-012345678901234567',
     recoveryDelivery: {
       deliver: async () => {
         await Promise.resolve();
@@ -76,7 +76,7 @@ void test('[IAM-015] recovery composition selects the shared admission adapter w
   const configured = IamModule.register({
     recoveryDatabase: {} as never,
     passwordCredentials,
-    recoveryDigestKey: 'test-recovery-key',
+    recoveryDigestKey: 'test-recovery-key-v1-012345678901234567',
     recoveryDelivery: {
       deliver: async () => {
         await Promise.resolve();
@@ -100,7 +100,7 @@ void test('[IAM-015] recovery composition gives completion counters a separate R
   const configured = IamModule.register({
     recoveryDatabase: {} as never,
     passwordCredentials,
-    recoveryDigestKey: 'test-recovery-key',
+    recoveryDigestKey: 'test-recovery-key-v1-012345678901234567',
     recoveryDelivery: {
       deliver: async () => {
         await Promise.resolve();
