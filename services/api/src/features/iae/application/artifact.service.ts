@@ -23,6 +23,23 @@ export interface ArtifactRegistrationValueV1 {
   readonly evidence?: EvidenceReferenceV1;
 }
 
+export interface LocalArtifactRegistrationInputV1 {
+  readonly artifactId: unknown;
+  readonly versionId: unknown;
+  readonly placementId: unknown;
+  readonly sourceKind: unknown;
+  readonly contentSha256: unknown;
+  readonly byteSize: unknown;
+  readonly mediaType: unknown;
+  readonly displayName: unknown;
+  readonly createdAt: unknown;
+  readonly opaqueReference: unknown;
+  readonly evidence?: {
+    readonly evidenceId: unknown;
+    readonly coordinate: unknown;
+  };
+}
+
 export type EvidenceResolutionActionV1 = 'OPEN_ON_SOURCE_DEVICE' | 'OPEN_CLOUD' | 'UNAVAILABLE';
 
 export interface EvidenceResolutionV1 {
@@ -36,6 +53,46 @@ export interface EvidenceResolutionV1 {
 /** Registers immutable versions, opaque placements, and exact evidence in one transaction. */
 export class ArtifactService {
   public constructor(private readonly repository: ArtifactRepositoryPortV1) {}
+
+  /**
+   * Registers a local placement while deriving tenant scope and Local mode from the
+   * authenticated context. The DTO intentionally has no path, bytes, excerpt, or scope field.
+   */
+  public async registerLocal(
+    context: IamTenantContextV1,
+    input: LocalArtifactRegistrationInputV1,
+  ): Promise<ArtifactResultV1<ArtifactRegistrationValueV1>> {
+    return this.register(context, {
+      version: {
+        artifactId: input.artifactId,
+        versionId: input.versionId,
+        tenantScope: context.tenantScope,
+        sourceKind: input.sourceKind,
+        dataMode: 'Local',
+        contentSha256: input.contentSha256,
+        byteSize: input.byteSize,
+        mediaType: input.mediaType,
+        displayName: input.displayName,
+        createdAt: input.createdAt,
+      },
+      placement: {
+        placementId: input.placementId,
+        tenantScope: context.tenantScope,
+        kind: 'LOCAL',
+        opaqueReference: input.opaqueReference,
+        contentSha256: input.contentSha256,
+      },
+      ...(input.evidence
+        ? {
+            evidence: {
+              evidenceId: input.evidence.evidenceId,
+              tenantScope: context.tenantScope,
+              coordinate: input.evidence.coordinate,
+            },
+          }
+        : {}),
+    });
+  }
 
   public async register(
     context: IamTenantContextV1,

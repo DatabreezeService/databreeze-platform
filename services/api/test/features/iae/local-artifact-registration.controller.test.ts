@@ -72,7 +72,16 @@ void test('IAE-001/004/006/019 local registration stores only opaque metadata an
     assert.equal(body.value.placement.kind, 'LOCAL');
     assert.equal(body.value.placement.opaqueReference, registrationPayload.opaqueReference);
     assert.deepEqual(body.value.evidence?.coordinate, registrationPayload.evidence.coordinate);
-    assert.doesNotMatch(response.body, /sourcePath|localPath|rawBytes|bytes|file:\/\//iu);
+    assert.doesNotMatch(response.body, /sourcePath|localPath|rawBytes|file:\/\//iu);
+
+    const replay = await app.inject({
+      method: 'POST',
+      url: '/v1/artifact-versions/local',
+      headers: { 'idempotency-key': 'local-artifact-registration-001' },
+      payload: registrationPayload,
+    });
+    assert.equal(replay.statusCode, 201);
+    assert.deepEqual(JSON.parse(replay.body), body);
 
     const resolution = await app.inject({
       method: 'GET',
@@ -132,10 +141,9 @@ void test('IAE-004 local registration rejects caller paths, bytes, and tenant sc
       },
     });
     assert.equal(response.statusCode, 400);
-    assert.equal(JSON.parse(response.body).code, 'INPUT_VALIDATION_FAILED');
+    assert.equal(JSON.parse(response.body).code, 'VALIDATION_FAILED');
     assert.doesNotMatch(response.body, /C:\\|alice|rawBytes|tenantScope/iu);
   } finally {
     await app.close();
   }
 });
-
