@@ -158,3 +158,36 @@ void test('[IAM-013] replacement cannot move an account across workspace scope',
     undefined,
   );
 });
+
+void test('[IAM-013, INT-004] lifecycle writes do not change the original create replay outcome', async () => {
+  const repository = new InMemoryServiceAccountRepositoryAdapter();
+  const organizationContext = context(
+    { scopeType: 'organization', organizationId },
+    'create-replay-preservation',
+  );
+  const created = account({ name: 'Original worker' });
+  await repository.saveServiceAccount(organizationContext, created, {
+    actorId: organizationContext.actorId,
+    idempotencyKey: organizationContext.idempotencyKey,
+    requestHash: 'b'.repeat(64),
+    secretEnvelope: 'v1.encrypted-envelope',
+  });
+
+  await repository.replaceServiceAccount(
+    organizationContext,
+    Object.freeze({ ...created, name: 'Rotated worker', revision: 2 }),
+    1,
+  );
+  const replay = await repository.findServiceAccountByIdempotency(
+    organizationContext,
+    {
+      scopeType: 'workspace',
+      organizationId: stable(organizationId),
+      workspaceId: stable(workspaceId),
+    },
+    organizationContext.idempotencyKey,
+  );
+  assert.equal(replay?.account.name, 'Original worker');
+  assert.equal(replay?.account.revision, 1);
+  assert.equal(replay?.secretEnvelope, 'v1.encrypted-envelope');
+});
