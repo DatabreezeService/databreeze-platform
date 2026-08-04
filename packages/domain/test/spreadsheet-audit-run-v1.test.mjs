@@ -68,8 +68,9 @@ test('[SA-001] run records are immutable, content-free, and expose a safe handle
     state: 'ADMITTED',
     createdAt: '2026-08-04T00:00:00.000Z',
   });
-  assert.doesNotHaveProperty(toSpreadsheetAuditRunHandleV1(created.value), 'tenantScope');
-  assert.doesNotHaveProperty(toSpreadsheetAuditRunHandleV1(created.value), 'idempotencyKey');
+  const handle = toSpreadsheetAuditRunHandleV1(created.value);
+  assert.equal(Object.hasOwn(handle, 'tenantScope'), false);
+  assert.equal(Object.hasOwn(handle, 'idempotencyKey'), false);
   assert.equal(
     createSpreadsheetAuditRunV1({
       ...ids,
