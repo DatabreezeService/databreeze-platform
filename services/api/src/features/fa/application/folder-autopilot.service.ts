@@ -17,11 +17,11 @@ import type { DataModeV1 } from '@databreeze/domain/data-mode/v1';
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type {
   FolderAutopilotRepositoryPortV1,
-  FolderAutopilotTransactionPortV1,
 } from './folder-autopilot-repository.port.js';
 
 export const FOLDER_AUTOPILOT_SERVICE = Symbol('FOLDER_AUTOPILOT_SERVICE');
 export const FOLDER_AUTOPILOT_DATA_MODE_POLICY_PORT = Symbol('FOLDER_AUTOPILOT_DATA_MODE_POLICY_PORT');
+export const FOLDER_AUTOPILOT_JRA_FACADE_PORT = Symbol('FOLDER_AUTOPILOT_JRA_FACADE_PORT');
 
 export type FolderAutopilotDataModePolicyResultV1 =
   | { readonly accepted: true; readonly value: { readonly effectiveDataModePolicyRef: string } }
@@ -46,6 +46,45 @@ export class UnavailableFolderAutopilotDataModePolicyAdapter
     _requested: DataModeV1,
   ): Promise<FolderAutopilotDataModePolicyResultV1> {
     return Promise.resolve({ accepted: false, code: 'DATA_MODE_POLICY_UNAVAILABLE' as const });
+  }
+}
+
+export interface FolderAutopilotJraFacadePortV1 {
+  decideApproval(
+    context: IamTenantContextV1,
+    executionId: string,
+    input: Readonly<Record<string, unknown>>,
+  ): Promise<FolderAutopilotFacadeResultV1>;
+  requestUndo(
+    context: IamTenantContextV1,
+    executionId: string,
+    input: Readonly<Record<string, unknown>>,
+  ): Promise<FolderAutopilotFacadeResultV1>;
+}
+
+export type FolderAutopilotFacadeResultV1 =
+  | { readonly accepted: true; readonly value: Readonly<Record<string, unknown>> }
+  | {
+      readonly accepted: false;
+      readonly code: 'FA_JRA_APPROVAL_FACADE_UNAVAILABLE' | 'FA_JRA_UNDO_FACADE_UNAVAILABLE';
+    };
+
+/** JRA remains the sole approval/effect authority; this adapter fails closed until composed. */
+export class UnavailableFolderAutopilotJraFacadeAdapter implements FolderAutopilotJraFacadePortV1 {
+  public decideApproval(
+    _context: IamTenantContextV1,
+    _executionId: string,
+    _input: Readonly<Record<string, unknown>>,
+  ): Promise<FolderAutopilotFacadeResultV1> {
+    return Promise.resolve({ accepted: false, code: 'FA_JRA_APPROVAL_FACADE_UNAVAILABLE' as const });
+  }
+
+  public requestUndo(
+    _context: IamTenantContextV1,
+    _executionId: string,
+    _input: Readonly<Record<string, unknown>>,
+  ): Promise<FolderAutopilotFacadeResultV1> {
+    return Promise.resolve({ accepted: false, code: 'FA_JRA_UNDO_FACADE_UNAVAILABLE' as const });
   }
 }
 
@@ -300,5 +339,23 @@ export class FolderAutopilotService {
     context: IamTenantContextV1,
   ): Promise<FolderAutopilotServiceResultV1<readonly RecipeAssignmentV1[]>> {
     return Object.freeze({ accepted: true, value: await this.repository.listAssignments(context) });
+  }
+
+  public decideApproval(
+    context: IamTenantContextV1,
+    executionId: string,
+    input: Readonly<Record<string, unknown>>,
+    facade: FolderAutopilotJraFacadePortV1,
+  ): Promise<FolderAutopilotFacadeResultV1> {
+    return facade.decideApproval(context, executionId, input);
+  }
+
+  public requestUndo(
+    context: IamTenantContextV1,
+    executionId: string,
+    input: Readonly<Record<string, unknown>>,
+    facade: FolderAutopilotJraFacadePortV1,
+  ): Promise<FolderAutopilotFacadeResultV1> {
+    return facade.requestUndo(context, executionId, input);
   }
 }

@@ -162,3 +162,47 @@ export class UpdateRecipeAssignmentDto {
   @IsIn(['DRAFT', 'ACTIVE', 'PAUSED', 'RETIRED'])
   state!: 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'RETIRED';
 }
+
+export class PauseRecipeAssignmentDto {
+  @ApiProperty({ type: 'integer', minimum: 1 })
+  @IsInt()
+  @Min(1)
+  expectedRevision!: number;
+}
+
+export class FolderAutopilotApprovalDecisionDto {
+  @ApiProperty({ format: 'uuid', description: 'JRA-owned approval request identifier.' })
+  @IsUUID()
+  jraApprovalRequestId!: string;
+
+  @ApiProperty({ pattern: sha256Pattern })
+  @IsString()
+  @Matches(/^[0-9a-f]{64}$/u)
+  subjectHash!: string;
+
+  @ApiProperty({ pattern: sha256Pattern })
+  @IsString()
+  @Matches(/^[0-9a-f]{64}$/u)
+  planHash!: string;
+
+  @ApiProperty({ enum: ['APPROVE', 'REJECT'] })
+  @IsIn(['APPROVE', 'REJECT'])
+  decision!: 'APPROVE' | 'REJECT';
+
+  @ApiProperty({ maxLength: 500 })
+  @IsString()
+  @MaxLength(500)
+  decisionReason!: string;
+}
+
+export class FolderAutopilotUndoRequestDto {
+  @ApiProperty({ type: 'integer', minimum: 1 })
+  @IsInt()
+  @Min(1)
+  expectedRevision!: number;
+
+  @ApiProperty({ pattern: sha256Pattern })
+  @IsString()
+  @Matches(/^[0-9a-f]{64}$/u)
+  planHash!: string;
+}

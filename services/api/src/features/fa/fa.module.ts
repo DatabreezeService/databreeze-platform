@@ -8,10 +8,13 @@ import {
 } from './adapter/prisma-folder-autopilot-repository.adapter.js';
 import {
   FOLDER_AUTOPILOT_DATA_MODE_POLICY_PORT,
+  FOLDER_AUTOPILOT_JRA_FACADE_PORT,
   FOLDER_AUTOPILOT_SERVICE,
   FolderAutopilotService,
   type FolderAutopilotDataModePolicyPortV1,
+  type FolderAutopilotJraFacadePortV1,
   UnavailableFolderAutopilotDataModePolicyAdapter,
+  UnavailableFolderAutopilotJraFacadeAdapter,
 } from './application/folder-autopilot.service.js';
 import {
   FOLDER_AUTOPILOT_REPOSITORY_PORT,
@@ -29,6 +32,8 @@ export interface FaModuleOptions {
   readonly folderAutopilotRepository?: FolderAutopilotRepositoryPortV1;
   /** DSO owns policy authority; FA receives only this narrow facade. */
   readonly folderAutopilotDataModePolicy?: FolderAutopilotDataModePolicyPortV1;
+  /** JRA owns ApprovalRequest/Decision and effects; FA receives only this facade. */
+  readonly folderAutopilotJraFacade?: FolderAutopilotJraFacadePortV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
 }
 
@@ -42,6 +47,8 @@ export class FaModule {
         : new PrismaFolderAutopilotRepositoryAdapter(options.folderAutopilotDatabase));
     const dataModePolicy =
       options.folderAutopilotDataModePolicy ?? new UnavailableFolderAutopilotDataModePolicyAdapter();
+    const jraFacade =
+      options.folderAutopilotJraFacade ?? new UnavailableFolderAutopilotJraFacadeAdapter();
     return {
       module: FaModule,
       controllers: [FolderAutopilotController],
@@ -51,11 +58,12 @@ export class FaModule {
           provide: FOLDER_AUTOPILOT_DATA_MODE_POLICY_PORT,
           useValue: dataModePolicy,
         },
+        { provide: FOLDER_AUTOPILOT_JRA_FACADE_PORT, useValue: jraFacade },
         {
           provide: FOLDER_AUTOPILOT_SERVICE,
           useFactory: (
             folderRepository: FolderAutopilotRepositoryPortV1,
-            policy: FolderAutopilotDataModePolicyPortV1 | undefined,
+            policy: FolderAutopilotDataModePolicyPortV1,
           ): FolderAutopilotService => new FolderAutopilotService(folderRepository, policy),
           inject: [FOLDER_AUTOPILOT_REPOSITORY_PORT, FOLDER_AUTOPILOT_DATA_MODE_POLICY_PORT],
         },

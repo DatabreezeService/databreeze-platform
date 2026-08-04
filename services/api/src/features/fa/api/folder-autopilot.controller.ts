@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Inject,
   Param,
   Patch,
@@ -19,12 +21,17 @@ import {
 
 import {
   FOLDER_AUTOPILOT_SERVICE,
+  FOLDER_AUTOPILOT_JRA_FACADE_PORT,
   FolderAutopilotService,
+  type FolderAutopilotJraFacadePortV1,
 } from '../application/folder-autopilot.service.js';
 import {
   CreateAutopilotFolderBindingDto,
   CreateFolderAutopilotProfileDto,
   CreateRecipeAssignmentDto,
+  FolderAutopilotApprovalDecisionDto,
+  FolderAutopilotUndoRequestDto,
+  PauseRecipeAssignmentDto,
   UpdateRecipeAssignmentDto,
 } from './folder-autopilot.dto.js';
 import {
@@ -38,8 +45,34 @@ import {
 export class FolderAutopilotController {
   public constructor(
     @Inject(FOLDER_AUTOPILOT_SERVICE) private readonly service: FolderAutopilotService,
+    @Inject(FOLDER_AUTOPILOT_JRA_FACADE_PORT)
+    private readonly jraFacade: FolderAutopilotJraFacadePortV1,
     @Inject(REQUEST_TENANT_CONTEXT) private readonly requestContext: RequestTenantContextPortV1,
   ) {}
+
+  @Get('autopilot-dashboard')
+  @ApiOperation({ summary: 'Read content-free Folder Autopilot dashboard projections' })
+  public async dashboard(@Req() request: unknown): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    const [profiles, bindings, assignments] = await Promise.all([
+      this.service.listProfiles(context),
+      this.service.listBindings(context),
+      this.service.listAssignments(context),
+    ]);
+    return {
+      accepted: true,
+      value: {
+        profiles: profiles.accepted ? profiles.value : [],
+        bindings: bindings.accepted ? bindings.value : [],
+        assignments: assignments.accepted ? assignments.value : [],
+        previews: [],
+        approvals: [],
+        executions: [],
+        exceptions: [],
+        health: [],
+      },
+    };
+  }
 
   @Post('autopilot-profiles')
   @ApiOperation({ summary: 'Register an immutable, content-free Folder Autopilot profile' })
@@ -146,5 +179,44 @@ export class FolderAutopilotController {
       input.expectedRevision,
       input.state,
     );
+  }
+
+  @Post('autopilot-assignments/:assignmentId/pause')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Pause an assignment projection with optimistic concurrency' })
+  @ApiBody({ type: PauseRecipeAssignmentDto })
+  public async pauseAssignment(
+    @Req() request: unknown,
+    @Param('assignmentId') assignmentId: string,
+    @Body() input: PauseRecipeAssignmentDto,
+  ): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    return this.service.updateAssignmentState(context, assignmentId, input.expectedRevision, 'PAUSED');
+  }
+
+  @Post('autopilot-approvals/:approvalId/decision')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Submit a decision through the JRA-owned approval facade' })
+  @ApiBody({ type: FolderAutopilotApprovalDecisionDto })
+  public async decideApproval(
+    @Req() request: unknown,
+    @Param('approvalId') approvalId: string,
+    @Body() input: FolderAutopilotApprovalDecisionDto,
+  ): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    return this.service.decideApproval(context, approvalId, { ...input }, this.jraFacade);
+  }
+
+  @Post('autopilot-executions/:executionId/undo')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request undo through the JRA/desktop effect facade' })
+  @ApiBody({ type: FolderAutopilotUndoRequestDto })
+  public async requestUndo(
+    @Req() request: unknown,
+    @Param('executionId') executionId: string,
+    @Body() input: FolderAutopilotUndoRequestDto,
+  ): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    return this.service.requestUndo(context, executionId, { ...input }, this.jraFacade);
   }
 }

@@ -125,6 +125,47 @@ void test('[FA-001..FA-007, FA-014, FA-015, FA-031] HTTP is tenant-scoped and co
     assert.equal(patched.statusCode, 200);
     assert.equal(patched.json().value.revision, 2);
 
+    const dashboard = await app.inject({ method: 'GET', url: '/v1/autopilot-dashboard' });
+    assert.equal(dashboard.statusCode, 200);
+    assert.equal(dashboard.json().accepted, true);
+    assert.equal(Array.isArray(dashboard.json().value.assignments), true);
+
+    const pause = await app.inject({
+      method: 'POST',
+      url: `/v1/autopilot-assignments/${ids.recipeId}/pause`,
+      payload: { expectedRevision: 2 },
+    });
+    assert.equal(pause.statusCode, 200);
+    assert.equal(pause.json().value.state, 'PAUSED');
+
+    const approvalUnavailable = await app.inject({
+      method: 'POST',
+      url: `/v1/autopilot-approvals/${ids.recipeId}/decision`,
+      payload: {
+        jraApprovalRequestId: ids.recipeId,
+        subjectHash: 'd'.repeat(64),
+        planHash: 'e'.repeat(64),
+        decision: 'APPROVE',
+        decisionReason: 'Ready for the JRA approval service.',
+      },
+    });
+    assert.equal(approvalUnavailable.statusCode, 200);
+    assert.deepEqual(approvalUnavailable.json(), {
+      accepted: false,
+      code: 'FA_JRA_APPROVAL_FACADE_UNAVAILABLE',
+    });
+
+    const undoUnavailable = await app.inject({
+      method: 'POST',
+      url: `/v1/autopilot-executions/${ids.recipeId}/undo`,
+      payload: { expectedRevision: 1, planHash: 'e'.repeat(64) },
+    });
+    assert.equal(undoUnavailable.statusCode, 200);
+    assert.deepEqual(undoUnavailable.json(), {
+      accepted: false,
+      code: 'FA_JRA_UNDO_FACADE_UNAVAILABLE',
+    });
+
     current = context('ffffffff-ffff-4fff-8fff-ffffffffffff', 'fa-sibling');
     const siblingRead = await app.inject({
       method: 'GET',
