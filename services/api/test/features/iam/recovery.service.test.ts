@@ -279,9 +279,7 @@ void test('[IAM-015] recovery blocks completion when compensating revocation can
     passwordCredentials: credentials(),
     digest: { digestToken: () => 'a'.repeat(64), digestEmail: () => 'b'.repeat(64) },
     delivery: {
-      deliver: async () => {
-        throw new Error('provider down');
-      },
+      deliver: () => Promise.reject(new Error('provider down')),
     },
     ids: { next: () => '00000000-0000-4000-8000-000000000002' },
     tokens: { next: () => token },

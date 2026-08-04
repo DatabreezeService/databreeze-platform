@@ -85,8 +85,12 @@ interface IamInvitationTokenDelegateV1 {
 }
 
 interface IamInvitationDeliveryFailureDelegateV1 {
-  findUnique(input: { readonly where: Readonly<Record<string, unknown>> }): Promise<unknown | null>;
-  create(input: { readonly data: Readonly<Record<string, unknown>> }): Promise<unknown>;
+  findUnique(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+  }): Promise<Readonly<Record<string, unknown>> | null>;
+  create(input: {
+    readonly data: Readonly<Record<string, unknown>>;
+  }): Promise<Readonly<Record<string, unknown>>>;
 }
 
 interface IamInvitationTransactionDatabaseClientV1 {

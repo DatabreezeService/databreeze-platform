@@ -225,7 +225,7 @@ function accountFromSnapshot(
     (candidate['status'] === 'REVOKED' && !revokedAt?.accepted)
   )
     throw new Error('IAM_PERSISTED_SERVICE_ACCOUNT_IDEMPOTENCY_INVALID');
-  const status = candidate['status'] as 'ACTIVE' | 'REVOKED';
+  const status = candidate['status'];
   const secretVersion = candidate['secretVersion'] as number;
   const revision = candidate['revision'] as number;
   return Object.freeze({

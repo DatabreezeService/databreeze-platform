@@ -69,8 +69,8 @@ void test('[IAM-001] durable registration requires password credentials before c
   const configured = IamModule.register({
     registrationDatabase: {} as never,
     passwordCredentials,
-    registrationIpAdmissionCounter: { incrementWindow: async () => 1 },
-    registrationEmailAdmissionCounter: { incrementWindow: async () => 1 },
+    registrationIpAdmissionCounter: { incrementWindow: () => Promise.resolve(1) },
+    registrationEmailAdmissionCounter: { incrementWindow: () => Promise.resolve(1) },
     registrationAdmissionDigest,
   });
   const repository = provider(configured, IAM_REGISTRATION_REPOSITORY_PORT);

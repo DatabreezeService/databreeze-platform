@@ -42,8 +42,12 @@ export interface RecoverySessionDatabaseRowV1 {
 }
 
 interface RecoveryCompensationFailureDelegateV1 {
-  findUnique(input: { readonly where: Readonly<Record<string, string>> }): Promise<unknown | null>;
-  create(input: { readonly data: Readonly<Record<string, unknown>> }): Promise<unknown>;
+  findUnique(input: {
+    readonly where: Readonly<Record<string, string>>;
+  }): Promise<Readonly<Record<string, unknown>> | null>;
+  create(input: {
+    readonly data: Readonly<Record<string, unknown>>;
+  }): Promise<Readonly<Record<string, unknown>>>;
 }
 
 interface UniqueDelegateV1<TRow> {
