@@ -16,6 +16,7 @@ import {
 } from '../pages/shell-states.tsx';
 import { WorkspaceHome } from '../pages/workspace-home.tsx';
 import { InboxPage } from '../features/inbox/inbox-page.tsx';
+import { SpreadsheetAuditPage } from '../features/spreadsheet-auditor/spreadsheet-audit-page.tsx';
 import { WEB_FEATURE_REGISTRY } from './feature-registry.ts';
 import { DEFAULT_ACCESS_CONTEXT, type WebAccessContext } from './navigation.ts';
 
@@ -59,10 +60,13 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
           element:
             feature.key === 'inbox' ? (
               <InboxPage />
+            ) : feature.key === 'audit' ? (
+              <SpreadsheetAuditPage />
             ) : (
               <UnavailableFeature featureKey={feature.key} />
             ),
         })),
+        { path: 'audit/:auditId', element: <SpreadsheetAuditPage /> },
         { path: 'debug/route-error', element: <RouteFailure /> },
         { path: '*', element: <NotFoundPage /> },
       ],

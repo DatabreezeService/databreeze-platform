@@ -4,12 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Protocol
+from typing import Any, Protocol
 
 from .models import (
     EngineProgress,
-    FoundationDigestResult,
-    FoundationMetadataParameters,
     OpaqueHandle,
     ResourceLimits,
 )
@@ -17,6 +15,26 @@ from .models import (
 
 class ProgressSink(Protocol):
     def emit(self, progress: EngineProgress) -> None: ...
+
+
+class InputReadError(Exception):
+    """Stable, content-safe failure raised when an opaque handle cannot be read."""
+
+    def __init__(self, code: str) -> None:
+        super().__init__(code)
+        self.code = code
+
+
+class InputReader(Protocol):
+    def __call__(self, handle: OpaqueHandle, /) -> bytes: ...
+
+
+class ActionExecutionError(Exception):
+    """Stable processor rejection without exposing source content or paths."""
+
+    def __init__(self, code: str) -> None:
+        super().__init__(code)
+        self.code = code
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,12 +54,11 @@ class HandlerContext:
     deadline: datetime
     cancellation: CancellationView
     progress: ProgressSink
+    read_input: InputReader
 
 
 class ActionHandler(Protocol):
-    def __call__(
-        self, context: HandlerContext, parameters: FoundationMetadataParameters
-    ) -> FoundationDigestResult: ...
+    def __call__(self, context: HandlerContext, parameters: Any) -> Any: ...
 
 
 class DisabledProgressSink:

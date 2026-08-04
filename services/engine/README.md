@@ -21,14 +21,22 @@ digest is verified against the shipped reviewed processor artifact bytes before 
 changing that artifact requires reviewing and updating its digest. There is no entry-point
 discovery, runtime registration API, import-string lookup, uploaded executable code, `eval`, `exec`,
 shell command, or user plug-in path. Billing-provider effects and customer payment, funds-transfer,
-withholding, reversal, or settlement action names are rejected.
+withholding, reversal, or settlement action names are rejected. The reviewed registry includes the
+read-only `spreadsheet-auditor.audit@1.0.0` action; its digest covers both the action wrapper and
+the parser implementation.
 
 Handlers receive only `HandlerContext`: validated IDs and locale, immutable resource limits, opaque
-handles, deadline/cancellation views, and a content-safe progress sink. They receive no stdio,
-environment, database connection, network client, filesystem root, provider client, or control-plane
-credential. The included `foundation.metadata-digest@1.0.0` processor only canonicalizes and hashes a
-small synthetic metadata fixture. It emits no input values and declares no effects, network,
-filesystem writes, provider access, temporary storage, randomness, clock, or locale dependency.
+handles, deadline/cancellation views, a content-safe progress sink, and an optional host-provided
+`read_input` callback. The dispatcher verifies the callback's byte length and SHA-256 against the
+opaque handle before returning bytes; without a reader it fails closed with `INPUT_UNAVAILABLE`.
+Handlers receive no stdio, environment, database connection, network client, filesystem root,
+provider client, or control-plane credential. The included `foundation.metadata-digest@1.0.0`
+processor only canonicalizes and hashes a small synthetic metadata fixture. The
+`spreadsheet-auditor.audit@1.0.0` processor accepts one `spreadsheet-auditor.workbook.v1` handle,
+never executes workbook content, and returns only geometry, blocked-feature disclosures, and
+formula fingerprints bound to the supplied artifact/job/result IDs. It emits no source values or
+formula text and declares no effects, network, filesystem writes, provider access, temporary
+storage, randomness, clock, or locale dependency.
 
 Both adapters call the same registry, dispatcher, and handler:
 
@@ -47,7 +55,8 @@ JSON-RPC errors use the standard numeric codes and fixed messages for parse, req
 parameter, and internal errors. Engine failures use reserved server codes. The stable content-free
 engine enumâ€”for example `UNSUPPORTED_ACTION`, `HANDLER_DIGEST_MISMATCH`, `DEADLINE_EXCEEDED`, or
 `RESOURCE_LIMIT_EXCEEDED`â€”appears only as allowlisted `error.data.engineCode`; exception text, paths,
-parameters, environment values, handles, and stack traces are never reflected.
+parameters, environment values, handles, and stack traces are never reflected. Input retrieval
+failures use the allowlisted `INPUT_UNAVAILABLE` and `INPUT_HASH_MISMATCH` engine codes.
 
 Before invoking a handler, dispatch enforces the manifest's aggregate declared input bytes and
 output-handle capacity. After the handler returns, it checks the wall-clock deadline, monotonic
@@ -79,8 +88,10 @@ include `@databreeze/engine` through Turborepo on Windows and other supported de
 
 ## Requirement coverage and explicit deferrals
 
-This is partial typed-registry foundation coverage for JRA-004 and JRA-005 and partial
-protocol/runtime coverage for DSK-008. It does not complete those requirements.
+This is partial typed-registry foundation coverage for JRA-004 and JRA-005, partial
+protocol/runtime coverage for DSK-008, and partial engine coverage for SA-001..SA-007. It does not
+complete those requirements. The sidecar and cloud entry points intentionally do not provide an
+input reader yet; IAE/JRA must supply the authorized, job-bound reader before production execution.
 
 Deferred work includes signed job/recipe envelope verification; nonce, expiry, and control-plane key
 validation; authorization and entitlement leases; heartbeats and job leases; job-bound object grants;

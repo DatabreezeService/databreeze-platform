@@ -234,6 +234,67 @@ a {
   padding-block: var(--db-spacing-8);
   color: var(--db-color-text-muted);
 }
+.spreadsheet-audit__empty {
+  max-width: 68ch;
+  padding-block: var(--db-spacing-8);
+  color: var(--db-color-text-muted);
+}
+.spreadsheet-audit__retry {
+  margin-block-start: var(--db-spacing-4);
+}
+.spreadsheet-audit__back {
+  margin-block-end: var(--db-spacing-4);
+}
+.spreadsheet-audit__detail-heading {
+  margin-block-end: var(--db-spacing-5);
+}
+.spreadsheet-audit__detail-heading p {
+  margin-block-start: var(--db-spacing-2);
+}
+.spreadsheet-audit__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0 0 var(--db-spacing-6);
+  border-block: 1px solid var(--db-color-border);
+  background: var(--db-color-border);
+}
+.spreadsheet-audit__summary > div {
+  min-width: 0;
+  padding: var(--db-spacing-4);
+  background: var(--db-color-surface);
+}
+.spreadsheet-audit__summary dt {
+  color: var(--db-color-text-muted);
+  font-size: var(--db-typography-font-size-caption);
+  font-weight: var(--db-typography-font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.spreadsheet-audit__summary dd {
+  margin: var(--db-spacing-2) 0 0;
+  font-size: var(--db-typography-font-size-heading-small);
+  font-weight: var(--db-typography-font-weight-semibold);
+}
+.spreadsheet-audit__blocked {
+  margin-block-end: var(--db-spacing-6);
+  padding: var(--db-spacing-4);
+  border-inline-start: 4px solid var(--db-color-status-warning-text);
+  background: var(--db-color-status-warning-surface);
+}
+.spreadsheet-audit__blocked h2,
+.spreadsheet-audit__findings h2 {
+  margin-block: 0 var(--db-spacing-3);
+  font-size: var(--db-typography-font-size-heading-small);
+  line-height: var(--db-typography-line-height-compact);
+}
+.spreadsheet-audit__blocked ul {
+  margin: 0;
+  padding-inline-start: var(--db-spacing-6);
+}
+.spreadsheet-audit__findings {
+  margin-block-start: var(--db-spacing-6);
+}
 .work-surface__heading {
   display: flex;
   justify-content: space-between;
@@ -371,6 +432,9 @@ td:first-child {
   .work-surface__heading {
     align-items: stretch;
     flex-direction: column;
+  }
+  .spreadsheet-audit__summary {
+    grid-template-columns: 1fr;
   }
   h1 {
     font-size: var(--db-typography-font-size-heading-medium);

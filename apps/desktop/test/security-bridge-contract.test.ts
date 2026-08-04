@@ -14,18 +14,22 @@ describe('DSK-002 preload bridge', () => {
               enrollmentState: 'not-enrolled',
               locale: 'vi-VN',
             }
-          : { engineVersion: null, lifecycle: 'not-installed', protocolVersion: null },
+          : channel === DESKTOP_IPC_CHANNELS.folderGrant
+            ? { fileCount: 0, lastScanAt: null, status: 'not-granted' }
+            : { engineVersion: null, lifecycle: 'not-installed', protocolVersion: null },
       ),
     );
     const bridge = createDesktopBridgeV1(invoke);
 
     expect(Object.keys(bridge)).toEqual(['v1']);
-    expect(Object.keys(bridge.v1)).toEqual(['session', 'sidecar']);
+    expect(Object.keys(bridge.v1)).toEqual(['folder', 'session', 'sidecar']);
+    expect(Object.keys(bridge.v1.folder)).toEqual(['grant']);
     expect(Object.keys(bridge.v1.session)).toEqual(['getSafeState']);
     expect(Object.keys(bridge.v1.sidecar)).toEqual(['getStatus']);
     expect(Object.isFrozen(bridge)).toBe(true);
     expect(Object.isFrozen(bridge.v1)).toBe(true);
     expect(Object.isFrozen(bridge.v1.session)).toBe(true);
+    expect(Object.isFrozen(bridge.v1.folder)).toBe(true);
     expect(bridge).not.toHaveProperty('invoke');
     expect(bridge).not.toHaveProperty('send');
     expect(bridge).not.toHaveProperty('filesystem');
@@ -38,9 +42,15 @@ describe('DSK-002 preload bridge', () => {
     await expect(bridge.v1.sidecar.getStatus()).resolves.toMatchObject({
       lifecycle: 'not-installed',
     });
+    await expect(bridge.v1.folder.grant()).resolves.toEqual({
+      fileCount: 0,
+      lastScanAt: null,
+      status: 'not-granted',
+    });
     expect(invoke.mock.calls).toEqual([
       [DESKTOP_IPC_CHANNELS.sessionGetSafeState],
       [DESKTOP_IPC_CHANNELS.sidecarGetStatus],
+      [DESKTOP_IPC_CHANNELS.folderGrant],
     ]);
   });
 
@@ -61,6 +71,7 @@ describe('DSK-002 preload bridge', () => {
       'x'.repeat(70_000),
     ];
     const methods = [
+      bridge.v1.folder.grant as (...args: unknown[]) => Promise<unknown>,
       bridge.v1.session.getSafeState as (...args: unknown[]) => Promise<unknown>,
       bridge.v1.sidecar.getStatus as (...args: unknown[]) => Promise<unknown>,
     ];

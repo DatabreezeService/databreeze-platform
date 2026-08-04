@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { app, BrowserWindow, ipcMain, session } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, session } from 'electron';
+import { ElectronFolderGrantAdapter } from './adapters/electron-folder-grant.adapter.ts';
 import { LockedLocalStateAdapter } from './adapters/locked-local-state.adapter.ts';
 import { UnavailableSidecarAdapter } from './adapters/unavailable-sidecar.adapter.ts';
 import {
@@ -26,6 +27,7 @@ async function openDesktopWindow(): Promise<void> {
     applicationVersion: app.getVersion(),
     locale: 'vi-VN',
   });
+  const folderGrant = new ElectronFolderGrantAdapter({ dialog });
   const sidecar = new UnavailableSidecarAdapter();
 
   await createDesktopWindow({
@@ -36,6 +38,7 @@ async function openDesktopWindow(): Promise<void> {
         expectedRendererUrl,
         getActiveWindow: () => activeWindow as unknown as DesktopWindowLike,
         ipcMain: ipcMain as unknown as DesktopIpcRegistrationInput['ipcMain'],
+        folderGrant,
         localState,
         sidecar,
       });
