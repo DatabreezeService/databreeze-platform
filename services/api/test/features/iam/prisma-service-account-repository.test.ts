@@ -213,7 +213,11 @@ void test('[IAM-013, INT-004] Prisma service-account adapter persists actor-scop
   assert.equal(replay?.requestHash, 'b'.repeat(64));
   assert.equal(replay?.secretEnvelope, 'v1.encrypted-envelope');
   assert.equal(replay?.expiresAt, '2026-01-02T00:00:00.000Z');
-  assert.equal(JSON.stringify(rows[0]).includes('dbsa'), false);
+  assert.equal(rows[0]?.['createSecretEnvelope'], 'v1.encrypted-envelope');
+  assert.equal(
+    String(rows[0]?.['createAccountSnapshot']).includes('one-time-secret'),
+    false,
+  );
   await repository.replaceServiceAccount(
     organizationContext,
     Object.freeze({ ...value, name: 'Changed after create', revision: 2 }),

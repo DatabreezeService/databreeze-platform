@@ -31,8 +31,9 @@ void test('[IAM-013] replay envelopes enforce key, plaintext, and framing bounds
     /IAM_SERVICE_ACCOUNT_ENVELOPE_KEY_INVALID/u,
   );
   const adapter = new AesGcmServiceAccountSecretEnvelopeAdapter('c'.repeat(43));
+  const valid = adapter.seal('bounded-secret');
   assert.throws(() => adapter.seal('contains\u0000control'), /IAM_SERVICE_ACCOUNT_SECRET_INVALID/u);
   assert.throws(() => adapter.seal('x'.repeat(513)), /IAM_SERVICE_ACCOUNT_SECRET_INVALID/u);
   assert.equal(adapter.open('v1.invalid.invalid.invalid'), undefined);
-  assert.equal(adapter.open('v1.a.a.a.extra'), undefined);
+  assert.equal(adapter.open(`${valid}.extra`), undefined);
 });

@@ -88,6 +88,8 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "iam"\."device_enrollment_challenges"/);
   assert.match(diff.stdout, /CREATE TABLE "dso"\."device_grants"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."service_accounts"/);
+  assert.match(diff.stdout, /CREATE TABLE "iam"\."recovery_compensation_failures"/);
+  assert.match(diff.stdout, /CREATE TABLE "iam"\."invitation_delivery_failures"/);
   assert.match(diff.stdout, /CREATE TABLE "bua"\."entitlement_leases"/);
   assert.match(diff.stdout, /CREATE TABLE "aud"\."audit_seal_attestations"/);
 
@@ -577,6 +579,18 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     activeInvitationMigration,
     /CREATE UNIQUE INDEX "invitation_tokens_active_membership_key"/u,
   );
+  const invitationDeliveryFailureMigration = await readFile(
+    path.join(
+      migrationsDirectory,
+      '20260804040000_iam_invitation_delivery_failures',
+      'migration.sql',
+    ),
+    'utf8',
+  );
+  assert.match(
+    invitationDeliveryFailureMigration,
+    /CREATE TABLE "iam"\."invitation_delivery_failures"/u,
+  );
   const serviceAccountIdempotencyMigration = await readFile(
     path.join(
       migrationsDirectory,
@@ -596,4 +610,34 @@ test('the schema diff and centrally ordered migration inventory establish platfo
       new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
   }
+  const replayBoundsMigration = await readFile(
+    path.join(
+      migrationsDirectory,
+      '20260804020000_iam_service_account_replay_bounds',
+      'migration.sql',
+    ),
+    'utf8',
+  );
+  for (const statement of [
+    'ADD COLUMN "create_idempotency_expires_at" TIMESTAMPTZ(6)',
+    'ADD COLUMN "create_account_snapshot" TEXT',
+    'DROP INDEX IF EXISTS "service_accounts_create_idempotency_workspace_key"',
+  ]) {
+    assert.match(
+      replayBoundsMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const compensationFailureMigration = await readFile(
+    path.join(
+      migrationsDirectory,
+      '20260804030000_iam_recovery_compensation_failures',
+      'migration.sql',
+    ),
+    'utf8',
+  );
+  assert.match(
+    compensationFailureMigration,
+    /CREATE TABLE "iam"\."recovery_compensation_failures"/u,
+  );
 });
