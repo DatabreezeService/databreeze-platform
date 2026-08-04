@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   JournalError,
   beginJournal,
+  beginUndo,
   buildUndoPlan,
+  completeUndo,
   compensateJournal,
   createJournal,
   failJournal,
@@ -121,5 +123,19 @@ describe('Folder Autopilot local journal', () => {
         currentFingerprints: new Map(),
       }),
     ).toThrowError(new JournalError('UNDO_EXPIRED'));
+  });
+
+  it('tracks the undo lifecycle without erasing the original journal', () => {
+    const { journal: undoing, plan } = beginUndo(committedJournal(), {
+      nowMs: 2_000,
+      currentFingerprints: new Map([
+        ['C:\\Archive\\invoice-reviewed.csv', 'd'.repeat(64)],
+        [destination, after],
+      ]),
+    });
+    expect(undoing.state).toBe('UNDOING');
+    expect(plan.operations).toHaveLength(2);
+    expect(completeUndo(undoing).state).toBe('UNDONE');
+    expect(() => completeUndo(completeUndo(undoing))).toThrow('INVALID_TRANSITION');
   });
 });

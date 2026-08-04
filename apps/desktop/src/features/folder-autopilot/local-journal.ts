@@ -4,7 +4,9 @@ export type JournalState =
   | 'COMMITTED'
   | 'COMPENSATING'
   | 'COMPENSATED'
-  | 'CONFLICT';
+  | 'CONFLICT'
+  | 'UNDOING'
+  | 'UNDONE';
 export type JournalStepState = 'PENDING' | 'COMMITTED' | 'COMPENSATED';
 export type JournalAction = 'RENAME' | 'COPY' | 'MOVE';
 export type JournalErrorCode =
@@ -232,4 +234,20 @@ export function buildUndoPlan(
     planHash: journal.planHash,
     operations: Object.freeze(operations),
   });
+}
+
+export function beginUndo(
+  journal: LocalJournal,
+  options: {
+    readonly nowMs: number;
+    readonly currentFingerprints: ReadonlyMap<string, string>;
+  },
+): { readonly journal: LocalJournal; readonly plan: UndoPlan } {
+  const plan = buildUndoPlan(journal, options);
+  return { journal: cloneJournal(journal, { state: 'UNDOING' }), plan };
+}
+
+export function completeUndo(journal: LocalJournal): LocalJournal {
+  if (journal.state !== 'UNDOING') return reject('INVALID_TRANSITION');
+  return cloneJournal(journal, { state: 'UNDONE' });
 }
