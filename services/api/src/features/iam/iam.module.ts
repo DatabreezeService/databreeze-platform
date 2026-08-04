@@ -451,11 +451,11 @@ export class IamModule {
         : new PrismaServiceAccountRepositoryAdapter(options.serviceAccountDatabase));
     const serviceAccountService =
       options.serviceAccountService ??
-      (options.iamRepository === undefined
+      (iamRepository === undefined
         ? new UnavailableServiceAccountService()
         : new ServiceAccountService(
             serviceAccountRepository,
-            options.iamRepository,
+            iamRepository,
             options.serviceAccountSecretIssuer ?? new RandomServiceAccountSecretIssuer(),
             options.serviceAccountClock,
             options.serviceAccountIdGenerator,
