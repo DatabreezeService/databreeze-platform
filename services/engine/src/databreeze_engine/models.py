@@ -17,6 +17,8 @@ from pydantic import (
     model_validator,
 )
 
+from .folder_autopilot_contracts import AutopilotPlan, AutopilotPlanRequest
+
 MAX_HANDLES = 32
 
 
@@ -91,7 +93,7 @@ class SpreadsheetAuditParameters(ClosedModel):
     resultManifestId: Identifier
 
 
-ActionParameters = FoundationMetadataParameters | SpreadsheetAuditParameters
+ActionParameters = FoundationMetadataParameters | SpreadsheetAuditParameters | AutopilotPlanRequest
 
 
 class EngineExecutionRequest(ClosedModel):
@@ -102,7 +104,7 @@ class EngineExecutionRequest(ClosedModel):
     action: ActionReference
     inputHandles: Annotated[list[OpaqueHandle], Field(max_length=MAX_HANDLES)]
     outputHandle: OpaqueHandle
-    parameters: FoundationMetadataParameters | SpreadsheetAuditParameters
+    parameters: ActionParameters
     deadline: UtcTimestamp
     locale: Literal["vi-VN", "en"]
 
@@ -169,13 +171,13 @@ class SpreadsheetAuditProcessorResult(ClosedModel):
     processorVersion: Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]
 
 
-ActionOutput = FoundationDigestResult | SpreadsheetAuditProcessorResult
+ActionOutput = FoundationDigestResult | SpreadsheetAuditProcessorResult | AutopilotPlan
 
 
 class EngineResult(ClosedModel):
     attemptId: Identifier
     status: Literal["SUCCEEDED"]
-    output: FoundationDigestResult | SpreadsheetAuditProcessorResult
+    output: FoundationDigestResult | SpreadsheetAuditProcessorResult | AutopilotPlan
 
 
 EngineErrorCode = Literal[

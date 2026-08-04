@@ -10,6 +10,7 @@ from functools import lru_cache
 from importlib.resources import files
 from types import MappingProxyType
 
+from .folder_autopilot_contracts import AutopilotPlan, AutopilotPlanRequest
 from .handler import ActionHandler
 from .models import (
     ActionManifest,
@@ -20,6 +21,19 @@ from .models import (
     SpreadsheetAuditProcessorResult,
 )
 from .processors import handle_spreadsheet_auditor, metadata_digest
+from .processors.folder_autopilot_action import (
+    ACTION_TYPE as FOLDER_AUTOPILOT_ACTION_TYPE,
+)
+from .processors.folder_autopilot_action import (
+    ACTION_VERSION as FOLDER_AUTOPILOT_ACTION_VERSION,
+)
+from .processors.folder_autopilot_action import (
+    INPUT_SCHEMA_ID as FOLDER_AUTOPILOT_INPUT_SCHEMA_ID,
+)
+from .processors.folder_autopilot_action import (
+    OUTPUT_SCHEMA_ID as FOLDER_AUTOPILOT_OUTPUT_SCHEMA_ID,
+)
+from .processors.folder_autopilot_action import handle as handle_folder_autopilot
 from .processors.spreadsheet_auditor_action import (
     ACTION_TYPE as SPREADSHEET_AUDITOR_ACTION_TYPE,
 )
@@ -38,6 +52,9 @@ REVIEWED_METADATA_HANDLER_DIGEST = (
 )
 REVIEWED_SPREADSHEET_AUDITOR_HANDLER_DIGEST = (
     "sha256:9f2f92194aa2e08e79afaeb791f67a481e35c183b2b359f83348eea67389b079"
+)
+REVIEWED_FOLDER_AUTOPILOT_HANDLER_DIGEST = (
+    "sha256:9507d317afda56244aed2fd675333cd940c7e2fd180ddac20a7acff05239dbba"
 )
 
 
@@ -100,6 +117,26 @@ def _verify_reviewed_spreadsheet_auditor_artifact(content: bytes | None = None) 
             raise RegistryError("HANDLER_ARTIFACT_UNAVAILABLE") from None
     actual = "sha256:" + hashlib.sha256(artifact).hexdigest()
     if actual != REVIEWED_SPREADSHEET_AUDITOR_HANDLER_DIGEST:
+        raise RegistryError("HANDLER_ARTIFACT_DIGEST_MISMATCH")
+
+
+def _verify_reviewed_folder_autopilot_artifact(content: bytes | None = None) -> None:
+    artifact = content
+    if artifact is None:
+        try:
+            processors = files("databreeze_engine.processors")
+            artifact = b"\0".join(
+                processors.joinpath(name).read_bytes()
+                for name in (
+                    "folder_autopilot_action.py",
+                    "folder_autopilot.py",
+                    "folder_autopilot_plan.py",
+                )
+            )
+        except OSError:
+            raise RegistryError("HANDLER_ARTIFACT_UNAVAILABLE") from None
+    actual = "sha256:" + hashlib.sha256(artifact).hexdigest()
+    if actual != REVIEWED_FOLDER_AUTOPILOT_HANDLER_DIGEST:
         raise RegistryError("HANDLER_ARTIFACT_DIGEST_MISMATCH")
 
 
@@ -188,11 +225,46 @@ def _reviewed_spreadsheet_auditor_definition() -> _ActionDefinition:
     return _ActionDefinition(manifest=manifest, handler=handle_spreadsheet_auditor)
 
 
+def _reviewed_folder_autopilot_definition() -> _ActionDefinition:
+    _verify_reviewed_folder_autopilot_artifact()
+    manifest = ActionManifest(
+        actionType=FOLDER_AUTOPILOT_ACTION_TYPE,
+        actionVersion=FOLDER_AUTOPILOT_ACTION_VERSION,
+        handlerDigest=REVIEWED_FOLDER_AUTOPILOT_HANDLER_DIGEST,
+        engineVersion="0.1.0",
+        protocolVersion="1.0",
+        inputSchemaId=FOLDER_AUTOPILOT_INPUT_SCHEMA_ID,
+        outputSchemaId=FOLDER_AUTOPILOT_OUTPUT_SCHEMA_ID,
+        executionModes=("LOCAL",),
+        executionTargets=("DESKTOP",),
+        dataModes=("LOCAL",),
+        requiredCapabilities=("metadata.read",),
+        sideEffectClass="NONE",
+        riskClass="READ_ONLY",
+        determinism="DETERMINISTIC",
+        seedPolicy="NONE",
+        resources=ResourceLimits(
+            maxInputBytes=16 * 1024 * 1024,
+            maxOutputBytes=1024 * 1024,
+            maxMemoryBytes=64 * 1024 * 1024,
+            maxTemporaryStorageBytes=0,
+            maxDurationMilliseconds=5_000,
+            progressCadenceMilliseconds=500,
+        ),
+        networkPermitted=False,
+        filesystemWritesPermitted=False,
+        externalProvidersPermitted=False,
+    )
+    return _ActionDefinition(manifest=manifest, handler=handle_folder_autopilot)
+
+
 def validate_action_parameters(manifest: ActionManifest, parameters: object) -> bool:
     if manifest.inputSchemaId == "foundation.metadata-fixture.v1":
         return isinstance(parameters, FoundationMetadataParameters)
     if manifest.inputSchemaId == SPREADSHEET_AUDITOR_INPUT_SCHEMA_ID:
         return isinstance(parameters, SpreadsheetAuditParameters)
+    if manifest.inputSchemaId == FOLDER_AUTOPILOT_INPUT_SCHEMA_ID:
+        return isinstance(parameters, AutopilotPlanRequest)
     return True
 
 
@@ -201,6 +273,8 @@ def validate_action_output(manifest: ActionManifest, output: object) -> bool:
         return isinstance(output, FoundationDigestResult)
     if manifest.outputSchemaId == SPREADSHEET_AUDITOR_OUTPUT_SCHEMA_ID:
         return isinstance(output, SpreadsheetAuditProcessorResult)
+    if manifest.outputSchemaId == FOLDER_AUTOPILOT_OUTPUT_SCHEMA_ID:
+        return isinstance(output, AutopilotPlan)
     return True
 
 
@@ -213,7 +287,11 @@ class ActionRegistry:
     _manifests: tuple[ActionManifest, ...] = field(init=False, repr=False)
 
     def __init__(self) -> None:
-        definitions = (_reviewed_definition(), _reviewed_spreadsheet_auditor_definition())
+        definitions = (
+            _reviewed_definition(),
+            _reviewed_spreadsheet_auditor_definition(),
+            _reviewed_folder_autopilot_definition(),
+        )
         for definition in definitions:
             _validate_action_boundary(definition.manifest.actionType)
         actions = {

@@ -4,57 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
-from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, field_validator
-
-MAX_AUTOPILOT_FILE_BYTES = 10 * 1024 * 1024 * 1024
-_SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")
-_DIGEST = re.compile(r"^[0-9a-f]{64}$")
-
-
-def _invalid() -> ValueError:
-    return ValueError("INVALID_OBSERVATION")
-
-
-class FileObservation(BaseModel):
-    """A bounded, value-free identity for one locally observed file."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
-
-    observationId: StrictStr
-    displayName: StrictStr = Field(min_length=1, max_length=255)
-    sizeBytes: StrictInt = Field(ge=0, le=MAX_AUTOPILOT_FILE_BYTES)
-    modifiedAtNs: StrictInt = Field(ge=0)
-    contentSha256: StrictStr = Field(pattern=r"^[0-9a-f]{64}$")
-    stableExecutionKey: StrictStr = Field(pattern=r"^[0-9a-f]{64}$")
-
-    @field_validator("observationId")
-    @classmethod
-    def validate_observation_id(cls, value: str) -> str:
-        if _SAFE_ID.fullmatch(value) is None:
-            raise _invalid()
-        return value
-
-    @field_validator("displayName")
-    @classmethod
-    def validate_display_name(cls, value: str) -> str:
-        if (
-            value in {".", ".."}
-            or "/" in value
-            or "\\" in value
-            or any(ord(character) < 32 or ord(character) == 127 for character in value)
-        ):
-            raise _invalid()
-        return value
-
-    @field_validator("contentSha256", "stableExecutionKey")
-    @classmethod
-    def validate_digest(cls, value: str) -> str:
-        if _DIGEST.fullmatch(value) is None:
-            raise _invalid()
-        return value
+from ..folder_autopilot_contracts import (
+    MAX_AUTOPILOT_FILE_BYTES,
+    ActionType,
+    CollisionPolicy,
+    FileObservation,
+)
 
 
 def fingerprint_bytes(content: bytes) -> str:
@@ -114,8 +70,14 @@ def build_file_observation(
             stableExecutionKey=stable_key,
         )
     except Exception as error:
-        raise _invalid() from error
+        raise ValueError("INVALID_OBSERVATION") from error
 
 
-ActionType = Literal["INSPECT", "VALIDATE", "RENAME", "COPY", "MOVE"]
-CollisionPolicy = Literal["REVIEW", "SKIP", "UNIQUE_NAME"]
+__all__ = [
+    "MAX_AUTOPILOT_FILE_BYTES",
+    "ActionType",
+    "CollisionPolicy",
+    "FileObservation",
+    "build_file_observation",
+    "fingerprint_bytes",
+]
