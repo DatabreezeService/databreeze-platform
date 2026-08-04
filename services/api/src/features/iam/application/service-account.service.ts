@@ -29,6 +29,7 @@ import type {
   ServiceAccountCreateReplayV1,
   ServiceAccountRepositoryPortV1,
 } from './service-account-repository.port.js';
+import { SERVICE_ACCOUNT_CREATE_REPLAY_MAX_SECONDS_V1 } from './service-account-repository.port.js';
 import type { IamTenantContextV1 } from './tenant-context.js';
 
 export const SERVICE_ACCOUNT_SERVICE = Symbol('SERVICE_ACCOUNT_SERVICE');
@@ -234,8 +235,15 @@ function replayCreate(
   replay: ServiceAccountCreateReplayV1,
   requestHash: string,
   envelope: ServiceAccountSecretEnvelopePortV1,
+  now: string,
 ): ServiceAccountApplicationResultV1<IssuedServiceAccountV1> {
   if (replay.requestHash !== requestHash) return rejected('CONFLICT');
+  if (
+    !replay.secretEnvelope ||
+    !parseStrictUtcTimestampV1(replay.expiresAt).accepted ||
+    Date.parse(now) >= Date.parse(replay.expiresAt)
+  )
+    return rejected('UNAVAILABLE');
   const secret = envelope.open(replay.secretEnvelope);
   if (!secret || !safeDigestEqual(digestSecret(secret) ?? '', replay.account.secretDigest))
     return rejected('UNAVAILABLE');
@@ -272,6 +280,8 @@ export class ServiceAccountService {
     const requestHash = createRequestHash(input, workspaceId);
     if (!requestHash) return rejected('INVALID_INPUT');
     if (!this.secretEnvelope) return rejected('UNAVAILABLE');
+    const now = this.now();
+    if (!now) return rejected('UNAVAILABLE');
     const secretEnvelopePort = this.secretEnvelope;
     try {
       return await this.repository.withTransaction(context, async (transaction) => {
@@ -280,13 +290,11 @@ export class ServiceAccountService {
           targetScope,
           context.idempotencyKey,
         );
-        if (replay) return replayCreate(replay, requestHash, secretEnvelopePort);
+        if (replay) return replayCreate(replay, requestHash, secretEnvelopePort, now);
 
-        let now: string;
         let id: string;
         let secret: ServiceAccountSecretIssueV1;
         try {
-          now = this.clock().toISOString();
           id = this.idGenerator();
           secret = this.secretIssuer.issue();
         } catch {
@@ -318,11 +326,16 @@ export class ServiceAccountService {
           /\p{Cc}/u.test(secretEnvelope)
         )
           return rejected('UNAVAILABLE');
+        const replayExpiresAt = new Date(
+          Date.parse(now) + SERVICE_ACCOUNT_CREATE_REPLAY_MAX_SECONDS_V1 * 1_000,
+        ).toISOString();
         await transaction.saveServiceAccount(context, candidate.value, {
           actorId: context.actorId,
           idempotencyKey: context.idempotencyKey,
           requestHash,
           secretEnvelope,
+          accountSnapshot: candidate.value,
+          expiresAt: replayExpiresAt,
         });
         return accepted(
           Object.freeze({ account: safeView(candidate.value), secret: secret.secret }),
@@ -337,7 +350,12 @@ export class ServiceAccountService {
             targetScope,
             context.idempotencyKey,
           );
-          if (replay) return replayCreate(replay, requestHash, secretEnvelopePort);
+          if (replay) {
+            const replayNow = this.now();
+            return replayNow
+              ? replayCreate(replay, requestHash, secretEnvelopePort, replayNow)
+              : rejected('UNAVAILABLE');
+          }
         } catch {
           return rejected('UNAVAILABLE');
         }
@@ -430,7 +448,7 @@ export class ServiceAccountService {
         });
         if (!rotated.accepted) return rejected(mapDomainCode(rotated.code));
         try {
-          await transaction.replaceServiceAccount(context, rotated.value, current.revision);
+          await transaction.replaceServiceAccount(context, rotated.value, current.revision, true);
           return accepted(
             Object.freeze({ account: safeView(rotated.value), secret: secret.secret }),
           );
@@ -469,7 +487,7 @@ export class ServiceAccountService {
         const revoked = revokeServiceAccountV1(current, now, expectedRevisionInput);
         if (!revoked.accepted) return rejected(mapDomainCode(revoked.code));
         try {
-          await transaction.replaceServiceAccount(context, revoked.value, current.revision);
+          await transaction.replaceServiceAccount(context, revoked.value, current.revision, true);
           return accepted(safeView(revoked.value));
         } catch (error) {
           return rejected(mapRepositoryError(error));

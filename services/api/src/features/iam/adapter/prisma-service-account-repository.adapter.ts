@@ -38,6 +38,8 @@ export interface ServiceAccountDatabaseRowV1 {
   readonly createIdempotencyKey?: string | null;
   readonly createRequestHash?: string | null;
   readonly createSecretEnvelope?: string | null;
+  readonly createIdempotencyExpiresAt?: Date | null;
+  readonly createAccountSnapshot?: string | null;
 }
 
 interface ServiceAccountDelegateV1 {
@@ -132,6 +134,7 @@ function accountFromRow(row: ServiceAccountDatabaseRowV1): ServiceAccountV1 {
 function accountData(
   account: ServiceAccountV1,
   createIdempotency?: ServiceAccountCreateIdempotencyV1,
+  clearCreateReplay = false,
 ): Readonly<Record<string, unknown>> {
   const data: Record<string, unknown> = {
     id: account.id,
@@ -154,8 +157,86 @@ function accountData(
     data['createIdempotencyKey'] = createIdempotency.idempotencyKey;
     data['createRequestHash'] = createIdempotency.requestHash;
     data['createSecretEnvelope'] = createIdempotency.secretEnvelope;
+    data['createIdempotencyExpiresAt'] = new Date(createIdempotency.expiresAt);
+    data['createAccountSnapshot'] = JSON.stringify(createIdempotency.accountSnapshot);
+  } else if (clearCreateReplay) {
+    data['createSecretEnvelope'] = null;
+    data['createIdempotencyExpiresAt'] = new Date(0);
   }
   return data;
+}
+
+function accountFromSnapshot(
+  snapshot: unknown,
+  row: ServiceAccountDatabaseRowV1,
+): ServiceAccountV1 {
+  if (typeof snapshot !== 'string' || snapshot.length === 0 || snapshot.length > 16_384)
+    throw new Error('IAM_PERSISTED_SERVICE_ACCOUNT_IDEMPOTENCY_INVALID');
+  let value: unknown;
+  try {
+    value = JSON.parse(snapshot);
+  } catch {
+    throw new Error('IAM_PERSISTED_SERVICE_ACCOUNT_IDEMPOTENCY_INVALID');
+  }
+  if (typeof value !== 'object' || value === null || Array.isArray(value))
+    throw new Error('IAM_PERSISTED_SERVICE_ACCOUNT_IDEMPOTENCY_INVALID');
+  const candidate = value as Record<string, unknown>;
+  const account = createServiceAccountV1({
+    id: candidate['id'],
+    organizationId: candidate['organizationId'],
+    ...(candidate['workspaceId'] === undefined ? {} : { workspaceId: candidate['workspaceId'] }),
+    name: candidate['name'],
+    permissions: candidate['permissions'],
+    secretDigest: candidate['secretDigest'],
+    secretIssuedAt: candidate['secretIssuedAt'],
+    ...(candidate['secretExpiresAt'] === undefined
+      ? {}
+      : { secretExpiresAt: candidate['secretExpiresAt'] }),
+    createdAt: candidate['createdAt'],
+  });
+  if (
+    !account.accepted ||
+    account.value.id !== row.id ||
+    account.value.organizationId !== row.organizationId
+  )
+    throw new Error('IAM_PERSISTED_SERVICE_ACCOUNT_IDEMPOTENCY_INVALID');
+  if (
+    (candidate['status'] !== 'ACTIVE' && candidate['status'] !== 'REVOKED') ||
+    !Number.isSafeInteger(candidate['secretVersion']) ||
+    (candidate['secretVersion'] as number) < 1 ||
+    !Number.isSafeInteger(candidate['revision']) ||
+    (candidate['revision'] as number) < 1
+  )
+    throw new Error('IAM_PERSISTED_SERVICE_ACCOUNT_IDEMPOTENCY_INVALID');
+  const secretExpiresAt = candidate['secretExpiresAt']
+    ? parseStrictUtcTimestampV1(candidate['secretExpiresAt'])
+    : undefined;
+  const lastUsedAt = candidate['lastUsedAt']
+    ? parseStrictUtcTimestampV1(candidate['lastUsedAt'])
+    : undefined;
+  const revokedAt = candidate['revokedAt']
+    ? parseStrictUtcTimestampV1(candidate['revokedAt'])
+    : undefined;
+  if (
+    (candidate['secretExpiresAt'] !== undefined && !secretExpiresAt?.accepted) ||
+    (candidate['lastUsedAt'] !== undefined && !lastUsedAt?.accepted) ||
+    (candidate['revokedAt'] !== undefined && !revokedAt?.accepted) ||
+    (candidate['status'] === 'ACTIVE' && candidate['revokedAt'] !== undefined) ||
+    (candidate['status'] === 'REVOKED' && !revokedAt?.accepted)
+  )
+    throw new Error('IAM_PERSISTED_SERVICE_ACCOUNT_IDEMPOTENCY_INVALID');
+  const status = candidate['status'] as 'ACTIVE' | 'REVOKED';
+  const secretVersion = candidate['secretVersion'] as number;
+  const revision = candidate['revision'] as number;
+  return Object.freeze({
+    ...account.value,
+    status,
+    secretVersion,
+    revision,
+    ...(secretExpiresAt?.accepted ? { secretExpiresAt: secretExpiresAt.value } : {}),
+    ...(lastUsedAt?.accepted ? { lastUsedAt: lastUsedAt.value } : {}),
+    ...(revokedAt?.accepted ? { revokedAt: revokedAt.value } : {}),
+  });
 }
 
 function persistedReplay(
@@ -170,6 +251,7 @@ function persistedReplay(
   const actor = parseStableIdentifierV1(row.createdByActorId);
   const requestHash = row.createRequestHash;
   const secretEnvelope = row.createSecretEnvelope;
+  const expiresAt = timestamp(row.createIdempotencyExpiresAt);
   if (
     !actor.accepted ||
     typeof row.createIdempotencyKey !== 'string' ||
@@ -177,18 +259,22 @@ function persistedReplay(
     row.createIdempotencyKey.length > 200 ||
     typeof requestHash !== 'string' ||
     !/^[a-f0-9]{64}$/u.test(requestHash) ||
-    typeof secretEnvelope !== 'string' ||
-    secretEnvelope.length === 0 ||
-    secretEnvelope.length > 16_384 ||
-    /\p{Cc}/u.test(secretEnvelope)
+    (secretEnvelope !== null &&
+      secretEnvelope !== undefined &&
+      (typeof secretEnvelope !== 'string' ||
+        secretEnvelope.length > 16_384 ||
+        /\p{Cc}/u.test(secretEnvelope))) ||
+    !expiresAt ||
+    typeof row.createAccountSnapshot !== 'string'
   )
     throw new Error('IAM_PERSISTED_SERVICE_ACCOUNT_IDEMPOTENCY_INVALID');
   return Object.freeze({
-    account: accountFromRow(row),
+    account: accountFromSnapshot(row.createAccountSnapshot, row),
     actorId: actor.value,
     idempotencyKey: row.createIdempotencyKey,
     requestHash,
-    secretEnvelope,
+    secretEnvelope: secretEnvelope ?? '',
+    expiresAt,
   });
 }
 
@@ -273,7 +359,9 @@ class PrismaServiceAccountTransactionAdapter implements ServiceAccountTransactio
         !/^[a-f0-9]{64}$/u.test(createIdempotency.requestHash) ||
         createIdempotency.secretEnvelope.length === 0 ||
         createIdempotency.secretEnvelope.length > 16_384 ||
-        /\p{Cc}/u.test(createIdempotency.secretEnvelope))
+        /\p{Cc}/u.test(createIdempotency.secretEnvelope) ||
+        !parseStrictUtcTimestampV1(createIdempotency.expiresAt).accepted ||
+        JSON.stringify(createIdempotency.accountSnapshot) !== JSON.stringify(account))
     )
       throw new Error('IAM_SERVICE_ACCOUNT_IDEMPOTENCY_INVALID');
     const existing = await this.client.serviceAccount.findFirst({
@@ -296,6 +384,7 @@ class PrismaServiceAccountTransactionAdapter implements ServiceAccountTransactio
     context: IamTenantContextV1,
     account: ServiceAccountV1,
     expectedRevision: number,
+    clearCreateReplay = false,
   ): Promise<void> {
     if (!writableInScope(context, account)) throw new Error('SCOPE_DENIED');
     const current = await this.findServiceAccount(context, account.id);
@@ -310,7 +399,7 @@ class PrismaServiceAccountTransactionAdapter implements ServiceAccountTransactio
           workspaceId: account.workspaceId ?? null,
           revision: expectedRevision,
         },
-        data: accountData(account),
+        data: accountData(account, undefined, clearCreateReplay),
       });
       if (updated.count !== 1) throw new Error('REVISION_CONFLICT');
     } catch (error) {
@@ -379,11 +468,13 @@ export class PrismaServiceAccountRepositoryAdapter implements ServiceAccountRepo
     context: IamTenantContextV1,
     account: ServiceAccountV1,
     expectedRevision: number,
+    clearCreateReplay = false,
   ) {
     return new PrismaServiceAccountTransactionAdapter(this.client).replaceServiceAccount(
       context,
       account,
       expectedRevision,
+      clearCreateReplay,
     );
   }
 }

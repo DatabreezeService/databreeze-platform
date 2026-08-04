@@ -5,12 +5,17 @@ import type { IamTenantContextV1 } from './tenant-context.js';
 
 export const SERVICE_ACCOUNT_REPOSITORY_PORT = Symbol('SERVICE_ACCOUNT_REPOSITORY_PORT');
 
+export const SERVICE_ACCOUNT_CREATE_REPLAY_MAX_SECONDS_V1 = 24 * 60 * 60;
+
 export interface ServiceAccountCreateIdempotencyV1 {
   readonly idempotencyKey: string;
   readonly requestHash: string;
   readonly actorId: StableIdentifierV1;
   /** Opaque AEAD envelope; raw one-time secrets never enter a repository. */
   readonly secretEnvelope: string;
+  /** Create-time account state; lifecycle writes must never replace this snapshot. */
+  readonly accountSnapshot: ServiceAccountV1;
+  readonly expiresAt: string;
 }
 
 export interface ServiceAccountCreateReplayV1 {
@@ -19,6 +24,7 @@ export interface ServiceAccountCreateReplayV1 {
   readonly requestHash: string;
   readonly actorId: StableIdentifierV1;
   readonly secretEnvelope: string;
+  readonly expiresAt: string;
 }
 
 export interface ServiceAccountTransactionPortV1 {
@@ -45,6 +51,7 @@ export interface ServiceAccountTransactionPortV1 {
     context: IamTenantContextV1,
     account: ServiceAccountV1,
     expectedRevision: number,
+    clearCreateReplay?: boolean,
   ): Promise<void>;
 }
 

@@ -197,6 +197,8 @@ void test('[IAM-013, INT-004] Prisma service-account adapter persists actor-scop
     idempotencyKey: 'create-key',
     requestHash: 'b'.repeat(64),
     secretEnvelope: 'v1.encrypted-envelope',
+    accountSnapshot: value,
+    expiresAt: '2026-01-02T00:00:00.000Z',
   });
   const replay = await repository.findServiceAccountByIdempotency(
     organizationContext,
@@ -210,6 +212,7 @@ void test('[IAM-013, INT-004] Prisma service-account adapter persists actor-scop
   assert.equal(replay?.account.id, value.id);
   assert.equal(replay?.requestHash, 'b'.repeat(64));
   assert.equal(replay?.secretEnvelope, 'v1.encrypted-envelope');
+  assert.equal(replay?.expiresAt, '2026-01-02T00:00:00.000Z');
   assert.equal(JSON.stringify(rows[0]).includes('dbsa'), false);
   await repository.replaceServiceAccount(
     organizationContext,
@@ -226,6 +229,7 @@ void test('[IAM-013, INT-004] Prisma service-account adapter persists actor-scop
     'create-key',
   );
   assert.equal(replayAfterLifecycleWrite?.secretEnvelope, 'v1.encrypted-envelope');
+  assert.equal(replayAfterLifecycleWrite?.account.name, value.name);
 });
 
 void test('[IAM-013] Prisma service-account adapter uses optimistic revisions and rejects races', async () => {

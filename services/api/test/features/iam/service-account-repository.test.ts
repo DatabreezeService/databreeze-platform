@@ -171,6 +171,8 @@ void test('[IAM-013, INT-004] lifecycle writes do not change the original create
     idempotencyKey: organizationContext.idempotencyKey,
     requestHash: 'b'.repeat(64),
     secretEnvelope: 'v1.encrypted-envelope',
+    accountSnapshot: created,
+    expiresAt: '2026-01-02T00:00:00.000Z',
   });
 
   await repository.replaceServiceAccount(

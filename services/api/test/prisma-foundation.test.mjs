@@ -137,6 +137,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260803080000_aud_seal_attestations',
     '20260804000000_iam_invitation_active_membership_unique',
     '20260804010000_iam_service_account_create_idempotency',
+    '20260804020000_iam_service_account_replay_bounds',
     'migration_lock.toml',
   ]);
   const migration = await readFile(

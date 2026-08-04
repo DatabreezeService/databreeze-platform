@@ -5,6 +5,7 @@ import {
 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { ServiceAccountV1 } from '@databreeze/domain/service-account/v1';
+import { parseStrictUtcTimestampV1 } from '@databreeze/domain/tenant-scope/v1';
 import type { IamTenantContextV1 } from '../application/tenant-context.js';
 import type {
   ServiceAccountCreateIdempotencyV1,
@@ -59,6 +60,7 @@ function sameCreateRecord(
     left.actorId === right.actorId &&
     left.idempotencyKey === right.idempotencyKey &&
     left.secretEnvelope === right.secretEnvelope &&
+    left.expiresAt === right.expiresAt &&
     JSON.stringify(left.account) === JSON.stringify(right.account)
   );
 }
@@ -141,7 +143,9 @@ export class InMemoryServiceAccountRepositoryAdapter implements ServiceAccountRe
         !/^[a-f0-9]{64}$/u.test(createIdempotency.requestHash) ||
         createIdempotency.secretEnvelope.length === 0 ||
         createIdempotency.secretEnvelope.length > 16_384 ||
-        /\p{Cc}/u.test(createIdempotency.secretEnvelope)
+        /\p{Cc}/u.test(createIdempotency.secretEnvelope) ||
+        !parseStrictUtcTimestampV1(createIdempotency.expiresAt).accepted ||
+        JSON.stringify(createIdempotency.accountSnapshot) !== JSON.stringify(account)
       )
         throw new Error('IAM_SERVICE_ACCOUNT_IDEMPOTENCY_INVALID');
       const replay = Object.freeze({
@@ -150,6 +154,7 @@ export class InMemoryServiceAccountRepositoryAdapter implements ServiceAccountRe
         idempotencyKey: createIdempotency.idempotencyKey,
         requestHash: createIdempotency.requestHash,
         secretEnvelope: createIdempotency.secretEnvelope,
+        expiresAt: createIdempotency.expiresAt,
       });
       const existingReplay = this.createRecords.get(createKey(replay));
       if (existingReplay && !sameCreateRecord(existingReplay, replay))
@@ -163,6 +168,7 @@ export class InMemoryServiceAccountRepositoryAdapter implements ServiceAccountRe
     context: IamTenantContextV1,
     account: ServiceAccountV1,
     expectedRevision: number,
+    clearCreateReplay = false,
   ): Promise<void> {
     await Promise.resolve();
     if (!writableInScope(context, account)) throw new Error('SCOPE_DENIED');
@@ -176,6 +182,15 @@ export class InMemoryServiceAccountRepositoryAdapter implements ServiceAccountRe
     );
     if (duplicateDigest) throw new Error('SERVICE_ACCOUNT_CONFLICT');
     this.accounts.set(account.id, clone(account));
+    if (clearCreateReplay) {
+      for (const [key, replay] of this.createRecords) {
+        if (replay.account.id !== account.id) continue;
+        this.createRecords.set(
+          key,
+          Object.freeze({ ...replay, secretEnvelope: '', expiresAt: replay.expiresAt }),
+        );
+      }
+    }
   }
 
   public async withTransaction<TValue>(

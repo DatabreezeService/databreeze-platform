@@ -304,6 +304,8 @@ model ServiceAccountRecord {
   createIdempotencyKey String? @map("create_idempotency_key") @db.VarChar(200)
   createRequestHash String? @map("create_request_hash") @db.Char(64)
   createSecretEnvelope String? @map("create_secret_envelope") @db.Text
+  createIdempotencyExpiresAt DateTime? @map("create_idempotency_expires_at") @db.Timestamptz(6)
+  createAccountSnapshot String? @map("create_account_snapshot") @db.Text
 
   @@index([organizationId, workspaceId, status], map: "service_accounts_scope_status_idx")
   @@index([secretExpiresAt, status], map: "service_accounts_expiry_status_idx")
