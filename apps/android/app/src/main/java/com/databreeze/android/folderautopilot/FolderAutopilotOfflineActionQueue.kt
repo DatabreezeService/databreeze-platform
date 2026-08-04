@@ -70,7 +70,7 @@ class FolderAutopilotOfflineActionQueue(
     }
 
     private fun mutationId(action: String, vararg parts: String): String =
-        (listOf("autopilot", action) + parts).joinToString("-")
+        "autopilot-$action-${sha256(parts.joinToString("\\u0000")).take(48)}"
 }
 
 private fun sha256(value: String): String = MessageDigest
