@@ -29,6 +29,8 @@ feature. It is a client slice, not a claim that all FA P0/P1 requirements are co
 - `c3fe924` — Android review companion and instrumentation coverage
 - `23cf2c5` — Android offline queue tests
 - `162f502` — Android offline action queue
+- `1047fa8` — Android UI persists actions before local transitions
+- `7aa7a3c` — bounded deterministic offline mutation identifiers
 
 ## Checks
 
