@@ -486,6 +486,12 @@ export class IamModule {
       (options.serviceAccountDatabase === undefined
         ? new InMemoryServiceAccountRepositoryAdapter()
         : new PrismaServiceAccountRepositoryAdapter(options.serviceAccountDatabase));
+    if (
+      options.serviceAccountDatabase !== undefined &&
+      options.serviceAccountSecretEnvelope === undefined &&
+      options.serviceAccountSecretEnvelopeKey === undefined
+    )
+      throw new Error('IAM_SERVICE_ACCOUNT_ENVELOPE_KEY_REQUIRED');
     const serviceAccountSecretEnvelope =
       options.serviceAccountSecretEnvelope ??
       (options.serviceAccountSecretEnvelopeKey
