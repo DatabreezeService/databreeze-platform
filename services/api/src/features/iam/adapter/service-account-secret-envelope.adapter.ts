@@ -39,7 +39,9 @@ export class AesGcmServiceAccountSecretEnvelopeAdapter
 
   public open(envelope: string): string | undefined {
     if (typeof envelope !== 'string') return undefined;
-    const [version, ivEncoded, tagEncoded, ciphertextEncoded] = envelope.split('.');
+    const parts = envelope.split('.');
+    if (parts.length !== 4) return undefined;
+    const [version, ivEncoded, tagEncoded, ciphertextEncoded] = parts;
     if (version !== 'v1' || !ivEncoded || !tagEncoded || !ciphertextEncoded) return undefined;
     try {
       const iv = Buffer.from(ivEncoded, 'base64url');

@@ -9,14 +9,14 @@ export class IssueEntitlementLeaseDto {
 }
 
 export class VerifyEntitlementLeaseDto {
-  @ApiProperty({ minimum: 1 })
+  @ApiProperty({ type: 'integer', minimum: 1, maximum: Number.MAX_SAFE_INTEGER })
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(Number.MAX_SAFE_INTEGER)
   snapshotRevision!: number;
 
-  @ApiProperty({ minimum: 1 })
+  @ApiProperty({ type: 'integer', minimum: 1, maximum: Number.MAX_SAFE_INTEGER })
   @Type(() => Number)
   @IsInt()
   @Min(1)

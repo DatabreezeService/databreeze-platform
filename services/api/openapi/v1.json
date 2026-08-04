@@ -9799,13 +9799,13 @@
             "name": "snapshotRevision",
             "required": true,
             "in": "query",
-            "schema": { "minimum": 1, "type": "number" }
+            "schema": { "minimum": 1, "maximum": 9007199254740991, "type": "integer" }
           },
           {
             "name": "securityEpoch",
             "required": true,
             "in": "query",
-            "schema": { "minimum": 1, "type": "number" }
+            "schema": { "minimum": 1, "maximum": 9007199254740991, "type": "integer" }
           },
           {
             "name": "X-Correlation-Id",

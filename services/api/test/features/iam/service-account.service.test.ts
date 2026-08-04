@@ -73,10 +73,9 @@ function service(secretIssuerInput?: {
 }) {
   const iam = new InMemoryIamRepositoryAdapter();
   iam.seed([membership()]);
-  const digest = (secret: string) => createHash('sha256').update(secret, 'utf8').digest('hex');
   const secrets = [
-    { secret: 'dbsa_first', digest: digest('dbsa_first') },
-    { secret: 'dbsa_second', digest: digest('dbsa_second') },
+    { secret: 'dbsa_first', digest: digestSecret('dbsa_first') },
+    { secret: 'dbsa_second', digest: digestSecret('dbsa_second') },
   ];
   const secretIssuer =
     secretIssuerInput ??

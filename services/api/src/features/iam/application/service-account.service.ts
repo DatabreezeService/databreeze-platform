@@ -219,7 +219,7 @@ function createRequestHash(
         JSON.stringify({
           name,
           workspaceId: workspaceId ?? null,
-          permissions: input.permissions,
+          permissions: [...input.permissions].sort(),
           secretExpiresAt: expiry ?? null,
         }),
         'utf8',
