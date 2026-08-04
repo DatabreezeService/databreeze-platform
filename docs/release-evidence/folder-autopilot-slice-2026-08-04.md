@@ -3,6 +3,11 @@
 Status: implementation in progress. This record is updated only when the
 corresponding code, contract, and test evidence exists in the same branch.
 
+This release record intentionally does not mark the complete FA P0/P1 module
+as released. The implemented boundary is a testable, content-free slice that
+can be promoted independently while the remaining preview, execution,
+approval, recovery, reconciliation, and export projections stay fail-closed.
+
 ## Scope
 
 This direct-to-`main` feature slice covers the first independently testable
@@ -41,6 +46,28 @@ job, or approval decision. A failed or rolled-back step leaves the original
 artifact and immutable audit history intact. Reverting this feature branch
 removes the module-owned projections and adapters without deleting IAE, DSO,
 JRA, or Desktop-local records.
+
+## Implemented boundary evidence
+
+- API owns immutable, tenant-scoped profile, binding, and assignment records;
+  Prisma and in-memory adapters share the same repository port and transaction
+  semantics.
+- API exposes a content-free dashboard projection and fail-closed pause,
+  approval, and undo facades. The generated OpenAPI document includes all
+  Folder Autopilot routes and passes Redocly validation.
+- Engine evaluates bounded typed plans deterministically, including review,
+  skip, and unique-name collision outcomes, without filesystem side effects.
+- Desktop stabilizes and fingerprints files, enforces authorization-path
+  containment, executes only exclusive allowlisted actions, and journals
+  reversible work with fingerprint-checked undo.
+- Web and Android consume only opaque identifiers, hashes, revisions, policy
+  values, and redacted projections; no client boundary accepts paths, bytes,
+  formulas, source values, or local handles.
+
+The current branch evidence is covered by API controller/service/dashboard and
+composition tests, Desktop Autopilot tests, 140 engine tests, 48 contract
+tests, targeted Web tests, and Android compile/unit-test gates. These are
+slice checks, not a claim that every FA requirement is verified.
 
 ## Traceability
 
