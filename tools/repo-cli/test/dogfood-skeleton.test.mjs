@@ -13,7 +13,7 @@ const requiredFiles = [
   'services/engine/src/databreeze_engine/processors/spreadsheet_auditor_action.py',
 ];
 
-function fixtureRoot(): string {
+function fixtureRoot() {
   const root = mkdtempSync(path.join(os.tmpdir(), 'databreeze-dogfood-'));
   for (const file of requiredFiles) {
     const target = path.join(root, file);
