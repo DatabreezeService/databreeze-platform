@@ -1,4 +1,4 @@
-import { readdir as readDirectory } from 'node:fs/promises';
+import { opendir as openDirectory } from 'node:fs/promises';
 
 import type { FolderGrantPort } from '../../application/folder-grant.port.ts';
 import { parseFolderGrantState, type FolderGrantState } from '../../shared/desktop-contract-v1.ts';
@@ -16,15 +16,16 @@ interface FolderEntryLike {
   isSymbolicLink(): boolean;
 }
 
-type ReadDirectory = (
-  folderPath: string,
-  options: { readonly withFileTypes: true },
-) => Promise<readonly FolderEntryLike[]>;
+interface FolderDirectoryLike extends AsyncIterable<FolderEntryLike> {
+  close(): Promise<void>;
+}
+
+type OpenDirectory = (folderPath: string) => Promise<FolderDirectoryLike>;
 
 export interface ElectronFolderGrantAdapterInput {
   readonly dialog: FolderDialogLike;
   readonly now?: () => Date;
-  readonly readdir?: ReadDirectory;
+  readonly opendir?: OpenDirectory;
 }
 
 function notGranted(): FolderGrantState {
@@ -35,27 +36,33 @@ function notGranted(): FolderGrantState {
 export class ElectronFolderGrantAdapter implements FolderGrantPort {
   readonly #dialog: FolderDialogLike;
   readonly #now: () => Date;
-  readonly #readdir: ReadDirectory;
+  readonly #opendir: OpenDirectory;
 
   public constructor({
     dialog,
     now = () => new Date(),
-    readdir = readDirectory,
+    opendir = openDirectory,
   }: ElectronFolderGrantAdapterInput) {
     this.#dialog = dialog;
     this.#now = now;
-    this.#readdir = readdir;
+    this.#opendir = opendir;
   }
 
   public async grantFolder(): Promise<FolderGrantState> {
+    let directory: FolderDirectoryLike | undefined;
     try {
       const selection = await this.#dialog.showOpenDialog({ properties: ['openDirectory'] });
       const folderPath = selection.filePaths[0];
       if (selection.canceled || folderPath === undefined || folderPath.length === 0)
         return notGranted();
-      const entries = await this.#readdir(folderPath, { withFileTypes: true });
-      const fileCount = entries.filter((entry) => entry.isFile() && !entry.isSymbolicLink()).length;
-      if (fileCount > MAX_FOLDER_FILES) return notGranted();
+      directory = await this.#opendir(folderPath);
+      let fileCount = 0;
+      for await (const entry of directory) {
+        if (entry.isFile() && !entry.isSymbolicLink()) {
+          fileCount += 1;
+          if (fileCount > MAX_FOLDER_FILES) return notGranted();
+        }
+      }
       return parseFolderGrantState({
         fileCount,
         lastScanAt: this.#now().toISOString(),
@@ -63,6 +70,14 @@ export class ElectronFolderGrantAdapter implements FolderGrantPort {
       });
     } catch {
       return notGranted();
+    } finally {
+      if (directory !== undefined) {
+        try {
+          await directory.close();
+        } catch {
+          // The result remains content-free even when cleanup fails.
+        }
+      }
     }
   }
 }

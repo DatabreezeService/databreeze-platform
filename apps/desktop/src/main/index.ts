@@ -27,7 +27,11 @@ async function openDesktopWindow(): Promise<void> {
     applicationVersion: app.getVersion(),
     locale: 'vi-VN',
   });
-  const folderGrant = new ElectronFolderGrantAdapter({ dialog });
+  const folderGrant = new ElectronFolderGrantAdapter({
+    dialog: {
+      showOpenDialog: (options) => dialog.showOpenDialog({ properties: [...options.properties] }),
+    },
+  });
   const sidecar = new UnavailableSidecarAdapter();
 
   await createDesktopWindow({
