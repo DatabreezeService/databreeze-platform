@@ -14,6 +14,12 @@ import {
 } from '../../../src/features/iam/application/registration.service.js';
 import { IamModule } from '../../../src/features/iam/iam.module.js';
 import { PasswordCredentialService } from '../../../src/features/iam/application/password-credential.service.js';
+import { InMemoryRecoveryAdmissionAdapter } from '../../../src/features/iam/adapter/in-memory-recovery-admission.adapter.js';
+import { HmacSha256IamRegistrationAdmissionDigestAdapter } from '../../../src/features/iam/adapter/iam-registration-crypto.adapter.js';
+
+const registrationAdmissionDigest = new HmacSha256IamRegistrationAdmissionDigestAdapter(
+  'r'.repeat(32),
+);
 
 function provider(module: ReturnType<typeof IamModule.register>, token: symbol) {
   return module.providers?.find(
@@ -42,7 +48,12 @@ const passwordCredentials = new PasswordCredentialService({
 
 void test('[IAM-001] registration composition exports an explicitly supplied service and controller', () => {
   const service = {} as RegistrationService;
-  const registered = IamModule.register({ registrationService: service });
+  const registered = IamModule.register({
+    registrationService: service,
+    registrationIpAdmission: new InMemoryRecoveryAdmissionAdapter(),
+    registrationEmailAdmission: new InMemoryRecoveryAdmissionAdapter(),
+    registrationAdmissionDigest,
+  });
   const configured = provider(registered, IAM_REGISTRATION_SERVICE);
   assert.ok(configured && 'useValue' in configured);
   if (!configured || !('useValue' in configured)) return;
@@ -58,6 +69,9 @@ void test('[IAM-001] durable registration requires password credentials before c
   const configured = IamModule.register({
     registrationDatabase: {} as never,
     passwordCredentials,
+    registrationIpAdmissionCounter: { incrementWindow: async () => 1 },
+    registrationEmailAdmissionCounter: { incrementWindow: async () => 1 },
+    registrationAdmissionDigest,
   });
   const repository = provider(configured, IAM_REGISTRATION_REPOSITORY_PORT);
   const service = provider(configured, IAM_REGISTRATION_SERVICE);
@@ -81,6 +95,7 @@ void test('[IAM-001] registration admission uses separate shared Redis namespace
     registrationService: {} as RegistrationService,
     registrationIpAdmissionCounter: counter,
     registrationEmailAdmissionCounter: counter,
+    registrationAdmissionDigest,
   });
   const ip = provider(configured, IAM_REGISTRATION_IP_ADMISSION);
   const email = provider(configured, IAM_REGISTRATION_EMAIL_ADMISSION);

@@ -103,6 +103,9 @@ import {
 import {
   IAM_REGISTRATION_EMAIL_ADMISSION,
   IAM_REGISTRATION_IP_ADMISSION,
+  IAM_REGISTRATION_ADMISSION_DIGEST,
+  type RegistrationAdmissionDigestPortV1,
+  type RegistrationAdmissionDigestKeyV1,
   IAM_REGISTRATION_REPOSITORY_PORT,
   type RegistrationAdmissionPortV1,
   type RegistrationRepositoryPortV1,
@@ -136,6 +139,7 @@ import {
   type IamRecoveryDigestKeyV1,
 } from './adapter/iam-recovery-crypto.adapter.js';
 import { InMemoryRecoveryAdmissionAdapter } from './adapter/in-memory-recovery-admission.adapter.js';
+import { HmacSha256IamRegistrationAdmissionDigestAdapter } from './adapter/iam-registration-crypto.adapter.js';
 import {
   RedisRecoveryAdmissionAdapter,
   type RecoveryAdmissionCounterPortV1,
@@ -245,6 +249,9 @@ export interface IamModuleOptions {
   readonly registrationEmailAdmission?: RegistrationAdmissionPortV1;
   readonly registrationEmailAdmissionCounter?: RecoveryAdmissionCounterPortV1;
   readonly registrationEmailAdmissionOptions?: RedisRecoveryAdmissionOptionsV1;
+  readonly registrationAdmissionDigest?: RegistrationAdmissionDigestPortV1;
+  readonly registrationAdmissionKey?: RegistrationAdmissionDigestKeyV1;
+  readonly registrationAdmissionPreviousKeys?: readonly RegistrationAdmissionDigestKeyV1[];
   readonly recoveryRepository?: RecoveryRepositoryPortV1;
   readonly recoveryDatabase?: RecoveryDatabaseClientV1;
   readonly recoveryService?: RecoveryService;
@@ -401,10 +408,18 @@ export class IamModule {
             ...(options.registrationClock ? { clock: options.registrationClock } : {}),
           })
         : undefined);
+    const registrationAdmissionDigest =
+      options.registrationAdmissionDigest ??
+      (options.registrationAdmissionKey === undefined
+        ? undefined
+        : new HmacSha256IamRegistrationAdmissionDigestAdapter(
+            options.registrationAdmissionKey,
+            options.registrationAdmissionPreviousKeys,
+          ));
     const registrationIpAdmission =
       options.registrationIpAdmission ??
       (options.registrationIpAdmissionCounter === undefined
-        ? new InMemoryRecoveryAdmissionAdapter({ maxAttempts: 5, windowSeconds: 15 * 60 })
+        ? undefined
         : new RedisRecoveryAdmissionAdapter(options.registrationIpAdmissionCounter, {
             keyPrefix: 'databreeze:iam:registration:ip:v1:',
             maxAttempts: 5,
@@ -414,13 +429,20 @@ export class IamModule {
     const registrationEmailAdmission =
       options.registrationEmailAdmission ??
       (options.registrationEmailAdmissionCounter === undefined
-        ? new InMemoryRecoveryAdmissionAdapter({ maxAttempts: 5, windowSeconds: 15 * 60 })
+        ? undefined
         : new RedisRecoveryAdmissionAdapter(options.registrationEmailAdmissionCounter, {
             keyPrefix: 'databreeze:iam:registration:email:v1:',
             maxAttempts: 5,
             windowSeconds: 15 * 60,
-            ...options.registrationEmailAdmissionOptions,
-          }));
+          ...options.registrationEmailAdmissionOptions,
+        }));
+    if (
+      registrationService !== undefined &&
+      (registrationIpAdmission === undefined ||
+        registrationEmailAdmission === undefined ||
+        registrationAdmissionDigest === undefined)
+    )
+      throw new Error('IAM_REGISTRATION_ADMISSION_REQUIRED');
     const recoveryRepository =
       options.recoveryRepository ??
       (options.recoveryDatabase === undefined
@@ -665,14 +687,15 @@ export class IamModule {
               },
             ]
           : []),
-        {
-          provide: IAM_REGISTRATION_IP_ADMISSION,
-          useValue: registrationIpAdmission,
-        },
-        {
-          provide: IAM_REGISTRATION_EMAIL_ADMISSION,
-          useValue: registrationEmailAdmission,
-        },
+        ...(registrationIpAdmission
+          ? [{ provide: IAM_REGISTRATION_IP_ADMISSION, useValue: registrationIpAdmission }]
+          : []),
+        ...(registrationEmailAdmission
+          ? [{ provide: IAM_REGISTRATION_EMAIL_ADMISSION, useValue: registrationEmailAdmission }]
+          : []),
+        ...(registrationAdmissionDigest
+          ? [{ provide: IAM_REGISTRATION_ADMISSION_DIGEST, useValue: registrationAdmissionDigest }]
+          : []),
         ...(recoveryRepository
           ? [
               {

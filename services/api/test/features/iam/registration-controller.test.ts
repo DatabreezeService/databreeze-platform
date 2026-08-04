@@ -4,6 +4,7 @@ import test from 'node:test';
 import { RegistrationController } from '../../../src/features/iam/api/registration.controller.js';
 import { RegistrationProblemError } from '../../../src/features/iam/application/registration-problem.error.js';
 import type { RegistrationService } from '../../../src/features/iam/application/registration.service.js';
+import { HmacSha256IamRegistrationAdmissionDigestAdapter } from '../../../src/features/iam/adapter/iam-registration-crypto.adapter.js';
 
 void test('[IAM-001] registration controller returns a generic accepted response without bearer material', async () => {
   const controller = new RegistrationController({
@@ -98,6 +99,7 @@ void test('[IAM-001] registration admission rejects before invoking password has
         return true;
       },
     },
+    new HmacSha256IamRegistrationAdmissionDigestAdapter('r'.repeat(32)),
   );
 
   await assert.rejects(
@@ -141,6 +143,7 @@ void test('[IAM-001] registration admission digests are normalized, domain-separ
         return true;
       },
     },
+    new HmacSha256IamRegistrationAdmissionDigestAdapter('r'.repeat(32)),
   );
 
   await controller.register(

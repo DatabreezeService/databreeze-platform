@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto';
-
 import { Body, Controller, HttpCode, Inject, Optional, Post, Req } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -17,17 +15,13 @@ import {
 import {
   IAM_REGISTRATION_EMAIL_ADMISSION,
   IAM_REGISTRATION_IP_ADMISSION,
+  IAM_REGISTRATION_ADMISSION_DIGEST,
+  type RegistrationAdmissionDigestPortV1,
   type RegistrationAdmissionPortV1,
 } from '../application/registration-repository.port.js';
 import { RegistrationProblemError } from '../application/registration-problem.error.js';
 import { RegistrationDto, RegistrationResponseDto } from './registration.dto.js';
 import { normalizeEmailAddressV1 } from '@databreeze/domain/identity/v1';
-
-function admissionDigest(kind: 'ip' | 'email', value: string): string {
-  return createHash('sha256')
-    .update(`databreeze:iam:registration:${kind}:v1:${value}`, 'utf8')
-    .digest('hex');
-}
 
 function requestIp(request: unknown): string {
   if (typeof request !== 'object' || request === null || !('ip' in request)) return 'unknown';
@@ -51,6 +45,9 @@ export class RegistrationController {
     @Optional()
     @Inject(IAM_REGISTRATION_EMAIL_ADMISSION)
     private readonly emailAdmission?: RegistrationAdmissionPortV1,
+    @Optional()
+    @Inject(IAM_REGISTRATION_ADMISSION_DIGEST)
+    private readonly admissionDigest?: RegistrationAdmissionDigestPortV1,
   ) {}
 
   @Post('register')
@@ -74,13 +71,25 @@ export class RegistrationController {
     // unit-test fallback intentionally skips this gate when no providers are composed; the
     // production module always supplies bounded adapters.
     const normalizedEmail = normalizeEmailAddressV1(input.email);
-    if (normalizedEmail.accepted && this.ipAdmission && this.emailAdmission) {
+    if (normalizedEmail.accepted && this.ipAdmission && this.emailAdmission && this.admissionDigest) {
       const issuedAt = new Date().toISOString();
       let admitted = false;
       try {
+        const allowAny = async (
+          admission: RegistrationAdmissionPortV1,
+          candidates: readonly string[],
+        ): Promise<boolean> => {
+          for (const candidate of candidates) {
+            if (await admission.allow(candidate, issuedAt)) return true;
+          }
+          return false;
+        };
         const [ipAllowed, emailAllowed] = await Promise.all([
-          this.ipAdmission.allow(admissionDigest('ip', requestIp(_request)), issuedAt),
-          this.emailAdmission.allow(admissionDigest('email', normalizedEmail.value), issuedAt),
+          allowAny(this.ipAdmission, this.admissionDigest.digestCandidates('ip', requestIp(_request))),
+          allowAny(
+            this.emailAdmission,
+            this.admissionDigest.digestCandidates('email', normalizedEmail.value),
+          ),
         ]);
         admitted = ipAllowed && emailAllowed;
       } catch {

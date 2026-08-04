@@ -4,6 +4,13 @@ import type { PersonalOrganizationBootstrapV1 } from '@databreeze/domain/identit
 export const IAM_REGISTRATION_REPOSITORY_PORT = Symbol('IAM_REGISTRATION_REPOSITORY_PORT');
 export const IAM_REGISTRATION_IP_ADMISSION = Symbol('IAM_REGISTRATION_IP_ADMISSION');
 export const IAM_REGISTRATION_EMAIL_ADMISSION = Symbol('IAM_REGISTRATION_EMAIL_ADMISSION');
+export const IAM_REGISTRATION_ADMISSION_DIGEST = Symbol('IAM_REGISTRATION_ADMISSION_DIGEST');
+
+export type RegistrationAdmissionDigestKeyV1 = string | Uint8Array;
+
+export interface RegistrationAdmissionDigestPortV1 {
+  digestCandidates(kind: 'ip' | 'email', value: string): readonly string[];
+}
 
 /** Abuse-control boundary for registration requests; callers pass only a one-way digest. */
 export interface RegistrationAdmissionPortV1 {
