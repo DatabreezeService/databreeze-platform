@@ -56,10 +56,13 @@ void test('[IAM-013] durable service-account storage requires a stable envelope 
     serviceAccountDatabase: {} as never,
     serviceAccountSecretEnvelopeKey: key,
   });
-  assert.ok(registered.providers?.some((provider) =>
-    typeof provider === 'object' &&
-    provider !== null &&
-    'provide' in provider &&
-    provider.provide === SERVICE_ACCOUNT_SERVICE,
-  ));
+  assert.ok(
+    registered.providers?.some(
+      (provider) =>
+        typeof provider === 'object' &&
+        provider !== null &&
+        'provide' in provider &&
+        provider.provide === SERVICE_ACCOUNT_SERVICE,
+    ),
+  );
 });

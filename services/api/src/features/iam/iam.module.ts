@@ -434,8 +434,8 @@ export class IamModule {
             keyPrefix: 'databreeze:iam:registration:email:v1:',
             maxAttempts: 5,
             windowSeconds: 15 * 60,
-          ...options.registrationEmailAdmissionOptions,
-        }));
+            ...options.registrationEmailAdmissionOptions,
+          }));
     if (
       registrationService !== undefined &&
       (registrationIpAdmission === undefined ||

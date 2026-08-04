@@ -161,8 +161,7 @@ export function revokeInvitationTokenV1(
   const timestampValue = timestamp(at);
   if (!timestampValue) return rejected('INVALID_TIMESTAMP');
   if (token.status !== 'ACTIVE') return rejected('INVALID_STATE');
-  if (Date.parse(timestampValue) < Date.parse(token.issuedAt))
-    return rejected('INVALID_TIMESTAMP');
+  if (Date.parse(timestampValue) < Date.parse(token.issuedAt)) return rejected('INVALID_TIMESTAMP');
   return accepted(
     Object.freeze({
       ...token,

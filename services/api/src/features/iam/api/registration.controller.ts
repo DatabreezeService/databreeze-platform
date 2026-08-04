@@ -71,7 +71,12 @@ export class RegistrationController {
     // unit-test fallback intentionally skips this gate when no providers are composed; the
     // production module always supplies bounded adapters.
     const normalizedEmail = normalizeEmailAddressV1(input.email);
-    if (normalizedEmail.accepted && this.ipAdmission && this.emailAdmission && this.admissionDigest) {
+    if (
+      normalizedEmail.accepted &&
+      this.ipAdmission &&
+      this.emailAdmission &&
+      this.admissionDigest
+    ) {
       const issuedAt = new Date().toISOString();
       let admitted = false;
       try {
@@ -85,7 +90,10 @@ export class RegistrationController {
           return false;
         };
         const [ipAllowed, emailAllowed] = await Promise.all([
-          allowAny(this.ipAdmission, this.admissionDigest.digestCandidates('ip', requestIp(_request))),
+          allowAny(
+            this.ipAdmission,
+            this.admissionDigest.digestCandidates('ip', requestIp(_request)),
+          ),
           allowAny(
             this.emailAdmission,
             this.admissionDigest.digestCandidates('email', normalizedEmail.value),

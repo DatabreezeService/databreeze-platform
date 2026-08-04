@@ -185,10 +185,7 @@ class Delivery implements IamInvitationDeliveryPortV1 {
   }
 }
 
-function service(
-  repository: Repository,
-  delivery: IamInvitationDeliveryPortV1 = new Delivery(),
-) {
+function service(repository: Repository, delivery: IamInvitationDeliveryPortV1 = new Delivery()) {
   const idsQueue: string[] = [ids.invitation, ids.invitation];
   const idGenerator: IamInvitationIdGeneratorV1 = () => {
     const next = idsQueue.shift();

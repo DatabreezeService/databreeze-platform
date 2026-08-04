@@ -15,7 +15,10 @@ void test('[IAM-001] registration admission digests are keyed and support bounde
   assert.equal(candidates.length, 2);
   assert.notEqual(candidates[0], candidates[1]);
   assert.match(candidates[0] ?? '', /^[a-f0-9]{64}$/u);
-  assert.equal(candidates.some((digest) => digest.includes('user@example.com')), false);
+  assert.equal(
+    candidates.some((digest) => digest.includes('user@example.com')),
+    false,
+  );
   assert.deepEqual(candidates, adapter.digestCandidates('email', 'User@example.com'));
 });
 
