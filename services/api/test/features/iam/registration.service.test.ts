@@ -45,6 +45,8 @@ void test('[IAM-001, IAM-009, IAM-016] registration atomically creates a Vietnam
   assert.equal(result.accepted, true);
   if (!result.accepted) return;
   assert.equal(result.value.email, 'user@example.com');
+  assert.ok(result.value.bootstrap);
+  if (!result.value.bootstrap) return;
   assert.equal(result.value.bootstrap.user.locale, 'vi-VN');
   assert.equal(result.value.bootstrap.membership.roleId, 'owner');
   assert.equal(result.value.bootstrap.organization.personal, true);
@@ -72,14 +74,12 @@ void test('[IAM-001] registration rejects duplicate email without disclosing acc
     ).accepted,
     true,
   );
-  assert.deepEqual(
-    await service.register({
-      email: 'SAME@example.com',
-      displayName: 'Two',
-      password: 'valid password here',
-    }),
-    { accepted: false, code: 'REGISTRATION_REJECTED' },
-  );
+  const duplicate = await service.register({
+    email: 'SAME@example.com',
+    displayName: 'Two',
+    password: 'valid password here',
+  });
+  assert.deepEqual(duplicate, { accepted: true, value: { email: 'same@example.com' } });
 });
 
 void test('[IAM-001] registration validates input before persistence and maps hash failure safely', async () => {

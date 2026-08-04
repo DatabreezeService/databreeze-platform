@@ -1,8 +1,8 @@
-import { Body, Controller, HttpCode, Inject, Optional, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, Inject, Optional, Post, Req } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBody,
-  ApiCreatedResponse,
+  ApiAcceptedResponse,
   ApiOperation,
   ApiServiceUnavailableResponse,
   ApiTags,
@@ -26,16 +26,19 @@ export class RegistrationController {
   ) {}
 
   @Post('register')
-  @HttpCode(201)
+  @HttpCode(202)
   @ApiOperation({
     summary: 'Create an account and personal organization hierarchy',
     description: 'Registration does not return bearer material; sign in separately after creation.',
   })
   @ApiBody({ type: RegistrationDto })
-  @ApiCreatedResponse({ type: RegistrationResponseDto })
+  @ApiAcceptedResponse({ type: RegistrationResponseDto })
   @ApiBadRequestResponse({ description: 'The registration request was rejected.' })
   @ApiServiceUnavailableResponse({ description: 'Registration persistence is unavailable.' })
-  async register(@Body() input: RegistrationDto): Promise<RegistrationResponseDto> {
+  async register(
+    @Body() input: RegistrationDto,
+    @Req() _request?: unknown,
+  ): Promise<RegistrationResponseDto> {
     if (this.registration === undefined)
       throw new RegistrationProblemError('REGISTRATION_UNAVAILABLE');
     const result = await this.registration.register(input);
@@ -46,13 +49,6 @@ export class RegistrationController {
           : 'REGISTRATION_REQUEST_REJECTED',
       );
     }
-    return {
-      userId: result.value.bootstrap.user.id,
-      organizationId: result.value.bootstrap.organization.id,
-      workspaceId: result.value.bootstrap.workspace.id,
-      projectId: result.value.bootstrap.project.id,
-      membershipId: result.value.bootstrap.membership.id,
-      locale: result.value.bootstrap.user.locale,
-    };
+    return { accepted: true };
   }
 }

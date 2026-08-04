@@ -3083,7 +3083,7 @@
           }
         },
         "responses": {
-          "201": {
+          "202": {
             "description": "",
             "content": {
               "application/json": {
@@ -10425,22 +10425,8 @@
       },
       "RegistrationResponseDto": {
         "type": "object",
-        "properties": {
-          "userId": { "type": "string", "format": "uuid" },
-          "organizationId": { "type": "string", "format": "uuid" },
-          "workspaceId": { "type": "string", "format": "uuid" },
-          "projectId": { "type": "string", "format": "uuid" },
-          "membershipId": { "type": "string", "format": "uuid" },
-          "locale": { "type": "string", "enum": ["vi-VN", "en"] }
-        },
-        "required": [
-          "userId",
-          "organizationId",
-          "workspaceId",
-          "projectId",
-          "membershipId",
-          "locale"
-        ]
+        "properties": { "accepted": { "type": "boolean", "enum": [true], "example": true } },
+        "required": ["accepted"]
       },
       "RecoveryRequestDto": {
         "type": "object",

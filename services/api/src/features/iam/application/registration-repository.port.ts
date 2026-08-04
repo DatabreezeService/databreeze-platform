@@ -36,7 +36,7 @@ export type RegistrationFailureCodeV1 =
   | 'REGISTRATION_UNAVAILABLE';
 
 export interface RegistrationValueV1 {
-  readonly bootstrap: PersonalOrganizationBootstrapV1;
+  readonly bootstrap?: PersonalOrganizationBootstrapV1;
   readonly email: string;
 }
 
