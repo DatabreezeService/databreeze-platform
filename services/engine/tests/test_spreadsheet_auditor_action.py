@@ -251,7 +251,7 @@ def test_dispatch_rejects_auditor_input_hash_mismatch(
         dispatch_execution(
             request,
             wall_clock=lambda: datetime(2026, 1, 1, tzinfo=UTC),
-            input_reader=lambda _handle: b"changed workbook",
+            input_reader=lambda _handle: bytes([content[0] ^ 1]) + content[1:],
         )
 
 
