@@ -559,7 +559,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   ]) {
     assert.match(
       invitationMigration,
-      new RegExp(statement.replaceAll(/[.*+?^${}()|[\\]\\]/g, '\\$&')),
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
   }
   const activeInvitationMigration = await readFile(
