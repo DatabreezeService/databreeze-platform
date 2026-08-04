@@ -12,6 +12,7 @@ from ..folder_autopilot_contracts import (
     DestinationState,
     PlanOperation,
     PlanReason,
+    PlanStatus,
     PlanStep,
 )
 
@@ -40,7 +41,7 @@ def _unique_name(name: str, occupied: set[tuple[str, str]], binding_id: str) -> 
 
 def _plan_hash(
     request: AutopilotPlanRequest,
-    status: str,
+    status: PlanStatus,
     operations: tuple[PlanOperation, ...],
     reason_codes: tuple[PlanReason, ...],
 ) -> str:
@@ -126,7 +127,13 @@ def evaluate_autopilot_plan(request: AutopilotPlanRequest) -> AutopilotPlan:
         operations.append(operation)
         occupied.add((binding_id, destination_name))
 
-    status = "REVIEW" if review_required else "SKIPPED" if not operations and skipped else "READY"
+    status: PlanStatus
+    if review_required:
+        status = "REVIEW"
+    elif not operations and skipped:
+        status = "SKIPPED"
+    else:
+        status = "READY"
     reason_tuple = tuple(dict.fromkeys(reason_codes))
     operation_tuple = tuple(operations)
     return AutopilotPlan(
