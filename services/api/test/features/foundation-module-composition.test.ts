@@ -97,7 +97,10 @@ void test('[IAM-001, AUD-001, BUA-001] application composition includes identity
 });
 
 void test('[SA-001] configured spreadsheet audit persistence uses the Prisma adapter', () => {
-  const registered = SaModule.register({ spreadsheetAuditDatabase: {} as never });
+  const registered = SaModule.register({
+    spreadsheetAuditDatabase: {} as never,
+    allowInMemorySpreadsheetAuditRunRepository: true,
+  });
   const provider = registered.providers?.find(
     (candidate) =>
       typeof candidate === 'object' &&
@@ -108,6 +111,13 @@ void test('[SA-001] configured spreadsheet audit persistence uses the Prisma ada
   assert.ok(provider && 'useValue' in provider);
   if (!provider || !('useValue' in provider)) return;
   assert.ok(provider.useValue instanceof PrismaSpreadsheetAuditRepositoryAdapter);
+});
+
+void test('[SA-001] production composition refuses an implicit in-memory run repository', () => {
+  assert.throws(
+    () => SaModule.register({ spreadsheetAuditDatabase: {} as never }),
+    /SA_RUN_DURABLE_REPOSITORY_REQUIRED/u,
+  );
 });
 
 void test('[AUD-001] configured audit persistence uses the Prisma adapter instead of the local fallback', () => {

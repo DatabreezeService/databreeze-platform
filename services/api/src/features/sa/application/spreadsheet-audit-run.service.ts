@@ -9,13 +9,15 @@ import {
 } from '@databreeze/domain/spreadsheet-audit-run/v1';
 import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
+import type { ArtifactRepositoryPortV1 } from '../../iae/application/artifact-repository.port.js';
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type { SpreadsheetAuditRunRepositoryPortV1 } from './spreadsheet-audit-run-repository.port.js';
 
 export type SpreadsheetAuditRunServiceErrorV1 =
   | SpreadsheetAuditRunErrorCodeV1
   | 'SA_RUN_NOT_FOUND'
-  | 'SA_RUN_IDEMPOTENCY_CONFLICT';
+  | 'SA_RUN_IDEMPOTENCY_CONFLICT'
+  | 'SA_RUN_ARTIFACT_UNAVAILABLE';
 
 export type SpreadsheetAuditRunServiceResultV1<TValue> =
   | { readonly accepted: true; readonly value: TValue }
@@ -34,6 +36,7 @@ function rejected<TValue>(
 export class SpreadsheetAuditRunService {
   public constructor(
     private readonly repository: SpreadsheetAuditRunRepositoryPortV1,
+    private readonly artifactRepository?: ArtifactRepositoryPortV1,
     private readonly idGenerator: SpreadsheetAuditRunIdGeneratorV1 = () => randomUUID(),
     private readonly clock: SpreadsheetAuditRunClockV1 = () => new Date(),
   ) {}
@@ -44,6 +47,27 @@ export class SpreadsheetAuditRunService {
   ): Promise<SpreadsheetAuditRunServiceResultV1<SpreadsheetAuditRunHandleV1>> {
     const request = createSpreadsheetAuditRunAdmissionRequestV1(input);
     if (!request.accepted) return rejected(request.code);
+    const artifactAvailable =
+      this.artifactRepository === undefined
+        ? false
+        : await this.artifactRepository.withTransaction(context, async (transaction) => {
+            const version = await transaction.findVersion(context, request.value.artifactVersionId);
+            if (
+              version === undefined ||
+              version.status !== 'ACTIVE' ||
+              version.scanState !== 'CLEAN'
+            )
+              return false;
+            const placements = await transaction.listPlacements(
+              context,
+              request.value.artifactVersionId,
+            );
+            return placements.some(
+              (placement) =>
+                placement.artifactVersionId === version.versionId && placement.available,
+            );
+          });
+    if (!artifactAvailable) return rejected('SA_RUN_ARTIFACT_UNAVAILABLE');
     return this.repository.withTransaction(context, async (transaction) => {
       const existing = await transaction.findByIdempotency(context, context.idempotencyKey);
       if (existing) {

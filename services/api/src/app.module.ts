@@ -39,6 +39,9 @@ export class AppModule {
       ...options,
       ...(sessions === undefined ? {} : { sessions }),
       ...(requestTenantContext === undefined ? {} : { requestTenantContext }),
+      allowInMemorySpreadsheetAuditRunRepository:
+        options.allowInMemorySpreadsheetAuditRunRepository ??
+        process.env['NODE_ENV'] !== 'production',
     };
     return {
       module: AppModule,

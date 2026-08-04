@@ -17,6 +17,10 @@ import {
   type SpreadsheetAuditRunRepositoryPortV1,
 } from './application/spreadsheet-audit-run-repository.port.js';
 import {
+  ARTIFACT_REPOSITORY_PORT,
+  type ArtifactRepositoryPortV1,
+} from '../iae/application/artifact-repository.port.js';
+import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
   UnavailableRequestTenantContextAdapter,
@@ -24,7 +28,10 @@ import {
 
 export interface SaModuleOptions {
   readonly spreadsheetAuditRepository?: SpreadsheetAuditRepositoryPortV1;
+  readonly artifactRepository?: ArtifactRepositoryPortV1;
   readonly spreadsheetAuditRunRepository?: SpreadsheetAuditRunRepositoryPortV1;
+  /** Local/test composition must opt in; production requires a durable JRA-owned store. */
+  readonly allowInMemorySpreadsheetAuditRunRepository?: boolean;
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly spreadsheetAuditDatabase?: SpreadsheetAuditDatabaseClientV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
@@ -33,6 +40,14 @@ export interface SaModuleOptions {
 @Module({})
 export class SaModule {
   public static register(options: SaModuleOptions = {}): DynamicModule {
+    const spreadsheetAuditRunRepository =
+      options.spreadsheetAuditRunRepository ??
+      (options.allowInMemorySpreadsheetAuditRunRepository === true
+        ? new InMemorySpreadsheetAuditRunRepositoryAdapter()
+        : undefined);
+    if (spreadsheetAuditRunRepository === undefined)
+      throw new Error('SA_RUN_DURABLE_REPOSITORY_REQUIRED');
+
     return {
       module: SaModule,
       controllers: [SpreadsheetAuditController, SpreadsheetAuditRunController],
@@ -47,16 +62,21 @@ export class SaModule {
         },
         {
           provide: SPREADSHEET_AUDIT_RUN_REPOSITORY_PORT,
-          useValue:
-            options.spreadsheetAuditRunRepository ??
-            new InMemorySpreadsheetAuditRunRepositoryAdapter(),
+          useValue: spreadsheetAuditRunRepository,
         },
+        ...(options.artifactRepository === undefined
+          ? []
+          : [{ provide: ARTIFACT_REPOSITORY_PORT, useValue: options.artifactRepository }]),
         {
           provide: REQUEST_TENANT_CONTEXT,
           useValue: options.requestTenantContext ?? new UnavailableRequestTenantContextAdapter(),
         },
       ],
-      exports: [SPREADSHEET_AUDIT_REPOSITORY_PORT, SPREADSHEET_AUDIT_RUN_REPOSITORY_PORT],
+      exports: [
+        SPREADSHEET_AUDIT_REPOSITORY_PORT,
+        SPREADSHEET_AUDIT_RUN_REPOSITORY_PORT,
+        ...(options.artifactRepository === undefined ? [] : [ARTIFACT_REPOSITORY_PORT]),
+      ],
     };
   }
 }

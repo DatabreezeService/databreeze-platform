@@ -1,10 +1,14 @@
-import { Body, Controller, Get, Inject, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Optional, Param, Post, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import {
   SPREADSHEET_AUDIT_RUN_REPOSITORY_PORT,
   type SpreadsheetAuditRunRepositoryPortV1,
 } from '../application/spreadsheet-audit-run-repository.port.js';
+import {
+  ARTIFACT_REPOSITORY_PORT,
+  type ArtifactRepositoryPortV1,
+} from '../../iae/application/artifact-repository.port.js';
 import { SpreadsheetAuditRunService } from '../application/spreadsheet-audit-run.service.js';
 import { AdmitSpreadsheetAuditRunDto } from './spreadsheet-audit-run.dto.js';
 import {
@@ -21,9 +25,12 @@ export class SpreadsheetAuditRunController {
   public constructor(
     @Inject(SPREADSHEET_AUDIT_RUN_REPOSITORY_PORT)
     repository: SpreadsheetAuditRunRepositoryPortV1,
+    @Optional()
+    @Inject(ARTIFACT_REPOSITORY_PORT)
+    artifactRepository: ArtifactRepositoryPortV1 | undefined,
     @Inject(REQUEST_TENANT_CONTEXT) private readonly requestContext: RequestTenantContextPortV1,
   ) {
-    this.runs = new SpreadsheetAuditRunService(repository);
+    this.runs = new SpreadsheetAuditRunService(repository, artifactRepository);
   }
 
   @Post()
