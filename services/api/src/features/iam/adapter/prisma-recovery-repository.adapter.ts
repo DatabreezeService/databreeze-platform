@@ -238,7 +238,7 @@ class PrismaRecoveryTransactionAdapter implements RecoveryTransactionPortV1 {
     const user = await this.client.userIdentity.findUnique({
       where: { id: input.challenge.userId },
     });
-    if (!user || user.status === 'DEACTIVATED' || user.id !== input.challenge.userId)
+    if (!user || user.status !== 'ACTIVE' || user.id !== input.challenge.userId)
       throw new Error('IAM_RECOVERY_USER_NOT_FOUND');
     const updatedUser = await this.client.userIdentity.updateMany({
       where: { id: user.id, securityEpoch: user.securityEpoch },
