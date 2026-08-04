@@ -84,9 +84,15 @@ interface IamInvitationTokenDelegateV1 {
   }): Promise<{ readonly count: number }>;
 }
 
+interface IamInvitationDeliveryFailureDelegateV1 {
+  findUnique(input: { readonly where: Readonly<Record<string, unknown>> }): Promise<unknown | null>;
+  create(input: { readonly data: Readonly<Record<string, unknown>> }): Promise<unknown>;
+}
+
 interface IamInvitationTransactionDatabaseClientV1 {
   readonly membershipIdentity: IamInvitationMembershipDelegateV1;
   readonly invitationTokenRecord: IamInvitationTokenDelegateV1;
+  readonly invitationDeliveryFailure?: IamInvitationDeliveryFailureDelegateV1;
 }
 
 export interface IamInvitationDatabaseClientV1 extends IamInvitationTransactionDatabaseClientV1 {
@@ -267,6 +273,32 @@ class PrismaIamInvitationTransactionAdapter implements IamInvitationTransactionP
     if (!row) return undefined;
     const invitation = invitationFromRow(row);
     return tenantScopeContainsV1(context.tenantScope, invitation.scope) ? invitation : undefined;
+  }
+
+  public async isDeliveryBlocked(
+    _context: IamTenantContextV1,
+    tokenDigest: string,
+  ): Promise<boolean> {
+    const delegate = this.client.invitationDeliveryFailure;
+    if (!delegate) throw new Error('IAM_INVITATION_DELIVERY_MARKER_UNAVAILABLE');
+    return (await delegate.findUnique({ where: { tokenDigest } })) !== null;
+  }
+
+  public async recordDeliveryFailure(
+    _context: IamTenantContextV1,
+    tokenDigest: string,
+    recordedAt: string,
+  ): Promise<void> {
+    const delegate = this.client.invitationDeliveryFailure;
+    if (!delegate) throw new Error('IAM_INVITATION_DELIVERY_MARKER_UNAVAILABLE');
+    try {
+      await delegate.create({
+        data: { tokenDigest, recordedAt: new Date(recordedAt) },
+      });
+    } catch (error) {
+      if (uniqueConstraint(error)) return;
+      throw error;
+    }
   }
 
   public async saveInvitation(

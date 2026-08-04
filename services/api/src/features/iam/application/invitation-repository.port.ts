@@ -23,6 +23,12 @@ export interface IamInvitationTransactionPortV1 {
     context: IamTenantContextV1,
     membershipId: StableIdentifierV1,
   ): Promise<InvitationTokenV1 | undefined>;
+  isDeliveryBlocked?(context: IamTenantContextV1, tokenDigest: string): Promise<boolean>;
+  recordDeliveryFailure?(
+    context: IamTenantContextV1,
+    tokenDigest: string,
+    recordedAt: string,
+  ): Promise<void>;
   saveInvitation(context: IamTenantContextV1, invitation: InvitationTokenV1): Promise<void>;
   saveMembership(context: IamTenantContextV1, membership: IamMembershipRecordV1): Promise<void>;
 }

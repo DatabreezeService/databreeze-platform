@@ -152,3 +152,22 @@ export function consumeInvitationTokenV1(
     }),
   );
 }
+
+/** Revoke a token after a delivery acknowledgement failure; no bearer is reusable. */
+export function revokeInvitationTokenV1(
+  token: InvitationTokenV1,
+  at: unknown,
+): InvitationTokenResultV1<InvitationTokenV1> {
+  const timestampValue = timestamp(at);
+  if (!timestampValue) return rejected('INVALID_TIMESTAMP');
+  if (token.status !== 'ACTIVE') return rejected('INVALID_STATE');
+  if (Date.parse(timestampValue) < Date.parse(token.issuedAt))
+    return rejected('INVALID_TIMESTAMP');
+  return accepted(
+    Object.freeze({
+      ...token,
+      status: 'REVOKED' as const,
+      revision: token.revision + 1,
+    }),
+  );
+}

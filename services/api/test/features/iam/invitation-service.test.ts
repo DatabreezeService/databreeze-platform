@@ -185,7 +185,10 @@ class Delivery implements IamInvitationDeliveryPortV1 {
   }
 }
 
-function service(repository: Repository, delivery = new Delivery()) {
+function service(
+  repository: Repository,
+  delivery: IamInvitationDeliveryPortV1 = new Delivery(),
+) {
   const idsQueue: string[] = [ids.invitation, ids.invitation];
   const idGenerator: IamInvitationIdGeneratorV1 = () => {
     const next = idsQueue.shift();
@@ -203,7 +206,7 @@ function service(repository: Repository, delivery = new Delivery()) {
       delivery,
       () => now,
     ),
-    delivery,
+    delivery: delivery as Delivery,
   };
 }
 
@@ -242,6 +245,28 @@ void test('[IAM-010] invitation persistence commits before raw-token delivery', 
     true,
   );
   assert.equal(persistedDuringDelivery, true);
+});
+
+void test('[IAM-010] delivery acknowledgement failures revoke and block the invitation bearer', async () => {
+  const repository = new Repository();
+  const composed = service(repository, {
+    deliver: async () => {
+      await Promise.resolve();
+      throw new Error('provider acknowledgement unavailable');
+    },
+  });
+  assert.deepEqual(
+    await composed.service.issue(context(ids.owner, 'invitation-delivery-failure'), {
+      membershipId: ids.invitedMembership,
+      recipientEmail: 'invitee@example.com',
+    }),
+    { accepted: false, code: 'DELIVERY_UNAVAILABLE' },
+  );
+  assert.equal(repository.invitations[0]?.status, 'REVOKED');
+  assert.deepEqual(
+    await composed.service.accept(context(ids.invitee, 'invitation-delivery-accept'), RAW_TOKEN),
+    { accepted: false, code: 'INVALID_TOKEN' },
+  );
 });
 
 void test('[IAM-010] email mismatch and non-owner issuance are denied without persistence', async () => {
