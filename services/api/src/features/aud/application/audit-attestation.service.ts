@@ -10,7 +10,6 @@ import {
 } from '@databreeze/domain/audit/v1';
 import {
   parseStableIdentifierV1,
-  tenantScopeKeyV1,
   type StableIdentifierV1,
 } from '@databreeze/domain/tenant-scope/v1';
 
@@ -90,14 +89,12 @@ export class AuditAttestationService {
     if (!firstSequence || !lastSequence || lastSequence < firstSequence)
       return rejected('INVALID_SEQUENCE');
     if (!rootDigest) return rejected('INVALID_TEXT');
-    const seals = await this.auditRepository.listSeals(context);
-    const seal = seals.find(
-      (candidate) =>
-        tenantScopeKeyV1(candidate.tenantScope) === tenantScopeKeyV1(context.tenantScope) &&
-        candidate.firstSequence === firstSequence &&
-        candidate.lastSequence === lastSequence &&
-        candidate.rootDigest === rootDigest,
-    );
+    const seal = await this.auditRepository.findSeal(context, {
+      tenantScope: context.tenantScope,
+      firstSequence,
+      lastSequence,
+      rootDigest,
+    });
     if (!seal) return rejected('NOT_FOUND');
     const created = createAuditSealAttestationV1(
       seal,
@@ -119,14 +116,12 @@ export class AuditAttestationService {
     if (!attestationId) return rejected('INVALID_IDENTIFIER');
     const attestation = await this.attestationRepository.findAttestation(context, attestationId);
     if (!attestation) return rejected('NOT_FOUND');
-    const seals = await this.auditRepository.listSeals(context);
-    const seal = seals.find(
-      (candidate) =>
-        tenantScopeKeyV1(candidate.tenantScope) === tenantScopeKeyV1(attestation.tenantScope) &&
-        candidate.firstSequence === attestation.firstSequence &&
-        candidate.lastSequence === attestation.lastSequence &&
-        candidate.rootDigest === attestation.rootDigest,
-    );
+    const seal = await this.auditRepository.findSeal(context, {
+      tenantScope: attestation.tenantScope,
+      firstSequence: attestation.firstSequence,
+      lastSequence: attestation.lastSequence,
+      rootDigest: attestation.rootDigest,
+    });
     if (!seal) return rejected('NOT_FOUND');
     return applicationResult(verifyAuditSealAttestationV1(attestation, seal, this.signer));
   }

@@ -10,6 +10,7 @@ import type {
   AuditPageInputV1,
   AuditPageV1,
   AuditRepositoryPortV1,
+  AuditSealSelectorV1,
   AuditTransactionPortV1,
 } from '../application/audit-repository.port.js';
 import { createAuditPageCursorV1, auditPageOffsetV1 } from '../application/audit-page-cursor.js';
@@ -148,6 +149,22 @@ export class InMemoryAuditRepositoryAdapter implements AuditRepositoryPortV1 {
       .filter((seal) => visibleInScope(context.tenantScope, seal.tenantScope))
       .sort((left, right) => left.firstSequence - right.firstSequence)
       .map(cloneSeal);
+  }
+
+  async findSeal(
+    context: IamTenantContextV1,
+    selector: AuditSealSelectorV1,
+  ): Promise<AuditSealV1 | undefined> {
+    await Promise.resolve();
+    if (!visibleInScope(context.tenantScope, selector.tenantScope)) return undefined;
+    const seal = [...this.seals.values()].find(
+      (candidate) =>
+        tenantScopeKeyV1(candidate.tenantScope) === tenantScopeKeyV1(selector.tenantScope) &&
+        candidate.firstSequence === selector.firstSequence &&
+        candidate.lastSequence === selector.lastSequence &&
+        candidate.rootDigest === selector.rootDigest,
+    );
+    return seal ? cloneSeal(seal) : undefined;
   }
 
   async listSealPage(

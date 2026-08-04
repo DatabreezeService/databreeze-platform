@@ -132,6 +132,7 @@ function scopeWhere(context: IamTenantContextV1): Readonly<Record<string, unknow
       OR: [
         { scopeType: 'organization' },
         { scopeType: 'workspace', workspaceId: context.tenantScope.workspaceId },
+        { scopeType: 'project', workspaceId: context.tenantScope.workspaceId },
       ],
     };
   }

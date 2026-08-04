@@ -192,6 +192,17 @@ void test('[AUD-015, AUD-018] Prisma audit adapter persists and reads immutable 
   );
   assert.equal((await repository.listSeals(context(workspaceId, 'read'))).length, 1);
   assert.equal((await repository.listSeals(context(siblingWorkspaceId, 'sibling'))).length, 0);
+  assert.equal(
+    (
+      await repository.findSeal(context(workspaceId, 'targeted'), {
+        tenantScope: context(workspaceId, 'selector').tenantScope,
+        firstSequence: sealed.accepted ? sealed.value.firstSequence : 1,
+        lastSequence: sealed.accepted ? sealed.value.lastSequence : 1,
+        rootDigest: sealed.accepted ? sealed.value.rootDigest : 'missing',
+      })
+    )?.rootDigest,
+    sealed.accepted ? sealed.value.rootDigest : undefined,
+  );
 });
 
 void test('[AUD-002] Prisma audit transactions do not retain an event when the unit of work fails', async () => {
