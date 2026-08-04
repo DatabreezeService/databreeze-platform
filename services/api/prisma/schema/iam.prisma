@@ -139,6 +139,15 @@ model RecoveryChallengeRecord {
   @@schema("iam")
 }
 
+/// IAM-015: delivery-compensation failures remain blocked across restarts until reviewed.
+model RecoveryCompensationFailureRecord {
+  tokenDigest String   @id @map("token_digest") @db.Char(64)
+  recordedAt  DateTime @map("recorded_at") @db.Timestamptz(6)
+
+  @@map("recovery_compensation_failures")
+  @@schema("iam")
+}
+
 model SessionRecord {
   id                 String   @id @db.Uuid
   userId             String   @map("user_id") @db.Uuid

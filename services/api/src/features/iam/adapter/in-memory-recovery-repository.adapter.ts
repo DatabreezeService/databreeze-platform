@@ -24,6 +24,7 @@ function cloneChallenge(value: RecoveryChallengeV1): RecoveryChallengeV1 {
 export class InMemoryRecoveryRepositoryAdapter implements RecoveryRepositoryPortV1 {
   private accounts = new Map<string, RecoveryAccountV1>();
   private challenges = new Map<string, RecoveryChallengeV1>();
+  private compensationFailures = new Map<string, string>();
   private transactionTail: Promise<void> = Promise.resolve();
 
   public seed(input: {
@@ -69,6 +70,7 @@ export class InMemoryRecoveryRepositoryAdapter implements RecoveryRepositoryPort
       ]),
     );
     const beforeChallenges = new Map(this.challenges);
+    const beforeCompensationFailures = new Map(this.compensationFailures);
     const transaction: RecoveryTransactionPortV1 = {
       findUserIdByEmail: async (email) => {
         await Promise.resolve();
@@ -84,6 +86,14 @@ export class InMemoryRecoveryRepositoryAdapter implements RecoveryRepositoryPort
         return [...this.challenges.values()].find(
           (challenge) => challenge.userId === userId && challenge.status === 'ACTIVE',
         );
+      },
+      isChallengeCompensationBlocked: async (tokenDigest) => {
+        await Promise.resolve();
+        return this.compensationFailures.has(tokenDigest);
+      },
+      recordChallengeCompensationFailure: async (tokenDigest, recordedAt) => {
+        await Promise.resolve();
+        this.compensationFailures.set(tokenDigest, recordedAt);
       },
       saveChallenge: async (challenge) => {
         await Promise.resolve();
@@ -114,6 +124,7 @@ export class InMemoryRecoveryRepositoryAdapter implements RecoveryRepositoryPort
     } catch (error) {
       this.accounts = beforeAccounts;
       this.challenges = beforeChallenges;
+      this.compensationFailures = beforeCompensationFailures;
       throw error;
     } finally {
       release();

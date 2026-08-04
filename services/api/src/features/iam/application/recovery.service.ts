@@ -83,6 +83,8 @@ function inputRejected(code: RecoveryFailureCodeV1): {
 
 /** Public recovery flow: generic requests, hashed single-use tokens, and atomic credential reset. */
 export class RecoveryService {
+  private readonly compensationBlocked = new Set<string>();
+
   public constructor(private readonly ports: RecoveryServicePortsV1) {}
 
   public async request(emailInput: unknown): Promise<RecoveryRequestResultV1> {
@@ -169,7 +171,17 @@ export class RecoveryService {
           await transaction.saveChallenge(revoked.value);
         });
       } catch {
-        // The challenge remains unusable only if the compensating revocation also fails.
+        try {
+          await this.ports.repository.withTransaction(async (transaction) => {
+            await transaction.recordChallengeCompensationFailure(
+              issued.tokenDigest,
+              timestamp(this.ports.clock) ?? issuedAt,
+            );
+          });
+        } catch {
+          // Keep a process-local fail-closed marker while the durable marker is unavailable.
+          this.compensationBlocked.add(issued.tokenDigest);
+        }
       }
       return unavailable();
     }
@@ -201,11 +213,14 @@ export class RecoveryService {
       }
     }
 
+    if (this.compensationBlocked.has(digest)) return inputRejected('INVALID_TOKEN');
+
     // Resolve and validate the challenge before doing expensive password work. This
     // keeps unknown, expired, and already-consumed tokens cheap and indistinguishable.
     let candidate: ReturnType<typeof consumeRecoveryChallengeV1> | undefined;
     try {
       candidate = await this.ports.repository.withTransaction(async (transaction) => {
+        if (await transaction.isChallengeCompensationBlocked(digest)) return undefined;
         const challenge = await transaction.findChallengeByTokenDigest(digest);
         return challenge ? consumeRecoveryChallengeV1(challenge, now) : undefined;
       });

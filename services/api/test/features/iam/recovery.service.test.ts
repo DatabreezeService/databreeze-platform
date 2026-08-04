@@ -5,7 +5,10 @@ import { InMemoryRecoveryRepositoryAdapter } from '../../../src/features/iam/ada
 import { InMemoryRecoveryAdmissionAdapter } from '../../../src/features/iam/adapter/in-memory-recovery-admission.adapter.js';
 import { PasswordCredentialService } from '../../../src/features/iam/application/password-credential.service.js';
 import { RecoveryService } from '../../../src/features/iam/application/recovery.service.js';
-import type { RecoveryDeliveryPortV1 } from '../../../src/features/iam/application/recovery-repository.port.js';
+import type {
+  RecoveryDeliveryPortV1,
+  RecoveryRepositoryPortV1,
+} from '../../../src/features/iam/application/recovery-repository.port.js';
 
 const userId = '00000000-0000-4000-8000-000000000001';
 const token = 'recovery-token-abcdefghijklmnopqrstuvwxyz-123456';
@@ -254,6 +257,45 @@ void test('[IAM-015] recovery delivery failures revoke the new challenge', async
     code: 'RECOVERY_UNAVAILABLE',
   });
   assert.equal(repository.challenge('a'.repeat(64))?.status, 'REVOKED');
+});
+
+void test('[IAM-015] recovery blocks completion when compensating revocation cannot be persisted', async () => {
+  const repository = new InMemoryRecoveryRepositoryAdapter();
+  repository.seed({ email: 'user@example.com', userId });
+  const failingCompensationRepository: RecoveryRepositoryPortV1 = {
+    withTransaction: (work) =>
+      repository.withTransaction((transaction) =>
+        work({
+          ...transaction,
+          saveChallenge: async (challenge) => {
+            if (challenge.status === 'REVOKED') throw new Error('compensation unavailable');
+            await transaction.saveChallenge(challenge);
+          },
+        }),
+      ),
+  };
+  const recovery = new RecoveryService({
+    repository: failingCompensationRepository,
+    passwordCredentials: credentials(),
+    digest: { digestToken: () => 'a'.repeat(64), digestEmail: () => 'b'.repeat(64) },
+    delivery: {
+      deliver: async () => {
+        throw new Error('provider down');
+      },
+    },
+    ids: { next: () => '00000000-0000-4000-8000-000000000002' },
+    tokens: { next: () => token },
+    clock: { now: () => new Date('2026-08-03T00:00:00.000Z') },
+  });
+  assert.deepEqual(await recovery.request('user@example.com'), {
+    accepted: false,
+    code: 'RECOVERY_UNAVAILABLE',
+  });
+  assert.equal(repository.challenge('a'.repeat(64))?.status, 'ACTIVE');
+  assert.deepEqual(await recovery.complete(token, 'new correct horse battery staple'), {
+    accepted: false,
+    code: 'INVALID_TOKEN',
+  });
 });
 
 void test('[IAM-015] recovery persistence conflicts preserve an existing active challenge', async () => {

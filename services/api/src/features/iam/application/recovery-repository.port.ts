@@ -19,6 +19,8 @@ export interface RecoveryTransactionPortV1 {
   findUserIdByEmail(email: string): Promise<StableIdentifierV1 | undefined>;
   findChallengeByTokenDigest(tokenDigest: string): Promise<RecoveryChallengeV1 | undefined>;
   findActiveChallengeForUser(userId: StableIdentifierV1): Promise<RecoveryChallengeV1 | undefined>;
+  isChallengeCompensationBlocked(tokenDigest: string): Promise<boolean>;
+  recordChallengeCompensationFailure(tokenDigest: string, recordedAt: string): Promise<void>;
   saveChallenge(challenge: RecoveryChallengeV1): Promise<void>;
   completeRecovery(input: RecoveryCompletionInputV1): Promise<void>;
 }

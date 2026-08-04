@@ -41,6 +41,11 @@ export interface RecoverySessionDatabaseRowV1 {
   readonly familyId: string;
 }
 
+interface RecoveryCompensationFailureDelegateV1 {
+  findUnique(input: { readonly where: Readonly<Record<string, string>> }): Promise<unknown | null>;
+  create(input: { readonly data: Readonly<Record<string, unknown>> }): Promise<unknown>;
+}
+
 interface UniqueDelegateV1<TRow> {
   findUnique(input: { readonly where: Readonly<Record<string, string>> }): Promise<TRow | null>;
 }
@@ -101,6 +106,7 @@ export interface RecoveryDatabaseClientV1 {
   readonly refreshTokenRecord: UpdateManyDelegateV1;
   readonly accessTokenRecord: UpdateManyDelegateV1;
   readonly mfaFactor: UpdateManyDelegateV1;
+  readonly recoveryCompensationFailure: RecoveryCompensationFailureDelegateV1;
   $transaction<TValue>(
     work: (transaction: RecoveryDatabaseClientV1) => Promise<TValue>,
   ): Promise<TValue>;
@@ -198,6 +204,27 @@ class PrismaRecoveryTransactionAdapter implements RecoveryTransactionPortV1 {
     });
     const row = [...rows].sort((left, right) => left.id.localeCompare(right.id))[0];
     return row ? challengeFromRow(row) : undefined;
+  }
+
+  public async isChallengeCompensationBlocked(tokenDigest: string): Promise<boolean> {
+    const row = await this.client.recoveryCompensationFailure.findUnique({
+      where: { tokenDigest },
+    });
+    return row !== null;
+  }
+
+  public async recordChallengeCompensationFailure(
+    tokenDigest: string,
+    recordedAt: string,
+  ): Promise<void> {
+    try {
+      await this.client.recoveryCompensationFailure.create({
+        data: { tokenDigest, recordedAt: new Date(recordedAt) },
+      });
+    } catch (error) {
+      if (isConflict(error)) return;
+      throw error;
+    }
   }
 
   public async saveChallenge(challenge: RecoveryChallengeV1): Promise<void> {
