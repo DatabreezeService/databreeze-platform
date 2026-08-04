@@ -85,12 +85,16 @@ def _verify_reviewed_spreadsheet_auditor_artifact(content: bytes | None = None) 
     artifact = content
     if artifact is None:
         try:
-            action = files("databreeze_engine.processors").joinpath(
-                "spreadsheet_auditor_action.py"
-            ).read_bytes()
-            parser = files("databreeze_engine.processors").joinpath(
-                "spreadsheet_auditor.py"
-            ).read_bytes()
+            action = (
+                files("databreeze_engine.processors")
+                .joinpath("spreadsheet_auditor_action.py")
+                .read_bytes()
+            )
+            parser = (
+                files("databreeze_engine.processors")
+                .joinpath("spreadsheet_auditor.py")
+                .read_bytes()
+            )
             artifact = action + b"\0" + parser
         except OSError:
             raise RegistryError("HANDLER_ARTIFACT_UNAVAILABLE") from None

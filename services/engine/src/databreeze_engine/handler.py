@@ -58,9 +58,7 @@ class HandlerContext:
 
 
 class ActionHandler(Protocol):
-    def __call__(
-        self, context: HandlerContext, parameters: Any
-    ) -> Any: ...
+    def __call__(self, context: HandlerContext, parameters: Any) -> Any: ...
 
 
 class DisabledProgressSink:

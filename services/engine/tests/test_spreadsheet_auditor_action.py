@@ -30,7 +30,7 @@ def _workbook() -> bytes:
         b'<c r="A1"><f>SUM(B1:C1)</f><v>3</v></c>'
         b'<c r="B1"><f>SUM(B1:C1)</f><v>3</v></c>'
         b'<c r="C1"><f>SUM(B1:D1)</f><v>4</v></c>'
-        b'</row></sheetData></worksheet>'
+        b"</row></sheetData></worksheet>"
     )
     output = io.BytesIO()
     with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
