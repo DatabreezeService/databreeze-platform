@@ -128,3 +128,33 @@ void test('[IAM-013] replacement is revision guarded and transactions roll back 
     'Import worker',
   );
 });
+
+void test('[IAM-013] replacement cannot move an account across workspace scope', async () => {
+  const repository = new InMemoryServiceAccountRepositoryAdapter();
+  const workspaceContext = context(
+    { scopeType: 'workspace', organizationId, workspaceId },
+    'scope',
+  );
+  await repository.saveServiceAccount(
+    context({ scopeType: 'organization', organizationId }, 'parent'),
+    account({ workspaceId: undefined }),
+  );
+  const moved = Object.freeze({
+    ...account({ workspaceId }),
+    revision: 2,
+  });
+
+  await assert.rejects(
+    repository.replaceServiceAccount(workspaceContext, moved, 1),
+    /SCOPE_DENIED/u,
+  );
+  assert.equal(
+    (
+      await repository.findServiceAccount(
+        context({ scopeType: 'organization', organizationId }, 'read'),
+        stableAccountId,
+      )
+    )?.workspaceId,
+    undefined,
+  );
+});

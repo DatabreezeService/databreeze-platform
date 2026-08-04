@@ -96,6 +96,7 @@ export class InMemoryServiceAccountRepositoryAdapter implements ServiceAccountRe
     if (!writableInScope(context, account)) throw new Error('SCOPE_DENIED');
     const current = this.accounts.get(account.id);
     if (!current || !visibleInScope(context, current)) throw new Error('SERVICE_ACCOUNT_NOT_FOUND');
+    if (!writableInScope(context, current)) throw new Error('SCOPE_DENIED');
     if (current.revision !== expectedRevision) throw new Error('REVISION_CONFLICT');
     if (account.revision !== expectedRevision + 1) throw new Error('INVALID_REVISION');
     const duplicateDigest = [...this.accounts.values()].find(
