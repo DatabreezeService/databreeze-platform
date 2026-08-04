@@ -255,6 +255,11 @@ export class FolderAutopilotService {
   ): Promise<FolderAutopilotServiceResultV1<FolderAutopilotProfileV1>> {
     const profileId = parseId(profileIdInput);
     if (!profileId) return rejected('INVALID_IDENTIFIER');
+    if (
+      version !== undefined &&
+      (!Number.isSafeInteger(version) || version < 1 || version > 10_000)
+    )
+      return rejected('INVALID_VERSION');
     const value = await this.repository.findProfile(context, profileId, version);
     return value ? Object.freeze({ accepted: true, value }) : rejected('FA_PROFILE_NOT_FOUND');
   }

@@ -12,6 +12,7 @@ import type { DsoModuleOptions } from './features/dso/dso.module.js';
 import type { AudModuleOptions } from './features/aud/aud.module.js';
 import type { BuaModuleOptions } from './features/bua/bua.module.js';
 import type { SaModuleOptions } from './features/sa/sa.module.js';
+import type { FaModuleOptions } from './features/fa/fa.module.js';
 import type { ClientCompatibilityPort } from './features/system/application/client-compatibility.port.js';
 import type { ReadinessPort } from './features/system/application/readiness.port.js';
 import { ProblemDetailsFilter } from './platform/http/problem-details.filter.js';
@@ -34,7 +35,8 @@ export interface ApiApplicationOptions
     DsoModuleOptions,
     AudModuleOptions,
     BuaModuleOptions,
-    SaModuleOptions {
+    SaModuleOptions,
+    FaModuleOptions {
   readonly compatibilityPort?: ClientCompatibilityPort;
   readonly readinessPort?: ReadinessPort;
   readonly requestContext?: RequestContextOptions;
