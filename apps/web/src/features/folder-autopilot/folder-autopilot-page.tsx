@@ -15,6 +15,7 @@ import {
   type FolderAutopilotExecution,
   type FolderAutopilotProfileInput,
   type FolderAutopilotPreview,
+  type FolderAutopilotProfile,
 } from './folder-autopilot-api.ts';
 
 function dateLabel(locale: ReturnType<typeof useLocale>, value: string): string {
@@ -45,7 +46,13 @@ function assignmentHealth(
   return dashboard.health.find((item) => item.assignmentId === assignmentId)?.watcherState;
 }
 
-function ProfileAuthoring({ onSaved }: { readonly onSaved: () => void }) {
+function ProfileAuthoring({
+  profiles,
+  onSaved,
+}: {
+  readonly profiles: readonly FolderAutopilotProfile[];
+  readonly onSaved: () => void;
+}) {
   const locale = useLocale();
   const [input, setInput] = useState<FolderAutopilotProfileInput>({
     displayName: '',
@@ -82,6 +89,40 @@ function ProfileAuthoring({ onSaved }: { readonly onSaved: () => void }) {
         <h2 id="autopilot-profile-heading">{appMessage(locale, 'autopilot.profile.heading')}</h2>
         <Status kind="info">JRA profile facade</Status>
       </div>
+      {profiles.length === 0 ? (
+        <p>{appMessage(locale, 'autopilot.reason.none')}</p>
+      ) : (
+        <div
+          aria-label={appMessage(locale, 'autopilot.profile.heading')}
+          className="autopilot-card-list"
+        >
+          {profiles.map((profile) => (
+            <article className="autopilot-card" key={profile.profileId}>
+              <div className="autopilot-card__heading">
+                <div>
+                  <h3>{profile.displayName}</h3>
+                  <code>{profile.profileId}</code>
+                </div>
+                <Status kind="success">{profile.dataModeConstraint}</Status>
+              </div>
+              <dl className="autopilot-metrics">
+                <div>
+                  <dt>{appMessage(locale, 'autopilot.profile.collision')}</dt>
+                  <dd>{profile.collisionPolicy}</dd>
+                </div>
+                <div>
+                  <dt>{appMessage(locale, 'autopilot.profile.confidence')}</dt>
+                  <dd>{profile.confidenceThreshold}</dd>
+                </div>
+                <div>
+                  <dt>{appMessage(locale, 'autopilot.profile.approval')}</dt>
+                  <dd>{profile.approvalRequired ? 'Required' : 'Optional'}</dd>
+                </div>
+              </dl>
+            </article>
+          ))}
+        </div>
+      )}
       <form className="autopilot-profile-form" onSubmit={(event) => void submit(event)}>
         <label>
           {appMessage(locale, 'autopilot.profile.name')}
@@ -536,7 +577,7 @@ export function FolderAutopilotPage() {
         <Status kind="info">Hybrid</Status>
       </div>
       <div className="autopilot-grid">
-        <ProfileAuthoring onSaved={() => undefined} />
+        <ProfileAuthoring onSaved={() => undefined} profiles={dashboard.profiles} />
         <AssignmentList dashboard={dashboard} paused={paused} onPause={pause} />
         <ApprovalQueue
           approvals={dashboard.approvals}

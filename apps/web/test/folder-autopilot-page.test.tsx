@@ -137,6 +137,9 @@ describe('Folder Autopilot workspace surface', () => {
     expect(
       await screen.findByText('Invoice intake assignment', {}, asyncQueryOptions),
     ).toBeTruthy();
+    expect(
+      await screen.findByRole('heading', { name: 'Invoice intake' }, asyncQueryOptions),
+    ).toBeTruthy();
     expect(screen.queryByText(/sourceArtifactVersionId|sourcePath|localHandle/iu)).toBeNull();
   });
 
