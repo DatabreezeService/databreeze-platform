@@ -95,7 +95,8 @@ void test('IAE-001/004/006/019 local registration stores only opaque metadata an
       },
     });
     assert.equal(admission.statusCode, 201);
-    assert.equal(JSON.parse(admission.body).accepted, true);
+    const admissionBody = JSON.parse(admission.body) as { readonly accepted?: unknown };
+    assert.equal(admissionBody.accepted, true);
 
     const resolution = await app.inject({
       method: 'GET',
