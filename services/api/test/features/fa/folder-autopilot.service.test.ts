@@ -71,6 +71,7 @@ const assignmentInput = {
   inputBindingIds: [ids.inputBindingId],
   outputBindingIds: [ids.outputBindingId],
   dataModeConstraint: 'LOCAL' as const,
+  idempotencyKey: 'assignment-create-1',
   createdAt: '2026-08-04T00:00:00.000Z',
 };
 
