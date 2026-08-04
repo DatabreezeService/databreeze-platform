@@ -84,7 +84,17 @@ void test('[SA-001] HTTP admits a content-free Spreadsheet Auditor run idempoten
     '88888888-8888-4888-8888-888888888888',
   );
   const requestTenantContext: RequestTenantContextPortV1 = {
-    resolve: () => Promise.resolve(context),
+    resolve: (request) => {
+      const headers =
+        typeof request === 'object' && request !== null && 'headers' in request
+          ? (request as { readonly headers?: Record<string, unknown> }).headers
+          : undefined;
+      const idempotencyKey =
+        typeof headers?.['idempotency-key'] === 'string'
+          ? headers['idempotency-key']
+          : context.idempotencyKey;
+      return Promise.resolve(Object.freeze({ ...context, idempotencyKey }));
+    },
   };
   const { app } = await createApiApplication({
     spreadsheetAuditRunRepository: repository,

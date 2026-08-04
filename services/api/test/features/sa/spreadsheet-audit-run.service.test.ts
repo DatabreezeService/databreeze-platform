@@ -1,7 +1,12 @@
 import { strict as assert } from 'node:assert';
 import test from 'node:test';
 
-import { createArtifactVersionV1, createContentPlacementV1 } from '@databreeze/domain/artifact/v1';
+import {
+  createArtifactVersionV1,
+  createContentPlacementV1,
+  updateContentPlacementAvailabilityV1,
+  type ArtifactVersionV1,
+} from '@databreeze/domain/artifact/v1';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
 import { InMemoryArtifactRepositoryAdapter } from '../../../src/features/iae/adapter/in-memory-artifact-repository.adapter.js';
 import { SpreadsheetAuditRunService } from '../../../src/features/sa/application/spreadsheet-audit-run.service.js';
@@ -187,4 +192,37 @@ void test('[SA-001] run admission rejects missing, foreign, unclean, and unavail
       { accepted: false, code: 'SA_RUN_ARTIFACT_UNAVAILABLE' },
     );
   }
+});
+
+void test('[SA-001] idempotent replay returns the original handle after placement loss', async () => {
+  const repository = new InMemorySpreadsheetAuditRunRepositoryAdapter();
+  const artifactRepository = new InMemoryArtifactRepositoryAdapter();
+  const tenant = context(ids.workspace, 'sa-run-replay-after-loss');
+  await seedArtifact(artifactRepository, tenant, ids.artifact);
+  const service = new SpreadsheetAuditRunService(repository, artifactRepository);
+  const first = await service.admit(tenant, {
+    artifactVersionId: ids.artifact,
+    processorVersion: 'spreadsheet-auditor-0.1.0',
+  });
+  assert.equal(first.accepted, true);
+  if (!first.accepted) return;
+  const placements = await artifactRepository.listPlacements(
+    tenant,
+    ids.artifact as ArtifactVersionV1['versionId'],
+  );
+  const placement = placements[0];
+  assert.ok(placement);
+  if (!placement) return;
+  const unavailable = updateContentPlacementAvailabilityV1(placement, false, placement.revision);
+  assert.equal(unavailable.accepted, true);
+  if (!unavailable.accepted) return;
+  await artifactRepository.updatePlacement(tenant, unavailable.value);
+
+  assert.deepEqual(
+    await service.admit(tenant, {
+      artifactVersionId: ids.artifact,
+      processorVersion: 'spreadsheet-auditor-0.1.0',
+    }),
+    first,
+  );
 });

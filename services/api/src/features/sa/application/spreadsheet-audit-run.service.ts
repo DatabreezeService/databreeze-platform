@@ -4,6 +4,7 @@ import {
   createSpreadsheetAuditRunAdmissionRequestV1,
   createSpreadsheetAuditRunV1,
   toSpreadsheetAuditRunHandleV1,
+  type SpreadsheetAuditRunV1,
   type SpreadsheetAuditRunErrorCodeV1,
   type SpreadsheetAuditRunHandleV1,
 } from '@databreeze/domain/spreadsheet-audit-run/v1';
@@ -41,46 +42,57 @@ export class SpreadsheetAuditRunService {
     private readonly clock: SpreadsheetAuditRunClockV1 = () => new Date(),
   ) {}
 
+  private async artifactIsAvailable(
+    context: IamTenantContextV1,
+    artifactVersionId: SpreadsheetAuditRunV1['artifactVersionId'],
+  ): Promise<boolean> {
+    if (this.artifactRepository === undefined) return false;
+    return this.artifactRepository.withTransaction(context, async (transaction) => {
+      const version = await transaction.findVersion(context, artifactVersionId);
+      if (version === undefined || version.status !== 'ACTIVE' || version.scanState !== 'CLEAN')
+        return false;
+      const placements = await transaction.listPlacements(context, artifactVersionId);
+      return placements.some(
+        (placement) => placement.artifactVersionId === version.versionId && placement.available,
+      );
+    });
+  }
+
   public async admit(
     context: IamTenantContextV1,
     input: { readonly artifactVersionId: unknown; readonly processorVersion: unknown },
   ): Promise<SpreadsheetAuditRunServiceResultV1<SpreadsheetAuditRunHandleV1>> {
     const request = createSpreadsheetAuditRunAdmissionRequestV1(input);
     if (!request.accepted) return rejected(request.code);
-    const artifactAvailable =
-      this.artifactRepository === undefined
-        ? false
-        : await this.artifactRepository.withTransaction(context, async (transaction) => {
-            const version = await transaction.findVersion(context, request.value.artifactVersionId);
-            if (
-              version === undefined ||
-              version.status !== 'ACTIVE' ||
-              version.scanState !== 'CLEAN'
-            )
-              return false;
-            const placements = await transaction.listPlacements(
-              context,
-              request.value.artifactVersionId,
-            );
-            return placements.some(
-              (placement) =>
-                placement.artifactVersionId === version.versionId && placement.available,
-            );
-          });
-    if (!artifactAvailable) return rejected('SA_RUN_ARTIFACT_UNAVAILABLE');
+    const existing = await this.repository.findByIdempotency(context, context.idempotencyKey);
+    if (existing) {
+      if (
+        existing.artifactVersionId === request.value.artifactVersionId &&
+        existing.processorVersion === request.value.processorVersion
+      )
+        return Object.freeze({
+          accepted: true,
+          value: toSpreadsheetAuditRunHandleV1(existing),
+        });
+      return rejected('SA_RUN_IDEMPOTENCY_CONFLICT');
+    }
+    if (!(await this.artifactIsAvailable(context, request.value.artifactVersionId)))
+      return rejected('SA_RUN_ARTIFACT_UNAVAILABLE');
     return this.repository.withTransaction(context, async (transaction) => {
-      const existing = await transaction.findByIdempotency(context, context.idempotencyKey);
-      if (existing) {
+      const raced = await transaction.findByIdempotency(context, context.idempotencyKey);
+      if (raced) {
         if (
-          existing.artifactVersionId === request.value.artifactVersionId &&
-          existing.processorVersion === request.value.processorVersion
+          raced.artifactVersionId === request.value.artifactVersionId &&
+          raced.processorVersion === request.value.processorVersion
         )
           return Object.freeze({
             accepted: true,
-            value: toSpreadsheetAuditRunHandleV1(existing),
+            value: toSpreadsheetAuditRunHandleV1(raced),
           });
         return rejected('SA_RUN_IDEMPOTENCY_CONFLICT');
       }
+      if (!(await this.artifactIsAvailable(context, request.value.artifactVersionId)))
+        return rejected('SA_RUN_ARTIFACT_UNAVAILABLE');
 
       let createdAt: string;
       try {
