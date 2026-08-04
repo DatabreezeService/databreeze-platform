@@ -139,6 +139,19 @@ def test_dispatch_rejects_auditor_input_hash_mismatch(
         )
 
 
+def test_dispatch_rejects_malformed_workbook_without_exposing_parser_details(
+    execution_payload: Callable[..., dict[str, Any]],
+) -> None:
+    content = b"not an xlsx archive"
+    request = _request(execution_payload, content)
+    with pytest.raises(EngineDispatchError, match="VALIDATION_FAILED"):
+        dispatch_execution(
+            request,
+            wall_clock=lambda: datetime(2026, 1, 1, tzinfo=UTC),
+            input_reader=lambda _handle: content,
+        )
+
+
 def test_dispatch_rejects_wrong_handle_schema_and_parameter_shape(
     execution_payload: Callable[..., dict[str, Any]],
 ) -> None:

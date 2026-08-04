@@ -76,6 +76,18 @@ class FoundationMetadataParameters(ClosedModel):
         return self
 
 
+class SpreadsheetAuditParameters(ClosedModel):
+    """Opaque, versioned identifiers binding a workbook audit to JRA/IAE state."""
+
+    schemaVersion: Literal[1]
+    artifactVersionId: Identifier
+    jobId: Identifier
+    resultManifestId: Identifier
+
+
+ActionParameters = FoundationMetadataParameters | SpreadsheetAuditParameters
+
+
 class EngineExecutionRequest(ClosedModel):
     protocolVersion: Literal["1.0"]
     requestId: Identifier
@@ -84,7 +96,7 @@ class EngineExecutionRequest(ClosedModel):
     action: ActionReference
     inputHandles: Annotated[list[OpaqueHandle], Field(max_length=MAX_HANDLES)]
     outputHandle: OpaqueHandle
-    parameters: FoundationMetadataParameters
+    parameters: FoundationMetadataParameters | SpreadsheetAuditParameters
     deadline: UtcTimestamp
     locale: Literal["vi-VN", "en"]
 
@@ -106,10 +118,49 @@ class FoundationDigestResult(ClosedModel):
     tagCount: Annotated[StrictInt, Field(ge=0, le=64)]
 
 
+class SpreadsheetAuditSheetSummary(ClosedModel):
+    """Value-free workbook geometry returned by the safe auditor processor."""
+
+    name: Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]
+    maxRow: Annotated[StrictInt, Field(ge=0, le=1_048_576)]
+    maxColumn: Annotated[StrictInt, Field(ge=0, le=16_384)]
+    formulaCount: Annotated[StrictInt, Field(ge=0, le=1_000_000)]
+
+
+class SpreadsheetAuditFindingSummary(ClosedModel):
+    """Value-free, exact workbook evidence without formulas or source cell values."""
+
+    sheet: Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]
+    address: Annotated[StrictStr, StringConstraints(pattern=r"^[A-Z]{1,3}[1-9][0-9]*$")]
+    kind: Literal["FORMULA_FAMILY_OUTLIER", "FORMULA_GAP"]
+    severity: Literal["INFO", "WARNING", "ERROR"]
+    formulaFingerprint: Sha256Hex
+
+
+class SpreadsheetAuditProcessorResult(ClosedModel):
+    """Deterministic, immutable processor output for the JRA result manifest boundary."""
+
+    schemaVersion: Literal[1]
+    artifactVersionId: Identifier
+    jobId: Identifier
+    resultManifestId: Identifier
+    workbookSha256: Sha256Hex
+    sheets: Annotated[tuple[SpreadsheetAuditSheetSummary, ...], Field(min_length=1, max_length=512)]
+    findings: Annotated[tuple[SpreadsheetAuditFindingSummary, ...], Field(max_length=10_000)]
+    blockedReasons: Annotated[
+        tuple[Literal["MACRO", "EXTERNAL_LINK", "UNSUPPORTED_XML"], ...],
+        Field(max_length=3),
+    ]
+    processorVersion: Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]
+
+
+ActionOutput = FoundationDigestResult | SpreadsheetAuditProcessorResult
+
+
 class EngineResult(ClosedModel):
     attemptId: Identifier
     status: Literal["SUCCEEDED"]
-    output: FoundationDigestResult
+    output: FoundationDigestResult | SpreadsheetAuditProcessorResult
 
 
 EngineErrorCode = Literal[
@@ -148,6 +199,8 @@ class EngineError(ClosedModel):
         -32006,
         -32007,
         -32008,
+        -32009,
+        -32010,
     ]
     message: Literal[
         "Parse error",
@@ -163,6 +216,8 @@ class EngineError(ClosedModel):
         "Deadline exceeded",
         "Resource limit exceeded",
         "Duration exceeded",
+        "Input unavailable",
+        "Input hash mismatch",
     ]
     data: EngineErrorData
 
@@ -222,7 +277,7 @@ class ActionManifest(ClosedModel):
     executionModes: tuple[Literal["LOCAL", "CLOUD"], ...]
     executionTargets: tuple[Literal["DESKTOP", "CLOUD_WORKER"], ...]
     dataModes: tuple[Literal["LOCAL", "CLOUD", "HYBRID"], ...]
-    requiredCapabilities: tuple[Literal["metadata.read"], ...]
+    requiredCapabilities: tuple[Literal["metadata.read", "artifact.read"], ...]
     sideEffectClass: Literal["NONE", "REVERSIBLE", "EXTERNAL", "DESTRUCTIVE"]
     riskClass: Literal["READ_ONLY", "LOW", "CONSEQUENTIAL", "RESTRICTED"]
     determinism: Literal["DETERMINISTIC", "SEEDED"]

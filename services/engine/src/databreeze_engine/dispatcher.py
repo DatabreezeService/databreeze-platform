@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -9,7 +10,14 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from .handler import CancellationView, DisabledProgressSink, HandlerContext
+from .handler import (
+    ActionExecutionError,
+    CancellationView,
+    DisabledProgressSink,
+    HandlerContext,
+    InputReader,
+    InputReadError,
+)
 from .json_codec import encode_json
 from .models import (
     EngineError,
@@ -18,8 +26,14 @@ from .models import (
     JsonRpcErrorResponse,
     JsonRpcRequest,
     JsonRpcSuccessResponse,
+    OpaqueHandle,
 )
-from .registry import RegistryError, default_registry
+from .registry import (
+    RegistryError,
+    default_registry,
+    validate_action_output,
+    validate_action_parameters,
+)
 
 WallClock = Callable[[], datetime]
 MonotonicClock = Callable[[], float]
@@ -37,6 +51,8 @@ _ERROR_SPECS: dict[str, tuple[int, str]] = {
     "DEADLINE_EXCEEDED": (-32006, "Deadline exceeded"),
     "RESOURCE_LIMIT_EXCEEDED": (-32007, "Resource limit exceeded"),
     "DURATION_EXCEEDED": (-32008, "Duration exceeded"),
+    "INPUT_UNAVAILABLE": (-32009, "Input unavailable"),
+    "INPUT_HASH_MISMATCH": (-32010, "Input hash mismatch"),
 }
 
 
@@ -59,6 +75,7 @@ def dispatch_execution(
     *,
     wall_clock: WallClock | None = None,
     monotonic_clock: MonotonicClock | None = None,
+    input_reader: InputReader | None = None,
 ) -> EngineResult:
     read_wall_clock = wall_clock or (lambda: datetime.now(UTC))
     read_monotonic_clock = monotonic_clock or time.monotonic
@@ -72,11 +89,35 @@ def dispatch_execution(
     except RegistryError as error:
         raise EngineDispatchError(error.code) from None
 
+    if not validate_action_parameters(definition.manifest, request.parameters):
+        raise EngineDispatchError("VALIDATION_FAILED")
+    if any(handle.schemaId != definition.manifest.inputSchemaId for handle in request.inputHandles):
+        raise EngineDispatchError("VALIDATION_FAILED")
+    if request.outputHandle.schemaId != definition.manifest.outputSchemaId:
+        raise EngineDispatchError("VALIDATION_FAILED")
+
     limits = definition.manifest.resources
     if sum(handle.byteLength for handle in request.inputHandles) > limits.maxInputBytes:
         raise EngineDispatchError("RESOURCE_LIMIT_EXCEEDED")
     if request.outputHandle.byteLength > limits.maxOutputBytes:
         raise EngineDispatchError("RESOURCE_LIMIT_EXCEEDED")
+
+    def read_input(handle: OpaqueHandle) -> bytes:
+        if input_reader is None:
+            raise InputReadError("INPUT_UNAVAILABLE")
+        try:
+            content = input_reader(handle)
+        except InputReadError:
+            raise
+        except Exception:
+            raise InputReadError("INPUT_UNAVAILABLE") from None
+        if not isinstance(content, bytes):
+            raise InputReadError("INPUT_UNAVAILABLE")
+        if len(content) != handle.byteLength:
+            raise InputReadError("INPUT_HASH_MISMATCH")
+        if hashlib.sha256(content).hexdigest() != handle.sha256:
+            raise InputReadError("INPUT_HASH_MISMATCH")
+        return content
 
     context = HandlerContext(
         request_id=request.requestId,
@@ -89,13 +130,21 @@ def dispatch_execution(
         deadline=deadline,
         cancellation=CancellationView(),
         progress=DisabledProgressSink(),
+        read_input=read_input,
     )
     started = read_monotonic_clock()
     try:
         output = definition.handler(context, request.parameters)
+    except (EngineDispatchError, InputReadError, ActionExecutionError) as error:
+        if isinstance(error, EngineDispatchError):
+            raise
+        raise EngineDispatchError(error.code) from None
+    except Exception:
+        raise EngineDispatchError("INTERNAL_ERROR") from None
+    if not validate_action_output(definition.manifest, output):
+        raise EngineDispatchError("INTERNAL_ERROR")
+    try:
         result = EngineResult(attemptId=request.attemptId, status="SUCCEEDED", output=output)
-    except EngineDispatchError:
-        raise
     except Exception:
         raise EngineDispatchError("INTERNAL_ERROR") from None
     elapsed_milliseconds = (read_monotonic_clock() - started) * 1000
@@ -146,6 +195,7 @@ def dispatch_rpc(
     *,
     wall_clock: WallClock | None = None,
     monotonic_clock: MonotonicClock | None = None,
+    input_reader: InputReader | None = None,
 ) -> dict[str, Any]:
     request_id = _recover_request_id(payload)
     if not isinstance(payload, dict):
@@ -170,6 +220,7 @@ def dispatch_rpc(
             request.params,
             wall_clock=wall_clock,
             monotonic_clock=monotonic_clock,
+            input_reader=input_reader,
         )
         return JsonRpcSuccessResponse(jsonrpc="2.0", id=request.id, result=result).model_dump(
             mode="json"

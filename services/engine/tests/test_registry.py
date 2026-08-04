@@ -115,6 +115,11 @@ def test_reviewed_handler_artifact_digest_fails_closed_on_changed_bytes() -> Non
         registry_module._verify_reviewed_handler_artifact(b"changed processor bytes")
 
 
+def test_spreadsheet_auditor_digest_covers_action_and_parser_artifacts() -> None:
+    with pytest.raises(RegistryError, match="HANDLER_ARTIFACT_DIGEST_MISMATCH"):
+        registry_module._verify_reviewed_spreadsheet_auditor_artifact(b"changed processor bytes")
+
+
 def test_manifest_rejects_prohibited_effect_and_unknown_capability() -> None:
     manifest = default_registry().manifests[0]
     with pytest.raises(ValidationError):
