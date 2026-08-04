@@ -45,6 +45,7 @@ function assignment() {
     deviceId: '66666666-6666-4666-8666-666666666666',
     inputBindingIds: ['77777777-7777-4777-8777-777777777777'],
     outputBindingIds: ['88888888-8888-4888-8888-888888888888'],
+    dataModeConstraint: 'LOCAL',
     idempotencyKey: 'dashboard-fixture',
     createdAt,
   });
@@ -58,7 +59,10 @@ void test('[FA-033] dashboard maps immutable records to a content-free projectio
   assert.equal(dashboard.schemaVersion, 1);
   assert.equal(dashboard.profiles[0]?.stabilizationSeconds, 10);
   assert.equal(dashboard.profiles[0]?.undoWindowHours, 24);
-  assert.equal(dashboard.assignments[0]?.displayName, 'Assignment 44444444');
+  assert.equal(dashboard.profiles[0]?.version, 2);
+  assert.equal(dashboard.assignments[0]?.assignmentId, '44444444-4444-4444-8444-444444444444');
+  assert.equal(dashboard.assignments[0]?.dataModeConstraint, 'LOCAL');
+  assert.equal(dashboard.assignments[0]?.updatedAt, createdAt);
   assert.equal('tenantScope' in dashboard.profiles[0], false);
   assert.equal('deviceGrantId' in dashboard.assignments[0], false);
   assert.doesNotMatch(JSON.stringify(dashboard), /path|handle|bytes|localHandle/iu);

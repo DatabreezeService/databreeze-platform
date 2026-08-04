@@ -65,6 +65,7 @@ export interface RecipeAssignmentV1 {
   readonly state: RecipeAssignmentStateV1;
   readonly revision: number;
   readonly createdAt: StrictUtcTimestampV1;
+  readonly updatedAt: StrictUtcTimestampV1;
 }
 
 export type FolderAutopilotErrorCodeV1 =
@@ -256,6 +257,7 @@ export function createRecipeAssignmentV1(input: {
   readonly state?: unknown;
   readonly revision?: unknown;
   readonly createdAt: unknown;
+  readonly updatedAt?: unknown;
 }): FolderAutopilotResultV1<RecipeAssignmentV1> {
   const assignmentId = stable(input.assignmentId);
   const tenantScope = scope(input.tenantScope);
@@ -276,6 +278,7 @@ export function createRecipeAssignmentV1(input: {
   const idempotencyKey = text(input.idempotencyKey, 200);
   const assignmentRevision = revision(input.revision);
   const createdAt = timestamp(input.createdAt);
+  const updatedAt = input.updatedAt === undefined ? createdAt : timestamp(input.updatedAt);
   if (!assignmentId || !profileId || !jraRecipeVersionId || !deviceId)
     return rejected('INVALID_IDENTIFIER');
   if (!tenantScope) return rejected('INVALID_SCOPE');
@@ -291,7 +294,8 @@ export function createRecipeAssignmentV1(input: {
     return rejected('INVALID_POLICY_REFERENCE');
   if (!idempotencyKey) return rejected('INVALID_IDEMPOTENCY_KEY');
   if (assignmentRevision === undefined) return rejected('INVALID_REVISION');
-  if (!createdAt) return rejected('INVALID_TIMESTAMP');
+  if (!createdAt || !updatedAt || Date.parse(updatedAt) < Date.parse(createdAt))
+    return rejected('INVALID_TIMESTAMP');
   const state = input.state ?? 'DRAFT';
   if (state !== 'DRAFT' && state !== 'ACTIVE' && state !== 'PAUSED' && state !== 'RETIRED')
     return rejected('INVALID_STATE');
@@ -315,6 +319,7 @@ export function createRecipeAssignmentV1(input: {
       state: state as RecipeAssignmentStateV1,
       revision: assignmentRevision,
       createdAt,
+      updatedAt,
     }),
   });
 }

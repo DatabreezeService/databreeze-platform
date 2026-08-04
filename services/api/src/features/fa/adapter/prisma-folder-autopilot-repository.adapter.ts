@@ -9,6 +9,7 @@ import {
 import {
   parseTenantScopeV1,
   tenantScopeContainsV1,
+  tenantScopeKeyV1,
   type TenantScopeV1,
 } from '@databreeze/domain/tenant-scope/v1';
 
@@ -54,6 +55,7 @@ export interface FolderAutopilotAssignmentDatabaseRowV1 {
   readonly organizationId: string;
   readonly workspaceId: string | null;
   readonly projectId: string | null;
+  readonly scopeKey: string;
   readonly profileId: string;
   readonly profileVersion: number;
   readonly profileHash: string;
@@ -68,6 +70,7 @@ export interface FolderAutopilotAssignmentDatabaseRowV1 {
   readonly state: string;
   readonly revision: number;
   readonly createdAt: Date;
+  readonly updatedAt: Date;
 }
 
 export interface FolderAutopilotDatabaseClientV1 {
@@ -75,6 +78,10 @@ export interface FolderAutopilotDatabaseClientV1 {
     create(input: {
       readonly data: FolderAutopilotProfileDatabaseRowV1;
     }): Promise<FolderAutopilotProfileDatabaseRowV1>;
+    createMany(input: {
+      readonly data: FolderAutopilotProfileDatabaseRowV1;
+      readonly skipDuplicates?: boolean;
+    }): Promise<{ readonly count: number }>;
     findFirst(input: {
       readonly where: Readonly<Record<string, unknown>>;
       readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
@@ -88,6 +95,10 @@ export interface FolderAutopilotDatabaseClientV1 {
     create(input: {
       readonly data: FolderAutopilotBindingDatabaseRowV1;
     }): Promise<FolderAutopilotBindingDatabaseRowV1>;
+    createMany(input: {
+      readonly data: FolderAutopilotBindingDatabaseRowV1;
+      readonly skipDuplicates?: boolean;
+    }): Promise<{ readonly count: number }>;
     findUnique(input: {
       readonly where: { readonly id: string };
     }): Promise<FolderAutopilotBindingDatabaseRowV1 | null>;
@@ -100,8 +111,15 @@ export interface FolderAutopilotDatabaseClientV1 {
     create(input: {
       readonly data: FolderAutopilotAssignmentDatabaseRowV1;
     }): Promise<FolderAutopilotAssignmentDatabaseRowV1>;
+    createMany(input: {
+      readonly data: FolderAutopilotAssignmentDatabaseRowV1;
+      readonly skipDuplicates?: boolean;
+    }): Promise<{ readonly count: number }>;
     findUnique(input: {
       readonly where: { readonly id: string };
+    }): Promise<FolderAutopilotAssignmentDatabaseRowV1 | null>;
+    findFirst(input: {
+      readonly where: Readonly<Record<string, unknown>>;
     }): Promise<FolderAutopilotAssignmentDatabaseRowV1 | null>;
     findMany(input: {
       readonly where: Readonly<Record<string, unknown>>;
@@ -111,6 +129,10 @@ export interface FolderAutopilotDatabaseClientV1 {
       readonly where: { readonly id: string };
       readonly data: Readonly<Record<string, unknown>>;
     }): Promise<FolderAutopilotAssignmentDatabaseRowV1>;
+    updateMany(input: {
+      readonly where: Readonly<Record<string, unknown>>;
+      readonly data: Readonly<Record<string, unknown>>;
+    }): Promise<{ readonly count: number }>;
   };
   $transaction<TValue>(
     work: (transaction: FolderAutopilotDatabaseClientV1) => Promise<TValue>,
@@ -124,6 +146,10 @@ function databaseScope(scope: TenantScopeV1) {
     workspaceId: scope.scopeType === 'organization' ? null : scope.workspaceId,
     projectId: scope.scopeType === 'project' ? scope.projectId : null,
   } as const;
+}
+
+function scopeKey(scope: TenantScopeV1): string {
+  return tenantScopeKeyV1(scope);
 }
 
 function rowScope(row: {
@@ -192,6 +218,7 @@ function assignmentFromRow(row: FolderAutopilotAssignmentDatabaseRowV1): RecipeA
     state: row.state,
     revision: row.revision,
     createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   });
   if (!parsed.accepted) throw new Error('FA_PERSISTED_ASSIGNMENT_INVALID');
   return parsed.value;
@@ -218,21 +245,30 @@ class PrismaFolderAutopilotTransactionAdapter implements FolderAutopilotTransact
         throw new Error('FA_IMMUTABLE_PROFILE');
       return;
     }
-    await this.client.folderAutopilotProfileRecord.create({
-      data: {
-        ...databaseScope(profile.tenantScope),
-        id: profile.profileId,
-        version: profile.version,
-        payloadHash: profile.payloadHash,
-        stabilizationDelayMs: profile.stabilizationDelayMs,
-        maxFilesPerScan: profile.maxFilesPerScan,
-        collisionPolicy: profile.collisionPolicy,
-        undoWindowSeconds: profile.undoWindowSeconds,
-        outputLineageEnabled: profile.outputLineageEnabled,
-        createdAt: new Date(profile.createdAt),
-        revision: profile.revision,
-      },
+    const data = {
+      ...databaseScope(profile.tenantScope),
+      id: profile.profileId,
+      version: profile.version,
+      payloadHash: profile.payloadHash,
+      stabilizationDelayMs: profile.stabilizationDelayMs,
+      maxFilesPerScan: profile.maxFilesPerScan,
+      collisionPolicy: profile.collisionPolicy,
+      undoWindowSeconds: profile.undoWindowSeconds,
+      outputLineageEnabled: profile.outputLineageEnabled,
+      createdAt: new Date(profile.createdAt),
+      revision: profile.revision,
+    };
+    const inserted = await this.client.folderAutopilotProfileRecord.createMany({
+      data,
+      skipDuplicates: true,
     });
+    if (inserted.count === 1) return;
+    const raced = await this.client.folderAutopilotProfileRecord.findFirst({
+      where: { id: profile.profileId, version: profile.version },
+    });
+    if (raced && JSON.stringify(profileFromRow(raced)) === JSON.stringify(profile)) return;
+    if (raced) throw new Error('FA_IMMUTABLE_PROFILE');
+    throw new Error('FA_PERSISTENCE_UNAVAILABLE');
   }
 
   public async findProfile(
@@ -271,17 +307,26 @@ class PrismaFolderAutopilotTransactionAdapter implements FolderAutopilotTransact
         throw new Error('FA_IMMUTABLE_BINDING');
       return;
     }
-    await this.client.autopilotFolderBindingRecord.create({
-      data: {
-        ...databaseScope(binding.tenantScope),
-        id: binding.bindingId,
-        deviceGrantId: binding.deviceGrantId,
-        role: binding.role,
-        expectedCapabilityDigest: binding.expectedCapabilityDigest,
-        createdAt: new Date(binding.createdAt),
-        revision: binding.revision,
-      },
+    const data = {
+      ...databaseScope(binding.tenantScope),
+      id: binding.bindingId,
+      deviceGrantId: binding.deviceGrantId,
+      role: binding.role,
+      expectedCapabilityDigest: binding.expectedCapabilityDigest,
+      createdAt: new Date(binding.createdAt),
+      revision: binding.revision,
+    };
+    const inserted = await this.client.autopilotFolderBindingRecord.createMany({
+      data,
+      skipDuplicates: true,
     });
+    if (inserted.count === 1) return;
+    const raced = await this.client.autopilotFolderBindingRecord.findUnique({
+      where: { id: binding.bindingId },
+    });
+    if (raced && JSON.stringify(bindingFromRow(raced)) === JSON.stringify(binding)) return;
+    if (raced) throw new Error('FA_IMMUTABLE_BINDING');
+    throw new Error('FA_PERSISTENCE_UNAVAILABLE');
   }
 
   public async findBinding(
@@ -318,26 +363,44 @@ class PrismaFolderAutopilotTransactionAdapter implements FolderAutopilotTransact
         throw new Error('FA_IMMUTABLE_ASSIGNMENT');
       return;
     }
-    await this.client.recipeAssignmentRecord.create({
-      data: {
-        ...databaseScope(assignment.tenantScope),
-        id: assignment.assignmentId,
-        profileId: assignment.profileId,
-        profileVersion: assignment.profileVersion,
-        profileHash: assignment.profileHash,
-        jraRecipeVersionId: assignment.jraRecipeVersionId,
-        jraRecipeVersionHash: assignment.jraRecipeVersionHash,
-        deviceId: assignment.deviceId,
-        inputBindingIds: assignment.inputBindingIds,
-        outputBindingIds: assignment.outputBindingIds,
-        dataModeConstraint: assignment.dataModeConstraint ?? null,
-        effectiveDataModePolicyRef: assignment.effectiveDataModePolicyRef ?? null,
+    const data = {
+      ...databaseScope(assignment.tenantScope),
+      scopeKey: scopeKey(assignment.tenantScope),
+      id: assignment.assignmentId,
+      profileId: assignment.profileId,
+      profileVersion: assignment.profileVersion,
+      profileHash: assignment.profileHash,
+      jraRecipeVersionId: assignment.jraRecipeVersionId,
+      jraRecipeVersionHash: assignment.jraRecipeVersionHash,
+      deviceId: assignment.deviceId,
+      inputBindingIds: assignment.inputBindingIds,
+      outputBindingIds: assignment.outputBindingIds,
+      dataModeConstraint: assignment.dataModeConstraint ?? null,
+      effectiveDataModePolicyRef: assignment.effectiveDataModePolicyRef ?? null,
+      idempotencyKey: assignment.idempotencyKey,
+      state: assignment.state,
+      revision: assignment.revision,
+      createdAt: new Date(assignment.createdAt),
+      updatedAt: new Date(assignment.updatedAt),
+    };
+    const inserted = await this.client.recipeAssignmentRecord.createMany({
+      data,
+      skipDuplicates: true,
+    });
+    if (inserted.count === 1) return;
+    const raced = await this.client.recipeAssignmentRecord.findUnique({
+      where: { id: assignment.assignmentId },
+    });
+    if (raced && JSON.stringify(assignmentFromRow(raced)) === JSON.stringify(assignment)) return;
+    const idempotent = await this.client.recipeAssignmentRecord.findFirst({
+      where: {
+        scopeKey: scopeKey(assignment.tenantScope),
         idempotencyKey: assignment.idempotencyKey,
-        state: assignment.state,
-        revision: assignment.revision,
-        createdAt: new Date(assignment.createdAt),
       },
     });
+    if (idempotent) throw new Error('FA_IMMUTABLE_ASSIGNMENT');
+    if (raced) throw new Error('FA_IMMUTABLE_ASSIGNMENT');
+    throw new Error('FA_PERSISTENCE_UNAVAILABLE');
   }
 
   public async findAssignment(
@@ -374,10 +437,16 @@ class PrismaFolderAutopilotTransactionAdapter implements FolderAutopilotTransact
     if (!tenantScopeContainsV1(context.tenantScope, rowScope(existing)))
       throw new Error('FA_SCOPE_NARROWING_REQUIRED');
     if (existing.revision !== expectedRevision) throw new Error('FA_ASSIGNMENT_REVISION_CONFLICT');
-    const updated = await this.client.recipeAssignmentRecord.update({
-      where: { id: assignmentId },
-      data: { state, revision: expectedRevision + 1 },
+    const outcome = await this.client.recipeAssignmentRecord.updateMany({
+      where: { id: assignmentId, revision: expectedRevision },
+      data: { state, revision: expectedRevision + 1, updatedAt: new Date() },
     });
+    if (outcome.count === 0) throw new Error('FA_ASSIGNMENT_REVISION_CONFLICT');
+    if (outcome.count !== 1) throw new Error('FA_PERSISTENCE_UNAVAILABLE');
+    const updated = await this.client.recipeAssignmentRecord.findUnique({
+      where: { id: assignmentId },
+    });
+    if (updated === null) throw new Error('FA_PERSISTENCE_UNAVAILABLE');
     return assignmentFromRow(updated);
   }
 }

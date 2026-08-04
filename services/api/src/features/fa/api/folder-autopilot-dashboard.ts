@@ -20,7 +20,7 @@ export interface FolderAutopilotDashboardProjectionV1 {
 
 export interface FolderAutopilotDashboardProfileV1 {
   readonly profileId: string;
-  readonly displayName: string;
+  readonly version: number;
   readonly stabilizationSeconds: number;
   readonly collisionPolicy: FolderAutopilotProfileV1['collisionPolicy'];
   readonly confidenceThreshold: 1;
@@ -34,11 +34,11 @@ export interface FolderAutopilotDashboardProfileV1 {
 export interface FolderAutopilotDashboardAssignmentV1 {
   readonly assignmentId: string;
   readonly profileId: string;
-  readonly displayName: string;
   readonly jraRecipeVersionId: string;
   readonly deviceId: string;
   readonly inputBindingId: string;
   readonly outputBindingId: string;
+  readonly dataModeConstraint?: RecipeAssignmentV1['dataModeConstraint'];
   readonly state: RecipeAssignmentV1['state'];
   readonly approvalRequired: true;
   readonly revision: number;
@@ -48,7 +48,7 @@ export interface FolderAutopilotDashboardAssignmentV1 {
 function profileProjection(profile: FolderAutopilotProfileV1): FolderAutopilotDashboardProfileV1 {
   return Object.freeze({
     profileId: profile.profileId,
-    displayName: `Folder profile ${profile.version}`,
+    version: profile.version,
     stabilizationSeconds: Math.floor(profile.stabilizationDelayMs / 1_000),
     collisionPolicy: profile.collisionPolicy,
     confidenceThreshold: 1 as const,
@@ -71,15 +71,17 @@ function assignmentProjection(
   return Object.freeze({
     assignmentId: assignment.assignmentId,
     profileId: assignment.profileId,
-    displayName: `Assignment ${assignment.assignmentId.slice(0, 8)}`,
     jraRecipeVersionId: assignment.jraRecipeVersionId,
     deviceId: assignment.deviceId,
     inputBindingId,
     outputBindingId,
+    ...(assignment.dataModeConstraint === undefined
+      ? {}
+      : { dataModeConstraint: assignment.dataModeConstraint }),
     state: assignment.state,
     approvalRequired: true as const,
     revision: assignment.revision,
-    updatedAt: assignment.createdAt,
+    updatedAt: assignment.updatedAt,
   });
 }
 

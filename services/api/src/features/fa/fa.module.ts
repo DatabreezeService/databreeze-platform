@@ -40,6 +40,13 @@ export interface FaModuleOptions {
 @Module({})
 export class FaModule {
   public static register(options: FaModuleOptions = {}): DynamicModule {
+    if (
+      process.env['NODE_ENV'] === 'production' &&
+      options.folderAutopilotRepository === undefined &&
+      options.folderAutopilotDatabase === undefined
+    ) {
+      throw new Error('FA_PERSISTENCE_REQUIRED');
+    }
     const repository =
       options.folderAutopilotRepository ??
       (options.folderAutopilotDatabase === undefined

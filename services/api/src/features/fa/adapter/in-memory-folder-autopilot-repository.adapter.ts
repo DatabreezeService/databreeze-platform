@@ -1,4 +1,8 @@
-import { tenantScopeContainsV1, type TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
+import {
+  parseStrictUtcTimestampV1,
+  tenantScopeContainsV1,
+  type TenantScopeV1,
+} from '@databreeze/domain/tenant-scope/v1';
 import type {
   AutopilotFolderBindingV1,
   FolderAutopilotProfileV1,
@@ -42,6 +46,12 @@ function cloneAssignment(assignment: RecipeAssignmentV1): RecipeAssignmentV1 {
 
 function profileKey(profile: Pick<FolderAutopilotProfileV1, 'profileId' | 'version'>): string {
   return `${profile.profileId}:${profile.version}`;
+}
+
+function nowTimestamp() {
+  const parsed = parseStrictUtcTimestampV1(new Date().toISOString());
+  if (!parsed.accepted) throw new Error('FA_PERSISTENCE_UNAVAILABLE');
+  return parsed.value;
 }
 
 /** Test/local adapter. Durable deployments use the Prisma adapter with the same port. */
@@ -174,7 +184,12 @@ export class InMemoryFolderAutopilotRepositoryAdapter implements FolderAutopilot
     if (!tenantScopeContainsV1(context.tenantScope, existing.tenantScope))
       throw new Error('FA_SCOPE_NARROWING_REQUIRED');
     if (existing.revision !== expectedRevision) throw new Error('FA_ASSIGNMENT_REVISION_CONFLICT');
-    const next = cloneAssignment({ ...existing, state, revision: existing.revision + 1 });
+    const next = cloneAssignment({
+      ...existing,
+      state,
+      revision: existing.revision + 1,
+      updatedAt: nowTimestamp(),
+    });
     this.assignments.set(assignmentId, next);
     return cloneAssignment(next);
   }
@@ -187,11 +202,13 @@ export class InMemoryFolderAutopilotRepositoryAdapter implements FolderAutopilot
   }
 
   public findProfile(context: IamTenantContextV1, profileId: StableIdentifierV1, version?: number) {
-    return this.findProfileUnlocked(context, profileId, version);
+    return this.withTransaction(context, (transaction) =>
+      transaction.findProfile(context, profileId, version),
+    );
   }
 
   public listProfiles(context: IamTenantContextV1) {
-    return this.listProfilesUnlocked(context);
+    return this.withTransaction(context, (transaction) => transaction.listProfiles(context));
   }
 
   public async saveBinding(
@@ -202,11 +219,13 @@ export class InMemoryFolderAutopilotRepositoryAdapter implements FolderAutopilot
   }
 
   public findBinding(context: IamTenantContextV1, bindingId: StableIdentifierV1) {
-    return this.findBindingUnlocked(context, bindingId);
+    return this.withTransaction(context, (transaction) =>
+      transaction.findBinding(context, bindingId),
+    );
   }
 
   public listBindings(context: IamTenantContextV1) {
-    return this.listBindingsUnlocked(context);
+    return this.withTransaction(context, (transaction) => transaction.listBindings(context));
   }
 
   public async saveAssignment(
@@ -219,11 +238,13 @@ export class InMemoryFolderAutopilotRepositoryAdapter implements FolderAutopilot
   }
 
   public findAssignment(context: IamTenantContextV1, assignmentId: StableIdentifierV1) {
-    return this.findAssignmentUnlocked(context, assignmentId);
+    return this.withTransaction(context, (transaction) =>
+      transaction.findAssignment(context, assignmentId),
+    );
   }
 
   public listAssignments(context: IamTenantContextV1) {
-    return this.listAssignmentsUnlocked(context);
+    return this.withTransaction(context, (transaction) => transaction.listAssignments(context));
   }
 
   public updateAssignmentState(
@@ -241,6 +262,8 @@ export class InMemoryFolderAutopilotRepositoryAdapter implements FolderAutopilot
     context: IamTenantContextV1,
     work: (transaction: FolderAutopilotTransactionPortV1) => Promise<TValue>,
   ): Promise<TValue> {
+    // This queue is intentionally non-reentrant. Transaction callbacks must
+    // use the supplied transaction methods rather than public repository reads.
     let release!: () => void;
     const previous = this.transactionTail;
     this.transactionTail = new Promise<void>((resolve) => {

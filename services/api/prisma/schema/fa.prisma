@@ -47,6 +47,7 @@ model RecipeAssignmentRecord {
   organizationId               String   @map("organization_id") @db.Uuid
   workspaceId                  String?  @map("workspace_id") @db.Uuid
   projectId                    String?  @map("project_id") @db.Uuid
+  scopeKey                     String   @map("scope_key") @db.VarChar(200)
   profileId                    String   @map("profile_id") @db.Uuid
   profileVersion               Int      @map("profile_version")
   profileHash                  String   @map("profile_hash") @db.Char(64)
@@ -61,8 +62,9 @@ model RecipeAssignmentRecord {
   state                         String   @db.VarChar(16)
   revision                      Int      @default(1)
   createdAt                     DateTime @map("created_at") @db.Timestamptz(6)
+  updatedAt                     DateTime @map("updated_at") @db.Timestamptz(6)
 
-  @@unique([organizationId, workspaceId, projectId, idempotencyKey], map: "recipe_assignments_scope_idempotency_key")
+  @@unique([scopeKey, idempotencyKey], map: "recipe_assignments_scope_idempotency_key")
   @@index([organizationId, workspaceId, projectId, state], map: "recipe_assignments_scope_state_idx")
   @@index([deviceId, state], map: "recipe_assignments_device_state_idx")
   @@map("recipe_assignments")

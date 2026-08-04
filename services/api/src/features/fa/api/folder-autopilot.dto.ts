@@ -14,6 +14,7 @@ import {
   Matches,
   Max,
   MaxLength,
+  MinLength,
   Min,
 } from 'class-validator';
 
@@ -189,8 +190,9 @@ export class FolderAutopilotApprovalDecisionDto {
   @IsIn(['APPROVE', 'REJECT'])
   decision!: 'APPROVE' | 'REJECT';
 
-  @ApiProperty({ maxLength: 500 })
+  @ApiProperty({ minLength: 1, maxLength: 500 })
   @IsString()
+  @MinLength(1)
   @MaxLength(500)
   decisionReason!: string;
 }
@@ -205,4 +207,42 @@ export class FolderAutopilotUndoRequestDto {
   @IsString()
   @Matches(/^[0-9a-f]{64}$/u)
   planHash!: string;
+}
+
+export class FolderAutopilotRejectedResponseDto {
+  @ApiProperty({ enum: [false], example: false })
+  accepted!: false;
+
+  @ApiProperty({
+    enum: [
+      'INVALID_IDENTIFIER',
+      'INVALID_SCOPE',
+      'INVALID_HASH',
+      'INVALID_TIMESTAMP',
+      'INVALID_VERSION',
+      'INVALID_REVISION',
+      'INVALID_ROLE',
+      'INVALID_COLLISION_POLICY',
+      'INVALID_SETTINGS',
+      'INVALID_BINDINGS',
+      'INVALID_DATA_MODE',
+      'INVALID_POLICY_REFERENCE',
+      'INVALID_IDEMPOTENCY_KEY',
+      'INVALID_STATE',
+      'FA_PROFILE_NOT_FOUND',
+      'FA_BINDING_NOT_FOUND',
+      'FA_ASSIGNMENT_NOT_FOUND',
+      'FA_SCOPE_NARROWING_REQUIRED',
+      'FA_IMMUTABLE_PROFILE',
+      'FA_IMMUTABLE_BINDING',
+      'FA_IMMUTABLE_ASSIGNMENT',
+      'FA_PROFILE_HASH_MISMATCH',
+      'FA_BINDING_ROLE_MISMATCH',
+      'FA_ASSIGNMENT_REVISION_CONFLICT',
+      'FA_PERSISTENCE_UNAVAILABLE',
+      'DATA_MODE_BROADENS_WORKSPACE',
+      'DATA_MODE_POLICY_UNAVAILABLE',
+    ],
+  })
+  code!: string;
 }

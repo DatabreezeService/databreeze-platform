@@ -304,8 +304,12 @@ export class FolderAutopilotService {
       (!Number.isSafeInteger(version) || version < 1 || version > 10_000)
     )
       return rejected('INVALID_VERSION');
-    const value = await this.repository.findProfile(context, profileId, version);
-    return value ? Object.freeze({ accepted: true, value }) : rejected('FA_PROFILE_NOT_FOUND');
+    try {
+      const value = await this.repository.findProfile(context, profileId, version);
+      return value ? Object.freeze({ accepted: true, value }) : rejected('FA_PROFILE_NOT_FOUND');
+    } catch (error) {
+      return rejected<FolderAutopilotProfileV1>(mapPersistenceError(error));
+    }
   }
 
   public async findBinding(
@@ -314,8 +318,12 @@ export class FolderAutopilotService {
   ): Promise<FolderAutopilotServiceResultV1<AutopilotFolderBindingV1>> {
     const bindingId = parseId(bindingIdInput);
     if (!bindingId) return rejected('INVALID_IDENTIFIER');
-    const value = await this.repository.findBinding(context, bindingId);
-    return value ? Object.freeze({ accepted: true, value }) : rejected('FA_BINDING_NOT_FOUND');
+    try {
+      const value = await this.repository.findBinding(context, bindingId);
+      return value ? Object.freeze({ accepted: true, value }) : rejected('FA_BINDING_NOT_FOUND');
+    } catch (error) {
+      return rejected<AutopilotFolderBindingV1>(mapPersistenceError(error));
+    }
   }
 
   public async findAssignment(
@@ -324,26 +332,42 @@ export class FolderAutopilotService {
   ): Promise<FolderAutopilotServiceResultV1<RecipeAssignmentV1>> {
     const assignmentId = parseId(assignmentIdInput);
     if (!assignmentId) return rejected('INVALID_IDENTIFIER');
-    const value = await this.repository.findAssignment(context, assignmentId);
-    return value ? Object.freeze({ accepted: true, value }) : rejected('FA_ASSIGNMENT_NOT_FOUND');
+    try {
+      const value = await this.repository.findAssignment(context, assignmentId);
+      return value ? Object.freeze({ accepted: true, value }) : rejected('FA_ASSIGNMENT_NOT_FOUND');
+    } catch (error) {
+      return rejected<RecipeAssignmentV1>(mapPersistenceError(error));
+    }
   }
 
   public async listProfiles(
     context: IamTenantContextV1,
   ): Promise<FolderAutopilotServiceResultV1<readonly FolderAutopilotProfileV1[]>> {
-    return Object.freeze({ accepted: true, value: await this.repository.listProfiles(context) });
+    try {
+      return Object.freeze({ accepted: true, value: await this.repository.listProfiles(context) });
+    } catch (error) {
+      return rejected<readonly FolderAutopilotProfileV1[]>(mapPersistenceError(error));
+    }
   }
 
   public async listBindings(
     context: IamTenantContextV1,
   ): Promise<FolderAutopilotServiceResultV1<readonly AutopilotFolderBindingV1[]>> {
-    return Object.freeze({ accepted: true, value: await this.repository.listBindings(context) });
+    try {
+      return Object.freeze({ accepted: true, value: await this.repository.listBindings(context) });
+    } catch (error) {
+      return rejected<readonly AutopilotFolderBindingV1[]>(mapPersistenceError(error));
+    }
   }
 
   public async listAssignments(
     context: IamTenantContextV1,
   ): Promise<FolderAutopilotServiceResultV1<readonly RecipeAssignmentV1[]>> {
-    return Object.freeze({ accepted: true, value: await this.repository.listAssignments(context) });
+    try {
+      return Object.freeze({ accepted: true, value: await this.repository.listAssignments(context) });
+    } catch (error) {
+      return rejected<readonly RecipeAssignmentV1[]>(mapPersistenceError(error));
+    }
   }
 
   public decideApproval(

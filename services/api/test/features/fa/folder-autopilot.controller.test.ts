@@ -199,7 +199,7 @@ void test('[FA-001..FA-007, FA-014, FA-015, FA-031] HTTP is tenant-scoped and co
       method: 'GET',
       url: `/v1/autopilot-profiles/${ids.profileId}`,
     });
-    assert.equal(siblingRead.statusCode, 200);
+    assert.equal(siblingRead.statusCode, 404);
     assert.deepEqual(siblingRead.json(), { accepted: false, code: 'FA_PROFILE_NOT_FOUND' });
   } finally {
     await app.close();
