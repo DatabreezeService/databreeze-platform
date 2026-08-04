@@ -83,6 +83,20 @@ void test('IAE-001/004/006/019 local registration stores only opaque metadata an
     assert.equal(replay.statusCode, 201);
     assert.deepEqual(JSON.parse(replay.body), body);
 
+    const admission = await app.inject({
+      method: 'POST',
+      url: `/v1/artifact-versions/${versionId}/admit`,
+      payload: {
+        actualSha256: registrationPayload.contentSha256,
+        actualByteSize: registrationPayload.byteSize,
+        detectedMediaType: registrationPayload.mediaType,
+        scanState: 'CLEAN',
+        maxByteSize: registrationPayload.byteSize,
+      },
+    });
+    assert.equal(admission.statusCode, 201);
+    assert.equal(JSON.parse(admission.body).accepted, true);
+
     const resolution = await app.inject({
       method: 'GET',
       url: `/v1/artifact-versions/${versionId}/evidence/${evidenceId}/resolve`,
@@ -112,7 +126,7 @@ void test('IAE-001/004/006/019 local registration stores only opaque metadata an
           displayName: 'orders.xlsx',
           createdAt: '2026-08-04T00:00:00.000Z',
           status: 'ACTIVE',
-          scanState: 'PENDING',
+          scanState: 'CLEAN',
         },
         action: 'OPEN_ON_SOURCE_DEVICE',
         placementReference: registrationPayload.opaqueReference,
