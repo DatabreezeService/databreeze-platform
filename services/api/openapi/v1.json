@@ -10157,7 +10157,13 @@
           "mfaRequired": { "type": "boolean" },
           "mfaReenrollmentRequired": { "type": "boolean" }
         },
-        "required": ["userId", "organizationId", "authorizationEpoch", "mfaRequired"]
+        "required": [
+          "userId",
+          "organizationId",
+          "authorizationEpoch",
+          "mfaRequired",
+          "mfaReenrollmentRequired"
+        ]
       },
       "SignInDto": {
         "type": "object",
@@ -10190,7 +10196,8 @@
           "accessToken",
           "accessExpiresAt",
           "securityEpoch",
-          "mfaRequired"
+          "mfaRequired",
+          "mfaReenrollmentRequired"
         ]
       },
       "SessionRefreshDto": {

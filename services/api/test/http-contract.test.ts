@@ -333,6 +333,7 @@ void test('sign-in returns a session DTO and maps authentication failures withou
         accessExpiresAt: '2026-01-01T00:15:00.000Z',
         securityEpoch: 2,
         mfaRequired: true,
+        mfaReenrollmentRequired: false,
       });
       const setCookies = response.headers['set-cookie'];
       assert.ok(Array.isArray(setCookies));
@@ -674,6 +675,7 @@ void test('protected artifact reads derive tenant scope from an authenticated ac
         workspaceId: principal.workspaceId,
         authorizationEpoch: principal.securityEpoch,
         mfaRequired: principal.mfaRequired,
+        mfaReenrollmentRequired: false,
       });
 
       const auditEvents = await app.inject({
