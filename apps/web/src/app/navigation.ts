@@ -20,6 +20,7 @@ export interface WebAccessContext {
 export type NavigationKey =
   | 'administration'
   | 'approvals'
+  | 'autopilot'
   | 'audit'
   | 'devices'
   | 'inbox'
@@ -56,6 +57,7 @@ export const WEB_NAVIGATION_REGISTRY = Object.freeze([
   navigationItem('inbox', 'inbox', [PERMISSIONS_V1.ARTIFACT_RECORD_READ]),
   navigationItem('jobs', 'jobs', [PERMISSIONS_V1.JOB_EXECUTION_READ], ['automation']),
   navigationItem('reviews', 'reviews', [PERMISSIONS_V1.JOB_EXECUTION_READ], ['automation']),
+  navigationItem('autopilot', 'autopilot', [PERMISSIONS_V1.JOB_EXECUTION_READ], ['automation']),
   navigationItem('approvals', 'approvals', [PERMISSIONS_V1.APPROVAL_REQUEST_READ], ['governance']),
   navigationItem('reports', 'reports', [PERMISSIONS_V1.ARTIFACT_RECORD_READ], ['reports']),
   navigationItem('devices', 'devices', [PERMISSIONS_V1.DEVICE_IDENTITY_READ], ['devices']),

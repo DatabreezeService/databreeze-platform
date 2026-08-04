@@ -12,6 +12,7 @@ function featureLabel(locale: ReturnType<typeof useLocale>, key: NavigationKey):
     return formatMessageV1(locale, registration.messageKey);
   }
   if (key === 'usage') return appMessage(locale, 'nav.usage');
+  if (key === 'autopilot') return appMessage(locale, 'autopilot.heading');
   return appMessage(locale, 'nav.administration');
 }
 
