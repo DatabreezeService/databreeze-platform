@@ -169,11 +169,14 @@ class Digest implements IamInvitationDigestPortV1 {
 class Delivery implements IamInvitationDeliveryPortV1 {
   readonly sent: Array<{ readonly token: string; readonly email: string }> = [];
 
+  constructor(private readonly onDeliver?: () => void) {}
+
   async deliver(input: {
     readonly rawToken: string;
     readonly recipientEmail: string;
   }): Promise<void> {
     await Promise.resolve();
+    this.onDeliver?.();
     this.sent.push({ token: input.rawToken, email: input.recipientEmail });
   }
 }
@@ -213,6 +216,28 @@ void test('[IAM-010] issuing an invitation delivers a raw token but returns only
   assert.equal('rawToken' in result.value, false);
   assert.equal('tokenDigest' in result.value, false);
   assert.deepEqual(composed.delivery.sent, [{ token: RAW_TOKEN, email: 'invitee@example.com' }]);
+});
+
+void test('[IAM-010] invitation persistence commits before raw-token delivery', async () => {
+  const repository = new Repository();
+  let persistedDuringDelivery = false;
+  const composed = service(
+    repository,
+    new Delivery(() => {
+      persistedDuringDelivery = repository.invitations[0]?.status === 'ACTIVE';
+    }),
+  );
+
+  assert.equal(
+    (
+      await composed.service.issue(context(ids.owner, 'invitation-issue-persisted-first'), {
+        membershipId: ids.invitedMembership,
+        recipientEmail: 'invitee@example.com',
+      })
+    ).accepted,
+    true,
+  );
+  assert.equal(persistedDuringDelivery, true);
 });
 
 void test('[IAM-010] email mismatch and non-owner issuance are denied without persistence', async () => {
