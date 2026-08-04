@@ -1,5 +1,10 @@
 """Reviewed built-in processors composed into the closed registry."""
 
+from .folder_autopilot import (
+    FileObservation,
+    build_file_observation,
+    fingerprint_bytes,
+)
 from .spreadsheet_auditor import (
     SpreadsheetAuditError,
     SpreadsheetAuditResult,
@@ -24,12 +29,15 @@ from .spreadsheet_auditor_manifest import (
 __all__ = [
     "SPREADSHEET_AUDITOR_ACTION_TYPE",
     "SPREADSHEET_AUDITOR_ACTION_VERSION",
+    "FileObservation",
     "SpreadsheetAuditError",
     "SpreadsheetAuditManifest",
     "SpreadsheetAuditManifestFinding",
     "SpreadsheetAuditManifestSheet",
     "SpreadsheetAuditResult",
     "audit_workbook",
+    "build_file_observation",
     "build_spreadsheet_audit_manifest",
+    "fingerprint_bytes",
     "handle_spreadsheet_auditor",
 ]
