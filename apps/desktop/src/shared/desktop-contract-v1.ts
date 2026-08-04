@@ -65,9 +65,12 @@ export function parseFolderGrantState(value: unknown): FolderGrantState {
     throw new Error('INVALID_FOLDER_GRANT');
   }
   if (record.lastScanAt !== null) {
+    const timestamp = typeof record.lastScanAt === 'string' ? Date.parse(record.lastScanAt) : NaN;
     if (
       typeof record.lastScanAt !== 'string' ||
-      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(record.lastScanAt)
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(record.lastScanAt) ||
+      !Number.isFinite(timestamp) ||
+      new Date(timestamp).toISOString() !== record.lastScanAt
     ) {
       throw new Error('INVALID_FOLDER_GRANT');
     }

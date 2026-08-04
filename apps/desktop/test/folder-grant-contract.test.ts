@@ -27,4 +27,16 @@ describe('dogfood folder grant contract', () => {
       expect(() => parseFolderGrantState(value)).toThrow('INVALID_FOLDER_GRANT');
     }
   });
+
+  it('rejects timestamps that match the shape but are not valid Dates', () => {
+    for (const lastScanAt of [
+      '2026-02-29T00:00:00.000Z',
+      '2026-13-04T00:00:00.000Z',
+      '2026-08-04T25:00:00.000Z',
+    ]) {
+      expect(() => parseFolderGrantState({ fileCount: 1, lastScanAt, status: 'granted' })).toThrow(
+        'INVALID_FOLDER_GRANT',
+      );
+    }
+  });
 });
