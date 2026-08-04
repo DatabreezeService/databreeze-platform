@@ -9,4 +9,25 @@
     <string name="capture_saved">Đã lưu bản nháp</string>
     <string name="capture_save">Lưu bản nháp</string>
     <string name="back_action">Quay lại</string>
+    <string name="autopilot_title">Tự động hóa thư mục</string>
+    <string name="autopilot_body">Xem và phê duyệt thao tác an toàn mà không hiển thị đường dẫn tên tệp.</string>
+    <string name="autopilot_assignment_heading">Phân công</string>
+    <string name="autopilot_assignment_state">Trạng thái: %1$s (phiên bản %2$d)</string>
+    <string name="autopilot_watcher_state">Watcher: %1$s</string>
+    <string name="autopilot_pause">Tạm dừng</string>
+    <string name="autopilot_paused">Đã tạm dừng</string>
+    <string name="autopilot_approval_heading">Hàng đợi phê duyệt</string>
+    <string name="autopilot_preview_id">Preview: %1$s</string>
+    <string name="autopilot_plan_hash">Mã kế hoạch: %1$s…</string>
+    <string name="autopilot_approval_counts">Ảnh hưởng %1$d • bị chặn %2$d</string>
+    <string name="autopilot_approval_state">Quyết định: %1$s</string>
+    <string name="autopilot_approve">Phê duyệt</string>
+    <string name="autopilot_reject">Từ chối</string>
+    <string name="autopilot_outcomes_heading">Kết quả gần đây</string>
+    <string name="autopilot_outcome_state">Kết quả: %1$s</string>
+    <string name="autopilot_affected_count">Số mục ảnh hưởng: %1$d</string>
+    <string name="autopilot_undo_state">Hoàn tác: %1$s</string>
+    <string name="autopilot_undo">Hoàn tác</string>
+    <string name="autopilot_exceptions_heading">Ngoại lệ</string>
+    <string name="autopilot_exception">%1$s • %2$s</string>
 </resources>

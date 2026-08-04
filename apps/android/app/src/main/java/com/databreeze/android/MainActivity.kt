@@ -16,8 +16,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -30,11 +32,23 @@ import com.databreeze.android.storage.InMemoryLocalStore
 import com.databreeze.android.storage.LocalStorePort
 import com.databreeze.android.storage.SyncQueueEntity
 import com.databreeze.android.sync.SyncScheduler
+import com.databreeze.android.folderautopilot.FolderAutopilotApprovalDecision
+import com.databreeze.android.folderautopilot.FolderAutopilotAssignmentState
+import com.databreeze.android.folderautopilot.FolderAutopilotAssignmentSummary
+import com.databreeze.android.folderautopilot.FolderAutopilotExceptionSummary
+import com.databreeze.android.folderautopilot.FolderAutopilotMobileState
+import com.databreeze.android.folderautopilot.FolderAutopilotOutcome
+import com.databreeze.android.folderautopilot.FolderAutopilotOutcomeSummary
+import com.databreeze.android.folderautopilot.FolderAutopilotApprovalSummary
+import com.databreeze.android.folderautopilot.FolderAutopilotUndoState
+import com.databreeze.android.folderautopilot.FolderAutopilotWatcherState
+import com.databreeze.android.folderautopilot.FolderAutopilotScreen
 import kotlinx.coroutines.launch
 
 private object AppRoutes {
     const val HOME = "home"
     const val CAPTURE = "capture"
+    const val AUTOPILOT = "autopilot"
 }
 
 private val localScope = AccountWorkspaceScope("local-account", "local-workspace")
@@ -63,6 +77,7 @@ fun DataBreezeApp(
     syncScheduler: SyncScheduler? = null,
 ) {
     val navController = rememberNavController()
+    var autopilotState by remember { mutableStateOf(sampleFolderAutopilotState()) }
     DataBreezeTheme {
         Scaffold(
             topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) },
@@ -73,7 +88,10 @@ fun DataBreezeApp(
                 modifier = Modifier.padding(padding),
             ) {
                 composable(AppRoutes.HOME) {
-                    HomeScreen(onCapture = { navController.navigate(AppRoutes.CAPTURE) })
+                    HomeScreen(
+                        onCapture = { navController.navigate(AppRoutes.CAPTURE) },
+                        onAutopilot = { navController.navigate(AppRoutes.AUTOPILOT) },
+                    )
                 }
                 composable(AppRoutes.CAPTURE) {
                     CaptureScreen(
@@ -83,13 +101,32 @@ fun DataBreezeApp(
                         onBack = { navController.popBackStack() },
                     )
                 }
+                composable(AppRoutes.AUTOPILOT) {
+                    FolderAutopilotScreen(
+                        state = autopilotState,
+                        onPause = { autopilotState = autopilotState.pauseAssignment() },
+                        onApprove = {
+                            autopilotState = autopilotState.decideApproval(
+                                FolderAutopilotApprovalDecision.APPROVED,
+                                autopilotState.approval.planHash,
+                            )
+                        },
+                        onReject = {
+                            autopilotState = autopilotState.decideApproval(
+                                FolderAutopilotApprovalDecision.REJECTED,
+                                autopilotState.approval.planHash,
+                            )
+                        },
+                        onUndo = { autopilotState = autopilotState.requestUndo() },
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun HomeScreen(onCapture: () -> Unit) {
+private fun HomeScreen(onCapture: () -> Unit, onAutopilot: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -102,8 +139,43 @@ private fun HomeScreen(onCapture: () -> Unit) {
         Button(onClick = onCapture, modifier = Modifier.testTag("capture-button")) {
             Text(stringResource(R.string.capture_action))
         }
+        Button(onClick = onAutopilot, modifier = Modifier.testTag("autopilot-button")) {
+            Text(stringResource(R.string.autopilot_title))
+        }
     }
 }
+
+private fun sampleFolderAutopilotState() = FolderAutopilotMobileState(
+    assignment = FolderAutopilotAssignmentSummary(
+        assignmentId = "assignment-1",
+        displayName = "Invoice intake",
+        state = FolderAutopilotAssignmentState.ACTIVE,
+        revision = 3,
+        watcherState = FolderAutopilotWatcherState.HEALTHY,
+    ),
+    approval = FolderAutopilotApprovalSummary(
+        approvalId = "approval-1",
+        previewId = "preview-1",
+        planHash = "a".repeat(64),
+        affectedCount = 2,
+        blockedCount = 1,
+        decision = FolderAutopilotApprovalDecision.PENDING,
+        expiresAt = "2026-08-05T00:00:00Z",
+    ),
+    recentOutcome = FolderAutopilotOutcomeSummary(
+        executionId = "execution-1",
+        outcome = FolderAutopilotOutcome.UNDO_AVAILABLE,
+        affectedCount = 2,
+        undoState = FolderAutopilotUndoState.AVAILABLE,
+    ),
+    exceptions = listOf(
+        FolderAutopilotExceptionSummary(
+            exceptionId = "exception-1",
+            severity = "WARNING",
+            reasonCode = "DESTINATION_COLLISION",
+        ),
+    ),
+)
 
 @Composable
 private fun CaptureScreen(
