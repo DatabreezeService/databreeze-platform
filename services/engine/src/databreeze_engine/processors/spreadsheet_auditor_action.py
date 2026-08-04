@@ -11,7 +11,12 @@ from databreeze_engine.models import (
     SpreadsheetAuditSheetSummary,
 )
 
-from .spreadsheet_auditor import SpreadsheetAuditError, audit_workbook
+from .spreadsheet_auditor import (
+    MAX_AUDIT_FINDINGS,
+    MAX_AUDIT_SHEETS,
+    SpreadsheetAuditError,
+    audit_workbook,
+)
 
 ACTION_TYPE = "spreadsheet-auditor.audit"
 ACTION_VERSION = "1.0.0"
@@ -35,6 +40,8 @@ def handle(
     except SpreadsheetAuditError as error:
         code = "RESOURCE_LIMIT_EXCEEDED" if error.code == "RESOURCE_LIMIT" else "VALIDATION_FAILED"
         raise ActionExecutionError(code) from None
+    if len(result.sheets) > MAX_AUDIT_SHEETS or len(result.findings) > MAX_AUDIT_FINDINGS:
+        raise ActionExecutionError("RESOURCE_LIMIT_EXCEEDED")
 
     context.progress.emit(
         EngineProgress(

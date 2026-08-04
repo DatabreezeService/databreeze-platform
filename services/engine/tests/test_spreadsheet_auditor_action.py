@@ -5,17 +5,20 @@ import io
 import zipfile
 from collections.abc import Callable
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
 
 from databreeze_engine.dispatcher import EngineDispatchError, dispatch_execution, dispatch_rpc
+from databreeze_engine.handler import ActionExecutionError
 from databreeze_engine.models import (
     EngineExecutionRequest,
     JsonRpcErrorResponse,
     JsonRpcSuccessResponse,
     SpreadsheetAuditProcessorResult,
 )
+from databreeze_engine.processors import spreadsheet_auditor_action
 from databreeze_engine.registry import default_registry
 
 
@@ -100,6 +103,44 @@ def _rpc(request: EngineExecutionRequest) -> dict[str, Any]:
     }
 
 
+def _action_context(request: EngineExecutionRequest, content: bytes):
+    from databreeze_engine.handler import CancellationView, DisabledProgressSink, HandlerContext
+
+    return HandlerContext(
+        request_id=request.requestId,
+        attempt_id=request.attemptId,
+        correlation_id=request.correlation.correlationId,
+        locale=request.locale,
+        input_handles=tuple(request.inputHandles),
+        output_handle=request.outputHandle,
+        resources=_manifest().resources,
+        deadline=datetime(2026, 1, 1, tzinfo=UTC),
+        cancellation=CancellationView(),
+        progress=DisabledProgressSink(),
+        read_input=lambda _handle: content,
+    )
+
+
+def _synthetic_audit_result(sheet_count: int, finding_count: int):
+    return SimpleNamespace(
+        workbookSha256="a" * 64,
+        sheets=tuple(
+            SimpleNamespace(name="Inventory", maxRow=1, maxColumn=1, formulaCount=0)
+            for _ in range(sheet_count)
+        ),
+        findings=tuple(
+            SimpleNamespace(
+                sheet="Inventory",
+                address="A1",
+                kind="FORMULA_GAP",
+                formulaFingerprint="b" * 64,
+            )
+            for _ in range(finding_count)
+        ),
+        blockedReasons=(),
+    )
+
+
 def test_registry_exposes_a_read_only_spreadsheet_auditor_action() -> None:
     manifest = _manifest()
     assert manifest.inputSchemaId == "spreadsheet-auditor.workbook.v1"
@@ -110,6 +151,48 @@ def test_registry_exposes_a_read_only_spreadsheet_auditor_action() -> None:
     assert manifest.filesystemWritesPermitted is False
     assert manifest.networkPermitted is False
     assert manifest.externalProvidersPermitted is False
+
+
+@pytest.mark.parametrize("sheet_count, finding_count", [(512, 0), (1, 10_000)])
+def test_action_accepts_auditor_cardinality_at_the_contract_limit(
+    execution_payload: Callable[..., dict[str, Any]],
+    monkeypatch: pytest.MonkeyPatch,
+    sheet_count: int,
+    finding_count: int,
+) -> None:
+    content = _workbook()
+    request = _request(execution_payload, content)
+    monkeypatch.setattr(
+        spreadsheet_auditor_action,
+        "audit_workbook",
+        lambda _content: _synthetic_audit_result(sheet_count, finding_count),
+    )
+
+    result = spreadsheet_auditor_action.handle(
+        _action_context(request, content), request.parameters
+    )
+
+    assert len(result.sheets) == sheet_count
+    assert len(result.findings) == finding_count
+
+
+@pytest.mark.parametrize("sheet_count, finding_count", [(513, 0), (1, 10_001)])
+def test_action_rejects_auditor_cardinality_above_the_contract_limit(
+    execution_payload: Callable[..., dict[str, Any]],
+    monkeypatch: pytest.MonkeyPatch,
+    sheet_count: int,
+    finding_count: int,
+) -> None:
+    content = _workbook()
+    request = _request(execution_payload, content)
+    monkeypatch.setattr(
+        spreadsheet_auditor_action,
+        "audit_workbook",
+        lambda _content: _synthetic_audit_result(sheet_count, finding_count),
+    )
+
+    with pytest.raises(ActionExecutionError, match="RESOURCE_LIMIT_EXCEEDED"):
+        spreadsheet_auditor_action.handle(_action_context(request, content), request.parameters)
 
 
 def test_dispatch_runs_auditor_against_one_hash_bound_opaque_input(

@@ -25,6 +25,8 @@ _MAX_MEMBERS = 2_048
 _MAX_XML_BYTES = 64 * 1024 * 1024
 _MAX_UNCOMPRESSED_BYTES = 256 * 1024 * 1024
 _MAX_CELLS = 1_000_000
+MAX_AUDIT_SHEETS = 512
+MAX_AUDIT_FINDINGS = 10_000
 
 
 class SpreadsheetSheetSummary(BaseModel):
@@ -179,11 +181,13 @@ def audit_workbook(
     *,
     max_uncompressed_bytes: int = _MAX_UNCOMPRESSED_BYTES,
     max_cells: int = _MAX_CELLS,
+    max_sheets: int = MAX_AUDIT_SHEETS,
+    max_findings: int = MAX_AUDIT_FINDINGS,
 ) -> SpreadsheetAuditResult:
     """Inventory a workbook and report formula-family anomalies without returning values."""
     if not isinstance(content, bytes) or not content:
         raise SpreadsheetAuditError("INVALID_ARCHIVE")
-    if max_uncompressed_bytes < 1 or max_cells < 1:
+    if max_uncompressed_bytes < 1 or max_cells < 1 or max_sheets < 1 or max_findings < 1:
         raise SpreadsheetAuditError("RESOURCE_LIMIT")
     workbook_sha256 = hashlib.sha256(content).hexdigest()
     try:
@@ -214,6 +218,8 @@ def audit_workbook(
             targets = _sheet_targets(archive)
         except KeyError:
             raise SpreadsheetAuditError("MALFORMED_XML") from None
+        if len(targets) > max_sheets:
+            raise SpreadsheetAuditError("RESOURCE_LIMIT")
         summaries: list[SpreadsheetSheetSummary] = []
         findings: list[SpreadsheetFinding] = []
         total_cells = 0
@@ -241,6 +247,8 @@ def audit_workbook(
             for address, formula in formulas:
                 family = _normalized_formula(formula)
                 if families[family] == 1 and len(formulas) >= 3:
+                    if len(findings) >= max_findings:
+                        raise SpreadsheetAuditError("RESOURCE_LIMIT")
                     findings.append(
                         SpreadsheetFinding(
                             sheet=sheet_name,
@@ -275,6 +283,8 @@ def audit_workbook(
                             if key in gap_keys:
                                 continue
                             gap_keys.add(key)
+                            if len(findings) >= max_findings:
+                                raise SpreadsheetAuditError("RESOURCE_LIMIT")
                             findings.append(
                                 SpreadsheetFinding(
                                     sheet=sheet_name,
