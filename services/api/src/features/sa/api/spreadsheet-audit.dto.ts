@@ -29,19 +29,19 @@ export class SpreadsheetAuditSheetDto {
   @MaxLength(128)
   name!: string;
 
-  @ApiProperty({ minimum: 0, maximum: 1_048_576 })
+  @ApiProperty({ type: 'integer', minimum: 0, maximum: 1_048_576 })
   @IsInt()
   @Min(0)
   @Max(1_048_576)
   maxRow!: number;
 
-  @ApiProperty({ minimum: 0, maximum: 16_384 })
+  @ApiProperty({ type: 'integer', minimum: 0, maximum: 16_384 })
   @IsInt()
   @Min(0)
   @Max(16_384)
   maxColumn!: number;
 
-  @ApiProperty({ minimum: 0, maximum: 1_000_000 })
+  @ApiProperty({ type: 'integer', minimum: 0, maximum: 1_000_000 })
   @IsInt()
   @Min(0)
   @Max(1_000_000)
@@ -117,7 +117,10 @@ export class CreateSpreadsheetAuditResultDto {
   @MaxLength(128)
   processorVersion!: string;
 
-  @ApiProperty({ format: 'date-time' })
+  @ApiProperty({
+    format: 'date-time',
+    pattern: '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$',
+  })
   @IsISO8601({ strict: true, strictSeparator: true })
   @Matches(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u)
   createdAt!: string;

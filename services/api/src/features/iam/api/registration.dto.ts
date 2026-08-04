@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEmail, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class RegistrationDto {
-  @ApiProperty({ example: 'ngu***@example.com', maxLength: 254 })
+  @ApiProperty({ format: 'email', example: 'nguyen@example.com', maxLength: 254 })
   @IsEmail()
   @MaxLength(254)
   email!: string;
