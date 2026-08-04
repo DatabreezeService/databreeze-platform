@@ -60,7 +60,9 @@ function membership(
   };
 }
 
-function service() {
+function service(secretIssuerInput?: {
+  issue: () => { readonly secret: string; readonly digest: string };
+}) {
   const iam = new InMemoryIamRepositoryAdapter();
   iam.seed([membership()]);
   const digest = (secret: string) => createHash('sha256').update(secret, 'utf8').digest('hex');
@@ -68,10 +70,15 @@ function service() {
     { secret: 'dbsa_first', digest: digest('dbsa_first') },
     { secret: 'dbsa_second', digest: digest('dbsa_second') },
   ];
+  const secretIssuer =
+    secretIssuerInput ??
+    ({
+      issue: () => secrets.shift() ?? { secret: 'dbsa_fallback', digest: 'c'.repeat(64) },
+    } as const);
   const service = new ServiceAccountService(
     new InMemoryServiceAccountRepositoryAdapter(),
     iam,
-    { issue: () => secrets.shift() ?? { secret: 'dbsa_fallback', digest: 'c'.repeat(64) } },
+    secretIssuer,
     () => new Date('2026-01-01T00:00:00.000Z'),
     () => accountId,
   );
@@ -92,6 +99,24 @@ void test('[IAM-013] authorized creation returns a one-time secret but never the
   assert.equal(result.value.secret, 'dbsa_first');
   assert.equal('secretDigest' in result.value.account, false);
   assert.equal(result.value.account.status, 'ACTIVE');
+});
+
+void test('[IAM-013] invalid service-account permissions fail before secret issuance', async () => {
+  let issued = 0;
+  const accountService = service({
+    issue: () => {
+      issued += 1;
+      return { secret: 'dbsa_invalid', digest: 'e'.repeat(64) };
+    },
+  });
+  assert.deepEqual(
+    await accountService.create(context({ scopeType: 'organization', organizationId }), {
+      name: 'Invalid worker',
+      permissions: [],
+    }),
+    { accepted: false, code: 'INVALID_INPUT' },
+  );
+  assert.equal(issued, 0);
 });
 
 void test('[IAM-013] service account management requires the delegated IAM permission and target scope', async () => {

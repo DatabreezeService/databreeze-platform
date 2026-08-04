@@ -6,12 +6,14 @@ import {
   markServiceAccountUsedV1,
   revokeServiceAccountV1,
   rotateServiceAccountSecretV1,
+  SERVICE_ACCOUNT_MAX_PERMISSION_COUNT_V1,
   type ServiceAccountV1,
   type ServiceAccountErrorCodeV1,
 } from '@databreeze/domain/service-account/v1';
 import {
   roleHasPermissionV1,
   PERMISSIONS_V1,
+  isPermissionV1,
   type PermissionV1,
 } from '@databreeze/domain/permissions/v1';
 import {
@@ -168,11 +170,15 @@ function accountScope(account: ServiceAccountV1): TenantScopeV1 {
 function serviceAccountPermissions(input: unknown): input is readonly PermissionV1[] {
   return (
     Array.isArray(input) &&
-    !input.some(
-      (permission) =>
-        permission === PERMISSIONS_V1.SERVICE_ACCOUNT_READ ||
-        permission === PERMISSIONS_V1.SERVICE_ACCOUNT_MANAGE ||
-        permission === PERMISSIONS_V1.SERVICE_ACCOUNT_REVOKE,
+    input.length > 0 &&
+    input.length <= SERVICE_ACCOUNT_MAX_PERMISSION_COUNT_V1 &&
+    new Set(input).size === input.length &&
+    input.every(
+      (permission): permission is PermissionV1 =>
+        isPermissionV1(permission) &&
+        permission !== PERMISSIONS_V1.SERVICE_ACCOUNT_READ &&
+        permission !== PERMISSIONS_V1.SERVICE_ACCOUNT_MANAGE &&
+        permission !== PERMISSIONS_V1.SERVICE_ACCOUNT_REVOKE,
     )
   );
 }
