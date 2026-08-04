@@ -6,6 +6,9 @@ docs/
 **/README.md
 pnpm-lock.yaml
 packages/contracts/generated/
+# Published schema bytes are compatibility-versioned and must not be rewritten
+# by a formatting-only change.
+packages/contracts/schemas/v1/recipe-assignment.schema.json
 packages/design-tokens/brand/derivatives.json
 services/engine/test/fixtures/fake-uv-prefix
 infrastructure/local/.env.example
