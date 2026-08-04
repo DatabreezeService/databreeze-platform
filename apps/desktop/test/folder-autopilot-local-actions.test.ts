@@ -13,6 +13,7 @@ function dependencies(overrides: Partial<LocalFileSystem> = {}) {
     exists: vi.fn(() => Promise.resolve(false)),
     readFingerprint: vi.fn(() => Promise.resolve('a'.repeat(64))),
     copyExclusive: vi.fn(() => Promise.resolve()),
+    renameExclusive: vi.fn(() => Promise.resolve()),
     rename: vi.fn(() => Promise.resolve()),
     ...overrides,
   };
@@ -47,7 +48,7 @@ describe('Folder Autopilot local typed actions', () => {
 
   it('revalidates containment and source fingerprint before a rename', async () => {
     const deps = dependencies();
-    const rename = vi.spyOn(deps.fileSystem, 'rename');
+    const renameExclusive = vi.spyOn(deps.fileSystem, 'renameExclusive');
     const result = await executeLocalPlan(
       plan({
         operationId: 'rename-1',
@@ -62,7 +63,7 @@ describe('Folder Autopilot local typed actions', () => {
     expect(result[0]!.status).toBe('APPLIED');
     expect(deps.sourceGuard.assertContained).toHaveBeenCalledWith(sourcePath);
     expect(deps.destinationGuard.assertContained).toHaveBeenCalledWith(destinationPath);
-    expect(rename).toHaveBeenCalledWith(sourcePath, destinationPath);
+    expect(renameExclusive).toHaveBeenCalledWith(sourcePath, destinationPath);
   });
 
   it('never overwrites a destination and handles SKIP explicitly', async () => {
@@ -89,6 +90,7 @@ describe('Folder Autopilot local typed actions', () => {
       .fn<LocalFileSystem['exists']>()
       .mockResolvedValueOnce(true)
       .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false)
       .mockResolvedValueOnce(false);
     const deps = dependencies({ exists });
     const copyExclusive = vi.spyOn(deps.fileSystem, 'copyExclusive');
@@ -146,6 +148,60 @@ describe('Folder Autopilot local typed actions', () => {
 
     expect(renameExclusive).toHaveBeenCalledWith(sourcePath, destinationPath);
     expect(rename).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when only a non-exclusive rename primitive is available', async () => {
+    const deps = dependencies();
+    delete deps.fileSystem.renameExclusive;
+    const rename = vi.spyOn(deps.fileSystem, 'rename');
+
+    await expect(
+      executeLocalPlan(
+        plan({
+          operationId: 'rename-unsafe-1',
+          action: 'RENAME',
+          sourcePath,
+          destinationPath,
+          sourceFingerprint: 'a'.repeat(64),
+        }),
+        deps,
+      ),
+    ).rejects.toMatchObject({ code: 'EXCLUSIVE_RENAME_REQUIRED' });
+    expect(rename).not.toHaveBeenCalled();
+  });
+
+  it('maps guard and filesystem failures to content-free stable errors', async () => {
+    const sourceGuardFailure = dependencies({
+      readFingerprint: vi.fn(() => Promise.reject(new Error('source C:\\secret\\file.csv'))),
+    });
+    await expect(
+      executeLocalPlan(
+        plan({
+          operationId: 'read-failure-1',
+          action: 'INSPECT',
+          sourcePath,
+          sourceFingerprint: 'a'.repeat(64),
+        }),
+        sourceGuardFailure,
+      ),
+    ).rejects.toMatchObject({ code: 'LOCAL_IO_FAILED', message: 'LOCAL_IO_FAILED' });
+
+    const guardFailure = dependencies();
+    guardFailure.destinationGuard.assertContained = vi.fn(() => {
+      throw new Error('destination C:\\secret\\file.csv');
+    });
+    await expect(
+      executeLocalPlan(
+        plan({
+          operationId: 'guard-failure-1',
+          action: 'COPY',
+          sourcePath,
+          destinationPath,
+          sourceFingerprint: 'a'.repeat(64),
+        }),
+        guardFailure,
+      ),
+    ).rejects.toMatchObject({ code: 'LOCAL_IO_FAILED', message: 'LOCAL_IO_FAILED' });
   });
 
   it('rejects unique-name exhaustion at the bounded allocation limit', async () => {
