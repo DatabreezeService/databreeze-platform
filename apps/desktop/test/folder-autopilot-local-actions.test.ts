@@ -301,6 +301,7 @@ describe('Folder Autopilot local typed actions', () => {
 
   it('rejects missing operation identifiers before filesystem access', async () => {
     const deps = dependencies();
+    const readFingerprint = vi.spyOn(deps.fileSystem, 'readFingerprint');
     await expect(
       executeLocalPlan(
         {
@@ -316,6 +317,6 @@ describe('Folder Autopilot local typed actions', () => {
         deps,
       ),
     ).rejects.toMatchObject({ code: 'INVALID_PLAN' });
-    expect(deps.fileSystem.readFingerprint).not.toHaveBeenCalled();
+    expect(readFingerprint).not.toHaveBeenCalled();
   });
 });
