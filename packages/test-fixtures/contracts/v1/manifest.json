@@ -20,6 +20,48 @@
       "covers": ["actor.identity"]
     },
     {
+      "id": "v1.autopilot-folder-binding.valid-input",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v1/autopilot-folder-binding",
+      "expectedAcceptance": true,
+      "source": "payloads/autopilot-folder-binding/valid-input.json",
+      "covers": ["folder-autopilot.binding"]
+    },
+    {
+      "id": "v1.autopilot-folder-binding.invalid-role",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v1/autopilot-folder-binding",
+      "expectedAcceptance": false,
+      "source": "payloads/autopilot-folder-binding/invalid-role.json",
+      "covers": ["folder-autopilot.binding"]
+    },
+    {
+      "id": "v1.folder-autopilot-profile.valid-review",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v1/folder-autopilot-profile",
+      "expectedAcceptance": true,
+      "source": "payloads/folder-autopilot-profile/valid-review.json",
+      "covers": ["folder-autopilot.profile"]
+    },
+    {
+      "id": "v1.folder-autopilot-profile.invalid-hash",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v1/folder-autopilot-profile",
+      "expectedAcceptance": false,
+      "source": "payloads/folder-autopilot-profile/invalid-hash.json",
+      "covers": ["folder-autopilot.profile"]
+    },
+    {
+      "id": "v1.recipe-assignment.valid-active",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v1/recipe-assignment",
+      "expectedAcceptance": true,
+      "source": "payloads/recipe-assignment/valid-active.json",
+      "covers": ["folder-autopilot.assignment"]
+    },
+    {
+      "id": "v1.recipe-assignment.invalid-state",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v1/recipe-assignment",
+      "expectedAcceptance": false,
+      "source": "payloads/recipe-assignment/invalid-state.json",
+      "covers": ["folder-autopilot.assignment"]
+    },
+    {
       "id": "v1.command-envelope.valid-idempotent",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/command-envelope",
       "expectedAcceptance": true,

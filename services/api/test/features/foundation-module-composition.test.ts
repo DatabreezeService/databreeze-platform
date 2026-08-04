@@ -44,6 +44,9 @@ import { SessionRequestTenantContextAdapter } from '../../src/platform/http/sess
 import { SaModule } from '../../src/features/sa/sa.module.js';
 import { SPREADSHEET_AUDIT_REPOSITORY_PORT } from '../../src/features/sa/application/spreadsheet-audit-repository.port.js';
 import { PrismaSpreadsheetAuditRepositoryAdapter } from '../../src/features/sa/adapter/prisma-spreadsheet-audit-repository.adapter.js';
+import { FaModule } from '../../src/features/fa/fa.module.js';
+import { FOLDER_AUTOPILOT_REPOSITORY_PORT } from '../../src/features/fa/application/folder-autopilot-repository.port.js';
+import { PrismaFolderAutopilotRepositoryAdapter } from '../../src/features/fa/adapter/prisma-folder-autopilot-repository.adapter.js';
 
 function moduleTypes(): readonly unknown[] {
   const registered = AppModule.register({ allowInMemorySpreadsheetAuditRunRepository: true });
@@ -95,6 +98,22 @@ void test('[IAM-001, AUD-001, BUA-001] application composition includes identity
   assert.ok(types.includes(AudModule));
   assert.ok(types.includes(BuaModule));
   assert.ok(types.includes(SaModule));
+  assert.ok(types.includes(FaModule));
+});
+
+void test('[FA-001] configured Folder Autopilot persistence uses the Prisma adapter boundary', () => {
+  const database = {} as never;
+  const registered = FaModule.register({ folderAutopilotDatabase: database });
+  const provider = registered.providers?.find(
+    (candidate) =>
+      typeof candidate === 'object' &&
+      candidate !== null &&
+      'provide' in candidate &&
+      candidate.provide === FOLDER_AUTOPILOT_REPOSITORY_PORT,
+  );
+  assert.ok(provider && 'useValue' in provider);
+  if (!provider || !('useValue' in provider)) return;
+  assert.ok(provider.useValue instanceof PrismaFolderAutopilotRepositoryAdapter);
 });
 
 void test('[SA-001] configured spreadsheet audit persistence uses the Prisma adapter', () => {

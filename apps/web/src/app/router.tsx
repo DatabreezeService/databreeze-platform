@@ -1,4 +1,5 @@
 import { DEFAULT_LOCALE_V1, SUPPORTED_LOCALES_V1 } from '@databreeze/i18n/v1';
+import { lazy, Suspense } from 'react';
 import {
   Navigate,
   createBrowserRouter,
@@ -19,6 +20,20 @@ import { InboxPage } from '../features/inbox/inbox-page.tsx';
 import { SpreadsheetAuditPage } from '../features/spreadsheet-auditor/spreadsheet-audit-page.tsx';
 import { WEB_FEATURE_REGISTRY } from './feature-registry.ts';
 import { DEFAULT_ACCESS_CONTEXT, type WebAccessContext } from './navigation.ts';
+
+const LazyFolderAutopilotPage = lazy(() =>
+  import('../features/folder-autopilot/folder-autopilot-page.tsx').then((module) => ({
+    default: module.FolderAutopilotPage,
+  })),
+);
+
+function FolderAutopilotRoute() {
+  return (
+    <Suspense fallback={<div aria-busy="true" className="feature-surface" />}>
+      <LazyFolderAutopilotPage />
+    </Suspense>
+  );
+}
 
 const logicalRoots = new Set(WEB_FEATURE_REGISTRY.map((feature) => feature.path));
 
@@ -58,7 +73,9 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
         ...WEB_FEATURE_REGISTRY.filter((feature) => feature.key !== 'workspace').map((feature) => ({
           path: feature.path,
           element:
-            feature.key === 'inbox' ? (
+            feature.key === 'autopilot' ? (
+              <FolderAutopilotRoute />
+            ) : feature.key === 'inbox' ? (
               <InboxPage />
             ) : feature.key === 'audit' ? (
               <SpreadsheetAuditPage />

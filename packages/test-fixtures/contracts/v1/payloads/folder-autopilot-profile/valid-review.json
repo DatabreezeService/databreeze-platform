@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "profileId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc21",
+  "tenantScope": {
+    "scopeType": "workspace",
+    "organizationId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc01",
+    "workspaceId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc02"
+  },
+  "version": 1,
+  "payloadHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "stabilizationDelayMs": 1500,
+  "maxFilesPerScan": 500,
+  "collisionPolicy": "REVIEW",
+  "undoWindowSeconds": 3600,
+  "outputLineageEnabled": true,
+  "createdAt": "2026-08-04T01:30:00.000Z",
+  "revision": 1
+}

@@ -16,7 +16,7 @@ test('publishes a deterministic synthetic v1 contract fixture registry', () => {
   assert.equal(fixtureManifest.fixtureVersion, 1);
   assert.equal(fixtureManifest.contractVersion, 1);
   assert.equal(fixtureManifest.synthetic, true);
-  assert.equal(fixtureManifest.cases.length, 28);
+  assert.equal(fixtureManifest.cases.length, 34);
 
   const caseIds = fixtureManifest.cases.map((fixtureCase) => fixtureCase.id);
   assert.equal(new Set(caseIds).size, caseIds.length, 'fixture case IDs must be unique');

@@ -1,5 +1,28 @@
 """Reviewed built-in processors composed into the closed registry."""
 
+from .folder_autopilot import (
+    FileObservation,
+    build_file_observation,
+    fingerprint_bytes,
+)
+from .folder_autopilot_action import (
+    ACTION_TYPE as FOLDER_AUTOPILOT_ACTION_TYPE,
+)
+from .folder_autopilot_action import (
+    ACTION_VERSION as FOLDER_AUTOPILOT_ACTION_VERSION,
+)
+from .folder_autopilot_action import (
+    handle as handle_folder_autopilot,
+)
+from .folder_autopilot_plan import (
+    AutopilotPlan,
+    AutopilotPlanRequest,
+    DestinationState,
+    PlanEvaluationError,
+    PlanOperation,
+    PlanStep,
+    evaluate_autopilot_plan,
+)
 from .spreadsheet_auditor import (
     SpreadsheetAuditError,
     SpreadsheetAuditResult,
@@ -22,14 +45,27 @@ from .spreadsheet_auditor_manifest import (
 )
 
 __all__ = [
+    "FOLDER_AUTOPILOT_ACTION_TYPE",
+    "FOLDER_AUTOPILOT_ACTION_VERSION",
     "SPREADSHEET_AUDITOR_ACTION_TYPE",
     "SPREADSHEET_AUDITOR_ACTION_VERSION",
+    "AutopilotPlan",
+    "AutopilotPlanRequest",
+    "DestinationState",
+    "FileObservation",
+    "PlanEvaluationError",
+    "PlanOperation",
+    "PlanStep",
     "SpreadsheetAuditError",
     "SpreadsheetAuditManifest",
     "SpreadsheetAuditManifestFinding",
     "SpreadsheetAuditManifestSheet",
     "SpreadsheetAuditResult",
     "audit_workbook",
+    "build_file_observation",
     "build_spreadsheet_audit_manifest",
+    "evaluate_autopilot_plan",
+    "fingerprint_bytes",
+    "handle_folder_autopilot",
     "handle_spreadsheet_auditor",
 ]

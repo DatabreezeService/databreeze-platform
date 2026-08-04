@@ -40,6 +40,7 @@ function navigationLabel(locale: 'en' | 'vi-VN', key: NavigationKey): string {
     return formatMessageV1(locale, registration.messageKey);
   if (key === 'usage') return appMessage(locale, 'nav.usage');
   if (key === 'administration') return appMessage(locale, 'nav.administration');
+  if (key === 'autopilot') return appMessage(locale, 'autopilot.heading');
   return appMessage(locale, 'nav.audit');
 }
 

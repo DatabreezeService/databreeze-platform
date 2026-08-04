@@ -19,6 +19,17 @@ public data class ActorMetadata(
     public val actorType: String,
 )
 
+public data class AutopilotFolderBinding(
+    public val bindingId: Identifier,
+    public val createdAt: UtcTimestamp,
+    public val deviceGrantId: Identifier,
+    public val expectedCapabilityDigest: String,
+    public val revision: Revision,
+    public val role: String,
+    public val schemaVersion: Long,
+    public val tenantScope: TenantScope,
+)
+
 public data class CommandEnvelope<TData>(
     public val actor: ActorMetadata,
     public val commandId: Identifier,
@@ -67,6 +78,21 @@ public data class EventEnvelopeEntity(
     public val entityId: Identifier,
     public val entityType: String,
     public val revision: Revision,
+)
+
+public data class FolderAutopilotProfile(
+    public val collisionPolicy: String,
+    public val createdAt: UtcTimestamp,
+    public val maxFilesPerScan: Long,
+    public val outputLineageEnabled: Boolean,
+    public val payloadHash: String,
+    public val profileId: Identifier,
+    public val revision: Revision,
+    public val schemaVersion: Long,
+    public val stabilizationDelayMs: Long,
+    public val tenantScope: TenantScope,
+    public val undoWindowSeconds: Long,
+    public val version: Long,
 )
 
 public data class OrganizationScope(
@@ -118,6 +144,26 @@ public data class ProjectScope(
 ) : TenantScope {
     public override val scopeType: String = "project"
 }
+
+public data class RecipeAssignment(
+    public val assignmentId: Identifier,
+    public val createdAt: UtcTimestamp,
+    public val dataModeConstraint: String? = null,
+    public val deviceId: Identifier,
+    public val effectiveDataModePolicyRef: Identifier? = null,
+    public val idempotencyKey: String,
+    public val inputBindingIds: List<Identifier>,
+    public val jraRecipeVersionHash: String,
+    public val jraRecipeVersionId: Identifier,
+    public val outputBindingIds: List<Identifier>,
+    public val profileHash: String,
+    public val profileId: Identifier,
+    public val profileVersion: Long,
+    public val revision: Revision,
+    public val schemaVersion: Long,
+    public val state: String,
+    public val tenantScope: TenantScope,
+)
 
 public data class WorkspaceScope(
     public val organizationId: Identifier,

@@ -80,6 +80,9 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "dso"\."device_sync_conflicts"/);
   assert.match(diff.stdout, /CREATE TABLE "dso"\."strict_local_package_manifests"/);
   assert.match(diff.stdout, /CREATE TABLE "sa"\."spreadsheet_audit_results"/);
+  assert.match(diff.stdout, /CREATE TABLE "fa"\."folder_autopilot_profiles"/);
+  assert.match(diff.stdout, /CREATE TABLE "fa"\."autopilot_folder_bindings"/);
+  assert.match(diff.stdout, /CREATE TABLE "fa"\."recipe_assignments"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."authorization_snapshots"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."mfa_recovery_codes"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."invitation_tokens"/);
@@ -142,6 +145,8 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260804020000_iam_service_account_replay_bounds',
     '20260804030000_iam_recovery_compensation_failures',
     '20260804040000_iam_invitation_delivery_failures',
+    '20260804050000_fa_folder_autopilot',
+    '20260804120000_fa_assignment_scope_key',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -511,6 +516,22 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   ]) {
     assert.match(
       spreadsheetAuditMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const folderAutopilotMigration = await readFile(
+    path.join(migrationsDirectory, inventory[46], 'migration.sql'),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE SCHEMA IF NOT EXISTS "fa"',
+    'CREATE TABLE "fa"."folder_autopilot_profiles"',
+    'CREATE TABLE "fa"."autopilot_folder_bindings"',
+    'CREATE TABLE "fa"."recipe_assignments"',
+    'expected_capability_digest',
+  ]) {
+    assert.match(
+      folderAutopilotMigration,
       new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
   }

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "bindingId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc11",
+  "tenantScope": {
+    "scopeType": "workspace",
+    "organizationId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc01",
+    "workspaceId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc02"
+  },
+  "deviceGrantId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc12",
+  "role": "INPUT",
+  "expectedCapabilityDigest": "0000000000000000000000000000000000000000000000000000000000000000",
+  "createdAt": "2026-08-04T01:30:00.000Z",
+  "revision": 1
+}

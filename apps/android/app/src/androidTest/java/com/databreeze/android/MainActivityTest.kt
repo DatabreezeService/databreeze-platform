@@ -36,4 +36,19 @@ class MainActivityTest {
         composeRule.onNodeWithTag("capture-screen").assertIsDisplayed()
         composeRule.onNodeWithText(savedText).assertIsDisplayed()
     }
+
+    @Test
+    fun folder_autopilot_keeps_actions_content_free_and_reversible() {
+        composeRule.onNodeWithTag("autopilot-button").performClick()
+        composeRule.onNodeWithTag("autopilot-screen").assertIsDisplayed()
+
+        composeRule.onNodeWithTag("autopilot-pause-button").performClick()
+        composeRule.onNodeWithTag("autopilot-assignment-state").assertIsDisplayed()
+
+        composeRule.onNodeWithTag("autopilot-approve-button").performClick()
+        composeRule.onNodeWithTag("autopilot-approval-state").assertIsDisplayed()
+
+        composeRule.onNodeWithTag("autopilot-undo-button").performClick()
+        composeRule.onNodeWithTag("autopilot-undo-state").assertIsDisplayed()
+    }
 }

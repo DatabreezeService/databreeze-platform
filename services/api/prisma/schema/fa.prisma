@@ -1,0 +1,72 @@
+/// FA-001..FA-007: Folder Autopilot owns only typed profiles and opaque references.
+model FolderAutopilotProfileRecord {
+  id                    String   @db.Uuid
+  scopeType             String   @map("scope_type") @db.VarChar(24)
+  organizationId        String   @map("organization_id") @db.Uuid
+  workspaceId           String?  @map("workspace_id") @db.Uuid
+  projectId             String?  @map("project_id") @db.Uuid
+  version               Int
+  payloadHash           String   @map("payload_hash") @db.Char(64)
+  stabilizationDelayMs  Int      @map("stabilization_delay_ms")
+  maxFilesPerScan       Int      @map("max_files_per_scan")
+  collisionPolicy       String   @map("collision_policy") @db.VarChar(16)
+  undoWindowSeconds     Int      @map("undo_window_seconds")
+  outputLineageEnabled  Boolean  @map("output_lineage_enabled")
+  createdAt             DateTime @map("created_at") @db.Timestamptz(6)
+  revision              Int      @default(1)
+
+  @@id([id, version], map: "folder_autopilot_profiles_pkey")
+  @@index([organizationId, workspaceId, projectId, id, version], map: "folder_autopilot_profiles_scope_idx")
+  @@map("folder_autopilot_profiles")
+  @@schema("fa")
+}
+
+/// FA-001..FA-003: only DSO grant identifiers and expected digests are persisted.
+model AutopilotFolderBindingRecord {
+  id                       String   @id @db.Uuid
+  scopeType                String   @map("scope_type") @db.VarChar(24)
+  organizationId           String   @map("organization_id") @db.Uuid
+  workspaceId              String?  @map("workspace_id") @db.Uuid
+  projectId                String?  @map("project_id") @db.Uuid
+  deviceGrantId            String   @map("device_grant_id") @db.Uuid
+  role                     String   @db.VarChar(8)
+  expectedCapabilityDigest String  @map("expected_capability_digest") @db.Char(64)
+  createdAt                DateTime @map("created_at") @db.Timestamptz(6)
+  revision                 Int      @default(1)
+
+  @@index([organizationId, workspaceId, projectId, role], map: "autopilot_folder_bindings_scope_role_idx")
+  @@index([deviceGrantId], map: "autopilot_folder_bindings_device_grant_idx")
+  @@map("autopilot_folder_bindings")
+  @@schema("fa")
+}
+
+/// FA-005..FA-007, FA-014, FA-015, FA-031: references JRA/DSO authority by ID/hash.
+model RecipeAssignmentRecord {
+  id                           String   @id @db.Uuid
+  scopeType                    String   @map("scope_type") @db.VarChar(24)
+  organizationId               String   @map("organization_id") @db.Uuid
+  workspaceId                  String?  @map("workspace_id") @db.Uuid
+  projectId                    String?  @map("project_id") @db.Uuid
+  scopeKey                     String   @map("scope_key") @db.VarChar(200)
+  profileId                    String   @map("profile_id") @db.Uuid
+  profileVersion               Int      @map("profile_version")
+  profileHash                  String   @map("profile_hash") @db.Char(64)
+  jraRecipeVersionId           String   @map("jra_recipe_version_id") @db.Uuid
+  jraRecipeVersionHash         String   @map("jra_recipe_version_hash") @db.Char(64)
+  deviceId                     String   @map("device_id") @db.Uuid
+  inputBindingIds              Json     @map("input_binding_ids")
+  outputBindingIds             Json     @map("output_binding_ids")
+  dataModeConstraint            String?  @map("data_mode_constraint") @db.VarChar(16)
+  effectiveDataModePolicyRef    String?  @map("effective_data_mode_policy_ref") @db.Uuid
+  idempotencyKey                String   @map("idempotency_key") @db.VarChar(200)
+  state                         String   @db.VarChar(16)
+  revision                      Int      @default(1)
+  createdAt                     DateTime @map("created_at") @db.Timestamptz(6)
+  updatedAt                     DateTime @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([scopeKey, idempotencyKey], map: "recipe_assignments_scope_idempotency_key")
+  @@index([organizationId, workspaceId, projectId, state], map: "recipe_assignments_scope_state_idx")
+  @@index([deviceId, state], map: "recipe_assignments_device_state_idx")
+  @@map("recipe_assignments")
+  @@schema("fa")
+}

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "assignmentId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc41",
+  "tenantScope": {
+    "scopeType": "workspace",
+    "organizationId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc01",
+    "workspaceId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc02"
+  },
+  "profileId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc21",
+  "profileVersion": 1,
+  "profileHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "jraRecipeVersionId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc31",
+  "jraRecipeVersionHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "deviceId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc12",
+  "inputBindingIds": ["018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc11"],
+  "outputBindingIds": ["018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc13"],
+  "dataModeConstraint": "HYBRID",
+  "effectiveDataModePolicyRef": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc51",
+  "idempotencyKey": "fa-assignment-2026-08-04-0001",
+  "state": "ACTIVE",
+  "revision": 1,
+  "createdAt": "2026-08-04T01:30:00.000Z"
+}

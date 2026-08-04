@@ -52,6 +52,16 @@ class ActorMetadata(ClosedModel):
     actorId: Identifier
     actorType: Annotated[StrictStr, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{0,62}$")]
 
+class AutopilotFolderBinding(ClosedModel):
+    bindingId: Identifier
+    createdAt: UtcTimestamp
+    deviceGrantId: Identifier
+    expectedCapabilityDigest: Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+    revision: Revision
+    role: Annotated[StrictStr, StringConstraints(pattern=r"^(INPUT|OUTPUT)$")]
+    schemaVersion: Literal[1]
+    tenantScope: TenantScope
+
 class CommandEnvelope(ClosedModel, Generic[TData]):
     actor: ActorMetadata
     commandId: Identifier
@@ -99,6 +109,20 @@ class EventEnvelopeEntity(ClosedModel):
     entityType: Annotated[StrictStr, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{0,62}$")]
     revision: Revision
 
+class FolderAutopilotProfile(ClosedModel):
+    collisionPolicy: Annotated[StrictStr, StringConstraints(pattern=r"^(REVIEW|SKIP|UNIQUE_NAME)$")]
+    createdAt: UtcTimestamp
+    maxFilesPerScan: Annotated[int, Field(strict=True, ge=1, le=100000)]
+    outputLineageEnabled: StrictBool
+    payloadHash: Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+    profileId: Identifier
+    revision: Revision
+    schemaVersion: Literal[1]
+    stabilizationDelayMs: Annotated[int, Field(strict=True, ge=0, le=86400000)]
+    tenantScope: TenantScope
+    undoWindowSeconds: Annotated[int, Field(strict=True, ge=0, le=604800)]
+    version: Annotated[int, Field(strict=True, ge=1, le=10000)]
+
 class OrganizationScope(ClosedModel):
     organizationId: Identifier
     scopeType: Literal["organization"]
@@ -142,6 +166,25 @@ class ProjectScope(ClosedModel):
     scopeType: Literal["project"]
     workspaceId: Identifier
 
+class RecipeAssignment(ClosedModel):
+    assignmentId: Identifier
+    createdAt: UtcTimestamp
+    dataModeConstraint: Annotated[StrictStr, StringConstraints(pattern=r"^(LOCAL|HYBRID|CLOUD)$")] | None = None
+    deviceId: Identifier
+    effectiveDataModePolicyRef: Identifier | None = None
+    idempotencyKey: Annotated[StrictStr, StringConstraints(min_length=1, max_length=200)]
+    inputBindingIds: Annotated[list[Identifier], Field(max_length=32)]
+    jraRecipeVersionHash: Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+    jraRecipeVersionId: Identifier
+    outputBindingIds: Annotated[list[Identifier], Field(max_length=32)]
+    profileHash: Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+    profileId: Identifier
+    profileVersion: Annotated[int, Field(strict=True, ge=1, le=10000)]
+    revision: Revision
+    schemaVersion: Literal[1]
+    state: Annotated[StrictStr, StringConstraints(pattern=r"^(DRAFT|ACTIVE|PAUSED|RETIRED)$")]
+    tenantScope: TenantScope
+
 class WorkspaceScope(ClosedModel):
     organizationId: Identifier
     scopeType: Literal["workspace"]
@@ -150,14 +193,17 @@ class WorkspaceScope(ClosedModel):
 TenantScope: TypeAlias = Annotated[OrganizationScope | WorkspaceScope | ProjectScope, Field(discriminator="scopeType")]
 
 ActorMetadata.model_rebuild()
+AutopilotFolderBinding.model_rebuild()
 CommandEnvelope.model_rebuild()
 CorrelationMetadata.model_rebuild()
 CursorPage.model_rebuild()
 EventEnvelope.model_rebuild()
 EventEnvelopeEntity.model_rebuild()
+FolderAutopilotProfile.model_rebuild()
 OrganizationScope.model_rebuild()
 ProblemDetails.model_rebuild()
 ProblemDetailsFieldErrorsItem.model_rebuild()
 ProblemDetailsRateLimit.model_rebuild()
 ProjectScope.model_rebuild()
+RecipeAssignment.model_rebuild()
 WorkspaceScope.model_rebuild()

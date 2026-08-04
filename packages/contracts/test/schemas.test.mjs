@@ -15,12 +15,15 @@ const schemaBase = 'https://schemas.databreeze.dev/contracts/v1';
 
 const ids = {
   actorMetadata: `${schemaBase}/actor-metadata`,
+  autopilotFolderBinding: `${schemaBase}/autopilot-folder-binding`,
   commandEnvelope: `${schemaBase}/command-envelope`,
   correlationMetadata: `${schemaBase}/correlation-metadata`,
   cursorPage: `${schemaBase}/cursor-page`,
   eventEnvelope: `${schemaBase}/event-envelope`,
+  folderAutopilotProfile: `${schemaBase}/folder-autopilot-profile`,
   identifier: `${schemaBase}/identifier`,
   problemDetails: `${schemaBase}/problem-details`,
+  recipeAssignment: `${schemaBase}/recipe-assignment`,
   revision: `${schemaBase}/revision`,
   tenantScope: `${schemaBase}/tenant-scope`,
   utcTimestamp: `${schemaBase}/utc-timestamp`,
@@ -62,12 +65,15 @@ test('publishes the complete deterministic v1 registry and compiles every real s
   const { ajv, manifest, schemas } = loadContracts();
   const expectedNames = [
     'actor-metadata',
+    'autopilot-folder-binding',
     'command-envelope',
     'correlation-metadata',
     'cursor-page',
     'event-envelope',
+    'folder-autopilot-profile',
     'identifier',
     'problem-details',
+    'recipe-assignment',
     'revision',
     'tenant-scope',
     'utc-timestamp',
@@ -100,12 +106,15 @@ test('exports only declared registry schema and generated TypeScript entry point
     '.',
     './v1',
     './v1/actor-metadata',
+    './v1/autopilot-folder-binding',
     './v1/command-envelope',
     './v1/correlation-metadata',
     './v1/cursor-page',
     './v1/event-envelope',
+    './v1/folder-autopilot-profile',
     './v1/identifier',
     './v1/problem-details',
+    './v1/recipe-assignment',
     './v1/revision',
     './v1/tenant-scope',
     './v1/utc-timestamp',
@@ -156,6 +165,57 @@ test('rejects incomplete or discriminator-mismatched tenant ancestry', () => {
 
   assert.equal(validate({ scopeType: 'project', organizationId, projectId }), false);
   assert.equal(validate({ scopeType: 'workspace', organizationId, workspaceId, projectId }), false);
+});
+
+test('[FA-001..FA-007, FA-014, FA-015, FA-031] compiles closed profile, binding, and assignment contracts', () => {
+  const profile = {
+    schemaVersion: 1,
+    profileId: organizationId,
+    tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+    version: 1,
+    payloadHash: 'a'.repeat(64),
+    stabilizationDelayMs: 1000,
+    maxFilesPerScan: 100,
+    collisionPolicy: 'REVIEW',
+    undoWindowSeconds: 3600,
+    outputLineageEnabled: true,
+    createdAt: '2026-08-01T01:30:00.125Z',
+    revision: 1,
+  };
+  const binding = {
+    schemaVersion: 1,
+    bindingId: actorId,
+    tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+    deviceGrantId: projectId,
+    role: 'INPUT',
+    expectedCapabilityDigest: 'b'.repeat(64),
+    createdAt: '2026-08-01T01:30:00.125Z',
+    revision: 1,
+  };
+  const assignment = {
+    schemaVersion: 1,
+    assignmentId: correlationId,
+    tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+    profileId: organizationId,
+    profileVersion: 1,
+    profileHash: 'a'.repeat(64),
+    jraRecipeVersionId: projectId,
+    jraRecipeVersionHash: 'c'.repeat(64),
+    deviceId: actorId,
+    inputBindingIds: [actorId],
+    outputBindingIds: [projectId],
+    dataModeConstraint: 'LOCAL',
+    effectiveDataModePolicyRef: correlationId,
+    idempotencyKey: 'assignment-1',
+    state: 'DRAFT',
+    revision: 1,
+    createdAt: '2026-08-01T01:30:00.125Z',
+  };
+  assert.equal(validatorFor(ids.folderAutopilotProfile)(profile), true);
+  assert.equal(validatorFor(ids.autopilotFolderBinding)(binding), true);
+  assert.equal(validatorFor(ids.recipeAssignment)(assignment), true);
+  assert.equal(validatorFor(ids.autopilotFolderBinding)({ ...binding, path: 'C:\\secret' }), false);
+  assert.equal(validatorFor(ids.recipeAssignment)({ ...assignment, localHandle: 'secret' }), false);
 });
 
 test('accepts closed correlation metadata and rejects undeclared context', () => {

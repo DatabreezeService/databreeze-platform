@@ -13,6 +13,7 @@ export const WEB_FEATURE_REGISTRY = Object.freeze([
   { key: 'inbox', messageKey: 'nav.inbox', path: 'inbox' },
   { key: 'jobs', messageKey: 'nav.jobs', path: 'jobs' },
   { key: 'reviews', messageKey: 'nav.reviews', path: 'reviews' },
+  { key: 'autopilot', path: 'autopilot' },
   { key: 'approvals', messageKey: 'nav.approvals', path: 'approvals' },
   { key: 'reports', messageKey: 'nav.reports', path: 'reports' },
   { key: 'devices', messageKey: 'nav.devices', path: 'devices' },

@@ -8,6 +8,11 @@
       "path": "schemas/v1/actor-metadata.schema.json"
     },
     {
+      "name": "autopilot-folder-binding",
+      "id": "https://schemas.databreeze.dev/contracts/v1/autopilot-folder-binding",
+      "path": "schemas/v1/autopilot-folder-binding.schema.json"
+    },
+    {
       "name": "command-envelope",
       "id": "https://schemas.databreeze.dev/contracts/v1/command-envelope",
       "path": "schemas/v1/command-envelope.schema.json"
@@ -28,6 +33,11 @@
       "path": "schemas/v1/event-envelope.schema.json"
     },
     {
+      "name": "folder-autopilot-profile",
+      "id": "https://schemas.databreeze.dev/contracts/v1/folder-autopilot-profile",
+      "path": "schemas/v1/folder-autopilot-profile.schema.json"
+    },
+    {
       "name": "identifier",
       "id": "https://schemas.databreeze.dev/contracts/v1/identifier",
       "path": "schemas/v1/identifier.schema.json"
@@ -36,6 +46,11 @@
       "name": "problem-details",
       "id": "https://schemas.databreeze.dev/contracts/v1/problem-details",
       "path": "schemas/v1/problem-details.schema.json"
+    },
+    {
+      "name": "recipe-assignment",
+      "id": "https://schemas.databreeze.dev/contracts/v1/recipe-assignment",
+      "path": "schemas/v1/recipe-assignment.schema.json"
     },
     {
       "name": "revision",

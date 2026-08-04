@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/autopilot-folder-binding",
+  "$comment": "FA-001..FA-003: an opaque DSO DeviceGrant reference; never a path, local handle, or revocation record.",
+  "title": "Autopilot Folder Binding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "bindingId",
+    "tenantScope",
+    "deviceGrantId",
+    "role",
+    "expectedCapabilityDigest",
+    "createdAt",
+    "revision"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "bindingId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "tenantScope": { "$ref": "https://schemas.databreeze.dev/contracts/v1/tenant-scope" },
+    "deviceGrantId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "role": { "type": "string", "pattern": "^(INPUT|OUTPUT)$" },
+    "expectedCapabilityDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "createdAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" },
+    "revision": { "$ref": "https://schemas.databreeze.dev/contracts/v1/revision" }
+  }
+}

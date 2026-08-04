@@ -24,6 +24,7 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
     './device-sync/v1',
     './device-capability/v1',
     './data-mode/v1',
+    './folder-autopilot/v1',
     './pkce/v1',
     './csrf/v1',
     './artifact/v1',
@@ -80,6 +81,7 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
   assert.equal(aggregate.DATASET_QUALITY_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.DATASET_PROFILE_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.DATASET_EXPORT_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.FOLDER_AUTOPILOT_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.SPREADSHEET_AUDIT_SCHEMA_VERSION_V1, 1);
   assert.equal(typeof aggregate.parseTenantScopeV1, 'function');
   assert.equal(aggregate.ARTIFACT_UPLOAD_SCHEMA_VERSION_V1, 1);
