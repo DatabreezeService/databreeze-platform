@@ -11,13 +11,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiBody,
-  ApiOperation,
-  ApiQuery,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 
 import {
   FOLDER_AUTOPILOT_SERVICE,
@@ -34,6 +28,7 @@ import {
   PauseRecipeAssignmentDto,
   UpdateRecipeAssignmentDto,
 } from './folder-autopilot.dto.js';
+import { buildFolderAutopilotDashboardProjection } from './folder-autopilot-dashboard.js';
 import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
@@ -54,23 +49,15 @@ export class FolderAutopilotController {
   @ApiOperation({ summary: 'Read content-free Folder Autopilot dashboard projections' })
   public async dashboard(@Req() request: unknown): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
-    const [profiles, bindings, assignments] = await Promise.all([
+    const [profiles, assignments] = await Promise.all([
       this.service.listProfiles(context),
-      this.service.listBindings(context),
       this.service.listAssignments(context),
     ]);
+    const profileValues = profiles.accepted ? profiles.value : [];
+    const assignmentValues = assignments.accepted ? assignments.value : [];
     return {
       accepted: true,
-      value: {
-        profiles: profiles.accepted ? profiles.value : [],
-        bindings: bindings.accepted ? bindings.value : [],
-        assignments: assignments.accepted ? assignments.value : [],
-        previews: [],
-        approvals: [],
-        executions: [],
-        exceptions: [],
-        health: [],
-      },
+      value: buildFolderAutopilotDashboardProjection(profileValues, assignmentValues),
     };
   }
 
@@ -191,7 +178,12 @@ export class FolderAutopilotController {
     @Body() input: PauseRecipeAssignmentDto,
   ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
-    return this.service.updateAssignmentState(context, assignmentId, input.expectedRevision, 'PAUSED');
+    return this.service.updateAssignmentState(
+      context,
+      assignmentId,
+      input.expectedRevision,
+      'PAUSED',
+    );
   }
 
   @Post('autopilot-approvals/:approvalId/decision')
