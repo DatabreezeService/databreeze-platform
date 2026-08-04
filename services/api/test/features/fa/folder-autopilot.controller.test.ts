@@ -177,7 +177,7 @@ void test('[FA-001..FA-007, FA-014, FA-015, FA-031] HTTP is tenant-scoped and co
         decisionReason: 'Ready for the JRA approval service.',
       },
     });
-    assert.equal(approvalUnavailable.statusCode, 200);
+    assert.equal(approvalUnavailable.statusCode, 503);
     assert.deepEqual(approvalUnavailable.json(), {
       accepted: false,
       code: 'FA_JRA_APPROVAL_FACADE_UNAVAILABLE',
@@ -188,7 +188,7 @@ void test('[FA-001..FA-007, FA-014, FA-015, FA-031] HTTP is tenant-scoped and co
       url: `/v1/autopilot-executions/${ids.recipeId}/undo`,
       payload: { expectedRevision: 1, planHash: 'e'.repeat(64) },
     });
-    assert.equal(undoUnavailable.statusCode, 200);
+    assert.equal(undoUnavailable.statusCode, 503);
     assert.deepEqual(undoUnavailable.json(), {
       accepted: false,
       code: 'FA_JRA_UNDO_FACADE_UNAVAILABLE',

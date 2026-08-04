@@ -70,6 +70,8 @@ function folderAutopilotStatus(result: unknown): number {
       return HttpStatus.CONFLICT;
     case 'FA_PERSISTENCE_UNAVAILABLE':
     case 'DATA_MODE_POLICY_UNAVAILABLE':
+    case 'FA_JRA_APPROVAL_FACADE_UNAVAILABLE':
+    case 'FA_JRA_UNDO_FACADE_UNAVAILABLE':
       return HttpStatus.SERVICE_UNAVAILABLE;
     default:
       return HttpStatus.BAD_REQUEST;
@@ -305,25 +307,35 @@ export class FolderAutopilotController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Submit a decision through the JRA-owned approval facade' })
   @ApiBody({ type: FolderAutopilotApprovalDecisionDto })
+  @applyFolderAutopilotOutcomeResponses()
   public async decideApproval(
     @Req() request: unknown,
     @Param('approvalId') approvalId: string,
     @Body() input: FolderAutopilotApprovalDecisionDto,
+    @Res({ passthrough: true }) reply?: FastifyReply,
   ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
-    return this.service.decideApproval(context, approvalId, { ...input }, this.jraFacade);
+    return preserveFolderAutopilotStatus(
+      await this.service.decideApproval(context, approvalId, { ...input }, this.jraFacade),
+      reply,
+    );
   }
 
   @Post('autopilot-executions/:executionId/undo')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request undo through the JRA/desktop effect facade' })
   @ApiBody({ type: FolderAutopilotUndoRequestDto })
+  @applyFolderAutopilotOutcomeResponses()
   public async requestUndo(
     @Req() request: unknown,
     @Param('executionId') executionId: string,
     @Body() input: FolderAutopilotUndoRequestDto,
+    @Res({ passthrough: true }) reply?: FastifyReply,
   ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
-    return this.service.requestUndo(context, executionId, { ...input }, this.jraFacade);
+    return preserveFolderAutopilotStatus(
+      await this.service.requestUndo(context, executionId, { ...input }, this.jraFacade),
+      reply,
+    );
   }
 }
