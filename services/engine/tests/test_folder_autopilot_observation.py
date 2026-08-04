@@ -18,14 +18,14 @@ def test_fingerprint_and_observation_are_deterministic_and_content_free() -> Non
         observation_id="obs-001",
         display_name="Hóa đơn 01.xlsx",
         size_bytes=len(content),
-        modified_at_ns=123,
+        modified_at_ns="123",
         content_sha256=fingerprint,
     )
     second = build_file_observation(
         observation_id="obs-001",
         display_name="Hóa đơn 01.xlsx",
         size_bytes=len(content),
-        modified_at_ns=123,
+        modified_at_ns="123",
         content_sha256=hashlib.sha256(content).hexdigest(),
     )
 
@@ -41,21 +41,21 @@ def test_observation_key_changes_when_fingerprint_or_timestamp_changes() -> None
         observation_id="obs-001",
         display_name="report.csv",
         size_bytes=4,
-        modified_at_ns=10,
+        modified_at_ns="10",
         content_sha256="a" * 64,
     )
     changed_content = build_file_observation(
         observation_id="obs-001",
         display_name="report.csv",
         size_bytes=4,
-        modified_at_ns=10,
+        modified_at_ns="10",
         content_sha256="b" * 64,
     )
     changed_time = build_file_observation(
         observation_id="obs-001",
         display_name="report.csv",
         size_bytes=4,
-        modified_at_ns=11,
+        modified_at_ns="11",
         content_sha256="a" * 64,
     )
 
@@ -72,7 +72,7 @@ def test_observation_rejects_path_like_or_control_names(name: str) -> None:
             observation_id="obs-001",
             display_name=name,
             size_bytes=1,
-            modified_at_ns=1,
+            modified_at_ns="1",
             content_sha256="a" * 64,
         )
 
@@ -82,8 +82,8 @@ def test_observation_rejects_invalid_fingerprint_and_bounds() -> None:
         build_file_observation(
             observation_id="obs-001",
             display_name="report.csv",
-            size_bytes=10 * 1024 * 1024 * 1024 + 1,
-            modified_at_ns=1,
+            size_bytes=512 * 1024 * 1024 + 1,
+            modified_at_ns="1",
             content_sha256="not-a-digest",
         )
 
@@ -93,7 +93,7 @@ def test_observation_rejects_invalid_fingerprint_and_bounds() -> None:
                 "observationId": "obs-001",
                 "displayName": "report.csv",
                 "sizeBytes": 1,
-                "modifiedAtNs": 1,
+                "modifiedAtNs": "1",
                 "contentSha256": "a" * 64,
                 "stableExecutionKey": "b" * 64,
                 "path": "C:\\secret",

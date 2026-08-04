@@ -1,6 +1,9 @@
 import { createHash } from 'node:crypto';
 
-const MAX_FILE_BYTES = 10 * 1024 * 1024 * 1024;
+// This adapter buffers the file before hashing; keep the bound below a
+// practical single-buffer limit instead of advertising an unsafe 10 GiB read.
+const MAX_FILE_BYTES = 512 * 1024 * 1024;
+const NANOSECOND_TIMESTAMP = /^\d{1,32}$/u;
 
 export type StableFileCode =
   | 'FILE_CHANGED_DURING_READ'
@@ -24,7 +27,8 @@ export interface StableFileStat {
   readonly isFile: boolean;
   readonly isSymbolicLink: boolean;
   readonly sizeBytes: number;
-  readonly modifiedAtNs: number;
+  /** JSON-safe decimal epoch nanoseconds; never coerce a bigint to Number. */
+  readonly modifiedAtNs: string;
 }
 
 export interface StableFileOptions {
@@ -37,7 +41,7 @@ export interface LocalFileObservation {
   readonly observationId: string;
   readonly displayName: string;
   readonly sizeBytes: number;
-  readonly modifiedAtNs: number;
+  readonly modifiedAtNs: string;
   readonly contentSha256: string;
   readonly stableExecutionKey: string;
 }
@@ -66,8 +70,8 @@ function validateStat(stat: StableFileStat): StableFileStat {
     !Number.isSafeInteger(stat.sizeBytes) ||
     stat.sizeBytes < 0 ||
     stat.sizeBytes > MAX_FILE_BYTES ||
-    !Number.isSafeInteger(stat.modifiedAtNs) ||
-    stat.modifiedAtNs < 0
+    typeof stat.modifiedAtNs !== 'string' ||
+    !NANOSECOND_TIMESTAMP.test(stat.modifiedAtNs)
   ) {
     return reject('INVALID_OBSERVATION');
   }
@@ -120,11 +124,8 @@ export async function waitForStableFile(
 
 function isByteArray(value: unknown): value is Uint8Array {
   return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as { readonly byteLength?: unknown }).byteLength === 'number' &&
-    Number.isSafeInteger((value as { readonly byteLength: number }).byteLength) &&
-    (value as { readonly byteLength: number }).byteLength >= 0
+    ArrayBuffer.isView(value) &&
+    Object.prototype.toString.call(value) === '[object Uint8Array]'
   );
 }
 

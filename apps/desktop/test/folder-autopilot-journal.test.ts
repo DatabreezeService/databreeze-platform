@@ -98,6 +98,14 @@ describe('Folder Autopilot local journal', () => {
     );
     journal = recordJournalStep(journal, 'rename-1', after);
     expect(recoverJournal(journal, new Map([['rename-1', 'COMMITTED']])).state).toBe('COMMITTING');
+    const fullyRecovered = recoverJournal(
+      journal,
+      new Map([
+        ['rename-1', 'COMMITTED'],
+        ['move-1', 'COMMITTED'],
+      ]),
+    );
+    expect(fullyRecovered.state).toBe('COMMITTED');
     expect(() => recoverJournal(journal, new Map([['rename-1', 'UNKNOWN']]))).toThrow(
       'RECOVERY_CONFLICT',
     );
@@ -123,6 +131,27 @@ describe('Folder Autopilot local journal', () => {
         currentFingerprints: new Map(),
       }),
     ).toThrowError(new JournalError('UNDO_EXPIRED'));
+  });
+
+  it('rejects COPY steps marked undoable until delete effects are modeled', () => {
+    expect(() =>
+      createJournal({
+        executionId: 'execution-copy',
+        planHash: 'c'.repeat(64),
+        steps: [
+          {
+            operationId: 'copy-1',
+            action: 'COPY',
+            sourcePath: source,
+            destinationPath: destination,
+            beforeFingerprint: before,
+            undoable: true,
+          },
+        ],
+        nowMs: 1_000,
+        undoWindowMs: 60_000,
+      }),
+    ).toThrowError(new JournalError('INVALID_JOURNAL'));
   });
 
   it('tracks the undo lifecycle without erasing the original journal', () => {

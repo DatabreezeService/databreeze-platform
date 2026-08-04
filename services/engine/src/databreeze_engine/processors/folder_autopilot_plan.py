@@ -33,8 +33,12 @@ def _unique_name(name: str, occupied: set[tuple[str, str]], binding_id: str) -> 
         stem, extension = name, ""
     suffix = f".{extension}" if extension else ""
     for index in range(1, MAX_UNIQUE_NAME_ATTEMPTS + 1):
-        candidate = f"{stem} ({index}){suffix}"
-        if (binding_id, candidate) not in occupied:
+        index_suffix = f" ({index})"
+        stem_limit = 255 - len(index_suffix) - len(suffix)
+        if stem_limit < 1:
+            return None
+        candidate = f"{stem[:stem_limit]}{index_suffix}{suffix}"
+        if (binding_id, candidate.casefold()) not in occupied:
             return candidate
     return None
 
@@ -65,7 +69,7 @@ def _plan_hash(
 def evaluate_autopilot_plan(request: AutopilotPlanRequest) -> AutopilotPlan:
     """Evaluate a bounded typed plan without reading, writing, or shelling out."""
     occupied = {
-        (destination.bindingId, destination.displayName)
+        (destination.bindingId, destination.displayName.casefold())
         for destination in request.existingDestinations
         if destination.occupied
     }
@@ -95,7 +99,7 @@ def evaluate_autopilot_plan(request: AutopilotPlanRequest) -> AutopilotPlan:
         if binding_id not in request.allowedOutputBindingIds:
             raise PlanEvaluationError("DESTINATION_BINDING_NOT_ALLOWED")
 
-        requested_key = (binding_id, destination_name)
+        requested_key = (binding_id, destination_name.casefold())
         collision_review = False
         if requested_key in occupied:
             if step.collisionPolicy == "REVIEW":
@@ -125,7 +129,7 @@ def evaluate_autopilot_plan(request: AutopilotPlanRequest) -> AutopilotPlan:
             requiresApproval=requires_approval,
         )
         operations.append(operation)
-        occupied.add((binding_id, destination_name))
+        occupied.add((binding_id, destination_name.casefold()))
 
     status: PlanStatus
     if review_required:

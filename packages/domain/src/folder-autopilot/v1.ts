@@ -128,7 +128,7 @@ function text(input: unknown, maximum: number): string | undefined {
 
 function identifiers(input: unknown): readonly StableIdentifierV1[] | undefined {
   if (!Array.isArray(input) || input.length < 1 || input.length > 32) return undefined;
-  const values = input.map(stable);
+  const values = Array.from(input, stable);
   if (values.some((value) => value === undefined)) return undefined;
   const result = values as StableIdentifierV1[];
   if (new Set(result).size !== result.length) return undefined;

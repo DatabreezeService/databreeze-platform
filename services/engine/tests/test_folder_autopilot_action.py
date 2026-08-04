@@ -5,6 +5,7 @@ from typing import Any
 
 from databreeze_engine.dispatcher import dispatch_execution
 from databreeze_engine.models import EngineExecutionRequest
+from databreeze_engine.processors.folder_autopilot import build_file_observation
 from databreeze_engine.registry import default_registry
 
 
@@ -29,9 +30,15 @@ def _payload(action: dict[str, str]) -> dict[str, Any]:
                 "observationId": "obs-001",
                 "displayName": "invoice.csv",
                 "sizeBytes": 12,
-                "modifiedAtNs": 10,
+                "modifiedAtNs": "10",
                 "contentSha256": "a" * 64,
-                "stableExecutionKey": "c" * 64,
+                "stableExecutionKey": build_file_observation(
+                    observation_id="obs-001",
+                    display_name="invoice.csv",
+                    size_bytes=12,
+                    modified_at_ns="10",
+                    content_sha256="a" * 64,
+                ).stableExecutionKey,
             },
             "allowedOutputBindingIds": ["binding-out"],
             "existingDestinations": [],

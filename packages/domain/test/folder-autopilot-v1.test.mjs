@@ -114,3 +114,35 @@ test('[FA-031] assignment data mode constraints can only narrow the DSO maximum'
   assert.equal(isFolderAutopilotDataModeNarrowingV1('HYBRID', 'LOCAL'), true);
   assert.equal(isFolderAutopilotDataModeNarrowingV1('LOCAL', 'HYBRID'), false);
 });
+
+test('[FA-014..FA-015] sparse binding identifier arrays are rejected', () => {
+  const sparseInput = createRecipeAssignmentV1({
+    ...base,
+    assignmentId: ids.recipeId,
+    profileId: ids.profileId,
+    profileVersion: 1,
+    profileHash: 'a'.repeat(64),
+    jraRecipeVersionId: ids.recipeId,
+    jraRecipeVersionHash: 'c'.repeat(64),
+    deviceId: ids.deviceId,
+    inputBindingIds: new Array(1),
+    outputBindingIds: [ids.outputBindingId],
+    idempotencyKey: 'sparse-input',
+  });
+  assert.deepEqual(sparseInput, { accepted: false, code: 'INVALID_BINDINGS' });
+
+  const sparseOutput = createRecipeAssignmentV1({
+    ...base,
+    assignmentId: ids.recipeId,
+    profileId: ids.profileId,
+    profileVersion: 1,
+    profileHash: 'a'.repeat(64),
+    jraRecipeVersionId: ids.recipeId,
+    jraRecipeVersionHash: 'c'.repeat(64),
+    deviceId: ids.deviceId,
+    inputBindingIds: [ids.inputBindingId],
+    outputBindingIds: new Array(1),
+    idempotencyKey: 'sparse-output',
+  });
+  assert.deepEqual(sparseOutput, { accepted: false, code: 'INVALID_BINDINGS' });
+});

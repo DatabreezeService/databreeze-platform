@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   executeLocalPlan,
+  LocalActionFailure,
   type LocalActionPlan,
   type LocalFileSystem,
 } from '../src/features/folder-autopilot/local-actions.ts';
@@ -261,5 +262,60 @@ describe('Folder Autopilot local typed actions', () => {
         staleDeps,
       ),
     ).rejects.toMatchObject({ code: 'STALE_PLAN' });
+  });
+
+  it('preserves receipts when a later write fails', async () => {
+    const copyExclusive = vi
+      .fn<LocalFileSystem['copyExclusive']>()
+      .mockResolvedValueOnce()
+      .mockRejectedValueOnce(new Error('disk full'));
+    const deps = dependencies({ copyExclusive });
+    try {
+      await executeLocalPlan(
+        plan(
+          {
+            operationId: 'copy-first',
+            action: 'COPY',
+            sourcePath,
+            destinationPath,
+            sourceFingerprint: 'a'.repeat(64),
+          },
+          {
+            operationId: 'copy-second',
+            action: 'COPY',
+            sourcePath,
+            destinationPath: 'C:\\Output\\second.csv',
+            sourceFingerprint: 'a'.repeat(64),
+          },
+        ),
+        deps,
+      );
+      throw new Error('expected local action failure');
+    } catch (error) {
+      expect(error).toBeInstanceOf(LocalActionFailure);
+      expect(error).toMatchObject({ code: 'LOCAL_IO_FAILED' });
+      expect((error as LocalActionFailure).appliedReceipts).toHaveLength(1);
+      expect((error as LocalActionFailure).appliedReceipts[0]?.operationId).toBe('copy-first');
+    }
+  });
+
+  it('rejects missing operation identifiers before filesystem access', async () => {
+    const deps = dependencies();
+    await expect(
+      executeLocalPlan(
+        {
+          operations: [
+            {
+              operationId: undefined,
+              action: 'INSPECT',
+              sourcePath,
+              sourceFingerprint: 'a'.repeat(64),
+            },
+          ],
+        } as unknown as LocalActionPlan,
+        deps,
+      ),
+    ).rejects.toMatchObject({ code: 'INVALID_PLAN' });
+    expect(deps.fileSystem.readFingerprint).not.toHaveBeenCalled();
   });
 });

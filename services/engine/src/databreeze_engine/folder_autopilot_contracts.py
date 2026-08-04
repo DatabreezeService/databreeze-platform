@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 from typing import Annotated, Any, Literal
 
@@ -17,11 +19,14 @@ from pydantic import (
     model_validator,
 )
 
-MAX_AUTOPILOT_FILE_BYTES = 10 * 1024 * 1024 * 1024
+# The Desktop observation adapter buffers bytes before hashing. Keep the
+# cross-runtime contract aligned with that bounded, content-free adapter.
+MAX_AUTOPILOT_FILE_BYTES = 512 * 1024 * 1024
 MAX_PLAN_STEPS = 100
 MAX_DESTINATIONS = 10_000
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")
 _DIGEST = re.compile(r"^[0-9a-f]{64}$")
+_NANOSECOND_TIMESTAMP = re.compile(r"^\d{1,32}$")
 
 
 def _invalid() -> ValueError:
@@ -50,7 +55,7 @@ class FileObservation(BaseModel):
     observationId: StrictStr
     displayName: StrictStr = Field(min_length=1, max_length=255)
     sizeBytes: StrictInt = Field(ge=0, le=MAX_AUTOPILOT_FILE_BYTES)
-    modifiedAtNs: StrictInt = Field(ge=0)
+    modifiedAtNs: StrictStr = Field(pattern=r"^\d{1,32}$")
     contentSha256: StrictStr = Field(pattern=r"^[0-9a-f]{64}$")
     stableExecutionKey: StrictStr = Field(pattern=r"^[0-9a-f]{64}$")
 
@@ -74,6 +79,45 @@ class FileObservation(BaseModel):
         if _DIGEST.fullmatch(value) is None:
             raise _invalid()
         return value
+
+    @model_validator(mode="after")
+    def validate_stable_execution_key(self) -> FileObservation:
+        expected = stable_execution_key(
+            observation_id=self.observationId,
+            display_name=self.displayName,
+            size_bytes=self.sizeBytes,
+            modified_at_ns=self.modifiedAtNs,
+            content_sha256=self.contentSha256,
+        )
+        if self.stableExecutionKey != expected:
+            raise _invalid()
+        return self
+
+
+def stable_execution_key(
+    *,
+    observation_id: str,
+    display_name: str,
+    size_bytes: int,
+    modified_at_ns: str,
+    content_sha256: str,
+) -> str:
+    if _NANOSECOND_TIMESTAMP.fullmatch(modified_at_ns) is None:
+        raise _invalid()
+    canonical = json.dumps(
+        {
+            "contentSha256": content_sha256,
+            "displayName": display_name,
+            "modifiedAtNs": modified_at_ns,
+            "observationId": observation_id,
+            "sizeBytes": size_bytes,
+        },
+        ensure_ascii=False,
+        allow_nan=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
 
 
 ActionType = Literal["INSPECT", "VALIDATE", "RENAME", "COPY", "MOVE"]
@@ -158,12 +202,31 @@ class PlanOperation(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
     sequence: int = Field(ge=0, le=MAX_PLAN_STEPS)
-    stepId: StrictStr
+    stepId: StrictStr = Field(min_length=1, max_length=128)
     action: ActionType
-    sourceObservationId: StrictStr
+    sourceObservationId: StrictStr = Field(min_length=1, max_length=128)
     destinationBindingId: StrictStr | None = None
-    destinationName: StrictStr | None = None
+    destinationName: StrictStr | None = Field(default=None, max_length=255)
     requiresApproval: StrictBool
+
+    @model_validator(mode="after")
+    def validate_shape(self) -> PlanOperation:
+        if (
+            _SAFE_ID.fullmatch(self.stepId) is None
+            or _SAFE_ID.fullmatch(self.sourceObservationId) is None
+        ):
+            raise ValueError("INVALID_OPERATION")
+        writes_destination = self.action in {"RENAME", "COPY", "MOVE"}
+        if writes_destination:
+            if self.destinationBindingId is None or self.destinationName is None:
+                raise ValueError("DESTINATION_REQUIRED")
+            if _SAFE_ID.fullmatch(self.destinationBindingId) is None or not _valid_name(
+                self.destinationName
+            ):
+                raise ValueError("INVALID_DESTINATION")
+        elif self.destinationBindingId is not None or self.destinationName is not None:
+            raise ValueError("DESTINATION_FORBIDDEN")
+        return self
 
 
 PlanStatus = Literal["READY", "REVIEW", "SKIPPED"]

@@ -84,6 +84,7 @@ function validateStep(step: JournalStepInput): void {
   if (
     typeof step !== 'object' ||
     step === null ||
+    typeof step.operationId !== 'string' ||
     !SAFE_ID.test(step.operationId) ||
     !['RENAME', 'COPY', 'MOVE'].includes(step.action) ||
     typeof step.sourcePath !== 'string' ||
@@ -92,8 +93,10 @@ function validateStep(step: JournalStepInput): void {
     step.destinationPath.length === 0 ||
     step.sourcePath.includes('\0') ||
     step.destinationPath.includes('\0') ||
+    typeof step.beforeFingerprint !== 'string' ||
     !SHA256.test(step.beforeFingerprint) ||
-    typeof step.undoable !== 'boolean'
+    typeof step.undoable !== 'boolean' ||
+    (step.action === 'COPY' && step.undoable)
   ) {
     return reject('INVALID_JOURNAL');
   }
@@ -113,7 +116,9 @@ export function createJournal({
   readonly undoWindowMs: number;
 }): LocalJournal {
   if (
+    typeof executionId !== 'string' ||
     !SAFE_ID.test(executionId) ||
+    typeof planHash !== 'string' ||
     !SHA256.test(planHash) ||
     !Number.isSafeInteger(nowMs) ||
     !Number.isSafeInteger(undoWindowMs) ||
@@ -149,13 +154,18 @@ export function recordJournalStep(
   operationId: string,
   afterFingerprint: string,
 ): LocalJournal {
-  if (journal.state !== 'COMMITTING' || !SHA256.test(afterFingerprint)) {
+  if (
+    journal.state !== 'COMMITTING' ||
+    typeof operationId !== 'string' ||
+    typeof afterFingerprint !== 'string' ||
+    !SHA256.test(afterFingerprint)
+  ) {
     return reject('INVALID_TRANSITION');
   }
   const index = journal.steps.findIndex((step) => step.operationId === operationId);
-  if (index < 0) return reject('DUPLICATE_STEP');
+  if (index < 0) return reject('INVALID_JOURNAL');
   const step = journal.steps[index];
-  if (step === undefined) return reject('DUPLICATE_STEP');
+  if (step === undefined) return reject('INVALID_JOURNAL');
   if (step.state !== 'PENDING') return reject('DUPLICATE_STEP');
   const nextSteps = journal.steps.slice();
   nextSteps[index] = Object.freeze({ ...step, state: 'COMMITTED', afterFingerprint });
@@ -175,9 +185,9 @@ export function failJournal(journal: LocalJournal): LocalJournal {
 export function compensateJournal(journal: LocalJournal, operationId: string): LocalJournal {
   if (journal.state !== 'COMPENSATING') return reject('INVALID_TRANSITION');
   const index = journal.steps.findIndex((step) => step.operationId === operationId);
-  if (index < 0) return reject('DUPLICATE_STEP');
+  if (index < 0) return reject('INVALID_JOURNAL');
   const step = journal.steps[index];
-  if (step === undefined) return reject('DUPLICATE_STEP');
+  if (step === undefined) return reject('INVALID_JOURNAL');
   if (step.state !== 'COMMITTED') return reject('DUPLICATE_STEP');
   const nextSteps = journal.steps.slice();
   nextSteps[index] = Object.freeze({ ...step, state: 'COMPENSATED' });
@@ -203,7 +213,10 @@ export function recoverJournal(
     }
     return step;
   });
-  return cloneJournal(journal, { steps: Object.freeze(nextSteps) });
+  const nextState = nextSteps.every((candidate) => candidate.state === 'COMMITTED')
+    ? 'COMMITTED'
+    : 'COMMITTING';
+  return cloneJournal(journal, { state: nextState, steps: Object.freeze(nextSteps) });
 }
 
 export function buildUndoPlan(

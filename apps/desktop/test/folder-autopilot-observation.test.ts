@@ -10,7 +10,7 @@ const stableStat: StableFileStat = {
   isFile: true,
   isSymbolicLink: false,
   sizeBytes: 4,
-  modifiedAtNs: 10,
+  modifiedAtNs: '10',
 };
 
 describe('Folder Autopilot stable local observations', () => {
@@ -73,7 +73,7 @@ describe('Folder Autopilot stable local observations', () => {
       .fn()
       .mockResolvedValueOnce(stableStat)
       .mockResolvedValueOnce(stableStat)
-      .mockResolvedValue({ ...stableStat, modifiedAtNs: 11 });
+      .mockResolvedValue({ ...stableStat, modifiedAtNs: '11' });
     await expect(
       captureStableObservation({
         observationId: 'obs-001',
@@ -83,5 +83,17 @@ describe('Folder Autopilot stable local observations', () => {
         sleep: () => Promise.resolve(),
       }),
     ).rejects.toMatchObject({ code: 'FILE_CHANGED_DURING_READ' });
+  });
+
+  it('preserves current-scale nanosecond timestamps as decimal strings', async () => {
+    const timestamp = '1764891234567890123';
+    const observation = await captureStableObservation({
+      observationId: 'obs-ns',
+      displayName: 'report.csv',
+      readStat: vi.fn().mockResolvedValue({ ...stableStat, modifiedAtNs: timestamp }),
+      readBytes: () => Promise.resolve(new TextEncoder().encode('data')),
+      sleep: () => Promise.resolve(),
+    });
+    expect(observation.modifiedAtNs).toBe(timestamp);
   });
 });

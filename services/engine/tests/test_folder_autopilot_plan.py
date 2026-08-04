@@ -18,7 +18,7 @@ def _observation():
         observation_id="obs-001",
         display_name="invoice.csv",
         size_bytes=12,
-        modified_at_ns=10,
+        modified_at_ns="10",
         content_sha256="a" * 64,
     )
 
@@ -116,6 +116,46 @@ def test_unique_name_generation_is_bounded_and_deterministic() -> None:
 
     assert result.status == "READY"
     assert result.operations[0].destinationName == "invoice (101).csv"
+
+
+def test_destination_collisions_use_windows_case_folding() -> None:
+    result = evaluate_autopilot_plan(
+        _request(
+            PlanStep(
+                stepId="copy-case",
+                action="COPY",
+                destinationBindingId="binding-out",
+                destinationName="Invoice.csv",
+                collisionPolicy="REVIEW",
+            ),
+            destinations=(
+                DestinationState(bindingId="binding-out", displayName="invoice.csv", occupied=True),
+            ),
+        )
+    )
+    assert result.status == "REVIEW"
+    assert "DESTINATION_COLLISION" in result.reasonCodes
+
+
+def test_unique_name_generation_preserves_the_255_character_contract_limit() -> None:
+    name = f"{'a' * 251}.csv"
+    result = evaluate_autopilot_plan(
+        _request(
+            PlanStep(
+                stepId="copy-long",
+                action="COPY",
+                destinationBindingId="binding-out",
+                destinationName=name,
+                collisionPolicy="UNIQUE_NAME",
+            ),
+            destinations=(
+                DestinationState(bindingId="binding-out", displayName=name, occupied=True),
+            ),
+        )
+    )
+    assert result.status == "READY"
+    assert result.operations[0].destinationName is not None
+    assert len(result.operations[0].destinationName) <= 255
 
 
 def test_evaluator_rejects_unbound_destinations_and_untyped_actions() -> None:

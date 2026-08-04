@@ -24,6 +24,16 @@ export class LocalActionError extends Error {
   }
 }
 
+export class LocalActionFailure extends LocalActionError {
+  public readonly appliedReceipts: readonly LocalActionReceipt[];
+
+  public constructor(code: LocalActionCode, appliedReceipts: readonly LocalActionReceipt[]) {
+    super(code);
+    this.name = 'LocalActionFailure';
+    this.appliedReceipts = Object.freeze([...appliedReceipts]);
+  }
+}
+
 export interface LocalPathGuard {
   assertContained(candidate: string): string;
 }
@@ -134,11 +144,13 @@ function validateOperation(operation: LocalActionOperation): void {
   if (
     typeof operation !== 'object' ||
     operation === null ||
+    typeof operation.operationId !== 'string' ||
     !SAFE_ID.test(operation.operationId) ||
     !['INSPECT', 'VALIDATE', 'RENAME', 'COPY', 'MOVE'].includes(operation.action) ||
     typeof operation.sourcePath !== 'string' ||
     operation.sourcePath.length === 0 ||
     operation.sourcePath.includes('\0') ||
+    typeof operation.sourceFingerprint !== 'string' ||
     !SHA256.test(operation.sourceFingerprint)
   ) {
     return reject('INVALID_PLAN');
@@ -263,7 +275,7 @@ export async function executeLocalPlan(
       if (operation.action === 'COPY') await fileSystem.copyExclusive(source, destination);
       else await fileSystem.renameExclusive!(source, destination);
     } catch {
-      return reject('LOCAL_IO_FAILED');
+      throw new LocalActionFailure('LOCAL_IO_FAILED', receipts);
     }
     receipts.push({
       operationId: operation.operationId,
