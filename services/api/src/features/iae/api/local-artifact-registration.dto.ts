@@ -11,6 +11,7 @@ import {
   Max,
   MaxLength,
   Min,
+  MinLength,
   ValidateNested,
 } from 'class-validator';
 
@@ -111,6 +112,7 @@ export class RegisterLocalArtifactDto {
 
   @ApiProperty({ minLength: 1, maxLength: 255 })
   @IsString()
+  @MinLength(1)
   @MaxLength(255)
   displayName!: string;
 
