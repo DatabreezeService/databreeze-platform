@@ -9,8 +9,13 @@ from typing import Any
 
 import pytest
 
-from databreeze_engine.dispatcher import EngineDispatchError, dispatch_execution
-from databreeze_engine.models import EngineExecutionRequest, SpreadsheetAuditProcessorResult
+from databreeze_engine.dispatcher import EngineDispatchError, dispatch_execution, dispatch_rpc
+from databreeze_engine.models import (
+    EngineExecutionRequest,
+    JsonRpcErrorResponse,
+    JsonRpcSuccessResponse,
+    SpreadsheetAuditProcessorResult,
+)
 from databreeze_engine.registry import default_registry
 
 
@@ -86,6 +91,15 @@ def _request(
     return EngineExecutionRequest.model_validate(payload)
 
 
+def _rpc(request: EngineExecutionRequest) -> dict[str, Any]:
+    return {
+        "jsonrpc": "2.0",
+        "id": "audit-request",
+        "method": "engine.execute",
+        "params": request.model_dump(mode="json", exclude_none=True),
+    }
+
+
 def test_registry_exposes_a_read_only_spreadsheet_auditor_action() -> None:
     manifest = _manifest()
     assert manifest.inputSchemaId == "spreadsheet-auditor.workbook.v1"
@@ -116,6 +130,25 @@ def test_dispatch_runs_auditor_against_one_hash_bound_opaque_input(
     assert result.output.sheets[0].name == "Inventory"
     assert result.output.findings[0].address == "C1"
     assert "SUM(B1:D1)" not in result.model_dump_json()
+
+
+def test_rpc_dispatch_preserves_typed_audit_result_and_safe_input_errors(
+    execution_payload: Callable[..., dict[str, Any]],
+) -> None:
+    content = _workbook()
+    request = _request(execution_payload, content)
+    response = dispatch_rpc(
+        _rpc(request),
+        wall_clock=lambda: datetime(2026, 1, 1, tzinfo=UTC),
+        input_reader=lambda _handle: content,
+    )
+    parsed = JsonRpcSuccessResponse.model_validate(response)
+    assert isinstance(parsed.result.output, SpreadsheetAuditProcessorResult)
+    assert parsed.result.output.workbookSha256 == hashlib.sha256(content).hexdigest()
+
+    unavailable = dispatch_rpc(_rpc(request), wall_clock=lambda: datetime(2026, 1, 1, tzinfo=UTC))
+    error = JsonRpcErrorResponse.model_validate(unavailable)
+    assert error.error.data.engineCode == "INPUT_UNAVAILABLE"
 
 
 def test_dispatch_fails_closed_when_auditor_input_is_unavailable(

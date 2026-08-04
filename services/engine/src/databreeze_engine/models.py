@@ -7,6 +7,7 @@ from typing import Annotated, Any, Literal, Self
 from databreeze_contracts.v1 import CorrelationMetadata, Identifier, UtcTimestamp
 from pydantic import (
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     Field,
     StrictBool,
@@ -34,6 +35,11 @@ class ClosedModel(BaseModel):
         if isinstance(value, dict) and any(item is None for item in value.values()):
             raise ValueError("null is not allowed")
         return value
+
+
+def _tuple_from_json(value: Any) -> Any:
+    """Accept JSON arrays at the wire boundary while retaining tuple state internally."""
+    return tuple(value) if isinstance(value, list) else value
 
 
 SafeName = Annotated[StrictStr, StringConstraints(pattern=r"^[a-z][a-z0-9_.-]{0,127}$")]
@@ -145,10 +151,19 @@ class SpreadsheetAuditProcessorResult(ClosedModel):
     jobId: Identifier
     resultManifestId: Identifier
     workbookSha256: Sha256Hex
-    sheets: Annotated[tuple[SpreadsheetAuditSheetSummary, ...], Field(min_length=1, max_length=512)]
-    findings: Annotated[tuple[SpreadsheetAuditFindingSummary, ...], Field(max_length=10_000)]
+    sheets: Annotated[
+        tuple[SpreadsheetAuditSheetSummary, ...],
+        BeforeValidator(_tuple_from_json),
+        Field(min_length=1, max_length=512),
+    ]
+    findings: Annotated[
+        tuple[SpreadsheetAuditFindingSummary, ...],
+        BeforeValidator(_tuple_from_json),
+        Field(max_length=10_000),
+    ]
     blockedReasons: Annotated[
         tuple[Literal["MACRO", "EXTERNAL_LINK", "UNSUPPORTED_XML"], ...],
+        BeforeValidator(_tuple_from_json),
         Field(max_length=3),
     ]
     processorVersion: Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]
@@ -176,6 +191,8 @@ EngineErrorCode = Literal[
     "DEADLINE_EXCEEDED",
     "RESOURCE_LIMIT_EXCEEDED",
     "DURATION_EXCEEDED",
+    "INPUT_UNAVAILABLE",
+    "INPUT_HASH_MISMATCH",
     "INTERNAL_ERROR",
 ]
 
