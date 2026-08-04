@@ -5,6 +5,13 @@ job envelopes, or client storage. Rotation is performed by an authorized
 operator through the provider adapter and is audited without recording the
 plaintext value.
 
+Service-account create-replay envelopes require a stable, managed 32-byte
+envelope key in every durable environment. The process-local random fallback
+is limited to tests and private alpha instances with no durable service-account
+repository; it must not be used by replicas or after a restart. Rotate the
+managed key through an overlap plan and invalidate old replay envelopes before
+retiring the previous key.
+
 ## General procedure
 
 1. Identify the secret reference, owning organization/workspace, provider,

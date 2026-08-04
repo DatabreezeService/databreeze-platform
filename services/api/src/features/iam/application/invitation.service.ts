@@ -3,6 +3,7 @@ import { timingSafeEqual } from 'node:crypto';
 import {
   consumeInvitationTokenV1,
   createInvitationTokenV1,
+  revokeInvitationTokenV1,
   type InvitationTokenV1,
 } from '@databreeze/domain/invitation/v1';
 import { normalizeEmailAddressV1 } from '@databreeze/domain/identity/v1';
@@ -101,7 +102,13 @@ function applicationError(error: unknown): IamInvitationApplicationCodeV1 {
   const message = error instanceof Error ? error.message : '';
   if (message === 'IAM_SCOPE_DENIED' || message === 'IAM_SCOPE_NARROWING_REQUIRED')
     return 'SCOPE_DENIED';
-  if (message === 'IAM_INVITATION_CONFLICT' || message === 'IAM_REVISION_CONFLICT')
+  if (
+    message === 'IAM_INVITATION_CONFLICT' ||
+    message === 'IAM_REVISION_CONFLICT' ||
+    message === 'IAM_INVITATION_REVISION_CONFLICT' ||
+    message === 'IAM_INVITATION_SCOPE_IMMUTABLE' ||
+    message === 'IAM_MEMBERSHIP_SCOPE_IMMUTABLE'
+  )
     return 'CONFLICT';
   if (message === 'IAM_INVITATION_INVALID') return 'INVALID_TOKEN';
   return 'UNAVAILABLE';
@@ -109,6 +116,8 @@ function applicationError(error: unknown): IamInvitationApplicationCodeV1 {
 
 /** IAM-010: issue and redeem one-time invitations without exposing bearer material. */
 export class IamInvitationService {
+  private readonly deliveryBlocked = new Set<string>();
+
   public constructor(
     private readonly repository: IamInvitationRepositoryPortV1,
     private readonly principalEmails: IamPrincipalEmailLookupPortV1,
@@ -165,8 +174,13 @@ export class IamInvitationService {
       return rejected('UNAVAILABLE');
     }
     if (!stable(invitationId) || !rawToken(raw)) return rejected('UNAVAILABLE');
+    let pendingDelivery: {
+      readonly token: InvitationTokenV1;
+      readonly rawToken: string;
+      readonly recipientEmail: string;
+    };
     try {
-      return await this.repository.withTransaction(context, async (transaction) => {
+      const persisted = await this.repository.withTransaction(context, async (transaction) => {
         const membership = await transaction.findMembershipById(context, membershipId);
         if (!membership) return rejected('NOT_FOUND');
         if (membership.status !== 'INVITED') return rejected('INVALID_STATE');
@@ -192,28 +206,64 @@ export class IamInvitationService {
           expiresAt,
         });
         if (!token.accepted) return rejected('UNAVAILABLE');
-        try {
-          await this.delivery.deliver({
-            invitationId: token.value.id,
-            membershipId: token.value.membershipId,
-            recipientEmail: normalizedEmail.value,
-            rawToken: raw,
-            expiresAt: token.value.expiresAt,
-          });
-        } catch {
-          return rejected('DELIVERY_UNAVAILABLE');
-        }
         await transaction.saveInvitation(context, token.value);
-        return accepted({
-          invitationId: token.value.id,
-          membershipId: token.value.membershipId,
-          expiresAt: token.value.expiresAt,
-          deliveryStatus: 'DELIVERED' as const,
-        });
+        return {
+          pending: {
+            token: token.value,
+            rawToken: raw,
+            recipientEmail: normalizedEmail.value,
+          },
+        } as const;
       });
+      if (!('pending' in persisted)) return persisted;
+      pendingDelivery = persisted.pending;
     } catch (error) {
       return rejected(applicationError(error));
     }
+
+    try {
+      await this.delivery.deliver({
+        invitationId: pendingDelivery.token.id,
+        membershipId: pendingDelivery.token.membershipId,
+        recipientEmail: pendingDelivery.recipientEmail,
+        rawToken: pendingDelivery.rawToken,
+        expiresAt: pendingDelivery.token.expiresAt,
+      });
+    } catch {
+      try {
+        await this.repository.withTransaction(context, async (transaction) => {
+          const current = await transaction.findInvitationByDigest(
+            context,
+            pendingDelivery.token.tokenDigest,
+          );
+          if (!current || current.status !== 'ACTIVE') return;
+          const revoked = revokeInvitationTokenV1(current, this.now() ?? issuedAt);
+          if (!revoked.accepted) throw new Error('IAM_INVITATION_REVOCATION_INVALID');
+          await transaction.saveInvitation(context, revoked.value);
+        });
+      } catch {
+        try {
+          await this.repository.withTransaction(context, async (transaction) => {
+            if (!transaction.recordDeliveryFailure)
+              throw new Error('IAM_INVITATION_MARKER_UNAVAILABLE');
+            await transaction.recordDeliveryFailure(
+              context,
+              pendingDelivery.token.tokenDigest,
+              this.now() ?? issuedAt,
+            );
+          });
+        } catch {
+          this.deliveryBlocked.add(pendingDelivery.token.tokenDigest);
+        }
+      }
+      return rejected('DELIVERY_UNAVAILABLE');
+    }
+    return accepted({
+      invitationId: pendingDelivery.token.id,
+      membershipId: pendingDelivery.token.membershipId,
+      expiresAt: pendingDelivery.token.expiresAt,
+      deliveryStatus: 'DELIVERED' as const,
+    });
   }
 
   public async accept(
@@ -229,7 +279,10 @@ export class IamInvitationService {
       return rejected('UNAVAILABLE');
     }
     try {
+      if (this.deliveryBlocked.has(digest)) return rejected('INVALID_TOKEN');
       return await this.repository.withTransaction(context, async (transaction) => {
+        if (transaction.isDeliveryBlocked && (await transaction.isDeliveryBlocked(context, digest)))
+          return rejected('INVALID_TOKEN');
         const token = await transaction.findInvitationByDigest(context, digest);
         if (!token) return rejected('INVALID_TOKEN');
         if (token.principalId !== context.actorId) return rejected('INVALID_TOKEN');

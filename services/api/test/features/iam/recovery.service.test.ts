@@ -5,7 +5,10 @@ import { InMemoryRecoveryRepositoryAdapter } from '../../../src/features/iam/ada
 import { InMemoryRecoveryAdmissionAdapter } from '../../../src/features/iam/adapter/in-memory-recovery-admission.adapter.js';
 import { PasswordCredentialService } from '../../../src/features/iam/application/password-credential.service.js';
 import { RecoveryService } from '../../../src/features/iam/application/recovery.service.js';
-import type { RecoveryDeliveryPortV1 } from '../../../src/features/iam/application/recovery-repository.port.js';
+import type {
+  RecoveryDeliveryPortV1,
+  RecoveryRepositoryPortV1,
+} from '../../../src/features/iam/application/recovery-repository.port.js';
 
 const userId = '00000000-0000-4000-8000-000000000001';
 const token = 'recovery-token-abcdefghijklmnopqrstuvwxyz-123456';
@@ -55,13 +58,14 @@ function service(
   admission?: InMemoryRecoveryAdmissionAdapter,
   passwordCredentials: PasswordCredentialService = credentials(),
   completionAdmission?: InMemoryRecoveryAdmissionAdapter,
+  digestToken: () => string = () => 'a'.repeat(64),
 ) {
   let id = 2;
   return new RecoveryService({
     repository,
     passwordCredentials,
     digest: {
-      digestToken: () => 'a'.repeat(64),
+      digestToken,
       digestEmail: () => 'b'.repeat(64),
     },
     delivery,
@@ -135,6 +139,59 @@ void test('[IAM-015] recovery request is generic for unknown email and stores a 
   assert.equal(repository.challenge('a'.repeat(64))?.status, 'ACTIVE');
 });
 
+void test('[IAM-015] recovery persists the challenge before delivery', async () => {
+  const repository = new InMemoryRecoveryRepositoryAdapter();
+  repository.seed({ email: 'user@example.com', userId });
+  let persistedDuringDelivery = false;
+  const recovery = service(repository, {
+    deliver: async () => {
+      await Promise.resolve();
+      persistedDuringDelivery = repository.challenge('a'.repeat(64))?.status === 'ACTIVE';
+    },
+  });
+
+  assert.deepEqual(await recovery.request('user@example.com'), {
+    accepted: true,
+    value: { requested: true },
+  });
+  assert.equal(persistedDuringDelivery, true);
+});
+
+void test('[IAM-015] recovery revokes a previous challenge before delivering its replacement', async () => {
+  const repository = new InMemoryRecoveryRepositoryAdapter();
+  repository.seed({ email: 'user@example.com', userId });
+  const digests: readonly [string, string] = ['a'.repeat(64), 'c'.repeat(64)];
+  let digestIndex = 0;
+  let replacementState: {
+    readonly previous: string | undefined;
+    readonly replacement: string | undefined;
+  } = { previous: undefined, replacement: undefined };
+  const recovery = service(
+    repository,
+    {
+      deliver: async () => {
+        await Promise.resolve();
+        replacementState = {
+          previous: repository.challenge(digests[0])?.status,
+          replacement: repository.challenge(digests[1])?.status,
+        };
+      },
+    },
+    undefined,
+    credentials(),
+    undefined,
+    () => {
+      const digest = digests[digestIndex] ?? digests[1];
+      digestIndex += 1;
+      return digest;
+    },
+  );
+
+  assert.equal((await recovery.request('user@example.com')).accepted, true);
+  assert.equal((await recovery.request('user@example.com')).accepted, true);
+  assert.deepEqual(replacementState, { previous: 'REVOKED', replacement: 'ACTIVE' });
+});
+
 void test('[IAM-015] recovery admission throttles known and unknown requests through one generic outcome', async () => {
   const repository = new InMemoryRecoveryRepositoryAdapter();
   repository.seed({ email: 'user@example.com', userId });
@@ -186,7 +243,7 @@ void test('[IAM-015] completion atomically consumes the challenge, rotates the c
   });
 });
 
-void test('[IAM-015] recovery delivery failures do not persist a usable challenge', async () => {
+void test('[IAM-015] recovery delivery failures revoke the new challenge', async () => {
   const repository = new InMemoryRecoveryRepositoryAdapter();
   repository.seed({ email: 'user@example.com', userId });
   const recovery = service(repository, {
@@ -199,10 +256,47 @@ void test('[IAM-015] recovery delivery failures do not persist a usable challeng
     accepted: false,
     code: 'RECOVERY_UNAVAILABLE',
   });
-  assert.equal(repository.challenge('a'.repeat(64)), undefined);
+  assert.equal(repository.challenge('a'.repeat(64))?.status, 'REVOKED');
 });
 
-void test('[IAM-015] recovery delivery failure preserves an existing active challenge', async () => {
+void test('[IAM-015] recovery blocks completion when compensating revocation cannot be persisted', async () => {
+  const repository = new InMemoryRecoveryRepositoryAdapter();
+  repository.seed({ email: 'user@example.com', userId });
+  const failingCompensationRepository: RecoveryRepositoryPortV1 = {
+    withTransaction: (work) =>
+      repository.withTransaction((transaction) =>
+        work({
+          ...transaction,
+          saveChallenge: async (challenge) => {
+            if (challenge.status === 'REVOKED') throw new Error('compensation unavailable');
+            await transaction.saveChallenge(challenge);
+          },
+        }),
+      ),
+  };
+  const recovery = new RecoveryService({
+    repository: failingCompensationRepository,
+    passwordCredentials: credentials(),
+    digest: { digestToken: () => 'a'.repeat(64), digestEmail: () => 'b'.repeat(64) },
+    delivery: {
+      deliver: () => Promise.reject(new Error('provider down')),
+    },
+    ids: { next: () => '00000000-0000-4000-8000-000000000002' },
+    tokens: { next: () => token },
+    clock: { now: () => new Date('2026-08-03T00:00:00.000Z') },
+  });
+  assert.deepEqual(await recovery.request('user@example.com'), {
+    accepted: false,
+    code: 'RECOVERY_UNAVAILABLE',
+  });
+  assert.equal(repository.challenge('a'.repeat(64))?.status, 'ACTIVE');
+  assert.deepEqual(await recovery.complete(token, 'new correct horse battery staple'), {
+    accepted: false,
+    code: 'INVALID_TOKEN',
+  });
+});
+
+void test('[IAM-015] recovery persistence conflicts preserve an existing active challenge', async () => {
   const repository = new InMemoryRecoveryRepositoryAdapter();
   repository.seed({ email: 'user@example.com', userId });
   let failDelivery = false;

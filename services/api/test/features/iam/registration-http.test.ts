@@ -2,8 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createApiApplication } from '../../../src/bootstrap.js';
+import { HmacSha256IamRegistrationAdmissionDigestAdapter } from '../../../src/features/iam/adapter/iam-registration-crypto.adapter.js';
+import { InMemoryRecoveryAdmissionAdapter } from '../../../src/features/iam/adapter/in-memory-recovery-admission.adapter.js';
 import { InMemoryRegistrationRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-registration-repository.adapter.js';
 import { PasswordCredentialService } from '../../../src/features/iam/application/password-credential.service.js';
+
+const registrationAdmissionDigest = new HmacSha256IamRegistrationAdmissionDigestAdapter(
+  'r'.repeat(32),
+);
 
 function credentials() {
   return new PasswordCredentialService({
@@ -26,6 +32,9 @@ void test('[IAM-001, IAM-009, IAM-016] registration HTTP creates a personal hier
   const { app } = await createApiApplication({
     registrationRepository: new InMemoryRegistrationRepositoryAdapter(),
     passwordCredentials: credentials(),
+    registrationIpAdmission: new InMemoryRecoveryAdmissionAdapter(),
+    registrationEmailAdmission: new InMemoryRecoveryAdmissionAdapter(),
+    registrationAdmissionDigest,
   });
   try {
     const first = await app.inject({
@@ -37,10 +46,9 @@ void test('[IAM-001, IAM-009, IAM-016] registration HTTP creates a personal hier
         password: 'correct horse battery staple',
       },
     });
-    assert.equal(first.statusCode, 201);
+    assert.equal(first.statusCode, 202);
     const body = first.json<Record<string, unknown>>();
-    assert.match(String(body['userId']), /^[0-9a-f-]{36}$/u);
-    assert.equal(body['locale'], 'vi-VN');
+    assert.deepEqual(body, { accepted: true });
     assert.equal('accessToken' in body, false);
     assert.equal('email' in body, false);
 
@@ -53,9 +61,8 @@ void test('[IAM-001, IAM-009, IAM-016] registration HTTP creates a personal hier
         password: 'correct horse battery staple',
       },
     });
-    assert.equal(duplicate.statusCode, 400);
-    assert.match(duplicate.headers['content-type'] ?? '', /^application\/problem\+json/u);
-    assert.equal(duplicate.json<{ code: string }>().code, 'REGISTRATION_REQUEST_REJECTED');
+    assert.equal(duplicate.statusCode, 202);
+    assert.deepEqual(duplicate.json(), { accepted: true });
   } finally {
     await app.close();
   }

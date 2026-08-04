@@ -147,7 +147,6 @@ export class EntitlementController {
     await this.executeLease(() =>
       this.leases.verify(context, {
         leaseId,
-        now: input.now,
         snapshotRevision: input.snapshotRevision,
         securityEpoch: input.securityEpoch,
       }),

@@ -182,6 +182,7 @@ export class PrismaCredentialLookupAdapter implements CredentialLookupPortV1 {
       workspace.status !== 'ACTIVE'
     )
       return undefined;
+    if (typeof user.mfaReenrollmentRequired !== 'boolean') return undefined;
 
     return Object.freeze({
       principal: Object.freeze({
@@ -190,9 +191,7 @@ export class PrismaCredentialLookupAdapter implements CredentialLookupPortV1 {
         workspaceId,
         securityEpoch: user.securityEpoch,
         mfaRequired: factors.length > 0,
-        ...(user.mfaReenrollmentRequired === undefined
-          ? {}
-          : { mfaReenrollmentRequired: user.mfaReenrollmentRequired }),
+        mfaReenrollmentRequired: user.mfaReenrollmentRequired,
       }),
       credential: Object.freeze({
         algorithm: 'argon2id' as const,

@@ -34,7 +34,9 @@ void test('[IAM-015] recovery HTTP keeps known and unknown requests generic and 
   const { app } = await createApiApplication({
     recoveryRepository: repository,
     passwordCredentials: credentials(),
-    recoveryDigest: new HmacSha256IamRecoveryDigestAdapter('test-recovery-key'),
+    recoveryDigest: new HmacSha256IamRecoveryDigestAdapter(
+      'test-recovery-key-v1-012345678901234567',
+    ),
     recoveryDelivery: {
       deliver: async ({ rawToken: deliveredToken }) => {
         await Promise.resolve();

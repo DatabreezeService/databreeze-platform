@@ -62,7 +62,7 @@ export interface SessionUserDatabaseRowV1 {
   readonly id: string;
   readonly status: string;
   readonly securityEpoch: number;
-  readonly mfaReenrollmentRequired?: boolean;
+  readonly mfaReenrollmentRequired: boolean;
 }
 
 export interface SessionMembershipDatabaseRowV1 {
@@ -562,9 +562,7 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
       workspaceId: workspaceId.value,
       securityEpoch: user.securityEpoch,
       mfaRequired: factors.length > 0,
-      ...(user.mfaReenrollmentRequired === undefined
-        ? {}
-        : { mfaReenrollmentRequired: user.mfaReenrollmentRequired }),
+      mfaReenrollmentRequired: user.mfaReenrollmentRequired,
     });
   }
 }

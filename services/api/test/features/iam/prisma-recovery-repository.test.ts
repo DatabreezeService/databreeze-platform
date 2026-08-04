@@ -263,6 +263,32 @@ void test('[IAM-015] Prisma recovery completion rotates credential, epoch, MFA s
   assert.equal(state.challenges.get(challengeId)?.['status'], 'CONSUMED');
 });
 
+void test('[IAM-015] Prisma recovery completion rejects non-active accounts', async () => {
+  const state = database();
+  state.users.set(userId, {
+    ...state.users.get(userId),
+    status: 'SUSPENDED',
+  });
+  const adapter = new PrismaRecoveryRepositoryAdapter(state.client);
+  await adapter.withTransaction((transaction) => transaction.saveChallenge(challenge()));
+
+  await assert.rejects(
+    adapter.withTransaction((transaction) =>
+      transaction.completeRecovery({
+        challenge: challenge('CONSUMED'),
+        credentialId: stable('00000000-0000-4000-8000-000000000004'),
+        credential: {
+          schemaVersion: 1,
+          algorithm: 'argon2id',
+          encodedHash: '$argon2id$v=19$m=1,p=1,t=1$YWJjZA==$ZWZmZw==',
+        },
+      }),
+    ),
+    /IAM_RECOVERY_USER_NOT_FOUND/u,
+  );
+  assert.equal(state.users.get(userId)?.['securityEpoch'], 1);
+});
+
 void test('[IAM-015] Prisma recovery challenge compare-and-set rejects a stale terminal transition', async () => {
   const state = database();
   const adapter = new PrismaRecoveryRepositoryAdapter(state.client);

@@ -101,7 +101,13 @@ import {
   type RegistrationDatabaseClientV1,
 } from './adapter/prisma-registration-repository.adapter.js';
 import {
+  IAM_REGISTRATION_EMAIL_ADMISSION,
+  IAM_REGISTRATION_IP_ADMISSION,
+  IAM_REGISTRATION_ADMISSION_DIGEST,
+  type RegistrationAdmissionDigestPortV1,
+  type RegistrationAdmissionDigestKeyV1,
   IAM_REGISTRATION_REPOSITORY_PORT,
+  type RegistrationAdmissionPortV1,
   type RegistrationRepositoryPortV1,
 } from './application/registration-repository.port.js';
 import {
@@ -133,6 +139,7 @@ import {
   type IamRecoveryDigestKeyV1,
 } from './adapter/iam-recovery-crypto.adapter.js';
 import { InMemoryRecoveryAdmissionAdapter } from './adapter/in-memory-recovery-admission.adapter.js';
+import { HmacSha256IamRegistrationAdmissionDigestAdapter } from './adapter/iam-registration-crypto.adapter.js';
 import {
   RedisRecoveryAdmissionAdapter,
   type RecoveryAdmissionCounterPortV1,
@@ -177,6 +184,7 @@ import {
   UnavailableServiceAccountService,
   type ServiceAccountClockV1,
   type ServiceAccountIdGeneratorV1,
+  type ServiceAccountSecretEnvelopePortV1,
   type ServiceAccountSecretIssuerV1,
 } from './application/service-account.service.js';
 import { InMemoryServiceAccountRepositoryAdapter } from './adapter/in-memory-service-account-repository.adapter.js';
@@ -185,6 +193,10 @@ import {
   type ServiceAccountDatabaseClientV1,
 } from './adapter/prisma-service-account-repository.adapter.js';
 import { RandomServiceAccountSecretIssuer } from './adapter/random-service-account-secret.adapter.js';
+import {
+  AesGcmServiceAccountSecretEnvelopeAdapter,
+  randomServiceAccountSecretEnvelopeAdapter,
+} from './adapter/service-account-secret-envelope.adapter.js';
 import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
@@ -231,6 +243,15 @@ export interface IamModuleOptions {
   readonly registrationService?: RegistrationService;
   readonly registrationIdGenerator?: RegistrationIdGeneratorV1;
   readonly registrationClock?: RegistrationClockV1;
+  readonly registrationIpAdmission?: RegistrationAdmissionPortV1;
+  readonly registrationIpAdmissionCounter?: RecoveryAdmissionCounterPortV1;
+  readonly registrationIpAdmissionOptions?: RedisRecoveryAdmissionOptionsV1;
+  readonly registrationEmailAdmission?: RegistrationAdmissionPortV1;
+  readonly registrationEmailAdmissionCounter?: RecoveryAdmissionCounterPortV1;
+  readonly registrationEmailAdmissionOptions?: RedisRecoveryAdmissionOptionsV1;
+  readonly registrationAdmissionDigest?: RegistrationAdmissionDigestPortV1;
+  readonly registrationAdmissionKey?: RegistrationAdmissionDigestKeyV1;
+  readonly registrationAdmissionPreviousKeys?: readonly RegistrationAdmissionDigestKeyV1[];
   readonly recoveryRepository?: RecoveryRepositoryPortV1;
   readonly recoveryDatabase?: RecoveryDatabaseClientV1;
   readonly recoveryService?: RecoveryService;
@@ -254,6 +275,9 @@ export interface IamModuleOptions {
   readonly serviceAccountRepository?: ServiceAccountRepositoryPortV1;
   readonly serviceAccountDatabase?: ServiceAccountDatabaseClientV1;
   readonly serviceAccountSecretIssuer?: ServiceAccountSecretIssuerV1;
+  readonly serviceAccountSecretEnvelope?: ServiceAccountSecretEnvelopePortV1;
+  /** Base64url-encoded 32-byte key; use a managed secret in durable environments. */
+  readonly serviceAccountSecretEnvelopeKey?: string;
   readonly serviceAccountClock?: ServiceAccountClockV1;
   readonly serviceAccountIdGenerator?: ServiceAccountIdGeneratorV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
@@ -384,6 +408,41 @@ export class IamModule {
             ...(options.registrationClock ? { clock: options.registrationClock } : {}),
           })
         : undefined);
+    const registrationAdmissionDigest =
+      options.registrationAdmissionDigest ??
+      (options.registrationAdmissionKey === undefined
+        ? undefined
+        : new HmacSha256IamRegistrationAdmissionDigestAdapter(
+            options.registrationAdmissionKey,
+            options.registrationAdmissionPreviousKeys,
+          ));
+    const registrationIpAdmission =
+      options.registrationIpAdmission ??
+      (options.registrationIpAdmissionCounter === undefined
+        ? undefined
+        : new RedisRecoveryAdmissionAdapter(options.registrationIpAdmissionCounter, {
+            keyPrefix: 'databreeze:iam:registration:ip:v1:',
+            maxAttempts: 5,
+            windowSeconds: 15 * 60,
+            ...options.registrationIpAdmissionOptions,
+          }));
+    const registrationEmailAdmission =
+      options.registrationEmailAdmission ??
+      (options.registrationEmailAdmissionCounter === undefined
+        ? undefined
+        : new RedisRecoveryAdmissionAdapter(options.registrationEmailAdmissionCounter, {
+            keyPrefix: 'databreeze:iam:registration:email:v1:',
+            maxAttempts: 5,
+            windowSeconds: 15 * 60,
+            ...options.registrationEmailAdmissionOptions,
+          }));
+    if (
+      registrationService !== undefined &&
+      (registrationIpAdmission === undefined ||
+        registrationEmailAdmission === undefined ||
+        registrationAdmissionDigest === undefined)
+    )
+      throw new Error('IAM_REGISTRATION_ADMISSION_REQUIRED');
     const recoveryRepository =
       options.recoveryRepository ??
       (options.recoveryDatabase === undefined
@@ -449,16 +508,28 @@ export class IamModule {
       (options.serviceAccountDatabase === undefined
         ? new InMemoryServiceAccountRepositoryAdapter()
         : new PrismaServiceAccountRepositoryAdapter(options.serviceAccountDatabase));
+    if (
+      options.serviceAccountDatabase !== undefined &&
+      options.serviceAccountSecretEnvelope === undefined &&
+      options.serviceAccountSecretEnvelopeKey === undefined
+    )
+      throw new Error('IAM_SERVICE_ACCOUNT_ENVELOPE_KEY_REQUIRED');
+    const serviceAccountSecretEnvelope =
+      options.serviceAccountSecretEnvelope ??
+      (options.serviceAccountSecretEnvelopeKey
+        ? new AesGcmServiceAccountSecretEnvelopeAdapter(options.serviceAccountSecretEnvelopeKey)
+        : randomServiceAccountSecretEnvelopeAdapter());
     const serviceAccountService =
       options.serviceAccountService ??
-      (options.iamRepository === undefined
+      (iamRepository === undefined
         ? new UnavailableServiceAccountService()
         : new ServiceAccountService(
             serviceAccountRepository,
-            options.iamRepository,
+            iamRepository,
             options.serviceAccountSecretIssuer ?? new RandomServiceAccountSecretIssuer(),
             options.serviceAccountClock,
             options.serviceAccountIdGenerator,
+            serviceAccountSecretEnvelope,
           ));
     const exports = [
       DEVICE_IDENTITY_REPOSITORY_PORT,
@@ -615,6 +686,15 @@ export class IamModule {
                 useValue: registrationService,
               },
             ]
+          : []),
+        ...(registrationIpAdmission
+          ? [{ provide: IAM_REGISTRATION_IP_ADMISSION, useValue: registrationIpAdmission }]
+          : []),
+        ...(registrationEmailAdmission
+          ? [{ provide: IAM_REGISTRATION_EMAIL_ADMISSION, useValue: registrationEmailAdmission }]
+          : []),
+        ...(registrationAdmissionDigest
+          ? [{ provide: IAM_REGISTRATION_ADMISSION_DIGEST, useValue: registrationAdmissionDigest }]
           : []),
         ...(recoveryRepository
           ? [

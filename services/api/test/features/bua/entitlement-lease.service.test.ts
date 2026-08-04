@@ -128,7 +128,6 @@ void test('[BUA-018] verifies signature, scope, revision, epoch, and time throug
   assert.deepEqual(
     await service.verify(context(), {
       leaseId,
-      now: '2026-01-01T00:10:00.000Z',
       snapshotRevision: 4,
       securityEpoch: 2,
     }),
@@ -137,7 +136,6 @@ void test('[BUA-018] verifies signature, scope, revision, epoch, and time throug
   assert.deepEqual(
     await service.verify(context(), {
       leaseId,
-      now: '2026-01-01T00:10:00.000Z',
       snapshotRevision: 3,
       securityEpoch: 2,
     }),
@@ -160,9 +158,13 @@ void test('[BUA-018] rejects invalid generated IDs and malformed verification ti
     { accepted: false, code: 'INVALID_IDENTIFIER' },
   );
   assert.deepEqual(
-    await service.verify(context(), {
+    await new EntitlementLeaseService(
+      new InMemoryEntitlementLeaseRepositoryAdapter(),
+      entitlementRepository,
+      signer(),
+      () => new Date('invalid'),
+    ).verify(context(), {
       leaseId,
-      now: 'invalid',
       snapshotRevision: 4,
       securityEpoch: 2,
     }),

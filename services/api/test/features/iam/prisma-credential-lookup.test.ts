@@ -22,6 +22,7 @@ function database(
         email: 'user@example.com',
         status: 'ACTIVE',
         securityEpoch: 3,
+        mfaReenrollmentRequired: false,
       }),
     },
     passwordCredential: {
@@ -70,6 +71,7 @@ void test('[IAM-001, IAM-002, IAM-009] credential lookup returns only an active,
       workspaceId,
       securityEpoch: 3,
       mfaRequired: true,
+      mfaReenrollmentRequired: false,
     },
     credential: {
       algorithm: 'argon2id',

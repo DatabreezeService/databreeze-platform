@@ -90,3 +90,14 @@ void test('[IAM-010] consuming after expiry or before issue fails closed', () =>
     { accepted: false, code: 'INVALID_TIMESTAMP' },
   );
 });
+
+void test('[IAM-010] consuming a revoked token returns an invalid-state result', () => {
+  const created = createInvitationTokenV1(input());
+  assert.equal(created.accepted, true);
+  if (!created.accepted) return;
+  const revoked = { ...created.value, status: 'REVOKED' };
+  assert.deepEqual(consumeInvitationTokenV1(revoked, issuedAt), {
+    accepted: false,
+    code: 'INVALID_STATE',
+  });
+});

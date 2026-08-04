@@ -75,7 +75,7 @@ export class UpdateInboxMetadataDto {
   @Matches(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u)
   dueAt?: string | null;
 
-  @ApiProperty({ minimum: 1, required: false })
+  @ApiProperty({ type: 'integer', minimum: 1, required: false })
   @IsOptional()
   @IsInt()
   @Min(1)

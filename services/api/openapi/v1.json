@@ -3083,7 +3083,7 @@
           }
         },
         "responses": {
-          "201": {
+          "202": {
             "description": "",
             "content": {
               "application/json": {
@@ -9799,20 +9799,13 @@
             "name": "snapshotRevision",
             "required": true,
             "in": "query",
-            "schema": { "minimum": 1, "type": "number" }
+            "schema": { "minimum": 1, "maximum": 9007199254740991, "type": "integer" }
           },
           {
             "name": "securityEpoch",
             "required": true,
             "in": "query",
-            "schema": { "minimum": 1, "type": "number" }
-          },
-          {
-            "name": "now",
-            "required": false,
-            "in": "query",
-            "description": "Verification time; server clock is used when omitted",
-            "schema": { "format": "date-time", "type": "string" }
+            "schema": { "minimum": 1, "maximum": 9007199254740991, "type": "integer" }
           },
           {
             "name": "X-Correlation-Id",
@@ -10164,7 +10157,13 @@
           "mfaRequired": { "type": "boolean" },
           "mfaReenrollmentRequired": { "type": "boolean" }
         },
-        "required": ["userId", "organizationId", "authorizationEpoch", "mfaRequired"]
+        "required": [
+          "userId",
+          "organizationId",
+          "authorizationEpoch",
+          "mfaRequired",
+          "mfaReenrollmentRequired"
+        ]
       },
       "SignInDto": {
         "type": "object",
@@ -10197,7 +10196,8 @@
           "accessToken",
           "accessExpiresAt",
           "securityEpoch",
-          "mfaRequired"
+          "mfaRequired",
+          "mfaReenrollmentRequired"
         ]
       },
       "SessionRefreshDto": {
@@ -10411,7 +10411,12 @@
       "RegistrationDto": {
         "type": "object",
         "properties": {
-          "email": { "type": "string", "example": "ngu***@example.com", "maxLength": 254 },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "nguyen@example.com",
+            "maxLength": 254
+          },
           "displayName": { "type": "string", "minLength": 1, "maxLength": 200 },
           "password": { "type": "string", "minLength": 12, "maxLength": 128, "writeOnly": true },
           "locale": { "type": "string", "enum": ["vi-VN", "en"], "default": "vi-VN" }
@@ -10420,22 +10425,8 @@
       },
       "RegistrationResponseDto": {
         "type": "object",
-        "properties": {
-          "userId": { "type": "string", "format": "uuid" },
-          "organizationId": { "type": "string", "format": "uuid" },
-          "workspaceId": { "type": "string", "format": "uuid" },
-          "projectId": { "type": "string", "format": "uuid" },
-          "membershipId": { "type": "string", "format": "uuid" },
-          "locale": { "type": "string", "enum": ["vi-VN", "en"] }
-        },
-        "required": [
-          "userId",
-          "organizationId",
-          "workspaceId",
-          "projectId",
-          "membershipId",
-          "locale"
-        ]
+        "properties": { "accepted": { "type": "boolean", "enum": [true], "example": true } },
+        "required": ["accepted"]
       },
       "RecoveryRequestDto": {
         "type": "object",
@@ -10614,7 +10605,7 @@
               { "type": "null" }
             ]
           },
-          "expectedRevision": { "type": "number", "minimum": 1 }
+          "expectedRevision": { "type": "integer", "minimum": 1 }
         }
       },
       "CreateEvidenceGrantDto": {
@@ -11563,8 +11554,8 @@
             "description": "Server-generated when omitted"
           },
           "signerKeyId": { "type": "string", "minLength": 1, "maxLength": 200 },
-          "firstSequence": { "type": "number", "minimum": 1 },
-          "lastSequence": { "type": "number", "minimum": 1 },
+          "firstSequence": { "type": "integer", "minimum": 1 },
+          "lastSequence": { "type": "integer", "minimum": 1 },
           "rootDigest": { "type": "string", "minLength": 1, "maxLength": 512 }
         },
         "required": ["signerKeyId", "firstSequence", "lastSequence", "rootDigest"]

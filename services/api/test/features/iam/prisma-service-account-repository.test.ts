@@ -187,6 +187,52 @@ void test('[IAM-013] Prisma service-account adapter persists and filters workspa
   );
 });
 
+void test('[IAM-013, INT-004] Prisma service-account adapter persists actor-scoped create idempotency metadata', async () => {
+  const rows: Record<string, unknown>[] = [];
+  const repository = new PrismaServiceAccountRepositoryAdapter(client(rows));
+  const organizationContext = context({ scopeType: 'organization', organizationId }, 'create-key');
+  const value = account();
+  await repository.saveServiceAccount(organizationContext, value, {
+    actorId: organizationContext.actorId,
+    idempotencyKey: 'create-key',
+    requestHash: 'b'.repeat(64),
+    secretEnvelope: 'v1.encrypted-envelope',
+    accountSnapshot: value,
+    expiresAt: '2026-01-02T00:00:00.000Z',
+  });
+  const replay = await repository.findServiceAccountByIdempotency(
+    organizationContext,
+    {
+      scopeType: 'workspace',
+      organizationId: stable(organizationId),
+      workspaceId: stable(workspaceId),
+    },
+    'create-key',
+  );
+  assert.equal(replay?.account.id, value.id);
+  assert.equal(replay?.requestHash, 'b'.repeat(64));
+  assert.equal(replay?.secretEnvelope, 'v1.encrypted-envelope');
+  assert.equal(replay?.expiresAt, '2026-01-02T00:00:00.000Z');
+  assert.equal(rows[0]?.['createSecretEnvelope'], 'v1.encrypted-envelope');
+  assert.equal(String(rows[0]?.['createAccountSnapshot']).includes('one-time-secret'), false);
+  await repository.replaceServiceAccount(
+    organizationContext,
+    Object.freeze({ ...value, name: 'Changed after create', revision: 2 }),
+    1,
+  );
+  const replayAfterLifecycleWrite = await repository.findServiceAccountByIdempotency(
+    organizationContext,
+    {
+      scopeType: 'workspace',
+      organizationId: stable(organizationId),
+      workspaceId: stable(workspaceId),
+    },
+    'create-key',
+  );
+  assert.equal(replayAfterLifecycleWrite?.secretEnvelope, 'v1.encrypted-envelope');
+  assert.equal(replayAfterLifecycleWrite?.account.name, value.name);
+});
+
 void test('[IAM-013] Prisma service-account adapter uses optimistic revisions and rejects races', async () => {
   const repository = new PrismaServiceAccountRepositoryAdapter(client([rowFor()]));
   const next = Object.freeze({ ...account(), name: 'Changed', revision: 2 });

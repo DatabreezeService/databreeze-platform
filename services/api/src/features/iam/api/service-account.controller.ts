@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
@@ -69,13 +69,10 @@ export class ServiceAccountController {
     summary: 'Create an action-scoped service account and return its one-time secret',
   })
   @ApiBody({ type: CreateServiceAccountDto })
-  async create(
-    @Req() request: unknown,
-    @Headers('idempotency-key') _idempotencyKey: string | undefined,
-    @Body() input: CreateServiceAccountDto,
-  ): Promise<unknown> {
+  async create(@Req() request: unknown, @Body() input: CreateServiceAccountDto): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
-    void _idempotencyKey;
+    // The authenticated request-context adapter derives and validates Idempotency-Key. Keeping
+    // that value in the immutable context prevents a controller-only header from being ignored.
     return this.execute(() => this.serviceAccounts.create(context, input));
   }
 

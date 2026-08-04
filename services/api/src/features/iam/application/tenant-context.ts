@@ -12,7 +12,7 @@ export interface IamTenantContextV1 {
   readonly idempotencyKey: string;
   readonly authorizationEpoch: number;
   readonly mfaRequired?: boolean;
-  readonly mfaReenrollmentRequired?: boolean;
+  readonly mfaReenrollmentRequired: boolean;
   readonly expectedRevision?: number;
 }
 
@@ -82,9 +82,7 @@ export function createIamTenantContextV1(input: {
       idempotencyKey: input.idempotencyKey,
       authorizationEpoch: input.authorizationEpoch,
       ...(input.mfaRequired === undefined ? {} : { mfaRequired: input.mfaRequired }),
-      ...(input.mfaReenrollmentRequired === undefined
-        ? {}
-        : { mfaReenrollmentRequired: input.mfaReenrollmentRequired }),
+      mfaReenrollmentRequired: input.mfaReenrollmentRequired ?? false,
       ...(input.expectedRevision === undefined ? {} : { expectedRevision: input.expectedRevision }),
     }),
   });

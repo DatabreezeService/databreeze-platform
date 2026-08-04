@@ -23,6 +23,7 @@ import type {
   AuditPageInputV1,
   AuditPageV1,
   AuditRepositoryPortV1,
+  AuditSealSelectorV1,
   AuditTransactionPortV1,
 } from '../application/audit-repository.port.js';
 import { createAuditPageCursorV1, auditPageOffsetV1 } from '../application/audit-page-cursor.js';
@@ -392,6 +393,24 @@ class PrismaAuditTransactionAdapter implements AuditTransactionPortV1 {
       .filter((row) => visible(context.tenantScope, persistedScope(row)))
       .map(persistedSeal);
   }
+
+  public async findSeal(
+    context: IamTenantContextV1,
+    selector: AuditSealSelectorV1,
+  ): Promise<AuditSealV1 | undefined> {
+    if (!visible(context.tenantScope, selector.tenantScope)) return undefined;
+    const row = await this.client.auditSealRecord.findFirst({
+      where: {
+        scopeKey: tenantScopeKeyV1(selector.tenantScope),
+        firstSequence: selector.firstSequence,
+        lastSequence: selector.lastSequence,
+        rootDigest: selector.rootDigest,
+      },
+    });
+    if (!row) return undefined;
+    const seal = persistedSeal(row);
+    return visible(context.tenantScope, seal.tenantScope) ? seal : undefined;
+  }
 }
 
 export class PrismaAuditRepositoryAdapter implements AuditRepositoryPortV1 {
@@ -493,5 +512,15 @@ export class PrismaAuditRepositoryAdapter implements AuditRepositoryPortV1 {
 
   public listSeals(context: IamTenantContextV1): Promise<readonly AuditSealV1[]> {
     return new PrismaAuditTransactionAdapter(this.client, this.digestPort).listSeals(context);
+  }
+
+  public findSeal(
+    context: IamTenantContextV1,
+    selector: AuditSealSelectorV1,
+  ): Promise<AuditSealV1 | undefined> {
+    return new PrismaAuditTransactionAdapter(this.client, this.digestPort).findSeal(
+      context,
+      selector,
+    );
   }
 }

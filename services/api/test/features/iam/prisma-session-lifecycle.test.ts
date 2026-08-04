@@ -19,6 +19,7 @@ const principal = {
   workspaceId,
   securityEpoch: 4,
   mfaRequired: true,
+  mfaReenrollmentRequired: false,
 };
 
 function createDatabase(): {

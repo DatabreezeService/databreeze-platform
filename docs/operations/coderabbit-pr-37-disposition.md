@@ -1,6 +1,6 @@
 # CodeRabbit PR #37 disposition
 
-Review run: `d034f311-c043-4139-8372-ed69b774a83f`  
+Review run: `d034f311-c043-4139-8372-ed69b774a83f`
 Review policy: one automatic review run for this promotion PR; no rerun.
 
 After the fixes were pushed, the CodeRabbit app automatically queued a

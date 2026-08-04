@@ -128,3 +128,68 @@ void test('[IAM-013] replacement is revision guarded and transactions roll back 
     'Import worker',
   );
 });
+
+void test('[IAM-013] replacement cannot move an account across workspace scope', async () => {
+  const repository = new InMemoryServiceAccountRepositoryAdapter();
+  const workspaceContext = context(
+    { scopeType: 'workspace', organizationId, workspaceId },
+    'scope',
+  );
+  await repository.saveServiceAccount(
+    context({ scopeType: 'organization', organizationId }, 'parent'),
+    account({ workspaceId: undefined }),
+  );
+  const moved = Object.freeze({
+    ...account({ workspaceId }),
+    revision: 2,
+  });
+
+  await assert.rejects(
+    repository.replaceServiceAccount(workspaceContext, moved, 1),
+    /SCOPE_DENIED/u,
+  );
+  assert.equal(
+    (
+      await repository.findServiceAccount(
+        context({ scopeType: 'organization', organizationId }, 'read'),
+        stableAccountId,
+      )
+    )?.workspaceId,
+    undefined,
+  );
+});
+
+void test('[IAM-013, INT-004] lifecycle writes do not change the original create replay outcome', async () => {
+  const repository = new InMemoryServiceAccountRepositoryAdapter();
+  const organizationContext = context(
+    { scopeType: 'organization', organizationId },
+    'create-replay-preservation',
+  );
+  const created = account({ name: 'Original worker' });
+  await repository.saveServiceAccount(organizationContext, created, {
+    actorId: organizationContext.actorId,
+    idempotencyKey: organizationContext.idempotencyKey,
+    requestHash: 'b'.repeat(64),
+    secretEnvelope: 'v1.encrypted-envelope',
+    accountSnapshot: created,
+    expiresAt: '2026-01-02T00:00:00.000Z',
+  });
+
+  await repository.replaceServiceAccount(
+    organizationContext,
+    Object.freeze({ ...created, name: 'Rotated worker', revision: 2 }),
+    1,
+  );
+  const replay = await repository.findServiceAccountByIdempotency(
+    organizationContext,
+    {
+      scopeType: 'workspace',
+      organizationId: stable(organizationId),
+      workspaceId: stable(workspaceId),
+    },
+    organizationContext.idempotencyKey,
+  );
+  assert.equal(replay?.account.name, 'Original worker');
+  assert.equal(replay?.account.revision, 1);
+  assert.equal(replay?.secretEnvelope, 'v1.encrypted-envelope');
+});

@@ -14,6 +14,9 @@ complete.
 - `PrismaIamInvitationRepositoryAdapter` maps persisted rows through domain validation, enforces
   tenant scope visibility, rejects sibling-token reads, prevents multiple active invitations per
   membership, and uses compare-and-set revisions for redemption and membership activation.
+- The versioned invitation controller and IAM module composition now expose the acceptance flow
+  through the same replaceable repository and delivery ports; the HTTP boundary never returns the
+  raw token.
 - The Prisma foundation test proves the schema diff and migration inventory include the new table.
 
 ## Verification
@@ -25,7 +28,6 @@ complete.
 
 ## Explicitly not complete
 
-The invitation HTTP/controller and production composition wiring, transactional AUD append,
-registration for unknown recipients, resend/revocation administration, email-provider adapter,
-and production PostgreSQL/backup/security evidence remain future work. IAM-010 therefore remains
-`partial` and `not-verified` in the requirement manifest.
+Transactional AUD append, registration for unknown recipients, resend/revocation administration,
+an SMTP/SES delivery adapter, and production PostgreSQL/backup/security evidence remain future
+work. IAM-010 therefore remains `partial` and `not-verified` in the requirement manifest.

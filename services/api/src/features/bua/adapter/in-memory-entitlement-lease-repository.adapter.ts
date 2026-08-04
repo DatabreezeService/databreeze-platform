@@ -5,6 +5,7 @@ import type {
   EntitlementLeaseRepositoryPortV1,
   EntitlementLeaseTransactionPortV1,
 } from '../application/entitlement-lease-repository.port.js';
+import { sameEntitlementLeaseV1 } from '../application/entitlement-equality.js';
 
 function leaseScope(lease: EntitlementLeaseV1) {
   return lease.tenantScope;
@@ -24,7 +25,7 @@ export class InMemoryEntitlementLeaseRepositoryAdapter implements EntitlementLea
     if (!tenantScopeContainsV1(context.tenantScope, leaseScope(lease)))
       throw new Error('BUA_SCOPE_NARROWING_REQUIRED');
     const existing = this.leases.get(lease.leaseId);
-    if (existing && JSON.stringify(existing) !== JSON.stringify(lease))
+    if (existing && !sameEntitlementLeaseV1(existing, lease))
       throw new Error('BUA_IMMUTABLE_LEASE');
     this.leases.set(lease.leaseId, clone(lease));
   }

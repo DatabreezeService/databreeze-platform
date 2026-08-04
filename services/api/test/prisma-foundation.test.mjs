@@ -88,6 +88,8 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "iam"\."device_enrollment_challenges"/);
   assert.match(diff.stdout, /CREATE TABLE "dso"\."device_grants"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."service_accounts"/);
+  assert.match(diff.stdout, /CREATE TABLE "iam"\."recovery_compensation_failures"/);
+  assert.match(diff.stdout, /CREATE TABLE "iam"\."invitation_delivery_failures"/);
   assert.match(diff.stdout, /CREATE TABLE "bua"\."entitlement_leases"/);
   assert.match(diff.stdout, /CREATE TABLE "aud"\."audit_seal_attestations"/);
 
@@ -135,6 +137,11 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260803060000_iam_service_accounts',
     '20260803070000_bua_entitlement_leases',
     '20260803080000_aud_seal_attestations',
+    '20260804000000_iam_invitation_active_membership_unique',
+    '20260804010000_iam_service_account_create_idempotency',
+    '20260804020000_iam_service_account_replay_bounds',
+    '20260804030000_iam_recovery_compensation_failures',
+    '20260804040000_iam_invitation_delivery_failures',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -557,7 +564,80 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   ]) {
     assert.match(
       invitationMigration,
-      new RegExp(statement.replaceAll(/[.*+?^${}()|[\\]\\]/g, '\\$&')),
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
     );
   }
+  const activeInvitationMigration = await readFile(
+    path.join(
+      migrationsDirectory,
+      '20260804000000_iam_invitation_active_membership_unique',
+      'migration.sql',
+    ),
+    'utf8',
+  );
+  assert.match(
+    activeInvitationMigration,
+    /CREATE UNIQUE INDEX "invitation_tokens_active_membership_key"/u,
+  );
+  const invitationDeliveryFailureMigration = await readFile(
+    path.join(
+      migrationsDirectory,
+      '20260804040000_iam_invitation_delivery_failures',
+      'migration.sql',
+    ),
+    'utf8',
+  );
+  assert.match(
+    invitationDeliveryFailureMigration,
+    /CREATE TABLE "iam"\."invitation_delivery_failures"/u,
+  );
+  const serviceAccountIdempotencyMigration = await readFile(
+    path.join(
+      migrationsDirectory,
+      '20260804010000_iam_service_account_create_idempotency',
+      'migration.sql',
+    ),
+    'utf8',
+  );
+  for (const statement of [
+    'ADD COLUMN "created_by_actor_id" UUID',
+    'ADD COLUMN "create_secret_envelope" TEXT',
+    'CREATE UNIQUE INDEX "service_accounts_create_idempotency_org_key"',
+    'CREATE UNIQUE INDEX "service_accounts_create_idempotency_workspace_key"',
+  ]) {
+    assert.match(
+      serviceAccountIdempotencyMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const replayBoundsMigration = await readFile(
+    path.join(
+      migrationsDirectory,
+      '20260804020000_iam_service_account_replay_bounds',
+      'migration.sql',
+    ),
+    'utf8',
+  );
+  for (const statement of [
+    'ADD COLUMN "create_idempotency_expires_at" TIMESTAMPTZ(6)',
+    'ADD COLUMN "create_account_snapshot" TEXT',
+    'DROP INDEX IF EXISTS "service_accounts_create_idempotency_workspace_key"',
+  ]) {
+    assert.match(
+      replayBoundsMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  const compensationFailureMigration = await readFile(
+    path.join(
+      migrationsDirectory,
+      '20260804030000_iam_recovery_compensation_failures',
+      'migration.sql',
+    ),
+    'utf8',
+  );
+  assert.match(
+    compensationFailureMigration,
+    /CREATE TABLE "iam"\."recovery_compensation_failures"/u,
+  );
 });

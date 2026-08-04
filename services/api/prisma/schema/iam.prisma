@@ -118,6 +118,15 @@ model InvitationTokenRecord {
   @@schema("iam")
 }
 
+/// IAM-010: delivery failures block bearer acceptance across restarts.
+model InvitationDeliveryFailureRecord {
+  tokenDigest String   @id @map("token_digest") @db.Char(64)
+  recordedAt  DateTime @map("recorded_at") @db.Timestamptz(6)
+
+  @@map("invitation_delivery_failures")
+  @@schema("iam")
+}
+
 /// IAM-015: recovery bearers are short-lived, email-bound, and hashed at rest.
 model RecoveryChallengeRecord {
   id           String    @id @db.Uuid
@@ -136,6 +145,15 @@ model RecoveryChallengeRecord {
   @@index([userId, status], map: "recovery_challenges_user_status_idx")
   @@index([expiresAt, status], map: "recovery_challenges_expiry_status_idx")
   @@map("recovery_challenges")
+  @@schema("iam")
+}
+
+/// IAM-015: delivery-compensation failures remain blocked across restarts until reviewed.
+model RecoveryCompensationFailureRecord {
+  tokenDigest String   @id @map("token_digest") @db.Char(64)
+  recordedAt  DateTime @map("recorded_at") @db.Timestamptz(6)
+
+  @@map("recovery_compensation_failures")
   @@schema("iam")
 }
 
@@ -300,9 +318,16 @@ model ServiceAccountRecord {
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   revokedAt      DateTime? @map("revoked_at") @db.Timestamptz(6)
   revision       Int       @default(1)
+  createdByActorId String?  @map("created_by_actor_id") @db.Uuid
+  createIdempotencyKey String? @map("create_idempotency_key") @db.VarChar(200)
+  createRequestHash String? @map("create_request_hash") @db.Char(64)
+  createSecretEnvelope String? @map("create_secret_envelope") @db.Text
+  createIdempotencyExpiresAt DateTime? @map("create_idempotency_expires_at") @db.Timestamptz(6)
+  createAccountSnapshot String? @map("create_account_snapshot") @db.Text
 
   @@index([organizationId, workspaceId, status], map: "service_accounts_scope_status_idx")
   @@index([secretExpiresAt, status], map: "service_accounts_expiry_status_idx")
+  @@unique([organizationId, workspaceId, createdByActorId, createIdempotencyKey], map: "service_accounts_create_idempotency_key")
   @@map("service_accounts")
   @@schema("iam")
 }

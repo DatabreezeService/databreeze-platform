@@ -136,7 +136,8 @@ export function consumeInvitationTokenV1(
 ): InvitationTokenResultV1<InvitationTokenV1> {
   const timestampValue = timestamp(at);
   if (!timestampValue) return rejected('INVALID_TIMESTAMP');
-  if (token.status !== 'ACTIVE') return rejected('ALREADY_CONSUMED');
+  if (token.status === 'REDEEMED') return rejected('ALREADY_CONSUMED');
+  if (token.status !== 'ACTIVE') return rejected('INVALID_STATE');
   const nowMs = Date.parse(timestampValue);
   const issuedMs = Date.parse(token.issuedAt);
   const expiresMs = Date.parse(token.expiresAt);
@@ -147,6 +148,24 @@ export function consumeInvitationTokenV1(
       ...token,
       status: 'REDEEMED' as const,
       consumedAt: timestampValue,
+      revision: token.revision + 1,
+    }),
+  );
+}
+
+/** Revoke a token after a delivery acknowledgement failure; no bearer is reusable. */
+export function revokeInvitationTokenV1(
+  token: InvitationTokenV1,
+  at: unknown,
+): InvitationTokenResultV1<InvitationTokenV1> {
+  const timestampValue = timestamp(at);
+  if (!timestampValue) return rejected('INVALID_TIMESTAMP');
+  if (token.status !== 'ACTIVE') return rejected('INVALID_STATE');
+  if (Date.parse(timestampValue) < Date.parse(token.issuedAt)) return rejected('INVALID_TIMESTAMP');
+  return accepted(
+    Object.freeze({
+      ...token,
+      status: 'REVOKED' as const,
       revision: token.revision + 1,
     }),
   );

@@ -43,6 +43,7 @@ function sameInvitationIdentity(left: InvitationTokenV1, right: InvitationTokenV
 export class InMemoryIamInvitationRepositoryAdapter implements IamInvitationRepositoryPortV1 {
   private memberships: IamMembershipRecordV1[];
   private invitations: InvitationTokenV1[] = [];
+  private deliveryFailures = new Set<string>();
   private transactionTail: Promise<void> = Promise.resolve();
 
   public constructor(memberships: readonly IamMembershipRecordV1[] = []) {
@@ -65,18 +66,28 @@ export class InMemoryIamInvitationRepositoryAdapter implements IamInvitationRepo
     await prior;
     const membershipsBefore = this.memberships.map(cloneMembership);
     const invitationsBefore = this.invitations.map(cloneInvitation);
+    const deliveryFailuresBefore = new Set(this.deliveryFailures);
     try {
       return await work({
         findMembershipForPrincipal: this.findMembershipForPrincipal.bind(this),
         findMembershipById: this.findMembershipById.bind(this),
         findInvitationByDigest: this.findInvitationByDigest.bind(this),
         findActiveInvitationForMembership: this.findActiveInvitationForMembership.bind(this),
+        isDeliveryBlocked: async (_context, tokenDigest) => {
+          await Promise.resolve();
+          return this.deliveryFailures.has(tokenDigest);
+        },
+        recordDeliveryFailure: async (_context, tokenDigest) => {
+          await Promise.resolve();
+          this.deliveryFailures.add(tokenDigest);
+        },
         saveInvitation: this.saveInvitation.bind(this),
         saveMembership: this.saveMembership.bind(this),
       });
     } catch (error) {
       this.memberships = membershipsBefore;
       this.invitations = invitationsBefore;
+      this.deliveryFailures = deliveryFailuresBefore;
       throw error;
     } finally {
       release();

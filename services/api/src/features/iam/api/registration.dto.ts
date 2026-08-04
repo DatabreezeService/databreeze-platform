@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEmail, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class RegistrationDto {
-  @ApiProperty({ example: 'ngu***@example.com', maxLength: 254 })
+  @ApiProperty({ format: 'email', example: 'nguyen@example.com', maxLength: 254 })
   @IsEmail()
   @MaxLength(254)
   email!: string;
@@ -26,21 +26,6 @@ export class RegistrationDto {
 }
 
 export class RegistrationResponseDto {
-  @ApiProperty({ format: 'uuid' })
-  userId!: string;
-
-  @ApiProperty({ format: 'uuid' })
-  organizationId!: string;
-
-  @ApiProperty({ format: 'uuid' })
-  workspaceId!: string;
-
-  @ApiProperty({ format: 'uuid' })
-  projectId!: string;
-
-  @ApiProperty({ format: 'uuid' })
-  membershipId!: string;
-
-  @ApiProperty({ enum: ['vi-VN', 'en'] })
-  locale!: 'vi-VN' | 'en';
+  @ApiProperty({ enum: [true], example: true })
+  accepted!: true;
 }
