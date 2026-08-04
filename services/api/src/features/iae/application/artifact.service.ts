@@ -97,6 +97,7 @@ export class ArtifactService {
       if (
         version.status === 'DELETED' ||
         version.status === 'QUARANTINED' ||
+        version.scanState !== 'CLEAN' ||
         evidence.sourceState !== 'AVAILABLE'
       )
         return Object.freeze({ evidence, version, action: 'UNAVAILABLE' as const });
