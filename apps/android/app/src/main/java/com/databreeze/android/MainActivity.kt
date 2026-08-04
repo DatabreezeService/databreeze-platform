@@ -119,28 +119,34 @@ fun DataBreezeApp(
                         onApprove = {
                             autopilotActionScope.launch {
                                 val current = autopilotState
+                                val nowEpochMs = System.currentTimeMillis()
                                 autopilotActions.enqueueApproval(
                                     current.approval,
                                     FolderAutopilotApprovalDecision.APPROVED,
                                     current.approval.planHash,
+                                    nowEpochMs,
                                 )
                                 autopilotState = current.decideApproval(
                                     FolderAutopilotApprovalDecision.APPROVED,
                                     current.approval.planHash,
+                                    nowEpochMs,
                                 )
                             }
                         },
                         onReject = {
                             autopilotActionScope.launch {
                                 val current = autopilotState
+                                val nowEpochMs = System.currentTimeMillis()
                                 autopilotActions.enqueueApproval(
                                     current.approval,
                                     FolderAutopilotApprovalDecision.REJECTED,
                                     current.approval.planHash,
+                                    nowEpochMs,
                                 )
                                 autopilotState = current.decideApproval(
                                     FolderAutopilotApprovalDecision.REJECTED,
                                     current.approval.planHash,
+                                    nowEpochMs,
                                 )
                             }
                         },

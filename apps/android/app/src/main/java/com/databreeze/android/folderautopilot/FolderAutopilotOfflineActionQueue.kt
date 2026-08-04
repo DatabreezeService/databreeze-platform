@@ -30,8 +30,9 @@ class FolderAutopilotOfflineActionQueue(
         approval: FolderAutopilotApprovalSummary,
         decision: FolderAutopilotApprovalDecision,
         expectedPlanHash: String = approval.planHash,
+        nowEpochMs: Long = clock(),
     ): String {
-        val next = approval.decide(decision, expectedPlanHash)
+        val next = approval.decide(decision, expectedPlanHash, nowEpochMs)
         val mutationId = mutationId("approval", next.approvalId, next.decision.name.lowercase())
         return enqueue(
             mutationId = mutationId,

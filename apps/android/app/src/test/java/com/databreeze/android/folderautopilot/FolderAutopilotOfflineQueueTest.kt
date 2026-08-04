@@ -68,6 +68,20 @@ class FolderAutopilotOfflineQueueTest {
         }
     }
 
+    @Test
+    fun expired_approval_is_rejected_before_it_enters_the_queue() = runBlocking {
+        val store = InMemoryLocalStore()
+        val queue = FolderAutopilotOfflineActionQueue(store, scope, null) { 1_800_000_000_000L }
+
+        try {
+            queue.enqueueApproval(approval, FolderAutopilotApprovalDecision.APPROVED)
+            fail("an expired approval must not be queued")
+        } catch (error: IllegalStateException) {
+            assertEquals("approval has expired", error.message)
+        }
+        assertTrue(store.snapshotQueue(scope).isEmpty())
+    }
+
     private class RecordingScheduler : SyncScheduler {
         val enqueued = mutableListOf<AccountWorkspaceScope>()
 
