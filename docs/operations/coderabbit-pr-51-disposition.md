@@ -1,12 +1,16 @@
 # CodeRabbit disposition for promotion PR 51
 
-Review invocation: one automatic full review on PR #51 (`4853416975`). No
-second CodeRabbit review is requested for this pull request.
+Review invocation: one automatic full review was requested on PR #51
+(`4853416975`). After the final push, repository automation emitted a follow-up
+status review for head `365c080` (run `57535106-acc4-4eed-a227-99fd2c53e2fe`);
+no second review was manually invoked. Its four additional findings were
+reproduced and addressed below.
 
 ## Resolution
 
-All 35 reported findings were reproduced against the reviewed Folder Autopilot
-slice and classified as valid. They are addressed in focused commits on
+All 35 findings from the requested review plus the four automated follow-up
+findings were reproduced against the reviewed Folder Autopilot slice and
+classified as valid. They are addressed in focused commits on
 `feat/folder-autopilot-20260804`:
 
 - Desktop observation/action/journal limits, recovery state, copy undo policy,
@@ -28,6 +32,10 @@ slice and classified as valid. They are addressed in focused commits on
 - Android approvals validate ISO expiry before queueing or deciding, disable
   expired actions, and localize assignment, watcher, approval, outcome, undo,
   and severity states in Vietnamese and English.
+- Follow-up hardening normalizes invalid engine timestamps, preserves Desktop
+  receipts when a later operation fails, maps unavailable approval/undo facades
+  to HTTP 503, and proves owner-versus-sibling assignment reads in the service
+  test.
 
 No comments were rejected as invalid. The module remains a content-free,
 testable slice; this disposition does not promote unimplemented FA P0/P1
@@ -38,5 +46,5 @@ requirements to `verified`.
 - TypeScript domain: 156 tests passed.
 - API: 497 tests passed; Prisma validation/generation and OpenAPI checks passed.
 - Web: 33 tests and typecheck passed.
-- Engine: 142 tests, Ruff, and mypy passed.
+- Engine: 143 tests, Ruff, and mypy passed.
 - Android: `testDebugUnitTest` and `assembleDebug` passed with the local SDK.
