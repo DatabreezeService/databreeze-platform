@@ -4,13 +4,16 @@ import { ElectronFolderGrantAdapter } from '../src/main/adapters/electron-folder
 describe('dogfood folder grant adapter', () => {
   it('returns a bounded summary without exposing the selected path', async () => {
     const close = vi.fn(() => Promise.resolve());
-    const opendir = vi.fn(async () => ({
-      async *[Symbol.asyncIterator]() {
-        yield { isFile: () => true, isSymbolicLink: () => false };
-        yield { isFile: () => false, isSymbolicLink: () => false };
-      },
-      close,
-    }));
+    const opendir = vi.fn(() =>
+      Promise.resolve({
+        async *[Symbol.asyncIterator]() {
+          await Promise.resolve();
+          yield { isFile: () => true, isSymbolicLink: () => false };
+          yield { isFile: () => false, isSymbolicLink: () => false };
+        },
+        close,
+      }),
+    );
     const adapter = new ElectronFolderGrantAdapter({
       dialog: {
         showOpenDialog: vi.fn(() =>
@@ -57,15 +60,18 @@ describe('dogfood folder grant adapter', () => {
   it('stops after the file bound and always closes the directory iterator', async () => {
     const close = vi.fn(() => Promise.resolve());
     let yielded = 0;
-    const opendir = vi.fn(async () => ({
-      async *[Symbol.asyncIterator]() {
-        for (let index = 0; index < 20_000; index += 1) {
-          yielded += 1;
-          yield { isFile: () => true, isSymbolicLink: () => false };
-        }
-      },
-      close,
-    }));
+    const opendir = vi.fn(() =>
+      Promise.resolve({
+        async *[Symbol.asyncIterator]() {
+          await Promise.resolve();
+          for (let index = 0; index < 20_000; index += 1) {
+            yielded += 1;
+            yield { isFile: () => true, isSymbolicLink: () => false };
+          }
+        },
+        close,
+      }),
+    );
     const adapter = new ElectronFolderGrantAdapter({
       dialog: {
         showOpenDialog: vi.fn(() =>
@@ -87,12 +93,16 @@ describe('dogfood folder grant adapter', () => {
 
   it('closes the directory when iteration fails', async () => {
     const close = vi.fn(() => Promise.resolve());
-    const opendir = vi.fn(async () => ({
-      async *[Symbol.asyncIterator]() {
-        throw new Error('scan failed');
-      },
-      close,
-    }));
+    const opendir = vi.fn(() =>
+      Promise.resolve({
+        [Symbol.asyncIterator]() {
+          return {
+            next: () => Promise.reject(new Error('scan failed')),
+          };
+        },
+        close,
+      }),
+    );
     const adapter = new ElectronFolderGrantAdapter({
       dialog: {
         showOpenDialog: vi.fn(() =>
