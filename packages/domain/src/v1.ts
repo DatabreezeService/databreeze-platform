@@ -34,6 +34,7 @@ export * from './device-authorization/v1.js';
 export * from './device-sync/v1.js';
 export * from './device-capability/v1.js';
 export * from './data-mode/v1.js';
+export * from './folder-autopilot/v1.js';
 export * from './pkce/v1.js';
 export * from './csrf/v1.js';
 export * from './permissions/v1.js';
