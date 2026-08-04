@@ -136,7 +136,8 @@ export function consumeInvitationTokenV1(
 ): InvitationTokenResultV1<InvitationTokenV1> {
   const timestampValue = timestamp(at);
   if (!timestampValue) return rejected('INVALID_TIMESTAMP');
-  if (token.status !== 'ACTIVE') return rejected('ALREADY_CONSUMED');
+  if (token.status === 'REDEEMED') return rejected('ALREADY_CONSUMED');
+  if (token.status !== 'ACTIVE') return rejected('INVALID_STATE');
   const nowMs = Date.parse(timestampValue);
   const issuedMs = Date.parse(token.issuedAt);
   const expiresMs = Date.parse(token.expiresAt);
