@@ -135,6 +135,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260803060000_iam_service_accounts',
     '20260803070000_bua_entitlement_leases',
     '20260803080000_aud_seal_attestations',
+    '20260804000000_iam_invitation_active_membership_unique',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -560,4 +561,16 @@ test('the schema diff and centrally ordered migration inventory establish platfo
       new RegExp(statement.replaceAll(/[.*+?^${}()|[\\]\\]/g, '\\$&')),
     );
   }
+  const activeInvitationMigration = await readFile(
+    path.join(
+      migrationsDirectory,
+      '20260804000000_iam_invitation_active_membership_unique',
+      'migration.sql',
+    ),
+    'utf8',
+  );
+  assert.match(
+    activeInvitationMigration,
+    /CREATE UNIQUE INDEX "invitation_tokens_active_membership_key"/u,
+  );
 });
