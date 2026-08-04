@@ -8,13 +8,12 @@ const dashboard = {
   profiles: [
     {
       profileId: '00000000-0000-4000-8000-000000000001',
-      displayName: 'Invoice intake',
+      version: 1,
       stabilizationSeconds: 10,
       collisionPolicy: 'REVIEW',
       confidenceThreshold: 0.9,
       undoWindowHours: 24,
       approvalRequired: true,
-      dataModeConstraint: 'Hybrid',
       recipeHash: 'a'.repeat(64),
       updatedAt: '2026-08-04T00:00:00.000Z',
     },
@@ -23,7 +22,6 @@ const dashboard = {
     {
       assignmentId: '00000000-0000-4000-8000-000000000002',
       profileId: '00000000-0000-4000-8000-000000000001',
-      displayName: 'Invoice intake assignment',
       jraRecipeVersionId: '00000000-0000-4000-8000-000000000003',
       deviceId: '00000000-0000-4000-8000-000000000004',
       inputBindingId: '00000000-0000-4000-8000-000000000005',
@@ -138,10 +136,11 @@ describe('Folder Autopilot workspace surface', () => {
       await screen.findByRole('heading', { name: 'Recent outcomes' }, asyncQueryOptions),
     ).toBeTruthy();
     expect(
-      await screen.findByText('Invoice intake assignment', {}, asyncQueryOptions),
-    ).toBeTruthy();
+      (await screen.findAllByText('00000000-0000-4000-8000-000000000002', {}, asyncQueryOptions))
+        .length,
+    ).toBeGreaterThan(0);
     expect(
-      await screen.findByRole('heading', { name: 'Invoice intake' }, asyncQueryOptions),
+      await screen.findByRole('heading', { name: 'Version 1' }, asyncQueryOptions),
     ).toBeTruthy();
     expect(screen.queryByText(/sourceArtifactVersionId|sourcePath|localHandle/iu)).toBeNull();
   });

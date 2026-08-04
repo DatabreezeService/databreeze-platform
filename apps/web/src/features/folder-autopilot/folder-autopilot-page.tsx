@@ -34,9 +34,16 @@ function statusKind(value: string): 'danger' | 'info' | 'success' | 'warning' {
 }
 
 function reasonLabel(locale: ReturnType<typeof useLocale>, value: string): string {
-  return value === 'DESTINATION_COLLISION'
-    ? appMessage(locale, 'autopilot.reason.collision')
-    : value;
+  switch (value) {
+    case 'DESTINATION_COLLISION':
+      return appMessage(locale, 'autopilot.reason.collision');
+    case 'DESTINATION_COLLISION_SKIPPED':
+      return appMessage(locale, 'autopilot.reason.collisionSkipped');
+    case 'MOVE_REQUIRES_APPROVAL':
+      return appMessage(locale, 'autopilot.reason.moveApproval');
+    default:
+      return value;
+  }
 }
 
 function assignmentHealth(
@@ -55,13 +62,9 @@ function ProfileAuthoring({
 }) {
   const locale = useLocale();
   const [input, setInput] = useState<FolderAutopilotProfileInput>({
-    displayName: '',
     stabilizationSeconds: 10,
     collisionPolicy: 'REVIEW',
-    confidenceThreshold: 0.9,
     undoWindowHours: 24,
-    approvalRequired: true,
-    dataModeConstraint: 'Hybrid',
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -87,7 +90,7 @@ function ProfileAuthoring({
     <section aria-labelledby="autopilot-profile-heading" className="autopilot-panel">
       <div className="autopilot-panel__heading">
         <h2 id="autopilot-profile-heading">{appMessage(locale, 'autopilot.profile.heading')}</h2>
-        <Status kind="info">JRA profile facade</Status>
+        <Status kind="info">{appMessage(locale, 'autopilot.profile.facade')}</Status>
       </div>
       {profiles.length === 0 ? (
         <p>{appMessage(locale, 'autopilot.reason.none')}</p>
@@ -100,10 +103,12 @@ function ProfileAuthoring({
             <article className="autopilot-card" key={profile.profileId}>
               <div className="autopilot-card__heading">
                 <div>
-                  <h3>{profile.displayName}</h3>
+                  <h3>
+                    {appMessage(locale, 'autopilot.profile.version')} {profile.version}
+                  </h3>
                   <code>{profile.profileId}</code>
                 </div>
-                <Status kind="success">{profile.dataModeConstraint}</Status>
+                <Status kind="success">{profile.collisionPolicy}</Status>
               </div>
               <dl className="autopilot-metrics">
                 <div>
@@ -128,17 +133,6 @@ function ProfileAuthoring({
         </div>
       )}
       <form className="autopilot-profile-form" onSubmit={(event) => void submit(event)}>
-        <label>
-          {appMessage(locale, 'autopilot.profile.name')}
-          <input
-            maxLength={128}
-            required
-            value={input.displayName}
-            onChange={(event) =>
-              setInput((current) => ({ ...current, displayName: event.target.value }))
-            }
-          />
-        </label>
         <label>
           {appMessage(locale, 'autopilot.profile.stabilization')}
           <input
@@ -172,22 +166,6 @@ function ProfileAuthoring({
           </select>
         </label>
         <label>
-          {appMessage(locale, 'autopilot.profile.confidence')}
-          <input
-            max={1}
-            min={0}
-            step={0.01}
-            type="number"
-            value={input.confidenceThreshold}
-            onChange={(event) =>
-              setInput((current) => ({
-                ...current,
-                confidenceThreshold: Number(event.target.value),
-              }))
-            }
-          />
-        </label>
-        <label>
           {appMessage(locale, 'autopilot.profile.undoWindow')}
           <input
             max={168}
@@ -198,33 +176,6 @@ function ProfileAuthoring({
               setInput((current) => ({ ...current, undoWindowHours: Number(event.target.value) }))
             }
           />
-        </label>
-        <label>
-          {appMessage(locale, 'autopilot.profile.dataMode')}
-          <select
-            value={input.dataModeConstraint}
-            onChange={(event) =>
-              setInput((current) => ({
-                ...current,
-                dataModeConstraint: event.target
-                  .value as FolderAutopilotProfileInput['dataModeConstraint'],
-              }))
-            }
-          >
-            <option value="Local">Local</option>
-            <option value="Hybrid">Hybrid</option>
-            <option value="Cloud">Cloud</option>
-          </select>
-        </label>
-        <label className="autopilot-checkbox">
-          <input
-            checked={input.approvalRequired}
-            type="checkbox"
-            onChange={(event) =>
-              setInput((current) => ({ ...current, approvalRequired: event.target.checked }))
-            }
-          />
-          {appMessage(locale, 'autopilot.profile.approval')}
         </label>
         <Button disabled={saving} type="submit">
           {saving
@@ -268,7 +219,7 @@ function AssignmentList({
               <th scope="col">{appMessage(locale, 'autopilot.assignment.revision')}</th>
               <th scope="col">{appMessage(locale, 'autopilot.assignment.health')}</th>
               <th scope="col">
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">{appMessage(locale, 'autopilot.actions')}</span>
               </th>
             </tr>
           </thead>
@@ -279,7 +230,7 @@ function AssignmentList({
               return (
                 <tr key={assignment.assignmentId}>
                   <td>
-                    <strong>{assignment.displayName}</strong>
+                    <strong>{assignment.assignmentId}</strong>
                     <small>
                       <code>{assignment.assignmentId}</code>
                     </small>
@@ -332,16 +283,18 @@ function ApprovalQueue({
   ) => Promise<void>;
 }) {
   const locale = useLocale();
+  const pairs = approvals.flatMap((approval) => {
+    const preview = previews.find((candidate) => candidate.previewId === approval.previewId);
+    return preview === undefined ? [] : [{ approval, preview }];
+  });
   return (
     <section aria-labelledby="autopilot-approval-heading" className="autopilot-panel">
       <div className="autopilot-panel__heading">
         <h2 id="autopilot-approval-heading">{appMessage(locale, 'autopilot.approval.heading')}</h2>
       </div>
-      {approvals.length === 0 ? <p>{appMessage(locale, 'autopilot.reason.none')}</p> : null}
+      {pairs.length === 0 ? <p>{appMessage(locale, 'autopilot.reason.none')}</p> : null}
       <div className="autopilot-card-list">
-        {approvals.map((approval) => {
-          const preview = previews.find((candidate) => candidate.previewId === approval.previewId);
-          if (!preview) return null;
+        {pairs.map(({ approval, preview }) => {
           const decision = decisions[approval.approvalId] ?? approval.decision;
           return (
             <article className="autopilot-card" key={approval.approvalId}>
@@ -475,7 +428,7 @@ function RecentOutcomes({
               <th scope="col">{appMessage(locale, 'autopilot.outcomes.affected')}</th>
               <th scope="col">{appMessage(locale, 'autopilot.outcomes.undo')}</th>
               <th scope="col">
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">{appMessage(locale, 'autopilot.actions')}</span>
               </th>
             </tr>
           </thead>
@@ -534,6 +487,7 @@ export function FolderAutopilotPage() {
   const [paused, setPaused] = useState<Readonly<Record<string, boolean>>>({});
   const [decisions, setDecisions] = useState<Readonly<Record<string, 'APPROVED' | 'REJECTED'>>>({});
   const [requestedUndo, setRequestedUndo] = useState<Readonly<Record<string, boolean>>>({});
+  const [mutationError, setMutationError] = useState(false);
 
   if (query.isPending)
     return (
@@ -555,25 +509,44 @@ export function FolderAutopilotPage() {
 
   const dashboard = query.data;
   async function pause(assignment: FolderAutopilotAssignment) {
-    await pauseFolderAutopilotAssignment(assignment.assignmentId, assignment.revision);
-    setPaused((current) => ({ ...current, [assignment.assignmentId]: true }));
+    setMutationError(false);
+    try {
+      await pauseFolderAutopilotAssignment(assignment.assignmentId, assignment.revision);
+      setPaused((current) => ({ ...current, [assignment.assignmentId]: true }));
+    } catch {
+      setMutationError(true);
+    }
   }
   async function decide(
     approval: FolderAutopilotApproval,
     decision: 'APPROVED' | 'REJECTED',
     planHash: string,
   ) {
-    await decideFolderAutopilotApproval(
-      approval.approvalId,
-      approval.subjectHash,
-      decision,
-      planHash,
-    );
-    setDecisions((current) => ({ ...current, [approval.approvalId]: decision }));
+    setMutationError(false);
+    try {
+      await decideFolderAutopilotApproval(
+        approval.approvalId,
+        approval.subjectHash,
+        decision,
+        planHash,
+      );
+      setDecisions((current) => ({ ...current, [approval.approvalId]: decision }));
+    } catch {
+      setMutationError(true);
+    }
   }
   async function undo(execution: FolderAutopilotExecution) {
-    await requestFolderAutopilotUndo(execution.executionId, execution.planHash, execution.revision);
-    setRequestedUndo((current) => ({ ...current, [execution.executionId]: true }));
+    setMutationError(false);
+    try {
+      await requestFolderAutopilotUndo(
+        execution.executionId,
+        execution.planHash,
+        execution.revision,
+      );
+      setRequestedUndo((current) => ({ ...current, [execution.executionId]: true }));
+    } catch {
+      setMutationError(true);
+    }
   }
 
   return (
@@ -583,10 +556,13 @@ export function FolderAutopilotPage() {
           <h1 id="autopilot-heading">{appMessage(locale, 'autopilot.heading')}</h1>
           <p>{appMessage(locale, 'autopilot.caption')}</p>
         </div>
-        <Status kind="info">Hybrid</Status>
+        <Status kind="info">{appMessage(locale, 'autopilot.dataMode.hybrid')}</Status>
       </div>
+      {mutationError ? (
+        <Status kind="danger">{appMessage(locale, 'autopilot.error')}</Status>
+      ) : null}
       <div className="autopilot-grid">
-        <ProfileAuthoring onSaved={() => undefined} profiles={dashboard.profiles} />
+        <ProfileAuthoring onSaved={() => void query.refetch()} profiles={dashboard.profiles} />
         <AssignmentList dashboard={dashboard} paused={paused} onPause={pause} />
         <ApprovalQueue
           approvals={dashboard.approvals}
@@ -602,9 +578,9 @@ export function FolderAutopilotPage() {
         />
       </div>
       <p className="authority-note">{appMessage(locale, 'access.clientHint')}</p>
-      <p className="authority-note">
-        {dateLabel(locale, dashboard.profiles[0]?.updatedAt ?? new Date(0).toISOString())}
-      </p>
+      {dashboard.profiles[0] ? (
+        <p className="authority-note">{dateLabel(locale, dashboard.profiles[0].updatedAt)}</p>
+      ) : null}
     </section>
   );
 }

@@ -28,13 +28,12 @@ const dashboard = {
   profiles: [
     {
       profileId: ids.profile,
-      displayName: 'Hóa đơn đầu vào',
+      version: 1,
       stabilizationSeconds: 10,
       collisionPolicy: 'REVIEW',
       confidenceThreshold: 0.9,
       undoWindowHours: 24,
       approvalRequired: true,
-      dataModeConstraint: 'Hybrid',
       recipeHash: 'a'.repeat(64),
       updatedAt: '2026-08-04T00:00:00.000Z',
     },
@@ -43,7 +42,6 @@ const dashboard = {
     {
       assignmentId: ids.assignment,
       profileId: ids.profile,
-      displayName: 'Kho chứng từ',
       jraRecipeVersionId: ids.recipe,
       deviceId: ids.device,
       inputBindingId: ids.inputBinding,
@@ -160,13 +158,9 @@ describe('Folder Autopilot API boundary', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     await createFolderAutopilotProfile({
-      displayName: 'New profile',
       stabilizationSeconds: 10,
       collisionPolicy: 'REVIEW',
-      confidenceThreshold: 0.9,
       undoWindowHours: 24,
-      approvalRequired: true,
-      dataModeConstraint: 'Hybrid',
     });
     await pauseFolderAutopilotAssignment(ids.assignment, 3);
     await decideFolderAutopilotApproval(ids.approval, 'c'.repeat(64), 'APPROVED', 'b'.repeat(64));

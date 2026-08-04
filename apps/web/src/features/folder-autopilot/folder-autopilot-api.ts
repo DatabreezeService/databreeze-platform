@@ -9,7 +9,7 @@ const SAFE_TEXT_LENGTH = 128;
 
 export type FolderAutopilotAssignmentState = 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'RETIRED' | 'INVALID';
 export type FolderAutopilotCollisionPolicy = 'REVIEW' | 'SKIP' | 'UNIQUE_NAME';
-export type FolderAutopilotDataMode = 'Local' | 'Hybrid' | 'Cloud';
+export type FolderAutopilotDataMode = 'LOCAL' | 'HYBRID' | 'CLOUD';
 export type FolderAutopilotPreviewStatus = 'READY' | 'NEEDS_APPROVAL' | 'BLOCKED' | 'EXPIRED';
 export type FolderAutopilotDecision = 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED';
 export type FolderAutopilotActionType =
@@ -38,35 +38,30 @@ export type FolderAutopilotUndoState =
 
 export interface FolderAutopilotProfile {
   readonly profileId: string;
-  readonly displayName: string;
+  readonly version: number;
   readonly stabilizationSeconds: number;
   readonly collisionPolicy: FolderAutopilotCollisionPolicy;
   readonly confidenceThreshold: number;
   readonly undoWindowHours: number;
   readonly approvalRequired: boolean;
-  readonly dataModeConstraint: FolderAutopilotDataMode;
   readonly recipeHash: string;
   readonly updatedAt: string;
 }
 
 export interface FolderAutopilotProfileInput {
-  readonly displayName: string;
   readonly stabilizationSeconds: number;
   readonly collisionPolicy: FolderAutopilotCollisionPolicy;
-  readonly confidenceThreshold: number;
   readonly undoWindowHours: number;
-  readonly approvalRequired: boolean;
-  readonly dataModeConstraint: FolderAutopilotDataMode;
 }
 
 export interface FolderAutopilotAssignment {
   readonly assignmentId: string;
   readonly profileId: string;
-  readonly displayName: string;
   readonly jraRecipeVersionId: string;
   readonly deviceId: string;
   readonly inputBindingId: string;
   readonly outputBindingId: string;
+  readonly dataModeConstraint?: FolderAutopilotDataMode;
   readonly state: FolderAutopilotAssignmentState;
   readonly approvalRequired: boolean;
   readonly revision: number;
@@ -213,6 +208,12 @@ function count(input: unknown): number {
   return input;
 }
 
+function revision(input: unknown): number {
+  const value = count(input);
+  if (value < 1) throw new Error(UUID_ERROR);
+  return value;
+}
+
 function decimal(input: unknown): number {
   if (typeof input !== 'number' || !Number.isFinite(input) || input < 0 || input > 1)
     throw new Error(UUID_ERROR);
@@ -222,6 +223,12 @@ function decimal(input: unknown): number {
 function boundedSeconds(input: unknown, maximum: number): number {
   const value = count(input);
   if (value > maximum) throw new Error(UUID_ERROR);
+  return value;
+}
+
+function versionNumber(input: unknown): number {
+  const value = boundedSeconds(input, 10_000);
+  if (value < 1) throw new Error(UUID_ERROR);
   return value;
 }
 
@@ -239,26 +246,24 @@ function parseProfile(input: unknown): FolderAutopilotProfile {
   const value = object(input);
   only(value, [
     'profileId',
-    'displayName',
+    'version',
     'stabilizationSeconds',
     'collisionPolicy',
     'confidenceThreshold',
     'undoWindowHours',
     'approvalRequired',
-    'dataModeConstraint',
     'recipeHash',
     'updatedAt',
   ]);
   if (typeof value['approvalRequired'] !== 'boolean') throw new Error(UUID_ERROR);
   return Object.freeze({
     profileId: id(value['profileId']),
-    displayName: text(value['displayName']),
+    version: versionNumber(value['version']),
     stabilizationSeconds: boundedSeconds(value['stabilizationSeconds'], 86_400),
     collisionPolicy: oneOf(value['collisionPolicy'], ['REVIEW', 'SKIP', 'UNIQUE_NAME']),
     confidenceThreshold: decimal(value['confidenceThreshold']),
-    undoWindowHours: boundedSeconds(value['undoWindowHours'], 8_760),
+    undoWindowHours: boundedSeconds(value['undoWindowHours'], 168),
     approvalRequired: value['approvalRequired'],
-    dataModeConstraint: oneOf(value['dataModeConstraint'], ['Local', 'Hybrid', 'Cloud']),
     recipeHash: hash(value['recipeHash']),
     updatedAt: timestamp(value['updatedAt']),
   });
@@ -269,11 +274,11 @@ function parseAssignment(input: unknown): FolderAutopilotAssignment {
   only(value, [
     'assignmentId',
     'profileId',
-    'displayName',
     'jraRecipeVersionId',
     'deviceId',
     'inputBindingId',
     'outputBindingId',
+    'dataModeConstraint',
     'state',
     'approvalRequired',
     'revision',
@@ -283,14 +288,16 @@ function parseAssignment(input: unknown): FolderAutopilotAssignment {
   return Object.freeze({
     assignmentId: id(value['assignmentId']),
     profileId: id(value['profileId']),
-    displayName: text(value['displayName']),
     jraRecipeVersionId: id(value['jraRecipeVersionId']),
     deviceId: id(value['deviceId']),
     inputBindingId: id(value['inputBindingId']),
     outputBindingId: id(value['outputBindingId']),
+    ...(value['dataModeConstraint'] === undefined
+      ? {}
+      : { dataModeConstraint: oneOf(value['dataModeConstraint'], ['LOCAL', 'HYBRID', 'CLOUD']) }),
     state: oneOf(value['state'], ['DRAFT', 'ACTIVE', 'PAUSED', 'RETIRED', 'INVALID']),
     approvalRequired: value['approvalRequired'],
-    revision: Math.max(1, count(value['revision'])),
+    revision: revision(value['revision']),
     updatedAt: timestamp(value['updatedAt']),
   });
 }
@@ -405,7 +412,7 @@ function parseExecution(input: unknown): FolderAutopilotExecution {
     jraJobId: id(value['jraJobId']),
     resultManifestId: id(value['resultManifestId']),
     planHash: hash(value['planHash']),
-    revision: Math.max(1, count(value['revision'])),
+    revision: revision(value['revision']),
     outcome: oneOf(value['outcome'], [
       'QUEUED',
       'WAITING_FOR_APPROVAL',
@@ -509,7 +516,8 @@ async function responsePayload(response: Response): Promise<unknown> {
 
 function idempotencyKey(prefix: string): string {
   const random = globalThis.crypto?.randomUUID?.();
-  return `${prefix}-${random ?? 'client-generated'}`;
+  if (random === undefined) throw new Error('AUTOPILOT_CRYPTO_UNAVAILABLE');
+  return `${prefix}-${random}`;
 }
 
 async function sha256Hex(value: string): Promise<string> {
