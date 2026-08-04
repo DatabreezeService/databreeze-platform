@@ -13,7 +13,7 @@ import type {
   DatasetProfileRepositoryPortV1,
   DatasetProfileTransactionPortV1,
 } from '../application/dataset-profile-repository.port.js';
-import { isPrismaUniqueConstraintViolationV1 } from './prisma-error.js';
+import { isPrismaUniqueConstraintViolationV1 } from '../../../platform/prisma-error.js';
 
 export interface DatasetProfileDatabaseRowV1 {
   readonly id: string;
@@ -152,6 +152,7 @@ class PrismaDatasetProfileTransactionAdapter implements DatasetProfileTransactio
       where: { id: profile.profileId },
     });
     if (existing !== null) {
+      if (!visible(context.tenantScope, existing)) throw new Error('DSM_IMMUTABLE_DATASET_PROFILE');
       if (JSON.stringify(rowToDomain(existing)) !== JSON.stringify(profile))
         throw new Error('DSM_IMMUTABLE_DATASET_PROFILE');
       return;

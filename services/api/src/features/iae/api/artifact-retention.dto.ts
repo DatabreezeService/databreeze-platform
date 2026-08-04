@@ -2,7 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsISO8601, IsInt, IsOptional, IsUUID, Matches, Min } from 'class-validator';
 
 const strictUtcTimestamp = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
-const strictUtcTimestampPattern = strictUtcTimestamp.source;
+const strictUtcTimestampPattern = '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$';
 
 export class RetentionEvaluationDto {
   @ApiProperty({ format: 'date-time', pattern: strictUtcTimestampPattern })

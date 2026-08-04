@@ -13,6 +13,7 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateIf,
   ValidateNested,
   Validate,
   ValidatorConstraint,
@@ -67,7 +68,7 @@ export class DatasetQualitySafeValueDto {
     required: false,
     oneOf: [{ type: 'string' }, { type: 'number' }, { type: 'boolean' }],
   })
-  @IsOptional()
+  @ValidateIf((_object, value) => value !== undefined)
   @Validate(DatasetQualityScalarConstraint)
   value?: string | number | boolean;
 }

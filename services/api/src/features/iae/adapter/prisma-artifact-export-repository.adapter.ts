@@ -14,6 +14,7 @@ import type {
   ArtifactExportRepositoryPortV1,
   ArtifactExportTransactionPortV1,
 } from '../application/artifact-export-repository.port.js';
+import { isPrismaUniqueConstraintViolationV1 } from '../../../platform/prisma-error.js';
 
 export interface ArtifactExportDatabaseRowV1 {
   readonly id: string;
@@ -93,15 +94,6 @@ function visible(context: TenantScopeV1, row: ArtifactExportDatabaseRowV1): bool
   return tenantScopeContainsV1(context, candidate) || tenantScopeContainsV1(candidate, context);
 }
 
-function isUniqueConstraintViolation(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    (error as { readonly code?: unknown }).code === 'P2002'
-  );
-}
-
 class PrismaArtifactExportTransactionAdapter implements ArtifactExportTransactionPortV1 {
   public constructor(private readonly client: ArtifactExportDatabaseClientV1) {}
 
@@ -124,7 +116,8 @@ class PrismaArtifactExportTransactionAdapter implements ArtifactExportTransactio
     try {
       await this.client.artifactExportManifestRecord.create({ data: domainToCreate(manifest) });
     } catch (error) {
-      if (isUniqueConstraintViolation(error)) throw new Error('IAE_IMMUTABLE_EXPORT_MANIFEST');
+      if (isPrismaUniqueConstraintViolationV1(error))
+        throw new Error('IAE_IMMUTABLE_EXPORT_MANIFEST');
       throw error;
     }
   }

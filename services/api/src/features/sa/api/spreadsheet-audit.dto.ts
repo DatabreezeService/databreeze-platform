@@ -18,6 +18,7 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 
 const sha256Pattern = '^[0-9a-f]{64}$';
+const strictUtcTimestampPattern = '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$';
 
 export class SpreadsheetAuditSheetDto {
   @ApiProperty({ format: 'uuid' })
@@ -117,10 +118,7 @@ export class CreateSpreadsheetAuditResultDto {
   @MaxLength(128)
   processorVersion!: string;
 
-  @ApiProperty({
-    format: 'date-time',
-    pattern: '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$',
-  })
+  @ApiProperty({ format: 'date-time', pattern: strictUtcTimestampPattern })
   @IsISO8601({ strict: true, strictSeparator: true })
   @Matches(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u)
   createdAt!: string;
