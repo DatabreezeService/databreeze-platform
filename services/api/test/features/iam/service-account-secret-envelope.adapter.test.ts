@@ -24,3 +24,15 @@ void test('[IAM-013] the private-alpha envelope fallback still keeps raw secrets
   assert.equal(envelope.includes('dbsa-alpha'), false);
   assert.equal(adapter.open(envelope), 'dbsa-alpha');
 });
+
+void test('[IAM-013] replay envelopes enforce key, plaintext, and framing bounds', () => {
+  assert.throws(
+    () => new AesGcmServiceAccountSecretEnvelopeAdapter('short'),
+    /IAM_SERVICE_ACCOUNT_ENVELOPE_KEY_INVALID/u,
+  );
+  const adapter = new AesGcmServiceAccountSecretEnvelopeAdapter('c'.repeat(43));
+  assert.throws(() => adapter.seal('contains\u0000control'), /IAM_SERVICE_ACCOUNT_SECRET_INVALID/u);
+  assert.throws(() => adapter.seal('x'.repeat(513)), /IAM_SERVICE_ACCOUNT_SECRET_INVALID/u);
+  assert.equal(adapter.open('v1.invalid.invalid.invalid'), undefined);
+  assert.equal(adapter.open('v1.a.a.a.extra'), undefined);
+});
