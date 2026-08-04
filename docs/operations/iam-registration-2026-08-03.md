@@ -9,7 +9,8 @@ It does not claim that IAM-001 or the IAM plan is complete.
 - Hash the password through the existing Argon2id password port; raw passwords never enter persistence.
 - Create the user, credential, personal organization, workspace, internal project, and owner membership in one transaction.
 - Keep duplicate-email responses generic and map persistence races to a safe rejection.
-- Return only hierarchy identifiers and locale from `POST /v1/auth/register`; the endpoint never returns bearer material or automatically creates a session.
+- Return a generic `202 Accepted` body (`{"accepted":true}`) from `POST /v1/auth/register`; the endpoint never returns hierarchy identifiers, bearer material, or an account-existence signal and never automatically creates a session.
+- Apply bounded, domain-separated admission before Argon2id hashing: the control plane hashes the normalized client IP and normalized email into separate rate-limit namespaces, and the durable Redis adapter fails closed on counter errors.
 - Select the Prisma registration adapter only when durable registration storage and the password boundary are configured; otherwise the endpoint fails closed.
 
 ## Evidence
@@ -23,4 +24,4 @@ It does not claim that IAM-001 or the IAM plan is complete.
 
 ## Verification
 
-The scoped API TypeScript build, registration tests, i18n tests, OpenAPI generation/check, and Redocly validation passed on 2026-08-03. The requirement remains `partial` and `not-verified` until the complete IAM release gates, audit integration, recovery, MFA, and restoration evidence are delivered.
+The scoped API TypeScript build, registration tests, i18n tests, OpenAPI generation/check, and Redocly validation passed on 2026-08-04. The rollback test stages the row in the transaction before injecting a persistence failure, proving no partial hierarchy remains. Admission tests prove IP/email throttling occurs before password hashing and persistence. The requirement remains `partial` and `not-verified` until the complete IAM release gates, audit integration, recovery, MFA, and restoration evidence are delivered.
