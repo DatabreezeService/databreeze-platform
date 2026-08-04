@@ -9,6 +9,7 @@ from databreeze_engine.processors import (
     SpreadsheetAuditError,
     audit_workbook,
     build_spreadsheet_audit_manifest,
+    spreadsheet_auditor,
 )
 
 
@@ -120,6 +121,47 @@ def test_audit_rejects_archive_traversal_and_cell_resource_exhaustion() -> None:
         audit_workbook(output.getvalue())
     with pytest.raises(SpreadsheetAuditError, match="RESOURCE_LIMIT"):
         audit_workbook(_workbook(), max_cells=1)
+
+
+@pytest.mark.parametrize("sheet_count", [512, 513])
+def test_audit_bounds_sheet_cardinality(
+    monkeypatch: pytest.MonkeyPatch,
+    sheet_count: int,
+) -> None:
+    monkeypatch.setattr(
+        spreadsheet_auditor,
+        "_sheet_targets",
+        lambda _archive: [("Inventory", "xl/worksheets/sheet1.xml") for _ in range(sheet_count)],
+    )
+
+    if sheet_count == 513:
+        with pytest.raises(SpreadsheetAuditError, match="RESOURCE_LIMIT"):
+            audit_workbook(_workbook())
+    else:
+        assert len(audit_workbook(_workbook()).sheets) == sheet_count
+
+
+@pytest.mark.parametrize("finding_count", [10_000, 10_001])
+def test_audit_bounds_finding_cardinality(
+    monkeypatch: pytest.MonkeyPatch,
+    finding_count: int,
+) -> None:
+    def synthetic_cells(_root: object):
+        return (
+            (
+                f"A{row}",
+                f"={spreadsheet_auditor._column_name(row)}1",
+            )
+            for row in range(1, finding_count + 1)
+        )
+
+    monkeypatch.setattr(spreadsheet_auditor, "_iter_cells", synthetic_cells)
+
+    if finding_count == 10_001:
+        with pytest.raises(SpreadsheetAuditError, match="RESOURCE_LIMIT"):
+            audit_workbook(_workbook())
+    else:
+        assert len(audit_workbook(_workbook()).findings) == finding_count
 
 
 def test_audit_streams_xml_members_through_a_bounded_reader(

@@ -39,6 +39,7 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
     './dataset-profile/v1',
     './dataset-export/v1',
     './spreadsheet-audit/v1',
+    './spreadsheet-audit-run/v1',
     './jobs/v1',
     './approval/v1',
     './execution-attempt/v1',

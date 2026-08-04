@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { EvidenceGrantService } from '../../../src/features/iae/application/evidence-grant.service.js';
+import { InMemoryArtifactRepositoryAdapter } from '../../../src/features/iae/adapter/in-memory-artifact-repository.adapter.js';
 import { InMemoryEvidenceGrantRepositoryAdapter } from '../../../src/features/iae/adapter/in-memory-evidence-grant-repository.adapter.js';
+import { ArtifactService } from '../../../src/features/iae/application/artifact.service.js';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
 
 const organizationId = '00000000-0000-4000-8000-000000000001';
@@ -98,4 +100,74 @@ void test('[IAM-020] issuing a grant with a stale authorization epoch is rejecte
     await service.issue(context('grant-stale-epoch'), { ...input, authorizationEpoch: 1 }),
     { accepted: false, code: 'EPOCH_MISMATCH' },
   );
+});
+
+void test('[IAE-005, IAE-010] evidence grants reject active artifacts with failed or malicious scans', async () => {
+  for (const scanState of ['MALICIOUS', 'FAILED'] as const) {
+    const artifacts = new InMemoryArtifactRepositoryAdapter();
+    const artifactService = new ArtifactService(artifacts);
+    const versionId =
+      scanState === 'MALICIOUS'
+        ? '00000000-0000-4000-8000-000000000030'
+        : '00000000-0000-4000-8000-000000000031';
+    const evidenceId =
+      scanState === 'MALICIOUS'
+        ? '00000000-0000-4000-8000-000000000032'
+        : '00000000-0000-4000-8000-000000000033';
+    const registered = await artifactService.register(
+      context(`grant-${scanState.toLowerCase()}-source`),
+      {
+        version: {
+          artifactId: '00000000-0000-4000-8000-000000000034',
+          versionId,
+          tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+          sourceKind: 'FILE',
+          dataMode: 'Hybrid',
+          contentSha256: 'c'.repeat(64),
+          byteSize: 10,
+          mediaType: 'text/csv',
+          displayName: `${scanState.toLowerCase()}.csv`,
+          createdAt: '2026-01-01T00:00:00.000Z',
+          status: 'ACTIVE',
+          scanState,
+        },
+        placement: {
+          placementId: '00000000-0000-4000-8000-000000000035',
+          tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+          kind: 'CLOUD',
+          opaqueReference: `cloud-${scanState.toLowerCase()}-0001`,
+          contentSha256: 'c'.repeat(64),
+        },
+        evidence: {
+          evidenceId,
+          tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+          coordinate: { kind: 'ROW', row: 1 },
+          sourceState: 'AVAILABLE',
+        },
+      },
+    );
+    assert.equal(registered.accepted, true);
+
+    const service = new EvidenceGrantService(
+      new InMemoryEvidenceGrantRepositoryAdapter(),
+      artifacts,
+    );
+    assert.deepEqual(
+      await service.issueForEvidence(context(`grant-${scanState.toLowerCase()}-issue`), {
+        versionId,
+        evidenceId,
+        grantId:
+          scanState === 'MALICIOUS'
+            ? '00000000-0000-4000-8000-000000000036'
+            : '00000000-0000-4000-8000-000000000037',
+        recipientDeviceId: deviceId,
+        action: 'EXCERPT',
+        issuedAt: '2026-01-01T00:00:00.000Z',
+        expiresAt: '2026-01-01T00:05:00.000Z',
+        authorizationEpoch: 2,
+        maxExcerptBytes: 128,
+      }),
+      { accepted: false, code: 'SOURCE_UNAVAILABLE' },
+    );
+  }
 });

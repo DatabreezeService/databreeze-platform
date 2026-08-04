@@ -1,6 +1,7 @@
 export const DESKTOP_BRIDGE_GLOBAL = 'databreezeDesktop';
 
 export const DESKTOP_IPC_CHANNELS = Object.freeze({
+  folderGrant: 'desktop:v1:folder:grant',
   sessionGetSafeState: 'desktop:v1:session:get-safe-state',
   sidecarGetStatus: 'desktop:v1:sidecar:get-status',
 } as const);
@@ -26,8 +27,19 @@ export interface SidecarSafeStatus {
   readonly engineVersion: string | null;
 }
 
+export type FolderGrantStatus = 'not-granted' | 'granted';
+
+export interface FolderGrantState {
+  readonly fileCount: number;
+  readonly lastScanAt: string | null;
+  readonly status: FolderGrantStatus;
+}
+
 export interface DesktopBridgeV1 {
   readonly v1: {
+    readonly folder: {
+      readonly grant: () => Promise<FolderGrantState>;
+    };
     readonly session: {
       readonly getSafeState: () => Promise<DesktopSafeState>;
     };
@@ -35,6 +47,43 @@ export interface DesktopBridgeV1 {
       readonly getStatus: () => Promise<SidecarSafeStatus>;
     };
   };
+}
+
+export function parseFolderGrantState(value: unknown): FolderGrantState {
+  let record: Record<'fileCount' | 'lastScanAt' | 'status', unknown>;
+  try {
+    record = exactDataRecord(value, ['fileCount', 'lastScanAt', 'status']);
+  } catch {
+    throw new Error('INVALID_FOLDER_GRANT');
+  }
+  if (
+    typeof record.fileCount !== 'number' ||
+    !Number.isSafeInteger(record.fileCount) ||
+    record.fileCount < 0 ||
+    record.fileCount > 10_000
+  ) {
+    throw new Error('INVALID_FOLDER_GRANT');
+  }
+  if (record.lastScanAt !== null) {
+    const timestamp = typeof record.lastScanAt === 'string' ? Date.parse(record.lastScanAt) : NaN;
+    if (
+      typeof record.lastScanAt !== 'string' ||
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(record.lastScanAt) ||
+      !Number.isFinite(timestamp) ||
+      new Date(timestamp).toISOString() !== record.lastScanAt
+    ) {
+      throw new Error('INVALID_FOLDER_GRANT');
+    }
+  }
+  if (record.status !== 'not-granted' && record.status !== 'granted')
+    throw new Error('INVALID_FOLDER_GRANT');
+  if (record.status === 'not-granted' && (record.fileCount !== 0 || record.lastScanAt !== null))
+    throw new Error('INVALID_FOLDER_GRANT');
+  return Object.freeze({
+    fileCount: record.fileCount,
+    lastScanAt: record.lastScanAt,
+    status: record.status,
+  });
 }
 
 const SAFE_RESULT_MAX_BYTES = 64 * 1024;

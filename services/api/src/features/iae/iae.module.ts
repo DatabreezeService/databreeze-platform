@@ -9,6 +9,7 @@ import { ArtifactRetentionController } from './api/artifact-retention.controller
 import { ArtifactExportController } from './api/artifact-export.controller.js';
 import { ArtifactUploadController } from './api/artifact-upload.controller.js';
 import { ArtifactAdmissionController } from './api/artifact-admission.controller.js';
+import { LocalArtifactRegistrationController } from './api/local-artifact-registration.controller.js';
 import { ProtectedDocumentUnlockController } from './api/protected-document-unlock.controller.js';
 import { InMemoryArtifactIntakeRepositoryAdapter } from './adapter/in-memory-artifact-intake-repository.adapter.js';
 import {
@@ -143,6 +144,7 @@ export class IaeModule {
         ArtifactExportController,
         ArtifactUploadController,
         ArtifactAdmissionController,
+        LocalArtifactRegistrationController,
         ProtectedDocumentUnlockController,
       ],
       providers: [

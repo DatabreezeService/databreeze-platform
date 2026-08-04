@@ -46,6 +46,7 @@ function input(dataMode: 'Local' | 'Hybrid') {
       mediaType: 'text/csv',
       displayName: 'sales.csv',
       createdAt: '2026-01-01T00:00:00.000Z',
+      scanState: 'CLEAN',
     },
     placement: {
       placementId: '00000000-0000-4000-8000-000000000022',
@@ -156,4 +157,29 @@ void test('[IAE-009, IAE-010] quarantined artifact evidence never resolves to an
 
   assert.equal(resolved?.action, 'UNAVAILABLE');
   assert.equal('placementReference' in (resolved ?? {}), false);
+});
+
+void test('[IAE-010] active artifacts with failed or malicious scans never resolve evidence', async () => {
+  for (const scanState of ['MALICIOUS', 'FAILED'] as const) {
+    const repository = new InMemoryArtifactRepositoryAdapter();
+    const service = new ArtifactService(repository);
+    const registered = await service.register(
+      context(workspaceId, `resolve-${scanState.toLowerCase()}`),
+      {
+        ...input('Hybrid'),
+        version: { ...input('Hybrid').version, status: 'ACTIVE', scanState },
+      },
+    );
+    assert.equal(registered.accepted, true);
+    if (!registered.accepted || !registered.value.evidence) continue;
+
+    const resolved = await service.resolveEvidence(
+      context(workspaceId, `resolve-${scanState.toLowerCase()}-read`),
+      registered.value.version.versionId,
+      registered.value.evidence.evidenceId,
+    );
+
+    assert.equal(resolved?.action, 'UNAVAILABLE');
+    assert.equal('placementReference' in (resolved ?? {}), false);
+  }
 });

@@ -16,6 +16,7 @@ export type EvidenceGrantServiceErrorV1 =
   | 'DEVICE_MISMATCH'
   | 'EPOCH_MISMATCH'
   | 'EVIDENCE_NOT_FOUND'
+  | 'SOURCE_UNAVAILABLE'
   | 'ARTIFACT_REPOSITORY_UNAVAILABLE';
 export type EvidenceGrantServiceResultV1<TValue> =
   | EvidenceGrantResultV1<TValue>
@@ -113,10 +114,17 @@ export class EvidenceGrantService {
         (candidate) => candidate.evidenceId === evidenceId.value,
       );
       return evidence
-        ? { dataMode: version.dataMode, sourceState: evidence.sourceState }
+        ? {
+            dataMode: version.dataMode,
+            sourceState: evidence.sourceState,
+            status: version.status,
+            scanState: version.scanState,
+          }
         : undefined;
     });
     if (!source) return { accepted: false, code: 'EVIDENCE_NOT_FOUND' };
+    if (source.status !== 'ACTIVE' || source.scanState !== 'CLEAN')
+      return { accepted: false, code: 'SOURCE_UNAVAILABLE' };
     return this.issue(context, {
       ...input,
       artifactVersionId: versionId.value,

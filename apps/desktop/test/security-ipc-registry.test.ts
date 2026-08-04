@@ -54,15 +54,21 @@ function register(overrides: Record<string, unknown> = {}) {
       }),
     ),
   };
+  const folderGrant = {
+    grantFolder: vi.fn<() => Promise<unknown>>(() =>
+      Promise.resolve({ fileCount: 2, lastScanAt: '2026-08-04T00:00:00.000Z', status: 'granted' }),
+    ),
+  };
   const dispose = registerDesktopIpcV1({
     expectedRendererUrl: 'file:///trusted/index.html',
     getActiveWindow: () => context.activeWindow,
     ipcMain,
+    folderGrant,
     localState,
     sidecar,
     ...overrides,
   });
-  return { ...context, dispose, ipcMain, localState, sidecar };
+  return { ...context, dispose, folderGrant, ipcMain, localState, sidecar };
 }
 
 describe('DSK-002 guarded IPC registry', () => {
@@ -84,6 +90,13 @@ describe('DSK-002 guarded IPC registry', () => {
       engineVersion: null,
       lifecycle: 'not-installed',
       protocolVersion: null,
+    });
+    await expect(
+      harness.ipcMain.invoke(DESKTOP_IPC_CHANNELS.folderGrant, harness.event),
+    ).resolves.toEqual({
+      fileCount: 2,
+      lastScanAt: '2026-08-04T00:00:00.000Z',
+      status: 'granted',
     });
   });
 
