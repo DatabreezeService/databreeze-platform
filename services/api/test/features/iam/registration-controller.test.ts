@@ -113,3 +113,58 @@ void test('[IAM-001] registration admission rejects before invoking password has
   assert.equal(emailCalls, 1);
   assert.equal(serviceCalls, 0);
 });
+
+void test('[IAM-001] registration admission digests are normalized, domain-separated, and content-free', async () => {
+  const ipDigests: string[] = [];
+  const emailDigests: string[] = [];
+  const controller = new RegistrationController(
+    {
+      register: async () => ({ accepted: true as const, value: { email: 'user@example.com' } }),
+    } as unknown as RegistrationService,
+    {
+      allow: async (digest: string) => {
+        ipDigests.push(digest);
+        return true;
+      },
+    },
+    {
+      allow: async (digest: string) => {
+        emailDigests.push(digest);
+        return true;
+      },
+    },
+  );
+
+  await controller.register(
+    {
+      email: 'User@example.com',
+      displayName: 'Name',
+      password: 'valid password here',
+    },
+    { ip: '203.0.113.10' },
+  );
+  await controller.register(
+    {
+      email: 'user@example.com',
+      displayName: 'Name',
+      password: 'valid password here',
+    },
+    { ip: '203.0.113.10' },
+  );
+
+  assert.equal(ipDigests.length, 2);
+  assert.equal(emailDigests.length, 2);
+  assert.match(ipDigests[0] ?? '', /^[a-f0-9]{64}$/u);
+  assert.match(emailDigests[0] ?? '', /^[a-f0-9]{64}$/u);
+  assert.notEqual(ipDigests[0], emailDigests[0]);
+  assert.equal(ipDigests[0], ipDigests[1]);
+  assert.equal(emailDigests[0], emailDigests[1]);
+  assert.equal(
+    ipDigests.some((digest) => digest.includes('203.0.113.10')),
+    false,
+  );
+  assert.equal(
+    emailDigests.some((digest) => digest.includes('user@example.com')),
+    false,
+  );
+});
