@@ -129,9 +129,20 @@ void test('[IAM-019, FA-003] sibling tenant cannot read a profile or assignment'
   const service = new FolderAutopilotService(repository, policy);
   const tenant = context();
   await service.createProfile(tenant, profileInput);
-  await service.createBinding(tenant, bindingInput(ids.inputBindingId, 'INPUT'));
-  await service.createBinding(tenant, bindingInput(ids.outputBindingId, 'OUTPUT'));
-  await service.createAssignment(tenant, assignmentInput);
+  const inputBinding = await service.createBinding(
+    tenant,
+    bindingInput(ids.inputBindingId, 'INPUT'),
+  );
+  assert.equal(inputBinding.accepted, true);
+  const outputBinding = await service.createBinding(
+    tenant,
+    bindingInput(ids.outputBindingId, 'OUTPUT'),
+  );
+  assert.equal(outputBinding.accepted, true);
+  const assignment = await service.createAssignment(tenant, assignmentInput);
+  assert.equal(assignment.accepted, true);
+  const ownerRead = await service.findAssignment(tenant, ids.recipeId);
+  assert.equal(ownerRead.accepted, true);
   const sibling = context(
     {
       scopeType: 'workspace',
