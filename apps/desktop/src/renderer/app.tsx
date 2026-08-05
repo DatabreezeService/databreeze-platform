@@ -1,35 +1,92 @@
-import { useEffect, useState } from 'react';
 import wordmarkUrl from '@databreeze/design-tokens/brand/generated/web/navigation-wordmark-blue-204x50.png';
+import { useEffect, useState } from 'react';
 import type {
   DesktopLocale,
   DesktopSafeState,
   SidecarSafeStatus,
 } from '../shared/desktop-contract-v1.ts';
+import { ProductModuleWorkbench } from './product-module-workbench.tsx';
 
 const messages = {
   'vi-VN': {
     agentDetail: 'Tác nhân chỉ hiển thị trạng thái an toàn, không chứa dữ liệu công việc.',
     engine: 'Engine',
-    engineUnavailable: 'Engine chưa được cài trong phần nền tảng này',
+    engineStates: {
+      failed: 'Engine gặp lỗi an toàn',
+      'not-installed': 'Engine chưa được cài trong phần nền tảng này',
+      ready: 'Engine đã sẵn sàng',
+      starting: 'Engine đang khởi động',
+      stopped: 'Engine đã dừng',
+    },
     enrollment: 'Đăng ký thiết bị',
     locked: 'Tác nhân cục bộ đang khóa',
     mode: 'Chế độ dữ liệu',
     notEnrolled: 'Chưa đăng ký thiết bị',
+    platformStatus: 'Trạng thái nền tảng cục bộ',
     privacy: 'Không có đường dẫn hoặc nội dung tệp nào được gửi tới giao diện này.',
+    privacyDetail:
+      'Mọi thao tác trong tương lai vẫn phải tuân thủ phạm vi đối tượng thuê, chế độ dữ liệu, bằng chứng và phê duyệt.',
     privacyTitle: 'Ranh giới riêng tư',
+    skipWorkbench: 'Bỏ qua để đến bàn làm việc mô-đun',
     version: 'Phiên bản ứng dụng',
+    workbench: {
+      capabilitiesCaption:
+        'Phạm vi Desktop được phê duyệt cho mô-đun này; chưa có thao tác nào được kết nối.',
+      capabilitiesHeading: 'Khả năng trên Desktop',
+      dataMode: 'Chế độ dữ liệu',
+      engine: 'Trạng thái engine',
+      engineNotInstalled: 'Engine chưa được cài',
+      evidence: 'Bằng chứng, phê duyệt và nhật ký kiểm toán phải được giữ nguyên',
+      governanceCaption:
+        'Bàn làm việc này không cấp quyền đọc tệp, chạy lệnh hoặc vượt qua chính sách.',
+      governanceHeading: 'Ranh giới quản trị',
+      navigationLabel: 'Mô-đun sản phẩm',
+      noData:
+        'Chưa tải tập dữ liệu và sẽ không chạy thao tác tệp nào cho đến khi thiết bị, engine, quyền và API mô-đun đều sẵn sàng.',
+      notConnected: 'API mô-đun chưa được kết nối',
+      requirements: 'Yêu cầu',
+      tenantScope: 'Phạm vi tổ chức và không gian làm việc luôn bắt buộc',
+    },
   },
   en: {
     agentDetail: 'The agent shows safe status only and contains no workspace data.',
     engine: 'Engine',
-    engineUnavailable: 'The engine is not installed in this foundation slice',
+    engineStates: {
+      failed: 'Engine failed safely',
+      'not-installed': 'The engine is not installed in this foundation slice',
+      ready: 'Engine is ready',
+      starting: 'Engine is starting',
+      stopped: 'Engine is stopped',
+    },
     enrollment: 'Device enrollment',
     locked: 'Local agent is locked',
     mode: 'Data mode',
     notEnrolled: 'Device is not enrolled',
+    platformStatus: 'Local platform status',
     privacy: 'No file path or file content is sent to this interface.',
+    privacyDetail:
+      'Every future action must still honor tenant scope, data mode, evidence, and approval policy.',
     privacyTitle: 'Privacy boundary',
+    skipWorkbench: 'Skip to module workbench',
     version: 'Application version',
+    workbench: {
+      capabilitiesCaption:
+        'The approved Desktop scope for this module; no operation is connected yet.',
+      capabilitiesHeading: 'Desktop capabilities',
+      dataMode: 'Data mode',
+      engine: 'Engine status',
+      engineNotInstalled: 'Engine not installed',
+      evidence: 'Evidence, approvals, and audit history must be preserved',
+      governanceCaption:
+        'This workbench grants no file access, command execution, or policy bypass.',
+      governanceHeading: 'Governance boundaries',
+      navigationLabel: 'Product modules',
+      noData:
+        'No dataset is loaded and no file action will run until the device, engine, permissions, and module API are all ready.',
+      notConnected: 'Module API not connected',
+      requirements: 'Requirements',
+      tenantScope: 'Organization and workspace scope remain mandatory',
+    },
   },
 } as const;
 
@@ -53,6 +110,10 @@ export function DesktopApp() {
   const copy = messages[locale];
 
   useEffect(() => {
+    globalThis.document.documentElement.lang = locale;
+  }, [locale]);
+
+  useEffect(() => {
     let active = true;
     const bridge = window.databreezeDesktop;
     if (bridge === undefined) return () => undefined;
@@ -69,7 +130,10 @@ export function DesktopApp() {
   }, []);
 
   return (
-    <main className="desktop-shell">
+    <div className="desktop-shell">
+      <a className="skip-link" href="#module-workbench">
+        {copy.skipWorkbench}
+      </a>
       <header className="shell-header">
         <img className="wordmark" src={wordmarkUrl} alt="DataBreeze" />
         <nav className="locale-switch" aria-label="Language / Ngôn ngữ">
@@ -92,51 +156,60 @@ export function DesktopApp() {
         </nav>
       </header>
 
-      <section className="agent-summary" aria-labelledby="agent-title">
-        <div className="lock-symbol" aria-hidden="true">
-          ×
-        </div>
-        <div>
-          <h1 id="agent-title">{copy.locked}</h1>
-          <p className="summary-copy">{copy.agentDetail}</p>
-        </div>
-      </section>
+      <main id="module-workbench">
+        <section className="agent-summary" aria-labelledby="agent-title">
+          <div className="lock-symbol" aria-hidden="true">
+            ×
+          </div>
+          <div>
+            <h1 id="agent-title">{copy.locked}</h1>
+            <p className="summary-copy">{copy.agentDetail}</p>
+          </div>
+        </section>
 
-      <dl className="status-list">
-        <div className="status-row">
-          <dt>{copy.enrollment}</dt>
-          <dd>
-            <span className="status-dot" aria-hidden="true" />
-            {copy.notEnrolled}
-          </dd>
-        </div>
-        <div className="status-row">
-          <dt>{copy.engine}</dt>
-          <dd>
-            <span className="status-dot" aria-hidden="true" />
-            {copy.engineUnavailable}
-          </dd>
-        </div>
-        <div className="status-row">
-          <dt>{copy.mode}</dt>
-          <dd>{safeState.dataMode}</dd>
-        </div>
-        <div className="status-row">
-          <dt>{copy.version}</dt>
-          <dd className="numeric">{safeState.applicationVersion}</dd>
-        </div>
-      </dl>
+        <dl aria-label={copy.platformStatus} className="status-list">
+          <div className="status-row">
+            <dt>{copy.enrollment}</dt>
+            <dd>
+              <span className="status-dot" aria-hidden="true" />
+              {copy.notEnrolled}
+            </dd>
+          </div>
+          <div className="status-row">
+            <dt>{copy.engine}</dt>
+            <dd>
+              <span className="status-dot" aria-hidden="true" />
+              {copy.engineStates[sidecarStatus.lifecycle]}
+            </dd>
+          </div>
+          <div className="status-row">
+            <dt>{copy.mode}</dt>
+            <dd>{safeState.dataMode}</dd>
+          </div>
+          <div className="status-row">
+            <dt>{copy.version}</dt>
+            <dd className="numeric">{safeState.applicationVersion}</dd>
+          </div>
+        </dl>
 
-      <aside className="privacy-note" aria-labelledby="privacy-title">
-        <span className="privacy-icon" aria-hidden="true">
-          i
-        </span>
-        <div>
-          <h2 id="privacy-title">{copy.privacyTitle}</h2>
-          <p>{copy.privacy}</p>
-        </div>
-      </aside>
-      <span className="visually-hidden">{sidecarStatus.lifecycle}</span>
-    </main>
+        <ProductModuleWorkbench
+          copy={copy.workbench}
+          locale={locale}
+          safeState={safeState}
+          sidecarStatus={sidecarStatus}
+        />
+
+        <aside className="privacy-note" aria-labelledby="privacy-title">
+          <span className="privacy-icon" aria-hidden="true">
+            i
+          </span>
+          <div>
+            <h2 id="privacy-title">{copy.privacyTitle}</h2>
+            <p>{copy.privacy}</p>
+            <p>{copy.privacyDetail}</p>
+          </div>
+        </aside>
+      </main>
+    </div>
   );
 }

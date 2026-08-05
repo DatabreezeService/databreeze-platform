@@ -1,8 +1,10 @@
 # Control-Plane API
 
-This deployable is the strict TypeScript NestJS/Fastify control-plane shell. Task 14 establishes
-transport behavior, module boundaries, deterministic OpenAPI, and the PostgreSQL schema/migration
-layout. It does not yet establish business APIs or durable runtime dependencies.
+This deployable is the strict TypeScript NestJS/Fastify control plane. It provides the shared
+transport/security foundation, a value-free ten-module catalog, the existing platform slices, and
+bounded stateless previews for Folder Autopilot, Data Quality Guard, Quote Intelligence, and Invoice
+Leak Detector. Durable feature workflows remain explicitly gated until their owning persistence,
+job, approval, and engine boundaries are wired.
 
 ## Architecture and dependency direction
 
@@ -55,6 +57,18 @@ production build. OpenAPI generation also builds first. `prisma:generate` writes
 - `GET /v1/system/compatibility` and `POST /v1/system/compatibility/check` are content-safe,
   unauthenticated shell metadata routes used to exercise closed query/body contracts. They create
   no state and grant no authority.
+- `GET /v1/system/modules` returns the deterministic, value-free catalog for all ten product
+  modules. Lifecycle values are presentation metadata, not authorization.
+- `POST /v1/folder-autopilot/ephemeral-preview` accepts only bounded opaque file metadata and
+  relative paths; it never opens a local path, persists a recipe, or executes a file operation.
+- `POST /v1/data-quality-guard/ephemeral-validation` evaluates bounded transient rows and returns
+  value-free findings/fingerprints; raw rows are discarded and never included in the response.
+- `POST /v1/quote-intelligence/ephemeral-comparison` compares bounded quote lines and versioned
+  rates without returning supplier evidence, source locators, or raw local-source fields.
+- `POST /v1/invoice-leak-detector/ephemeral-audit` audits bounded invoice/governing-line inputs and
+  returns only value-free variance findings and fingerprints.
+  All four preview routes require the authenticated workspace tenant context supplied by the
+  request context port and do not persist input or derived results.
 
 Fastify accepts JSON bodies up to 64 KiB. CORS is not enabled. Framework request logging is disabled,
 no framework-identifying response header is emitted, and the executable installs deterministic
@@ -118,8 +132,9 @@ Task 18 local state.
   Localization rendering and the full business error catalog are deferred.
 - Authentication/service accounts (`INT-001`, `INT-003`), server-side tenant authorization
   (`INT-002`), idempotency persistence (`INT-004`), pagination (`INT-005`), rate/concurrency limits
-  (`INT-007`), provider webhooks, outbox/dispatch, audit persistence, business-domain APIs, and
-  PostgreSQL-backed readiness are not implemented or claimed here.
+  (`INT-007`), provider webhooks, outbox/dispatch, audit persistence, the complete business-domain
+  APIs, and PostgreSQL-backed readiness are not implemented or claimed here. The routes listed
+  above are deliberately stateless checkpoint slices, not complete module releases.
 - Task 18 supplies local PostgreSQL/Redis/object-storage dependencies. Task 20 supplies shared safe
   diagnostics. Later domain plans supply repositories, authorization, durable transactions, and
   business behavior.

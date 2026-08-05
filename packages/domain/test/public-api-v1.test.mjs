@@ -39,6 +39,16 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
     './dataset-profile/v1',
     './dataset-export/v1',
     './spreadsheet-audit/v1',
+    './module-catalog/v1',
+    './folder-autopilot/v1',
+    './data-quality-guard/v1',
+    './client-report-factory/v1',
+    './quote-intelligence/v1',
+    './invoice-leak-detector/v1',
+    './operations-capture/v1',
+    './embedded-importer/v1',
+    './private-data-analyst/v1',
+    './migration-ready/v1',
     './jobs/v1',
     './approval/v1',
     './execution-attempt/v1',
@@ -80,6 +90,16 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
   assert.equal(aggregate.DATASET_PROFILE_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.DATASET_EXPORT_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.SPREADSHEET_AUDIT_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.MODULE_CATALOG_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.FOLDER_AUTOPILOT_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.DATA_QUALITY_GUARD_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.CLIENT_REPORT_FACTORY_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.QUOTE_INTELLIGENCE_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.INVOICE_LEAK_DETECTOR_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.OPERATIONS_CAPTURE_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.EMBEDDED_IMPORTER_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.PRIVATE_DATA_ANALYST_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.MIGRATION_READY_SCHEMA_VERSION_V1, 1);
   assert.equal(typeof aggregate.parseTenantScopeV1, 'function');
   assert.equal(aggregate.ARTIFACT_UPLOAD_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.PROTECTED_DOCUMENT_SCHEMA_VERSION_V1, 1);

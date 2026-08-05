@@ -16,10 +16,12 @@ import {
 } from '../pages/shell-states.tsx';
 import { WorkspaceHome } from '../pages/workspace-home.tsx';
 import { InboxPage } from '../features/inbox/inbox-page.tsx';
+import { PRODUCT_MODULE_REGISTRY } from '../features/product-modules/product-module-registry.ts';
+import { ProductModuleWorkbench } from '../features/product-modules/product-module-workbench.tsx';
 import { WEB_FEATURE_REGISTRY } from './feature-registry.ts';
 import { DEFAULT_ACCESS_CONTEXT, type WebAccessContext } from './navigation.ts';
 
-const logicalRoots = new Set(WEB_FEATURE_REGISTRY.map((feature) => feature.path));
+const logicalRoots = new Set([...WEB_FEATURE_REGISTRY.map((feature) => feature.path), 'modules']);
 
 function canonicalPathname(pathname: string): string | undefined {
   if (pathname === '/') return `/${DEFAULT_LOCALE_V1}/workspace`;
@@ -62,6 +64,10 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
             ) : (
               <UnavailableFeature featureKey={feature.key} />
             ),
+        })),
+        ...PRODUCT_MODULE_REGISTRY.map((module) => ({
+          path: `modules/${module.slug}`,
+          element: <ProductModuleWorkbench module={module} />,
         })),
         { path: 'debug/route-error', element: <RouteFailure /> },
         { path: '*', element: <NotFoundPage /> },

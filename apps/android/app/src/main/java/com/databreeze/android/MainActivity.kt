@@ -30,11 +30,18 @@ import com.databreeze.android.storage.InMemoryLocalStore
 import com.databreeze.android.storage.LocalStorePort
 import com.databreeze.android.storage.SyncQueueEntity
 import com.databreeze.android.sync.SyncScheduler
+import com.databreeze.android.workbench.ModuleDetailScreen
+import com.databreeze.android.workbench.ProductModuleWorkbench
+import com.databreeze.android.workbench.WorkbenchScreen
 import kotlinx.coroutines.launch
 
 private object AppRoutes {
     const val HOME = "home"
     const val CAPTURE = "capture"
+    const val WORKBENCH = "workbench"
+    const val MODULE = "module/{moduleId}"
+
+    fun moduleDetail(moduleId: String): String = "module/$moduleId"
 }
 
 private val localScope = AccountWorkspaceScope("local-account", "local-workspace")
@@ -73,7 +80,27 @@ fun DataBreezeApp(
                 modifier = Modifier.padding(padding),
             ) {
                 composable(AppRoutes.HOME) {
-                    HomeScreen(onCapture = { navController.navigate(AppRoutes.CAPTURE) })
+                    HomeScreen(
+                        onWorkbench = { navController.navigate(AppRoutes.WORKBENCH) },
+                        onCapture = { navController.navigate(AppRoutes.CAPTURE) },
+                    )
+                }
+                composable(AppRoutes.WORKBENCH) {
+                    WorkbenchScreen(
+                        onModule = { module ->
+                            navController.navigate(AppRoutes.moduleDetail(module.id))
+                        },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable(AppRoutes.MODULE) { entry ->
+                    ModuleDetailScreen(
+                        module = ProductModuleWorkbench.find(
+                            entry.arguments?.getString("moduleId").orEmpty(),
+                        ),
+                        onBack = { navController.popBackStack() },
+                        onCapture = { navController.navigate(AppRoutes.CAPTURE) },
+                    )
                 }
                 composable(AppRoutes.CAPTURE) {
                     CaptureScreen(
@@ -89,7 +116,10 @@ fun DataBreezeApp(
 }
 
 @Composable
-private fun HomeScreen(onCapture: () -> Unit) {
+private fun HomeScreen(
+    onWorkbench: () -> Unit,
+    onCapture: () -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -99,6 +129,9 @@ private fun HomeScreen(onCapture: () -> Unit) {
     ) {
         Text(stringResource(R.string.home_title), style = MaterialTheme.typography.headlineSmall)
         Text(stringResource(R.string.home_body), style = MaterialTheme.typography.bodyLarge)
+        Button(onClick = onWorkbench, modifier = Modifier.testTag("workbench-button")) {
+            Text(stringResource(R.string.workbench_action))
+        }
         Button(onClick = onCapture, modifier = Modifier.testTag("capture-button")) {
             Text(stringResource(R.string.capture_action))
         }

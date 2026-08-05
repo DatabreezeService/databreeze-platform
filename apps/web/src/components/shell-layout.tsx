@@ -7,6 +7,10 @@ import { getFeatureRegistration } from '../app/feature-registry.ts';
 import { LocaleProvider, normalizeRouteLocale } from '../app/locale-context.tsx';
 import { appMessage } from '../app/messages.ts';
 import {
+  getProductModuleCopy,
+  PRODUCT_MODULE_REGISTRY,
+} from '../features/product-modules/product-module-registry.ts';
+import {
   filterNavigationItems,
   type NavigationKey,
   type WebAccessContext,
@@ -64,6 +68,69 @@ export function ShellLayout({ accessContext }: { readonly accessContext: WebAcce
     event.preventDefault();
     setSearchStatus(appMessage(locale, 'placeholder.unavailable'));
   }
+
+  const platformNavigationGroup = (
+    <div
+      aria-labelledby="platform-navigation-heading"
+      className="navigation-group"
+      key="platform"
+      role="group"
+    >
+      <p className="navigation-group__heading" id="platform-navigation-heading">
+        {appMessage(locale, 'nav.platformGroup')}
+      </p>
+      <ul>
+        {navigationItems.map((item) => (
+          <li key={item.key}>
+            <NavLink
+              className={({ isActive }) =>
+                isActive ? 'primary-navigation__link is-active' : 'primary-navigation__link'
+              }
+              end
+              to={`/${locale}/${item.path}`}
+            >
+              {navigationLabel(locale, item.key)}
+            </NavLink>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+  const productNavigationGroup = (
+    <div
+      aria-labelledby="product-navigation-heading"
+      className="navigation-group"
+      key="products"
+      role="group"
+    >
+      <p className="navigation-group__heading" id="product-navigation-heading">
+        {appMessage(locale, 'nav.productGroup')}
+      </p>
+      <ul>
+        {PRODUCT_MODULE_REGISTRY.map((module) => (
+          <li key={module.slug}>
+            <NavLink
+              className={({ isActive }) =>
+                isActive
+                  ? 'primary-navigation__link module-navigation__link is-active'
+                  : 'primary-navigation__link module-navigation__link'
+              }
+              end
+              to={`/${locale}/modules/${module.slug}`}
+            >
+              <span aria-hidden="true" className="module-navigation__code">
+                {module.code}
+              </span>
+              <span>{getProductModuleCopy(module, locale).name}</span>
+            </NavLink>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+  const navigationGroups = location.pathname.includes('/modules/')
+    ? [productNavigationGroup, platformNavigationGroup]
+    : [platformNavigationGroup, productNavigationGroup];
 
   return (
     <LocaleProvider locale={locale}>
@@ -170,21 +237,7 @@ export function ShellLayout({ accessContext }: { readonly accessContext: WebAcce
           hidden={isMobile && !navigationOpen}
           id="primary-navigation"
         >
-          <ul>
-            {navigationItems.map((item) => (
-              <li key={item.key}>
-                <NavLink
-                  className={({ isActive }) =>
-                    isActive ? 'primary-navigation__link is-active' : 'primary-navigation__link'
-                  }
-                  end
-                  to={`/${locale}/${item.path}`}
-                >
-                  {navigationLabel(locale, item.key)}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
+          {navigationGroups}
         </nav>
         <main className="main-workspace" id="main-content" tabIndex={-1}>
           <Outlet />

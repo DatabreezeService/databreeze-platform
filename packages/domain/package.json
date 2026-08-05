@@ -124,6 +124,46 @@
       "types": "./src/spreadsheet-audit/v1.ts",
       "import": "./dist/spreadsheet-audit/v1.js"
     },
+    "./module-catalog/v1": {
+      "types": "./src/module-catalog/v1.ts",
+      "import": "./dist/module-catalog/v1.js"
+    },
+    "./folder-autopilot/v1": {
+      "types": "./src/folder-autopilot/v1.ts",
+      "import": "./dist/folder-autopilot/v1.js"
+    },
+    "./data-quality-guard/v1": {
+      "types": "./src/data-quality-guard/v1.ts",
+      "import": "./dist/data-quality-guard/v1.js"
+    },
+    "./client-report-factory/v1": {
+      "types": "./src/client-report-factory/v1.ts",
+      "import": "./dist/client-report-factory/v1.js"
+    },
+    "./quote-intelligence/v1": {
+      "types": "./src/quote-intelligence/v1.ts",
+      "import": "./dist/quote-intelligence/v1.js"
+    },
+    "./invoice-leak-detector/v1": {
+      "types": "./src/invoice-leak-detector/v1.ts",
+      "import": "./dist/invoice-leak-detector/v1.js"
+    },
+    "./operations-capture/v1": {
+      "types": "./src/operations-capture/v1.ts",
+      "import": "./dist/operations-capture/v1.js"
+    },
+    "./embedded-importer/v1": {
+      "types": "./src/embedded-importer/v1.ts",
+      "import": "./dist/embedded-importer/v1.js"
+    },
+    "./private-data-analyst/v1": {
+      "types": "./src/private-data-analyst/v1.ts",
+      "import": "./dist/private-data-analyst/v1.js"
+    },
+    "./migration-ready/v1": {
+      "types": "./src/migration-ready/v1.ts",
+      "import": "./dist/migration-ready/v1.js"
+    },
     "./jobs/v1": {
       "types": "./src/jobs/v1.ts",
       "import": "./dist/jobs/v1.js"
