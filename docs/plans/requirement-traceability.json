@@ -3607,7 +3607,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 3: Expose freshness and reconcile connected clients",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3620,12 +3622,14 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/dashboard-refresh.controller.test.ts",
+        "services/api/test/features/dda/dashboard-refresh-events.test.ts",
+        "services/api/test/features/dda/dashboard-refresh-performance.test.ts",
+        "tools/performance/dda-refresh-reference.mjs"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3635,7 +3639,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 1: Resolve dependencies and complete cache identity",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3648,12 +3654,13 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/dependency-index.service.test.ts",
+        "services/api/test/features/dda/materialization-cache-key.test.ts",
+        "services/engine/tests/test_dda_materialize_query.py"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3663,7 +3670,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 1: Resolve dependencies and complete cache identity",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3676,12 +3685,13 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/materialization-cache-key.test.ts",
+        "services/api/test/features/dda/dependency-index.service.test.ts",
+        "services/engine/tests/test_dda_materialize_query.py"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3691,7 +3701,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 2: Coalesce refreshes and publish atomically",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3704,12 +3716,13 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/refresh-orchestrator.service.test.ts",
+        "services/api/test/features/dda/snapshot-commit.service.test.ts",
+        "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3719,7 +3732,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 1: Resolve dependencies and complete cache identity",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3732,12 +3747,13 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/dependency-index.service.test.ts",
+        "services/api/test/features/dda/materialization-cache-key.test.ts",
+        "services/engine/tests/test_dda_materialize_query.py"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3747,7 +3763,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 2: Coalesce refreshes and publish atomically",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3760,12 +3778,13 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/snapshot-commit.service.test.ts",
+        "services/api/test/features/dda/refresh-orchestrator.service.test.ts",
+        "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3775,7 +3794,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 3: Expose freshness and reconcile connected clients",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3788,12 +3809,13 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/dashboard-refresh.controller.test.ts",
+        "services/api/test/features/dda/dashboard-refresh-events.test.ts",
+        "tools/performance/dda-refresh-reference.mjs"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3803,7 +3825,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 3: Expose freshness and reconcile connected clients",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3816,12 +3840,13 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/dashboard-refresh-events.test.ts",
+        "services/api/test/features/dda/dashboard-refresh.controller.test.ts",
+        "tools/performance/dda-refresh-reference.mjs"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3831,7 +3856,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 3: Expose freshness and reconcile connected clients",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3844,12 +3871,13 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/dashboard-refresh-performance.test.ts",
+        "tools/performance/dda-refresh-reference.mjs",
+        "services/api/test/features/dda/dashboard-refresh.controller.test.ts"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3859,7 +3887,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 4: Enforce usage, admission, and safe denial",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3872,12 +3902,13 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/refresh-admission.service.test.ts",
+        "services/api/test/features/dda/snapshot-commit.service.test.ts",
+        "services/api/test/features/dda/dashboard-refresh.controller.test.ts"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"

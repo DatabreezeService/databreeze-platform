@@ -42,8 +42,12 @@
       "gateId": "G1",
       "name": "contracts-frozen-and-generated",
       "status": "complete",
-      "dependsOn": ["G0"],
-      "workPackageIds": ["DDA-081"],
+      "dependsOn": [
+        "G0"
+      ],
+      "workPackageIds": [
+        "DDA-081"
+      ],
       "evidence": [
         "d431d28e4db0210af553b068d52d2dc4129903f7",
         "packages/contracts/test/fixtures/dda/v1/golden-valid.json",
@@ -59,28 +63,47 @@
       "gateId": "G2",
       "name": "independent-lanes-green",
       "status": "ready",
-      "dependsOn": ["G1"],
-      "workPackageIds": ["DDA-082", "DDA-083", "DDA-084", "DDA-085", "DDA-086"]
+      "dependsOn": [
+        "G1"
+      ],
+      "workPackageIds": [
+        "DDA-082",
+        "DDA-083",
+        "DDA-084",
+        "DDA-085",
+        "DDA-086"
+      ]
     },
     {
       "gateId": "G3",
       "name": "integrated-contracts-migrations-and-packages-green",
       "status": "blocked",
-      "dependsOn": ["G2"],
-      "workPackageIds": ["DDA-087"]
+      "dependsOn": [
+        "G2"
+      ],
+      "workPackageIds": [
+        "DDA-087"
+      ]
     },
     {
       "gateId": "G4",
       "name": "golden-demo-reproducible",
       "status": "blocked",
-      "dependsOn": ["G3"],
-      "workPackageIds": ["DDA-087"]
+      "dependsOn": [
+        "G3"
+      ],
+      "workPackageIds": [
+        "DDA-087"
+      ]
     },
     {
       "gateId": "G5",
       "name": "production-readiness",
       "status": "blocked",
-      "dependsOn": ["G3", "G4"],
+      "dependsOn": [
+        "G3",
+        "G4"
+      ],
       "externalPlan": "docs/plans/400-production-readiness.md"
     }
   ],
@@ -149,7 +172,9 @@
       "name": "cloud-intake-etl",
       "plan": "docs/plans/082-dda-cloud-intake-etl.md",
       "status": "ready",
-      "dependsOn": ["DDA-081"],
+      "dependsOn": [
+        "DDA-081"
+      ],
       "parallelGroup": "DDA-G2",
       "branch": "codex/dda-cloud-etl",
       "tasks": [
@@ -201,7 +226,9 @@
       "name": "analyst-dashboard-canvas",
       "plan": "docs/plans/083-dda-analyst-dashboard-canvas.md",
       "status": "ready",
-      "dependsOn": ["DDA-081"],
+      "dependsOn": [
+        "DDA-081"
+      ],
       "parallelGroup": "DDA-G2",
       "branch": "codex/dda-dashboard-canvas",
       "tasks": [
@@ -263,10 +290,12 @@
       "workPackageId": "DDA-084",
       "name": "materialization-refresh",
       "plan": "docs/plans/084-dda-materialization-refresh.md",
-      "status": "ready",
-      "dependsOn": ["DDA-081"],
+      "status": "complete",
+      "dependsOn": [
+        "DDA-081"
+      ],
       "parallelGroup": "DDA-G2",
-      "branch": "codex/dda-refresh",
+      "branch": "codex/dda-084-refresh",
       "tasks": [
         "Task 1: Resolve dependencies and complete cache identity",
         "Task 2: Coalesce refreshes and publish atomically",
@@ -306,6 +335,21 @@
         "corepack pnpm --filter @databreeze/api test",
         "cd services/engine; uv run pytest",
         "node tools/performance/dda-refresh-reference.mjs"
+      ],
+      "commit": "945cde1a99792604ef4863459f9150f6acdae77e",
+      "evidence": [
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/dependency-index.service.test.ts",
+        "services/api/test/features/dda/materialization-cache-key.test.ts",
+        "services/api/test/features/dda/refresh-orchestrator.service.test.ts",
+        "services/api/test/features/dda/snapshot-commit.service.test.ts",
+        "services/api/test/features/dda/dashboard-refresh.controller.test.ts",
+        "services/api/test/features/dda/dashboard-refresh-events.test.ts",
+        "services/api/test/features/dda/dashboard-refresh-performance.test.ts",
+        "services/api/test/features/dda/refresh-admission.service.test.ts",
+        "services/engine/tests/test_dda_materialize_query.py",
+        "services/engine/tests/test_dda_materialize_snapshot.py",
+        "tools/performance/dda-refresh-reference.mjs"
       ]
     },
     {
@@ -313,7 +357,9 @@
       "name": "desktop-hybrid-folders",
       "plan": "docs/plans/085-dda-desktop-hybrid-folders.md",
       "status": "complete",
-      "dependsOn": ["DDA-081"],
+      "dependsOn": [
+        "DDA-081"
+      ],
       "parallelGroup": "DDA-G2",
       "branch": "codex/dda-085-desktop-folders",
       "commit": "d94c17fccdf3e01434292dc0cd1735bb31020bea",
@@ -336,7 +382,13 @@
         "Task 3: Project Hybrid results and degrade safely",
         "Task 4: Produce the lane handoff"
       ],
-      "requirements": ["DDA-012", "DDA-013", "DDA-014", "DDA-037", "DDA-039"],
+      "requirements": [
+        "DDA-012",
+        "DDA-013",
+        "DDA-014",
+        "DDA-037",
+        "DDA-039"
+      ],
       "writePaths": [
         "apps/desktop/src/application",
         "apps/desktop/src/main/adapters/windows-folder-binding.adapter.ts",
@@ -363,7 +415,9 @@
       "name": "android-receipts",
       "plan": "docs/plans/086-dda-android-receipts.md",
       "status": "ready",
-      "dependsOn": ["DDA-081"],
+      "dependsOn": [
+        "DDA-081"
+      ],
       "parallelGroup": "DDA-G2",
       "branch": "codex/dda-android-receipts",
       "tasks": [
@@ -372,7 +426,11 @@
         "Task 3: Validate and accept governed receipt data",
         "Task 4: Produce the lane handoff"
       ],
-      "requirements": ["DDA-040", "DDA-041", "DDA-042"],
+      "requirements": [
+        "DDA-040",
+        "DDA-041",
+        "DDA-042"
+      ],
       "writePaths": [
         "apps/android/gradle/libs.versions.toml",
         "apps/android/app/build.gradle.kts",
@@ -398,7 +456,14 @@
       "name": "integration-parity-readiness",
       "plan": "docs/plans/087-dda-integration-readiness.md",
       "status": "blocked",
-      "dependsOn": ["DDA-081", "DDA-082", "DDA-083", "DDA-084", "DDA-085", "DDA-086"],
+      "dependsOn": [
+        "DDA-081",
+        "DDA-082",
+        "DDA-083",
+        "DDA-084",
+        "DDA-085",
+        "DDA-086"
+      ],
       "parallelGroup": null,
       "branch": "codex/dda-integration",
       "tasks": [
@@ -408,7 +473,10 @@
         "Task 4: Preserve streaming as a deferred extension",
         "Task 5: Reconcile traceability and production readiness"
       ],
-      "requirements": ["DDA-038", "DDA-051"],
+      "requirements": [
+        "DDA-038",
+        "DDA-051"
+      ],
       "writePaths": [
         "services/api/src/app.module.ts",
         "services/api/prisma",
@@ -435,7 +503,15 @@
       ]
     }
   ],
-  "integrationOrder": ["DDA-081", "DDA-082", "DDA-084", "DDA-083", "DDA-085", "DDA-086", "DDA-087"],
+  "integrationOrder": [
+    "DDA-081",
+    "DDA-082",
+    "DDA-084",
+    "DDA-083",
+    "DDA-085",
+    "DDA-086",
+    "DDA-087"
+  ],
   "deferred": [
     {
       "requirementId": "DDA-051",
