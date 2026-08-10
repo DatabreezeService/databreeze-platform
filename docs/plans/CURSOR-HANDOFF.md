@@ -69,7 +69,7 @@ Execution:
 - After 081 is green, either continue sequentially or use isolated agents/worktrees for plans 082, 083, 084, 085, and 086. Respect the exact write ownership in data-to-dashboard-orchestration.json.
 - Integrate in this order: 082, 084, 083, 085, 086; then execute 087.
 - Do not mark a requirement partial/verified yourself unless you are the integration owner and exact evidence paths exist with fresh passing tests.
-- Continue through applicable plan 400 production and staged-release gates; do not stop after the golden journey and call the program complete.
+- Continue through applicable plan 401 production and staged-release gates (via plans 402/403); do not stop after the golden journey and call the program complete.
 
 Stop and report instead of improvising if specifications conflict, a contract must change after downstream work begins, a lane needs another lane’s locked files, an action would weaken a security/data boundary, or completion needs unavailable external authority/provider credentials.
 
@@ -114,7 +114,7 @@ Cursor must resolve ambiguity in this order:
 7. `docs/plans/080-data-to-dashboard-program.md`
 8. `docs/plans/data-to-dashboard-orchestration.json`
 9. The active child plan from `081` through `087`
-10. `docs/plans/400-production-readiness.md` and `docs/plans/MANUAL-PREREQUISITES.md` for production execution
+10. `docs/plans/401-dda-production-readiness.md`, `docs/plans/402-dda-code-first-completion.md`, and `docs/plans/MANUAL-PREREQUISITES.md` for production execution (legacy WEB control remains `400-production-readiness.md`)
 11. `docs/plans/requirement-traceability.json`
 
 If a plan conflicts with a specification, the specification wins and the ambiguity must be reported before implementation continues.
@@ -266,7 +266,7 @@ Execute `087-dda-integration-readiness.md`. Integrate lanes in order `082`, `084
 
 ### Gate 4 — production and release
 
-Execute all applicable `400-production-readiness.md` gates, configure and evaluate the live OpenAI project/model, sign Desktop/Android artifacts, prove backup/restore and rollback, deploy through staged AWS environments, run real-device and synthetic smoke checks, and approve the monitored production release.
+Execute all applicable `401-dda-production-readiness.md` gates (agent-first via `402`, OpenAI development validation via `403`), configure and evaluate the live OpenAI project/model, sign Desktop/Android artifacts, prove backup/restore and rollback, deploy through staged AWS environments, run real-device and synthetic smoke checks, and approve the monitored production release.
 
 ## Baseline and handoff verification
 

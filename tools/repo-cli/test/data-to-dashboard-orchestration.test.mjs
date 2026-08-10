@@ -36,14 +36,31 @@ test('DDA orchestration covers every requirement with non-overlapping parallel o
   assert.equal(ledger.gates.find((item) => item.gateId === 'G5')?.status, 'blocked');
 });
 
-test('DDA program keeps production and streaming claims out of the prototype gate', () => {
+test('DDA program keeps production and streaming claims out of the delivery gate', () => {
   const ledger = JSON.parse(
     readFileSync(
       path.join(repositoryRoot, 'docs', 'plans', 'data-to-dashboard-orchestration.json'),
       'utf8',
     ),
   );
-  assert.equal(ledger.prototype.productionReady, false);
+  const plan400 = readFileSync(
+    path.join(repositoryRoot, 'docs', 'plans', '400-production-readiness.md'),
+    'utf8',
+  );
+  const plan401 = readFileSync(
+    path.join(repositoryRoot, 'docs', 'plans', '401-dda-production-readiness.md'),
+    'utf8',
+  );
+
+  assert.match(plan400, /^### Task 1: WEB production control center$/m);
+  assert.match(plan401, /^### Task 1: Freeze the production release manifest and evidence matrix$/m);
+  assert.equal(ledger.delivery.mode, 'task-gated-complete-program');
+  assert.equal(ledger.delivery.productionReady, false);
+  assert.equal(ledger.gates.find((gate) => gate.gateId === 'G5')?.status, 'blocked');
+  assert.equal(
+    ledger.gates.find((gate) => gate.gateId === 'G5')?.externalPlan,
+    'docs/plans/401-dda-production-readiness.md',
+  );
   assert.deepEqual(
     ledger.deferred.map((item) => item.requirementId),
     ['DDA-051'],

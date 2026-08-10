@@ -27,7 +27,7 @@ Dependency order:
 1. `081-dda-contracts-and-authorities.md`
 2. After `081` is green, run `082-dda-cloud-intake-etl.md`, `083-dda-analyst-dashboard-canvas.md`, `084-dda-materialization-refresh.md`, `085-dda-desktop-hybrid-folders.md`, and `086-dda-android-receipts.md` in isolated parallel worktrees.
 3. `087-dda-integration-readiness.md`
-4. `400-production-readiness.md` before any production claim or release.
+4. `401-dda-production-readiness.md` (DDA production/G5) and code-first resume `402-dda-code-first-completion.md` before any production claim or release. Legacy WEB production control remains `400-production-readiness.md`.
 
 Run `corepack pnpm orchestration:check` before dispatch, handoff, or integration. The DDA checker confirms all 51 DDA requirements, plan/task references, dependency acyclicity, and non-overlapping parallel write ownership.
 

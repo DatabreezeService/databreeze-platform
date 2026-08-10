@@ -2,7 +2,7 @@
 
 **Status:** Required external-authority checklist<br>
 **Release effect:** Any applicable unchecked item blocks G5 production approval<br>
-**Related plans:** `080-data-to-dashboard-program.md`, `400-production-readiness.md`, `CURSOR-HANDOFF.md`
+**Related plans:** `080-data-to-dashboard-program.md`, `401-dda-production-readiness.md`, `402-dda-code-first-completion.md`, `CURSOR-HANDOFF.md`
 
 Cursor or another coding agent can implement code, infrastructure definitions, tests, migrations, runbooks, and evidence collection. It cannot truthfully create or approve accounts, legal declarations, payment relationships, publisher identities, private signing keys, customer-data policy, or organizational risk acceptance on the product owner's behalf.
 
@@ -85,7 +85,7 @@ Use this state vocabulary for each applicable item: `not-ready`, `in-progress`, 
 1. Continue any dependency-safe work that does not require the missing authority or secret.
 2. Produce the exact content-safe setup instructions, expected secret/configuration name, validation command, and evidence destination.
 3. Mark the affected task `blocked` with the checklist item and never insert a fake credential, fabricated approval, placeholder production evidence, or silently weakened fallback.
-4. After the owner completes the action, validate the resulting configuration without exposing the secret and attach fresh evidence to the applicable plan-400 gate.
+4. After the owner completes the action, validate the resulting configuration without exposing the secret and attach fresh evidence to the applicable plan-401 gate.
 
 ## Agent status snapshot (`codex/dda-400-production`)
 

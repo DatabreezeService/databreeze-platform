@@ -2,11 +2,34 @@
 
 ## Verdict
 
-**Not production ready.** Mentor/fixture G4 journey is evidenced. G5 remains blocked on plan 400 gates and unchecked MANUAL-PREREQUISITES.
+**Not production ready.** Mentor/fixture G4 journey is evidenced. G5 remains blocked on plan 401 gates and unchecked MANUAL-PREREQUISITES. `delivery.productionReady` remains `false`.
 
 ## Branch
 
-`codex/dda-400-production` integrates `codex/dda-087-integration` onto the docs baseline that includes MANUAL-PREREQUISITES and ADR-0005 program docs.
+`codex/dda-400-production` integrates G1–G4 evidence from plans `081`–`087`. Plan authority is split: legacy WEB control stays in `400-production-readiness.md`; DDA production/G5 is `401-dda-production-readiness.md`; agent-first resume is `402-dda-code-first-completion.md`; OpenAI development validation is `403-openai-development-validation.md`.
+
+## Code-first resume baseline (plan 402 Task 1)
+
+| Item | Value |
+|---|---|
+| Baseline commit (pre-Task-1 tip) | `4968003f53357bc4c28bca45aff37a7e5f84d5d1` |
+| Planned create paths (081–087) | 206 existing / 211 declared (5 missing) |
+| Known missing create paths | OpenAI adapter/contract tests, offline OpenAI evaluation corpus, production journey runbook, consolidated release evidence |
+| G5 | `blocked` |
+| `DDA-051` | deferred / post-ga |
+| External blockers | MANUAL-PREREQUISITES (AWS, OpenAI production project, signing, Play, legal, on-call, release approval) |
+
+### Fresh command posture at resume (do not treat as completion evidence)
+
+| Check | Resume observation |
+|---|---|
+| TypeScript typecheck | pass (historical on tip) |
+| requirements / orchestration / contracts | pass |
+| domain / engine / Web tests | pass after `@databreeze/ui` build |
+| format:check | fail (repo Prettier drift) |
+| lint | fail (ESLint errors, including promise-returning ports) |
+| shared fixture counts / OpenAPI DDA routes | fail / incomplete — owned by plan 402 Task 3 |
+| Live OpenAI / AWS / signing | blocked — never fabricated |
 
 ## Requirement honesty
 
@@ -17,6 +40,8 @@
 | DDA-044 | `partial` — OpenAI fail-closed + egress policy tests; live eval blocked (§3) |
 | DDA-051 | `deferred` / `post-ga` — streaming rejected in V1 enums |
 | DDA-001..050 others | remain lane `partial` / planned unless already evidenced |
+
+No requirement is promoted by this baseline freeze.
 
 ## Prototype gaps closed on this branch
 
@@ -36,7 +61,7 @@
 - CSP-safe chart paths without `unsafe-eval` (CSP kept strict)
 - Signed Desktop/Android artifacts, restore drill, staged AWS apply
 
-## Remaining plan 400 gates
+## Remaining plan 401 gates
 
 See `docs/evidence/dda/production-gate-matrix.md`. Do not mark G5 complete without owner evidence.
 

@@ -58,7 +58,7 @@ flowchart LR
 | T5 | Execute `085` for approved Desktop folders, local manifests/paths, stable-file processing, drift/quarantine, Local/Hybrid projection, offline recovery, and security bridge. | T1 | Desktop security/type/test, engine tests, and the lane handoff pass. |
 | T6 | Execute `086` for Android capture, encrypted staging, WorkManager upload, the OpenAI receipt adapter, structured candidate review, deterministic validation, deduplication, and governed acceptance. | T1 plus approved OpenAI project configuration for live evidence | Android/API tests, provider contract/eval evidence, and the lane handoff pass. |
 | T7 | Execute `087`; integrate lanes in order `082`, `084`, `083`, `085`, `086`, reconcile migrations/contracts/root composition, prove Local/Cloud parity, and run the golden cross-platform journey. | T2-T6 | Clean integration ledger, parity report, end-to-end runbook, repeatable fixtures, and honest traceability. |
-| T8 | Complete all P0 and P1 DDA behavior, then run `400-production-readiness.md` for tenant isolation, signing, backup/restore, security, accessibility, load, retention/deletion, OpenAI retention/egress, observability, support, and staged rollout. | T7 | Every production-gating requirement has existing evidence and fresh passing checks. |
+| T8 | Complete all P0 and P1 DDA behavior, then run `401-dda-production-readiness.md` for tenant isolation, signing, backup/restore, security, accessibility, load, retention/deletion, OpenAI retention/egress, observability, support, and staged rollout. | T7 | Every production-gating requirement has existing evidence and fresh passing checks. |
 | T9 | Freeze release manifests, deploy through staged environments, run synthetic and real-device smoke tests, verify alarms/rollback, and approve the production release. | T8 | Signed release artifacts, deployment/rollback evidence, monitored staged rollout, and owner approval. |
 
 Tasks T2-T6 may run in parallel only after T1 is green and only under their exclusive ownership paths. A blocked lane remains blocked; no fixture, fake adapter, skipped device test, or unavailable credential is treated as production evidence.
@@ -142,7 +142,7 @@ Execute `087-dda-integration-readiness.md`; then run the relevant requirements, 
 
 ### Task 5: Complete production readiness and release
 
-Execute `400-production-readiness.md`, close every applicable P0/P1 evidence gap, configure the production OpenAI project and pinned evaluated model snapshot, sign Desktop/Android releases, prove backup/restore and rollback, deploy through staged environments, and approve the monitored production rollout.
+Execute `401-dda-production-readiness.md` (agent-first via `402-dda-code-first-completion.md`), close every applicable P0/P1 evidence gap, configure the production OpenAI project and pinned evaluated model snapshot, sign Desktop/Android releases, prove backup/restore and rollback, deploy through staged environments, and approve the monitored production rollout.
 
 ## Program stop conditions
 

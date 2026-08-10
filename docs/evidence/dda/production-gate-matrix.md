@@ -1,9 +1,9 @@
-# DDA Production Gate Matrix (Plan 400)
+# DDA Production Gate Matrix (Plan 401)
 
 **Branch:** `codex/dda-400-production`  
 **HEAD (docs refresh):** see latest `feat(dda|engine|desktop|web|android):` commits on this branch  
 **Status:** G5 blocked — agent-implementable prototype gaps closing; owner MANUAL-PREREQUISITES incomplete  
-**Authority:** `docs/plans/400-production-readiness.md`, `docs/plans/MANUAL-PREREQUISITES.md`
+**Authority:** `docs/plans/401-dda-production-readiness.md`, `docs/plans/402-dda-code-first-completion.md`, `docs/plans/MANUAL-PREREQUISITES.md`
 
 | Task | Gate area | Agent status | Owner blocker | Evidence / notes |
 |---|---|---|---|---|
