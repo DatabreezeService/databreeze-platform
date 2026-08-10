@@ -12,6 +12,8 @@ Agent entry point: [`CURSOR-HANDOFF.md`](CURSOR-HANDOFF.md) contains the self-co
 
 Product-owner entry point: [`MANUAL-PREREQUISITES.md`](MANUAL-PREREQUISITES.md) centralizes external accounts, credentials, signing, legal/privacy, test-data, operational, budget, and approval actions that an implementation agent cannot fabricate. Applicable unchecked items block production approval.
 
+Current implementation resume: [`402-dda-code-first-completion.md`](402-dda-code-first-completion.md) starts from the integrated `codex/dda-400-production` branch, finishes all agent-only product and hardening work first, and defers only live provider/cloud/signing/store/legal/release evidence.
+
 1. [`000-platform-program.md`](000-platform-program.md) — stable program and release policy.
 2. [`080-data-to-dashboard-program.md`](080-data-to-dashboard-program.md) — approved V1 dependency graph, OpenAI/AWS provider boundary, complete task-gated program, ownership locks, dispatch packets, production sequence, and stop conditions.
 3. [`data-to-dashboard-orchestration.json`](data-to-dashboard-orchestration.json) — machine-readable gates, dependencies, work packages, branches, requirements, writable ownership, checks, and next-work pointer.

@@ -2,13 +2,23 @@
 
 **Status:** Current implementation handoff<br>
 **Prepared:** 2026-08-10<br>
-**Planning baseline:** commit `350d335` or a descendant<br>
-**Immediate work package:** `DDA-081`<br>
+**Planning baseline:** `codex/dda-400-production` at commit `3f580f8` or a descendant<br>
+**Immediate work package:** [`402-dda-code-first-completion.md`](402-dda-code-first-completion.md)<br>
 **Overall mission:** Implement the complete post-pivot DataBreeze V1 described below and in plans `080` through `087`.
 
 This file is a self-contained entry point for Cursor or another coding agent. It does not replace the canonical specification or approved plans; it tells the agent what the user meant, what the repository actually contains, what to read, and how to begin without confusing old placeholder surfaces with completed product behavior.
 
-## Copy/paste master prompt
+## Current Cursor resume prompt
+
+```text
+Resume DataBreeze from branch codex/dda-400-production at 3f580f8 or a descendant. Preserve all existing commits and untracked .superpowers/sdd/400-production-readiness reports. Do not restart plans 081-087: their G1-G4 implementation is already integrated.
+
+Read AGENTS.md, docs/README.md, docs/plans/CURSOR-HANDOFF.md, docs/plans/402-dda-code-first-completion.md, docs/specs/features/data-to-dashboard-agent.md, ADR-0004/0005, the orchestration ledger, and the production gate matrix. Execute tasks 1-11 of plan 402 in order with TDD and focused commits. Finish every code, contract, local service, security, accessibility, recovery, performance, CI, emulator, non-applying OpenTofu, and unsigned artifact task before asking for AWS/OpenAI/Google/signing/legal setup.
+
+Do not fabricate credentials or approvals. Do not hand-build cloud infrastructure in a console. When tasks 1-11 pass from a clean checkout, generate the owner activation packet and stop at Task 12 only for the exact remaining external actions. Keep productionReady false and G5 blocked until live evidence and owner approval exist.
+```
+
+## Original program prompt (historical after G4; do not restart it)
 
 ```text
 You are the implementation coordinator for DataBreeze V1 in the databreeze-platform repository.
