@@ -215,6 +215,10 @@
     "./evidence-grant/v1": {
       "types": "./src/evidence-grant/v1.ts",
       "import": "./dist/evidence-grant/v1.js"
+    },
+    "./dda-receipt-openai/v1": {
+      "types": "./src/dda-receipt-openai/v1.ts",
+      "import": "./dist/dda-receipt-openai/v1.js"
     }
   },
   "scripts": {

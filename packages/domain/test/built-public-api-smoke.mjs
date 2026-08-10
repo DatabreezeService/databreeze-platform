@@ -32,6 +32,7 @@ const [
   ruleSet,
   evidenceGrant,
   recovery,
+  ddaReceiptOpenai,
 ] = await Promise.all([
   import('@databreeze/domain/v1'),
   import('@databreeze/domain/permissions/v1'),
@@ -64,6 +65,7 @@ const [
   import('@databreeze/domain/rule-set/v1'),
   import('@databreeze/domain/evidence-grant/v1'),
   import('@databreeze/domain/recovery/v1'),
+  import('@databreeze/domain/dda-receipt-openai/v1'),
 ]);
 
 assert.equal(aggregate.PERMISSION_SCHEMA_VERSION_V1, 1);
@@ -100,4 +102,6 @@ assert.equal(ruleSet.RULE_SET_SCHEMA_VERSION_V1, 1);
 assert.equal(evidenceGrant.EVIDENCE_GRANT_SCHEMA_VERSION_V1, 1);
 assert.equal(recovery.RECOVERY_CHALLENGE_SCHEMA_VERSION_V1, 1);
 assert.equal(serviceAccount.SERVICE_ACCOUNT_SCHEMA_VERSION_V1, 1);
+assert.equal(ddaReceiptOpenai.OPENAI_RECEIPT_SCHEMA_NAME, 'dda_receipt_candidate_v1');
+assert.equal(ddaReceiptOpenai.OPENAI_RECEIPT_OUTPUT_JSON_SCHEMA.additionalProperties, false);
 await assert.rejects(import('@databreeze/domain'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
