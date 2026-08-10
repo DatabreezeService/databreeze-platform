@@ -23,7 +23,17 @@ test('DDA orchestration covers every requirement with non-overlapping parallel o
   assert.equal(output.workPackageCount, 7);
   assert.equal(output.requirementCount, 51);
   assert.equal(output.parallelLaneCount, 5);
-  assert.equal(output.nextWorkPackageId, 'DDA-081');
+  assert.equal(output.nextWorkPackageId, 'DDA-087');
+  const ledger = JSON.parse(
+    readFileSync(
+      path.join(repositoryRoot, 'docs', 'plans', 'data-to-dashboard-orchestration.json'),
+      'utf8',
+    ),
+  );
+  assert.equal(ledger.workPackages.find((item) => item.workPackageId === 'DDA-087')?.status, 'complete');
+  assert.equal(ledger.gates.find((item) => item.gateId === 'G3')?.status, 'complete');
+  assert.equal(ledger.gates.find((item) => item.gateId === 'G4')?.status, 'complete');
+  assert.equal(ledger.gates.find((item) => item.gateId === 'G5')?.status, 'blocked');
 });
 
 test('DDA program keeps production and streaming claims out of the prototype gate', () => {

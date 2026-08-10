@@ -2815,12 +2815,18 @@
         "services/api/test/features/dda/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d431d28e4db0210af553b068d52d2dc4129903f7",
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/domain/test/data-to-dashboard-policy-v1.test.mjs",
+        "packages/contracts/test/fixtures/dda/v1/golden-valid.json",
+        "services/api/test/features/dda/dda-module-boundaries.test.ts",
+        "services/api/test/features/dda/dda-prisma-scope.test.ts",
+        "services/api/test/features/dda/dda-policy.service.test.ts",
+        "services/api/test/features/dda/dda-content-authority.test.ts",
+        "docs/security/dda-data-flow.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -2830,7 +2836,9 @@
       "priority": "P0",
       "primaryPlan": "082-dda-cloud-intake-etl.md",
       "primaryTask": "Task 1: Govern Web file intake",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/intake/",
         "services/api/src/features/dda/etl/",
@@ -2849,12 +2857,14 @@
         "apps/web/test/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/web-intake.service.test.ts",
+        "services/api/test/features/dda/web-intake.controller.test.ts",
+        "services/engine/tests/test_dda_etl_intake.py",
+        "apps/web/test/data-intake-upload.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -2881,12 +2891,18 @@
         "services/api/test/features/dda/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d431d28e4db0210af553b068d52d2dc4129903f7",
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/domain/test/data-to-dashboard-policy-v1.test.mjs",
+        "packages/contracts/test/fixtures/dda/v1/golden-valid.json",
+        "services/api/test/features/dda/dda-module-boundaries.test.ts",
+        "services/api/test/features/dda/dda-prisma-scope.test.ts",
+        "services/api/test/features/dda/dda-policy.service.test.ts",
+        "services/api/test/features/dda/dda-content-authority.test.ts",
+        "docs/security/dda-data-flow.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -2900,7 +2916,8 @@
         "083-dda-analyst-dashboard-canvas.md ? Task 2: Build the accessible versioned dashboard canvas",
         "084-dda-materialization-refresh.md ? Task 2: Coalesce refreshes and publish atomically",
         "085-dda-desktop-hybrid-folders.md ? Task 3: Project Hybrid results and degrade safely",
-        "086-dda-android-receipts.md ? Task 3: Validate and accept governed receipt data"
+        "086-dda-android-receipts.md ? Task 3: Validate and accept governed receipt data",
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
       ],
       "codePaths": [
         "services/api/src/features/dda/intake/",
@@ -2920,12 +2937,13 @@
         "apps/web/test/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/etl-acceptance.service.test.ts",
+        "services/api/test/features/dda/etl-acceptance.controller.test.ts",
+        "services/engine/tests/test_dda_etl_execute.py"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -2935,7 +2953,9 @@
       "priority": "P0",
       "primaryPlan": "082-dda-cloud-intake-etl.md",
       "primaryTask": "Task 2: Propose visible ETL and quality review",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/intake/",
         "services/api/src/features/dda/etl/",
@@ -2954,12 +2974,15 @@
         "apps/web/test/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/etl-proposal.service.test.ts",
+        "services/api/test/features/dda/etl-proposal.controller.test.ts",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "apps/web/test/etl-review-page.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -2969,7 +2992,9 @@
       "priority": "P0",
       "primaryPlan": "082-dda-cloud-intake-etl.md",
       "primaryTask": "Task 2: Propose visible ETL and quality review",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/intake/",
         "services/api/src/features/dda/etl/",
@@ -2988,12 +3013,15 @@
         "apps/web/test/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/etl-proposal.service.test.ts",
+        "services/api/test/features/dda/etl-proposal.controller.test.ts",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "apps/web/test/etl-review-page.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3003,7 +3031,9 @@
       "priority": "P0",
       "primaryPlan": "082-dda-cloud-intake-etl.md",
       "primaryTask": "Task 3: Execute accepted transformations and register the output",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/intake/",
         "services/api/src/features/dda/etl/",
@@ -3022,12 +3052,13 @@
         "apps/web/test/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/etl-acceptance.service.test.ts",
+        "services/api/test/features/dda/etl-acceptance.controller.test.ts",
+        "services/engine/tests/test_dda_etl_execute.py"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3037,7 +3068,9 @@
       "priority": "P0",
       "primaryPlan": "082-dda-cloud-intake-etl.md",
       "primaryTask": "Task 2: Propose visible ETL and quality review",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/intake/",
         "services/api/src/features/dda/etl/",
@@ -3056,12 +3089,15 @@
         "apps/web/test/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/etl-proposal.service.test.ts",
+        "services/api/test/features/dda/etl-proposal.controller.test.ts",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "apps/web/test/etl-review-page.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3071,7 +3107,9 @@
       "priority": "P0",
       "primaryPlan": "082-dda-cloud-intake-etl.md",
       "primaryTask": "Task 2: Propose visible ETL and quality review",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/intake/",
         "services/api/src/features/dda/etl/",
@@ -3090,12 +3128,15 @@
         "apps/web/test/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/etl-proposal.service.test.ts",
+        "services/api/test/features/dda/etl-proposal.controller.test.ts",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "apps/web/test/etl-review-page.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3105,7 +3146,9 @@
       "priority": "P0",
       "primaryPlan": "082-dda-cloud-intake-etl.md",
       "primaryTask": "Task 2: Propose visible ETL and quality review",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/intake/",
         "services/api/src/features/dda/etl/",
@@ -3124,12 +3167,15 @@
         "apps/web/test/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/etl-proposal.service.test.ts",
+        "services/api/test/features/dda/etl-proposal.controller.test.ts",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "apps/web/test/etl-review-page.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3139,7 +3185,9 @@
       "priority": "P0",
       "primaryPlan": "082-dda-cloud-intake-etl.md",
       "primaryTask": "Task 2: Propose visible ETL and quality review",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/intake/",
         "services/api/src/features/dda/etl/",
@@ -3158,12 +3206,15 @@
         "apps/web/test/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/etl-proposal.service.test.ts",
+        "services/api/test/features/dda/etl-proposal.controller.test.ts",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "apps/web/test/etl-review-page.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3173,7 +3224,9 @@
       "priority": "P0",
       "primaryPlan": "085-dda-desktop-hybrid-folders.md",
       "primaryTask": "Task 1: Bind an approved folder and version its manifest",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "apps/desktop/src/application/",
         "apps/desktop/src/main/",
@@ -3186,12 +3239,14 @@
         "services/engine/tests/test_dda_folder_intake.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d94c17fccdf3e01434292dc0cd1735bb31020bea",
+        "apps/desktop/test/folder-binding.service.test.ts",
+        "apps/desktop/test/security-folder-binding-ipc.test.ts",
+        "apps/desktop/test/folder-manifest.test.ts",
+        "apps/desktop/test/security-bridge-contract.test.ts"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3201,7 +3256,9 @@
       "priority": "P0",
       "primaryPlan": "085-dda-desktop-hybrid-folders.md",
       "primaryTask": "Task 1: Bind an approved folder and version its manifest",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "apps/desktop/src/application/",
         "apps/desktop/src/main/",
@@ -3214,12 +3271,14 @@
         "services/engine/tests/test_dda_folder_intake.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d94c17fccdf3e01434292dc0cd1735bb31020bea",
+        "apps/desktop/test/folder-binding.service.test.ts",
+        "apps/desktop/test/security-folder-binding-ipc.test.ts",
+        "apps/desktop/test/folder-manifest.test.ts",
+        "apps/desktop/test/security-bridge-contract.test.ts"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3229,7 +3288,9 @@
       "priority": "P0",
       "primaryPlan": "085-dda-desktop-hybrid-folders.md",
       "primaryTask": "Task 2: Detect stable safe file changes",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "apps/desktop/src/application/",
         "apps/desktop/src/main/",
@@ -3242,12 +3303,14 @@
         "services/engine/tests/test_dda_folder_intake.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d94c17fccdf3e01434292dc0cd1735bb31020bea",
+        "apps/desktop/test/stable-file-detector.test.ts",
+        "apps/desktop/test/folder-intake-replay.test.ts",
+        "apps/desktop/test/security-folder-path-escape.test.ts",
+        "services/engine/tests/test_dda_folder_intake.py"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3257,24 +3320,27 @@
       "priority": "P0",
       "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
       "primaryTask": "Task 1: Plan and execute deterministic analysis",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/analyst/",
         "services/api/src/features/dda/dashboard/",
         "apps/web/src/features/dashboards/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/",
-        "apps/web/test/",
-        "apps/web/e2e/"
+        "services/api/test/features/dda/analysis-proposal.service.test.ts",
+        "services/api/test/features/dda/analysis-execution.service.test.ts",
+        "apps/web/test/dashboard-analyst.test.tsx"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "services/api/test/features/dda/analysis-proposal.service.test.ts",
+        "services/api/test/features/dda/analysis-execution.service.test.ts",
+        "apps/web/test/dashboard-analyst.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3284,24 +3350,26 @@
       "priority": "P0",
       "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
       "primaryTask": "Task 1: Plan and execute deterministic analysis",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/analyst/",
         "services/api/src/features/dda/dashboard/",
         "apps/web/src/features/dashboards/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/",
-        "apps/web/test/",
-        "apps/web/e2e/"
+        "services/api/test/features/dda/analysis-proposal.service.test.ts",
+        "services/api/test/features/dda/analysis-execution.service.test.ts",
+        "apps/web/test/dashboard-analyst.test.tsx"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "services/api/test/features/dda/analysis-proposal.service.test.ts",
+        "apps/web/test/dashboard-analyst.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3311,24 +3379,26 @@
       "priority": "P0",
       "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
       "primaryTask": "Task 1: Plan and execute deterministic analysis",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/analyst/",
         "services/api/src/features/dda/dashboard/",
         "apps/web/src/features/dashboards/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/",
-        "apps/web/test/",
-        "apps/web/e2e/"
+        "services/api/test/features/dda/analysis-proposal.service.test.ts",
+        "services/api/test/features/dda/analysis-execution.service.test.ts",
+        "apps/web/test/dashboard-analyst.test.tsx"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "services/api/test/features/dda/analysis-proposal.service.test.ts",
+        "apps/web/test/dashboard-analyst.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3338,24 +3408,26 @@
       "priority": "P0",
       "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
       "primaryTask": "Task 1: Plan and execute deterministic analysis",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/analyst/",
         "services/api/src/features/dda/dashboard/",
         "apps/web/src/features/dashboards/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/",
-        "apps/web/test/",
-        "apps/web/e2e/"
+        "services/api/test/features/dda/analysis-proposal.service.test.ts",
+        "services/api/test/features/dda/analysis-execution.service.test.ts",
+        "apps/web/test/dashboard-analyst.test.tsx"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "services/api/test/features/dda/analysis-execution.service.test.ts",
+        "apps/web/test/dashboard-analyst.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3365,24 +3437,26 @@
       "priority": "P0",
       "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
       "primaryTask": "Task 1: Plan and execute deterministic analysis",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/analyst/",
         "services/api/src/features/dda/dashboard/",
         "apps/web/src/features/dashboards/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/",
-        "apps/web/test/",
-        "apps/web/e2e/"
+        "services/api/test/features/dda/analysis-proposal.service.test.ts",
+        "services/api/test/features/dda/analysis-execution.service.test.ts",
+        "apps/web/test/dashboard-analyst.test.tsx"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "services/api/test/features/dda/analysis-proposal.service.test.ts",
+        "apps/web/test/dashboard-analyst.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3392,24 +3466,27 @@
       "priority": "P0",
       "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
       "primaryTask": "Task 2: Build the accessible versioned dashboard canvas",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/analyst/",
         "services/api/src/features/dda/dashboard/",
         "apps/web/src/features/dashboards/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/",
-        "apps/web/test/",
-        "apps/web/e2e/"
+        "services/api/test/features/dda/dashboard-draft.service.test.ts",
+        "apps/web/test/dashboard-canvas.test.tsx",
+        "apps/web/e2e/dashboard-authoring.spec.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "services/api/test/features/dda/dashboard-draft.service.test.ts",
+        "apps/web/test/dashboard-canvas.test.tsx",
+        "apps/web/e2e/dashboard-authoring.spec.ts"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3419,24 +3496,26 @@
       "priority": "P0",
       "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
       "primaryTask": "Task 2: Build the accessible versioned dashboard canvas",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/analyst/",
         "services/api/src/features/dda/dashboard/",
         "apps/web/src/features/dashboards/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/",
-        "apps/web/test/",
-        "apps/web/e2e/"
+        "services/api/test/features/dda/dashboard-draft.service.test.ts",
+        "apps/web/test/dashboard-canvas.test.tsx",
+        "apps/web/e2e/dashboard-authoring.spec.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "services/api/test/features/dda/dashboard-draft.service.test.ts",
+        "apps/web/test/dashboard-canvas.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3446,24 +3525,26 @@
       "priority": "P0",
       "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
       "primaryTask": "Task 2: Build the accessible versioned dashboard canvas",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/analyst/",
         "services/api/src/features/dda/dashboard/",
         "apps/web/src/features/dashboards/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/",
-        "apps/web/test/",
-        "apps/web/e2e/"
+        "services/api/test/features/dda/dashboard-draft.service.test.ts",
+        "apps/web/test/dashboard-canvas.test.tsx",
+        "apps/web/e2e/dashboard-authoring.spec.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "apps/web/test/dashboard-canvas.test.tsx",
+        "apps/web/e2e/dashboard-authoring.spec.ts"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3473,24 +3554,26 @@
       "priority": "P0",
       "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
       "primaryTask": "Task 2: Build the accessible versioned dashboard canvas",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/analyst/",
         "services/api/src/features/dda/dashboard/",
         "apps/web/src/features/dashboards/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/",
-        "apps/web/test/",
-        "apps/web/e2e/"
+        "services/api/test/features/dda/dashboard-draft.service.test.ts",
+        "apps/web/test/dashboard-canvas.test.tsx",
+        "apps/web/e2e/dashboard-authoring.spec.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "services/api/test/features/dda/dashboard-draft.service.test.ts",
+        "apps/web/test/dashboard-canvas.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3500,24 +3583,26 @@
       "priority": "P0",
       "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
       "primaryTask": "Task 2: Build the accessible versioned dashboard canvas",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/analyst/",
         "services/api/src/features/dda/dashboard/",
         "apps/web/src/features/dashboards/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/",
-        "apps/web/test/",
-        "apps/web/e2e/"
+        "services/api/test/features/dda/dashboard-draft.service.test.ts",
+        "apps/web/test/dashboard-canvas.test.tsx",
+        "apps/web/e2e/dashboard-authoring.spec.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "services/api/test/features/dda/dashboard-draft.service.test.ts",
+        "apps/web/test/dashboard-canvas.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3527,24 +3612,29 @@
       "priority": "P0",
       "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
       "primaryTask": "Task 3: Publish, view, and share without permission expansion",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/analyst/",
         "services/api/src/features/dda/dashboard/",
         "apps/web/src/features/dashboards/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/",
-        "apps/web/test/",
-        "apps/web/e2e/"
+        "services/api/test/features/dda/dashboard-publication.service.test.ts",
+        "services/api/test/features/dda/dashboard-query-authorization.test.ts",
+        "apps/web/test/dashboard-viewer-authorization.test.tsx",
+        "apps/web/e2e/dashboard-sharing-security.spec.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "services/api/test/features/dda/dashboard-publication.service.test.ts",
+        "services/api/test/features/dda/dashboard-query-authorization.test.ts",
+        "apps/web/test/dashboard-viewer-authorization.test.tsx",
+        "apps/web/e2e/dashboard-sharing-security.spec.ts"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3555,7 +3645,8 @@
       "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
       "primaryTask": "Task 3: Publish, view, and share without permission expansion",
       "supportingTasks": [
-        "084-dda-materialization-refresh.md ? Task 3: Expose freshness and reconcile connected clients"
+        "084-dda-materialization-refresh.md ? Task 3: Expose freshness and reconcile connected clients",
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
       ],
       "codePaths": [
         "services/api/src/features/dda/analyst/",
@@ -3563,17 +3654,19 @@
         "apps/web/src/features/dashboards/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/",
-        "apps/web/test/",
-        "apps/web/e2e/"
+        "services/api/test/features/dda/dashboard-publication.service.test.ts",
+        "services/api/test/features/dda/dashboard-query-authorization.test.ts",
+        "apps/web/test/dashboard-viewer-authorization.test.tsx",
+        "apps/web/e2e/dashboard-sharing-security.spec.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "services/api/test/features/dda/dashboard-publication.service.test.ts",
+        "services/api/test/features/dda/dashboard-query-authorization.test.ts",
+        "apps/web/test/dashboard-viewer-authorization.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3583,7 +3676,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 3: Expose freshness and reconcile connected clients",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3596,12 +3691,14 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/dashboard-refresh.controller.test.ts",
+        "services/api/test/features/dda/dashboard-refresh-events.test.ts",
+        "services/api/test/features/dda/dashboard-refresh-performance.test.ts",
+        "tools/performance/dda-refresh-reference.mjs"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3611,7 +3708,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 1: Resolve dependencies and complete cache identity",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3624,12 +3723,13 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/dependency-index.service.test.ts",
+        "services/api/test/features/dda/materialization-cache-key.test.ts",
+        "services/engine/tests/test_dda_materialize_query.py"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3639,7 +3739,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 1: Resolve dependencies and complete cache identity",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3652,12 +3754,13 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/materialization-cache-key.test.ts",
+        "services/api/test/features/dda/dependency-index.service.test.ts",
+        "services/engine/tests/test_dda_materialize_query.py"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3667,7 +3770,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 2: Coalesce refreshes and publish atomically",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3680,12 +3785,13 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/refresh-orchestrator.service.test.ts",
+        "services/api/test/features/dda/snapshot-commit.service.test.ts",
+        "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3695,7 +3801,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 1: Resolve dependencies and complete cache identity",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3708,12 +3816,13 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/dependency-index.service.test.ts",
+        "services/api/test/features/dda/materialization-cache-key.test.ts",
+        "services/engine/tests/test_dda_materialize_query.py"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3723,7 +3832,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 2: Coalesce refreshes and publish atomically",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3736,12 +3847,13 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/snapshot-commit.service.test.ts",
+        "services/api/test/features/dda/refresh-orchestrator.service.test.ts",
+        "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3751,7 +3863,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 3: Expose freshness and reconcile connected clients",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3764,12 +3878,13 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/dashboard-refresh.controller.test.ts",
+        "services/api/test/features/dda/dashboard-refresh-events.test.ts",
+        "tools/performance/dda-refresh-reference.mjs"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3779,7 +3894,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 3: Expose freshness and reconcile connected clients",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3792,12 +3909,13 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/dashboard-refresh-events.test.ts",
+        "services/api/test/features/dda/dashboard-refresh.controller.test.ts",
+        "tools/performance/dda-refresh-reference.mjs"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3807,7 +3925,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 3: Expose freshness and reconcile connected clients",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3820,12 +3940,13 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/dashboard-refresh-performance.test.ts",
+        "tools/performance/dda-refresh-reference.mjs",
+        "services/api/test/features/dda/dashboard-refresh.controller.test.ts"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3835,7 +3956,9 @@
       "priority": "P0",
       "primaryPlan": "084-dda-materialization-refresh.md",
       "primaryTask": "Task 4: Enforce usage, admission, and safe denial",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/refresh/",
         "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
@@ -3848,12 +3971,13 @@
         "services/engine/tests/test_dda_materialize_snapshot.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/refresh-admission.service.test.ts",
+        "services/api/test/features/dda/snapshot-commit.service.test.ts",
+        "services/api/test/features/dda/dashboard-refresh.controller.test.ts"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3863,7 +3987,9 @@
       "priority": "P0",
       "primaryPlan": "085-dda-desktop-hybrid-folders.md",
       "primaryTask": "Task 3: Project Hybrid results and degrade safely",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "apps/desktop/src/application/",
         "apps/desktop/src/main/",
@@ -3876,12 +4002,13 @@
         "services/engine/tests/test_dda_folder_intake.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d94c17fccdf3e01434292dc0cd1735bb31020bea",
+        "apps/desktop/test/publication-projection.test.tsx",
+        "apps/desktop/test/folder-sync-idempotency.test.ts",
+        "apps/desktop/test/folder-source-unavailable.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3903,15 +4030,18 @@
       "testPaths": [
         "tools/fixture-validation/test/dda-parity.test.mjs",
         "services/engine/tests/test_dda_local_cloud_parity.py",
-        "apps/web/e2e/dda-golden-journey.spec.ts"
+        "apps/web/e2e/dda-golden-journey.spec.ts",
+        "apps/desktop/test/dda-golden-folder-journey.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "tools/fixture-validation/src/run-dda-parity.mjs",
+        "tools/fixture-validation/test/dda-parity.test.mjs",
+        "services/engine/tests/test_dda_local_cloud_parity.py",
+        "docs/evidence/dda/parity-report.md",
+        "docs/evidence/dda/prototype-report.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3921,7 +4051,9 @@
       "priority": "P0",
       "primaryPlan": "085-dda-desktop-hybrid-folders.md",
       "primaryTask": "Task 3: Project Hybrid results and degrade safely",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "apps/desktop/src/application/",
         "apps/desktop/src/main/",
@@ -3934,12 +4066,13 @@
         "services/engine/tests/test_dda_folder_intake.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d94c17fccdf3e01434292dc0cd1735bb31020bea",
+        "apps/desktop/test/publication-projection.test.tsx",
+        "apps/desktop/test/folder-sync-idempotency.test.ts",
+        "apps/desktop/test/folder-source-unavailable.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3949,7 +4082,9 @@
       "priority": "P0",
       "primaryPlan": "086-dda-android-receipts.md",
       "primaryTask": "Task 1: Capture and upload receipts securely",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "apps/android/app/src/main/java/com/databreeze/android/receipts/",
         "services/api/src/features/dda/receipt/"
@@ -3960,12 +4095,14 @@
         "services/api/test/features/dda/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "b936ccd81f9db1531de3956e332f128c8ad33014",
+        "apps/android/app/src/test/java/com/databreeze/android/receipts/ReceiptStagingIsolationTest.kt",
+        "apps/android/app/src/test/java/com/databreeze/android/receipts/ReceiptUploadSchedulerTest.kt",
+        "apps/android/app/src/androidTest/java/com/databreeze/android/receipts/ReceiptCaptureFlowTest.kt",
+        "prototype-limitation: shutter-ui-in-memory-staging-no-emulator-not-full-android-p0"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3975,7 +4112,9 @@
       "priority": "P0",
       "primaryPlan": "086-dda-android-receipts.md",
       "primaryTask": "Task 2: Extract and review versioned OCR candidates",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "apps/android/app/src/main/java/com/databreeze/android/receipts/",
         "services/api/src/features/dda/receipt/"
@@ -3986,12 +4125,14 @@
         "services/api/test/features/dda/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "b936ccd81f9db1531de3956e332f128c8ad33014",
+        "apps/android/app/src/test/java/com/databreeze/android/receipts/ReceiptReviewViewModelTest.kt",
+        "services/api/test/features/dda/receipt-extraction.service.test.ts",
+        "services/api/test/features/dda/receipt-extraction.controller.test.ts",
+        "prototype-limitation: deterministic-fake-ocr-not-aws-ocr"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -4001,7 +4142,9 @@
       "priority": "P0",
       "primaryPlan": "086-dda-android-receipts.md",
       "primaryTask": "Task 3: Validate and accept governed receipt data",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "apps/android/app/src/main/java/com/databreeze/android/receipts/",
         "services/api/src/features/dda/receipt/"
@@ -4012,12 +4155,14 @@
         "services/api/test/features/dda/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "b936ccd81f9db1531de3956e332f128c8ad33014",
+        "apps/android/app/src/test/java/com/databreeze/android/receipts/ReceiptValidationStateTest.kt",
+        "services/api/test/features/dda/receipt-validation.service.test.ts",
+        "services/api/test/features/dda/receipt-acceptance.service.test.ts",
+        "prototype-limitation: leaf-api-only-not-root-composed"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -4040,12 +4185,18 @@
         "services/api/test/features/dda/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d431d28e4db0210af553b068d52d2dc4129903f7",
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/domain/test/data-to-dashboard-policy-v1.test.mjs",
+        "packages/contracts/test/fixtures/dda/v1/golden-valid.json",
+        "services/api/test/features/dda/dda-module-boundaries.test.ts",
+        "services/api/test/features/dda/dda-prisma-scope.test.ts",
+        "services/api/test/features/dda/dda-policy.service.test.ts",
+        "services/api/test/features/dda/dda-content-authority.test.ts",
+        "docs/security/dda-data-flow.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -4068,12 +4219,18 @@
         "services/api/test/features/dda/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d431d28e4db0210af553b068d52d2dc4129903f7",
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/domain/test/data-to-dashboard-policy-v1.test.mjs",
+        "packages/contracts/test/fixtures/dda/v1/golden-valid.json",
+        "services/api/test/features/dda/dda-module-boundaries.test.ts",
+        "services/api/test/features/dda/dda-prisma-scope.test.ts",
+        "services/api/test/features/dda/dda-policy.service.test.ts",
+        "services/api/test/features/dda/dda-content-authority.test.ts",
+        "docs/security/dda-data-flow.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -4102,12 +4259,18 @@
         "services/api/test/features/dda/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d431d28e4db0210af553b068d52d2dc4129903f7",
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/domain/test/data-to-dashboard-policy-v1.test.mjs",
+        "packages/contracts/test/fixtures/dda/v1/golden-valid.json",
+        "services/api/test/features/dda/dda-module-boundaries.test.ts",
+        "services/api/test/features/dda/dda-prisma-scope.test.ts",
+        "services/api/test/features/dda/dda-policy.service.test.ts",
+        "services/api/test/features/dda/dda-content-authority.test.ts",
+        "docs/security/dda-data-flow.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -4130,12 +4293,18 @@
         "services/api/test/features/dda/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d431d28e4db0210af553b068d52d2dc4129903f7",
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/domain/test/data-to-dashboard-policy-v1.test.mjs",
+        "packages/contracts/test/fixtures/dda/v1/golden-valid.json",
+        "services/api/test/features/dda/dda-module-boundaries.test.ts",
+        "services/api/test/features/dda/dda-prisma-scope.test.ts",
+        "services/api/test/features/dda/dda-policy.service.test.ts",
+        "services/api/test/features/dda/dda-content-authority.test.ts",
+        "docs/security/dda-data-flow.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -4145,24 +4314,27 @@
       "priority": "P1",
       "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
       "primaryTask": "Task 4: Complete snapshot comparison, templates, and safe export",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/analyst/",
         "services/api/src/features/dda/dashboard/",
         "apps/web/src/features/dashboards/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/",
-        "apps/web/test/",
-        "apps/web/e2e/"
+        "services/api/test/features/dda/dashboard-comparison.service.test.ts",
+        "services/api/test/features/dda/dashboard-template.service.test.ts",
+        "services/api/test/features/dda/dashboard-export.service.test.ts",
+        "apps/web/test/dashboard-ga-tools.test.tsx"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "services/api/test/features/dda/dashboard-comparison.service.test.ts",
+        "apps/web/test/dashboard-ga-tools.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "ga-completion"
@@ -4172,24 +4344,27 @@
       "priority": "P1",
       "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
       "primaryTask": "Task 4: Complete snapshot comparison, templates, and safe export",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/analyst/",
         "services/api/src/features/dda/dashboard/",
         "apps/web/src/features/dashboards/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/",
-        "apps/web/test/",
-        "apps/web/e2e/"
+        "services/api/test/features/dda/dashboard-comparison.service.test.ts",
+        "services/api/test/features/dda/dashboard-template.service.test.ts",
+        "services/api/test/features/dda/dashboard-export.service.test.ts",
+        "apps/web/test/dashboard-ga-tools.test.tsx"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "services/api/test/features/dda/dashboard-template.service.test.ts",
+        "apps/web/test/dashboard-ga-tools.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "ga-completion"
@@ -4199,24 +4374,27 @@
       "priority": "P1",
       "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
       "primaryTask": "Task 4: Complete snapshot comparison, templates, and safe export",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/analyst/",
         "services/api/src/features/dda/dashboard/",
         "apps/web/src/features/dashboards/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/",
-        "apps/web/test/",
-        "apps/web/e2e/"
+        "services/api/test/features/dda/dashboard-comparison.service.test.ts",
+        "services/api/test/features/dda/dashboard-template.service.test.ts",
+        "services/api/test/features/dda/dashboard-export.service.test.ts",
+        "apps/web/test/dashboard-ga-tools.test.tsx"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "services/api/test/features/dda/dashboard-export.service.test.ts",
+        "apps/web/test/dashboard-ga-tools.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "ga-completion"
@@ -4226,24 +4404,26 @@
       "priority": "P1",
       "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
       "primaryTask": "Task 1: Plan and execute deterministic analysis",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/analyst/",
         "services/api/src/features/dda/dashboard/",
         "apps/web/src/features/dashboards/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/",
-        "apps/web/test/",
-        "apps/web/e2e/"
+        "services/api/test/features/dda/analysis-proposal.service.test.ts",
+        "services/api/test/features/dda/analysis-execution.service.test.ts",
+        "apps/web/test/dashboard-analyst.test.tsx"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "services/api/test/features/dda/analysis-proposal.service.test.ts",
+        "apps/web/test/dashboard-analyst.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "ga-completion"
@@ -4265,9 +4445,11 @@
         "apps/web/e2e/dda-golden-journey.spec.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "packages/domain/src/data-to-dashboard/v1.ts",
+        "packages/contracts/schemas/v1/dda-dashboard-version.schema.json",
+        "packages/test-fixtures/contracts/v1/payloads/dda-dashboard-version/invalid-streaming.json",
+        "docs/evidence/dda/prototype-report.md",
+        "docs/plans/data-to-dashboard-orchestration.json"
       ],
       "status": "planned",
       "coverage": "planned",

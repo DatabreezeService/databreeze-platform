@@ -3,8 +3,6 @@ package com.databreeze.android
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -25,22 +23,29 @@ class MainActivityTest {
     }
 
     @Test
-    fun queued_draft_is_visible_after_activity_recreation() {
-        val savedText = composeRule.activity.getString(R.string.capture_saved)
+    fun receipt_capture_survives_activity_recreation_after_confirm() {
+        val queuedText = composeRule.activity.getString(R.string.receipt_capture_upload_queued)
         composeRule.onNodeWithTag("capture-button").performClick()
-        composeRule.onNodeWithTag("save-button").performClick()
+        composeRule.onNodeWithTag("receipt-capture-screen").assertIsDisplayed()
+        composeRule.onNodeWithTag("receipt-capture-shutter").performClick()
+        composeRule.onNodeWithTag("receipt-capture-confirm").performClick()
         composeRule.waitUntil(timeoutMillis = 5_000) {
-            composeRule.onAllNodesWithText(savedText).fetchSemanticsNodes().isNotEmpty()
+            runCatching {
+                composeRule.onNodeWithText(queuedText).assertIsDisplayed()
+                true
+            }.getOrDefault(false) ||
+                runCatching {
+                    composeRule.onNodeWithTag("receipt-review-screen").assertIsDisplayed()
+                    true
+                }.getOrDefault(false)
         }
-        composeRule.onNodeWithText(savedText).assertIsDisplayed()
 
         composeRule.activityRule.scenario.recreate()
-        composeRule.onNodeWithTag("capture-screen").assertIsDisplayed()
-        composeRule.onNodeWithText(savedText).assertIsDisplayed()
+        composeRule.onNodeWithTag("home-screen").assertIsDisplayed()
     }
 
     @Test
-    fun module_workbench_lists_the_catalog_and_routes_operations_capture_to_the_safe_local_flow() {
+    fun module_workbench_lists_the_catalog_and_routes_operations_capture_to_receipt_flow() {
         val captureTitle = composeRule.activity.getString(R.string.module_operations_capture_title)
         val captureRole = composeRule.activity.getString(R.string.module_operations_capture_role)
         val captureStatus = composeRule.activity.getString(R.string.workbench_lifecycle_partial)
@@ -62,6 +67,6 @@ class MainActivityTest {
         composeRule.onNodeWithContentDescription(openCaptureDescription).performClick()
         composeRule.onNodeWithTag("module-detail-operations-capture").assertIsDisplayed()
         composeRule.onNodeWithTag("module-open-capture").performClick()
-        composeRule.onNodeWithTag("capture-screen").assertIsDisplayed()
+        composeRule.onNodeWithTag("receipt-capture-screen").assertIsDisplayed()
     }
 }

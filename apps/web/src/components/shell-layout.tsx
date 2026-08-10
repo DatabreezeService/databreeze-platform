@@ -43,6 +43,7 @@ function navigationLabel(locale: 'en' | 'vi-VN', key: NavigationKey): string {
   if (registration.messageKey !== undefined)
     return formatMessageV1(locale, registration.messageKey);
   if (key === 'usage') return appMessage(locale, 'nav.usage');
+  if (key === 'dashboards') return appMessage(locale, 'nav.dashboards');
   if (key === 'administration') return appMessage(locale, 'nav.administration');
   return appMessage(locale, 'nav.audit');
 }

@@ -44,6 +44,8 @@ class ClosedModel(BaseModel):
 
 Identifier: TypeAlias = Annotated[StrictStr, AfterValidator(validate_uuid)]
 
+LayoutCells: TypeAlias = Annotated[list[JsonObject], Field(max_length=64)]
+
 Revision: TypeAlias = Annotated[int, Field(strict=True, ge=1)]
 
 UtcTimestamp: TypeAlias = Annotated[StrictStr, AfterValidator(validate_utc_timestamp)]
@@ -82,6 +84,210 @@ class CursorPage(ClosedModel, Generic[TItem]):
             raise ValueError("nextCursor is forbidden for this hasMore value")
         return self
 
+class DdaAnalysisPlan(ClosedModel):
+    assumptions: Annotated[list[Annotated[StrictStr, StringConstraints(min_length=1, max_length=500)]], Field(max_length=32)]
+    createdAt: UtcTimestamp
+    datasetVersionId: Identifier
+    dimensions: Annotated[list[Annotated[StrictStr, StringConstraints(min_length=1, max_length=96)]], Field(max_length=32)]
+    estimate: DdaAnalysisPlanEstimate
+    filters: Annotated[list[DdaAnalysisPlanFiltersItem], Field(max_length=64)]
+    joins: Annotated[list[DdaAnalysisPlanJoinsItem], Field(max_length=32)]
+    metricVersionId: Identifier
+    output: DdaAnalysisPlanOutput
+    parameters: Annotated[list[DdaAnalysisPlanParametersItem], Field(max_length=64)]
+    permissionProjectionVersionId: Identifier
+    planHash: Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+    planId: Identifier
+    planVersionId: Identifier
+    schemaVersion: Literal[1]
+    semanticVersionId: Identifier
+    tenantScope: TenantScope
+    timeGrain: Annotated[StrictStr, StringConstraints(pattern=r"^(DAY|WEEK|MONTH|QUARTER|YEAR)$")]
+    timeRange: DdaAnalysisPlanTimeRange
+    units: Annotated[list[DdaAnalysisPlanUnitsItem], Field(max_length=64)]
+
+class DdaAnalysisPlanEstimate(ClosedModel):
+    cpuMs: Annotated[int, Field(strict=True, ge=0)]
+    memoryMb: Annotated[int, Field(strict=True, ge=0)]
+
+class DdaAnalysisPlanFiltersItem(ClosedModel):
+    field: Annotated[StrictStr, StringConstraints(min_length=1, max_length=96)]
+    operator: Annotated[StrictStr, StringConstraints(min_length=1, max_length=32)]
+    value: Annotated[StrictStr, StringConstraints(max_length=256)]
+
+class DdaAnalysisPlanJoinsItem(ClosedModel):
+    leftDatasetVersionId: Identifier
+    leftField: Annotated[StrictStr, StringConstraints(min_length=1, max_length=96)]
+    rightDatasetVersionId: Identifier
+    rightField: Annotated[StrictStr, StringConstraints(min_length=1, max_length=96)]
+
+class DdaAnalysisPlanOutput(ClosedModel):
+    form: Annotated[StrictStr, StringConstraints(pattern=r"^(TABLE|KPI|CHART|EVIDENCE)$")]
+    maxRows: Annotated[int, Field(strict=True, ge=1, le=10000)]
+
+class DdaAnalysisPlanParametersItem(ClosedModel):
+    name: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    value: Annotated[StrictStr, StringConstraints(max_length=256)]
+
+class DdaAnalysisPlanTimeRange(ClosedModel):
+    end: UtcTimestamp
+    start: UtcTimestamp
+
+class DdaAnalysisPlanUnitsItem(ClosedModel):
+    field: Annotated[StrictStr, StringConstraints(min_length=1, max_length=96)]
+    unit: Annotated[StrictStr, StringConstraints(min_length=1, max_length=32)]
+
+class DdaDashboardSnapshot(ClosedModel):
+    audience: Annotated[StrictStr, StringConstraints(pattern=r"^(OWNER|WORKSPACE_VIEWERS|PROJECT_VIEWERS|SHARED_LINK)$")]
+    canonicalHash: Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+    createdAt: UtcTimestamp
+    dashboardVersionId: Identifier
+    evidenceState: Annotated[StrictStr, StringConstraints(pattern=r"^(AVAILABLE|PARTIAL|UNAVAILABLE)$")]
+    freshnessState: Annotated[StrictStr, StringConstraints(pattern=r"^(FRESH|STALE|PENDING|BLOCKED|SOURCE_UNAVAILABLE)$")]
+    inputSelectorHash: Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+    materializationIds: Annotated[list[Identifier], Field(max_length=256)]
+    permissionProjectionVersionId: Identifier
+    schemaVersion: Literal[1]
+    snapshotId: Identifier
+    tenantScope: TenantScope
+
+class DdaDashboardVersion(ClosedModel):
+    canonicalHash: Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+    createdAt: UtcTimestamp
+    dashboardId: Identifier
+    datasetBindings: Annotated[list[DdaDashboardVersionDatasetBindingsItem], Field(max_length=32)]
+    filters: Annotated[list[DdaDashboardVersionFiltersItem], Field(max_length=64)]
+    freshnessPolicy: Annotated[StrictStr, StringConstraints(pattern=r"^(ON_CHANGE|MANUAL|SCHEDULED)$")]
+    locale: Annotated[StrictStr, StringConstraints(min_length=2, max_length=32)]
+    pages: Annotated[list[DdaDashboardVersionPagesItem], Field(max_length=32)]
+    parentVersionId: Identifier | None = None
+    publicationPolicy: Annotated[StrictStr, StringConstraints(pattern=r"^(DRAFT_ONLY|REVIEWED|CERTIFIED)$")]
+    schemaVersion: Literal[1]
+    tenantScope: TenantScope
+    timezone: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    versionId: Identifier
+    widgets: Annotated[list[DdaDashboardVersionWidgetsItem], Field(max_length=128)]
+
+class DdaDashboardVersionBinding(ClosedModel):
+    analysisPlanVersionId: Identifier
+    materializationDefinitionId: Identifier
+
+class DdaDashboardVersionDatasetBindingsItem(ClosedModel):
+    datasetVersionId: Identifier
+    metricVersionId: Identifier
+    semanticVersionId: Identifier
+
+class DdaDashboardVersionFiltersItem(ClosedModel):
+    field: Annotated[StrictStr, StringConstraints(min_length=1, max_length=96)]
+    filterId: Identifier
+    operator: Annotated[StrictStr, StringConstraints(min_length=1, max_length=32)]
+    scope: Annotated[StrictStr, StringConstraints(pattern=r"^(DASHBOARD|PAGE|WIDGET)$")]
+
+class DdaDashboardVersionLayout(ClosedModel):
+    desktop: LayoutCells
+    mobile: LayoutCells
+    tablet: LayoutCells
+
+class DdaDashboardVersionPagesItem(ClosedModel):
+    layout: DdaDashboardVersionLayout
+    order: Annotated[int, Field(strict=True, ge=1)]
+    pageId: Identifier
+    title: LocalizedText
+
+class DdaDashboardVersionWidgetsItem(ClosedModel):
+    binding: DdaDashboardVersionBinding
+    pageId: Identifier
+    title: LocalizedText
+    type: Annotated[StrictStr, StringConstraints(pattern=r"^(KPI|TABLE|BAR|LINE|AREA|PIE|DONUT|TEXT_NOTE|EVIDENCE_NOTE)$")]
+    widgetId: Identifier
+
+class DdaEtlPlan(ClosedModel):
+    contentHash: Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+    createdAt: UtcTimestamp
+    dataClassification: Annotated[StrictStr, StringConstraints(pattern=r"^(PUBLIC|INTERNAL|CONFIDENTIAL|RESTRICTED)$")]
+    dataModePolicyVersionId: Identifier
+    engineBindingId: Identifier
+    evidenceReferenceId: Identifier
+    inputArtifactVersionId: Identifier
+    mappingVersionId: Identifier
+    planId: Identifier
+    planVersionId: Identifier
+    retentionReferenceId: Identifier
+    ruleSetVersionId: Identifier
+    schemaHash: Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+    schemaVersion: Literal[1]
+    schemaVersionId: Identifier
+    tenantScope: TenantScope
+    transformations: Annotated[list[DdaEtlPlanTransformationsItem], Field(max_length=256)]
+
+class DdaEtlPlanConfigEntriesItem(ClosedModel):
+    key: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    value: Annotated[StrictStr, StringConstraints(max_length=256)]
+
+class DdaEtlPlanTransformationsItem(ClosedModel):
+    configEntries: Annotated[list[DdaEtlPlanConfigEntriesItem], Field(max_length=64)]
+    inputs: Annotated[list[Identifier], Field(max_length=32)]
+    kind: Annotated[StrictStr, StringConstraints(pattern=r"^(SELECT_COLUMNS|RENAME_COLUMNS|TRIM_TEXT|NORMALIZE_TEXT|PARSE_DATE|PARSE_TIME|PARSE_NUMBER|PARSE_CURRENCY|CAST_TYPE|REPLACE_NULL|FILTER_ROWS|DEDUPLICATE|DERIVE_FIELD|UNION_COMPATIBLE|LOOKUP_JOIN|AGGREGATE)$")]
+    stepId: Identifier
+
+class DdaFolderManifest(ClosedModel):
+    capabilityGrantId: Identifier
+    manifestHash: Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+    manifestId: Identifier
+    publicationProjectionId: Identifier
+    purpose: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    schemaVersion: Literal[1]
+    supportedProfiles: Annotated[list[Annotated[StrictStr, StringConstraints(min_length=1, max_length=32)]], Field(max_length=16)]
+    tenantScope: TenantScope
+    version: Annotated[int, Field(strict=True, ge=1)]
+
+class DdaMaterialization(ClosedModel):
+    adapterVersion: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    analysisPlanVersionId: Identifier
+    cacheIdentityHash: Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+    createdAt: UtcTimestamp
+    dashboardVersionId: Identifier
+    datasetVersionId: Identifier
+    effectivePolicyVersionId: Identifier
+    engineVersion: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    locale: Annotated[StrictStr, StringConstraints(min_length=2, max_length=32)]
+    materializationId: Identifier
+    metricVersionId: Identifier
+    parameterHash: Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+    permissionProjectionVersionId: Identifier
+    resultManifestId: Identifier
+    schemaVersion: Literal[1]
+    semanticVersionId: Identifier
+    tenantScope: TenantScope
+    timezone: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    widgetId: Identifier
+
+class DdaReceiptCandidate(ClosedModel):
+    adapterVersion: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    artifactVersionId: Identifier
+    candidateHash: Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+    candidateId: Identifier
+    evidenceReferenceId: Identifier
+    fieldCandidates: Annotated[list[DdaReceiptCandidateFieldCandidatesItem], Field(max_length=64)]
+    profileVersionId: Identifier
+    schemaVersion: Literal[1]
+    tenantScope: TenantScope
+
+class DdaReceiptCandidateFieldCandidatesItem(ClosedModel):
+    confidence: Annotated[int, Field(strict=True, ge=0, le=100)]
+    field: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    value: Annotated[StrictStr, StringConstraints(min_length=1, max_length=500)]
+
+class DdaRefreshEvent(ClosedModel):
+    dashboardId: Identifier
+    eventHash: Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+    eventId: Identifier
+    freshnessState: Annotated[StrictStr, StringConstraints(pattern=r"^(FRESH|STALE|PENDING|BLOCKED|SOURCE_UNAVAILABLE)$")]
+    occurredAt: UtcTimestamp
+    schemaVersion: Literal[1]
+    snapshotId: Identifier
+    tenantScope: TenantScope
+
 class EventEnvelope(ClosedModel, Generic[TData]):
     actor: ActorMetadata
     correlation: CorrelationMetadata
@@ -98,6 +304,10 @@ class EventEnvelopeEntity(ClosedModel):
     entityId: Identifier
     entityType: Annotated[StrictStr, StringConstraints(pattern=r"^[a-z][a-z0-9_-]{0,62}$")]
     revision: Revision
+
+class LocalizedText(ClosedModel):
+    en: Annotated[StrictStr, StringConstraints(min_length=1, max_length=200)]
+    vi: Annotated[StrictStr, StringConstraints(min_length=1, max_length=200)]
 
 class OrganizationScope(ClosedModel):
     organizationId: Identifier
@@ -153,8 +363,33 @@ ActorMetadata.model_rebuild()
 CommandEnvelope.model_rebuild()
 CorrelationMetadata.model_rebuild()
 CursorPage.model_rebuild()
+DdaAnalysisPlan.model_rebuild()
+DdaAnalysisPlanEstimate.model_rebuild()
+DdaAnalysisPlanFiltersItem.model_rebuild()
+DdaAnalysisPlanJoinsItem.model_rebuild()
+DdaAnalysisPlanOutput.model_rebuild()
+DdaAnalysisPlanParametersItem.model_rebuild()
+DdaAnalysisPlanTimeRange.model_rebuild()
+DdaAnalysisPlanUnitsItem.model_rebuild()
+DdaDashboardSnapshot.model_rebuild()
+DdaDashboardVersion.model_rebuild()
+DdaDashboardVersionBinding.model_rebuild()
+DdaDashboardVersionDatasetBindingsItem.model_rebuild()
+DdaDashboardVersionFiltersItem.model_rebuild()
+DdaDashboardVersionLayout.model_rebuild()
+DdaDashboardVersionPagesItem.model_rebuild()
+DdaDashboardVersionWidgetsItem.model_rebuild()
+DdaEtlPlan.model_rebuild()
+DdaEtlPlanConfigEntriesItem.model_rebuild()
+DdaEtlPlanTransformationsItem.model_rebuild()
+DdaFolderManifest.model_rebuild()
+DdaMaterialization.model_rebuild()
+DdaReceiptCandidate.model_rebuild()
+DdaReceiptCandidateFieldCandidatesItem.model_rebuild()
+DdaRefreshEvent.model_rebuild()
 EventEnvelope.model_rebuild()
 EventEnvelopeEntity.model_rebuild()
+LocalizedText.model_rebuild()
 OrganizationScope.model_rebuild()
 ProblemDetails.model_rebuild()
 ProblemDetailsFieldErrorsItem.model_rebuild()

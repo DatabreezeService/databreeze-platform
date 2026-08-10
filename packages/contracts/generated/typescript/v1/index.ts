@@ -39,6 +39,234 @@ export type CursorPage<TItem = unknown> = Omit<CursorPageFields<TItem>, "hasMore
   | { readonly hasMore: false; readonly nextCursor?: never }
 );
 
+export interface DdaAnalysisPlan {
+  readonly assumptions: readonly string[];
+  readonly createdAt: UtcTimestamp;
+  readonly datasetVersionId: Identifier;
+  readonly dimensions: readonly string[];
+  readonly estimate: DdaAnalysisPlanEstimate;
+  readonly filters: readonly DdaAnalysisPlanFiltersItem[];
+  readonly joins: readonly DdaAnalysisPlanJoinsItem[];
+  readonly metricVersionId: Identifier;
+  readonly output: DdaAnalysisPlanOutput;
+  readonly parameters: readonly DdaAnalysisPlanParametersItem[];
+  readonly permissionProjectionVersionId: Identifier;
+  readonly planHash: string;
+  readonly planId: Identifier;
+  readonly planVersionId: Identifier;
+  readonly schemaVersion: 1;
+  readonly semanticVersionId: Identifier;
+  readonly tenantScope: TenantScope;
+  readonly timeGrain: string;
+  readonly timeRange: DdaAnalysisPlanTimeRange;
+  readonly units: readonly DdaAnalysisPlanUnitsItem[];
+}
+
+export interface DdaAnalysisPlanEstimate {
+  readonly cpuMs: number;
+  readonly memoryMb: number;
+}
+
+export interface DdaAnalysisPlanFiltersItem {
+  readonly field: string;
+  readonly operator: string;
+  readonly value: string;
+}
+
+export interface DdaAnalysisPlanJoinsItem {
+  readonly leftDatasetVersionId: Identifier;
+  readonly leftField: string;
+  readonly rightDatasetVersionId: Identifier;
+  readonly rightField: string;
+}
+
+export interface DdaAnalysisPlanOutput {
+  readonly form: string;
+  readonly maxRows: number;
+}
+
+export interface DdaAnalysisPlanParametersItem {
+  readonly name: string;
+  readonly value: string;
+}
+
+export interface DdaAnalysisPlanTimeRange {
+  readonly end: UtcTimestamp;
+  readonly start: UtcTimestamp;
+}
+
+export interface DdaAnalysisPlanUnitsItem {
+  readonly field: string;
+  readonly unit: string;
+}
+
+export interface DdaDashboardSnapshot {
+  readonly audience: string;
+  readonly canonicalHash: string;
+  readonly createdAt: UtcTimestamp;
+  readonly dashboardVersionId: Identifier;
+  readonly evidenceState: string;
+  readonly freshnessState: string;
+  readonly inputSelectorHash: string;
+  readonly materializationIds: readonly Identifier[];
+  readonly permissionProjectionVersionId: Identifier;
+  readonly schemaVersion: 1;
+  readonly snapshotId: Identifier;
+  readonly tenantScope: TenantScope;
+}
+
+export interface DdaDashboardVersion {
+  readonly canonicalHash: string;
+  readonly createdAt: UtcTimestamp;
+  readonly dashboardId: Identifier;
+  readonly datasetBindings: readonly DdaDashboardVersionDatasetBindingsItem[];
+  readonly filters: readonly DdaDashboardVersionFiltersItem[];
+  readonly freshnessPolicy: string;
+  readonly locale: string;
+  readonly pages: readonly DdaDashboardVersionPagesItem[];
+  readonly parentVersionId?: Identifier;
+  readonly publicationPolicy: string;
+  readonly schemaVersion: 1;
+  readonly tenantScope: TenantScope;
+  readonly timezone: string;
+  readonly versionId: Identifier;
+  readonly widgets: readonly DdaDashboardVersionWidgetsItem[];
+}
+
+export interface DdaDashboardVersionBinding {
+  readonly analysisPlanVersionId: Identifier;
+  readonly materializationDefinitionId: Identifier;
+}
+
+export interface DdaDashboardVersionDatasetBindingsItem {
+  readonly datasetVersionId: Identifier;
+  readonly metricVersionId: Identifier;
+  readonly semanticVersionId: Identifier;
+}
+
+export interface DdaDashboardVersionFiltersItem {
+  readonly field: string;
+  readonly filterId: Identifier;
+  readonly operator: string;
+  readonly scope: string;
+}
+
+export interface DdaDashboardVersionLayout {
+  readonly desktop: LayoutCells;
+  readonly mobile: LayoutCells;
+  readonly tablet: LayoutCells;
+}
+
+export interface DdaDashboardVersionPagesItem {
+  readonly layout: DdaDashboardVersionLayout;
+  readonly order: number;
+  readonly pageId: Identifier;
+  readonly title: LocalizedText;
+}
+
+export interface DdaDashboardVersionWidgetsItem {
+  readonly binding: DdaDashboardVersionBinding;
+  readonly pageId: Identifier;
+  readonly title: LocalizedText;
+  readonly type: string;
+  readonly widgetId: Identifier;
+}
+
+export interface DdaEtlPlan {
+  readonly contentHash: string;
+  readonly createdAt: UtcTimestamp;
+  readonly dataClassification: string;
+  readonly dataModePolicyVersionId: Identifier;
+  readonly engineBindingId: Identifier;
+  readonly evidenceReferenceId: Identifier;
+  readonly inputArtifactVersionId: Identifier;
+  readonly mappingVersionId: Identifier;
+  readonly planId: Identifier;
+  readonly planVersionId: Identifier;
+  readonly retentionReferenceId: Identifier;
+  readonly ruleSetVersionId: Identifier;
+  readonly schemaHash: string;
+  readonly schemaVersion: 1;
+  readonly schemaVersionId: Identifier;
+  readonly tenantScope: TenantScope;
+  readonly transformations: readonly DdaEtlPlanTransformationsItem[];
+}
+
+export interface DdaEtlPlanConfigEntriesItem {
+  readonly key: string;
+  readonly value: string;
+}
+
+export interface DdaEtlPlanTransformationsItem {
+  readonly configEntries: readonly DdaEtlPlanConfigEntriesItem[];
+  readonly inputs: readonly Identifier[];
+  readonly kind: string;
+  readonly stepId: Identifier;
+}
+
+export interface DdaFolderManifest {
+  readonly capabilityGrantId: Identifier;
+  readonly manifestHash: string;
+  readonly manifestId: Identifier;
+  readonly publicationProjectionId: Identifier;
+  readonly purpose: string;
+  readonly schemaVersion: 1;
+  readonly supportedProfiles: readonly string[];
+  readonly tenantScope: TenantScope;
+  readonly version: number;
+}
+
+export interface DdaMaterialization {
+  readonly adapterVersion: string;
+  readonly analysisPlanVersionId: Identifier;
+  readonly cacheIdentityHash: string;
+  readonly createdAt: UtcTimestamp;
+  readonly dashboardVersionId: Identifier;
+  readonly datasetVersionId: Identifier;
+  readonly effectivePolicyVersionId: Identifier;
+  readonly engineVersion: string;
+  readonly locale: string;
+  readonly materializationId: Identifier;
+  readonly metricVersionId: Identifier;
+  readonly parameterHash: string;
+  readonly permissionProjectionVersionId: Identifier;
+  readonly resultManifestId: Identifier;
+  readonly schemaVersion: 1;
+  readonly semanticVersionId: Identifier;
+  readonly tenantScope: TenantScope;
+  readonly timezone: string;
+  readonly widgetId: Identifier;
+}
+
+export interface DdaReceiptCandidate {
+  readonly adapterVersion: string;
+  readonly artifactVersionId: Identifier;
+  readonly candidateHash: string;
+  readonly candidateId: Identifier;
+  readonly evidenceReferenceId: Identifier;
+  readonly fieldCandidates: readonly DdaReceiptCandidateFieldCandidatesItem[];
+  readonly profileVersionId: Identifier;
+  readonly schemaVersion: 1;
+  readonly tenantScope: TenantScope;
+}
+
+export interface DdaReceiptCandidateFieldCandidatesItem {
+  readonly confidence: number;
+  readonly field: string;
+  readonly value: string;
+}
+
+export interface DdaRefreshEvent {
+  readonly dashboardId: Identifier;
+  readonly eventHash: string;
+  readonly eventId: Identifier;
+  readonly freshnessState: string;
+  readonly occurredAt: UtcTimestamp;
+  readonly schemaVersion: 1;
+  readonly snapshotId: Identifier;
+  readonly tenantScope: TenantScope;
+}
+
 export interface EventEnvelope<TData extends object = JsonObject> {
   readonly actor: ActorMetadata;
   readonly correlation: CorrelationMetadata;
@@ -59,6 +287,13 @@ export interface EventEnvelopeEntity {
 }
 
 export type Identifier = string;
+
+export type LayoutCells = readonly JsonObject[];
+
+export interface LocalizedText {
+  readonly en: string;
+  readonly vi: string;
+}
 
 export interface OrganizationScope {
   readonly organizationId: Identifier;
@@ -116,7 +351,7 @@ export interface WorkspaceScope {
   readonly workspaceId: Identifier;
 }
 
-export type ContractV1SchemaId = "https://schemas.databreeze.dev/contracts/v1/actor-metadata" | "https://schemas.databreeze.dev/contracts/v1/command-envelope" | "https://schemas.databreeze.dev/contracts/v1/correlation-metadata" | "https://schemas.databreeze.dev/contracts/v1/cursor-page" | "https://schemas.databreeze.dev/contracts/v1/event-envelope" | "https://schemas.databreeze.dev/contracts/v1/identifier" | "https://schemas.databreeze.dev/contracts/v1/problem-details" | "https://schemas.databreeze.dev/contracts/v1/revision" | "https://schemas.databreeze.dev/contracts/v1/tenant-scope" | "https://schemas.databreeze.dev/contracts/v1/utc-timestamp";
+export type ContractV1SchemaId = "https://schemas.databreeze.dev/contracts/v1/actor-metadata" | "https://schemas.databreeze.dev/contracts/v1/command-envelope" | "https://schemas.databreeze.dev/contracts/v1/correlation-metadata" | "https://schemas.databreeze.dev/contracts/v1/cursor-page" | "https://schemas.databreeze.dev/contracts/v1/dda-analysis-plan" | "https://schemas.databreeze.dev/contracts/v1/dda-dashboard-snapshot" | "https://schemas.databreeze.dev/contracts/v1/dda-dashboard-version" | "https://schemas.databreeze.dev/contracts/v1/dda-etl-plan" | "https://schemas.databreeze.dev/contracts/v1/dda-folder-manifest" | "https://schemas.databreeze.dev/contracts/v1/dda-materialization" | "https://schemas.databreeze.dev/contracts/v1/dda-receipt-candidate" | "https://schemas.databreeze.dev/contracts/v1/dda-refresh-event" | "https://schemas.databreeze.dev/contracts/v1/event-envelope" | "https://schemas.databreeze.dev/contracts/v1/identifier" | "https://schemas.databreeze.dev/contracts/v1/problem-details" | "https://schemas.databreeze.dev/contracts/v1/revision" | "https://schemas.databreeze.dev/contracts/v1/tenant-scope" | "https://schemas.databreeze.dev/contracts/v1/utc-timestamp";
 
 export type ContractV1ParseResult<TValue = unknown> =
   | { readonly accepted: true; readonly value: TValue }

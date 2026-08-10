@@ -1,0 +1,7 @@
+[
+  {"name": " Cafe A ", "amount": "1200000", "sold_at": "2026-08-01", "region": "HN", "_reject": false},
+  {"name": "Cafe B", "amount": "invalid", "sold_at": "2026-08-01", "region": "HCM", "_reject": true},
+  {"name": "Cafe C", "amount": "800000", "sold_at": "2026-08-02", "region": "HN", "_reject": false},
+  {"name": "Cafe D", "amount": "450000", "sold_at": "2026-08-02", "region": "DN", "_reject": false},
+  {"name": "Cafe E", "amount": "990000", "sold_at": "2026-08-03", "region": "HN", "_reject": false}
+]

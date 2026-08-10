@@ -160,6 +160,14 @@
       "types": "./src/private-data-analyst/v1.ts",
       "import": "./dist/private-data-analyst/v1.js"
     },
+    "./data-to-dashboard/v1": {
+      "types": "./src/data-to-dashboard/v1.ts",
+      "import": "./dist/data-to-dashboard/v1.js"
+    },
+    "./data-to-dashboard/policy-v1": {
+      "types": "./src/data-to-dashboard/policy-v1.ts",
+      "import": "./dist/data-to-dashboard/policy-v1.js"
+    },
     "./migration-ready/v1": {
       "types": "./src/migration-ready/v1.ts",
       "import": "./dist/migration-ready/v1.js"

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "planId": "00000000-0000-4000-8000-000000000010",
+  "planVersionId": "00000000-0000-4000-8000-000000000011",
+  "tenantScope": {
+    "scopeType": "project",
+    "organizationId": "00000000-0000-4000-8000-000000000001",
+    "workspaceId": "00000000-0000-4000-8000-000000000002",
+    "projectId": "00000000-0000-4000-8000-000000000003"
+  },
+  "datasetVersionId": "00000000-0000-4000-8000-000000000018",
+  "semanticVersionId": "00000000-0000-4000-8000-000000000019",
+  "metricVersionId": "00000000-0000-4000-8000-00000000001a",
+  "dimensions": [
+    "region"
+  ],
+  "filters": [
+    {
+      "field": "year",
+      "operator": "EQ",
+      "value": "2026"
+    }
+  ],
+  "timeRange": {
+    "start": "2026-01-01T00:00:00.000Z",
+    "end": "2026-12-31T23:59:59.000Z"
+  },
+  "timeGrain": "MONTH",
+  "joins": [],
+  "units": [
+    {
+      "field": "amount",
+      "unit": "VND"
+    }
+  ],
+  "parameters": [],
+  "output": {
+    "form": "TABLE",
+    "maxRows": 100
+  },
+  "assumptions": [
+    "Uses accepted sales dataset only"
+  ],
+  "estimate": {
+    "cpuMs": 100,
+    "memoryMb": 64
+  },
+  "permissionProjectionVersionId": "00000000-0000-4000-8000-000000000021",
+  "planHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "createdAt": "2026-08-10T10:00:00.000Z"
+}

@@ -1,0 +1,247 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/dda-analysis-plan",
+  "$comment": "DDA-003, DDA-015, DDA-016: typed analysis plan over exact DSM versions.",
+  "title": "DDA Analysis Plan",
+  "description": "A versioned typed analysis plan bound to exact dataset, semantic, metric, permission, and output settings.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "planId",
+    "planVersionId",
+    "tenantScope",
+    "datasetVersionId",
+    "semanticVersionId",
+    "metricVersionId",
+    "dimensions",
+    "filters",
+    "timeRange",
+    "timeGrain",
+    "joins",
+    "units",
+    "parameters",
+    "output",
+    "assumptions",
+    "estimate",
+    "permissionProjectionVersionId",
+    "planHash",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "planId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "planVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "tenantScope": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/tenant-scope"
+    },
+    "datasetVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "semanticVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "metricVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "dimensions": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 96
+      }
+    },
+    "filters": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "field",
+          "operator",
+          "value"
+        ],
+        "properties": {
+          "field": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 96
+          },
+          "operator": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 256
+          }
+        }
+      }
+    },
+    "timeRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "end"
+      ],
+      "properties": {
+        "start": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+        },
+        "end": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+        }
+      }
+    },
+    "timeGrain": {
+      "type": "string",
+      "pattern": "^(DAY|WEEK|MONTH|QUARTER|YEAR)$"
+    },
+    "joins": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "leftDatasetVersionId",
+          "rightDatasetVersionId",
+          "leftField",
+          "rightField"
+        ],
+        "properties": {
+          "leftDatasetVersionId": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+          },
+          "rightDatasetVersionId": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+          },
+          "leftField": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 96
+          },
+          "rightField": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 96
+          }
+        }
+      }
+    },
+    "units": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "field",
+          "unit"
+        ],
+        "properties": {
+          "field": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 96
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          }
+        }
+      }
+    },
+    "parameters": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "value"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 256
+          }
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "form",
+        "maxRows"
+      ],
+      "properties": {
+        "form": {
+          "type": "string",
+          "pattern": "^(TABLE|KPI|CHART|EVIDENCE)$"
+        },
+        "maxRows": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      }
+    },
+    "estimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cpuMs",
+        "memoryMb"
+      ],
+      "properties": {
+        "cpuMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "memoryMb": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "permissionProjectionVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "planHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "createdAt": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+    }
+  }
+}

@@ -21,6 +21,7 @@ export type NavigationKey =
   | 'administration'
   | 'approvals'
   | 'audit'
+  | 'dashboards'
   | 'devices'
   | 'inbox'
   | 'jobs'
@@ -54,6 +55,7 @@ function navigationItem(
 export const WEB_NAVIGATION_REGISTRY = Object.freeze([
   navigationItem('workspace', 'workspace'),
   navigationItem('inbox', 'inbox', [PERMISSIONS_V1.ARTIFACT_RECORD_READ]),
+  navigationItem('dashboards', 'dashboards', [PERMISSIONS_V1.ARTIFACT_RECORD_READ], ['reports']),
   navigationItem('jobs', 'jobs', [PERMISSIONS_V1.JOB_EXECUTION_READ], ['automation']),
   navigationItem('reviews', 'reviews', [PERMISSIONS_V1.JOB_EXECUTION_READ], ['automation']),
   navigationItem('approvals', 'approvals', [PERMISSIONS_V1.APPROVAL_REQUEST_READ], ['governance']),

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "materializationId": "00000000-0000-4000-8000-00000000001f",
+  "tenantScope": {
+    "scopeType": "project",
+    "organizationId": "00000000-0000-4000-8000-000000000001",
+    "workspaceId": "00000000-0000-4000-8000-000000000002",
+    "projectId": "00000000-0000-4000-8000-000000000003"
+  },
+  "dashboardVersionId": "00000000-0000-4000-8000-000000000011",
+  "widgetId": "00000000-0000-4000-8000-00000000001d",
+  "analysisPlanVersionId": "00000000-0000-4000-8000-000000000010",
+  "datasetVersionId": "00000000-0000-4000-8000-000000000018",
+  "semanticVersionId": "00000000-0000-4000-8000-000000000019",
+  "metricVersionId": "00000000-0000-4000-8000-00000000001a",
+  "permissionProjectionVersionId": "00000000-0000-4000-8000-000000000021",
+  "parameterHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "locale": "vi-VN",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "engineVersion": "engine-1.0.0",
+  "adapterVersion": "adapter-1.0.0",
+  "effectivePolicyVersionId": "00000000-0000-4000-8000-000000000021",
+  "resultManifestId": "00000000-0000-4000-8000-000000000020",
+  "cacheIdentityHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "createdAt": "2026-08-10T10:00:00.000Z"
+}

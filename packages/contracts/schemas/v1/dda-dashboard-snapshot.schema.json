@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/dda-dashboard-snapshot",
+  "$comment": "DDA-003, DDA-025: immutable published dashboard snapshot.",
+  "title": "Dashboard Snapshot",
+  "description": "An immutable dashboard snapshot bound to one version and verified materializations.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "snapshotId",
+    "tenantScope",
+    "dashboardVersionId",
+    "materializationIds",
+    "inputSelectorHash",
+    "permissionProjectionVersionId",
+    "audience",
+    "freshnessState",
+    "evidenceState",
+    "canonicalHash",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "snapshotId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "tenantScope": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/tenant-scope"
+    },
+    "dashboardVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "materializationIds": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+      }
+    },
+    "inputSelectorHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "permissionProjectionVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "audience": {
+      "type": "string",
+      "pattern": "^(OWNER|WORKSPACE_VIEWERS|PROJECT_VIEWERS|SHARED_LINK)$"
+    },
+    "freshnessState": {
+      "type": "string",
+      "pattern": "^(FRESH|STALE|PENDING|BLOCKED|SOURCE_UNAVAILABLE)$"
+    },
+    "evidenceState": {
+      "type": "string",
+      "pattern": "^(AVAILABLE|PARTIAL|UNAVAILABLE)$"
+    },
+    "canonicalHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "createdAt": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+    }
+  }
+}

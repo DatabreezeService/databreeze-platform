@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/dda-refresh-event",
+  "$comment": "DDA-003, DDA-034: content-safe dashboard refresh event.",
+  "title": "DDA Refresh Event",
+  "description": "A content-safe committed refresh event referencing dashboard and snapshot IDs without result cells.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "tenantScope",
+    "dashboardId",
+    "snapshotId",
+    "freshnessState",
+    "occurredAt",
+    "eventHash"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "eventId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "tenantScope": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/tenant-scope"
+    },
+    "dashboardId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "snapshotId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "freshnessState": {
+      "type": "string",
+      "pattern": "^(FRESH|STALE|PENDING|BLOCKED|SOURCE_UNAVAILABLE)$"
+    },
+    "occurredAt": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+    },
+    "eventHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

@@ -23,6 +23,46 @@
       "path": "schemas/v1/cursor-page.schema.json"
     },
     {
+      "name": "dda-analysis-plan",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-analysis-plan",
+      "path": "schemas/v1/dda-analysis-plan.schema.json"
+    },
+    {
+      "name": "dda-dashboard-snapshot",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-dashboard-snapshot",
+      "path": "schemas/v1/dda-dashboard-snapshot.schema.json"
+    },
+    {
+      "name": "dda-dashboard-version",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-dashboard-version",
+      "path": "schemas/v1/dda-dashboard-version.schema.json"
+    },
+    {
+      "name": "dda-etl-plan",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-etl-plan",
+      "path": "schemas/v1/dda-etl-plan.schema.json"
+    },
+    {
+      "name": "dda-folder-manifest",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-folder-manifest",
+      "path": "schemas/v1/dda-folder-manifest.schema.json"
+    },
+    {
+      "name": "dda-materialization",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-materialization",
+      "path": "schemas/v1/dda-materialization.schema.json"
+    },
+    {
+      "name": "dda-receipt-candidate",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-receipt-candidate",
+      "path": "schemas/v1/dda-receipt-candidate.schema.json"
+    },
+    {
+      "name": "dda-refresh-event",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-refresh-event",
+      "path": "schemas/v1/dda-refresh-event.schema.json"
+    },
+    {
       "name": "event-envelope",
       "id": "https://schemas.databreeze.dev/contracts/v1/event-envelope",
       "path": "schemas/v1/event-envelope.schema.json"

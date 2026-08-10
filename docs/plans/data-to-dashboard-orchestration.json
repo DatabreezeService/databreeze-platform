@@ -1,7 +1,7 @@
 {
   "version": 1,
   "program": "data-to-dashboard-v1",
-  "status": "approved-not-started",
+  "status": "in-progress",
   "authority": {
     "decision": "docs/decisions/0004-data-to-dashboard-direction.md",
     "providerDecision": "docs/decisions/0005-openai-ai-ocr-on-aws-hosting.md",
@@ -29,7 +29,7 @@
     "verified",
     "deferred"
   ],
-  "nextWorkPackageId": "DDA-081",
+  "nextWorkPackageId": "DDA-087",
   "gates": [
     {
       "gateId": "G0",
@@ -44,37 +44,99 @@
     {
       "gateId": "G1",
       "name": "contracts-frozen-and-generated",
-      "status": "ready",
-      "dependsOn": ["G0"],
-      "workPackageIds": ["DDA-081"]
+      "status": "complete",
+      "dependsOn": [
+        "G0"
+      ],
+      "workPackageIds": [
+        "DDA-081"
+      ],
+      "evidence": [
+        "d431d28e4db0210af553b068d52d2dc4129903f7",
+        "packages/contracts/test/fixtures/dda/v1/golden-valid.json",
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/domain/test/data-to-dashboard-policy-v1.test.mjs",
+        "services/api/test/features/dda/dda-module-boundaries.test.ts",
+        "services/api/test/features/dda/dda-policy.service.test.ts",
+        "services/api/test/features/dda/dda-content-authority.test.ts",
+        "docs/security/dda-data-flow.md"
+      ]
     },
     {
       "gateId": "G2",
       "name": "independent-lanes-green",
-      "status": "blocked",
-      "dependsOn": ["G1"],
-      "workPackageIds": ["DDA-082", "DDA-083", "DDA-084", "DDA-085", "DDA-086"]
+      "status": "complete",
+      "dependsOn": [
+        "G1"
+      ],
+      "workPackageIds": [
+        "DDA-082",
+        "DDA-083",
+        "DDA-084",
+        "DDA-085",
+        "DDA-086"
+      ],
+      "evidence": [
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "d94c17fccdf3e01434292dc0cd1735bb31020bea",
+        "b936ccd81f9db1531de3956e332f128c8ad33014"
+      ]
     },
     {
       "gateId": "G3",
       "name": "integrated-contracts-migrations-and-packages-green",
-      "status": "blocked",
-      "dependsOn": ["G2"],
-      "workPackageIds": ["DDA-087"]
+      "status": "complete",
+      "dependsOn": [
+        "G2"
+      ],
+      "workPackageIds": [
+        "DDA-087"
+      ],
+      "evidence": [
+        "docs/evidence/dda/integration-ledger.md",
+        "services/api/src/app.module.ts",
+        "services/api/src/features/dda/dda.module.ts",
+        "services/api/test/features/dda/dda-root-composition.test.ts"
+      ]
     },
     {
       "gateId": "G4",
       "name": "golden-cross-platform-journey-reproducible",
-      "status": "blocked",
-      "dependsOn": ["G3"],
-      "workPackageIds": ["DDA-087"]
+      "status": "complete",
+      "dependsOn": [
+        "G3"
+      ],
+      "workPackageIds": [
+        "DDA-087"
+      ],
+      "evidence": [
+        "docs/runbooks/dda-mentor-demo.md",
+        "docs/evidence/dda/prototype-report.md",
+        "docs/evidence/dda/parity-report.md",
+        "tools/fixture-validation/test/dda-parity.test.mjs",
+        "services/engine/tests/test_dda_local_cloud_parity.py",
+        "apps/web/e2e/dda-golden-journey.spec.ts",
+        "apps/desktop/test/dda-golden-folder-journey.test.ts",
+        "apps/android/app/src/androidTest/java/com/databreeze/android/receipts/DdaGoldenReceiptJourneyTest.kt"
+      ],
+      "notes": "Mentor/fixture golden journey evidenced on DDA-087. Live production-shaped AWS + OpenAI journey remains gated by G5 and MANUAL-PREREQUISITES."
     },
     {
       "gateId": "G5",
       "name": "production-readiness",
       "status": "blocked",
-      "dependsOn": ["G3", "G4"],
-      "externalPlan": "docs/plans/400-production-readiness.md"
+      "dependsOn": [
+        "G3",
+        "G4"
+      ],
+      "externalPlan": "docs/plans/400-production-readiness.md",
+      "manualPrerequisites": "docs/plans/MANUAL-PREREQUISITES.md",
+      "evidence": [
+        "docs/evidence/dda/release-readiness.md"
+      ],
+      "notes": "Blocked on owner MANUAL-PREREQUISITES and plan 400 gates. Agent-implementable production scaffolding proceeds on codex/dda-400-production without fabricating credentials or production approval."
     }
   ],
   "workPackages": [
@@ -82,10 +144,22 @@
       "workPackageId": "DDA-081",
       "name": "contracts-and-authorities",
       "plan": "docs/plans/081-dda-contracts-and-authorities.md",
-      "status": "ready",
+      "status": "complete",
       "dependsOn": [],
       "parallelGroup": null,
-      "branch": "codex/dda-contracts",
+      "branch": "codex/dda-081-contracts",
+      "commit": "d431d28e4db0210af553b068d52d2dc4129903f7",
+      "evidence": [
+        "d431d28e4db0210af553b068d52d2dc4129903f7",
+        "packages/contracts/test/fixtures/dda/v1/golden-valid.json",
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/domain/test/data-to-dashboard-policy-v1.test.mjs",
+        "services/api/test/features/dda/dda-module-boundaries.test.ts",
+        "services/api/test/features/dda/dda-prisma-scope.test.ts",
+        "services/api/test/features/dda/dda-policy.service.test.ts",
+        "services/api/test/features/dda/dda-content-authority.test.ts",
+        "docs/security/dda-data-flow.md"
+      ],
       "tasks": [
         "Task 1: Freeze DDA domain values and golden fixtures",
         "Task 2: Establish DDA persistence and public composition ports",
@@ -129,10 +203,28 @@
       "workPackageId": "DDA-082",
       "name": "cloud-intake-etl",
       "plan": "docs/plans/082-dda-cloud-intake-etl.md",
-      "status": "blocked",
-      "dependsOn": ["DDA-081"],
+      "status": "complete",
+      "dependsOn": [
+        "DDA-081"
+      ],
       "parallelGroup": "DDA-G2",
-      "branch": "codex/dda-cloud-etl",
+      "branch": "codex/dda-082-cloud-etl",
+      "commit": "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+      "evidence": [
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/web-intake.service.test.ts",
+        "services/api/test/features/dda/web-intake.controller.test.ts",
+        "services/api/test/features/dda/etl-proposal.service.test.ts",
+        "services/api/test/features/dda/etl-proposal.controller.test.ts",
+        "services/api/test/features/dda/etl-acceptance.service.test.ts",
+        "services/api/test/features/dda/etl-acceptance.controller.test.ts",
+        "services/engine/tests/test_dda_etl_intake.py",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "services/engine/tests/test_dda_etl_execute.py",
+        "apps/web/test/data-intake-upload.test.tsx",
+        "apps/web/test/etl-review-page.test.tsx"
+      ],
       "tasks": [
         "Task 1: Govern Web file intake",
         "Task 2: Propose visible ETL and quality review",
@@ -181,10 +273,12 @@
       "workPackageId": "DDA-083",
       "name": "analyst-dashboard-canvas",
       "plan": "docs/plans/083-dda-analyst-dashboard-canvas.md",
-      "status": "blocked",
-      "dependsOn": ["DDA-081"],
+      "status": "complete",
+      "dependsOn": [
+        "DDA-081"
+      ],
       "parallelGroup": "DDA-G2",
-      "branch": "codex/dda-dashboard-canvas",
+      "branch": "codex/dda-083-dashboard-canvas",
       "tasks": [
         "Task 1: Plan and execute deterministic analysis",
         "Task 2: Build the accessible versioned dashboard canvas",
@@ -238,16 +332,36 @@
         "corepack pnpm --filter @databreeze/web test",
         "corepack pnpm --filter @databreeze/web typecheck",
         "corepack pnpm --filter @databreeze/web build"
+      ],
+      "commit": "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+      "evidence": [
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "services/api/test/features/dda/analysis-proposal.service.test.ts",
+        "services/api/test/features/dda/analysis-execution.service.test.ts",
+        "services/api/test/features/dda/dashboard-draft.service.test.ts",
+        "services/api/test/features/dda/dashboard-publication.service.test.ts",
+        "services/api/test/features/dda/dashboard-query-authorization.test.ts",
+        "services/api/test/features/dda/dashboard-comparison.service.test.ts",
+        "services/api/test/features/dda/dashboard-template.service.test.ts",
+        "services/api/test/features/dda/dashboard-export.service.test.ts",
+        "apps/web/test/dashboard-analyst.test.tsx",
+        "apps/web/test/dashboard-canvas.test.tsx",
+        "apps/web/test/dashboard-viewer-authorization.test.tsx",
+        "apps/web/test/dashboard-ga-tools.test.tsx",
+        "apps/web/e2e/dashboard-authoring.spec.ts",
+        "apps/web/e2e/dashboard-sharing-security.spec.ts"
       ]
     },
     {
       "workPackageId": "DDA-084",
       "name": "materialization-refresh",
       "plan": "docs/plans/084-dda-materialization-refresh.md",
-      "status": "blocked",
-      "dependsOn": ["DDA-081"],
+      "status": "complete",
+      "dependsOn": [
+        "DDA-081"
+      ],
       "parallelGroup": "DDA-G2",
-      "branch": "codex/dda-refresh",
+      "branch": "codex/dda-084-refresh",
       "tasks": [
         "Task 1: Resolve dependencies and complete cache identity",
         "Task 2: Coalesce refreshes and publish atomically",
@@ -287,23 +401,60 @@
         "corepack pnpm --filter @databreeze/api test",
         "cd services/engine; uv run pytest",
         "node tools/performance/dda-refresh-reference.mjs"
+      ],
+      "commit": "945cde1a99792604ef4863459f9150f6acdae77e",
+      "evidence": [
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "services/api/test/features/dda/dependency-index.service.test.ts",
+        "services/api/test/features/dda/materialization-cache-key.test.ts",
+        "services/api/test/features/dda/refresh-orchestrator.service.test.ts",
+        "services/api/test/features/dda/snapshot-commit.service.test.ts",
+        "services/api/test/features/dda/dashboard-refresh.controller.test.ts",
+        "services/api/test/features/dda/dashboard-refresh-events.test.ts",
+        "services/api/test/features/dda/dashboard-refresh-performance.test.ts",
+        "services/api/test/features/dda/refresh-admission.service.test.ts",
+        "services/engine/tests/test_dda_materialize_query.py",
+        "services/engine/tests/test_dda_materialize_snapshot.py",
+        "tools/performance/dda-refresh-reference.mjs"
       ]
     },
     {
       "workPackageId": "DDA-085",
       "name": "desktop-hybrid-folders",
       "plan": "docs/plans/085-dda-desktop-hybrid-folders.md",
-      "status": "blocked",
-      "dependsOn": ["DDA-081"],
+      "status": "complete",
+      "dependsOn": [
+        "DDA-081"
+      ],
       "parallelGroup": "DDA-G2",
-      "branch": "codex/dda-desktop-folders",
+      "branch": "codex/dda-085-desktop-folders",
+      "commit": "d94c17fccdf3e01434292dc0cd1735bb31020bea",
+      "evidence": [
+        "d94c17fccdf3e01434292dc0cd1735bb31020bea",
+        "apps/desktop/test/folder-binding.service.test.ts",
+        "apps/desktop/test/security-folder-binding-ipc.test.ts",
+        "apps/desktop/test/folder-manifest.test.ts",
+        "apps/desktop/test/stable-file-detector.test.ts",
+        "apps/desktop/test/folder-intake-replay.test.ts",
+        "apps/desktop/test/security-folder-path-escape.test.ts",
+        "apps/desktop/test/publication-projection.test.tsx",
+        "apps/desktop/test/folder-sync-idempotency.test.ts",
+        "apps/desktop/test/folder-source-unavailable.test.tsx",
+        "services/engine/tests/test_dda_folder_intake.py"
+      ],
       "tasks": [
         "Task 1: Bind an approved folder and version its manifest",
         "Task 2: Detect stable safe file changes",
         "Task 3: Project Hybrid results and degrade safely",
         "Task 4: Produce the lane handoff"
       ],
-      "requirements": ["DDA-012", "DDA-013", "DDA-014", "DDA-037", "DDA-039"],
+      "requirements": [
+        "DDA-012",
+        "DDA-013",
+        "DDA-014",
+        "DDA-037",
+        "DDA-039"
+      ],
       "writePaths": [
         "apps/desktop/src/application",
         "apps/desktop/src/main/adapters/windows-folder-binding.adapter.ts",
@@ -329,17 +480,23 @@
       "workPackageId": "DDA-086",
       "name": "android-receipts",
       "plan": "docs/plans/086-dda-android-receipts.md",
-      "status": "blocked",
-      "dependsOn": ["DDA-081"],
+      "status": "complete",
+      "dependsOn": [
+        "DDA-081"
+      ],
       "parallelGroup": "DDA-G2",
-      "branch": "codex/dda-android-receipts",
+      "branch": "codex/dda-086-android-receipts",
       "tasks": [
         "Task 1: Capture and upload receipts securely",
         "Task 2: Extract and review versioned OCR candidates",
         "Task 3: Validate and accept governed receipt data",
         "Task 4: Produce the lane handoff"
       ],
-      "requirements": ["DDA-040", "DDA-041", "DDA-042"],
+      "requirements": [
+        "DDA-040",
+        "DDA-041",
+        "DDA-042"
+      ],
       "writePaths": [
         "apps/android/gradle/libs.versions.toml",
         "apps/android/app/build.gradle.kts",
@@ -364,16 +521,36 @@
       "requiredChecks": [
         "cd apps/android; ./gradlew testDebugUnitTest lintDebug",
         "corepack pnpm --filter @databreeze/api test"
+      ],
+      "commit": "b936ccd81f9db1531de3956e332f128c8ad33014",
+      "evidence": [
+        "b936ccd81f9db1531de3956e332f128c8ad33014",
+        "apps/android/app/src/test/java/com/databreeze/android/receipts/ReceiptStagingIsolationTest.kt",
+        "apps/android/app/src/test/java/com/databreeze/android/receipts/ReceiptUploadSchedulerTest.kt",
+        "apps/android/app/src/test/java/com/databreeze/android/receipts/ReceiptReviewViewModelTest.kt",
+        "apps/android/app/src/test/java/com/databreeze/android/receipts/ReceiptValidationStateTest.kt",
+        "apps/android/app/src/androidTest/java/com/databreeze/android/receipts/ReceiptCaptureFlowTest.kt",
+        "services/api/test/features/dda/receipt-extraction.service.test.ts",
+        "services/api/test/features/dda/receipt-extraction.controller.test.ts",
+        "services/api/test/features/dda/receipt-validation.service.test.ts",
+        "services/api/test/features/dda/receipt-acceptance.service.test.ts"
       ]
     },
     {
       "workPackageId": "DDA-087",
       "name": "integration-parity-readiness",
       "plan": "docs/plans/087-dda-integration-readiness.md",
-      "status": "blocked",
-      "dependsOn": ["DDA-081", "DDA-082", "DDA-083", "DDA-084", "DDA-085", "DDA-086"],
+      "status": "complete",
+      "dependsOn": [
+        "DDA-081",
+        "DDA-082",
+        "DDA-083",
+        "DDA-084",
+        "DDA-085",
+        "DDA-086"
+      ],
       "parallelGroup": null,
-      "branch": "codex/dda-integration",
+      "branch": "codex/dda-087-integration",
       "tasks": [
         "Task 1: Integrate lane commits in dependency order",
         "Task 2: Prove local and cloud deterministic parity",
@@ -381,7 +558,10 @@
         "Task 4: Preserve streaming as a deferred extension",
         "Task 5: Reconcile traceability and production readiness"
       ],
-      "requirements": ["DDA-038", "DDA-051"],
+      "requirements": [
+        "DDA-038",
+        "DDA-051"
+      ],
       "writePaths": [
         "services/api/src/app.module.ts",
         "services/api/prisma",
@@ -406,10 +586,41 @@
         "corepack pnpm orchestration:check",
         "corepack pnpm contracts:check",
         "corepack pnpm repo:check"
+      ],
+      "commit": "20a49ff6f0a793186d859a29550c9ec65785a055",
+      "evidence": [
+        "docs/evidence/dda/integration-ledger.md",
+        "docs/evidence/dda/parity-report.md",
+        "docs/evidence/dda/prototype-report.md",
+        "docs/evidence/dda/release-readiness.md",
+        "docs/runbooks/dda-mentor-demo.md",
+        "services/api/test/features/dda/dda-root-composition.test.ts",
+        "tools/fixture-validation/test/dda-parity.test.mjs",
+        "services/engine/tests/test_dda_local_cloud_parity.py",
+        "apps/web/e2e/dda-golden-journey.spec.ts",
+        "apps/desktop/test/dda-golden-folder-journey.test.ts",
+        "apps/android/app/src/androidTest/java/com/databreeze/android/receipts/DdaGoldenReceiptJourneyTest.kt"
+      ],
+      "limitations": [
+        "083 CSP Playwright unsafe-eval; web partly fixture-backed",
+        "084 in-memory refresh; synthetic perf; in-process SSE",
+        "085 DSO stub; no long-running FS watcher; folder UI not in shell nav",
+        "086 shutter prototype; in-memory staging; fake OCR; emulator optional",
+        "DDA processors not enrolled in closed ActionRegistry",
+        "DdaModule foundation ports default to prototype stubs",
+        "Not production; plan 400 required"
       ]
     }
   ],
-  "integrationOrder": ["DDA-081", "DDA-082", "DDA-084", "DDA-083", "DDA-085", "DDA-086", "DDA-087"],
+  "integrationOrder": [
+    "DDA-081",
+    "DDA-082",
+    "DDA-084",
+    "DDA-083",
+    "DDA-085",
+    "DDA-086",
+    "DDA-087"
+  ],
   "deferred": [
     {
       "requirementId": "DDA-051",

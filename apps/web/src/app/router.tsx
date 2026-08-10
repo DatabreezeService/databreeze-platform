@@ -16,6 +16,7 @@ import {
 } from '../pages/shell-states.tsx';
 import { WorkspaceHome } from '../pages/workspace-home.tsx';
 import { InboxPage } from '../features/inbox/inbox-page.tsx';
+import { DashboardPage } from '../features/dashboards/dashboard-page.tsx';
 import { PRODUCT_MODULE_REGISTRY } from '../features/product-modules/product-module-registry.ts';
 import { ProductModuleWorkbench } from '../features/product-modules/product-module-workbench.tsx';
 import { WEB_FEATURE_REGISTRY } from './feature-registry.ts';
@@ -61,6 +62,8 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
           element:
             feature.key === 'inbox' ? (
               <InboxPage />
+            ) : feature.key === 'dashboards' ? (
+              <DashboardPage />
             ) : (
               <UnavailableFeature featureKey={feature.key} />
             ),

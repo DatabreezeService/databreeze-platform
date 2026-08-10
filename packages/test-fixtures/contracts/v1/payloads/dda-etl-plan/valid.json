@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "planId": "00000000-0000-4000-8000-000000000010",
+  "planVersionId": "00000000-0000-4000-8000-000000000011",
+  "tenantScope": {
+    "scopeType": "project",
+    "organizationId": "00000000-0000-4000-8000-000000000001",
+    "workspaceId": "00000000-0000-4000-8000-000000000002",
+    "projectId": "00000000-0000-4000-8000-000000000003"
+  },
+  "inputArtifactVersionId": "00000000-0000-4000-8000-000000000012",
+  "schemaVersionId": "00000000-0000-4000-8000-000000000013",
+  "mappingVersionId": "00000000-0000-4000-8000-000000000014",
+  "ruleSetVersionId": "00000000-0000-4000-8000-000000000015",
+  "engineBindingId": "00000000-0000-4000-8000-000000000016",
+  "transformations": [
+    {
+      "stepId": "00000000-0000-4000-8000-000000000017",
+      "kind": "TRIM_TEXT",
+      "inputs": [
+        "00000000-0000-4000-8000-000000000012"
+      ],
+      "configEntries": [
+        {
+          "key": "field",
+          "value": "name"
+        }
+      ]
+    }
+  ],
+  "contentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "schemaHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "dataClassification": "INTERNAL",
+  "dataModePolicyVersionId": "00000000-0000-4000-8000-000000000021",
+  "retentionReferenceId": "00000000-0000-4000-8000-000000000024",
+  "evidenceReferenceId": "00000000-0000-4000-8000-000000000025",
+  "createdAt": "2026-08-10T10:00:00.000Z"
+}
