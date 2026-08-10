@@ -24,6 +24,11 @@ import { PrismaRefreshRepositoryAdapter } from './adapter/prisma-refresh-reposit
 import { PrismaDashboardDraftRepositoryAdapter } from './dashboard/adapter/prisma-dashboard-draft-repository.adapter.js';
 import { PrismaEtlProposalRepositoryAdapter } from './etl/adapter/prisma-etl-proposal-repository.adapter.js';
 import { PrismaDependencyRepositoryAdapter } from './refresh/adapter/prisma-dependency-repository.adapter.js';
+import {
+  REQUEST_TENANT_CONTEXT,
+  UnavailableRequestTenantContextAdapter,
+  type RequestTenantContextPortV1,
+} from '../../platform/http/request-tenant-context.port.js';
 import { AnalysisControllerV1 } from './analyst/api/analysis.controller.js';
 import type { AnalysisAdapterPortV1 } from './analyst/application/analysis-adapter.port.js';
 import { AnalysisExecutionServiceV1 } from './analyst/application/analysis-execution.service.js';
@@ -153,6 +158,7 @@ export interface DdaModuleOptions {
   readonly deterministicResults?: DeterministicResultPortV1;
   readonly receiptRecords?: ReceiptGovernedRecordPort;
   readonly refreshUsage?: RefreshUsagePortV1;
+  readonly requestTenantContext?: RequestTenantContextPortV1;
 }
 
 @Module({})
@@ -246,7 +252,9 @@ export class DdaModule {
     const analysisExecutionService = new AnalysisExecutionServiceV1(
       options.deterministicResults ?? createFailClosedDeterministicResultsV1(),
     );
-    const dashboardDraftService = new DashboardDraftServiceV1(drafts);
+    const dashboardDraftService = new DashboardDraftServiceV1(drafts, authorization);
+    const requestTenantContext =
+      options.requestTenantContext ?? new UnavailableRequestTenantContextAdapter();
     const dashboardPublicationService = new DashboardPublicationServiceV1(drafts, authorization);
     const dashboardQueryService = new DashboardQueryServiceV1(authorization);
     const freshnessService = new FreshnessService(refreshCoordinator);
@@ -329,6 +337,7 @@ export class DdaModule {
         { provide: FreshnessService, useValue: freshnessService },
         { provide: RefreshEventBus, useValue: refreshEventBus },
         { provide: ReceiptExtractionService, useValue: receiptExtraction },
+        { provide: REQUEST_TENANT_CONTEXT, useValue: requestTenantContext },
       ],
       exports: [
         DASHBOARD_REPOSITORY_PORT,

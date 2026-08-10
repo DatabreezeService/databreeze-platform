@@ -37,4 +37,18 @@ describe('dashboard live API configuration [DDA-020]', () => {
       }),
     ).rejects.toThrow('DASHBOARD_DRAFT_INVALID');
   });
+
+  it('fails closed on unauthorized or missing live drafts without inventing fixture numbers', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response(JSON.stringify({ title: 'denied' }), { status: 403 })),
+    );
+
+    await expect(
+      fetchDashboardDraft({
+        baseUrl: 'https://api.example.test',
+        dashboardId: 'dashboard-123',
+      }),
+    ).rejects.toThrow('DASHBOARD_DRAFT_UNAVAILABLE');
+  });
 });

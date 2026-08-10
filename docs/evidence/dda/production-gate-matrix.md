@@ -31,7 +31,7 @@
 | ActionRegistry DDA enrollment | closed (code) | Engine closed registry enrolls pinned DDA handlers; digest mismatch fails closed (`b1f53ba`). |
 | Desktop native FS watcher | closed (code path) | Watcher lifecycle after capability-backed binding; unfamiliar schemas quarantine; capability resolver still null/deny until DSO (`e7010f5`). |
 | Android CameraX / upload | partial | Capture→encrypted staging→typed upload transport; OCR/review fail-closed without server credentials; no device verification (`45a9e04`). |
-| Web CSP / live dashboards | partial | No `unsafe-eval`; dashboard data mode prefers live API and fails closed without inventing fixture numbers in production mode (`b449466`). |
+| Web CSP / live dashboards | partial | No `unsafe-eval`; `GET /v1/dda/dashboards/:id/draft` authorizes via request tenant context and returns structural draft only (no invented cells); Web live client fails closed on 401/403. Full AA/Playwright still blocked. |
 | Refresh persistence | closed (code) | Durable coordinator persists open refresh/idempotency/snapshots/state; ETL proposals, drafts, dependency sequence pointers Prisma-backed when `ddaDatabase` supplied; production composition fails closed without DB (`DDA_PRODUCTION_DATABASE_REQUIRED`). |
 
 ## Honesty rules

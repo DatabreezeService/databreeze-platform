@@ -5,6 +5,7 @@ import {
 import { randomUUID } from 'node:crypto';
 
 import type { IamTenantContextV1 } from '../../../iam/application/tenant-context.js';
+import type { DashboardAuthorizationPortV1 } from './dashboard-authorization.port.js';
 import type { DashboardDraftRepositoryPortV1 } from './dashboard-repository.port.js';
 
 export type DashboardDraftErrorCodeV1 =
@@ -13,15 +14,115 @@ export type DashboardDraftErrorCodeV1 =
   | 'VERSION_NOT_FOUND'
   | 'WIDGET_NOT_FOUND'
   | 'INVALID_FILTER'
-  | 'INVALID_VERSION';
+  | 'INVALID_VERSION'
+  | 'UNAUTHORIZED'
+  | 'NOT_FOUND';
 
 export type DashboardDraftResultV1<TValue> =
   | { readonly accepted: true; readonly value: TValue }
   | { readonly accepted: false; readonly code: DashboardDraftErrorCodeV1 };
 
+export interface DashboardDraftReadModelV1 {
+  readonly dashboardId: string;
+  readonly versionId: string;
+  readonly pages: readonly {
+    readonly pageId: string;
+    readonly title: { readonly vi: string; readonly en: string };
+  }[];
+  readonly widgets: readonly {
+    readonly widgetId: string;
+    readonly type: string;
+    readonly pageId: string;
+    readonly title: { readonly vi: string; readonly en: string };
+    readonly values: readonly { readonly label: string; readonly value: string }[];
+  }[];
+  readonly filters: readonly {
+    readonly filterId: string;
+    readonly field: string;
+    readonly operator: string;
+    readonly scope: string;
+  }[];
+  readonly freshness: string;
+  readonly warning: string;
+}
+
 /** DDA-020..024: versioned draft acceptance, restore, and certified-lock guards. */
 export class DashboardDraftServiceV1 {
-  public constructor(private readonly repository: DashboardDraftRepositoryPortV1) {}
+  public constructor(
+    private readonly repository: DashboardDraftRepositoryPortV1,
+    private readonly authorization?: DashboardAuthorizationPortV1,
+  ) {}
+
+  /** DDA-020: authorize and return the current scoped draft without inventing result cells. */
+  public async readCurrentDraft(
+    context: IamTenantContextV1,
+    dashboardId: string,
+  ): Promise<DashboardDraftResultV1<DashboardDraftReadModelV1>> {
+    if (this.authorization) {
+      const decision = await this.authorization.authorizeDashboardAction({
+        tenantScope: context.tenantScope,
+        actorId: context.actorId,
+        dashboardId,
+        action: 'VIEW',
+      });
+      if (!decision.allowed) {
+        return Object.freeze({ accepted: false, code: 'UNAUTHORIZED' as const });
+      }
+    }
+
+    const identity = await this.repository.findIdentity(context.tenantScope, dashboardId);
+    if (!identity?.draftVersionId) {
+      return Object.freeze({ accepted: false, code: 'NOT_FOUND' as const });
+    }
+    const version = await this.repository.findVersion(
+      context.tenantScope,
+      identity.draftVersionId,
+    );
+    if (!version) {
+      return Object.freeze({ accepted: false, code: 'NOT_FOUND' as const });
+    }
+
+    return Object.freeze({
+      accepted: true,
+      value: Object.freeze({
+        dashboardId: version.dashboardId,
+        versionId: version.versionId,
+        pages: Object.freeze(
+          version.pages.map((page) =>
+            Object.freeze({
+              pageId: page.pageId,
+              title: page.title,
+            }),
+          ),
+        ),
+        widgets: Object.freeze(
+          version.widgets.map((widget) =>
+            Object.freeze({
+              widgetId: widget.widgetId,
+              type: widget.type,
+              pageId: widget.pageId,
+              title: widget.title,
+              // Draft reads never invent authoritative cell values (DDA-010).
+              values: Object.freeze([]),
+            }),
+          ),
+        ),
+        filters: Object.freeze(
+          version.filters.map((filter) =>
+            Object.freeze({
+              filterId: filter.filterId,
+              field: filter.field,
+              operator: filter.operator,
+              scope: filter.scope,
+            }),
+          ),
+        ),
+        freshness: identity.status,
+        warning:
+          'Draft values are structural only until a complete authorized snapshot is available.',
+      }),
+    });
+  }
 
   public async acceptProposal(
     context: IamTenantContextV1,
