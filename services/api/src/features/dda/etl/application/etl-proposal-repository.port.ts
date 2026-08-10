@@ -1,3 +1,5 @@
+import type { TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
+
 export const ETL_PROPOSAL_REPOSITORY_PORT = Symbol('ETL_PROPOSAL_REPOSITORY_PORT');
 
 export type EtlProposalStateV1 = 'NEEDS_REVIEW' | 'READY_FOR_ACCEPTANCE' | 'ACCEPTED' | 'REJECTED';
@@ -73,6 +75,8 @@ export interface EtlProposalRecordV1 {
   readonly plan: unknown;
   readonly review: EtlReviewContextV1;
   readonly createdAt: string;
+  /** Required for durable Prisma persistence; optional for legacy in-memory tests. */
+  readonly tenantScope?: TenantScopeV1;
 }
 
 export interface EtlProposalRepositoryPortV1 {

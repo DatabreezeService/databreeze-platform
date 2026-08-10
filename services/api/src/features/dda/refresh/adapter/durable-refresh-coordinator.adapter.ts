@@ -8,8 +8,8 @@ import type {
 import { InMemoryRefreshCoordinatorAdapter } from './in-memory-refresh-coordinator.adapter.js';
 
 /**
- * DDA-036: keep atomic in-process refresh orchestration, and durably persist
- * committed snapshots / refresh state through the metadata-only refresh repository.
+ * DDA-036: keep atomic in-process refresh orchestration helpers, and durably persist
+ * open refreshes, idempotency keys, committed snapshots, and refresh state.
  */
 export class DurableRefreshCoordinatorAdapter implements RefreshCoordinatorPortV1 {
   readonly #memory: InMemoryRefreshCoordinatorAdapter;
@@ -20,8 +20,18 @@ export class DurableRefreshCoordinatorAdapter implements RefreshCoordinatorPortV
     this.#repository = repository;
   }
 
-  public getCurrentSnapshot(dashboardId: string): Promise<DashboardSnapshotV1 | undefined> {
-    return this.#memory.getCurrentSnapshot(dashboardId);
+  public async getCurrentSnapshot(dashboardId: string): Promise<DashboardSnapshotV1 | undefined> {
+    const cached = await this.#memory.getCurrentSnapshot(dashboardId);
+    if (cached) return cached;
+    // Restart path: recover tenant scope from an open or historical refresh execution.
+    const open = await this.#repository.findOpenRefresh(dashboardId);
+    const tenantScope = open?.tenantScope;
+    if (!tenantScope) return undefined;
+    const latest = await this.#repository.findLatestSnapshotForDashboard(tenantScope, dashboardId);
+    if (latest) {
+      await this.#memory.setCurrentSnapshot(dashboardId, latest);
+    }
+    return latest;
   }
 
   public async setCurrentSnapshot(
@@ -54,25 +64,42 @@ export class DurableRefreshCoordinatorAdapter implements RefreshCoordinatorPortV
       lastJobId: input.refreshId,
       status: 'COMMITTED',
     });
+    const refresh = await this.#repository.findRefresh(input.refreshId);
+    if (refresh) {
+      await this.#repository.saveRefresh(
+        Object.freeze({
+          ...refresh,
+          state: 'COMMITTED',
+          updatedAtMs: refresh.updatedAtMs + 1,
+        }),
+      );
+    }
   }
 
-  public saveRefresh(record: RefreshRecordV1): Promise<void> {
-    return this.#memory.saveRefresh(record);
+  public async saveRefresh(record: RefreshRecordV1): Promise<void> {
+    await this.#memory.saveRefresh(record);
+    await this.#repository.saveRefresh(record);
   }
 
-  public findRefresh(refreshId: string): Promise<RefreshRecordV1 | undefined> {
-    return this.#memory.findRefresh(refreshId);
+  public async findRefresh(refreshId: string): Promise<RefreshRecordV1 | undefined> {
+    const cached = await this.#memory.findRefresh(refreshId);
+    if (cached) return cached;
+    return this.#repository.findRefresh(refreshId);
   }
 
-  public findOpenRefresh(dashboardId: string): Promise<RefreshRecordV1 | undefined> {
-    return this.#memory.findOpenRefresh(dashboardId);
+  public async findOpenRefresh(dashboardId: string): Promise<RefreshRecordV1 | undefined> {
+    const cached = await this.#memory.findOpenRefresh(dashboardId);
+    if (cached) return cached;
+    return this.#repository.findOpenRefresh(dashboardId);
   }
 
-  public findByIdempotency(input: {
+  public async findByIdempotency(input: {
     readonly sourceEventId?: string;
     readonly clientRequestId?: string;
     readonly folderReplayKey?: string;
   }): Promise<RefreshRecordV1 | undefined> {
-    return this.#memory.findByIdempotency(input);
+    const cached = await this.#memory.findByIdempotency(input);
+    if (cached) return cached;
+    return this.#repository.findByIdempotency(input);
   }
 }

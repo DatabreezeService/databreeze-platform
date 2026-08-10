@@ -21,6 +21,9 @@ import { InMemoryRefreshRepositoryAdapter } from './adapter/in-memory-refresh-re
 import { PrismaAnalysisPlanRepositoryAdapter } from './adapter/prisma-analysis-plan-repository.adapter.js';
 import { PrismaDashboardRepositoryAdapter } from './adapter/prisma-dashboard-repository.adapter.js';
 import { PrismaRefreshRepositoryAdapter } from './adapter/prisma-refresh-repository.adapter.js';
+import { PrismaDashboardDraftRepositoryAdapter } from './dashboard/adapter/prisma-dashboard-draft-repository.adapter.js';
+import { PrismaEtlProposalRepositoryAdapter } from './etl/adapter/prisma-etl-proposal-repository.adapter.js';
+import { PrismaDependencyRepositoryAdapter } from './refresh/adapter/prisma-dependency-repository.adapter.js';
 import { AnalysisControllerV1 } from './analyst/api/analysis.controller.js';
 import type { AnalysisAdapterPortV1 } from './analyst/application/analysis-adapter.port.js';
 import { AnalysisExecutionServiceV1 } from './analyst/application/analysis-execution.service.js';
@@ -122,6 +125,9 @@ export interface DdaEtlPortsV1 {
 }
 
 export interface DdaModuleOptions {
+  readonly runtimeMode?: 'production' | 'test' | 'development';
+  /** Explicit opt-in for in-memory adapters outside production (tests/local demos only). */
+  readonly allowInMemoryAdapters?: boolean;
   readonly ddaDatabase?: DdaDatabaseClientV1;
   readonly dashboardRepository?: DashboardRepositoryPortV1;
   readonly analysisPlanRepository?: AnalysisPlanRepositoryPortV1;
@@ -152,6 +158,17 @@ export interface DdaModuleOptions {
 @Module({})
 export class DdaModule {
   public static register(options: DdaModuleOptions = {}): DynamicModule {
+    const runtimeMode =
+      options.runtimeMode ??
+      (process.env['NODE_ENV'] === 'production' ? 'production' : 'development');
+    if (
+      runtimeMode === 'production' &&
+      options.ddaDatabase === undefined &&
+      options.allowInMemoryAdapters !== true
+    ) {
+      throw new Error('DDA_PRODUCTION_DATABASE_REQUIRED');
+    }
+
     const failClosed = createFailClosedDdaFoundationPortsV1();
     const iae = options.iaePort ?? failClosed.iae;
     const dsm = options.dsmPort ?? failClosed.dsm;
@@ -161,9 +178,15 @@ export class DdaModule {
     const bua = options.buaPort ?? failClosed.bua;
     const etlPorts = options.etlPorts ?? createFailClosedEtlPortsV1();
     const etlProposals =
-      options.etlProposalRepository ?? new InMemoryEtlProposalRepositoryAdapter();
+      options.etlProposalRepository ??
+      (options.ddaDatabase === undefined
+        ? new InMemoryEtlProposalRepositoryAdapter()
+        : new PrismaEtlProposalRepositoryAdapter(options.ddaDatabase));
     const drafts =
-      options.dashboardDraftRepository ?? new InMemoryDashboardDraftRepositoryAdapter();
+      options.dashboardDraftRepository ??
+      (options.ddaDatabase === undefined
+        ? new InMemoryDashboardDraftRepositoryAdapter()
+        : new PrismaDashboardDraftRepositoryAdapter(options.ddaDatabase));
     const authorization =
       options.dashboardAuthorization ?? createFailClosedDashboardAuthorizationV1();
     const refreshRepository =
@@ -177,7 +200,10 @@ export class DdaModule {
         ? new InMemoryRefreshCoordinatorAdapter()
         : new DurableRefreshCoordinatorAdapter(refreshRepository));
     const dependencyRepository =
-      options.dependencyRepository ?? new InMemoryDependencyRepositoryAdapter();
+      options.dependencyRepository ??
+      (options.ddaDatabase === undefined
+        ? new InMemoryDependencyRepositoryAdapter()
+        : new PrismaDependencyRepositoryAdapter(options.ddaDatabase));
     const catalog = new MaterializationProcessorCatalog();
     catalog.register({
       processorId: 'dda.materialize.query.v1',

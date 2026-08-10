@@ -126,3 +126,116 @@ model DashboardRefreshStateRecord {
   @@map("dashboard_refresh_state")
   @@schema("dda")
 }
+
+/// Durable open/historical refresh executions (metadata only — no result rows).
+model DashboardRefreshExecutionRecord {
+  id                              String   @id @db.Uuid
+  scopeType                       String   @map("scope_type") @db.VarChar(24)
+  organizationId                  String   @map("organization_id") @db.Uuid
+  workspaceId                     String   @map("workspace_id") @db.Uuid
+  projectId                       String   @map("project_id") @db.Uuid
+  dashboardId                     String   @map("dashboard_id") @db.Uuid
+  dashboardVersionId              String   @map("dashboard_version_id") @db.Uuid
+  permissionProjectionVersionId   String   @map("permission_projection_version_id") @db.Uuid
+  datasetVersionId                String   @map("dataset_version_id") @db.Uuid
+  definitionIds                   Json     @map("definition_ids")
+  inputSelectorHash               String   @map("input_selector_hash") @db.Char(64)
+  sourceEventIds                  Json     @map("source_event_ids")
+  clientRequestIds                Json     @map("client_request_ids")
+  folderReplayKeys                Json     @map("folder_replay_keys")
+  state                           String   @db.VarChar(32)
+  leaseId                         String?  @map("lease_id") @db.VarChar(128)
+  debounceWindowMs                Int      @map("debounce_window_ms")
+  openedAtMs                      BigInt   @map("opened_at_ms")
+  updatedAtMs                     BigInt   @map("updated_at_ms")
+  updatedAt                       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([organizationId, workspaceId, projectId, dashboardId, state], map: "dashboard_refresh_executions_open_idx")
+  @@map("dashboard_refresh_executions")
+  @@schema("dda")
+}
+
+model DashboardRefreshIdempotencyRecord {
+  keyKind        String @map("key_kind") @db.VarChar(32)
+  keyValue       String @map("key_value") @db.VarChar(200)
+  refreshId      String @map("refresh_id") @db.Uuid
+  scopeType      String @map("scope_type") @db.VarChar(24)
+  organizationId String @map("organization_id") @db.Uuid
+  workspaceId    String @map("workspace_id") @db.Uuid
+  projectId      String @map("project_id") @db.Uuid
+
+  @@id([keyKind, keyValue], map: "dashboard_refresh_idempotency_pkey")
+  @@index([organizationId, workspaceId, projectId], map: "dashboard_refresh_idempotency_scope_idx")
+  @@map("dashboard_refresh_idempotency")
+  @@schema("dda")
+}
+
+/// Content-safe AUD correlation pointer for refresh events (no payload blobs).
+model DashboardRefreshEventCorrelationRecord {
+  eventId        String   @id @map("event_id") @db.Uuid
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  projectId      String   @map("project_id") @db.Uuid
+  dashboardId    String   @map("dashboard_id") @db.Uuid
+  snapshotId     String   @map("snapshot_id") @db.Uuid
+  freshnessState String   @map("freshness_state") @db.VarChar(32)
+  occurredAt     DateTime @map("occurred_at") @db.Timestamptz(6)
+  eventHash      String   @map("event_hash") @db.Char(64)
+
+  @@index([organizationId, workspaceId, projectId, dashboardId], map: "dashboard_refresh_event_corr_scope_idx")
+  @@map("dashboard_refresh_event_correlations")
+  @@schema("dda")
+}
+
+model EtlProposalRecord {
+  id               String   @id @db.Uuid
+  scopeType        String   @map("scope_type") @db.VarChar(24)
+  organizationId   String   @map("organization_id") @db.Uuid
+  workspaceId      String   @map("workspace_id") @db.Uuid
+  projectId        String   @map("project_id") @db.Uuid
+  revision         Int
+  state            String   @db.VarChar(32)
+  blockingReasons  Json     @map("blocking_reasons")
+  planDocument     Json     @map("plan_document")
+  reviewDocument   Json     @map("review_document")
+  createdAt        DateTime @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([organizationId, workspaceId, projectId], map: "etl_proposals_scope_idx")
+  @@map("etl_proposals")
+  @@schema("dda")
+}
+
+model DashboardRemovedWidgetRecord {
+  dashboardId    String @map("dashboard_id") @db.Uuid
+  widgetId       String @map("widget_id") @db.Uuid
+  organizationId String @map("organization_id") @db.Uuid
+  workspaceId    String @map("workspace_id") @db.Uuid
+  projectId      String @map("project_id") @db.Uuid
+  widgetDocument Json   @map("widget_document")
+
+  @@id([dashboardId, widgetId], map: "dashboard_removed_widgets_pkey")
+  @@index([organizationId, workspaceId, projectId], map: "dashboard_removed_widgets_scope_idx")
+  @@map("dashboard_removed_widgets")
+  @@schema("dda")
+}
+
+model DependencyProcessedEventRecord {
+  eventId  String @id @map("event_id") @db.Uuid
+  sequence Int
+
+  @@map("dependency_processed_events")
+  @@schema("dda")
+}
+
+model DependencySequenceRecord {
+  organizationId  String @map("organization_id") @db.Uuid
+  workspaceId     String @map("workspace_id") @db.Uuid
+  projectId       String @map("project_id") @db.Uuid
+  highestSequence Int    @map("highest_sequence")
+
+  @@id([organizationId, workspaceId, projectId], map: "dependency_sequences_pkey")
+  @@map("dependency_sequences")
+  @@schema("dda")
+}

@@ -9,6 +9,79 @@ import type {
   DdaRefreshStateV1,
   RefreshRepositoryPortV1,
 } from '../application/refresh-repository.port.js';
+import type {
+  RefreshLifecycleStateV1,
+  RefreshRecordV1,
+} from '../refresh/application/refresh-coordinator.port.js';
+
+export interface DashboardRefreshExecutionRowV1 {
+  readonly id: string;
+  readonly scopeType: string;
+  readonly organizationId: string;
+  readonly workspaceId: string;
+  readonly projectId: string;
+  readonly dashboardId: string;
+  readonly dashboardVersionId: string;
+  readonly permissionProjectionVersionId: string;
+  readonly datasetVersionId: string;
+  readonly definitionIds: unknown;
+  readonly inputSelectorHash: string;
+  readonly sourceEventIds: unknown;
+  readonly clientRequestIds: unknown;
+  readonly folderReplayKeys: unknown;
+  readonly state: string;
+  readonly leaseId: string | null;
+  readonly debounceWindowMs: number;
+  readonly openedAtMs: number;
+  readonly updatedAtMs: number;
+  readonly updatedAt: Date;
+}
+
+export interface DashboardRefreshExecutionCreateV1 {
+  readonly id: string;
+  readonly scopeType: string;
+  readonly organizationId: string;
+  readonly workspaceId: string;
+  readonly projectId: string;
+  readonly dashboardId: string;
+  readonly dashboardVersionId: string;
+  readonly permissionProjectionVersionId: string;
+  readonly datasetVersionId: string;
+  readonly definitionIds: unknown;
+  readonly inputSelectorHash: string;
+  readonly sourceEventIds: unknown;
+  readonly clientRequestIds: unknown;
+  readonly folderReplayKeys: unknown;
+  readonly state: string;
+  readonly leaseId: string | null;
+  readonly debounceWindowMs: number;
+  readonly openedAtMs: number;
+  readonly updatedAtMs: number;
+  readonly updatedAt: Date;
+}
+
+export interface DashboardRefreshIdempotencyRowV1 {
+  readonly keyKind: string;
+  readonly keyValue: string;
+  readonly refreshId: string;
+  readonly scopeType: string;
+  readonly organizationId: string;
+  readonly workspaceId: string;
+  readonly projectId: string;
+}
+
+export interface DashboardRefreshEventCorrelationRowV1 {
+  readonly eventId: string;
+  readonly scopeType: string;
+  readonly organizationId: string;
+  readonly workspaceId: string;
+  readonly projectId: string;
+  readonly dashboardId: string;
+  readonly snapshotId: string;
+  readonly freshnessState: string;
+  readonly occurredAt: Date;
+  readonly eventHash: string;
+}
 
 export interface DashboardRefreshStateRowV1 {
   readonly id: string;
@@ -110,6 +183,50 @@ export interface DdaRefreshDatabaseClientV1 {
         readonly projectId: string;
       };
     }): Promise<DashboardSnapshotRowV1 | null>;
+  };
+  readonly dashboardRefreshExecutionRecord: {
+    upsert(input: {
+      readonly where: { readonly id: string };
+      readonly create: DashboardRefreshExecutionCreateV1;
+      readonly update: Omit<DashboardRefreshExecutionCreateV1, 'id'>;
+    }): Promise<DashboardRefreshExecutionRowV1>;
+    findFirst(input: {
+      readonly where:
+        | { readonly id: string }
+        | {
+            readonly openForDashboard: {
+              readonly dashboardId: string;
+              readonly organizationId?: string;
+              readonly workspaceId?: string;
+              readonly projectId?: string;
+            };
+          };
+    }): Promise<DashboardRefreshExecutionRowV1 | null>;
+  };
+  readonly dashboardRefreshIdempotencyRecord: {
+    upsert(input: {
+      readonly where: {
+        readonly keyKind_keyValue: { readonly keyKind: string; readonly keyValue: string };
+      };
+      readonly create: DashboardRefreshIdempotencyRowV1;
+      readonly update: Omit<DashboardRefreshIdempotencyRowV1, 'keyKind' | 'keyValue'>;
+    }): Promise<DashboardRefreshIdempotencyRowV1>;
+    findFirst(input: {
+      readonly where: {
+        readonly keyKind: string;
+        readonly keyValue: string;
+        readonly organizationId?: string;
+        readonly workspaceId?: string;
+        readonly projectId?: string;
+      };
+    }): Promise<DashboardRefreshIdempotencyRowV1 | null>;
+  };
+  readonly dashboardRefreshEventCorrelationRecord?: {
+    upsert(input: {
+      readonly where: { readonly eventId: string };
+      readonly create: DashboardRefreshEventCorrelationRowV1;
+      readonly update: Omit<DashboardRefreshEventCorrelationRowV1, 'eventId'>;
+    }): Promise<DashboardRefreshEventCorrelationRowV1>;
   };
 }
 
@@ -298,9 +415,215 @@ export class PrismaRefreshRepositoryAdapter implements RefreshRepositoryPortV1 {
     return row === null ? undefined : rowToSnapshot(row);
   }
 
-  public recordRefreshEvent(event: DdaRefreshEventV1): Promise<void> {
-    // Refresh events remain AUD-correlated; DDA schema has no event blob table (DDA-001).
-    requireProjectScope(event.tenantScope);
-    return Promise.resolve();
+  public async recordRefreshEvent(event: DdaRefreshEventV1): Promise<void> {
+    const scope = scopeColumns(event.tenantScope);
+    const correlation = this.client.dashboardRefreshEventCorrelationRecord;
+    if (correlation === undefined) {
+      throw new Error('DDA_REFRESH_EVENT_CORRELATION_UNAVAILABLE');
+    }
+    const data: DashboardRefreshEventCorrelationRowV1 = {
+      eventId: event.eventId,
+      ...scope,
+      dashboardId: event.dashboardId,
+      snapshotId: event.snapshotId,
+      freshnessState: event.freshnessState,
+      occurredAt: new Date(event.occurredAt),
+      eventHash: event.eventHash,
+    };
+    await correlation.upsert({
+      where: { eventId: event.eventId },
+      create: data,
+      update: {
+        ...scope,
+        dashboardId: data.dashboardId,
+        snapshotId: data.snapshotId,
+        freshnessState: data.freshnessState,
+        occurredAt: data.occurredAt,
+        eventHash: data.eventHash,
+      },
+    });
   }
+
+  public async saveRefresh(record: RefreshRecordV1): Promise<void> {
+    const scope = scopeColumns(record.tenantScope);
+    const data: DashboardRefreshExecutionCreateV1 = {
+      id: record.refreshId,
+      ...scope,
+      dashboardId: record.dashboardId,
+      dashboardVersionId: record.dashboardVersionId,
+      permissionProjectionVersionId: record.permissionProjectionVersionId,
+      datasetVersionId: record.datasetVersionId,
+      definitionIds: record.definitionIds,
+      inputSelectorHash: record.inputSelectorHash,
+      sourceEventIds: record.sourceEventIds,
+      clientRequestIds: record.clientRequestIds,
+      folderReplayKeys: record.folderReplayKeys,
+      state: record.state,
+      leaseId: record.leaseId ?? null,
+      debounceWindowMs: record.debounceWindowMs,
+      openedAtMs: record.openedAtMs,
+      updatedAtMs: record.updatedAtMs,
+      updatedAt: new Date(record.updatedAtMs),
+    };
+    await this.client.dashboardRefreshExecutionRecord.upsert({
+      where: { id: record.refreshId },
+      create: data,
+      update: {
+        ...scope,
+        dashboardId: data.dashboardId,
+        dashboardVersionId: data.dashboardVersionId,
+        permissionProjectionVersionId: data.permissionProjectionVersionId,
+        datasetVersionId: data.datasetVersionId,
+        definitionIds: data.definitionIds,
+        inputSelectorHash: data.inputSelectorHash,
+        sourceEventIds: data.sourceEventIds,
+        clientRequestIds: data.clientRequestIds,
+        folderReplayKeys: data.folderReplayKeys,
+        state: data.state,
+        leaseId: data.leaseId,
+        debounceWindowMs: data.debounceWindowMs,
+        openedAtMs: data.openedAtMs,
+        updatedAtMs: data.updatedAtMs,
+        updatedAt: data.updatedAt,
+      },
+    });
+    for (const sourceEventId of record.sourceEventIds) {
+      await this.#saveIdempotency(scope, 'SOURCE_EVENT', sourceEventId, record.refreshId);
+    }
+    for (const clientRequestId of record.clientRequestIds) {
+      await this.#saveIdempotency(scope, 'CLIENT_REQUEST', clientRequestId, record.refreshId);
+    }
+    for (const folderReplayKey of record.folderReplayKeys) {
+      await this.#saveIdempotency(scope, 'FOLDER_REPLAY', folderReplayKey, record.refreshId);
+    }
+  }
+
+  public async findRefresh(refreshId: string): Promise<RefreshRecordV1 | undefined> {
+    const row = await this.client.dashboardRefreshExecutionRecord.findFirst({
+      where: { id: refreshId },
+    });
+    return row === null ? undefined : rowToRefresh(row);
+  }
+
+  public async findOpenRefresh(dashboardId: string): Promise<RefreshRecordV1 | undefined> {
+    const row = await this.client.dashboardRefreshExecutionRecord.findFirst({
+      where: { openForDashboard: { dashboardId } },
+    });
+    return row === null ? undefined : rowToRefresh(row);
+  }
+
+  public async findByIdempotency(input: {
+    readonly tenantScope?: TenantScopeV1;
+    readonly sourceEventId?: string;
+    readonly clientRequestId?: string;
+    readonly folderReplayKey?: string;
+  }): Promise<RefreshRecordV1 | undefined> {
+    const candidates: Array<{ readonly keyKind: string; readonly keyValue: string }> = [];
+    if (input.sourceEventId) {
+      candidates.push({ keyKind: 'SOURCE_EVENT', keyValue: input.sourceEventId });
+    }
+    if (input.clientRequestId) {
+      candidates.push({ keyKind: 'CLIENT_REQUEST', keyValue: input.clientRequestId });
+    }
+    if (input.folderReplayKey) {
+      candidates.push({ keyKind: 'FOLDER_REPLAY', keyValue: input.folderReplayKey });
+    }
+    const scope = input.tenantScope ? scopeColumns(input.tenantScope) : undefined;
+    for (const candidate of candidates) {
+      const row = await this.client.dashboardRefreshIdempotencyRecord.findFirst({
+        where: {
+          keyKind: candidate.keyKind,
+          keyValue: candidate.keyValue,
+          ...(scope === undefined
+            ? {}
+            : {
+                organizationId: scope.organizationId,
+                workspaceId: scope.workspaceId,
+                projectId: scope.projectId,
+              }),
+        },
+      });
+      if (row) return this.findRefresh(row.refreshId);
+    }
+    return undefined;
+  }
+
+  public async findLatestSnapshotForDashboard(
+    tenantScope: TenantScopeV1,
+    dashboardId: string,
+  ): Promise<DashboardSnapshotV1 | undefined> {
+    const state = await this.findState(tenantScope, dashboardId);
+    if (!state?.lastSnapshotId) return undefined;
+    return this.findSnapshot(tenantScope, state.lastSnapshotId);
+  }
+
+  async #saveIdempotency(
+    scope: {
+      readonly scopeType: string;
+      readonly organizationId: string;
+      readonly workspaceId: string;
+      readonly projectId: string;
+    },
+    keyKind: string,
+    keyValue: string,
+    refreshId: string,
+  ): Promise<void> {
+    const data: DashboardRefreshIdempotencyRowV1 = {
+      keyKind,
+      keyValue,
+      refreshId,
+      scopeType: scope.scopeType,
+      organizationId: scope.organizationId,
+      workspaceId: scope.workspaceId,
+      projectId: scope.projectId,
+    };
+    await this.client.dashboardRefreshIdempotencyRecord.upsert({
+      where: { keyKind_keyValue: { keyKind, keyValue } },
+      create: data,
+      update: {
+        refreshId,
+        scopeType: data.scopeType,
+        organizationId: data.organizationId,
+        workspaceId: data.workspaceId,
+        projectId: data.projectId,
+      },
+    });
+  }
+
+}
+
+function asStringArray(value: unknown): readonly string[] {
+  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
+    throw new Error('DDA_PERSISTED_REFRESH_INVALID');
+  }
+  return Object.freeze([...value]);
+}
+
+function rowToRefresh(row: DashboardRefreshExecutionRowV1): RefreshRecordV1 {
+  const parsed = parseTenantScopeV1({
+    scopeType: row.scopeType,
+    organizationId: row.organizationId,
+    workspaceId: row.workspaceId,
+    projectId: row.projectId,
+  });
+  if (!parsed.accepted) throw new Error('DDA_PERSISTED_SCOPE_INVALID');
+  const state = row.state as RefreshLifecycleStateV1;
+  return Object.freeze({
+    refreshId: row.id,
+    tenantScope: parsed.value,
+    dashboardId: row.dashboardId,
+    dashboardVersionId: row.dashboardVersionId,
+    permissionProjectionVersionId: row.permissionProjectionVersionId,
+    datasetVersionId: row.datasetVersionId,
+    definitionIds: asStringArray(row.definitionIds),
+    inputSelectorHash: row.inputSelectorHash,
+    sourceEventIds: asStringArray(row.sourceEventIds),
+    clientRequestIds: asStringArray(row.clientRequestIds),
+    folderReplayKeys: asStringArray(row.folderReplayKeys),
+    state,
+    ...(row.leaseId === null ? {} : { leaseId: row.leaseId }),
+    debounceWindowMs: row.debounceWindowMs,
+    openedAtMs: row.openedAtMs,
+    updatedAtMs: row.updatedAtMs,
+  });
 }
