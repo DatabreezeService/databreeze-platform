@@ -430,12 +430,12 @@
       "workPackageId": "DDA-086",
       "name": "android-receipts",
       "plan": "docs/plans/086-dda-android-receipts.md",
-      "status": "ready",
+      "status": "complete",
       "dependsOn": [
         "DDA-081"
       ],
       "parallelGroup": "DDA-G2",
-      "branch": "codex/dda-android-receipts",
+      "branch": "codex/dda-086-android-receipts",
       "tasks": [
         "Task 1: Capture and upload receipts securely",
         "Task 2: Extract and review versioned OCR candidates",
@@ -465,6 +465,19 @@
       "requiredChecks": [
         "cd apps/android; ./gradlew testDebugUnitTest lintDebug",
         "corepack pnpm --filter @databreeze/api test"
+      ],
+      "commit": "b936ccd81f9db1531de3956e332f128c8ad33014",
+      "evidence": [
+        "b936ccd81f9db1531de3956e332f128c8ad33014",
+        "apps/android/app/src/test/java/com/databreeze/android/receipts/ReceiptStagingIsolationTest.kt",
+        "apps/android/app/src/test/java/com/databreeze/android/receipts/ReceiptUploadSchedulerTest.kt",
+        "apps/android/app/src/test/java/com/databreeze/android/receipts/ReceiptReviewViewModelTest.kt",
+        "apps/android/app/src/test/java/com/databreeze/android/receipts/ReceiptValidationStateTest.kt",
+        "apps/android/app/src/androidTest/java/com/databreeze/android/receipts/ReceiptCaptureFlowTest.kt",
+        "services/api/test/features/dda/receipt-extraction.service.test.ts",
+        "services/api/test/features/dda/receipt-extraction.controller.test.ts",
+        "services/api/test/features/dda/receipt-validation.service.test.ts",
+        "services/api/test/features/dda/receipt-acceptance.service.test.ts"
       ]
     },
     {

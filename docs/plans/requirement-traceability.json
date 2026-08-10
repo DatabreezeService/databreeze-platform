@@ -4049,7 +4049,9 @@
       "priority": "P0",
       "primaryPlan": "086-dda-android-receipts.md",
       "primaryTask": "Task 1: Capture and upload receipts securely",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "apps/android/app/src/main/java/com/databreeze/android/receipts/",
         "services/api/src/features/dda/receipt/"
@@ -4060,12 +4062,14 @@
         "services/api/test/features/dda/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "b936ccd81f9db1531de3956e332f128c8ad33014",
+        "apps/android/app/src/test/java/com/databreeze/android/receipts/ReceiptStagingIsolationTest.kt",
+        "apps/android/app/src/test/java/com/databreeze/android/receipts/ReceiptUploadSchedulerTest.kt",
+        "apps/android/app/src/androidTest/java/com/databreeze/android/receipts/ReceiptCaptureFlowTest.kt",
+        "prototype-limitation: shutter-ui-in-memory-staging-no-emulator-not-full-android-p0"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -4075,7 +4079,9 @@
       "priority": "P0",
       "primaryPlan": "086-dda-android-receipts.md",
       "primaryTask": "Task 2: Extract and review versioned OCR candidates",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "apps/android/app/src/main/java/com/databreeze/android/receipts/",
         "services/api/src/features/dda/receipt/"
@@ -4086,12 +4092,14 @@
         "services/api/test/features/dda/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "b936ccd81f9db1531de3956e332f128c8ad33014",
+        "apps/android/app/src/test/java/com/databreeze/android/receipts/ReceiptReviewViewModelTest.kt",
+        "services/api/test/features/dda/receipt-extraction.service.test.ts",
+        "services/api/test/features/dda/receipt-extraction.controller.test.ts",
+        "prototype-limitation: deterministic-fake-ocr-not-aws-ocr"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -4101,7 +4109,9 @@
       "priority": "P0",
       "primaryPlan": "086-dda-android-receipts.md",
       "primaryTask": "Task 3: Validate and accept governed receipt data",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "apps/android/app/src/main/java/com/databreeze/android/receipts/",
         "services/api/src/features/dda/receipt/"
@@ -4112,12 +4122,14 @@
         "services/api/test/features/dda/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "b936ccd81f9db1531de3956e332f128c8ad33014",
+        "apps/android/app/src/test/java/com/databreeze/android/receipts/ReceiptValidationStateTest.kt",
+        "services/api/test/features/dda/receipt-validation.service.test.ts",
+        "services/api/test/features/dda/receipt-acceptance.service.test.ts",
+        "prototype-limitation: leaf-api-only-not-root-composed"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
