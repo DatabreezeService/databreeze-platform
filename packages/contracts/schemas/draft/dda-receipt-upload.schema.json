@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/dda-receipt-upload",
+  "$comment": "DRAFT ONLY — not registered in published contracts v1 (immutability forbids additive schemas). Promote via a new contract version/IDs before generation. DDA-040 wire envelope without bytes or local paths; operation-specific required fields enforced by authenticated clients and API handlers.",
+  "title": "DDA Receipt Upload Wire Envelope",
+  "description": "Content-safe control-plane messages for create session, part transfer, completion, extraction, candidate read/correction, and acceptance status.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "operation",
+    "tenantScope",
+    "idempotencyKey",
+    "revision"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "operation": {
+      "type": "string",
+      "pattern": "^(CREATE_SESSION|ISSUE_PART_TRANSFER|TRANSFER_OUTCOME|RECORD_PART|COMPLETE_SESSION|REQUEST_EXTRACTION|READ_CANDIDATE|CORRECT_CANDIDATE|ACCEPTANCE_STATUS)$"
+    },
+    "tenantScope": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/tenant-scope"
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+    },
+    "revision": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/revision"
+    },
+    "sessionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "artifactId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "artifactVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "candidateId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "transferId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "workspaceGrantId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "expectedSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "expectedByteSize": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 20971520
+    },
+    "mediaType": {
+      "type": "string",
+      "pattern": "^(image/jpeg|image/png|image/webp)$"
+    },
+    "partNumber": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000
+    },
+    "partSize": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5242880
+    },
+    "partSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "partByteSize": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5242880
+    },
+    "transferGrantHandle": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$"
+    },
+    "transferOutcome": {
+      "type": "string",
+      "pattern": "^(SUCCEEDED|RETRYABLE|TERMINAL_FAILURE)$"
+    },
+    "profileVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "correlationId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "acceptanceState": {
+      "type": "string",
+      "pattern": "^(PENDING_REVIEW|ACCEPTED|REJECTED|NEEDS_CORRECTION)$"
+    },
+    "issuedAt": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+    },
+    "expiresAt": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+    }
+  }
+}
