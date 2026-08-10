@@ -4,6 +4,8 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { openaiReceiptTextFormatV1 } from '@databreeze/domain/dda-receipt-openai/v1';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FIXTURE_DIR = join(
   __dirname,
@@ -32,6 +34,8 @@ function parseArgs(argv) {
   };
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i];
+    // pnpm may forward a literal "--" separator; ignore it.
+    if (token === '--') continue;
     if (token === '--live') args.live = true;
     else if (token === '--acknowledge-external-egress') args.acknowledgeExternalEgress = true;
     else if (token === '--corpus') args.corpus = argv[++i];
@@ -41,6 +45,34 @@ function parseArgs(argv) {
   }
   if (args.live) args.mode = 'live';
   return args;
+}
+
+function sanitizeProviderErrorText(value) {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  for (const pattern of SECRET_FRAGMENT_PATTERNS) {
+    if (pattern.test(trimmed)) return undefined;
+  }
+  if (/data:image\//iu.test(trimmed)) return undefined;
+  if (/Authorization/iu.test(trimmed)) return undefined;
+  return trimmed.slice(0, 300);
+}
+
+export function formatProviderHttpError(status, body) {
+  const parts = [`provider HTTP ${status}`];
+  if (body && typeof body === 'object' && !Array.isArray(body)) {
+    const error = body.error && typeof body.error === 'object' && !Array.isArray(body.error)
+      ? body.error
+      : body;
+    const type = sanitizeProviderErrorText(error.type);
+    const code = sanitizeProviderErrorText(error.code);
+    const message = sanitizeProviderErrorText(error.message);
+    if (type) parts.push(`type=${type}`);
+    if (code) parts.push(`code=${code}`);
+    if (message) parts.push(`message=${message}`);
+  }
+  return parts.join(' ');
 }
 
 function sha256(bytes) {
@@ -373,45 +405,7 @@ async function runLive(args) {
         store: false,
         tools: [],
         max_output_tokens: 2048,
-        text: {
-          format: {
-            type: 'json_schema',
-            name: 'dda_receipt_candidate_v1',
-            strict: true,
-            schema: {
-              type: 'object',
-              additionalProperties: false,
-              required: [
-                'merchant',
-                'transactionDate',
-                'transactionTime',
-                'currency',
-                'subtotal',
-                'tax',
-                'total',
-                'paymentMethod',
-                'paymentReference',
-                'lineItems',
-              ],
-              properties: {
-                merchant: { type: 'object', additionalProperties: true },
-                transactionDate: { type: 'object', additionalProperties: true },
-                transactionTime: { type: ['object', 'null'], additionalProperties: true },
-                currency: { type: 'object', additionalProperties: true },
-                subtotal: { type: 'object', additionalProperties: true },
-                tax: { type: 'object', additionalProperties: true },
-                total: { type: 'object', additionalProperties: true },
-                paymentMethod: { type: ['object', 'null'], additionalProperties: true },
-                paymentReference: { type: ['object', 'null'], additionalProperties: true },
-                lineItems: {
-                  type: 'array',
-                  maxItems: 40,
-                  items: { type: 'object', additionalProperties: true },
-                },
-              },
-            },
-          },
-        },
+        text: openaiReceiptTextFormatV1(),
         input: [
           {
             role: 'user',
@@ -431,7 +425,13 @@ async function runLive(args) {
       }),
     });
     if (!httpResponse.ok) {
-      fail(`provider HTTP ${httpResponse.status}`);
+      let errorBody;
+      try {
+        errorBody = await httpResponse.json();
+      } catch {
+        errorBody = undefined;
+      }
+      fail(formatProviderHttpError(httpResponse.status, errorBody));
     }
     const response = await httpResponse.json();
 

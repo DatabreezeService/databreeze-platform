@@ -425,7 +425,7 @@ try {
   $env:DATABREEZE_OPENAI_RECEIPT_ENABLED = 'true'
   $env:DATABREEZE_OPENAI_RECEIPT_MODEL = 'gpt-4o-mini-2024-07-18'
   $env:DATABREEZE_OPENAI_IMAGE_DETAIL = 'high'
-  corepack pnpm --filter @databreeze/fixture-validation openai:receipt:live -- --live --acknowledge-external-egress --corpus synthetic --max-requests 3 --max-input-bytes 3000000
+  corepack pnpm --filter @databreeze/fixture-validation openai:receipt:live -- --acknowledge-external-egress --corpus synthetic --max-requests 3 --max-input-bytes 3000000
 } finally {
   Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue
   Remove-Item Env:DATABREEZE_OPENAI_RECEIPT_ENABLED -ErrorAction SilentlyContinue

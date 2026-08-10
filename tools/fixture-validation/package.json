@@ -10,7 +10,8 @@
     "openai:receipt:live": "node src/run-openai-receipt-eval.mjs --live"
   },
   "dependencies": {
-    "@databreeze/contracts": "workspace:*"
+    "@databreeze/contracts": "workspace:*",
+    "@databreeze/domain": "workspace:*"
   },
   "devDependencies": {
     "typescript": "5.9.2"

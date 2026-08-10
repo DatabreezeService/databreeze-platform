@@ -299,6 +299,9 @@ importers:
       '@databreeze/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@databreeze/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
     devDependencies:
       typescript:
         specifier: 5.9.2
