@@ -9,6 +9,8 @@
 
 **Goal:** Finish every agent-implementable Data-to-Dashboard product and production-hardening task before asking the product owner for live AWS/OpenAI, signing, store, legal, or release actions.
 
+**Approved owner-priority exception:** After Tasks 1-3 are green, plan [`403-openai-development-validation.md`](403-openai-development-validation.md) may execute before Task 4. It completes the missing offline OpenAI contracts first and allows only a request-capped synthetic development evaluation run manually by the owner. It does not authorize production credentials, customer data, or a production-readiness claim. Resume this plan at the next unfinished task afterward and reuse plan-403 evidence for Task 8.
+
 **Architecture:** Continue from the integrated modular-monolith/API, Python engine, React Web, Electron Desktop, and native Kotlin Android implementation. Production paths use durable PostgreSQL metadata, foundation public contracts, authenticated client APIs, typed jobs, immutable evidence, and fail-closed provider adapters. Local tests, synthetic fixtures, mocked provider contracts, an Android emulator, and non-applying OpenTofu validation prove the code before external activation.
 
 **Tech Stack:** NestJS/Fastify/Prisma/PostgreSQL, Python 3.13, React/Vite/Playwright, Electron/Vitest, Kotlin/Compose/CameraX/Room/WorkManager, JSON Schema generated contracts, OpenAI Responses adapter, OpenTofu/AWS, GitHub Actions, Node test runner, ESLint, Prettier.
