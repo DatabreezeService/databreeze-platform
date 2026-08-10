@@ -7,7 +7,7 @@
 
 The original product suite specified ten specialist modules across three applications. That suite established valuable shared foundations but made the first product release too broad. Product review selected a clearer primary outcome: users bring their own data, review governed ETL and quality, receive an editable interactive dashboard from an agent, ask evidence-backed questions, and see dashboards update efficiently after accepted data changes.
 
-Web is cloud-first, Windows Desktop provides Local/Hybrid approved-folder processing, and Android initially provides cloud-connected receipt/document capture and dashboard consumption. AWS Singapore remains the first hosted target, but product contracts remain provider-neutral.
+Web is cloud-first, Windows Desktop provides Local/Hybrid approved-folder processing, and Android initially provides cloud-connected receipt/document capture and dashboard consumption. AWS Singapore remains the first hosted target, but product contracts remain provider-neutral. [ADR-0005](0005-openai-ai-ocr-on-aws-hosting.md) selects OpenAI as the initial AI and receipt-extraction provider behind those contracts.
 
 Continuously querying raw datasets for every page view would increase cost, complicate consistent publication, and make Local/Hybrid evidence harder to govern. Fixed-interval polling also wastes work when data has not changed.
 
@@ -22,7 +22,7 @@ Continuously querying raw datasets for every page view would increase cost, comp
 7. Make `ON_CHANGE` the default refresh mode: accepted dataset events resolve affected dependencies, debounce compatible changes, execute idempotent materialization jobs, and atomically publish a complete snapshot.
 8. Preserve the last complete snapshot when refresh is partial, failed, blocked, or waiting for a Local source.
 9. Support `MANUAL` and `SCHEDULED` refresh in V1; defer genuine streaming until a separate specification defines ordering, lateness, replay, corrections, capacity, and cost.
-10. Keep OCR and AI providers behind versioned adapters. A later accepted deployment/provider decision may select an initial AWS OCR service without changing domain semantics.
+10. Keep OCR and AI providers behind versioned adapters. ADR-0005 selects the OpenAI API for the initial deployment while AWS remains the hosting platform; this selection does not change domain semantics.
 
 ## Consequences
 

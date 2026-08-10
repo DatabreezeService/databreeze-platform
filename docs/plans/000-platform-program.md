@@ -20,19 +20,19 @@ The repository contains 662 normative requirements. The 51 DDA requirements defi
 - The V1 product is DDA, delivered sequentially as Cloud dashboard foundation, Hybrid Desktop folder intake, and cloud-connected Android receipt capture.
 - Dashboard views use permission-scoped materialized results and complete immutable snapshots. `ON_CHANGE` is the default; `MANUAL` and `SCHEDULED` are supported; streaming is deferred.
 - AI proposes typed plans/presentation only. Deterministic processors calculate authoritative values; no arbitrary generated code or silent publication.
-- AWS Singapore remains the first hosted target through portable containers and OpenTofu. OCR/AI contracts remain provider-neutral.
+- AWS Singapore remains the first hosted target through portable containers and OpenTofu. OpenAI is the initial server-side OCR/AI provider under ADR-0005; domain contracts remain provider-neutral.
 - The DataBreeze name, canonical logo, Vietnamese-default locale, and complete English fallback remain unchanged.
-- A 24-hour build is a mentor-demo prototype gate, not production readiness.
+- Delivery is task- and evidence-gated. No schedule, parallelism level, or successful fixture journey waives a production requirement.
 
 ## Delivery program
 
 | Phase | Plan | Release gate |
 |---|---|---|
 | Foundation evidence | `010`-`060` | Existing identity, artifacts/datasets/evidence, jobs/approvals, devices/sync, and collaboration authorities are green for the invoked slice. |
-| V1 program | `080-data-to-dashboard-program.md` | Direction, ownership, dependencies, dispatch packets, prototype limitations, and production gates are approved. |
+| V1 program | `080-data-to-dashboard-program.md` | Direction, provider boundary, ownership, dependencies, dispatch packets, complete task graph, and production gates are approved. |
 | Contract gate | `081-dda-contracts-and-authorities.md` | Domain/wire/persistence vocabulary, authority boundaries, policies, and cross-language fixtures are frozen and green. |
 | Parallel product lanes | `082`-`086` | Cloud ETL, analyst/canvas, materialization/refresh, Desktop folders, and Android receipts pass their independent handoff gates. |
-| Integration | `087-dda-integration-readiness.md` | Ordered integration, Local/Cloud parity, golden demo, honest traceability, and release gaps are reproducible. |
+| Integration | `087-dda-integration-readiness.md` | Ordered integration, Local/Cloud parity, the golden cross-platform journey, honest traceability, and release gaps are reproducible. |
 | Production | `400-production-readiness.md` | Security, tenant isolation, signing, restoration, scaling, accessibility, performance, support, and progressive release gates pass. |
 | Post-V1 | `070`, `100`-`320`, `500` | Specialist capabilities begin only through a later approved change and child plan. |
 

@@ -76,8 +76,20 @@ function check() {
 
   if (ledger.version !== 1) diagnostics.push('DDA orchestration version must be 1');
   if (ledger.program !== 'data-to-dashboard-v1') diagnostics.push('unexpected DDA program name');
-  if (ledger.prototype?.productionReady !== false) {
-    diagnostics.push('24-hour prototype must not be marked production ready');
+  if (ledger.delivery?.mode !== 'task-gated-complete-program') {
+    diagnostics.push('DDA delivery mode must be task-gated-complete-program');
+  }
+  if (ledger.delivery?.targetClaim !== 'production-after-g5-evidence') {
+    diagnostics.push('DDA target claim must remain production-after-g5-evidence');
+  }
+  if (ledger.delivery?.productionReady !== false) {
+    diagnostics.push('DDA must not be marked production ready before G5 evidence is accepted');
+  }
+  if (
+    !Array.isArray(ledger.delivery?.goldenJourney) ||
+    ledger.delivery.goldenJourney.length === 0
+  ) {
+    diagnostics.push('DDA delivery must declare at least one golden journey');
   }
   for (const authorityPath of Object.values(ledger.authority ?? {})) {
     const normalized = normalizeDeclaredPath(authorityPath);

@@ -2,7 +2,7 @@
 
 **Status:** Product specification<br>
 **Version:** 2.0<br>
-**Related decisions:** [Clean monorepo](../decisions/0001-clean-monorepo.md), [technology stack](../decisions/0002-technology-stack.md), [data-to-dashboard direction and materialized refresh](../decisions/0004-data-to-dashboard-direction.md)
+**Related decisions:** [Clean monorepo](../decisions/0001-clean-monorepo.md), [technology stack](../decisions/0002-technology-stack.md), [data-to-dashboard direction and materialized refresh](../decisions/0004-data-to-dashboard-direction.md), [OpenAI AI/OCR on AWS hosting](../decisions/0005-openai-ai-ocr-on-aws-hosting.md)
 
 ## 1. Architectural Outcome
 
@@ -80,6 +80,8 @@ A versioned Python package used by both cloud workers and Desktop. It owns:
 - Provider-neutral assisted classification and narrative adapters
 
 The engine has no authority to decide tenant access, billing, approval, or publication. It receives capability-scoped jobs and emits validated results.
+
+The initial cloud OCR/AI adapter calls the OpenAI Responses API from a server-side API or worker boundary. AWS Secrets Manager owns the credential; no client receives it. Requests use bounded policy-approved inputs, strict structured schemas where applicable, disabled tools for receipt extraction, and `store: false`. Provider outputs are untrusted candidates until DataBreeze validates schema, coordinates, exact input/version bindings, deterministic rules, and permitted effects.
 
 Cloud workers do not connect to PostgreSQL. Redis carries non-authoritative dispatch hints; a mutually authenticated internal worker API owns lease claims, heartbeats, scoped input grants, result validation, and durable commits. Object access uses short-lived job-bound grants. This keeps workers unable to enumerate a workspace or bypass application authorization.
 
@@ -188,6 +190,7 @@ Early production uses:
 - S3-compatible object storage with lifecycle rules and versioning where available
 - Managed Redis with persistence configured for dispatch recovery, while PostgreSQL remains authoritative
 - Independently scalable Python worker pools by workload class
+- Server-side OpenAI Responses API adapters for initial receipt extraction and optional assisted planning/narrative; AWS remains the hosting and authoritative-data platform
 - Transactional email and push adapters, plus an optional commercial payment adapter behind interfaces; private/noncommercial entitlement operation requires no payment provider
 
 Regional or dedicated deployments may be added without changing domain contracts. Kubernetes is not required initially.

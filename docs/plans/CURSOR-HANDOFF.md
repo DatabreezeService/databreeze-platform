@@ -13,12 +13,12 @@ This file is a self-contained entry point for Cursor or another coding agent. It
 ```text
 You are the implementation coordinator for DataBreeze V1 in the databreeze-platform repository.
 
-Your overall mission is to implement the complete Data-to-Dashboard Agent across Web, Windows Desktop, Android, the NestJS API, and the Python engine. However, your immediate work package is ONLY docs/plans/081-dda-contracts-and-authorities.md. Do not start plans 082-087 until the 081 contract gate is implemented, freshly verified, committed, and recorded by the coordinator.
+Your single overall assignment is to implement the complete production-gated Data-to-Dashboard Agent across Web, Windows Desktop, Android, the NestJS API, the Python engine, OpenAI provider adapters, and AWS deployment/readiness. Treat plans 081-087 and applicable plan 400 gates as one dependency-ordered program. Begin with docs/plans/081-dda-contracts-and-authorities.md; do not start downstream lanes until its contract gate is freshly verified and committed. After each gate passes, continue to the next dependency-safe tasks without waiting for an hourly checkpoint. Stop only for a declared stop condition, missing external authority/credential, or a decision that would change the accepted specification.
 
 Before editing anything:
 1. Read AGENTS.md and docs/README.md.
 2. Read docs/plans/CURSOR-HANDOFF.md completely.
-3. Read docs/decisions/0004-data-to-dashboard-direction.md.
+3. Read docs/decisions/0004-data-to-dashboard-direction.md and docs/decisions/0005-openai-ai-ocr-on-aws-hosting.md.
 4. Read docs/specs/features/data-to-dashboard-agent.md completely.
 5. Read docs/plans/080-data-to-dashboard-program.md and docs/plans/data-to-dashboard-orchestration.json.
 6. Read docs/plans/081-dda-contracts-and-authorities.md completely.
@@ -35,13 +35,13 @@ Non-negotiable product intent:
 - Vietnamese-first data-to-dashboard agent, with complete English support.
 - Web is cloud-first: CSV/XLSX upload, visible ETL/data-quality review, analyst, editable dashboard canvas, publication, sharing, and refresh.
 - Desktop is Local/Hybrid: the user explicitly selects an approved folder; actual paths stay local; new stable CSV/XLSX files are detected, reviewed/processed locally, and only approved projections synchronize.
-- Android is cloud-connected initially: active receipt capture, encrypted staging, resumable upload, OCR review/correction, governed acceptance, dashboard viewing, and focused analysis. AWS Singapore is the first hosting target, but OCR/AI domain contracts stay provider-neutral.
+- Android is cloud-connected initially: active receipt capture, encrypted staging, resumable upload, OCR review/correction, governed acceptance, dashboard viewing, and focused analysis. AWS Singapore hosts DataBreeze; the initial server-side OCR/AI implementation uses the OpenAI Responses API behind provider-neutral domain ports.
 - ETL is visible and governed: show transformations, assumptions, before/after samples, changed/unchanged/rejected counts, exclusions, lineage, cost, and separate completeness/validity/uniqueness/consistency/freshness/extraction-confidence dimensions.
 - Never claim “percentage correct” without ground truth.
 - AI may propose typed plans, explanations, and canvas changes. It may not calculate authoritative numbers, execute arbitrary SQL/Python/JavaScript/shell, publish silently, broaden permissions, or transfer data across policy boundaries.
 - Dashboards are interactive pages on an editable canvas, but ordinary views use permission-scoped materialized results and immutable complete snapshots to control cost.
 - ON_CHANGE is the default refresh: accepted DatasetVersion event -> affected dependencies only -> idempotent materialization -> complete atomic snapshot -> content-safe client event. Preserve the last good snapshot on failure. MANUAL and SCHEDULED are also V1; genuine streaming is deferred.
-- The 24-hour goal is an honest mentor-demo prototype, not production readiness.
+- Execute the complete program by dependency-ordered tasks rather than an hourly schedule. A task is complete only when its requirement-linked evidence exists; fixture or fake behavior remains partial.
 
 Engineering constraints:
 - Follow test-driven changes and link tests to requirement IDs.
@@ -49,14 +49,15 @@ Engineering constraints:
 - Feature modules use foundation public contracts and never read another feature’s persistence directly.
 - Clients/workers consume generated contracts; never hand-edit generated TypeScript, Kotlin, or Python outputs.
 - Originals and accepted versions are immutable. Rejections and unsupported scopes are counted and discoverable.
+- OpenAI credentials remain server-side in AWS Secrets Manager. Receipt extraction uses egress/admission checks, strict structured output, `store: false`, tools disabled, versioned prompts/schemas/preprocessing, deterministic validation, and human review.
 - Preserve unrelated work and never commit secrets, customer data, local paths, runtime artifacts, local databases, generated reports, or Office lock files.
 
 Execution:
-- Complete plan 081 first and return its commit hash, fixture hashes, requirement-linked tests, commands/results, migration/rollback notes, and contract decisions.
+- Complete plan 081 first and record its commit hash, fixture hashes, requirement-linked tests, commands/results, migration/rollback notes, and contract decisions; then continue the same overall assignment with the dependency-safe lanes.
 - After 081 is green, either continue sequentially or use isolated agents/worktrees for plans 082, 083, 084, 085, and 086. Respect the exact write ownership in data-to-dashboard-orchestration.json.
 - Integrate in this order: 082, 084, 083, 085, 086; then execute 087.
 - Do not mark a requirement partial/verified yourself unless you are the integration owner and exact evidence paths exist with fresh passing tests.
-- Production claims additionally require plan 400.
+- Continue through applicable plan 400 production and staged-release gates; do not stop after the golden journey and call the program complete.
 
 Stop and report instead of improvising if specifications conflict, a contract must change after downstream work begins, a lane needs another lane’s locked files, an action would weaken a security/data boundary, or completion needs unavailable external authority/provider credentials.
 
@@ -66,7 +67,7 @@ At every handoff report:
 - Fresh commands, exit codes, test counts, and skips
 - Migrations and rollback behavior
 - Security/data-mode/evidence implications
-- Known limitations and prototype-only fakes
+- Known limitations, fixture-only fakes, and production blockers
 - Contract change requests or integration risks
 - The next dependency-safe work package
 ```
@@ -84,7 +85,7 @@ The user deliberately replaced the original “ten products at once” direction
 7. Android receipt/document capture with OCR and explicit field-level review.
 8. A cost-aware path from dashboard creation to update-after-new-data behavior: do not repeatedly query raw data for every viewer and do not poll every fifteen minutes without a trusted change.
 9. Hybrid operation: Local/Hybrid Desktop plus cloud Web/mobile, with explicit user-controlled publication projections.
-10. All of the above in V1, while accepting that the 24-hour result is a demonstrable prototype rather than a hardened production release.
+10. All of the above in one complete task-driven V1 program, including production-readiness and staged-release gates in the same assignment.
 
 The ten earlier specialist modules remain later extensions. They are not the first-release implementation queue.
 
@@ -94,7 +95,7 @@ Cursor must resolve ambiguity in this order:
 
 1. `AGENTS.md`
 2. `docs/README.md`
-3. Accepted ADRs, especially `docs/decisions/0004-data-to-dashboard-direction.md`
+3. Accepted ADRs, especially `docs/decisions/0004-data-to-dashboard-direction.md` and `docs/decisions/0005-openai-ai-ocr-on-aws-hosting.md`
 4. `docs/specs/features/data-to-dashboard-agent.md` (`DDA-001` through `DDA-051`)
 5. Applicable foundation/platform specifications in `docs/specs/`
 6. `docs/plans/000-platform-program.md`
@@ -169,7 +170,7 @@ These results prove reusable foundations only. Cursor must rerun them in its own
 - Explicit CameraX/document capture for an authorized Hybrid/Cloud destination.
 - Immutable original plus encrypted account/workspace-scoped staging.
 - Unique idempotent WorkManager upload.
-- Provider-neutral receipt OCR profile: merchant, date/time, currency, subtotal, tax, total, optional payment method/reference and line items, confidence, model/adapter version, evidence coordinates.
+- Provider-neutral receipt OCR profile implemented initially with a server-side OpenAI Responses adapter: merchant, date/time, currency, subtotal, tax, total, optional payment method/reference and line items, confidence, model/adapter/prompt/schema version, evidence coordinates, strict structured output, and deterministic validation.
 - Deterministic total/type/currency/date and probable-duplicate validation.
 - Field-level correction/versioning and review before DSM acceptance.
 - Dashboard viewing, freshness/caveats, and focused analyst questions.
@@ -205,16 +206,16 @@ The UI must not invent one “correctness percentage.” Report these separately
 
 An optional aggregate quality summary must disclose its deterministic formula and cannot claim factual correctness.
 
-## Prototype acceptance journey
+## Complete cross-platform acceptance journey
 
-The 24-hour mentor prototype is successful when it can honestly demonstrate:
+The integrated product journey must demonstrate:
 
 1. A messy sales CSV/XLSX is uploaded, profiled, visibly reviewed, accepted, and turned into an editable published dashboard.
 2. A compatible file added to an approved Desktop folder creates a reviewed Local/Hybrid update and refreshes only affected dashboard results.
 3. A receipt captured on Android is uploaded, OCR-reviewed/corrected, accepted, and reflected in an expense view.
-4. AI disabled and source-device-offline states still leave deterministic/manual behavior and the last good snapshot usable with clear caveats.
+4. OpenAI disabled, refused, rate-limited, or unavailable and source-device-offline states still leave deterministic/manual behavior and the last good snapshot usable with clear caveats.
 
-Fixture-backed adapters and constrained volumes are acceptable for this prototype only when labeled. Tenant isolation, production security, provider operation, disaster recovery, and the 60-second p95 target are not claimed without their own evidence.
+Fixture-backed adapters and constrained volumes are useful for isolated tests but remain partial evidence. Production additionally requires the live server-side OpenAI adapter, pinned-model evaluation, tenant isolation, provider retention/egress approval, disaster recovery, accessibility, signing, load/cost controls, and the 60-second p95 evidence.
 
 ## Explicit non-goals and prohibited shortcuts
 
@@ -228,9 +229,9 @@ Fixture-backed adapters and constrained volumes are acceptable for this prototyp
 - Do not hand clients/workers database credentials or let one feature read another feature's persistence.
 - Do not hand-edit generated contracts.
 - Do not mark fixture-only or in-memory behavior production verified.
-- Do not bypass plan 081 to save time.
+- Do not bypass plan 081 even when Cursor can implement multiple lanes quickly.
 
-## Execution order
+## One complete task-driven execution program
 
 ### Gate 1 — sequential
 
@@ -250,9 +251,9 @@ If Cursor can coordinate isolated agents/worktrees, these five lanes may run in 
 
 Execute `087-dda-integration-readiness.md`. Integrate lanes in order `082`, `084`, `083`, `085`, `086`; reconcile root composition/generated files/migrations; run parity and the golden journey; update evidence honestly.
 
-### Gate 4 — production
+### Gate 4 — production and release
 
-Execute applicable `400-production-readiness.md` gates before any production-release claim.
+Execute all applicable `400-production-readiness.md` gates, configure and evaluate the live OpenAI project/model, sign Desktop/Android artifacts, prove backup/restore and rollback, deploy through staged AWS environments, run real-device and synthetic smoke checks, and approve the monitored production release.
 
 ## Baseline and handoff verification
 

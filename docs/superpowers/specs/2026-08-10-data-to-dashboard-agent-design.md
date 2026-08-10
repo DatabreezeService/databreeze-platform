@@ -102,7 +102,7 @@ Known compatible files may process automatically. Schema drift, overlapping peri
 
 The initial receipt profile includes merchant, transaction date/time, currency, subtotal, tax, total, optional payment method/reference, and optional line items. OCR candidates retain field/token confidence, model version, and evidence coordinates. Deterministic checks reconcile subtotal, tax, and total and detect probable duplicate captures. Low-confidence or conflicting values require review before they enter a governed dataset version.
 
-The product specification remains provider-neutral. AWS is the first hosting target; a selected OCR service is recorded behind a versioned adapter and a separate architecture decision so provider replacement does not change domain behavior.
+The product specification remains provider-neutral. AWS Singapore is the first hosting target, while the initial receipt-extraction and optional AI implementation uses the OpenAI Responses API under ADR-0005. Only server-side adapters call OpenAI. Receipt images and bounded governed context cross that external-provider boundary only when workspace egress policy permits it. Strict structured responses remain candidates: deterministic reconciliation, duplicate checks, permissions, evidence validation, and human review decide acceptance.
 
 ## 10. Security and failure behavior
 
@@ -123,7 +123,7 @@ The complete V1 direction is delivered sequentially:
 2. **Hybrid Desktop:** approved-folder catalog, local ETL/analysis, publication projection, sync, and cloud refresh.
 3. **Cloud-connected Android capture:** receipt scanning, resumable upload, OCR review, governed record creation, and dashboard/analyst consumption.
 
-A 24-hour mentor build is a non-production prototype gate, not the production definition of done. Its golden demonstration is: messy sales data becomes a reviewed dashboard; a new approved folder file refreshes affected widgets; a reviewed mobile receipt updates an expense view. It may constrain formats, volume, widget catalog, personas, and adapters, but it may not claim production security, retention, tenant-isolation, recovery, or parity verification without evidence.
+Delivery is task-gated rather than time-gated. The complete program implements contracts, cloud intake/ETL, analyst/canvas, materialization/refresh, Desktop folders, Android/OpenAI receipt extraction, integration/parity, and production readiness. Its golden journey is: messy sales data becomes a reviewed dashboard; a new approved folder file refreshes affected widgets; and a reviewed mobile receipt updates an expense view. No deadline or successful fixture demonstration waives production security, retention, tenant-isolation, recovery, accessibility, performance, provider, signing, or parity evidence.
 
 ## 12. Deferred specialist extensions
 

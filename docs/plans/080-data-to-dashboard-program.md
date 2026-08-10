@@ -3,14 +3,14 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to execute an approved child plan. Use `superpowers:test-driven-development` for each behavior change and `superpowers:verification-before-completion` before every handoff.
 
 **Status:** Approved<br>
-**Decision authority:** [ADR-0004](../decisions/0004-data-to-dashboard-direction.md)<br>
+**Decision authorities:** [ADR-0004](../decisions/0004-data-to-dashboard-direction.md), [ADR-0005](../decisions/0005-openai-ai-ocr-on-aws-hosting.md)<br>
 **Product authority:** [DDA specification](../specs/features/data-to-dashboard-agent.md)<br>
 **Machine-readable DAG:** [`data-to-dashboard-orchestration.json`](data-to-dashboard-orchestration.json)<br>
 **Agent handoff:** [`CURSOR-HANDOFF.md`](CURSOR-HANDOFF.md)
 
 **Goal:** Deliver DataBreeze V1 as one Vietnamese-first data-to-dashboard agent across Web, Windows Desktop, and Android while preserving the platform's existing identity, evidence, dataset, job, device, data-mode, usage, and audit authorities.
 
-**Architecture:** A contract-first DDA module composes existing foundation APIs. Web owns cloud intake, review, analyst, canvas, and publication. The Python engine owns deterministic ETL and materialization processors. Desktop owns approved local folder paths and Local/Hybrid execution. Android owns active receipt capture and durable upload. Dashboard views read permission-scoped immutable materializations; accepted data-version events trigger dependency-aware refresh and atomic snapshot publication.
+**Architecture:** A contract-first DDA module composes existing foundation APIs. Web owns cloud intake, review, analyst, canvas, and publication. The Python engine owns deterministic ETL and materialization processors. Desktop owns approved local folder paths and Local/Hybrid execution. Android owns active receipt capture and durable upload. Server-side provider-neutral ports use OpenAI as the initial receipt-extraction and optional AI provider; AWS remains the hosting and authoritative-data platform. Dashboard views read permission-scoped immutable materializations; accepted data-version events trigger dependency-aware refresh and atomic snapshot publication.
 
 **Tech Stack:** React 19/TypeScript/Vite; Electron with a signed Python sidecar; native Kotlin/Compose, Room, WorkManager, and CameraX; NestJS/Fastify/Prisma/PostgreSQL; Python 3.13 with Pydantic and bounded Polars/DuckDB additions when a processor needs them; JSON Schema-generated TypeScript/Kotlin/Python contracts; S3-compatible object storage; Redis only for non-authoritative coordination.
 
@@ -23,7 +23,8 @@
 - Vietnamese is the default complete locale and English is a complete secondary locale on all delivered surfaces.
 - Hybrid remains the default. Cloud cannot receive local paths or Local-only bytes; any Hybrid publication requires an explicit previewed projection.
 - AI may propose typed plans and narratives but never authoritative numbers, arbitrary SQL/code, silent publication, permission expansion, or policy transfer.
-- The 24-hour outcome is a mentor-demo prototype gate. It is not a production, security, scale, recovery, parity, or compliance claim.
+- OpenAI calls are server-side only, egress-policy checked, schema validated, cost admitted, and audited. Production receipt extraction uses an evaluated pinned model snapshot and never treats model output as accepted data.
+- Delivery is task- and evidence-gated. No deadline, parallel execution, or successful fixture journey changes the definition of done.
 - Each agent works in a separate `codex/dda-<lane>` worktree/branch. Agents may edit only their declared ownership paths. The integration owner alone changes root composition files after the contract gate.
 
 ## Delivery DAG
@@ -45,26 +46,22 @@ flowchart LR
 
 `082` and `084` both touch the API and engine, so their file ownership is separated by feature folder and processor name. `083` owns shared Web dashboard UI files after `081` lands. `085` and `086` are independent application lanes. `087` is the only lane allowed to reconcile root composition, generated outputs, golden fixtures, and cross-platform end-to-end tests after parallel work begins.
 
-## 24-hour prototype clock
+## Complete task-driven program
 
-| Timebox | Gate | Parallel work | Exit evidence |
+| Task gate | Work | Dependency | Exit evidence |
 |---|---|---|---|
-| Hour 0-2 | G0/G1 | Primary agent accepts ADR, lands `081` contract vocabulary, publishes golden fixture IDs, and freezes file ownership. | Generated contracts pass; agents can build without inventing payloads. |
-| Hour 2-10 | G2 | Agents execute `082`, `083`, `084`, `085`, and `086` in isolated worktrees. | Each lane has focused red-to-green tests and a handoff commit. |
-| Hour 10-16 | G3 | Integration owner merges one lane at a time in dependency order: `082`, `084`, `083`, `085`, `086`. | Contracts, type checks, migrations, and focused integration tests remain green after every merge. |
-| Hour 16-21 | G4 | Integration owner executes `087` golden journey and fixes only integration defects. | Messy sales CSV becomes a reviewed dashboard; one accepted file change refreshes affected widgets; one reviewed receipt reaches the expense view. |
-| Hour 21-24 | G5 | Demo hardening, bilingual copy, reset script/fixtures, evidence capture, and mentor rehearsal. | Reproducible demo from a clean checkout with limitations shown explicitly. |
+| T0 | Confirm ADR-0004/0005, the DDA specification, foundation authorities, OpenAI/AWS boundary, file ownership, and the orchestration ledger. | Approved product direction | Authorities agree; orchestration validation passes. |
+| T1 | Execute `081` and freeze DDA domain, wire, persistence, policy, AI-egress, and golden-fixture contracts. | T0 | Generated TypeScript/Kotlin/Python contracts and contract tests pass; the frozen commit is recorded. |
+| T2 | Execute `082` for immutable Web CSV/XLSX intake, visible typed ETL, separate quality dimensions, rejects, lineage, and governed DatasetVersion acceptance. | T1 | Focused API/engine/Web tests and the lane handoff pass. |
+| T3 | Execute `083` for typed deterministic analysis, accessible dashboard canvas, publication, sharing, comparison, templates, export, and recommendations. | T1 | Focused API/Web/e2e tests and the lane handoff pass. |
+| T4 | Execute `084` for dependency-aware refresh, complete cache identity, idempotency, atomic snapshots, SSE reconciliation, budgets, and the reference performance harness. | T1 | Focused API/engine/performance tests and the lane handoff pass. |
+| T5 | Execute `085` for approved Desktop folders, local manifests/paths, stable-file processing, drift/quarantine, Local/Hybrid projection, offline recovery, and security bridge. | T1 | Desktop security/type/test, engine tests, and the lane handoff pass. |
+| T6 | Execute `086` for Android capture, encrypted staging, WorkManager upload, the OpenAI receipt adapter, structured candidate review, deterministic validation, deduplication, and governed acceptance. | T1 plus approved OpenAI project configuration for live evidence | Android/API tests, provider contract/eval evidence, and the lane handoff pass. |
+| T7 | Execute `087`; integrate lanes in order `082`, `084`, `083`, `085`, `086`, reconcile migrations/contracts/root composition, prove Local/Cloud parity, and run the golden cross-platform journey. | T2-T6 | Clean integration ledger, parity report, end-to-end runbook, repeatable fixtures, and honest traceability. |
+| T8 | Complete all P0 and P1 DDA behavior, then run `400-production-readiness.md` for tenant isolation, signing, backup/restore, security, accessibility, load, retention/deletion, OpenAI retention/egress, observability, support, and staged rollout. | T7 | Every production-gating requirement has existing evidence and fresh passing checks. |
+| T9 | Freeze release manifests, deploy through staged environments, run synthetic and real-device smoke tests, verify alarms/rollback, and approve the production release. | T8 | Signed release artifacts, deployment/rollback evidence, monitored staged rollout, and owner approval. |
 
-If G1 is not green by hour 2, do not dispatch all lanes. If any platform lane cannot consume the frozen contracts by hour 10, keep its UI as an honest fixture-backed prototype and record the missing integration instead of bypassing contracts or security.
-
-## Production sequence after the prototype
-
-1. Complete all P0 behavior and requirement-linked tests in `081`-`086`.
-2. Prove Local/Cloud deterministic parity and the 60-second reference profile in `087`.
-3. Complete P1 snapshot comparison, safe templates, permission-filtered export, and recommendations.
-4. Run `400-production-readiness.md` gates for tenant isolation, signing, backup/restore, security, accessibility, load, retention/deletion, observability, support, and staged rollout.
-
-The prototype may constrain fixture sizes, chart count, one workspace persona, and one OCR adapter. It may not weaken the production requirements or mark them verified without evidence.
+Tasks T2-T6 may run in parallel only after T1 is green and only under their exclusive ownership paths. A blocked lane remains blocked; no fixture, fake adapter, skipped device test, or unavailable credential is treated as production evidence.
 
 ## Shared-file lock table
 
@@ -114,7 +111,7 @@ The prototype may constrain fixture sizes, chart count, one workspace persona, a
 
 ### Android owner — plan 086
 
-> Execute `docs/plans/086-dda-android-receipts.md` only, based on the frozen `081` commit. Own native Android receipt capture, encrypted staging, WorkManager upload, OCR review, and dashboard-consumption leaf paths plus Android dependency/runtime composition. Capture is user-initiated and Hybrid/Cloud only. Do not implement general document understanding or edit server/generated contracts. Return unit/instrumented evidence for idempotent upload, workspace isolation, correction versioning, duplicate review, and offline recovery.
+> Execute `docs/plans/086-dda-android-receipts.md` only, based on the frozen `081` commit. Own native Android receipt capture, encrypted staging, WorkManager upload, server-side OpenAI receipt extraction behind the provider-neutral port, OCR review, and dashboard-consumption leaf paths plus Android dependency/runtime composition. Capture is user-initiated and Hybrid/Cloud only. Never expose the OpenAI key to a client or treat model output as accepted data. Do not implement general document understanding or edit shared generated contracts. Return unit/instrumented/provider-eval evidence for idempotent upload, workspace isolation, structured-output validation, correction versioning, duplicate review, offline recovery, and provider failure.
 
 ### Integration owner — plan 087
 
@@ -127,7 +124,8 @@ The prototype may constrain fixture sizes, chart count, one workspace persona, a
 **Files:** `docs/decisions/0004-data-to-dashboard-direction.md`, this program, child plans `081`-`087`, and the DDA orchestration ledger.
 
 - [x] Confirm DDA as V1 and the specialist modules as post-V1 extensions.
-- [x] Separate the 24-hour prototype gate from production release gates.
+- [x] Replace timeboxing with one dependency-ordered task program whose final gates include production readiness and release.
+- [x] Record OpenAI as the initial server-side OCR/AI provider while AWS remains hosting and domain contracts remain provider-neutral.
 - [x] Define exclusive file ownership, dependency order, dispatch packets, and stop conditions.
 
 ### Task 2: Land the contract gate before parallel execution
@@ -142,12 +140,16 @@ After G1, run `082`, `083`, `084`, `085`, and `086` in isolated worktrees. Use t
 
 Execute `087-dda-integration-readiness.md`; then run the relevant requirements, contracts, tenant, parity, package, and repository gates. Production release still requires plan `400`.
 
+### Task 5: Complete production readiness and release
+
+Execute `400-production-readiness.md`, close every applicable P0/P1 evidence gap, configure the production OpenAI project and pinned evaluated model snapshot, sign Desktop/Android releases, prove backup/restore and rollback, deploy through staged environments, and approve the monitored production rollout.
+
 ## Program stop conditions
 
-- Stop dispatch if ADR-0004, the DDA spec, child plans, traceability manifest, and orchestration ledger disagree.
+- Stop dispatch if ADR-0004/0005, the DDA spec, child plans, traceability manifest, and orchestration ledger disagree.
 - Stop a lane on contract drift, ownership overlap, cross-tenant access, raw-content telemetry, arbitrary-code execution, silent omission, original mutation, unreviewed projection, or fake freshness/correctness claims.
 - Stop integration on a failing migration, generated-contract mismatch, permission-projection cache collision, mixed-version snapshot, or non-reproducible golden fixture.
-- Timebox unfinished functionality by narrowing the prototype and recording the limitation. Never bypass an authority or turn a required review into a silent automatic action.
+- Record unfinished functionality as blocked or partial with its exact dependency and evidence gap. Never bypass an authority, replace a required review with silent automation, or lower a production gate to make the program appear complete.
 
 ## Program definition of done
 
@@ -155,5 +157,5 @@ Execute `087-dda-integration-readiness.md`; then run the relevant requirements, 
 - The DDA orchestration DAG is acyclic, all plan/task/file references resolve, and writable ownership paths do not overlap across parallel lanes.
 - Contract generation and TypeScript/Kotlin/Python fixture parity pass.
 - Focused lane tests plus API, engine, Web, Desktop, Android, tenant, authorization, data-mode, retention, audit, and end-to-end gates pass in proportion to the claimed release state.
-- The golden demo is reproducible from a clean checkout and labels fixture-backed or unimplemented behavior honestly.
+- The golden cross-platform journey is reproducible from a clean checkout; fixture-backed or incomplete behavior remains partial and cannot satisfy a production gate.
 - P0/P1 records become verified only with existing evidence paths; `DDA-051` remains `post-ga` and unimplemented.

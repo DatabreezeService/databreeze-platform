@@ -52,6 +52,10 @@ Vietnamese is the default complete locale; English is a complete secondary local
 - General document understanding beyond published capture profiles.
 - Direct persistence reads from any specialist feature module.
 
+### Initial deployment-provider choice
+
+Domain contracts remain provider-neutral. Under ADR-0005, the initial hosted deployment runs DataBreeze-controlled infrastructure on AWS Singapore and uses the OpenAI Responses API for receipt image extraction and optional mapping, analyst, narrative, and dashboard-proposal assistance. Only server-side adapters call OpenAI; clients never receive provider credentials. OpenAI output remains versioned candidate data and cannot bypass typed schemas, deterministic validation, human review, egress policy, evidence, admission, retention, or audit. Production uses a pinned evaluated model snapshot, `store: false`, strict structured receipt output, tools disabled for extraction, and explicit workspace policy for every transferred data class.
+
 ## 4. Platform responsibilities
 
 | Platform | Responsibilities |

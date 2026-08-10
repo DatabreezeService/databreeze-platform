@@ -4,14 +4,15 @@
   "status": "approved-not-started",
   "authority": {
     "decision": "docs/decisions/0004-data-to-dashboard-direction.md",
+    "providerDecision": "docs/decisions/0005-openai-ai-ocr-on-aws-hosting.md",
     "agentHandoff": "docs/plans/CURSOR-HANDOFF.md",
     "programPlan": "docs/plans/080-data-to-dashboard-program.md",
     "requirements": "docs/specs/features/data-to-dashboard-agent.md",
     "traceability": "docs/plans/requirement-traceability.json"
   },
-  "prototype": {
-    "timeboxHours": 24,
-    "claim": "mentor-demo-prototype",
+  "delivery": {
+    "mode": "task-gated-complete-program",
+    "targetClaim": "production-after-g5-evidence",
     "productionReady": false,
     "goldenJourney": [
       "messy sales upload to reviewed published dashboard",
@@ -36,6 +37,7 @@
       "status": "complete",
       "evidence": [
         "docs/decisions/0004-data-to-dashboard-direction.md",
+        "docs/decisions/0005-openai-ai-ocr-on-aws-hosting.md",
         "docs/plans/080-data-to-dashboard-program.md"
       ]
     },
@@ -62,7 +64,7 @@
     },
     {
       "gateId": "G4",
-      "name": "golden-demo-reproducible",
+      "name": "golden-cross-platform-journey-reproducible",
       "status": "blocked",
       "dependsOn": ["G3"],
       "workPackageIds": ["DDA-087"]
@@ -348,10 +350,16 @@
         "apps/android/app/src/test/java/com/databreeze/android/receipts",
         "apps/android/app/src/androidTest/java/com/databreeze/android/receipts",
         "services/api/src/features/dda/receipt",
+        "services/api/src/features/dda/receipt/adapter/openai-receipt-ocr.adapter.ts",
+        "services/api/src/features/dda/receipt/adapter/openai-receipt-ocr.config.ts",
         "services/api/test/features/dda/receipt-extraction.service.test.ts",
         "services/api/test/features/dda/receipt-extraction.controller.test.ts",
+        "services/api/test/features/dda/openai-receipt-ocr.adapter.test.ts",
+        "services/api/test/features/dda/openai-receipt-ocr.contract.test.ts",
         "services/api/test/features/dda/receipt-validation.service.test.ts",
-        "services/api/test/features/dda/receipt-acceptance.service.test.ts"
+        "services/api/test/features/dda/receipt-acceptance.service.test.ts",
+        "tools/fixture-validation/fixtures/dda/receipt-expense/openai-eval",
+        "docs/evidence/dda/openai-receipt-evaluation.md"
       ],
       "requiredChecks": [
         "cd apps/android; ./gradlew testDebugUnitTest lintDebug",
@@ -369,7 +377,7 @@
       "tasks": [
         "Task 1: Integrate lane commits in dependency order",
         "Task 2: Prove local and cloud deterministic parity",
-        "Task 3: Run the golden cross-platform demo",
+        "Task 3: Run the golden cross-platform journey",
         "Task 4: Preserve streaming as a deferred extension",
         "Task 5: Reconcile traceability and production readiness"
       ],
@@ -388,7 +396,8 @@
         "tools/demo/dda",
         "services/engine/tests/test_dda_local_cloud_parity.py",
         "docs/evidence/dda",
-        "docs/runbooks/dda-mentor-demo.md",
+        "docs/runbooks/dda-end-to-end-journey.md",
+        "docs/evidence/dda/release-evidence.md",
         "docs/plans/requirement-traceability.json",
         "docs/plans/data-to-dashboard-orchestration.json"
       ],

@@ -9,9 +9,9 @@
 
 **Goal:** Capture a receipt through explicit Android user action, upload it durably to a Hybrid/Cloud destination, review versioned OCR candidates, and accept a validated governed record that can refresh an expense dashboard.
 
-**Architecture:** Native CameraX/document capture writes encrypted account/workspace-scoped staging. Unique WorkManager work uploads resumably through IAE. A provider-neutral server adapter returns OCR candidates/evidence coordinates. Deterministic validation reconciles totals and duplicates; user correction creates a new candidate version. DSM acceptance happens only after review and validation.
+**Architecture:** Native CameraX/document capture writes encrypted account/workspace-scoped staging. Unique WorkManager work uploads resumably through IAE. A provider-neutral server port uses the OpenAI Responses API as the initial production adapter and returns strict versioned receipt candidates/evidence coordinates. Deterministic validation reconciles totals and duplicates; user correction creates a new candidate version. DSM acceptance happens only after review and validation.
 
-**Tech Stack:** Kotlin/Compose, CameraX, Room, WorkManager, AndroidX Security, generated contracts, NestJS receipt application paths, provider-neutral OCR port, Kotlin unit/instrumented tests and API tests.
+**Tech Stack:** Kotlin/Compose, CameraX, Room, WorkManager, AndroidX Security, generated contracts, NestJS receipt application paths, provider-neutral OCR port, OpenAI official server SDK/Responses API, strict structured output, Kotlin unit/instrumented tests, API contract tests, and provider evaluation fixtures.
 
 ## Global Constraints
 
@@ -20,6 +20,9 @@
 - Capture is active/user-initiated and requires an authorized Hybrid/Cloud destination. No background camera, gallery crawl, Strict-Local cloud OCR claim, or general document understanding.
 - Originals are immutable IAE artifacts. Staging is encrypted and isolated by account/workspace; logout/revocation/retention behavior is explicit.
 - OCR confidence is not factual correctness. Low-confidence/conflicting/duplicate candidates require review.
+- OpenAI is called only by the server adapter after egress/admission checks. Clients never receive `OPENAI_API_KEY`; production secrets live in AWS Secrets Manager.
+- Receipt extraction sets `store: false`, disables tools and web access, requests the frozen structured receipt schema, and records model/adapter/prompt/schema versions plus content-safe usage metadata.
+- Production pins an evaluated model snapshot. Original-detail image input and versioned resize/rotation/coordinate remapping are required for coordinate-sensitive evidence.
 
 ### Task 1: Capture and upload receipts securely
 
@@ -57,10 +60,16 @@
 
 - Create: `services/api/src/features/dda/receipt/application/receipt-ocr.port.ts`
 - Create: `services/api/src/features/dda/receipt/application/receipt-extraction.service.ts`
+- Create: `services/api/src/features/dda/receipt/adapter/openai-receipt-ocr.adapter.ts`
+- Create: `services/api/src/features/dda/receipt/adapter/openai-receipt-ocr.config.ts`
 - Create: `services/api/src/features/dda/receipt/api/receipt-extraction.controller.ts`
 - Create: `services/api/src/features/dda/receipt/api/receipt-extraction.dto.ts`
 - Create: `services/api/test/features/dda/receipt-extraction.service.test.ts`
 - Create: `services/api/test/features/dda/receipt-extraction.controller.test.ts`
+- Create: `services/api/test/features/dda/openai-receipt-ocr.adapter.test.ts`
+- Create: `services/api/test/features/dda/openai-receipt-ocr.contract.test.ts`
+- Create: `tools/fixture-validation/fixtures/dda/receipt-expense/openai-eval/`
+- Create: `docs/evidence/dda/openai-receipt-evaluation.md`
 - Create: `apps/android/app/src/main/java/com/databreeze/android/receipts/ReceiptReviewScreen.kt`
 - Create: `apps/android/app/src/main/java/com/databreeze/android/receipts/ReceiptReviewViewModel.kt`
 - Create: `apps/android/app/src/test/java/com/databreeze/android/receipts/ReceiptReviewViewModelTest.kt`
@@ -69,11 +78,12 @@
 
 **TDD sequence:**
 
-1. Add red API tests for wrong-scope artifact, non-receipt profile, provider timeout/retry, malformed coordinates, missing adapter/model version, prompt-like OCR text, and duplicate callback.
+1. Add red API/adapter tests for wrong-scope artifact, non-receipt profile, egress denial, admission denial, missing server credential, provider timeout/rate limit/refusal/retry, non-2xx response, malformed JSON/schema, unexpected tool output, `store` not false, malformed/out-of-bounds coordinates, missing model/adapter/prompt/schema version, prompt-like OCR text, and duplicate callback.
 2. Add red Android tests for low-confidence highlighting, evidence crop access, locale-aware editing without source-value translation, correction versioning, and immutable prior extraction.
-3. Implement provider-neutral OCR port and a deterministic fake adapter for tests/demo. A production AWS adapter requires its own accepted provider ADR and secrets/configuration review.
-4. Implement versioned review/correction and content-safe audit. Run focused API/Android tests.
-5. Commit `feat(dda): review receipt ocr candidates`.
+3. Implement the provider-neutral port and deterministic fake adapter for isolated tests. The fake is never production evidence.
+4. Implement the OpenAI Responses adapter: server-side credential lookup, policy-approved immutable image input, original detail where supported, tools disabled, strict structured receipt output, `store: false`, bounded timeout/retry, content-safe correlation, usage capture, and versioned preprocessing/coordinate remapping. Validate the response before creating a candidate version.
+5. Implement versioned review/correction and content-safe audit. Benchmark the pinned production model snapshot on the reviewed Vietnamese/English receipt corpus and record field accuracy, reconciliation/duplicate outcomes, coordinate validity, refusal/schema-failure rate, latency, tokens, and estimated cost. Failing thresholds block production promotion rather than being hidden by manual correction.
+6. Run focused API/Android/provider-contract tests. Commit `feat(dda): review receipt ocr candidates`.
 
 ### Task 3: Validate and accept governed receipt data
 
@@ -98,4 +108,4 @@
 
 ### Task 4: Produce the lane handoff
 
-Run Android unit/lint/build checks, available emulator tests, and focused/full API tests. Return commit hashes, manifest/dependency changes, staging and retry evidence, OCR adapter mode, validation/duplicate cases, missing emulator evidence, known limitations, and contract requests. Do not self-edit traceability status.
+Run Android unit/lint/build checks, real-device or available emulator tests, focused/full API tests, OpenAI adapter contract tests, and the receipt evaluation harness. Return commit hashes, manifest/dependency changes, staging/retry evidence, configured model snapshot, `store: false`/tools-disabled evidence, retention/egress posture, evaluation results, validation/duplicate cases, missing hardware/provider evidence, known limitations, and contract requests. Do not self-edit traceability status.

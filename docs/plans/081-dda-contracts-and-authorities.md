@@ -4,7 +4,7 @@
 
 **Status:** Approved<br>
 **Requirements:** DDA-001, DDA-003, DDA-043, DDA-044, DDA-045, DDA-046<br>
-**Depends on:** Accepted ADR-0004 and existing IAM/IAE/DSM/JRA/DSO/NCO/BUA/AUD contracts<br>
+**Depends on:** Accepted ADR-0004, ADR-0005, and existing IAM/IAE/DSM/JRA/DSO/NCO/BUA/AUD contracts<br>
 **Blocks:** Plans 082-087
 
 **Goal:** Freeze one versioned DDA vocabulary, persistence boundary, and cross-language fixture set before parallel implementation starts.
