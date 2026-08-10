@@ -14,7 +14,7 @@
 |---|---|
 | Baseline commit (pre-Task-1 tip) | `4968003f53357bc4c28bca45aff37a7e5f84d5d1` |
 | Planned create paths (081–087) | 206 existing / 211 declared (5 missing) |
-| Known missing create paths | OpenAI adapter/contract tests, offline OpenAI evaluation corpus, production journey runbook, consolidated release evidence |
+| Known missing create paths | Live owner-gated journey evidence; runbook + release-evidence + owner packet drafted (402 Tasks 9/11) |
 | G5 | `blocked` |
 | `DDA-051` | deferred / post-ga |
 | External blockers | MANUAL-PREREQUISITES (AWS, OpenAI production project, signing, Play, legal, on-call, release approval) |
@@ -36,7 +36,7 @@
 | ID | Verification |
 |---|---|
 | DDA-038 | `partial` — messy-sales processor parity harness green; foundation ports still partly prototype |
-| DDA-040 | `partial` — durable encrypted Android staging landed; real-device CameraX/upload blocked |
+| DDA-040 | `partial` — durable encrypted staging + contracts v2 authenticated upload/extraction clients; emulator/device/Play still blocked |
 | DDA-044 | `partial` — OpenAI fail-closed + egress + offline eval green; owner live synthetic plumbing verified but extraction quality failed (0/6 required fields on `gpt-4o-mini-2024-07-18` / `detail: high`); `promotionEligible`/`productionReady` remain false (§3) |
 | DDA-051 | `deferred` / `post-ga` — streaming rejected in V1 enums |
 | DDA-001..050 others | remain lane `partial` / planned unless already evidenced |

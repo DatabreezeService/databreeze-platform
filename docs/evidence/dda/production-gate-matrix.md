@@ -17,7 +17,7 @@
 | 8 | Performance / cost | partial | §3/§8 budgets | Load scripts scaffold; live p95 blocked |
 | 9 | Web a11y / i18n / CSP | partial | §4 devices/browsers | Strict CSP retained (no `unsafe-eval`); dashboard live/API mode wired with fail-closed empty states; full AA review blocked |
 | 10 | Desktop signing / release | blocked | §5 Windows signing identity | Runbook drafted; governed FS watcher attaches after capability-backed binding (capability still fail-closed until DSO enrollment) |
-| 11 | Android Play / signing | blocked | §6 Play account/signing | CameraX + durable staging + fail-closed upload/OCR without credentials; device/Play verification blocked |
+| 11 | Android Play / signing | blocked | §6 Play account/signing | CameraX + durable staging + authenticated v2 upload/extraction clients when `AuthenticatedApiConfig` supplied (else fail-closed); JVM/lint/assemble green; emulator `connectedDebugAndroidTest` blocked without device; Play signing blocked |
 | 12 | CI/CD / rollback | partial | §2 OIDC protected envs | Workflow hardening notes; apply blocked |
 | 13 | E2E acceptance / staged release | blocked | §1/§4/§8 audience + owners | Mentor demo ≠ production acceptance |
 | 14 | G5 approval | blocked | All applicable MANUAL-PREREQUISITES | Do not mark complete without evidence |
@@ -30,7 +30,7 @@
 | Prisma-backed DDA metadata repos | closed (code) | Dashboard / analysis-plan / refresh repositories + durable refresh coordinator when `ddaDatabase` supplied; in-memory remains test/dev fallback without DB. |
 | ActionRegistry DDA enrollment | closed (code) | Engine closed registry enrolls pinned DDA handlers; digest mismatch fails closed (`b1f53ba`). |
 | Desktop native FS watcher | closed (code path) | Watcher lifecycle after capability-backed binding; unfamiliar schemas quarantine; capability resolver still null/deny until DSO (`e7010f5`). |
-| Android CameraX / upload | partial | Capture→encrypted staging→typed upload transport; OCR/review fail-closed without server credentials; no device verification (`45a9e04`). |
+| Android CameraX / upload | partial | Capture→encrypted staging→contracts v2 authenticated upload/extraction/review clients (`8971a89`); fail-closed without API session; no emulator/device/Play verification. |
 | Web CSP / live dashboards | partial | No `unsafe-eval`; `GET /v1/dda/dashboards/:id/draft` authorizes via request tenant context and returns structural draft only (no invented cells); Web live client fails closed on 401/403. Full AA/Playwright still blocked. |
 | Refresh persistence | closed (code) | Durable coordinator persists open refresh/idempotency/snapshots/state; ETL proposals, drafts, dependency sequence pointers Prisma-backed when `ddaDatabase` supplied; production composition fails closed without DB (`DDA_PRODUCTION_DATABASE_REQUIRED`). |
 
