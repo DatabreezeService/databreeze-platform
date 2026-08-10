@@ -4,6 +4,7 @@
   "status": "approved-not-started",
   "authority": {
     "decision": "docs/decisions/0004-data-to-dashboard-direction.md",
+    "agentHandoff": "docs/plans/CURSOR-HANDOFF.md",
     "programPlan": "docs/plans/080-data-to-dashboard-program.md",
     "requirements": "docs/specs/features/data-to-dashboard-agent.md",
     "traceability": "docs/plans/requirement-traceability.json"

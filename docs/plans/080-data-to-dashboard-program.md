@@ -5,7 +5,8 @@
 **Status:** Approved<br>
 **Decision authority:** [ADR-0004](../decisions/0004-data-to-dashboard-direction.md)<br>
 **Product authority:** [DDA specification](../specs/features/data-to-dashboard-agent.md)<br>
-**Machine-readable DAG:** [`data-to-dashboard-orchestration.json`](data-to-dashboard-orchestration.json)
+**Machine-readable DAG:** [`data-to-dashboard-orchestration.json`](data-to-dashboard-orchestration.json)<br>
+**Agent handoff:** [`CURSOR-HANDOFF.md`](CURSOR-HANDOFF.md)
 
 **Goal:** Deliver DataBreeze V1 as one Vietnamese-first data-to-dashboard agent across Web, Windows Desktop, and Android while preserving the platform's existing identity, evidence, dataset, job, device, data-mode, usage, and audit authorities.
 

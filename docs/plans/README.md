@@ -8,6 +8,8 @@ Every plan must name requirement IDs, exact repository paths and interfaces, a v
 
 DataBreeze V1 is the Data-to-Dashboard Agent. Use these authorities in order:
 
+Agent entry point: [`CURSOR-HANDOFF.md`](CURSOR-HANDOFF.md) contains the self-contained product context, current repository reality, and copy/paste master prompt. It links to, but does not replace, the authorities below.
+
 1. [`000-platform-program.md`](000-platform-program.md) — stable program and release policy.
 2. [`080-data-to-dashboard-program.md`](080-data-to-dashboard-program.md) — approved V1 dependency graph, 24-hour prototype gate, production sequence, ownership locks, dispatch packets, and stop conditions.
 3. [`data-to-dashboard-orchestration.json`](data-to-dashboard-orchestration.json) — machine-readable gates, dependencies, work packages, branches, requirements, writable ownership, checks, and next-work pointer.
