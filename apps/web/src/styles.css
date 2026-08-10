@@ -588,3 +588,30 @@ td:first-child {
     box-shadow: none;
   }
 }
+
+/* DDA-020..024: dashboard canvas surfaces (083 ownership) */
+.dda-dashboard-page {
+  display: grid;
+  gap: var(--db-spacing-4);
+  padding: var(--db-spacing-4);
+}
+.dda-dashboard-canvas {
+  display: grid;
+  gap: var(--db-spacing-3);
+}
+.dda-widget-grid {
+  display: grid;
+  gap: var(--db-spacing-3);
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+}
+.dda-breakpoint-mobile .dda-widget-grid {
+  grid-template-columns: 1fr;
+}
+.dda-widget-frame {
+  border: 1px solid var(--db-color-border);
+  background: var(--db-color-surface);
+  padding: var(--db-spacing-3);
+}
+.dda-widget-selected {
+  outline: var(--db-focus-ring-width) solid var(--db-color-focus);
+}
