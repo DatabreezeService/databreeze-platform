@@ -6,9 +6,11 @@ import {
   evaluateDdaAiEgressV1,
 } from '@databreeze/domain/data-to-dashboard/policy-v1';
 
+import { OpenAiProviderError } from '../../../src/features/dda/ai/adapter/openai-provider.error.js';
 import {
   loadOpenAiReceiptOcrConfig,
   OpenAiReceiptOcrAdapter,
+  OPENAI_RECEIPT_PINNED_MODEL,
 } from '../../../src/features/dda/receipt/adapter/openai-receipt-ocr.adapter.js';
 
 const scope = {
@@ -21,14 +23,18 @@ const scope = {
 void test('[DDA-044, ADR-0005] OpenAI receipt egress fails closed when credentials are absent', async () => {
   const config = loadOpenAiReceiptOcrConfig({
     OPENAI_API_KEY: undefined,
-    DATABREEZE_OPENAI_RECEIPT_MODEL: 'gpt-4.1-mini-2025-04-14',
+    DATABREEZE_OPENAI_RECEIPT_MODEL: OPENAI_RECEIPT_PINNED_MODEL,
   });
   assert.equal(config.enabled, false);
   assert.equal(config.apiKeyPresent, false);
+  assert.equal(config.modelSnapshot, 'gpt-4o-mini-2024-07-18');
+  assert.equal(config.imageDetail, 'high');
 
   const adapter = new OpenAiReceiptOcrAdapter(config, {
-    fetchImpl: () => {
-      return Promise.reject(new Error('network must not be called without credentials'));
+    transport: {
+      create() {
+        return Promise.reject(new Error('network must not be called without credentials'));
+      },
     },
   });
 
@@ -44,14 +50,14 @@ void test('[DDA-044, ADR-0005] OpenAI receipt egress fails closed when credentia
         preprocessingVersion: 'receipt-image-passthrough-v1',
         coordinateSpace: 'normalized-unit-square-v1',
       }),
-    (error: unknown) => error instanceof Error && error.message === 'OPENAI_CREDENTIAL_UNAVAILABLE',
+    (error: unknown) => error instanceof OpenAiProviderError && error.code === 'OPENAI_CREDENTIAL',
   );
 });
 
 void test('[DDA-044, ADR-0005] OpenAI adapter requires cloud egress and never exposes image bytes in errors', async () => {
   const config = loadOpenAiReceiptOcrConfig({
     OPENAI_API_KEY: undefined,
-    DATABREEZE_OPENAI_RECEIPT_MODEL: 'gpt-4o-mini-2024-07-18',
+    DATABREEZE_OPENAI_RECEIPT_MODEL: OPENAI_RECEIPT_PINNED_MODEL,
   });
   const adapter = new OpenAiReceiptOcrAdapter(config);
   assert.equal(adapter.requiresCloudEgress, true);
@@ -105,10 +111,11 @@ void test('[DDA-044, ADR-0005] kill switch and store:false remain forced in Open
   const config = loadOpenAiReceiptOcrConfig({
     OPENAI_API_KEY: 'sk-test-not-a-real-key',
     DATABREEZE_OPENAI_RECEIPT_ENABLED: 'false',
-    DATABREEZE_OPENAI_RECEIPT_MODEL: 'gpt-4.1-mini-2025-04-14',
+    DATABREEZE_OPENAI_RECEIPT_MODEL: OPENAI_RECEIPT_PINNED_MODEL,
   });
   assert.equal(config.enabled, false);
   assert.equal(config.store, false);
   assert.equal(config.toolsEnabled, false);
   assert.equal(config.apiKeyPresent, true);
+  assert.equal(config.modelSnapshot, OPENAI_RECEIPT_PINNED_MODEL);
 });
