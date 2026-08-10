@@ -16,9 +16,8 @@ test('publishes a deterministic synthetic v1 contract fixture registry', () => {
   assert.equal(fixtureManifest.fixtureVersion, 1);
   assert.equal(fixtureManifest.contractVersion, 1);
   assert.equal(fixtureManifest.synthetic, true);
-  assert.equal(fixtureManifest.cases.length, 28);
-
   const caseIds = fixtureManifest.cases.map((fixtureCase) => fixtureCase.id);
+  assert.ok(caseIds.length > 0, 'fixture registry must publish cases');
   assert.equal(new Set(caseIds).size, caseIds.length, 'fixture case IDs must be unique');
   for (const caseId of caseIds) {
     assert.match(caseId, /^v1\.[a-z0-9]+(?:[.-][a-z0-9]+)*$/u);

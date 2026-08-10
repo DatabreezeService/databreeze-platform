@@ -5,7 +5,7 @@ import { EtlProposalController } from '../../../src/features/dda/etl/api/etl-pro
 import { EtlProposalProblemError } from '../../../src/features/dda/etl/application/etl-proposal-problem.error.js';
 import type { EtlProposalServiceV1 } from '../../../src/features/dda/etl/application/etl-proposal.service.js';
 
-void test('[DDA-006] proposal controller returns review summary without inventing payloads', () => {
+void test('[DDA-006] proposal controller returns review summary without inventing payloads', async () => {
   const controller = new EtlProposalController({
     propose: () =>
       Promise.resolve({
@@ -77,7 +77,7 @@ void test('[DDA-006] proposal controller returns review summary without inventin
   assert.deepEqual(loaded.orderedSteps, [{ kind: 'TRIM_TEXT' }]);
 });
 
-void test('[DDA-005] proposal controller maps arbitrary code to Problem', () => {
+void test('[DDA-005] proposal controller maps arbitrary code to Problem', async () => {
   const controller = new EtlProposalController({
     propose: () =>
       Promise.resolve({ accepted: false as const, code: 'DDA_ETL_ARBITRARY_CODE' as const }),

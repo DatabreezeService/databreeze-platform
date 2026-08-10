@@ -55,7 +55,7 @@ function createMemoryClient(): DdaDashboardDatabaseClientV1 {
           row.workspaceId !== input.where.workspaceId ||
           row.projectId !== input.where.projectId
         ) {
-          return null;
+          return Promise.resolve(null);
         }
         return Promise.resolve(row);
       },
@@ -76,7 +76,7 @@ function createMemoryClient(): DdaDashboardDatabaseClientV1 {
           row.workspaceId !== input.where.workspaceId ||
           row.projectId !== input.where.projectId
         ) {
-          return null;
+          return Promise.resolve(null);
         }
         return Promise.resolve(row);
       },

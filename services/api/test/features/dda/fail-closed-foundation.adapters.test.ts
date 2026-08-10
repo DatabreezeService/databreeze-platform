@@ -125,6 +125,7 @@ void test('[DDA-001] lookup-backed JRA/BUA/DSO/AUD adapters fail closed on missi
   const aud = createLookupBackedDdaAudPortV1({
     emitContentSafeSummary() {
       emitted += 1;
+      return Promise.resolve();
     },
   });
   await aud.emitContentSafeSummary({

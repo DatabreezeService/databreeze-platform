@@ -48,6 +48,7 @@ void test('[DDA-042] acceptance is idempotent and emits DSM only after validatio
   const aud: DdaAudComposePortV1 = {
     emitContentSafeSummary(input) {
       audits.push(input.action);
+      return Promise.resolve();
     },
   };
   const service = new ReceiptAcceptanceService(new ReceiptValidationService(), dsm, iae, aud, {

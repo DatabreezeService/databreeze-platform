@@ -42,8 +42,9 @@ function iaePort(ownedArtifactIds: ReadonlySet<string>): DdaIaePortV1 {
           ? undefined
           : reference.tenantScope.workspaceId;
       if (actualWorkspace !== expectedWorkspace || !ownedArtifactIds.has(reference.id)) {
-        throw new Error('IAE_WRONG_SCOPE');
+        return Promise.reject(new Error('IAE_WRONG_SCOPE'));
       }
+      return Promise.resolve();
     },
     requireEvidenceReference() {
       return Promise.resolve(undefined);

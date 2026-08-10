@@ -22,6 +22,7 @@ export class InMemoryDashboardDraftRepositoryAdapter implements DashboardDraftRe
       scopeKey(identity.tenantScope, identity.dashboardId),
       Object.freeze({ ...identity }),
     );
+    return Promise.resolve();
   }
 
   public findIdentity(
@@ -33,6 +34,7 @@ export class InMemoryDashboardDraftRepositoryAdapter implements DashboardDraftRe
 
   public saveVersion(version: DashboardVersionV1): Promise<void> {
     this.#versions.set(scopeKey(version.tenantScope, version.versionId), version);
+    return Promise.resolve();
   }
 
   public findVersion(
@@ -52,6 +54,7 @@ export class InMemoryDashboardDraftRepositoryAdapter implements DashboardDraftRe
       `${scopeKey(input.tenantScope, input.dashboardId)}|${input.widgetId}`,
       input.widget,
     );
+    return Promise.resolve();
   }
 
   public findRemovedWidget(input: {
@@ -59,6 +62,8 @@ export class InMemoryDashboardDraftRepositoryAdapter implements DashboardDraftRe
     readonly dashboardId: string;
     readonly widgetId: string;
   }): Promise<DashboardVersionV1['widgets'][number] | undefined> {
-    return this.#removed.get(`${scopeKey(input.tenantScope, input.dashboardId)}|${input.widgetId}`);
+    return Promise.resolve(
+      this.#removed.get(`${scopeKey(input.tenantScope, input.dashboardId)}|${input.widgetId}`),
+    );
   }
 }

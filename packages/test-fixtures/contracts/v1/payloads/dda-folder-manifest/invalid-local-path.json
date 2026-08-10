@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "manifestId": "00000000-0000-4000-8000-000000000027",
+  "tenantScope": {
+    "scopeType": "project",
+    "organizationId": "00000000-0000-4000-8000-000000000001",
+    "workspaceId": "00000000-0000-4000-8000-000000000002",
+    "projectId": "00000000-0000-4000-8000-000000000003"
+  },
+  "capabilityGrantId": "00000000-0000-4000-8000-000000000026",
+  "purpose": "SALES_FOLDER",
+  "supportedProfiles": ["CSV", "XLSX"],
+  "publicationProjectionId": "00000000-0000-4000-8000-000000000021",
+  "manifestHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "version": 1,
+  "localPath": "C:\\Users\\synthetic\\ApprovedSales"
+}

@@ -1,10 +1,13 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import type { EtlReviewContextV1 } from '../application/etl-proposal-repository.port.js';
 import { EtlProposalProblemError } from '../application/etl-proposal-problem.error.js';
 import { EtlProposalServiceV1 } from '../application/etl-proposal.service.js';
 import type { EtlProposeDtoV1 } from './etl-proposal.dto.js';
 
+@ApiTags('dda')
+@ApiBearerAuth()
 @Controller('v1/dda/etl-proposals')
 export class EtlProposalController {
   public constructor(private readonly service: EtlProposalServiceV1) {}

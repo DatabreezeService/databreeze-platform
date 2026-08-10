@@ -160,6 +160,23 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       '/v1/datasets/{datasetId}/versions',
       '/v1/datasets/{datasetId}/versions/{versionId}',
       '/v1/datasets/{datasetId}/versions/{versionId}/publish',
+      '/v1/dda/analysis/execute',
+      '/v1/dda/analysis/propose',
+      '/v1/dda/dashboards/draft/accept',
+      '/v1/dda/dashboards/draft/filter',
+      '/v1/dda/dashboards/draft/restore-widget',
+      '/v1/dda/dashboards/publication/publish',
+      '/v1/dda/dashboards/query/authorize',
+      '/v1/dda/dashboards/query/view',
+      '/v1/dda/dashboards/{dashboardId}/freshness',
+      '/v1/dda/dashboards/{dashboardId}/refresh-events',
+      '/v1/dda/etl-acceptances',
+      '/v1/dda/etl-proposals',
+      '/v1/dda/etl-proposals/{proposalId}',
+      '/v1/dda/receipts/correct',
+      '/v1/dda/receipts/extract',
+      '/v1/dda/web-intake/finalize',
+      '/v1/dda/web-intake/profile',
       '/v1/devices/enroll',
       '/v1/devices/enrollment-challenges',
       '/v1/devices/grants',
@@ -220,6 +237,37 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
     assert.ok(
       paths.filter((path) => !path.startsWith('/health/')).every((path) => path.startsWith('/v1/')),
     );
+
+    const ddaPaths = paths.filter((path) => path.startsWith('/v1/dda/'));
+    assert.ok(ddaPaths.length >= 17, 'OpenAPI must document DDA routes');
+    for (const path of ddaPaths) {
+      const pathItem = firstDocument.paths[path] as PathItemLike;
+      for (const method of httpMethods) {
+        const operation = pathItem[method];
+        if (operation === undefined) continue;
+        assert.deepEqual(
+          operation.security,
+          [{ bearer: [] }],
+          `${method.toUpperCase()} ${path} must require bearer auth`,
+        );
+        assert.ok(
+          operation.responses['400'],
+          `${method.toUpperCase()} ${path} must document RFC 7807-compatible 400`,
+        );
+        assert.ok(
+          operation.responses['500'],
+          `${method.toUpperCase()} ${path} must document RFC 7807-compatible 500`,
+        );
+        const headerNames = (operation.parameters ?? [])
+          .filter((parameter) => parameter.in === 'header')
+          .map((parameter) => parameter.name ?? '');
+        assert.ok(
+          headerNames.includes('X-Correlation-Id'),
+          `${method.toUpperCase()} ${path} must own request-context correlation`,
+        );
+      }
+    }
+
     assert.equal(
       (firstDocument.paths['/health/live']?.get as Record<string, unknown> | undefined)?.[
         'x-databreeze-audience'

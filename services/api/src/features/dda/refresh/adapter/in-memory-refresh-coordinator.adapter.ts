@@ -29,6 +29,7 @@ export class InMemoryRefreshCoordinatorAdapter implements RefreshCoordinatorPort
 
   public setCurrentSnapshot(dashboardId: string, snapshot: DashboardSnapshotV1): Promise<void> {
     this.#snapshots.set(dashboardId, snapshot);
+    return Promise.resolve();
   }
 
   public commitSnapshotAtomically(input: {
@@ -37,7 +38,7 @@ export class InMemoryRefreshCoordinatorAdapter implements RefreshCoordinatorPort
     readonly snapshot: DashboardSnapshotV1;
   }): Promise<void> {
     if (this.#failCommit) {
-      throw new Error('SNAPSHOT_COMMIT_FAILED');
+      return Promise.reject(new Error('SNAPSHOT_COMMIT_FAILED'));
     }
     const refresh = this.#refreshes.get(input.refreshId);
     this.#snapshots.set(input.dashboardId, input.snapshot);
@@ -47,6 +48,7 @@ export class InMemoryRefreshCoordinatorAdapter implements RefreshCoordinatorPort
         Object.freeze({ ...refresh, state: 'COMMITTED', updatedAtMs: refresh.updatedAtMs + 1 }),
       );
     }
+    return Promise.resolve();
   }
 
   public saveRefresh(record: RefreshRecordV1): Promise<void> {
@@ -60,6 +62,7 @@ export class InMemoryRefreshCoordinatorAdapter implements RefreshCoordinatorPort
     for (const folderReplayKey of record.folderReplayKeys) {
       this.#byFolderReplay.set(folderReplayKey, record.refreshId);
     }
+    return Promise.resolve();
   }
 
   public findRefresh(refreshId: string): Promise<RefreshRecordV1 | undefined> {
@@ -72,7 +75,7 @@ export class InMemoryRefreshCoordinatorAdapter implements RefreshCoordinatorPort
         record.dashboardId === dashboardId &&
         (record.state === 'PENDING' || record.state === 'RUNNING' || record.state === 'VERIFYING')
       ) {
-        return record;
+        return Promise.resolve(record);
       }
     }
     return Promise.resolve(undefined);
@@ -87,6 +90,6 @@ export class InMemoryRefreshCoordinatorAdapter implements RefreshCoordinatorPort
       (input.sourceEventId ? this.#bySourceEvent.get(input.sourceEventId) : undefined) ??
       (input.clientRequestId ? this.#byClientRequest.get(input.clientRequestId) : undefined) ??
       (input.folderReplayKey ? this.#byFolderReplay.get(input.folderReplayKey) : undefined);
-    return refreshId ? this.#refreshes.get(refreshId) : undefined;
+    return Promise.resolve(refreshId ? this.#refreshes.get(refreshId) : undefined);
   }
 }

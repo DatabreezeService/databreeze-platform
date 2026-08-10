@@ -27,27 +27,45 @@ export class InMemoryDashboardRepositoryAdapter implements DashboardRepositoryPo
   readonly #versions = new Map<string, DashboardVersionV1>();
 
   public saveIdentity(identity: DdaDashboardIdentityV1): Promise<void> {
-    this.#identities.set(
-      scopeKey(identity.tenantScope, identity.dashboardId),
-      Object.freeze({ ...identity }),
-    );
+    try {
+      this.#identities.set(
+        scopeKey(identity.tenantScope, identity.dashboardId),
+        Object.freeze({ ...identity }),
+      );
+      return Promise.resolve();
+    } catch (error) {
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 
   public findByDashboardId(
     tenantScope: TenantScopeV1,
     dashboardId: string,
   ): Promise<DdaDashboardIdentityV1 | undefined> {
-    return Promise.resolve(this.#identities.get(scopeKey(tenantScope, dashboardId)));
+    try {
+      return Promise.resolve(this.#identities.get(scopeKey(tenantScope, dashboardId)));
+    } catch (error) {
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 
   public saveVersion(version: DashboardVersionV1): Promise<void> {
-    this.#versions.set(scopeKey(version.tenantScope, version.versionId), version);
+    try {
+      this.#versions.set(scopeKey(version.tenantScope, version.versionId), version);
+      return Promise.resolve();
+    } catch (error) {
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 
   public findVersion(
     tenantScope: TenantScopeV1,
     versionId: string,
   ): Promise<DashboardVersionV1 | undefined> {
-    return Promise.resolve(this.#versions.get(scopeKey(tenantScope, versionId)));
+    try {
+      return Promise.resolve(this.#versions.get(scopeKey(tenantScope, versionId)));
+    } catch (error) {
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 }

@@ -52,11 +52,13 @@ export class FreshnessService {
   public markSourceCondition(dashboardId: string, condition: SourceConditionV1): Promise<void> {
     this.#conditions.set(dashboardId, Object.freeze({ ...condition }));
     this.#pendingSince.delete(dashboardId);
+    return Promise.resolve();
   }
 
   public markPending(dashboardId: string, pendingSinceMs: number): Promise<void> {
     this.#conditions.delete(dashboardId);
     this.#pendingSince.set(dashboardId, pendingSinceMs);
+    return Promise.resolve();
   }
 
   public async getFreshness(input: {

@@ -208,7 +208,10 @@ function createService(iae?: IntakeIaeFinalizationPortV1) {
   const port: IntakeIaeFinalizationPortV1 = iae ?? {
     finalizeSession(input) {
       if (finals.includes(input.sessionId)) {
-        return { accepted: false, code: 'DDA_INTAKE_DUPLICATE_FINALIZATION' };
+        return Promise.resolve({
+          accepted: false as const,
+          code: 'DDA_INTAKE_DUPLICATE_FINALIZATION' as const,
+        });
       }
       finals.push(input.sessionId);
       return Promise.resolve({

@@ -75,11 +75,13 @@ class FakeUsagePort implements RefreshUsagePortV1 {
     readonly usageClass: string;
     readonly scopeLevel: 'organization' | 'workspace' | 'project';
   }): Promise<{ readonly admitted: boolean; readonly reasonCode?: string }> {
-    if (this.failClosed) return { admitted: false, reasonCode: 'USAGE_AUTHORITY_UNAVAILABLE' };
-    if (this.deniedClass === input.usageClass) {
-      return { admitted: false, reasonCode: `${input.usageClass}_LIMIT` };
+    if (this.failClosed) {
+      return Promise.resolve({ admitted: false, reasonCode: 'USAGE_AUTHORITY_UNAVAILABLE' });
     }
-    return { admitted: true };
+    if (this.deniedClass === input.usageClass) {
+      return Promise.resolve({ admitted: false, reasonCode: `${input.usageClass}_LIMIT` });
+    }
+    return Promise.resolve({ admitted: true });
   }
 
   reserve(input: {
@@ -87,20 +89,22 @@ class FakeUsagePort implements RefreshUsagePortV1 {
     readonly usageClass: string;
   }): Promise<{ readonly reservationId: string }> {
     const existing = this.reservations.get(input.reservationKey);
-    if (existing) return { reservationId: existing };
+    if (existing) return Promise.resolve({ reservationId: existing });
     const reservationId = `res-${this.reservations.size + 1}`;
     this.reservations.set(input.reservationKey, reservationId);
-    return { reservationId };
+    return Promise.resolve({ reservationId });
   }
 
   finalize(reservationId: string): Promise<void> {
     void reservationId;
+    return Promise.resolve();
   }
 
   release(reservationId: string): Promise<void> {
     for (const [key, value] of this.reservations) {
       if (value === reservationId) this.reservations.delete(key);
     }
+    return Promise.resolve();
   }
 
   emitContentSafeOutcome(input: {
@@ -110,6 +114,7 @@ class FakeUsagePort implements RefreshUsagePortV1 {
     readonly references: readonly string[];
   }): Promise<void> {
     this.audit.push(input);
+    return Promise.resolve();
   }
 }
 

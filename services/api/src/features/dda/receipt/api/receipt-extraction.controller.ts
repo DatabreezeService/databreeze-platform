@@ -1,5 +1,5 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
 import { parseTenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
@@ -11,6 +11,8 @@ import { ReceiptExtractionService } from '../application/receipt-extraction.serv
 
 /** Nest HTTP surface composed by plan 087; leaf service remains 086-owned. */
 @ApiTags('dda-receipts')
+@ApiTags('dda')
+@ApiBearerAuth()
 @Controller('v1/dda/receipts')
 export class ReceiptExtractionController {
   public constructor(private readonly service: ReceiptExtractionService) {}

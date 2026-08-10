@@ -76,11 +76,25 @@
       "covers": ["cursor.terminal"]
     },
     {
+      "id": "v1.dda-analysis-plan.invalid-unbounded-output",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-analysis-plan",
+      "expectedAcceptance": false,
+      "source": "payloads/dda-analysis-plan/invalid-unbounded-output.json",
+      "covers": ["dda.bounded-output"]
+    },
+    {
       "id": "v1.dda-analysis-plan.valid",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-analysis-plan",
       "expectedAcceptance": true,
       "source": "payloads/dda-analysis-plan/valid.json",
       "covers": ["dda.dda-analysis-plan"]
+    },
+    {
+      "id": "v1.dda-dashboard-snapshot.invalid-source-content",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-dashboard-snapshot",
+      "expectedAcceptance": false,
+      "source": "payloads/dda-dashboard-snapshot/invalid-source-content.json",
+      "covers": ["dda.no-source-content"]
     },
     {
       "id": "v1.dda-dashboard-snapshot.valid",
@@ -125,11 +139,25 @@
       "covers": ["dda.dda-etl-plan"]
     },
     {
+      "id": "v1.dda-folder-manifest.invalid-local-path",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-folder-manifest",
+      "expectedAcceptance": false,
+      "source": "payloads/dda-folder-manifest/invalid-local-path.json",
+      "covers": ["dda.no-local-path"]
+    },
+    {
       "id": "v1.dda-folder-manifest.valid",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-folder-manifest",
       "expectedAcceptance": true,
       "source": "payloads/dda-folder-manifest/valid.json",
       "covers": ["dda.dda-folder-manifest"]
+    },
+    {
+      "id": "v1.dda-materialization.invalid-cache-identity",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-materialization",
+      "expectedAcceptance": false,
+      "source": "payloads/dda-materialization/invalid-cache-identity.json",
+      "covers": ["dda.complete-cache-identity"]
     },
     {
       "id": "v1.dda-materialization.valid",
@@ -139,11 +167,25 @@
       "covers": ["dda.dda-materialization"]
     },
     {
+      "id": "v1.dda-receipt-candidate.invalid-evidence-coordinate",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-receipt-candidate",
+      "expectedAcceptance": false,
+      "source": "payloads/dda-receipt-candidate/invalid-evidence-coordinate.json",
+      "covers": ["dda.no-inline-evidence-coordinate"]
+    },
+    {
       "id": "v1.dda-receipt-candidate.valid",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-receipt-candidate",
       "expectedAcceptance": true,
       "source": "payloads/dda-receipt-candidate/valid.json",
       "covers": ["dda.dda-receipt-candidate"]
+    },
+    {
+      "id": "v1.dda-refresh-event.invalid-content-payload",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-refresh-event",
+      "expectedAcceptance": false,
+      "source": "payloads/dda-refresh-event/invalid-content-payload.json",
+      "covers": ["dda.content-safe-refresh-event"]
     },
     {
       "id": "v1.dda-refresh-event.valid",

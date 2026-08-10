@@ -1,5 +1,5 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
 import { DashboardPublicationServiceV1 } from '../application/dashboard-publication.service.js';
 import type { IamTenantContextV1 } from '../../../iam/application/tenant-context.js';
@@ -18,6 +18,8 @@ export interface PublishDashboardDtoV1 {
 }
 
 @ApiTags('dda-dashboard-publication')
+@ApiTags('dda')
+@ApiBearerAuth()
 @Controller('v1/dda/dashboards/publication')
 export class DashboardPublicationControllerV1 {
   public constructor(private readonly publications: DashboardPublicationServiceV1) {}

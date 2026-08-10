@@ -1,5 +1,5 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
 import { DashboardDraftServiceV1 } from '../application/dashboard-draft.service.js';
 import type {
@@ -9,6 +9,8 @@ import type {
 } from './dashboard.dto.js';
 
 @ApiTags('dda-dashboard-draft')
+@ApiTags('dda')
+@ApiBearerAuth()
 @Controller('v1/dda/dashboards/draft')
 export class DashboardDraftControllerV1 {
   public constructor(private readonly drafts: DashboardDraftServiceV1) {}

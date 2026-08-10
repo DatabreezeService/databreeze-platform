@@ -6,6 +6,9 @@ docs/
 **/README.md
 pnpm-lock.yaml
 packages/contracts/generated/
+packages/contracts/schemas/
+packages/contracts/test/fixtures/
+packages/contracts/compatibility/
 packages/design-tokens/brand/derivatives.json
 services/engine/test/fixtures/fake-uv-prefix
 infrastructure/local/.env.example

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "eventId": "00000000-0000-4000-8000-000000000028",
+  "tenantScope": {
+    "scopeType": "project",
+    "organizationId": "00000000-0000-4000-8000-000000000001",
+    "workspaceId": "00000000-0000-4000-8000-000000000002",
+    "projectId": "00000000-0000-4000-8000-000000000003"
+  },
+  "dashboardId": "00000000-0000-4000-8000-00000000001b",
+  "snapshotId": "00000000-0000-4000-8000-000000000029",
+  "freshnessState": "FRESH",
+  "occurredAt": "2026-08-10T10:00:00.000Z",
+  "eventHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "ocrText": "SYNTHETIC RECEIPT TOTAL 120000",
+  "sourceRows": [
+    {
+      "amount": "120000"
+    }
+  ]
+}

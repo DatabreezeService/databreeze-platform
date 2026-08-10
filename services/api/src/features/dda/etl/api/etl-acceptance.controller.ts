@@ -1,4 +1,5 @@
 import { Body, Controller, Post } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { parseTenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
@@ -20,6 +21,8 @@ export interface EtlAcceptDtoV1 {
   };
 }
 
+@ApiTags('dda')
+@ApiBearerAuth()
 @Controller('v1/dda/etl-acceptances')
 export class EtlAcceptanceController {
   public constructor(private readonly service: EtlAcceptanceServiceV1) {}

@@ -1,5 +1,5 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
 import { DashboardQueryServiceV1 } from '../application/dashboard-query.service.js';
 import type { DashboardAuthActionV1 } from '../application/dashboard-authorization.port.js';
@@ -18,6 +18,8 @@ export interface DashboardAuthorizeDtoV1 {
 }
 
 @ApiTags('dda-dashboard-query')
+@ApiTags('dda')
+@ApiBearerAuth()
 @Controller('v1/dda/dashboards/query')
 export class DashboardQueryControllerV1 {
   public constructor(private readonly queries: DashboardQueryServiceV1) {}

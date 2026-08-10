@@ -30,29 +30,52 @@ export class InMemoryRefreshRepositoryAdapter implements RefreshRepositoryPortV1
   readonly #events: DdaRefreshEventV1[] = [];
 
   public saveState(state: DdaRefreshStateV1): Promise<void> {
-    this.#states.set(scopeKey(state.tenantScope, state.dashboardId), Object.freeze({ ...state }));
+    try {
+      this.#states.set(scopeKey(state.tenantScope, state.dashboardId), Object.freeze({ ...state }));
+      return Promise.resolve();
+    } catch (error) {
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 
   public findState(
     tenantScope: TenantScopeV1,
     dashboardId: string,
   ): Promise<DdaRefreshStateV1 | undefined> {
-    return Promise.resolve(this.#states.get(scopeKey(tenantScope, dashboardId)));
+    try {
+      return Promise.resolve(this.#states.get(scopeKey(tenantScope, dashboardId)));
+    } catch (error) {
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 
   public saveSnapshot(snapshot: DashboardSnapshotV1): Promise<void> {
-    this.#snapshots.set(scopeKey(snapshot.tenantScope, snapshot.snapshotId), snapshot);
+    try {
+      this.#snapshots.set(scopeKey(snapshot.tenantScope, snapshot.snapshotId), snapshot);
+      return Promise.resolve();
+    } catch (error) {
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 
   public findSnapshot(
     tenantScope: TenantScopeV1,
     snapshotId: string,
   ): Promise<DashboardSnapshotV1 | undefined> {
-    return Promise.resolve(this.#snapshots.get(scopeKey(tenantScope, snapshotId)));
+    try {
+      return Promise.resolve(this.#snapshots.get(scopeKey(tenantScope, snapshotId)));
+    } catch (error) {
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 
   public recordRefreshEvent(event: DdaRefreshEventV1): Promise<void> {
-    requireProjectScope(event.tenantScope);
-    this.#events.push(event);
+    try {
+      requireProjectScope(event.tenantScope);
+      this.#events.push(event);
+      return Promise.resolve();
+    } catch (error) {
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 }

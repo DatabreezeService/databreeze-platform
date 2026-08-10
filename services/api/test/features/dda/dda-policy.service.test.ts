@@ -67,6 +67,7 @@ void test('[DDA-045] named mutations emit content-safe AUD summaries without pat
   const audit: DdaAuditPortV1 = {
     emitContentSafeSummary(summary) {
       emitted.push(summary);
+      return Promise.resolve();
     },
   };
   const service = new DdaPolicyServiceV1(audit);
@@ -103,16 +104,22 @@ void test('[DDA-045] named mutations emit content-safe AUD summaries without pat
 void test('[DDA-046] retention goes through IAE and never deletes storage directly', async () => {
   const calls: string[] = [];
   const iae: DdaIaePortV1 = {
-    async requireArtifactVersion() {},
-    async requireEvidenceReference() {},
+    requireArtifactVersion() {
+      return Promise.resolve();
+    },
+    requireEvidenceReference() {
+      return Promise.resolve();
+    },
     addRetentionConstraint(reference, holdReason) {
       calls.push(`${reference.id}:${holdReason}`);
+      return Promise.resolve();
     },
   };
   const service = new DdaPolicyServiceV1(
     {
       emitContentSafeSummary() {
-        return Promise.resolve(undefined);
+        return Promise.resolve();
+        return Promise.resolve();
       },
     },
     iae,

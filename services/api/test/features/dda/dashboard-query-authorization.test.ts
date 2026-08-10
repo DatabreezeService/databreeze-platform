@@ -26,15 +26,17 @@ void test('[DDA-026] dashboard share/view does not grant Dataset, original, evid
   const auth: DashboardAuthorizationPortV1 = {
     authorizeDashboardAction(input) {
       if (input.action === 'VIEW' || input.action === 'SHARE') {
-        return Object.freeze({
-          allowed: true,
-          grantsDatasetAccess: false,
-          grantsOriginalAccess: false,
-          grantsEvidenceAccess: false,
-          grantsAnalysisAccess: false,
-          grantsFolderAccess: false,
-          grantsRowFieldExpansion: false,
-        });
+        return Promise.resolve(
+          Object.freeze({
+            allowed: true,
+            grantsDatasetAccess: false,
+            grantsOriginalAccess: false,
+            grantsEvidenceAccess: false,
+            grantsAnalysisAccess: false,
+            grantsFolderAccess: false,
+            grantsRowFieldExpansion: false,
+          }),
+        );
       }
       return Promise.resolve(Object.freeze({ allowed: false, grantsDatasetAccess: false }));
     },

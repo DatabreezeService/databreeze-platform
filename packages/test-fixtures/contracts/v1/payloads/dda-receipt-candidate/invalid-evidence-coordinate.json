@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "candidateId": "00000000-0000-4000-8000-00000000002a",
+  "tenantScope": {
+    "scopeType": "project",
+    "organizationId": "00000000-0000-4000-8000-000000000001",
+    "workspaceId": "00000000-0000-4000-8000-000000000002",
+    "projectId": "00000000-0000-4000-8000-000000000003"
+  },
+  "artifactVersionId": "00000000-0000-4000-8000-000000000023",
+  "profileVersionId": "00000000-0000-4000-8000-000000000011",
+  "fieldCandidates": [
+    {
+      "field": "merchant",
+      "value": "Cafe",
+      "confidence": 90,
+      "evidenceCoordinate": {
+        "x": -1,
+        "y": 9999,
+        "width": 0,
+        "height": -5
+      }
+    }
+  ],
+  "adapterVersion": "ocr-1",
+  "evidenceReferenceId": "00000000-0000-4000-8000-000000000025",
+  "candidateHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}

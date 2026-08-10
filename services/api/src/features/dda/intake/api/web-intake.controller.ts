@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { parseTenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
@@ -8,6 +9,8 @@ import { WebIntakeServiceV1 } from '../application/web-intake.service.js';
 import type { WebIntakeFinalizeDtoV1, WebIntakeFinalizeResponseDtoV1 } from './web-intake.dto.js';
 
 /** DDA-002: Web intake control plane returns IDs/status only. */
+@ApiTags('dda')
+@ApiBearerAuth()
 @Controller('v1/dda/web-intake')
 export class WebIntakeController {
   public constructor(private readonly service: WebIntakeServiceV1) {}

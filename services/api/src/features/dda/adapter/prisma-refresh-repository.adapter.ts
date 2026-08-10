@@ -301,5 +301,6 @@ export class PrismaRefreshRepositoryAdapter implements RefreshRepositoryPortV1 {
   public recordRefreshEvent(event: DdaRefreshEventV1): Promise<void> {
     // Refresh events remain AUD-correlated; DDA schema has no event blob table (DDA-001).
     requireProjectScope(event.tenantScope);
+    return Promise.resolve();
   }
 }

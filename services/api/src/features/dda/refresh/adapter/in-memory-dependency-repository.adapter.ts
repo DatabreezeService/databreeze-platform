@@ -100,12 +100,13 @@ export class InMemoryDependencyRepositoryAdapter implements DependencyRepository
 
   public rememberProcessedEvent(eventId: string, sequence: number): Promise<void> {
     this.#processed.set(eventId, Object.freeze({ eventId, sequence }));
+    return Promise.resolve();
   }
 
   public findProcessedEvent(
     eventId: string,
   ): Promise<{ readonly eventId: string; readonly sequence: number } | undefined> {
-    return this.#processed.get(eventId);
+    return Promise.resolve(this.#processed.get(eventId));
   }
 
   public highestSequence(tenantScope: TenantScopeV1): Promise<number> {
@@ -116,5 +117,6 @@ export class InMemoryDependencyRepositoryAdapter implements DependencyRepository
     const key = scopeKey(tenantScope);
     const current = this.#highestSequence.get(key) ?? 0;
     if (sequence > current) this.#highestSequence.set(key, sequence);
+    return Promise.resolve();
   }
 }

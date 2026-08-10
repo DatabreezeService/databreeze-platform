@@ -1,5 +1,5 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
 import { AnalysisExecutionServiceV1 } from '../application/analysis-execution.service.js';
 import { AnalysisProposalServiceV1 } from '../application/analysis-proposal.service.js';
@@ -7,6 +7,8 @@ import type { AnalysisProposeDtoV1, AnalysisExecuteDtoV1 } from './analysis.dto.
 
 /** Thin HTTP surface; root composition remains owned by plan 087. */
 @ApiTags('dda-analysis')
+@ApiTags('dda')
+@ApiBearerAuth()
 @Controller('v1/dda/analysis')
 export class AnalysisControllerV1 {
   public constructor(

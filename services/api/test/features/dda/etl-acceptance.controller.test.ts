@@ -5,7 +5,7 @@ import { EtlAcceptanceController } from '../../../src/features/dda/etl/api/etl-a
 import { EtlAcceptanceProblemError } from '../../../src/features/dda/etl/application/etl-acceptance-problem.error.js';
 import type { EtlAcceptanceServiceV1 } from '../../../src/features/dda/etl/application/etl-acceptance.service.js';
 
-void test('[DDA-007] acceptance controller returns version IDs without source values', () => {
+void test('[DDA-007] acceptance controller returns version IDs without source values', async () => {
   const controller = new EtlAcceptanceController({
     accept: () =>
       Promise.resolve({
@@ -48,7 +48,7 @@ void test('[DDA-007] acceptance controller returns version IDs without source va
   assert.doesNotMatch(JSON.stringify(response), /Cafe|sourcePath|rawBytes/u);
 });
 
-void test('[DDA-007] acceptance controller maps failures to Problem codes', () => {
+void test('[DDA-007] acceptance controller maps failures to Problem codes', async () => {
   const controller = new EtlAcceptanceController({
     accept: () =>
       Promise.resolve({ accepted: false as const, code: 'DDA_ETL_HASH_MISMATCH' as const }),

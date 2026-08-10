@@ -22,13 +22,22 @@ export class InMemoryAnalysisPlanRepositoryAdapter implements AnalysisPlanReposi
   readonly #plans = new Map<string, DdaAnalysisPlanV1>();
 
   public save(plan: DdaAnalysisPlanV1): Promise<void> {
-    this.#plans.set(scopeKey(plan.tenantScope, plan.planVersionId), plan);
+    try {
+      this.#plans.set(scopeKey(plan.tenantScope, plan.planVersionId), plan);
+      return Promise.resolve();
+    } catch (error) {
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 
   public findByVersionId(
     tenantScope: TenantScopeV1,
     planVersionId: string,
   ): Promise<DdaAnalysisPlanV1 | undefined> {
-    return Promise.resolve(this.#plans.get(scopeKey(tenantScope, planVersionId)));
+    try {
+      return Promise.resolve(this.#plans.get(scopeKey(tenantScope, planVersionId)));
+    } catch (error) {
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    }
   }
 }
