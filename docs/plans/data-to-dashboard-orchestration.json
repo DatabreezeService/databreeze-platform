@@ -1,7 +1,7 @@
 {
   "version": 1,
   "program": "data-to-dashboard-v1",
-  "status": "approved-not-started",
+  "status": "in-progress",
   "authority": {
     "decision": "docs/decisions/0004-data-to-dashboard-direction.md",
     "programPlan": "docs/plans/080-data-to-dashboard-program.md",
@@ -27,7 +27,7 @@
     "verified",
     "deferred"
   ],
-  "nextWorkPackageId": "DDA-081",
+  "nextWorkPackageId": "DDA-082",
   "gates": [
     {
       "gateId": "G0",
@@ -41,14 +41,24 @@
     {
       "gateId": "G1",
       "name": "contracts-frozen-and-generated",
-      "status": "ready",
+      "status": "complete",
       "dependsOn": ["G0"],
-      "workPackageIds": ["DDA-081"]
+      "workPackageIds": ["DDA-081"],
+      "evidence": [
+        "d431d28e4db0210af553b068d52d2dc4129903f7",
+        "packages/contracts/test/fixtures/dda/v1/golden-valid.json",
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/domain/test/data-to-dashboard-policy-v1.test.mjs",
+        "services/api/test/features/dda/dda-module-boundaries.test.ts",
+        "services/api/test/features/dda/dda-policy.service.test.ts",
+        "services/api/test/features/dda/dda-content-authority.test.ts",
+        "docs/security/dda-data-flow.md"
+      ]
     },
     {
       "gateId": "G2",
       "name": "independent-lanes-green",
-      "status": "blocked",
+      "status": "ready",
       "dependsOn": ["G1"],
       "workPackageIds": ["DDA-082", "DDA-083", "DDA-084", "DDA-085", "DDA-086"]
     },
@@ -79,10 +89,22 @@
       "workPackageId": "DDA-081",
       "name": "contracts-and-authorities",
       "plan": "docs/plans/081-dda-contracts-and-authorities.md",
-      "status": "ready",
+      "status": "complete",
       "dependsOn": [],
       "parallelGroup": null,
-      "branch": "codex/dda-contracts",
+      "branch": "codex/dda-081-contracts",
+      "commit": "d431d28e4db0210af553b068d52d2dc4129903f7",
+      "evidence": [
+        "d431d28e4db0210af553b068d52d2dc4129903f7",
+        "packages/contracts/test/fixtures/dda/v1/golden-valid.json",
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/domain/test/data-to-dashboard-policy-v1.test.mjs",
+        "services/api/test/features/dda/dda-module-boundaries.test.ts",
+        "services/api/test/features/dda/dda-prisma-scope.test.ts",
+        "services/api/test/features/dda/dda-policy.service.test.ts",
+        "services/api/test/features/dda/dda-content-authority.test.ts",
+        "docs/security/dda-data-flow.md"
+      ],
       "tasks": [
         "Task 1: Freeze DDA domain values and golden fixtures",
         "Task 2: Establish DDA persistence and public composition ports",
@@ -126,7 +148,7 @@
       "workPackageId": "DDA-082",
       "name": "cloud-intake-etl",
       "plan": "docs/plans/082-dda-cloud-intake-etl.md",
-      "status": "blocked",
+      "status": "ready",
       "dependsOn": ["DDA-081"],
       "parallelGroup": "DDA-G2",
       "branch": "codex/dda-cloud-etl",
@@ -178,7 +200,7 @@
       "workPackageId": "DDA-083",
       "name": "analyst-dashboard-canvas",
       "plan": "docs/plans/083-dda-analyst-dashboard-canvas.md",
-      "status": "blocked",
+      "status": "ready",
       "dependsOn": ["DDA-081"],
       "parallelGroup": "DDA-G2",
       "branch": "codex/dda-dashboard-canvas",
@@ -241,7 +263,7 @@
       "workPackageId": "DDA-084",
       "name": "materialization-refresh",
       "plan": "docs/plans/084-dda-materialization-refresh.md",
-      "status": "blocked",
+      "status": "ready",
       "dependsOn": ["DDA-081"],
       "parallelGroup": "DDA-G2",
       "branch": "codex/dda-refresh",
@@ -290,7 +312,7 @@
       "workPackageId": "DDA-085",
       "name": "desktop-hybrid-folders",
       "plan": "docs/plans/085-dda-desktop-hybrid-folders.md",
-      "status": "blocked",
+      "status": "ready",
       "dependsOn": ["DDA-081"],
       "parallelGroup": "DDA-G2",
       "branch": "codex/dda-desktop-folders",
@@ -326,7 +348,7 @@
       "workPackageId": "DDA-086",
       "name": "android-receipts",
       "plan": "docs/plans/086-dda-android-receipts.md",
-      "status": "blocked",
+      "status": "ready",
       "dependsOn": ["DDA-081"],
       "parallelGroup": "DDA-G2",
       "branch": "codex/dda-android-receipts",

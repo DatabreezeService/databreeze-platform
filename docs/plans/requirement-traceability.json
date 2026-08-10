@@ -2815,12 +2815,18 @@
         "services/api/test/features/dda/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d431d28e4db0210af553b068d52d2dc4129903f7",
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/domain/test/data-to-dashboard-policy-v1.test.mjs",
+        "packages/contracts/test/fixtures/dda/v1/golden-valid.json",
+        "services/api/test/features/dda/dda-module-boundaries.test.ts",
+        "services/api/test/features/dda/dda-prisma-scope.test.ts",
+        "services/api/test/features/dda/dda-policy.service.test.ts",
+        "services/api/test/features/dda/dda-content-authority.test.ts",
+        "docs/security/dda-data-flow.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -2881,12 +2887,18 @@
         "services/api/test/features/dda/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d431d28e4db0210af553b068d52d2dc4129903f7",
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/domain/test/data-to-dashboard-policy-v1.test.mjs",
+        "packages/contracts/test/fixtures/dda/v1/golden-valid.json",
+        "services/api/test/features/dda/dda-module-boundaries.test.ts",
+        "services/api/test/features/dda/dda-prisma-scope.test.ts",
+        "services/api/test/features/dda/dda-policy.service.test.ts",
+        "services/api/test/features/dda/dda-content-authority.test.ts",
+        "docs/security/dda-data-flow.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -4040,12 +4052,18 @@
         "services/api/test/features/dda/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d431d28e4db0210af553b068d52d2dc4129903f7",
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/domain/test/data-to-dashboard-policy-v1.test.mjs",
+        "packages/contracts/test/fixtures/dda/v1/golden-valid.json",
+        "services/api/test/features/dda/dda-module-boundaries.test.ts",
+        "services/api/test/features/dda/dda-prisma-scope.test.ts",
+        "services/api/test/features/dda/dda-policy.service.test.ts",
+        "services/api/test/features/dda/dda-content-authority.test.ts",
+        "docs/security/dda-data-flow.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -4068,12 +4086,18 @@
         "services/api/test/features/dda/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d431d28e4db0210af553b068d52d2dc4129903f7",
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/domain/test/data-to-dashboard-policy-v1.test.mjs",
+        "packages/contracts/test/fixtures/dda/v1/golden-valid.json",
+        "services/api/test/features/dda/dda-module-boundaries.test.ts",
+        "services/api/test/features/dda/dda-prisma-scope.test.ts",
+        "services/api/test/features/dda/dda-policy.service.test.ts",
+        "services/api/test/features/dda/dda-content-authority.test.ts",
+        "docs/security/dda-data-flow.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -4102,12 +4126,18 @@
         "services/api/test/features/dda/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d431d28e4db0210af553b068d52d2dc4129903f7",
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/domain/test/data-to-dashboard-policy-v1.test.mjs",
+        "packages/contracts/test/fixtures/dda/v1/golden-valid.json",
+        "services/api/test/features/dda/dda-module-boundaries.test.ts",
+        "services/api/test/features/dda/dda-prisma-scope.test.ts",
+        "services/api/test/features/dda/dda-policy.service.test.ts",
+        "services/api/test/features/dda/dda-content-authority.test.ts",
+        "docs/security/dda-data-flow.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -4130,12 +4160,18 @@
         "services/api/test/features/dda/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d431d28e4db0210af553b068d52d2dc4129903f7",
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/domain/test/data-to-dashboard-policy-v1.test.mjs",
+        "packages/contracts/test/fixtures/dda/v1/golden-valid.json",
+        "services/api/test/features/dda/dda-module-boundaries.test.ts",
+        "services/api/test/features/dda/dda-prisma-scope.test.ts",
+        "services/api/test/features/dda/dda-policy.service.test.ts",
+        "services/api/test/features/dda/dda-content-authority.test.ts",
+        "docs/security/dda-data-flow.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
