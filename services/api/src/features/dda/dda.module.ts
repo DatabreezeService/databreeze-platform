@@ -1,8 +1,26 @@
 import { type DynamicModule, Module } from '@nestjs/common';
 
+import type { DdaDatabaseClientV1 } from './adapter/dda-database.client.js';
+import {
+  createFailClosedAnalysisAdapterV1,
+  createFailClosedAnalysisCatalogV1,
+  createFailClosedDashboardAuthorizationV1,
+  createFailClosedDeterministicResultsV1,
+  createFailClosedEtlPortsV1,
+  createFailClosedIntakeIaeV1,
+  createFailClosedReceiptRecordsV1,
+  createFailClosedRefreshUsageV1,
+} from './adapter/fail-closed-etl.adapters.js';
+import {
+  createFailClosedDdaAuditPortV1,
+  createFailClosedDdaFoundationPortsV1,
+} from './adapter/fail-closed-foundation.adapters.js';
 import { InMemoryAnalysisPlanRepositoryAdapter } from './adapter/in-memory-analysis-plan-repository.adapter.js';
 import { InMemoryDashboardRepositoryAdapter } from './adapter/in-memory-dashboard-repository.adapter.js';
 import { InMemoryRefreshRepositoryAdapter } from './adapter/in-memory-refresh-repository.adapter.js';
+import { PrismaAnalysisPlanRepositoryAdapter } from './adapter/prisma-analysis-plan-repository.adapter.js';
+import { PrismaDashboardRepositoryAdapter } from './adapter/prisma-dashboard-repository.adapter.js';
+import { PrismaRefreshRepositoryAdapter } from './adapter/prisma-refresh-repository.adapter.js';
 import { AnalysisControllerV1 } from './analyst/api/analysis.controller.js';
 import type { AnalysisAdapterPortV1 } from './analyst/application/analysis-adapter.port.js';
 import { AnalysisExecutionServiceV1 } from './analyst/application/analysis-execution.service.js';
@@ -79,6 +97,7 @@ import {
 import { ReceiptExtractionService } from './receipt/application/receipt-extraction.service.js';
 import type { ReceiptOcrPort } from './receipt/application/receipt-ocr.port.js';
 import { ReceiptValidationService } from './receipt/application/receipt-validation.service.js';
+import { DurableRefreshCoordinatorAdapter } from './refresh/adapter/durable-refresh-coordinator.adapter.js';
 import { InMemoryDependencyRepositoryAdapter } from './refresh/adapter/in-memory-dependency-repository.adapter.js';
 import { InMemoryRefreshCoordinatorAdapter } from './refresh/adapter/in-memory-refresh-coordinator.adapter.js';
 import { DashboardRefreshEventsController } from './refresh/api/dashboard-refresh-events.controller.js';
@@ -91,7 +110,17 @@ import { RefreshEventBus } from './refresh/application/refresh-event-bus.js';
 import type { RefreshUsagePortV1 } from './refresh/application/refresh-usage.port.js';
 import { SnapshotCommitService } from './refresh/application/snapshot-commit.service.js';
 
+export interface DdaEtlPortsV1 {
+  readonly iae: EtlIaePortV1;
+  readonly dsm: EtlDsmPortV1;
+  readonly jra: EtlJraPortV1;
+  readonly bua: EtlBuaPortV1;
+  readonly aud: EtlAudPortV1;
+  readonly policy: EtlPolicyPortV1;
+}
+
 export interface DdaModuleOptions {
+  readonly ddaDatabase?: DdaDatabaseClientV1;
   readonly dashboardRepository?: DashboardRepositoryPortV1;
   readonly analysisPlanRepository?: AnalysisPlanRepositoryPortV1;
   readonly refreshRepository?: RefreshRepositoryPortV1;
@@ -108,231 +137,42 @@ export interface DdaModuleOptions {
   readonly buaPort?: DdaBuaPortV1;
   readonly audPort?: DdaAudComposePortV1;
   readonly auditPort?: DdaAuditPortV1;
-}
-
-const PROTO_ARTIFACT = '00000000-0000-4000-8000-000000000302';
-const PROTO_DATASET = '00000000-0000-4000-8000-000000000303';
-const PROTO_JOB = '00000000-0000-4000-8000-000000000304';
-const PROTO_POLICY = '00000000-0000-4000-8000-0000000000aa';
-
-function prototypeIae(): DdaIaePortV1 {
-  return {
-    async requireArtifactVersion() {
-      return undefined;
-    },
-    async requireEvidenceReference() {
-      return undefined;
-    },
-    async addRetentionConstraint() {
-      return undefined;
-    },
-  };
-}
-
-function prototypeDsm(): DdaDsmPortV1 {
-  return {
-    async requireDatasetVersion() {
-      return undefined;
-    },
-    async requireSemanticVersion() {
-      return undefined;
-    },
-    async requireMetricVersion() {
-      return undefined;
-    },
-  };
-}
-
-function prototypeAud(): DdaAudComposePortV1 {
-  return {
-    async emitContentSafeSummary() {
-      return undefined;
-    },
-  };
-}
-
-function prototypeIntakeIae(): IntakeIaeFinalizationPortV1 {
-  return {
-    async finalizeSession(input) {
-      return Object.freeze({
-        accepted: true as const,
-        value: Object.freeze({
-          sessionId: input.sessionId,
-          artifactVersionId: PROTO_ARTIFACT,
-          status: 'FINALIZED' as const,
-        }),
-      });
-    },
-  };
-}
-
-function prototypeEtlPorts(): {
-  readonly iae: EtlIaePortV1;
-  readonly dsm: EtlDsmPortV1;
-  readonly jra: EtlJraPortV1;
-  readonly bua: EtlBuaPortV1;
-  readonly aud: EtlAudPortV1;
-  readonly policy: EtlPolicyPortV1;
-} {
-  return {
-    iae: {
-      async registerDerivative() {
-        return Object.freeze({ accepted: true as const, artifactVersionId: PROTO_ARTIFACT });
-      },
-    },
-    dsm: {
-      async registerDatasetVersion() {
-        return Object.freeze({
-          accepted: true as const,
-          datasetVersionId: PROTO_DATASET,
-          revision: 1,
-        });
-      },
-    },
-    jra: {
-      async createTypedJob() {
-        return Object.freeze({ accepted: true as const, jobId: PROTO_JOB, replayed: false });
-      },
-      async awaitResultManifest() {
-        return Object.freeze({
-          accepted: true as const,
-          manifest: Object.freeze({
-            rowCount: 4,
-            contentHash: 'a'.repeat(64),
-            schemaHash: 'b'.repeat(64),
-            rejectBundleId: '00000000-0000-4000-8000-000000000305',
-            lineageIds: Object.freeze(['00000000-0000-4000-8000-000000000012']),
-            partial: false,
-          }),
-        });
-      },
-    },
-    bua: {
-      async admit() {
-        return Object.freeze({ accepted: true as const });
-      },
-    },
-    aud: {
-      async emit() {
-        return Object.freeze({ accepted: true as const });
-      },
-    },
-    policy: {
-      async currentPolicyVersionId() {
-        return PROTO_POLICY;
-      },
-    },
-  };
-}
-
-function prototypeAnalysisCatalog(): AnalysisCatalogV1 {
-  return Object.freeze({
-    datasetVersionId: PROTO_DATASET,
-    semanticVersionId: '00000000-0000-4000-8000-000000000311',
-    metricVersionId: '00000000-0000-4000-8000-000000000312',
-    permissionProjectionVersionId: '00000000-0000-4000-8000-000000000313',
-    authorizedFields: Object.freeze(['region', 'amount', 'sold_at']),
-    authorizedJoins: Object.freeze([]),
-    units: Object.freeze({ amount: 'VND' }),
-    grains: Object.freeze(['day']),
-  });
-}
-
-function prototypeAnalysisAdapter(): AnalysisAdapterPortV1 {
-  return {
-    async isAvailable() {
-      return false;
-    },
-    async proposeTypedPlan() {
-      return Object.freeze({ status: 'FAILED' as const, rationale: 'ADAPTER_DISABLED_FOR_PROTOTYPE' });
-    },
-  };
-}
-
-function prototypeDeterministicResults(): DeterministicResultPortV1 {
-  return {
-    async execute(input) {
-      return Object.freeze({
-        resultId: '00000000-0000-4000-8000-000000000321',
-        cells: Object.freeze([
-          Object.freeze({
-            cellId: '00000000-0000-4000-8000-000000000322',
-            field: 'amount',
-            value: 1_200_000,
-            unit: 'VND',
-            planVersionId: input.plan.planId,
-            metricVersionId: '00000000-0000-4000-8000-000000000312',
-          }),
-        ]),
-        provenance: Object.freeze({
-          planVersionId: input.plan.planId,
-          datasetVersionId: PROTO_DATASET,
-          engineVersion: '0.1.0-prototype',
-        }),
-      });
-    },
-  };
-}
-
-function prototypeDashboardAuthorization(): DashboardAuthorizationPortV1 {
-  return {
-    async authorizeDashboardAction() {
-      return Object.freeze({
-        allowed: true,
-        grantsDatasetAccess: true,
-        grantsEvidenceAccess: true,
-      });
-    },
-    async projectVisibleFields() {
-      return Object.freeze(['region', 'amount', 'sold_at']);
-    },
-  };
-}
-
-function prototypeRefreshUsage(): RefreshUsagePortV1 {
-  return {
-    async evaluate() {
-      return Object.freeze({ admitted: true });
-    },
-    async reserve(input) {
-      return Object.freeze({ reservationId: `res-${input.reservationKey}` });
-    },
-    async finalize() {
-      return undefined;
-    },
-    async release() {
-      return undefined;
-    },
-    async emitContentSafeOutcome() {
-      return undefined;
-    },
-  };
-}
-
-function prototypeReceiptRecords(): ReceiptGovernedRecordPort {
-  return {
-    async appendGovernedRecord(input) {
-      return Object.freeze({
-        datasetVersionId: input.datasetVersionId || PROTO_DATASET,
-      });
-    },
-  };
+  readonly etlPorts?: DdaEtlPortsV1;
+  readonly dashboardAuthorization?: DashboardAuthorizationPortV1;
+  readonly analysisCatalog?: AnalysisCatalogV1;
+  readonly analysisAdapter?: AnalysisAdapterPortV1;
+  readonly deterministicResults?: DeterministicResultPortV1;
+  readonly receiptRecords?: ReceiptGovernedRecordPort;
+  readonly refreshUsage?: RefreshUsagePortV1;
 }
 
 @Module({})
 export class DdaModule {
   public static register(options: DdaModuleOptions = {}): DynamicModule {
-    const iae = options.iaePort ?? prototypeIae();
-    const dsm = options.dsmPort ?? prototypeDsm();
-    const aud = options.audPort ?? prototypeAud();
-    const etlPorts = prototypeEtlPorts();
+    const failClosed = createFailClosedDdaFoundationPortsV1();
+    const iae = options.iaePort ?? failClosed.iae;
+    const dsm = options.dsmPort ?? failClosed.dsm;
+    const aud = options.audPort ?? failClosed.aud;
+    const jra = options.jraPort ?? failClosed.jra;
+    const dso = options.dsoPort ?? failClosed.dso;
+    const bua = options.buaPort ?? failClosed.bua;
+    const etlPorts = options.etlPorts ?? createFailClosedEtlPortsV1();
     const etlProposals =
       options.etlProposalRepository ?? new InMemoryEtlProposalRepositoryAdapter();
     const drafts =
       options.dashboardDraftRepository ?? new InMemoryDashboardDraftRepositoryAdapter();
-    const authorization = prototypeDashboardAuthorization();
+    const authorization =
+      options.dashboardAuthorization ?? createFailClosedDashboardAuthorizationV1();
+    const refreshRepository =
+      options.refreshRepository ??
+      (options.ddaDatabase === undefined
+        ? new InMemoryRefreshRepositoryAdapter()
+        : new PrismaRefreshRepositoryAdapter(options.ddaDatabase));
     const refreshCoordinator =
-      options.refreshCoordinator ?? new InMemoryRefreshCoordinatorAdapter();
+      options.refreshCoordinator ??
+      (options.ddaDatabase === undefined
+        ? new InMemoryRefreshCoordinatorAdapter()
+        : new DurableRefreshCoordinatorAdapter(refreshRepository));
     const dependencyRepository =
       options.dependencyRepository ?? new InMemoryDependencyRepositoryAdapter();
     const catalog = new MaterializationProcessorCatalog();
@@ -352,17 +192,27 @@ export class DdaModule {
         }
         return new DeterministicFakeReceiptOcrAdapter();
       })();
-    const intakeIae = options.intakeIae ?? prototypeIntakeIae();
+    const intakeIae = options.intakeIae ?? createFailClosedIntakeIaeV1();
+    const dashboardRepository =
+      options.dashboardRepository ??
+      (options.ddaDatabase === undefined
+        ? new InMemoryDashboardRepositoryAdapter()
+        : new PrismaDashboardRepositoryAdapter(options.ddaDatabase));
+    const analysisPlanRepository =
+      options.analysisPlanRepository ??
+      (options.ddaDatabase === undefined
+        ? new InMemoryAnalysisPlanRepositoryAdapter()
+        : new PrismaAnalysisPlanRepositoryAdapter(options.ddaDatabase));
 
     const webIntakeService = new WebIntakeServiceV1(intakeIae);
     const etlProposalService = new EtlProposalServiceV1(etlProposals);
     const etlAcceptanceService = new EtlAcceptanceServiceV1(etlProposals, etlPorts);
     const analysisProposalService = new AnalysisProposalServiceV1(
-      prototypeAnalysisAdapter(),
-      prototypeAnalysisCatalog(),
+      options.analysisAdapter ?? createFailClosedAnalysisAdapterV1(),
+      options.analysisCatalog ?? createFailClosedAnalysisCatalogV1(),
     );
     const analysisExecutionService = new AnalysisExecutionServiceV1(
-      prototypeDeterministicResults(),
+      options.deterministicResults ?? createFailClosedDeterministicResultsV1(),
     );
     const dashboardDraftService = new DashboardDraftServiceV1(drafts);
     const dashboardPublicationService = new DashboardPublicationServiceV1(drafts, authorization);
@@ -372,7 +222,7 @@ export class DdaModule {
     const snapshotCommit = new SnapshotCommitService(refreshCoordinator);
     void dependencyRepository;
     void catalog;
-    void prototypeRefreshUsage();
+    void (options.refreshUsage ?? createFailClosedRefreshUsageV1());
     void snapshotCommit;
     const receiptValidation = new ReceiptValidationService();
     const receiptExtraction = new ReceiptExtractionService(receiptOcr, iae, aud);
@@ -381,7 +231,7 @@ export class DdaModule {
       dsm,
       iae,
       aud,
-      prototypeReceiptRecords(),
+      options.receiptRecords ?? createFailClosedReceiptRecordsV1(),
     );
     void receiptAcceptance;
 
@@ -402,64 +252,25 @@ export class DdaModule {
       providers: [
         {
           provide: DASHBOARD_REPOSITORY_PORT,
-          useValue: options.dashboardRepository ?? new InMemoryDashboardRepositoryAdapter(),
+          useValue: dashboardRepository,
         },
         {
           provide: ANALYSIS_PLAN_REPOSITORY_PORT,
-          useValue: options.analysisPlanRepository ?? new InMemoryAnalysisPlanRepositoryAdapter(),
+          useValue: analysisPlanRepository,
         },
         {
           provide: REFRESH_REPOSITORY_PORT,
-          useValue: options.refreshRepository ?? new InMemoryRefreshRepositoryAdapter(),
+          useValue: refreshRepository,
         },
         { provide: DDA_IAE_PORT, useValue: iae },
         { provide: DDA_DSM_PORT, useValue: dsm },
-        {
-          provide: DDA_JRA_PORT,
-          useValue:
-            options.jraPort ??
-            ({
-              async requireJob() {
-                return undefined;
-              },
-              async requireResultManifest() {
-                return undefined;
-              },
-            } satisfies DdaJraPortV1),
-        },
-        {
-          provide: DDA_DSO_PORT,
-          useValue:
-            options.dsoPort ??
-            ({
-              async requireCapabilityGrant() {
-                return undefined;
-              },
-              async requireProjection() {
-                return undefined;
-              },
-            } satisfies DdaDsoPortV1),
-        },
-        {
-          provide: DDA_BUA_PORT,
-          useValue:
-            options.buaPort ??
-            ({
-              async requireAdmission() {
-                return undefined;
-              },
-            } satisfies DdaBuaPortV1),
-        },
+        { provide: DDA_JRA_PORT, useValue: jra },
+        { provide: DDA_DSO_PORT, useValue: dso },
+        { provide: DDA_BUA_PORT, useValue: bua },
         { provide: DDA_AUD_PORT, useValue: aud },
         {
           provide: DDA_AUDIT_PORT,
-          useValue:
-            options.auditPort ??
-            ({
-              async emitContentSafeSummary() {
-                return undefined;
-              },
-            } satisfies DdaAuditPortV1),
+          useValue: options.auditPort ?? createFailClosedDdaAuditPortV1(),
         },
         { provide: DdaContentAuthorityV1, useFactory: () => new DdaContentAuthorityV1() },
         {
