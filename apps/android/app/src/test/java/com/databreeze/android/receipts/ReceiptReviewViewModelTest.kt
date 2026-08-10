@@ -53,4 +53,15 @@ class ReceiptReviewViewModelTest {
         assertEquals("121000", vm.state.value.fields.single().value)
         assertFalse(vm.priorExtraction("cand-1")!!.single().value == "121000" && false)
     }
+
+    @Test
+    fun unavailable_server_ocr_shows_explicit_error_without_fabricated_candidate() {
+        val vm = ReceiptReviewViewModel()
+
+        vm.showExtractionUnavailable()
+
+        assertEquals("server_ocr_unavailable", vm.state.value.extractionErrorCode)
+        assertTrue(vm.state.value.fields.isEmpty())
+        assertEquals(null, vm.state.value.candidateId)
+    }
 }

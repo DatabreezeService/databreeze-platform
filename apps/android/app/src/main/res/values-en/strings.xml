@@ -23,6 +23,7 @@
     <string name="receipt_review_confidence_note">OCR confidence is not factual correctness. Low-confidence fields require review.</string>
     <string name="receipt_review_low_confidence">%1$s (low confidence)</string>
     <string name="receipt_review_save">Save correction</string>
+    <string name="receipt_review_ocr_unavailable">OCR extraction is unavailable because the service is not configured. Try again when the authorized service connection is available.</string>
     <string name="back_action">Back</string>
     <string name="workbench_action">Open module workbench</string>
     <string name="workbench_title">Module workbench</string>

@@ -5,9 +5,9 @@ import com.databreeze.android.security.DeviceKeyStore
 import com.databreeze.android.security.DevicePayloadCipher
 import com.databreeze.android.security.EncryptedPayload
 import com.databreeze.android.storage.AccountWorkspaceScope
-import org.json.JSONObject
 import java.io.File
 import java.util.Base64
+import java.util.Properties
 
 /**
  * Durable encrypted staging: ciphertext + metadata on disk under an account/workspace scope.
@@ -78,14 +78,15 @@ class FileBackedReceiptStagingStore(
     ) {
         val safeId = artifactSessionId.replace(Regex("[^a-zA-Z0-9._-]"), "_")
         val file = File(dir, "$safeId.json")
-        val json =
-            JSONObject()
-                .put("artifactSessionId", metadata.artifactSessionId)
-                .put("contentDigest", metadata.contentDigest)
-                .put("byteLength", metadata.byteLength)
-                .put("iv", Base64.getEncoder().encodeToString(payload.iv))
-                .put("ciphertext", Base64.getEncoder().encodeToString(payload.ciphertext))
-        file.writeText(json.toString())
+        Properties().apply {
+            setProperty("artifactSessionId", metadata.artifactSessionId)
+            setProperty("contentDigest", metadata.contentDigest)
+            setProperty("byteLength", metadata.byteLength.toString())
+            setProperty("iv", Base64.getEncoder().encodeToString(payload.iv))
+            setProperty("ciphertext", Base64.getEncoder().encodeToString(payload.ciphertext))
+        }.also { envelope ->
+            file.outputStream().use { envelope.store(it, null) }
+        }
     }
 
     private data class Envelope(val metadata: ReceiptStagingMetadata, val payload: EncryptedPayload)
@@ -96,18 +97,20 @@ class FileBackedReceiptStagingStore(
         val file = File(dir, "$safeId.json")
         if (!file.isFile) return null
         return runCatching {
-            val json = JSONObject(file.readText())
+            val envelope = Properties().also { properties ->
+                file.inputStream().use(properties::load)
+            }
             Envelope(
                 metadata =
                     ReceiptStagingMetadata(
-                        artifactSessionId = json.getString("artifactSessionId"),
-                        contentDigest = json.getString("contentDigest"),
-                        byteLength = json.getInt("byteLength"),
+                        artifactSessionId = envelope.getProperty("artifactSessionId"),
+                        contentDigest = envelope.getProperty("contentDigest"),
+                        byteLength = envelope.getProperty("byteLength").toInt(),
                     ),
                 payload =
                     EncryptedPayload(
-                        iv = Base64.getDecoder().decode(json.getString("iv")),
-                        ciphertext = Base64.getDecoder().decode(json.getString("ciphertext")),
+                        iv = Base64.getDecoder().decode(envelope.getProperty("iv")),
+                        ciphertext = Base64.getDecoder().decode(envelope.getProperty("ciphertext")),
                     ),
             )
         }.getOrNull()

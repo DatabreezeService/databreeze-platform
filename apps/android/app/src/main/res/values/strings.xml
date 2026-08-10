@@ -23,6 +23,7 @@
     <string name="receipt_review_confidence_note">Điểm tin cậy OCR không phải tính đúng. Trường thấp tin cậy cần xem lại.</string>
     <string name="receipt_review_low_confidence">%1$s (thấp tin cậy)</string>
     <string name="receipt_review_save">Lưu hiệu đính</string>
+    <string name="receipt_review_ocr_unavailable">Không thể trích xuất OCR vì dịch vụ chưa được cấu hình. Hãy thử lại khi kết nối dịch vụ đã được cấp quyền.</string>
     <string name="back_action">Quay lại</string>
     <string name="workbench_action">Mở bàn làm việc mô-đun</string>
     <string name="workbench_title">Bàn làm việc mô-đun</string>

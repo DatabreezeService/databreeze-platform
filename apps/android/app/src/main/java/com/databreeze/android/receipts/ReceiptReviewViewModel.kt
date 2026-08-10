@@ -20,6 +20,7 @@ data class ReceiptReviewUiState(
     val lowConfidenceFields: Set<String> = emptySet(),
     val localeTag: String = "vi-VN",
     val adapterVersion: String? = null,
+    val extractionErrorCode: String? = null,
 )
 
 /**
@@ -50,7 +51,13 @@ class ReceiptReviewViewModel(
                 .toSet(),
             localeTag = localeTag,
             adapterVersion = adapterVersion,
+            extractionErrorCode = null,
         )
+    }
+
+    /** The client never creates candidate values when the server OCR path is unavailable. */
+    fun showExtractionUnavailable() {
+        _state.value = ReceiptReviewUiState(extractionErrorCode = "server_ocr_unavailable")
     }
 
     fun evidenceCropAccessible(field: String): Boolean =

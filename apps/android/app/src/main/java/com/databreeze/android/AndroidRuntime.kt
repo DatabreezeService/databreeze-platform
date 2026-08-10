@@ -2,10 +2,12 @@ package com.databreeze.android
 
 import android.content.Context
 import com.databreeze.android.receipts.FileBackedReceiptStagingStore
+import com.databreeze.android.receipts.FailClosedReceiptUploadApiClient
 import com.databreeze.android.receipts.ReceiptStagingStore
 import com.databreeze.android.receipts.ReceiptUploadScheduler
 import com.databreeze.android.receipts.ReceiptUploadTransport
 import com.databreeze.android.receipts.RecordingReceiptUploadScheduler
+import com.databreeze.android.receipts.StagedReceiptUploadTransport
 import com.databreeze.android.receipts.UnconfiguredReceiptUploadTransport
 import com.databreeze.android.receipts.WorkManagerReceiptUploadScheduler
 import com.databreeze.android.security.AndroidDeviceKeyStore
@@ -79,7 +81,11 @@ class AndroidRuntime internal constructor(
             val receiptStagingRoot = File(context.applicationContext.filesDir, "receipt-staging")
             val receiptStaging =
                 FileBackedReceiptStagingStore(receiptStagingRoot, receiptCipher, deviceKeyStore)
-            val receiptTransport = UnconfiguredReceiptUploadTransport()
+            val receiptTransport = StagedReceiptUploadTransport(
+                stagingStore = receiptStaging,
+                keyHandle = receiptKeyHandle,
+                apiClient = FailClosedReceiptUploadApiClient(),
+            )
             return AndroidRuntime(
                 localStore = localStore,
                 deviceKeyStore = deviceKeyStore,

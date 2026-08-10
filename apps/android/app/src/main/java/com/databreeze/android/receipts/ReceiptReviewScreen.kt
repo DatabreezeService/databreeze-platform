@@ -46,6 +46,12 @@ fun ReceiptReviewScreen(
             text = stringResource(R.string.receipt_review_confidence_note),
             style = MaterialTheme.typography.bodyMedium,
         )
+        if (state.extractionErrorCode == "server_ocr_unavailable") {
+            Text(
+                text = stringResource(R.string.receipt_review_ocr_unavailable),
+                modifier = Modifier.testTag("receipt-review-ocr-unavailable"),
+            )
+        }
         state.fields.forEach { field ->
             val low = field.field in state.lowConfidenceFields
             OutlinedTextField(
@@ -73,6 +79,7 @@ fun ReceiptReviewScreen(
                 onAccept()
             },
             modifier = Modifier.testTag("receipt-review-save"),
+            enabled = state.fields.isNotEmpty() && state.extractionErrorCode == null,
         ) {
             Text(stringResource(R.string.receipt_review_save))
         }

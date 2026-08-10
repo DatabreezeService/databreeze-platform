@@ -25,7 +25,6 @@ import androidx.navigation.compose.rememberNavController
 import com.databreeze.android.receipts.ReceiptCaptureScreen
 import com.databreeze.android.receipts.ReceiptCaptureViewModel
 import com.databreeze.android.receipts.ReceiptDestination
-import com.databreeze.android.receipts.ReceiptFieldCandidate
 import com.databreeze.android.receipts.ReceiptReviewScreen
 import com.databreeze.android.receipts.ReceiptReviewViewModel
 import com.databreeze.android.storage.AccountWorkspaceScope
@@ -118,17 +117,7 @@ fun DataBreezeApp(
                 composable(AppRoutes.REVIEW) { entry ->
                     val sessionId = entry.arguments?.getString("sessionId").orEmpty()
                     val reviewModel = remember(sessionId) {
-                        ReceiptReviewViewModel().also { vm ->
-                            vm.loadCandidate(
-                                candidateId = "candidate-$sessionId",
-                                adapterVersion = "fake-ocr-1",
-                                fields = listOf(
-                                    ReceiptFieldCandidate("merchant", "Cafe", 90, "crop-merchant"),
-                                    ReceiptFieldCandidate("total", "120000", 70, "crop-total"),
-                                    ReceiptFieldCandidate("currency", "VND", 97, "crop-currency"),
-                                ),
-                            )
-                        }
+                        ReceiptReviewViewModel().also { it.showExtractionUnavailable() }
                     }
                     ReceiptReviewScreen(
                         viewModel = reviewModel,
