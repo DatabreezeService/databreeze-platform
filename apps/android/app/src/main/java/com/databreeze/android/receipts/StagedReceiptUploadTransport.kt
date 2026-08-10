@@ -7,8 +7,8 @@ import java.security.MessageDigest
 /**
  * Typed Android boundary for the server-owned receipt intake API.
  *
- * A concrete authenticated client is composed only after the generated intake contract is
- * available. This adapter never substitutes a local OCR result or an unauthenticated upload.
+ * Authenticated clients emit the published contracts v2 `dda-receipt-upload` wire envelope.
+ * This adapter never substitutes a local OCR result or an unauthenticated upload.
  */
 interface ReceiptUploadApiClient {
     suspend fun upload(command: ReceiptArtifactUploadCommand): ReceiptUploadApiResult

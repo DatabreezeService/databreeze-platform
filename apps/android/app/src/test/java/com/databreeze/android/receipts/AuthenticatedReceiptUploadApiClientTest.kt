@@ -26,6 +26,7 @@ class AuthenticatedReceiptUploadApiClientTest {
             AuthenticatedReceiptUploadApiClient(
                 transport = transport,
                 organizationId = "00000000-0000-4000-8000-000000000001",
+                workspaceId = "00000000-0000-4000-8000-000000000002",
                 nowIso = { "2026-08-11T00:00:00.000Z" },
             )
 
@@ -47,6 +48,8 @@ class AuthenticatedReceiptUploadApiClientTest {
         assertTrue(transport.paths.any { it.contains("/parts/transfer") })
         assertTrue(transport.paths.any { it.contains("/artifact-upload-transfers/") })
         assertTrue(transport.paths.any { it.endsWith("/complete") })
+        assertTrue(transport.loggedBodies.any { it.contains("\"schemaVersion\":2") })
+        assertTrue(transport.loggedBodies.any { it.contains("\"operation\":\"CREATE_SESSION\"") })
         assertFalse(transport.loggedBodies.any { it.contains("synthetic-receipt") })
         assertFalse(transport.loggedBodies.any { it.contains("C:\\\\") })
     }
@@ -61,6 +64,7 @@ class AuthenticatedReceiptUploadApiClientTest {
             AuthenticatedReceiptUploadApiClient(
                 transport = transport,
                 organizationId = "00000000-0000-4000-8000-000000000001",
+                workspaceId = "00000000-0000-4000-8000-000000000002",
                 nowIso = { "2026-08-11T00:00:00.000Z" },
             )
 
@@ -88,6 +92,7 @@ class AuthenticatedReceiptUploadApiClientTest {
             AuthenticatedReceiptUploadApiClient(
                 transport = transport,
                 organizationId = "00000000-0000-4000-8000-000000000001",
+                workspaceId = "00000000-0000-4000-8000-000000000002",
                 nowIso = { "2026-08-11T00:00:00.000Z" },
             )
 

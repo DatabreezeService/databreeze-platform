@@ -1,10 +1,12 @@
 package com.databreeze.android.receipts
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 data class ReceiptFieldCandidate(
     val field: String,
@@ -28,6 +30,7 @@ data class ReceiptReviewUiState(
  * without translating source values or mutating the prior extraction.
  */
 class ReceiptReviewViewModel(
+    private val extractionApiClient: ReceiptExtractionApiClient? = null,
     private val lowConfidenceThreshold: Int = 85,
 ) : ViewModel() {
     private val _state = MutableStateFlow(ReceiptReviewUiState())
@@ -53,6 +56,47 @@ class ReceiptReviewViewModel(
             adapterVersion = adapterVersion,
             extractionErrorCode = null,
         )
+    }
+
+    /**
+     * Polls/reads the exact candidate version from the authenticated API when configured.
+     * Provider failure retains the original and the manual correction path.
+     */
+    fun loadCandidateFromServer(
+        candidateId: String,
+        idempotencyKey: String,
+        revision: Long = 1,
+        localeTag: String = Locale.getDefault().toLanguageTag(),
+    ) {
+        val client = extractionApiClient
+        if (client == null) {
+            showExtractionUnavailable()
+            return
+        }
+        viewModelScope.launch {
+            when (
+                val result =
+                    client.readCandidate(
+                        candidateId = candidateId,
+                        idempotencyKey = idempotencyKey,
+                        revision = revision,
+                    )
+            ) {
+                is ReceiptCandidateReadResult.Ready ->
+                    loadCandidate(
+                        candidateId = result.candidateId,
+                        fields = result.fields,
+                        adapterVersion = result.adapterVersion,
+                        localeTag = localeTag,
+                    )
+                is ReceiptCandidateReadResult.Unavailable ->
+                    _state.value = ReceiptReviewUiState(extractionErrorCode = result.code)
+                is ReceiptCandidateReadResult.Rejected ->
+                    _state.value = ReceiptReviewUiState(extractionErrorCode = result.code)
+                ReceiptCandidateReadResult.Retryable ->
+                    _state.value = ReceiptReviewUiState(extractionErrorCode = "receipt_candidate_retryable")
+            }
+        }
     }
 
     /** The client never creates candidate values when the server OCR path is unavailable. */
@@ -81,6 +125,19 @@ class ReceiptReviewViewModel(
                 .map { it.field }
                 .toSet(),
         )
+        val client = extractionApiClient
+        if (client != null && priorId != null) {
+            viewModelScope.launch {
+                client.correctCandidate(
+                    ReceiptCandidateCorrection(
+                        priorCandidateId = priorId,
+                        fields = updated,
+                        idempotencyKey = "receipt-correct-$newId",
+                        revision = 1,
+                    ),
+                )
+            }
+        }
         return newId
     }
 

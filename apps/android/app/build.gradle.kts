@@ -56,7 +56,10 @@ android {
 
 val generatedContractsDir = layout.buildDirectory.dir("generated/contracts")
 val stageGeneratedContracts by tasks.registering(Sync::class) {
-    from("../../../packages/contracts/generated/kotlin/src/main/kotlin/com/databreeze/contracts/v1/Models.kt")
+    from("../../../packages/contracts/generated/kotlin/src/main/kotlin") {
+        include("com/databreeze/contracts/v1/Models.kt")
+        include("com/databreeze/contracts/v2/Models.kt")
+    }
     into(generatedContractsDir)
 }
 

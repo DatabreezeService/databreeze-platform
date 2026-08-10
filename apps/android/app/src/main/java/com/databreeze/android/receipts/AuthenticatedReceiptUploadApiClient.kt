@@ -8,19 +8,19 @@ import java.security.MessageDigest
 /**
  * Authenticated resumable receipt upload client.
  *
- * Uses IAE upload control-plane routes with opaque transfer grants. Canonical bytes are streamed
- * only after scope/hash/length checks and are never logged.
- *
- * Wire envelope draft (not yet published into immutable contracts v1):
- * `packages/contracts/schemas/draft/dda-receipt-upload.schema.json`.
+ * Uses IAE upload control-plane routes with opaque transfer grants and the published contracts v2
+ * `dda-receipt-upload` wire envelope. Canonical bytes are streamed only after scope/hash/length
+ * checks and are never logged.
  */
 class AuthenticatedReceiptUploadApiClient(
     private val transport: AuthenticatedApiTransport,
     private val organizationId: String,
+    private val workspaceId: String,
     private val nowIso: () -> String,
 ) : ReceiptUploadApiClient {
     override suspend fun upload(command: ReceiptArtifactUploadCommand): ReceiptUploadApiResult {
         require(organizationId.isNotEmpty())
+        require(workspaceId.isNotEmpty())
         if (command.originalBytes.size.toLong() != command.totalBytes) {
             return ReceiptUploadApiResult.Rejected("upload_length_mismatch")
         }
@@ -32,7 +32,19 @@ class AuthenticatedReceiptUploadApiClient(
 
         val sessionId = command.artifactSessionId
         val createBody =
-            """{"sessionId":"$sessionId","artifactId":"$sessionId","expectedSha256":"$digest","expectedByteSize":${command.totalBytes},"mediaType":"image/jpeg","partSize":${command.totalBytes.coerceAtMost(5_242_880)},"createdAt":"${nowIso()}","expiresAt":"${nowIso()}"}"""
+            ReceiptWireEnvelope.createSession(
+                organizationId = organizationId,
+                workspaceId = workspaceId,
+                sessionId = sessionId,
+                artifactId = sessionId,
+                workspaceGrantId = command.workspaceGrantId,
+                expectedSha256 = digest,
+                expectedByteSize = command.totalBytes,
+                idempotencyKey = command.idempotencyKey,
+                revision = 1,
+                issuedAt = nowIso(),
+                expiresAt = nowIso(),
+            )
 
         when (
             transport.execute(
@@ -52,12 +64,21 @@ class AuthenticatedReceiptUploadApiClient(
             is AuthenticatedHttpResult.Success -> Unit
         }
 
+        val transferBody =
+            ReceiptWireEnvelope.issuePartTransfer(
+                organizationId = organizationId,
+                workspaceId = workspaceId,
+                sessionId = sessionId,
+                partNumber = 1,
+                idempotencyKey = "${command.idempotencyKey}:part-1",
+                revision = 1,
+            )
         val transfer =
             transport.execute(
                 AuthenticatedHttpRequest(
                     method = "POST",
                     path = "/v1/artifact-upload-sessions/$sessionId/parts/transfer",
-                    jsonBody = """{"partNumber":1}""",
+                    jsonBody = transferBody,
                     idempotencyKey = "${command.idempotencyKey}:part-1",
                 ),
             )
@@ -93,7 +114,17 @@ class AuthenticatedReceiptUploadApiClient(
         }
 
         val recordBody =
-            """{"transferId":"$transferId","partNumber":1,"contentSha256":"$digest","byteSize":${command.totalBytes},"uploadedAt":"${nowIso()}","expectedRevision":1}"""
+            ReceiptWireEnvelope.recordPart(
+                organizationId = organizationId,
+                workspaceId = workspaceId,
+                sessionId = sessionId,
+                transferId = transferId,
+                partNumber = 1,
+                partSha256 = digest,
+                partByteSize = command.totalBytes,
+                idempotencyKey = "${command.idempotencyKey}:record",
+                revision = 2,
+            )
         when (
             transport.execute(
                 AuthenticatedHttpRequest(
@@ -112,7 +143,15 @@ class AuthenticatedReceiptUploadApiClient(
             is AuthenticatedHttpResult.Success -> Unit
         }
 
-        val completeBody = """{"assembledSha256":"$digest","expectedRevision":2}"""
+        val completeBody =
+            ReceiptWireEnvelope.completeSession(
+                organizationId = organizationId,
+                workspaceId = workspaceId,
+                sessionId = sessionId,
+                expectedSha256 = digest,
+                idempotencyKey = "${command.idempotencyKey}:complete",
+                revision = 3,
+            )
         return when (
             transport.execute(
                 AuthenticatedHttpRequest(

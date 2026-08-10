@@ -49,6 +49,8 @@ class AndroidRuntimeLifecycleTest {
             ),
             receiptUploadScheduler = com.databreeze.android.receipts.RecordingReceiptUploadScheduler(),
             receiptUploadTransport = com.databreeze.android.receipts.UnconfiguredReceiptUploadTransport(),
+            receiptUploadApiClient = com.databreeze.android.receipts.FailClosedReceiptUploadApiClient(),
+            receiptExtractionApiClient = null,
             receiptKeyHandle = DeviceKeyHandle("receipt-staging"),
         )
 

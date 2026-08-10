@@ -1,9 +1,14 @@
 package com.databreeze.android
 
 import android.content.Context
-import com.databreeze.android.receipts.FileBackedReceiptStagingStore
+import com.databreeze.android.network.AuthenticatedApiConfig
+import com.databreeze.android.network.HttpUrlConnectionAuthenticatedApiTransport
+import com.databreeze.android.receipts.AuthenticatedReceiptUploadApiClient
 import com.databreeze.android.receipts.FailClosedReceiptUploadApiClient
+import com.databreeze.android.receipts.FileBackedReceiptStagingStore
+import com.databreeze.android.receipts.ReceiptExtractionApiClient
 import com.databreeze.android.receipts.ReceiptStagingStore
+import com.databreeze.android.receipts.ReceiptUploadApiClient
 import com.databreeze.android.receipts.ReceiptUploadScheduler
 import com.databreeze.android.receipts.ReceiptUploadTransport
 import com.databreeze.android.receipts.RecordingReceiptUploadScheduler
@@ -40,6 +45,8 @@ class AndroidRuntime internal constructor(
     val receiptStagingStore: ReceiptStagingStore,
     val receiptUploadScheduler: ReceiptUploadScheduler,
     val receiptUploadTransport: ReceiptUploadTransport,
+    val receiptUploadApiClient: ReceiptUploadApiClient,
+    val receiptExtractionApiClient: ReceiptExtractionApiClient?,
     val receiptKeyHandle: DeviceKeyHandle,
 ) {
     private val lifecycleMutexes = ConcurrentHashMap<String, Mutex>()
@@ -69,7 +76,10 @@ class AndroidRuntime internal constructor(
         lifecycleMutexes.computeIfAbsent(scope.stableKey) { Mutex() }
 
     companion object {
-        fun create(context: Context): AndroidRuntime {
+        fun create(
+            context: Context,
+            apiConfig: AuthenticatedApiConfig? = null,
+        ): AndroidRuntime {
             val localStore = RoomLocalStore.create(context.applicationContext)
             val transport = UnconfiguredSyncTransport()
             val revocationGuard = SharedPreferencesSyncRevocationGuard(
@@ -81,10 +91,39 @@ class AndroidRuntime internal constructor(
             val receiptStagingRoot = File(context.applicationContext.filesDir, "receipt-staging")
             val receiptStaging =
                 FileBackedReceiptStagingStore(receiptStagingRoot, receiptCipher, deviceKeyStore)
+            val apiTransport =
+                apiConfig?.let {
+                    HttpUrlConnectionAuthenticatedApiTransport(
+                        baseUrl = it.baseUrl,
+                        tokenProvider = it.tokenProvider,
+                    )
+                }
+            val receiptUploadApiClient: ReceiptUploadApiClient =
+                if (apiConfig != null && apiTransport != null) {
+                    AuthenticatedReceiptUploadApiClient(
+                        transport = apiTransport,
+                        organizationId = apiConfig.organizationId,
+                        workspaceId = apiConfig.workspaceId,
+                        nowIso = { java.time.Instant.now().toString() },
+                    )
+                } else {
+                    FailClosedReceiptUploadApiClient()
+                }
+            val receiptExtractionApiClient =
+                if (apiConfig != null && apiTransport != null) {
+                    ReceiptExtractionApiClient(
+                        transport = apiTransport,
+                        organizationId = apiConfig.organizationId,
+                        workspaceId = apiConfig.workspaceId,
+                        nowIso = { java.time.Instant.now().toString() },
+                    )
+                } else {
+                    null
+                }
             val receiptTransport = StagedReceiptUploadTransport(
                 stagingStore = receiptStaging,
                 keyHandle = receiptKeyHandle,
-                apiClient = FailClosedReceiptUploadApiClient(),
+                apiClient = receiptUploadApiClient,
             )
             return AndroidRuntime(
                 localStore = localStore,
@@ -101,6 +140,8 @@ class AndroidRuntime internal constructor(
                 receiptStagingStore = receiptStaging,
                 receiptUploadScheduler = WorkManagerReceiptUploadScheduler(context.applicationContext),
                 receiptUploadTransport = receiptTransport,
+                receiptUploadApiClient = receiptUploadApiClient,
+                receiptExtractionApiClient = receiptExtractionApiClient,
                 receiptKeyHandle = receiptKeyHandle,
             )
         }
@@ -115,6 +156,8 @@ class AndroidRuntime internal constructor(
             receiptStagingStore: ReceiptStagingStore,
             receiptUploadScheduler: ReceiptUploadScheduler = RecordingReceiptUploadScheduler(),
             receiptUploadTransport: ReceiptUploadTransport = UnconfiguredReceiptUploadTransport(),
+            receiptUploadApiClient: ReceiptUploadApiClient = FailClosedReceiptUploadApiClient(),
+            receiptExtractionApiClient: ReceiptExtractionApiClient? = null,
             receiptKeyHandle: DeviceKeyHandle,
         ): AndroidRuntime = AndroidRuntime(
             localStore = localStore,
@@ -131,6 +174,8 @@ class AndroidRuntime internal constructor(
             receiptStagingStore = receiptStagingStore,
             receiptUploadScheduler = receiptUploadScheduler,
             receiptUploadTransport = receiptUploadTransport,
+            receiptUploadApiClient = receiptUploadApiClient,
+            receiptExtractionApiClient = receiptExtractionApiClient,
             receiptKeyHandle = receiptKeyHandle,
         )
     }
