@@ -5,6 +5,7 @@ import { FolderManifestService } from '../application/folder-manifest.service.ts
 import { LockedLocalStateAdapter } from './adapters/locked-local-state.adapter.ts';
 import { UnavailableSidecarAdapter } from './adapters/unavailable-sidecar.adapter.ts';
 import { WindowsFolderBindingAdapter } from './adapters/windows-folder-binding.adapter.ts';
+import { WindowsFolderWatcherAdapter } from './adapters/windows-folder-watcher.adapter.ts';
 import {
   createDesktopWindow,
   type BrowserWindowConstructor,
@@ -52,6 +53,10 @@ async function openDesktopWindow(): Promise<void> {
     // Device capability grants remain DSO-owned; until enrollment lands, deny create.
     resolveCapability: () => null,
   });
+  // Production main owns watcher adapters per approved binding. Native fs watchers attach
+  // after a capability-backed createFolderBinding succeeds; until then the adapter is idle.
+  const folderWatchers = new Map<string, WindowsFolderWatcherAdapter>();
+  void folderWatchers;
 
   await createDesktopWindow({
     BrowserWindow: BrowserWindow as unknown as BrowserWindowConstructor,

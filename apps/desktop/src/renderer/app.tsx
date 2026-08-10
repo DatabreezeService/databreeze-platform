@@ -5,7 +5,10 @@ import type {
   DesktopSafeState,
   SidecarSafeStatus,
 } from '../shared/desktop-contract-v1.ts';
+import { FolderBindingPage } from './features/folders/folder-binding-page.tsx';
 import { ProductModuleWorkbench } from './product-module-workbench.tsx';
+
+type DesktopShellView = 'status' | 'folders';
 
 const messages = {
   'vi-VN': {
@@ -28,6 +31,8 @@ const messages = {
       'Mọi thao tác trong tương lai vẫn phải tuân thủ phạm vi đối tượng thuê, chế độ dữ liệu, bằng chứng và phê duyệt.',
     privacyTitle: 'Ranh giới riêng tư',
     skipWorkbench: 'Bỏ qua để đến bàn làm việc mô-đun',
+    navStatus: 'Trạng thái nền tảng',
+    navFolders: 'Thư mục dữ liệu',
     version: 'Phiên bản ứng dụng',
     workbench: {
       capabilitiesCaption:
@@ -68,6 +73,8 @@ const messages = {
       'Every future action must still honor tenant scope, data mode, evidence, and approval policy.',
     privacyTitle: 'Privacy boundary',
     skipWorkbench: 'Skip to module workbench',
+    navStatus: 'Platform status',
+    navFolders: 'Data folders',
     version: 'Application version',
     workbench: {
       capabilitiesCaption:
@@ -107,6 +114,7 @@ export function DesktopApp() {
   const [locale, setLocale] = useState<DesktopLocale>('vi-VN');
   const [safeState, setSafeState] = useState(initialState);
   const [sidecarStatus, setSidecarStatus] = useState(initialSidecar);
+  const [view, setView] = useState<DesktopShellView>('status');
   const copy = messages[locale];
 
   useEffect(() => {
@@ -136,6 +144,24 @@ export function DesktopApp() {
       </a>
       <header className="shell-header">
         <img className="wordmark" src={wordmarkUrl} alt="DataBreeze" />
+        <nav className="shell-primary-nav" aria-label={copy.workbench.navigationLabel}>
+          <button
+            aria-pressed={view === 'status'}
+            className="locale-button"
+            onClick={() => setView('status')}
+            type="button"
+          >
+            {copy.navStatus}
+          </button>
+          <button
+            aria-pressed={view === 'folders'}
+            className="locale-button"
+            onClick={() => setView('folders')}
+            type="button"
+          >
+            {copy.navFolders}
+          </button>
+        </nav>
         <nav className="locale-switch" aria-label="Language / Ngôn ngữ">
           <button
             aria-pressed={locale === 'vi-VN'}
@@ -157,58 +183,69 @@ export function DesktopApp() {
       </header>
 
       <main id="module-workbench">
-        <section className="agent-summary" aria-labelledby="agent-title">
-          <div className="lock-symbol" aria-hidden="true">
-            ×
-          </div>
-          <div>
-            <h1 id="agent-title">{copy.locked}</h1>
-            <p className="summary-copy">{copy.agentDetail}</p>
-          </div>
-        </section>
+        {view === 'folders' ? (
+          <FolderBindingPage
+            locale={locale}
+            capabilityGrantId="00000000-0000-4000-8000-0000000000d1"
+            organizationId="00000000-0000-4000-8000-000000000001"
+            workspaceId="00000000-0000-4000-8000-000000000002"
+          />
+        ) : (
+          <>
+            <section className="agent-summary" aria-labelledby="agent-title">
+              <div className="lock-symbol" aria-hidden="true">
+                ×
+              </div>
+              <div>
+                <h1 id="agent-title">{copy.locked}</h1>
+                <p className="summary-copy">{copy.agentDetail}</p>
+              </div>
+            </section>
 
-        <dl aria-label={copy.platformStatus} className="status-list">
-          <div className="status-row">
-            <dt>{copy.enrollment}</dt>
-            <dd>
-              <span className="status-dot" aria-hidden="true" />
-              {copy.notEnrolled}
-            </dd>
-          </div>
-          <div className="status-row">
-            <dt>{copy.engine}</dt>
-            <dd>
-              <span className="status-dot" aria-hidden="true" />
-              {copy.engineStates[sidecarStatus.lifecycle]}
-            </dd>
-          </div>
-          <div className="status-row">
-            <dt>{copy.mode}</dt>
-            <dd>{safeState.dataMode}</dd>
-          </div>
-          <div className="status-row">
-            <dt>{copy.version}</dt>
-            <dd className="numeric">{safeState.applicationVersion}</dd>
-          </div>
-        </dl>
+            <dl aria-label={copy.platformStatus} className="status-list">
+              <div className="status-row">
+                <dt>{copy.enrollment}</dt>
+                <dd>
+                  <span className="status-dot" aria-hidden="true" />
+                  {copy.notEnrolled}
+                </dd>
+              </div>
+              <div className="status-row">
+                <dt>{copy.engine}</dt>
+                <dd>
+                  <span className="status-dot" aria-hidden="true" />
+                  {copy.engineStates[sidecarStatus.lifecycle]}
+                </dd>
+              </div>
+              <div className="status-row">
+                <dt>{copy.mode}</dt>
+                <dd>{safeState.dataMode}</dd>
+              </div>
+              <div className="status-row">
+                <dt>{copy.version}</dt>
+                <dd className="numeric">{safeState.applicationVersion}</dd>
+              </div>
+            </dl>
 
-        <ProductModuleWorkbench
-          copy={copy.workbench}
-          locale={locale}
-          safeState={safeState}
-          sidecarStatus={sidecarStatus}
-        />
+            <ProductModuleWorkbench
+              copy={copy.workbench}
+              locale={locale}
+              safeState={safeState}
+              sidecarStatus={sidecarStatus}
+            />
 
-        <aside className="privacy-note" aria-labelledby="privacy-title">
-          <span className="privacy-icon" aria-hidden="true">
-            i
-          </span>
-          <div>
-            <h2 id="privacy-title">{copy.privacyTitle}</h2>
-            <p>{copy.privacy}</p>
-            <p>{copy.privacyDetail}</p>
-          </div>
-        </aside>
+            <aside className="privacy-note" aria-labelledby="privacy-title">
+              <span className="privacy-icon" aria-hidden="true">
+                i
+              </span>
+              <div>
+                <h2 id="privacy-title">{copy.privacyTitle}</h2>
+                <p>{copy.privacy}</p>
+                <p>{copy.privacyDetail}</p>
+              </div>
+            </aside>
+          </>
+        )}
       </main>
     </div>
   );

@@ -1,7 +1,7 @@
 package com.databreeze.android
 
 import android.content.Context
-import com.databreeze.android.receipts.InMemoryReceiptStagingStore
+import com.databreeze.android.receipts.FileBackedReceiptStagingStore
 import com.databreeze.android.receipts.ReceiptStagingStore
 import com.databreeze.android.receipts.ReceiptUploadScheduler
 import com.databreeze.android.receipts.ReceiptUploadTransport
@@ -12,8 +12,8 @@ import com.databreeze.android.security.AndroidDeviceKeyStore
 import com.databreeze.android.security.DeviceKeyHandle
 import com.databreeze.android.security.DeviceKeyStore
 import com.databreeze.android.security.DevicePayloadCipher
-import com.databreeze.android.storage.LocalStorePort
 import com.databreeze.android.storage.AccountWorkspaceScope
+import com.databreeze.android.storage.LocalStorePort
 import com.databreeze.android.storage.RoomLocalStore
 import com.databreeze.android.sync.DataBreezeWorkerFactory
 import com.databreeze.android.sync.SharedPreferencesSyncRevocationGuard
@@ -22,9 +22,10 @@ import com.databreeze.android.sync.SyncScheduler
 import com.databreeze.android.sync.SyncTransport
 import com.databreeze.android.sync.UnconfiguredSyncTransport
 import com.databreeze.android.sync.WorkManagerSyncScheduler
+import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.util.concurrent.ConcurrentHashMap
 
 /** Application-owned adapters. Feature packages receive ports, never Context or raw clients. */
 class AndroidRuntime internal constructor(
@@ -75,7 +76,9 @@ class AndroidRuntime internal constructor(
             val deviceKeyStore = AndroidDeviceKeyStore()
             val receiptKeyHandle = deviceKeyStore.getOrCreate("receipt-staging")
             val receiptCipher = DevicePayloadCipher(deviceKeyStore)
-            val receiptStaging = InMemoryReceiptStagingStore(receiptCipher, deviceKeyStore)
+            val receiptStagingRoot = File(context.applicationContext.filesDir, "receipt-staging")
+            val receiptStaging =
+                FileBackedReceiptStagingStore(receiptStagingRoot, receiptCipher, deviceKeyStore)
             val receiptTransport = UnconfiguredReceiptUploadTransport()
             return AndroidRuntime(
                 localStore = localStore,
