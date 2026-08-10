@@ -1,3 +1,5 @@
+import type { FolderBridgeV1 } from './folder-binding-contract-v1.ts';
+
 export const DESKTOP_BRIDGE_GLOBAL = 'databreezeDesktop';
 
 export const DESKTOP_IPC_CHANNELS = Object.freeze({
@@ -34,6 +36,7 @@ export interface DesktopBridgeV1 {
     readonly sidecar: {
       readonly getStatus: () => Promise<SidecarSafeStatus>;
     };
+    readonly folders: FolderBridgeV1;
   };
 }
 

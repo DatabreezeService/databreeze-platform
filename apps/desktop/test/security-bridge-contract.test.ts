@@ -20,12 +20,20 @@ describe('DSK-002 preload bridge', () => {
     const bridge = createDesktopBridgeV1(invoke);
 
     expect(Object.keys(bridge)).toEqual(['v1']);
-    expect(Object.keys(bridge.v1)).toEqual(['session', 'sidecar']);
+    expect(Object.keys(bridge.v1).sort()).toEqual(['folders', 'session', 'sidecar']);
     expect(Object.keys(bridge.v1.session)).toEqual(['getSafeState']);
     expect(Object.keys(bridge.v1.sidecar)).toEqual(['getStatus']);
+    expect(Object.keys(bridge.v1.folders).sort()).toEqual([
+      'create',
+      'disable',
+      'readStatus',
+      'select',
+      'updateManifest',
+    ]);
     expect(Object.isFrozen(bridge)).toBe(true);
     expect(Object.isFrozen(bridge.v1)).toBe(true);
     expect(Object.isFrozen(bridge.v1.session)).toBe(true);
+    expect(Object.isFrozen(bridge.v1.folders)).toBe(true);
     expect(bridge).not.toHaveProperty('invoke');
     expect(bridge).not.toHaveProperty('send');
     expect(bridge).not.toHaveProperty('filesystem');
@@ -60,12 +68,13 @@ describe('DSK-002 preload bridge', () => {
       hostilePrototype,
       'x'.repeat(70_000),
     ];
-    const methods = [
+    const noArgMethods = [
       bridge.v1.session.getSafeState as (...args: unknown[]) => Promise<unknown>,
       bridge.v1.sidecar.getStatus as (...args: unknown[]) => Promise<unknown>,
+      bridge.v1.folders.select as (...args: unknown[]) => Promise<unknown>,
     ];
 
-    for (const method of methods) {
+    for (const method of noArgMethods) {
       for (const input of unexpectedInputs) {
         await expect(method(input)).rejects.toThrow(/^DESKTOP_REQUEST_REJECTED$/);
       }
@@ -75,3 +84,4 @@ describe('DSK-002 preload bridge', () => {
     expect(getter).not.toHaveBeenCalled();
   });
 });
+

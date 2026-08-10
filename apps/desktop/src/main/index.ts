@@ -1,8 +1,10 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { app, BrowserWindow, ipcMain, session } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, session } from 'electron';
+import { FolderManifestService } from '../application/folder-manifest.service.ts';
 import { LockedLocalStateAdapter } from './adapters/locked-local-state.adapter.ts';
 import { UnavailableSidecarAdapter } from './adapters/unavailable-sidecar.adapter.ts';
+import { WindowsFolderBindingAdapter } from './adapters/windows-folder-binding.adapter.ts';
 import {
   createDesktopWindow,
   type BrowserWindowConstructor,
@@ -27,6 +29,29 @@ async function openDesktopWindow(): Promise<void> {
     locale: 'vi-VN',
   });
   const sidecar = new UnavailableSidecarAdapter();
+  const folderPort = new WindowsFolderBindingAdapter({
+    dialog: {
+      showOpenDialog: (options) => {
+        const dialogOptions: {
+          properties: Array<'openDirectory' | 'openFile' | 'multiSelections'>;
+          title?: string;
+        } = {
+          properties: [...options.properties] as Array<
+            'openDirectory' | 'openFile' | 'multiSelections'
+          >,
+        };
+        if (options.title !== undefined) dialogOptions.title = options.title;
+        return dialog.showOpenDialog(dialogOptions);
+      },
+    },
+  });
+  const folders = new FolderManifestService({
+    port: folderPort,
+    store: { bindings: new Map() },
+    nowMs: () => Date.now(),
+    // Device capability grants remain DSO-owned; until enrollment lands, deny create.
+    resolveCapability: () => null,
+  });
 
   await createDesktopWindow({
     BrowserWindow: BrowserWindow as unknown as BrowserWindowConstructor,
@@ -38,6 +63,7 @@ async function openDesktopWindow(): Promise<void> {
         ipcMain: ipcMain as unknown as DesktopIpcRegistrationInput['ipcMain'],
         localState,
         sidecar,
+        folders,
       });
     },
     electronSession: session.defaultSession as unknown as DesktopSessionLike,
