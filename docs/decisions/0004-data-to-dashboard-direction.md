@@ -1,0 +1,57 @@
+# ADR-0004: Focus V1 on the Data-to-Dashboard Agent and Event-Updated Materialized Snapshots
+
+**Status:** Proposed<br>
+**Date:** 2026-08-10
+
+## Context
+
+The original product suite specified ten specialist modules across three applications. That suite established valuable shared foundations but made the first product release too broad. Product review selected a clearer primary outcome: users bring their own data, review governed ETL and quality, receive an editable interactive dashboard from an agent, ask evidence-backed questions, and see dashboards update efficiently after accepted data changes.
+
+Web is cloud-first, Windows Desktop provides Local/Hybrid approved-folder processing, and Android initially provides cloud-connected receipt/document capture and dashboard consumption. AWS Singapore remains the first hosted target, but product contracts remain provider-neutral.
+
+Continuously querying raw datasets for every page view would increase cost, complicate consistent publication, and make Local/Hybrid evidence harder to govern. Fixed-interval polling also wastes work when data has not changed.
+
+## Decision
+
+1. Make the Data-to-Dashboard Agent the single V1 product capability.
+2. Retain the ten earlier modules as post-V1 specialist extension specifications.
+3. Preserve existing foundation authorities and stable requirement IDs; DDA composes them through public contracts.
+4. Make Hybrid the default and require an explicit versioned publication projection for Local/Hybrid data used by cloud dashboards.
+5. Use typed ETL/analysis/materialization plans. AI may propose plans and presentation but cannot supply authoritative numeric values or arbitrary executable code.
+6. Serve ordinary dashboard views from permission-scoped materialized results and immutable complete DashboardSnapshots.
+7. Make `ON_CHANGE` the default refresh mode: accepted dataset events resolve affected dependencies, debounce compatible changes, execute idempotent materialization jobs, and atomically publish a complete snapshot.
+8. Preserve the last complete snapshot when refresh is partial, failed, blocked, or waiting for a Local source.
+9. Support `MANUAL` and `SCHEDULED` refresh in V1; defer genuine streaming until a separate specification defines ordering, lateness, replay, corrections, capacity, and cost.
+10. Keep OCR and AI providers behind versioned adapters. A later accepted deployment/provider decision may select an initial AWS OCR service without changing domain semantics.
+
+## Consequences
+
+- Product, roadmap, specification index, domain model, synchronization, performance, and implementation plans must be revised around DDA.
+- Existing specialist P0 requirements remain P0 for those capabilities' eventual first production releases but are not DDA V1 gates.
+- Materialization dependency and cache-key correctness become security and data-correctness boundaries.
+- Dashboard publication is an immutable versioned action rather than an in-place mutable view.
+- Cloud cost is concentrated at intake, ETL, novel analysis, and affected-result refresh rather than every dashboard view.
+- Desktop folder intelligence requires explicit manifests, drift/duplicate/overlap review, and no cloud path disclosure.
+- Android V1 receipt capture remains native, user-initiated, resumable, evidence-aware, and policy-bound even though OCR runs in cloud for Hybrid/Cloud destinations.
+
+## Rejected alternatives
+
+### Deliver all ten specialist modules as the first release
+
+Rejected because it delays the primary user outcome, multiplies integration gates, and obscures what DataBreeze is.
+
+### Continuously query raw data for every dashboard view
+
+Rejected because cost scales with views, results can mix versions during change, Local/Hybrid sources may be unavailable, and permission/caching behavior becomes harder to prove.
+
+### Refresh every dashboard on a fixed short interval
+
+Rejected as the default because it performs work without a trusted data change and still leaves unclear freshness between intervals. Scheduled refresh remains an explicit option.
+
+### Let AI generate and execute arbitrary queries or dashboard code
+
+Rejected because it weakens authorization, reproducibility, evidence, resource admission, and numerical correctness.
+
+## Approval gate
+
+This ADR becomes Accepted only after written review of the Version 2 product documents and the DDA specification. Existing implementation plans remain authoritative for already delivered foundation evidence but must not be used to delegate DDA implementation until a replacement requirement-linked plan is approved.

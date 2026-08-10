@@ -1,12 +1,12 @@
 # DataBreeze System Architecture
 
 **Status:** Product specification<br>
-**Version:** 1.0<br>
-**Related decisions:** [Clean monorepo](../decisions/0001-clean-monorepo.md), [technology stack](../decisions/0002-technology-stack.md)
+**Version:** 2.0<br>
+**Related decisions:** [Clean monorepo](../decisions/0001-clean-monorepo.md), [technology stack](../decisions/0002-technology-stack.md), [data-to-dashboard direction and materialized refresh](../decisions/0004-data-to-dashboard-direction.md)
 
 ## 1. Architectural Outcome
 
-DataBreeze is a local-first product with a cloud control plane, a shared processing engine, and three purpose-built clients. The architecture must support solo local use, team collaboration, intermittent connectivity, and cloud execution without creating separate product models.
+DataBreeze is a local-first and cloud-capable data-to-dashboard product with a cloud control plane, a shared processing engine, and three purpose-built clients. The architecture must support governed Web intake/dashboard authoring, Hybrid Desktop folder processing, cloud-connected Android capture, intermittent connectivity, and cloud/local execution without creating separate product models.
 
 The initial backend is a modular monolith. Processing workers are a separate runtime because document and tabular work has different libraries, resource limits, and deployment characteristics. This is a deliberate boundary, not an invitation to create many services.
 
@@ -37,7 +37,7 @@ flowchart LR
 
 ### Web application
 
-A React and TypeScript single-page application for the complete organizational workspace. It communicates only through published API contracts and never reads storage or database state directly.
+A React and TypeScript single-page application for cloud intake, ETL review, governed analysis, dashboard canvas authoring, interactive publication, collaboration, and administration. It communicates only through published API contracts and never reads storage or database state directly.
 
 ### Desktop application
 
@@ -61,6 +61,7 @@ A NestJS modular monolith running on an Active LTS Node.js line with the Fastify
 - Workspaces, projects, policies, devices, and synchronization
 - Artifacts, evidence metadata, schemas, datasets, and retention
 - Jobs, recipes, approvals, notifications, and audit events
+- Dashboard drafts/versions, pages/widgets, materialization definitions/runs, refresh projections, snapshots, and publication grants
 - Module-specific transactional state
 - Billing, entitlements, usage, API keys, and webhooks
 - OpenAPI, event schemas, and compatibility enforcement
@@ -75,7 +76,7 @@ A versioned Python package used by both cloud workers and Desktop. It owns:
 - OCR adapters and evidence coordinates
 - Profiling, mapping, normalization, comparison, and reconciliation
 - Deterministic rule execution
-- Report data preparation
+- Typed analysis, dashboard materialization, and report data preparation
 - Provider-neutral assisted classification and narrative adapters
 
 The engine has no authority to decide tenant access, billing, approval, or publication. It receives capability-scoped jobs and emits validated results.
@@ -86,8 +87,8 @@ Cloud workers do not connect to PostgreSQL. Redis carries non-authoritative disp
 
 | Store | Owns | Must not own alone |
 |---|---|---|
-| PostgreSQL | Tenancy, metadata, jobs, versions, findings, approvals, audit, entitlements, sync changes, and durable module state | Original file bytes |
-| Object storage | Cloud artifact versions, derivatives, report files, and large result bundles | Authorization or the only copy of job state |
+| PostgreSQL | Tenancy, metadata, jobs, versions, findings, approvals, audit, entitlements, sync changes, dashboard definitions/snapshots, and durable feature state | Original file bytes or large materialized result partitions |
+| Object storage | Cloud artifact versions, derivatives, materialized result bundles, dashboard snapshot manifests, report files, and large result bundles | Authorization or the only copy of job/snapshot state |
 | Redis | Dispatch streams, short locks, rate-limit counters, cache, and ephemeral progress | Critical job, billing, audit, or financial state |
 | Desktop SQLite | Local artifact metadata, mirrored canonical jobs, provisional offline executions, recipes, sync cursors, grants, and recoverable queue state | Canonical Job, approval, billing, or cloud workspace authority |
 | Android Room | Offline assignments, captures, review drafts, notification state, and sync queue | Organization authority or final approval history |
@@ -105,6 +106,8 @@ Cloud workers do not connect to PostgreSQL. Redis carries non-authoritative disp
 8. The control plane validates result schemas and creates findings, derivatives, datasets, or review tasks.
 9. Approval policy blocks consequential actions until an authorized decision exists.
 10. Accepted changes are recorded in the audit log and sync change log.
+11. For an accepted governed DatasetVersion, DDA resolves versioned dashboard dependencies and JRA executes only affected compatible materializations or a bounded full refresh.
+12. The control plane verifies one compatible input/definition/permission set and publishes a complete immutable DashboardSnapshot atomically; a partial refresh leaves the prior snapshot active.
 
 ## 6. Foundation Composition and Dependency Direction
 

@@ -1,7 +1,7 @@
 # Performance and Reliability
 
 **Status:** Product specification<br>
-**Version:** 1.0
+**Version:** 2.0
 
 ## 1. Principles
 
@@ -21,6 +21,8 @@ Initial production objectives measured monthly:
 | Job creation and durable acceptance | 99.9% |
 | Sync change-log availability | 99.9% |
 | Published report access | 99.9% |
+| Published dashboard snapshot access | 99.9% |
+| On-change refresh produces one complete new snapshot or preserves the last complete snapshot | 99.9% |
 | Application-caused loss of an acknowledged committed mutation | Zero |
 | Duplicate consequential effects caused by retry | Zero |
 
@@ -61,10 +63,11 @@ Cold-start tests begin after reboot or process eviction with application data re
 ### Web
 
 - Authenticated shell usable within 2.5 seconds p75 on the Web reference profile after authentication.
-- Route bundles are split; initial JavaScript does not include all ten modules.
+- Route bundles are split; initial JavaScript does not include deferred specialist extensions.
 - User feedback begins within 100 ms for local interactions.
 - Tables virtualize or paginate before 500 visible rows.
 - Charts summarize server-side or in workers; they do not render millions of raw points.
+- A warm published dashboard shows its first required materialization within 2 seconds p95; bounded client-held filter/sort/highlight feedback targets 200 ms p95.
 
 ### Desktop
 
@@ -113,6 +116,7 @@ Each processor publishes benchmark fixtures, reference hardware, throughput, mem
 - Transactions are short; external calls and document processing do not occur inside database transactions.
 - Connection pools have bounded queues and timeouts.
 - Summary tables or materialized views are introduced from measured queries.
+- Dashboard materialization cache identity includes TenantScope, permission projection, dashboard/widget/plan, input/semantic/metric, parameters, value-affecting locale/timezone, engine/adapter, and effective policy versions.
 - Partitioning, read replicas, a search engine, or warehouse require evidence that indexing, query design, and summaries are insufficient.
 
 ## 8. Backpressure and Degradation
@@ -125,6 +129,7 @@ When capacity is constrained:
 4. Delay low-priority scheduled work.
 5. Isolate failing provider or processor classes.
 6. Show an honest queued/degraded state and retry guidance.
+7. Preserve the last complete authorized dashboard snapshot when ETL, quality, source availability, or refresh work is blocked.
 
 The system never reports completion before durable finalization.
 

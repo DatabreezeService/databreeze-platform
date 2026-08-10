@@ -1,7 +1,7 @@
 # Domain and Data Model
 
 **Status:** Product specification<br>
-**Version:** 1.0
+**Version:** 2.0
 
 ## 1. Modeling Rules
 
@@ -157,7 +157,23 @@ DSM or a feature module owns the immutable diagnostic detail: rule/processor ver
 
 Groups recurring or related findings for ownership, service-level tracking, root cause, and resolution.
 
-## 7. Reports and Collaboration
+## 7. Dashboards, Reports, and Collaboration
+
+### Dashboard and DashboardVersion
+
+Dashboard is the mutable workspace/project-scoped identity, ownership, audience configuration, and current-version pointers. DashboardVersion is immutable and references exact DSM dataset/schema/semantic/metric versions, pages, responsive layouts, widgets, filters/parameters, typed query/materialization definitions, freshness/publication policies, locale/timezone, parent version, and canonical hash.
+
+### MaterializationDefinition and MaterializedResult
+
+MaterializationDefinition binds one allowlisted typed plan, parameters, output schema/bounds, dependency set, incremental-compatibility declaration, engine requirements, and cache/retention policy. MaterializedResult is an immutable permission-scoped result over exact input/definition/engine versions with checksums, completeness/truncation, IAE object/evidence references, and a complete cache identity. It is a projection, never authoritative source data.
+
+### DashboardSnapshot and RefreshOccurrence
+
+DashboardSnapshot is an immutable complete publication unit binding one DashboardVersion, exact required MaterializedResults, input/permission/policy versions, freshness state, audience, approval reference where applicable, and manifest hash. RefreshOccurrence is the idempotent business projection of one on-change/manual/scheduled refresh and links its trigger range, selected definitions, JRA jobs/results, usage, prior/new snapshot IDs, and reason state. A partial occurrence cannot replace the last complete snapshot.
+
+### DashboardFolderBinding and ReceiptCaptureProfile
+
+DashboardFolderBinding references a DSO Device capability/grant, a local-only versioned manifest identity/hash, DSM target binding, Hybrid publication projection, content-safe health, and last accepted source fingerprint. Canonical paths/display names remain on Desktop. ReceiptCaptureProfile declares the bounded captured-field schema, confidence/review policy, deterministic reconciliation/duplicate rules, OCR adapter capability, and DSM target binding; IAE/DSM/JRA remain authoritative for its artifacts, governed records, jobs, and reviews.
 
 ### Report and ReportVersion
 
@@ -224,4 +240,4 @@ Consumers are idempotent and record processed event IDs. Events do not contain r
 
 Organization-administration queries lead with `organization_id`. Workspace content queries lead with `organization_id, workspace_id`; project content additionally scopes by `project_id`. Common compound indexes cover status/time, project/time, artifact/current version, job/status/created time, finding/status/severity, and sync sequence.
 
-Large lists use cursor pagination. Search begins with PostgreSQL full-text and structured filters. Analytical summaries use maintained tables or materialized views only after query measurement. A separate search engine or warehouse requires demonstrated need.
+Large lists use cursor pagination. Search begins with PostgreSQL full-text and structured filters. DDA materialized results are introduced for declared dashboard plans and measured reference workloads; other analytical summaries use maintained tables or materialized views only after query measurement. Cache/materialization keys include full TenantScope, permission projection, input/definition/plan/parameter/engine versions, and value-affecting locale/timezone. A separate search engine, warehouse, or streaming platform requires demonstrated need.

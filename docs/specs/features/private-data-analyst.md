@@ -1,6 +1,7 @@
 # DataBreeze Private Data Analyst — Product Specification
 
 **Status:** Product specification<br>
+**Delivery position:** Post-V1 standalone specialist extension; DDA V1 implements only its bounded typed-analyst contract.<br>
 **Version:** 1.0<br>
 **Requirement prefix:** PDA<br>
 **Dependencies:** Platform identity and workspace services; governed artifact, dataset, evidence, version, permission, typed-job, approval, audit, notification, report, and sync services; `IAE` Inbox, Artifacts, and Evidence foundation; `DSM` Datasets, Schemas, Rules, and Mappings foundation; `JRA` Jobs, Recipes, and Approvals foundation; `DSO` Devices, Synchronization, and Offline Operation foundation; Python processing engine with DuckDB/Polars execution; PostgreSQL; S3-compatible object storage; registered Desktop devices; provider-neutral optional AI adapter

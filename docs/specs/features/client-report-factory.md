@@ -1,6 +1,7 @@
 # DataBreeze Client Report Factory
 
 > **Status:** Product specification<br>
+> **Delivery position:** Post-V1 specialist extension; DDA V1 implements only its bounded interactive-dashboard publication contract.<br>
 > **Version:** 1.0<br>
 > **Requirement prefix:** `CRF`<br>
 > **Dependencies:** Identity and RBAC; organizations, workspaces, projects, and clients; immutable artifacts and artifact versions; governed datasets and validation; `IAE` Inbox, Artifacts, and Evidence foundation; `DSM` Datasets, Schemas, Rules, and Mappings foundation; `JRA` Jobs, Recipes, and Approvals foundation; `DSO` Devices, Synchronization, and Offline Operation foundation; evidence store; typed jobs and device routing; approvals and comments; audit history; notifications; report/export and object-storage services; Python processing engine

@@ -1,6 +1,7 @@
 # DataBreeze Embedded Importer
 
 > **Status:** Product specification<br>
+> **Delivery position:** Post-V1 specialist extension; not part of the Data-to-Dashboard Agent V1 release gate.<br>
 > **Version:** 1.0<br>
 > **Requirement prefix:** `EI`<br>
 > **Dependencies:** `IAM` identity, organizations, service accounts, RBAC, and authoritative DeviceIdentity/key/activation/revocation lifecycle; `INT` public API, credentials, idempotency, webhooks, and connector conventions; `DSM` schemas, mappings, rules, validation, datasets, and lineage; `IAE` immutable artifacts, evidence, retention, and byte deletion; `JRA` typed jobs, result manifests, durable job state, and authoritative ApprovalPolicy/ApprovalRequest/ApprovalDecision contracts when a commit requires approval; `DSO` DeviceCapability/DeviceGrant lifecycle, operational health/connection, Local/Hybrid/Cloud policy, and gateway synchronization; `NCO` notifications; `BUA` usage and entitlements; Python processing engine; object storage

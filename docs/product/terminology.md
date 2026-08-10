@@ -1,7 +1,7 @@
 # DataBreeze Terminology
 
 **Status:** Product specification<br>
-**Version:** 1.0
+**Version:** 2.0
 
 The following terms have one canonical meaning across product copy, APIs, schemas, logs, and specifications.
 
@@ -44,9 +44,23 @@ The following terms have one canonical meaning across product copy, APIs, schema
 | **High-risk action** | Product copy for a Restricted action. It requires online server authorization, recent MFA, and an approval policy; separation of duties is the default. |
 | **Material change** | A change to bound inputs, versions, values/tolerances, recipients, destinations, effects, risk class, or governing policy that could alter an approved or reproduced outcome. It invalidates the prior approval or result binding. |
 | **Confidence** | A calibrated measure of extraction or classification certainty; it is not a substitute for deterministic validation. |
+| **Quality dimension** | One independently defined measurement of governed data: completeness, validity, uniqueness, consistency, freshness, or another published deterministic rule result. It is not factual correctness. |
+| **Quality summary** | An optional combination of named quality dimensions whose formula, weights, coverage, sampling, and limitations are visible. |
 | **Rule** | A versioned deterministic expression that validates, reconciles, scores, or routes data. |
+| **Transformation plan** | A versioned ordered graph of allowlisted typed preparation steps bound to exact input, schema, mapping, rule, and engine versions. |
+| **Publication projection** | The explicit subset of metadata, aggregates, governed fields/rows, evidence derivatives, or originals authorized to move from a Local/Hybrid source to a named destination. |
+| **Folder dataset binding** | A DSO-governed Desktop capability plus a versioned local manifest describing how supported files in one explicitly selected folder become governed dataset versions. The canonical path remains local. |
+| **Typed analysis plan** | A versioned, schema-validated query/analysis representation. It is not arbitrary SQL, code, or an AI-generated numeric answer. |
+| **Dashboard** | A governed interactive presentation composed of pages, widgets, filters, typed query bindings, freshness policy, and immutable versions. |
+| **Dashboard page** | One responsive canvas inside a dashboard version containing positioned widgets and page-level controls. |
+| **Dashboard widget** | A versioned KPI, table, chart, text/evidence note, or other allowlisted presentation block bound to typed data and display configuration. |
+| **Materialized result** | A bounded, permission-scoped result produced from exact dataset, semantic, plan, parameter, and engine versions for efficient dashboard interaction. It is not authoritative source data. |
+| **Dashboard snapshot** | An immutable complete set of required materialized results and layout/configuration references published atomically for a dashboard version and input set. |
+| **Freshness policy** | The rule selecting when a saved analysis or dashboard may recompute: `ON_CHANGE`, `MANUAL`, `SCHEDULED`, or a separately specified later streaming mode. |
+| **Freshness state** | The visible relationship between a published snapshot and its required inputs: `CURRENT`, `REFRESHING`, `STALE`, `BLOCKED`, or `SOURCE_UNAVAILABLE`, with an exact reason and last-good time/version. |
+| **On-change refresh** | Dependency-aware recomputation triggered after an accepted dataset version or other bound input changes; it is not continuous polling. |
 | **Report** | A versioned presentation artifact generated from governed data, definitions, evidence, and a template. |
-| **Publication** | An immutable released report version with defined audience and access controls. |
+| **Publication** | An immutable released report or dashboard snapshot with defined audience, access controls, provenance, freshness behavior, and withdrawal state. |
 | **Data mode** | The workspace policy determining where originals and derived information may be stored and processed: Local, Hybrid, or Cloud. |
 | **Local mode** | Originals remain on an authorized source device—normally Desktop for files and Android for locally captured records; only explicitly allowed metadata or results synchronize. |
 | **Hybrid mode** | Originals may remain local while selected structured data, evidence excerpts, and outputs synchronize. |

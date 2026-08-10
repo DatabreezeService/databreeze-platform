@@ -1,156 +1,178 @@
 # DataBreeze Product Definition
 
 **Status:** Product specification<br>
-**Version:** 1.0<br>
-**Audience:** Product, design, engineering, operations, and future implementation agents
+**Version:** 2.0<br>
+**Audience:** Product, design, engineering, operations, reviewers, and implementation agents
 
 ## 1. Definition
 
-DataBreeze is a Vietnamese-first, local-first business data workspace that turns user-controlled files, documents, photos, voice notes, and datasets into trustworthy actions and reports.
+DataBreeze is a Vietnamese-first, local-first and cloud-capable data-to-dashboard agent. It turns user-controlled spreadsheets, tabular files, approved local folders, and captured receipts into governed datasets, interactive dashboards, and evidence-backed analysis.
 
 Its product promise is:
 
-> Your data work, handled.
+> Your data, understood and kept up to date.
 
-DataBreeze is not ten disconnected tools. It is one governed platform with a shared Inbox, artifact and evidence model, processing engine, recipes, jobs, reviews, permissions, audit history, and three complementary applications:
+DataBreeze is one product across three complementary applications:
 
-- **Web** is the complete organizational and cloud workspace.
-- **Windows Desktop** is the local file and heavy-processing agent.
-- **Android** is the capture, review, notification, and approval companion.
+- **Web** is the cloud workspace for upload, ETL review, analysis, dashboard canvas authoring, publication, sharing, and administration.
+- **Windows Desktop** is the trusted local and Hybrid data agent for approved folders, large or sensitive files, local processing, and policy-controlled synchronization.
+- **Android** is initially the cloud-connected capture and consumption companion for receipt/document scanning, OCR review, dashboards, notifications, and analyst questions.
 
-The [platform and feature matrix](platform-feature-matrix.md) shows the responsibility of every module on each application.
+All three surfaces share identity, workspaces, permissions, immutable artifacts, governed datasets, schemas, mappings, rules, jobs, evidence, data modes, synchronization, notifications, usage, and audit history.
 
 ## 2. Problem
 
-Vietnamese individuals and small businesses repeatedly handle important data through spreadsheets, PDFs, scans, photographs, email attachments, shared folders, and exported reports. The work is fragmented and manual:
+Individuals and small teams often have valuable data but cannot turn it into a dependable dashboard without combining several difficult tools:
 
-- Files arrive in inconsistent formats and naming conventions.
-- People repeatedly copy, clean, map, compare, reconcile, and reformat data.
-- Decisions are made from numbers that are difficult to trace back to their source.
-- Sensitive files may not be suitable for uploading to an unknown cloud processor.
-- Marketplace and enterprise APIs may be unavailable, restricted to certified partners, unstable, or commercially impractical.
-- Existing automation tools are often too technical, too cloud-dependent, or unsafe around local files.
+- Files arrive with inconsistent headers, types, currencies, dates, duplicates, missing values, and naming conventions.
+- Dashboard builders often assume the data is already clean and correctly modeled.
+- Automated chart generators can produce plausible-looking but incorrect metrics or visualizations.
+- Static reports become stale, while continuously querying raw data is expensive and difficult to govern.
+- Sensitive or large local files may not be suitable for automatic cloud upload.
+- Receipt and document data must be captured, corrected, and reconciled before it can support analysis.
+- Users need to understand how a number was produced, not merely see a polished chart.
 
-DataBreeze reduces that repeated work while preserving evidence, human control, and data-location choice.
+DataBreeze joins intake, governed ETL, data-quality review, analysis, dashboard construction, publication, and fresh-on-change updates in one traceable workflow.
 
-## 3. Product Outcome
+## 3. Product outcome
 
-A successful DataBreeze workflow has five properties:
+A successful workflow has seven properties:
 
-1. **Easy intake:** A user saves, shares, scans, records, selects, or uploads information once.
-2. **Controlled processing:** DataBreeze executes a typed job locally or in the cloud according to policy.
-3. **Traceable results:** Every material value or finding links to its source file, page, sheet, cell, row, or capture.
-4. **Safe action:** Low-confidence or consequential actions require review, preview, or approval.
-5. **Reusable work:** The approved mapping, rule, recipe, or report becomes repeatable rather than a one-off task.
+1. **Easy intake:** The user uploads a supported file, registers an approved Desktop folder, or captures a receipt on Android.
+2. **Preserved source:** The original becomes an immutable artifact version with visible location and retention behavior.
+3. **Reviewed preparation:** DataBreeze profiles the input, proposes typed transformations, and exposes changed, invalid, rejected, and uncertain records.
+4. **Measurable trust:** Quality is described through completeness, validity, uniqueness, consistency, freshness, and extraction confidence rather than an unsupported claim of factual correctness.
+5. **Editable dashboard:** The agent proposes metrics, charts, filters, and layout on a canvas that the user can inspect and change.
+6. **Evidence-backed analysis:** Every material value links to its typed plan, metric definition, dataset version, filters, lineage, and authorized source evidence.
+7. **Efficient freshness:** Accepted data changes trigger dependency-aware materialization and atomic dashboard snapshot publication without continuous polling.
 
-## 4. Product Pillars
+## 4. Core V1 capability
 
-### User-controlled data
+The first product version is the **DataBreeze Data-to-Dashboard Agent**.
 
-The primary inputs are data users already possess or are authorized to access: local folders, uploads, Android shares, photographs, scans, voice notes, email attachments forwarded by the user, databases configured by an administrator, and optional public or authorized connectors.
-
-No core workflow requires DataBreeze to hold a privileged Shopee, TikTok Shop, ERP, accounting, or advertising partnership.
-
-### Local-first, cloud-capable
-
-Users choose whether originals remain local, synchronize selectively, or live in the cloud. Hybrid is the default because it provides useful collaboration without requiring every original to leave the device.
-
-### Evidence before confidence
-
-DataBreeze must show why it produced an output. Deterministic rules support consequential conclusions. AI may classify, suggest, summarize, and explain, but it does not erase provenance or silently become the source of truth.
-
-### Human-controlled automation
-
-The desktop application is not an unrestricted remote-control agent. It receives signed typed jobs, operates only within approved capabilities, previews sensitive changes, records an audit trail, and supports recovery or undo where a mutation occurs.
-
-### One platform, modular value
-
-Every module stands on its own but becomes more useful with shared artifacts, governed datasets, rules, suppliers, templates, evidence, approvals, and reports.
-
-## 5. Product Modules
-
-| Module | Outcome |
+| Capability | V1 outcome |
 |---|---|
-| **DataBreeze Quote Intelligence** | Normalize and compare supplier quotes using landed cost, weighted criteria, and source evidence. |
-| **DataBreeze Spreadsheet Auditor** | Find risky formulas, structural inconsistencies, and data-quality problems and propose safe repairs. |
-| **DataBreeze Invoice Leak Detector** | Find duplicates, overcharges, and contract or rate mismatches and assemble dispute evidence. |
-| **DataBreeze Embedded Importer** | Let another product embed DataBreeze mapping, validation, import, and review capabilities. |
-| **DataBreeze Client Report Factory** | Turn governed data and reusable templates into versioned, reviewable client reports. |
-| **DataBreeze Migration Ready** | Profile, map, clean, deduplicate, dry-run, reconcile, and export migration-ready data. |
-| **DataBreeze Folder Autopilot** | Apply safe, repeatable recipes to files placed in explicitly approved folders. |
-| **DataBreeze Data Quality Guard** | Monitor data rules, drift, reconciliation, incidents, and proposed repairs over time. |
-| **DataBreeze Private Data Analyst** | Answer questions and produce analysis over governed local or cloud data with evidence. |
-| **DataBreeze Operations Capture** | Capture structured operational records through Android camera, forms, voice, barcode, and signatures. |
+| Data intake | Web CSV/XLSX upload, Desktop approved-folder CSV/XLSX intake, and Android receipt/document capture |
+| Storage | Immutable originals, governed cleaned dataset versions, and versioned materialized dashboard results |
+| ETL review | Profiling, mapping, typed transformations, before/after preview, rejected-row visibility, validation, quality dimensions, and lineage |
+| Analyst | Vietnamese/English questions converted to visible typed plans and deterministic results |
+| Dashboard canvas | Agent-proposed and user-editable pages, layouts, widgets, filters, evidence, and publication |
+| Freshness | On-change, manual, and scheduled refresh with dependency-aware recomputation and atomic snapshots |
+| Hybrid operation | Local Desktop execution with policy-controlled publication projections to cloud dashboards |
+| Mobile capture | Cloud-connected OCR, field-level confidence, correction, deterministic receipt checks, and governed dataset insertion |
 
-E-commerce profit analysis remains a supported solution assembled from importer templates, governed datasets, quality rules, reports, and the private analyst. It is not the boundary of the product.
+## 5. Primary workflow
 
-## 6. Platform Responsibilities
+```mermaid
+flowchart LR
+    A["Upload · Approved folder · Mobile capture"]
+    B["Immutable source and profile"]
+    C["ETL review and quality"]
+    D["Governed dataset version"]
+    E["Typed analyst and dashboard plan"]
+    F["Editable canvas"]
+    G["Interactive published snapshot"]
+    H["Accepted data change"]
+    A --> B --> C --> D --> E --> F --> G
+    H --> B
+    D -->|"affected results only"| G
+```
+
+AI may interpret intent, propose mappings, suggest visualizations, and draft explanations. Deterministic processors calculate every displayed numeric value. The agent cannot publish, broaden access, move data across a policy boundary, or mutate an original without the required user action and policy decision.
+
+## 6. Platform responsibilities
 
 ### Web
 
-Web owns account and organization management, workspaces, projects, roles, billing, cloud artifacts, schema and recipe design, collaboration, dashboards, approvals, reports, API keys, webhooks, device administration, security policies, audit history, and cloud-capable execution.
+Web owns cloud intake, ETL review, governed dataset administration, typed analysis, dashboard authoring, interactive publication, collaboration, sharing, permissions, billing/usage, API administration, and audit history. Web cannot browse or remotely control Desktop folders.
 
 ### Windows Desktop
 
-Desktop owns approved-folder access, local and sensitive file processing, large spreadsheet and document work, folder recipes, offline execution, previews, safe file mutations, local evidence, and selective synchronization.
+Desktop owns local folder selection, local paths, file stability and fingerprinting, schema grouping, local ETL/analysis, offline state, detailed local evidence, and Hybrid publication projections. It processes only explicitly granted folders and supported typed actions.
 
 ### Android
 
-Android owns field capture, Android Share intake, offline records, camera and barcode workflows, voice notes, notifications, exception review, approvals, and concise report consumption. It is not a miniature desktop application.
+Android V1 owns active camera/document capture, resumable cloud upload for Hybrid/Cloud destinations, OCR candidate review, dashboard consumption, and analyst questions. It uses native Kotlin/Compose and secure local staging/queues; capture is never remote-triggered.
 
-## 7. Data Modes
+## 7. Data modes
 
-| Mode | Original data | Synchronized data | Intended use |
-|---|---|---|---|
-| **Local** | Remains on an authorized source device: normally Desktop for files and Android for locally captured records until an explicit local transfer/export. | Operational metadata and explicitly approved derived results only. | Highly sensitive or offline-first work. |
-| **Hybrid** | May remain local or be uploaded per artifact. | Structured records, evidence excerpts, status, and selected reports according to policy. | Default for individuals and teams. |
-| **Cloud** | Stored in workspace-controlled object storage. | Available to authorized web, desktop, and Android clients. | Collaboration and cloud execution. |
+| Mode | Original data | Dashboard behavior |
+|---|---|---|
+| **Local** | Remains on an authorized source Device. | Local analysis/dashboard is available on Desktop; cloud receives only content-safe metadata or separately approved derived results. |
+| **Hybrid** | Remains local by default; explicit artifacts or projections may synchronize. | Default mode. Dashboard-specific aggregates or selected governed data may power Web/mobile dashboards after policy and user review. |
+| **Cloud** | Stored in workspace-controlled object storage. | Cloud ETL, analysis, materialization, publication, and authorized cross-device consumption are available. |
 
-The interface must always show where an original lives and what will synchronize before a user commits a sensitive action.
+Every intake and publication workflow shows where originals, cleaned data, evidence, and dashboard results will live before a sensitive transfer occurs.
 
-## 8. Target Market and Positioning
+## 8. Freshness and cost model
 
-Initial users are Vietnamese solo operators, SMEs, agencies, accountants, procurement staff, operations teams, analysts, and technical service providers who already work with business files but do not want to build and maintain custom data pipelines.
+The ordinary V1 dashboard is **fresh on trusted change**, not a continuously queried live database view.
 
-DataBreeze should be positioned as a calm operating workspace, not a generic AI chat product:
+- Dashboard widgets compile to typed query plans and materialized results.
+- Page views read bounded authorized materializations rather than scanning raw datasets.
+- A committed dataset version emits a versioned event.
+- A dependency index selects affected dashboard results.
+- Changes inside a short debounce window coalesce.
+- A complete new snapshot publishes atomically; a partial refresh never replaces the last good snapshot.
+- Connected clients receive a content-safe notification and fetch changed authorized results.
+- Cache keys include TenantScope, permission projection, dataset/semantic versions, plan hash, and parameters.
+- Compute budgets, concurrency limits, idle suspension, retention, and visible usage prevent accidental cost growth.
 
-> Turn the business data you already have into checked, traceable work—without coding or giving up control of your files.
+The V1 target is a new ordinary dashboard snapshot within 60 seconds after a small accepted data update under the reference workload. Genuine second-by-second streaming is a later capability requiring measured customer need.
 
-## 9. Business Model Direction
+## 9. Initial users and positioning
 
-The product supports a free or low-cost individual entry point and paid tiers based on durable value drivers:
+Initial users are Vietnamese solo operators, SMEs, consultants, accountants, and analysts who already work with spreadsheets, recurring exports, or receipts but lack the time or skills to build trustworthy data pipelines and dashboards.
 
-- Active workspaces and members
-- Registered desktop devices
-- Cloud storage and retention
-- Monthly processed pages, rows, or compute units
-- Scheduled recipes and monitors
-- Advanced approvals, audit retention, and client branding
-- Embedded Importer API and SDK usage
+Positioning:
 
-Local processing must not be presented as unlimited if it creates support, update, or synchronization costs. Entitlements remain understandable and are enforced without destroying customer data.
+> Turn the data you already have into a checked, interactive dashboard—without hiding how the numbers were produced.
 
-## 10. Non-goals
+## 10. Business model direction
 
-DataBreeze will not:
+Plans may meter durable value drivers:
 
-- Scrape authenticated websites or bypass vendor access controls.
-- Depend on certification from a marketplace for its core value.
-- Act as an unrestricted remote administration tool.
-- Replace a complete ERP, CRM, accounting ledger, marketplace, or payment system.
-- Execute payments or financial transfers from a detected finding.
-- Silently overwrite original customer files.
-- Present untraceable AI output as a verified fact.
-- Build every module simultaneously.
+- active workspaces and members;
+- cloud storage and retention;
+- processed rows, files, pages, or compute units;
+- active Desktop folder bindings;
+- OCR pages;
+- automatic dashboard refreshes and materializations;
+- published dashboards and sharing controls; and
+- advanced governance, approval, and audit retention.
 
-## 11. Product Success
+Viewing a cached dashboard should be inexpensive. Compute is concentrated at intake, ETL, novel analysis, and affected-result refresh rather than every page view.
+
+## 11. Non-goals for V1
+
+V1 does not include:
+
+- unrestricted connectors to arbitrary databases, APIs, cloud drives, email, accounting systems, or marketplaces;
+- genuine second-by-second streaming dashboards;
+- arbitrary AI-generated SQL, Python, JavaScript, macros, or shell execution;
+- silent modification of originals or silently accepted ETL changes;
+- automatic publication or permission expansion by an agent;
+- factual correctness claims derived only from statistical profiles or AI confidence;
+- general-purpose document understanding beyond the initial reviewed capture profiles;
+- an unrestricted remote Desktop agent;
+- payment execution or external operational actions; or
+- simultaneous production delivery of the ten specialist solution modules.
+
+## 12. Specialist extensions
+
+The existing Quote Intelligence, Spreadsheet Auditor, Invoice Leak Detector, Embedded Importer, Client Report Factory, Migration Ready, Folder Autopilot, Data Quality Guard, Private Data Analyst, and Operations Capture specifications are retained as post-V1 specialist extensions. They may reuse the same foundations and dashboard capability after product evidence, but they are not part of the first product release gate unless a later approved plan says otherwise.
+
+## 13. Product success
 
 The product succeeds when users:
 
-- Reach a first trustworthy result without technical assistance.
-- Repeat a workflow with materially less manual work.
-- Can trace findings and generated values to their sources.
-- Keep exception and correction rates visible rather than hidden.
-- Continue using recipes, rules, and reports after the first month.
-- Confidently select Local, Hybrid, or Cloud based on clear information.
-- Add modules because shared data makes them more valuable, not because of forced bundling.
+- reach a trustworthy first dashboard without writing code;
+- understand and correct material data-quality issues before publication;
+- can trace every consequential dashboard value to its governed calculation and evidence;
+- add new compatible data without rebuilding the dashboard;
+- receive a fresh complete snapshot after trusted data changes;
+- use the analyst without receiving fabricated numbers or hidden assumptions;
+- keep sensitive originals local while publishing only the intended projection; and
+- continue using the same dataset, transformations, dashboards, and questions after the first month.
+
+A rapid mentor demonstration is a prototype gate, not a production-completion claim. Production status still requires the applicable requirement-linked security, tenant, recovery, performance, accessibility, data-mode, and audit evidence.

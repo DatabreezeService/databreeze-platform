@@ -1,6 +1,7 @@
 # DataBreeze Operations Capture — Product Specification
 
 **Status:** Product specification<br>
+**Delivery position:** Post-V1 specialist extension; DDA V1 implements only its bounded receipt-capture contract.<br>
 **Version:** 1.0<br>
 **Requirement prefix:** OC<br>
 **Dependencies:** Platform identity and workspace services; native Android device registration, secure storage, camera, microphone, barcode/QR, location, and offline database capabilities; artifact, evidence, form/version, typed-job, approval, audit, notification, and sync services; `IAE` Inbox, Artifacts, and Evidence foundation; `DSM` Datasets, Schemas, Rules, and Mappings foundation; `JRA` Jobs, Recipes, and Approvals foundation; `DSO` Devices, Synchronization, and Offline Operation foundation; Desktop local metadata store and Python processing sidecar; PostgreSQL; S3-compatible object storage; Redis Streams

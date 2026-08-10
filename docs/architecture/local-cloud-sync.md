@@ -1,7 +1,7 @@
 # Local, Cloud, and Offline Synchronization
 
 **Status:** Product specification<br>
-**Version:** 1.0
+**Version:** 2.0
 
 ## 1. Purpose
 
@@ -18,6 +18,9 @@ Synchronization gives Web, Desktop, Android, and cloud workers a consistent view
 | Evidence source coordinate | Synchronized when needed for results | Synchronized | Synchronized |
 | Job, review, approval, and audit state | Synchronized | Synchronized | Synchronized |
 | Local recipe secrets or folder paths | Device only | Device only | Device only |
+| Dashboard folder manifest path/display name | Device only; opaque binding/status may synchronize | Device only; opaque binding/status synchronizes | Device only |
+| Dashboard publication projection | Explicit resource/hash-bound confirmation | Metadata, selected governed rows/columns, aggregates, evidence derivatives, or originals only as declared by policy | Authorized projection/originals available by policy |
+| Materialized dashboard result/snapshot | Explicit approved derived result only | Synchronized by dashboard publication policy | Synchronized by dashboard publication policy |
 | Published report | Explicit export or approved sync | Synchronized by publication policy | Synchronized |
 
 Data classification may make a policy stricter but never weaker. A workspace can prohibit Cloud for specified classes.
@@ -122,6 +125,10 @@ The Desktop interface distinguishes:
 - blocked by policy or revoked access
 
 Closing the UI does not corrupt an in-flight transfer. Background operation follows user and OS settings.
+
+For a DDA folder binding, Desktop stores the canonical path and versioned local manifest. Cloud receives only the opaque binding/capability identity, manifest hash/version, content-safe health, selected DSM target binding, publication projection, and accepted fingerprints/counts permitted by policy. Compatible stable files may process locally; schema drift, period overlap, duplicate ambiguity, unsupported content, or changed mapping enters review/quarantine before any governed version or dashboard refresh.
+
+Hybrid dashboard publication synchronizes only the declared projection: metadata, dashboard-specific aggregates, selected governed rows/columns, evidence derivatives, or explicitly authorized originals. Every projection is versioned and previewed with classification, fields, counts/bytes, destination, evidence consequences, and effective policy. A dashboard view cannot cause a broader source upload.
 
 ## 9. Android Synchronization
 

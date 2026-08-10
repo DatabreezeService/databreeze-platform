@@ -1,6 +1,7 @@
 # DataBreeze Spreadsheet Auditor
 
 > **Status:** Product specification<br>
+> **Delivery position:** Post-V1 specialist extension; not part of the Data-to-Dashboard Agent V1 release gate.<br>
 > **Version:** 1.0<br>
 > **Requirement prefix:** `SA`<br>
 > **Dependencies:** Identity and RBAC; workspaces and projects; Inbox and immutable artifacts; artifact versions; `IAE` Inbox, Artifacts, and Evidence foundation; `DSM` Datasets, Schemas, Rules, and Mappings foundation; `JRA` Jobs, Recipes, and Approvals foundation; `DSO` Devices, Synchronization, and Offline Operation foundation; evidence store; typed jobs and device routing; findings and assignments; approvals; audit history; notifications; report/export service; Python processing engine; object storage

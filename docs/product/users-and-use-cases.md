@@ -1,168 +1,166 @@
 # Users and Use Cases
 
 **Status:** Product specification<br>
-**Version:** 1.0
+**Version:** 2.0
 
-## 1. Primary Users
+## 1. Primary users
 
-### Solo operator
+### Solo operator or SME owner
 
-A business owner, freelancer, accountant, buyer, or analyst working alone with recurring spreadsheets and documents. They need fast setup, safe defaults, clear findings, and no mandatory organization administration.
-
-Key jobs:
-
-- Compare files or documents without rebuilding a spreadsheet.
-- Watch a folder and repeat a known process.
-- Audit important data before sending or using it.
-- Ask questions without uploading sensitive originals.
-
-### Operations team
-
-A small team capturing, validating, reconciling, and reporting operational data across locations or customers.
+A business owner, freelancer, accountant, or operations lead working with recurring spreadsheets, exports, and receipts. They need a useful dashboard without learning ETL, SQL, or visualization software.
 
 Key jobs:
 
-- Standardize how records are captured and reviewed.
-- Assign exceptions and approvals.
-- See which jobs are waiting, failed, or complete.
-- Preserve an audit trail across people and devices.
-
-### Procurement and finance reviewer
-
-A buyer, bookkeeper, finance manager, or business owner responsible for quotes, contracts, invoices, rates, and approvals.
-
-Key jobs:
-
-- Compare suppliers using consistent criteria.
-- Check invoices against source agreements.
-- Explain a finding with defensible evidence.
-- Approve or reject high-impact conclusions.
+- Upload a file and understand whether it is usable.
+- Correct data problems without losing the original.
+- Receive a sensible first dashboard and adjust it visually.
+- Ask a business question in Vietnamese or English.
+- Add the next period's data without rebuilding everything.
 
 ### Analyst or consultant
 
-A person who prepares recurring analyses, migrations, dashboards, or reports for internal stakeholders or clients.
+A person preparing dashboards and recurring analyses for an internal team or client.
 
 Key jobs:
 
-- Reuse definitions and templates across periods.
-- Prepare data without fragile scripts.
-- Generate consistent reports with review history.
-- Keep each client or project isolated.
+- Inspect and edit mappings, transformations, metric definitions, and typed query plans.
+- Reuse governed definitions across dataset versions.
+- Create multi-page interactive dashboards with evidence and stable sharing.
+- Keep client/project data isolated.
+- Compare versions and explain why a result changed.
 
-### Field operator
+### Data steward or administrator
 
-A worker or supervisor capturing information through Android while connectivity may be unreliable.
-
-Key jobs:
-
-- Complete a guided form quickly.
-- Attach photographs, signatures, voice, or codes.
-- Continue offline and synchronize safely later.
-- Correct uncertain extraction without re-entering everything.
-
-### Developer or software company
-
-A technical team embedding import and validation workflows into its own product.
+A person responsible for data meaning, quality, access, location, cost, and retention.
 
 Key jobs:
 
-- Define a target schema and receive normalized records.
-- Avoid building file mapping and row-level error UX.
-- Test with a local gateway before production.
-- Observe webhooks, usage, versions, and tenant boundaries.
+- Publish schemas, mappings, rules, metrics, and quality gates.
+- Decide which Local/Hybrid data projections may synchronize.
+- Configure AI egress, refresh budgets, sharing, retention, and devices.
+- Review drift, rejected records, stale dashboards, and audit history.
 
-## 2. Organizational Model
+### Receipt capture user
+
+A mobile user capturing expenses or source documents for later analysis.
+
+Key jobs:
+
+- Photograph a receipt quickly.
+- See and correct uncertain extracted values.
+- Avoid creating a duplicate expense record.
+- Confirm when the accepted record reaches the dashboard.
+
+### Dashboard viewer
+
+A manager or stakeholder who needs current, understandable results without broad raw-data access.
+
+Key jobs:
+
+- Open an authorized interactive dashboard quickly.
+- See when and from which dataset version it was generated.
+- Filter and drill down only within permitted data.
+- Ask a focused follow-up question and understand its assumptions.
+
+## 2. Organizational model
 
 A new user begins with a personal organization and workspace so solo use does not require administrative setup. The hierarchy is:
 
 `User -> Organization -> Workspace -> Project`
 
 - **Organization** owns billing, members, global policies, and verified domains.
-- **Workspace** is the primary security, data, retention, and execution boundary.
-- **Project** groups related artifacts, rules, jobs, and reports without creating another tenant. A customer-facing Client is a project with `kind = CLIENT`, not a separate domain object.
-- **Device** belongs to a user; each organization enrollment has its own identity/key and may receive grants for one or more workspaces in that organization.
+- **Workspace** is the primary security, data-mode, retention, AI-egress, execution, and dashboard-publication boundary.
+- **Project** groups related artifacts, datasets, dashboards, and analyses without creating another tenant. A customer-facing Client is a project with `kind = CLIENT`.
+- **Device** belongs to a user; each organization enrollment has its own identity/key and may receive grants for named workspaces and approved folders.
 
-## 3. Core Jobs-to-be-Done
+## 3. Core jobs-to-be-done
 
 | Situation | Job | Desired outcome |
 |---|---|---|
-| A file arrives | “Help me understand and route this without deciding every field first.” | Classified artifact with suggested next actions and evidence. |
-| Work repeats weekly | “Run the same checked process without rebuilding it.” | Versioned recipe with monitored execution and exceptions. |
-| A conclusion matters | “Show me where this number or warning came from.” | Direct source reference and reproducible processing version. |
-| Data is sensitive | “Let me benefit without uploading the original.” | Local execution with controlled derived synchronization. |
-| Data is messy | “Help me map and correct it without hiding invalid records.” | Confirmed mapping, row-level findings, and recoverable import. |
-| A team must act | “Put uncertainty and risk in front of the correct person.” | Assignment, approval, notifications, and audit history. |
-| Connectivity fails | “Let me continue and reconcile safely later.” | Durable offline queue with visible sync state. |
-| Requirements change | “Let me update a rule without corrupting historical results.” | Versioned rule and explicit reprocessing decision. |
+| I have a spreadsheet | “Turn this into something I can understand.” | Profiled source, reviewed ETL, governed dataset, and proposed dashboard. |
+| The data is messy | “Show me what is wrong and what you changed.” | Explicit quality dimensions, transformation preview, rejects, evidence, and a new version. |
+| I need a dashboard | “Choose useful metrics and charts, but let me control them.” | Agent-proposed editable canvas with visible assumptions and typed calculations. |
+| I have a business question | “Answer using only my authorized data.” | Deterministic result, caveats, evidence, and optional dashboard addition. |
+| New data arrives | “Update the dashboard without rebuilding it or wasting compute.” | Dependency-aware on-change refresh and a complete atomic snapshot. |
+| Files must remain local | “Analyze them without silently uploading originals.” | Desktop local execution and an explicit Hybrid publication projection. |
+| A receipt arrives | “Capture it without typing every field.” | OCR candidates, confidence, correction, reconciliation, deduplication, and governed insertion. |
+| A stakeholder only needs results | “Share the dashboard without granting raw-data access.” | Permission-filtered published dashboard with freshness and evidence availability. |
 
-## 4. Canonical End-to-End Use Cases
+## 4. Canonical end-to-end use cases
 
-### Local recurring file workflow
+### Web cloud dashboard
 
-1. User installs and registers Desktop.
-2. User grants access to one folder and chooses Hybrid mode.
-3. A file appears and becomes an immutable artifact.
-4. A recipe classifies and processes the file locally.
-5. A low-confidence field is sent to review without uploading the entire original.
-6. User approves from Android.
-7. Desktop produces an output copy and synchronizes the approved result and audit record.
+1. The user uploads a supported CSV/XLSX file into a Cloud or Hybrid workspace.
+2. DataBreeze preserves an immutable original and profiles structure and quality.
+3. The system proposes a typed mapping/transformation plan.
+4. The user reviews before/after samples, changed/rejected counts, warnings, and quality dimensions.
+5. Acceptance creates an immutable governed dataset version.
+6. The analyst proposes metrics, filters, visualizations, and a dashboard page.
+7. The user edits the canvas and publishes an interactive snapshot.
+8. Every material value resolves to its plan, metric, dataset version, filters, lineage, and authorized evidence.
 
-### Cloud collaborative workflow
+### Hybrid recurring folder
 
-1. An Analyst uploads documents into a client project on Web.
-2. DataBreeze runs an approved cloud processor.
-3. Findings retain page, table, cell, or row references.
-4. An Approver reviews consequential exceptions.
-5. A versioned report is published and access is logged.
+1. The user registers Desktop and selects one folder through the OS picker.
+2. The user confirms the folder purpose, file types, dataset grouping, version/append behavior, and publication projection.
+3. Desktop processes current stable files locally and asks about ambiguity or drift.
+4. The accepted cleaned dataset or dashboard-specific projection synchronizes according to policy.
+5. A later compatible file appears; Desktop fingerprints, debounces, and processes it once.
+6. After accepted sync, affected cloud materializations recompute and a complete dashboard snapshot publishes.
+7. If the Device is offline or review is pending, Web shows the last good snapshot and an explicit freshness reason.
 
-### Android field workflow
+### Mobile receipt to dashboard
 
-1. An Operator downloads a form assignment.
-2. The device captures fields, images, a barcode, and a signature offline.
-3. Local validation finds a missing required field.
-4. The completed record is queued and later synchronizes idempotently.
-5. Web supervisors review exceptions and monitor completion.
+1. The user actively captures a receipt on Android.
+2. The app preserves the original, stages it securely, and uploads resumably to the selected Hybrid/Cloud workspace.
+3. Cloud OCR returns field/token candidates with confidence and evidence coordinates.
+4. Deterministic rules check subtotal, tax, total, currency, and probable duplicates.
+5. The user corrects or confirms uncertain/conflicting fields.
+6. Acceptance creates a governed captured-record version.
+7. The related expense materialization refreshes and the mobile/web dashboard shows the new snapshot.
 
-### Embedded workflow
+### Conversational analysis and canvas change
 
-1. A developer defines a target schema and allowed transformations.
-2. Its user opens the branded importer inside the developer’s product.
-3. DataBreeze maps, validates, and previews a supplied file.
-4. The user confirms the import.
-5. The developer receives signed webhooks and normalized records with error details.
+1. The user selects a governed dataset or dashboard and asks a Vietnamese/English question.
+2. DataBreeze shows the proposed metrics, dimensions, filters, date range, assumptions, and estimated cost.
+3. The deterministic engine executes the accepted typed plan.
+4. The answer links numeric claims to result cells and source evidence.
+5. If the user asks to add the result to a dashboard, the agent creates a previewable widget proposal.
+6. The user confirms the canvas mutation; publishing remains a separate authorized action.
 
-## 5. Experience Requirements
+## 5. Experience requirements
 
-- Vietnamese copy is complete, natural, and primary; English is not allowed to become a partial fallback.
-- Technical concepts are explained in business language with deeper detail available on demand.
-- Solo users see a simple workspace; organization controls appear as the team grows.
+- Vietnamese copy is complete, natural, and primary; English is a complete secondary locale.
+- The primary onboarding path begins with “Add data,” not a catalog of modules.
+- Technical concepts use business language with definitions and detailed evidence available on demand.
+- The ETL review never hides rejected rows, sampling, unsupported columns, or material assumptions.
+- Quality dimensions are named precisely; the UI never presents profile validity as factual correctness.
+- Every dashboard shows last successful refresh, input version, freshness state, and blocked/stale reason when applicable.
 - Every empty state has one useful next action.
-- Errors state what happened, what was preserved, and what the user can do next.
-- Accessibility targets WCAG 2.2 AA on Web and equivalent platform accessibility expectations on Desktop and Android.
-- Status never relies on color alone.
-- Keyboard, screen-reader, reduced-motion, and scalable-text behavior is tested.
-- Dates, currency, decimal separators, phone numbers, names, and addresses support Vietnamese conventions without assuming all data is Vietnamese.
+- Errors state what happened, what was preserved, which snapshot remains visible, and what the user can do next.
+- Accessibility targets WCAG 2.2 AA on Web and equivalent native expectations on Desktop and Android.
+- Dates, currency, decimal separators, names, addresses, and time zones support Vietnamese conventions without assuming all source data is Vietnamese.
 
-## 6. Role Expectations
+## 6. Role expectations
 
 | Role | Typical capability |
 |---|---|
 | Owner | Ownership transfer, billing, deletion, recovery, and all policy controls. |
-| Admin | Members, devices, integrations, retention, and workspace configuration. |
-| Analyst | Schemas, datasets, rules, analyses, recipes, and reports. |
-| Operator | Capture, run allowed recipes, and resolve routine assigned exceptions. |
-| Approver | Review and approve actions or publications within assigned policy scope. |
-| Viewer | Read explicitly published or shared results. |
+| Admin | Members, devices, data modes, AI egress, refresh budgets, sharing, integrations, and retention. |
+| Analyst | Datasets, mappings, rules, metrics, typed analyses, dashboard authoring, and draft publication. |
+| Operator | Upload/capture data, run allowed ETL, and resolve routine assigned review. |
+| Approver | Approve controlled publication or material data movement within assigned policy scope. |
+| Viewer | Read and interact with explicitly published dashboards within permission-filtered bounds. |
 
-Roles provide defaults. Fine-grained capabilities and project assignments narrow access; they never broaden it beyond workspace policy.
+Roles provide defaults. Fine-grained capabilities and project assignments narrow access; they never broaden Workspace policy.
 
-## 7. Adoption Sequence
+## 7. Adoption sequence
 
-Onboarding should lead to a first useful workflow, not a tour of all modules:
-
-1. Select a goal such as watch a folder, audit a spreadsheet, compare quotes, or capture operations.
-2. Choose a data mode with a plain-language explanation.
-3. Connect only the device, folder, or cloud source needed for that goal.
-4. Run a guided sample or real job.
-5. Review evidence and approve the first result.
-6. Save the workflow as a reusable recipe when repetition is valuable.
+1. Add a sample or real CSV/XLSX file.
+2. Choose Cloud or Hybrid behavior with a plain-language explanation.
+3. Review the detected structure, quality dimensions, and proposed ETL steps.
+4. Accept a governed dataset version.
+5. Review and edit the first agent-proposed dashboard.
+6. Ask one guided question and inspect evidence.
+7. Publish the dashboard to an authorized viewer.
+8. Optionally register a Desktop folder or Android receipt intake after the cloud workflow is understood.

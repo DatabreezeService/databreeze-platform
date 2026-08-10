@@ -1,6 +1,7 @@
 # DataBreeze Folder Autopilot — Product Specification
 
 **Status:** Product specification<br>
+**Delivery position:** Post-V1 specialist extension; not part of the Data-to-Dashboard Agent V1 release gate.<br>
 **Version:** 1.0<br>
 **Requirement prefix:** FA<br>
 **Dependencies:** Platform identity and workspace services; `DSO` DeviceCapability/DeviceGrant authorization and lifecycle; `JRA` canonical Recipe/RecipeVersion, typed-job, ApprovalPolicy, ApprovalRequest, and ApprovalDecision contracts; artifact, evidence, audit, notification, and sync services; Desktop encrypted local folder-authority store and Python processing sidecar; PostgreSQL; Redis Streams

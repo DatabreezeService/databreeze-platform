@@ -1,6 +1,7 @@
 # DataBreeze Data Quality Guard — Product Specification
 
 **Status:** Product specification<br>
+**Delivery position:** Post-V1 specialist extension; not part of the Data-to-Dashboard Agent V1 release gate.<br>
 **Version:** 1.0<br>
 **Requirement prefix:** DQG<br>
 **Dependencies:** Platform identity and workspace services; artifact, dataset, evidence, version, typed-job, approval, audit, notification, and sync services; `IAE` Inbox, Artifacts, and Evidence foundation; `DSM` Datasets, Schemas, Rules, and Mappings foundation; `JRA` Jobs, Recipes, and Approvals foundation; `DSO` Devices, Synchronization, and Offline Operation foundation; Python processing engine; PostgreSQL; S3-compatible object storage; Redis Streams; registered Desktop devices
