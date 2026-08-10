@@ -6,6 +6,16 @@ test('preview serves clickjacking protection as a response header', async ({ pag
 
   expect(policy).toContain("frame-ancestors 'none'");
   expect(policy?.split(';').map((directive) => directive.trim())).toContain("script-src 'self'");
+  expect(policy).not.toContain('unsafe-eval');
+});
+
+test('dashboard route renders safely under the strict preview CSP', async ({ page }) => {
+  await page.goto('/en/dashboards');
+
+  await expect(page.getByRole('heading', { name: 'Dashboards' })).toBeVisible();
+  await expect(
+    page.getByText('Dashboard data is not available. No changes were sent.'),
+  ).toBeVisible();
 });
 
 test('the document does not advertise unsupported frame ancestors through meta CSP', async ({

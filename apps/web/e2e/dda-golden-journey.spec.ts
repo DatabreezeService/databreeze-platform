@@ -7,6 +7,11 @@ import { expect, test } from '@playwright/test';
  * non-eval renderers. Not a production claim.
  */
 test.describe('DDA golden messy-sales journey', () => {
+  test.skip(
+    process.env['VITE_DATABREEZE_DEMO_MODE'] !== 'true',
+    'Golden journey fixtures require explicit mentor/demo mode.',
+  );
+
   test('Vietnamese-first dashboards surface freshness and evidence limits', async ({
     page,
   }, testInfo) => {

@@ -1,7 +1,13 @@
 import { useLocale } from '../../app/locale-context.tsx';
+import { useQuery } from '@tanstack/react-query';
 import { AnalystPanel } from './analyst-panel.tsx';
 import { DashboardCanvas } from './dashboard-canvas.tsx';
 import { DashboardViewer } from './dashboard-viewer.tsx';
+import {
+  dashboardDemoMode,
+  dashboardLiveConfiguration,
+  fetchDashboardDraft,
+} from './dashboard-api.ts';
 import { ExportDialog } from './export-dialog.tsx';
 import { PublishDialog } from './publish-dialog.tsx';
 import { SnapshotComparison } from './snapshot-comparison.tsx';
@@ -64,9 +70,21 @@ const PLAN_PREVIEW = Object.freeze({
 /** DDA-020..026/047..049: dashboard authoring page composing analyst + canvas + GA tools. */
 export function DashboardPage() {
   const locale = useLocale();
+  const configuration = dashboardLiveConfiguration();
+  const demoMode = dashboardDemoMode();
+  const dashboardQuery = useQuery({
+    queryKey: ['dda', 'dashboard-draft', configuration?.baseUrl, configuration?.dashboardId],
+    queryFn: ({ signal }) => {
+      if (configuration === undefined) throw new Error('DASHBOARD_CONFIGURATION_UNAVAILABLE');
+      return fetchDashboardDraft(configuration, signal);
+    },
+    enabled: !demoMode && configuration !== undefined,
+    retry: false,
+  });
   const [publishOpen, setPublishOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const draft = demoMode ? FIXTURE_DRAFT : dashboardQuery.data;
   return (
     <section className="dda-dashboard-page">
       <h1>{locale === 'vi-VN' ? 'Bảng điều khiển' : 'Dashboards'}</h1>
@@ -81,19 +99,31 @@ export function DashboardPage() {
           {locale === 'vi-VN' ? 'Xuất' : 'Export'}
         </button>
       </div>
-      <AnalystPanel locale={locale} preview={PLAN_PREVIEW} />
-      <DashboardCanvas locale={locale} draft={FIXTURE_DRAFT} />
-      <DashboardViewer
-        locale={locale}
-        permissionExpansionDenied
-        rows={[{ region: 'North', amount: '1,250,000' }]}
-      />
-      <SnapshotComparison
-        locale={locale}
-        changes={{ amount: { absolute: 50, percentage: 50 } }}
-        changedWidgets={['bar-1']}
-        changedInputs={['dataset-b']}
-      />
+      {draft === undefined ? (
+        <p role="status">
+          {locale === 'vi-VN'
+            ? 'Dữ liệu bảng điều khiển chưa khả dụng. Không có thay đổi nào được gửi.'
+            : 'Dashboard data is not available. No changes were sent.'}
+        </p>
+      ) : (
+        <DashboardCanvas locale={locale} draft={draft} />
+      )}
+      {demoMode ? (
+        <>
+          <AnalystPanel locale={locale} preview={PLAN_PREVIEW} />
+          <DashboardViewer
+            locale={locale}
+            permissionExpansionDenied
+            rows={[{ region: 'North', amount: '1,250,000' }]}
+          />
+          <SnapshotComparison
+            locale={locale}
+            changes={{ amount: { absolute: 50, percentage: 50 } }}
+            changedWidgets={['bar-1']}
+            changedInputs={['dataset-b']}
+          />
+        </>
+      ) : null}
       <PublishDialog
         locale={locale}
         open={publishOpen}
