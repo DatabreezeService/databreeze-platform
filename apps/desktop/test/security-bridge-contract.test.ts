@@ -84,4 +84,3 @@ describe('DSK-002 preload bridge', () => {
     expect(getter).not.toHaveBeenCalled();
   });
 });
-

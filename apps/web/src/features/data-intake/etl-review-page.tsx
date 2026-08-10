@@ -10,7 +10,11 @@ export interface EtlReviewPageProps {
   readonly assumptions: readonly string[];
   readonly beforeSample: readonly Readonly<Record<string, unknown>>[];
   readonly afterSample: readonly Readonly<Record<string, unknown>>[];
-  readonly counts: { readonly changed: number; readonly unchanged: number; readonly rejected: number };
+  readonly counts: {
+    readonly changed: number;
+    readonly unchanged: number;
+    readonly rejected: number;
+  };
   readonly exclusions: readonly RejectRowV1[];
   readonly unsupportedScopes: readonly RejectRowV1[];
   readonly qualityEffects: readonly QualityDimensionViewV1[];
@@ -77,7 +81,11 @@ export function EtlReviewPage({
         changed={counts.changed} unchanged={counts.unchanged} rejected={counts.rejected}
       </p>
       <RejectsTable rejects={[...exclusions, ...unsupportedScopes]} locale={locale} />
-      <QualityDimensions dimensions={qualityEffects} overallSummary={overallSummary} locale={locale} />
+      <QualityDimensions
+        dimensions={qualityEffects}
+        overallSummary={overallSummary}
+        locale={locale}
+      />
       <p>
         evidence={evidenceStatus} cost={estimatedCost.cpuMs}ms/{estimatedCost.memoryMb}MB
       </p>

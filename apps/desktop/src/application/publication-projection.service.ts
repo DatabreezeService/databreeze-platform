@@ -71,7 +71,9 @@ export class PublicationProjectionService {
       return { accepted: false, code: 'PROJECTION_POLICY_BROADENING' };
     }
 
-    if (draft.fieldAllowlist.some((field) => !this.#workspacePolicy.allowedFields.includes(field))) {
+    if (
+      draft.fieldAllowlist.some((field) => !this.#workspacePolicy.allowedFields.includes(field))
+    ) {
       return { accepted: false, code: 'PROJECTION_FIELD_NOT_ALLOWED' };
     }
 

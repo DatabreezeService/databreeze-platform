@@ -8,9 +8,7 @@
     "projectId": "00000000-0000-4000-8000-000000000003"
   },
   "dashboardVersionId": "00000000-0000-4000-8000-000000000011",
-  "materializationIds": [
-    "00000000-0000-4000-8000-00000000001f"
-  ],
+  "materializationIds": ["00000000-0000-4000-8000-00000000001f"],
   "inputSelectorHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "permissionProjectionVersionId": "00000000-0000-4000-8000-000000000021",
   "audience": "WORKSPACE_VIEWERS",

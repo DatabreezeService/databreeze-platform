@@ -26,25 +26,28 @@ export class InMemoryDashboardRepositoryAdapter implements DashboardRepositoryPo
   readonly #identities = new Map<string, DdaDashboardIdentityV1>();
   readonly #versions = new Map<string, DashboardVersionV1>();
 
-  public async saveIdentity(identity: DdaDashboardIdentityV1): Promise<void> {
-    this.#identities.set(scopeKey(identity.tenantScope, identity.dashboardId), Object.freeze({ ...identity }));
+  public saveIdentity(identity: DdaDashboardIdentityV1): Promise<void> {
+    this.#identities.set(
+      scopeKey(identity.tenantScope, identity.dashboardId),
+      Object.freeze({ ...identity }),
+    );
   }
 
-  public async findByDashboardId(
+  public findByDashboardId(
     tenantScope: TenantScopeV1,
     dashboardId: string,
   ): Promise<DdaDashboardIdentityV1 | undefined> {
-    return this.#identities.get(scopeKey(tenantScope, dashboardId));
+    return Promise.resolve(this.#identities.get(scopeKey(tenantScope, dashboardId)));
   }
 
-  public async saveVersion(version: DashboardVersionV1): Promise<void> {
+  public saveVersion(version: DashboardVersionV1): Promise<void> {
     this.#versions.set(scopeKey(version.tenantScope, version.versionId), version);
   }
 
-  public async findVersion(
+  public findVersion(
     tenantScope: TenantScopeV1,
     versionId: string,
   ): Promise<DashboardVersionV1 | undefined> {
-    return this.#versions.get(scopeKey(tenantScope, versionId));
+    return Promise.resolve(this.#versions.get(scopeKey(tenantScope, versionId)));
   }
 }

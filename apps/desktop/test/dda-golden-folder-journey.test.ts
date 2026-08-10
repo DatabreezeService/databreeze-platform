@@ -37,12 +37,12 @@ describe('DDA golden folder journey', () => {
 
     const uploads: Array<{ idempotencyKey: string; projectionId: string }> = [];
     const sync = new FolderSyncService({
-      upload: async (request) => {
+      upload: (request) => {
         uploads.push({
           idempotencyKey: request.idempotencyKey,
           projectionId: request.projectionId,
         });
-        return { accepted: true, receiptId: 'rcpt_golden_1' };
+        return Promise.resolve({ accepted: true, receiptId: 'rcpt_golden_1' });
       },
       nowMs: () => 1_700_000_000_000,
     });

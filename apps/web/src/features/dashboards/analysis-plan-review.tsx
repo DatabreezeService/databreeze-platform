@@ -5,7 +5,11 @@ export interface AnalysisPlanPreviewV1 {
   readonly semanticVersionId: string;
   readonly metricVersionId: string;
   readonly dimensions: readonly string[];
-  readonly filters: readonly { readonly field: string; readonly operator: string; readonly value: string }[];
+  readonly filters: readonly {
+    readonly field: string;
+    readonly operator: string;
+    readonly value: string;
+  }[];
   readonly timeRange: { readonly start: string; readonly end: string };
   readonly timeGrain: string;
   readonly joins: readonly { readonly leftField?: string; readonly rightField?: string }[];
@@ -49,8 +53,9 @@ export function AnalysisPlanReview({ locale, preview }: AnalysisPlanReviewProps)
         <div>
           <dt>{label(locale, 'Bộ lọc', 'Filters')}</dt>
           <dd>
-            {preview.filters.map((filter) => `${filter.field} ${filter.operator} ${filter.value}`).join('; ') ||
-              label(locale, 'Không có', 'None')}
+            {preview.filters
+              .map((filter) => `${filter.field} ${filter.operator} ${filter.value}`)
+              .join('; ') || label(locale, 'Không có', 'None')}
           </dd>
         </div>
         <div>

@@ -1,7 +1,10 @@
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
-import type { StableFileEvent, StableFileEventKind } from '../../application/stable-file-detector.ts';
+import type {
+  StableFileEvent,
+  StableFileEventKind,
+} from '../../application/stable-file-detector.ts';
 
 export interface NativeFolderWatchEvent {
   readonly path: string;
@@ -18,7 +21,9 @@ export interface WindowsFolderWatcherAdapterInput {
     filename: string,
     listener: (eventType: 'rename' | 'change', relativePath: string | null) => void,
   ) => { close(): void };
-  readonly stat?: (candidatePath: string) => Promise<{ readonly isFile: () => boolean; readonly size: number; readonly mtimeMs: number }>;
+  readonly stat?: (
+    candidatePath: string,
+  ) => Promise<{ readonly isFile: () => boolean; readonly size: number; readonly mtimeMs: number }>;
 }
 
 /**
@@ -72,10 +77,7 @@ export class WindowsFolderWatcherAdapter {
 
   ingestNativeEvent(native: NativeFolderWatchEvent): StableFileEvent | null {
     if (!this.#assertInsideBinding(native.path)) return null;
-    if (
-      native.previousPath !== undefined &&
-      !this.#assertInsideBinding(native.previousPath)
-    ) {
+    if (native.previousPath !== undefined && !this.#assertInsideBinding(native.previousPath)) {
       return null;
     }
     const event: StableFileEvent = Object.freeze({
@@ -89,10 +91,7 @@ export class WindowsFolderWatcherAdapter {
     return event;
   }
 
-  async #ingestNativePath(
-    eventType: 'rename' | 'change',
-    candidatePath: string,
-  ): Promise<void> {
+  async #ingestNativePath(eventType: 'rename' | 'change', candidatePath: string): Promise<void> {
     if (!this.#assertInsideBinding(candidatePath)) return;
     try {
       const metadata = await this.#stat(candidatePath);

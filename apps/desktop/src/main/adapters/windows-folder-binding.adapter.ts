@@ -28,8 +28,7 @@ export class WindowsFolderBindingAdapter implements FolderBindingPort {
 
   constructor(input: WindowsFolderBindingAdapterInput) {
     this.#dialog = input.dialog;
-    this.#resolveRealPath =
-      input.resolveRealPath ?? ((candidate) => fs.realpath(candidate));
+    this.#resolveRealPath = input.resolveRealPath ?? ((candidate) => fs.realpath(candidate));
   }
 
   async selectFolder(): Promise<FolderSelectionResult> {
@@ -58,11 +57,12 @@ export class WindowsFolderBindingAdapter implements FolderBindingPort {
     return { selectionToken };
   }
 
-  async resolveSelection(selectionToken: string): Promise<FolderResolveResult> {
+  resolveSelection(selectionToken: string): Promise<FolderResolveResult> {
     const canonicalPath = this.#selections.get(selectionToken);
-    if (canonicalPath === undefined) return { rejected: 'FOLDER_SELECTION_UNKNOWN' };
+    if (canonicalPath === undefined)
+      return Promise.resolve({ rejected: 'FOLDER_SELECTION_UNKNOWN' });
     this.#selections.delete(selectionToken);
-    return { canonicalPath };
+    return Promise.resolve({ canonicalPath });
   }
 
   assertPathInsideBinding(canonicalRoot: string, candidatePath: string): boolean {

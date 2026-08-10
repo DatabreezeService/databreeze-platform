@@ -21,14 +21,14 @@ function scopeKey(tenantScope: TenantScopeV1, id: string): string {
 export class InMemoryAnalysisPlanRepositoryAdapter implements AnalysisPlanRepositoryPortV1 {
   readonly #plans = new Map<string, DdaAnalysisPlanV1>();
 
-  public async save(plan: DdaAnalysisPlanV1): Promise<void> {
+  public save(plan: DdaAnalysisPlanV1): Promise<void> {
     this.#plans.set(scopeKey(plan.tenantScope, plan.planVersionId), plan);
   }
 
-  public async findByVersionId(
+  public findByVersionId(
     tenantScope: TenantScopeV1,
     planVersionId: string,
   ): Promise<DdaAnalysisPlanV1 | undefined> {
-    return this.#plans.get(scopeKey(tenantScope, planVersionId));
+    return Promise.resolve(this.#plans.get(scopeKey(tenantScope, planVersionId)));
   }
 }

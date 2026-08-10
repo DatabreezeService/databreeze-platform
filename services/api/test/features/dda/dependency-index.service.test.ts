@@ -125,71 +125,86 @@ function event(
 }
 
 void test('[DDA-028] dataset/semantic/metric/parameter changes select affected materialization definitions', async () => {
-  const service = new DependencyIndexService(seedRepository(), new MaterializationProcessorCatalog());
-  const dataset = await service.resolveAffected(event({
-    eventId: '00000000-0000-4000-8000-000000000201',
-    changeKind: 'DATASET_VERSION',
-    referenceId: ids.datasetV1,
-    sequence: 1,
-  }));
+  const service = new DependencyIndexService(
+    seedRepository(),
+    new MaterializationProcessorCatalog(),
+  );
+  const dataset = await service.resolveAffected(
+    event({
+      eventId: '00000000-0000-4000-8000-000000000201',
+      changeKind: 'DATASET_VERSION',
+      referenceId: ids.datasetV1,
+      sequence: 1,
+    }),
+  );
   assert.equal(dataset.accepted, true);
   if (!dataset.accepted) return;
-  assert.deepEqual(
-    [...dataset.value.affectedDefinitionIds].sort(),
-    [ids.defA, ids.defB].sort(),
-  );
+  assert.deepEqual([...dataset.value.affectedDefinitionIds].sort(), [ids.defA, ids.defB].sort());
 
-  const metric = await service.resolveAffected(event({
-    eventId: '00000000-0000-4000-8000-000000000202',
-    changeKind: 'METRIC_VERSION',
-    referenceId: ids.metricV2,
-    sequence: 2,
-  }));
+  const metric = await service.resolveAffected(
+    event({
+      eventId: '00000000-0000-4000-8000-000000000202',
+      changeKind: 'METRIC_VERSION',
+      referenceId: ids.metricV2,
+      sequence: 2,
+    }),
+  );
   assert.equal(metric.accepted, true);
   if (!metric.accepted) return;
   assert.deepEqual(metric.value.affectedDefinitionIds, [ids.defB]);
 
-  const parameter = await service.resolveAffected(event({
-    eventId: '00000000-0000-4000-8000-000000000203',
-    changeKind: 'PARAMETER',
-    referenceId: ids.defA,
-    sequence: 3,
-  }));
+  const parameter = await service.resolveAffected(
+    event({
+      eventId: '00000000-0000-4000-8000-000000000203',
+      changeKind: 'PARAMETER',
+      referenceId: ids.defA,
+      sequence: 3,
+    }),
+  );
   assert.equal(parameter.accepted, true);
   if (!parameter.accepted) return;
   assert.deepEqual(parameter.value.affectedDefinitionIds, [ids.defA]);
 });
 
 void test('[DDA-028] deleted bindings and unauthorized/cross-tenant references are ignored', async () => {
-  const service = new DependencyIndexService(seedRepository(), new MaterializationProcessorCatalog());
-  const deleted = await service.resolveAffected(event({
-    eventId: '00000000-0000-4000-8000-000000000204',
-    changeKind: 'DATASET_VERSION',
-    referenceId: ids.datasetV2,
-    sequence: 1,
-  }));
+  const service = new DependencyIndexService(
+    seedRepository(),
+    new MaterializationProcessorCatalog(),
+  );
+  const deleted = await service.resolveAffected(
+    event({
+      eventId: '00000000-0000-4000-8000-000000000204',
+      changeKind: 'DATASET_VERSION',
+      referenceId: ids.datasetV2,
+      sequence: 1,
+    }),
+  );
   assert.equal(deleted.accepted, true);
   if (!deleted.accepted) return;
   assert.deepEqual(deleted.value.affectedDefinitionIds, []);
 
-  const unauthorized = await service.resolveAffected(event({
-    eventId: '00000000-0000-4000-8000-000000000205',
-    changeKind: 'DATASET_VERSION',
-    referenceId: ids.datasetV1,
-    sequence: 2,
-    authorized: false,
-  }));
+  const unauthorized = await service.resolveAffected(
+    event({
+      eventId: '00000000-0000-4000-8000-000000000205',
+      changeKind: 'DATASET_VERSION',
+      referenceId: ids.datasetV1,
+      sequence: 2,
+      authorized: false,
+    }),
+  );
   assert.equal(unauthorized.accepted, false);
   if (unauthorized.accepted) return;
   assert.equal(unauthorized.code, 'UNAUTHORIZED_EVENT_REFERENCE');
 
-  const crossTenant = await service.resolveAffected(event({
-    eventId: '00000000-0000-4000-8000-000000000206',
-    changeKind: 'DATASET_VERSION',
-    referenceId: ids.datasetV1,
-    sequence: 3,
-    tenantScope: foreignScope,
-  }));
+  const crossTenant = await service.resolveAffected(
+    event({
+      eventId: '00000000-0000-4000-8000-000000000206',
+      changeKind: 'DATASET_VERSION',
+      referenceId: ids.datasetV1,
+      sequence: 3,
+      tenantScope: foreignScope,
+    }),
+  );
   assert.equal(crossTenant.accepted, false);
   if (crossTenant.accepted) return;
   assert.equal(crossTenant.code, 'CROSS_TENANT_EVENT_REFERENCE');
@@ -207,26 +222,27 @@ void test('[DDA-028] duplicate and out-of-order events are idempotent and ignore
     }),
     ...({ payloadValues: { secret: 'should-never-authorize' } } as object),
   } as ContentSafeBoundInputEventV1);
-  const duplicate = await service.resolveAffected(event({
-    eventId: '00000000-0000-4000-8000-000000000207',
-    changeKind: 'DATASET_VERSION',
-    referenceId: ids.datasetV1,
-    sequence: 5,
-  }));
-  const outOfOrder = await service.resolveAffected(event({
-    eventId: '00000000-0000-4000-8000-000000000208',
-    changeKind: 'DATASET_VERSION',
-    referenceId: ids.datasetV1,
-    sequence: 1,
-  }));
+  const duplicate = await service.resolveAffected(
+    event({
+      eventId: '00000000-0000-4000-8000-000000000207',
+      changeKind: 'DATASET_VERSION',
+      referenceId: ids.datasetV1,
+      sequence: 5,
+    }),
+  );
+  const outOfOrder = await service.resolveAffected(
+    event({
+      eventId: '00000000-0000-4000-8000-000000000208',
+      changeKind: 'DATASET_VERSION',
+      referenceId: ids.datasetV1,
+      sequence: 1,
+    }),
+  );
   assert.equal(first.accepted, true);
   assert.equal(duplicate.accepted, true);
   assert.equal(outOfOrder.accepted, true);
   if (!first.accepted || !duplicate.accepted || !outOfOrder.accepted) return;
-  assert.deepEqual(
-    duplicate.value.affectedDefinitionIds,
-    first.value.affectedDefinitionIds,
-  );
+  assert.deepEqual(duplicate.value.affectedDefinitionIds, first.value.affectedDefinitionIds);
   assert.equal(duplicate.value.ignoredReason, 'DUPLICATE_EVENT');
   assert.equal(outOfOrder.value.ignoredReason, 'OUT_OF_ORDER_EVENT');
   assert.deepEqual(outOfOrder.value.affectedDefinitionIds, []);

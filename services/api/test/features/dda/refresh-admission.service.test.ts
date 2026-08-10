@@ -71,7 +71,7 @@ class FakeUsagePort implements RefreshUsagePortV1 {
   deniedClass: string | undefined;
   failClosed = false;
 
-  async evaluate(input: {
+  evaluate(input: {
     readonly usageClass: string;
     readonly scopeLevel: 'organization' | 'workspace' | 'project';
   }): Promise<{ readonly admitted: boolean; readonly reasonCode?: string }> {
@@ -82,7 +82,7 @@ class FakeUsagePort implements RefreshUsagePortV1 {
     return { admitted: true };
   }
 
-  async reserve(input: {
+  reserve(input: {
     readonly reservationKey: string;
     readonly usageClass: string;
   }): Promise<{ readonly reservationId: string }> {
@@ -93,17 +93,17 @@ class FakeUsagePort implements RefreshUsagePortV1 {
     return { reservationId };
   }
 
-  async finalize(reservationId: string): Promise<void> {
+  finalize(reservationId: string): Promise<void> {
     void reservationId;
   }
 
-  async release(reservationId: string): Promise<void> {
+  release(reservationId: string): Promise<void> {
     for (const [key, value] of this.reservations) {
       if (value === reservationId) this.reservations.delete(key);
     }
   }
 
-  async emitContentSafeOutcome(input: {
+  emitContentSafeOutcome(input: {
     readonly action: string;
     readonly outcome: string;
     readonly correlationId: string;

@@ -50,15 +50,12 @@ export class FolderSyncService {
   readonly #rejected = new Map<string, FolderSyncReason>();
   #autoReroute = false;
 
-  constructor(input: {
-    readonly upload: FolderSyncUploadPort;
-    readonly nowMs: () => number;
-  }) {
+  constructor(input: { readonly upload: FolderSyncUploadPort; readonly nowMs: () => number }) {
     this.#upload = input.upload;
     void input.nowMs;
   }
 
-  async enqueueApprovedProjection(
+  enqueueApprovedProjection(
     projection: ApprovedProjectionUpload,
   ): Promise<FolderSyncEnqueueResult> {
     const rejected = this.#rejected.get(projection.projectionId);
@@ -81,7 +78,7 @@ export class FolderSyncService {
       projectionId: projection.projectionId,
       bytes: projection.bytes,
     });
-    return { state: 'QUEUED', idempotencyKey };
+    return Promise.resolve({ state: 'QUEUED', idempotencyKey });
   }
 
   async flush(): Promise<FolderSyncFlushResult> {

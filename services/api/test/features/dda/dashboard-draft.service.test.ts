@@ -192,16 +192,13 @@ void test('[DDA-024] accepting an agent proposal creates a draft only, never a p
   assert.equal(identity?.draftVersionId, created.value.versionId);
 });
 
-void test('[DDA-020] canonical hash is deterministic for the same version graph', async () => {
+void test('[DDA-020] canonical hash is deterministic for the same version graph', () => {
   const first = createDashboardVersionV1(versionInput());
   const second = createDashboardVersionV1(versionInput());
   assert.equal(first.accepted, true);
   assert.equal(second.accepted, true);
   if (first.accepted && second.accepted) {
     assert.equal(first.value.canonicalHash, second.value.canonicalHash);
-    assert.equal(
-      createHash('sha256').update(first.value.canonicalHash).digest('hex').length,
-      64,
-    );
+    assert.equal(createHash('sha256').update(first.value.canonicalHash).digest('hex').length, 64);
   }
 });

@@ -17,29 +17,32 @@ export class InMemoryDashboardDraftRepositoryAdapter implements DashboardDraftRe
   readonly #versions = new Map<string, DashboardVersionV1>();
   readonly #removed = new Map<string, DashboardVersionV1['widgets'][number]>();
 
-  public async saveIdentity(identity: DashboardDraftIdentityV1): Promise<void> {
-    this.#identities.set(scopeKey(identity.tenantScope, identity.dashboardId), Object.freeze({ ...identity }));
+  public saveIdentity(identity: DashboardDraftIdentityV1): Promise<void> {
+    this.#identities.set(
+      scopeKey(identity.tenantScope, identity.dashboardId),
+      Object.freeze({ ...identity }),
+    );
   }
 
-  public async findIdentity(
+  public findIdentity(
     tenantScope: TenantScopeV1,
     dashboardId: string,
   ): Promise<DashboardDraftIdentityV1 | undefined> {
-    return this.#identities.get(scopeKey(tenantScope, dashboardId));
+    return Promise.resolve(this.#identities.get(scopeKey(tenantScope, dashboardId)));
   }
 
-  public async saveVersion(version: DashboardVersionV1): Promise<void> {
+  public saveVersion(version: DashboardVersionV1): Promise<void> {
     this.#versions.set(scopeKey(version.tenantScope, version.versionId), version);
   }
 
-  public async findVersion(
+  public findVersion(
     tenantScope: TenantScopeV1,
     versionId: string,
   ): Promise<DashboardVersionV1 | undefined> {
-    return this.#versions.get(scopeKey(tenantScope, versionId));
+    return Promise.resolve(this.#versions.get(scopeKey(tenantScope, versionId)));
   }
 
-  public async saveRemovedWidget(input: {
+  public saveRemovedWidget(input: {
     readonly tenantScope: TenantScopeV1;
     readonly dashboardId: string;
     readonly widgetId: string;
@@ -51,13 +54,11 @@ export class InMemoryDashboardDraftRepositoryAdapter implements DashboardDraftRe
     );
   }
 
-  public async findRemovedWidget(input: {
+  public findRemovedWidget(input: {
     readonly tenantScope: TenantScopeV1;
     readonly dashboardId: string;
     readonly widgetId: string;
   }): Promise<DashboardVersionV1['widgets'][number] | undefined> {
-    return this.#removed.get(
-      `${scopeKey(input.tenantScope, input.dashboardId)}|${input.widgetId}`,
-    );
+    return this.#removed.get(`${scopeKey(input.tenantScope, input.dashboardId)}|${input.widgetId}`);
   }
 }

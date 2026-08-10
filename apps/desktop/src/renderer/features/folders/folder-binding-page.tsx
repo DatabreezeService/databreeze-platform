@@ -22,8 +22,7 @@ const copy = {
     title: 'Approved data folders',
     select: 'Select folder through the OS picker',
     create: 'Create folder binding',
-    hybridDefault:
-      'Hybrid is the default: originals stay local; only approved projections sync.',
+    hybridDefault: 'Hybrid is the default: originals stay local; only approved projections sync.',
     capabilityConfirm: 'Confirm the DSO device capability is active before binding.',
     status: 'Binding status',
     none: 'No folder binding yet',

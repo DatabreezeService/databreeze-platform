@@ -56,15 +56,17 @@ function baseRequest(overrides: Record<string, unknown> = {}) {
 
 function adapter(overrides: Partial<AnalysisAdapterPortV1> = {}): AnalysisAdapterPortV1 {
   return {
-    async proposeTypedPlan() {
-      return Object.freeze({
-        status: 'PROPOSED' as const,
-        rationale: 'Bounded narrative only',
-        planPatch: Object.freeze({}),
-      });
+    proposeTypedPlan() {
+      return Promise.resolve(
+        Object.freeze({
+          status: 'PROPOSED' as const,
+          rationale: 'Bounded narrative only',
+          planPatch: Object.freeze({}),
+        }),
+      );
     },
-    async isAvailable() {
-      return true;
+    isAvailable() {
+      return Promise.resolve(true);
     },
     ...overrides,
   };
@@ -100,10 +102,7 @@ void test('[DDA-015][DDA-016] rejects missing semantic or metric versions', asyn
 
 void test('[DDA-015] rejects unauthorized joins and fields', async () => {
   const service = new AnalysisProposalServiceV1(adapter(), authorizedCatalog);
-  const badField = await service.propose(
-    context,
-    baseRequest({ dimensions: ['salary_secret'] }),
-  );
+  const badField = await service.propose(context, baseRequest({ dimensions: ['salary_secret'] }));
   assert.equal(badField.accepted, false);
   if (!badField.accepted) assert.equal(badField.code, 'UNAUTHORIZED_DATA');
 
@@ -176,11 +175,11 @@ void test('[DDA-018] returns stable non-answer reasons for blocked inputs', asyn
 void test('[DDA-015][DDA-044] AI unavailable still allows manual typed plan proposal', async () => {
   const service = new AnalysisProposalServiceV1(
     adapter({
-      async isAvailable() {
-        return false;
+      isAvailable() {
+        return Promise.resolve(false);
       },
-      async proposeTypedPlan() {
-        throw new Error('ADAPTER_SHOULD_NOT_RUN');
+      proposeTypedPlan() {
+        return Promise.reject(new Error('ADAPTER_SHOULD_NOT_RUN'));
       },
     }),
     authorizedCatalog,

@@ -84,9 +84,9 @@ void test('[DDA-044] OpenAI egress allowlist cannot be reused across tenants by 
 
 void test('[DDA-001] cross-tenant fixture identifier is rejected by contracts suite path', async () => {
   const { readFileSync } = await import('node:fs');
-  const { resolve } = await import('node:path');
+  const path = await import('node:path');
   const fixture = readFileSync(
-    resolve(
+    path.join(
       process.cwd(),
       '../../packages/contracts/test/fixtures/dda/v1/invalid-cross-tenant.json',
     ),

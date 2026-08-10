@@ -3,10 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import type { TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
-import {
-  FreshnessService,
-  type FreshnessResultV1,
-} from '../application/freshness.service.js';
+import { FreshnessService, type FreshnessResultV1 } from '../application/freshness.service.js';
 
 export interface FreshnessRequestContextV1 {
   readonly tenantScope: TenantScopeV1;

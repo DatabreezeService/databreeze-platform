@@ -9,7 +9,9 @@ describe('dashboard route composition [DDA-020]', () => {
     render(<ApplicationBoundary router={router} />);
     expect(await screen.findByRole('heading', { name: 'Dashboards' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Dashboards' })).toBeTruthy();
-    expect(await screen.findByText('Dashboard data is not available. No changes were sent.')).toBeTruthy();
+    expect(
+      await screen.findByText('Dashboard data is not available. No changes were sent.'),
+    ).toBeTruthy();
     expect(screen.queryByText('1,250,000 VND')).toBeNull();
   });
 });

@@ -5,22 +5,23 @@ import { EtlAcceptanceController } from '../../../src/features/dda/etl/api/etl-a
 import { EtlAcceptanceProblemError } from '../../../src/features/dda/etl/application/etl-acceptance-problem.error.js';
 import type { EtlAcceptanceServiceV1 } from '../../../src/features/dda/etl/application/etl-acceptance.service.js';
 
-void test('[DDA-007] acceptance controller returns version IDs without source values', async () => {
+void test('[DDA-007] acceptance controller returns version IDs without source values', () => {
   const controller = new EtlAcceptanceController({
-    accept: async () => ({
-      accepted: true as const,
-      value: {
-        proposalId: '00000000-0000-4000-8000-000000000201',
-        jobId: '00000000-0000-4000-8000-000000000304',
-        artifactVersionId: '00000000-0000-4000-8000-000000000302',
-        datasetVersionId: '00000000-0000-4000-8000-000000000303',
-        rowCount: 4,
-        contentHash: 'a'.repeat(64),
-        schemaHash: 'b'.repeat(64),
-        lineageIds: ['00000000-0000-4000-8000-000000000012'],
-        replayed: false,
-      },
-    }),
+    accept: () =>
+      Promise.resolve({
+        accepted: true as const,
+        value: {
+          proposalId: '00000000-0000-4000-8000-000000000201',
+          jobId: '00000000-0000-4000-8000-000000000304',
+          artifactVersionId: '00000000-0000-4000-8000-000000000302',
+          datasetVersionId: '00000000-0000-4000-8000-000000000303',
+          rowCount: 4,
+          contentHash: 'a'.repeat(64),
+          schemaHash: 'b'.repeat(64),
+          lineageIds: ['00000000-0000-4000-8000-000000000012'],
+          replayed: false,
+        },
+      }),
   } as unknown as EtlAcceptanceServiceV1);
 
   const response = await controller.accept({
@@ -47,9 +48,10 @@ void test('[DDA-007] acceptance controller returns version IDs without source va
   assert.doesNotMatch(JSON.stringify(response), /Cafe|sourcePath|rawBytes/u);
 });
 
-void test('[DDA-007] acceptance controller maps failures to Problem codes', async () => {
+void test('[DDA-007] acceptance controller maps failures to Problem codes', () => {
   const controller = new EtlAcceptanceController({
-    accept: async () => ({ accepted: false as const, code: 'DDA_ETL_HASH_MISMATCH' as const }),
+    accept: () =>
+      Promise.resolve({ accepted: false as const, code: 'DDA_ETL_HASH_MISMATCH' as const }),
   } as unknown as EtlAcceptanceServiceV1);
   await assert.rejects(
     controller.accept({

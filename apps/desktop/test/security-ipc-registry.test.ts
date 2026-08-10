@@ -79,10 +79,12 @@ describe('DSK-002 guarded IPC registry', () => {
     };
     const folders = {
       createBinding: vi.fn(() => Promise.resolve({ accepted: true as const, value: binding })),
-      disable: vi.fn(() => Promise.resolve({
-        accepted: true as const,
-        value: { ...binding, lifecycle: 'DISABLED' as const },
-      })),
+      disable: vi.fn(() =>
+        Promise.resolve({
+          accepted: true as const,
+          value: { ...binding, lifecycle: 'DISABLED' as const },
+        }),
+      ),
     };
     const folderWatchers = { attach: vi.fn(), detach: vi.fn() };
     const harness = register({ folders, folderWatchers });

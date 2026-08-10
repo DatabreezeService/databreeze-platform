@@ -39,11 +39,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "field",
-          "value",
-          "confidence"
-        ],
+        "required": ["field", "value", "confidence"],
         "properties": {
           "field": {
             "type": "string",

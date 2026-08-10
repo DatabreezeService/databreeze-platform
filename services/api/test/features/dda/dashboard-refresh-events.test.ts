@@ -24,7 +24,7 @@ const foreignScopeResult = parseTenantScopeV1({
 assert.equal(foreignScopeResult.accepted, true);
 const foreignScope = foreignScopeResult.accepted ? foreignScopeResult.value : (null as never);
 
-void test('[DDA-034] SSE emits only content-safe committed events and isolates tenants', async () => {
+void test('[DDA-034] SSE emits only content-safe committed events and isolates tenants', () => {
   const bus = new RefreshEventBus();
   const controller = new DashboardRefreshEventsController(bus);
   const dashboardId = '00000000-0000-4000-8000-000000000601';
@@ -54,7 +54,7 @@ void test('[DDA-034] SSE emits only content-safe committed events and isolates t
     cursor: 0,
   });
   assert.equal(stream.accepted, true);
-  if (!stream.accepted) return;
+  if (!stream.accepted) return Promise.resolve();
   assert.equal(stream.value.events.length, 1);
   assert.equal(stream.value.events[0]?.sequence, 1);
   assert.equal(stream.value.events[0]?.snapshotId, '00000000-0000-4000-8000-000000000602');
@@ -64,7 +64,7 @@ void test('[DDA-034] SSE emits only content-safe committed events and isolates t
   assert.doesNotMatch(JSON.stringify(stream.value.events), /amount|OCR|filename/u);
 });
 
-void test('[DDA-034] clients tolerate duplicate/out-of-order delivery and reconcile after cursor gap', async () => {
+void test('[DDA-034] clients tolerate duplicate/out-of-order delivery and reconcile after cursor gap', () => {
   const bus = new RefreshEventBus();
   const controller = new DashboardRefreshEventsController(bus);
   const dashboardId = '00000000-0000-4000-8000-000000000611';
@@ -112,7 +112,7 @@ void test('[DDA-034] clients tolerate duplicate/out-of-order delivery and reconc
     cursor: 0,
   });
   assert.equal(stream.accepted, true);
-  if (!stream.accepted) return;
+  if (!stream.accepted) return Promise.resolve();
   assert.deepEqual(
     stream.value.events.map((event) => event.sequence),
     [1, 2, 3],
@@ -124,13 +124,13 @@ void test('[DDA-034] clients tolerate duplicate/out-of-order delivery and reconc
     cursor: 10,
   });
   assert.equal(gap.accepted, true);
-  if (!gap.accepted) return;
+  if (!gap.accepted) return Promise.resolve();
   assert.equal(gap.value.reconcileViaRest, true);
   assert.equal(gap.value.reasonCode, 'CURSOR_GAP');
   assert.deepEqual(gap.value.events, []);
 });
 
-void test('[DDA-034] permission changes force REST reconciliation without raw result streaming', async () => {
+void test('[DDA-034] permission changes force REST reconciliation without raw result streaming', () => {
   const bus = new RefreshEventBus();
   const controller = new DashboardRefreshEventsController(bus);
   const dashboardId = '00000000-0000-4000-8000-000000000621';
@@ -151,6 +151,6 @@ void test('[DDA-034] permission changes force REST reconciliation without raw re
     authorized: false,
   });
   assert.equal(denied.accepted, false);
-  if (denied.accepted) return;
+  if (denied.accepted) return Promise.resolve();
   assert.equal(denied.code, 'PERMISSION_CHANGED');
 });

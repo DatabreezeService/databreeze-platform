@@ -83,10 +83,9 @@ export function UploadPanel({
       }
       setProgress(55);
       const expectedSha256 = await sha256Hex(buffer);
-      const mediaType =
-        file.name.toLowerCase().endsWith('.xlsx')
-          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-          : 'text/csv';
+      const mediaType = file.name.toLowerCase().endsWith('.xlsx')
+        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        : 'text/csv';
       const result = await api.finalize({
         sessionId,
         fileName: file.name,
@@ -126,7 +125,11 @@ export function UploadPanel({
         />
       </label>
       <div>
-        <button type="button" onClick={() => void runUpload()} disabled={!file || status === 'uploading'}>
+        <button
+          type="button"
+          onClick={() => void runUpload()}
+          disabled={!file || status === 'uploading'}
+        >
           {status === 'failure' ? copy.retry : copy.upload}
         </button>
         <button

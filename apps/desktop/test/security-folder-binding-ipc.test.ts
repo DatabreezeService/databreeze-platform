@@ -11,7 +11,7 @@ const MAP = '01GGGGGGGGGGGGGGGGGGGGGGGG';
 
 describe('DDA-012 security folder binding IPC surface', () => {
   it('exposes only select/create/read-status/update-manifest/disable folder operations', async () => {
-    const invoke = vi.fn(async (channel: string) => {
+    const invoke = vi.fn((channel: string) => {
       if (channel === DESKTOP_IPC_CHANNELS.sessionGetSafeState) {
         return {
           applicationVersion: '0.0.0',
@@ -43,7 +43,7 @@ describe('DDA-012 security folder binding IPC surface', () => {
           supportedProfiles: ['CSV'],
         };
       }
-      throw new Error(`unexpected channel ${channel}`);
+      return Promise.reject(new Error(`unexpected channel ${channel}`));
     });
 
     const bridge = createDesktopBridgeV1(invoke);

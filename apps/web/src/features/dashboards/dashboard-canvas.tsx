@@ -17,11 +17,7 @@ function label(locale: SupportedLocaleV1, vi: string, en: string): string {
 }
 
 /** DDA-020..024: versioned accessible canvas with non-hiding responsive chrome. */
-export function DashboardCanvas({
-  locale,
-  draft,
-  breakpoint = 'desktop',
-}: DashboardCanvasProps) {
+export function DashboardCanvas({ locale, draft, breakpoint = 'desktop' }: DashboardCanvasProps) {
   const [widgets, setWidgets] = useState(draft.widgets);
   const [editorOpen, setEditorOpen] = useState(false);
   const [removed, setRemoved] = useState<typeof draft.widgets>([]);

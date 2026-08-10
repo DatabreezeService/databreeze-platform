@@ -24,7 +24,7 @@ const context = contextResult.value;
 
 void test('[DDA-026] dashboard share/view does not grant Dataset, original, evidence, analysis, or folder permission', async () => {
   const auth: DashboardAuthorizationPortV1 = {
-    async authorizeDashboardAction(input) {
+    authorizeDashboardAction(input) {
       if (input.action === 'VIEW' || input.action === 'SHARE') {
         return Object.freeze({
           allowed: true,
@@ -36,10 +36,10 @@ void test('[DDA-026] dashboard share/view does not grant Dataset, original, evid
           grantsRowFieldExpansion: false,
         });
       }
-      return Object.freeze({ allowed: false, grantsDatasetAccess: false });
+      return Promise.resolve(Object.freeze({ allowed: false, grantsDatasetAccess: false }));
     },
-    async projectVisibleFields() {
-      return Object.freeze(['region']);
+    projectVisibleFields() {
+      return Promise.resolve(Object.freeze(['region']));
     },
   };
   const service = new DashboardQueryServiceV1(auth);
@@ -68,16 +68,23 @@ void test('[DDA-026] dashboard share/view does not grant Dataset, original, evid
 void test('[DDA-026] read, filter, drill, download, event, and share resolution re-authorize current scope', async () => {
   let calls = 0;
   const auth: DashboardAuthorizationPortV1 = {
-    async authorizeDashboardAction() {
+    authorizeDashboardAction() {
       calls += 1;
-      return Object.freeze({ allowed: true, grantsDatasetAccess: false });
+      return Promise.resolve(Object.freeze({ allowed: true, grantsDatasetAccess: false }));
     },
-    async projectVisibleFields() {
-      return Object.freeze(['region']);
+    projectVisibleFields() {
+      return Promise.resolve(Object.freeze(['region']));
     },
   };
   const service = new DashboardQueryServiceV1(auth);
-  for (const action of ['VIEW', 'FILTER', 'DRILL', 'DOWNLOAD', 'SUBSCRIBE', 'RESOLVE_SHARE'] as const) {
+  for (const action of [
+    'VIEW',
+    'FILTER',
+    'DRILL',
+    'DOWNLOAD',
+    'SUBSCRIBE',
+    'RESOLVE_SHARE',
+  ] as const) {
     const result = await service.authorizeAction(context, {
       snapshotId: '00000000-0000-4000-8000-000000000029',
       action,
@@ -89,11 +96,11 @@ void test('[DDA-026] read, filter, drill, download, event, and share resolution 
 
 void test('[DDA-026] permission revocation denies subsequent reads without leaking hidden field names', async () => {
   const auth: DashboardAuthorizationPortV1 = {
-    async authorizeDashboardAction() {
-      return Object.freeze({ allowed: false, grantsDatasetAccess: false });
+    authorizeDashboardAction() {
+      return Promise.resolve(Object.freeze({ allowed: false, grantsDatasetAccess: false }));
     },
-    async projectVisibleFields() {
-      return Object.freeze([]);
+    projectVisibleFields() {
+      return Promise.resolve(Object.freeze([]));
     },
   };
   const service = new DashboardQueryServiceV1(auth);

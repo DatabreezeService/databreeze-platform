@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import { DashboardComparisonServiceV1 } from '../../../src/features/dda/dashboard/application/dashboard-comparison.service.js';
 
-void test('[DDA-047] compares compatible snapshots with null/zero percentage rules and disclosures', async () => {
+void test('[DDA-047] compares compatible snapshots with null/zero percentage rules and disclosures', () => {
   const service = new DashboardComparisonServiceV1();
   const compared = service.compare({
     left: {
@@ -22,7 +22,7 @@ void test('[DDA-047] compares compatible snapshots with null/zero percentage rul
     },
   });
   assert.equal(compared.accepted, true);
-  if (!compared.accepted) return;
+  if (!compared.accepted) return Promise.resolve();
   assert.equal(compared.value.changes['amount']?.absolute, 50);
   assert.equal(compared.value.changes['amount']?.percentage, 50);
   assert.equal(compared.value.changes['returns']?.percentage, null);
@@ -30,7 +30,7 @@ void test('[DDA-047] compares compatible snapshots with null/zero percentage rul
   assert.deepEqual(compared.value.changedInputs, ['dataset-b']);
 });
 
-void test('[DDA-047] rejects incompatible snapshot comparisons', async () => {
+void test('[DDA-047] rejects incompatible snapshot comparisons', () => {
   const service = new DashboardComparisonServiceV1();
   const rejected = service.compare({
     left: {

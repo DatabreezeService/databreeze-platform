@@ -1,8 +1,4 @@
-export type FolderIntakeDisposition =
-  | 'ADMITTED'
-  | 'QUARANTINE'
-  | 'DUPLICATE_EVENT'
-  | 'PENDING';
+export type FolderIntakeDisposition = 'ADMITTED' | 'QUARANTINE' | 'DUPLICATE_EVENT' | 'PENDING';
 
 export type FolderIntakeReason =
   | 'PATH_ESCAPE'

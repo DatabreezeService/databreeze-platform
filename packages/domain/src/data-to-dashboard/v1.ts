@@ -42,12 +42,7 @@ export type DdaWidgetTypeV1 =
   | 'DONUT'
   | 'TEXT_NOTE'
   | 'EVIDENCE_NOTE';
-export type DdaFreshnessStateV1 =
-  | 'FRESH'
-  | 'STALE'
-  | 'PENDING'
-  | 'BLOCKED'
-  | 'SOURCE_UNAVAILABLE';
+export type DdaFreshnessStateV1 = 'FRESH' | 'STALE' | 'PENDING' | 'BLOCKED' | 'SOURCE_UNAVAILABLE';
 export type DdaEvidenceStateV1 = 'AVAILABLE' | 'PARTIAL' | 'UNAVAILABLE';
 export type DdaAudienceV1 = 'OWNER' | 'WORKSPACE_VIEWERS' | 'PROJECT_VIEWERS' | 'SHARED_LINK';
 export type DdaTimeGrainV1 = 'DAY' | 'WEEK' | 'MONTH' | 'QUARTER' | 'YEAR';
@@ -416,15 +411,14 @@ function configMap(
     if (typeof value === 'string' && (value.length > 256 || /\p{Cc}/u.test(value))) {
       return undefined;
     }
-    entries.push([key, value as string | number | boolean | null]);
+    entries.push([key, value]);
   }
   return Object.freeze(Object.fromEntries(entries));
 }
 
-function transformationSteps(
-  input: unknown,
-): readonly DdaTransformationStepV1[] | DdaErrorCodeV1 {
-  if (!Array.isArray(input) || input.length === 0 || input.length > 256) return 'INVALID_COLLECTION';
+function transformationSteps(input: unknown): readonly DdaTransformationStepV1[] | DdaErrorCodeV1 {
+  if (!Array.isArray(input) || input.length === 0 || input.length > 256)
+    return 'INVALID_COLLECTION';
   const steps: DdaTransformationStepV1[] = [];
   const seen = new Set<string>();
   for (const item of input) {
@@ -483,7 +477,9 @@ function layoutCells(input: unknown): readonly DashboardLayoutCellV1[] | undefin
     ) {
       return undefined;
     }
-    cells.push(Object.freeze({ widgetId, x: x as number, y: y as number, w: w as number, h: h as number }));
+    cells.push(
+      Object.freeze({ widgetId, x: x as number, y: y as number, w: w as number, h: h as number }),
+    );
   }
   return Object.freeze(cells);
 }
@@ -627,7 +623,8 @@ export function createDdaAnalysisPlanV1(input: {
   const end = timestamp(range['end']);
   if (!start || !end || Date.parse(start) > Date.parse(end)) return rejected('INVALID_TIMESTAMP');
   if (!timeGrains.has(input.timeGrain as DdaTimeGrainV1)) return rejected('UNSUPPORTED_POLICY');
-  if (!Array.isArray(input.filters) || input.filters.length > 64) return rejected('INVALID_COLLECTION');
+  if (!Array.isArray(input.filters) || input.filters.length > 64)
+    return rejected('INVALID_COLLECTION');
   if (!Array.isArray(input.joins) || input.joins.length > 32) return rejected('INVALID_COLLECTION');
   if (!Array.isArray(input.assumptions) || input.assumptions.length > 32) {
     return rejected('INVALID_COLLECTION');
@@ -642,8 +639,8 @@ export function createDdaAnalysisPlanV1(input: {
   if (
     typeof output['maxRows'] !== 'number' ||
     !Number.isSafeInteger(output['maxRows']) ||
-    (output['maxRows'] as number) < 1 ||
-    (output['maxRows'] as number) > 10_000
+    output['maxRows'] < 1 ||
+    output['maxRows'] > 10_000
   ) {
     return rejected('INVALID_COLLECTION');
   }
@@ -656,15 +653,19 @@ export function createDdaAnalysisPlanV1(input: {
     typeof estimate['memoryMb'] !== 'number' ||
     !Number.isSafeInteger(estimate['cpuMs']) ||
     !Number.isSafeInteger(estimate['memoryMb']) ||
-    (estimate['cpuMs'] as number) < 0 ||
-    (estimate['memoryMb'] as number) < 0
+    estimate['cpuMs'] < 0 ||
+    estimate['memoryMb'] < 0
   ) {
     return rejected('INVALID_COLLECTION');
   }
   if (!input.units || typeof input.units !== 'object' || Array.isArray(input.units)) {
     return rejected('INVALID_COLLECTION');
   }
-  if (!input.parameters || typeof input.parameters !== 'object' || Array.isArray(input.parameters)) {
+  if (
+    !input.parameters ||
+    typeof input.parameters !== 'object' ||
+    Array.isArray(input.parameters)
+  ) {
     return rejected('INVALID_COLLECTION');
   }
   return accepted(
@@ -691,12 +692,12 @@ export function createDdaAnalysisPlanV1(input: {
       }),
       output: Object.freeze({
         form: output['form'] as DdaOutputFormV1,
-        maxRows: output['maxRows'] as number,
+        maxRows: output['maxRows'],
       }),
       assumptions: Object.freeze(assumptions as string[]),
       estimate: Object.freeze({
-        cpuMs: estimate['cpuMs'] as number,
-        memoryMb: estimate['memoryMb'] as number,
+        cpuMs: estimate['cpuMs'],
+        memoryMb: estimate['memoryMb'],
       }),
       permissionProjectionVersionId,
       planHash,
@@ -738,7 +739,8 @@ export function createDashboardVersionV1(input: {
   const locale = text(input.locale, 32);
   const timezone = text(input.timezone, 64);
   if (!dashboardId || !versionId) return rejected('INVALID_IDENTIFIER');
-  if (input.parentVersionId !== undefined && !parentVersionId) return rejected('INVALID_IDENTIFIER');
+  if (input.parentVersionId !== undefined && !parentVersionId)
+    return rejected('INVALID_IDENTIFIER');
   if (!canonicalHash) return rejected('INVALID_HASH');
   if (!createdAt) return rejected('INVALID_TIMESTAMP');
   if (!locale || !timezone) return rejected('INVALID_TEXT');
@@ -754,7 +756,8 @@ export function createDashboardVersionV1(input: {
   if (!Array.isArray(input.widgets) || input.widgets.length === 0 || input.widgets.length > 128) {
     return rejected('INVALID_COLLECTION');
   }
-  if (!Array.isArray(input.filters) || input.filters.length > 64) return rejected('INVALID_COLLECTION');
+  if (!Array.isArray(input.filters) || input.filters.length > 64)
+    return rejected('INVALID_COLLECTION');
   if (
     !Array.isArray(input.datasetBindings) ||
     input.datasetBindings.length === 0 ||
@@ -766,7 +769,8 @@ export function createDashboardVersionV1(input: {
   const pages: DashboardPageV1[] = [];
   const pageIds = new Set<string>();
   for (const item of input.pages) {
-    if (!item || typeof item !== 'object' || Array.isArray(item)) return rejected('INVALID_COLLECTION');
+    if (!item || typeof item !== 'object' || Array.isArray(item))
+      return rejected('INVALID_COLLECTION');
     const record = item as Record<string, unknown>;
     const pageId = identifier(record['pageId']);
     if (!pageId) return rejected('INVALID_IDENTIFIER');
@@ -787,7 +791,7 @@ export function createDashboardVersionV1(input: {
     if (
       typeof record['order'] !== 'number' ||
       !Number.isSafeInteger(record['order']) ||
-      (record['order'] as number) < 1
+      record['order'] < 1
     ) {
       return rejected('INVALID_COLLECTION');
     }
@@ -796,7 +800,7 @@ export function createDashboardVersionV1(input: {
     pages.push(
       Object.freeze({
         pageId,
-        order: record['order'] as number,
+        order: record['order'],
         title,
         layout: Object.freeze({ desktop, tablet, mobile }),
       }),
@@ -806,7 +810,8 @@ export function createDashboardVersionV1(input: {
   const widgets: DashboardWidgetV1[] = [];
   const widgetIds = new Set<string>();
   for (const item of input.widgets) {
-    if (!item || typeof item !== 'object' || Array.isArray(item)) return rejected('INVALID_COLLECTION');
+    if (!item || typeof item !== 'object' || Array.isArray(item))
+      return rejected('INVALID_COLLECTION');
     const record = item as Record<string, unknown>;
     const widgetId = identifier(record['widgetId']);
     if (!widgetId) return rejected('INVALID_IDENTIFIER');
@@ -843,7 +848,8 @@ export function createDashboardVersionV1(input: {
 
   const filters: DashboardFilterV1[] = [];
   for (const item of input.filters) {
-    if (!item || typeof item !== 'object' || Array.isArray(item)) return rejected('INVALID_COLLECTION');
+    if (!item || typeof item !== 'object' || Array.isArray(item))
+      return rejected('INVALID_COLLECTION');
     const record = item as Record<string, unknown>;
     const filterId = identifier(record['filterId']);
     const field = text(record['field'], 96);
@@ -859,7 +865,8 @@ export function createDashboardVersionV1(input: {
 
   const datasetBindings: DashboardDatasetBindingV1[] = [];
   for (const item of input.datasetBindings) {
-    if (!item || typeof item !== 'object' || Array.isArray(item)) return rejected('INVALID_COLLECTION');
+    if (!item || typeof item !== 'object' || Array.isArray(item))
+      return rejected('INVALID_COLLECTION');
     const record = item as Record<string, unknown>;
     const datasetVersionId = identifier(record['datasetVersionId']);
     const semanticVersionId = identifier(record['semanticVersionId']);

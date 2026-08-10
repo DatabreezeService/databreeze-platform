@@ -98,7 +98,10 @@ void test('[DDA-032] atomic commit swaps pointer only after complete verificatio
   assert.equal(committed.accepted, true);
   if (!committed.accepted) return;
   assert.equal(committed.value.state, 'COMMITTED');
-  assert.equal((await coordinator.getCurrentSnapshot(ids.dashboardId))?.snapshotId, ids.snapshotNew);
+  assert.equal(
+    (await coordinator.getCurrentSnapshot(ids.dashboardId))?.snapshotId,
+    ids.snapshotNew,
+  );
 });
 
 void test('[DDA-032] partial/mixed/failed results never replace the last complete snapshot', async () => {
@@ -241,5 +244,8 @@ void test('[DDA-032] database commit failure retains previous snapshot pointer',
   assert.equal(result.accepted, false);
   if (result.accepted) return;
   assert.equal(result.code, 'SNAPSHOT_COMMIT_FAILED');
-  assert.equal((await coordinator.getCurrentSnapshot(ids.dashboardId))?.snapshotId, ids.snapshotOld);
+  assert.equal(
+    (await coordinator.getCurrentSnapshot(ids.dashboardId))?.snapshotId,
+    ids.snapshotOld,
+  );
 });

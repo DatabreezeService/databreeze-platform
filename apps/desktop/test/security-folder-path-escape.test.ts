@@ -36,9 +36,11 @@ describe('DDA-014 folder path escape security', () => {
       manifest: manifest(),
       assertInsideBinding: (candidate) =>
         candidate.toLowerCase().startsWith(BINDING_ROOT.toLowerCase()),
-      readFingerprint: async (path) => {
-        if (path.endsWith('escape.csv')) return { rejected: 'PATH_ESCAPE' as const };
-        if (path.endsWith('code.js')) return { rejected: 'UNSUPPORTED_PROFILE' as const };
+      readFingerprint: (path) => {
+        if (path.endsWith('escape.csv'))
+          return Promise.resolve({ rejected: 'PATH_ESCAPE' as const });
+        if (path.endsWith('code.js'))
+          return Promise.resolve({ rejected: 'UNSUPPORTED_PROFILE' as const });
         if (path.endsWith('drift.csv')) {
           return {
             accepted: true as const,
@@ -47,14 +49,14 @@ describe('DDA-014 folder path escape security', () => {
             profile: 'CSV' as const,
           };
         }
-        return {
+        return Promise.resolve({
           accepted: true as const,
           contentFingerprint: 'sha256:' + '22'.repeat(32),
           schemaFingerprint: 'a'.repeat(64),
           profile: 'CSV' as const,
-        };
+        });
       },
-      mutateSource: async (path, action) => {
+      mutateSource: (path, action) => {
         mutations.push(`${action}:${path}`);
       },
     });

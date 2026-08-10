@@ -29,11 +29,23 @@ const reference = Object.freeze({
 
 void test('[DDA-001] default foundation ports fail closed when authorities are not composed', async () => {
   const ports = createFailClosedDdaFoundationPortsV1();
-  await assert.rejects(() => ports.iae.requireArtifactVersion(reference), /DDA_FOUNDATION_UNAVAILABLE/u);
-  await assert.rejects(() => ports.dsm.requireDatasetVersion(reference), /DDA_FOUNDATION_UNAVAILABLE/u);
+  await assert.rejects(
+    () => ports.iae.requireArtifactVersion(reference),
+    /DDA_FOUNDATION_UNAVAILABLE/u,
+  );
+  await assert.rejects(
+    () => ports.dsm.requireDatasetVersion(reference),
+    /DDA_FOUNDATION_UNAVAILABLE/u,
+  );
   await assert.rejects(() => ports.jra.requireJob(reference), /DDA_FOUNDATION_UNAVAILABLE/u);
-  await assert.rejects(() => ports.dso.requireCapabilityGrant(reference), /DDA_FOUNDATION_UNAVAILABLE/u);
-  await assert.rejects(() => ports.bua.requireAdmission(reference, 'refresh'), /DDA_FOUNDATION_UNAVAILABLE/u);
+  await assert.rejects(
+    () => ports.dso.requireCapabilityGrant(reference),
+    /DDA_FOUNDATION_UNAVAILABLE/u,
+  );
+  await assert.rejects(
+    () => ports.bua.requireAdmission(reference, 'refresh'),
+    /DDA_FOUNDATION_UNAVAILABLE/u,
+  );
   await assert.rejects(
     () =>
       ports.aud.emitContentSafeSummary({
@@ -49,28 +61,31 @@ void test('[DDA-001] default foundation ports fail closed when authorities are n
 
 void test('[DDA-001] lookup-backed IAE/DSM adapters require presence and tenant scope', async () => {
   const iae = createLookupBackedDdaIaePortV1({
-    async findArtifactVersion(input) {
-      return input.id === reference.id && input.tenantScope.organizationId === tenantScope.organizationId;
+    findArtifactVersion(input) {
+      return Promise.resolve(
+        input.id === reference.id &&
+          input.tenantScope.organizationId === tenantScope.organizationId,
+      );
     },
-    async findEvidenceReference() {
-      return false;
+    findEvidenceReference() {
+      return Promise.resolve(false);
     },
-    async addRetentionConstraint() {
-      return;
+    addRetentionConstraint() {
+      return Promise.resolve();
     },
   });
   await iae.requireArtifactVersion(reference);
   await assert.rejects(() => iae.requireEvidenceReference(reference), /DDA_AUTHORITY_MISSING/u);
 
   const dsm = createLookupBackedDdaDsmPortV1({
-    async findDatasetVersion() {
-      return true;
+    findDatasetVersion() {
+      return Promise.resolve(true);
     },
-    async findSemanticVersion() {
-      return false;
+    findSemanticVersion() {
+      return Promise.resolve(false);
     },
-    async findMetricVersion() {
-      return true;
+    findMetricVersion() {
+      return Promise.resolve(true);
     },
   });
   await dsm.requireDatasetVersion(reference);
@@ -79,28 +94,28 @@ void test('[DDA-001] lookup-backed IAE/DSM adapters require presence and tenant 
 
 void test('[DDA-001] lookup-backed JRA/BUA/DSO/AUD adapters fail closed on missing records', async () => {
   const jra = createLookupBackedDdaJraPortV1({
-    async findJob() {
-      return false;
+    findJob() {
+      return Promise.resolve(false);
     },
-    async findResultManifest() {
-      return true;
+    findResultManifest() {
+      return Promise.resolve(true);
     },
   });
   await assert.rejects(() => jra.requireJob(reference), /DDA_AUTHORITY_MISSING/u);
 
   const bua = createLookupBackedDdaBuaPortV1({
-    async admit() {
-      return false;
+    admit() {
+      return Promise.resolve(false);
     },
   });
   await assert.rejects(() => bua.requireAdmission(reference, 'refresh'), /DDA_AUTHORITY_MISSING/u);
 
   const dso = createLookupBackedDdaDsoPortV1({
-    async findCapabilityGrant() {
-      return true;
+    findCapabilityGrant() {
+      return Promise.resolve(true);
     },
-    async findProjection() {
-      return false;
+    findProjection() {
+      return Promise.resolve(false);
     },
   });
   await dso.requireCapabilityGrant(reference);
@@ -108,7 +123,7 @@ void test('[DDA-001] lookup-backed JRA/BUA/DSO/AUD adapters fail closed on missi
 
   let emitted = 0;
   const aud = createLookupBackedDdaAudPortV1({
-    async emitContentSafeSummary() {
+    emitContentSafeSummary() {
       emitted += 1;
     },
   });

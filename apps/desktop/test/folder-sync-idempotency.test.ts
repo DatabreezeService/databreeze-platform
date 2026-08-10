@@ -5,10 +5,11 @@ describe('DDA-037/DDA-039 folder sync idempotency', () => {
   it('syncs approved projection bytes idempotently and resumes offline queue without path leakage', async () => {
     const uploads: Array<{ idempotencyKey: string; bytes: Uint8Array; projectionId: string }> = [];
     const sync = new FolderSyncService({
-      upload: async (request) => {
+      upload: (request) => {
         uploads.push(request);
-        if (uploads.length === 1) return { accepted: false, code: 'NETWORK_OFFLINE' };
-        return { accepted: true, receiptId: 'rcpt_1' };
+        if (uploads.length === 1)
+          return Promise.resolve({ accepted: false, code: 'NETWORK_OFFLINE' });
+        return Promise.resolve({ accepted: true, receiptId: 'rcpt_1' });
       },
       nowMs: () => 1_700_000_000_000,
     });
@@ -40,7 +41,7 @@ describe('DDA-037/DDA-039 folder sync idempotency', () => {
 
   it('handles revocation, stale device, rejected projection, and never auto-reroutes', async () => {
     const sync = new FolderSyncService({
-      upload: async () => ({ accepted: false, code: 'DEVICE_REVOKED' }),
+      upload: () => Promise.resolve({ accepted: false, code: 'DEVICE_REVOKED' }),
       nowMs: () => 1,
     });
 

@@ -69,10 +69,7 @@ void test('[DDA-029] cache keys collide only when every dimension matches', () =
       'permissionProjectionVersionId',
       baseKey({ permissionProjectionVersionId: '00000000-0000-4000-8000-000000000031' }),
     ],
-    [
-      'dashboardVersionId',
-      baseKey({ dashboardVersionId: '00000000-0000-4000-8000-000000000032' }),
-    ],
+    ['dashboardVersionId', baseKey({ dashboardVersionId: '00000000-0000-4000-8000-000000000032' })],
     ['widgetId', baseKey({ widgetId: '00000000-0000-4000-8000-000000000033' })],
     [
       'analysisPlanVersionId',

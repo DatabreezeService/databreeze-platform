@@ -51,25 +51,27 @@ const plan = planResult.value;
 
 void test('[DDA-015][DDA-019] execution supplies numbers only from deterministic result cells with provenance', async () => {
   const port: DeterministicResultPortV1 = {
-    async execute() {
-      return Object.freeze({
-        resultId: '00000000-0000-4000-8000-000000000030',
-        cells: Object.freeze([
-          Object.freeze({
-            cellId: '00000000-0000-4000-8000-000000000031',
-            field: 'amount',
-            value: 1_250_000,
-            unit: 'VND',
+    execute() {
+      return Promise.resolve(
+        Object.freeze({
+          resultId: '00000000-0000-4000-8000-000000000030',
+          cells: Object.freeze([
+            Object.freeze({
+              cellId: '00000000-0000-4000-8000-000000000031',
+              field: 'amount',
+              value: 1_250_000,
+              unit: 'VND',
+              planVersionId: plan.planVersionId,
+              metricVersionId: plan.metricVersionId,
+            }),
+          ]),
+          provenance: Object.freeze({
             planVersionId: plan.planVersionId,
-            metricVersionId: plan.metricVersionId,
+            datasetVersionId: plan.datasetVersionId,
+            engineVersion: 'engine-1.0.0',
           }),
-        ]),
-        provenance: Object.freeze({
-          planVersionId: plan.planVersionId,
-          datasetVersionId: plan.datasetVersionId,
-          engineVersion: 'engine-1.0.0',
         }),
-      });
+      );
     },
   };
   const service = new AnalysisExecutionServiceV1(port);
@@ -92,25 +94,27 @@ void test('[DDA-015][DDA-019] execution supplies numbers only from deterministic
 
 void test('[DDA-019] rejects narrative claims without result-cell references', async () => {
   const port: DeterministicResultPortV1 = {
-    async execute() {
-      return Object.freeze({
-        resultId: '00000000-0000-4000-8000-000000000030',
-        cells: Object.freeze([
-          Object.freeze({
-            cellId: '00000000-0000-4000-8000-000000000031',
-            field: 'amount',
-            value: 10,
-            unit: 'VND',
+    execute() {
+      return Promise.resolve(
+        Object.freeze({
+          resultId: '00000000-0000-4000-8000-000000000030',
+          cells: Object.freeze([
+            Object.freeze({
+              cellId: '00000000-0000-4000-8000-000000000031',
+              field: 'amount',
+              value: 10,
+              unit: 'VND',
+              planVersionId: plan.planVersionId,
+              metricVersionId: plan.metricVersionId,
+            }),
+          ]),
+          provenance: Object.freeze({
             planVersionId: plan.planVersionId,
-            metricVersionId: plan.metricVersionId,
+            datasetVersionId: plan.datasetVersionId,
+            engineVersion: 'engine-1.0.0',
           }),
-        ]),
-        provenance: Object.freeze({
-          planVersionId: plan.planVersionId,
-          datasetVersionId: plan.datasetVersionId,
-          engineVersion: 'engine-1.0.0',
         }),
-      });
+      );
     },
   };
   const service = new AnalysisExecutionServiceV1(port);
@@ -124,8 +128,8 @@ void test('[DDA-019] rejects narrative claims without result-cell references', a
 
 void test('[DDA-018] surfaces SOURCE_UNAVAILABLE from deterministic port', async () => {
   const port: DeterministicResultPortV1 = {
-    async execute() {
-      return Object.freeze({ status: 'SOURCE_UNAVAILABLE' as const });
+    execute() {
+      return Promise.resolve(Object.freeze({ status: 'SOURCE_UNAVAILABLE' as const }));
     },
   };
   const service = new AnalysisExecutionServiceV1(port);
@@ -136,8 +140,8 @@ void test('[DDA-018] surfaces SOURCE_UNAVAILABLE from deterministic port', async
 
 void test('[DDA-044] budget denial returns stable non-answer reason', async () => {
   const port: DeterministicResultPortV1 = {
-    async execute() {
-      return Object.freeze({ status: 'BUDGET_DENIED' as const });
+    execute() {
+      return Promise.resolve(Object.freeze({ status: 'BUDGET_DENIED' as const }));
     },
   };
   const service = new AnalysisExecutionServiceV1(port);

@@ -30,15 +30,16 @@ void test('[DDA-002] intake controller returns IDs and status only', async () =>
         maxFormulas: 500,
       },
     }),
-    finalizeUpload: async () => ({
-      accepted: true as const,
-      value: {
-        sessionId: '00000000-0000-4000-8000-000000000112',
-        artifactVersionId: '00000000-0000-4000-8000-000000000012',
-        status: 'FINALIZED' as const,
-        profileId: 'dda.web.tabular.v1',
-      },
-    }),
+    finalizeUpload: () =>
+      Promise.resolve({
+        accepted: true as const,
+        value: {
+          sessionId: '00000000-0000-4000-8000-000000000112',
+          artifactVersionId: '00000000-0000-4000-8000-000000000012',
+          status: 'FINALIZED' as const,
+          profileId: 'dda.web.tabular.v1',
+        },
+      }),
   } as unknown as WebIntakeServiceV1);
 
   const profile = await controller.getProfile();
@@ -76,10 +77,11 @@ void test('[DDA-002] intake controller maps rejections to stable Problem codes',
         maxFormulas: 500,
       },
     }),
-    finalizeUpload: async () => ({
-      accepted: false as const,
-      code: 'DDA_INTAKE_CHECKSUM_MISMATCH' as const,
-    }),
+    finalizeUpload: () =>
+      Promise.resolve({
+        accepted: false as const,
+        code: 'DDA_INTAKE_CHECKSUM_MISMATCH' as const,
+      }),
   } as unknown as WebIntakeServiceV1);
 
   await assert.rejects(

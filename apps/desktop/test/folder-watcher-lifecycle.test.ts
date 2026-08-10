@@ -52,12 +52,14 @@ describe('DDA-014 production folder watcher lifecycle', () => {
   it('starts a watcher only for a successful active binding and disposes it on disable', async () => {
     const watcher = new FakeWatcher();
     const intake = {
-      admitStableFile: vi.fn(() => Promise.resolve({
-        disposition: 'QUARANTINE' as const,
-        reason: 'SCHEMA_DRIFT' as const,
-        path: `${ROOT}\\unfamiliar.csv`,
-        eventId: 'evt_1',
-      })),
+      admitStableFile: vi.fn(() =>
+        Promise.resolve({
+          disposition: 'QUARANTINE' as const,
+          reason: 'SCHEMA_DRIFT' as const,
+          path: `${ROOT}\\unfamiliar.csv`,
+          eventId: 'evt_1',
+        }),
+      ),
     };
     const folders = {
       watcherConfiguration: vi.fn(() => watcherConfiguration()),
@@ -70,7 +72,7 @@ describe('DDA-014 production folder watcher lifecycle', () => {
       nowMs: () => 100,
     });
 
-    await lifecycle.attach(BINDING);
+    lifecycle.attach(BINDING);
     watcher.emit({ path: `${ROOT}\\unfamiliar.csv`, size: 4, mtimeMs: 1, kind: 'write' });
     await Promise.resolve();
 
@@ -86,7 +88,7 @@ describe('DDA-014 production folder watcher lifecycle', () => {
     expect(watcher.dispose).toHaveBeenCalledOnce();
   });
 
-  it('does not create a watcher when the binding is absent or inactive', async () => {
+  it('does not create a watcher when the binding is absent or inactive', () => {
     const createWatcher = vi.fn();
     const lifecycle = new FolderWatcherLifecycle({
       folders: { watcherConfiguration: () => null } as unknown as FolderManifestService,
@@ -96,7 +98,7 @@ describe('DDA-014 production folder watcher lifecycle', () => {
       nowMs: () => 100,
     });
 
-    await lifecycle.attach(BINDING);
+    lifecycle.attach(BINDING);
 
     expect(createWatcher).not.toHaveBeenCalled();
   });
@@ -117,19 +119,20 @@ describe('DDA-014 production folder watcher lifecycle', () => {
           bindingRoot: configuration.canonicalPath,
           manifest: configuration.manifest,
           assertInsideBinding: (candidate) => candidate.startsWith(ROOT),
-          readFingerprint: () => Promise.resolve({
-            accepted: true,
-            contentFingerprint: 'sha256:' + '11'.repeat(32),
-            schemaFingerprint: 'z'.repeat(64),
-            profile: 'CSV',
-          }),
+          readFingerprint: () =>
+            Promise.resolve({
+              accepted: true,
+              contentFingerprint: 'sha256:' + '11'.repeat(32),
+              schemaFingerprint: 'z'.repeat(64),
+              profile: 'CSV',
+            }),
         });
         return intake;
       },
       nowMs: () => 100,
     });
 
-    await lifecycle.attach(BINDING);
+    lifecycle.attach(BINDING);
     watcher.emit({ path: `${ROOT}\\unfamiliar.csv`, size: 4, mtimeMs: 1, kind: 'write' });
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
 

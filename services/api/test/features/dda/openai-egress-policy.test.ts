@@ -27,8 +27,8 @@ void test('[DDA-044, ADR-0005] OpenAI receipt egress fails closed when credentia
   assert.equal(config.apiKeyPresent, false);
 
   const adapter = new OpenAiReceiptOcrAdapter(config, {
-    fetchImpl: async () => {
-      throw new Error('network must not be called without credentials');
+    fetchImpl: () => {
+      return Promise.reject(new Error('network must not be called without credentials'));
     },
   });
 
@@ -39,8 +39,7 @@ void test('[DDA-044, ADR-0005] OpenAI receipt egress fails closed when credentia
         profileVersionId: '00000000-0000-4000-8000-000000000502',
         tenantWorkspaceId: scope.workspaceId,
       }),
-    (error: unknown) =>
-      error instanceof Error && error.message === 'OPENAI_CREDENTIAL_UNAVAILABLE',
+    (error: unknown) => error instanceof Error && error.message === 'OPENAI_CREDENTIAL_UNAVAILABLE',
   );
 });
 

@@ -30,7 +30,10 @@ test('DDA orchestration covers every requirement with non-overlapping parallel o
       'utf8',
     ),
   );
-  assert.equal(ledger.workPackages.find((item) => item.workPackageId === 'DDA-087')?.status, 'complete');
+  assert.equal(
+    ledger.workPackages.find((item) => item.workPackageId === 'DDA-087')?.status,
+    'complete',
+  );
   assert.equal(ledger.gates.find((item) => item.gateId === 'G3')?.status, 'complete');
   assert.equal(ledger.gates.find((item) => item.gateId === 'G4')?.status, 'complete');
   assert.equal(ledger.gates.find((item) => item.gateId === 'G5')?.status, 'blocked');
@@ -53,7 +56,10 @@ test('DDA program keeps production and streaming claims out of the delivery gate
   );
 
   assert.match(plan400, /^### Task 1: WEB production control center$/m);
-  assert.match(plan401, /^### Task 1: Freeze the production release manifest and evidence matrix$/m);
+  assert.match(
+    plan401,
+    /^### Task 1: Freeze the production release manifest and evidence matrix$/m,
+  );
   assert.equal(ledger.delivery.mode, 'task-gated-complete-program');
   assert.equal(ledger.delivery.productionReady, false);
   assert.equal(ledger.gates.find((gate) => gate.gateId === 'G5')?.status, 'blocked');

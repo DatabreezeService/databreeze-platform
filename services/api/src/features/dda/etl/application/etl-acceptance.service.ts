@@ -117,13 +117,17 @@ export class EtlAcceptanceServiceV1 {
       jobId: job.jobId,
     });
     if (!manifestResult.accepted) {
-      return rejected(manifestResult.code === 'JRA_RETRY' ? 'DDA_ETL_JRA_RETRY' : 'DDA_ETL_JRA_FAILED');
+      return rejected(
+        manifestResult.code === 'JRA_RETRY' ? 'DDA_ETL_JRA_RETRY' : 'DDA_ETL_JRA_FAILED',
+      );
     }
     const manifest = manifestResult.manifest;
     if (manifest.partial) return rejected('DDA_ETL_PARTIAL_OUTPUT');
     if (manifest.rowCount !== input.expected.rowCount) return rejected('DDA_ETL_COUNT_MISMATCH');
-    if (manifest.contentHash !== input.expected.contentHash) return rejected('DDA_ETL_HASH_MISMATCH');
-    if (manifest.schemaHash !== input.expected.schemaHash) return rejected('DDA_ETL_SCHEMA_MISMATCH');
+    if (manifest.contentHash !== input.expected.contentHash)
+      return rejected('DDA_ETL_HASH_MISMATCH');
+    if (manifest.schemaHash !== input.expected.schemaHash)
+      return rejected('DDA_ETL_SCHEMA_MISMATCH');
     if (input.expected.rejectedCount > 0 && !manifest.rejectBundleId) {
       return rejected('DDA_ETL_MISSING_REJECT_BUNDLE');
     }

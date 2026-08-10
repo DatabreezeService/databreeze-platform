@@ -65,11 +65,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "field",
-          "operator",
-          "value"
-        ],
+        "required": ["field", "operator", "value"],
         "properties": {
           "field": {
             "type": "string",
@@ -91,10 +87,7 @@
     "timeRange": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "start",
-        "end"
-      ],
+      "required": ["start", "end"],
       "properties": {
         "start": {
           "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
@@ -114,12 +107,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "leftDatasetVersionId",
-          "rightDatasetVersionId",
-          "leftField",
-          "rightField"
-        ],
+        "required": ["leftDatasetVersionId", "rightDatasetVersionId", "leftField", "rightField"],
         "properties": {
           "leftDatasetVersionId": {
             "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
@@ -146,10 +134,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "field",
-          "unit"
-        ],
+        "required": ["field", "unit"],
         "properties": {
           "field": {
             "type": "string",
@@ -170,10 +155,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "name",
-          "value"
-        ],
+        "required": ["name", "value"],
         "properties": {
           "name": {
             "type": "string",
@@ -190,10 +172,7 @@
     "output": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "form",
-        "maxRows"
-      ],
+      "required": ["form", "maxRows"],
       "properties": {
         "form": {
           "type": "string",
@@ -218,10 +197,7 @@
     "estimate": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "cpuMs",
-        "memoryMb"
-      ],
+      "required": ["cpuMs", "memoryMb"],
       "properties": {
         "cpuMs": {
           "type": "integer",

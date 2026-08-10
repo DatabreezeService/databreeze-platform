@@ -1,10 +1,17 @@
-import type { ReceiptOcrPort, ReceiptOcrRequest, ReceiptOcrResult } from '../application/receipt-ocr.port.js';
+import type {
+  ReceiptOcrPort,
+  ReceiptOcrRequest,
+  ReceiptOcrResult,
+} from '../application/receipt-ocr.port.js';
 import {
   loadOpenAiReceiptOcrConfig,
   type OpenAiReceiptOcrConfig,
 } from './openai-receipt-ocr.config.js';
 
-export { loadOpenAiReceiptOcrConfig, type OpenAiReceiptOcrConfig } from './openai-receipt-ocr.config.js';
+export {
+  loadOpenAiReceiptOcrConfig,
+  type OpenAiReceiptOcrConfig,
+} from './openai-receipt-ocr.config.js';
 
 export type OpenAiFetch = (
   input: string,

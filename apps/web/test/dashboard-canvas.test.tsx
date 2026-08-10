@@ -8,7 +8,9 @@ import { WIDGET_CATALOG_V1 } from '../src/features/dashboards/widget-catalog.ts'
 const draft = {
   dashboardId: '00000000-0000-4000-8000-00000000001b',
   versionId: '00000000-0000-4000-8000-000000000011',
-  pages: [{ pageId: '00000000-0000-4000-8000-00000000001c', title: { vi: 'Doanh so', en: 'Sales' } }],
+  pages: [
+    { pageId: '00000000-0000-4000-8000-00000000001c', title: { vi: 'Doanh so', en: 'Sales' } },
+  ],
   widgets: [
     {
       widgetId: '00000000-0000-4000-8000-00000000001d',
@@ -33,7 +35,17 @@ const draft = {
 describe('dashboard canvas [DDA-021][DDA-022]', () => {
   it('exposes allowlisted widgets and chart fallback tables', () => {
     expect(WIDGET_CATALOG_V1.map((entry) => entry.type)).toEqual(
-      expect.arrayContaining(['KPI', 'TABLE', 'BAR', 'LINE', 'AREA', 'PIE', 'DONUT', 'TEXT_NOTE', 'EVIDENCE_NOTE']),
+      expect.arrayContaining([
+        'KPI',
+        'TABLE',
+        'BAR',
+        'LINE',
+        'AREA',
+        'PIE',
+        'DONUT',
+        'TEXT_NOTE',
+        'EVIDENCE_NOTE',
+      ]),
     );
     render(<DashboardCanvas locale="en" draft={draft} />);
     expect(screen.getByRole('table', { name: 'Chart fallback table' })).toBeTruthy();

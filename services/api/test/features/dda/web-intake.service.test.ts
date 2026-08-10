@@ -124,8 +124,7 @@ function minimalXlsx(options?: {
   }).join('');
   const relationships = Array.from(
     { length: sheetCount },
-    (_, index) =>
-      `<Relationship Id="rId${index + 1}" Target="worksheets/sheet${index + 1}.xml"/>`,
+    (_, index) => `<Relationship Id="rId${index + 1}" Target="worksheets/sheet${index + 1}.xml"/>`,
   ).join('');
   entries.unshift(
     {
@@ -207,19 +206,19 @@ function minimalXlsx(options?: {
 function createService(iae?: IntakeIaeFinalizationPortV1) {
   const finals: string[] = [];
   const port: IntakeIaeFinalizationPortV1 = iae ?? {
-    async finalizeSession(input) {
+    finalizeSession(input) {
       if (finals.includes(input.sessionId)) {
         return { accepted: false, code: 'DDA_INTAKE_DUPLICATE_FINALIZATION' };
       }
       finals.push(input.sessionId);
-      return {
+      return Promise.resolve({
         accepted: true,
         value: {
           sessionId: input.sessionId,
           artifactVersionId: inputArtifactVersionId,
           status: 'FINALIZED',
         },
-      };
+      });
     },
   };
   return { service: new WebIntakeServiceV1(port), finals };
@@ -313,7 +312,10 @@ void test('[DDA-002] rejects excessive rows columns sheets and size', async () =
   assert.equal(rowResult.accepted, false);
   if (!rowResult.accepted) assert.equal(rowResult.code, 'DDA_INTAKE_LIMIT_ROWS');
 
-  const manyCols = Buffer.from(`${Array.from({ length: 257 }, (_, i) => `c${i}`).join(',')}\n1\n`, 'utf8');
+  const manyCols = Buffer.from(
+    `${Array.from({ length: 257 }, (_, i) => `c${i}`).join(',')}\n1\n`,
+    'utf8',
+  );
   const colResult = await service.finalizeUpload({
     tenantScope,
     sessionId: '00000000-0000-4000-8000-000000000107',
@@ -340,9 +342,10 @@ void test('[DDA-002] rejects excessive rows columns sheets and size', async () =
 
 void test('[DDA-002] rejects formula limit overflow', async () => {
   const { service } = createService();
-  const formulas = Array.from({ length: 501 }, (_, i) => `<c r="A${i + 1}"><f>SUM(1)</f><v>1</v></c>`).join(
-    '',
-  );
+  const formulas = Array.from(
+    { length: 501 },
+    (_, i) => `<c r="A${i + 1}"><f>SUM(1)</f><v>1</v></c>`,
+  ).join('');
   const sheet = Buffer.from(
     `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1">${formulas}</row></sheetData></worksheet>`,
     'utf8',

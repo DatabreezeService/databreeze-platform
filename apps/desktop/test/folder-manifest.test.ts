@@ -31,10 +31,10 @@ function validManifest(overrides: Partial<FolderManifestPolicyV1> = {}): FolderM
 
 function createService() {
   const port: FolderBindingPort = {
-    selectFolder: async () => ({ selectionToken: 'sel_1' }),
-    resolveSelection: async () => ({ canonicalPath: 'D:\\Data\\Approved' }),
+    selectFolder: () => Promise.resolve({ selectionToken: 'sel_1' }),
+    resolveSelection: () => Promise.resolve({ canonicalPath: 'D:\\Data\\Approved' }),
     assertPathInsideBinding: () => true,
-    detectSymlinkEscape: async () => false,
+    detectSymlinkEscape: () => Promise.resolve(false),
   };
   return new FolderManifestService({
     port,

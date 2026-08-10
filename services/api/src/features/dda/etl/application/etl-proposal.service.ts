@@ -215,9 +215,7 @@ export class EtlProposalServiceV1 {
     return Object.freeze({ accepted: true, value: await this.repository.save(record) });
   }
 
-  public async getProposal(
-    proposalId: string,
-  ): Promise<EtlProposalResultV1<EtlProposalRecordV1>> {
+  public async getProposal(proposalId: string): Promise<EtlProposalResultV1<EtlProposalRecordV1>> {
     const found = await this.repository.findById(proposalId);
     if (!found) return rejected('DDA_ETL_NOT_FOUND');
     return Object.freeze({ accepted: true, value: found });

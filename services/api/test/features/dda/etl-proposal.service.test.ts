@@ -230,7 +230,12 @@ void test('[DDA-011] material drift and ambiguous headers force review', async (
       evidenceStatus: 'AVAILABLE',
       estimatedCost: { cpuMs: 1, memoryMb: 1 },
       aiSuggestions: [],
-      driftSignals: ['AMBIGUOUS_HEADER', 'BREAKING_TYPE_CHANGE', 'OVERLAP_PERIOD', 'DUPLICATE_KEY_CHANGE'],
+      driftSignals: [
+        'AMBIGUOUS_HEADER',
+        'BREAKING_TYPE_CHANGE',
+        'OVERLAP_PERIOD',
+        'DUPLICATE_KEY_CHANGE',
+      ],
     },
   });
   assert.equal(result.accepted, true);

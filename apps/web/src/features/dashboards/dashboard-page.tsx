@@ -30,9 +30,7 @@ const FIXTURE_DRAFT: DashboardDraftFixtureV1 = Object.freeze({
       type: 'KPI',
       pageId: '00000000-0000-4000-8000-00000000001c',
       title: Object.freeze({ vi: 'Tong doanh so', en: 'Total sales' }),
-      values: Object.freeze([
-        Object.freeze({ label: 'amount', value: '1,250,000 VND' }),
-      ]),
+      values: Object.freeze([Object.freeze({ label: 'amount', value: '1,250,000 VND' })]),
     }),
   ]),
   filters: Object.freeze([
@@ -52,9 +50,7 @@ const PLAN_PREVIEW = Object.freeze({
   semanticVersionId: '00000000-0000-4000-8000-000000000019',
   metricVersionId: '00000000-0000-4000-8000-00000000001a',
   dimensions: Object.freeze(['region']),
-  filters: Object.freeze([
-    Object.freeze({ field: 'year', operator: 'EQ', value: '2026' }),
-  ]),
+  filters: Object.freeze([Object.freeze({ field: 'year', operator: 'EQ', value: '2026' })]),
   timeRange: Object.freeze({
     start: '2026-01-01T00:00:00.000Z',
     end: '2026-12-31T23:59:59.000Z',

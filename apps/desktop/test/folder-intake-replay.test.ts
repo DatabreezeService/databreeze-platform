@@ -34,14 +34,15 @@ describe('DDA-014 folder intake replay ledger', () => {
       bindingRoot: ROOT,
       manifest: manifest(),
       assertInsideBinding: (candidate) => candidate.startsWith(ROOT),
-      readFingerprint: async () => ({
-        accepted: true as const,
-        contentFingerprint: 'sha256:' + '33'.repeat(32),
-        schemaFingerprint: 'a'.repeat(64),
-        profile: 'CSV' as const,
-        periodKey: '2026-Q1',
-        duplicateKey: 'INV-1',
-      }),
+      readFingerprint: () =>
+        Promise.resolve({
+          accepted: true as const,
+          contentFingerprint: 'sha256:' + '33'.repeat(32),
+          schemaFingerprint: 'a'.repeat(64),
+          profile: 'CSV' as const,
+          periodKey: '2026-Q1',
+          duplicateKey: 'INV-1',
+        }),
     });
 
     const first = await intake.admitStableFile({

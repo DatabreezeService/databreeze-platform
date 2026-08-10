@@ -23,10 +23,6 @@ export class DdaAuthorityMissingError extends Error {
   }
 }
 
-function unavailable(): never {
-  throw new DdaFoundationUnavailableError();
-}
-
 export function createFailClosedDdaFoundationPortsV1(): {
   readonly iae: DdaIaePortV1;
   readonly dsm: DdaDsmPortV1;
@@ -37,51 +33,51 @@ export function createFailClosedDdaFoundationPortsV1(): {
 } {
   return Object.freeze({
     iae: {
-      async requireArtifactVersion() {
-        unavailable();
+      requireArtifactVersion() {
+        return Promise.reject(new DdaFoundationUnavailableError());
       },
-      async requireEvidenceReference() {
-        unavailable();
+      requireEvidenceReference() {
+        return Promise.reject(new DdaFoundationUnavailableError());
       },
-      async addRetentionConstraint() {
-        unavailable();
+      addRetentionConstraint() {
+        return Promise.reject(new DdaFoundationUnavailableError());
       },
     },
     dsm: {
-      async requireDatasetVersion() {
-        unavailable();
+      requireDatasetVersion() {
+        return Promise.reject(new DdaFoundationUnavailableError());
       },
-      async requireSemanticVersion() {
-        unavailable();
+      requireSemanticVersion() {
+        return Promise.reject(new DdaFoundationUnavailableError());
       },
-      async requireMetricVersion() {
-        unavailable();
+      requireMetricVersion() {
+        return Promise.reject(new DdaFoundationUnavailableError());
       },
     },
     jra: {
-      async requireJob() {
-        unavailable();
+      requireJob() {
+        return Promise.reject(new DdaFoundationUnavailableError());
       },
-      async requireResultManifest() {
-        unavailable();
+      requireResultManifest() {
+        return Promise.reject(new DdaFoundationUnavailableError());
       },
     },
     dso: {
-      async requireCapabilityGrant() {
-        unavailable();
+      requireCapabilityGrant() {
+        return Promise.reject(new DdaFoundationUnavailableError());
       },
-      async requireProjection() {
-        unavailable();
+      requireProjection() {
+        return Promise.reject(new DdaFoundationUnavailableError());
       },
     },
     bua: {
-      async requireAdmission() {
-        unavailable();
+      requireAdmission() {
+        return Promise.reject(new DdaFoundationUnavailableError());
       },
     },
     aud: {
-      async emitContentSafeSummary() {
-        unavailable();
+      emitContentSafeSummary() {
+        return Promise.reject(new DdaFoundationUnavailableError());
       },
     },
   });
@@ -130,7 +126,8 @@ async function requirePresent(found: Promise<boolean>): Promise<void> {
 export function createLookupBackedDdaIaePortV1(lookup: DdaIaeLookupPortV1): DdaIaePortV1 {
   return {
     requireArtifactVersion: (reference) => requirePresent(lookup.findArtifactVersion(reference)),
-    requireEvidenceReference: (reference) => requirePresent(lookup.findEvidenceReference(reference)),
+    requireEvidenceReference: (reference) =>
+      requirePresent(lookup.findEvidenceReference(reference)),
     addRetentionConstraint: (reference, holdReason) =>
       lookup.addRetentionConstraint(reference, holdReason),
   };
@@ -173,8 +170,8 @@ export function createLookupBackedDdaAudPortV1(lookup: DdaAudLookupPortV1): DdaA
 
 export function createFailClosedDdaAuditPortV1(): DdaAuditPortV1 {
   return {
-    async emitContentSafeSummary() {
-      unavailable();
+    emitContentSafeSummary() {
+      return Promise.reject(new DdaFoundationUnavailableError());
     },
   };
 }

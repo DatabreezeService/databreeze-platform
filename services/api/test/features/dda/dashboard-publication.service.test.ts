@@ -89,11 +89,11 @@ function versionInput() {
 
 function auth(overrides: Partial<DashboardAuthorizationPortV1> = {}): DashboardAuthorizationPortV1 {
   return {
-    async authorizeDashboardAction() {
-      return Object.freeze({ allowed: true, grantsDatasetAccess: false });
+    authorizeDashboardAction() {
+      return Promise.resolve(Object.freeze({ allowed: true, grantsDatasetAccess: false }));
     },
-    async projectVisibleFields() {
-      return Object.freeze(['region', 'amount']);
+    projectVisibleFields() {
+      return Promise.resolve(Object.freeze(['region', 'amount']));
     },
     ...overrides,
   };

@@ -19,7 +19,9 @@ export class WebIntakeController {
   }
 
   @Post('finalize')
-  public async finalize(@Body() dto: WebIntakeFinalizeDtoV1): Promise<WebIntakeFinalizeResponseDtoV1> {
+  public async finalize(
+    @Body() dto: WebIntakeFinalizeDtoV1,
+  ): Promise<WebIntakeFinalizeResponseDtoV1> {
     const tenantScope = parseTenantScopeV1(dto.tenantScope);
     if (!tenantScope.accepted) {
       throw new WebIntakeProblemError('DDA_INTAKE_UNSUPPORTED_PROFILE');

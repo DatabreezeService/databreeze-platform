@@ -18,14 +18,18 @@ if (!existsSync(statePath)) {
   if (state.productionReady !== false) fail('Demo state must keep productionReady=false');
   if (state.prototype !== true) fail('Demo state must remain a prototype claim');
 
-  const parity = spawnSync(process.execPath, [resolve(root, 'tools/fixture-validation/src/run-dda-parity.mjs')], {
-    cwd: root,
-    encoding: 'utf8',
-    env: {
-      ...process.env,
-      UV_NO_CACHE: process.env.UV_NO_CACHE ?? '1',
+  const parity = spawnSync(
+    process.execPath,
+    [resolve(root, 'tools/fixture-validation/src/run-dda-parity.mjs')],
+    {
+      cwd: root,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        UV_NO_CACHE: process.env.UV_NO_CACHE ?? '1',
+      },
     },
-  });
+  );
   if (parity.status !== 0) {
     fail(`Parity verification failed:\n${parity.stdout}\n${parity.stderr}`);
   } else {

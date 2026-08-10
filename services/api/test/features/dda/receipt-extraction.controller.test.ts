@@ -19,20 +19,20 @@ const scope = scopeResult.accepted ? scopeResult.value : (null as never);
 
 void test('[DDA-041] controller maps extraction denials to stable problem codes', async () => {
   const iae: DdaIaePortV1 = {
-    async requireArtifactVersion() {
-      throw new Error('IAE_WRONG_SCOPE');
+    requireArtifactVersion() {
+      return Promise.reject(new Error('IAE_WRONG_SCOPE'));
     },
-    async requireEvidenceReference() {
-      return undefined;
+    requireEvidenceReference() {
+      return Promise.resolve(undefined);
     },
-    async addRetentionConstraint() {
-      return undefined;
+    addRetentionConstraint() {
+      return Promise.resolve(undefined);
     },
   };
   const controller = new ReceiptExtractionController(
     new ReceiptExtractionService(new DeterministicFakeReceiptOcrAdapter(), iae, {
-      async emitContentSafeSummary() {
-        return undefined;
+      emitContentSafeSummary() {
+        return Promise.resolve(undefined);
       },
     }),
   );

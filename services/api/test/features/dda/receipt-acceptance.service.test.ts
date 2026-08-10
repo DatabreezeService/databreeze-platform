@@ -24,36 +24,36 @@ void test('[DDA-042] acceptance is idempotent and emits DSM only after validatio
   const datasetVersions: string[] = [];
   const audits: string[] = [];
   const dsm: DdaDsmPortV1 = {
-    async requireDatasetVersion() {
-      return undefined;
+    requireDatasetVersion() {
+      return Promise.resolve(undefined);
     },
-    async requireSemanticVersion() {
-      return undefined;
+    requireSemanticVersion() {
+      return Promise.resolve(undefined);
     },
-    async requireMetricVersion() {
-      return undefined;
+    requireMetricVersion() {
+      return Promise.resolve(undefined);
     },
   };
   const iae: DdaIaePortV1 = {
-    async requireArtifactVersion() {
-      return undefined;
+    requireArtifactVersion() {
+      return Promise.resolve(undefined);
     },
-    async requireEvidenceReference() {
-      return undefined;
+    requireEvidenceReference() {
+      return Promise.resolve(undefined);
     },
-    async addRetentionConstraint() {
-      return undefined;
+    addRetentionConstraint() {
+      return Promise.resolve(undefined);
     },
   };
   const aud: DdaAudComposePortV1 = {
-    async emitContentSafeSummary(input) {
+    emitContentSafeSummary(input) {
       audits.push(input.action);
     },
   };
   const service = new ReceiptAcceptanceService(new ReceiptValidationService(), dsm, iae, aud, {
-    async appendGovernedRecord(input) {
+    appendGovernedRecord(input) {
       datasetVersions.push(input.datasetVersionId);
-      return { datasetVersionId: input.datasetVersionId };
+      return Promise.resolve({ datasetVersionId: input.datasetVersionId });
     },
   });
 
@@ -93,30 +93,30 @@ void test('[DDA-042] acceptance is idempotent and emits DSM only after validatio
 
 void test('[DDA-042] expected-revision conflict user correction path and DSM failure block acceptance', async () => {
   const failingDsm: DdaDsmPortV1 = {
-    async requireDatasetVersion() {
-      throw new Error('DSM_FAILURE');
+    requireDatasetVersion() {
+      return Promise.reject(new Error('DSM_FAILURE'));
     },
-    async requireSemanticVersion() {
-      return undefined;
+    requireSemanticVersion() {
+      return Promise.resolve(undefined);
     },
-    async requireMetricVersion() {
-      return undefined;
+    requireMetricVersion() {
+      return Promise.resolve(undefined);
     },
   };
   const iae: DdaIaePortV1 = {
-    async requireArtifactVersion() {
-      return undefined;
+    requireArtifactVersion() {
+      return Promise.resolve(undefined);
     },
-    async requireEvidenceReference() {
-      return undefined;
+    requireEvidenceReference() {
+      return Promise.resolve(undefined);
     },
-    async addRetentionConstraint() {
-      return undefined;
+    addRetentionConstraint() {
+      return Promise.resolve(undefined);
     },
   };
   const aud: DdaAudComposePortV1 = {
-    async emitContentSafeSummary() {
-      return undefined;
+    emitContentSafeSummary() {
+      return Promise.resolve(undefined);
     },
   };
   const service = new ReceiptAcceptanceService(
@@ -125,8 +125,8 @@ void test('[DDA-042] expected-revision conflict user correction path and DSM fai
     iae,
     aud,
     {
-      async appendGovernedRecord(input) {
-        return { datasetVersionId: input.datasetVersionId };
+      appendGovernedRecord(input) {
+        return Promise.resolve({ datasetVersionId: input.datasetVersionId });
       },
     },
   );

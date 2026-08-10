@@ -67,48 +67,52 @@ export class InMemoryDependencyRepositoryAdapter implements DependencyRepository
     return [...this.#observedPayloadKeys];
   }
 
-  public async findBindingsByReference(
+  public findBindingsByReference(
     tenantScope: TenantScopeV1,
     changeKind: BoundInputChangeKindV1,
     referenceId: string,
   ): Promise<readonly MaterializationDefinitionBindingV1[]> {
     requireProjectScope(tenantScope);
-    return this.#bindings.filter(
-      (binding) =>
-        sameScope(binding.tenantScope, tenantScope) &&
-        !binding.deleted &&
-        matchesReference(binding, changeKind, referenceId),
+    return Promise.resolve(
+      this.#bindings.filter(
+        (binding) =>
+          sameScope(binding.tenantScope, tenantScope) &&
+          !binding.deleted &&
+          matchesReference(binding, changeKind, referenceId),
+      ),
     );
   }
 
-  public async isReferenceOwnedByOtherTenant(
+  public isReferenceOwnedByOtherTenant(
     tenantScope: TenantScopeV1,
     changeKind: BoundInputChangeKindV1,
     referenceId: string,
   ): Promise<boolean> {
     requireProjectScope(tenantScope);
-    return this.#bindings.some(
-      (binding) =>
-        !sameScope(binding.tenantScope, tenantScope) &&
-        matchesReference(binding, changeKind, referenceId),
+    return Promise.resolve(
+      this.#bindings.some(
+        (binding) =>
+          !sameScope(binding.tenantScope, tenantScope) &&
+          matchesReference(binding, changeKind, referenceId),
+      ),
     );
   }
 
-  public async rememberProcessedEvent(eventId: string, sequence: number): Promise<void> {
+  public rememberProcessedEvent(eventId: string, sequence: number): Promise<void> {
     this.#processed.set(eventId, Object.freeze({ eventId, sequence }));
   }
 
-  public async findProcessedEvent(
+  public findProcessedEvent(
     eventId: string,
   ): Promise<{ readonly eventId: string; readonly sequence: number } | undefined> {
     return this.#processed.get(eventId);
   }
 
-  public async highestSequence(tenantScope: TenantScopeV1): Promise<number> {
-    return this.#highestSequence.get(scopeKey(tenantScope)) ?? 0;
+  public highestSequence(tenantScope: TenantScopeV1): Promise<number> {
+    return Promise.resolve(this.#highestSequence.get(scopeKey(tenantScope)) ?? 0);
   }
 
-  public async advanceSequence(tenantScope: TenantScopeV1, sequence: number): Promise<void> {
+  public advanceSequence(tenantScope: TenantScopeV1, sequence: number): Promise<void> {
     const key = scopeKey(tenantScope);
     const current = this.#highestSequence.get(key) ?? 0;
     if (sequence > current) this.#highestSequence.set(key, sequence);

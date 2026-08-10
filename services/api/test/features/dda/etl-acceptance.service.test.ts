@@ -32,7 +32,10 @@ const MESSY_SALES_ACCEPTED = 4;
 const MESSY_SALES_REJECTED = 1;
 const MESSY_CONTENT_HASH = createHash('sha256').update('messy-sales-v1-accepted').digest('hex');
 const MESSY_SCHEMA_HASH = createHash('sha256').update('messy-sales-v1-schema').digest('hex');
-const MESSY_LINEAGE = ['00000000-0000-4000-8000-000000000012', '00000000-0000-4000-8000-000000000301'];
+const MESSY_LINEAGE = [
+  '00000000-0000-4000-8000-000000000012',
+  '00000000-0000-4000-8000-000000000301',
+];
 
 function validPlanInput() {
   const plan = golden['dda-etl-plan'];
@@ -104,49 +107,54 @@ async function seedProposal(proposalService: EtlProposalServiceV1) {
   return proposed.accepted ? proposed.value : (null as never);
 }
 
-function createPorts(overrides: {
-  iae?: Partial<EtlIaePortV1>;
-  dsm?: Partial<EtlDsmPortV1>;
-  jra?: Partial<EtlJraPortV1>;
-  bua?: Partial<EtlBuaPortV1>;
-  aud?: Partial<EtlAudPortV1>;
-  policy?: Partial<EtlPolicyPortV1>;
-  manifest?: {
-    rowCount?: number;
-    contentHash?: string;
-    schemaHash?: string;
-    rejectBundleId?: string | null;
-    lineageIds?: readonly string[];
-    partial?: boolean;
-  };
-} = {}) {
+function createPorts(
+  overrides: {
+    iae?: Partial<EtlIaePortV1>;
+    dsm?: Partial<EtlDsmPortV1>;
+    jra?: Partial<EtlJraPortV1>;
+    bua?: Partial<EtlBuaPortV1>;
+    aud?: Partial<EtlAudPortV1>;
+    policy?: Partial<EtlPolicyPortV1>;
+    manifest?: {
+      rowCount?: number;
+      contentHash?: string;
+      schemaHash?: string;
+      rejectBundleId?: string | null;
+      lineageIds?: readonly string[];
+      partial?: boolean;
+    };
+  } = {},
+) {
   const jobs = new Map<string, string>();
   const iae: EtlIaePortV1 = {
-    async registerDerivative() {
-      return { accepted: true, artifactVersionId: '00000000-0000-4000-8000-000000000302' };
+    registerDerivative() {
+      return Promise.resolve({
+        accepted: true,
+        artifactVersionId: '00000000-0000-4000-8000-000000000302',
+      });
     },
     ...overrides.iae,
   };
   const dsm: EtlDsmPortV1 = {
-    async registerDatasetVersion() {
-      return {
+    registerDatasetVersion() {
+      return Promise.resolve({
         accepted: true,
         datasetVersionId: '00000000-0000-4000-8000-000000000303',
         revision: 1,
-      };
+      });
     },
     ...overrides.dsm,
   };
   const jra: EtlJraPortV1 = {
-    async createTypedJob(input) {
+    createTypedJob(input) {
       const existing = jobs.get(input.idempotencyKey);
-      if (existing) return { accepted: true, jobId: existing, replayed: true };
+      if (existing) return Promise.resolve({ accepted: true, jobId: existing, replayed: true });
       const jobId = '00000000-0000-4000-8000-000000000304';
       jobs.set(input.idempotencyKey, jobId);
-      return { accepted: true, jobId, replayed: false };
+      return Promise.resolve({ accepted: true, jobId, replayed: false });
     },
-    async awaitResultManifest() {
-      return {
+    awaitResultManifest() {
+      return Promise.resolve({
         accepted: true,
         manifest: {
           rowCount: overrides.manifest?.rowCount ?? MESSY_SALES_ACCEPTED,
@@ -159,25 +167,25 @@ function createPorts(overrides: {
           lineageIds: overrides.manifest?.lineageIds ?? MESSY_LINEAGE,
           partial: overrides.manifest?.partial ?? false,
         },
-      };
+      });
     },
     ...overrides.jra,
   };
   const bua: EtlBuaPortV1 = {
-    async admit() {
-      return { accepted: true };
+    admit() {
+      return Promise.resolve({ accepted: true });
     },
     ...overrides.bua,
   };
   const aud: EtlAudPortV1 = {
-    async emit() {
-      return { accepted: true };
+    emit() {
+      return Promise.resolve({ accepted: true });
     },
     ...overrides.aud,
   };
   const policy: EtlPolicyPortV1 = {
-    async currentPolicyVersionId() {
-      return String(golden['dda-etl-plan']['dataModePolicyVersionId']);
+    currentPolicyVersionId() {
+      return Promise.resolve(String(golden['dda-etl-plan']['dataModePolicyVersionId']));
     },
     ...overrides.policy,
   };
@@ -276,7 +284,11 @@ void test('[DDA-007] stale proposal partial output hash schema reject and policy
   const repo = new InMemoryEtlProposalRepositoryAdapter();
   const proposalService = new EtlProposalServiceV1(repo);
   const proposal = await seedProposal(proposalService);
-  await repo.update({ ...proposal, state: 'NEEDS_REVIEW', blockingReasons: ['BREAKING_TYPE_CHANGE'] });
+  await repo.update({
+    ...proposal,
+    state: 'NEEDS_REVIEW',
+    blockingReasons: ['BREAKING_TYPE_CHANGE'],
+  });
 
   const staleService = new EtlAcceptanceServiceV1(repo, createPorts());
   const stale = await staleService.accept({
@@ -326,8 +338,8 @@ void test('[DDA-007] stale proposal partial output hash schema reject and policy
       name: 'policy',
       ports: createPorts({
         policy: {
-          async currentPolicyVersionId() {
-            return '00000000-0000-4000-8000-000000000999';
+          currentPolicyVersionId() {
+            return Promise.resolve('00000000-0000-4000-8000-000000000999');
           },
         },
       }),
@@ -337,11 +349,15 @@ void test('[DDA-007] stale proposal partial output hash schema reject and policy
       name: 'jra-retry',
       ports: createPorts({
         jra: {
-          async createTypedJob() {
-            return { accepted: true, jobId: '00000000-0000-4000-8000-000000000304', replayed: false };
+          createTypedJob() {
+            return Promise.resolve({
+              accepted: true,
+              jobId: '00000000-0000-4000-8000-000000000304',
+              replayed: false,
+            });
           },
-          async awaitResultManifest() {
-            return { accepted: false, code: 'JRA_RETRY' };
+          awaitResultManifest() {
+            return Promise.resolve({ accepted: false, code: 'JRA_RETRY' });
           },
         },
       }),
@@ -351,8 +367,8 @@ void test('[DDA-007] stale proposal partial output hash schema reject and policy
       name: 'dsm',
       ports: createPorts({
         dsm: {
-          async registerDatasetVersion() {
-            return { accepted: false, code: 'DSM_REGISTER_FAILED' };
+          registerDatasetVersion() {
+            return Promise.resolve({ accepted: false, code: 'DSM_REGISTER_FAILED' });
           },
         },
       }),
@@ -362,8 +378,8 @@ void test('[DDA-007] stale proposal partial output hash schema reject and policy
       name: 'aud',
       ports: createPorts({
         aud: {
-          async emit() {
-            return { accepted: false, code: 'AUD_FAILED' };
+          emit() {
+            return Promise.resolve({ accepted: false, code: 'AUD_FAILED' });
           },
         },
       }),

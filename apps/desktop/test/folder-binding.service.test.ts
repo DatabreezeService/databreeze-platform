@@ -34,12 +34,12 @@ function validManifest(overrides: Partial<FolderManifestPolicyV1> = {}): FolderM
 
 function createPort(overrides: Partial<FolderBindingPort> = {}): FolderBindingPort {
   return {
-    selectFolder: vi.fn(async () => ({ selectionToken: 'sel_approved_1' })),
-    resolveSelection: vi.fn(async (token: string) => {
+    selectFolder: vi.fn(() => Promise.resolve({ selectionToken: 'sel_approved_1' })),
+    resolveSelection: vi.fn((token: string) => {
       if (token === 'sel_approved_1') {
         return { canonicalPath: 'C:\\Users\\demo\\ApprovedSales' };
       }
-      return { rejected: 'FOLDER_SELECTION_UNKNOWN' as const };
+      return Promise.resolve({ rejected: 'FOLDER_SELECTION_UNKNOWN' as const });
     }),
     assertPathInsideBinding: vi.fn((root: string, candidate: string) => {
       const normalizedRoot = root.replace(/\//g, '\\').toLowerCase();
@@ -49,28 +49,30 @@ function createPort(overrides: Partial<FolderBindingPort> = {}): FolderBindingPo
         normalizedCandidate.startsWith(`${normalizedRoot}\\`)
       );
     }),
-    detectSymlinkEscape: vi.fn(async () => false),
+    detectSymlinkEscape: vi.fn(() => Promise.resolve(false)),
     ...overrides,
   };
 }
 
-function createService(input: {
-  readonly port?: FolderBindingPort;
-  readonly store?: FolderBindingStore;
-  readonly nowMs?: () => number;
-  readonly capabilities?: ReadonlyMap<string, {
-    readonly state: 'ACTIVE' | 'EXPIRED' | 'REVOKED';
-    readonly organizationId: string;
-    readonly workspaceId: string;
-  }>;
-} = {}) {
+function createService(
+  input: {
+    readonly port?: FolderBindingPort;
+    readonly store?: FolderBindingStore;
+    readonly nowMs?: () => number;
+    readonly capabilities?: ReadonlyMap<
+      string,
+      {
+        readonly state: 'ACTIVE' | 'EXPIRED' | 'REVOKED';
+        readonly organizationId: string;
+        readonly workspaceId: string;
+      }
+    >;
+  } = {},
+) {
   const capabilities =
     input.capabilities ??
     new Map([
-      [
-        CAPABILITY,
-        { state: 'ACTIVE' as const, organizationId: ORG, workspaceId: WORKSPACE },
-      ],
+      [CAPABILITY, { state: 'ACTIVE' as const, organizationId: ORG, workspaceId: WORKSPACE }],
     ]);
   return new FolderManifestService({
     port: input.port ?? createPort(),
@@ -149,7 +151,7 @@ describe('DDA-012 folder binding service', () => {
 
   it('rejects symlink or junction escapes outside the approved root', async () => {
     const port = createPort({
-      detectSymlinkEscape: vi.fn(async () => true),
+      detectSymlinkEscape: vi.fn(() => Promise.resolve(true)),
     });
     const service = createService({ port });
 

@@ -61,7 +61,11 @@ function isLocalizedTitle(value: unknown): value is { readonly vi: string; reado
 }
 
 function isDashboardDraft(value: unknown): value is DashboardDraftFixtureV1 {
-  if (!isRecord(value) || typeof value['dashboardId'] !== 'string' || typeof value['versionId'] !== 'string')
+  if (
+    !isRecord(value) ||
+    typeof value['dashboardId'] !== 'string' ||
+    typeof value['versionId'] !== 'string'
+  )
     return false;
   if (
     !Array.isArray(value['pages']) ||
@@ -83,7 +87,9 @@ function isDashboardDraft(value: unknown): value is DashboardDraftFixtureV1 {
         Array.isArray(widget['values']) &&
         widget['values'].every(
           (entry) =>
-            isRecord(entry) && typeof entry['label'] === 'string' && typeof entry['value'] === 'string',
+            isRecord(entry) &&
+            typeof entry['label'] === 'string' &&
+            typeof entry['value'] === 'string',
         ),
     )
   )
@@ -122,7 +128,7 @@ export async function fetchDashboardDraft(
   return Object.freeze(payload);
 }
 
-export async function acceptDashboardProposal(input: {
+export function acceptDashboardProposal(input: {
   readonly proposalId: string;
   readonly dashboardId: string;
 }): Promise<{ readonly draftOnly: true; readonly versionId: string }> {

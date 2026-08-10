@@ -59,12 +59,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "stepId",
-          "kind",
-          "inputs",
-          "configEntries"
-        ],
+        "required": ["stepId", "kind", "inputs", "configEntries"],
         "properties": {
           "stepId": {
             "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
@@ -86,10 +81,7 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": [
-                "key",
-                "value"
-              ],
+              "required": ["key", "value"],
               "properties": {
                 "key": {
                   "type": "string",

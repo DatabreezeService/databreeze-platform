@@ -1,5 +1,8 @@
 import type { FolderIntakeService } from '../application/folder-intake.service.ts';
-import type { FolderManifestRevision, FolderManifestService } from '../application/folder-manifest.service.ts';
+import type {
+  FolderManifestRevision,
+  FolderManifestService,
+} from '../application/folder-manifest.service.ts';
 import type { StableFileEvent } from '../application/stable-file-detector.ts';
 
 export interface FolderWatcher {
@@ -21,7 +24,9 @@ export interface FolderWatcherLifecycleInput {
     readonly bindingRoot: string;
     readonly assertInsideBinding: (candidatePath: string) => boolean;
   }) => FolderWatcher;
-  readonly createIntake: (input: WatcherConfiguration) => Pick<FolderIntakeService, 'admitStableFile'>;
+  readonly createIntake: (
+    input: WatcherConfiguration,
+  ) => Pick<FolderIntakeService, 'admitStableFile'>;
   readonly nowMs: () => number;
 }
 

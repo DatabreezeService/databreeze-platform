@@ -1,14 +1,8 @@
 import { useState } from 'react';
 import type { SupportedLocaleV1 } from '@databreeze/i18n/v1';
 
-import {
-  AnalysisPlanReview,
-  type AnalysisPlanPreviewV1,
-} from './analysis-plan-review.tsx';
-import {
-  ResultEvidenceDrawer,
-  type ResultEvidenceCellV1,
-} from './result-evidence-drawer.tsx';
+import { AnalysisPlanReview, type AnalysisPlanPreviewV1 } from './analysis-plan-review.tsx';
+import { ResultEvidenceDrawer, type ResultEvidenceCellV1 } from './result-evidence-drawer.tsx';
 
 export interface AnalystPanelProps {
   readonly locale: SupportedLocaleV1;

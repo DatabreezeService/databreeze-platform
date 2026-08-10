@@ -1,4 +1,7 @@
-import type { DdaRefreshEventV1, DashboardSnapshotV1 } from '@databreeze/domain/data-to-dashboard/v1';
+import type {
+  DdaRefreshEventV1,
+  DashboardSnapshotV1,
+} from '@databreeze/domain/data-to-dashboard/v1';
 import type { TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
 export const REFRESH_REPOSITORY_PORT = Symbol('REFRESH_REPOSITORY_PORT');

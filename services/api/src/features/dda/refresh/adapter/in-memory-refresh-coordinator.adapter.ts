@@ -23,18 +23,15 @@ export class InMemoryRefreshCoordinatorAdapter implements RefreshCoordinatorPort
     this.#failCommit = options.failCommit === true;
   }
 
-  public async getCurrentSnapshot(dashboardId: string): Promise<DashboardSnapshotV1 | undefined> {
-    return this.#snapshots.get(dashboardId);
+  public getCurrentSnapshot(dashboardId: string): Promise<DashboardSnapshotV1 | undefined> {
+    return Promise.resolve(this.#snapshots.get(dashboardId));
   }
 
-  public async setCurrentSnapshot(
-    dashboardId: string,
-    snapshot: DashboardSnapshotV1,
-  ): Promise<void> {
+  public setCurrentSnapshot(dashboardId: string, snapshot: DashboardSnapshotV1): Promise<void> {
     this.#snapshots.set(dashboardId, snapshot);
   }
 
-  public async commitSnapshotAtomically(input: {
+  public commitSnapshotAtomically(input: {
     readonly dashboardId: string;
     readonly refreshId: string;
     readonly snapshot: DashboardSnapshotV1;
@@ -52,7 +49,7 @@ export class InMemoryRefreshCoordinatorAdapter implements RefreshCoordinatorPort
     }
   }
 
-  public async saveRefresh(record: RefreshRecordV1): Promise<void> {
+  public saveRefresh(record: RefreshRecordV1): Promise<void> {
     this.#refreshes.set(record.refreshId, Object.freeze({ ...record }));
     for (const sourceEventId of record.sourceEventIds) {
       this.#bySourceEvent.set(sourceEventId, record.refreshId);
@@ -65,11 +62,11 @@ export class InMemoryRefreshCoordinatorAdapter implements RefreshCoordinatorPort
     }
   }
 
-  public async findRefresh(refreshId: string): Promise<RefreshRecordV1 | undefined> {
-    return this.#refreshes.get(refreshId);
+  public findRefresh(refreshId: string): Promise<RefreshRecordV1 | undefined> {
+    return Promise.resolve(this.#refreshes.get(refreshId));
   }
 
-  public async findOpenRefresh(dashboardId: string): Promise<RefreshRecordV1 | undefined> {
+  public findOpenRefresh(dashboardId: string): Promise<RefreshRecordV1 | undefined> {
     for (const record of this.#refreshes.values()) {
       if (
         record.dashboardId === dashboardId &&
@@ -78,10 +75,10 @@ export class InMemoryRefreshCoordinatorAdapter implements RefreshCoordinatorPort
         return record;
       }
     }
-    return undefined;
+    return Promise.resolve(undefined);
   }
 
-  public async findByIdempotency(input: {
+  public findByIdempotency(input: {
     readonly sourceEventId?: string;
     readonly clientRequestId?: string;
     readonly folderReplayKey?: string;

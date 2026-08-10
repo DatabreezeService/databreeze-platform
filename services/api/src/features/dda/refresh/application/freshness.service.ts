@@ -49,15 +49,12 @@ export class FreshnessService {
     this.#policies.set(dashboardId, policy);
   }
 
-  public async markSourceCondition(
-    dashboardId: string,
-    condition: SourceConditionV1,
-  ): Promise<void> {
+  public markSourceCondition(dashboardId: string, condition: SourceConditionV1): Promise<void> {
     this.#conditions.set(dashboardId, Object.freeze({ ...condition }));
     this.#pendingSince.delete(dashboardId);
   }
 
-  public async markPending(dashboardId: string, pendingSinceMs: number): Promise<void> {
+  public markPending(dashboardId: string, pendingSinceMs: number): Promise<void> {
     this.#conditions.delete(dashboardId);
     this.#pendingSince.set(dashboardId, pendingSinceMs);
   }
@@ -72,9 +69,7 @@ export class FreshnessService {
     if (!snapshot) {
       return Object.freeze({ accepted: false, code: 'DASHBOARD_NOT_FOUND' });
     }
-    if (
-      snapshot.permissionProjectionVersionId !== input.authorizedPermissionProjectionVersionId
-    ) {
+    if (snapshot.permissionProjectionVersionId !== input.authorizedPermissionProjectionVersionId) {
       return Object.freeze({ accepted: false, code: 'PERMISSION_REVOKED' });
     }
 

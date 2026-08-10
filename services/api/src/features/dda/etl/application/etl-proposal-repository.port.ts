@@ -1,10 +1,6 @@
 export const ETL_PROPOSAL_REPOSITORY_PORT = Symbol('ETL_PROPOSAL_REPOSITORY_PORT');
 
-export type EtlProposalStateV1 =
-  | 'NEEDS_REVIEW'
-  | 'READY_FOR_ACCEPTANCE'
-  | 'ACCEPTED'
-  | 'REJECTED';
+export type EtlProposalStateV1 = 'NEEDS_REVIEW' | 'READY_FOR_ACCEPTANCE' | 'ACCEPTED' | 'REJECTED';
 
 export interface EtlQualityEffectV1 {
   readonly dimension:

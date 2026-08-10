@@ -70,7 +70,9 @@ export interface EtlBuaPortV1 {
   admit(input: {
     readonly tenantScope: TenantScopeV1;
     readonly usageClass: 'DETERMINISTIC_ETL';
-  }): Promise<{ readonly accepted: true } | { readonly accepted: false; readonly code: 'BUA_DENIED' }>;
+  }): Promise<
+    { readonly accepted: true } | { readonly accepted: false; readonly code: 'BUA_DENIED' }
+  >;
 }
 
 export interface EtlAudPortV1 {
@@ -80,7 +82,9 @@ export interface EtlAudPortV1 {
     readonly outcome: 'SUCCEEDED' | 'FAILED';
     readonly correlationId: string;
     readonly references: readonly string[];
-  }): Promise<{ readonly accepted: true } | { readonly accepted: false; readonly code: 'AUD_FAILED' }>;
+  }): Promise<
+    { readonly accepted: true } | { readonly accepted: false; readonly code: 'AUD_FAILED' }
+  >;
 }
 
 export interface EtlPolicyPortV1 {

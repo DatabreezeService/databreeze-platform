@@ -83,10 +83,7 @@ export class ReceiptAcceptanceService {
         });
       }
     }
-    if (
-      input.currentRevision !== undefined &&
-      input.currentRevision !== input.expectedRevision
-    ) {
+    if (input.currentRevision !== undefined && input.currentRevision !== input.expectedRevision) {
       return Object.freeze({ accepted: false, code: 'EXPECTED_REVISION_CONFLICT' as const });
     }
 

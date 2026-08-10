@@ -9,10 +9,7 @@
   },
   "capabilityGrantId": "00000000-0000-4000-8000-000000000026",
   "purpose": "SALES_FOLDER",
-  "supportedProfiles": [
-    "CSV",
-    "XLSX"
-  ],
+  "supportedProfiles": ["CSV", "XLSX"],
   "publicationProjectionId": "00000000-0000-4000-8000-000000000021",
   "manifestHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "version": 1

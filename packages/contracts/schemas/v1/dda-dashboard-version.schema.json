@@ -44,12 +44,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "pageId",
-          "order",
-          "title",
-          "layout"
-        ],
+        "required": ["pageId", "order", "title", "layout"],
         "properties": {
           "pageId": {
             "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
@@ -64,11 +59,7 @@
           "layout": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "desktop",
-              "tablet",
-              "mobile"
-            ],
+            "required": ["desktop", "tablet", "mobile"],
             "properties": {
               "desktop": {
                 "$ref": "#/$defs/layoutCells"
@@ -90,13 +81,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "widgetId",
-          "type",
-          "pageId",
-          "binding",
-          "title"
-        ],
+        "required": ["widgetId", "type", "pageId", "binding", "title"],
         "properties": {
           "widgetId": {
             "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
@@ -111,10 +96,7 @@
           "binding": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "analysisPlanVersionId",
-              "materializationDefinitionId"
-            ],
+            "required": ["analysisPlanVersionId", "materializationDefinitionId"],
             "properties": {
               "analysisPlanVersionId": {
                 "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
@@ -136,12 +118,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "filterId",
-          "field",
-          "operator",
-          "scope"
-        ],
+        "required": ["filterId", "field", "operator", "scope"],
         "properties": {
           "filterId": {
             "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
@@ -169,11 +146,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "datasetVersionId",
-          "semanticVersionId",
-          "metricVersionId"
-        ],
+        "required": ["datasetVersionId", "semanticVersionId", "metricVersionId"],
         "properties": {
           "datasetVersionId": {
             "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
@@ -217,10 +190,7 @@
     "localizedText": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "vi",
-        "en"
-      ],
+      "required": ["vi", "en"],
       "properties": {
         "vi": {
           "type": "string",
@@ -240,13 +210,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "widgetId",
-          "x",
-          "y",
-          "w",
-          "h"
-        ],
+        "required": ["widgetId", "x", "y", "w", "h"],
         "properties": {
           "widgetId": {
             "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"

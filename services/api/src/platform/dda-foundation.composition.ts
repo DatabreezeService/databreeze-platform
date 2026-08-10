@@ -58,10 +58,10 @@ export function composeDdaIaePortFromArtifactRepository(
       const found = await artifacts.findVersion(context, asId(reference.id));
       return found !== undefined;
     },
-    async findEvidenceReference() {
+    findEvidenceReference() {
       // Evidence lookup by evidenceId alone is not exposed on ArtifactRepositoryPortV1.
       // Fail closed until an evidence-index composition port is supplied.
-      return false;
+      return Promise.resolve(false);
     },
     async addRetentionConstraint(reference) {
       const context = contextFor(reference.tenantScope, reference.id);
@@ -80,11 +80,11 @@ export function composeDdaDsmPortFromDatasetVersionRepository(
       const found = await datasets.find(context, asId(reference.id));
       return found !== undefined;
     },
-    async findSemanticVersion() {
-      return false;
+    findSemanticVersion() {
+      return Promise.resolve(false);
     },
-    async findMetricVersion() {
-      return false;
+    findMetricVersion() {
+      return Promise.resolve(false);
     },
   });
 }
@@ -118,8 +118,8 @@ export function composeDdaDsoPortFromCapabilityRepository(
       const capability = await capabilities.findCapability(context, asId(reference.id));
       return capability !== undefined;
     },
-    async findProjection() {
-      return false;
+    findProjection() {
+      return Promise.resolve(false);
     },
   });
 }

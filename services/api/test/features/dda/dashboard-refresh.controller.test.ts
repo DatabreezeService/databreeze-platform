@@ -10,7 +10,6 @@ import {
   parseStrictUtcTimestampV1,
   parseTenantScopeV1,
   type StableIdentifierV1,
-  type TenantScopeV1,
 } from '@databreeze/domain/tenant-scope/v1';
 
 import { InMemoryRefreshCoordinatorAdapter } from '../../../src/features/dda/refresh/adapter/in-memory-refresh-coordinator.adapter.js';
@@ -168,7 +167,7 @@ void test('[DDA-033] stale state keeps last-good visibility with exact input ver
   });
   const result = await http.getFreshness(
     {
-      tenantScope: scope as TenantScopeV1,
+      tenantScope: scope,
       authorizedPermissionProjectionVersionId: ids.permission,
       nowMs: Date.parse('2026-08-10T10:05:00.000Z'),
     },

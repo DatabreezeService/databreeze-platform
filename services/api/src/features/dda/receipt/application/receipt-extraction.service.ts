@@ -205,8 +205,7 @@ export class ReceiptExtractionService {
   }): ReceiptCandidateView {
     const fieldCandidates = Object.freeze(
       input.fields.map((field) => {
-        const coordinates =
-          'evidenceCoordinates' in field ? field.evidenceCoordinates : undefined;
+        const coordinates = 'evidenceCoordinates' in field ? field.evidenceCoordinates : undefined;
         const view: ReceiptFieldCandidateView = {
           field: field.field,
           value: field.value,

@@ -15,10 +15,6 @@ import type { ReceiptGovernedRecordPort } from '../receipt/application/receipt-a
 import type { RefreshUsagePortV1 } from '../refresh/application/refresh-usage.port.js';
 import { DdaFoundationUnavailableError } from './fail-closed-foundation.adapters.js';
 
-function unavailable(): never {
-  throw new DdaFoundationUnavailableError();
-}
-
 export function createFailClosedEtlPortsV1(): {
   readonly iae: EtlIaePortV1;
   readonly dsm: EtlDsmPortV1;
@@ -29,36 +25,36 @@ export function createFailClosedEtlPortsV1(): {
 } {
   return Object.freeze({
     iae: {
-      async registerDerivative() {
-        unavailable();
+      registerDerivative() {
+        return Promise.reject(new DdaFoundationUnavailableError());
       },
     },
     dsm: {
-      async registerDatasetVersion() {
-        unavailable();
+      registerDatasetVersion() {
+        return Promise.reject(new DdaFoundationUnavailableError());
       },
     },
     jra: {
-      async createTypedJob() {
-        unavailable();
+      createTypedJob() {
+        return Promise.reject(new DdaFoundationUnavailableError());
       },
-      async awaitResultManifest() {
-        unavailable();
+      awaitResultManifest() {
+        return Promise.reject(new DdaFoundationUnavailableError());
       },
     },
     bua: {
-      async admit() {
-        unavailable();
+      admit() {
+        return Promise.reject(new DdaFoundationUnavailableError());
       },
     },
     aud: {
-      async emit() {
-        unavailable();
+      emit() {
+        return Promise.reject(new DdaFoundationUnavailableError());
       },
     },
     policy: {
-      async currentPolicyVersionId() {
-        unavailable();
+      currentPolicyVersionId() {
+        return Promise.reject(new DdaFoundationUnavailableError());
       },
     },
   });
@@ -66,27 +62,31 @@ export function createFailClosedEtlPortsV1(): {
 
 export function createFailClosedIntakeIaeV1(): IntakeIaeFinalizationPortV1 {
   return {
-    async finalizeSession() {
+    finalizeSession() {
       // No fabricated artifact IDs when IAE is not composed.
-      return Object.freeze({
-        accepted: false as const,
-        code: 'DDA_INTAKE_UNSUPPORTED_PROFILE' as const,
-      });
+      return Promise.resolve(
+        Object.freeze({
+          accepted: false as const,
+          code: 'DDA_INTAKE_UNSUPPORTED_PROFILE' as const,
+        }),
+      );
     },
   };
 }
 
 export function createFailClosedDashboardAuthorizationV1(): DashboardAuthorizationPortV1 {
   return {
-    async authorizeDashboardAction() {
-      return Object.freeze({
-        allowed: false,
-        grantsDatasetAccess: false,
-        grantsEvidenceAccess: false,
-      });
+    authorizeDashboardAction() {
+      return Promise.resolve(
+        Object.freeze({
+          allowed: false,
+          grantsDatasetAccess: false,
+          grantsEvidenceAccess: false,
+        }),
+      );
     },
-    async projectVisibleFields() {
-      return Object.freeze([]);
+    projectVisibleFields() {
+      return Promise.resolve(Object.freeze([]));
     },
   };
 }
@@ -106,50 +106,54 @@ export function createFailClosedAnalysisCatalogV1(): AnalysisCatalogV1 {
 
 export function createFailClosedAnalysisAdapterV1(): AnalysisAdapterPortV1 {
   return {
-    async isAvailable() {
-      return false;
+    isAvailable() {
+      return Promise.resolve(false);
     },
-    async proposeTypedPlan() {
-      return Object.freeze({
-        status: 'FAILED' as const,
-        rationale: 'DDA_FOUNDATION_UNAVAILABLE',
-      });
+    proposeTypedPlan() {
+      return Promise.resolve(
+        Object.freeze({
+          status: 'FAILED' as const,
+          rationale: 'DDA_FOUNDATION_UNAVAILABLE',
+        }),
+      );
     },
   };
 }
 
 export function createFailClosedDeterministicResultsV1(): DeterministicResultPortV1 {
   return {
-    async execute() {
-      throw new DdaFoundationUnavailableError();
+    execute() {
+      return Promise.reject(new DdaFoundationUnavailableError());
     },
   };
 }
 
 export function createFailClosedReceiptRecordsV1(): ReceiptGovernedRecordPort {
   return {
-    async appendGovernedRecord() {
-      throw new DdaFoundationUnavailableError();
+    appendGovernedRecord() {
+      return Promise.reject(new DdaFoundationUnavailableError());
     },
   };
 }
 
 export function createFailClosedRefreshUsageV1(): RefreshUsagePortV1 {
   return {
-    async evaluate() {
-      return Object.freeze({ admitted: false, reasonCode: 'DDA_FOUNDATION_UNAVAILABLE' });
+    evaluate() {
+      return Promise.resolve(
+        Object.freeze({ admitted: false, reasonCode: 'DDA_FOUNDATION_UNAVAILABLE' }),
+      );
     },
-    async reserve() {
-      throw new DdaFoundationUnavailableError();
+    reserve() {
+      return Promise.reject(new DdaFoundationUnavailableError());
     },
-    async finalize() {
-      throw new DdaFoundationUnavailableError();
+    finalize() {
+      return Promise.reject(new DdaFoundationUnavailableError());
     },
-    async release() {
-      throw new DdaFoundationUnavailableError();
+    release() {
+      return Promise.reject(new DdaFoundationUnavailableError());
     },
-    async emitContentSafeOutcome() {
-      throw new DdaFoundationUnavailableError();
+    emitContentSafeOutcome() {
+      return Promise.reject(new DdaFoundationUnavailableError());
     },
   };
 }

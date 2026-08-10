@@ -1,4 +1,7 @@
-import type { DashboardSnapshotV1, DdaRefreshEventV1 } from '@databreeze/domain/data-to-dashboard/v1';
+import type {
+  DashboardSnapshotV1,
+  DdaRefreshEventV1,
+} from '@databreeze/domain/data-to-dashboard/v1';
 import type { TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type {
@@ -26,29 +29,29 @@ export class InMemoryRefreshRepositoryAdapter implements RefreshRepositoryPortV1
   readonly #snapshots = new Map<string, DashboardSnapshotV1>();
   readonly #events: DdaRefreshEventV1[] = [];
 
-  public async saveState(state: DdaRefreshStateV1): Promise<void> {
+  public saveState(state: DdaRefreshStateV1): Promise<void> {
     this.#states.set(scopeKey(state.tenantScope, state.dashboardId), Object.freeze({ ...state }));
   }
 
-  public async findState(
+  public findState(
     tenantScope: TenantScopeV1,
     dashboardId: string,
   ): Promise<DdaRefreshStateV1 | undefined> {
-    return this.#states.get(scopeKey(tenantScope, dashboardId));
+    return Promise.resolve(this.#states.get(scopeKey(tenantScope, dashboardId)));
   }
 
-  public async saveSnapshot(snapshot: DashboardSnapshotV1): Promise<void> {
+  public saveSnapshot(snapshot: DashboardSnapshotV1): Promise<void> {
     this.#snapshots.set(scopeKey(snapshot.tenantScope, snapshot.snapshotId), snapshot);
   }
 
-  public async findSnapshot(
+  public findSnapshot(
     tenantScope: TenantScopeV1,
     snapshotId: string,
   ): Promise<DashboardSnapshotV1 | undefined> {
-    return this.#snapshots.get(scopeKey(tenantScope, snapshotId));
+    return Promise.resolve(this.#snapshots.get(scopeKey(tenantScope, snapshotId)));
   }
 
-  public async recordRefreshEvent(event: DdaRefreshEventV1): Promise<void> {
+  public recordRefreshEvent(event: DdaRefreshEventV1): Promise<void> {
     requireProjectScope(event.tenantScope);
     this.#events.push(event);
   }

@@ -87,10 +87,7 @@ export class ReceiptValidationService {
         return denied('LINE_ITEM_MISMATCH', true);
       }
     }
-    if (
-      input.conflictingCandidateTotals &&
-      new Set(input.conflictingCandidateTotals).size > 1
-    ) {
+    if (input.conflictingCandidateTotals && new Set(input.conflictingCandidateTotals).size > 1) {
       return denied('CONFLICTING_CANDIDATES', true);
     }
     const threshold = this.options.lowConfidenceThreshold ?? 85;

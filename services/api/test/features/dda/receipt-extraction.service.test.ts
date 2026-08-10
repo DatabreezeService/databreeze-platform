@@ -31,12 +31,11 @@ const otherScope = otherScopeResult.accepted ? otherScopeResult.value : (null as
 
 const ARTIFACT = '00000000-0000-4000-8000-000000000023';
 const PROFILE = '00000000-0000-4000-8000-000000000011';
-const EVIDENCE = '00000000-0000-4000-8000-000000000025';
 const CORRELATION = '00000000-0000-4000-8000-000000000041';
 
 function iaePort(ownedArtifactIds: ReadonlySet<string>): DdaIaePortV1 {
   return {
-    async requireArtifactVersion(reference) {
+    requireArtifactVersion(reference) {
       const expectedWorkspace = scope.scopeType === 'organization' ? undefined : scope.workspaceId;
       const actualWorkspace =
         reference.tenantScope.scopeType === 'organization'
@@ -46,21 +45,25 @@ function iaePort(ownedArtifactIds: ReadonlySet<string>): DdaIaePortV1 {
         throw new Error('IAE_WRONG_SCOPE');
       }
     },
-    async requireEvidenceReference() {
-      return undefined;
+    requireEvidenceReference() {
+      return Promise.resolve(undefined);
     },
-    async addRetentionConstraint() {
-      return undefined;
+    addRetentionConstraint() {
+      return Promise.resolve(undefined);
     },
   };
 }
 
 void test('[DDA-041] extraction rejects wrong-scope artifact and non-receipt profile', async () => {
-  const service = new ReceiptExtractionService(new DeterministicFakeReceiptOcrAdapter(), iaePort(new Set([ARTIFACT])), {
-    async emitContentSafeSummary() {
-      return undefined;
+  const service = new ReceiptExtractionService(
+    new DeterministicFakeReceiptOcrAdapter(),
+    iaePort(new Set([ARTIFACT])),
+    {
+      emitContentSafeSummary() {
+        return Promise.resolve(undefined);
+      },
     },
-  });
+  );
   const wrongScope = await service.extract({
     tenantScope: otherScope,
     artifactVersionId: ARTIFACT,
@@ -85,14 +88,14 @@ void test('[DDA-041] extraction rejects wrong-scope artifact and non-receipt pro
 void test('[DDA-041] provider timeout retries then surfaces reviewable failure without mutating original', async () => {
   let attempts = 0;
   const flaky: ReceiptOcrPort = {
-    async extract() {
+    extract() {
       attempts += 1;
       if (attempts < 3) {
         const error = new Error('OCR_TIMEOUT');
         (error as { code?: string }).code = 'OCR_TIMEOUT';
         throw error;
       }
-      return {
+      return Promise.resolve({
         adapterVersion: 'fake-ocr-1',
         modelVersion: 'fake-model-1',
         fields: [
@@ -103,12 +106,12 @@ void test('[DDA-041] provider timeout retries then surfaces reviewable failure w
             evidenceCoordinates: { page: 1, x: 0.1, y: 0.1, width: 0.4, height: 0.08 },
           },
         ],
-      };
+      });
     },
   };
   const service = new ReceiptExtractionService(flaky, iaePort(new Set([ARTIFACT])), {
-    async emitContentSafeSummary() {
-      return undefined;
+    emitContentSafeSummary() {
+      return Promise.resolve(undefined);
     },
   });
   const result = await service.extract({
@@ -125,8 +128,8 @@ void test('[DDA-041] provider timeout retries then surfaces reviewable failure w
 
 void test('[DDA-041] malformed coordinates, missing adapter version, and prompt-like OCR text are rejected', async () => {
   const badCoordinates: ReceiptOcrPort = {
-    async extract() {
-      return {
+    extract() {
+      return Promise.resolve({
         adapterVersion: 'fake-ocr-1',
         modelVersion: 'fake-model-1',
         fields: [
@@ -137,12 +140,12 @@ void test('[DDA-041] malformed coordinates, missing adapter version, and prompt-
             evidenceCoordinates: { page: 1, x: -1, y: 0, width: 2, height: 0.1 },
           },
         ],
-      };
+      });
     },
   };
   const missingAdapter: ReceiptOcrPort = {
-    async extract() {
-      return {
+    extract() {
+      return Promise.resolve({
         adapterVersion: '',
         modelVersion: 'fake-model-1',
         fields: [
@@ -153,12 +156,12 @@ void test('[DDA-041] malformed coordinates, missing adapter version, and prompt-
             evidenceCoordinates: { page: 1, x: 0.1, y: 0.1, width: 0.2, height: 0.1 },
           },
         ],
-      };
+      });
     },
   };
   const promptLike: ReceiptOcrPort = {
-    async extract() {
-      return {
+    extract() {
+      return Promise.resolve({
         adapterVersion: 'fake-ocr-1',
         modelVersion: 'fake-model-1',
         fields: [
@@ -169,16 +172,24 @@ void test('[DDA-041] malformed coordinates, missing adapter version, and prompt-
             evidenceCoordinates: { page: 1, x: 0.1, y: 0.1, width: 0.2, height: 0.1 },
           },
         ],
-      };
+      });
     },
   };
   const aud: DdaAudComposePortV1 = {
-    async emitContentSafeSummary() {
-      return undefined;
+    emitContentSafeSummary() {
+      return Promise.resolve(undefined);
     },
   };
-  const serviceCoords = new ReceiptExtractionService(badCoordinates, iaePort(new Set([ARTIFACT])), aud);
-  const serviceAdapter = new ReceiptExtractionService(missingAdapter, iaePort(new Set([ARTIFACT])), aud);
+  const serviceCoords = new ReceiptExtractionService(
+    badCoordinates,
+    iaePort(new Set([ARTIFACT])),
+    aud,
+  );
+  const serviceAdapter = new ReceiptExtractionService(
+    missingAdapter,
+    iaePort(new Set([ARTIFACT])),
+    aud,
+  );
   const servicePrompt = new ReceiptExtractionService(promptLike, iaePort(new Set([ARTIFACT])), aud);
 
   const coordsResult = await serviceCoords.extract({
@@ -217,11 +228,15 @@ void test('[DDA-041] malformed coordinates, missing adapter version, and prompt-
 });
 
 void test('[DDA-041] duplicate extraction callback returns the prior immutable candidate version', async () => {
-  const service = new ReceiptExtractionService(new DeterministicFakeReceiptOcrAdapter(), iaePort(new Set([ARTIFACT])), {
-    async emitContentSafeSummary() {
-      return undefined;
+  const service = new ReceiptExtractionService(
+    new DeterministicFakeReceiptOcrAdapter(),
+    iaePort(new Set([ARTIFACT])),
+    {
+      emitContentSafeSummary() {
+        return Promise.resolve(undefined);
+      },
     },
-  });
+  );
   const first = await service.extract({
     tenantScope: scope,
     artifactVersionId: ARTIFACT,
@@ -247,11 +262,15 @@ void test('[DDA-041] duplicate extraction callback returns the prior immutable c
 });
 
 void test('[DDA-041] correction creates a new candidate version without mutating the prior extraction', async () => {
-  const service = new ReceiptExtractionService(new DeterministicFakeReceiptOcrAdapter(), iaePort(new Set([ARTIFACT])), {
-    async emitContentSafeSummary() {
-      return undefined;
+  const service = new ReceiptExtractionService(
+    new DeterministicFakeReceiptOcrAdapter(),
+    iaePort(new Set([ARTIFACT])),
+    {
+      emitContentSafeSummary() {
+        return Promise.resolve(undefined);
+      },
     },
-  });
+  );
   const extracted = await service.extract({
     tenantScope: scope,
     artifactVersionId: ARTIFACT,

@@ -10,7 +10,7 @@ const scope = Object.freeze({
   projectId: '00000000-0000-4000-8000-000000000003',
 });
 
-void test('[DDA-048] templates contain presentation patterns only and strip foreign scope payloads', async () => {
+void test('[DDA-048] templates contain presentation patterns only and strip foreign scope payloads', () => {
   const service = new DashboardTemplateServiceV1();
   const template = service.createFromDraft({
     sourceTenantScope: scope,
@@ -25,7 +25,7 @@ void test('[DDA-048] templates contain presentation patterns only and strip fore
     },
   });
   assert.equal(template.accepted, true);
-  if (!template.accepted) return;
+  if (!template.accepted) return Promise.resolve();
   assert.equal('datasetVersionId' in template.value, false);
   assert.equal('secret' in template.value, false);
   assert.equal('materializedValues' in template.value, false);

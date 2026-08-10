@@ -39,17 +39,17 @@ function createMemoryClient(): DdaDashboardDatabaseClientV1 {
   const versions = new Map<string, DashboardVersionRecordRowV1>();
   return {
     dashboardRecord: {
-      async upsert(input) {
+      upsert(input) {
         identities.set(input.create.id, {
           ...input.create,
           createdAt: new Date('2026-08-10T00:00:00.000Z'),
           updatedAt: new Date('2026-08-10T00:00:00.000Z'),
         });
-        return identities.get(input.create.id)!;
+        return Promise.resolve(identities.get(input.create.id)!);
       },
-      async findFirst(input) {
+      findFirst(input) {
         const row = identities.get(input.where.id);
-        if (!row) return null;
+        if (!row) return Promise.resolve(null);
         if (
           row.organizationId !== input.where.organizationId ||
           row.workspaceId !== input.where.workspaceId ||
@@ -57,20 +57,20 @@ function createMemoryClient(): DdaDashboardDatabaseClientV1 {
         ) {
           return null;
         }
-        return row;
+        return Promise.resolve(row);
       },
     },
     dashboardVersionRecord: {
-      async upsert(input) {
+      upsert(input) {
         versions.set(input.create.id, {
           ...input.create,
           createdAt: new Date(input.create.createdAt),
         });
-        return versions.get(input.create.id)!;
+        return Promise.resolve(versions.get(input.create.id)!);
       },
-      async findFirst(input) {
+      findFirst(input) {
         const row = versions.get(input.where.id);
-        if (!row) return null;
+        if (!row) return Promise.resolve(null);
         if (
           row.organizationId !== input.where.organizationId ||
           row.workspaceId !== input.where.workspaceId ||
@@ -78,7 +78,7 @@ function createMemoryClient(): DdaDashboardDatabaseClientV1 {
         ) {
           return null;
         }
-        return row;
+        return Promise.resolve(row);
       },
     },
   };

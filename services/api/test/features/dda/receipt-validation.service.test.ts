@@ -144,10 +144,9 @@ void test('[DDA-042] probable duplicates stay review candidates and are not sile
   assert.equal(exact.reason, 'EXACT_ARTIFACT_HASH');
   assert.equal(exact.action, 'REVIEW_REQUIRED');
 
-  const signal = service.detectDuplicate(
-    { ...first, artifactContentHash: 'b'.repeat(64) },
-    [{ ...first, artifactContentHash: 'c'.repeat(64) }],
-  );
+  const signal = service.detectDuplicate({ ...first, artifactContentHash: 'b'.repeat(64) }, [
+    { ...first, artifactContentHash: 'c'.repeat(64) },
+  ]);
   assert.equal(signal.probableDuplicate, true);
   assert.equal(signal.reason, 'MERCHANT_DATE_TOTAL_REFERENCE');
   assert.equal(signal.action, 'REVIEW_REQUIRED');

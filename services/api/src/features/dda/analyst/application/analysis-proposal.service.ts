@@ -106,8 +106,8 @@ export class AnalysisProposalServiceV1 {
           ambiguous.map((item) => {
             const record = item as Record<string, unknown>;
             return Object.freeze({
-              name: String(record['name'] ?? ''),
-              description: String(record['description'] ?? ''),
+              name: typeof record['name'] === 'string' ? record['name'] : '',
+              description: typeof record['description'] === 'string' ? record['description'] : '',
             });
           }),
         ),
@@ -124,7 +124,12 @@ export class AnalysisProposalServiceV1 {
     }
 
     const units = input['units'];
-    if (!units || typeof units !== 'object' || Array.isArray(units) || Object.keys(units).length === 0) {
+    if (
+      !units ||
+      typeof units !== 'object' ||
+      Array.isArray(units) ||
+      Object.keys(units).length === 0
+    ) {
       return Object.freeze({ accepted: false, code: 'INSUFFICIENT_DATA' as const });
     }
 
@@ -133,9 +138,7 @@ export class AnalysisProposalServiceV1 {
       return Object.freeze({ accepted: false, code: 'UNSUPPORTED_PLAN' as const });
     }
 
-    const dimensions = Array.isArray(input['dimensions'])
-      ? (input['dimensions'] as string[])
-      : [];
+    const dimensions = Array.isArray(input['dimensions']) ? (input['dimensions'] as string[]) : [];
     const authorized = new Set(this.catalog.authorizedFields);
     if (dimensions.some((field) => !authorized.has(field))) {
       return Object.freeze({ accepted: false, code: 'UNAUTHORIZED_DATA' as const });
@@ -157,7 +160,7 @@ export class AnalysisProposalServiceV1 {
     const available = await this.adapter.isAvailable();
     if (!manual && available) {
       const proposal = await this.adapter.proposeTypedPlan({
-        question: String(input['question'] ?? ''),
+        question: typeof input['question'] === 'string' ? input['question'] : '',
         tenantScope: context.tenantScope,
       });
       if (proposal.status === 'PROPOSED') {

@@ -31,8 +31,7 @@ export interface WebIntakeFinalizeValueV1 {
   readonly profileId: 'dda.web.tabular.v1';
 }
 
-const XLSX_MEDIA =
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const XLSX_MEDIA = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 function rejected(code: DdaIntakeProblemCodeV1): WebIntakeResultV1<never> {
   return Object.freeze({ accepted: false, code });
@@ -63,20 +62,31 @@ function decodeCsv(
     }
   }
   // windows-1258: accept only if no invalid UTF-8 BOM/UTF16 markers present
-  if (bytes.length >= 2 && ((bytes[0] === 0xff && bytes[1] === 0xfe) || (bytes[0] === 0xfe && bytes[1] === 0xff))) {
+  if (
+    bytes.length >= 2 &&
+    ((bytes[0] === 0xff && bytes[1] === 0xfe) || (bytes[0] === 0xfe && bytes[1] === 0xff))
+  ) {
     return rejected('DDA_INTAKE_MALFORMED_ENCODING');
   }
   return Object.freeze({ accepted: true, value: Buffer.from(bytes).toString('latin1') });
 }
 
-function inspectCsv(bytes: Uint8Array, declaredEncoding?: string): WebIntakeResultV1<{ readonly kind: 'CSV' }> {
+function inspectCsv(
+  bytes: Uint8Array,
+  declaredEncoding?: string,
+): WebIntakeResultV1<{ readonly kind: 'CSV' }> {
   if (looksLikeExecutable(bytes)) return rejected('DDA_INTAKE_RENAMED_EXECUTABLE');
-  if (bytes.length > DDA_WEB_INTAKE_PROFILE_V1.limits.maxBytes) return rejected('DDA_INTAKE_LIMIT_SIZE');
+  if (bytes.length > DDA_WEB_INTAKE_PROFILE_V1.limits.maxBytes)
+    return rejected('DDA_INTAKE_LIMIT_SIZE');
   const decoded = decodeCsv(bytes, declaredEncoding);
   if (!decoded.accepted) return decoded;
-  const lines = decoded.value.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter((line, index, all) => {
-    return !(index === all.length - 1 && line === '');
-  });
+  const lines = decoded.value
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .split('\n')
+    .filter((line, index, all) => {
+      return !(index === all.length - 1 && line === '');
+    });
   if (lines.length === 0) return rejected('DDA_INTAKE_UNSUPPORTED_PROFILE');
   const headerColumns = lines[0]?.split(',').length ?? 0;
   if (headerColumns > DDA_WEB_INTAKE_PROFILE_V1.limits.maxColumns) {
@@ -151,7 +161,8 @@ function inflateEntry(entry: ZipLocalEntry): WebIntakeResultV1<Buffer> {
 }
 
 function inspectXlsx(bytes: Uint8Array): WebIntakeResultV1<{ readonly kind: 'XLSX' }> {
-  if (bytes.length > DDA_WEB_INTAKE_PROFILE_V1.limits.maxBytes) return rejected('DDA_INTAKE_LIMIT_SIZE');
+  if (bytes.length > DDA_WEB_INTAKE_PROFILE_V1.limits.maxBytes)
+    return rejected('DDA_INTAKE_LIMIT_SIZE');
   const entries = readZipEntries(bytes);
   if (!entries.accepted) return entries;
   if (entries.value.some((entry) => entry.name.toLowerCase().includes('vbaproject.bin'))) {
@@ -160,7 +171,9 @@ function inspectXlsx(bytes: Uint8Array): WebIntakeResultV1<{ readonly kind: 'XLS
   if (entries.value.some((entry) => entry.name.toLowerCase().includes('externallinks/'))) {
     return rejected('DDA_INTAKE_EXTERNAL_LINK');
   }
-  const sheets = entries.value.filter((entry) => /xl\/worksheets\/sheet\d+\.xml$/iu.test(entry.name));
+  const sheets = entries.value.filter((entry) =>
+    /xl\/worksheets\/sheet\d+\.xml$/iu.test(entry.name),
+  );
   if (sheets.length > DDA_WEB_INTAKE_PROFILE_V1.limits.maxSheets) {
     return rejected('DDA_INTAKE_LIMIT_SHEETS');
   }

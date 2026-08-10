@@ -29,7 +29,9 @@ export class DependencyIndexService {
     void this.catalog;
   }
 
-  public async resolveAffected(event: ContentSafeBoundInputEventV1): Promise<DependencyIndexResultV1> {
+  public async resolveAffected(
+    event: ContentSafeBoundInputEventV1,
+  ): Promise<DependencyIndexResultV1> {
     // Strip unknown fields — protected values never ride in events.
     const safeEvent: ContentSafeBoundInputEventV1 = Object.freeze({
       eventId: event.eventId,

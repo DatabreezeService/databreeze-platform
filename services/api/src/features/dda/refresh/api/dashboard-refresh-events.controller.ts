@@ -40,9 +40,11 @@ export class DashboardRefreshEventsController {
   @ApiOperation({ summary: 'Subscribe to content-safe committed refresh events' })
   public subscribe(
     context: RefreshEventSubscribeContextV1,
-    @Param('dashboardId') _dashboardId?: string,
-    @Query('cursor') _cursor?: string,
+    @Param('dashboardId') dashboardId?: string,
+    @Query('cursor') cursor?: string,
   ): RefreshEventSubscribeResultV1 {
+    void dashboardId;
+    void cursor;
     if (context.authorized === false) {
       return Object.freeze({ accepted: false, code: 'PERMISSION_CHANGED' });
     }
@@ -53,7 +55,11 @@ export class DashboardRefreshEventsController {
       cursor: context.cursor,
     });
 
-    if (context.cursor > 0 && listed.highestSequence > 0 && context.cursor > listed.highestSequence) {
+    if (
+      context.cursor > 0 &&
+      listed.highestSequence > 0 &&
+      context.cursor > listed.highestSequence
+    ) {
       return Object.freeze({
         accepted: true,
         value: Object.freeze({

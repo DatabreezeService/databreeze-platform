@@ -1,6 +1,9 @@
 export interface DashboardTemplateV1 {
   readonly templateId: string;
-  readonly pages: readonly { readonly pageId: string; readonly title: { readonly vi: string; readonly en: string } }[];
+  readonly pages: readonly {
+    readonly pageId: string;
+    readonly title: { readonly vi: string; readonly en: string };
+  }[];
   readonly widgets: readonly {
     readonly widgetId: string;
     readonly type: string;

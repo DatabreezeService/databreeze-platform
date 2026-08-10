@@ -79,10 +79,7 @@ export class FolderIntakeService {
     }
 
     const profileHint = profileFromPath(input.path);
-    if (
-      profileHint === null ||
-      !this.#manifest.supportedProfiles.includes(profileHint)
-    ) {
+    if (profileHint === null || !this.#manifest.supportedProfiles.includes(profileHint)) {
       return this.#quarantine(input.path, 'UNSUPPORTED_PROFILE');
     }
 

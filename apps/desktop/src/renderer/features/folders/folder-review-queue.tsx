@@ -14,7 +14,8 @@ const copy = {
     empty: 'No files are awaiting review or quarantine.',
     reason: 'Reason',
     profile: 'Profile',
-    hybridNote: 'Source files remain in the local folder; V1 never renames, moves, or deletes them.',
+    hybridNote:
+      'Source files remain in the local folder; V1 never renames, moves, or deletes them.',
   },
 } as const;
 

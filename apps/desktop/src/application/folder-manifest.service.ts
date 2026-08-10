@@ -160,7 +160,9 @@ export class FolderManifestService {
     return { accepted: true, value: { selectionToken: selected.selectionToken } };
   }
 
-  async createBinding(request: FolderCreateRequestV1): Promise<FolderServiceResult<FolderBindingSafeStatusV1>> {
+  async createBinding(
+    request: FolderCreateRequestV1,
+  ): Promise<FolderServiceResult<FolderBindingSafeStatusV1>> {
     if (hasHostilePathField(request)) return rejected('FOLDER_REQUEST_REJECTED');
 
     let manifest: FolderManifestPolicyV1;
@@ -215,9 +217,9 @@ export class FolderManifestService {
     return { accepted: true, value: this.#toSafeStatus(record, 'ACTIVE') };
   }
 
-  async readStatus(bindingId: string): Promise<FolderServiceResult<FolderBindingSafeStatusV1>> {
+  readStatus(bindingId: string): Promise<FolderServiceResult<FolderBindingSafeStatusV1>> {
     const binding = this.#store.bindings.get(bindingId);
-    if (binding === undefined) return rejected('FOLDER_BINDING_NOT_FOUND');
+    if (binding === undefined) return Promise.resolve(rejected('FOLDER_BINDING_NOT_FOUND'));
     const capability = this.#resolveCapability(binding.capabilityGrantId);
     const capabilityState =
       capability === null
@@ -225,15 +227,15 @@ export class FolderManifestService {
         : capability.state === 'ACTIVE'
           ? 'ACTIVE'
           : capability.state;
-    return { accepted: true, value: this.#toSafeStatus(binding, capabilityState) };
+    return Promise.resolve({ accepted: true, value: this.#toSafeStatus(binding, capabilityState) });
   }
 
-  async updateManifest(
+  updateManifest(
     request: FolderManifestUpdateRequestV1,
   ): Promise<FolderServiceResult<FolderBindingSafeStatusV1>> {
     const binding = this.#store.bindings.get(request.bindingId);
-    if (binding === undefined) return rejected('FOLDER_BINDING_NOT_FOUND');
-    if (binding.lifecycle !== 'ACTIVE') return rejected('FOLDER_DISABLED');
+    if (binding === undefined) return Promise.resolve(rejected('FOLDER_BINDING_NOT_FOUND'));
+    if (binding.lifecycle !== 'ACTIVE') return Promise.resolve(rejected('FOLDER_DISABLED'));
 
     let manifest: FolderManifestPolicyV1;
     try {
@@ -249,18 +251,20 @@ export class FolderManifestService {
 
     const next = toRevision(manifest, current.version + 1, current.version, this.#nowMs());
     binding.manifests.push(next);
-    return { accepted: true, value: this.#toSafeStatus(binding, 'ACTIVE') };
+    return Promise.resolve({ accepted: true, value: this.#toSafeStatus(binding, 'ACTIVE') });
   }
 
-  async disable(bindingId: string): Promise<FolderServiceResult<FolderBindingSafeStatusV1>> {
+  disable(bindingId: string): Promise<FolderServiceResult<FolderBindingSafeStatusV1>> {
     const binding = this.#store.bindings.get(bindingId);
-    if (binding === undefined) return rejected('FOLDER_BINDING_NOT_FOUND');
+    if (binding === undefined) return Promise.resolve(rejected('FOLDER_BINDING_NOT_FOUND'));
     binding.lifecycle = 'DISABLED';
-    return { accepted: true, value: this.#toSafeStatus(binding, 'ACTIVE') };
+    return Promise.resolve({ accepted: true, value: this.#toSafeStatus(binding, 'ACTIVE') });
   }
 
   listSafeStatuses(): readonly FolderBindingSafeStatusV1[] {
-    return [...this.#store.bindings.values()].map((binding) => this.#toSafeStatus(binding, 'ACTIVE'));
+    return [...this.#store.bindings.values()].map((binding) =>
+      this.#toSafeStatus(binding, 'ACTIVE'),
+    );
   }
 
   manifestHistory(bindingId: string): readonly FolderManifestRevision[] {
@@ -278,7 +282,8 @@ export class FolderManifestService {
   } | null {
     const binding = this.#store.bindings.get(bindingId);
     const manifest = binding?.manifests[binding.manifests.length - 1];
-    if (binding === undefined || binding.lifecycle !== 'ACTIVE' || manifest === undefined) return null;
+    if (binding === undefined || binding.lifecycle !== 'ACTIVE' || manifest === undefined)
+      return null;
     return Object.freeze({
       bindingId: binding.bindingId,
       canonicalPath: binding.canonicalPath,

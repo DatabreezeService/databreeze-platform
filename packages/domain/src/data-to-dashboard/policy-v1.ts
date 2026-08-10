@@ -98,7 +98,9 @@ function scope(input: unknown): TenantScopeV1 | undefined {
   return parsed.accepted ? parsed.value : undefined;
 }
 
-export function brandUntrustedSourceContentV1(input: unknown): UntrustedSourceContentV1 | undefined {
+export function brandUntrustedSourceContentV1(
+  input: unknown,
+): UntrustedSourceContentV1 | undefined {
   if (typeof input !== 'string' || input.length === 0 || input.length > 10_000) return undefined;
   if (/\p{Cc}/u.test(input)) return undefined;
   return input.normalize('NFC') as UntrustedSourceContentV1;
@@ -123,8 +125,7 @@ export function createDdaAiEgressPolicyV1(input: {
   if (!policyId) return rejected('INVALID_IDENTIFIER');
   if (!tenantScope) return rejected('INVALID_SCOPE');
   const enabled = input.enabled === undefined ? false : input.enabled === true;
-  const locality =
-    input.locality === undefined ? 'DENIED' : (input.locality as DdaAiLocalityV1);
+  const locality = input.locality === undefined ? 'DENIED' : (input.locality as DdaAiLocalityV1);
   if (!localities.has(locality)) return rejected('INVALID_POLICY');
   const adapters = Array.isArray(input.adapterAllowlist)
     ? input.adapterAllowlist.filter((value): value is string => typeof value === 'string')
@@ -139,8 +140,7 @@ export function createDdaAiEgressPolicyV1(input: {
       ? input.retentionDays
       : 0;
   const maximumPayloadBytes =
-    typeof input.maximumPayloadBytes === 'number' &&
-    Number.isSafeInteger(input.maximumPayloadBytes)
+    typeof input.maximumPayloadBytes === 'number' && Number.isSafeInteger(input.maximumPayloadBytes)
       ? input.maximumPayloadBytes
       : 0;
   if (retentionDays < 0 || maximumPayloadBytes < 0) return rejected('INVALID_POLICY');

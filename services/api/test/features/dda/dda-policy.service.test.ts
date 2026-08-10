@@ -40,8 +40,8 @@ void test('[DDA-043] content authority treats OCR/filename text as data-only and
 
 void test('[DDA-044] policy service defaults AI egress to deny while keeping deterministic capabilities', () => {
   const audit: DdaAuditPortV1 = {
-    async emitContentSafeSummary() {
-      return undefined;
+    emitContentSafeSummary() {
+      return Promise.resolve(undefined);
     },
   };
   const service = new DdaPolicyServiceV1(audit);
@@ -65,7 +65,7 @@ void test('[DDA-044] policy service defaults AI egress to deny while keeping det
 void test('[DDA-045] named mutations emit content-safe AUD summaries without paths or OCR', async () => {
   const emitted: unknown[] = [];
   const audit: DdaAuditPortV1 = {
-    async emitContentSafeSummary(summary) {
+    emitContentSafeSummary(summary) {
       emitted.push(summary);
     },
   };
@@ -105,14 +105,14 @@ void test('[DDA-046] retention goes through IAE and never deletes storage direct
   const iae: DdaIaePortV1 = {
     async requireArtifactVersion() {},
     async requireEvidenceReference() {},
-    async addRetentionConstraint(reference, holdReason) {
+    addRetentionConstraint(reference, holdReason) {
       calls.push(`${reference.id}:${holdReason}`);
     },
   };
   const service = new DdaPolicyServiceV1(
     {
-      async emitContentSafeSummary() {
-        return undefined;
+      emitContentSafeSummary() {
+        return Promise.resolve(undefined);
       },
     },
     iae,

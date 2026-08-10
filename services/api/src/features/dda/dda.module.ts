@@ -187,7 +187,10 @@ export class DdaModule {
         const openAiConfig = loadOpenAiReceiptOcrConfig();
         // Production path uses the fail-closed OpenAI adapter whenever credentials or the
         // kill switch are configured. Demo/dev without keys keeps the deterministic fake.
-        if (openAiConfig.apiKeyPresent || process.env['DATABREEZE_OPENAI_RECEIPT_ENABLED'] === 'true') {
+        if (
+          openAiConfig.apiKeyPresent ||
+          process.env['DATABREEZE_OPENAI_RECEIPT_ENABLED'] === 'true'
+        ) {
           return new OpenAiReceiptOcrAdapter(openAiConfig);
         }
         return new DeterministicFakeReceiptOcrAdapter();

@@ -11,9 +11,7 @@
   "datasetVersionId": "00000000-0000-4000-8000-000000000018",
   "semanticVersionId": "00000000-0000-4000-8000-000000000019",
   "metricVersionId": "00000000-0000-4000-8000-00000000001a",
-  "dimensions": [
-    "region"
-  ],
+  "dimensions": ["region"],
   "filters": [
     {
       "field": "year",
@@ -38,9 +36,7 @@
     "form": "TABLE",
     "maxRows": 100
   },
-  "assumptions": [
-    "Uses accepted sales dataset only"
-  ],
+  "assumptions": ["Uses accepted sales dataset only"],
   "estimate": {
     "cpuMs": 100,
     "memoryMb": 64
