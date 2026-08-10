@@ -36,6 +36,8 @@ Cursor must finish the offline contract and safety work first. The owner then ru
 - Use strict JSON Schema output. Reject refusal, incomplete output, unexpected output item types, schema mismatch, additional properties, invalid coordinates, unknown identifiers, and unbounded output.
 - Treat filenames, headers, cells, OCR text, metadata, and evidence as untrusted data. They cannot change instructions, enable tools, broaden egress, select another tenant, publish, approve, or mutate a canvas.
 - Development may evaluate an image-capable model alias. Production requires an explicitly configured evaluated snapshot and a new evaluation whenever model, prompt, schema, preprocessing, or coordinate mapping changes.
+- The pinned development/evaluation baseline is `gpt-4o-mini-2024-07-18` with image `detail: "high"`. It supports image input, the Responses API, and strict structured output at a low token price. Use it for receipt, mapping, analyst, narrative, and dashboard-proposal smoke tests unless the owner explicitly approves another evaluated candidate.
+- Do not silently upgrade from the cheap baseline. If receipt text, field extraction, or coordinates miss the declared thresholds, record the failed metrics first and propose a separately capped comparison against a stronger image-capable model.
 - `detail: "original"` is used only for an evaluated model that supports it. Unsupported model/detail combinations fail before egress; they do not silently downgrade coordinate quality.
 - `store: false` is mandatory but is not represented as Zero Data Retention. Evidence must record the actual project data-control posture approved by the owner.
 - OpenAI confidence is a candidate signal, not a percentage-correct claim. Quality UI and evidence continue to follow DDA-009/DDA-010.
@@ -152,12 +154,13 @@ Adapter/model/prompt/schema/preprocessing versions and provider usage come from 
 ### Steps
 
 1. Write failing request-construction tests for a base64 data URL `input_image`, evaluated image detail, bounded system/user instructions, strict `text.format` JSON Schema, `store: false`, empty tools, no web/background/conversation/file upload, maximum output tokens, and exact version tags.
-2. Write failing response tests for valid structured output, refusal, incomplete response, unexpected tool/output item, malformed JSON, schema mismatch, additional properties, missing required fields, invalid confidence, invalid/out-of-bounds coordinates, missing returned model, and prompt-like text inside the receipt.
-3. Remove the identifier-only request. Send the authorized immutable image bytes and validate media type/size before encoding.
-4. Use a versioned prompt that states source text is data, not instructions. Do not concatenate untrusted OCR/source text into system/developer instructions.
-5. Parse and validate the strict output, map it to `ReceiptOcrResult`, preserve exact model/adapter/prompt/schema/preprocessing metadata, and let deterministic receipt validation reconcile arithmetic and duplicates.
-6. Support `original` detail only through explicit evaluated configuration. Fail safe on unsupported combinations. Version every resize/rotation/crop and remap coordinates before accepting evidence.
-7. Keep live network access out of these tests by injecting a fake OpenAI transport.
+2. Replace the existing `gpt-4.1-mini-2025-04-14` development default with the pinned cheap baseline `gpt-4o-mini-2024-07-18` and `detail: "high"`. Keep both configurable for evaluation, but require an explicit evaluated snapshot for production.
+3. Write failing response tests for valid structured output, refusal, incomplete response, unexpected tool/output item, malformed JSON, schema mismatch, additional properties, missing required fields, invalid confidence, invalid/out-of-bounds coordinates, missing returned model, and prompt-like text inside the receipt.
+4. Remove the identifier-only request. Send the authorized immutable image bytes and validate media type/size before encoding.
+5. Use a versioned prompt that states source text is data, not instructions. Do not concatenate untrusted OCR/source text into system/developer instructions.
+6. Parse and validate the strict output, map it to `ReceiptOcrResult`, preserve exact model/adapter/prompt/schema/preprocessing metadata, and let deterministic receipt validation reconcile arithmetic and duplicates.
+7. Support `original` detail only through explicit evaluated configuration. Fail safe on unsupported combinations. Version every resize/rotation/crop and remap coordinates before accepting evidence.
+8. Keep live network access out of these tests by injecting a fake OpenAI transport.
 
 **Commit:** `feat(dda): complete OpenAI receipt extraction`
 
@@ -224,6 +227,8 @@ Live mode must require all of the following:
 4. Write the detailed local run into ignored `reports/`; emit a content-safe aggregate JSON that Cursor can use to update `docs/evidence/dda/openai-receipt-evaluation.md`.
 5. Treat an unavailable model, permission error, rate limit, insufficient quota, refusal, schema mismatch, or threshold miss as a real blocked/failed result. Never turn a skipped call into a pass.
 6. A development alias can pass this smoke test, but the evidence must say `promotionEligible: false` until an exact snapshot and approved evaluation thresholds pass.
+
+The first development run uses the pinned `gpt-4o-mini-2024-07-18` snapshot and `detail: "high"`. `GPT-4o-mini` does not support `detail: "original"`; coordinate evidence must therefore be evaluated after its documented resizing behavior. A stronger model is tested only after this cheap baseline produces recorded failing metrics.
 
 **Owner action:** Follow the manual procedure at the end of this plan only after Cursor reports Tasks 1-4 green.
 
@@ -410,7 +415,7 @@ Cursor must report all of these before any live call:
 
 ### C. Run the live evaluation yourself in a private PowerShell terminal
 
-Use the command Cursor has implemented. The following pattern prevents the key from appearing in shell history or command arguments. `gpt-5.6` is a development evaluation alias only; replace it if the project does not expose it or Cursor's evaluated configuration selects another image-capable model.
+Use the command Cursor has implemented. The following pattern prevents the key from appearing in shell history or command arguments. The development model is deliberately pinned to the inexpensive `gpt-4o-mini-2024-07-18` snapshot; production model selection remains a later evaluation decision.
 
 ```powershell
 $openAiSecret = Read-Host 'OpenAI development key' -AsSecureString
@@ -418,8 +423,8 @@ $openAiPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($openAiSe
 try {
   $env:OPENAI_API_KEY = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($openAiPointer)
   $env:DATABREEZE_OPENAI_RECEIPT_ENABLED = 'true'
-  $env:DATABREEZE_OPENAI_RECEIPT_MODEL = 'gpt-5.6'
-  $env:DATABREEZE_OPENAI_IMAGE_DETAIL = 'original'
+  $env:DATABREEZE_OPENAI_RECEIPT_MODEL = 'gpt-4o-mini-2024-07-18'
+  $env:DATABREEZE_OPENAI_IMAGE_DETAIL = 'high'
   corepack pnpm --filter @databreeze/fixture-validation openai:receipt:live -- --live --acknowledge-external-egress --corpus synthetic --max-requests 3 --max-input-bytes 3000000
 } finally {
   Remove-Item Env:OPENAI_API_KEY -ErrorAction SilentlyContinue
