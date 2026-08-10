@@ -29,6 +29,13 @@ export interface FolderCapabilityRecord {
   readonly state: 'ACTIVE' | 'EXPIRED' | 'REVOKED';
   readonly organizationId: string;
   readonly workspaceId: string;
+  readonly grantId?: string;
+  readonly capabilityId?: string;
+  readonly revision?: number;
+  readonly expiresAtMs?: number;
+  readonly allowedActionTypes?: readonly string[];
+  readonly authorizationEpoch?: number;
+  readonly opaqueLocalHandle?: string;
 }
 
 export interface FolderManifestRevision {
@@ -241,12 +248,12 @@ export class FolderManifestService {
     try {
       manifest = parseFolderManifestPolicy(request.manifest);
     } catch {
-      return rejected('FOLDER_MANIFEST_INCOMPLETE');
+      return Promise.resolve(rejected('FOLDER_MANIFEST_INCOMPLETE'));
     }
 
     const current = binding.manifests[binding.manifests.length - 1];
     if (current === undefined || current.version !== request.expectedVersion) {
-      return rejected('FOLDER_MANIFEST_REVISION_CONFLICT');
+      return Promise.resolve(rejected('FOLDER_MANIFEST_REVISION_CONFLICT'));
     }
 
     const next = toRevision(manifest, current.version + 1, current.version, this.#nowMs());
@@ -284,6 +291,8 @@ export class FolderManifestService {
     const manifest = binding?.manifests[binding.manifests.length - 1];
     if (binding === undefined || binding.lifecycle !== 'ACTIVE' || manifest === undefined)
       return null;
+    const capability = this.#resolveCapability(binding.capabilityGrantId);
+    if (capability === null || capability.state !== 'ACTIVE') return null;
     return Object.freeze({
       bindingId: binding.bindingId,
       canonicalPath: binding.canonicalPath,

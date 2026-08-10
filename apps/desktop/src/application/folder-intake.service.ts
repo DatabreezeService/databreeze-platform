@@ -7,6 +7,15 @@ import type {
   FolderReviewQueueItemV1,
 } from '../shared/folder-intake-contract-v1.ts';
 
+export type FolderFingerprintRejected =
+  | 'PATH_ESCAPE'
+  | 'UNSUPPORTED_PROFILE'
+  | 'MALFORMED_CONTENT'
+  | 'AMBIGUOUS_MAPPING'
+  | 'MACRO_ENABLED'
+  | 'EXTERNAL_LINK'
+  | 'PROTECTED_CONTENT';
+
 export type FolderFingerprintResult =
   | {
       readonly accepted: true;
@@ -17,11 +26,7 @@ export type FolderFingerprintResult =
       readonly duplicateKey?: string;
     }
   | {
-      readonly rejected:
-        | 'PATH_ESCAPE'
-        | 'UNSUPPORTED_PROFILE'
-        | 'MALFORMED_CONTENT'
-        | 'AMBIGUOUS_MAPPING';
+      readonly rejected: FolderFingerprintRejected;
     };
 
 export interface FolderIntakeServiceInput {

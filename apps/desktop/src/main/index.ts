@@ -1,11 +1,16 @@
 import { createRequire } from 'node:module';
-import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { app, BrowserWindow, dialog, ipcMain, session } from 'electron';
 import { FolderIntakeService } from '../application/folder-intake.service.ts';
 import { FolderManifestService } from '../application/folder-manifest.service.ts';
+import { fingerprintLocalTabularFile } from '../application/local-tabular-fingerprint.ts';
 import { StableFileDetector } from '../application/stable-file-detector.ts';
+import {
+  DDA_FOLDER_INTAKE_HANDLER_DIGEST,
+  DdaSidecarClientAdapter,
+} from './adapters/dda-sidecar-client.adapter.ts';
+import { DsoCapabilityClientAdapter } from './adapters/dso-capability-client.adapter.ts';
 import { LockedLocalStateAdapter } from './adapters/locked-local-state.adapter.ts';
 import { UnavailableSidecarAdapter } from './adapters/unavailable-sidecar.adapter.ts';
 import { WindowsFolderBindingAdapter } from './adapters/windows-folder-binding.adapter.ts';
@@ -31,20 +36,63 @@ let disposeIpc: (() => void) | undefined;
 let disposeFolderWatchers: (() => void) | undefined;
 
 async function fingerprintFolderFile(filePath: string) {
-  if (!filePath.toLowerCase().endsWith('.csv')) return { rejected: 'UNSUPPORTED_PROFILE' as const };
   try {
     const content = await fs.readFile(filePath);
-    const header = content.toString('utf8').split(/\r?\n/, 1)[0]?.trim();
-    if (header === undefined || header === '') return { rejected: 'MALFORMED_CONTENT' as const };
-    return {
-      accepted: true as const,
-      contentFingerprint: `sha256:${createHash('sha256').update(content).digest('hex')}`,
-      schemaFingerprint: createHash('sha256').update(header).digest('hex'),
-      profile: 'CSV' as const,
-    };
+    return fingerprintLocalTabularFile(filePath, content);
   } catch {
     return { rejected: 'MALFORMED_CONTENT' as const };
   }
+}
+
+function readEnv(name: string): string | undefined {
+  const value = process.env[name];
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function createDsoClient(): DsoCapabilityClientAdapter | null {
+  const baseUrl = readEnv('DATABREEZE_API_BASE_URL');
+  const deviceId = readEnv('DATABREEZE_DEVICE_ID');
+  const organizationId = readEnv('DATABREEZE_ORGANIZATION_ID');
+  const workspaceId = readEnv('DATABREEZE_WORKSPACE_ID');
+  const epochRaw = readEnv('DATABREEZE_AUTHORIZATION_EPOCH');
+  const authorizationEpoch = epochRaw === undefined ? Number.NaN : Number(epochRaw);
+  if (
+    baseUrl === undefined ||
+    deviceId === undefined ||
+    organizationId === undefined ||
+    workspaceId === undefined ||
+    !Number.isInteger(authorizationEpoch) ||
+    authorizationEpoch < 1
+  ) {
+    return null;
+  }
+  return new DsoCapabilityClientAdapter({
+    baseUrl,
+    deviceId,
+    organizationId,
+    workspaceId,
+    authorizationEpoch,
+    getAccessToken: () => Promise.resolve(readEnv('DATABREEZE_ACCESS_TOKEN') ?? null),
+  });
+}
+
+function createSidecar() {
+  const controlPlaneKey = readEnv('DATABREEZE_SIDECAR_CONTROL_KEY');
+  if (controlPlaneKey === undefined || !/^[a-f0-9]{64}$/iu.test(controlPlaneKey)) {
+    return new UnavailableSidecarAdapter();
+  }
+  return new DdaSidecarClientAdapter({
+    transport: {
+      execute: () => Promise.reject(new Error('SIDECAR_UNAVAILABLE')),
+    },
+    controlPlaneKeyId: readEnv('DATABREEZE_SIDECAR_CONTROL_KEY_ID') ?? 'cpk_local',
+    controlPlaneKey: controlPlaneKey.toLowerCase(),
+    pinnedDigests: {
+      'dda.folder.intake': DDA_FOLDER_INTAKE_HANDLER_DIGEST,
+    },
+    engineVersion: '0.1.0',
+    protocolVersion: '1.0',
+  });
 }
 
 async function openDesktopWindow(): Promise<void> {
@@ -52,7 +100,15 @@ async function openDesktopWindow(): Promise<void> {
     applicationVersion: app.getVersion(),
     locale: 'vi-VN',
   });
-  const sidecar = new UnavailableSidecarAdapter();
+  const sidecar = createSidecar();
+  const dso = createDsoClient();
+  if (dso !== null) {
+    try {
+      await dso.refresh();
+    } catch {
+      // Fail closed: cache stays empty and resolveCapability returns null.
+    }
+  }
   const folderPort = new WindowsFolderBindingAdapter({
     dialog: {
       showOpenDialog: (options) => {
@@ -73,8 +129,7 @@ async function openDesktopWindow(): Promise<void> {
     port: folderPort,
     store: { bindings: new Map() },
     nowMs: () => Date.now(),
-    // Device capability grants remain DSO-owned; until enrollment lands, deny create.
-    resolveCapability: () => null,
+    resolveCapability: (capabilityGrantId) => dso?.resolveCapability(capabilityGrantId) ?? null,
   });
   const folderWatchers = new FolderWatcherLifecycle({
     folders,
@@ -97,6 +152,21 @@ async function openDesktopWindow(): Promise<void> {
     nowMs: () => Date.now(),
   });
   disposeFolderWatchers = () => folderWatchers.dispose();
+
+  if (dso !== null) {
+    const refreshTimer = setInterval(() => {
+      void dso
+        .refresh()
+        .then(() => folderWatchers.reconcile())
+        .catch(() => folderWatchers.reconcile());
+    }, 60_000);
+    refreshTimer.unref?.();
+    const previousDispose = disposeFolderWatchers;
+    disposeFolderWatchers = () => {
+      clearInterval(refreshTimer);
+      previousDispose?.();
+    };
+  }
 
   await createDesktopWindow({
     BrowserWindow: BrowserWindow as unknown as BrowserWindowConstructor,

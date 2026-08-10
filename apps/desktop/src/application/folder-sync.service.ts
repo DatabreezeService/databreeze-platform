@@ -60,7 +60,7 @@ export class FolderSyncService {
   ): Promise<FolderSyncEnqueueResult> {
     const rejected = this.#rejected.get(projection.projectionId);
     if (rejected !== undefined) {
-      return { state: 'REJECTED', reason: rejected };
+      return Promise.resolve({ state: 'REJECTED', reason: rejected });
     }
 
     const idempotencyKey = createHash('sha256')

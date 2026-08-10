@@ -37,7 +37,7 @@ function createPort(overrides: Partial<FolderBindingPort> = {}): FolderBindingPo
     selectFolder: vi.fn(() => Promise.resolve({ selectionToken: 'sel_approved_1' })),
     resolveSelection: vi.fn((token: string) => {
       if (token === 'sel_approved_1') {
-        return { canonicalPath: 'C:\\Users\\demo\\ApprovedSales' };
+        return Promise.resolve({ canonicalPath: 'C:\\Users\\demo\\ApprovedSales' });
       }
       return Promise.resolve({ rejected: 'FOLDER_SELECTION_UNKNOWN' as const });
     }),

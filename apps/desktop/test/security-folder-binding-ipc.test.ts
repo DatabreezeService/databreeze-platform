@@ -13,19 +13,23 @@ describe('DDA-012 security folder binding IPC surface', () => {
   it('exposes only select/create/read-status/update-manifest/disable folder operations', async () => {
     const invoke = vi.fn((channel: string) => {
       if (channel === DESKTOP_IPC_CHANNELS.sessionGetSafeState) {
-        return {
+        return Promise.resolve({
           applicationVersion: '0.0.0',
           dataMode: 'HYBRID',
           deviceState: 'locked',
           enrollmentState: 'not-enrolled',
           locale: 'vi-VN',
-        };
+        });
       }
       if (channel === DESKTOP_IPC_CHANNELS.sidecarGetStatus) {
-        return { engineVersion: null, lifecycle: 'not-installed', protocolVersion: null };
+        return Promise.resolve({
+          engineVersion: null,
+          lifecycle: 'not-installed',
+          protocolVersion: null,
+        });
       }
       if (channel === FOLDER_IPC_CHANNELS.select) {
-        return { selectionToken: 'sel_opaque_1' };
+        return Promise.resolve({ selectionToken: 'sel_opaque_1' });
       }
       if (
         channel === FOLDER_IPC_CHANNELS.create ||
@@ -33,7 +37,7 @@ describe('DDA-012 security folder binding IPC surface', () => {
         channel === FOLDER_IPC_CHANNELS.updateManifest ||
         channel === FOLDER_IPC_CHANNELS.disable
       ) {
-        return {
+        return Promise.resolve({
           bindingId: BINDING,
           capabilityGrantId: CAPABILITY,
           capabilityState: 'ACTIVE',
@@ -41,7 +45,7 @@ describe('DDA-012 security folder binding IPC surface', () => {
           manifestVersion: 1,
           purpose: 'sales-intake',
           supportedProfiles: ['CSV'],
-        };
+        });
       }
       return Promise.reject(new Error(`unexpected channel ${channel}`));
     });

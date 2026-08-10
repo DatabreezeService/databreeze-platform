@@ -85,4 +85,11 @@ export class FolderWatcherLifecycle {
   dispose(): void {
     for (const bindingId of this.#watchers.keys()) this.detach(bindingId);
   }
+
+  /** Re-check active watchers; revocation/expiry/wrong-scope detaches immediately. */
+  reconcile(): void {
+    for (const bindingId of [...this.#watchers.keys()]) {
+      if (this.#folders.watcherConfiguration(bindingId) === null) this.detach(bindingId);
+    }
+  }
 }

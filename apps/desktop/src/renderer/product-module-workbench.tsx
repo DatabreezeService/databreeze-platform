@@ -16,6 +16,7 @@ export interface DesktopWorkbenchCopy {
   readonly governanceCaption: string;
   readonly governanceHeading: string;
   readonly navigationLabel: string;
+  readonly workspaceLabel: string;
   readonly noData: string;
   readonly notConnected: string;
   readonly requirements: string;
@@ -66,7 +67,7 @@ export function ProductModuleWorkbench({
     sidecarStatus.lifecycle === 'not-installed' ? copy.engineNotInstalled : copy.notConnected;
 
   return (
-    <section className="module-workspace" aria-label={copy.navigationLabel}>
+    <section className="module-workspace" aria-label={copy.workspaceLabel}>
       <nav className="module-navigation" aria-label={copy.navigationLabel}>
         <div aria-orientation="vertical" className="module-tablist" role="tablist">
           {DESKTOP_PRODUCT_MODULES.map((module, index) => {

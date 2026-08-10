@@ -33,6 +33,7 @@ const messages = {
     skipWorkbench: 'Bỏ qua để đến bàn làm việc mô-đun',
     navStatus: 'Trạng thái nền tảng',
     navFolders: 'Thư mục dữ liệu',
+    platformNavLabel: 'Điều hướng nền tảng',
     version: 'Phiên bản ứng dụng',
     workbench: {
       capabilitiesCaption:
@@ -46,6 +47,7 @@ const messages = {
         'Bàn làm việc này không cấp quyền đọc tệp, chạy lệnh hoặc vượt qua chính sách.',
       governanceHeading: 'Ranh giới quản trị',
       navigationLabel: 'Mô-đun sản phẩm',
+      workspaceLabel: 'Bàn làm việc mô-đun',
       noData:
         'Chưa tải tập dữ liệu và sẽ không chạy thao tác tệp nào cho đến khi thiết bị, engine, quyền và API mô-đun đều sẵn sàng.',
       notConnected: 'API mô-đun chưa được kết nối',
@@ -75,6 +77,7 @@ const messages = {
     skipWorkbench: 'Skip to module workbench',
     navStatus: 'Platform status',
     navFolders: 'Data folders',
+    platformNavLabel: 'Platform navigation',
     version: 'Application version',
     workbench: {
       capabilitiesCaption:
@@ -88,6 +91,7 @@ const messages = {
         'This workbench grants no file access, command execution, or policy bypass.',
       governanceHeading: 'Governance boundaries',
       navigationLabel: 'Product modules',
+      workspaceLabel: 'Module workbench',
       noData:
         'No dataset is loaded and no file action will run until the device, engine, permissions, and module API are all ready.',
       notConnected: 'Module API not connected',
@@ -144,7 +148,7 @@ export function DesktopApp() {
       </a>
       <header className="shell-header">
         <img className="wordmark" src={wordmarkUrl} alt="DataBreeze" />
-        <nav className="shell-primary-nav" aria-label={copy.workbench.navigationLabel}>
+        <nav className="shell-primary-nav" aria-label={copy.platformNavLabel}>
           <button
             aria-pressed={view === 'status'}
             className="locale-button"

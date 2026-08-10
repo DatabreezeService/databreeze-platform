@@ -8,7 +8,10 @@ export type FolderIntakeReason =
   | 'DUPLICATE_KEY'
   | 'AMBIGUOUS_MAPPING'
   | 'MALFORMED_CONTENT'
-  | 'PARTIAL_OR_LOCK_FILE';
+  | 'PARTIAL_OR_LOCK_FILE'
+  | 'MACRO_ENABLED'
+  | 'EXTERNAL_LINK'
+  | 'PROTECTED_CONTENT';
 
 export type FolderFileProfile = 'CSV' | 'XLSX';
 

@@ -42,12 +42,12 @@ describe('DDA-014 folder path escape security', () => {
         if (path.endsWith('code.js'))
           return Promise.resolve({ rejected: 'UNSUPPORTED_PROFILE' as const });
         if (path.endsWith('drift.csv')) {
-          return {
+          return Promise.resolve({
             accepted: true as const,
             contentFingerprint: 'sha256:' + '11'.repeat(32),
             schemaFingerprint: 'c'.repeat(64),
             profile: 'CSV' as const,
-          };
+          });
         }
         return Promise.resolve({
           accepted: true as const,
@@ -58,6 +58,7 @@ describe('DDA-014 folder path escape security', () => {
       },
       mutateSource: (path, action) => {
         mutations.push(`${action}:${path}`);
+        return Promise.resolve();
       },
     });
 
