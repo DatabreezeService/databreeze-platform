@@ -84,23 +84,39 @@
     {
       "gateId": "G3",
       "name": "integrated-contracts-migrations-and-packages-green",
-      "status": "ready",
+      "status": "complete",
       "dependsOn": [
         "G2"
       ],
       "workPackageIds": [
         "DDA-087"
+      ],
+      "evidence": [
+        "docs/evidence/dda/integration-ledger.md",
+        "services/api/src/app.module.ts",
+        "services/api/src/features/dda/dda.module.ts",
+        "services/api/test/features/dda/dda-root-composition.test.ts"
       ]
     },
     {
       "gateId": "G4",
       "name": "golden-demo-reproducible",
-      "status": "blocked",
+      "status": "complete",
       "dependsOn": [
         "G3"
       ],
       "workPackageIds": [
         "DDA-087"
+      ],
+      "evidence": [
+        "docs/runbooks/dda-mentor-demo.md",
+        "docs/evidence/dda/prototype-report.md",
+        "docs/evidence/dda/parity-report.md",
+        "tools/fixture-validation/test/dda-parity.test.mjs",
+        "services/engine/tests/test_dda_local_cloud_parity.py",
+        "apps/web/e2e/dda-golden-journey.spec.ts",
+        "apps/desktop/test/dda-golden-folder-journey.test.ts",
+        "apps/android/app/src/androidTest/java/com/databreeze/android/receipts/DdaGoldenReceiptJourneyTest.kt"
       ]
     },
     {
@@ -509,7 +525,7 @@
       "workPackageId": "DDA-087",
       "name": "integration-parity-readiness",
       "plan": "docs/plans/087-dda-integration-readiness.md",
-      "status": "ready",
+      "status": "complete",
       "dependsOn": [
         "DDA-081",
         "DDA-082",
@@ -519,7 +535,7 @@
         "DDA-086"
       ],
       "parallelGroup": null,
-      "branch": "codex/dda-integration",
+      "branch": "codex/dda-087-integration",
       "tasks": [
         "Task 1: Integrate lane commits in dependency order",
         "Task 2: Prove local and cloud deterministic parity",
@@ -554,6 +570,29 @@
         "corepack pnpm orchestration:check",
         "corepack pnpm contracts:check",
         "corepack pnpm repo:check"
+      ],
+      "commit": "PENDING_HEAD",
+      "evidence": [
+        "docs/evidence/dda/integration-ledger.md",
+        "docs/evidence/dda/parity-report.md",
+        "docs/evidence/dda/prototype-report.md",
+        "docs/evidence/dda/release-readiness.md",
+        "docs/runbooks/dda-mentor-demo.md",
+        "services/api/test/features/dda/dda-root-composition.test.ts",
+        "tools/fixture-validation/test/dda-parity.test.mjs",
+        "services/engine/tests/test_dda_local_cloud_parity.py",
+        "apps/web/e2e/dda-golden-journey.spec.ts",
+        "apps/desktop/test/dda-golden-folder-journey.test.ts",
+        "apps/android/app/src/androidTest/java/com/databreeze/android/receipts/DdaGoldenReceiptJourneyTest.kt"
+      ],
+      "limitations": [
+        "083 CSP Playwright unsafe-eval; web partly fixture-backed",
+        "084 in-memory refresh; synthetic perf; in-process SSE",
+        "085 DSO stub; no long-running FS watcher; folder UI not in shell nav",
+        "086 shutter prototype; in-memory staging; fake OCR; emulator optional",
+        "DDA processors not enrolled in closed ActionRegistry",
+        "DdaModule foundation ports default to prototype stubs",
+        "Not production; plan 400 required"
       ]
     }
   ],

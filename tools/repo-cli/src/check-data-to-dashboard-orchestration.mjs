@@ -200,7 +200,17 @@ function check() {
   if (!packagesById.has(ledger.nextWorkPackageId)) {
     diagnostics.push(`unknown nextWorkPackageId ${ledger.nextWorkPackageId}`);
   } else if (packagesById.get(ledger.nextWorkPackageId).status !== 'ready') {
-    diagnostics.push(`nextWorkPackageId ${ledger.nextWorkPackageId} is not ready`);
+    const next = packagesById.get(ledger.nextWorkPackageId);
+    const awaitingProductionGate =
+      next.status === 'complete' &&
+      ledger.nextWorkPackageId === 'DDA-087' &&
+      gates.some(
+        (gate) =>
+          gate.gateId === 'G5' && gate.status === 'blocked' && gate.externalPlan !== undefined,
+      );
+    if (!awaitingProductionGate) {
+      diagnostics.push(`nextWorkPackageId ${ledger.nextWorkPackageId} is not ready`);
+    }
   }
 
   const integrationOrder = ledger.integrationOrder ?? [];

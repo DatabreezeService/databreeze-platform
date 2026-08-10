@@ -4030,15 +4030,18 @@
       "testPaths": [
         "tools/fixture-validation/test/dda-parity.test.mjs",
         "services/engine/tests/test_dda_local_cloud_parity.py",
-        "apps/web/e2e/dda-golden-journey.spec.ts"
+        "apps/web/e2e/dda-golden-journey.spec.ts",
+        "apps/desktop/test/dda-golden-folder-journey.test.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "tools/fixture-validation/src/run-dda-parity.mjs",
+        "tools/fixture-validation/test/dda-parity.test.mjs",
+        "services/engine/tests/test_dda_local_cloud_parity.py",
+        "docs/evidence/dda/parity-report.md",
+        "docs/evidence/dda/prototype-report.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -4442,9 +4445,11 @@
         "apps/web/e2e/dda-golden-journey.spec.ts"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "packages/domain/src/data-to-dashboard/v1.ts",
+        "packages/contracts/schemas/v1/dda-dashboard-version.schema.json",
+        "packages/test-fixtures/contracts/v1/payloads/dda-dashboard-version/invalid-streaming.json",
+        "docs/evidence/dda/prototype-report.md",
+        "docs/plans/data-to-dashboard-orchestration.json"
       ],
       "status": "planned",
       "coverage": "planned",
