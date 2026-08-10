@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | 1 | Release manifest + evidence matrix | in-progress | — | This file + `release-manifest.json` (`productionReady: false`) |
 | 2 | Staging/production AWS OpenTofu | partial | §2 AWS accounts/OIDC | `infrastructure/aws/environments/{staging,production}` plan-only |
-| 3 | OpenAI receipt/AI adapters | partial | §3 OpenAI project/key/eval | Fail-closed adapter + egress tests; live eval blocked |
+| 3 | OpenAI receipt/AI adapters | partial | §3 OpenAI project/key/eval + quality | Fail-closed adapter + egress + offline corpus green; owner live synthetic plumbing verified (`schemaFailure: false`, 3 requests) but extraction quality failed (0/6 fields; `promotionEligible`/`productionReady` false). See `openai-receipt-evaluation.md`. |
 | 4 | Tenant isolation / API protection | partial | §2 staging deploy | Unit/composition tests; e2e against live staging blocked |
 | 5 | Retention / deletion / privacy | partial | §2 retention approvals, §3 OpenAI retention | Runbook drafted; live proof blocked |
 | 6 | Backup / restore / DR | blocked | §2 AWS + restore rehearsal | Runbook + verify script scaffold |
