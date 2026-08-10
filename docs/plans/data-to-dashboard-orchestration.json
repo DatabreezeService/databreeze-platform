@@ -136,7 +136,7 @@
       "evidence": [
         "docs/evidence/dda/release-readiness.md"
       ],
-      "notes": "Blocked on owner MANUAL-PREREQUISITES and plan 400 gates. Agent-implementable production scaffolding proceeds on codex/dda-400-production without fabricating credentials or production approval."
+      "notes": "Blocked on owner MANUAL-PREREQUISITES and plan 400 gates. Agent-implementable prototype gaps (fail-closed foundation ports, Prisma DDA metadata repos, ActionRegistry DDA enrollment, Desktop watcher wiring, Android CameraX/upload transport, strict Web CSP/live dashboard mode) advanced on codex/dda-400-production. No fabricated credentials or G5 approval."
     }
   ],
   "workPackages": [
@@ -602,13 +602,13 @@
         "apps/android/app/src/androidTest/java/com/databreeze/android/receipts/DdaGoldenReceiptJourneyTest.kt"
       ],
       "limitations": [
-        "083 CSP Playwright unsafe-eval; web partly fixture-backed",
-        "084 in-memory refresh; synthetic perf; in-process SSE",
-        "085 DSO stub; no long-running FS watcher; folder UI not in shell nav",
-        "086 shutter prototype; in-memory staging; fake OCR; emulator optional",
-        "DDA processors not enrolled in closed ActionRegistry",
-        "DdaModule foundation ports default to prototype stubs",
-        "Not production; plan 400 required"
+        "083 full WCAG AA + multi-browser owner review still open; production CSP keeps no unsafe-eval; dashboard live mode fails closed without API",
+        "084 open-refresh lifecycle still process-local; committed snapshots/state durable when ddaDatabase composed; synthetic perf; in-process SSE",
+        "085 DSO capability enrollment still fail-closed; watcher attaches only after capability-backed binding",
+        "086 CameraX/upload transport code-ready; OCR fail-closed without server credentials; no real-device verification",
+        "DDA processors enrolled in closed ActionRegistry with digest pins (plan 400 wave)",
+        "DdaModule foundation ports default fail-closed; real IAE/DSM/JRA/BUA/AUD/DSO via composed lookups",
+        "Not production; G5 blocked on MANUAL-PREREQUISITES + plan 400 owner gates"
       ]
     }
   ],

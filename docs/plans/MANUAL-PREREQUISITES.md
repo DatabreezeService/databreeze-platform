@@ -99,3 +99,13 @@ All checklist items above remain `not-ready` unless the product owner updates th
 | §3 Model pin | `DATABREEZE_OPENAI_RECEIPT_MODEL` | Eval harness after corpus approval | same |
 | §5 Desktop signing | CI secret for Windows signing identity | Signed installer hash verification | `docs/evidence/dda/desktop-release-report.md` |
 | §6 Android signing | Play upload key in protected store | Bundletool / Play closed test | `docs/evidence/dda/android-release-report.md` |
+
+### Agent-implementable progress (not G5)
+
+These close software prototype gaps only. They do **not** satisfy MANUAL-PREREQUISITES or authorize production:
+
+- Fail-closed DDA foundation ports + Prisma metadata repositories + durable snapshot persistence path (`feat(dda): fail-closed foundation ports and Prisma metadata repos`).
+- Closed ActionRegistry enrollment for pinned DDA processors (`feat(engine): enroll pinned DDA action handlers`).
+- Desktop governed FS watcher after capability-backed binding (`feat(desktop): wire governed folder watchers`).
+- Android CameraX → durable staging → fail-closed upload/OCR (`feat(android): wire secure receipt capture transport`).
+- Web strict CSP (no `unsafe-eval`) + dashboard live/API data mode (`feat(web): enforce strict dashboard data mode`).
