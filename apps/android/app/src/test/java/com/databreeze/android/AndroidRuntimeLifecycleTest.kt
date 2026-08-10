@@ -43,6 +43,13 @@ class AndroidRuntimeLifecycleTest {
             syncScheduler = scheduler,
             syncRevocationGuard = guard,
             workerFactory = DataBreezeWorkerFactory(store, transport, guard),
+            receiptStagingStore = com.databreeze.android.receipts.InMemoryReceiptStagingStore(
+                com.databreeze.android.security.DevicePayloadCipher(keyStore),
+                keyStore,
+            ),
+            receiptUploadScheduler = com.databreeze.android.receipts.RecordingReceiptUploadScheduler(),
+            receiptUploadTransport = com.databreeze.android.receipts.UnconfiguredReceiptUploadTransport(),
+            receiptKeyHandle = DeviceKeyHandle("receipt-staging"),
         )
 
         val signIn = async(Dispatchers.Default) { runtime.signIn(scope, "device-key") }

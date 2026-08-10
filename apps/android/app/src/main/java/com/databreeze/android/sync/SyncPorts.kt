@@ -21,6 +21,9 @@ import com.databreeze.contracts.v1.Identifier
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.TimeUnit
+import com.databreeze.android.receipts.ReceiptUploadTransport
+import com.databreeze.android.receipts.ReceiptUploadWorker
+import com.databreeze.android.receipts.UnconfiguredReceiptUploadTransport
 
 private const val ACCOUNT_ID = "account_id"
 private const val WORKSPACE_ID = "workspace_id"
@@ -214,6 +217,7 @@ class DataBreezeWorkerFactory(
     private val store: LocalStorePort,
     private val transport: SyncTransport,
     private val revocationGuard: SyncRevocationGuard,
+    private val receiptUploadTransport: ReceiptUploadTransport = UnconfiguredReceiptUploadTransport(),
 ) : WorkerFactory() {
     override fun createWorker(
         appContext: Context,
@@ -222,6 +226,8 @@ class DataBreezeWorkerFactory(
     ): ListenableWorker? = when (workerClassName) {
         SyncWorker::class.qualifiedName ->
             SyncWorker(appContext, workerParameters, store, transport, revocationGuard)
+        ReceiptUploadWorker::class.qualifiedName ->
+            ReceiptUploadWorker(appContext, workerParameters, receiptUploadTransport, revocationGuard)
         else -> null
     }
 }

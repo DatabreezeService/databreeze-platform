@@ -14,10 +14,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -25,39 +22,36 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.databreeze.android.receipts.ReceiptCaptureScreen
+import com.databreeze.android.receipts.ReceiptCaptureViewModel
+import com.databreeze.android.receipts.ReceiptDestination
+import com.databreeze.android.receipts.ReceiptFieldCandidate
+import com.databreeze.android.receipts.ReceiptReviewScreen
+import com.databreeze.android.receipts.ReceiptReviewViewModel
 import com.databreeze.android.storage.AccountWorkspaceScope
-import com.databreeze.android.storage.InMemoryLocalStore
-import com.databreeze.android.storage.LocalStorePort
-import com.databreeze.android.storage.SyncQueueEntity
-import com.databreeze.android.sync.SyncScheduler
 import com.databreeze.android.workbench.ModuleDetailScreen
 import com.databreeze.android.workbench.ProductModuleWorkbench
 import com.databreeze.android.workbench.WorkbenchScreen
-import kotlinx.coroutines.launch
 
 private object AppRoutes {
     const val HOME = "home"
     const val CAPTURE = "capture"
     const val WORKBENCH = "workbench"
     const val MODULE = "module/{moduleId}"
+    const val REVIEW = "receipt-review/{sessionId}"
 
     fun moduleDetail(moduleId: String): String = "module/$moduleId"
+    fun review(sessionId: String): String = "receipt-review/$sessionId"
 }
 
 private val localScope = AccountWorkspaceScope("local-account", "local-workspace")
-private const val DRAFT_MUTATION_ID = "capture-draft"
-private const val DRAFT_DIGEST = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val application = application as DataBreezeApplication
         setContent {
-            DataBreezeApp(
-                localStore = application.runtime.localStore,
-                scope = localScope,
-                syncScheduler = application.runtime.syncScheduler,
-            )
+            DataBreezeApp(runtime = application.runtime, scope = localScope)
         }
     }
 }
@@ -65,9 +59,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun DataBreezeApp(
-    localStore: LocalStorePort = remember { InMemoryLocalStore() },
+    runtime: AndroidRuntime,
     scope: AccountWorkspaceScope = localScope,
-    syncScheduler: SyncScheduler? = null,
 ) {
     val navController = rememberNavController()
     DataBreezeTheme {
@@ -103,10 +96,42 @@ fun DataBreezeApp(
                     )
                 }
                 composable(AppRoutes.CAPTURE) {
-                    CaptureScreen(
-                        localStore = localStore,
-                        scope = scope,
-                        syncScheduler = syncScheduler,
+                    val viewModel = remember(runtime, scope) {
+                        ReceiptCaptureViewModel(
+                            scope = scope,
+                            stagingStore = runtime.receiptStagingStore,
+                            uploadScheduler = runtime.receiptUploadScheduler,
+                            keyHandle = runtime.receiptKeyHandle,
+                        ).also {
+                            it.setDestination(ReceiptDestination.Hybrid(workspaceGrantId = "grant-local"))
+                            it.setScopeAuthorized(true)
+                        }
+                    }
+                    ReceiptCaptureScreen(
+                        viewModel = viewModel,
+                        onBack = { navController.popBackStack() },
+                        onOpenReview = { sessionId ->
+                            navController.navigate(AppRoutes.review(sessionId))
+                        },
+                    )
+                }
+                composable(AppRoutes.REVIEW) { entry ->
+                    val sessionId = entry.arguments?.getString("sessionId").orEmpty()
+                    val reviewModel = remember(sessionId) {
+                        ReceiptReviewViewModel().also { vm ->
+                            vm.loadCandidate(
+                                candidateId = "candidate-$sessionId",
+                                adapterVersion = "fake-ocr-1",
+                                fields = listOf(
+                                    ReceiptFieldCandidate("merchant", "Cafe", 90, "crop-merchant"),
+                                    ReceiptFieldCandidate("total", "120000", 70, "crop-total"),
+                                    ReceiptFieldCandidate("currency", "VND", 97, "crop-currency"),
+                                ),
+                            )
+                        }
+                    }
+                    ReceiptReviewScreen(
+                        viewModel = reviewModel,
                         onBack = { navController.popBackStack() },
                     )
                 }
@@ -133,56 +158,7 @@ private fun HomeScreen(
             Text(stringResource(R.string.workbench_action))
         }
         Button(onClick = onCapture, modifier = Modifier.testTag("capture-button")) {
-            Text(stringResource(R.string.capture_action))
-        }
-    }
-}
-
-@Composable
-private fun CaptureScreen(
-    localStore: LocalStorePort,
-    scope: AccountWorkspaceScope,
-    syncScheduler: SyncScheduler?,
-    onBack: () -> Unit,
-) {
-    val queue by localStore.observeQueue(scope).collectAsState(initial = emptyList())
-    val coroutineScope = rememberCoroutineScope()
-    val submitted = queue.any { it.mutationId == DRAFT_MUTATION_ID }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-            .testTag("capture-screen"),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Text(stringResource(R.string.capture_title), style = MaterialTheme.typography.headlineSmall)
-        Text(
-            stringResource(if (submitted) R.string.capture_saved else R.string.capture_body),
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.testTag("draft-status"),
-        )
-        Button(
-            onClick = {
-                coroutineScope.launch {
-                    localStore.enqueue(
-                        SyncQueueEntity(
-                            accountId = scope.accountId,
-                            workspaceId = scope.workspaceId,
-                            mutationId = DRAFT_MUTATION_ID,
-                            operationType = "capture.submit",
-                            payloadHash = DRAFT_DIGEST,
-                            createdAtEpochMs = System.currentTimeMillis(),
-                        ),
-                    )
-                    syncScheduler?.enqueue(scope)
-                }
-            },
-            modifier = Modifier.testTag("save-button"),
-        ) {
-            Text(stringResource(R.string.capture_save))
-        }
-        Button(onClick = onBack, modifier = Modifier.testTag("back-button")) {
-            Text(stringResource(R.string.back_action))
+            Text(stringResource(R.string.receipt_capture_action))
         }
     }
 }
