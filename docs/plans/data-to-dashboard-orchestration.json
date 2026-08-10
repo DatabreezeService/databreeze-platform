@@ -571,7 +571,7 @@
         "corepack pnpm contracts:check",
         "corepack pnpm repo:check"
       ],
-      "commit": "PENDING_HEAD",
+      "commit": "20a49ff6f0a793186d859a29550c9ec65785a055",
       "evidence": [
         "docs/evidence/dda/integration-ledger.md",
         "docs/evidence/dda/parity-report.md",
