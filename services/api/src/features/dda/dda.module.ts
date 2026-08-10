@@ -89,11 +89,13 @@ import {
   loadOpenAiReceiptOcrConfig,
   OpenAiReceiptOcrAdapter,
 } from './receipt/adapter/openai-receipt-ocr.adapter.js';
+import { DefaultReceiptAiPolicyAdapter } from './receipt/application/default-receipt-ai-policy.adapter.js';
 import { DeterministicFakeReceiptOcrAdapter } from './receipt/application/deterministic-fake-receipt-ocr.adapter.js';
 import {
   ReceiptAcceptanceService,
   type ReceiptGovernedRecordPort,
 } from './receipt/application/receipt-acceptance.service.js';
+import type { ReceiptAiPolicyPort } from './receipt/application/receipt-ai-policy.port.js';
 import { ReceiptExtractionService } from './receipt/application/receipt-extraction.service.js';
 import type { ReceiptOcrPort } from './receipt/application/receipt-ocr.port.js';
 import { ReceiptValidationService } from './receipt/application/receipt-validation.service.js';
@@ -130,6 +132,7 @@ export interface DdaModuleOptions {
   readonly refreshCoordinator?: RefreshCoordinatorPortV1;
   readonly intakeIae?: IntakeIaeFinalizationPortV1;
   readonly receiptOcr?: ReceiptOcrPort;
+  readonly receiptAiPolicy?: ReceiptAiPolicyPort;
   readonly iaePort?: DdaIaePortV1;
   readonly dsmPort?: DdaDsmPortV1;
   readonly jraPort?: DdaJraPortV1;
@@ -228,7 +231,14 @@ export class DdaModule {
     void (options.refreshUsage ?? createFailClosedRefreshUsageV1());
     void snapshotCommit;
     const receiptValidation = new ReceiptValidationService();
-    const receiptExtraction = new ReceiptExtractionService(receiptOcr, iae, aud);
+    const receiptAiPolicy = options.receiptAiPolicy ?? new DefaultReceiptAiPolicyAdapter();
+    const receiptExtraction = new ReceiptExtractionService(
+      receiptOcr,
+      iae,
+      aud,
+      receiptAiPolicy,
+      bua,
+    );
     const receiptAcceptance = new ReceiptAcceptanceService(
       receiptValidation,
       dsm,

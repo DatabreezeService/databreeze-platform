@@ -24,6 +24,8 @@ import type {
 } from '../features/dda/application/foundation-ports.js';
 import type { DatasetVersionRepositoryPortV1 } from '../features/dsm/application/dataset-version-repository.port.js';
 import type { DeviceCapabilityRepositoryPortV1 } from '../features/dso/application/device-capability-repository.port.js';
+import { ObjectStorageArtifactProcessingContentAdapter } from '../features/iae/adapter/object-storage-artifact-processing-content.adapter.js';
+import type { ArtifactProcessingContentPortV1 } from '../features/iae/application/artifact-processing-content.port.js';
 import type { ArtifactRepositoryPortV1 } from '../features/iae/application/artifact-repository.port.js';
 import { createIamTenantContextV1 } from '../features/iam/application/tenant-context.js';
 import type { JobRepositoryPortV1 } from '../features/jra/application/job-repository.port.js';
@@ -51,6 +53,7 @@ function asId(value: string): StableIdentifierV1 {
 /** Compose DDA IAE require-* ports from the IAE artifact repository (no fabricated success). */
 export function composeDdaIaePortFromArtifactRepository(
   artifacts: ArtifactRepositoryPortV1,
+  processingContent: ArtifactProcessingContentPortV1 = new ObjectStorageArtifactProcessingContentAdapter(),
 ): DdaIaePortV1 {
   return createLookupBackedDdaIaePortV1({
     async findArtifactVersion(reference) {
@@ -68,6 +71,7 @@ export function composeDdaIaePortFromArtifactRepository(
       const found = await artifacts.findVersion(context, asId(reference.id));
       if (found === undefined) throw new Error('DDA_AUTHORITY_MISSING');
     },
+    openProcessingContent: (input) => processingContent.openProcessingContent(input),
   });
 }
 

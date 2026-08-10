@@ -33,6 +33,7 @@ export interface OpenAiReceiptOcrAdapterOptions {
  * Fails closed without credentials or when the kill switch is off (ADR-0005).
  */
 export class OpenAiReceiptOcrAdapter implements ReceiptOcrPort {
+  public readonly requiresCloudEgress = true as const;
   readonly #config: OpenAiReceiptOcrConfig;
   readonly #fetchImpl: OpenAiFetch;
   readonly #nowMs: () => number;
@@ -53,6 +54,9 @@ export class OpenAiReceiptOcrAdapter implements ReceiptOcrPort {
     if (this.#config.store !== false || this.#config.toolsEnabled !== false) {
       throw new Error('OPENAI_UNSAFE_CONFIGURATION');
     }
+    if (!(request.imageBytes instanceof Uint8Array) || request.imageBytes.byteLength === 0) {
+      throw new Error('OPENAI_UNSAFE_CONFIGURATION');
+    }
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.#config.timeoutMs);
@@ -68,7 +72,7 @@ export class OpenAiReceiptOcrAdapter implements ReceiptOcrPort {
           model: this.#config.modelSnapshot,
           store: false,
           tools: [],
-          // Image bytes are resolved by the worker from IAE; this adapter records correlation only.
+          // Task 3 replaces identifier-only construction with strict image + schema input.
           input: [
             {
               role: 'user',
@@ -79,6 +83,11 @@ export class OpenAiReceiptOcrAdapter implements ReceiptOcrPort {
                     'Extract receipt fields as strict structured output.',
                     `artifactVersionId=${request.artifactVersionId}`,
                     `profileVersionId=${request.profileVersionId}`,
+                    `contentSha256=${request.contentSha256}`,
+                    `mediaType=${request.mediaType}`,
+                    `imageBytes=${request.imageBytes.byteLength}`,
+                    `preprocessingVersion=${request.preprocessingVersion}`,
+                    `coordinateSpace=${request.coordinateSpace}`,
                     `schemaVersion=${this.#config.schemaVersion}`,
                     `promptVersion=${this.#config.promptVersion}`,
                   ].join('\n'),

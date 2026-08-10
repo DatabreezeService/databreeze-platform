@@ -42,6 +42,14 @@ export function createFailClosedDdaFoundationPortsV1(): {
       addRetentionConstraint() {
         return Promise.reject(new DdaFoundationUnavailableError());
       },
+      openProcessingContent() {
+        return Promise.resolve(
+          Object.freeze({
+            accepted: false as const,
+            code: 'PROCESSING_CONTENT_UNAVAILABLE' as const,
+          }),
+        );
+      },
     },
     dsm: {
       requireDatasetVersion() {
@@ -74,6 +82,12 @@ export function createFailClosedDdaFoundationPortsV1(): {
       requireAdmission() {
         return Promise.reject(new DdaFoundationUnavailableError());
       },
+      reserveCapacity() {
+        return Promise.reject(new DdaFoundationUnavailableError());
+      },
+      finalizeReservation() {
+        return Promise.reject(new DdaFoundationUnavailableError());
+      },
     },
     aud: {
       emitContentSafeSummary() {
@@ -87,6 +101,7 @@ export interface DdaIaeLookupPortV1 {
   findArtifactVersion(reference: DdaAuthorityReferenceV1): Promise<boolean>;
   findEvidenceReference(reference: DdaAuthorityReferenceV1): Promise<boolean>;
   addRetentionConstraint(reference: DdaAuthorityReferenceV1, holdReason: string): Promise<void>;
+  openProcessingContent?: DdaIaePortV1['openProcessingContent'];
 }
 
 export interface DdaDsmLookupPortV1 {
@@ -107,6 +122,8 @@ export interface DdaDsoLookupPortV1 {
 
 export interface DdaBuaLookupPortV1 {
   admit(reference: DdaAuthorityReferenceV1, usageClass: string): Promise<boolean>;
+  reserveCapacity?: DdaBuaPortV1['reserveCapacity'];
+  finalizeReservation?: DdaBuaPortV1['finalizeReservation'];
 }
 
 export interface DdaAudLookupPortV1 {
@@ -130,6 +147,15 @@ export function createLookupBackedDdaIaePortV1(lookup: DdaIaeLookupPortV1): DdaI
       requirePresent(lookup.findEvidenceReference(reference)),
     addRetentionConstraint: (reference, holdReason) =>
       lookup.addRetentionConstraint(reference, holdReason),
+    openProcessingContent: (input) =>
+      lookup.openProcessingContent
+        ? lookup.openProcessingContent(input)
+        : Promise.resolve(
+            Object.freeze({
+              accepted: false as const,
+              code: 'PROCESSING_CONTENT_UNAVAILABLE' as const,
+            }),
+          ),
   };
 }
 
@@ -159,6 +185,20 @@ export function createLookupBackedDdaBuaPortV1(lookup: DdaBuaLookupPortV1): DdaB
   return {
     requireAdmission: (reference, usageClass) =>
       requirePresent(lookup.admit(reference, usageClass)),
+    reserveCapacity: async (input) => {
+      if (lookup.reserveCapacity) return lookup.reserveCapacity(input);
+      await requirePresent(lookup.admit(input.reference, input.usageClass));
+      return Object.freeze({
+        reservationId: input.reference.id,
+        usageClass: input.usageClass,
+      });
+    },
+    finalizeReservation: async (input) => {
+      if (lookup.finalizeReservation) {
+        await lookup.finalizeReservation(input);
+        return;
+      }
+    },
   };
 }
 

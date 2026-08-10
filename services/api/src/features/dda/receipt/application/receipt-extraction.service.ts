@@ -2,7 +2,13 @@ import { createHash, randomUUID } from 'node:crypto';
 
 import type { TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
-import type { DdaAudComposePortV1, DdaIaePortV1 } from '../../application/foundation-ports.js';
+import { OpenAiProviderError } from '../../ai/adapter/openai-provider.error.js';
+import type {
+  DdaAudComposePortV1,
+  DdaBuaPortV1,
+  DdaIaePortV1,
+} from '../../application/foundation-ports.js';
+import type { ReceiptAiPolicyPort } from './receipt-ai-policy.port.js';
 import type {
   ReceiptOcrEvidenceCoordinates,
   ReceiptOcrField,
@@ -12,11 +18,21 @@ import type {
 export type ReceiptExtractionErrorCode =
   | 'WRONG_SCOPE_ARTIFACT'
   | 'NON_RECEIPT_PROFILE'
+  | 'UNSUPPORTED_CONTENT_TYPE'
+  | 'HASH_MISMATCH'
+  | 'PAYLOAD_OVERSIZE'
+  | 'AI_EGRESS_DENIED'
+  | 'PURPOSE_DENIED'
+  | 'EVIDENCE_TRANSFER_DENIED'
+  | 'DISCLOSURE_MISSING'
+  | 'ADMISSION_DENIED'
+  | 'TENANT_REVOKED'
   | 'MALFORMED_COORDINATES'
   | 'MISSING_ADAPTER_VERSION'
   | 'OCR_PROVIDER_FAILED'
   | 'CANDIDATE_NOT_FOUND'
-  | 'INVALID_CORRECTION';
+  | 'INVALID_CORRECTION'
+  | 'PROCESSING_CONTENT_UNAVAILABLE';
 
 export interface ReceiptFieldCandidateView {
   readonly field: string;
@@ -51,8 +67,61 @@ export type ReceiptExtractionResult =
   | { readonly accepted: true; readonly value: ReceiptCandidateView }
   | { readonly accepted: false; readonly code: ReceiptExtractionErrorCode };
 
+const RETRYABLE_PROVIDER_CODES = new Set([
+  'OPENAI_TIMEOUT',
+  'OPENAI_RATE_LIMIT',
+  'OPENAI_TRANSIENT',
+]);
+
+const RECEIPT_MEDIA_TYPES = Object.freeze(['image/png', 'image/jpeg', 'image/webp'] as const);
+const DEFAULT_MAX_PAYLOAD_BYTES = 3_000_000;
+const DEFAULT_PREPROCESSING_VERSION = 'receipt-image-passthrough-v1';
+const DEFAULT_COORDINATE_SPACE = 'normalized-unit-square-v1';
+
 function workspaceIdOf(scope: TenantScopeV1): string | undefined {
   return scope.scopeType === 'organization' ? undefined : scope.workspaceId;
+}
+
+function isRetryableProviderError(error: unknown): boolean {
+  if (error instanceof OpenAiProviderError) {
+    return RETRYABLE_PROVIDER_CODES.has(error.code);
+  }
+  const code = (error as { code?: string } | undefined)?.code;
+  return typeof code === 'string' && RETRYABLE_PROVIDER_CODES.has(code);
+}
+
+function mapProcessingContentError(
+  code: string,
+): ReceiptExtractionErrorCode {
+  switch (code) {
+    case 'PROCESSING_CONTENT_SCOPE_DENIED':
+      return 'WRONG_SCOPE_ARTIFACT';
+    case 'PROCESSING_CONTENT_UNSUPPORTED_MEDIA_TYPE':
+      return 'UNSUPPORTED_CONTENT_TYPE';
+    case 'PROCESSING_CONTENT_HASH_MISMATCH':
+      return 'HASH_MISMATCH';
+    case 'PROCESSING_CONTENT_OVERSIZE':
+      return 'PAYLOAD_OVERSIZE';
+    case 'PROCESSING_CONTENT_NOT_FOUND':
+      return 'WRONG_SCOPE_ARTIFACT';
+    default:
+      return 'PROCESSING_CONTENT_UNAVAILABLE';
+  }
+}
+
+function mapPolicyError(code: string): ReceiptExtractionErrorCode {
+  switch (code) {
+    case 'PURPOSE_DENIED':
+      return 'PURPOSE_DENIED';
+    case 'EVIDENCE_TRANSFER_DENIED':
+      return 'EVIDENCE_TRANSFER_DENIED';
+    case 'DISCLOSURE_MISSING':
+      return 'DISCLOSURE_MISSING';
+    case 'TENANT_REVOKED':
+      return 'TENANT_REVOKED';
+    default:
+      return 'AI_EGRESS_DENIED';
+  }
 }
 
 export class ReceiptExtractionService {
@@ -63,6 +132,8 @@ export class ReceiptExtractionService {
     private readonly ocr: ReceiptOcrPort,
     private readonly iae: DdaIaePortV1,
     private readonly aud: DdaAudComposePortV1,
+    private readonly policy: ReceiptAiPolicyPort,
+    private readonly bua: DdaBuaPortV1,
   ) {}
 
   public getCandidate(candidateId: string): ReceiptCandidateView | undefined {
@@ -77,8 +148,10 @@ export class ReceiptExtractionService {
     readonly correlationId: string;
     readonly idempotencyKey?: string;
     readonly maxAttempts?: number;
+    readonly expectedContentSha256?: string;
   }): Promise<ReceiptExtractionResult> {
     if (input.profileKind !== 'receipt') {
+      await this.emitOutcome(input, 'DENIED', [input.artifactVersionId]);
       return Object.freeze({ accepted: false, code: 'NON_RECEIPT_PROFILE' as const });
     }
     if (input.idempotencyKey) {
@@ -90,13 +163,74 @@ export class ReceiptExtractionService {
         });
       }
     }
+
     try {
       await this.iae.requireArtifactVersion({
         id: input.artifactVersionId,
         tenantScope: input.tenantScope,
       });
     } catch {
+      await this.emitOutcome(input, 'DENIED', [input.artifactVersionId]);
       return Object.freeze({ accepted: false, code: 'WRONG_SCOPE_ARTIFACT' as const });
+    }
+
+    const requiresCloudEgress = this.ocr.requiresCloudEgress === true;
+    const content = await this.iae.openProcessingContent({
+      tenantScope: input.tenantScope,
+      artifactVersionId: input.artifactVersionId,
+      ...(input.expectedContentSha256 !== undefined
+        ? { expectedContentSha256: input.expectedContentSha256 }
+        : {}),
+      maximumByteLength: DEFAULT_MAX_PAYLOAD_BYTES,
+      allowedMediaTypes: RECEIPT_MEDIA_TYPES,
+    });
+    if (!content.accepted) {
+      const code = mapProcessingContentError(content.code);
+      await this.emitOutcome(input, 'DENIED', [input.artifactVersionId]);
+      return Object.freeze({ accepted: false, code });
+    }
+
+    const policyDecision = await this.policy.resolveReceiptExtractionPolicy({
+      tenantScope: input.tenantScope,
+      payloadBytes: content.value.byteLength,
+      requiresCloudEgress,
+    });
+    if (!policyDecision.accepted) {
+      const code = mapPolicyError(policyDecision.code);
+      await this.emitOutcome(input, 'DENIED', [input.artifactVersionId]);
+      return Object.freeze({ accepted: false, code });
+    }
+    if (requiresCloudEgress && !policyDecision.value.cloudEgressAllowed) {
+      await this.emitOutcome(input, 'DENIED', [input.artifactVersionId]);
+      return Object.freeze({ accepted: false, code: 'AI_EGRESS_DENIED' as const });
+    }
+    if (
+      requiresCloudEgress &&
+      content.value.byteLength > policyDecision.value.policy.maximumPayloadBytes
+    ) {
+      await this.emitOutcome(input, 'DENIED', [input.artifactVersionId]);
+      return Object.freeze({ accepted: false, code: 'PAYLOAD_OVERSIZE' as const });
+    }
+
+    const reference = {
+      id: input.artifactVersionId,
+      tenantScope: input.tenantScope,
+    };
+    let reservationId: string | undefined;
+    try {
+      const reservation = await this.bua.reserveCapacity({
+        reference,
+        usageClass: 'RECEIPT_OCR',
+        requestUnits: 1,
+        imageBytes: content.value.byteLength,
+        textTokensEstimate: 0,
+        retryBudget: input.maxAttempts ?? 1,
+        costUnitsEstimate: 1,
+      });
+      reservationId = reservation.reservationId;
+    } catch {
+      await this.emitOutcome(input, 'DENIED', [input.artifactVersionId]);
+      return Object.freeze({ accepted: false, code: 'ADMISSION_DENIED' as const });
     }
 
     const maxAttempts = input.maxAttempts ?? 1;
@@ -108,24 +242,53 @@ export class ReceiptExtractionService {
           artifactVersionId: input.artifactVersionId,
           profileVersionId: input.profileVersionId,
           tenantWorkspaceId: workspaceIdOf(input.tenantScope) ?? '',
+          contentSha256: content.value.contentSha256,
+          mediaType: content.value.mediaType,
+          imageBytes: content.value.bytes,
+          preprocessingVersion: DEFAULT_PREPROCESSING_VERSION,
+          coordinateSpace: DEFAULT_COORDINATE_SPACE,
         });
         lastError = undefined;
         break;
       } catch (error) {
         lastError = error;
-        const code = (error as { code?: string } | undefined)?.code;
-        if (code !== 'OCR_TIMEOUT' || attempt === maxAttempts) break;
+        if (!isRetryableProviderError(error) || attempt === maxAttempts) break;
       }
     }
+
     if (!ocrResult) {
       void lastError;
+      if (reservationId) {
+        await this.bua.finalizeReservation({
+          reservationId,
+          reference,
+          outcome: 'FAILED',
+        });
+      }
+      await this.emitOutcome(input, 'FAILED', [input.artifactVersionId]);
       return Object.freeze({ accepted: false, code: 'OCR_PROVIDER_FAILED' as const });
     }
     if (!ocrResult.adapterVersion || !ocrResult.modelVersion) {
+      if (reservationId) {
+        await this.bua.finalizeReservation({
+          reservationId,
+          reference,
+          outcome: 'FAILED',
+        });
+      }
+      await this.emitOutcome(input, 'FAILED', [input.artifactVersionId]);
       return Object.freeze({ accepted: false, code: 'MISSING_ADAPTER_VERSION' as const });
     }
     for (const field of ocrResult.fields) {
       if (!coordinatesValid(field)) {
+        if (reservationId) {
+          await this.bua.finalizeReservation({
+            reservationId,
+            reference,
+            outcome: 'FAILED',
+          });
+        }
+        await this.emitOutcome(input, 'REVIEW_REQUIRED', [input.artifactVersionId]);
         return Object.freeze({ accepted: false, code: 'MALFORMED_COORDINATES' as const });
       }
     }
@@ -139,13 +302,14 @@ export class ReceiptExtractionService {
       fields: ocrResult.fields,
     });
     if (input.idempotencyKey) this.byIdempotency.set(input.idempotencyKey, candidate);
-    await this.aud.emitContentSafeSummary({
-      tenantScope: input.tenantScope,
-      action: 'RECEIPT_EXTRACTION',
-      outcome: 'SUCCEEDED',
-      correlationId: input.correlationId,
-      references: [candidate.candidateId, input.artifactVersionId],
-    });
+    if (reservationId) {
+      await this.bua.finalizeReservation({
+        reservationId,
+        reference,
+        outcome: 'SUCCEEDED',
+      });
+    }
+    await this.emitOutcome(input, 'SUCCEEDED', [candidate.candidateId, input.artifactVersionId]);
     return Object.freeze({ accepted: true, value: candidate });
   }
 
@@ -191,6 +355,24 @@ export class ReceiptExtractionService {
       references: [candidate.candidateId, prior.candidateId],
     });
     return Object.freeze({ accepted: true, value: candidate });
+  }
+
+  private async emitOutcome(
+    input: {
+      readonly tenantScope: TenantScopeV1;
+      readonly correlationId: string;
+      readonly artifactVersionId: string;
+    },
+    outcome: string,
+    references: readonly string[],
+  ): Promise<void> {
+    await this.aud.emitContentSafeSummary({
+      tenantScope: input.tenantScope,
+      action: 'RECEIPT_EXTRACTION',
+      outcome,
+      correlationId: input.correlationId,
+      references: [...references],
+    });
   }
 
   private persistCandidate(input: {

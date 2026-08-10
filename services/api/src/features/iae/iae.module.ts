@@ -80,6 +80,11 @@ import {
   ARTIFACT_UPLOAD_STORAGE_PORT,
   type ArtifactUploadStoragePortV1,
 } from './application/artifact-upload-storage.port.js';
+import { ObjectStorageArtifactProcessingContentAdapter } from './adapter/object-storage-artifact-processing-content.adapter.js';
+import {
+  ARTIFACT_PROCESSING_CONTENT_PORT,
+  type ArtifactProcessingContentPortV1,
+} from './application/artifact-processing-content.port.js';
 import {
   PROTECTED_DOCUMENT_SECRET_INPUT_PORT,
   type ProtectedDocumentSecretInputPortV1,
@@ -118,6 +123,7 @@ export interface IaeModuleOptions {
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly artifactUploadDatabase?: ArtifactUploadDatabaseClientV1;
   readonly artifactUploadStorage?: ArtifactUploadStoragePortV1;
+  readonly artifactProcessingContent?: ArtifactProcessingContentPortV1;
   readonly protectedDocumentUnlockRepository?: ProtectedDocumentUnlockRepositoryPortV1;
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly protectedDocumentUnlockDatabase?: ProtectedDocumentUnlockDatabaseClientV1;
@@ -199,6 +205,11 @@ export class IaeModule {
           useValue: options.artifactUploadStorage ?? new InMemoryArtifactUploadStorageAdapter(),
         },
         {
+          provide: ARTIFACT_PROCESSING_CONTENT_PORT,
+          useValue:
+            options.artifactProcessingContent ?? new ObjectStorageArtifactProcessingContentAdapter(),
+        },
+        {
           provide: PROTECTED_DOCUMENT_UNLOCK_REPOSITORY_PORT,
           useValue:
             options.protectedDocumentUnlockRepository ??
@@ -235,6 +246,7 @@ export class IaeModule {
         ARTIFACT_EXPORT_REPOSITORY_PORT,
         ARTIFACT_UPLOAD_REPOSITORY_PORT,
         ARTIFACT_UPLOAD_STORAGE_PORT,
+        ARTIFACT_PROCESSING_CONTENT_PORT,
         PROTECTED_DOCUMENT_UNLOCK_REPOSITORY_PORT,
         PROTECTED_DOCUMENT_SECRET_INPUT_PORT,
         EVIDENCE_GRANT_REPOSITORY_PORT,

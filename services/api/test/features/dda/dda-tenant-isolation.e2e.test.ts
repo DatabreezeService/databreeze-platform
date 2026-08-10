@@ -95,3 +95,64 @@ void test('[DDA-001] cross-tenant fixture identifier is rejected by contracts su
   assert.match(fixture, /organizationId/u);
   assert.doesNotMatch(fixture, /sk-[a-zA-Z0-9]/u);
 });
+
+void test('[DDA-044] copied OpenAI adapter allowlist from another tenant never authorizes receipt egress', async () => {
+  const { DefaultReceiptAiPolicyAdapter } =
+    await import('../../../src/features/dda/receipt/application/default-receipt-ai-policy.adapter.js');
+
+  const policyA = createDdaAiEgressPolicyV1({
+    policyId: '00000000-0000-4000-8000-0000000000aa',
+    tenantScope: orgA,
+    enabled: true,
+    locality: 'CLOUD',
+    adapterAllowlist: ['openai-responses'],
+    purposeAllowlist: ['RECEIPT_EXTRACTION'],
+    allowEvidence: true,
+    maximumPayloadBytes: 4096,
+  });
+  const policyB = createDdaAiEgressPolicyV1({
+    policyId: '00000000-0000-4000-8000-0000000000bb',
+    tenantScope: orgB,
+    enabled: false,
+    locality: 'DENIED',
+    // Same adapter string copied from tenant A — still denied by tenant B policy.
+    adapterAllowlist: ['openai-responses'],
+    purposeAllowlist: ['RECEIPT_EXTRACTION'],
+    allowEvidence: true,
+    maximumPayloadBytes: 4096,
+  });
+  assert.equal(policyA.accepted, true);
+  assert.equal(policyB.accepted, true);
+  if (!policyA.accepted || !policyB.accepted) return;
+
+  const adapter = new DefaultReceiptAiPolicyAdapter({
+    getPolicy(tenantScope) {
+      return tenantScope.organizationId === orgA.organizationId ? policyA.value : policyB.value;
+    },
+    getDisclosureVersion() {
+      return 'disclosure-v1';
+    },
+    isTenantRevoked() {
+      return false;
+    },
+  });
+
+  const scopeA = parseTenantScopeV1(orgA);
+  const scopeB = parseTenantScopeV1(orgB);
+  assert.equal(scopeA.accepted, true);
+  assert.equal(scopeB.accepted, true);
+  if (!scopeA.accepted || !scopeB.accepted) return;
+
+  const allowedA = await adapter.resolveReceiptExtractionPolicy({
+    tenantScope: scopeA.value,
+    payloadBytes: 128,
+    requiresCloudEgress: true,
+  });
+  const deniedB = await adapter.resolveReceiptExtractionPolicy({
+    tenantScope: scopeB.value,
+    payloadBytes: 128,
+    requiresCloudEgress: true,
+  });
+  assert.equal(allowedA.accepted, true);
+  assert.equal(deniedB.accepted, false);
+});

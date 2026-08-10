@@ -114,6 +114,12 @@ void test('[DDA-046] retention goes through IAE and never deletes storage direct
       calls.push(`${reference.id}:${holdReason}`);
       return Promise.resolve();
     },
+    openProcessingContent() {
+      return Promise.resolve({
+        accepted: false as const,
+        code: 'PROCESSING_CONTENT_UNAVAILABLE' as const,
+      });
+    },
   };
   const service = new DdaPolicyServiceV1(
     {

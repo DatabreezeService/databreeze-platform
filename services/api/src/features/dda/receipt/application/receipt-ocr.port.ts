@@ -18,14 +18,24 @@ export interface ReceiptOcrResult {
   readonly adapterVersion: string;
   readonly modelVersion: string;
   readonly fields: readonly ReceiptOcrField[];
+  readonly promptVersion?: string;
+  readonly schemaVersion?: string;
+  readonly preprocessingVersion?: string;
 }
 
 export interface ReceiptOcrRequest {
   readonly artifactVersionId: string;
   readonly profileVersionId: string;
   readonly tenantWorkspaceId: string;
+  readonly contentSha256: string;
+  readonly mediaType: string;
+  readonly imageBytes: Uint8Array;
+  readonly preprocessingVersion: string;
+  readonly coordinateSpace: string;
 }
 
 export interface ReceiptOcrPort {
+  /** Cloud OpenAI adapters must set this so application services enforce egress policy. */
+  readonly requiresCloudEgress?: boolean;
   extract(request: ReceiptOcrRequest): Promise<ReceiptOcrResult>;
 }

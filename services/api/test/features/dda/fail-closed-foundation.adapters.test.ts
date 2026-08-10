@@ -48,6 +48,29 @@ void test('[DDA-001] default foundation ports fail closed when authorities are n
   );
   await assert.rejects(
     () =>
+      ports.bua.reserveCapacity({
+        reference,
+        usageClass: 'RECEIPT_OCR',
+        requestUnits: 1,
+        imageBytes: 128,
+        textTokensEstimate: 0,
+        retryBudget: 1,
+        costUnitsEstimate: 1,
+      }),
+    /DDA_FOUNDATION_UNAVAILABLE/u,
+  );
+  const processing = await ports.iae.openProcessingContent({
+    tenantScope,
+    artifactVersionId: reference.id,
+    maximumByteLength: 1024,
+    allowedMediaTypes: ['image/png'],
+  });
+  assert.equal(processing.accepted, false);
+  if (!processing.accepted) {
+    assert.equal(processing.code, 'PROCESSING_CONTENT_UNAVAILABLE');
+  }
+  await assert.rejects(
+    () =>
       ports.aud.emitContentSafeSummary({
         tenantScope,
         action: 'dda.test',

@@ -2,6 +2,8 @@ import type { ReceiptOcrPort, ReceiptOcrRequest, ReceiptOcrResult } from './rece
 
 /** Deterministic fake adapter for tests/demo. Not a production OCR claim. */
 export class DeterministicFakeReceiptOcrAdapter implements ReceiptOcrPort {
+  public readonly requiresCloudEgress = false as const;
+
   public extract(request: ReceiptOcrRequest): Promise<ReceiptOcrResult> {
     void request;
     return Promise.resolve(

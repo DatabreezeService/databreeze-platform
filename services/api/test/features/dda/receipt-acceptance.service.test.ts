@@ -44,6 +44,12 @@ void test('[DDA-042] acceptance is idempotent and emits DSM only after validatio
     addRetentionConstraint() {
       return Promise.resolve(undefined);
     },
+    openProcessingContent() {
+      return Promise.resolve({
+        accepted: false as const,
+        code: 'PROCESSING_CONTENT_UNAVAILABLE' as const,
+      });
+    },
   };
   const aud: DdaAudComposePortV1 = {
     emitContentSafeSummary(input) {
@@ -113,6 +119,12 @@ void test('[DDA-042] expected-revision conflict user correction path and DSM fai
     },
     addRetentionConstraint() {
       return Promise.resolve(undefined);
+    },
+    openProcessingContent() {
+      return Promise.resolve({
+        accepted: false as const,
+        code: 'PROCESSING_CONTENT_UNAVAILABLE' as const,
+      });
     },
   };
   const aud: DdaAudComposePortV1 = {

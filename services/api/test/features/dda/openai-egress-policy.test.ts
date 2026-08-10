@@ -38,9 +38,23 @@ void test('[DDA-044, ADR-0005] OpenAI receipt egress fails closed when credentia
         artifactVersionId: '00000000-0000-4000-8000-000000000501',
         profileVersionId: '00000000-0000-4000-8000-000000000502',
         tenantWorkspaceId: scope.workspaceId,
+        contentSha256: 'a'.repeat(64),
+        mediaType: 'image/png',
+        imageBytes: Uint8Array.from([0x89, 0x50, 0x4e, 0x47]),
+        preprocessingVersion: 'receipt-image-passthrough-v1',
+        coordinateSpace: 'normalized-unit-square-v1',
       }),
     (error: unknown) => error instanceof Error && error.message === 'OPENAI_CREDENTIAL_UNAVAILABLE',
   );
+});
+
+void test('[DDA-044, ADR-0005] OpenAI adapter requires cloud egress and never exposes image bytes in errors', async () => {
+  const config = loadOpenAiReceiptOcrConfig({
+    OPENAI_API_KEY: undefined,
+    DATABREEZE_OPENAI_RECEIPT_MODEL: 'gpt-4o-mini-2024-07-18',
+  });
+  const adapter = new OpenAiReceiptOcrAdapter(config);
+  assert.equal(adapter.requiresCloudEgress, true);
 });
 
 void test('[DDA-044, ADR-0005] receipt extraction purpose is denied unless policy enables OpenAI', () => {

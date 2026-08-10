@@ -1,15 +1,24 @@
 import assert from 'node:assert/strict';
+import { createHash, randomUUID } from 'node:crypto';
 import test from 'node:test';
 
+import { createDdaAiEgressPolicyV1 } from '@databreeze/domain/data-to-dashboard/policy-v1';
 import { parseTenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
+import { OpenAiProviderError } from '../../../src/features/dda/ai/adapter/openai-provider.error.js';
+import type {
+  DdaAudComposePortV1,
+  DdaBuaPortV1,
+  DdaIaePortV1,
+} from '../../../src/features/dda/application/foundation-ports.js';
+import { DefaultReceiptAiPolicyAdapter } from '../../../src/features/dda/receipt/application/default-receipt-ai-policy.adapter.js';
 import { DeterministicFakeReceiptOcrAdapter } from '../../../src/features/dda/receipt/application/deterministic-fake-receipt-ocr.adapter.js';
 import { ReceiptExtractionService } from '../../../src/features/dda/receipt/application/receipt-extraction.service.js';
+import type { ReceiptAiPolicyPort } from '../../../src/features/dda/receipt/application/receipt-ai-policy.port.js';
 import type { ReceiptOcrPort } from '../../../src/features/dda/receipt/application/receipt-ocr.port.js';
-import type {
-  DdaIaePortV1,
-  DdaAudComposePortV1,
-} from '../../../src/features/dda/application/foundation-ports.js';
+import {
+  deterministicCapabilitiesWhenAiUnavailableV1,
+} from '@databreeze/domain/data-to-dashboard/policy-v1';
 
 const scopeResult = parseTenantScopeV1({
   scopeType: 'project',
@@ -32,8 +41,17 @@ const otherScope = otherScopeResult.accepted ? otherScopeResult.value : (null as
 const ARTIFACT = '00000000-0000-4000-8000-000000000023';
 const PROFILE = '00000000-0000-4000-8000-000000000011';
 const CORRELATION = '00000000-0000-4000-8000-000000000041';
+const PNG_BYTES = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x01]);
+const PNG_HASH = createHash('sha256').update(PNG_BYTES).digest('hex');
 
-function iaePort(ownedArtifactIds: ReadonlySet<string>): DdaIaePortV1 {
+function iaePort(ownedArtifactIds: ReadonlySet<string>, options?: {
+  readonly mediaType?: string;
+  readonly bytes?: Uint8Array;
+  readonly contentSha256?: string;
+}): DdaIaePortV1 {
+  const bytes = options?.bytes ?? PNG_BYTES;
+  const contentSha256 = options?.contentSha256 ?? createHash('sha256').update(bytes).digest('hex');
+  const mediaType = options?.mediaType ?? 'image/png';
   return {
     requireArtifactVersion(reference) {
       const expectedWorkspace = scope.scopeType === 'organization' ? undefined : scope.workspaceId;
@@ -52,19 +70,135 @@ function iaePort(ownedArtifactIds: ReadonlySet<string>): DdaIaePortV1 {
     addRetentionConstraint() {
       return Promise.resolve(undefined);
     },
+    openProcessingContent(input) {
+      if (!ownedArtifactIds.has(input.artifactVersionId)) {
+        return Promise.resolve({
+          accepted: false as const,
+          code: 'PROCESSING_CONTENT_SCOPE_DENIED' as const,
+        });
+      }
+      const expectedWorkspace = scope.scopeType === 'organization' ? undefined : scope.workspaceId;
+      const actualWorkspace =
+        input.tenantScope.scopeType === 'organization' ? undefined : input.tenantScope.workspaceId;
+      if (actualWorkspace !== expectedWorkspace) {
+        return Promise.resolve({
+          accepted: false as const,
+          code: 'PROCESSING_CONTENT_SCOPE_DENIED' as const,
+        });
+      }
+      if (!input.allowedMediaTypes.includes(mediaType)) {
+        return Promise.resolve({
+          accepted: false as const,
+          code: 'PROCESSING_CONTENT_UNSUPPORTED_MEDIA_TYPE' as const,
+        });
+      }
+      if (bytes.byteLength > input.maximumByteLength) {
+        return Promise.resolve({
+          accepted: false as const,
+          code: 'PROCESSING_CONTENT_OVERSIZE' as const,
+        });
+      }
+      if (
+        input.expectedContentSha256 !== undefined &&
+        input.expectedContentSha256 !== contentSha256
+      ) {
+        return Promise.resolve({
+          accepted: false as const,
+          code: 'PROCESSING_CONTENT_HASH_MISMATCH' as const,
+        });
+      }
+      return Promise.resolve({
+        accepted: true as const,
+        value: Object.freeze({
+          artifactVersionId: input.artifactVersionId,
+          tenantScope: input.tenantScope,
+          contentSha256,
+          mediaType,
+          byteLength: bytes.byteLength,
+          bytes,
+          pageCount: 1,
+        }),
+      });
+    },
   };
 }
 
-void test('[DDA-041] extraction rejects wrong-scope artifact and non-receipt profile', async () => {
-  const service = new ReceiptExtractionService(
-    new DeterministicFakeReceiptOcrAdapter(),
-    iaePort(new Set([ARTIFACT])),
-    {
+function admittingBua(): DdaBuaPortV1 {
+  return {
+    requireAdmission() {
+      return Promise.resolve();
+    },
+    reserveCapacity(input) {
+      return Promise.resolve({
+        reservationId: randomUUID(),
+        usageClass: input.usageClass,
+      });
+    },
+    finalizeReservation() {
+      return Promise.resolve();
+    },
+  };
+}
+
+function denyingBua(): DdaBuaPortV1 {
+  return {
+    requireAdmission() {
+      return Promise.reject(new Error('ADMISSION_DENIED'));
+    },
+    reserveCapacity() {
+      return Promise.reject(new Error('ADMISSION_DENIED'));
+    },
+    finalizeReservation() {
+      return Promise.resolve();
+    },
+  };
+}
+
+function localPolicy(): ReceiptAiPolicyPort {
+  return new DefaultReceiptAiPolicyAdapter();
+}
+
+function recordingAud(): {
+  readonly aud: DdaAudComposePortV1;
+  readonly outcomes: string[];
+} {
+  const outcomes: string[] = [];
+  return {
+    outcomes,
+    aud: {
+      emitContentSafeSummary(input) {
+        outcomes.push(input.outcome);
+        return Promise.resolve(undefined);
+      },
+    },
+  };
+}
+
+function serviceWith(
+  ocr: ReceiptOcrPort,
+  options?: {
+    readonly iae?: DdaIaePortV1;
+    readonly aud?: DdaAudComposePortV1;
+    readonly policy?: ReceiptAiPolicyPort;
+    readonly bua?: DdaBuaPortV1;
+  },
+): ReceiptExtractionService {
+  return new ReceiptExtractionService(
+    ocr,
+    options?.iae ?? iaePort(new Set([ARTIFACT])),
+    options?.aud ?? {
       emitContentSafeSummary() {
         return Promise.resolve(undefined);
       },
     },
+    options?.policy ?? localPolicy(),
+    options?.bua ?? admittingBua(),
   );
+}
+
+void test('[DDA-041] extraction rejects wrong-scope artifact and non-receipt profile', async () => {
+  const { aud, outcomes } = recordingAud();
+  const service = serviceWith(new DeterministicFakeReceiptOcrAdapter(), { aud });
   const wrongScope = await service.extract({
     tenantScope: otherScope,
     artifactVersionId: ARTIFACT,
@@ -84,17 +218,17 @@ void test('[DDA-041] extraction rejects wrong-scope artifact and non-receipt pro
   });
   assert.equal(nonReceipt.accepted, false);
   assert.equal(nonReceipt.code, 'NON_RECEIPT_PROFILE');
+  assert.ok(outcomes.includes('DENIED'));
 });
 
 void test('[DDA-041] provider timeout retries then surfaces reviewable failure without mutating original', async () => {
   let attempts = 0;
   const flaky: ReceiptOcrPort = {
+    requiresCloudEgress: false,
     extract() {
       attempts += 1;
       if (attempts < 3) {
-        const error = new Error('OCR_TIMEOUT');
-        (error as { code?: string }).code = 'OCR_TIMEOUT';
-        throw error;
+        throw new OpenAiProviderError('OPENAI_TIMEOUT');
       }
       return Promise.resolve({
         adapterVersion: 'fake-ocr-1',
@@ -110,11 +244,7 @@ void test('[DDA-041] provider timeout retries then surfaces reviewable failure w
       });
     },
   };
-  const service = new ReceiptExtractionService(flaky, iaePort(new Set([ARTIFACT])), {
-    emitContentSafeSummary() {
-      return Promise.resolve(undefined);
-    },
-  });
+  const service = serviceWith(flaky);
   const result = await service.extract({
     tenantScope: scope,
     artifactVersionId: ARTIFACT,
@@ -127,8 +257,32 @@ void test('[DDA-041] provider timeout retries then surfaces reviewable failure w
   assert.equal(attempts, 3);
 });
 
+void test('[DDA-041] schema and refusal provider errors are not retried', async () => {
+  let attempts = 0;
+  const refusing: ReceiptOcrPort = {
+    requiresCloudEgress: false,
+    extract() {
+      attempts += 1;
+      throw new OpenAiProviderError('OPENAI_REFUSAL');
+    },
+  };
+  const service = serviceWith(refusing);
+  const result = await service.extract({
+    tenantScope: scope,
+    artifactVersionId: ARTIFACT,
+    profileVersionId: PROFILE,
+    profileKind: 'receipt',
+    correlationId: CORRELATION,
+    maxAttempts: 3,
+  });
+  assert.equal(result.accepted, false);
+  assert.equal(result.code, 'OCR_PROVIDER_FAILED');
+  assert.equal(attempts, 1);
+});
+
 void test('[DDA-041] malformed coordinates, missing adapter version, and prompt-like OCR text are rejected', async () => {
   const badCoordinates: ReceiptOcrPort = {
+    requiresCloudEgress: false,
     extract() {
       return Promise.resolve({
         adapterVersion: 'fake-ocr-1',
@@ -145,6 +299,7 @@ void test('[DDA-041] malformed coordinates, missing adapter version, and prompt-
     },
   };
   const missingAdapter: ReceiptOcrPort = {
+    requiresCloudEgress: false,
     extract() {
       return Promise.resolve({
         adapterVersion: '',
@@ -161,6 +316,7 @@ void test('[DDA-041] malformed coordinates, missing adapter version, and prompt-
     },
   };
   const promptLike: ReceiptOcrPort = {
+    requiresCloudEgress: false,
     extract() {
       return Promise.resolve({
         adapterVersion: 'fake-ocr-1',
@@ -176,24 +332,9 @@ void test('[DDA-041] malformed coordinates, missing adapter version, and prompt-
       });
     },
   };
-  const aud: DdaAudComposePortV1 = {
-    emitContentSafeSummary() {
-      return Promise.resolve(undefined);
-    },
-  };
-  const serviceCoords = new ReceiptExtractionService(
-    badCoordinates,
-    iaePort(new Set([ARTIFACT])),
-    aud,
-  );
-  const serviceAdapter = new ReceiptExtractionService(
-    missingAdapter,
-    iaePort(new Set([ARTIFACT])),
-    aud,
-  );
-  const servicePrompt = new ReceiptExtractionService(promptLike, iaePort(new Set([ARTIFACT])), aud);
+  const { aud } = recordingAud();
 
-  const coordsResult = await serviceCoords.extract({
+  const coordsResult = await serviceWith(badCoordinates, { aud }).extract({
     tenantScope: scope,
     artifactVersionId: ARTIFACT,
     profileVersionId: PROFILE,
@@ -204,7 +345,7 @@ void test('[DDA-041] malformed coordinates, missing adapter version, and prompt-
   if (coordsResult.accepted) return;
   assert.equal(coordsResult.code, 'MALFORMED_COORDINATES');
 
-  const adapterResult = await serviceAdapter.extract({
+  const adapterResult = await serviceWith(missingAdapter, { aud }).extract({
     tenantScope: scope,
     artifactVersionId: ARTIFACT,
     profileVersionId: PROFILE,
@@ -215,7 +356,7 @@ void test('[DDA-041] malformed coordinates, missing adapter version, and prompt-
   if (adapterResult.accepted) return;
   assert.equal(adapterResult.code, 'MISSING_ADAPTER_VERSION');
 
-  const promptResult = await servicePrompt.extract({
+  const promptResult = await serviceWith(promptLike, { aud }).extract({
     tenantScope: scope,
     artifactVersionId: ARTIFACT,
     profileVersionId: PROFILE,
@@ -229,15 +370,7 @@ void test('[DDA-041] malformed coordinates, missing adapter version, and prompt-
 });
 
 void test('[DDA-041] duplicate extraction callback returns the prior immutable candidate version', async () => {
-  const service = new ReceiptExtractionService(
-    new DeterministicFakeReceiptOcrAdapter(),
-    iaePort(new Set([ARTIFACT])),
-    {
-      emitContentSafeSummary() {
-        return Promise.resolve(undefined);
-      },
-    },
-  );
+  const service = serviceWith(new DeterministicFakeReceiptOcrAdapter());
   const first = await service.extract({
     tenantScope: scope,
     artifactVersionId: ARTIFACT,
@@ -263,15 +396,7 @@ void test('[DDA-041] duplicate extraction callback returns the prior immutable c
 });
 
 void test('[DDA-041] correction creates a new candidate version without mutating the prior extraction', async () => {
-  const service = new ReceiptExtractionService(
-    new DeterministicFakeReceiptOcrAdapter(),
-    iaePort(new Set([ARTIFACT])),
-    {
-      emitContentSafeSummary() {
-        return Promise.resolve(undefined);
-      },
-    },
-  );
+  const service = serviceWith(new DeterministicFakeReceiptOcrAdapter());
   const extracted = await service.extract({
     tenantScope: scope,
     artifactVersionId: ARTIFACT,
@@ -293,4 +418,150 @@ void test('[DDA-041] correction creates a new candidate version without mutating
   assert.equal(corrected.value.priorCandidateId, extracted.value.candidateId);
   const prior = service.getCandidate(extracted.value.candidateId);
   assert.equal(prior?.fieldCandidates.find((f) => f.field === 'total')?.value, '120000');
+});
+
+void test('[DDA-036, DDA-043, DDA-044] egress/admission denials fail before OCR and emit content-safe AUD', async () => {
+  let ocrCalls = 0;
+  const ocr: ReceiptOcrPort = {
+    requiresCloudEgress: true,
+    extract() {
+      ocrCalls += 1;
+      return Promise.reject(new Error('should not run'));
+    },
+  };
+  const { aud, outcomes } = recordingAud();
+
+  const missingDisclosure = await serviceWith(ocr, {
+    aud,
+    policy: new DefaultReceiptAiPolicyAdapter({
+      getPolicy() {
+        const created = createDdaAiEgressPolicyV1({
+          policyId: '00000000-0000-4000-8000-0000000000ab',
+          tenantScope: scope,
+          enabled: true,
+          locality: 'CLOUD',
+          purposeAllowlist: ['RECEIPT_EXTRACTION'],
+          adapterAllowlist: ['openai-responses'],
+          allowEvidence: true,
+          maximumPayloadBytes: 10_000,
+        });
+        assert.equal(created.accepted, true);
+        return created.accepted ? created.value : undefined;
+      },
+      getDisclosureVersion() {
+        return undefined;
+      },
+      isTenantRevoked() {
+        return false;
+      },
+    }),
+  }).extract({
+    tenantScope: scope,
+    artifactVersionId: ARTIFACT,
+    profileVersionId: PROFILE,
+    profileKind: 'receipt',
+    correlationId: CORRELATION,
+  });
+  assert.equal(missingDisclosure.accepted, false);
+  assert.equal(missingDisclosure.code, 'DISCLOSURE_MISSING');
+
+  const deniedEvidence = await serviceWith(ocr, {
+    aud,
+    policy: new DefaultReceiptAiPolicyAdapter({
+      getPolicy() {
+        const created = createDdaAiEgressPolicyV1({
+          policyId: '00000000-0000-4000-8000-0000000000ac',
+          tenantScope: scope,
+          enabled: true,
+          locality: 'CLOUD',
+          purposeAllowlist: ['RECEIPT_EXTRACTION'],
+          adapterAllowlist: ['openai-responses'],
+          allowEvidence: false,
+          maximumPayloadBytes: 10_000,
+        });
+        assert.equal(created.accepted, true);
+        return created.accepted ? created.value : undefined;
+      },
+      getDisclosureVersion() {
+        return 'disclosure-v1';
+      },
+      isTenantRevoked() {
+        return false;
+      },
+    }),
+  }).extract({
+    tenantScope: scope,
+    artifactVersionId: ARTIFACT,
+    profileVersionId: PROFILE,
+    profileKind: 'receipt',
+    correlationId: CORRELATION,
+  });
+  assert.equal(deniedEvidence.accepted, false);
+  assert.equal(deniedEvidence.code, 'EVIDENCE_TRANSFER_DENIED');
+
+  const admissionDenied = await serviceWith(new DeterministicFakeReceiptOcrAdapter(), {
+    aud,
+    bua: denyingBua(),
+  }).extract({
+    tenantScope: scope,
+    artifactVersionId: ARTIFACT,
+    profileVersionId: PROFILE,
+    profileKind: 'receipt',
+    correlationId: CORRELATION,
+  });
+  assert.equal(admissionDenied.accepted, false);
+  assert.equal(admissionDenied.code, 'ADMISSION_DENIED');
+  assert.equal(ocrCalls, 0);
+  assert.ok(outcomes.every((value) => value === 'DENIED'));
+});
+
+void test('[DDA-041] unsupported content type and hash mismatch fail closed', async () => {
+  const unsupported = await serviceWith(new DeterministicFakeReceiptOcrAdapter(), {
+    iae: iaePort(new Set([ARTIFACT]), { mediaType: 'application/pdf' }),
+  }).extract({
+    tenantScope: scope,
+    artifactVersionId: ARTIFACT,
+    profileVersionId: PROFILE,
+    profileKind: 'receipt',
+    correlationId: CORRELATION,
+  });
+  assert.equal(unsupported.accepted, false);
+  assert.equal(unsupported.code, 'UNSUPPORTED_CONTENT_TYPE');
+
+  const mismatch = await serviceWith(new DeterministicFakeReceiptOcrAdapter()).extract({
+    tenantScope: scope,
+    artifactVersionId: ARTIFACT,
+    profileVersionId: PROFILE,
+    profileKind: 'receipt',
+    correlationId: CORRELATION,
+    expectedContentSha256: '0'.repeat(64),
+  });
+  assert.equal(mismatch.accepted, false);
+  assert.equal(mismatch.code, 'HASH_MISMATCH');
+  void PNG_HASH;
+});
+
+void test('[DDA-045] deterministic fake OCR works without credentials; OpenAI disablement keeps correction usable', async () => {
+  const service = serviceWith(new DeterministicFakeReceiptOcrAdapter(), {
+    policy: new DefaultReceiptAiPolicyAdapter(),
+  });
+  const extracted = await service.extract({
+    tenantScope: scope,
+    artifactVersionId: ARTIFACT,
+    profileVersionId: PROFILE,
+    profileKind: 'receipt',
+    correlationId: CORRELATION,
+  });
+  assert.equal(extracted.accepted, true);
+  if (!extracted.accepted) return;
+  const corrected = await service.correct({
+    tenantScope: scope,
+    priorCandidateId: extracted.value.candidateId,
+    correlationId: CORRELATION,
+    fieldUpdates: { merchant: 'Manual Cafe' },
+  });
+  assert.equal(corrected.accepted, true);
+  const capabilities = deterministicCapabilitiesWhenAiUnavailableV1();
+  assert.ok(capabilities.includes('DETERMINISTIC_ETL'));
+  assert.ok(capabilities.includes('SAVED_SNAPSHOT_VIEW'));
 });
