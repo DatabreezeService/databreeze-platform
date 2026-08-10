@@ -15,6 +15,7 @@ from .models import (
     EngineError,
     EngineExecutionRequest,
     EngineResult,
+    FoundationDigestResult,
     JsonRpcErrorResponse,
     JsonRpcRequest,
     JsonRpcSuccessResponse,
@@ -93,6 +94,8 @@ def dispatch_execution(
     started = read_monotonic_clock()
     try:
         output = definition.handler(context, request.parameters)
+        if not isinstance(output, FoundationDigestResult):
+            raise EngineDispatchError("INTERNAL_ERROR")
         result = EngineResult(attemptId=request.attemptId, status="SUCCEEDED", output=output)
     except EngineDispatchError:
         raise

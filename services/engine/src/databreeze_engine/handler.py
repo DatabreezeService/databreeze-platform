@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Protocol
+from typing import Any, Protocol, TypeVar
+
+from pydantic import BaseModel
 
 from .models import (
     EngineProgress,
-    FoundationDigestResult,
-    FoundationMetadataParameters,
     OpaqueHandle,
     ResourceLimits,
 )
@@ -38,10 +38,19 @@ class HandlerContext:
     progress: ProgressSink
 
 
-class ActionHandler(Protocol):
+ParametersT = TypeVar("ParametersT", bound=BaseModel, contravariant=True)
+ResultT = TypeVar("ResultT", bound=BaseModel, covariant=True)
+
+
+class ActionHandler(Protocol[ParametersT, ResultT]):
+    """Typed handler contract for a reviewed action definition."""
+
     def __call__(
-        self, context: HandlerContext, parameters: FoundationMetadataParameters
-    ) -> FoundationDigestResult: ...
+        self, context: HandlerContext, parameters: ParametersT
+    ) -> ResultT: ...
+
+
+AnyActionHandler = ActionHandler[Any, BaseModel]
 
 
 class DisabledProgressSink:

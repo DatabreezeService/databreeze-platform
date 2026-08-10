@@ -10,6 +10,7 @@ import pytest
 from pydantic import ValidationError
 
 import databreeze_engine.registry as registry_module
+from databreeze_engine.dda_processor_digests import DDA_PROCESSOR_DIGESTS
 from databreeze_engine.dispatcher import dispatch_execution
 from databreeze_engine.registry import (
     ActionRegistry,
@@ -141,3 +142,29 @@ def test_registry_fails_closed_for_unknown_action_version_and_digest() -> None:
         registry.resolve("foundation.metadata-digest", "2.0.0", "sha256:" + "0" * 64)
     with pytest.raises(RegistryError, match="HANDLER_DIGEST_MISMATCH"):
         registry.resolve("foundation.metadata-digest", "1.0.0", "sha256:" + "0" * 64)
+
+
+@pytest.mark.parametrize(
+    ("action_type", "artifact_name"),
+    [
+        ("dda.etl.execute", "dda_etl_execute.py"),
+        ("dda.etl.intake", "dda_etl_intake.py"),
+        ("dda.etl.preview", "dda_etl_preview.py"),
+        ("dda.etl.profile", "dda_etl_profile.py"),
+        ("dda.folder.intake", "dda_folder_intake.py"),
+        ("dda.materialize.query", "dda_materialize_query.py"),
+        ("dda.materialize.snapshot", "dda_materialize_snapshot.py"),
+    ],
+)
+def test_registry_enrolls_reviewed_dda_handlers_with_pinned_digests(
+    action_type: str, artifact_name: str
+) -> None:
+    registry = default_registry()
+    digest = DDA_PROCESSOR_DIGESTS[artifact_name]
+
+    definition = registry.resolve(action_type, "1.0.0", digest)
+
+    assert definition.manifest.handlerDigest == digest
+    assert callable(definition.handler)
+    with pytest.raises(RegistryError, match="HANDLER_DIGEST_MISMATCH"):
+        registry.resolve(action_type, "1.0.0", "sha256:" + "0" * 64)
