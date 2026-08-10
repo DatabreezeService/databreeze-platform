@@ -1,0 +1,98 @@
+{
+  "baselineFormat": 2,
+  "contractVersion": 2,
+  "schemaIdPrefix": "https://schemas.databreeze.dev/contracts/v2/",
+  "schemas": [
+    {
+      "name": "dda-receipt-upload",
+      "id": "https://schemas.databreeze.dev/contracts/v2/dda-receipt-upload",
+      "path": "schemas/v2/dda-receipt-upload.schema.json",
+      "sha256": "3dd045deb02b400fa568f9b7bbb591940204e0d5d087ed55b520ede0cc36bdba"
+    }
+  ],
+  "publicOutputInventory": {
+    "path": "public-outputs.json",
+    "versionEntrySha256": "98dcf3675c473bf46663c38a28400774cf1a839f393dc9e5fedb3e50c34be149"
+  },
+  "generatedPublicOutputs": [
+    {
+      "path": "generated/kotlin/src/main/kotlin/com/databreeze/contracts/v2/Models.kt",
+      "sha256": "a1225a87aa1372b33dd00ce2a287612c81dcfc5290fd4b6a1b21b961c9ff66f7"
+    },
+    {
+      "path": "generated/kotlin/src/main/kotlin/com/databreeze/contracts/v2/Validation.kt",
+      "sha256": "bcff236382af9cb4d892544bd1e7df2e9dc68144e0b69a2e4df249f44570c354"
+    },
+    {
+      "path": "generated/python/databreeze_contracts/v2/__init__.py",
+      "sha256": "b547d31023e8174a3ce88f8364ffdb64347be416c8d2016d0549cd7504b1183f"
+    },
+    {
+      "path": "generated/python/databreeze_contracts/v2/_validation.py",
+      "sha256": "843bf675e577d3e9197e3e263a95bd483dac2d2d93c0987dc1b0785cb6a111cf"
+    },
+    {
+      "path": "generated/python/databreeze_contracts/v2/models.py",
+      "sha256": "5cbc56fd9730742c077916d5dbd1b28a55f0447e784574656faadab193a55334"
+    },
+    {
+      "path": "generated/typescript/v2/index.ts",
+      "sha256": "515c61825b01efc5a19539577a91dc9463c51a49cceefe690aa9aa17a20eb884"
+    },
+    {
+      "path": "generated/typescript/v2/validation.mjs",
+      "sha256": "f7cc428b4d087875e6c9da931a7da7dc5248d24a823809569dda1556cd475013"
+    }
+  ],
+  "publicPackageSurfaces": [
+    {
+      "path": "package.json",
+      "values": [
+        {
+          "pointer": "/dependencies",
+          "value": {
+            "ajv": "8.17.1",
+            "ajv-formats": "3.0.1"
+          }
+        },
+        {
+          "pointer": "/exports",
+          "value": {
+            ".": "./manifest.json",
+            "./v1": {
+              "types": "./generated/typescript/v1/index.ts",
+              "import": "./generated/typescript/v1/validation.mjs"
+            },
+            "./v2": {
+              "types": "./generated/typescript/v2/index.ts",
+              "import": "./generated/typescript/v2/validation.mjs"
+            },
+            "./v1/actor-metadata": "./schemas/v1/actor-metadata.schema.json",
+            "./v1/command-envelope": "./schemas/v1/command-envelope.schema.json",
+            "./v1/correlation-metadata": "./schemas/v1/correlation-metadata.schema.json",
+            "./v1/cursor-page": "./schemas/v1/cursor-page.schema.json",
+            "./v1/dda-analysis-plan": "./schemas/v1/dda-analysis-plan.schema.json",
+            "./v1/dda-dashboard-snapshot": "./schemas/v1/dda-dashboard-snapshot.schema.json",
+            "./v1/dda-dashboard-version": "./schemas/v1/dda-dashboard-version.schema.json",
+            "./v1/dda-etl-plan": "./schemas/v1/dda-etl-plan.schema.json",
+            "./v1/dda-folder-manifest": "./schemas/v1/dda-folder-manifest.schema.json",
+            "./v1/dda-materialization": "./schemas/v1/dda-materialization.schema.json",
+            "./v1/dda-receipt-candidate": "./schemas/v1/dda-receipt-candidate.schema.json",
+            "./v1/dda-refresh-event": "./schemas/v1/dda-refresh-event.schema.json",
+            "./v2/dda-receipt-upload": "./schemas/v2/dda-receipt-upload.schema.json",
+            "./v1/event-envelope": "./schemas/v1/event-envelope.schema.json",
+            "./v1/identifier": "./schemas/v1/identifier.schema.json",
+            "./v1/problem-details": "./schemas/v1/problem-details.schema.json",
+            "./v1/revision": "./schemas/v1/revision.schema.json",
+            "./v1/tenant-scope": "./schemas/v1/tenant-scope.schema.json",
+            "./v1/utc-timestamp": "./schemas/v1/utc-timestamp.schema.json"
+          }
+        },
+        {
+          "pointer": "/name",
+          "value": "@databreeze/contracts"
+        }
+      ]
+    }
+  ]
+}

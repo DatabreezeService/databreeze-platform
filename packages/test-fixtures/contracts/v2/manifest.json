@@ -1,0 +1,23 @@
+{
+  "package": "@databreeze/test-fixtures",
+  "fixtureVersion": 1,
+  "contractVersion": 2,
+  "synthetic": true,
+  "schemaManifest": "../../../contracts/manifest.json",
+  "cases": [
+    {
+      "id": "v2.dda-receipt-upload.invalid-local-path",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v2/dda-receipt-upload",
+      "expectedAcceptance": false,
+      "source": "payloads/dda-receipt-upload/invalid-local-path.json",
+      "covers": ["upload.content-safe-envelope"]
+    },
+    {
+      "id": "v2.dda-receipt-upload.valid-create-session",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v2/dda-receipt-upload",
+      "expectedAcceptance": true,
+      "source": "payloads/dda-receipt-upload/valid-create-session.json",
+      "covers": ["upload.create-session", "upload.tenant-scope", "upload.idempotency"]
+    }
+  ]
+}

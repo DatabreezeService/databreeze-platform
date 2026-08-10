@@ -2,9 +2,17 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
 import { parseV1Contract } from '@databreeze/contracts/v1';
+import { parseV2Contract } from '@databreeze/contracts/v2';
 
 function fail(message) {
   throw new Error(message);
+}
+
+function parseContract(schemaId, payload) {
+  if (schemaId.includes('/contracts/v2/')) {
+    return parseV2Contract(schemaId, payload);
+  }
+  return parseV1Contract(schemaId, payload);
 }
 
 function parseJson(path, label) {
@@ -45,7 +53,7 @@ try {
     );
     return {
       caseId: fixtureCase.id,
-      accepted: parseV1Contract(fixtureCase.schemaId, payload).accepted,
+      accepted: parseContract(fixtureCase.schemaId, payload).accepted,
     };
   });
   writeFileSync(options.output, `${JSON.stringify({ runtime: 'typescript', results })}\n`, 'utf8');

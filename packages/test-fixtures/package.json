@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./contracts/v1": "./contracts/v1/manifest.json"
+    "./contracts/v1": "./contracts/v1/manifest.json",
+    "./contracts/v2": "./contracts/v2/manifest.json"
   },
   "scripts": {
     "test": "node --test test/**/*.test.mjs"

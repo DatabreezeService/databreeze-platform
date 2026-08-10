@@ -1,6 +1,7 @@
 package com.databreeze.fixturevalidation
 
 import com.databreeze.contracts.v1.parseV1Contract
+import com.databreeze.contracts.v2.parseV2Contract
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import java.nio.file.Files
@@ -9,6 +10,13 @@ import kotlin.io.path.absolute
 import kotlin.io.path.readText
 
 private val mapper: ObjectMapper = jacksonObjectMapper()
+
+private fun parseContract(schemaId: String, payloadSource: String): Boolean =
+    if (schemaId.contains("/contracts/v2/")) {
+        parseV2Contract(schemaId, payloadSource).accepted
+    } else {
+        parseV1Contract(schemaId, payloadSource).accepted
+    }
 
 private data class Arguments(
     val fixtureManifest: Path,
@@ -48,10 +56,10 @@ private fun runFixtures(arguments: Arguments) {
             .put("caseId", fixtureCase.required("id").asText())
             .put(
                 "accepted",
-                parseV1Contract(
+                parseContract(
                     fixtureCase.required("schemaId").asText(),
                     payloadSource,
-                ).accepted,
+                ),
             )
     }
     Files.writeString(arguments.output, mapper.writeValueAsString(output) + "\n")

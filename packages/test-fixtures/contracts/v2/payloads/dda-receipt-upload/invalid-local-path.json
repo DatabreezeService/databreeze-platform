@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "operation": "CREATE_SESSION",
+  "tenantScope": {
+    "scopeType": "workspace",
+    "organizationId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc01",
+    "workspaceId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc02"
+  },
+  "idempotencyKey": "receipt-upload-01SYNTHETICKEY0002",
+  "revision": 1,
+  "sessionId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc11",
+  "artifactId": "018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc11",
+  "expectedSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "expectedByteSize": 1024,
+  "mediaType": "image/jpeg",
+  "partSize": 1024,
+  "localPath": "/tmp/synthetic-receipt.jpg",
+  "issuedAt": "2026-08-11T00:00:00Z",
+  "expiresAt": "2026-08-11T01:00:00Z"
+}

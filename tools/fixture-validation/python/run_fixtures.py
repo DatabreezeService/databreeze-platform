@@ -27,8 +27,10 @@ from databreeze_contracts.v1 import (
     TenantScope,
     UtcTimestamp,
 )
+from databreeze_contracts.v2 import DdaReceiptUpload
 
 SCHEMA_BASE = "https://schemas.databreeze.dev/contracts/v1"
+SCHEMA_BASE_V2 = "https://schemas.databreeze.dev/contracts/v2"
 ADAPTERS: dict[str, TypeAdapter[Any]] = {
     f"{SCHEMA_BASE}/actor-metadata": TypeAdapter(ActorMetadata),
     f"{SCHEMA_BASE}/command-envelope": TypeAdapter(CommandEnvelope[dict[str, Any]]),
@@ -48,6 +50,7 @@ ADAPTERS: dict[str, TypeAdapter[Any]] = {
     f"{SCHEMA_BASE}/revision": TypeAdapter(Revision),
     f"{SCHEMA_BASE}/tenant-scope": TypeAdapter(TenantScope),
     f"{SCHEMA_BASE}/utc-timestamp": TypeAdapter(UtcTimestamp),
+    f"{SCHEMA_BASE_V2}/dda-receipt-upload": TypeAdapter(DdaReceiptUpload),
 }
 
 

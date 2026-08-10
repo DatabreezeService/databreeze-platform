@@ -323,9 +323,58 @@ function verifyGeneratedBaseline(root, version, baseline) {
   if (removed) fail(`Public output removed from published v${version}: ${removed.path}`);
 
   const currentSurfaces = buildPublicPackageSurfaces(root, publicOutputEntry);
-  if (JSON.stringify(currentSurfaces) !== JSON.stringify(baseline.publicPackageSurfaces)) {
+  assertCompatiblePackageSurfaces(baseline.publicPackageSurfaces, currentSurfaces, version);
+}
+
+/**
+ * Newer contract versions may add sibling package export keys. Published baselines still require
+ * every previously locked key/value to remain byte-identical; removals and in-place mutations fail.
+ */
+function assertCompatiblePackageSurfaces(baselineSurfaces, currentSurfaces, version) {
+  if (!Array.isArray(baselineSurfaces) || !Array.isArray(currentSurfaces)) {
     fail(`Published package surface changed in place for v${version}`);
   }
+  if (baselineSurfaces.length !== currentSurfaces.length) {
+    fail(`Published package surface changed in place for v${version}`);
+  }
+  for (let index = 0; index < baselineSurfaces.length; index += 1) {
+    const expected = baselineSurfaces[index];
+    const actual = currentSurfaces[index];
+    if (expected.path !== actual.path) {
+      fail(`Published package surface changed in place for v${version}`);
+    }
+    if (expected.values.length !== actual.values.length) {
+      fail(`Published package surface changed in place for v${version}`);
+    }
+    for (let valueIndex = 0; valueIndex < expected.values.length; valueIndex += 1) {
+      const expectedValue = expected.values[valueIndex];
+      const actualValue = actual.values[valueIndex];
+      if (expectedValue.pointer !== actualValue.pointer) {
+        fail(`Published package surface changed in place for v${version}`);
+      }
+      if (!surfaceValueCompatible(expectedValue.value, actualValue.value)) {
+        fail(`Published package surface changed in place for v${version}`);
+      }
+    }
+  }
+}
+
+function surfaceValueCompatible(expected, actual) {
+  if (
+    expected !== null &&
+    actual !== null &&
+    typeof expected === 'object' &&
+    typeof actual === 'object' &&
+    !Array.isArray(expected) &&
+    !Array.isArray(actual)
+  ) {
+    for (const key of Object.keys(expected).sort(compareStrings)) {
+      if (!Object.hasOwn(actual, key)) return false;
+      if (JSON.stringify(actual[key]) !== JSON.stringify(expected[key])) return false;
+    }
+    return true;
+  }
+  return JSON.stringify(expected) === JSON.stringify(actual);
 }
 
 function checkCompatibility(root) {

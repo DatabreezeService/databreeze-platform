@@ -216,3 +216,33 @@ test('baseline update refuses to rewrite an already published v1 contract', () =
     );
   });
 });
+
+test('compatibility check allows additive package exports when publishing a newer version surface', () => {
+  withPackageCopy((copyRoot) => {
+    const packagePath = resolve(copyRoot, 'package.json');
+    const packageManifest = JSON.parse(readFileSync(packagePath, 'utf8'));
+    packageManifest.exports['./v2'] = {
+      types: './generated/typescript/v2/index.ts',
+      import: './generated/typescript/v2/validation.mjs',
+    };
+    packageManifest.exports['./v2/dda-receipt-upload'] =
+      './schemas/v2/dda-receipt-upload.schema.json';
+    writeFileSync(packagePath, `${JSON.stringify(packageManifest, null, 2)}\n`, 'utf8');
+
+    const run = runCompatibility(copyRoot, 'check');
+    assert.equal(run.status, 0, `${run.stdout}\n${run.stderr}`);
+  });
+});
+
+test('compatibility check still rejects mutated published export values', () => {
+  withPackageCopy((copyRoot) => {
+    const packagePath = resolve(copyRoot, 'package.json');
+    const packageManifest = JSON.parse(readFileSync(packagePath, 'utf8'));
+    packageManifest.exports['./v1'].import = './generated/typescript/v1/not-public.mjs';
+    writeFileSync(packagePath, `${JSON.stringify(packageManifest, null, 2)}\n`, 'utf8');
+
+    const run = runCompatibility(copyRoot, 'check');
+    assert.equal(run.status, 1, `${run.stdout}\n${run.stderr}`);
+    assert.match(run.stderr, /Published package surface changed in place/u);
+  });
+});

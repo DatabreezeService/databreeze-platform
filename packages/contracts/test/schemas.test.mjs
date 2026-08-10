@@ -58,30 +58,35 @@ function validatorFor(id) {
   return validate;
 }
 
-test('publishes the complete deterministic v1 registry and compiles every real schema', () => {
+test('publishes the complete deterministic registry and compiles every real schema', () => {
   const { ajv, manifest, schemas } = loadContracts();
-  const expectedNames = [
-    'actor-metadata',
-    'command-envelope',
-    'correlation-metadata',
-    'cursor-page',
-    'event-envelope',
-    'identifier',
-    'problem-details',
-    'revision',
-    'tenant-scope',
-    'utc-timestamp',
+  const expectedEntries = [
+    ['actor-metadata', `${schemaBase}/actor-metadata`],
+    ['command-envelope', `${schemaBase}/command-envelope`],
+    ['correlation-metadata', `${schemaBase}/correlation-metadata`],
+    ['cursor-page', `${schemaBase}/cursor-page`],
+    ['dda-analysis-plan', `${schemaBase}/dda-analysis-plan`],
+    ['dda-dashboard-snapshot', `${schemaBase}/dda-dashboard-snapshot`],
+    ['dda-dashboard-version', `${schemaBase}/dda-dashboard-version`],
+    ['dda-etl-plan', `${schemaBase}/dda-etl-plan`],
+    ['dda-folder-manifest', `${schemaBase}/dda-folder-manifest`],
+    ['dda-materialization', `${schemaBase}/dda-materialization`],
+    ['dda-receipt-candidate', `${schemaBase}/dda-receipt-candidate`],
+    ['dda-receipt-upload', 'https://schemas.databreeze.dev/contracts/v2/dda-receipt-upload'],
+    ['dda-refresh-event', `${schemaBase}/dda-refresh-event`],
+    ['event-envelope', `${schemaBase}/event-envelope`],
+    ['identifier', `${schemaBase}/identifier`],
+    ['problem-details', `${schemaBase}/problem-details`],
+    ['revision', `${schemaBase}/revision`],
+    ['tenant-scope', `${schemaBase}/tenant-scope`],
+    ['utc-timestamp', `${schemaBase}/utc-timestamp`],
   ];
 
   assert.equal(manifest.draft, 'https://json-schema.org/draft/2020-12/schema');
   assert.equal(manifest.version, 1);
   assert.deepEqual(
-    manifest.schemas.map((entry) => entry.name),
-    expectedNames,
-  );
-  assert.deepEqual(
-    manifest.schemas.map((entry) => entry.id),
-    expectedNames.map((name) => `${schemaBase}/${name}`),
+    manifest.schemas.map((entry) => [entry.name, entry.id]),
+    expectedEntries,
   );
   assert.deepEqual(
     schemas.map((schema) => schema.$id),
@@ -99,6 +104,7 @@ test('exports only declared registry schema and generated TypeScript entry point
   assert.deepEqual(Object.keys(packageJson.exports), [
     '.',
     './v1',
+    './v2',
     './v1/actor-metadata',
     './v1/command-envelope',
     './v1/correlation-metadata',
@@ -111,6 +117,7 @@ test('exports only declared registry schema and generated TypeScript entry point
     './v1/dda-materialization',
     './v1/dda-receipt-candidate',
     './v1/dda-refresh-event',
+    './v2/dda-receipt-upload',
     './v1/event-envelope',
     './v1/identifier',
     './v1/problem-details',

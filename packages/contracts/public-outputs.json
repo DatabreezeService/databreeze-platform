@@ -21,6 +21,24 @@
           "pointers": ["/dependencies", "/exports", "/name"]
         }
       ]
+    },
+    {
+      "contractVersion": 2,
+      "generatedFiles": [
+        "generated/kotlin/src/main/kotlin/com/databreeze/contracts/v2/Models.kt",
+        "generated/kotlin/src/main/kotlin/com/databreeze/contracts/v2/Validation.kt",
+        "generated/python/databreeze_contracts/v2/__init__.py",
+        "generated/python/databreeze_contracts/v2/_validation.py",
+        "generated/python/databreeze_contracts/v2/models.py",
+        "generated/typescript/v2/index.ts",
+        "generated/typescript/v2/validation.mjs"
+      ],
+      "jsonSurfaces": [
+        {
+          "path": "package.json",
+          "pointers": ["/dependencies", "/exports", "/name"]
+        }
+      ]
     }
   ]
 }

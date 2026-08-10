@@ -128,6 +128,12 @@ function pascalCase(value) {
   return result;
 }
 
+function contractVersionOf(path) {
+  const match = /^schemas\/v(\d+)\//u.exec(path);
+  if (!match) fail(`Schema path must live under schemas/vN/: ${path}`);
+  return Number(match[1]);
+}
+
 function loadRegistry(sourceRoot) {
   const root = resolve(sourceRoot);
   const manifestPath = resolve(root, 'manifest.json');
@@ -157,7 +163,19 @@ function loadRegistry(sourceRoot) {
     validateSchemaNode(schema, entry.path);
     if (schema.$schema !== manifest.draft) fail(`Schema draft does not match ${entry.path}`);
     if (schema.$id !== entry.id) fail(`Manifest ID does not match ${entry.path}`);
-    return { ...entry, modelName: pascalCase(entry.name), schema, schemaPath: entry.path };
+    const contractVersion = contractVersionOf(entry.path);
+    const expectedIdPrefix = `https://schemas.databreeze.dev/contracts/v${contractVersion}/`;
+    const exampleIdPrefix = `https://schemas.example.test/contracts/v${contractVersion}/`;
+    if (!entry.id.startsWith(expectedIdPrefix) && !entry.id.startsWith(exampleIdPrefix)) {
+      fail(`Schema ID must use the v${contractVersion} namespace: ${entry.id}`);
+    }
+    return {
+      ...entry,
+      contractVersion,
+      modelName: pascalCase(entry.name),
+      schema,
+      schemaPath: entry.path,
+    };
   });
   entries.sort((left, right) => compareStrings(left.name, right.name));
 
@@ -218,11 +236,18 @@ function buildModelContext(registry) {
   }
 
   for (const entry of registry.entries) {
-    const root = entry.schema;
-    if (root.oneOf) {
-      for (const alternative of root.oneOf) {
+    const unionRoots = [
+      [entry.schema, entry.modelName],
+      ...Object.entries(entry.schema.$defs ?? {}).map(([definitionName, definition]) => [
+        definition,
+        nameByNode.get(definition) ?? pascalCase(definitionName),
+      ]),
+    ];
+    for (const [node, unionName] of unionRoots) {
+      if (!node?.oneOf) continue;
+      for (const alternative of node.oneOf) {
         const target = resolveReference(alternative.$ref, entry, registry, nameByNode);
-        unionMembership.set(target.node, entry.modelName);
+        unionMembership.set(target.node, unionName);
       }
     }
   }
@@ -318,7 +343,7 @@ function quoted(value) {
   return JSON.stringify(value);
 }
 
-function renderTypeScript(context) {
+function renderTypeScript(context, version) {
   const lines = [
     `// ${HEADER}`,
     '',
@@ -397,22 +422,22 @@ function renderTypeScript(context) {
   }
   const schemaIds = context.entries.map(({ id }) => quoted(id));
   lines.push(
-    `export type ContractV1SchemaId = ${schemaIds.join(' | ')};`,
+    `export type ContractV${version}SchemaId = ${schemaIds.join(' | ')};`,
     '',
-    'export type ContractV1ParseResult<TValue = unknown> =',
+    `export type ContractV${version}ParseResult<TValue = unknown> =`,
     '  | { readonly accepted: true; readonly value: TValue }',
     '  | { readonly accepted: false };',
     '',
-    'export declare function parseV1Contract<TValue = unknown>(',
-    '  schemaId: ContractV1SchemaId,',
+    `export declare function parseV${version}Contract<TValue = unknown>(`,
+    `  schemaId: ContractV${version}SchemaId,`,
     '  payload: unknown,',
-    '): ContractV1ParseResult<TValue>;',
+    `): ContractV${version}ParseResult<TValue>;`,
     '',
   );
   return `${lines.join('\n').trimEnd()}\n`;
 }
 
-function renderTypeScriptValidation(context) {
+function renderTypeScriptValidation(context, version) {
   const schemas = context.entries.map(({ schema }) => `  ${JSON.stringify(schema)},`);
   return `${[
     `// ${HEADER}`,
@@ -436,9 +461,9 @@ function renderTypeScriptValidation(context) {
     '  }),',
     ');',
     '',
-    'export function parseV1Contract(schemaId, payload) {',
+    `export function parseV${version}Contract(schemaId, payload) {`,
     '  const validate = validators.get(schemaId);',
-    '  if (!validate) throw new TypeError(`Unknown v1 contract schema: ${schemaId}`);',
+    `  if (!validate) throw new TypeError(\`Unknown v${version} contract schema: \${schemaId}\`);`,
     '  return validate(payload) ? { accepted: true, value: payload } : { accepted: false };',
     '}',
   ].join('\n')}\n`;
@@ -492,11 +517,11 @@ function typescriptType(node, entry, context, parameters) {
   fail(`Cannot render TypeScript type from ${entry.path}`);
 }
 
-function renderKotlin(context) {
+function renderKotlin(context, version) {
   const lines = [
     `// ${HEADER}`,
     '',
-    'package com.databreeze.contracts.v1',
+    `package com.databreeze.contracts.v${version}`,
     '',
     'public typealias JsonObject = Map<String, Any?>',
     '',
@@ -631,7 +656,7 @@ function renderKotlinModelExpression(entry, context) {
   ];
 }
 
-function renderKotlinValidation(context) {
+function renderKotlinValidation(context, version) {
   const schemaEntries = context.entries.map(({ id, schema }) => {
     const encoded = Buffer.from(JSON.stringify(schema), 'utf8').toString('base64');
     return `    ${quoted(id)} to decodeSchema(${quoted(encoded)}),`;
@@ -683,7 +708,7 @@ function renderKotlinValidation(context) {
   return `${[
     `// ${HEADER}`,
     '',
-    'package com.databreeze.contracts.v1',
+    `package com.databreeze.contracts.v${version}`,
     '',
     ...unionImports,
     'import com.fasterxml.jackson.core.type.TypeReference',
@@ -698,15 +723,15 @@ function renderKotlinValidation(context) {
     'import java.util.Base64',
     '',
     ...unionMixins,
-    'public sealed interface ContractV1ParseResult {',
+    `public sealed interface ContractV${version}ParseResult {`,
     '    public val accepted: Boolean',
     '}',
     '',
-    'public data class AcceptedV1Contract(public val value: Any) : ContractV1ParseResult {',
+    `public data class AcceptedV${version}Contract(public val value: Any) : ContractV${version}ParseResult {`,
     '    public override val accepted: Boolean = true',
     '}',
     '',
-    'public data object RejectedV1Contract : ContractV1ParseResult {',
+    `public data object RejectedV${version}Contract : ContractV${version}ParseResult {`,
     '    public override val accepted: Boolean = false',
     '}',
     '',
@@ -731,8 +756,8 @@ function renderKotlinValidation(context) {
     '    else -> error("No generated Kotlin model for $schemaId")',
     '}',
     '',
-    'public fun parseV1Contract(schemaId: String, payloadSource: String): ContractV1ParseResult {',
-    '    require(schemaId in schemaSources) { "Unknown v1 contract schema: $schemaId" }',
+    `public fun parseV${version}Contract(schemaId: String, payloadSource: String): ContractV${version}ParseResult {`,
+    `    require(schemaId in schemaSources) { "Unknown v${version} contract schema: \$schemaId" }`,
     '    return try {',
     '        val payload = mapper.readTree(payloadSource)',
     '        val model = constructGeneratedModel(schemaId, payload)',
@@ -742,9 +767,9 @@ function renderKotlinValidation(context) {
     '                configuration.formatAssertionsEnabled(true)',
     '            }',
     '        }',
-    '        if (errors.isEmpty()) AcceptedV1Contract(model) else RejectedV1Contract',
+    `        if (errors.isEmpty()) AcceptedV${version}Contract(model) else RejectedV${version}Contract`,
     '    } catch (_: Exception) {',
-    '        RejectedV1Contract',
+    `        RejectedV${version}Contract`,
     '    }',
     '}',
   ].join('\n')}\n`;
@@ -996,9 +1021,9 @@ function conditionalConstraint(node, sourcePath) {
   return { dependent, discriminator, value };
 }
 
-function renderPythonPackage(context) {
+function renderPythonVersionInit(context) {
   const publicNames = [...context.nodesByName.keys()].sort(compareStrings);
-  const versionInit = [
+  return [
     `# ${HEADER}`,
     '',
     'from .models import (',
@@ -1010,10 +1035,12 @@ function renderPythonPackage(context) {
     ']',
     '',
   ].join('\n');
-  const packageInit = [`# ${HEADER}`, '', 'from . import v1', '', '__all__ = ["v1"]', ''].join(
-    '\n',
-  );
-  return { packageInit, versionInit };
+}
+
+function renderPythonPackageInit() {
+  // Keep the published v1 public root import surface byte-stable; newer versions are
+  // importable as submodules (databreeze_contracts.vN) without rewriting this file.
+  return [`# ${HEADER}`, '', 'from . import v1', '', '__all__ = ["v1"]', ''].join('\n');
 }
 
 function renderPythonValidation() {
@@ -1113,23 +1140,44 @@ function renderPythonProject() {
 }
 
 export function generateContractFiles(sourceRoot) {
-  const context = buildModelContext(loadRegistry(sourceRoot));
-  const { packageInit, versionInit } = renderPythonPackage(context);
-  return new Map([
-    ['kotlin/src/main/kotlin/com/databreeze/contracts/v1/Models.kt', renderKotlin(context)],
-    [
-      'kotlin/src/main/kotlin/com/databreeze/contracts/v1/Validation.kt',
-      renderKotlinValidation(context),
-    ],
-    ['python/databreeze_contracts/__init__.py', packageInit],
+  const registry = loadRegistry(sourceRoot);
+  const versions = [
+    ...new Set(registry.entries.map((entry) => entry.contractVersion)),
+  ].sort((left, right) => left - right);
+  if (versions.length === 0) fail('Canonical contract manifest has no schemas');
+
+  const files = new Map([
+    ['python/databreeze_contracts/__init__.py', renderPythonPackageInit()],
     ['python/databreeze_contracts/py.typed', ''],
-    ['python/databreeze_contracts/v1/__init__.py', versionInit],
-    ['python/databreeze_contracts/v1/_validation.py', renderPythonValidation()],
-    ['python/databreeze_contracts/v1/models.py', renderPython(context)],
     ['python/pyproject.toml', renderPythonProject()],
-    ['typescript/v1/index.ts', renderTypeScript(context)],
-    ['typescript/v1/validation.mjs', renderTypeScriptValidation(context)],
   ]);
+
+  for (const version of versions) {
+    const versionEntries = registry.entries.filter((entry) => entry.contractVersion === version);
+    const context = buildModelContext({
+      entries: versionEntries,
+      byId: registry.byId,
+      root: registry.root,
+    });
+    const versionInit = renderPythonVersionInit(context);
+    files.set(
+      `kotlin/src/main/kotlin/com/databreeze/contracts/v${version}/Models.kt`,
+      renderKotlin(context, version),
+    );
+    files.set(
+      `kotlin/src/main/kotlin/com/databreeze/contracts/v${version}/Validation.kt`,
+      renderKotlinValidation(context, version),
+    );
+    files.set(`python/databreeze_contracts/v${version}/__init__.py`, versionInit);
+    files.set(`python/databreeze_contracts/v${version}/_validation.py`, renderPythonValidation());
+    files.set(`python/databreeze_contracts/v${version}/models.py`, renderPython(context));
+    files.set(`typescript/v${version}/index.ts`, renderTypeScript(context, version));
+    files.set(
+      `typescript/v${version}/validation.mjs`,
+      renderTypeScriptValidation(context, version),
+    );
+  }
+  return files;
 }
 
 export function writeContractFiles(sourceRoot, outputRoot) {
