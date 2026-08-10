@@ -20,6 +20,9 @@
     <string name="receipt_capture_strict_local_blocked">Chế độ Strict-Local không cho phép OCR đám mây.</string>
     <string name="receipt_capture_scope_blocked">Workspace chưa được cấp quyền hoặc đã thu hồi.</string>
     <string name="receipt_review_title">Xem lại OCR hóa đơn</string>
+    <string name="receipt_review_confidence_note">Điểm tin cậy OCR không phải tính đúng. Trường thấp tin cậy cần xem lại.</string>
+    <string name="receipt_review_low_confidence">%1$s (thấp tin cậy)</string>
+    <string name="receipt_review_save">Lưu hiệu đính</string>
     <string name="back_action">Quay lại</string>
     <string name="workbench_action">Mở bàn làm việc mô-đun</string>
     <string name="workbench_title">Bàn làm việc mô-đun</string>

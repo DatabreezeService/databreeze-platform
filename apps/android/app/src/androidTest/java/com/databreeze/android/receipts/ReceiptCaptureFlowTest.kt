@@ -28,7 +28,7 @@ class ReceiptCaptureFlowTest {
                 true
             }.getOrDefault(false) ||
                 runCatching {
-                    composeRule.onNodeWithTag("receipt-review-placeholder").assertIsDisplayed()
+                    composeRule.onNodeWithTag("receipt-review-screen").assertIsDisplayed()
                     true
                 }.getOrDefault(false)
         }

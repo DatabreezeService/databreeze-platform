@@ -25,6 +25,9 @@ import androidx.navigation.compose.rememberNavController
 import com.databreeze.android.receipts.ReceiptCaptureScreen
 import com.databreeze.android.receipts.ReceiptCaptureViewModel
 import com.databreeze.android.receipts.ReceiptDestination
+import com.databreeze.android.receipts.ReceiptFieldCandidate
+import com.databreeze.android.receipts.ReceiptReviewScreen
+import com.databreeze.android.receipts.ReceiptReviewViewModel
 import com.databreeze.android.storage.AccountWorkspaceScope
 import com.databreeze.android.workbench.ModuleDetailScreen
 import com.databreeze.android.workbench.ProductModuleWorkbench
@@ -114,8 +117,21 @@ fun DataBreezeApp(
                 }
                 composable(AppRoutes.REVIEW) { entry ->
                     val sessionId = entry.arguments?.getString("sessionId").orEmpty()
-                    ReceiptReviewPlaceholder(
-                        sessionId = sessionId,
+                    val reviewModel = remember(sessionId) {
+                        ReceiptReviewViewModel().also { vm ->
+                            vm.loadCandidate(
+                                candidateId = "candidate-$sessionId",
+                                adapterVersion = "fake-ocr-1",
+                                fields = listOf(
+                                    ReceiptFieldCandidate("merchant", "Cafe", 90, "crop-merchant"),
+                                    ReceiptFieldCandidate("total", "120000", 70, "crop-total"),
+                                    ReceiptFieldCandidate("currency", "VND", 97, "crop-currency"),
+                                ),
+                            )
+                        }
+                    }
+                    ReceiptReviewScreen(
+                        viewModel = reviewModel,
                         onBack = { navController.popBackStack() },
                     )
                 }
@@ -143,26 +159,6 @@ private fun HomeScreen(
         }
         Button(onClick = onCapture, modifier = Modifier.testTag("capture-button")) {
             Text(stringResource(R.string.receipt_capture_action))
-        }
-    }
-}
-
-@Composable
-private fun ReceiptReviewPlaceholder(
-    sessionId: String,
-    onBack: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-            .testTag("receipt-review-placeholder"),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Text(stringResource(R.string.receipt_review_title), style = MaterialTheme.typography.headlineSmall)
-        Text(sessionId, modifier = Modifier.testTag("receipt-review-session"))
-        Button(onClick = onBack, modifier = Modifier.testTag("back-button")) {
-            Text(stringResource(R.string.back_action))
         }
     }
 }
