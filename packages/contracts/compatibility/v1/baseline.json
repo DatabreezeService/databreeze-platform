@@ -28,6 +28,54 @@
       "sha256": "8d009cb3b0e2232e5efdc297dfdd7b89f697410438d610c92414c014a5d44b19"
     },
     {
+      "name": "dda-analysis-plan",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-analysis-plan",
+      "path": "schemas/v1/dda-analysis-plan.schema.json",
+      "sha256": "339be1b3d82c78747fa49064761cf4916fa306f32671d7422452b47950d61e7e"
+    },
+    {
+      "name": "dda-dashboard-snapshot",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-dashboard-snapshot",
+      "path": "schemas/v1/dda-dashboard-snapshot.schema.json",
+      "sha256": "6a0cf853a287396e4bcac9b1108ed6bfc5159e14fe116bbd6dedcd15582dbf90"
+    },
+    {
+      "name": "dda-dashboard-version",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-dashboard-version",
+      "path": "schemas/v1/dda-dashboard-version.schema.json",
+      "sha256": "eceaffadb94baf50576a0c7eafd9cd34a2ca8dcacd8ccf0aa6b8fe803ad80a65"
+    },
+    {
+      "name": "dda-etl-plan",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-etl-plan",
+      "path": "schemas/v1/dda-etl-plan.schema.json",
+      "sha256": "48d8299dfa867ccd41bb57cb02f601a7a3204834be24645c325454ab0af78313"
+    },
+    {
+      "name": "dda-folder-manifest",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-folder-manifest",
+      "path": "schemas/v1/dda-folder-manifest.schema.json",
+      "sha256": "20a3dc9d37aaeae10918706a21ec671354241a0e8b97557781f1844b3b5b2ea9"
+    },
+    {
+      "name": "dda-materialization",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-materialization",
+      "path": "schemas/v1/dda-materialization.schema.json",
+      "sha256": "960b84b28299e4f91dc895aa013cb9352a85a7987a45cc5568e647f9707b529c"
+    },
+    {
+      "name": "dda-receipt-candidate",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-receipt-candidate",
+      "path": "schemas/v1/dda-receipt-candidate.schema.json",
+      "sha256": "5a21c276fea911bb95d962c61dc170d64c89e15025763f73984fc44cf5ee65a2"
+    },
+    {
+      "name": "dda-refresh-event",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-refresh-event",
+      "path": "schemas/v1/dda-refresh-event.schema.json",
+      "sha256": "1e4e4715d55c7e0f36c00db8bd71ffa5bee327185f1e516454193ce02dff64b9"
+    },
+    {
       "name": "event-envelope",
       "id": "https://schemas.databreeze.dev/contracts/v1/event-envelope",
       "path": "schemas/v1/event-envelope.schema.json",
@@ -71,11 +119,11 @@
   "generatedPublicOutputs": [
     {
       "path": "generated/kotlin/src/main/kotlin/com/databreeze/contracts/v1/Models.kt",
-      "sha256": "cd60b56f750e382ada6a9bbaba1baefef3a43e8fdb41ee6a12c89e1b8e1f9487"
+      "sha256": "4937ff8fec0063fb331f1dab8e5e0c23ce46f14a273058b1557a576b2931763d"
     },
     {
       "path": "generated/kotlin/src/main/kotlin/com/databreeze/contracts/v1/Validation.kt",
-      "sha256": "f4c98e5f568968160687ffaf9ddbba4db51e25266c5baf927cde8b24e6a2442a"
+      "sha256": "74fc4345ab61b9d754ecc0e17cfe343e028f638d55226d13dcbc10a3d879a0cc"
     },
     {
       "path": "generated/python/databreeze_contracts/__init__.py",
@@ -87,7 +135,7 @@
     },
     {
       "path": "generated/python/databreeze_contracts/v1/__init__.py",
-      "sha256": "785ff1b0fde763730070345f43b494203f149b10879683364fcbec0fcc35cb7e"
+      "sha256": "505878ef89dd4507e48abd724e35ed27cab84729c9a867f789f91c96f86164e6"
     },
     {
       "path": "generated/python/databreeze_contracts/v1/_validation.py",
@@ -95,7 +143,7 @@
     },
     {
       "path": "generated/python/databreeze_contracts/v1/models.py",
-      "sha256": "435a3af5a513fd14fbf232c0f289b901f4b3722a12b9f3a559d59df404fee4ab"
+      "sha256": "156d363d676e979ee1474906abaa54b9e00dce8a0bcad3ed0bb1ec741be80679"
     },
     {
       "path": "generated/python/pyproject.toml",
@@ -103,11 +151,11 @@
     },
     {
       "path": "generated/typescript/v1/index.ts",
-      "sha256": "59e3b40f806d91a6d82b81a59e8937e6e0716d4eab44dbd5d2740e8eeb14912b"
+      "sha256": "1fec89d50683c28c7c3b5bf5bf9503efbfea89526ac83d2eefbc6214507b24a6"
     },
     {
       "path": "generated/typescript/v1/validation.mjs",
-      "sha256": "0d48072b7dbc919e7ac1d9a3fbd8b864137594a98cf33e900d239564851fda7e"
+      "sha256": "1a70efed8b5bc9e6d56c3ae9fd382ecd5b2527842009463dcb4cc0e6918bcbc7"
     }
   ],
   "publicPackageSurfaces": [
@@ -133,6 +181,14 @@
             "./v1/command-envelope": "./schemas/v1/command-envelope.schema.json",
             "./v1/correlation-metadata": "./schemas/v1/correlation-metadata.schema.json",
             "./v1/cursor-page": "./schemas/v1/cursor-page.schema.json",
+            "./v1/dda-analysis-plan": "./schemas/v1/dda-analysis-plan.schema.json",
+            "./v1/dda-dashboard-snapshot": "./schemas/v1/dda-dashboard-snapshot.schema.json",
+            "./v1/dda-dashboard-version": "./schemas/v1/dda-dashboard-version.schema.json",
+            "./v1/dda-etl-plan": "./schemas/v1/dda-etl-plan.schema.json",
+            "./v1/dda-folder-manifest": "./schemas/v1/dda-folder-manifest.schema.json",
+            "./v1/dda-materialization": "./schemas/v1/dda-materialization.schema.json",
+            "./v1/dda-receipt-candidate": "./schemas/v1/dda-receipt-candidate.schema.json",
+            "./v1/dda-refresh-event": "./schemas/v1/dda-refresh-event.schema.json",
             "./v1/event-envelope": "./schemas/v1/event-envelope.schema.json",
             "./v1/identifier": "./schemas/v1/identifier.schema.json",
             "./v1/problem-details": "./schemas/v1/problem-details.schema.json",

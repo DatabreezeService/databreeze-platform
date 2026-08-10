@@ -6,6 +6,8 @@ public typealias JsonObject = Map<String, Any?>
 
 public typealias Identifier = String
 
+public typealias LayoutCells = List<JsonObject>
+
 public typealias Revision = Long
 
 public typealias UtcTimestamp = String
@@ -50,6 +52,234 @@ public data class CursorPage<TItem>(
     }
 }
 
+public data class DdaAnalysisPlan(
+    public val assumptions: List<String>,
+    public val createdAt: UtcTimestamp,
+    public val datasetVersionId: Identifier,
+    public val dimensions: List<String>,
+    public val estimate: DdaAnalysisPlanEstimate,
+    public val filters: List<DdaAnalysisPlanFiltersItem>,
+    public val joins: List<DdaAnalysisPlanJoinsItem>,
+    public val metricVersionId: Identifier,
+    public val output: DdaAnalysisPlanOutput,
+    public val parameters: List<DdaAnalysisPlanParametersItem>,
+    public val permissionProjectionVersionId: Identifier,
+    public val planHash: String,
+    public val planId: Identifier,
+    public val planVersionId: Identifier,
+    public val schemaVersion: Long,
+    public val semanticVersionId: Identifier,
+    public val tenantScope: TenantScope,
+    public val timeGrain: String,
+    public val timeRange: DdaAnalysisPlanTimeRange,
+    public val units: List<DdaAnalysisPlanUnitsItem>,
+)
+
+public data class DdaAnalysisPlanEstimate(
+    public val cpuMs: Long,
+    public val memoryMb: Long,
+)
+
+public data class DdaAnalysisPlanFiltersItem(
+    public val field: String,
+    public val operator: String,
+    public val value: String,
+)
+
+public data class DdaAnalysisPlanJoinsItem(
+    public val leftDatasetVersionId: Identifier,
+    public val leftField: String,
+    public val rightDatasetVersionId: Identifier,
+    public val rightField: String,
+)
+
+public data class DdaAnalysisPlanOutput(
+    public val form: String,
+    public val maxRows: Long,
+)
+
+public data class DdaAnalysisPlanParametersItem(
+    public val name: String,
+    public val value: String,
+)
+
+public data class DdaAnalysisPlanTimeRange(
+    public val end: UtcTimestamp,
+    public val start: UtcTimestamp,
+)
+
+public data class DdaAnalysisPlanUnitsItem(
+    public val field: String,
+    public val unit: String,
+)
+
+public data class DdaDashboardSnapshot(
+    public val audience: String,
+    public val canonicalHash: String,
+    public val createdAt: UtcTimestamp,
+    public val dashboardVersionId: Identifier,
+    public val evidenceState: String,
+    public val freshnessState: String,
+    public val inputSelectorHash: String,
+    public val materializationIds: List<Identifier>,
+    public val permissionProjectionVersionId: Identifier,
+    public val schemaVersion: Long,
+    public val snapshotId: Identifier,
+    public val tenantScope: TenantScope,
+)
+
+public data class DdaDashboardVersion(
+    public val canonicalHash: String,
+    public val createdAt: UtcTimestamp,
+    public val dashboardId: Identifier,
+    public val datasetBindings: List<DdaDashboardVersionDatasetBindingsItem>,
+    public val filters: List<DdaDashboardVersionFiltersItem>,
+    public val freshnessPolicy: String,
+    public val locale: String,
+    public val pages: List<DdaDashboardVersionPagesItem>,
+    public val parentVersionId: Identifier? = null,
+    public val publicationPolicy: String,
+    public val schemaVersion: Long,
+    public val tenantScope: TenantScope,
+    public val timezone: String,
+    public val versionId: Identifier,
+    public val widgets: List<DdaDashboardVersionWidgetsItem>,
+)
+
+public data class DdaDashboardVersionBinding(
+    public val analysisPlanVersionId: Identifier,
+    public val materializationDefinitionId: Identifier,
+)
+
+public data class DdaDashboardVersionDatasetBindingsItem(
+    public val datasetVersionId: Identifier,
+    public val metricVersionId: Identifier,
+    public val semanticVersionId: Identifier,
+)
+
+public data class DdaDashboardVersionFiltersItem(
+    public val field: String,
+    public val filterId: Identifier,
+    public val operator: String,
+    public val scope: String,
+)
+
+public data class DdaDashboardVersionLayout(
+    public val desktop: LayoutCells,
+    public val mobile: LayoutCells,
+    public val tablet: LayoutCells,
+)
+
+public data class DdaDashboardVersionPagesItem(
+    public val layout: DdaDashboardVersionLayout,
+    public val order: Long,
+    public val pageId: Identifier,
+    public val title: LocalizedText,
+)
+
+public data class DdaDashboardVersionWidgetsItem(
+    public val binding: DdaDashboardVersionBinding,
+    public val pageId: Identifier,
+    public val title: LocalizedText,
+    public val type: String,
+    public val widgetId: Identifier,
+)
+
+public data class DdaEtlPlan(
+    public val contentHash: String,
+    public val createdAt: UtcTimestamp,
+    public val dataClassification: String,
+    public val dataModePolicyVersionId: Identifier,
+    public val engineBindingId: Identifier,
+    public val evidenceReferenceId: Identifier,
+    public val inputArtifactVersionId: Identifier,
+    public val mappingVersionId: Identifier,
+    public val planId: Identifier,
+    public val planVersionId: Identifier,
+    public val retentionReferenceId: Identifier,
+    public val ruleSetVersionId: Identifier,
+    public val schemaHash: String,
+    public val schemaVersion: Long,
+    public val schemaVersionId: Identifier,
+    public val tenantScope: TenantScope,
+    public val transformations: List<DdaEtlPlanTransformationsItem>,
+)
+
+public data class DdaEtlPlanConfigEntriesItem(
+    public val key: String,
+    public val value: String,
+)
+
+public data class DdaEtlPlanTransformationsItem(
+    public val configEntries: List<DdaEtlPlanConfigEntriesItem>,
+    public val inputs: List<Identifier>,
+    public val kind: String,
+    public val stepId: Identifier,
+)
+
+public data class DdaFolderManifest(
+    public val capabilityGrantId: Identifier,
+    public val manifestHash: String,
+    public val manifestId: Identifier,
+    public val publicationProjectionId: Identifier,
+    public val purpose: String,
+    public val schemaVersion: Long,
+    public val supportedProfiles: List<String>,
+    public val tenantScope: TenantScope,
+    public val version: Long,
+)
+
+public data class DdaMaterialization(
+    public val adapterVersion: String,
+    public val analysisPlanVersionId: Identifier,
+    public val cacheIdentityHash: String,
+    public val createdAt: UtcTimestamp,
+    public val dashboardVersionId: Identifier,
+    public val datasetVersionId: Identifier,
+    public val effectivePolicyVersionId: Identifier,
+    public val engineVersion: String,
+    public val locale: String,
+    public val materializationId: Identifier,
+    public val metricVersionId: Identifier,
+    public val parameterHash: String,
+    public val permissionProjectionVersionId: Identifier,
+    public val resultManifestId: Identifier,
+    public val schemaVersion: Long,
+    public val semanticVersionId: Identifier,
+    public val tenantScope: TenantScope,
+    public val timezone: String,
+    public val widgetId: Identifier,
+)
+
+public data class DdaReceiptCandidate(
+    public val adapterVersion: String,
+    public val artifactVersionId: Identifier,
+    public val candidateHash: String,
+    public val candidateId: Identifier,
+    public val evidenceReferenceId: Identifier,
+    public val fieldCandidates: List<DdaReceiptCandidateFieldCandidatesItem>,
+    public val profileVersionId: Identifier,
+    public val schemaVersion: Long,
+    public val tenantScope: TenantScope,
+)
+
+public data class DdaReceiptCandidateFieldCandidatesItem(
+    public val confidence: Long,
+    public val field: String,
+    public val value: String,
+)
+
+public data class DdaRefreshEvent(
+    public val dashboardId: Identifier,
+    public val eventHash: String,
+    public val eventId: Identifier,
+    public val freshnessState: String,
+    public val occurredAt: UtcTimestamp,
+    public val schemaVersion: Long,
+    public val snapshotId: Identifier,
+    public val tenantScope: TenantScope,
+)
+
 public data class EventEnvelope<TData>(
     public val actor: ActorMetadata,
     public val correlation: CorrelationMetadata,
@@ -67,6 +297,11 @@ public data class EventEnvelopeEntity(
     public val entityId: Identifier,
     public val entityType: String,
     public val revision: Revision,
+)
+
+public data class LocalizedText(
+    public val en: String,
+    public val vi: String,
 )
 
 public data class OrganizationScope(

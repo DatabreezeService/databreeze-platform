@@ -48,6 +48,8 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
     './operations-capture/v1',
     './embedded-importer/v1',
     './private-data-analyst/v1',
+    './data-to-dashboard/v1',
+    './data-to-dashboard/policy-v1',
     './migration-ready/v1',
     './jobs/v1',
     './approval/v1',
@@ -99,6 +101,8 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
   assert.equal(aggregate.OPERATIONS_CAPTURE_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.EMBEDDED_IMPORTER_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.PRIVATE_DATA_ANALYST_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.DDA_SCHEMA_VERSION_V1, 1);
+  assert.equal(aggregate.DDA_POLICY_SCHEMA_VERSION_V1, 1);
   assert.equal(aggregate.MIGRATION_READY_SCHEMA_VERSION_V1, 1);
   assert.equal(typeof aggregate.parseTenantScopeV1, 'function');
   assert.equal(aggregate.ARTIFACT_UPLOAD_SCHEMA_VERSION_V1, 1);

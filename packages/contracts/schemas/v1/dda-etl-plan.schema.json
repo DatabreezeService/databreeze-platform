@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/dda-etl-plan",
+  "$comment": "DDA-003, DDA-005: versioned allowlisted ETL plan bindings.",
+  "title": "DDA ETL Plan",
+  "description": "A versioned ETL plan bound to exact input, schema, mapping, rule, and engine versions with an allowlisted transformation DAG.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "planId",
+    "planVersionId",
+    "tenantScope",
+    "inputArtifactVersionId",
+    "schemaVersionId",
+    "mappingVersionId",
+    "ruleSetVersionId",
+    "engineBindingId",
+    "transformations",
+    "contentHash",
+    "schemaHash",
+    "dataClassification",
+    "dataModePolicyVersionId",
+    "retentionReferenceId",
+    "evidenceReferenceId",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "planId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "planVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "tenantScope": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/tenant-scope"
+    },
+    "inputArtifactVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "schemaVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "mappingVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "ruleSetVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "engineBindingId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "transformations": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stepId",
+          "kind",
+          "inputs",
+          "configEntries"
+        ],
+        "properties": {
+          "stepId": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+          },
+          "kind": {
+            "type": "string",
+            "pattern": "^(SELECT_COLUMNS|RENAME_COLUMNS|TRIM_TEXT|NORMALIZE_TEXT|PARSE_DATE|PARSE_TIME|PARSE_NUMBER|PARSE_CURRENCY|CAST_TYPE|REPLACE_NULL|FILTER_ROWS|DEDUPLICATE|DERIVE_FIELD|UNION_COMPATIBLE|LOOKUP_JOIN|AGGREGATE)$"
+          },
+          "inputs": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+            }
+          },
+          "configEntries": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "key",
+                "value"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 256
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "contentHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "schemaHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "dataClassification": {
+      "type": "string",
+      "pattern": "^(PUBLIC|INTERNAL|CONFIDENTIAL|RESTRICTED)$"
+    },
+    "dataModePolicyVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "retentionReferenceId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "evidenceReferenceId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "createdAt": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+    }
+  }
+}

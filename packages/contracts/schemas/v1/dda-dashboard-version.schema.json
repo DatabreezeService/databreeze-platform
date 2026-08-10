@@ -1,0 +1,274 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/dda-dashboard-version",
+  "$comment": "DDA-003, DDA-020, DDA-021, DDA-027: immutable dashboard version graph.",
+  "title": "Dashboard Version",
+  "description": "An immutable dashboard version with stable page/widget IDs, typed bindings, and V1 freshness policies.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "dashboardId",
+    "versionId",
+    "tenantScope",
+    "pages",
+    "widgets",
+    "filters",
+    "datasetBindings",
+    "locale",
+    "timezone",
+    "freshnessPolicy",
+    "publicationPolicy",
+    "canonicalHash",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "dashboardId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "versionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "tenantScope": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/tenant-scope"
+    },
+    "parentVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "pages": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pageId",
+          "order",
+          "title",
+          "layout"
+        ],
+        "properties": {
+          "pageId": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "title": {
+            "$ref": "#/$defs/localizedText"
+          },
+          "layout": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "desktop",
+              "tablet",
+              "mobile"
+            ],
+            "properties": {
+              "desktop": {
+                "$ref": "#/$defs/layoutCells"
+              },
+              "tablet": {
+                "$ref": "#/$defs/layoutCells"
+              },
+              "mobile": {
+                "$ref": "#/$defs/layoutCells"
+              }
+            }
+          }
+        }
+      }
+    },
+    "widgets": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "widgetId",
+          "type",
+          "pageId",
+          "binding",
+          "title"
+        ],
+        "properties": {
+          "widgetId": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+          },
+          "type": {
+            "type": "string",
+            "pattern": "^(KPI|TABLE|BAR|LINE|AREA|PIE|DONUT|TEXT_NOTE|EVIDENCE_NOTE)$"
+          },
+          "pageId": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+          },
+          "binding": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "analysisPlanVersionId",
+              "materializationDefinitionId"
+            ],
+            "properties": {
+              "analysisPlanVersionId": {
+                "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+              },
+              "materializationDefinitionId": {
+                "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+              }
+            }
+          },
+          "title": {
+            "$ref": "#/$defs/localizedText"
+          }
+        }
+      }
+    },
+    "filters": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "filterId",
+          "field",
+          "operator",
+          "scope"
+        ],
+        "properties": {
+          "filterId": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+          },
+          "field": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 96
+          },
+          "operator": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "scope": {
+            "type": "string",
+            "pattern": "^(DASHBOARD|PAGE|WIDGET)$"
+          }
+        }
+      }
+    },
+    "datasetBindings": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "datasetVersionId",
+          "semanticVersionId",
+          "metricVersionId"
+        ],
+        "properties": {
+          "datasetVersionId": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+          },
+          "semanticVersionId": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+          },
+          "metricVersionId": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+          }
+        }
+      }
+    },
+    "locale": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 32
+    },
+    "timezone": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "freshnessPolicy": {
+      "type": "string",
+      "pattern": "^(ON_CHANGE|MANUAL|SCHEDULED)$"
+    },
+    "publicationPolicy": {
+      "type": "string",
+      "pattern": "^(DRAFT_ONLY|REVIEWED|CERTIFIED)$"
+    },
+    "canonicalHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "createdAt": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+    }
+  },
+  "$defs": {
+    "localizedText": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vi",
+        "en"
+      ],
+      "properties": {
+        "vi": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "en": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      }
+    },
+    "layoutCells": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "widgetId",
+          "x",
+          "y",
+          "w",
+          "h"
+        ],
+        "properties": {
+          "widgetId": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+          },
+          "x": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "y": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "w": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "h": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    }
+  }
+}

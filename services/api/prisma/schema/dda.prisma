@@ -1,0 +1,128 @@
+/// DDA-001, DDA-003: dashboard-agent metadata only. Original payloads, datasets, jobs,
+/// devices, usage, and audit remain with IAE/DSM/JRA/DSO/BUA/AUD and are referenced by ID.
+model DashboardRecord {
+  id             String   @id @db.Uuid
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  projectId      String   @map("project_id") @db.Uuid
+  titleVi        String   @map("title_vi") @db.VarChar(200)
+  titleEn        String   @map("title_en") @db.VarChar(200)
+  status         String   @db.VarChar(24)
+  draftVersionId String?  @map("draft_version_id") @db.Uuid
+  publishedVersionId String? @map("published_version_id") @db.Uuid
+  revision       Int      @default(1)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, projectId, id], map: "dashboards_scope_id_key")
+  @@index([organizationId, workspaceId, projectId], map: "dashboards_scope_idx")
+  @@map("dashboards")
+  @@schema("dda")
+}
+
+model DashboardVersionRecord {
+  id             String   @id @db.Uuid
+  dashboardId    String   @map("dashboard_id") @db.Uuid
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  projectId      String   @map("project_id") @db.Uuid
+  parentVersionId String? @map("parent_version_id") @db.Uuid
+  layoutGraph    Json     @map("layout_graph")
+  freshnessPolicy String  @map("freshness_policy") @db.VarChar(24)
+  publicationPolicy String @map("publication_policy") @db.VarChar(24)
+  locale         String   @db.VarChar(32)
+  timezone       String   @db.VarChar(64)
+  canonicalHash  String   @map("canonical_hash") @db.Char(64)
+  createdAt      DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, projectId, id], map: "dashboard_versions_scope_id_key")
+  @@index([organizationId, workspaceId, projectId, dashboardId], map: "dashboard_versions_scope_idx")
+  @@map("dashboard_versions")
+  @@schema("dda")
+}
+
+model AnalysisPlanRecord {
+  id             String   @id @db.Uuid
+  planId         String   @map("plan_id") @db.Uuid
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  projectId      String   @map("project_id") @db.Uuid
+  datasetVersionId String @map("dataset_version_id") @db.Uuid
+  semanticVersionId String @map("semantic_version_id") @db.Uuid
+  metricVersionId String @map("metric_version_id") @db.Uuid
+  permissionProjectionVersionId String @map("permission_projection_version_id") @db.Uuid
+  planDocument   Json     @map("plan_document")
+  planHash       String   @map("plan_hash") @db.Char(64)
+  createdAt      DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, projectId, id], map: "analysis_plans_scope_id_key")
+  @@index([organizationId, workspaceId, projectId, planId], map: "analysis_plans_scope_idx")
+  @@map("analysis_plans")
+  @@schema("dda")
+}
+
+model MaterializationDefinitionRecord {
+  id             String   @id @db.Uuid
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  projectId      String   @map("project_id") @db.Uuid
+  dashboardVersionId String @map("dashboard_version_id") @db.Uuid
+  widgetId       String   @map("widget_id") @db.Uuid
+  analysisPlanVersionId String @map("analysis_plan_version_id") @db.Uuid
+  resultManifestId String? @map("result_manifest_id") @db.Uuid
+  cacheIdentityHash String @map("cache_identity_hash") @db.Char(64)
+  dependencyEntries Json @map("dependency_entries")
+  createdAt      DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, projectId, id], map: "materialization_definitions_scope_id_key")
+  @@unique([organizationId, workspaceId, projectId, cacheIdentityHash], map: "materialization_definitions_cache_key")
+  @@index([organizationId, workspaceId, projectId, dashboardVersionId], map: "materialization_definitions_scope_idx")
+  @@map("materialization_definitions")
+  @@schema("dda")
+}
+
+model DashboardSnapshotRecord {
+  id             String   @id @db.Uuid
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  projectId      String   @map("project_id") @db.Uuid
+  dashboardVersionId String @map("dashboard_version_id") @db.Uuid
+  materializationIds Json @map("materialization_ids")
+  permissionProjectionVersionId String @map("permission_projection_version_id") @db.Uuid
+  audience       String   @db.VarChar(32)
+  freshnessState String   @map("freshness_state") @db.VarChar(32)
+  evidenceState  String   @map("evidence_state") @db.VarChar(24)
+  evidenceReferenceId String? @map("evidence_reference_id") @db.Uuid
+  canonicalHash  String   @map("canonical_hash") @db.Char(64)
+  createdAt      DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, projectId, id], map: "dashboard_snapshots_scope_id_key")
+  @@index([organizationId, workspaceId, projectId, dashboardVersionId], map: "dashboard_snapshots_scope_idx")
+  @@map("dashboard_snapshots")
+  @@schema("dda")
+}
+
+model DashboardRefreshStateRecord {
+  id             String   @id @db.Uuid
+  dashboardId    String   @map("dashboard_id") @db.Uuid
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  projectId      String   @map("project_id") @db.Uuid
+  freshnessPolicy String  @map("freshness_policy") @db.VarChar(24)
+  lastSnapshotId String?  @map("last_snapshot_id") @db.Uuid
+  lastJobId      String?  @map("last_job_id") @db.Uuid
+  status         String   @db.VarChar(32)
+  reasonCode     String?  @map("reason_code") @db.VarChar(64)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, projectId, dashboardId], map: "dashboard_refresh_state_scope_dashboard_key")
+  @@index([organizationId, workspaceId, projectId], map: "dashboard_refresh_state_scope_idx")
+  @@map("dashboard_refresh_state")
+  @@schema("dda")
+}

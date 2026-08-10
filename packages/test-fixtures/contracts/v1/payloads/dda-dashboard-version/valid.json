@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "dashboardId": "00000000-0000-4000-8000-00000000001b",
+  "versionId": "00000000-0000-4000-8000-000000000011",
+  "tenantScope": {
+    "scopeType": "project",
+    "organizationId": "00000000-0000-4000-8000-000000000001",
+    "workspaceId": "00000000-0000-4000-8000-000000000002",
+    "projectId": "00000000-0000-4000-8000-000000000003"
+  },
+  "pages": [
+    {
+      "pageId": "00000000-0000-4000-8000-00000000001c",
+      "order": 1,
+      "title": {
+        "vi": "Doanh so",
+        "en": "Sales"
+      },
+      "layout": {
+        "desktop": [
+          {
+            "widgetId": "00000000-0000-4000-8000-00000000001d",
+            "x": 0,
+            "y": 0,
+            "w": 6,
+            "h": 4
+          }
+        ],
+        "tablet": [
+          {
+            "widgetId": "00000000-0000-4000-8000-00000000001d",
+            "x": 0,
+            "y": 0,
+            "w": 6,
+            "h": 4
+          }
+        ],
+        "mobile": [
+          {
+            "widgetId": "00000000-0000-4000-8000-00000000001d",
+            "x": 0,
+            "y": 0,
+            "w": 4,
+            "h": 4
+          }
+        ]
+      }
+    }
+  ],
+  "widgets": [
+    {
+      "widgetId": "00000000-0000-4000-8000-00000000001d",
+      "type": "KPI",
+      "pageId": "00000000-0000-4000-8000-00000000001c",
+      "binding": {
+        "analysisPlanVersionId": "00000000-0000-4000-8000-000000000010",
+        "materializationDefinitionId": "00000000-0000-4000-8000-00000000001f"
+      },
+      "title": {
+        "vi": "Tong doanh so",
+        "en": "Total sales"
+      }
+    }
+  ],
+  "filters": [
+    {
+      "filterId": "00000000-0000-4000-8000-00000000001e",
+      "field": "region",
+      "operator": "IN",
+      "scope": "DASHBOARD"
+    }
+  ],
+  "datasetBindings": [
+    {
+      "datasetVersionId": "00000000-0000-4000-8000-000000000018",
+      "semanticVersionId": "00000000-0000-4000-8000-000000000019",
+      "metricVersionId": "00000000-0000-4000-8000-00000000001a"
+    }
+  ],
+  "locale": "vi-VN",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "freshnessPolicy": "ON_CHANGE",
+  "publicationPolicy": "REVIEWED",
+  "canonicalHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "createdAt": "2026-08-10T10:00:00.000Z"
+}

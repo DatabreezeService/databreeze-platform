@@ -22,6 +22,8 @@ export * from './invoice-leak-detector/v1.js';
 export * from './operations-capture/v1.js';
 export * from './embedded-importer/v1.js';
 export * from './private-data-analyst/v1.js';
+export * from './data-to-dashboard/v1.js';
+export * from './data-to-dashboard/policy-v1.js';
 export * from './migration-ready/v1.js';
 export * from './jobs/v1.js';
 export * from './approval/v1.js';

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "snapshotId": "00000000-0000-4000-8000-000000000029",
+  "tenantScope": {
+    "scopeType": "project",
+    "organizationId": "00000000-0000-4000-8000-000000000001",
+    "workspaceId": "00000000-0000-4000-8000-000000000002",
+    "projectId": "00000000-0000-4000-8000-000000000003"
+  },
+  "dashboardVersionId": "00000000-0000-4000-8000-000000000011",
+  "materializationIds": [
+    "00000000-0000-4000-8000-00000000001f"
+  ],
+  "inputSelectorHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "permissionProjectionVersionId": "00000000-0000-4000-8000-000000000021",
+  "audience": "WORKSPACE_VIEWERS",
+  "freshnessState": "FRESH",
+  "evidenceState": "AVAILABLE",
+  "canonicalHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "createdAt": "2026-08-10T10:00:00.000Z"
+}

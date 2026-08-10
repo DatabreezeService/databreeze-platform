@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/dda-folder-manifest",
+  "$comment": "DDA-003, DDA-012, DDA-013: opaque folder binding manifest without local paths.",
+  "title": "DDA Folder Manifest",
+  "description": "A versioned folder manifest that references DSO capability and projection IDs without embedding local paths or bytes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "manifestId",
+    "tenantScope",
+    "capabilityGrantId",
+    "purpose",
+    "supportedProfiles",
+    "publicationProjectionId",
+    "manifestHash",
+    "version"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "manifestId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "tenantScope": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/tenant-scope"
+    },
+    "capabilityGrantId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "supportedProfiles": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 32
+      }
+    },
+    "publicationProjectionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "manifestHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    }
+  }
+}
