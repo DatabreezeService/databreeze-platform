@@ -27,7 +27,7 @@
     "verified",
     "deferred"
   ],
-  "nextWorkPackageId": "DDA-083",
+  "nextWorkPackageId": "DDA-087",
   "gates": [
     {
       "gateId": "G0",
@@ -62,7 +62,7 @@
     {
       "gateId": "G2",
       "name": "independent-lanes-green",
-      "status": "ready",
+      "status": "complete",
       "dependsOn": [
         "G1"
       ],
@@ -72,12 +72,19 @@
         "DDA-084",
         "DDA-085",
         "DDA-086"
+      ],
+      "evidence": [
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "945cde1a99792604ef4863459f9150f6acdae77e",
+        "d94c17fccdf3e01434292dc0cd1735bb31020bea",
+        "b936ccd81f9db1531de3956e332f128c8ad33014"
       ]
     },
     {
       "gateId": "G3",
       "name": "integrated-contracts-migrations-and-packages-green",
-      "status": "blocked",
+      "status": "ready",
       "dependsOn": [
         "G2"
       ],
@@ -241,12 +248,12 @@
       "workPackageId": "DDA-083",
       "name": "analyst-dashboard-canvas",
       "plan": "docs/plans/083-dda-analyst-dashboard-canvas.md",
-      "status": "ready",
+      "status": "complete",
       "dependsOn": [
         "DDA-081"
       ],
       "parallelGroup": "DDA-G2",
-      "branch": "codex/dda-dashboard-canvas",
+      "branch": "codex/dda-083-dashboard-canvas",
       "tasks": [
         "Task 1: Plan and execute deterministic analysis",
         "Task 2: Build the accessible versioned dashboard canvas",
@@ -300,6 +307,24 @@
         "corepack pnpm --filter @databreeze/web test",
         "corepack pnpm --filter @databreeze/web typecheck",
         "corepack pnpm --filter @databreeze/web build"
+      ],
+      "commit": "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+      "evidence": [
+        "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
+        "services/api/test/features/dda/analysis-proposal.service.test.ts",
+        "services/api/test/features/dda/analysis-execution.service.test.ts",
+        "services/api/test/features/dda/dashboard-draft.service.test.ts",
+        "services/api/test/features/dda/dashboard-publication.service.test.ts",
+        "services/api/test/features/dda/dashboard-query-authorization.test.ts",
+        "services/api/test/features/dda/dashboard-comparison.service.test.ts",
+        "services/api/test/features/dda/dashboard-template.service.test.ts",
+        "services/api/test/features/dda/dashboard-export.service.test.ts",
+        "apps/web/test/dashboard-analyst.test.tsx",
+        "apps/web/test/dashboard-canvas.test.tsx",
+        "apps/web/test/dashboard-viewer-authorization.test.tsx",
+        "apps/web/test/dashboard-ga-tools.test.tsx",
+        "apps/web/e2e/dashboard-authoring.spec.ts",
+        "apps/web/e2e/dashboard-sharing-security.spec.ts"
       ]
     },
     {
@@ -484,7 +509,7 @@
       "workPackageId": "DDA-087",
       "name": "integration-parity-readiness",
       "plan": "docs/plans/087-dda-integration-readiness.md",
-      "status": "blocked",
+      "status": "ready",
       "dependsOn": [
         "DDA-081",
         "DDA-082",

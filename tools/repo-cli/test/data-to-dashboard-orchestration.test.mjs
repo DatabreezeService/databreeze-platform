@@ -23,7 +23,7 @@ test('DDA orchestration covers every requirement with non-overlapping parallel o
   assert.equal(output.workPackageCount, 7);
   assert.equal(output.requirementCount, 51);
   assert.equal(output.parallelLaneCount, 5);
-  assert.equal(output.nextWorkPackageId, 'DDA-082');
+  assert.equal(output.nextWorkPackageId, 'DDA-087');
 });
 
 test('DDA program keeps production and streaming claims out of the prototype gate', () => {
