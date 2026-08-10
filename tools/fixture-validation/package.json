@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "parity": "node src/run-contract-parity.mjs",
-    "test": "node --test \"test/**/*.test.mjs\""
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "openai:receipt:offline": "node src/run-openai-receipt-eval.mjs --offline",
+    "openai:receipt:live": "node src/run-openai-receipt-eval.mjs --live"
   },
   "dependencies": {
     "@databreeze/contracts": "workspace:*"
