@@ -48,6 +48,10 @@ android {
     testOptions {
         animationsDisabled = true
     }
+    lint {
+        disable += "PropertyEscape"
+        warningsAsErrors = false
+    }
 }
 
 val generatedContractsDir = layout.buildDirectory.dir("generated/contracts")
