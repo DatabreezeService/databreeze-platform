@@ -1,5 +1,16 @@
 import type { DesktopLocale } from '../../../shared/desktop-contract-v1.ts';
-import type { ProjectionPreview } from '../../../application/publication-projection.service.ts';
+import type { FolderProjectionClass } from '../../../shared/folder-binding-contract-v1.ts';
+
+export interface ProjectionReviewModel {
+  readonly class: FolderProjectionClass;
+  readonly fieldAllowlist: readonly string[];
+  readonly rowCount: number;
+  readonly byteCount: number;
+  readonly destination: 'CLOUD_WORKSPACE_PROJECTION';
+  readonly evidenceConsequences: readonly string[];
+  readonly effectiveDataMode: 'HYBRID' | 'LOCAL' | 'CLOUD';
+  readonly version: number;
+}
 
 const copy = {
   'vi-VN': {
@@ -30,7 +41,7 @@ const copy = {
 
 export interface ProjectionReviewProps {
   readonly locale: DesktopLocale;
-  readonly preview: ProjectionPreview;
+  readonly preview: ProjectionReviewModel;
   readonly onConfirm: () => void;
 }
 

@@ -76,14 +76,17 @@ export class StableFileDetector {
 
     const existing = this.#pending.get(event.path);
     if (existing === undefined) {
-      this.#pending.set(event.path, {
+      const pending: PendingEntry = {
         path: event.path,
         size: event.size,
         mtimeMs: event.mtimeMs,
         lastChangedAtMs: nowMs,
         firstSeenAtMs: nowMs,
-        contentFingerprint: event.contentFingerprint,
-      });
+      };
+      if (event.contentFingerprint !== undefined) {
+        pending.contentFingerprint = event.contentFingerprint;
+      }
+      this.#pending.set(event.path, pending);
       return { state: 'PENDING' };
     }
 

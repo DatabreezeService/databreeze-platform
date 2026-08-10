@@ -22,7 +22,8 @@ describe('DDA-037/DDA-039 folder sync idempotency', () => {
     };
 
     const first = await sync.enqueueApprovedProjection(projection);
-    expect(first).toMatchObject({ state: 'QUEUED' });
+    expect(first.state).toBe('QUEUED');
+    if (first.state !== 'QUEUED') return;
 
     const offline = await sync.flush();
     expect(offline).toMatchObject({ delivered: 0, failed: 1, reason: 'NETWORK_OFFLINE' });

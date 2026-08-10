@@ -52,7 +52,6 @@ export class FolderIntakeService {
   readonly #manifest: FolderManifestRevision;
   readonly #assertInsideBinding: (candidatePath: string) => boolean;
   readonly #readFingerprint: (path: string) => Promise<FolderFingerprintResult>;
-  readonly #mutateSource?: (path: string, action: 'rename' | 'move' | 'delete') => Promise<void>;
   readonly #eventLedger = new Set<string>();
   readonly #periodLedger = new Set<string>();
   readonly #duplicateKeyLedger = new Set<string>();
@@ -65,7 +64,8 @@ export class FolderIntakeService {
     this.#manifest = input.manifest;
     this.#assertInsideBinding = input.assertInsideBinding;
     this.#readFingerprint = input.readFingerprint;
-    this.#mutateSource = input.mutateSource;
+    // V1 intentionally ignores mutateSource; originals stay untouched.
+    void input.mutateSource;
   }
 
   async admitStableFile(input: {
@@ -147,9 +147,6 @@ export class FolderIntakeService {
     } else if (observation.state !== 'STABLE') {
       return { disposition: 'PENDING', path: input.path };
     }
-
-    // V1 never renames/moves/deletes source files.
-    void this.#mutateSource;
 
     this.#eventLedger.add(eventKey);
     this.#detector.rememberContent(fingerprint.contentFingerprint, input.path);
