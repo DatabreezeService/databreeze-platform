@@ -11,9 +11,9 @@ const readJson = (relativePath) =>
 test('manifest traceability bao phủ đúng chỉ mục yêu cầu và các cổng phát hành', () => {
   const index = readJson('docs/specs/requirement-index.json');
   const manifest = readJson('docs/plans/requirement-traceability.json');
-  const expectedPriorityTotals = { P0: 444, P1: 154, P2: 13 };
+  const expectedPriorityTotals = { P0: 490, P1: 158, P2: 14 };
 
-  assert.equal(index.requirements.length, 611);
+  assert.equal(index.requirements.length, 662);
   assert.deepEqual(
     Object.fromEntries(
       Object.entries(
@@ -26,7 +26,7 @@ test('manifest traceability bao phủ đúng chỉ mục yêu cầu và các c�
     expectedPriorityTotals,
   );
   assert.deepEqual(manifest.priorityTotals, expectedPriorityTotals);
-  assert.equal(manifest.requirements.length, 611);
+  assert.equal(manifest.requirements.length, 662);
 
   const indexById = new Map(index.requirements.map((item) => [item.id, item]));
   const seen = new Set();

@@ -348,6 +348,12 @@ function run(argumentsList) {
   }
 
   const requirements = Array.isArray(traceability.requirements) ? traceability.requirements : [];
+  // This ledger is the preserved pre-DDA program. The DDA work packages are
+  // validated by check-data-to-dashboard-orchestration.mjs, while this checker
+  // continues to prove that the original 611-requirement partition has not drifted.
+  const legacyRequirements = requirements.filter(
+    (requirement) => !requirement.requirementId.startsWith('DDA-'),
+  );
   const requirementIds = new Set();
   const priorityCounts = { P0: 0, P1: 0, P2: 0 };
   const primaryPlanCounts = new Map();
@@ -360,13 +366,15 @@ function run(argumentsList) {
       diagnostics.push(
         `requirement ${requirement.requirementId} has invalid priority ${requirement.priority}`,
       );
-    } else {
+    } else if (!requirement.requirementId.startsWith('DDA-')) {
       priorityCounts[requirement.priority] += 1;
     }
-    primaryPlanCounts.set(
-      requirement.primaryPlan,
-      (primaryPlanCounts.get(requirement.primaryPlan) ?? 0) + 1,
-    );
+    if (!requirement.requirementId.startsWith('DDA-')) {
+      primaryPlanCounts.set(
+        requirement.primaryPlan,
+        (primaryPlanCounts.get(requirement.primaryPlan) ?? 0) + 1,
+      );
+    }
     if (!traceStatuses.has(requirement.status)) {
       diagnostics.push(
         `requirement ${requirement.requirementId} has invalid status ${requirement.status}`,
@@ -389,8 +397,8 @@ function run(argumentsList) {
       }
     }
   }
-  if (requirements.length !== 611)
-    diagnostics.push(`traceability has ${requirements.length} requirements`);
+  if (legacyRequirements.length !== 611)
+    diagnostics.push(`legacy traceability has ${legacyRequirements.length} requirements`);
   if (!sameJson(priorityCounts, expectedPriorityTotals)) {
     diagnostics.push(`traceability priority totals are ${JSON.stringify(priorityCounts)}`);
   }
@@ -505,7 +513,7 @@ function run(argumentsList) {
       activeBatchId: ledger.activeBatchId,
       batchCount: ledger.deliveryBatches.length,
       planCount: plans.length,
-      requirementCount: requirements.length,
+      requirementCount: legacyRequirements.length,
       taskCount: taskIds.size,
     })}\n`,
   );

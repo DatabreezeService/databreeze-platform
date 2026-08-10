@@ -1,6 +1,6 @@
 # ADR-0004: Focus V1 on the Data-to-Dashboard Agent and Event-Updated Materialized Snapshots
 
-**Status:** Proposed<br>
+**Status:** Accepted<br>
 **Date:** 2026-08-10
 
 ## Context
@@ -54,4 +54,4 @@ Rejected because it weakens authorization, reproducibility, evidence, resource a
 
 ## Approval gate
 
-This ADR becomes Accepted only after written review of the Version 2 product documents and the DDA specification. Existing implementation plans remain authoritative for already delivered foundation evidence but must not be used to delegate DDA implementation until a replacement requirement-linked plan is approved.
+Accepted after written product review and approval of the Version 2 product documents, DDA specification, and replacement requirement-linked implementation/delegation program. Existing plans remain authoritative for already delivered foundation evidence; DDA work follows plans 080-087 and `data-to-dashboard-orchestration.json`.

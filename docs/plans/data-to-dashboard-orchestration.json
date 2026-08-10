@@ -1,0 +1,409 @@
+{
+  "version": 1,
+  "program": "data-to-dashboard-v1",
+  "status": "approved-not-started",
+  "authority": {
+    "decision": "docs/decisions/0004-data-to-dashboard-direction.md",
+    "programPlan": "docs/plans/080-data-to-dashboard-program.md",
+    "requirements": "docs/specs/features/data-to-dashboard-agent.md",
+    "traceability": "docs/plans/requirement-traceability.json"
+  },
+  "prototype": {
+    "timeboxHours": 24,
+    "claim": "mentor-demo-prototype",
+    "productionReady": false,
+    "goldenJourney": [
+      "messy sales upload to reviewed published dashboard",
+      "approved desktop folder change to affected-widget refresh",
+      "reviewed Android receipt to expense-view refresh"
+    ]
+  },
+  "statusVocabulary": [
+    "complete",
+    "ready",
+    "blocked",
+    "in-progress",
+    "partial",
+    "verified",
+    "deferred"
+  ],
+  "nextWorkPackageId": "DDA-081",
+  "gates": [
+    {
+      "gateId": "G0",
+      "name": "direction-and-plan-approved",
+      "status": "complete",
+      "evidence": [
+        "docs/decisions/0004-data-to-dashboard-direction.md",
+        "docs/plans/080-data-to-dashboard-program.md"
+      ]
+    },
+    {
+      "gateId": "G1",
+      "name": "contracts-frozen-and-generated",
+      "status": "ready",
+      "dependsOn": ["G0"],
+      "workPackageIds": ["DDA-081"]
+    },
+    {
+      "gateId": "G2",
+      "name": "independent-lanes-green",
+      "status": "blocked",
+      "dependsOn": ["G1"],
+      "workPackageIds": ["DDA-082", "DDA-083", "DDA-084", "DDA-085", "DDA-086"]
+    },
+    {
+      "gateId": "G3",
+      "name": "integrated-contracts-migrations-and-packages-green",
+      "status": "blocked",
+      "dependsOn": ["G2"],
+      "workPackageIds": ["DDA-087"]
+    },
+    {
+      "gateId": "G4",
+      "name": "golden-demo-reproducible",
+      "status": "blocked",
+      "dependsOn": ["G3"],
+      "workPackageIds": ["DDA-087"]
+    },
+    {
+      "gateId": "G5",
+      "name": "production-readiness",
+      "status": "blocked",
+      "dependsOn": ["G3", "G4"],
+      "externalPlan": "docs/plans/400-production-readiness.md"
+    }
+  ],
+  "workPackages": [
+    {
+      "workPackageId": "DDA-081",
+      "name": "contracts-and-authorities",
+      "plan": "docs/plans/081-dda-contracts-and-authorities.md",
+      "status": "ready",
+      "dependsOn": [],
+      "parallelGroup": null,
+      "branch": "codex/dda-contracts",
+      "tasks": [
+        "Task 1: Freeze DDA domain values and golden fixtures",
+        "Task 2: Establish DDA persistence and public composition ports",
+        "Task 3: Enforce untrusted-content, AI-egress, retention, and audit contracts",
+        "Task 4: Publish the contract-gate handoff"
+      ],
+      "requirements": [
+        "DDA-001",
+        "DDA-003",
+        "DDA-043",
+        "DDA-044",
+        "DDA-045",
+        "DDA-046"
+      ],
+      "writePaths": [
+        "packages/domain/src/data-to-dashboard",
+        "packages/domain/src/v1.ts",
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/domain/test/data-to-dashboard-policy-v1.test.mjs",
+        "packages/contracts",
+        "services/api/prisma/schema/dda.prisma",
+        "services/api/prisma/schema/platform.prisma",
+        "services/api/prisma/migrations/20260810010000_dda_foundation",
+        "services/api/src/features/dda/dda.module.ts",
+        "services/api/src/features/dda/application",
+        "services/api/src/features/dda/adapter",
+        "services/api/test/features/dda/dda-module-boundaries.test.ts",
+        "services/api/test/features/dda/dda-prisma-scope.test.ts",
+        "services/api/test/features/dda/dda-policy.service.test.ts",
+        "services/api/test/features/dda/dda-content-authority.test.ts",
+        "docs/security/dda-data-flow.md"
+      ],
+      "requiredChecks": [
+        "corepack pnpm contracts:check",
+        "corepack pnpm --filter @databreeze/domain test",
+        "corepack pnpm --filter @databreeze/api prisma:validate",
+        "corepack pnpm --filter @databreeze/api test"
+      ]
+    },
+    {
+      "workPackageId": "DDA-082",
+      "name": "cloud-intake-etl",
+      "plan": "docs/plans/082-dda-cloud-intake-etl.md",
+      "status": "blocked",
+      "dependsOn": ["DDA-081"],
+      "parallelGroup": "DDA-G2",
+      "branch": "codex/dda-cloud-etl",
+      "tasks": [
+        "Task 1: Govern Web file intake",
+        "Task 2: Propose visible ETL and quality review",
+        "Task 3: Execute accepted transformations and register the output",
+        "Task 4: Produce the lane handoff"
+      ],
+      "requirements": [
+        "DDA-002",
+        "DDA-004",
+        "DDA-005",
+        "DDA-006",
+        "DDA-007",
+        "DDA-008",
+        "DDA-009",
+        "DDA-010",
+        "DDA-011"
+      ],
+      "writePaths": [
+        "services/api/src/features/dda/intake",
+        "services/api/src/features/dda/etl",
+        "services/api/test/features/dda/web-intake.service.test.ts",
+        "services/api/test/features/dda/web-intake.controller.test.ts",
+        "services/api/test/features/dda/etl-proposal.service.test.ts",
+        "services/api/test/features/dda/etl-proposal.controller.test.ts",
+        "services/api/test/features/dda/etl-acceptance.service.test.ts",
+        "services/api/test/features/dda/etl-acceptance.controller.test.ts",
+        "services/engine/src/databreeze_engine/processors/dda_etl_intake.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_profile.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_preview.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_execute.py",
+        "services/engine/tests/test_dda_etl_intake.py",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "services/engine/tests/test_dda_etl_execute.py",
+        "apps/web/src/features/data-intake",
+        "apps/web/test/data-intake-upload.test.tsx",
+        "apps/web/test/etl-review-page.test.tsx"
+      ],
+      "requiredChecks": [
+        "corepack pnpm --filter @databreeze/api test",
+        "corepack pnpm --filter @databreeze/web test",
+        "cd services/engine; uv run pytest"
+      ]
+    },
+    {
+      "workPackageId": "DDA-083",
+      "name": "analyst-dashboard-canvas",
+      "plan": "docs/plans/083-dda-analyst-dashboard-canvas.md",
+      "status": "blocked",
+      "dependsOn": ["DDA-081"],
+      "parallelGroup": "DDA-G2",
+      "branch": "codex/dda-dashboard-canvas",
+      "tasks": [
+        "Task 1: Plan and execute deterministic analysis",
+        "Task 2: Build the accessible versioned dashboard canvas",
+        "Task 3: Publish, view, and share without permission expansion",
+        "Task 4: Complete snapshot comparison, templates, and safe export",
+        "Task 5: Produce the lane handoff"
+      ],
+      "requirements": [
+        "DDA-015",
+        "DDA-016",
+        "DDA-017",
+        "DDA-018",
+        "DDA-019",
+        "DDA-020",
+        "DDA-021",
+        "DDA-022",
+        "DDA-023",
+        "DDA-024",
+        "DDA-025",
+        "DDA-026",
+        "DDA-047",
+        "DDA-048",
+        "DDA-049",
+        "DDA-050"
+      ],
+      "writePaths": [
+        "services/api/src/features/dda/analyst",
+        "services/api/src/features/dda/dashboard",
+        "services/api/test/features/dda/analysis-proposal.service.test.ts",
+        "services/api/test/features/dda/analysis-execution.service.test.ts",
+        "services/api/test/features/dda/dashboard-draft.service.test.ts",
+        "services/api/test/features/dda/dashboard-publication.service.test.ts",
+        "services/api/test/features/dda/dashboard-query-authorization.test.ts",
+        "services/api/test/features/dda/dashboard-comparison.service.test.ts",
+        "services/api/test/features/dda/dashboard-template.service.test.ts",
+        "services/api/test/features/dda/dashboard-export.service.test.ts",
+        "apps/web/src/features/dashboards",
+        "apps/web/src/app/router.tsx",
+        "apps/web/src/app/navigation.ts",
+        "apps/web/src/app/messages.ts",
+        "apps/web/src/styles.css",
+        "apps/web/test/dashboard-analyst.test.tsx",
+        "apps/web/test/dashboard-canvas.test.tsx",
+        "apps/web/test/dashboard-viewer-authorization.test.tsx",
+        "apps/web/test/dashboard-ga-tools.test.tsx",
+        "apps/web/e2e/dashboard-authoring.spec.ts",
+        "apps/web/e2e/dashboard-sharing-security.spec.ts"
+      ],
+      "requiredChecks": [
+        "corepack pnpm --filter @databreeze/api test",
+        "corepack pnpm --filter @databreeze/web test",
+        "corepack pnpm --filter @databreeze/web typecheck",
+        "corepack pnpm --filter @databreeze/web build"
+      ]
+    },
+    {
+      "workPackageId": "DDA-084",
+      "name": "materialization-refresh",
+      "plan": "docs/plans/084-dda-materialization-refresh.md",
+      "status": "blocked",
+      "dependsOn": ["DDA-081"],
+      "parallelGroup": "DDA-G2",
+      "branch": "codex/dda-refresh",
+      "tasks": [
+        "Task 1: Resolve dependencies and complete cache identity",
+        "Task 2: Coalesce refreshes and publish atomically",
+        "Task 3: Expose freshness and reconcile connected clients",
+        "Task 4: Enforce usage, admission, and safe denial",
+        "Task 5: Produce the lane handoff"
+      ],
+      "requirements": [
+        "DDA-027",
+        "DDA-028",
+        "DDA-029",
+        "DDA-030",
+        "DDA-031",
+        "DDA-032",
+        "DDA-033",
+        "DDA-034",
+        "DDA-035",
+        "DDA-036"
+      ],
+      "writePaths": [
+        "services/api/src/features/dda/refresh",
+        "services/api/test/features/dda/dependency-index.service.test.ts",
+        "services/api/test/features/dda/materialization-cache-key.test.ts",
+        "services/api/test/features/dda/refresh-orchestrator.service.test.ts",
+        "services/api/test/features/dda/snapshot-commit.service.test.ts",
+        "services/api/test/features/dda/dashboard-refresh.controller.test.ts",
+        "services/api/test/features/dda/dashboard-refresh-events.test.ts",
+        "services/api/test/features/dda/dashboard-refresh-performance.test.ts",
+        "services/api/test/features/dda/refresh-admission.service.test.ts",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_snapshot.py",
+        "services/engine/tests/test_dda_materialize_query.py",
+        "services/engine/tests/test_dda_materialize_snapshot.py",
+        "tools/performance/dda-refresh-reference.mjs"
+      ],
+      "requiredChecks": [
+        "corepack pnpm --filter @databreeze/api test",
+        "cd services/engine; uv run pytest",
+        "node tools/performance/dda-refresh-reference.mjs"
+      ]
+    },
+    {
+      "workPackageId": "DDA-085",
+      "name": "desktop-hybrid-folders",
+      "plan": "docs/plans/085-dda-desktop-hybrid-folders.md",
+      "status": "blocked",
+      "dependsOn": ["DDA-081"],
+      "parallelGroup": "DDA-G2",
+      "branch": "codex/dda-desktop-folders",
+      "tasks": [
+        "Task 1: Bind an approved folder and version its manifest",
+        "Task 2: Detect stable safe file changes",
+        "Task 3: Project Hybrid results and degrade safely",
+        "Task 4: Produce the lane handoff"
+      ],
+      "requirements": ["DDA-012", "DDA-013", "DDA-014", "DDA-037", "DDA-039"],
+      "writePaths": [
+        "apps/desktop/src/application",
+        "apps/desktop/src/main/adapters/windows-folder-binding.adapter.ts",
+        "apps/desktop/src/main/adapters/windows-folder-watcher.adapter.ts",
+        "apps/desktop/src/main/ipc-registry.ts",
+        "apps/desktop/src/preload",
+        "apps/desktop/src/renderer/desktop-bridge.d.ts",
+        "apps/desktop/src/renderer/features/folders",
+        "apps/desktop/src/shared/folder-binding-contract-v1.ts",
+        "apps/desktop/src/shared/folder-intake-contract-v1.ts",
+        "apps/desktop/test",
+        "services/engine/src/databreeze_engine/processors/dda_folder_intake.py",
+        "services/engine/tests/test_dda_folder_intake.py"
+      ],
+      "requiredChecks": [
+        "corepack pnpm --filter @databreeze/desktop security:check",
+        "corepack pnpm --filter @databreeze/desktop typecheck",
+        "corepack pnpm --filter @databreeze/desktop test",
+        "cd services/engine; uv run pytest tests/test_dda_folder_intake.py"
+      ]
+    },
+    {
+      "workPackageId": "DDA-086",
+      "name": "android-receipts",
+      "plan": "docs/plans/086-dda-android-receipts.md",
+      "status": "blocked",
+      "dependsOn": ["DDA-081"],
+      "parallelGroup": "DDA-G2",
+      "branch": "codex/dda-android-receipts",
+      "tasks": [
+        "Task 1: Capture and upload receipts securely",
+        "Task 2: Extract and review versioned OCR candidates",
+        "Task 3: Validate and accept governed receipt data",
+        "Task 4: Produce the lane handoff"
+      ],
+      "requirements": ["DDA-040", "DDA-041", "DDA-042"],
+      "writePaths": [
+        "apps/android/gradle/libs.versions.toml",
+        "apps/android/app/build.gradle.kts",
+        "apps/android/app/src/main/AndroidManifest.xml",
+        "apps/android/app/src/main/java/com/databreeze/android/AndroidRuntime.kt",
+        "apps/android/app/src/main/java/com/databreeze/android/MainActivity.kt",
+        "apps/android/app/src/main/java/com/databreeze/android/receipts",
+        "apps/android/app/src/test/java/com/databreeze/android/receipts",
+        "apps/android/app/src/androidTest/java/com/databreeze/android/receipts",
+        "services/api/src/features/dda/receipt",
+        "services/api/test/features/dda/receipt-extraction.service.test.ts",
+        "services/api/test/features/dda/receipt-extraction.controller.test.ts",
+        "services/api/test/features/dda/receipt-validation.service.test.ts",
+        "services/api/test/features/dda/receipt-acceptance.service.test.ts"
+      ],
+      "requiredChecks": [
+        "cd apps/android; ./gradlew testDebugUnitTest lintDebug",
+        "corepack pnpm --filter @databreeze/api test"
+      ]
+    },
+    {
+      "workPackageId": "DDA-087",
+      "name": "integration-parity-readiness",
+      "plan": "docs/plans/087-dda-integration-readiness.md",
+      "status": "blocked",
+      "dependsOn": ["DDA-081", "DDA-082", "DDA-083", "DDA-084", "DDA-085", "DDA-086"],
+      "parallelGroup": null,
+      "branch": "codex/dda-integration",
+      "tasks": [
+        "Task 1: Integrate lane commits in dependency order",
+        "Task 2: Prove local and cloud deterministic parity",
+        "Task 3: Run the golden cross-platform demo",
+        "Task 4: Preserve streaming as a deferred extension",
+        "Task 5: Reconcile traceability and production readiness"
+      ],
+      "requirements": ["DDA-038", "DDA-051"],
+      "writePaths": [
+        "services/api/src/app.module.ts",
+        "services/api/prisma",
+        "packages/domain/src/v1.ts",
+        "packages/contracts/generated",
+        "apps/web/e2e/dda-golden-journey.spec.ts",
+        "apps/desktop/test/dda-golden-folder-journey.test.ts",
+        "apps/android/app/src/androidTest/java/com/databreeze/android/receipts/DdaGoldenReceiptJourneyTest.kt",
+        "tools/fixture-validation/fixtures/dda",
+        "tools/fixture-validation/src/run-dda-parity.mjs",
+        "tools/fixture-validation/test/dda-parity.test.mjs",
+        "tools/demo/dda",
+        "services/engine/tests/test_dda_local_cloud_parity.py",
+        "docs/evidence/dda",
+        "docs/runbooks/dda-mentor-demo.md",
+        "docs/plans/requirement-traceability.json",
+        "docs/plans/data-to-dashboard-orchestration.json"
+      ],
+      "requiredChecks": [
+        "corepack pnpm requirements:check",
+        "corepack pnpm orchestration:check",
+        "corepack pnpm contracts:check",
+        "corepack pnpm repo:check"
+      ]
+    }
+  ],
+  "integrationOrder": ["DDA-081", "DDA-082", "DDA-084", "DDA-083", "DDA-085", "DDA-086", "DDA-087"],
+  "deferred": [
+    {
+      "requirementId": "DDA-051",
+      "reason": "Streaming requires a separately accepted ordering, lateness, correction, replay, windowing, capacity, cost, and consistency specification."
+    }
+  ]
+}

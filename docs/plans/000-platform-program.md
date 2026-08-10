@@ -1,67 +1,59 @@
 # DataBreeze Platform Implementation Program
 
-**Status:** Approved<br>
-**Implementation branch:** `dev` through short-lived `feat/*` and `fix/*` branches<br>
+**Status:** Approved, Version 2<br>
+**Implementation branches:** `codex/dda-*` isolated worktrees into the designated integration branch<br>
 **Primary specifications:** `docs/product/`, `docs/architecture/`, `docs/specs/`, and accepted ADRs
 
 ## Goal
 
-Implement DataBreeze as one Vietnamese-first, local-first business data platform across Web, Windows Desktop, and Android. The platform turns user-controlled files, documents, captures, and governed datasets into traceable jobs, evidence, reviews, approvals, reports, and safe actions without depending on restricted marketplace APIs.
+Implement DataBreeze as one Vietnamese-first data-to-dashboard agent across Web, Windows Desktop, and Android. The product turns user-controlled CSV/XLSX files, approved folders, and reviewed receipt captures into governed DatasetVersions, typed deterministic analyses, editable interactive dashboards, and immutable permission-scoped snapshots with evidence and efficient on-change refresh.
 
-The program covers all 611 normative requirements. P0 requirements are release gates, P1 requirements complete the generally available capability, and P2 requirements are preserved as extension seams but are not scheduled for the first release.
+The repository contains 662 normative requirements. The 51 DDA requirements define V1 product scope. Existing foundation requirements remain binding wherever DDA composes them. Specialist-module requirements remain valid for those modules' later releases but are not parallel V1 commitments.
 
 ## Locked decisions
 
-- One clean monorepo with independently releasable deployables.
-- TypeScript for Web, Desktop, shared packages, and the NestJS/Fastify control plane.
-- Native Kotlin/Compose for Android and Python for the shared processing engine.
-- PostgreSQL is authoritative; S3-compatible storage holds cloud bytes; Redis is non-authoritative.
-- Local, Hybrid, and Cloud data modes remain visible and enforceable throughout every workflow.
-- First usable release is a private dogfood alpha built on the full multi-tenant architecture.
-- The first cross-platform workflow is Folder Autopilot plus Spreadsheet Auditor.
-- Core value does not require Shopee, TikTok Shop, accounting, advertising, or ERP partnerships.
-- AWS Singapore is the first hosted target through portable containers and OpenTofu.
-- The existing DataBreeze name and canonical logo files are retained without redrawing.
+- One monorepo with independently releasable Web, Desktop, Android, API, worker, and engine deployables.
+- React/TypeScript for Web and Desktop shared UI packages, native Kotlin/Compose for Android, NestJS/Fastify for the control plane, and Python for deterministic processing.
+- PostgreSQL is authoritative; S3-compatible storage owns cloud bytes through IAE; Redis is non-authoritative.
+- IAM, IAE, DSM, JRA, DSO, NCO, BUA, and AUD remain their declared authorities. DDA composes public contracts and never reads feature persistence directly.
+- Local, Hybrid, and Cloud remain visible and enforceable. Hybrid is the default; cloud cannot browse Desktop folders or receive Local-only bytes.
+- The V1 product is DDA, delivered sequentially as Cloud dashboard foundation, Hybrid Desktop folder intake, and cloud-connected Android receipt capture.
+- Dashboard views use permission-scoped materialized results and complete immutable snapshots. `ON_CHANGE` is the default; `MANUAL` and `SCHEDULED` are supported; streaming is deferred.
+- AI proposes typed plans/presentation only. Deterministic processors calculate authoritative values; no arbitrary generated code or silent publication.
+- AWS Singapore remains the first hosted target through portable containers and OpenTofu. OCR/AI contracts remain provider-neutral.
+- The DataBreeze name, canonical logo, Vietnamese-default locale, and complete English fallback remain unchanged.
+- A 24-hour build is a mentor-demo prototype gate, not production readiness.
 
 ## Delivery program
 
-| Phase | Child plan | Release gate |
+| Phase | Plan | Release gate |
 |---|---|---|
-| 0 | `010-engineering-foundation.md` | Toolchains, contracts, brand, deployable shells, local dependencies, and CI build reproducibly. |
-| 1A | `020-identity-audit-entitlements.md` | IAM, AUD, and provider-independent BUA foundations pass tenant and security gates. |
-| 1B | `030-artifacts-datasets-evidence.md` | IAE and DSM provide immutable artifacts, evidence, datasets, schemas, rules, and mappings. |
-| 1C | `040-jobs-processing-approvals.md` | JRA, admission coordination, cloud workers, and the local engine execute signed typed jobs. |
-| 1D | `050-devices-sync-offline.md` | Desktop and Android enroll, sync, recover, conflict, and revoke safely. |
-| 1E | `060-collaboration-integrations.md` | NCO and INT provide governed collaboration, notifications, API keys, and webhooks. |
-| 2 | `070-dogfood-folder-spreadsheet.md` | One spreadsheet-folder workflow crosses all three applications and preserves the original. |
-| 3 | `1xx-wave-1-*.md` | Folder Autopilot, Spreadsheet Auditor, Quote Intelligence, and Operations Capture. |
-| 4 | `2xx-wave-2-*.md` | Invoice Leak Detector, Client Report Factory, and Private Data Analyst. |
-| 5 | `3xx-wave-3-*.md` | Migration Ready, Data Quality Guard, and Embedded Importer. |
-| 6 | `400-production-readiness.md` | Signing, restoration, scaling, security, support, and progressive releases pass. |
+| Foundation evidence | `010`-`060` | Existing identity, artifacts/datasets/evidence, jobs/approvals, devices/sync, and collaboration authorities are green for the invoked slice. |
+| V1 program | `080-data-to-dashboard-program.md` | Direction, ownership, dependencies, dispatch packets, prototype limitations, and production gates are approved. |
+| Contract gate | `081-dda-contracts-and-authorities.md` | Domain/wire/persistence vocabulary, authority boundaries, policies, and cross-language fixtures are frozen and green. |
+| Parallel product lanes | `082`-`086` | Cloud ETL, analyst/canvas, materialization/refresh, Desktop folders, and Android receipts pass their independent handoff gates. |
+| Integration | `087-dda-integration-readiness.md` | Ordered integration, Local/Cloud parity, golden demo, honest traceability, and release gaps are reproducible. |
+| Production | `400-production-readiness.md` | Security, tenant isolation, signing, restoration, scaling, accessibility, performance, support, and progressive release gates pass. |
+| Post-V1 | `070`, `100`-`320`, `500` | Specialist capabilities begin only through a later approved change and child plan. |
 
-Child plans are written and approved before their product slice begins. Each names exact requirement IDs, paths, contract changes, migrations, tests, telemetry, failure behavior, rollback, and intentionally deferred requirements.
+The machine-readable DDA DAG is `docs/plans/data-to-dashboard-orchestration.json`. The legacy `execution-orchestration.json` remains a historical validator for the original 611-requirement partition and must not be used to dispatch DDA work.
 
-docs/plans/requirement-traceability.json records all 611 IDs with requested trace fields, one primary plan/task, release status, and verified paths only after evidence exists.
+## Branch, ownership, and review policy
 
-`docs/plans/004-luna-max-execution-plan.md` packages the unfinished orchestration tasks into 15 dependency-safe delivery batches. A normal PR slice contains 30–50 atomic commits; an exceptional completed-task boundary may extend to 79 but never to CodeRabbit's 100-commit limit. Promotion diffs stay at or below 260 changed files and use the `feat/*` or `fix/*` → `dev` → reviewed `main` flow below.
-
-## Branch, commit, and review policy
-
-- `main` contains stable releases. `dev` is the integration branch.
-- New capabilities use `feat/<name>`; corrections use `fix/<name>`; operational and documentation work use conventional prefixes when more accurate.
-- Commit one coherent tested unit at a time. Do not combine unrelated applications or domains merely to reduce commit count.
-- Feature/fix pull requests target `dev`, normally contain 30–50 commits; an exceptional completed-task boundary may reach 79 but must remain below 100 commits. Run local and hosted checks, but do not invoke CodeRabbit on these integration pull requests. Focused review-gate fixes are the only intentional small-PR exception.
-- Merge a green integration pull request while preserving its atomic rollback commits, then immediately open a separate `dev` → `main` promotion pull request for that completed batch.
-- Invoke CodeRabbit exactly once on the otherwise-ready promotion pull request and request a full review. Keep the packet at or below 260 changed files; 280 is the hard review-stop threshold and must never be crossed before splitting or reverting the batch.
-- Reproduce every CodeRabbit claim against the reviewed commit. Fix valid findings in focused commits, document rejected findings with evidence, rerun all affected gates, and never request a second CodeRabbit review on that pull request.
-- Do not merge a promotion when the single review was skipped, timed out, has unresolved valid findings, or required hosted checks are not green.
+- Start `081` first. Its green commit is the immutable base for plans `082`-`086`.
+- Run each product lane in a separate `codex/dda-<lane>` worktree/branch. One agent owns one child plan.
+- Shared schemas/generated outputs, domain exports, API root composition, Prisma migration ordering, Web shell composition, Desktop IPC/preload, Android runtime composition, and traceability status follow the exclusive locks in plan `080`.
+- Workers return atomic commits and evidence; they do not self-certify requirements. The integration owner merges one lane at a time and reruns receiving-branch gates.
+- Keep commits coherent and reversible. Preserve unrelated work and never commit customer data, runtime artifacts, secrets, credentials, local databases, generated reports, Office lock files, or local folder paths.
+- Production promotion continues through reviewed integration and plan `400`; a working demo is insufficient release evidence.
 
 ## Cross-cutting definition of done
 
-- Requirement-to-task-to-test traceability is complete.
-- Generated TypeScript, Kotlin, and Python contracts agree.
-- Tenant scope, authorization, data mode, evidence, approval, audit, and retention rules cannot be bypassed.
+- Requirement-to-plan-to-task-to-test traceability is complete and honest.
+- Generated TypeScript, Kotlin, and Python contracts and golden fixtures agree.
+- Tenant scope, authorization, data mode, evidence, approval, audit, usage, retention, and recovery cannot be bypassed.
+- Originals and accepted versions remain immutable; rejects/exclusions are counted and discoverable.
 - Vietnamese and English user-facing copy are complete for the delivered slice.
-- Relevant unit, integration, contract, end-to-end, security, accessibility, recovery, and performance tests pass.
-- Migrations, observability, operations, rollback, and release evidence are present.
-- No critical- or high-severity security finding remains unresolved for a production release.
+- Relevant unit, integration, contract, tenant-isolation, concurrency, end-to-end, security, accessibility, offline/recovery, parity, and performance tests pass.
+- Migrations, observability, operations, rollback, evidence, and prototype/production limitations are documented.
+- No critical/high security finding remains unresolved for production, and `DDA-051` remains deferred until a streaming specification is accepted.

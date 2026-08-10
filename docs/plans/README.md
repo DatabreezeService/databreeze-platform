@@ -1,48 +1,32 @@
 # Implementation Plans
 
-Implementation plans are created here only after the applicable product, architecture, foundation, platform, and feature specifications are approved.
+Implementation starts only after the applicable product, architecture, foundation, platform, feature specification, ADR, and child plan are approved.
 
-Each plan must:
+Every plan must name requirement IDs, exact repository paths and interfaces, a vertical test-first sequence, migrations and rollback, security/failure/telemetry behavior, release evidence, and intentionally deferred scope. A plan never weakens tenant isolation, authorization, evidence, data mode, retention, approval, usage, audit, or client/worker trust boundaries.
 
-- name the requirements it implements
-- identify exact repository paths and contract changes
-- use a vertical, testable sequence
-- include migrations, security, failure behavior, telemetry, documentation, and rollback
-- preserve deployable independence
-- state which requirements remain for a later slice
+## Current V1 authority
 
-The planning authorities are:
+DataBreeze V1 is the Data-to-Dashboard Agent. Use these authorities in order:
 
-1. `000-platform-program.md` — stable program policy and release gates.
-2. `001-plan-package.md` — historical record for creating the child-plan and traceability package.
-3. `002-complete-execution-orchestration.md` — implementation DAG, atomic task catalog, cross-plan gates, and edge cases.
-4. `003-luna-handoff-runbook.md` — deterministic session resume, Git/PR, CodeRabbit, recovery, and handoff protocol.
-5. `004-luna-max-execution-plan.md` — live checkpoint, 15 delivery batches, commit/file budgets, parallel lanes, and the exact Luna Max starting packet.
-6. `execution-orchestration.json` — machine-readable plan/task/batch dependency ledger and active batch/next-task pointer.
-7. `requirement-traceability.json` — 611 unique requirement assignments (P0 444, P1 154, P2 13) and their implementation/test/release evidence.
+1. [`000-platform-program.md`](000-platform-program.md) — stable program and release policy.
+2. [`080-data-to-dashboard-program.md`](080-data-to-dashboard-program.md) — approved V1 dependency graph, 24-hour prototype gate, production sequence, ownership locks, dispatch packets, and stop conditions.
+3. [`data-to-dashboard-orchestration.json`](data-to-dashboard-orchestration.json) — machine-readable gates, dependencies, work packages, branches, requirements, writable ownership, checks, and next-work pointer.
+4. [`requirement-traceability.json`](requirement-traceability.json) — 662 unique requirement assignments: P0 490, P1 158, P2 14.
+5. Child plans `081` through `087` — the executable contract, product-lane, integration, parity, and evidence tasks.
 
-The dependency-ordered child plans are:
+Dependency order:
 
-1. `010-engineering-foundation.md`
-2. `020-identity-audit-entitlements.md`
-3. `030-artifacts-datasets-evidence.md`
-4. `040-jobs-processing-approvals.md`
-5. `050-devices-sync-offline.md`
-6. `060-collaboration-integrations.md`
-7. `070-dogfood-folder-spreadsheet.md`
-8. `100-folder-autopilot.md`
-9. `110-spreadsheet-auditor.md`
-10. `120-quote-intelligence.md`
-11. `130-operations-capture.md`
-12. `200-invoice-leak-detector.md`
-13. `210-client-report-factory.md`
-14. `220-private-data-analyst.md`
-15. `300-migration-ready.md`
-16. `310-data-quality-guard.md`
-17. `320-embedded-importer.md`
-18. `400-production-readiness.md`
-19. `500-post-ga-extensions.md`
+1. `081-dda-contracts-and-authorities.md`
+2. After `081` is green, run `082-dda-cloud-intake-etl.md`, `083-dda-analyst-dashboard-canvas.md`, `084-dda-materialization-refresh.md`, `085-dda-desktop-hybrid-folders.md`, and `086-dda-android-receipts.md` in isolated parallel worktrees.
+3. `087-dda-integration-readiness.md`
+4. `400-production-readiness.md` before any production claim or release.
 
-Run `corepack pnpm orchestration:check` before selecting or handing off an implementation task. A child plan owns requirement scope; the orchestration plan owns task order; the Luna Max execution plan owns delivery batching; the traceability manifest owns evidence status. Git and fetched pull-request state override historical checkpoint hashes.
+Run `corepack pnpm orchestration:check` before dispatch, handoff, or integration. The DDA checker confirms all 51 DDA requirements, plan/task references, dependency acyclicity, and non-overlapping parallel write ownership.
 
-A plan does not change product scope. Any conflict returns to the specification review process.
+## Preserved foundation and historical plans
+
+Plans `010` through `060` remain authoritative for already delivered or unfinished shared foundation evidence. Plans `001` through `004` and `execution-orchestration.json` preserve the pre-pivot ten-module execution history and continue to validate its 611-requirement partition; they are not the dispatch authority for DDA V1.
+
+Plans `070`, `100`-`320`, and `500` describe the former dogfood sequence and specialist extensions. Their stable requirement IDs remain valid for each capability's eventual release, but those plans are post-V1 unless an approved change explicitly promotes a slice. Do not dispatch them merely because their legacy ledger has an active pointer.
+
+Git and fetched pull-request state override historical checkpoint hashes. Requirement records become verified only after exact evidence paths exist and linked tests pass.

@@ -1,9 +1,9 @@
 {
   "version": 1,
   "priorityTotals": {
-    "P0": 444,
-    "P1": 154,
-    "P2": 13
+    "P0": 490,
+    "P1": 158,
+    "P2": 14
   },
   "releaseStatuses": {
     "P0": "p0-release-gate",
@@ -2788,6 +2788,1486 @@
         "requirement-linked-tests",
         "security-and-tenant-gate",
         "release-manager-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "post-ga"
+    },
+    {
+      "requirementId": "DDA-001",
+      "priority": "P0",
+      "primaryPlan": "081-dda-contracts-and-authorities.md",
+      "primaryTask": "Task 2: Establish DDA persistence and public composition ports",
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
+      "codePaths": [
+        "packages/domain/src/data-to-dashboard/",
+        "packages/contracts/schemas/v1/",
+        "services/api/src/features/dda/",
+        "services/api/prisma/schema/dda.prisma"
+      ],
+      "testPaths": [
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/contracts/test/schemas.test.mjs",
+        "services/api/test/features/dda/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-002",
+      "priority": "P0",
+      "primaryPlan": "082-dda-cloud-intake-etl.md",
+      "primaryTask": "Task 1: Govern Web file intake",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/intake/",
+        "services/api/src/features/dda/etl/",
+        "services/engine/src/databreeze_engine/processors/dda_etl_intake.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_profile.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_preview.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_execute.py",
+        "apps/web/src/features/data-intake/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "services/engine/tests/test_dda_etl_intake.py",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "services/engine/tests/test_dda_etl_execute.py",
+        "apps/web/test/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-003",
+      "priority": "P0",
+      "primaryPlan": "081-dda-contracts-and-authorities.md",
+      "primaryTask": "Task 1: Freeze DDA domain values and golden fixtures",
+      "supportingTasks": [
+        "082-dda-cloud-intake-etl.md ? Task 3: Execute accepted transformations and register the output",
+        "084-dda-materialization-refresh.md ? Task 2: Coalesce refreshes and publish atomically",
+        "086-dda-android-receipts.md ? Task 3: Validate and accept governed receipt data"
+      ],
+      "codePaths": [
+        "packages/domain/src/data-to-dashboard/",
+        "packages/contracts/schemas/v1/",
+        "services/api/src/features/dda/",
+        "services/api/prisma/schema/dda.prisma"
+      ],
+      "testPaths": [
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/contracts/test/schemas.test.mjs",
+        "services/api/test/features/dda/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-004",
+      "priority": "P0",
+      "primaryPlan": "082-dda-cloud-intake-etl.md",
+      "primaryTask": "Task 3: Execute accepted transformations and register the output",
+      "supportingTasks": [
+        "083-dda-analyst-dashboard-canvas.md ? Task 2: Build the accessible versioned dashboard canvas",
+        "084-dda-materialization-refresh.md ? Task 2: Coalesce refreshes and publish atomically",
+        "085-dda-desktop-hybrid-folders.md ? Task 3: Project Hybrid results and degrade safely",
+        "086-dda-android-receipts.md ? Task 3: Validate and accept governed receipt data"
+      ],
+      "codePaths": [
+        "services/api/src/features/dda/intake/",
+        "services/api/src/features/dda/etl/",
+        "services/engine/src/databreeze_engine/processors/dda_etl_intake.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_profile.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_preview.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_execute.py",
+        "apps/web/src/features/data-intake/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "services/engine/tests/test_dda_etl_intake.py",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "services/engine/tests/test_dda_etl_execute.py",
+        "apps/web/test/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-005",
+      "priority": "P0",
+      "primaryPlan": "082-dda-cloud-intake-etl.md",
+      "primaryTask": "Task 2: Propose visible ETL and quality review",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/intake/",
+        "services/api/src/features/dda/etl/",
+        "services/engine/src/databreeze_engine/processors/dda_etl_intake.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_profile.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_preview.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_execute.py",
+        "apps/web/src/features/data-intake/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "services/engine/tests/test_dda_etl_intake.py",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "services/engine/tests/test_dda_etl_execute.py",
+        "apps/web/test/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-006",
+      "priority": "P0",
+      "primaryPlan": "082-dda-cloud-intake-etl.md",
+      "primaryTask": "Task 2: Propose visible ETL and quality review",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/intake/",
+        "services/api/src/features/dda/etl/",
+        "services/engine/src/databreeze_engine/processors/dda_etl_intake.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_profile.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_preview.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_execute.py",
+        "apps/web/src/features/data-intake/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "services/engine/tests/test_dda_etl_intake.py",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "services/engine/tests/test_dda_etl_execute.py",
+        "apps/web/test/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-007",
+      "priority": "P0",
+      "primaryPlan": "082-dda-cloud-intake-etl.md",
+      "primaryTask": "Task 3: Execute accepted transformations and register the output",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/intake/",
+        "services/api/src/features/dda/etl/",
+        "services/engine/src/databreeze_engine/processors/dda_etl_intake.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_profile.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_preview.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_execute.py",
+        "apps/web/src/features/data-intake/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "services/engine/tests/test_dda_etl_intake.py",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "services/engine/tests/test_dda_etl_execute.py",
+        "apps/web/test/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-008",
+      "priority": "P0",
+      "primaryPlan": "082-dda-cloud-intake-etl.md",
+      "primaryTask": "Task 2: Propose visible ETL and quality review",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/intake/",
+        "services/api/src/features/dda/etl/",
+        "services/engine/src/databreeze_engine/processors/dda_etl_intake.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_profile.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_preview.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_execute.py",
+        "apps/web/src/features/data-intake/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "services/engine/tests/test_dda_etl_intake.py",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "services/engine/tests/test_dda_etl_execute.py",
+        "apps/web/test/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-009",
+      "priority": "P0",
+      "primaryPlan": "082-dda-cloud-intake-etl.md",
+      "primaryTask": "Task 2: Propose visible ETL and quality review",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/intake/",
+        "services/api/src/features/dda/etl/",
+        "services/engine/src/databreeze_engine/processors/dda_etl_intake.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_profile.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_preview.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_execute.py",
+        "apps/web/src/features/data-intake/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "services/engine/tests/test_dda_etl_intake.py",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "services/engine/tests/test_dda_etl_execute.py",
+        "apps/web/test/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-010",
+      "priority": "P0",
+      "primaryPlan": "082-dda-cloud-intake-etl.md",
+      "primaryTask": "Task 2: Propose visible ETL and quality review",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/intake/",
+        "services/api/src/features/dda/etl/",
+        "services/engine/src/databreeze_engine/processors/dda_etl_intake.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_profile.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_preview.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_execute.py",
+        "apps/web/src/features/data-intake/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "services/engine/tests/test_dda_etl_intake.py",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "services/engine/tests/test_dda_etl_execute.py",
+        "apps/web/test/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-011",
+      "priority": "P0",
+      "primaryPlan": "082-dda-cloud-intake-etl.md",
+      "primaryTask": "Task 2: Propose visible ETL and quality review",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/intake/",
+        "services/api/src/features/dda/etl/",
+        "services/engine/src/databreeze_engine/processors/dda_etl_intake.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_profile.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_preview.py",
+        "services/engine/src/databreeze_engine/processors/dda_etl_execute.py",
+        "apps/web/src/features/data-intake/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "services/engine/tests/test_dda_etl_intake.py",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "services/engine/tests/test_dda_etl_execute.py",
+        "apps/web/test/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-012",
+      "priority": "P0",
+      "primaryPlan": "085-dda-desktop-hybrid-folders.md",
+      "primaryTask": "Task 1: Bind an approved folder and version its manifest",
+      "supportingTasks": [],
+      "codePaths": [
+        "apps/desktop/src/application/",
+        "apps/desktop/src/main/",
+        "apps/desktop/src/preload/",
+        "apps/desktop/src/renderer/features/folders/",
+        "services/engine/src/databreeze_engine/processors/dda_folder_intake.py"
+      ],
+      "testPaths": [
+        "apps/desktop/test/",
+        "services/engine/tests/test_dda_folder_intake.py"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-013",
+      "priority": "P0",
+      "primaryPlan": "085-dda-desktop-hybrid-folders.md",
+      "primaryTask": "Task 1: Bind an approved folder and version its manifest",
+      "supportingTasks": [],
+      "codePaths": [
+        "apps/desktop/src/application/",
+        "apps/desktop/src/main/",
+        "apps/desktop/src/preload/",
+        "apps/desktop/src/renderer/features/folders/",
+        "services/engine/src/databreeze_engine/processors/dda_folder_intake.py"
+      ],
+      "testPaths": [
+        "apps/desktop/test/",
+        "services/engine/tests/test_dda_folder_intake.py"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-014",
+      "priority": "P0",
+      "primaryPlan": "085-dda-desktop-hybrid-folders.md",
+      "primaryTask": "Task 2: Detect stable safe file changes",
+      "supportingTasks": [],
+      "codePaths": [
+        "apps/desktop/src/application/",
+        "apps/desktop/src/main/",
+        "apps/desktop/src/preload/",
+        "apps/desktop/src/renderer/features/folders/",
+        "services/engine/src/databreeze_engine/processors/dda_folder_intake.py"
+      ],
+      "testPaths": [
+        "apps/desktop/test/",
+        "services/engine/tests/test_dda_folder_intake.py"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-015",
+      "priority": "P0",
+      "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
+      "primaryTask": "Task 1: Plan and execute deterministic analysis",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/analyst/",
+        "services/api/src/features/dda/dashboard/",
+        "apps/web/src/features/dashboards/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "apps/web/test/",
+        "apps/web/e2e/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-016",
+      "priority": "P0",
+      "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
+      "primaryTask": "Task 1: Plan and execute deterministic analysis",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/analyst/",
+        "services/api/src/features/dda/dashboard/",
+        "apps/web/src/features/dashboards/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "apps/web/test/",
+        "apps/web/e2e/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-017",
+      "priority": "P0",
+      "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
+      "primaryTask": "Task 1: Plan and execute deterministic analysis",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/analyst/",
+        "services/api/src/features/dda/dashboard/",
+        "apps/web/src/features/dashboards/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "apps/web/test/",
+        "apps/web/e2e/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-018",
+      "priority": "P0",
+      "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
+      "primaryTask": "Task 1: Plan and execute deterministic analysis",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/analyst/",
+        "services/api/src/features/dda/dashboard/",
+        "apps/web/src/features/dashboards/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "apps/web/test/",
+        "apps/web/e2e/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-019",
+      "priority": "P0",
+      "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
+      "primaryTask": "Task 1: Plan and execute deterministic analysis",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/analyst/",
+        "services/api/src/features/dda/dashboard/",
+        "apps/web/src/features/dashboards/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "apps/web/test/",
+        "apps/web/e2e/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-020",
+      "priority": "P0",
+      "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
+      "primaryTask": "Task 2: Build the accessible versioned dashboard canvas",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/analyst/",
+        "services/api/src/features/dda/dashboard/",
+        "apps/web/src/features/dashboards/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "apps/web/test/",
+        "apps/web/e2e/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-021",
+      "priority": "P0",
+      "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
+      "primaryTask": "Task 2: Build the accessible versioned dashboard canvas",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/analyst/",
+        "services/api/src/features/dda/dashboard/",
+        "apps/web/src/features/dashboards/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "apps/web/test/",
+        "apps/web/e2e/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-022",
+      "priority": "P0",
+      "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
+      "primaryTask": "Task 2: Build the accessible versioned dashboard canvas",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/analyst/",
+        "services/api/src/features/dda/dashboard/",
+        "apps/web/src/features/dashboards/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "apps/web/test/",
+        "apps/web/e2e/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-023",
+      "priority": "P0",
+      "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
+      "primaryTask": "Task 2: Build the accessible versioned dashboard canvas",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/analyst/",
+        "services/api/src/features/dda/dashboard/",
+        "apps/web/src/features/dashboards/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "apps/web/test/",
+        "apps/web/e2e/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-024",
+      "priority": "P0",
+      "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
+      "primaryTask": "Task 2: Build the accessible versioned dashboard canvas",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/analyst/",
+        "services/api/src/features/dda/dashboard/",
+        "apps/web/src/features/dashboards/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "apps/web/test/",
+        "apps/web/e2e/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-025",
+      "priority": "P0",
+      "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
+      "primaryTask": "Task 3: Publish, view, and share without permission expansion",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/analyst/",
+        "services/api/src/features/dda/dashboard/",
+        "apps/web/src/features/dashboards/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "apps/web/test/",
+        "apps/web/e2e/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-026",
+      "priority": "P0",
+      "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
+      "primaryTask": "Task 3: Publish, view, and share without permission expansion",
+      "supportingTasks": [
+        "084-dda-materialization-refresh.md ? Task 3: Expose freshness and reconcile connected clients"
+      ],
+      "codePaths": [
+        "services/api/src/features/dda/analyst/",
+        "services/api/src/features/dda/dashboard/",
+        "apps/web/src/features/dashboards/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "apps/web/test/",
+        "apps/web/e2e/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-027",
+      "priority": "P0",
+      "primaryPlan": "084-dda-materialization-refresh.md",
+      "primaryTask": "Task 3: Expose freshness and reconcile connected clients",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/refresh/",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_snapshot.py",
+        "tools/performance/dda-refresh-reference.mjs"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "services/engine/tests/test_dda_materialize_query.py",
+        "services/engine/tests/test_dda_materialize_snapshot.py"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-028",
+      "priority": "P0",
+      "primaryPlan": "084-dda-materialization-refresh.md",
+      "primaryTask": "Task 1: Resolve dependencies and complete cache identity",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/refresh/",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_snapshot.py",
+        "tools/performance/dda-refresh-reference.mjs"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "services/engine/tests/test_dda_materialize_query.py",
+        "services/engine/tests/test_dda_materialize_snapshot.py"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-029",
+      "priority": "P0",
+      "primaryPlan": "084-dda-materialization-refresh.md",
+      "primaryTask": "Task 1: Resolve dependencies and complete cache identity",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/refresh/",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_snapshot.py",
+        "tools/performance/dda-refresh-reference.mjs"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "services/engine/tests/test_dda_materialize_query.py",
+        "services/engine/tests/test_dda_materialize_snapshot.py"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-030",
+      "priority": "P0",
+      "primaryPlan": "084-dda-materialization-refresh.md",
+      "primaryTask": "Task 2: Coalesce refreshes and publish atomically",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/refresh/",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_snapshot.py",
+        "tools/performance/dda-refresh-reference.mjs"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "services/engine/tests/test_dda_materialize_query.py",
+        "services/engine/tests/test_dda_materialize_snapshot.py"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-031",
+      "priority": "P0",
+      "primaryPlan": "084-dda-materialization-refresh.md",
+      "primaryTask": "Task 1: Resolve dependencies and complete cache identity",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/refresh/",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_snapshot.py",
+        "tools/performance/dda-refresh-reference.mjs"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "services/engine/tests/test_dda_materialize_query.py",
+        "services/engine/tests/test_dda_materialize_snapshot.py"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-032",
+      "priority": "P0",
+      "primaryPlan": "084-dda-materialization-refresh.md",
+      "primaryTask": "Task 2: Coalesce refreshes and publish atomically",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/refresh/",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_snapshot.py",
+        "tools/performance/dda-refresh-reference.mjs"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "services/engine/tests/test_dda_materialize_query.py",
+        "services/engine/tests/test_dda_materialize_snapshot.py"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-033",
+      "priority": "P0",
+      "primaryPlan": "084-dda-materialization-refresh.md",
+      "primaryTask": "Task 3: Expose freshness and reconcile connected clients",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/refresh/",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_snapshot.py",
+        "tools/performance/dda-refresh-reference.mjs"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "services/engine/tests/test_dda_materialize_query.py",
+        "services/engine/tests/test_dda_materialize_snapshot.py"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-034",
+      "priority": "P0",
+      "primaryPlan": "084-dda-materialization-refresh.md",
+      "primaryTask": "Task 3: Expose freshness and reconcile connected clients",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/refresh/",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_snapshot.py",
+        "tools/performance/dda-refresh-reference.mjs"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "services/engine/tests/test_dda_materialize_query.py",
+        "services/engine/tests/test_dda_materialize_snapshot.py"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-035",
+      "priority": "P0",
+      "primaryPlan": "084-dda-materialization-refresh.md",
+      "primaryTask": "Task 3: Expose freshness and reconcile connected clients",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/refresh/",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_snapshot.py",
+        "tools/performance/dda-refresh-reference.mjs"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "services/engine/tests/test_dda_materialize_query.py",
+        "services/engine/tests/test_dda_materialize_snapshot.py"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-036",
+      "priority": "P0",
+      "primaryPlan": "084-dda-materialization-refresh.md",
+      "primaryTask": "Task 4: Enforce usage, admission, and safe denial",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/refresh/",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_query.py",
+        "services/engine/src/databreeze_engine/processors/dda_materialize_snapshot.py",
+        "tools/performance/dda-refresh-reference.mjs"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "services/engine/tests/test_dda_materialize_query.py",
+        "services/engine/tests/test_dda_materialize_snapshot.py"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-037",
+      "priority": "P0",
+      "primaryPlan": "085-dda-desktop-hybrid-folders.md",
+      "primaryTask": "Task 3: Project Hybrid results and degrade safely",
+      "supportingTasks": [],
+      "codePaths": [
+        "apps/desktop/src/application/",
+        "apps/desktop/src/main/",
+        "apps/desktop/src/preload/",
+        "apps/desktop/src/renderer/features/folders/",
+        "services/engine/src/databreeze_engine/processors/dda_folder_intake.py"
+      ],
+      "testPaths": [
+        "apps/desktop/test/",
+        "services/engine/tests/test_dda_folder_intake.py"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-038",
+      "priority": "P0",
+      "primaryPlan": "087-dda-integration-readiness.md",
+      "primaryTask": "Task 2: Prove local and cloud deterministic parity",
+      "supportingTasks": [
+        "082-dda-cloud-intake-etl.md ? Task 3: Execute accepted transformations and register the output",
+        "085-dda-desktop-hybrid-folders.md ? Task 2: Detect stable safe file changes"
+      ],
+      "codePaths": [
+        "tools/fixture-validation/fixtures/dda/",
+        "tools/fixture-validation/src/run-dda-parity.mjs",
+        "tools/demo/dda/"
+      ],
+      "testPaths": [
+        "tools/fixture-validation/test/dda-parity.test.mjs",
+        "services/engine/tests/test_dda_local_cloud_parity.py",
+        "apps/web/e2e/dda-golden-journey.spec.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-039",
+      "priority": "P0",
+      "primaryPlan": "085-dda-desktop-hybrid-folders.md",
+      "primaryTask": "Task 3: Project Hybrid results and degrade safely",
+      "supportingTasks": [],
+      "codePaths": [
+        "apps/desktop/src/application/",
+        "apps/desktop/src/main/",
+        "apps/desktop/src/preload/",
+        "apps/desktop/src/renderer/features/folders/",
+        "services/engine/src/databreeze_engine/processors/dda_folder_intake.py"
+      ],
+      "testPaths": [
+        "apps/desktop/test/",
+        "services/engine/tests/test_dda_folder_intake.py"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-040",
+      "priority": "P0",
+      "primaryPlan": "086-dda-android-receipts.md",
+      "primaryTask": "Task 1: Capture and upload receipts securely",
+      "supportingTasks": [],
+      "codePaths": [
+        "apps/android/app/src/main/java/com/databreeze/android/receipts/",
+        "services/api/src/features/dda/receipt/"
+      ],
+      "testPaths": [
+        "apps/android/app/src/test/java/com/databreeze/android/receipts/",
+        "apps/android/app/src/androidTest/java/com/databreeze/android/receipts/",
+        "services/api/test/features/dda/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-041",
+      "priority": "P0",
+      "primaryPlan": "086-dda-android-receipts.md",
+      "primaryTask": "Task 2: Extract and review versioned OCR candidates",
+      "supportingTasks": [],
+      "codePaths": [
+        "apps/android/app/src/main/java/com/databreeze/android/receipts/",
+        "services/api/src/features/dda/receipt/"
+      ],
+      "testPaths": [
+        "apps/android/app/src/test/java/com/databreeze/android/receipts/",
+        "apps/android/app/src/androidTest/java/com/databreeze/android/receipts/",
+        "services/api/test/features/dda/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-042",
+      "priority": "P0",
+      "primaryPlan": "086-dda-android-receipts.md",
+      "primaryTask": "Task 3: Validate and accept governed receipt data",
+      "supportingTasks": [],
+      "codePaths": [
+        "apps/android/app/src/main/java/com/databreeze/android/receipts/",
+        "services/api/src/features/dda/receipt/"
+      ],
+      "testPaths": [
+        "apps/android/app/src/test/java/com/databreeze/android/receipts/",
+        "apps/android/app/src/androidTest/java/com/databreeze/android/receipts/",
+        "services/api/test/features/dda/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-043",
+      "priority": "P0",
+      "primaryPlan": "081-dda-contracts-and-authorities.md",
+      "primaryTask": "Task 3: Enforce untrusted-content, AI-egress, retention, and audit contracts",
+      "supportingTasks": [],
+      "codePaths": [
+        "packages/domain/src/data-to-dashboard/",
+        "packages/contracts/schemas/v1/",
+        "services/api/src/features/dda/",
+        "services/api/prisma/schema/dda.prisma"
+      ],
+      "testPaths": [
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/contracts/test/schemas.test.mjs",
+        "services/api/test/features/dda/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-044",
+      "priority": "P0",
+      "primaryPlan": "081-dda-contracts-and-authorities.md",
+      "primaryTask": "Task 3: Enforce untrusted-content, AI-egress, retention, and audit contracts",
+      "supportingTasks": [],
+      "codePaths": [
+        "packages/domain/src/data-to-dashboard/",
+        "packages/contracts/schemas/v1/",
+        "services/api/src/features/dda/",
+        "services/api/prisma/schema/dda.prisma"
+      ],
+      "testPaths": [
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/contracts/test/schemas.test.mjs",
+        "services/api/test/features/dda/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-045",
+      "priority": "P0",
+      "primaryPlan": "081-dda-contracts-and-authorities.md",
+      "primaryTask": "Task 3: Enforce untrusted-content, AI-egress, retention, and audit contracts",
+      "supportingTasks": [
+        "082-dda-cloud-intake-etl.md ? Task 3: Execute accepted transformations and register the output",
+        "083-dda-analyst-dashboard-canvas.md ? Task 3: Publish, view, and share without permission expansion",
+        "084-dda-materialization-refresh.md ? Task 2: Coalesce refreshes and publish atomically",
+        "085-dda-desktop-hybrid-folders.md ? Task 3: Project Hybrid results and degrade safely",
+        "086-dda-android-receipts.md ? Task 3: Validate and accept governed receipt data"
+      ],
+      "codePaths": [
+        "packages/domain/src/data-to-dashboard/",
+        "packages/contracts/schemas/v1/",
+        "services/api/src/features/dda/",
+        "services/api/prisma/schema/dda.prisma"
+      ],
+      "testPaths": [
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/contracts/test/schemas.test.mjs",
+        "services/api/test/features/dda/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-046",
+      "priority": "P0",
+      "primaryPlan": "081-dda-contracts-and-authorities.md",
+      "primaryTask": "Task 3: Enforce untrusted-content, AI-egress, retention, and audit contracts",
+      "supportingTasks": [],
+      "codePaths": [
+        "packages/domain/src/data-to-dashboard/",
+        "packages/contracts/schemas/v1/",
+        "services/api/src/features/dda/",
+        "services/api/prisma/schema/dda.prisma"
+      ],
+      "testPaths": [
+        "packages/domain/test/data-to-dashboard-v1.test.mjs",
+        "packages/contracts/test/schemas.test.mjs",
+        "services/api/test/features/dda/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-047",
+      "priority": "P1",
+      "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
+      "primaryTask": "Task 4: Complete snapshot comparison, templates, and safe export",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/analyst/",
+        "services/api/src/features/dda/dashboard/",
+        "apps/web/src/features/dashboards/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "apps/web/test/",
+        "apps/web/e2e/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "ga-completion"
+    },
+    {
+      "requirementId": "DDA-048",
+      "priority": "P1",
+      "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
+      "primaryTask": "Task 4: Complete snapshot comparison, templates, and safe export",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/analyst/",
+        "services/api/src/features/dda/dashboard/",
+        "apps/web/src/features/dashboards/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "apps/web/test/",
+        "apps/web/e2e/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "ga-completion"
+    },
+    {
+      "requirementId": "DDA-049",
+      "priority": "P1",
+      "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
+      "primaryTask": "Task 4: Complete snapshot comparison, templates, and safe export",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/analyst/",
+        "services/api/src/features/dda/dashboard/",
+        "apps/web/src/features/dashboards/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "apps/web/test/",
+        "apps/web/e2e/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "ga-completion"
+    },
+    {
+      "requirementId": "DDA-050",
+      "priority": "P1",
+      "primaryPlan": "083-dda-analyst-dashboard-canvas.md",
+      "primaryTask": "Task 1: Plan and execute deterministic analysis",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/analyst/",
+        "services/api/src/features/dda/dashboard/",
+        "apps/web/src/features/dashboards/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/",
+        "apps/web/test/",
+        "apps/web/e2e/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "ga-completion"
+    },
+    {
+      "requirementId": "DDA-051",
+      "priority": "P2",
+      "primaryPlan": "087-dda-integration-readiness.md",
+      "primaryTask": "Task 4: Preserve streaming as a deferred extension",
+      "supportingTasks": [],
+      "codePaths": [
+        "tools/fixture-validation/fixtures/dda/",
+        "tools/fixture-validation/src/run-dda-parity.mjs",
+        "tools/demo/dda/"
+      ],
+      "testPaths": [
+        "tools/fixture-validation/test/dda-parity.test.mjs",
+        "services/engine/tests/test_dda_local_cloud_parity.py",
+        "apps/web/e2e/dda-golden-journey.spec.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-tenant-data-mode-gate",
+        "integration-owner-approval"
       ],
       "status": "planned",
       "coverage": "planned",
