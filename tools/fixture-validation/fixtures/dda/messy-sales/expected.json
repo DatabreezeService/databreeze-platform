@@ -1,0 +1,10 @@
+{
+  "rowCount": 4,
+  "rejectedCount": 1,
+  "partial": false,
+  "quality": {"completeness_denominator": 5},
+  "lineageIds": [
+    "00000000-0000-4000-8000-000000000012",
+    "00000000-0000-4000-8000-000000000301"
+  ]
+}

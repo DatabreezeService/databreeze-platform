@@ -1,0 +1,7 @@
+{
+  "transformations": [
+    {"kind": "TRIM_TEXT", "config": {"field": "name"}},
+    {"kind": "FILTER_ROWS", "config": {"reason": "INVALID_AMOUNT"}}
+  ],
+  "inputArtifactVersionId": "00000000-0000-4000-8000-000000000012"
+}

@@ -1,0 +1,8 @@
+{
+  "merchant": "Demo Cafe",
+  "transactionDateTime": "2026-08-10T10:15:00+07:00",
+  "currency": "VND",
+  "totalMinorUnits": 125000,
+  "lineItems": [{"description": "Coffee", "amountMinorUnits": 125000}],
+  "confidence": 0.91
+}
