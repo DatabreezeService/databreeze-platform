@@ -86,3 +86,16 @@ Use this state vocabulary for each applicable item: `not-ready`, `in-progress`, 
 2. Produce the exact content-safe setup instructions, expected secret/configuration name, validation command, and evidence destination.
 3. Mark the affected task `blocked` with the checklist item and never insert a fake credential, fabricated approval, placeholder production evidence, or silently weakened fallback.
 4. After the owner completes the action, validate the resulting configuration without exposing the secret and attach fresh evidence to the applicable plan-400 gate.
+
+## Agent status snapshot (`codex/dda-400-production`)
+
+All checklist items above remain `not-ready` unless the product owner updates them. Agent-prepared artifacts:
+
+| Item | Expected secret / config | Validation | Evidence destination |
+|---|---|---|---|
+| §2 Secrets Manager OpenAI | `databreeze/{env}/openai/receipt-ocr` | `aws secretsmanager describe-secret --secret-id ... --query ARN` | `docs/operations/openai-provider-runbook.md` |
+| §2 Staging/production compose | OpenTofu envs under `infrastructure/aws/environments/{staging,production}` | `pnpm infra:check` (plan-only; no apply) | `docs/evidence/dda/production-gate-matrix.md` |
+| §3 OpenAI API key | Inject as `OPENAI_API_KEY` to API/worker only | `openai-egress-policy.test.ts` fail-closed | `docs/evidence/dda/openai-receipt-evaluation.md` (pending) |
+| §3 Model pin | `DATABREEZE_OPENAI_RECEIPT_MODEL` | Eval harness after corpus approval | same |
+| §5 Desktop signing | CI secret for Windows signing identity | Signed installer hash verification | `docs/evidence/dda/desktop-release-report.md` |
+| §6 Android signing | Play upload key in protected store | Bundletool / Play closed test | `docs/evidence/dda/android-release-report.md` |

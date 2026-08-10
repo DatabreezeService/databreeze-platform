@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "program": "data-to-dashboard-v1",
+  "branch": "codex/dda-400-production",
+  "productionReady": false,
+  "g5Status": "blocked",
+  "manualPrerequisites": "docs/plans/MANUAL-PREREQUISITES.md",
+  "components": {
+    "contracts": "packages/contracts (dda v1 schemas generated)",
+    "api": "services/api DdaModule (prototype foundation ports remain partial)",
+    "engine": "services/engine DDA processors + digest pins",
+    "web": "apps/web dashboards + data-intake",
+    "desktop": "apps/desktop folder binding UI in shell nav",
+    "android": "apps/android FileBackedReceiptStagingStore + WorkManager upload hooks",
+    "openaiAdapter": "OpenAiReceiptOcrAdapter fail-closed without secrets; evaluation required",
+    "infrastructure": "OpenTofu alpha/staging/production plan-only compositions"
+  },
+  "openai": {
+    "secretName": "databreeze/{env}/openai/receipt-ocr",
+    "envApiKey": "OPENAI_API_KEY",
+    "envModel": "DATABREEZE_OPENAI_RECEIPT_MODEL",
+    "envKillSwitch": "DATABREEZE_OPENAI_RECEIPT_ENABLED",
+    "store": false,
+    "toolsEnabled": false,
+    "evaluationStatus": "blocked"
+  },
+  "rollback": {
+    "code": "Revert commits on codex/dda-400-production after the 087 merge",
+    "infra": "Do not apply without owner approval; destroy only via approved runbook"
+  }
+}

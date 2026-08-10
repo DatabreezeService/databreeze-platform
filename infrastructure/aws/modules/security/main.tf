@@ -96,6 +96,14 @@ resource "aws_secretsmanager_secret" "application" {
   tags                    = merge(local.common_tags, { Name = "${var.name}-application" })
 }
 
+resource "aws_secretsmanager_secret" "openai_receipt_ocr" {
+  name                    = "databreeze/${var.name}/openai/receipt-ocr"
+  description             = "Server-side OpenAI receipt OCR credential; value is injected out of band (ADR-0005)."
+  kms_key_id              = aws_kms_key.platform.arn
+  recovery_window_in_days = 30
+  tags                    = merge(local.common_tags, { Name = "${var.name}-openai-receipt-ocr" })
+}
+
 resource "aws_iam_openid_connect_provider" "github" {
   count           = var.github_repository == "" ? 0 : 1
   url             = "https://token.actions.githubusercontent.com"

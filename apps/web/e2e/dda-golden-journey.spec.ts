@@ -2,8 +2,9 @@ import { expect, test } from '@playwright/test';
 
 /**
  * Golden mentor-demo journey (prototype): messy sales → reviewed dashboard.
- * Honest limits: dashboard authoring remains partly fixture-backed; CSP Playwright
- * unsafe-eval blocks some chart paths (083). Not a production claim.
+ * Honest limits: dashboard authoring remains partly fixture-backed.
+ * CSP stays strict (`script-src 'self'` without unsafe-eval); chart paths must use
+ * non-eval renderers. Not a production claim.
  */
 test.describe('DDA golden messy-sales journey', () => {
   test('Vietnamese-first dashboards surface freshness and evidence limits', async ({

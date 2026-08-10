@@ -1,0 +1,22 @@
+# Reviewed production starting point. Use a separate encrypted remote state
+# backend and inject provider credentials through GitHub OIDC.
+# Blocked on MANUAL-PREREQUISITES §2 and §3 before any apply.
+environment                         = "production"
+name                                = "production"
+aws_region                          = "ap-southeast-1"
+availability_zones                  = ["ap-southeast-1a", "ap-southeast-1b"]
+enable_nat_gateway                  = true
+enable_cloudfront                   = true
+enable_database                     = true
+enable_ecs_services                 = true
+backup_retention_period             = 7
+deletion_protection                 = true
+database_multi_az                   = true
+redis_num_cache_clusters            = 2
+redis_automatic_failover_enabled    = true
+redis_multi_az_enabled              = true
+api_desired_count                   = 2
+worker_desired_count                = 2
+github_repository                   = "OWNER/REPOSITORY"
+api_image                           = "ghcr.io/OWNER/databreeze-api@sha256:REPLACE_WITH_64_CHAR_DIGEST"
+worker_image                        = "ghcr.io/OWNER/databreeze-worker@sha256:REPLACE_WITH_64_CHAR_DIGEST"

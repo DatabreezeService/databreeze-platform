@@ -1,0 +1,19 @@
+# Credential-free production plan defaults. Keep recurring-cost services off
+# until MANUAL-PREREQUISITES §2 is ready, then use production-shaped.tfvars.example.
+aws_region                          = "ap-southeast-1"
+environment                         = "production"
+name                                = "production"
+availability_zones                  = ["ap-southeast-1a", "ap-southeast-1b"]
+enable_nat_gateway                  = false
+enable_cloudfront                   = false
+enable_database                     = false
+enable_ecs_services                 = false
+backup_retention_period             = 7
+deletion_protection                 = true
+database_multi_az                   = true
+redis_num_cache_clusters            = 2
+redis_automatic_failover_enabled    = true
+redis_multi_az_enabled              = true
+api_desired_count                   = 2
+worker_desired_count                = 2
+github_repository                   = ""

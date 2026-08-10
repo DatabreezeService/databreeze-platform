@@ -17,6 +17,8 @@ repository.
 - `modules/compute` — ECS Fargate cluster, API/worker task definitions,
   execution roles, and CloudWatch log groups.
 - `environments/alpha` — the Singapore composition and safe defaults.
+- `environments/staging` — plan-only staging composition (MANUAL-PREREQUISITES §2 before apply).
+- `environments/production` — plan-only production composition with hardened defaults (G5 blocked until owner apply).
 
 ## Validate without applying
 

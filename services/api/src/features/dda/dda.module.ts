@@ -67,6 +67,10 @@ import { WebIntakeController } from './intake/api/web-intake.controller.js';
 import type { IntakeIaeFinalizationPortV1 } from './intake/application/intake-profile.port.js';
 import { WebIntakeServiceV1 } from './intake/application/web-intake.service.js';
 import { ReceiptExtractionController } from './receipt/api/receipt-extraction.controller.js';
+import {
+  loadOpenAiReceiptOcrConfig,
+  OpenAiReceiptOcrAdapter,
+} from './receipt/adapter/openai-receipt-ocr.adapter.js';
 import { DeterministicFakeReceiptOcrAdapter } from './receipt/application/deterministic-fake-receipt-ocr.adapter.js';
 import {
   ReceiptAcceptanceService,
@@ -337,7 +341,17 @@ export class DdaModule {
       compatibleChangeKinds: ['APPEND_ROWS'],
       requiresPriorStateProof: true,
     });
-    const receiptOcr = options.receiptOcr ?? new DeterministicFakeReceiptOcrAdapter();
+    const receiptOcr =
+      options.receiptOcr ??
+      (() => {
+        const openAiConfig = loadOpenAiReceiptOcrConfig();
+        // Production path uses the fail-closed OpenAI adapter whenever credentials or the
+        // kill switch are configured. Demo/dev without keys keeps the deterministic fake.
+        if (openAiConfig.apiKeyPresent || process.env['DATABREEZE_OPENAI_RECEIPT_ENABLED'] === 'true') {
+          return new OpenAiReceiptOcrAdapter(openAiConfig);
+        }
+        return new DeterministicFakeReceiptOcrAdapter();
+      })();
     const intakeIae = options.intakeIae ?? prototypeIntakeIae();
 
     const webIntakeService = new WebIntakeServiceV1(intakeIae);

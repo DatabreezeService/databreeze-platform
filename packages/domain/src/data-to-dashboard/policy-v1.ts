@@ -13,6 +13,7 @@ export type DdaAiPurposeV1 =
   | 'PLAN_PROPOSAL'
   | 'NARRATIVE'
   | 'MAPPING_SUGGESTION'
+  | 'RECEIPT_EXTRACTION'
   | 'DISABLED';
 
 export interface DdaAiEgressPolicyV1 {
@@ -78,6 +79,7 @@ const purposes = new Set<DdaAiPurposeV1>([
   'PLAN_PROPOSAL',
   'NARRATIVE',
   'MAPPING_SUGGESTION',
+  'RECEIPT_EXTRACTION',
   'DISABLED',
 ]);
 const localities = new Set<DdaAiLocalityV1>(['LOCAL', 'CLOUD', 'DENIED']);
