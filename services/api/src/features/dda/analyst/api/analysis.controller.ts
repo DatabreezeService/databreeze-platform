@@ -1,8 +1,8 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
-import type { AnalysisProposalServiceV1 } from '../application/analysis-proposal.service.js';
-import type { AnalysisExecutionServiceV1 } from '../application/analysis-execution.service.js';
+import { AnalysisExecutionServiceV1 } from '../application/analysis-execution.service.js';
+import { AnalysisProposalServiceV1 } from '../application/analysis-proposal.service.js';
 import type { AnalysisProposeDtoV1, AnalysisExecuteDtoV1 } from './analysis.dto.js';
 
 /** Thin HTTP surface; root composition remains owned by plan 087. */

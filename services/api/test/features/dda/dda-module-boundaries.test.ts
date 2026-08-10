@@ -32,7 +32,8 @@ void test('[DDA-001] DDA module does not import another feature adapter or repos
   }
 });
 
-void test('[DDA-001] DDA is not composed into the root app module yet', () => {
+void test('[DDA-001] DDA root composition is owned by the integration lane', () => {
   const appModule = readFileSync(resolve(root, 'src/app.module.ts'), 'utf8');
-  assert.doesNotMatch(appModule, /DdaModule|features\/dda/u);
+  assert.match(appModule, /DdaModule\.register/u);
+  assert.match(appModule, /features\/dda\/dda\.module\.js/u);
 });

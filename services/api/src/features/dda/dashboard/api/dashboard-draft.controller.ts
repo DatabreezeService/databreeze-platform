@@ -1,7 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
-import type { DashboardDraftServiceV1 } from '../application/dashboard-draft.service.js';
+import { DashboardDraftServiceV1 } from '../application/dashboard-draft.service.js';
 import type {
   AcceptDashboardProposalDtoV1,
   ApplyDashboardFilterDtoV1,

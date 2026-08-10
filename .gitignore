@@ -66,3 +66,7 @@ reports/
 
 # Temporary Office files
 ~$*
+
+# Local mentor-demo state (087)
+.demo-state/
+

@@ -1,16 +1,22 @@
+import { Body, Controller, Post } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
+
 import { parseTenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type {
   ReceiptCorrectionRequestDto,
   ReceiptExtractionRequestDto,
 } from './receipt-extraction.dto.js';
-import type { ReceiptExtractionService } from '../application/receipt-extraction.service.js';
+import { ReceiptExtractionService } from '../application/receipt-extraction.service.js';
 
-/** Leaf controller — root composition is owned by plan 087. */
+/** Nest HTTP surface composed by plan 087; leaf service remains 086-owned. */
+@ApiTags('dda-receipts')
+@Controller('v1/dda/receipts')
 export class ReceiptExtractionController {
   public constructor(private readonly service: ReceiptExtractionService) {}
 
-  public async extract(body: ReceiptExtractionRequestDto): Promise<{
+  @Post('extract')
+  public async extract(@Body() body: ReceiptExtractionRequestDto): Promise<{
     readonly statusCode: number;
     readonly body: Record<string, unknown>;
   }> {
@@ -33,7 +39,8 @@ export class ReceiptExtractionController {
     return { statusCode: 200, body: result.value as unknown as Record<string, unknown> };
   }
 
-  public async correct(body: ReceiptCorrectionRequestDto): Promise<{
+  @Post('correct')
+  public async correct(@Body() body: ReceiptCorrectionRequestDto): Promise<{
     readonly statusCode: number;
     readonly body: Record<string, unknown>;
   }> {

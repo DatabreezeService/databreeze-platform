@@ -12,6 +12,7 @@ import { FaModule, type FaModuleOptions } from './features/fa/fa.module.js';
 import { DqgModule, type DqgModuleOptions } from './features/dqg/dqg.module.js';
 import { QiModule, type QiModuleOptions } from './features/qi/qi.module.js';
 import { IldModule, type IldModuleOptions } from './features/ild/ild.module.js';
+import { DdaModule, type DdaModuleOptions } from './features/dda/dda.module.js';
 import { SessionRequestTenantContextAdapter } from './platform/http/session-tenant-context.adapter.js';
 import { PrismaSessionLifecycleAdapter } from './features/iam/adapter/prisma-session-lifecycle.adapter.js';
 
@@ -26,7 +27,8 @@ export type AppModuleOptions = SystemModuleOptions &
   FaModuleOptions &
   DqgModuleOptions &
   QiModuleOptions &
-  IldModuleOptions;
+  IldModuleOptions &
+  DdaModuleOptions;
 
 @Module({})
 export class AppModule {
@@ -63,6 +65,7 @@ export class AppModule {
         DqgModule.register(composedOptions),
         QiModule.register(composedOptions),
         IldModule.register(composedOptions),
+        DdaModule.register(composedOptions),
       ],
     };
   }

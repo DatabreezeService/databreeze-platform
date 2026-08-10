@@ -1,7 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
-import type { DashboardQueryServiceV1 } from '../application/dashboard-query.service.js';
+import { DashboardQueryServiceV1 } from '../application/dashboard-query.service.js';
 import type { DashboardAuthActionV1 } from '../application/dashboard-authorization.port.js';
 import type { IamTenantContextV1 } from '../../../iam/application/tenant-context.js';
 

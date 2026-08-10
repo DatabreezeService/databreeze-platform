@@ -1,7 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
-import type { DashboardPublicationServiceV1 } from '../application/dashboard-publication.service.js';
+import { DashboardPublicationServiceV1 } from '../application/dashboard-publication.service.js';
 import type { IamTenantContextV1 } from '../../../iam/application/tenant-context.js';
 
 export interface PublishDashboardDtoV1 {
