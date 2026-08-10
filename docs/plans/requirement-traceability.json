@@ -2836,7 +2836,9 @@
       "priority": "P0",
       "primaryPlan": "082-dda-cloud-intake-etl.md",
       "primaryTask": "Task 1: Govern Web file intake",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/intake/",
         "services/api/src/features/dda/etl/",
@@ -2855,12 +2857,14 @@
         "apps/web/test/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/web-intake.service.test.ts",
+        "services/api/test/features/dda/web-intake.controller.test.ts",
+        "services/engine/tests/test_dda_etl_intake.py",
+        "apps/web/test/data-intake-upload.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -2912,7 +2916,8 @@
         "083-dda-analyst-dashboard-canvas.md ? Task 2: Build the accessible versioned dashboard canvas",
         "084-dda-materialization-refresh.md ? Task 2: Coalesce refreshes and publish atomically",
         "085-dda-desktop-hybrid-folders.md ? Task 3: Project Hybrid results and degrade safely",
-        "086-dda-android-receipts.md ? Task 3: Validate and accept governed receipt data"
+        "086-dda-android-receipts.md ? Task 3: Validate and accept governed receipt data",
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
       ],
       "codePaths": [
         "services/api/src/features/dda/intake/",
@@ -2932,12 +2937,13 @@
         "apps/web/test/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/etl-acceptance.service.test.ts",
+        "services/api/test/features/dda/etl-acceptance.controller.test.ts",
+        "services/engine/tests/test_dda_etl_execute.py"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -2947,7 +2953,9 @@
       "priority": "P0",
       "primaryPlan": "082-dda-cloud-intake-etl.md",
       "primaryTask": "Task 2: Propose visible ETL and quality review",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/intake/",
         "services/api/src/features/dda/etl/",
@@ -2966,12 +2974,15 @@
         "apps/web/test/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/etl-proposal.service.test.ts",
+        "services/api/test/features/dda/etl-proposal.controller.test.ts",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "apps/web/test/etl-review-page.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -2981,7 +2992,9 @@
       "priority": "P0",
       "primaryPlan": "082-dda-cloud-intake-etl.md",
       "primaryTask": "Task 2: Propose visible ETL and quality review",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/intake/",
         "services/api/src/features/dda/etl/",
@@ -3000,12 +3013,15 @@
         "apps/web/test/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/etl-proposal.service.test.ts",
+        "services/api/test/features/dda/etl-proposal.controller.test.ts",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "apps/web/test/etl-review-page.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3015,7 +3031,9 @@
       "priority": "P0",
       "primaryPlan": "082-dda-cloud-intake-etl.md",
       "primaryTask": "Task 3: Execute accepted transformations and register the output",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/intake/",
         "services/api/src/features/dda/etl/",
@@ -3034,12 +3052,13 @@
         "apps/web/test/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/etl-acceptance.service.test.ts",
+        "services/api/test/features/dda/etl-acceptance.controller.test.ts",
+        "services/engine/tests/test_dda_etl_execute.py"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3049,7 +3068,9 @@
       "priority": "P0",
       "primaryPlan": "082-dda-cloud-intake-etl.md",
       "primaryTask": "Task 2: Propose visible ETL and quality review",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/intake/",
         "services/api/src/features/dda/etl/",
@@ -3068,12 +3089,15 @@
         "apps/web/test/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/etl-proposal.service.test.ts",
+        "services/api/test/features/dda/etl-proposal.controller.test.ts",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "apps/web/test/etl-review-page.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3083,7 +3107,9 @@
       "priority": "P0",
       "primaryPlan": "082-dda-cloud-intake-etl.md",
       "primaryTask": "Task 2: Propose visible ETL and quality review",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/intake/",
         "services/api/src/features/dda/etl/",
@@ -3102,12 +3128,15 @@
         "apps/web/test/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/etl-proposal.service.test.ts",
+        "services/api/test/features/dda/etl-proposal.controller.test.ts",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "apps/web/test/etl-review-page.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3117,7 +3146,9 @@
       "priority": "P0",
       "primaryPlan": "082-dda-cloud-intake-etl.md",
       "primaryTask": "Task 2: Propose visible ETL and quality review",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/intake/",
         "services/api/src/features/dda/etl/",
@@ -3136,12 +3167,15 @@
         "apps/web/test/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/etl-proposal.service.test.ts",
+        "services/api/test/features/dda/etl-proposal.controller.test.ts",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "apps/web/test/etl-review-page.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3151,7 +3185,9 @@
       "priority": "P0",
       "primaryPlan": "082-dda-cloud-intake-etl.md",
       "primaryTask": "Task 2: Propose visible ETL and quality review",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "services/api/src/features/dda/intake/",
         "services/api/src/features/dda/etl/",
@@ -3170,12 +3206,15 @@
         "apps/web/test/"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/etl-proposal.service.test.ts",
+        "services/api/test/features/dda/etl-proposal.controller.test.ts",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "apps/web/test/etl-review-page.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"

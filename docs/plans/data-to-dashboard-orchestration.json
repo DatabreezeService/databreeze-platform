@@ -27,7 +27,7 @@
     "verified",
     "deferred"
   ],
-  "nextWorkPackageId": "DDA-082",
+  "nextWorkPackageId": "DDA-083",
   "gates": [
     {
       "gateId": "G0",
@@ -171,12 +171,28 @@
       "workPackageId": "DDA-082",
       "name": "cloud-intake-etl",
       "plan": "docs/plans/082-dda-cloud-intake-etl.md",
-      "status": "ready",
+      "status": "complete",
       "dependsOn": [
         "DDA-081"
       ],
       "parallelGroup": "DDA-G2",
-      "branch": "codex/dda-cloud-etl",
+      "branch": "codex/dda-082-cloud-etl",
+      "commit": "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+      "evidence": [
+        "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
+        "services/api/test/features/dda/web-intake.service.test.ts",
+        "services/api/test/features/dda/web-intake.controller.test.ts",
+        "services/api/test/features/dda/etl-proposal.service.test.ts",
+        "services/api/test/features/dda/etl-proposal.controller.test.ts",
+        "services/api/test/features/dda/etl-acceptance.service.test.ts",
+        "services/api/test/features/dda/etl-acceptance.controller.test.ts",
+        "services/engine/tests/test_dda_etl_intake.py",
+        "services/engine/tests/test_dda_etl_profile.py",
+        "services/engine/tests/test_dda_etl_preview.py",
+        "services/engine/tests/test_dda_etl_execute.py",
+        "apps/web/test/data-intake-upload.test.tsx",
+        "apps/web/test/etl-review-page.test.tsx"
+      ],
       "tasks": [
         "Task 1: Govern Web file intake",
         "Task 2: Propose visible ETL and quality review",
