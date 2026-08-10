@@ -11,6 +11,7 @@ export interface WebFeatureRegistration {
 export const WEB_FEATURE_REGISTRY = Object.freeze([
   { key: 'workspace', messageKey: 'nav.home', path: 'workspace' },
   { key: 'inbox', messageKey: 'nav.inbox', path: 'inbox' },
+  { key: 'dashboards', path: 'dashboards' },
   { key: 'jobs', messageKey: 'nav.jobs', path: 'jobs' },
   { key: 'reviews', messageKey: 'nav.reviews', path: 'reviews' },
   { key: 'approvals', messageKey: 'nav.approvals', path: 'approvals' },
