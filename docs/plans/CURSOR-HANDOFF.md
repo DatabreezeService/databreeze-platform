@@ -18,11 +18,12 @@ Your single overall assignment is to implement the complete production-gated Dat
 Before editing anything:
 1. Read AGENTS.md and docs/README.md.
 2. Read docs/plans/CURSOR-HANDOFF.md completely.
-3. Read docs/decisions/0004-data-to-dashboard-direction.md and docs/decisions/0005-openai-ai-ocr-on-aws-hosting.md.
-4. Read docs/specs/features/data-to-dashboard-agent.md completely.
-5. Read docs/plans/080-data-to-dashboard-program.md and docs/plans/data-to-dashboard-orchestration.json.
-6. Read docs/plans/081-dda-contracts-and-authorities.md completely.
-7. Run git status --short, git branch --show-current, corepack pnpm requirements:check, and corepack pnpm orchestration:check.
+3. Read docs/plans/MANUAL-PREREQUISITES.md and treat every applicable unchecked external-authority item as a production blocker, never as permission to fabricate a credential or approval.
+4. Read docs/decisions/0004-data-to-dashboard-direction.md and docs/decisions/0005-openai-ai-ocr-on-aws-hosting.md.
+5. Read docs/specs/features/data-to-dashboard-agent.md completely.
+6. Read docs/plans/080-data-to-dashboard-program.md and docs/plans/data-to-dashboard-orchestration.json.
+7. Read docs/plans/081-dda-contracts-and-authorities.md completely.
+8. Run git status --short, git branch --show-current, corepack pnpm requirements:check, and corepack pnpm orchestration:check.
 
 Important current reality:
 - The plans and specifications are complete, but the new DDA implementation has not started on the planning baseline.
@@ -102,7 +103,8 @@ Cursor must resolve ambiguity in this order:
 7. `docs/plans/080-data-to-dashboard-program.md`
 8. `docs/plans/data-to-dashboard-orchestration.json`
 9. The active child plan from `081` through `087`
-10. `docs/plans/requirement-traceability.json`
+10. `docs/plans/400-production-readiness.md` and `docs/plans/MANUAL-PREREQUISITES.md` for production execution
+11. `docs/plans/requirement-traceability.json`
 
 If a plan conflicts with a specification, the specification wins and the ambiguity must be reported before implementation continues.
 

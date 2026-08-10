@@ -5,7 +5,8 @@
 **Status:** Approved<br>
 **Requirements:** `DDA-001` through `DDA-050` plus every invoked P0/P1 foundation and Web/Desktop/Android platform requirement<br>
 **Depends on:** Green integration evidence from plans `081` through `087`<br>
-**Decision authorities:** ADR-0004 and ADR-0005
+**Decision authorities:** ADR-0004 and ADR-0005<br>
+**External owner checklist:** [`MANUAL-PREREQUISITES.md`](MANUAL-PREREQUISITES.md)
 
 **Goal:** Promote the complete Vietnamese-first Data-to-Dashboard Agent from integrated software to a secure, recoverable, observable, signed, cost-controlled, staged production release on AWS with live server-side OpenAI adapters.
 
@@ -22,6 +23,7 @@
 - No client or processing worker receives database credentials. No Web/Desktop/Android client receives an OpenAI credential.
 - Originals, accepted DatasetVersions, processor versions, materializations, and published snapshots remain immutable and recoverable according to policy.
 - A fake adapter, skipped real-device check, unpinned or unevaluated model, untested restore, unresolved high/critical finding, or missing signing identity blocks the applicable release.
+- An agent may prepare setup instructions and secret definitions, but it may not fabricate an external account, credential, legal declaration, publisher identity, risk acceptance, or production approval. Applicable unchecked items in `MANUAL-PREREQUISITES.md` block G5.
 - `DDA-051` genuine streaming remains deferred and is not a production gate.
 
 ---
@@ -254,6 +256,7 @@
 - [ ] Confirm every required P0/P1 record is verified with exact existing evidence and fresh passing commands; keep `DDA-051` deferred.
 - [ ] Confirm no open critical/high security issue, failed restore, missing signing identity, skipped required device/browser/provider check, unresolved migration/rollback problem, or missing legal/privacy/store declaration.
 - [ ] Record the release owner, versions, environment, OpenAI project/model/prompt/schema configuration, migration state, rollback target, alert links, support/on-call contacts, staged audience, and final approval.
+- [ ] Confirm every applicable item in `MANUAL-PREREQUISITES.md` is `ready` with content-safe evidence, or explicitly `not-applicable` with product-owner approval.
 - [ ] Mark G5 complete only after the production rollout and its rollback path are both verified.
 
 ## Definition of done

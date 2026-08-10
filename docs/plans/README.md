@@ -10,6 +10,8 @@ DataBreeze V1 is the Data-to-Dashboard Agent. Use these authorities in order:
 
 Agent entry point: [`CURSOR-HANDOFF.md`](CURSOR-HANDOFF.md) contains the self-contained product context, current repository reality, and copy/paste master prompt. It links to, but does not replace, the authorities below.
 
+Product-owner entry point: [`MANUAL-PREREQUISITES.md`](MANUAL-PREREQUISITES.md) centralizes external accounts, credentials, signing, legal/privacy, test-data, operational, budget, and approval actions that an implementation agent cannot fabricate. Applicable unchecked items block production approval.
+
 1. [`000-platform-program.md`](000-platform-program.md) — stable program and release policy.
 2. [`080-data-to-dashboard-program.md`](080-data-to-dashboard-program.md) — approved V1 dependency graph, OpenAI/AWS provider boundary, complete task-gated program, ownership locks, dispatch packets, production sequence, and stop conditions.
 3. [`data-to-dashboard-orchestration.json`](data-to-dashboard-orchestration.json) — machine-readable gates, dependencies, work packages, branches, requirements, writable ownership, checks, and next-work pointer.
