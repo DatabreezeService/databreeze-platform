@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { registerDesktopIpcV1 } from '../src/main/ipc-registry.ts';
 import { DESKTOP_IPC_CHANNELS } from '../src/shared/desktop-contract-v1.ts';
+import { FOLDER_IPC_CHANNELS } from '../src/shared/folder-binding-contract-v1.ts';
 
 type Handler = (event: unknown, ...args: unknown[]) => Promise<unknown>;
 
@@ -66,6 +67,54 @@ function register(overrides: Record<string, unknown> = {}) {
 }
 
 describe('DSK-002 guarded IPC registry', () => {
+  it('attaches only successful folder bindings and disposes their watcher after disable', async () => {
+    const binding = {
+      bindingId: '01HHHHHHHHHHHHHHHHHHHHHHHH',
+      capabilityGrantId: '01CCCCCCCCCCCCCCCCCCCCCCCC',
+      capabilityState: 'ACTIVE' as const,
+      lifecycle: 'ACTIVE' as const,
+      manifestVersion: 1,
+      purpose: 'sales-intake',
+      supportedProfiles: ['CSV'],
+    };
+    const folders = {
+      createBinding: vi.fn(() => Promise.resolve({ accepted: true as const, value: binding })),
+      disable: vi.fn(() => Promise.resolve({
+        accepted: true as const,
+        value: { ...binding, lifecycle: 'DISABLED' as const },
+      })),
+    };
+    const folderWatchers = { attach: vi.fn(), detach: vi.fn() };
+    const harness = register({ folders, folderWatchers });
+    const createRequest = {
+      selectionToken: 'sel_approved_1',
+      capabilityGrantId: binding.capabilityGrantId,
+      organizationId: '01AAAAAAAAAAAAAAAAAAAAAAAA',
+      workspaceId: '01BBBBBBBBBBBBBBBBBBBBBBBB',
+      displayName: 'Sales',
+      manifest: {
+        purpose: 'sales-intake',
+        supportedProfiles: ['CSV'],
+        schemaFingerprints: ['a'.repeat(64)],
+        groupingRules: ['by-period'],
+        versionBehavior: 'APPEND',
+        periodOverlapPolicy: 'REJECT',
+        duplicateKeyFields: ['invoice_id'],
+        mappingPolicyId: '01GGGGGGGGGGGGGGGGGGGGGGGG',
+        stabilityDebounceMs: 250,
+        publicationProjection: { class: 'METADATA_ONLY', fieldAllowlist: [] },
+      },
+    };
+
+    await harness.ipcMain.invoke(FOLDER_IPC_CHANNELS.create, harness.event, createRequest);
+    await harness.ipcMain.invoke(FOLDER_IPC_CHANNELS.disable, harness.event, {
+      bindingId: binding.bindingId,
+    });
+
+    expect(folderWatchers.attach).toHaveBeenCalledWith(binding.bindingId);
+    expect(folderWatchers.detach).toHaveBeenCalledWith(binding.bindingId);
+  });
+
   it('returns only schema-valid safe state from the two fixed channels', async () => {
     const harness = register();
 

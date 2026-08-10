@@ -1,6 +1,7 @@
 import type { FolderManifestService } from '../application/folder-manifest.service.ts';
 import type { LocalStatePort } from '../application/local-state.port.ts';
 import type { SidecarLifecyclePort } from '../application/sidecar-lifecycle.port.ts';
+import type { FolderWatcherLifecycle } from './folder-watcher-lifecycle.ts';
 import {
   DESKTOP_IPC_CHANNELS,
   parseDesktopSafeState,
@@ -49,6 +50,7 @@ export interface DesktopIpcRegistrationInput {
   readonly localState: LocalStatePort;
   readonly sidecar: SidecarLifecyclePort;
   readonly folders?: FolderManifestService;
+  readonly folderWatchers?: FolderWatcherLifecycle;
 }
 
 interface ActiveRegistration {
@@ -161,6 +163,7 @@ export function registerDesktopIpcV1({
   localState,
   sidecar,
   folders,
+  folderWatchers,
 }: DesktopIpcRegistrationInput): () => void {
   const previous = registrations.get(ipcMain);
   if (previous !== undefined) previous.active = false;
@@ -201,7 +204,15 @@ export function registerDesktopIpcV1({
       parseFolderCreateRequest,
       async (request) => {
         if (folders === undefined) throw safeError('FOLDER_UNAVAILABLE');
-        return unwrapFolderResult(folders.createBinding(request as never));
+        const binding = await unwrapFolderResult(folders.createBinding(request as never));
+        try {
+          folderWatchers?.attach(binding.bindingId);
+        } catch {
+          await folders.disable(binding.bindingId);
+          folderWatchers?.detach(binding.bindingId);
+          throw safeError('FOLDER_WATCHER_UNAVAILABLE');
+        }
+        return binding;
       },
       parseFolderBindingSafeStatus,
     ),
@@ -231,7 +242,10 @@ export function registerDesktopIpcV1({
       parseFolderBindingIdRequest,
       async (request) => {
         if (folders === undefined) throw safeError('FOLDER_UNAVAILABLE');
-        return unwrapFolderResult(folders.disable((request as { bindingId: string }).bindingId));
+        const bindingId = (request as { bindingId: string }).bindingId;
+        const binding = await unwrapFolderResult(folders.disable(bindingId));
+        folderWatchers?.detach(bindingId);
+        return binding;
       },
       parseFolderBindingSafeStatus,
     ),

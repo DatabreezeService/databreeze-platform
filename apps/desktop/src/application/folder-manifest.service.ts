@@ -271,6 +271,21 @@ export class FolderManifestService {
     return this.#store.bindings.get(bindingId)?.canonicalPath ?? null;
   }
 
+  watcherConfiguration(bindingId: string): {
+    readonly bindingId: string;
+    readonly canonicalPath: string;
+    readonly manifest: FolderManifestRevision;
+  } | null {
+    const binding = this.#store.bindings.get(bindingId);
+    const manifest = binding?.manifests[binding.manifests.length - 1];
+    if (binding === undefined || binding.lifecycle !== 'ACTIVE' || manifest === undefined) return null;
+    return Object.freeze({
+      bindingId: binding.bindingId,
+      canonicalPath: binding.canonicalPath,
+      manifest,
+    });
+  }
+
   #toSafeStatus(
     binding: FolderBindingRecord,
     capabilityState: FolderBindingSafeStatusV1['capabilityState'],

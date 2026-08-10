@@ -1,7 +1,11 @@
 import { createRequire } from 'node:module';
+import { createHash } from 'node:crypto';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { app, BrowserWindow, dialog, ipcMain, session } from 'electron';
+import { FolderIntakeService } from '../application/folder-intake.service.ts';
 import { FolderManifestService } from '../application/folder-manifest.service.ts';
+import { StableFileDetector } from '../application/stable-file-detector.ts';
 import { LockedLocalStateAdapter } from './adapters/locked-local-state.adapter.ts';
 import { UnavailableSidecarAdapter } from './adapters/unavailable-sidecar.adapter.ts';
 import { WindowsFolderBindingAdapter } from './adapters/windows-folder-binding.adapter.ts';
@@ -13,6 +17,7 @@ import {
   type DesktopWindowLike,
 } from './desktop-window.ts';
 import { registerDesktopIpcV1, type DesktopIpcRegistrationInput } from './ipc-registry.ts';
+import { FolderWatcherLifecycle } from './folder-watcher-lifecycle.ts';
 
 const require = createRequire(import.meta.url);
 const iconPath = require.resolve(
@@ -23,6 +28,24 @@ const rendererFilePath = path.resolve(import.meta.dirname, '../renderer/index.ht
 
 let activeWindow: BrowserWindow | null = null;
 let disposeIpc: (() => void) | undefined;
+let disposeFolderWatchers: (() => void) | undefined;
+
+async function fingerprintFolderFile(filePath: string) {
+  if (!filePath.toLowerCase().endsWith('.csv')) return { rejected: 'UNSUPPORTED_PROFILE' as const };
+  try {
+    const content = await fs.readFile(filePath);
+    const header = content.toString('utf8').split(/\r?\n/, 1)[0]?.trim();
+    if (header === undefined || header === '') return { rejected: 'MALFORMED_CONTENT' as const };
+    return {
+      accepted: true as const,
+      contentFingerprint: `sha256:${createHash('sha256').update(content).digest('hex')}`,
+      schemaFingerprint: createHash('sha256').update(header).digest('hex'),
+      profile: 'CSV' as const,
+    };
+  } catch {
+    return { rejected: 'MALFORMED_CONTENT' as const };
+  }
+}
 
 async function openDesktopWindow(): Promise<void> {
   const localState = new LockedLocalStateAdapter({
@@ -53,10 +76,27 @@ async function openDesktopWindow(): Promise<void> {
     // Device capability grants remain DSO-owned; until enrollment lands, deny create.
     resolveCapability: () => null,
   });
-  // Production main owns watcher adapters per approved binding. Native fs watchers attach
-  // after a capability-backed createFolderBinding succeeds; until then the adapter is idle.
-  const folderWatchers = new Map<string, WindowsFolderWatcherAdapter>();
-  void folderWatchers;
+  const folderWatchers = new FolderWatcherLifecycle({
+    folders,
+    assertInsideBinding: (bindingRoot, candidatePath) =>
+      folderPort.assertPathInsideBinding(bindingRoot, candidatePath),
+    createWatcher: (input) => new WindowsFolderWatcherAdapter(input),
+    createIntake: ({ bindingId, canonicalPath, manifest }) =>
+      new FolderIntakeService({
+        detector: new StableFileDetector({
+          debounceMs: manifest.stabilityDebounceMs,
+          nowMs: () => Date.now(),
+        }),
+        bindingId,
+        bindingRoot: canonicalPath,
+        manifest,
+        assertInsideBinding: (candidatePath) =>
+          folderPort.assertPathInsideBinding(canonicalPath, candidatePath),
+        readFingerprint: fingerprintFolderFile,
+      }),
+    nowMs: () => Date.now(),
+  });
+  disposeFolderWatchers = () => folderWatchers.dispose();
 
   await createDesktopWindow({
     BrowserWindow: BrowserWindow as unknown as BrowserWindowConstructor,
@@ -69,6 +109,7 @@ async function openDesktopWindow(): Promise<void> {
         localState,
         sidecar,
         folders,
+        folderWatchers,
       });
     },
     electronSession: session.defaultSession as unknown as DesktopSessionLike,
@@ -91,6 +132,7 @@ async function startDesktop(): Promise<void> {
 
 app.on('window-all-closed', () => {
   disposeIpc?.();
+  disposeFolderWatchers?.();
   app.quit();
 });
 
