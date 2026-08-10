@@ -3185,7 +3185,9 @@
       "priority": "P0",
       "primaryPlan": "085-dda-desktop-hybrid-folders.md",
       "primaryTask": "Task 1: Bind an approved folder and version its manifest",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "apps/desktop/src/application/",
         "apps/desktop/src/main/",
@@ -3198,12 +3200,14 @@
         "services/engine/tests/test_dda_folder_intake.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d94c17fccdf3e01434292dc0cd1735bb31020bea",
+        "apps/desktop/test/folder-binding.service.test.ts",
+        "apps/desktop/test/security-folder-binding-ipc.test.ts",
+        "apps/desktop/test/folder-manifest.test.ts",
+        "apps/desktop/test/security-bridge-contract.test.ts"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3213,7 +3217,9 @@
       "priority": "P0",
       "primaryPlan": "085-dda-desktop-hybrid-folders.md",
       "primaryTask": "Task 1: Bind an approved folder and version its manifest",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "apps/desktop/src/application/",
         "apps/desktop/src/main/",
@@ -3226,12 +3232,14 @@
         "services/engine/tests/test_dda_folder_intake.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d94c17fccdf3e01434292dc0cd1735bb31020bea",
+        "apps/desktop/test/folder-binding.service.test.ts",
+        "apps/desktop/test/security-folder-binding-ipc.test.ts",
+        "apps/desktop/test/folder-manifest.test.ts",
+        "apps/desktop/test/security-bridge-contract.test.ts"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3241,7 +3249,9 @@
       "priority": "P0",
       "primaryPlan": "085-dda-desktop-hybrid-folders.md",
       "primaryTask": "Task 2: Detect stable safe file changes",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "apps/desktop/src/application/",
         "apps/desktop/src/main/",
@@ -3254,12 +3264,14 @@
         "services/engine/tests/test_dda_folder_intake.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d94c17fccdf3e01434292dc0cd1735bb31020bea",
+        "apps/desktop/test/stable-file-detector.test.ts",
+        "apps/desktop/test/folder-intake-replay.test.ts",
+        "apps/desktop/test/security-folder-path-escape.test.ts",
+        "services/engine/tests/test_dda_folder_intake.py"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3875,7 +3887,9 @@
       "priority": "P0",
       "primaryPlan": "085-dda-desktop-hybrid-folders.md",
       "primaryTask": "Task 3: Project Hybrid results and degrade safely",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "apps/desktop/src/application/",
         "apps/desktop/src/main/",
@@ -3888,12 +3902,13 @@
         "services/engine/tests/test_dda_folder_intake.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d94c17fccdf3e01434292dc0cd1735bb31020bea",
+        "apps/desktop/test/publication-projection.test.tsx",
+        "apps/desktop/test/folder-sync-idempotency.test.ts",
+        "apps/desktop/test/folder-source-unavailable.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -3933,7 +3948,9 @@
       "priority": "P0",
       "primaryPlan": "085-dda-desktop-hybrid-folders.md",
       "primaryTask": "Task 3: Project Hybrid results and degrade safely",
-      "supportingTasks": [],
+      "supportingTasks": [
+        "087-dda-integration-readiness.md ? Task 1: Integrate lane commits in dependency order"
+      ],
       "codePaths": [
         "apps/desktop/src/application/",
         "apps/desktop/src/main/",
@@ -3946,12 +3963,13 @@
         "services/engine/tests/test_dda_folder_intake.py"
       ],
       "releaseEvidence": [
-        "requirement-linked-tests",
-        "security-tenant-data-mode-gate",
-        "integration-owner-approval"
+        "d94c17fccdf3e01434292dc0cd1735bb31020bea",
+        "apps/desktop/test/publication-projection.test.tsx",
+        "apps/desktop/test/folder-sync-idempotency.test.ts",
+        "apps/desktop/test/folder-source-unavailable.test.tsx"
       ],
-      "status": "planned",
-      "coverage": "planned",
+      "status": "partial",
+      "coverage": "partial",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
