@@ -5,8 +5,10 @@ Prototype integration evidence only. Not production readiness.
 ## Base
 
 - Branch: `codex/dda-087-integration`
+- HEAD: `9c0cc95bca4ced29d3778d14ab254f1cf8a23d07`
 - Base tip: `codex/dda-081-contracts` after G2 close (`0cb1e87`)
 - Merge order: 082 → 084 → 083 → 085 → 086
+- Evidence commit: `20a49ff6f0a793186d859a29550c9ec65785a055`
 
 ## Lane merges
 
