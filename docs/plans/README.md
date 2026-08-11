@@ -16,6 +16,8 @@ Current implementation resume: [`402-dda-code-first-completion.md`](402-dda-code
 
 Focused OpenAI development validation: [`403-openai-development-validation.md`](403-openai-development-validation.md) is the approved subplan for completing the server-only receipt, mapping, analyst, narrative, and dashboard-proposal adapters and running a request-capped synthetic live evaluation without exposing a key. It may start only after plan 402 Tasks 1-3 are green and never changes the production gate.
 
+Dashboard workspace redesign: [`404-dashboard-workspace-redesign-design.md`](404-dashboard-workspace-redesign-design.md) records the approved Vietnamese-first canvas and dashboard-local agent experience. [`405-dashboard-workspace-redesign-implementation.md`](405-dashboard-workspace-redesign-implementation.md) is the executable requirement-linked plan for its contracts, scoped APIs, immutable authoring commands, premium Web shell, responsive chart canvas, agent proposal picker, and verification.
+
 1. [`000-platform-program.md`](000-platform-program.md) — stable program and release policy.
 2. [`080-data-to-dashboard-program.md`](080-data-to-dashboard-program.md) — approved V1 dependency graph, OpenAI/AWS provider boundary, complete task-gated program, ownership locks, dispatch packets, production sequence, and stop conditions.
 3. [`data-to-dashboard-orchestration.json`](data-to-dashboard-orchestration.json) — machine-readable gates, dependencies, work packages, branches, requirements, writable ownership, checks, and next-work pointer.
