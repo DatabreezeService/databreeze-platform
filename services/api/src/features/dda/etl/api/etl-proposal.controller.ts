@@ -35,6 +35,26 @@ export class EtlProposalController {
   public async get(@Param('proposalId') proposalId: string) {
     const result = await this.service.getProposal(proposalId);
     if (!result.accepted) throw new EtlProposalProblemError(result.code);
+    const plan = result.value.plan as {
+      readonly contentHash?: unknown;
+      readonly schemaHash?: unknown;
+      readonly lineageIds?: unknown;
+      readonly transformations?: unknown[];
+    };
+    const acceptanceEvidence =
+      typeof plan.contentHash === 'string' &&
+      typeof plan.schemaHash === 'string' &&
+      Array.isArray(plan.lineageIds) &&
+      plan.lineageIds.every((entry) => typeof entry === 'string')
+        ? {
+            revision: result.value.revision,
+            rowCount: result.value.review.sampling.rowCount,
+            rejectedCount: result.value.review.counts.rejected,
+            contentHash: plan.contentHash,
+            schemaHash: plan.schemaHash,
+            lineageIds: plan.lineageIds,
+          }
+        : undefined;
     return {
       accepted: true,
       proposalId: result.value.proposalId,
@@ -51,7 +71,8 @@ export class EtlProposalController {
       qualityEffects: result.value.review.qualityEffects,
       evidenceStatus: result.value.review.evidenceStatus,
       estimatedCost: result.value.review.estimatedCost,
-      orderedSteps: (result.value.plan as { transformations: unknown[] }).transformations,
+      orderedSteps: plan.transformations ?? [],
+      ...(acceptanceEvidence === undefined ? {} : { acceptanceEvidence }),
     };
   }
 }

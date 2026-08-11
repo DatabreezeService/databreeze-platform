@@ -5,10 +5,49 @@ export interface EtlLiveConfigurationV1 {
   readonly proposalId: string;
 }
 
-export type EtlProposalReviewV1 = Omit<EtlReviewPageProps, 'locale' | 'beforeSample' | 'afterSample'> & {
+export interface EtlAcceptanceEvidenceV1 {
+  readonly revision: number;
+  readonly rowCount: number;
+  readonly rejectedCount: number;
+  readonly contentHash: string;
+  readonly schemaHash: string;
+  readonly lineageIds: readonly string[];
+}
+
+export type EtlProposalReviewV1 = Omit<
+  EtlReviewPageProps,
+  'locale' | 'beforeSample' | 'afterSample'
+> & {
+  readonly proposalId: string;
+  readonly revision: number;
   readonly beforeSample: readonly Readonly<Record<string, unknown>>[];
   readonly afterSample: readonly Readonly<Record<string, unknown>>[];
+  readonly acceptanceEvidence?: EtlAcceptanceEvidenceV1;
 };
+
+export interface AcceptEtlProposalInputV1 {
+  readonly baseUrl: string;
+  readonly tenantScope: unknown;
+  readonly proposalId: string;
+  readonly expectedRevision: number;
+  readonly idempotencyKey: string;
+  readonly correlationId: string;
+  readonly expected: {
+    readonly rowCount: number;
+    readonly rejectedCount: number;
+    readonly contentHash: string;
+    readonly schemaHash: string;
+    readonly lineageIds: readonly string[];
+  };
+  readonly signal?: AbortSignal;
+}
+
+export interface AcceptEtlProposalResultV1 {
+  readonly accepted: true;
+  readonly proposalId: string;
+  readonly datasetVersionId: string;
+  readonly replayed: boolean;
+}
 
 type EtlEnvironment = Readonly<Record<string, unknown>>;
 
@@ -39,9 +78,49 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
 }
 
-function isEtlProposalReview(value: unknown): value is EtlProposalReviewV1 {
+function parseAcceptanceEvidence(value: unknown): EtlAcceptanceEvidenceV1 | undefined {
+  if (!isRecord(value)) return undefined;
+  if (
+    typeof value['revision'] !== 'number' ||
+    !Number.isSafeInteger(value['revision']) ||
+    value['revision'] < 1
+  ) {
+    return undefined;
+  }
+  if (
+    typeof value['rowCount'] !== 'number' ||
+    !Number.isSafeInteger(value['rowCount']) ||
+    value['rowCount'] < 0 ||
+    typeof value['rejectedCount'] !== 'number' ||
+    !Number.isSafeInteger(value['rejectedCount']) ||
+    value['rejectedCount'] < 0 ||
+    typeof value['contentHash'] !== 'string' ||
+    typeof value['schemaHash'] !== 'string' ||
+    !isStringArray(value['lineageIds'])
+  ) {
+    return undefined;
+  }
+  return Object.freeze({
+    revision: value['revision'],
+    rowCount: value['rowCount'],
+    rejectedCount: value['rejectedCount'],
+    contentHash: value['contentHash'],
+    schemaHash: value['schemaHash'],
+    lineageIds: Object.freeze([...value['lineageIds']]),
+  });
+}
+
+function isEtlProposalReview(value: unknown): value is Record<string, unknown> {
   if (!isRecord(value) || value['accepted'] !== true) return false;
-  if (typeof value['state'] !== 'string' || typeof value['evidenceStatus'] !== 'string') return false;
+  if (typeof value['proposalId'] !== 'string' || typeof value['state'] !== 'string') return false;
+  if (
+    typeof value['revision'] !== 'number' ||
+    !Number.isSafeInteger(value['revision']) ||
+    value['revision'] < 1
+  ) {
+    return false;
+  }
+  if (typeof value['evidenceStatus'] !== 'string') return false;
   if (
     !isStringArray(value['sourceSchema']) ||
     !isStringArray(value['inferredSchema']) ||
@@ -61,7 +140,11 @@ function isEtlProposalReview(value: unknown): value is EtlProposalReviewV1 {
   ) {
     return false;
   }
-  return Array.isArray(value['exclusions']) && Array.isArray(value['unsupportedScopes']) && Array.isArray(value['qualityEffects']);
+  return (
+    Array.isArray(value['exclusions']) &&
+    Array.isArray(value['unsupportedScopes']) &&
+    Array.isArray(value['qualityEffects'])
+  );
 }
 
 /** Typed client for a configured ETL proposal review. */
@@ -84,12 +167,15 @@ export async function fetchEtlProposal(
   if (!response.ok) throw new Error('ETL_PROPOSAL_UNAVAILABLE');
   const payload: unknown = await response.json();
   if (!isEtlProposalReview(payload)) throw new Error('ETL_PROPOSAL_INVALID');
+  const acceptanceEvidence = parseAcceptanceEvidence(payload['acceptanceEvidence']);
   return Object.freeze({
-    sourceSchema: Object.freeze([...payload.sourceSchema]),
-    inferredSchema: Object.freeze([...payload.inferredSchema]),
-    targetSchema: Object.freeze([...payload.targetSchema]),
+    proposalId: payload['proposalId'] as string,
+    revision: payload['revision'] as number,
+    sourceSchema: Object.freeze([...(payload['sourceSchema'] as string[])]),
+    inferredSchema: Object.freeze([...(payload['inferredSchema'] as string[])]),
+    targetSchema: Object.freeze([...(payload['targetSchema'] as string[])]),
     orderedSteps: Object.freeze(
-      payload.orderedSteps.map((step) =>
+      (payload['orderedSteps'] as unknown[]).map((step) =>
         typeof step === 'string'
           ? step
           : isRecord(step) && typeof step['type'] === 'string'
@@ -97,19 +183,65 @@ export async function fetchEtlProposal(
             : 'UNKNOWN_STEP',
       ),
     ),
-    assumptions: Object.freeze([...payload.assumptions]),
+    assumptions: Object.freeze([...(payload['assumptions'] as string[])]),
     beforeSample: Object.freeze([] as const),
     afterSample: Object.freeze([] as const),
-    counts: Object.freeze({ ...payload.counts }),
-    exclusions: Object.freeze([...(payload.exclusions as EtlProposalReviewV1['exclusions'])]),
+    counts: Object.freeze({ ...(payload['counts'] as EtlProposalReviewV1['counts']) }),
+    exclusions: Object.freeze([
+      ...(payload['exclusions'] as EtlProposalReviewV1['exclusions']),
+    ]),
     unsupportedScopes: Object.freeze([
-      ...(payload.unsupportedScopes as EtlProposalReviewV1['unsupportedScopes']),
+      ...(payload['unsupportedScopes'] as EtlProposalReviewV1['unsupportedScopes']),
     ]),
     qualityEffects: Object.freeze([
-      ...(payload.qualityEffects as EtlProposalReviewV1['qualityEffects']),
+      ...(payload['qualityEffects'] as EtlProposalReviewV1['qualityEffects']),
     ]),
-    evidenceStatus: payload.evidenceStatus,
-    estimatedCost: Object.freeze({ ...payload.estimatedCost }),
-    state: payload.state,
+    evidenceStatus: payload['evidenceStatus'] as string,
+    estimatedCost: Object.freeze({
+      ...(payload['estimatedCost'] as EtlProposalReviewV1['estimatedCost']),
+    }),
+    state: payload['state'] as string,
+    ...(acceptanceEvidence === undefined ? {} : { acceptanceEvidence }),
+  });
+}
+
+/** DDA-004/007: accept only with explicit tenant scope and evidence hashes. */
+export async function acceptEtlProposal(
+  input: AcceptEtlProposalInputV1,
+): Promise<AcceptEtlProposalResultV1> {
+  const init: RequestInit = {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'content-type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({
+      tenantScope: input.tenantScope,
+      proposalId: input.proposalId,
+      expectedRevision: input.expectedRevision,
+      idempotencyKey: input.idempotencyKey,
+      correlationId: input.correlationId,
+      expected: input.expected,
+    }),
+  };
+  if (input.signal !== undefined) init.signal = input.signal;
+  const response = await globalThis.fetch(`${input.baseUrl}/v1/dda/etl-acceptances`, init);
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('ETL_ACCEPT_UNAUTHORIZED');
+  }
+  if (!response.ok) throw new Error('ETL_ACCEPT_UNAVAILABLE');
+  const payload: unknown = await response.json();
+  if (
+    !isRecord(payload) ||
+    payload['accepted'] !== true ||
+    typeof payload['proposalId'] !== 'string' ||
+    typeof payload['datasetVersionId'] !== 'string' ||
+    typeof payload['replayed'] !== 'boolean'
+  ) {
+    throw new Error('ETL_ACCEPT_INVALID');
+  }
+  return Object.freeze({
+    accepted: true as const,
+    proposalId: payload['proposalId'],
+    datasetVersionId: payload['datasetVersionId'],
+    replayed: payload['replayed'],
   });
 }

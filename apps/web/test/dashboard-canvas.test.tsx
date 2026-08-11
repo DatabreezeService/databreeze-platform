@@ -63,4 +63,26 @@ describe('dashboard canvas [DDA-021][DDA-022]', () => {
     expect(screen.getByRole('button', { name: 'Restore widget' })).toBeTruthy();
     expect(screen.getAllByText('Evidence remains visible').length).toBeGreaterThan(0);
   });
+
+  it('replaces canvas widget values when a live draft version arrives without inventing KPIs', () => {
+    const { rerender } = render(<DashboardCanvas locale="en" draft={draft} />);
+    expect(screen.getByText('1,250,000 VND')).toBeTruthy();
+
+    const liveDraft = {
+      ...draft,
+      versionId: '00000000-0000-4000-8000-000000000099',
+      widgets: [
+        {
+          widgetId: '00000000-0000-4000-8000-00000000001d',
+          type: 'KPI',
+          pageId: '00000000-0000-4000-8000-00000000001c',
+          title: { vi: 'Tong doanh so', en: 'Total sales' },
+          values: [{ label: 'amount', value: 'governed-amount' }],
+        },
+      ],
+    };
+    rerender(<DashboardCanvas locale="en" draft={liveDraft} />);
+    expect(screen.getByText('governed-amount')).toBeTruthy();
+    expect(screen.queryByText('1,250,000 VND')).toBeNull();
+  });
 });

@@ -20,6 +20,7 @@ import { TemplateDialog } from './template-dialog.tsx';
 import type { DashboardDraftFixtureV1 } from './dashboard-api.ts';
 import type { AnalysisPlanPreviewV1 } from './analysis-plan-review.tsx';
 import { useState } from 'react';
+import { tenantLiveConfiguration } from '../session/tenant-live-configuration.ts';
 
 const FIXTURE_DRAFT: DashboardDraftFixtureV1 = Object.freeze({
   dashboardId: '00000000-0000-4000-8000-00000000001b',
@@ -117,6 +118,7 @@ export function DashboardPage() {
   const locale = useLocale();
   const configuration = dashboardLiveConfiguration();
   const analysisConfiguration = analysisLiveConfiguration();
+  const tenant = tenantLiveConfiguration();
   const demoMode = dashboardDemoMode();
   const dashboardQuery = useQuery({
     queryKey: ['dda', 'dashboard-draft', configuration?.baseUrl, configuration?.dashboardId],
@@ -151,11 +153,11 @@ export function DashboardPage() {
       );
       return;
     }
-    if (configuration === undefined || draft === undefined) {
+    if (configuration === undefined || draft === undefined || tenant === undefined) {
       setPublishStatus(
         locale === 'vi-VN'
-          ? 'Chưa có bản nháp trực tiếp để xuất bản.'
-          : 'No live draft is available to publish.',
+          ? 'Cần bản nháp trực tiếp và ngữ cảnh tenant trước khi xuất bản.'
+          : 'A live draft and tenant context are required before publishing.',
       );
       setPublishOpen(false);
       return;
@@ -171,8 +173,9 @@ export function DashboardPage() {
         expectedRevision: 1,
         idempotencyKey: crypto.randomUUID(),
         context: {
-          organizationId: '00000000-0000-4000-8000-000000000001',
-          workspaceId: '00000000-0000-4000-8000-000000000002',
+          organizationId: tenant.organizationId,
+          workspaceId: tenant.workspaceId,
+          ...(tenant.projectId === undefined ? {} : { projectId: tenant.projectId }),
         },
       });
       setPublishStatus(
@@ -200,11 +203,11 @@ export function DashboardPage() {
       setPlanPreview(DEMO_PLAN_PREVIEW);
       return;
     }
-    if (analysisConfiguration === undefined || question.trim() === '') {
+    if (analysisConfiguration === undefined || question.trim() === '' || tenant === undefined) {
       setAnalysisStatus(
         locale === 'vi-VN'
-          ? 'Cần cấu hình API và câu hỏi trước khi đề xuất.'
-          : 'API configuration and a question are required before proposing.',
+          ? 'Cần cấu hình API, ngữ cảnh tenant và câu hỏi trước khi đề xuất.'
+          : 'API configuration, tenant context, and a question are required before proposing.',
       );
       return;
     }
@@ -213,8 +216,9 @@ export function DashboardPage() {
         baseUrl: analysisConfiguration.baseUrl,
         question,
         context: {
-          organizationId: '00000000-0000-4000-8000-000000000001',
-          workspaceId: '00000000-0000-4000-8000-000000000002',
+          organizationId: tenant.organizationId,
+          workspaceId: tenant.workspaceId,
+          ...(tenant.projectId === undefined ? {} : { projectId: tenant.projectId }),
         },
       });
       setPlanPreview(result.planPreview);

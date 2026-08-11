@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { SupportedLocaleV1 } from '@databreeze/i18n/v1';
 
 import { FilterBar } from './filter-bar.tsx';
@@ -22,6 +22,12 @@ export function DashboardCanvas({ locale, draft, breakpoint = 'desktop' }: Dashb
   const [editorOpen, setEditorOpen] = useState(false);
   const [removed, setRemoved] = useState<typeof draft.widgets>([]);
   const [selected, setSelected] = useState<string | undefined>(widgets[0]?.widgetId);
+
+  useEffect(() => {
+    setWidgets(draft.widgets);
+    setRemoved([]);
+    setSelected(draft.widgets[0]?.widgetId);
+  }, [draft.dashboardId, draft.versionId, draft.widgets]);
 
   const ordered = useMemo(() => widgets, [widgets]);
 

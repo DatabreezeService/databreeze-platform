@@ -35,6 +35,7 @@ test.describe('DDA golden messy-sales journey', () => {
     await expect(page.getByRole('heading', { name: 'Intake and ETL review' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'ETL review' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Continue to dashboards' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Accept ETL proposal' })).toBeDisabled();
   });
 
   test('streaming labels are absent from the authoring chrome', async ({ page }, testInfo) => {

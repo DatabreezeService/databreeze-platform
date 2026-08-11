@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  acceptEtlProposal,
   etlLiveConfiguration,
   fetchEtlProposal,
 } from '../src/features/data-intake/etl-api.ts';
@@ -60,5 +61,44 @@ describe('ETL live API configuration [DDA-006]', () => {
         proposalId: 'proposal-123',
       }),
     ).rejects.toThrow('ETL_PROPOSAL_INVALID');
+  });
+
+  it('fails closed on unauthorized ETL acceptance and never invents hashes', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('', { status: 401 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      acceptEtlProposal({
+        baseUrl: 'https://api.example.test',
+        tenantScope: {
+          scopeType: 'workspace',
+          organizationId: '00000000-0000-4000-8000-000000000001',
+          workspaceId: '00000000-0000-4000-8000-000000000002',
+        },
+        proposalId: 'proposal-123',
+        expectedRevision: 1,
+        idempotencyKey: '00000000-0000-4000-8000-0000000000aa',
+        correlationId: '00000000-0000-4000-8000-0000000000bb',
+        expected: {
+          rowCount: 10,
+          rejectedCount: 1,
+          contentHash: 'a'.repeat(64),
+          schemaHash: 'b'.repeat(64),
+          lineageIds: ['00000000-0000-4000-8000-0000000000cc'],
+        },
+      }),
+    ).rejects.toThrow('ETL_ACCEPT_UNAUTHORIZED');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.example.test/v1/dda/etl-acceptances',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+      }),
+    );
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as {
+      expected: { contentHash: string };
+    };
+    expect(body.expected.contentHash).toBe('a'.repeat(64));
   });
 });
