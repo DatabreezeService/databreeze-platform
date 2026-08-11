@@ -45,7 +45,27 @@ const FIXTURE_DRAFT: DashboardDraftFixtureV1 = Object.freeze({
   warning: 'Evidence and authorization limits remain visible at every breakpoint.',
 });
 
-const PLAN_PREVIEW = Object.freeze({
+const EMPTY_PLAN_PREVIEW = Object.freeze({
+  datasets: Object.freeze([] as const),
+  semanticVersionId: '00000000-0000-4000-8000-000000000000',
+  metricVersionId: '00000000-0000-4000-8000-000000000000',
+  dimensions: Object.freeze([] as const),
+  filters: Object.freeze([] as const),
+  timeRange: Object.freeze({
+    start: '2026-01-01T00:00:00.000Z',
+    end: '2026-12-31T23:59:59.000Z',
+  }),
+  timeGrain: 'MONTH',
+  joins: Object.freeze([] as const),
+  units: Object.freeze({} as const),
+  assumptions: Object.freeze([
+    'Live mode waits for an authorized typed plan; no invented metrics.',
+  ] as const),
+  output: Object.freeze({ form: 'TABLE', maxRows: 100 }),
+  estimate: Object.freeze({ cpuMs: 0, memoryMb: 0 }),
+});
+
+const DEMO_PLAN_PREVIEW = Object.freeze({
   datasets: Object.freeze(['00000000-0000-4000-8000-000000000018']),
   semanticVersionId: '00000000-0000-4000-8000-000000000019',
   metricVersionId: '00000000-0000-4000-8000-00000000001a',
@@ -56,12 +76,35 @@ const PLAN_PREVIEW = Object.freeze({
     end: '2026-12-31T23:59:59.000Z',
   }),
   timeGrain: 'MONTH',
-  joins: Object.freeze([]),
+  joins: Object.freeze([] as const),
   units: Object.freeze({ amount: 'VND' }),
   assumptions: Object.freeze(['Uses accepted sales dataset only']),
   output: Object.freeze({ form: 'TABLE', maxRows: 100 }),
   estimate: Object.freeze({ cpuMs: 100, memoryMb: 64 }),
 });
+
+function failClosedMessage(
+  locale: 'vi-VN' | 'en',
+  demoMode: boolean,
+  errorCode: string | undefined,
+): string {
+  if (demoMode) {
+    return locale === 'vi-VN' ? 'Chế độ demo đang bật.' : 'Demo mode is enabled.';
+  }
+  if (errorCode === 'DASHBOARD_DRAFT_UNAUTHORIZED') {
+    return locale === 'vi-VN'
+      ? 'Không được phép đọc bản nháp. Quyền và bằng chứng vẫn được giữ nguyên.'
+      : 'Draft read is unauthorized. Permissions and evidence remain enforced.';
+  }
+  if (errorCode === 'DASHBOARD_DRAFT_NOT_FOUND') {
+    return locale === 'vi-VN'
+      ? 'Không tìm thấy bản nháp trong phạm vi hiện tại.'
+      : 'No draft was found in the current scope.';
+  }
+  return locale === 'vi-VN'
+    ? 'Dữ liệu bảng điều khiển chưa khả dụng. Không có thay đổi nào được gửi.'
+    : 'Dashboard data is not available. No changes were sent.';
+}
 
 /** DDA-020..026/047..049: dashboard authoring page composing analyst + canvas + GA tools. */
 export function DashboardPage() {
@@ -81,9 +124,23 @@ export function DashboardPage() {
   const [templateOpen, setTemplateOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const draft = demoMode ? FIXTURE_DRAFT : dashboardQuery.data;
+  const errorCode =
+    dashboardQuery.error instanceof Error ? dashboardQuery.error.message : undefined;
+  const statusMessage = failClosedMessage(locale, demoMode, errorCode);
+
   return (
     <section className="dda-dashboard-page">
       <h1>{locale === 'vi-VN' ? 'Bảng điều khiển' : 'Dashboards'}</h1>
+      <p data-testid="dashboard-freshness">
+        {draft?.freshness ??
+          (locale === 'vi-VN' ? 'Độ mới: chưa tải' : 'Freshness: not loaded')}
+      </p>
+      <p data-testid="dashboard-evidence-warning">
+        {draft?.warning ??
+          (locale === 'vi-VN'
+            ? 'Bằng chứng và giới hạn ủy quyền vẫn hiển thị.'
+            : 'Evidence and authorization limits remain visible.')}
+      </p>
       <div>
         <button type="button" onClick={() => setPublishOpen(true)}>
           {locale === 'vi-VN' ? 'Xuất bản' : 'Publish'}
@@ -94,19 +151,16 @@ export function DashboardPage() {
         <button type="button" onClick={() => setExportOpen(true)}>
           {locale === 'vi-VN' ? 'Xuất' : 'Export'}
         </button>
+        <button type="button">{locale === 'vi-VN' ? 'Thêm widget' : 'Add widget'}</button>
       </div>
       {draft === undefined ? (
-        <p role="status">
-          {locale === 'vi-VN'
-            ? 'Dữ liệu bảng điều khiển chưa khả dụng. Không có thay đổi nào được gửi.'
-            : 'Dashboard data is not available. No changes were sent.'}
-        </p>
+        <p role="status">{statusMessage}</p>
       ) : (
         <DashboardCanvas locale={locale} draft={draft} />
       )}
+      <AnalystPanel locale={locale} preview={demoMode ? DEMO_PLAN_PREVIEW : EMPTY_PLAN_PREVIEW} />
       {demoMode ? (
         <>
-          <AnalystPanel locale={locale} preview={PLAN_PREVIEW} />
           <DashboardViewer
             locale={locale}
             permissionExpansionDenied
@@ -119,7 +173,9 @@ export function DashboardPage() {
             changedInputs={['dataset-b']}
           />
         </>
-      ) : null}
+      ) : (
+        <DashboardViewer locale={locale} permissionExpansionDenied rows={[]} />
+      )}
       <PublishDialog
         locale={locale}
         open={publishOpen}

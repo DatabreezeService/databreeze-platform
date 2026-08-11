@@ -17,6 +17,7 @@ import {
 import { WorkspaceHome } from '../pages/workspace-home.tsx';
 import { InboxPage } from '../features/inbox/inbox-page.tsx';
 import { DashboardPage } from '../features/dashboards/dashboard-page.tsx';
+import { DataPipelinePage } from '../features/data-intake/data-pipeline-page.tsx';
 import { PRODUCT_MODULE_REGISTRY } from '../features/product-modules/product-module-registry.ts';
 import { ProductModuleWorkbench } from '../features/product-modules/product-module-workbench.tsx';
 import { WEB_FEATURE_REGISTRY } from './feature-registry.ts';
@@ -62,6 +63,8 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
           element:
             feature.key === 'inbox' ? (
               <InboxPage />
+            ) : feature.key === 'reviews' ? (
+              <DataPipelinePage />
             ) : feature.key === 'dashboards' ? (
               <DashboardPage />
             ) : (

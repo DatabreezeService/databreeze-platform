@@ -13,5 +13,9 @@ describe('dashboard route composition [DDA-020]', () => {
       await screen.findByText('Dashboard data is not available. No changes were sent.'),
     ).toBeTruthy();
     expect(screen.queryByText('1,250,000 VND')).toBeNull();
+    expect(screen.getByTestId('dashboard-freshness')).toBeTruthy();
+    expect(screen.getByTestId('dashboard-evidence-warning')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Ask governed data' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Publish' })).toBeTruthy();
   });
 });

@@ -83,8 +83,8 @@ export function EtlReviewPage({
       <RejectsTable rejects={[...exclusions, ...unsupportedScopes]} locale={locale} />
       <QualityDimensions
         dimensions={qualityEffects}
-        overallSummary={overallSummary}
         locale={locale}
+        {...(overallSummary === undefined ? {} : { overallSummary })}
       />
       <p>
         evidence={evidenceStatus} cost={estimatedCost.cpuMs}ms/{estimatedCost.memoryMb}MB

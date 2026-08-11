@@ -114,21 +114,26 @@ export async function fetchDashboardDraft(
   configuration: DashboardLiveConfigurationV1,
   signal?: AbortSignal,
 ): Promise<DashboardDraftFixtureV1> {
-  const response = await fetch(
-    `${configuration.baseUrl}/v1/dda/dashboards/${encodeURIComponent(configuration.dashboardId)}/draft`,
-    {
-      headers: { Accept: 'application/json' },
-      credentials: 'include',
-      signal,
-    },
-  );
+  const url = `${configuration.baseUrl}/v1/dda/dashboards/${encodeURIComponent(configuration.dashboardId)}/draft`;
+  const init: RequestInit = {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+    credentials: 'include',
+  };
+  if (signal !== undefined) init.signal = signal;
+  const response = await globalThis.fetch(url, init);
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('DASHBOARD_DRAFT_UNAUTHORIZED');
+  }
+  if (response.status === 404) throw new Error('DASHBOARD_DRAFT_NOT_FOUND');
   if (!response.ok) throw new Error('DASHBOARD_DRAFT_UNAVAILABLE');
   const payload: unknown = await response.json();
   if (!isDashboardDraft(payload)) throw new Error('DASHBOARD_DRAFT_INVALID');
   return Object.freeze(payload);
 }
 
-export function acceptDashboardProposal(input: {
+/** Accept creates a draft only; publication remains a separate authorized action (DDA-024). */
+export async function acceptDashboardProposal(input: {
   readonly proposalId: string;
   readonly dashboardId: string;
 }): Promise<{ readonly draftOnly: true; readonly versionId: string }> {
