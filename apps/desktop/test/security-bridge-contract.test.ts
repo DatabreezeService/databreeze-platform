@@ -26,6 +26,7 @@ describe('DSK-002 preload bridge', () => {
     expect(Object.keys(bridge.v1.folders).sort()).toEqual([
       'create',
       'disable',
+      'listReviewQueue',
       'readStatus',
       'select',
       'updateManifest',

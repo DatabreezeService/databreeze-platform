@@ -14,6 +14,7 @@ import {
   parseFolderSelectResult,
   type FolderIpcChannel,
 } from '../shared/folder-binding-contract-v1.ts';
+import { parseFolderReviewQueue } from '../shared/folder-intake-contract-v1.ts';
 
 export type DesktopInvoke = (
   channel: DesktopIpcChannel | FolderIpcChannel,
@@ -77,6 +78,10 @@ export function createDesktopBridgeV1(invoke: DesktopInvoke): DesktopBridgeV1 {
       rejectExtraArguments(argumentsList, 1);
       const request = parseOrRejectRequest(() => parseFolderBindingIdRequest(argumentsList[0]));
       return parseFolderBindingSafeStatus(await invoke(FOLDER_IPC_CHANNELS.disable, request));
+    },
+    listReviewQueue: async (...argumentsList: unknown[]) => {
+      rejectUnexpectedArguments(argumentsList);
+      return parseFolderReviewQueue(await invoke(FOLDER_IPC_CHANNELS.listReviewQueue));
     },
   });
   return Object.freeze({ v1: Object.freeze({ session, sidecar, folders }) });

@@ -1,9 +1,12 @@
+import type { FolderReviewQueueItemV1 } from './folder-intake-contract-v1.ts';
+
 export const FOLDER_IPC_CHANNELS = Object.freeze({
   select: 'desktop:v1:folder:select',
   create: 'desktop:v1:folder:create',
   readStatus: 'desktop:v1:folder:read-status',
   updateManifest: 'desktop:v1:folder:update-manifest',
   disable: 'desktop:v1:folder:disable',
+  listReviewQueue: 'desktop:v1:folder:list-review-queue',
 } as const);
 
 export type FolderIpcChannel = (typeof FOLDER_IPC_CHANNELS)[keyof typeof FOLDER_IPC_CHANNELS];
@@ -78,6 +81,7 @@ export interface FolderBridgeV1 {
     request: FolderManifestUpdateRequestV1,
   ) => Promise<FolderBindingSafeStatusV1>;
   readonly disable: (request: FolderBindingIdRequestV1) => Promise<FolderBindingSafeStatusV1>;
+  readonly listReviewQueue: () => Promise<readonly FolderReviewQueueItemV1[]>;
 }
 
 const SAFE_RESULT_MAX_BYTES = 64 * 1024;

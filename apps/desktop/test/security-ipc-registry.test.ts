@@ -86,7 +86,11 @@ describe('DSK-002 guarded IPC registry', () => {
         }),
       ),
     };
-    const folderWatchers = { attach: vi.fn(), detach: vi.fn() };
+    const folderWatchers = {
+      attach: vi.fn(),
+      detach: vi.fn(),
+      listReviewQueue: vi.fn(() => []),
+    };
     const harness = register({ folders, folderWatchers });
     const createRequest = {
       selectionToken: 'sel_approved_1',
@@ -115,6 +119,36 @@ describe('DSK-002 guarded IPC registry', () => {
 
     expect(folderWatchers.attach).toHaveBeenCalledWith(binding.bindingId);
     expect(folderWatchers.detach).toHaveBeenCalledWith(binding.bindingId);
+  });
+
+  it('exposes quarantine review queue without local paths [DDA-037]', async () => {
+    const queueItem = {
+      eventId: 'evt_aaaaaaaaaaaaaaaaaaaaaaaa',
+      bindingId: '01HHHHHHHHHHHHHHHHHHHHHHHH',
+      reason: 'SCHEMA_DRIFT' as const,
+      profileHint: 'CSV',
+      observedAtMs: 42,
+    };
+    const folderWatchers = {
+      attach: vi.fn(),
+      detach: vi.fn(),
+      listReviewQueue: vi.fn(() => [queueItem]),
+    };
+    const harness = register({ folderWatchers });
+
+    await expect(
+      harness.ipcMain.invoke(FOLDER_IPC_CHANNELS.listReviewQueue, harness.event),
+    ).resolves.toEqual([queueItem]);
+    expect(folderWatchers.listReviewQueue).toHaveBeenCalledOnce();
+
+    folderWatchers.listReviewQueue.mockReturnValueOnce([
+      { ...queueItem, path: 'C:\\Approved\\secret.csv' } as typeof queueItem & {
+        readonly path: string;
+      },
+    ]);
+    await expect(
+      harness.ipcMain.invoke(FOLDER_IPC_CHANNELS.listReviewQueue, harness.event),
+    ).rejects.toThrow('DESKTOP_RESULT_REJECTED');
   });
 
   it('returns only schema-valid safe state from the two fixed channels', async () => {

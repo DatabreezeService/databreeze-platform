@@ -60,6 +60,7 @@ describe('DDA-014 production folder watcher lifecycle', () => {
           eventId: 'evt_1',
         }),
       ),
+      reviewQueue: vi.fn(() => []),
     };
     const folders = {
       watcherConfiguration: vi.fn(() => watcherConfiguration()),
@@ -137,5 +138,13 @@ describe('DDA-014 production folder watcher lifecycle', () => {
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
     expect(intake?.reviewQueue()).toMatchObject([{ reason: 'SCHEMA_DRIFT' }]);
+    expect(lifecycle.listReviewQueue()).toMatchObject([
+      {
+        bindingId: BINDING,
+        reason: 'SCHEMA_DRIFT',
+        profileHint: 'CSV',
+      },
+    ]);
+    expect(JSON.stringify(lifecycle.listReviewQueue())).not.toMatch(/Approved|unfamiliar/i);
   });
 });

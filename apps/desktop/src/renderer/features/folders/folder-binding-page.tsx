@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { DesktopLocale } from '../../../shared/desktop-contract-v1.ts';
 import type {
   FolderBindingSafeStatusV1,
@@ -54,7 +54,7 @@ export interface FolderBindingPageProps {
   readonly capabilityGrantId: string;
   readonly organizationId: string;
   readonly workspaceId: string;
-  /** Quarantine / review items from intake; empty until watcher reports honest events. */
+  /** When set, skips IPC and uses the injected quarantine queue (tests / demos). */
   readonly reviewQueue?: readonly FolderReviewQueueItemV1[];
   /** Optional existing binding status for review-only projection confirmation. */
   readonly initialStatus?: FolderBindingSafeStatusV1 | null;
@@ -65,7 +65,7 @@ export function FolderBindingPage({
   capabilityGrantId,
   organizationId,
   workspaceId,
-  reviewQueue = [],
+  reviewQueue,
   initialStatus = null,
 }: FolderBindingPageProps) {
   const text = copy[locale];
@@ -74,6 +74,9 @@ export function FolderBindingPage({
   const [status, setStatus] = useState<FolderBindingSafeStatusV1 | null>(initialStatus);
   const [error, setError] = useState<string | null>(null);
   const [projectionConfirmed, setProjectionConfirmed] = useState(false);
+  const [queueItems, setQueueItems] = useState<readonly FolderReviewQueueItemV1[]>(
+    reviewQueue ?? [],
+  );
   const projectionReady = status !== null;
 
   const projectionPreview = Object.freeze({
@@ -86,6 +89,41 @@ export function FolderBindingPage({
     effectiveDataMode: 'HYBRID' as const,
     version: status?.manifestVersion ?? 1,
   });
+
+  useEffect(() => {
+    if (reviewQueue !== undefined) {
+      setQueueItems(reviewQueue);
+      return;
+    }
+    let cancelled = false;
+    const bridge = window.databreezeDesktop;
+    if (bridge === undefined) return;
+    void bridge.v1.folders
+      .listReviewQueue()
+      .then((items) => {
+        if (!cancelled) setQueueItems(items);
+      })
+      .catch(() => {
+        if (!cancelled) setQueueItems([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [reviewQueue]);
+
+  async function refreshReviewQueue(): Promise<void> {
+    if (reviewQueue !== undefined) return;
+    const bridge = window.databreezeDesktop;
+    if (bridge === undefined) {
+      setQueueItems([]);
+      return;
+    }
+    try {
+      setQueueItems(await bridge.v1.folders.listReviewQueue());
+    } catch {
+      setQueueItems([]);
+    }
+  }
 
   async function onSelect() {
     setError(null);
@@ -120,6 +158,7 @@ export function FolderBindingPage({
       });
       setStatus(created);
       setSelectionToken(null);
+      await refreshReviewQueue();
     } catch {
       setError(text.error);
     }
@@ -139,7 +178,7 @@ export function FolderBindingPage({
         </button>
       </div>
       <FolderManifestEditor locale={locale} manifest={manifest} onChange={setManifest} />
-      <FolderReviewQueue locale={locale} items={reviewQueue} />
+      <FolderReviewQueue locale={locale} items={queueItems} />
       <ProjectionReview
         locale={locale}
         preview={projectionPreview}

@@ -10,7 +10,7 @@ const BINDING = '01HHHHHHHHHHHHHHHHHHHHHHHH';
 const MAP = '01GGGGGGGGGGGGGGGGGGGGGGGG';
 
 describe('DDA-012 security folder binding IPC surface', () => {
-  it('exposes only select/create/read-status/update-manifest/disable folder operations', async () => {
+  it('exposes only select/create/read-status/update-manifest/disable/list-review-queue folder operations', async () => {
     const invoke = vi.fn((channel: string) => {
       if (channel === DESKTOP_IPC_CHANNELS.sessionGetSafeState) {
         return Promise.resolve({
@@ -47,6 +47,17 @@ describe('DDA-012 security folder binding IPC surface', () => {
           supportedProfiles: ['CSV'],
         });
       }
+      if (channel === FOLDER_IPC_CHANNELS.listReviewQueue) {
+        return Promise.resolve([
+          {
+            eventId: 'evt_bbbbbbbbbbbbbbbbbbbbbbbb',
+            bindingId: BINDING,
+            reason: 'PARTIAL_OR_LOCK_FILE',
+            profileHint: 'CSV',
+            observedAtMs: 7,
+          },
+        ]);
+      }
       return Promise.reject(new Error(`unexpected channel ${channel}`));
     });
 
@@ -55,6 +66,7 @@ describe('DDA-012 security folder binding IPC surface', () => {
     expect(Object.keys(bridge.v1.folders).sort()).toEqual([
       'create',
       'disable',
+      'listReviewQueue',
       'readStatus',
       'select',
       'updateManifest',
@@ -90,10 +102,20 @@ describe('DDA-012 security folder binding IPC surface', () => {
         },
       }),
     ).resolves.toMatchObject({ bindingId: BINDING });
+    await expect(bridge.v1.folders.listReviewQueue()).resolves.toEqual([
+      {
+        eventId: 'evt_bbbbbbbbbbbbbbbbbbbbbbbb',
+        bindingId: BINDING,
+        reason: 'PARTIAL_OR_LOCK_FILE',
+        profileHint: 'CSV',
+        observedAtMs: 7,
+      },
+    ]);
 
     expect(invoke.mock.calls.map((call) => call[0])).toEqual([
       FOLDER_IPC_CHANNELS.select,
       FOLDER_IPC_CHANNELS.create,
+      FOLDER_IPC_CHANNELS.listReviewQueue,
     ]);
   });
 

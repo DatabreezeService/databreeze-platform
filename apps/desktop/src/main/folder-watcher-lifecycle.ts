@@ -4,6 +4,7 @@ import type {
   FolderManifestService,
 } from '../application/folder-manifest.service.ts';
 import type { StableFileEvent } from '../application/stable-file-detector.ts';
+import type { FolderReviewQueueItemV1 } from '../shared/folder-intake-contract-v1.ts';
 
 export interface FolderWatcher {
   onEvent(listener: (event: StableFileEvent) => void): () => void;
@@ -17,6 +18,8 @@ interface WatcherConfiguration {
   readonly manifest: FolderManifestRevision;
 }
 
+type FolderIntakeHandle = Pick<FolderIntakeService, 'admitStableFile' | 'reviewQueue'>;
+
 export interface FolderWatcherLifecycleInput {
   readonly folders: FolderManifestService;
   readonly assertInsideBinding: (bindingRoot: string, candidatePath: string) => boolean;
@@ -24,9 +27,7 @@ export interface FolderWatcherLifecycleInput {
     readonly bindingRoot: string;
     readonly assertInsideBinding: (candidatePath: string) => boolean;
   }) => FolderWatcher;
-  readonly createIntake: (
-    input: WatcherConfiguration,
-  ) => Pick<FolderIntakeService, 'admitStableFile'>;
+  readonly createIntake: (input: WatcherConfiguration) => FolderIntakeHandle;
   readonly nowMs: () => number;
 }
 
@@ -36,7 +37,10 @@ export class FolderWatcherLifecycle {
   readonly #createWatcher: FolderWatcherLifecycleInput['createWatcher'];
   readonly #createIntake: FolderWatcherLifecycleInput['createIntake'];
   readonly #nowMs: () => number;
-  readonly #watchers = new Map<string, { watcher: FolderWatcher; unsubscribe: () => void }>();
+  readonly #watchers = new Map<
+    string,
+    { watcher: FolderWatcher; unsubscribe: () => void; intake: FolderIntakeHandle }
+  >();
 
   constructor(input: FolderWatcherLifecycleInput) {
     this.#folders = input.folders;
@@ -65,7 +69,7 @@ export class FolderWatcherLifecycle {
         nowMs: this.#nowMs(),
       });
     });
-    this.#watchers.set(bindingId, { watcher, unsubscribe });
+    this.#watchers.set(bindingId, { watcher, unsubscribe, intake });
     try {
       watcher.start();
     } catch (error) {
@@ -84,6 +88,15 @@ export class FolderWatcherLifecycle {
 
   dispose(): void {
     for (const bindingId of this.#watchers.keys()) this.detach(bindingId);
+  }
+
+  /** Path-free quarantine/review items across active watchers [DDA-037]. */
+  listReviewQueue(): readonly FolderReviewQueueItemV1[] {
+    const items: FolderReviewQueueItemV1[] = [];
+    for (const active of this.#watchers.values()) {
+      items.push(...active.intake.reviewQueue());
+    }
+    return Object.freeze([...items]);
   }
 
   /** Re-check active watchers; revocation/expiry/wrong-scope detaches immediately. */

@@ -17,6 +17,7 @@ import {
   parseFolderSelectResult,
   type FolderIpcChannel,
 } from '../shared/folder-binding-contract-v1.ts';
+import { parseFolderReviewQueue } from '../shared/folder-intake-contract-v1.ts';
 
 interface SenderFrameLike {
   readonly url: string;
@@ -248,6 +249,17 @@ export function registerDesktopIpcV1({
         return binding;
       },
       parseFolderBindingSafeStatus,
+    ),
+    [FOLDER_IPC_CHANNELS.listReviewQueue]: guardedPayloadHandler(
+      expectedRendererUrl,
+      getActiveWindow,
+      () => undefined,
+      async () => {
+        if (folderWatchers === undefined) return Object.freeze([]);
+        return folderWatchers.listReviewQueue();
+      },
+      parseFolderReviewQueue,
+      true,
     ),
   };
   for (const [channel, handler] of Object.entries(handlers)) ipcMain.handle(channel, handler);
