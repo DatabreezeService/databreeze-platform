@@ -34,11 +34,39 @@ describe('folder binding composed surface [DDA-037]', () => {
     expect(screen.getByRole('heading', { name: 'Hybrid projection preview' })).toBeTruthy();
     expect(screen.getByText('HYBRID')).toBeTruthy();
 
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Sync only after the user confirms this projection',
-      }),
+    const confirm = screen.getByRole('button', {
+      name: 'Sync only after the user confirms this projection',
+    });
+    expect((confirm as HTMLButtonElement).disabled).toBe(true);
+    expect(
+      screen.getByText('Create a folder binding before confirming Hybrid projection sync.'),
+    ).toBeTruthy();
+  });
+
+  it('enables Hybrid projection confirm only after a binding exists', () => {
+    render(
+      <FolderBindingPage
+        locale="en"
+        capabilityGrantId="00000000-0000-4000-8000-0000000000d1"
+        organizationId="00000000-0000-4000-8000-000000000001"
+        workspaceId="00000000-0000-4000-8000-000000000002"
+        initialStatus={{
+          bindingId: '01AAAAAAAAAAAAAAAAAAAAAAAA',
+          capabilityGrantId: '00000000-0000-4000-8000-0000000000d1',
+          capabilityState: 'ACTIVE',
+          lifecycle: 'ACTIVE',
+          manifestVersion: 1,
+          purpose: 'sales-intake',
+          supportedProfiles: ['CSV'],
+        }}
+      />,
     );
+
+    const confirm = screen.getByRole('button', {
+      name: 'Sync only after the user confirms this projection',
+    });
+    expect((confirm as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(confirm);
     expect(
       screen.getByText(
         'Hybrid projection confirmed locally; sync still requires DSO capability and API.',

@@ -56,6 +56,8 @@ export interface FolderBindingPageProps {
   readonly workspaceId: string;
   /** Quarantine / review items from intake; empty until watcher reports honest events. */
   readonly reviewQueue?: readonly FolderReviewQueueItemV1[];
+  /** Optional existing binding status for review-only projection confirmation. */
+  readonly initialStatus?: FolderBindingSafeStatusV1 | null;
 }
 
 export function FolderBindingPage({
@@ -64,13 +66,15 @@ export function FolderBindingPage({
   organizationId,
   workspaceId,
   reviewQueue = [],
+  initialStatus = null,
 }: FolderBindingPageProps) {
   const text = copy[locale];
   const [manifest, setManifest] = useState(defaultManifest);
   const [selectionToken, setSelectionToken] = useState<string | null>(null);
-  const [status, setStatus] = useState<FolderBindingSafeStatusV1 | null>(null);
+  const [status, setStatus] = useState<FolderBindingSafeStatusV1 | null>(initialStatus);
   const [error, setError] = useState<string | null>(null);
   const [projectionConfirmed, setProjectionConfirmed] = useState(false);
+  const projectionReady = status !== null;
 
   const projectionPreview = Object.freeze({
     class: manifest.publicationProjection.class,
@@ -139,6 +143,15 @@ export function FolderBindingPage({
       <ProjectionReview
         locale={locale}
         preview={projectionPreview}
+        confirmEnabled={projectionReady}
+        {...(projectionReady
+          ? {}
+          : {
+              blockedReason:
+                locale === 'vi-VN'
+                  ? 'Tạo liên kết thư mục trước khi xác nhận đồng bộ chiếu Hybrid.'
+                  : 'Create a folder binding before confirming Hybrid projection sync.',
+            })}
         onConfirm={() => setProjectionConfirmed(true)}
       />
       {projectionConfirmed ? (

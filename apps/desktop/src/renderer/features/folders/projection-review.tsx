@@ -43,14 +43,23 @@ export interface ProjectionReviewProps {
   readonly locale: DesktopLocale;
   readonly preview: ProjectionReviewModel;
   readonly onConfirm: () => void;
+  readonly confirmEnabled?: boolean;
+  readonly blockedReason?: string;
 }
 
-export function ProjectionReview({ locale, preview, onConfirm }: ProjectionReviewProps) {
+export function ProjectionReview({
+  locale,
+  preview,
+  onConfirm,
+  confirmEnabled = true,
+  blockedReason,
+}: ProjectionReviewProps) {
   const text = copy[locale];
   return (
     <section aria-labelledby="projection-review-title" className="projection-review">
       <h2 id="projection-review-title">{text.title}</h2>
       <p>{text.confirm}</p>
+      {blockedReason !== undefined ? <p role="status">{blockedReason}</p> : null}
       <dl>
         <div>
           <dt>{text.classify}</dt>
@@ -85,7 +94,7 @@ export function ProjectionReview({ locale, preview, onConfirm }: ProjectionRevie
           <dd className="numeric">v{preview.version}</dd>
         </div>
       </dl>
-      <button type="button" onClick={onConfirm}>
+      <button type="button" onClick={onConfirm} disabled={!confirmEnabled}>
         {text.confirm}
       </button>
     </section>
