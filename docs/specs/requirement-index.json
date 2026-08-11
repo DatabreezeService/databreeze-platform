@@ -878,7 +878,7 @@
       "priority": "P0",
       "requirement": "DDA shall compose IAM, IAE, DSM, JRA, DSO, NCO, BUA, and AUD through public contracts and shall not create alternate authorities for identity, bytes/evidence/retention, governed data/definitions, jobs/reviews/approvals, synchronization, usage, or audit.",
       "source": {
-        "line": 126,
+        "line": 129,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -887,7 +887,7 @@
       "priority": "P0",
       "requirement": "Web intake shall accept only published supported CSV/XLSX profiles with explicit size/row/column/sheet/encoding/formula limits, validate actual content rather than extension, and finalize through IAE immutable upload contracts.",
       "source": {
-        "line": 127,
+        "line": 130,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -896,7 +896,7 @@
       "priority": "P0",
       "requirement": "Every source, cleaned output, rejected-row bundle, receipt capture, materialized result, and published snapshot shall bind full TenantScope, exact parent/input versions, content/schema hashes, data classification, effective data-mode policy, and IAE retention/evidence references as applicable.",
       "source": {
-        "line": 128,
+        "line": 131,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -905,7 +905,7 @@
       "priority": "P0",
       "requirement": "DDA shall never overwrite an original or accepted DatasetVersion; mapping, transformation, correction, rerun, and refresh shall produce explicit immutable versions and lineage.",
       "source": {
-        "line": 129,
+        "line": 132,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -914,7 +914,7 @@
       "priority": "P0",
       "requirement": "A proposed ETL plan shall be a versioned graph of allowlisted typed transformations bound to exact input, schema, mapping, rule, and engine versions and shall contain no arbitrary code.",
       "source": {
-        "line": 130,
+        "line": 133,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -923,7 +923,7 @@
       "priority": "P0",
       "requirement": "ETL review shall display source/inferred/target schemas, ordered steps, material assumptions, before/after samples, changed/unchanged/rejected counts, exclusions, unsupported scopes, sampling, quality-gate effects, evidence availability, and estimated resource cost before acceptance.",
       "source": {
-        "line": 131,
+        "line": 134,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -932,7 +932,7 @@
       "priority": "P0",
       "requirement": "Accepted ETL execution shall run through a JRA typed job and register a DSM DatasetVersion only after result-manifest, counts, hashes, schema, lineage, rejected-row accounting, and effective policy verification succeed.",
       "source": {
-        "line": 132,
+        "line": 135,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -941,7 +941,7 @@
       "priority": "P0",
       "requirement": "No input row or field shall be silently omitted; rejected, quarantined, unsupported, truncated, or unprocessed scopes shall remain counted, reason-coded, discoverable, and unable to satisfy a complete quality gate.",
       "source": {
-        "line": 133,
+        "line": 136,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -950,7 +950,7 @@
       "priority": "P0",
       "requirement": "The UI shall report completeness, validity, uniqueness, consistency, freshness, and extraction confidence as separate named dimensions with declared denominator, coverage, rules/expectation, sample status, and limitations.",
       "source": {
-        "line": 134,
+        "line": 137,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -959,7 +959,7 @@
       "priority": "P0",
       "requirement": "DDA shall not label profile or AI output as percentage correct; an overall quality summary, when shown, shall disclose its deterministic formula, weights, missing-dimension behavior, coverage, and inability to prove factual correctness.",
       "source": {
-        "line": 135,
+        "line": 138,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -968,7 +968,7 @@
       "priority": "P0",
       "requirement": "Saved mappings and transform plans shall not auto-apply after material schema drift, ambiguous header matching, incompatible type change, overlapping period, changed duplicate key, or breaking target definition; the source shall enter review.",
       "source": {
-        "line": 136,
+        "line": 139,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -977,7 +977,7 @@
       "priority": "P0",
       "requirement": "A Windows folder binding shall reference an active DSO Device capability/grant while keeping the canonical path and local display name on Desktop; cloud state shall use only opaque binding/capability IDs and content-safe status.",
       "source": {
-        "line": 137,
+        "line": 140,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -986,7 +986,7 @@
       "priority": "P0",
       "requirement": "A versioned folder manifest shall declare purpose, supported file profiles, schema fingerprints, dataset grouping, append/replace/version rules, time/overlap rules, duplicate keys, mapping policy, stability/debounce policy, and publication projection.",
       "source": {
-        "line": 138,
+        "line": 141,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -995,7 +995,7 @@
       "priority": "P0",
       "requirement": "Desktop shall process a file event only after stability checks and content fingerprinting, deduplicate repeated filesystem events/content, and route ambiguous, drifting, overlapping, duplicate, unsupported, or path-escaping inputs to review or quarantine.",
       "source": {
-        "line": 139,
+        "line": 142,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1004,7 +1004,7 @@
       "priority": "P0",
       "requirement": "The analyst shall represent every data question and dashboard calculation as a versioned typed plan over authorized DSM versions; AI-generated SQL, code, or numeric values shall never become executable or authoritative.",
       "source": {
-        "line": 140,
+        "line": 143,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1013,7 +1013,7 @@
       "priority": "P0",
       "requirement": "Before analysis or dashboard generation, the UI shall show selected datasets, semantic/metric versions, dimensions, filters, date range/time grain, join paths, units, assumptions, output form, and estimated resource cost.",
       "source": {
-        "line": 141,
+        "line": 144,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1022,7 +1022,7 @@
       "priority": "P0",
       "requirement": "Material ambiguity shall produce named alternatives or a clarification request; insufficient, unauthorized, stale, quality-blocked, or unavailable data shall produce a stable non-answer reason rather than an invented result.",
       "source": {
-        "line": 142,
+        "line": 145,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1031,7 +1031,7 @@
       "priority": "P0",
       "requirement": "Deterministic processors shall calculate all displayed numeric results, and every material table/chart/KPI value shall expose exact plan/metric provenance plus permitted row/cell evidence or aggregate definition.",
       "source": {
-        "line": 143,
+        "line": 146,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1040,7 +1040,7 @@
       "priority": "P0",
       "requirement": "AI narrative or visualization rationale shall use only a bounded policy-approved result/provenance package, label interpretation, and link each material numeric claim to deterministic result cells.",
       "source": {
-        "line": 144,
+        "line": 147,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1049,7 +1049,7 @@
       "priority": "P0",
       "requirement": "A Dashboard shall own immutable DashboardVersions containing exact dataset/semantic/metric bindings, pages, responsive layouts, widgets, filters/parameters, query/materialization bindings, freshness policy, publication policy, locale/timezone, parent version, and canonical hash.",
       "source": {
-        "line": 145,
+        "line": 148,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1058,7 +1058,7 @@
       "priority": "P0",
       "requirement": "V1 shall support accessible KPI, table, bar, line/area, pie/donut, and text/evidence-note widgets only when field types, grain, units, output bounds, and evidence behavior are compatible.",
       "source": {
-        "line": 146,
+        "line": 149,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1067,7 +1067,7 @@
       "priority": "P0",
       "requirement": "The canvas shall support adding, moving, resizing, configuring, removing, and restoring widgets; page/widget IDs shall remain stable across layout edits, and responsive breakpoints shall never hide required evidence, warnings, or freshness state.",
       "source": {
-        "line": 147,
+        "line": 150,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1076,7 +1076,7 @@
       "priority": "P0",
       "requirement": "Filters, date ranges, sorting, highlighting, drill-down, and parameter changes shall declare scope and typed behavior, preserve permission/row-field restrictions, and never change an approved/certified definition silently.",
       "source": {
-        "line": 148,
+        "line": 151,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1085,7 +1085,7 @@
       "priority": "P0",
       "requirement": "An agent-created dashboard or canvas change shall remain a proposal showing its typed plan, affected pages/widgets, before/after summary, assumptions, and cost; explicit user acceptance shall create a draft version, not publish it.",
       "source": {
-        "line": 149,
+        "line": 152,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1094,7 +1094,7 @@
       "priority": "P0",
       "requirement": "Publishing shall create an immutable DashboardSnapshot bound to one DashboardVersion, exact materialized results and input/permission versions, audience policy, freshness state, evidence availability, and canonical hash; material change shall create a new subject and invalidate applicable approval.",
       "source": {
-        "line": 150,
+        "line": 153,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1103,7 +1103,7 @@
       "priority": "P0",
       "requirement": "Sharing or viewing a dashboard shall not grant underlying Dataset, original, row/field, evidence, analysis, or folder permissions; every read, filter, drill-down, download, SSE event, and share resolution shall re-authorize current scope.",
       "source": {
-        "line": 151,
+        "line": 154,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1112,7 +1112,7 @@
       "priority": "P0",
       "requirement": "V1 dashboard freshness policies shall be `ON_CHANGE`, `MANUAL`, and `SCHEDULED`; genuine `STREAMING` shall not be represented as implemented without a separately accepted streaming contract.",
       "source": {
-        "line": 152,
+        "line": 155,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1121,7 +1121,7 @@
       "priority": "P0",
       "requirement": "An accepted DSM DatasetVersion or other bound-input event shall resolve a versioned dependency index selecting affected dashboard materialization definitions; the consumer shall fetch protected data through authorized APIs rather than trust event payload content.",
       "source": {
-        "line": 153,
+        "line": 156,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1130,7 +1130,7 @@
       "priority": "P0",
       "requirement": "Materialization cache identity shall include TenantScope, security/permission projection, dashboard/widget and plan versions, dataset/semantic/metric versions, parameters, locale/timezone where value-affecting, engine/adapter versions, and effective policy; an incomplete key shall never reuse a result.",
       "source": {
-        "line": 154,
+        "line": 157,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1139,7 +1139,7 @@
       "priority": "P0",
       "requirement": "Refresh triggers, duplicate events, worker retries, folder replays, and client retries shall be idempotent; compatible changes inside a declared debounce window may coalesce without losing the final accepted input set.",
       "source": {
-        "line": 155,
+        "line": 158,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1148,7 +1148,7 @@
       "priority": "P0",
       "requirement": "DDA may incrementally recompute only results whose processor declares compatible change semantics and verified prior state; otherwise it shall perform a bounded full recomputation and disclose that choice in usage/diagnostics.",
       "source": {
-        "line": 156,
+        "line": 159,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1157,7 +1157,7 @@
       "priority": "P0",
       "requirement": "A DashboardSnapshot shall publish atomically only after every required materialization is verified against one compatible input/definition/permission set; a partial or mixed-version refresh shall never replace the last complete snapshot.",
       "source": {
-        "line": 157,
+        "line": 160,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1166,7 +1166,7 @@
       "priority": "P0",
       "requirement": "Every dashboard shall show last successful refresh, exact input selector/versions, freshness state, pending time, and stable stale/blocked/source-unavailable reason; the last complete snapshot shall remain available subject to current authorization and retention.",
       "source": {
-        "line": 158,
+        "line": 161,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1175,7 +1175,7 @@
       "priority": "P0",
       "requirement": "Connected clients shall receive only content-safe committed refresh events, tolerate duplicate/out-of-order delivery, and reconcile authorized state through REST after reconnect or event gap.",
       "source": {
-        "line": 159,
+        "line": 162,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1184,7 +1184,7 @@
       "priority": "P0",
       "requirement": "For the published small-change reference profile, an `ON_CHANGE` dashboard shall publish a complete new snapshot within 60 seconds p95 after accepted input commit, excluding user-held review/approval and declared source-device unavailability.",
       "source": {
-        "line": 160,
+        "line": 163,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1193,7 +1193,7 @@
       "priority": "P0",
       "requirement": "Admission shall enforce per-workspace storage, profile/ETL, AI, OCR, materialization, refresh-frequency, concurrency, cache-retention, and publication limits; denial shall preserve data and the last good snapshot and provide safe remediation.",
       "source": {
-        "line": 161,
+        "line": 164,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1202,7 +1202,7 @@
       "priority": "P0",
       "requirement": "Hybrid publication shall require an explicit versioned projection of metadata, dashboard-specific aggregates, selected governed rows/columns, evidence derivatives, or original content; the UI shall preview classification, fields, counts/bytes, destination, evidence consequences, and effective policy before transfer.",
       "source": {
-        "line": 162,
+        "line": 165,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1211,7 +1211,7 @@
       "priority": "P0",
       "requirement": "Local and cloud execution of the same typed ETL/analysis/materialization plan and fixture shall produce equivalent governed values, counts, units, quality states, reason codes, and evidence keys; representation bytes may differ only where declared.",
       "source": {
-        "line": 163,
+        "line": 166,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1220,7 +1220,7 @@
       "priority": "P0",
       "requirement": "When a required Local/Hybrid source Device is offline, revoked, stale, or awaiting review/sync, cloud surfaces shall show the last authorized complete snapshot plus exact source/freshness reason and shall not upload, reroute, or substitute data automatically.",
       "source": {
-        "line": 164,
+        "line": 167,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1229,7 +1229,7 @@
       "priority": "P0",
       "requirement": "Android V1 receipt capture shall require explicit user action and an authorized Hybrid/Cloud destination, preserve immutable originals, use encrypted account/workspace-scoped staging, and upload resumably through unique idempotent WorkManager operations.",
       "source": {
-        "line": 165,
+        "line": 168,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1238,7 +1238,7 @@
       "priority": "P0",
       "requirement": "The receipt profile shall version merchant, transaction date/time, currency, subtotal, tax, total, optional payment method/reference, and optional line-item candidates with field/token confidence, adapter/model version, and evidence coordinates.",
       "source": {
-        "line": 166,
+        "line": 169,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1247,7 +1247,7 @@
       "priority": "P0",
       "requirement": "Deterministic receipt validation shall reconcile subtotal/tax/total, enforce required type/currency/date rules, detect probable duplicate captures, and route low-confidence, conflicting, or duplicate candidates to review before governed dataset acceptance.",
       "source": {
-        "line": 167,
+        "line": 170,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1256,7 +1256,7 @@
       "priority": "P0",
       "requirement": "Source values, filenames, worksheet cells, comments, OCR text, metadata, and evidence shall be treated as untrusted data and isolated from system/developer instructions; content shall not authorize tools, queries, canvas mutations, publication, or egress.",
       "source": {
-        "line": 168,
+        "line": 171,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1265,7 +1265,7 @@
       "priority": "P0",
       "requirement": "Workspace AI/egress policy shall specify permitted adapter, locality, metadata, samples, result rows, evidence, retention, and purpose; provider failure or disablement shall not prevent deterministic ETL, saved dashboard viewing, or typed manual analysis.",
       "source": {
-        "line": 169,
+        "line": 172,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1274,7 +1274,7 @@
       "priority": "P0",
       "requirement": "Intake, ETL proposals/acceptance, dataset registration, analyst plans/executions, canvas proposals/acceptance, refreshes, publication, sharing, downloads, evidence access, projection transfer, OCR review, and administrative changes shall be audited by the owning services with content-safe summaries.",
       "source": {
-        "line": 170,
+        "line": 173,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1283,7 +1283,7 @@
       "priority": "P0",
       "requirement": "IAE shall remain authoritative for originals, derivatives, rejected-row bundles, materialized result bytes, snapshots, retention, legal hold, deletion, and recovery; DDA may add a retention constraint but shall not delete IAE content directly.",
       "source": {
-        "line": 171,
+        "line": 174,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1292,7 +1292,7 @@
       "priority": "P1",
       "requirement": "Users shall compare two compatible dashboard snapshots and see changed inputs, transformations, quality dimensions, metrics, filters, widgets, and absolute/percentage/contribution result changes with declared null/zero behavior.",
       "source": {
-        "line": 172,
+        "line": 175,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1301,7 +1301,7 @@
       "priority": "P1",
       "requirement": "Dashboard templates shall support reusable page/widget/filter patterns without embedding another workspace/project's data, secrets, permissions, or materialized results.",
       "source": {
-        "line": 173,
+        "line": 176,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1310,7 +1310,7 @@
       "priority": "P1",
       "requirement": "An authorized viewer shall export permission-filtered widget data, chart specifications, dashboard metadata, and a provenance manifest in open formats without gaining broader source access.",
       "source": {
-        "line": 174,
+        "line": 177,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1319,7 +1319,7 @@
       "priority": "P1",
       "requirement": "The system shall recommend related governed questions or visualizations using authorized metadata and prior typed results, but recommendations shall not imply a result before deterministic execution.",
       "source": {
-        "line": 175,
+        "line": 178,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1328,7 +1328,7 @@
       "priority": "P2",
       "requirement": "A future streaming extension may maintain continuously updated materializations only after a separate specification defines ordering, lateness, corrections, replay, windowing, capacity, cost, and snapshot-consistency behavior.",
       "source": {
-        "line": 176,
+        "line": 179,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },

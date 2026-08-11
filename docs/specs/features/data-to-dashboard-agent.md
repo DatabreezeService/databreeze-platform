@@ -1,7 +1,7 @@
 # DataBreeze Data-to-Dashboard Agent
 
 **Status:** Product specification<br>
-**Version:** 1.0<br>
+**Version:** 1.1<br>
 **Requirement prefix:** `DDA`<br>
 **Dependencies:** IAM identity/authorization; IAE intake, immutable artifacts, evidence, retention, and deletion; DSM datasets, schemas, mappings, transformations, rules, metrics, profiling, validation, and lineage; JRA typed jobs, review tasks, findings, and approvals; DSO Device capabilities, data modes, transfer, synchronization, and offline queues; NCO notifications/collaboration; BUA entitlements/usage; AUD canonical audit ledger; Web, Windows Desktop, and Android platform contracts; shared Python processing engine; provider-neutral OCR and AI adapters
 
@@ -106,6 +106,9 @@ Web and Desktop may share React/TypeScript dashboard packages through public con
 4. The accepted typed plan executes deterministically against exact authorized versions.
 5. The answer exposes coverage, freshness, quality, caveats, calculation provenance, and evidence.
 6. A requested canvas change becomes a versioned proposal and preview. Acceptance creates a draft DashboardVersion; publication remains a separate authorized action.
+7. The dashboard authoring surface may present an accepted draft DashboardVersion as continuously saved work without requiring the user to manage or see the internal `draft` state name. This presentation does not weaken immutable parent versions, proposal acceptance, audit, restore, or approval behavior.
+8. Publication controls may live outside the authoring canvas in a distinct sharing/release flow. Any operation that creates or changes a DashboardSnapshot or its audience remains a separate authorized, audited action and never occurs through autosave.
+9. The dashboard-local agent entry point may invite the user to add or change a chart. The resulting chart picker shows only compatible allowlisted widgets, keeps alternatives as a proposal, and requires explicit user confirmation before mutating the saved canvas version.
 
 ### 5.5 Refresh after trusted change
 
