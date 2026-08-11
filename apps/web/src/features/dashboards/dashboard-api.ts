@@ -143,3 +143,64 @@ export async function acceptDashboardProposal(input: {
     versionId: '00000000-0000-4000-8000-000000000011',
   });
 }
+
+export interface PublishDashboardSnapshotInputV1 {
+  readonly baseUrl: string;
+  readonly dashboardId: string;
+  readonly versionId: string;
+  readonly audience: 'OWNER' | 'WORKSPACE_VIEWERS' | 'PROJECT_VIEWERS' | 'SHARED_LINK';
+  readonly materializationIds: readonly string[];
+  readonly permissionProjectionVersionId: string;
+  readonly expectedRevision: number;
+  readonly idempotencyKey: string;
+  readonly context: {
+    readonly organizationId: string;
+    readonly workspaceId: string;
+    readonly projectId?: string;
+  };
+  readonly signal?: AbortSignal;
+}
+
+export interface PublishDashboardSnapshotResultV1 {
+  readonly accepted: true;
+  readonly revision: number;
+}
+
+/** DDA-025: publish is a separate authorized action from draft acceptance. */
+export async function publishDashboardSnapshot(
+  input: PublishDashboardSnapshotInputV1,
+): Promise<PublishDashboardSnapshotResultV1> {
+  const init: RequestInit = {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'content-type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({
+      context: input.context,
+      dashboardId: input.dashboardId,
+      versionId: input.versionId,
+      audience: input.audience,
+      materializationIds: input.materializationIds,
+      permissionProjectionVersionId: input.permissionProjectionVersionId,
+      expectedRevision: input.expectedRevision,
+      idempotencyKey: input.idempotencyKey,
+    }),
+  };
+  if (input.signal !== undefined) init.signal = input.signal;
+  const response = await globalThis.fetch(
+    `${input.baseUrl}/v1/dda/dashboards/publication/publish`,
+    init,
+  );
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('DASHBOARD_PUBLISH_UNAUTHORIZED');
+  }
+  if (!response.ok) throw new Error('DASHBOARD_PUBLISH_UNAVAILABLE');
+  const payload: unknown = await response.json();
+  if (
+    !isRecord(payload) ||
+    payload['accepted'] !== true ||
+    typeof payload['revision'] !== 'number'
+  ) {
+    throw new Error('DASHBOARD_PUBLISH_INVALID');
+  }
+  return Object.freeze({ accepted: true as const, revision: payload['revision'] });
+}

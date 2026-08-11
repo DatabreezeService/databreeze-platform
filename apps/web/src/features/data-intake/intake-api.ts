@@ -22,9 +22,13 @@ export function createWebIntakeApi(baseUrl = '/v1/dda/web-intake'): WebIntakeApi
     async finalize(input) {
       const response = await fetch(`${baseUrl}/finalize`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', Accept: 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(input),
       });
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('INTAKE_UNAUTHORIZED');
+      }
       if (!response.ok) {
         throw new Error('INTAKE_UNAVAILABLE');
       }

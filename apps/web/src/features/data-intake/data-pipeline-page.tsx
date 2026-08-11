@@ -1,5 +1,7 @@
 import { useLocale } from '../../app/locale-context.tsx';
+import { useQuery } from '@tanstack/react-query';
 import { EtlReviewPage } from './etl-review-page.tsx';
+import { etlLiveConfiguration, fetchEtlProposal } from './etl-api.ts';
 import { UploadPanel } from './upload-panel.tsx';
 
 const EMPTY_REVIEW = Object.freeze({
@@ -39,6 +41,29 @@ const EMPTY_REVIEW = Object.freeze({
 export function DataPipelinePage() {
   const locale = useLocale();
   const reviewLocale = locale === 'vi-VN' ? 'vi' : 'en';
+  const configuration = etlLiveConfiguration();
+  const etlQuery = useQuery({
+    queryKey: ['dda', 'etl-proposal', configuration?.baseUrl, configuration?.proposalId],
+    queryFn: ({ signal }) => {
+      if (configuration === undefined) throw new Error('ETL_CONFIGURATION_UNAVAILABLE');
+      return fetchEtlProposal(configuration, signal);
+    },
+    enabled: configuration !== undefined,
+    retry: false,
+  });
+  const review = etlQuery.data ?? EMPTY_REVIEW;
+  const errorCode = etlQuery.error instanceof Error ? etlQuery.error.message : undefined;
+  const statusMessage =
+    errorCode === 'ETL_PROPOSAL_UNAUTHORIZED'
+      ? locale === 'vi-VN'
+        ? 'Không được phép đọc đề xuất ETL. Quyền và bằng chứng vẫn được giữ nguyên.'
+        : 'ETL proposal read is unauthorized. Permissions and evidence remain enforced.'
+      : errorCode === undefined
+        ? null
+        : locale === 'vi-VN'
+          ? 'Đề xuất ETL chưa khả dụng. Không có thay đổi nào được gửi.'
+          : 'ETL proposal is not available. No changes were sent.';
+
   return (
     <section aria-label={locale === 'vi-VN' ? 'Tiếp nhận và ETL' : 'Intake and ETL'}>
       <h1>{locale === 'vi-VN' ? 'Tiếp nhận và xem xét ETL' : 'Intake and ETL review'}</h1>
@@ -57,7 +82,8 @@ export function DataPipelinePage() {
         }}
         sessionId="00000000-0000-4000-8000-0000000000f1"
       />
-      <EtlReviewPage locale={reviewLocale} {...EMPTY_REVIEW} />
+      {statusMessage !== null ? <p role="status">{statusMessage}</p> : null}
+      <EtlReviewPage locale={reviewLocale} {...review} />
       <p>
         <a href={`/${locale}/dashboards`}>
           {locale === 'vi-VN' ? 'Tiếp tục tới bảng điều khiển' : 'Continue to dashboards'}

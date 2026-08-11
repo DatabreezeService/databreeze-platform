@@ -1,18 +1,24 @@
 import { useLocale } from '../../app/locale-context.tsx';
 import { useQuery } from '@tanstack/react-query';
 import { AnalystPanel } from './analyst-panel.tsx';
+import {
+  analysisLiveConfiguration,
+  proposeAnalysisPlan,
+} from './analysis-api.ts';
 import { DashboardCanvas } from './dashboard-canvas.tsx';
 import { DashboardViewer } from './dashboard-viewer.tsx';
 import {
   dashboardDemoMode,
   dashboardLiveConfiguration,
   fetchDashboardDraft,
+  publishDashboardSnapshot,
 } from './dashboard-api.ts';
 import { ExportDialog } from './export-dialog.tsx';
 import { PublishDialog } from './publish-dialog.tsx';
 import { SnapshotComparison } from './snapshot-comparison.tsx';
 import { TemplateDialog } from './template-dialog.tsx';
 import type { DashboardDraftFixtureV1 } from './dashboard-api.ts';
+import type { AnalysisPlanPreviewV1 } from './analysis-plan-review.tsx';
 import { useState } from 'react';
 
 const FIXTURE_DRAFT: DashboardDraftFixtureV1 = Object.freeze({
@@ -45,7 +51,7 @@ const FIXTURE_DRAFT: DashboardDraftFixtureV1 = Object.freeze({
   warning: 'Evidence and authorization limits remain visible at every breakpoint.',
 });
 
-const EMPTY_PLAN_PREVIEW = Object.freeze({
+const EMPTY_PLAN_PREVIEW: AnalysisPlanPreviewV1 = Object.freeze({
   datasets: Object.freeze([] as const),
   semanticVersionId: '00000000-0000-4000-8000-000000000000',
   metricVersionId: '00000000-0000-4000-8000-000000000000',
@@ -65,7 +71,7 @@ const EMPTY_PLAN_PREVIEW = Object.freeze({
   estimate: Object.freeze({ cpuMs: 0, memoryMb: 0 }),
 });
 
-const DEMO_PLAN_PREVIEW = Object.freeze({
+const DEMO_PLAN_PREVIEW: AnalysisPlanPreviewV1 = Object.freeze({
   datasets: Object.freeze(['00000000-0000-4000-8000-000000000018']),
   semanticVersionId: '00000000-0000-4000-8000-000000000019',
   metricVersionId: '00000000-0000-4000-8000-00000000001a',
@@ -110,6 +116,7 @@ function failClosedMessage(
 export function DashboardPage() {
   const locale = useLocale();
   const configuration = dashboardLiveConfiguration();
+  const analysisConfiguration = analysisLiveConfiguration();
   const demoMode = dashboardDemoMode();
   const dashboardQuery = useQuery({
     queryKey: ['dda', 'dashboard-draft', configuration?.baseUrl, configuration?.dashboardId],
@@ -123,10 +130,108 @@ export function DashboardPage() {
   const [publishOpen, setPublishOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [planPreview, setPlanPreview] = useState<AnalysisPlanPreviewV1>(
+    demoMode ? DEMO_PLAN_PREVIEW : EMPTY_PLAN_PREVIEW,
+  );
+  const [publishStatus, setPublishStatus] = useState<string | null>(null);
+  const [analysisStatus, setAnalysisStatus] = useState<string | null>(null);
   const draft = demoMode ? FIXTURE_DRAFT : dashboardQuery.data;
   const errorCode =
     dashboardQuery.error instanceof Error ? dashboardQuery.error.message : undefined;
   const statusMessage = failClosedMessage(locale, demoMode, errorCode);
+
+  async function onPublish() {
+    setPublishStatus(null);
+    if (demoMode) {
+      setPublishOpen(false);
+      setPublishStatus(
+        locale === 'vi-VN'
+          ? 'Chế độ demo: xuất bản chỉ là mô phỏng cục bộ.'
+          : 'Demo mode: publish is a local simulation only.',
+      );
+      return;
+    }
+    if (configuration === undefined || draft === undefined) {
+      setPublishStatus(
+        locale === 'vi-VN'
+          ? 'Chưa có bản nháp trực tiếp để xuất bản.'
+          : 'No live draft is available to publish.',
+      );
+      setPublishOpen(false);
+      return;
+    }
+    try {
+      await publishDashboardSnapshot({
+        baseUrl: configuration.baseUrl,
+        dashboardId: draft.dashboardId,
+        versionId: draft.versionId,
+        audience: 'WORKSPACE_VIEWERS',
+        materializationIds: [],
+        permissionProjectionVersionId: '00000000-0000-4000-8000-000000000021',
+        expectedRevision: 1,
+        idempotencyKey: crypto.randomUUID(),
+        context: {
+          organizationId: '00000000-0000-4000-8000-000000000001',
+          workspaceId: '00000000-0000-4000-8000-000000000002',
+        },
+      });
+      setPublishStatus(
+        locale === 'vi-VN' ? 'Yêu cầu xuất bản đã được gửi.' : 'Publish request was submitted.',
+      );
+    } catch (error) {
+      const code = error instanceof Error ? error.message : 'DASHBOARD_PUBLISH_UNAVAILABLE';
+      setPublishStatus(
+        code === 'DASHBOARD_PUBLISH_UNAUTHORIZED'
+          ? locale === 'vi-VN'
+            ? 'Không được phép xuất bản. Quyền và bằng chứng vẫn được giữ nguyên.'
+            : 'Publish is unauthorized. Permissions and evidence remain enforced.'
+          : locale === 'vi-VN'
+            ? 'Xuất bản chưa khả dụng. Không có thay đổi nào được gửi.'
+            : 'Publish is not available. No changes were sent.',
+      );
+    } finally {
+      setPublishOpen(false);
+    }
+  }
+
+  async function onPropose(question: string) {
+    setAnalysisStatus(null);
+    if (demoMode) {
+      setPlanPreview(DEMO_PLAN_PREVIEW);
+      return;
+    }
+    if (analysisConfiguration === undefined || question.trim() === '') {
+      setAnalysisStatus(
+        locale === 'vi-VN'
+          ? 'Cần cấu hình API và câu hỏi trước khi đề xuất.'
+          : 'API configuration and a question are required before proposing.',
+      );
+      return;
+    }
+    try {
+      const result = await proposeAnalysisPlan({
+        baseUrl: analysisConfiguration.baseUrl,
+        question,
+        context: {
+          organizationId: '00000000-0000-4000-8000-000000000001',
+          workspaceId: '00000000-0000-4000-8000-000000000002',
+        },
+      });
+      setPlanPreview(result.planPreview);
+      setAnalysisStatus(null);
+    } catch (error) {
+      const code = error instanceof Error ? error.message : 'ANALYSIS_PROPOSAL_UNAVAILABLE';
+      setAnalysisStatus(
+        code === 'ANALYSIS_PROPOSAL_UNAUTHORIZED'
+          ? locale === 'vi-VN'
+            ? 'Không được phép đề xuất phân tích.'
+            : 'Analysis proposal is unauthorized.'
+          : locale === 'vi-VN'
+            ? 'Đề xuất phân tích chưa khả dụng. Không có thay đổi nào được gửi.'
+            : 'Analysis proposal is not available. No changes were sent.',
+      );
+    }
+  }
 
   return (
     <section className="dda-dashboard-page">
@@ -158,7 +263,9 @@ export function DashboardPage() {
       ) : (
         <DashboardCanvas locale={locale} draft={draft} />
       )}
-      <AnalystPanel locale={locale} preview={demoMode ? DEMO_PLAN_PREVIEW : EMPTY_PLAN_PREVIEW} />
+      {publishStatus !== null ? <p role="status">{publishStatus}</p> : null}
+      {analysisStatus !== null ? <p role="status">{analysisStatus}</p> : null}
+      <AnalystPanel locale={locale} preview={planPreview} onPropose={(q) => void onPropose(q)} />
       {demoMode ? (
         <>
           <DashboardViewer
@@ -180,7 +287,7 @@ export function DashboardPage() {
         locale={locale}
         open={publishOpen}
         onClose={() => setPublishOpen(false)}
-        onPublish={() => setPublishOpen(false)}
+        onPublish={() => void onPublish()}
       />
       <TemplateDialog
         locale={locale}

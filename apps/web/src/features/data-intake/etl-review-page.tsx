@@ -47,12 +47,12 @@ export function EtlReviewPage({
   overallSummary,
   state,
 }: EtlReviewPageProps) {
-  const title = locale === 'en' ? 'ETL review' : 'Xem xet ETL';
+  const title = locale === 'en' ? 'ETL review' : 'Xem xét ETL';
   return (
     <article aria-label={title}>
       <h2>{title}</h2>
       <p>
-        {locale === 'en' ? 'State' : 'Trang thai'}: {state}
+        {locale === 'en' ? 'State' : 'Trạng thái'}: {state}
       </p>
       <section aria-label="schemas">
         <p>source: {sourceSchema.join(', ')}</p>

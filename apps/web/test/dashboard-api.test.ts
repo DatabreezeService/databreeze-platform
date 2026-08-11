@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   dashboardLiveConfiguration,
   fetchDashboardDraft,
+  publishDashboardSnapshot,
 } from '../src/features/dashboards/dashboard-api.ts';
 
 describe('dashboard live API configuration [DDA-020]', () => {
@@ -61,5 +62,58 @@ describe('dashboard live API configuration [DDA-020]', () => {
         dashboardId: 'dashboard-123',
       }),
     ).rejects.toThrow('DASHBOARD_DRAFT_NOT_FOUND');
+  });
+
+  it('publishes only through the governed publication endpoint with credentials', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ accepted: true, revision: 2 }), { status: 200 }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await publishDashboardSnapshot({
+      baseUrl: 'https://api.example.test',
+      dashboardId: 'dashboard-123',
+      versionId: '00000000-0000-4000-8000-000000000011',
+      audience: 'WORKSPACE_VIEWERS',
+      materializationIds: [],
+      permissionProjectionVersionId: '00000000-0000-4000-8000-000000000021',
+      expectedRevision: 1,
+      idempotencyKey: '00000000-0000-4000-8000-000000000031',
+      context: {
+        organizationId: '00000000-0000-4000-8000-000000000001',
+        workspaceId: '00000000-0000-4000-8000-000000000002',
+      },
+    });
+
+    expect(result).toEqual({ accepted: true, revision: 2 });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.example.test/v1/dda/dashboards/publication/publish',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+      }),
+    );
+  });
+
+  it('fails closed when publish is unauthorized', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 401 })));
+    await expect(
+      publishDashboardSnapshot({
+        baseUrl: 'https://api.example.test',
+        dashboardId: 'dashboard-123',
+        versionId: '00000000-0000-4000-8000-000000000011',
+        audience: 'WORKSPACE_VIEWERS',
+        materializationIds: [],
+        permissionProjectionVersionId: '00000000-0000-4000-8000-000000000021',
+        expectedRevision: 1,
+        idempotencyKey: '00000000-0000-4000-8000-000000000031',
+        context: {
+          organizationId: '00000000-0000-4000-8000-000000000001',
+          workspaceId: '00000000-0000-4000-8000-000000000002',
+        },
+      }),
+    ).rejects.toThrow('DASHBOARD_PUBLISH_UNAUTHORIZED');
   });
 });

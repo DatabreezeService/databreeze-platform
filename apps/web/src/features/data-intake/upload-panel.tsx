@@ -14,14 +14,14 @@ export interface UploadPanelCopyV1 {
 }
 
 export const uploadPanelCopyVi: UploadPanelCopyV1 = {
-  title: 'Tai tep CSV/XLSX',
-  chooseFile: 'Chon tep',
-  upload: 'Tai len',
-  retry: 'Thu lai an toan',
-  cancel: 'Huy',
-  progress: 'Dang tai',
-  success: 'Da chot phien tai',
-  failure: 'Khong the tai tep. Khong co thay doi nao duoc gui.',
+  title: 'Tải tệp CSV/XLSX',
+  chooseFile: 'Chọn tệp',
+  upload: 'Tải lên',
+  retry: 'Thử lại an toàn',
+  cancel: 'Hủy',
+  progress: 'Đang tải',
+  success: 'Đã chốt phiên tải',
+  failure: 'Không thể tải tệp. Không có thay đổi nào được gửi.',
 };
 
 export const uploadPanelCopyEn: UploadPanelCopyV1 = {

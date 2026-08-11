@@ -30,12 +30,12 @@ describe('[DDA-002] upload panel', () => {
       />,
     );
 
-    expect(screen.getByRole('heading', { name: 'Tai tep CSV/XLSX' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Tải tệp CSV/XLSX' })).toBeTruthy();
     const file = new File(['name,amount\nCafe,120000\n'], 'sales.csv', { type: 'text/csv' });
-    await user.upload(screen.getByLabelText('Chon tep'), file);
-    await user.click(screen.getByRole('button', { name: 'Tai len' }));
+    await user.upload(screen.getByLabelText('Chọn tệp'), file);
+    await user.click(screen.getByRole('button', { name: 'Tải lên' }));
     await waitFor(() => expect(finalize).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText(/Da chot phien tai/u)).toBeTruthy();
+    expect(await screen.findByText(/Đã chốt phiên tải/u)).toBeTruthy();
     expect(screen.queryByText(/Cafe|120000/u)).toBeNull();
   });
 

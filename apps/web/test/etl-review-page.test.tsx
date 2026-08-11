@@ -49,7 +49,7 @@ describe('[DDA-006][DDA-009][DDA-010] etl review page', () => {
       />,
     );
 
-    expect(screen.getByRole('heading', { name: 'Xem xet ETL' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Xem xét ETL' })).toBeTruthy();
     expect(screen.getByText(/source: name, amount/u)).toBeTruthy();
     expect(screen.getByText('TRIM_TEXT')).toBeTruthy();
     expect(screen.getByText('amount is VND')).toBeTruthy();
