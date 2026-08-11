@@ -4,7 +4,10 @@ import type {
   FolderBindingSafeStatusV1,
   FolderManifestPolicyV1,
 } from '../../../shared/folder-binding-contract-v1.ts';
+import type { FolderReviewQueueItemV1 } from '../../../shared/folder-intake-contract-v1.ts';
 import { FolderManifestEditor } from './folder-manifest-editor.tsx';
+import { FolderReviewQueue } from './folder-review-queue.tsx';
+import { ProjectionReview } from './projection-review.tsx';
 
 const copy = {
   'vi-VN': {
@@ -51,6 +54,8 @@ export interface FolderBindingPageProps {
   readonly capabilityGrantId: string;
   readonly organizationId: string;
   readonly workspaceId: string;
+  /** Quarantine / review items from intake; empty until watcher reports honest events. */
+  readonly reviewQueue?: readonly FolderReviewQueueItemV1[];
 }
 
 export function FolderBindingPage({
@@ -58,12 +63,25 @@ export function FolderBindingPage({
   capabilityGrantId,
   organizationId,
   workspaceId,
+  reviewQueue = [],
 }: FolderBindingPageProps) {
   const text = copy[locale];
   const [manifest, setManifest] = useState(defaultManifest);
   const [selectionToken, setSelectionToken] = useState<string | null>(null);
   const [status, setStatus] = useState<FolderBindingSafeStatusV1 | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [projectionConfirmed, setProjectionConfirmed] = useState(false);
+
+  const projectionPreview = Object.freeze({
+    class: manifest.publicationProjection.class,
+    fieldAllowlist: manifest.publicationProjection.fieldAllowlist,
+    rowCount: 0,
+    byteCount: 0,
+    destination: 'CLOUD_WORKSPACE_PROJECTION' as const,
+    evidenceConsequences: Object.freeze(['AGGREGATE_ONLY', 'NO_RAW_CELLS']),
+    effectiveDataMode: 'HYBRID' as const,
+    version: status?.manifestVersion ?? 1,
+  });
 
   async function onSelect() {
     setError(null);
@@ -117,6 +135,19 @@ export function FolderBindingPage({
         </button>
       </div>
       <FolderManifestEditor locale={locale} manifest={manifest} onChange={setManifest} />
+      <FolderReviewQueue locale={locale} items={reviewQueue} />
+      <ProjectionReview
+        locale={locale}
+        preview={projectionPreview}
+        onConfirm={() => setProjectionConfirmed(true)}
+      />
+      {projectionConfirmed ? (
+        <p role="status">
+          {locale === 'vi-VN'
+            ? 'Chiếu Hybrid đã được xác nhận cục bộ; đồng bộ vẫn yêu cầu khả năng DSO và API.'
+            : 'Hybrid projection confirmed locally; sync still requires DSO capability and API.'}
+        </p>
+      ) : null}
       <div aria-live="polite">
         <h2>{text.status}</h2>
         {status === null ? <p>{text.none}</p> : null}
