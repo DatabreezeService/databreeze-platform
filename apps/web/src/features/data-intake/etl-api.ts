@@ -205,6 +205,20 @@ export async function fetchEtlProposal(
   });
 }
 
+/** DDA-007: Accept stays disabled until live hashes exist; never invent evidence. */
+export function etlAcceptEnabled(input: {
+  readonly tenantConfigured: boolean;
+  readonly configuration: EtlLiveConfigurationV1 | undefined;
+  readonly proposal: EtlProposalReviewV1 | undefined;
+}): boolean {
+  return (
+    input.tenantConfigured &&
+    input.configuration !== undefined &&
+    input.proposal?.state === 'READY_FOR_ACCEPTANCE' &&
+    input.proposal.acceptanceEvidence !== undefined
+  );
+}
+
 /** DDA-004/007: accept only with explicit tenant scope and evidence hashes. */
 export async function acceptEtlProposal(
   input: AcceptEtlProposalInputV1,

@@ -5,6 +5,7 @@ import { tenantLiveConfiguration } from '../session/tenant-live-configuration.ts
 import { EtlReviewPage } from './etl-review-page.tsx';
 import {
   acceptEtlProposal,
+  etlAcceptEnabled,
   etlLiveConfiguration,
   fetchEtlProposal,
   type EtlProposalReviewV1,
@@ -81,11 +82,11 @@ export function DataPipelinePage() {
       : null;
   const acceptanceEvidence =
     etlQuery.data !== undefined ? etlQuery.data.acceptanceEvidence : undefined;
-  const canAccept =
-    tenant !== undefined &&
-    configuration !== undefined &&
-    acceptanceEvidence !== undefined &&
-    etlQuery.data?.state === 'READY_FOR_ACCEPTANCE';
+  const canAccept = etlAcceptEnabled({
+    tenantConfigured: tenant !== undefined,
+    configuration,
+    proposal: etlQuery.data,
+  });
 
   async function onAccept() {
     setAcceptStatus(null);
