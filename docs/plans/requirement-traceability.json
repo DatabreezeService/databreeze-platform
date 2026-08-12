@@ -1,7 +1,7 @@
 {
   "version": 1,
   "priorityTotals": {
-    "P0": 490,
+    "P0": 506,
     "P1": 158,
     "P2": 14
   },
@@ -717,6 +717,30 @@
         "requirement-linked-tests",
         "security-and-tenant-gate",
         "release-manager-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "AND-024",
+      "priority": "P0",
+      "primaryPlan": "406-unified-data-workspace-implementation.md",
+      "primaryTask": "Task 16: Extend Android for receipt, invoice, table, dashboard, and agent use",
+      "supportingTasks": [
+        "406-unified-data-workspace-implementation.md ? Task 3: Add generated unified-workspace contracts"
+      ],
+      "codePaths": [
+        "apps/android/app/src/main/java/com/databreeze/android/"
+      ],
+      "testPaths": [
+        "apps/android/app/src/test/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -2963,7 +2987,8 @@
         "services/engine/src/databreeze_engine/processors/dda_etl_profile.py",
         "services/engine/src/databreeze_engine/processors/dda_etl_preview.py",
         "services/engine/src/databreeze_engine/processors/dda_etl_execute.py",
-        "apps/web/src/features/data-intake/"
+        "apps/web/src/features/data-intake/",
+        "services/api/src/features/dda/etl/application/mapping-assistance.service.ts"
       ],
       "testPaths": [
         "services/api/test/features/dda/",
@@ -2971,7 +2996,8 @@
         "services/engine/tests/test_dda_etl_profile.py",
         "services/engine/tests/test_dda_etl_preview.py",
         "services/engine/tests/test_dda_etl_execute.py",
-        "apps/web/test/"
+        "apps/web/test/",
+        "services/api/test/features/dda/openai-mapping-assistance.test.ts"
       ],
       "releaseEvidence": [
         "44baae74b64ac9fb700df6e0925c3cdf962d56b7",
@@ -2983,8 +3009,11 @@
       ],
       "status": "partial",
       "coverage": "partial",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
+      "verificationStatus": "partial-verified",
+      "verifiedPaths": [
+        "services/api/src/features/dda/etl/application/mapping-assistance.service.ts",
+        "services/api/test/features/dda/openai-mapping-assistance.test.ts"
+      ],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -3326,12 +3355,14 @@
       "codePaths": [
         "services/api/src/features/dda/analyst/",
         "services/api/src/features/dda/dashboard/",
-        "apps/web/src/features/dashboards/"
+        "apps/web/src/features/dashboards/",
+        "services/api/src/features/dda/analyst/adapter/openai-analysis.adapter.ts"
       ],
       "testPaths": [
         "services/api/test/features/dda/analysis-proposal.service.test.ts",
         "services/api/test/features/dda/analysis-execution.service.test.ts",
-        "apps/web/test/dashboard-analyst.test.tsx"
+        "apps/web/test/dashboard-analyst.test.tsx",
+        "services/api/test/features/dda/openai-analysis.adapter.test.ts"
       ],
       "releaseEvidence": [
         "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
@@ -3341,8 +3372,11 @@
       ],
       "status": "partial",
       "coverage": "partial",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
+      "verificationStatus": "partial-verified",
+      "verifiedPaths": [
+        "services/api/src/features/dda/analyst/adapter/openai-analysis.adapter.ts",
+        "services/api/test/features/dda/openai-analysis.adapter.test.ts"
+      ],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -3414,12 +3448,14 @@
       "codePaths": [
         "services/api/src/features/dda/analyst/",
         "services/api/src/features/dda/dashboard/",
-        "apps/web/src/features/dashboards/"
+        "apps/web/src/features/dashboards/",
+        "services/api/src/features/dda/analyst/application/analysis-narrative.service.ts"
       ],
       "testPaths": [
         "services/api/test/features/dda/analysis-proposal.service.test.ts",
         "services/api/test/features/dda/analysis-execution.service.test.ts",
-        "apps/web/test/dashboard-analyst.test.tsx"
+        "apps/web/test/dashboard-analyst.test.tsx",
+        "services/api/test/features/dda/openai-narrative.adapter.test.ts"
       ],
       "releaseEvidence": [
         "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
@@ -3428,8 +3464,11 @@
       ],
       "status": "partial",
       "coverage": "partial",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
+      "verificationStatus": "partial-verified",
+      "verifiedPaths": [
+        "services/api/src/features/dda/analyst/application/analysis-narrative.service.ts",
+        "services/api/test/features/dda/openai-narrative.adapter.test.ts"
+      ],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -3472,12 +3511,14 @@
       "codePaths": [
         "services/api/src/features/dda/analyst/",
         "services/api/src/features/dda/dashboard/",
-        "apps/web/src/features/dashboards/"
+        "apps/web/src/features/dashboards/",
+        "services/api/src/features/dda/dashboard/application/dashboard-proposal.service.ts"
       ],
       "testPaths": [
         "services/api/test/features/dda/dashboard-draft.service.test.ts",
         "apps/web/test/dashboard-canvas.test.tsx",
-        "apps/web/e2e/dashboard-authoring.spec.ts"
+        "apps/web/e2e/dashboard-authoring.spec.ts",
+        "services/api/test/features/dda/openai-dashboard-proposal.adapter.test.ts"
       ],
       "releaseEvidence": [
         "6878742ca46073e2ca3ac77ee2a8545ed80174ef",
@@ -3487,8 +3528,11 @@
       ],
       "status": "partial",
       "coverage": "partial",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
+      "verificationStatus": "partial-verified",
+      "verifiedPaths": [
+        "services/api/src/features/dda/dashboard/application/dashboard-proposal.service.ts",
+        "services/api/test/features/dda/openai-dashboard-proposal.adapter.test.ts"
+      ],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -4182,7 +4226,8 @@
       "testPaths": [
         "packages/domain/test/data-to-dashboard-v1.test.mjs",
         "packages/contracts/test/schemas.test.mjs",
-        "services/api/test/features/dda/"
+        "services/api/test/features/dda/",
+        "services/api/test/features/dda/openai-content-boundary.e2e.test.ts"
       ],
       "releaseEvidence": [
         "d431d28e4db0210af553b068d52d2dc4129903f7",
@@ -4197,8 +4242,11 @@
       ],
       "status": "partial",
       "coverage": "partial",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
+      "verificationStatus": "partial-verified",
+      "verifiedPaths": [
+        "services/api/test/features/dda/openai-content-boundary.e2e.test.ts",
+        "docs/evidence/dda/openai-assistance-evaluation.md"
+      ],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -4216,7 +4264,8 @@
       "testPaths": [
         "packages/domain/test/data-to-dashboard-v1.test.mjs",
         "packages/contracts/test/schemas.test.mjs",
-        "services/api/test/features/dda/"
+        "services/api/test/features/dda/",
+        "services/api/test/features/dda/openai-provider-outage.e2e.test.ts"
       ],
       "releaseEvidence": [
         "d431d28e4db0210af553b068d52d2dc4129903f7",
@@ -4231,8 +4280,12 @@
       ],
       "status": "partial",
       "coverage": "partial",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
+      "verificationStatus": "partial-verified",
+      "verifiedPaths": [
+        "services/api/test/features/dda/openai-provider-outage.e2e.test.ts",
+        "docs/evidence/dda/openai-receipt-evaluation.md",
+        "docs/evidence/dda/openai-assistance-evaluation.md"
+      ],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -4256,7 +4309,8 @@
       "testPaths": [
         "packages/domain/test/data-to-dashboard-v1.test.mjs",
         "packages/contracts/test/schemas.test.mjs",
-        "services/api/test/features/dda/"
+        "services/api/test/features/dda/",
+        "services/api/test/features/dda/openai-content-boundary.e2e.test.ts"
       ],
       "releaseEvidence": [
         "d431d28e4db0210af553b068d52d2dc4129903f7",
@@ -4271,8 +4325,10 @@
       ],
       "status": "partial",
       "coverage": "partial",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
+      "verificationStatus": "partial-verified",
+      "verifiedPaths": [
+        "services/api/test/features/dda/openai-content-boundary.e2e.test.ts"
+      ],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -4456,6 +4512,223 @@
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "post-ga"
+    },
+    {
+      "requirementId": "DDA-052",
+      "priority": "P0",
+      "primaryPlan": "406-unified-data-workspace-implementation.md",
+      "primaryTask": "Task 7: Build logical datasets, source catalogs, and safe original views",
+      "supportingTasks": [
+        "406-unified-data-workspace-implementation.md ? Task 3: Add generated unified-workspace contracts"
+      ],
+      "codePaths": [
+        "services/api/src/features/dda/source-catalog/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/source-catalog.service.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-053",
+      "priority": "P0",
+      "primaryPlan": "406-unified-data-workspace-implementation.md",
+      "primaryTask": "Task 8: Add automatic safe preparation and transparent health summaries",
+      "supportingTasks": [
+        "406-unified-data-workspace-implementation.md ? Task 3: Add generated unified-workspace contracts"
+      ],
+      "codePaths": [
+        "services/api/src/features/dda/etl/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/automatic-preparation.service.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-054",
+      "priority": "P0",
+      "primaryPlan": "406-unified-data-workspace-implementation.md",
+      "primaryTask": "Task 13: Generate private starter dashboards and refresh them deterministically",
+      "supportingTasks": [
+        "406-unified-data-workspace-implementation.md ? Task 3: Add generated unified-workspace contracts"
+      ],
+      "codePaths": [
+        "services/api/src/features/dda/dashboard/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/starter-dashboard.service.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-055",
+      "priority": "P0",
+      "primaryPlan": "406-unified-data-workspace-implementation.md",
+      "primaryTask": "Task 11: Add workspace-owned conversations and version context",
+      "supportingTasks": [
+        "406-unified-data-workspace-implementation.md ? Task 3: Add generated unified-workspace contracts"
+      ],
+      "codePaths": [
+        "services/api/src/features/dda/conversation/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/conversation.service.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-056",
+      "priority": "P0",
+      "primaryPlan": "406-unified-data-workspace-implementation.md",
+      "primaryTask": "Task 11: Add workspace-owned conversations and version context",
+      "supportingTasks": [
+        "406-unified-data-workspace-implementation.md ? Task 3: Add generated unified-workspace contracts"
+      ],
+      "codePaths": [
+        "services/api/src/features/dda/conversation/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/conversation-context.service.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-057",
+      "priority": "P0",
+      "primaryPlan": "406-unified-data-workspace-implementation.md",
+      "primaryTask": "Task 10: Generalize governed OCR to receipt, invoice, and table profiles",
+      "supportingTasks": [
+        "406-unified-data-workspace-implementation.md ? Task 3: Add generated unified-workspace contracts"
+      ],
+      "codePaths": [
+        "services/api/src/features/dda/table-extraction/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/table-extraction.service.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-058",
+      "priority": "P0",
+      "primaryPlan": "406-unified-data-workspace-implementation.md",
+      "primaryTask": "Task 13: Generate private starter dashboards and refresh them deterministically",
+      "supportingTasks": [
+        "406-unified-data-workspace-implementation.md ? Task 3: Add generated unified-workspace contracts"
+      ],
+      "codePaths": [
+        "services/api/src/features/dda/dashboard/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/dashboard-audience.service.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-059",
+      "priority": "P0",
+      "primaryPlan": "406-unified-data-workspace-implementation.md",
+      "primaryTask": "Task 9: Add Desktop folder intelligence, placement review, and approved cloud sync",
+      "supportingTasks": [
+        "406-unified-data-workspace-implementation.md ? Task 3: Add generated unified-workspace contracts"
+      ],
+      "codePaths": [
+        "services/api/src/features/dda/source-catalog/",
+        "apps/desktop/src/application/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/folder-projection-consent.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-060",
+      "priority": "P0",
+      "primaryPlan": "406-unified-data-workspace-implementation.md",
+      "primaryTask": "Task 12: Build the bounded workspace-agent tool gateway",
+      "supportingTasks": [
+        "406-unified-data-workspace-implementation.md ? Task 3: Add generated unified-workspace contracts"
+      ],
+      "codePaths": [
+        "services/api/src/features/dda/agent/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/agent-tool-gateway.service.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
     },
     {
       "requirementId": "DQG-001",
@@ -6372,6 +6645,30 @@
         "requirement-linked-tests",
         "security-and-tenant-gate",
         "release-manager-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DSK-027",
+      "priority": "P0",
+      "primaryPlan": "406-unified-data-workspace-implementation.md",
+      "primaryTask": "Task 15: Deliver the distinct premium Desktop V2 workbench",
+      "supportingTasks": [
+        "406-unified-data-workspace-implementation.md ? Task 3: Add generated unified-workspace contracts"
+      ],
+      "codePaths": [
+        "apps/desktop/src/renderer/workbench/"
+      ],
+      "testPaths": [
+        "apps/desktop/test/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md"
       ],
       "status": "planned",
       "coverage": "planned",
@@ -11351,6 +11648,103 @@
       ],
       "status": "partial",
       "coverage": "partial",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "IAM-022",
+      "priority": "P0",
+      "primaryPlan": "406-unified-data-workspace-implementation.md",
+      "primaryTask": "Task 5: Complete email OTP, Google OIDC, and persistent sessions",
+      "supportingTasks": [
+        "406-unified-data-workspace-implementation.md ? Task 3: Add generated unified-workspace contracts"
+      ],
+      "codePaths": [
+        "services/api/src/features/iam/"
+      ],
+      "testPaths": [
+        "services/api/test/features/iam/email-verification.service.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "IAM-023",
+      "priority": "P0",
+      "primaryPlan": "406-unified-data-workspace-implementation.md",
+      "primaryTask": "Task 5: Complete email OTP, Google OIDC, and persistent sessions",
+      "supportingTasks": [
+        "406-unified-data-workspace-implementation.md ? Task 3: Add generated unified-workspace contracts"
+      ],
+      "codePaths": [
+        "services/api/src/features/iam/"
+      ],
+      "testPaths": [
+        "services/api/test/features/iam/persistent-session-policy.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "IAM-024",
+      "priority": "P0",
+      "primaryPlan": "406-unified-data-workspace-implementation.md",
+      "primaryTask": "Task 6: Add customer access presets, dataset restrictions, and agent grants",
+      "supportingTasks": [
+        "406-unified-data-workspace-implementation.md ? Task 3: Add generated unified-workspace contracts"
+      ],
+      "codePaths": [
+        "services/api/src/features/iam/"
+      ],
+      "testPaths": [
+        "services/api/test/features/iam/agent-grant.service.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "IAM-025",
+      "priority": "P0",
+      "primaryPlan": "406-unified-data-workspace-implementation.md",
+      "primaryTask": "Task 6: Add customer access presets, dataset restrictions, and agent grants",
+      "supportingTasks": [
+        "406-unified-data-workspace-implementation.md ? Task 3: Add generated unified-workspace contracts"
+      ],
+      "codePaths": [
+        "services/api/src/features/iam/",
+        "packages/domain/src/permissions/v1.ts"
+      ],
+      "testPaths": [
+        "services/api/test/features/iam/access-preset.service.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md"
+      ],
+      "status": "planned",
+      "coverage": "planned",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -20431,6 +20825,30 @@
         "requirement-linked-tests",
         "security-and-tenant-gate",
         "release-manager-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "WEB-024",
+      "priority": "P0",
+      "primaryPlan": "406-unified-data-workspace-implementation.md",
+      "primaryTask": "Task 14: Deliver the final three-section Web product",
+      "supportingTasks": [
+        "406-unified-data-workspace-implementation.md ? Task 3: Add generated unified-workspace contracts"
+      ],
+      "codePaths": [
+        "apps/web/src/"
+      ],
+      "testPaths": [
+        "apps/web/test/"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md"
       ],
       "status": "planned",
       "coverage": "planned",

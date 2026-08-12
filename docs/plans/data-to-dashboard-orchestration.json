@@ -8,7 +8,9 @@
     "agentHandoff": "docs/plans/CURSOR-HANDOFF.md",
     "programPlan": "docs/plans/080-data-to-dashboard-program.md",
     "requirements": "docs/specs/features/data-to-dashboard-agent.md",
-    "traceability": "docs/plans/requirement-traceability.json"
+    "traceability": "docs/plans/requirement-traceability.json",
+    "unifiedWorkspacePlan": "docs/plans/406-unified-data-workspace-implementation.md",
+    "unifiedWorkspaceDesign": "docs/superpowers/specs/2026-08-12-unified-data-workspace-experience-design.md"
   },
   "delivery": {
     "mode": "task-gated-complete-program",
@@ -29,7 +31,7 @@
     "verified",
     "deferred"
   ],
-  "nextWorkPackageId": "DDA-087",
+  "nextWorkPackageId": "UDW-CONTRACTS",
   "gates": [
     {
       "gateId": "G0",
@@ -134,9 +136,34 @@
       "externalPlan": "docs/plans/401-dda-production-readiness.md",
       "manualPrerequisites": "docs/plans/MANUAL-PREREQUISITES.md",
       "evidence": [
-        "docs/evidence/dda/release-readiness.md"
+        "docs/evidence/dda/release-readiness.md",
+        "docs/evidence/dda/openai-assistance-evaluation.md",
+        "docs/evidence/dda/openai-receipt-evaluation.md"
       ],
       "notes": "Blocked on owner MANUAL-PREREQUISITES and plan 401 gates. Agent-implementable code-first work continues in plan 402; OpenAI development validation is plan 403. No fabricated credentials or G5 approval."
+    },
+    {
+      "gateId": "G6",
+      "name": "unified-workspace-execution",
+      "status": "in-progress",
+      "dependsOn": [
+        "G4"
+      ],
+      "workPackageIds": [
+        "UDW-CONTRACTS",
+        "UDW-IAM",
+        "UDW-DATA",
+        "UDW-CONVERSATION",
+        "UDW-WEB",
+        "UDW-DESKTOP",
+        "UDW-ANDROID",
+        "UDW-INTEGRATION"
+      ],
+      "evidence": [
+        "docs/plans/406-unified-data-workspace-implementation.md",
+        "docs/evidence/dda/unified-workspace-baseline.md"
+      ],
+      "notes": "Plan 406 Task 1 committed; Task 2 activates UDW lanes. productionReady remains false; G5 remains blocked."
     }
   ],
   "workPackages": [
@@ -610,6 +637,239 @@
         "DdaModule foundation ports default fail-closed; real IAE/DSM/JRA/BUA/AUD/DSO via composed lookups",
         "Not production; G5 blocked on MANUAL-PREREQUISITES + plan 401 owner gates"
       ]
+    },
+    {
+      "workPackageId": "UDW-CONTRACTS",
+      "name": "unified-workspace-contracts",
+      "plan": "docs/plans/406-unified-data-workspace-implementation.md",
+      "status": "ready",
+      "dependsOn": [
+        "DDA-087"
+      ],
+      "parallelGroup": null,
+      "branch": "codex/dda-400-production",
+      "tasks": [
+        "Task 3: Add generated unified-workspace contracts"
+      ],
+      "requirements": [
+        "DDA-052",
+        "DDA-053",
+        "DDA-054",
+        "DDA-055",
+        "DDA-056",
+        "DDA-057",
+        "DDA-058",
+        "DDA-059",
+        "DDA-060"
+      ],
+      "writePaths": [
+        "packages/contracts/schemas/v1",
+        "packages/contracts/manifest.json",
+        "packages/contracts/test/schemas.test.mjs",
+        "packages/contracts/generated",
+        "packages/contracts/compatibility/v1",
+        "packages/test-fixtures/contracts/v1",
+        "packages/domain/src/data-to-dashboard/v1.ts",
+        "packages/domain/src/v1.ts"
+      ],
+      "requiredChecks": [
+        "corepack pnpm --filter @databreeze/contracts test",
+        "corepack pnpm --filter @databreeze/contracts fixtures:check",
+        "corepack pnpm --filter @databreeze/domain test",
+        "corepack pnpm --filter @databreeze/contracts contract:check"
+      ]
+    },
+    {
+      "workPackageId": "UDW-IAM",
+      "name": "unified-workspace-iam",
+      "plan": "docs/plans/406-unified-data-workspace-implementation.md",
+      "status": "blocked",
+      "dependsOn": [
+        "UDW-CONTRACTS"
+      ],
+      "parallelGroup": "UDW-G1",
+      "branch": "codex/udw-iam",
+      "tasks": [
+        "Task 5: Complete email OTP, Google OIDC, and persistent sessions",
+        "Task 6: Add customer access presets, dataset restrictions, and agent grants"
+      ],
+      "requirements": [],
+      "writePaths": [
+        "services/api/src/features/iam",
+        "services/api/test/features/iam",
+        "services/api/prisma/schema/iam.prisma",
+        "packages/domain/src/permissions/v1.ts",
+        "docs/operations/iam-email-oidc-runbook.md"
+      ],
+      "requiredChecks": [
+        "corepack pnpm --filter @databreeze/api test -- email-verification oidc-linking persistent-session-policy access-preset agent-grant"
+      ]
+    },
+    {
+      "workPackageId": "UDW-DATA",
+      "name": "unified-workspace-data",
+      "plan": "docs/plans/406-unified-data-workspace-implementation.md",
+      "status": "blocked",
+      "dependsOn": [
+        "UDW-CONTRACTS"
+      ],
+      "parallelGroup": "UDW-G1",
+      "branch": "codex/udw-data",
+      "tasks": [
+        "Task 7: Build logical datasets, source catalogs, and safe original views",
+        "Task 8: Add automatic safe preparation and transparent health summaries",
+        "Task 9: Add Desktop folder intelligence, placement review, and approved cloud sync",
+        "Task 10: Generalize governed OCR to receipt, invoice, and table profiles"
+      ],
+      "requirements": [],
+      "writePaths": [
+        "services/api/src/features/dda/source-catalog",
+        "services/api/src/features/dda/etl",
+        "services/api/src/features/dda/table-extraction",
+        "services/engine/src/databreeze_engine/processors/dda_original_preview.py",
+        "services/engine/src/databreeze_engine/processors/dda_preparation_classify.py",
+        "apps/desktop/src/application",
+        "apps/desktop/src/renderer/features/sources"
+      ],
+      "requiredChecks": [
+        "corepack pnpm --filter @databreeze/api test -- source-catalog automatic-preparation table-extraction"
+      ]
+    },
+    {
+      "workPackageId": "UDW-CONVERSATION",
+      "name": "unified-workspace-conversation",
+      "plan": "docs/plans/406-unified-data-workspace-implementation.md",
+      "status": "blocked",
+      "dependsOn": [
+        "UDW-CONTRACTS",
+        "UDW-IAM"
+      ],
+      "parallelGroup": null,
+      "branch": "codex/udw-conversation",
+      "tasks": [
+        "Task 11: Add workspace-owned conversations and version context",
+        "Task 12: Build the bounded workspace-agent tool gateway"
+      ],
+      "requirements": [],
+      "writePaths": [
+        "services/api/src/features/dda/conversation",
+        "services/api/src/features/dda/agent"
+      ],
+      "requiredChecks": [
+        "corepack pnpm --filter @databreeze/api test -- conversation agent"
+      ]
+    },
+    {
+      "workPackageId": "UDW-WEB",
+      "name": "unified-workspace-web",
+      "plan": "docs/plans/406-unified-data-workspace-implementation.md",
+      "status": "blocked",
+      "dependsOn": [
+        "UDW-IAM",
+        "UDW-DATA",
+        "UDW-CONVERSATION"
+      ],
+      "parallelGroup": "UDW-G2",
+      "branch": "codex/udw-web",
+      "tasks": [
+        "Task 14: Deliver the final three-section Web product"
+      ],
+      "requirements": [],
+      "writePaths": [
+        "apps/web/src/features/auth",
+        "apps/web/src/features/workspace",
+        "apps/web/src/features/data",
+        "apps/web/src/features/analysis",
+        "apps/web/src/features/agent",
+        "apps/web/src/features/dashboards"
+      ],
+      "requiredChecks": [
+        "corepack pnpm --filter @databreeze/web test",
+        "corepack pnpm --filter @databreeze/web typecheck"
+      ]
+    },
+    {
+      "workPackageId": "UDW-DESKTOP",
+      "name": "unified-workspace-desktop",
+      "plan": "docs/plans/406-unified-data-workspace-implementation.md",
+      "status": "blocked",
+      "dependsOn": [
+        "UDW-IAM",
+        "UDW-DATA",
+        "UDW-CONVERSATION"
+      ],
+      "parallelGroup": "UDW-G2",
+      "branch": "codex/udw-desktop",
+      "tasks": [
+        "Task 15: Deliver the distinct premium Desktop V2 workbench"
+      ],
+      "requirements": [],
+      "writePaths": [
+        "apps/desktop/src/renderer/workbench",
+        "apps/desktop/src/preload",
+        "apps/desktop/src/main"
+      ],
+      "requiredChecks": [
+        "corepack pnpm --filter @databreeze/desktop test",
+        "corepack pnpm --filter @databreeze/desktop security:check"
+      ]
+    },
+    {
+      "workPackageId": "UDW-ANDROID",
+      "name": "unified-workspace-android",
+      "plan": "docs/plans/406-unified-data-workspace-implementation.md",
+      "status": "blocked",
+      "dependsOn": [
+        "UDW-WEB",
+        "UDW-DESKTOP"
+      ],
+      "parallelGroup": null,
+      "branch": "codex/udw-android",
+      "tasks": [
+        "Task 16: Extend Android for receipt, invoice, table, dashboard, and agent use"
+      ],
+      "requirements": [],
+      "writePaths": [
+        "apps/android/app/src/main/java/com/databreeze/android"
+      ],
+      "requiredChecks": [
+        "cd apps/android; ./gradlew testDebugUnitTest lintDebug"
+      ]
+    },
+    {
+      "workPackageId": "UDW-INTEGRATION",
+      "name": "unified-workspace-integration",
+      "plan": "docs/plans/406-unified-data-workspace-implementation.md",
+      "status": "blocked",
+      "dependsOn": [
+        "UDW-WEB",
+        "UDW-DESKTOP",
+        "UDW-ANDROID"
+      ],
+      "parallelGroup": null,
+      "branch": "codex/dda-400-production",
+      "tasks": [
+        "Task 4: Add durable records and tenant constraints",
+        "Task 13: Generate private starter dashboards and refresh them deterministically",
+        "Task 17: Add in-app notifications and workspace settings",
+        "Task 18: Prove the complete cross-platform journey",
+        "Task 19: Complete owner-controlled production gates and release"
+      ],
+      "requirements": [],
+      "writePaths": [
+        "services/api/prisma/schema/dda.prisma",
+        "services/api/prisma/migrations",
+        "services/api/src/features/dda/dda.module.ts",
+        "services/api/src/platform/dda-foundation.composition.ts",
+        "docs/evidence/dda",
+        "docs/plans/requirement-traceability.json",
+        "docs/plans/data-to-dashboard-orchestration.json"
+      ],
+      "requiredChecks": [
+        "corepack pnpm orchestration:check",
+        "corepack pnpm requirements:check",
+        "corepack pnpm contracts:check"
+      ]
     }
   ],
   "integrationOrder": [
@@ -619,12 +879,24 @@
     "DDA-083",
     "DDA-085",
     "DDA-086",
-    "DDA-087"
+    "DDA-087",
+    "UDW-CONTRACTS",
+    "UDW-IAM",
+    "UDW-DATA",
+    "UDW-CONVERSATION",
+    "UDW-WEB",
+    "UDW-DESKTOP",
+    "UDW-ANDROID",
+    "UDW-INTEGRATION"
   ],
   "deferred": [
     {
       "requirementId": "DDA-051",
       "reason": "Streaming requires a separately accepted ordering, lateness, correction, replay, windowing, capacity, cost, and consistency specification."
     }
+  ],
+  "notes": [
+    "plan-403-tasks-6-10-offline-2026-08-11: mapping/analyst/narrative/dashboard/safety offline verified; receipt corpus repaired; live quality pending owner re-run; G5 blocked",
+    "plan-406-task-2-2026-08-12: UDW work packages activated; dirty plan 402/403/405 product diffs remain uncommitted pending green slice verification; G5 blocked"
   ]
 }

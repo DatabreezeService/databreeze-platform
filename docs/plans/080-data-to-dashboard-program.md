@@ -142,7 +142,7 @@ Execute `087-dda-integration-readiness.md`; then run the relevant requirements, 
 
 ### Task 5: Complete production readiness and release
 
-Execute `401-dda-production-readiness.md` (agent-first via `402-dda-code-first-completion.md`), close every applicable P0/P1 evidence gap, configure the production OpenAI project and pinned evaluated model snapshot, sign Desktop/Android releases, prove backup/restore and rollback, deploy through staged environments, and approve the monitored production rollout.
+Execute `401-dda-production-readiness.md` (agent-first via `402-dda-code-first-completion.md`), close every applicable P0/P1 evidence gap, configure the production OpenAI project and pinned evaluated model snapshot, sign Desktop/Android releases, prove backup/restore and rollback, deploy through staged environments, and approve the monitored production rollout. After the unified-workspace specification gate, execute `406-unified-data-workspace-implementation.md` with next package `UDW-CONTRACTS`; keep `productionReady` false until G5 has real owner evidence.
 
 ## Program stop conditions
 

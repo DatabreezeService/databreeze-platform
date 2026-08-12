@@ -218,7 +218,7 @@ git commit -m "docs(product): approve unified data workspace requirements"
 - Produces machine-readable work packages `UDW-CONTRACTS`, `UDW-IAM`, `UDW-DATA`, `UDW-CONVERSATION`, `UDW-WEB`, `UDW-DESKTOP`, `UDW-ANDROID`, and `UDW-INTEGRATION` with non-overlapping write ownership.
 - Makes this plan the current product-owner entry point without deleting historical plans or claiming unfinished requirements are verified.
 
-- [ ] **Step 1: Audit the dirty worktree without changing it**
+- [x] **Step 1: Audit the dirty worktree without changing it**
 
 Run:
 
@@ -231,15 +231,15 @@ corepack pnpm orchestration:check
 
 Record in `docs/evidence/dda/unified-workspace-baseline.md` the current branch, HEAD, modified/untracked paths by owner, completed plan tasks with evidence, failing commands, environment-only gates, and the exact commits retained. Do not stage runtime artifacts, secrets, screenshots, generated reports, Office locks, or unrelated changes.
 
-- [ ] **Step 2: Integrate or isolate the in-flight work**
+- [x] **Step 2: Integrate or isolate the in-flight work**
 
 Process the existing slices in this exact order: durable DDA/API/engine work from plan 402, OpenAI adapters from plan 403, dashboard workspace work from plan 405, Desktop folder work, Android receipt work, then documentation/evidence. Run the focused commands named by each plan, commit only that slice's declared paths, and record the commit in `docs/evidence/dda/unified-workspace-baseline.md`. If a slice is not green, leave it on its existing branch and record the failing command instead of folding it into the UDW base.
 
-- [ ] **Step 3: Add the new work packages and dependencies**
+- [x] **Step 3: Add the new work packages and dependencies**
 
 Add the dependency order from this plan to `data-to-dashboard-orchestration.json`. Assign every new requirement once in `requirement-traceability.json`; use `planned` until the named test and evidence path exist. Extend the checker expectation from DDA-001..051 to the final accepted DDA range from Task 1.
 
-- [ ] **Step 4: Validate the frozen base**
+- [x] **Step 4: Validate the frozen base**
 
 Run:
 
@@ -254,7 +254,7 @@ corepack pnpm --filter @databreeze/desktop typecheck
 
 Expected: orchestration and requirement ownership are consistent. Any product test failure is listed in `docs/evidence/dda/unified-workspace-baseline.md` with its owning existing plan and is not relabeled as a new UDW regression.
 
-- [ ] **Step 5: Commit the execution gate**
+- [x] **Step 5: Commit the execution gate**
 
 ```powershell
 git add docs/plans docs/specs/requirement-index.json docs/evidence/dda/unified-workspace-baseline.md

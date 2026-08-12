@@ -100,8 +100,8 @@ test('execution ledger covers the complete dependency-ordered implementation pro
     ledger.plans.map((plan) => plan.planId),
     [...expectedPlans.keys()],
   );
-  assert.equal(ledger.requirementTotals.total, 611);
-  assert.deepEqual(ledger.requirementTotals.byPriority, { P0: 444, P1: 154, P2: 13 });
+  assert.equal(ledger.requirementTotals.total, 618);
+  assert.deepEqual(ledger.requirementTotals.byPriority, { P0: 451, P1: 154, P2: 13 });
 
   const traceCounts = traceability.requirements.reduce((counts, requirement) => {
     counts[requirement.primaryPlan] = (counts[requirement.primaryPlan] ?? 0) + 1;
@@ -202,7 +202,7 @@ test('repository checker validates the committed orchestration package', () => {
   });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /"planCount":19/u);
-  assert.match(result.stdout, /"requirementCount":611/u);
+  assert.match(result.stdout, /"requirementCount":618/u);
 });
 
 test('ledger records verified task evidence before advancing the next task', () => {

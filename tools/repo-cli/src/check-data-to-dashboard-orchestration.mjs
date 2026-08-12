@@ -102,7 +102,9 @@ function check() {
   const assignedRequirements = new Map();
   for (const workPackage of workPackages) {
     const id = workPackage.workPackageId;
-    if (typeof id !== 'string' || !/^DDA-08[1-7]$/u.test(id)) {
+    const isLegacyDdaPackage = typeof id === 'string' && /^DDA-08[1-7]$/u.test(id);
+    const isUdwPackage = typeof id === 'string' && /^UDW-[A-Z-]+$/u.test(id);
+    if (!isLegacyDdaPackage && !isUdwPackage) {
       diagnostics.push(`invalid DDA work package id ${id}`);
       continue;
     }
@@ -117,16 +119,24 @@ function check() {
       continue;
     }
     const planBody = readFileSync(path.join(root, plan), 'utf8');
-    const declaredRequirements =
-      planBody.match(/^\*\*Requirements:\*\* .*$/mu)?.[0]?.match(/DDA-\d{3}/gu) ?? [];
-    const primaryRequirements = [
-      ...planBody.matchAll(/^\*\*Primary requirements?:\*\* .*$/gmu),
-    ].flatMap((match) => match[0].match(/DDA-\d{3}/gu) ?? []);
-    if (!sameStringSet(declaredRequirements, workPackage.requirements ?? [])) {
-      diagnostics.push(`${id} plan requirement header differs from its work package`);
-    }
-    if (!sameStringSet(primaryRequirements, workPackage.requirements ?? [])) {
-      diagnostics.push(`${id} primary task requirements differ from its work package`);
+    if (isLegacyDdaPackage) {
+      const declaredRequirements =
+        planBody.match(/^\*\*Requirements:\*\* .*$/mu)?.[0]?.match(/DDA-\d{3}/gu) ?? [];
+      const primaryRequirements = [
+        ...planBody.matchAll(/^\*\*Primary requirements?:\*\* .*$/gmu),
+      ].flatMap((match) => match[0].match(/DDA-\d{3}/gu) ?? []);
+      if (!sameStringSet(declaredRequirements, workPackage.requirements ?? [])) {
+        diagnostics.push(`${id} plan requirement header differs from its work package`);
+      }
+      if (!sameStringSet(primaryRequirements, workPackage.requirements ?? [])) {
+        diagnostics.push(`${id} primary task requirements differ from its work package`);
+      }
+    } else {
+      for (const requirementId of workPackage.requirements ?? []) {
+        if (!planBody.includes(requirementId)) {
+          diagnostics.push(`${id} plan does not mention assigned requirement ${requirementId}`);
+        }
+      }
     }
     for (const task of workPackage.tasks ?? []) {
       if (allTasks.has(`${id}:${task}`)) diagnostics.push(`${id} has duplicate task ${task}`);

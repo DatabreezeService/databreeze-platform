@@ -183,14 +183,24 @@ Adapter/model/prompt/schema/preprocessing versions and provider usage come from 
 - Create: `tools/fixture-validation/fixtures/dda/receipt-expense/openai-eval/recorded-provider-responses.json`
 - Modify: `docs/evidence/dda/openai-receipt-evaluation.md`
 
+### Acceptance criteria (corpus quality — mandatory)
+
+Fixtures must be **readable, non-uniform, realistic synthetic receipts**, not solid-color placeholders:
+
+- Useful resolution (at least 400×600) with legible merchant, date, currency, line items or totals, and totals that reconcile arithmetically.
+- Non-uniform imagery (paper texture / rules / multi-ink text). Reject tiny, blank, uniform-fill, or low-information images via automated admission tests.
+- Vietnamese, English, and hostile-text cases must contain actual receipt glyphs; hostile prompt-like text is data only.
+- Manifest records content hashes, dimensions, expected fields, coordinate boxes, currency/date rules, source/licensing, and `noCustomerData: true`.
+- A prior live run against solid-color squares is **plumbing evidence only**; any model-quality conclusion from that corpus is **invalid** and must not be treated as extraction-quality failure of the cheap baseline.
+
 ### Steps
 
-1. Create visibly synthetic Vietnamese, English, and hostile-text receipts. Record source/licensing as project-generated, content hashes, dimensions, expected fields, coordinate boxes, currency/date rules, and no-customer-data attestation in the manifest.
+1. Create visibly synthetic Vietnamese, English, and hostile-text receipts that meet the corpus-quality acceptance criteria above. Record source/licensing as project-generated, content hashes, dimensions, expected fields, coordinate boxes, currency/date rules, and no-customer-data attestation in the manifest.
 2. Make the default runner entirely offline. It consumes recorded provider-shaped responses and proves parsing, validation, scoring, reconciliation, coordinate checks, refusal/schema failures, and content-safe evidence generation.
 3. Report per-field exact/normalized match, required-field coverage, arithmetic reconciliation, coordinate validity/overlap, refusal rate, schema failure rate, latency/token fields when present, and unknown/not-evaluated states. Do not collapse these into a misleading percentage-correct number.
-4. Fail when fixtures are missing, hashes change, expected values are absent, a recorded response contains secrets/customer-looking data, or any network primitive is called in offline mode.
+4. Fail when fixtures are missing, hashes change, expected values are absent, a recorded response contains secrets/customer-looking data, admission rejects tiny/uniform/blank/low-information images, or any network primitive is called in offline mode.
 5. Add scripts `openai:receipt:offline` and `openai:receipt:live`; the ordinary `test` and CI path invokes offline mode only.
-6. Update the evidence page with offline results and keep `liveEvaluation: blocked-owner-run` until Task 5 succeeds.
+6. Update the evidence page with offline results and keep `liveEvaluation: blocked-owner-run` until Task 5 succeeds on the repaired corpus. Preserve any earlier live plumbing aggregate as non-authoritative for model quality.
 
 **Commit:** `test(dda): add offline OpenAI receipt evaluation`
 

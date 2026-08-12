@@ -23,7 +23,7 @@ const expectedPlans = new Map([
   ['400', ['400-production-readiness.md', 23]],
   ['500', ['500-post-ga-extensions.md', 13]],
 ]);
-const expectedPriorityTotals = { P0: 444, P1: 154, P2: 13 };
+const expectedPriorityTotals = { P0: 451, P1: 154, P2: 13 };
 const expectedReviewPolicy = {
   commitBudget: { hardMaximum: 79, preferredMaximum: 50, preferredMinimum: 30 },
   featurePullRequest: { base: 'dev', codeRabbit: false, mergeAfterHostedChecks: true },
@@ -332,13 +332,13 @@ function run(argumentsList) {
   if (!sameJson(ledger.reviewPolicy, expectedReviewPolicy)) {
     diagnostics.push('reviewPolicy does not preserve the approved dev/main/CodeRabbit flow');
   }
-  if (ledger.requirementTotals?.total !== 611) {
+  if (ledger.requirementTotals?.total !== 618) {
     diagnostics.push(
-      `ledger requirement total is ${ledger.requirementTotals?.total}; expected 611`,
+      `ledger requirement total is ${ledger.requirementTotals?.total}; expected 618`,
     );
   }
   if (!sameJson(ledger.requirementTotals?.byPriority, expectedPriorityTotals)) {
-    diagnostics.push('ledger priority totals differ from P0=444, P1=154, P2=13');
+    diagnostics.push('ledger priority totals differ from P0=451, P1=154, P2=13');
   }
 
   const plans = Array.isArray(ledger.plans) ? ledger.plans : [];
@@ -350,7 +350,8 @@ function run(argumentsList) {
   const requirements = Array.isArray(traceability.requirements) ? traceability.requirements : [];
   // This ledger is the preserved pre-DDA program. The DDA work packages are
   // validated by check-data-to-dashboard-orchestration.mjs, while this checker
-  // continues to prove that the original 611-requirement partition has not drifted.
+  // continues to prove that the non-DDA requirement partition has not drifted
+  // outside the approved unified-workspace additive IDs.
   const legacyRequirements = requirements.filter(
     (requirement) => !requirement.requirementId.startsWith('DDA-'),
   );
@@ -397,7 +398,7 @@ function run(argumentsList) {
       }
     }
   }
-  if (legacyRequirements.length !== 611)
+  if (legacyRequirements.length !== 618)
     diagnostics.push(`legacy traceability has ${legacyRequirements.length} requirements`);
   if (!sameJson(priorityCounts, expectedPriorityTotals)) {
     diagnostics.push(`traceability priority totals are ${JSON.stringify(priorityCounts)}`);

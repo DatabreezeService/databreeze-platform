@@ -8,9 +8,9 @@
     "deliveryBatches": "docs/plans/004-luna-max-execution-plan.md"
   },
   "requirementTotals": {
-    "total": 611,
+    "total": 618,
     "byPriority": {
-      "P0": 444,
+      "P0": 451,
       "P1": 154,
       "P2": 13
     }

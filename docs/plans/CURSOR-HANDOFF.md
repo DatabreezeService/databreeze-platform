@@ -4,7 +4,7 @@
 **Prepared:** 2026-08-10<br>
 **Planning baseline:** `codex/dda-400-production` at commit `91648da` or a descendant<br>
 **Immediate work package:** [`402-dda-code-first-completion.md`](402-dda-code-first-completion.md) Task 4 onward<br>
-**OpenAI subplan 403:** Tasks 1–5 plumbing recorded; live synthetic extraction quality failed (0/6 fields) — do not promote; reuse evidence at plan 402 Task 8<br>
+**OpenAI subplan 403:** Tasks 1-4 offline green on repaired readable corpus; prior live run plumbing-only (quality invalidated). Tasks 6-10 offline assistance/safety implemented. Keep productionReady false; G5 blocked.
 **Overall mission:** Implement the complete post-pivot DataBreeze V1 described below and in plans `080` through `087`.
 
 This file is a self-contained entry point for Cursor or another coding agent. It does not replace the canonical specification or approved plans; it tells the agent what the user meant, what the repository actually contains, what to read, and how to begin without confusing old placeholder surfaces with completed product behavior.
@@ -12,11 +12,11 @@ This file is a self-contained entry point for Cursor or another coding agent. It
 ## Current Cursor resume prompt
 
 ```text
-Resume DataBreeze from branch codex/dda-400-production at 91648da or a descendant. Preserve all existing commits and untracked .superpowers/sdd/400-production-readiness reports. Do not restart plans 081-087: their G1-G4 implementation is already integrated. Plan 402 Tasks 1-3 and plan 403 Tasks 1-5 (offline + owner live plumbing) are done.
+Resume DataBreeze from branch codex/dda-400-production at a30acd3 or a descendant. Preserve all existing commits and untracked .superpowers/sdd/400-production-readiness reports. Do not restart plans 081-087: their G1-G4 implementation is already integrated.
 
-Read AGENTS.md, docs/README.md, docs/plans/CURSOR-HANDOFF.md, docs/plans/402-dda-code-first-completion.md, docs/evidence/dda/openai-receipt-evaluation.md, the orchestration ledger, and the production gate matrix. Resume plan 402 at Task 4 (durable metadata) with TDD. Owner live synthetic OpenAI run proved schema/plumbing (`schemaFailure: false`, `liveSyntheticVerified: true`, 3 requests) but extraction quality failed (0/6 required fields); keep `productionReady`/`promotionEligible` false and do not weaken quality gates. At plan 402 Task 8, reuse plan-403 evidence honestly — do not claim live extraction quality. Remaining plan 403 Tasks 6-10 (mapping/analyst/narrative/safety) stay deferred until after more 402 progress unless the owner re-prioritizes.
+Plan 406 Task 1 is committed (canonical unified-workspace requirements). Continue plan 406 from Task 2/3: frozen UDW orchestration is the product-owner entry point; next work package is UDW-CONTRACTS. Keep productionReady false; G5 blocked. Do not fold dirty plan 402/403/405 product trees into the UDW base unless their focused commands are freshly green.
 
-Do not fabricate credentials or approvals. Do not ask for the API key. Do not re-run live OpenAI unless a deliberate prompt/model/corpus change is under evaluation. The early development key is not a production credential and does not satisfy G5. Keep productionReady false and G5 blocked until all live production evidence and owner approval exist.
+Read AGENTS.md, docs/README.md, docs/plans/CURSOR-HANDOFF.md, docs/plans/406-unified-data-workspace-implementation.md, docs/evidence/dda/unified-workspace-baseline.md, the orchestration ledger, and MANUAL-PREREQUISITES. Use TDD. Do not fabricate credentials or approvals. Do not ask for the API key. Do not re-run live OpenAI unless a deliberate prompt/model/corpus change is under evaluation.
 ```
 
 ## Original program prompt (historical after G4; do not restart it)
