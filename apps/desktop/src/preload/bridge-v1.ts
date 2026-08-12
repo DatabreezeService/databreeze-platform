@@ -15,9 +15,25 @@ import {
   type FolderIpcChannel,
 } from '../shared/folder-binding-contract-v1.ts';
 import { parseFolderReviewQueue } from '../shared/folder-intake-contract-v1.ts';
+import {
+  WORKBENCH_IPC_CHANNELS,
+  parseWorkbenchAccepted,
+  parseWorkbenchAgentTurnRequest,
+  parseWorkbenchCatalogPage,
+  parseWorkbenchCatalogPageRequest,
+  parseWorkbenchFolderReviewDecision,
+  parseWorkbenchImportRequest,
+  parseWorkbenchOriginalDescriptor,
+  parseWorkbenchOriginalRequest,
+  parseWorkbenchOtpRequest,
+  parseWorkbenchPasswordSignInRequest,
+  parseWorkbenchSessionSnapshot,
+  parseWorkbenchSyncStatus,
+  type WorkbenchIpcChannel,
+} from '../shared/workbench-contract-v1.ts';
 
 export type DesktopInvoke = (
-  channel: DesktopIpcChannel | FolderIpcChannel,
+  channel: DesktopIpcChannel | FolderIpcChannel | WorkbenchIpcChannel,
   payload?: unknown,
 ) => Promise<unknown>;
 
@@ -84,5 +100,70 @@ export function createDesktopBridgeV1(invoke: DesktopInvoke): DesktopBridgeV1 {
       return parseFolderReviewQueue(await invoke(FOLDER_IPC_CHANNELS.listReviewQueue));
     },
   });
-  return Object.freeze({ v1: Object.freeze({ session, sidecar, folders }) });
+  const workbench = Object.freeze({
+    readSession: async (...argumentsList: unknown[]) => {
+      rejectUnexpectedArguments(argumentsList);
+      return parseWorkbenchSessionSnapshot(await invoke(WORKBENCH_IPC_CHANNELS.sessionRead));
+    },
+    listCatalogPage: async (...argumentsList: unknown[]) => {
+      if (argumentsList.length > 1) throw new Error('DESKTOP_REQUEST_REJECTED');
+      const request = parseOrRejectRequest(() =>
+        parseWorkbenchCatalogPageRequest(argumentsList[0]),
+      );
+      return parseWorkbenchCatalogPage(
+        await invoke(WORKBENCH_IPC_CHANNELS.catalogPage, request),
+      );
+    },
+    readOriginalDescriptor: async (...argumentsList: unknown[]) => {
+      rejectExtraArguments(argumentsList, 1);
+      const request = parseOrRejectRequest(() => parseWorkbenchOriginalRequest(argumentsList[0]));
+      return parseWorkbenchOriginalDescriptor(
+        await invoke(WORKBENCH_IPC_CHANNELS.originalDescriptor, request),
+      );
+    },
+    decideFolderReview: async (...argumentsList: unknown[]) => {
+      rejectExtraArguments(argumentsList, 1);
+      const request = parseOrRejectRequest(() =>
+        parseWorkbenchFolderReviewDecision(argumentsList[0]),
+      );
+      return parseWorkbenchAccepted(
+        await invoke(WORKBENCH_IPC_CHANNELS.folderReviewDecide, request),
+      );
+    },
+    runAgentTurn: async (...argumentsList: unknown[]) => {
+      rejectExtraArguments(argumentsList, 1);
+      const request = parseOrRejectRequest(() => parseWorkbenchAgentTurnRequest(argumentsList[0]));
+      return parseWorkbenchAccepted(await invoke(WORKBENCH_IPC_CHANNELS.agentTurn, request));
+    },
+    getSyncStatus: async (...argumentsList: unknown[]) => {
+      rejectUnexpectedArguments(argumentsList);
+      return parseWorkbenchSyncStatus(await invoke(WORKBENCH_IPC_CHANNELS.syncStatus));
+    },
+    importSource: async (...argumentsList: unknown[]) => {
+      rejectExtraArguments(argumentsList, 1);
+      const request = parseOrRejectRequest(() => parseWorkbenchImportRequest(argumentsList[0]));
+      return parseWorkbenchAccepted(await invoke(WORKBENCH_IPC_CHANNELS.importSource, request));
+    },
+    signInWithPassword: async (...argumentsList: unknown[]) => {
+      rejectExtraArguments(argumentsList, 1);
+      const request = parseOrRejectRequest(() =>
+        parseWorkbenchPasswordSignInRequest(argumentsList[0]),
+      );
+      return parseWorkbenchSessionSnapshot(
+        await invoke(WORKBENCH_IPC_CHANNELS.signInPassword, request),
+      );
+    },
+    verifyOtp: async (...argumentsList: unknown[]) => {
+      rejectExtraArguments(argumentsList, 1);
+      const request = parseOrRejectRequest(() => parseWorkbenchOtpRequest(argumentsList[0]));
+      return parseWorkbenchSessionSnapshot(
+        await invoke(WORKBENCH_IPC_CHANNELS.verifyOtp, request),
+      );
+    },
+    startGoogleOidc: async (...argumentsList: unknown[]) => {
+      rejectUnexpectedArguments(argumentsList);
+      return parseWorkbenchAccepted(await invoke(WORKBENCH_IPC_CHANNELS.startGoogleOidc));
+    },
+  });
+  return Object.freeze({ v1: Object.freeze({ session, sidecar, folders, workbench }) });
 }

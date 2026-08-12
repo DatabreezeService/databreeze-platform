@@ -1,4 +1,4 @@
-import type { SourceReviewRecordV1 } from '../../shared/source-review-contract-v1.ts';
+import type { SourceReviewRecordV1 } from '../../../shared/source-review-contract-v1.ts';
 
 export interface SourceSampleTableProps {
   readonly locale?: 'vi' | 'en';

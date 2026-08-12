@@ -5,8 +5,19 @@ import type {
   DesktopSafeState,
   SidecarSafeStatus,
 } from '../shared/desktop-contract-v1.ts';
+import type {
+  WorkbenchCatalogPage,
+  WorkbenchSessionSnapshot,
+  WorkbenchSyncStatus,
+} from '../shared/workbench-contract-v1.ts';
 import { FolderBindingPage } from './features/folders/folder-binding-page.tsx';
 import { ProductModuleWorkbench } from './product-module-workbench.tsx';
+import { AnalysisWorkbench } from './workbench/analysis-workbench.tsx';
+import { DesktopAuthScreen } from './workbench/desktop-auth-screen.tsx';
+import {
+  createEmptyDesktopSession,
+  restoreDesktopSessionSnapshot,
+} from './workbench/desktop-session.ts';
 
 type DesktopShellView = 'status' | 'folders';
 
@@ -114,11 +125,34 @@ const initialSidecar: SidecarSafeStatus = {
   protocolVersion: null,
 };
 
+const emptyCatalog: WorkbenchCatalogPage = {
+  folders: [],
+  datasets: [],
+  reviewItems: [],
+  recentAnalyses: [],
+};
+
+const initialSyncStatus: WorkbenchSyncStatus = {
+  folderMonitoring: 'unavailable',
+  syncQueue: 0,
+  engineHealth: 'not-installed',
+  pendingReviewCount: 0,
+};
+
+function hasWorkbenchBridge(): boolean {
+  const bridge = window.databreezeDesktop;
+  return bridge !== undefined && bridge.v1.workbench !== undefined;
+}
+
 export function DesktopApp() {
   const [locale, setLocale] = useState<DesktopLocale>('vi-VN');
   const [safeState, setSafeState] = useState(initialState);
   const [sidecarStatus, setSidecarStatus] = useState(initialSidecar);
   const [view, setView] = useState<DesktopShellView>('status');
+  const [session, setSession] = useState<WorkbenchSessionSnapshot>(createEmptyDesktopSession);
+  const [catalog, setCatalog] = useState<WorkbenchCatalogPage>(emptyCatalog);
+  const [syncStatus, setSyncStatus] = useState<WorkbenchSyncStatus>(initialSyncStatus);
+  const [v2Enabled, setV2Enabled] = useState(false);
   const copy = messages[locale];
 
   useEffect(() => {
@@ -129,17 +163,94 @@ export function DesktopApp() {
     let active = true;
     const bridge = window.databreezeDesktop;
     if (bridge === undefined) return () => undefined;
-    void Promise.all([bridge.v1.session.getSafeState(), bridge.v1.sidecar.getStatus()])
-      .then(([nextState, nextSidecar]) => {
+    const workbenchAvailable = bridge.v1.workbench !== undefined;
+    setV2Enabled(workbenchAvailable);
+
+    const tasks: Promise<unknown>[] = [
+      bridge.v1.session.getSafeState(),
+      bridge.v1.sidecar.getStatus(),
+    ];
+    if (workbenchAvailable) {
+      tasks.push(
+        bridge.v1.workbench.readSession(),
+        bridge.v1.workbench.listCatalogPage(),
+        bridge.v1.workbench.getSyncStatus(),
+      );
+    }
+
+    void Promise.all(tasks)
+      .then((results) => {
         if (!active) return;
-        setSafeState(nextState);
-        setSidecarStatus(nextSidecar);
+        setSafeState(results[0] as DesktopSafeState);
+        setSidecarStatus(results[1] as SidecarSafeStatus);
+        if (workbenchAvailable) {
+          setSession(restoreDesktopSessionSnapshot(results[2]));
+          setCatalog(results[3] as WorkbenchCatalogPage);
+          setSyncStatus(results[4] as WorkbenchSyncStatus);
+        }
       })
       .catch(() => undefined);
     return () => {
       active = false;
     };
   }, []);
+
+  if (v2Enabled || hasWorkbenchBridge()) {
+    if (!session.signedIn) {
+      return (
+        <div className="desktop-shell desktop-shell--v2">
+          <header className="shell-header">
+            <img className="wordmark" src={wordmarkUrl} alt="DataBreeze" />
+            <nav className="locale-switch" aria-label="Language / Ngôn ngữ">
+              <button
+                aria-pressed={locale === 'vi-VN'}
+                className="locale-button"
+                onClick={() => setLocale('vi-VN')}
+                type="button"
+              >
+                Tiếng Việt
+              </button>
+              <button
+                aria-pressed={locale === 'en'}
+                className="locale-button"
+                onClick={() => setLocale('en')}
+                type="button"
+              >
+                English
+              </button>
+            </nav>
+          </header>
+          <DesktopAuthScreen
+            locale={locale}
+            onGoogleOidc={() => {
+              void window.databreezeDesktop?.v1.workbench.startGoogleOidc();
+            }}
+            onPasswordSignIn={(input) => {
+              void window.databreezeDesktop?.v1.workbench
+                .signInWithPassword(input)
+                .then((next) => setSession(next));
+            }}
+            onRecover={() => undefined}
+            onVerifyOtp={(input) => {
+              void window.databreezeDesktop?.v1.workbench
+                .verifyOtp(input)
+                .then((next) => setSession(next));
+            }}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <AnalysisWorkbench
+        catalog={catalog}
+        locale={locale}
+        offline={false}
+        session={session}
+        status={syncStatus}
+      />
+    );
+  }
 
   return (
     <div className="desktop-shell">

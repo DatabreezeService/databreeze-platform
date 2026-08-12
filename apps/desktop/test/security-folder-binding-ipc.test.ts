@@ -62,7 +62,7 @@ describe('DDA-012 security folder binding IPC surface', () => {
     });
 
     const bridge = createDesktopBridgeV1(invoke);
-    expect(Object.keys(bridge.v1).sort()).toEqual(['folders', 'session', 'sidecar']);
+    expect(Object.keys(bridge.v1).sort()).toEqual(['folders', 'session', 'sidecar', 'workbench']);
     expect(Object.keys(bridge.v1.folders).sort()).toEqual([
       'create',
       'disable',
@@ -76,6 +76,8 @@ describe('DDA-012 security folder binding IPC surface', () => {
     expect(bridge.v1.folders).not.toHaveProperty('openPath');
     expect(bridge.v1.folders).not.toHaveProperty('listDirectory');
     expect(bridge.v1.folders).not.toHaveProperty('readFile');
+    expect(bridge.v1.workbench).not.toHaveProperty('filesystem');
+    expect(bridge.v1.workbench).not.toHaveProperty('shell');
 
     await expect(bridge.v1.folders.select()).resolves.toEqual({ selectionToken: 'sel_opaque_1' });
     await expect(

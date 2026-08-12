@@ -1,4 +1,30 @@
 import type { FolderBridgeV1 } from './folder-binding-contract-v1.ts';
+import type { WorkbenchBridgeV1 } from './workbench-contract-v1.ts';
+
+export {
+  WORKBENCH_IPC_CHANNELS,
+  parseWorkbenchAccepted,
+  parseWorkbenchAgentTurnRequest,
+  parseWorkbenchCatalogPage,
+  parseWorkbenchCatalogPageRequest,
+  parseWorkbenchFolderReviewDecision,
+  parseWorkbenchImportRequest,
+  parseWorkbenchOriginalDescriptor,
+  parseWorkbenchOriginalRequest,
+  parseWorkbenchOtpRequest,
+  parseWorkbenchPasswordSignInRequest,
+  parseWorkbenchSessionSnapshot,
+  parseWorkbenchSyncStatus,
+} from './workbench-contract-v1.ts';
+export type {
+  WorkbenchActivity,
+  WorkbenchBridgeV1,
+  WorkbenchCatalogPage,
+  WorkbenchIpcChannel,
+  WorkbenchImportProfile,
+  WorkbenchSessionSnapshot,
+  WorkbenchSyncStatus,
+} from './workbench-contract-v1.ts';
 
 export const DESKTOP_BRIDGE_GLOBAL = 'databreezeDesktop';
 
@@ -37,6 +63,7 @@ export interface DesktopBridgeV1 {
       readonly getStatus: () => Promise<SidecarSafeStatus>;
     };
     readonly folders: FolderBridgeV1;
+    readonly workbench: WorkbenchBridgeV1;
   };
 }
 
