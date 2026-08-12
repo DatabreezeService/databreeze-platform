@@ -16,7 +16,7 @@ export default defineConfig({
     command: 'corepack pnpm build && corepack pnpm preview --host 127.0.0.1 --port 4173',
     reuseExistingServer: process.env['CI'] !== 'true',
     timeout: 120_000,
-    url: 'http://127.0.0.1:4173/vi-VN/workspace',
+    url: 'http://127.0.0.1:4173/vi-VN/dashboards',
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'], ...localBrowser } },

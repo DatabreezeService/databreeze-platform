@@ -1,5 +1,8 @@
 import { useLocale } from '../../app/locale-context.tsx';
 import { useQuery } from '@tanstack/react-query';
+import { createAgentStore } from '../agent/agent-store.ts';
+import { FloatingAgentButton } from '../agent/floating-agent-button.tsx';
+import { FloatingAgentPanel } from '../agent/floating-agent-panel.tsx';
 import { AnalystPanel } from './analyst-panel.tsx';
 import {
   analysisLiveConfiguration,
@@ -21,6 +24,8 @@ import type { DashboardDraftFixtureV1 } from './dashboard-api.ts';
 import type { AnalysisPlanPreviewV1 } from './analysis-plan-review.tsx';
 import { useState } from 'react';
 import { tenantLiveConfiguration } from '../session/tenant-live-configuration.ts';
+
+const dashboardAgentStore = createAgentStore();
 
 const FIXTURE_DRAFT: DashboardDraftFixtureV1 = Object.freeze({
   dashboardId: '00000000-0000-4000-8000-00000000001b',
@@ -305,6 +310,8 @@ export function DashboardPage() {
         onClose={() => setExportOpen(false)}
         onExport={() => setExportOpen(false)}
       />
+      <FloatingAgentButton locale={locale} store={dashboardAgentStore} />
+      <FloatingAgentPanel locale={locale} store={dashboardAgentStore} surface="dashboard" />
     </section>
   );
 }

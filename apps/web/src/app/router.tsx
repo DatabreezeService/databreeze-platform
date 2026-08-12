@@ -1,4 +1,5 @@
 import { DEFAULT_LOCALE_V1, SUPPORTED_LOCALES_V1 } from '@databreeze/i18n/v1';
+import { lazy, Suspense, type ReactElement } from 'react';
 import {
   Navigate,
   createBrowserRouter,
@@ -14,18 +15,38 @@ import {
   RouteFailure,
   UnavailableFeature,
 } from '../pages/shell-states.tsx';
-import { InboxPage } from '../features/inbox/inbox-page.tsx';
 import { DashboardPage } from '../features/dashboards/dashboard-page.tsx';
-import { DataPipelinePage } from '../features/data-intake/data-pipeline-page.tsx';
 import { AnalysisRoutePage } from '../features/analysis/analysis-route-page.tsx';
 import { DataRoutePage } from '../features/data/data-route-page.tsx';
-import { SignInPage } from '../features/auth/sign-in-page.tsx';
-import { RegisterPage } from '../features/auth/register-page.tsx';
-import { VerifyEmailPage } from '../features/auth/verify-email-page.tsx';
+import {
+  SignInRoutePage,
+  RegisterRoutePage,
+  VerifyEmailRoutePage,
+} from '../features/auth/auth-route-pages.tsx';
 import { PRODUCT_MODULE_REGISTRY } from '../features/product-modules/product-module-registry.ts';
-import { ProductModuleWorkbench } from '../features/product-modules/product-module-workbench.tsx';
 import { WEB_FEATURE_REGISTRY } from './feature-registry.ts';
 import { DEFAULT_ACCESS_CONTEXT, type WebAccessContext } from './navigation.ts';
+
+/**
+ * Keep Ajv-backed contract validators out of the UDW shell chunk so preview CSP
+ * (`script-src 'self'` without unsafe-eval) can render Dashboards/Analysis/Data.
+ */
+const InboxPage = lazy(async () => {
+  const module = await import('../features/inbox/inbox-page.tsx');
+  return { default: module.InboxPage };
+});
+const DataPipelinePage = lazy(async () => {
+  const module = await import('../features/data-intake/data-pipeline-page.tsx');
+  return { default: module.DataPipelinePage };
+});
+const ProductModuleWorkbench = lazy(async () => {
+  const module = await import('../features/product-modules/product-module-workbench.tsx');
+  return { default: module.ProductModuleWorkbench };
+});
+
+function Suspended({ children }: { readonly children: ReactElement }) {
+  return <Suspense fallback={<div aria-hidden="true" />}>{children}</Suspense>;
+}
 
 const logicalRoots = new Set([
   ...WEB_FEATURE_REGISTRY.map((feature) => feature.path),
@@ -72,48 +93,20 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
         { path: 'workspace', element: <Navigate replace to="../dashboards" /> },
         { path: 'analysis', element: <AnalysisRoutePage /> },
         { path: 'data', element: <DataRoutePage /> },
-        {
-          path: 'sign-in',
-          element: (
-            <SignInPage
-              locale="vi-VN"
-              onSignedIn={() => {
-                globalThis.location.assign('/vi-VN/dashboards');
-              }}
-            />
-          ),
-        },
-        {
-          path: 'register',
-          element: (
-            <RegisterPage
-              locale="vi-VN"
-              onRegistered={() => {
-                globalThis.location.assign('/vi-VN/verify-email');
-              }}
-            />
-          ),
-        },
-        {
-          path: 'verify-email',
-          element: (
-            <VerifyEmailPage
-              email="user@example.com"
-              initialSeconds={30}
-              locale="vi-VN"
-              onVerified={() => {
-                globalThis.location.assign('/vi-VN/dashboards');
-              }}
-            />
-          ),
-        },
+        { path: 'sign-in', element: <SignInRoutePage /> },
+        { path: 'register', element: <RegisterRoutePage /> },
+        { path: 'verify-email', element: <VerifyEmailRoutePage /> },
         ...WEB_FEATURE_REGISTRY.filter((feature) => feature.key !== 'workspace').map((feature) => ({
           path: feature.path,
           element:
             feature.key === 'inbox' ? (
-              <InboxPage />
+              <Suspended>
+                <InboxPage />
+              </Suspended>
             ) : feature.key === 'reviews' ? (
-              <DataPipelinePage />
+              <Suspended>
+                <DataPipelinePage />
+              </Suspended>
             ) : feature.key === 'dashboards' ? (
               <DashboardPage />
             ) : (
@@ -122,7 +115,11 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
         })),
         ...PRODUCT_MODULE_REGISTRY.map((module) => ({
           path: `modules/${module.slug}`,
-          element: <ProductModuleWorkbench module={module} />,
+          element: (
+            <Suspended>
+              <ProductModuleWorkbench module={module} />
+            </Suspended>
+          ),
         })),
         { path: 'debug/route-error', element: <RouteFailure /> },
         { path: '*', element: <NotFoundPage /> },

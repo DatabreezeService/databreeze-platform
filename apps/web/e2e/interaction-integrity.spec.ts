@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 for (const [route, locale] of [
-  ['/en/workspace', 'en'],
-  ['/vi-VN/workspace', 'vi-VN'],
+  ['/en/dashboards', 'en'],
+  ['/vi-VN/dashboards', 'vi-VN'],
 ] as const) {
   test(`${route} exposes locale-correct document metadata`, async ({ page }) => {
     await page.goto(route);
@@ -12,7 +12,9 @@ for (const [route, locale] of [
   });
 }
 
-test('representative shell interactions do not write browser persistence', async ({ page }) => {
+test('representative shell interactions do not write browser persistence', async ({
+  page,
+}, testInfo) => {
   await page.addInitScript(() => {
     const calls: string[] = [];
     Object.defineProperty(globalThis, '__databreezePersistenceCalls', {
@@ -57,12 +59,18 @@ test('representative shell interactions do not write browser persistence', async
       };
     }
   });
-  await page.goto('/en/workspace');
+  await page.goto('/en/dashboards');
 
   await page.getByRole('searchbox', { name: 'Search' }).fill('invoice review');
   await page.getByRole('button', { name: 'Search' }).click();
   await page.getByRole('button', { name: 'Notifications' }).click();
-  await page.getByRole('button', { name: 'Create job' }).click();
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.getByRole('button', { name: 'Open navigation' }).click();
+  }
+  await page
+    .getByRole('navigation', { name: 'Primary navigation' })
+    .getByRole('link', { name: 'Data', exact: true })
+    .click();
   await page.getByRole('link', { name: 'Tiếng Việt' }).click();
 
   const calls = await page.evaluate(

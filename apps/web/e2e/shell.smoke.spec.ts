@@ -1,42 +1,40 @@
 import { expect, test } from '@playwright/test';
 
-test('Vietnamese workspace exposes the governed table and core jobs navigation', async ({
-  page,
-}, testInfo) => {
+test('Vietnamese workspace redirects into dashboards with UDW nav', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name === 'mobile-chromium', 'Desktop locale smoke');
   await page.goto('/vi-VN/workspace');
 
-  await expect(page.getByRole('heading', { name: 'Công việc cần xử lý' })).toBeVisible();
-  await expect(page.getByRole('table', { name: 'Công việc cần xử lý' })).toBeVisible();
-  await page.getByRole('link', { name: 'Tác vụ' }).click();
-  await expect(page).toHaveURL(/\/vi-VN\/jobs$/u);
-  await expect(page.getByRole('heading', { name: 'Tác vụ' })).toBeVisible();
+  await expect(page).toHaveURL(/\/vi-VN\/dashboards$/u);
+  await expect(page.getByRole('heading', { name: 'Bảng điều khiển' })).toBeVisible();
+  await page.getByRole('link', { name: 'Phân tích' }).click();
+  await expect(page).toHaveURL(/\/vi-VN\/analysis$/u);
+  await expect(page.getByRole('heading', { name: 'Phân tích' })).toBeVisible();
 });
 
 test('English locale and locale switching preserve the logical route', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name === 'mobile-chromium', 'Desktop locale smoke');
-  await page.goto('/en/reports?scope=current');
+  await page.goto('/en/data?scope=current');
 
-  await expect(page.getByRole('heading', { name: 'Reports' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Data' })).toBeVisible();
   await page.getByRole('link', { name: 'Tiếng Việt' }).click();
-  await expect(page).toHaveURL(/\/vi-VN\/reports\?scope=current$/u);
+  await expect(page).toHaveURL(/\/vi-VN\/data\?scope=current$/u);
 });
 
-test('mobile navigation opens and follows a core route', async ({ page }, testInfo) => {
+test('mobile navigation opens and follows a UDW route', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Representative responsive smoke');
-  await page.goto('/en/workspace');
+  await page.goto('/en/dashboards');
 
   await page.getByRole('button', { name: 'Open navigation' }).click();
-  await page.getByRole('link', { name: 'Jobs' }).click();
-  await expect(page).toHaveURL(/\/en\/jobs$/u);
+  await page.getByRole('link', { name: 'Analysis' }).click();
+  await expect(page).toHaveURL(/\/en\/analysis$/u);
 });
 
 test('search submit is visible, keyboard reachable, and has a full touch target', async ({
   page,
 }) => {
-  await page.goto('/en/workspace');
+  await page.goto('/en/dashboards');
 
   const searchInput = page.getByRole('searchbox', { name: 'Search' });
   const submit = page.getByRole('button', { name: 'Search' });
