@@ -1,8 +1,8 @@
 import { PERMISSIONS_V1 } from '@databreeze/domain/permissions/v1';
-import userEvent from '@testing-library/user-event';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ApplicationBoundary, createAppRouter, filterNavigationItems } from '../src/app/app.tsx';
+import { UDW_PRIMARY_NAV_ITEMS_V1 } from '../src/app/unified-primary-navigation.ts';
 
 const restrictedAccess = {
   entitlements: ['automation'] as const,
@@ -10,7 +10,7 @@ const restrictedAccess = {
 };
 
 describe('build-time governed navigation', () => {
-  it('filters navigation using permission and entitlement hints while retaining safe routes', () => {
+  it('keeps legacy filterNavigationItems for entitlement hints', () => {
     const keys = filterNavigationItems(restrictedAccess).map((item) => item.key);
 
     expect(keys).toContain('workspace');
@@ -21,48 +21,23 @@ describe('build-time governed navigation', () => {
     expect(keys).not.toContain('audit');
   });
 
-  it('renders restricted navigation without claiming client hints are authorization', async () => {
+  it('renders the unified three-item primary rail', async () => {
     const router = createAppRouter({
       accessContext: restrictedAccess,
-      initialEntries: ['/en/workspace'],
+      initialEntries: ['/en/dashboards'],
     });
     render(<ApplicationBoundary router={router} />);
 
-    expect(await screen.findByRole('link', { name: 'Jobs' })).toBeTruthy();
+    expect(await screen.findByRole('link', { name: 'Dashboards' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Analysis' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Data' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Jobs' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Devices' })).toBeNull();
-    expect(
-      screen.getByText('Server authorization is still required for every action.'),
-    ).toBeTruthy();
-  });
-
-  it('requires both create permission and the automation entitlement to create a job', async () => {
-    const router = createAppRouter({
-      accessContext: {
-        entitlements: [],
-        permissions: [PERMISSIONS_V1.JOB_EXECUTION_CREATE, PERMISSIONS_V1.JOB_EXECUTION_READ],
-      },
-      initialEntries: ['/en/workspace'],
-    });
-    render(<ApplicationBoundary router={router} />);
-
-    const createButton = await screen.findByRole('button', { name: 'Create job' });
-    expect(createButton.hasAttribute('disabled')).toBe(true);
-    expect(screen.getByText('You can view this work but cannot create a new job.')).toBeTruthy();
-  });
-
-  it('navigates an enabled create action to the intentional jobs placeholder', async () => {
-    const user = userEvent.setup();
-    const router = createAppRouter({ initialEntries: ['/en/workspace'] });
-    render(<ApplicationBoundary router={router} />);
-
-    await user.click(await screen.findByRole('button', { name: 'Create job' }));
-
-    expect(router.state.location.pathname).toBe('/en/jobs');
-    expect(await screen.findByRole('heading', { name: 'Jobs' })).toBeTruthy();
+    expect(UDW_PRIMARY_NAV_ITEMS_V1).toHaveLength(3);
   });
 
   it('presents placeholder context as semantic content instead of inert controls', async () => {
-    const router = createAppRouter({ initialEntries: ['/en/workspace'] });
+    const router = createAppRouter({ initialEntries: ['/en/dashboards'] });
     render(<ApplicationBoundary router={router} />);
 
     expect(await screen.findByText('Bright Cloud Organization')).toBeTruthy();

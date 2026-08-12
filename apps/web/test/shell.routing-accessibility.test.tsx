@@ -10,13 +10,13 @@ function renderShell(pathname: string) {
 }
 
 describe('locale-aware shell routing', () => {
-  it('redirects a missing locale to the canonical Vietnamese workspace route', async () => {
-    const router = renderShell('/workspace');
+  it('redirects a missing locale to the canonical Vietnamese dashboards route', async () => {
+    const router = renderShell('/dashboards');
 
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe('/vi-VN/workspace');
+      expect(router.state.location.pathname).toBe('/vi-VN/dashboards');
     });
-    expect(await screen.findByRole('heading', { name: 'Công việc cần xử lý' })).toBeTruthy();
+    expect(await screen.findByRole('navigation', { name: 'Điều hướng chính' })).toBeTruthy();
   });
 
   it('resolves an invalid locale deterministically without losing the logical route', async () => {
@@ -29,22 +29,22 @@ describe('locale-aware shell routing', () => {
 
   it('renders complete English navigation and preserves the route when switching locale', async () => {
     const user = userEvent.setup();
-    const router = renderShell('/en/jobs?state=open#queue');
+    const router = renderShell('/en/analysis?state=open#thread');
 
-    expect(await screen.findByRole('heading', { name: 'Jobs' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Analysis' })).toBeTruthy();
     await user.click(screen.getByRole('link', { name: 'Tiếng Việt' }));
 
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe('/vi-VN/jobs');
+      expect(router.state.location.pathname).toBe('/vi-VN/analysis');
       expect(router.state.location.search).toBe('?state=open');
-      expect(router.state.location.hash).toBe('#queue');
+      expect(router.state.location.hash).toBe('#thread');
     });
   });
 });
 
 describe('accessible responsive composition', () => {
   it('provides a skip link and named semantic landmarks', async () => {
-    renderShell('/vi-VN/workspace');
+    renderShell('/vi-VN/dashboards');
 
     expect(await screen.findByRole('banner')).toBeTruthy();
     expect(screen.getByRole('navigation', { name: 'Điều hướng chính' })).toBeTruthy();
@@ -68,7 +68,7 @@ describe('accessible responsive composition', () => {
 
     try {
       const user = userEvent.setup();
-      renderShell('/vi-VN/workspace');
+      renderShell('/vi-VN/dashboards');
       const menuButton = await screen.findByRole('button', { name: 'Mở điều hướng' });
       expect(menuButton.getAttribute('aria-expanded')).toBe('false');
 

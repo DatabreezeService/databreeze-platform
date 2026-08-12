@@ -1,20 +1,16 @@
 import wordmarkUrl from '@databreeze/design-tokens/brand/generated/web/navigation-wordmark-blue-204x50.png';
 import { formatMessageV1 } from '@databreeze/i18n/v1';
 import { Button } from '@databreeze/ui/v1';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
-import { getFeatureRegistration } from '../app/feature-registry.ts';
 import { LocaleProvider, normalizeRouteLocale } from '../app/locale-context.tsx';
 import { appMessage } from '../app/messages.ts';
+import type { WebAccessContext } from '../app/navigation.ts';
 import {
-  getProductModuleCopy,
-  PRODUCT_MODULE_REGISTRY,
-} from '../features/product-modules/product-module-registry.ts';
-import {
-  filterNavigationItems,
-  type NavigationKey,
-  type WebAccessContext,
-} from '../app/navigation.ts';
+  UDW_PRIMARY_NAV_ITEMS_V1,
+  udwPrimaryNavLabelV1,
+} from '../app/unified-primary-navigation.ts';
+import { WorkspaceSwitcher } from '../features/workspace/workspace-switcher.tsx';
 import { BellIcon, MenuIcon, SearchIcon, XIcon } from './icons.tsx';
 
 const MOBILE_QUERY = '(max-width: 767px)';
@@ -38,17 +34,8 @@ function useIsMobile(): boolean {
   return isMobile;
 }
 
-function navigationLabel(locale: 'en' | 'vi-VN', key: NavigationKey): string {
-  const registration = getFeatureRegistration(key);
-  if (registration.messageKey !== undefined)
-    return formatMessageV1(locale, registration.messageKey);
-  if (key === 'usage') return appMessage(locale, 'nav.usage');
-  if (key === 'dashboards') return appMessage(locale, 'nav.dashboards');
-  if (key === 'administration') return appMessage(locale, 'nav.administration');
-  return appMessage(locale, 'nav.audit');
-}
-
 export function ShellLayout({ accessContext }: { readonly accessContext: WebAccessContext }) {
+  void accessContext;
   const { locale: routeLocale } = useParams();
   const locale = normalizeRouteLocale(routeLocale);
   const location = useLocation();
@@ -56,7 +43,6 @@ export function ShellLayout({ accessContext }: { readonly accessContext: WebAcce
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [searchStatus, setSearchStatus] = useState('');
-  const navigationItems = useMemo(() => filterNavigationItems(accessContext), [accessContext]);
   const alternateLocale = locale === 'en' ? 'vi-VN' : 'en';
   const logicalPath = location.pathname.split('/').slice(2).join('/');
   const alternatePath = `/${alternateLocale}/${logicalPath}${location.search}${location.hash}`;
@@ -70,68 +56,23 @@ export function ShellLayout({ accessContext }: { readonly accessContext: WebAcce
     setSearchStatus(appMessage(locale, 'placeholder.unavailable'));
   }
 
-  const platformNavigationGroup = (
-    <div
-      aria-labelledby="platform-navigation-heading"
-      className="navigation-group"
-      key="platform"
-      role="group"
-    >
-      <p className="navigation-group__heading" id="platform-navigation-heading">
-        {appMessage(locale, 'nav.platformGroup')}
-      </p>
-      <ul>
-        {navigationItems.map((item) => (
-          <li key={item.key}>
-            <NavLink
-              className={({ isActive }) =>
-                isActive ? 'primary-navigation__link is-active' : 'primary-navigation__link'
-              }
-              end
-              to={`/${locale}/${item.path}`}
-            >
-              {navigationLabel(locale, item.key)}
-            </NavLink>
-          </li>
-        ))}
-      </ul>
-    </div>
+  const primaryNavigation = (
+    <ul>
+      {UDW_PRIMARY_NAV_ITEMS_V1.map((item) => (
+        <li key={item.key}>
+          <NavLink
+            className={({ isActive }) =>
+              isActive ? 'primary-navigation__link is-active' : 'primary-navigation__link'
+            }
+            end
+            to={`/${locale}/${item.path}`}
+          >
+            {udwPrimaryNavLabelV1(locale, item.key)}
+          </NavLink>
+        </li>
+      ))}
+    </ul>
   );
-  const productNavigationGroup = (
-    <div
-      aria-labelledby="product-navigation-heading"
-      className="navigation-group"
-      key="products"
-      role="group"
-    >
-      <p className="navigation-group__heading" id="product-navigation-heading">
-        {appMessage(locale, 'nav.productGroup')}
-      </p>
-      <ul>
-        {PRODUCT_MODULE_REGISTRY.map((module) => (
-          <li key={module.slug}>
-            <NavLink
-              className={({ isActive }) =>
-                isActive
-                  ? 'primary-navigation__link module-navigation__link is-active'
-                  : 'primary-navigation__link module-navigation__link'
-              }
-              end
-              to={`/${locale}/modules/${module.slug}`}
-            >
-              <span aria-hidden="true" className="module-navigation__code">
-                {module.code}
-              </span>
-              <span>{getProductModuleCopy(module, locale).name}</span>
-            </NavLink>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-  const navigationGroups = location.pathname.includes('/modules/')
-    ? [productNavigationGroup, platformNavigationGroup]
-    : [platformNavigationGroup, productNavigationGroup];
 
   return (
     <LocaleProvider locale={locale}>
@@ -141,9 +82,9 @@ export function ShellLayout({ accessContext }: { readonly accessContext: WebAcce
       <div className="app-shell">
         <header className="topbar">
           <Link
-            aria-label={`DataBreeze — ${appMessage(locale, 'home.heading')}`}
+            aria-label={`DataBreeze: ${appMessage(locale, 'home.heading')}`}
             className="brand-link"
-            to={`/${locale}/workspace`}
+            to={`/${locale}/dashboards`}
           >
             <img alt="DataBreeze" height="50" src={wordmarkUrl} width="204" />
           </Link>
@@ -185,6 +126,10 @@ export function ShellLayout({ accessContext }: { readonly accessContext: WebAcce
             </Button>
           </form>
           <div className="topbar__actions">
+            <WorkspaceSwitcher
+              locale={locale}
+              workspaces={[{ id: 'ws-1', name: appMessage(locale, 'context.workspace') }]}
+            />
             <Link className="locale-link" to={alternatePath}>
               {appMessage(
                 locale,
@@ -238,7 +183,7 @@ export function ShellLayout({ accessContext }: { readonly accessContext: WebAcce
           hidden={isMobile && !navigationOpen}
           id="primary-navigation"
         >
-          {navigationGroups}
+          {primaryNavigation}
         </nav>
         <main className="main-workspace" id="main-content" tabIndex={-1}>
           <Outlet />
