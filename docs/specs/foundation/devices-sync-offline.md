@@ -3,13 +3,13 @@
 | Metadata | Value |
 |---|---|
 | Status | Product specification |
-| Version | 1.0 |
+| Version | 1.1 |
 | Requirement prefix | `DSO` |
 | Dependencies | `IAM` Identity, Workspaces, and Permissions; `IAE` Inbox, Artifacts, and Evidence; exposes route/capability and dispatch contracts composed with `JRA` by the application-layer `ExecutionAdmissionCoordinator` |
 
 ## Purpose
 
-Define DSO's use of IAM-owned Device identities, operational capability grants, data-mode enforcement, cursor-based synchronization, resumable encrypted transfer, deterministic conflict handling, and offline operation for the Windows Desktop agent and native Android companion. The design lets users work with unreliable connectivity while ensuring `LOCAL` originals never upload and all synchronized mutations remain authorized and idempotent.
+Define DSO's use of IAM-owned Device identities, operational capability grants, data-mode enforcement, cursor-based synchronization, resumable encrypted transfer, deterministic conflict handling, and offline operation for the Windows Desktop agent and native Android companion. The design lets users work with unreliable connectivity while ensuring `LOCAL` originals never upload and all synchronized mutations remain authorized and idempotent. A Desktop folder becomes Web-usable only through the explicit Cloud/Hybrid projection consent required by DDA-059.
 
 ## Scope and non-goals
 

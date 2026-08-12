@@ -1,17 +1,17 @@
 # DataBreeze Platform and Capability Matrix
 
 **Status:** Product specification<br>
-**Version:** 2.0
+**Version:** 2.1
 
-This matrix is the product-owner view of how Web, Windows Desktop, and Android deliver one Data-to-Dashboard Agent. The detailed platform and feature specifications remain authoritative for requirements and edge cases.
+This matrix is the product-owner view of how Web, Windows Desktop, and Android deliver one unified data workspace. The detailed platform and feature specifications remain authoritative for requirements and edge cases.
 
 ## 1. Platform roles
 
 | Platform | Product role |
 |---|---|
-| **Web** | Cloud intake, ETL/data-quality review, governed datasets, analyst, dashboard canvas, interactive publication, collaboration, administration, and Cloud/Hybrid execution |
-| **Windows Desktop** | Approved local-folder intake, large or sensitive file processing, local ETL/analysis, offline work, detailed evidence, and policy-controlled Hybrid publication |
-| **Android** | Active receipt/document capture, secure cloud upload, OCR correction, dashboard consumption, notifications, and focused analyst questions |
+| **Web** | Premium three-section cloud workspace: Dashboard, Analysis, and Data; ETL/data-quality review; governed datasets; one workspace agent; dashboard canvas; interactive publication; collaboration; administration |
+| **Windows Desktop** | Distinct V2 native workbench for approved local-folder intake, large or sensitive file processing, local ETL/analysis, offline work, detailed evidence, and policy-controlled Hybrid/Cloud publication |
+| **Android** | Active receipt/invoice/table capture, secure cloud upload, OCR correction, dashboard consumption, notifications, and permitted agent analysis without complex canvas authoring |
 
 ## 2. One product flow
 
@@ -44,9 +44,10 @@ flowchart LR
 | **ETL and quality** | Review mapping, typed transformations, before/after samples, findings, rejects, quality dimensions, and lineage; run cloud processing. | Run the same typed plans locally, including large/sensitive inputs, and preserve local evidence. | Correct OCR candidates and validation conflicts for captured records. |
 | **Governed datasets** | Manage immutable dataset/schema/mapping/rule/metric versions and cloud projections. | Catalog local dataset versions and synchronize only allowed projections/results. | Consume authorized captured-record and dashboard projections. |
 | **Analyst** | Ask Vietnamese/English questions, inspect/edit typed plans, view evidence, save analyses, and propose canvas changes. | Ask questions and execute compatible plans locally; optional local AI may interpret intent. | Ask focused questions over authorized cloud/synchronized data and view compact evidence. |
-| **Dashboard canvas** | Create pages, add/move/resize/configure widgets and filters, preview responsive layouts, and publish versions. | View/edit compatible dashboards and inspect detailed local evidence; full authoring is Web-first for V1. | View responsive dashboards, filters, drill-down summaries, freshness, and caveats. |
+| **Dashboard canvas** | Create pages, add/move/resize/configure widgets and filters, preview responsive layouts, and publish versions. Private deterministic starter canvases may appear for eligible datasets. | Share the complete dashboard and analysis workspace through the V2 workbench while retaining distinct native shell patterns. | View responsive dashboards, filters, drill-down summaries, freshness, and caveats. No complex canvas authoring. |
 | **Refresh** | Materialize affected results, publish complete snapshots atomically, notify connected viewers, and expose cost/freshness. | Detect new compatible files, run local incremental ETL, and synchronize the approved change/projection. | Receive content-safe update notifications and fetch authorized changed results. |
-| **Publication and sharing** | Own dashboard publication, audience, grants, withdrawal, approval when required, and audit. | Publish local results only through an explicit DSO-governed projection/confirmation. | View/share an already authorized dashboard; no offline approval or permission expansion. |
+| **Publication and sharing** | Own dashboard publication for Owner, Workspace members, or Project members only. Public, anonymous, bearer-link, and external guest resolution are rejected in V1. | Publish local results only through an explicit DSO-governed projection/confirmation. | View an already authorized dashboard; no offline approval or permission expansion. |
+| **Members and agent access** | Expose Owner/Editor/Viewer presets; keep six server roles for enforcement; configure independent agent grants (`NONE`/`ANALYZE`/`PROPOSE_CHANGES`/`APPLY_CONFIRMED_CHANGES`). | Consume the same grants through the docked/full agent surfaces. | Consume the same grants for permitted analysis. |
 | **Administration** | Own members, roles, policies, devices, data modes, retention, AI egress, billing, usage, APIs/webhooks, and audit history. | Show device, folder, storage, sync, processing, and recovery status. | Show account, upload queue, capture, review, and device status. |
 
 ## 4. V1 data-source matrix
@@ -56,7 +57,7 @@ flowchart LR
 | CSV upload | Included | Web/Desktop | Encoding, delimiter, header, type, size, and row limits are explicit. |
 | XLSX upload/folder file | Included | Web/Desktop | Supported worksheets only; no macro, external refresh, or arbitrary workbook execution. |
 | Approved Desktop folder | Included | Desktop | Compatible new files may process automatically; ambiguity enters review. |
-| Receipt/document camera capture | Included | Android | Cloud OCR with field-level confidence and user correction for Hybrid/Cloud destinations. |
+| Receipt/invoice/table camera capture | Included | Android | Cloud OCR with field-level confidence and user correction for Hybrid/Cloud destinations. |
 | Manual table paste/form | P1 extension | Web | Must create an immutable intake version. |
 | Database/API/cloud-drive connector | Post-V1 | Web/INT | Requires explicit authorization, schema, cursor, retention, and cost contracts. |
 | Streaming event source | Post-V1 | INT | Requires a separate streaming freshness and capacity design. |

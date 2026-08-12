@@ -1,9 +1,9 @@
 # DataBreeze Product Roadmap
 
 **Status:** Product specification<br>
-**Version:** 2.0
+**Version:** 2.1
 
-This roadmap delivers one Data-to-Dashboard Agent in dependency order. It is not a date commitment. Each production slice requires its own approved implementation plan and release evidence.
+This roadmap delivers one unified data workspace in dependency order. It is not a date commitment. Each production slice requires its own approved implementation plan and release evidence.
 
 ## 1. Delivery rules
 
@@ -82,9 +82,18 @@ Exit gate:
 - Local/Hybrid network tests prove prohibited bytes never upload;
 - the cloud dashboard shows source-device/freshness/evidence availability and recovers after offline operation.
 
-## 5. V1.3: Cloud-connected Android receipt capture
+## 5. V1.3: Cloud-connected Android capture
 
-Outcome: a user scans a receipt, corrects uncertain OCR fields, and updates an authorized cloud expense dataset/dashboard.
+Outcome: a user scans a receipt, invoice, or table, corrects uncertain OCR fields, and updates an authorized cloud dataset/dashboard.
+
+Includes:
+
+- profile-bound CameraX capture for receipt, invoice, and table;
+- encrypted account/workspace-scoped staging and resumable WorkManager upload;
+- field/cell confidence, evidence coordinates, and explicit review;
+- logical-dataset selection before acceptance;
+- responsive dashboard viewing with evidence drill-down;
+- permitted agent analysis without complex canvas authoring.
 
 Includes:
 

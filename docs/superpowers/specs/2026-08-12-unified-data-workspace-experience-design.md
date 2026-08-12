@@ -8,7 +8,7 @@
 
 **Build authority:** This design records the approved experience. It does not replace accepted specifications or authorize implementation where Section 17 identifies a normative delta. Applicable canonical specifications must be revised and approved before an implementation plan may weaken or replace current requirements.
 
-**Primary requirements:** IAM-001 through IAM-021; WEB-002 through WEB-016, WEB-020, WEB-021, WEB-023; DSK-001 through DSK-023; AND-001 through AND-022; DDA-001 through DDA-050
+**Primary requirements:** IAM-001 through IAM-025; WEB-002 through WEB-016, WEB-020, WEB-021, WEB-023, WEB-024; DSK-001 through DSK-027; AND-001 through AND-024; DDA-001 through DDA-060
 
 ## 1. Product outcome
 
@@ -727,25 +727,29 @@ Implementation plans must link tests to stable requirement IDs and cover:
 
 ## 17. Normative deltas required before implementation
 
-The following approved experience decisions are not implementation authority by themselves. The listed canonical documents must be reconciled before code relies on the new behavior.
+The following approved experience decisions were reconciled into canonical specifications for plan 406 on 2026-08-12. Implementation uses the stable requirement IDs listed below. Existing IDs retained their original meaning.
 
-| Area | Approved experience | Current authority to reconcile | Required specification action |
+| Area | Approved experience | Canonical outcome | Requirement IDs |
 |---|---|---|---|
-| Email authentication | Email/password plus six-digit OTP verification, with Google OIDC | IAM currently describes passwordless email or configured OIDC, while implementation already contains password registration | Amend IAM authentication, verification, recovery, admission, session, and acceptance requirements without weakening IAM-005, IAM-006, IAM-012, or IAM-015. |
-| Persistent Web session | ChatGPT-like persistent sign-in without a Keep me signed in control | IAM workflow currently states 12-hour inactivity and 30-day absolute session expiry | Decide and specify exact refresh-family lifetime, inactivity, absolute expiry, reauthentication, trusted-device, and revocation behavior through security review. |
-| Visible roles | Owner, Editor, and Viewer in normal UI | IAM-004 requires six canonical role bundles | Specify a UI-safe mapping or revise role bundles. Server authorization must remain deny-by-default and action-scoped. |
-| Automatic first preparation | Routine transformations run automatically and are explained afterward | DDA-006 requires review before acceptance; DDA-011 already permits saved rules only while compatible | Define which first-run operations may create a non-authoritative prepared candidate, what counts as accepted policy, and when explicit review remains mandatory. Until amended, DDA-006 and DDA-007 remain controlling. |
-| Automatic starter dashboard | A useful first canvas appears as soon as an eligible prepared dataset is ready | DDA-024 requires an agent-created dashboard or canvas change to remain a proposal until explicit acceptance | Define whether automatic generation creates a preview, a private initial version, or a policy-accepted starter. Until amended, explicit acceptance remains controlling. |
-| Connected-folder cloud upload | Encrypted originals and prepared versions synchronize so Web remains usable | Hybrid is currently default; DDA-037 requires an explicit projection and DSK-010 forbids Local upload | Specify the normal Cloud-connected folder consent and transfer manifest. Preserve strict Local behavior and explicit Hybrid projection preview. |
-| Desktop source filenames on Web | Dữ liệu can list synchronized source files and open their transferred originals | DDA-012 currently keeps the local display name on Desktop, and DDA-043 treats filenames as untrusted content | Specify which source label or filename metadata may transfer, how consent and classification work, and how Web avoids receiving any unapproved local path. |
-| Desktop authoring | Desktop shares the complete dashboard and analysis workspace while using a distinct native shell | Current DDA platform matrix states full dashboard authoring is Web-first | Amend DDA and Desktop platform responsibilities to declare the supported Desktop authoring subset and parity tests. |
-| Table OCR | Receipt/invoice and generic table extraction are core ingestion profiles | DDA currently bounds V1 OCR to receipt capture and lists general document understanding as a non-goal | Add a versioned table-extraction profile with schemas, bounds, confidence, validation, evidence, review, cost, and acceptance tests. |
-| Workspace conversations | Conversations are workspace-owned, dataset-scoped, permission-filtered, and shared with eligible members | DDA, IAM, and NCO do not yet define this complete conversation authority | Add stable contracts for conversation scope, visibility, retention, history actions, summaries, context versions, permission changes, and audit. |
-| Agent permission | Agent use is independent of edit role | IAM role bundles and DDA usage policy do not expose this customer-facing control | Add stable agent-use permissions, defaults, per-member overrides, proposal rights, application rights, and usage admission. |
-| Latest-version continuation | Old answers retain original versions; new messages automatically use the latest compatible version with a visible event | DDA requires exact version provenance but does not define this conversation transition | Add typed context-change events, compatibility checks, provenance display, and non-rewrite requirements. |
-| Workspace-only dashboards | No anonymous, public, or external guest dashboards in V1 | Canonical sharing supports audience policy more generally | Narrow the V1 sharing surface while retaining internal snapshot, permission, evidence, and audit requirements. |
+| Email authentication | Email/password plus six-digit OTP verification, with Google OIDC | IAM authentication, verification, recovery, admission, session, and acceptance amended without weakening IAM-005, IAM-006, IAM-012, or IAM-015. | IAM-022 |
+| Persistent Web session | ChatGPT-like persistent sign-in without a Keep me signed in control | Refresh-family lifetime fixed: Web 30/180 days; Desktop/Android 90/365 days; access token at most 15 minutes. | IAM-023 |
+| Visible roles | Owner, Editor, and Viewer in normal UI | UI-safe presets map to the six canonical server roles; server authorization remains deny-by-default. | IAM-025 |
+| Independent agent permission | Agent use is independent of edit role | Workspace-member grant levels `NONE`/`ANALYZE`/`PROPOSE_CHANGES`/`APPLY_CONFIRMED_CHANGES`; Viewer defaults to `NONE`. | IAM-024 |
+| Automatic first preparation | Routine transformations run automatically and are explained afterward | First-run auto-accept only under `SAFE_NON_LOSSY`; otherwise review remains mandatory. | DDA-053 |
+| Automatic starter dashboard | A useful first canvas appears as soon as an eligible prepared dataset is ready | Private deterministic allowlisted starter version only; AI/shared-canvas changes remain proposals. | DDA-054 |
+| Connected-folder cloud upload | Encrypted originals and prepared versions synchronize so Web remains usable | Explicit Cloud/Hybrid projection consent with preview; `LOCAL` remains non-transferable. | DDA-059 |
+| Source catalog and safe originals | Logical datasets list sources and open originals without Local paths | Permission-filtered catalog with opaque IDs and safe labels. | DDA-052 |
+| Workspace conversations | Conversations are workspace-owned, dataset-scoped, and permission-filtered | Conversation records, retention, and context events are canonical. | DDA-055, DDA-056 |
+| Table OCR | Receipt/invoice and generic table extraction are core ingestion profiles | Versioned extraction profiles with bounds, confidence, evidence, and review. | DDA-057 |
+| Workspace-only dashboards | No anonymous, public, or external guest dashboards in V1 | Snapshot audiences narrowed to Owner, Workspace members, or Project members. | DDA-058 |
+| Bounded agent tools | Agent invokes only registered typed tools | Server-side tenant, grant, usage, evidence, and audit enforcement. | DDA-060 |
+| Web information architecture | Exactly three primary destinations and one agent store | Canonical Web navigation and agent layout. | WEB-024 |
+| Desktop V2 workbench | Distinct cobalt rail, source explorer, tabs, docked agent, status bar | New platform requirement; existing offline recipe IDs DSK-024 through DSK-026 remain unchanged. | DSK-027 |
+| Android bounded capture | Receipt/invoice/table capture, review, dashboard, and agent analysis | New platform requirement; existing offline-package exporter AND-023 remains unchanged. | AND-024 |
 
-No implementation plan may treat this delta register as permission to bypass security, tenant isolation, data-mode, retention, approval, evidence, or audit requirements.
+ID assignment note: plan 406 draft text proposed `DSK-024` and `AND-023` for the new platform surfaces, but those IDs were already allocated to offline recipe and offline-package requirements. Canonical documents therefore use `DSK-027` and `AND-024` so existing IDs retain their original meaning.
+
+No implementation plan may treat the historical delta register as permission to bypass security, tenant isolation, data-mode, retention, approval, evidence, or audit requirements.
 
 ## 18. Deferred scope
 

@@ -3,13 +3,13 @@
 | Metadata | Value |
 |---|---|
 | Status | Product specification |
-| Version | 1.0 |
+| Version | 1.1 |
 | Requirement prefix | `IAE` |
 | Dependencies | `IAM` Identity, Workspaces, and Permissions |
 
 ## Purpose
 
-Define the shared intake, immutable artifact, version, lineage, and evidence layer for user-controlled files, documents, photos, voice recordings, and datasets. This layer gives all DataBreeze modules one trustworthy origin for processing and makes every extraction, finding, correction, and report traceable to a page, sheet, cell, row, region, text span, or time range.
+Define the shared intake, immutable artifact, version, lineage, and evidence layer for user-controlled files, documents, photos, voice recordings, and datasets. This layer gives all DataBreeze modules one trustworthy origin for processing and makes every extraction, finding, correction, and report traceable to a page, sheet, cell, row, region, text span, or time range. DDA source catalogs and OCR profiles reference IAE originals and evidence without creating a second retention or byte authority (`DDA-052`, `DDA-057`, `DDA-059`).
 
 ## Scope and non-goals
 

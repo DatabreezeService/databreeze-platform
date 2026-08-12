@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** Proposed for product-owner approval. Task 1 may reconcile documentation. Product code in Task 3 and later may start only after Task 2 records the approved canonical requirement gate.
+**Status:** Approved for implementation. Task 1 may reconcile documentation. Product code in Task 3 and later may start only after Task 2 records the approved canonical requirement gate.
 
 **Design authority:** [`../superpowers/specs/2026-08-12-unified-data-workspace-experience-design.md`](../superpowers/specs/2026-08-12-unified-data-workspace-experience-design.md)
 
@@ -115,7 +115,7 @@ Tasks 5, 6, 7, and 11 may run in isolated worktrees after Task 4. Tasks 8, 9, an
 
 ### Task 1: Reconcile the canonical product specifications
 
-**Primary requirements:** IAM-001 through IAM-021; IAE-001 through IAE-025; DSM-001 through DSM-027; DSO-001 through DSO-026; NCO-001 through NCO-024; DDA-001 through DDA-051; WEB-001 through WEB-023; DSK-001 through DSK-023; AND-001 through AND-022
+**Primary requirements:** IAM-001 through IAM-025; IAE-001 through IAE-025; DSM-001 through DSM-027; DSO-001 through DSO-026; NCO-001 through NCO-024; DDA-001 through DDA-060; WEB-001 through WEB-024; DSK-001 through DSK-027; AND-001 through AND-024
 
 **Files:**
 
@@ -151,14 +151,14 @@ Tasks 5, 6, 7, and 11 may run in isolated worktrees after Task 4. Tasks 8, 9, an
 - `DDA-059`: a Desktop folder can be Web-usable only through an explicitly consented Cloud or Hybrid projection whose preview declares original transfer, safe label metadata, bytes, classification, destination, and evidence consequences; `LOCAL` remains non-transferable.
 - `DDA-060`: the workspace agent may invoke only registered typed tools over authorized resource IDs; each tool resolves tenant scope server-side, enforces the independent agent grant, admits usage, returns bounded structured results and evidence, and audits proposals or effects.
 - `WEB-024`: the signed-in product exposes exactly three primary destinations and uses one shared workspace-agent store, with the compact agent on Dashboard/Data and the full thread/history surface in Analysis.
-- `DSK-024`: Desktop provides the V2 workbench with activity rail, source explorer, tabbed governed work area, context-aware docked agent, full Analysis view, and sync/engine/review status bar while retaining preload and IPC security.
-- `AND-023`: Android supports user-initiated receipt/invoice/table capture, uncertain-field review, logical-dataset selection, responsive dashboard viewing, evidence drill-down, and permitted agent analysis without complex canvas authoring.
+- `DSK-027`: Desktop provides the V2 workbench with activity rail, source explorer, tabbed governed work area, context-aware docked agent, full Analysis view, and sync/engine/review status bar while retaining preload and IPC security. (`DSK-024` through `DSK-026` remain the offline recipe/package requirements.)
+- `AND-024`: Android supports user-initiated receipt/invoice/table capture, uncertain-field review, logical-dataset selection, responsive dashboard viewing, evidence drill-down, and permitted agent analysis without complex canvas authoring. (`AND-023` remains the offline-package exporter requirement.)
 
-- [ ] **Step 1: Amend the exact workflows, contracts, requirements, non-goals, platform matrix, and acceptance sections**
+- [x] **Step 1: Amend the exact workflows, contracts, requirements, non-goals, platform matrix, and acceptance sections**
 
 Copy the requirement statements above into the applicable canonical tables. Update the related workflow and contract prose so the requirement is defined once and references the owning foundation. Keep `LOCAL` behavior, IAE ownership, six server role bundles, MFA, tenant checks, and explicit AI canvas acceptance intact.
 
-- [ ] **Step 2: Record the session and automatic-action security decisions**
+- [x] **Step 2: Record the session and automatic-action security decisions**
 
 Add a decision note to ADR-0004 with these fixed values and boundaries:
 
@@ -172,11 +172,11 @@ AI-authored mutation: explicit preview and confirmation
 Connected folder cloud use: explicit Cloud/Hybrid projection consent
 ```
 
-- [ ] **Step 3: Update acceptance criteria and deferred scope**
+- [x] **Step 3: Update acceptance criteria and deferred scope**
 
 Add exact acceptance scenarios for OTP expiry/attempt/resend limits, OIDC linking, refresh reuse, role-preset mapping, Viewer agent default, source catalog path redaction, safe automatic preparation, starter canvas creation, conversation version transitions, table OCR bounds, workspace-only sharing, Desktop V2 keyboard flow, and Android table capture. Keep Slack, Discord, public sharing, arbitrary code, streaming, broad connectors, and complex Android authoring deferred.
 
-- [ ] **Step 4: Run documentation validation**
+- [x] **Step 4: Run documentation validation**
 
 Run:
 
@@ -189,7 +189,7 @@ git diff --check
 
 Expected: every new requirement ID is unique and indexed; no authority conflict remains; formatting and whitespace checks pass.
 
-- [ ] **Step 5: Commit the canonical specification gate**
+- [x] **Step 5: Commit the canonical specification gate**
 
 ```powershell
 git add docs/specs docs/product docs/decisions docs/specs/requirement-index.json docs/superpowers/specs/2026-08-12-unified-data-workspace-experience-design.md

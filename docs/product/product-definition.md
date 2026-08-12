@@ -1,12 +1,12 @@
 # DataBreeze Product Definition
 
 **Status:** Product specification<br>
-**Version:** 2.0<br>
+**Version:** 2.1<br>
 **Audience:** Product, design, engineering, operations, reviewers, and implementation agents
 
 ## 1. Definition
 
-DataBreeze is a Vietnamese-first, local-first and cloud-capable data-to-dashboard agent. It turns user-controlled spreadsheets, tabular files, approved local folders, and captured receipts into governed datasets, interactive dashboards, and evidence-backed analysis.
+DataBreeze is a Vietnamese-first, local-first and cloud-capable unified data workspace. It turns user-controlled spreadsheets, tabular files, approved local folders, and captured receipts, invoices, and tables into governed datasets, interactive dashboards, and evidence-backed analysis.
 
 Its product promise is:
 
@@ -14,9 +14,9 @@ Its product promise is:
 
 DataBreeze is one product across three complementary applications:
 
-- **Web** is the cloud workspace for upload, ETL review, analysis, dashboard canvas authoring, publication, sharing, and administration.
-- **Windows Desktop** is the trusted local and Hybrid data agent for approved folders, large or sensitive files, local processing, and policy-controlled synchronization.
-- **Android** is initially the cloud-connected capture and consumption companion for receipt/document scanning, OCR review, dashboards, notifications, and analyst questions.
+- **Web** is the premium cloud workspace with exactly three primary destinations (`Bảng điều khiển`, `Phân tích`, and `Dữ liệu`) for upload, preparation, analysis, dashboard canvas authoring, publication, and administration.
+- **Windows Desktop** is the trusted local and Hybrid data agent with a distinct V2 workbench for approved folders, large or sensitive files, local processing, and policy-controlled synchronization.
+- **Android** is the cloud-connected capture and consumption companion for receipt/invoice/table scanning, OCR review, dashboards, notifications, and permitted agent analysis without complex canvas authoring.
 
 All three surfaces share identity, workspaces, permissions, immutable artifacts, governed datasets, schemas, mappings, rules, jobs, evidence, data modes, synchronization, notifications, usage, and audit history.
 

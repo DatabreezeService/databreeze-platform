@@ -3,7 +3,7 @@
 | Metadata | Value |
 |---|---|
 | Status | Product specification |
-| Version | 1.0 |
+| Version | 1.1 |
 | Requirement prefix | `WEB` |
 | Dependencies | `IAM`, `IAE`, `JRA`, `DSO`, `DSM`, `INT`, `NCO`, `BUA`, and `AUD` foundation specifications; Web consumes governed data definitions/results, integration/API/webhook status, and audit history through their published contracts |
 
@@ -114,6 +114,7 @@ Owners/Admins manage members, devices, data mode, policy, retention, API access,
 | WEB-021 | P1 | Every error shall map to a stable problem code with a Vietnamese user message, correlation ID, safe retry guidance, and no stack trace, tenant existence leak, or source content. |
 | WEB-022 | P1 | Feature modules shall register routes, navigation, permissions, message keys, schemas, and telemetry at build time; arbitrary runtime third-party code shall not execute in the application origin. |
 | WEB-023 | P0 | For `LOCAL` evidence, Web shall show an open-on-source-device action and explicit device availability; it shall not request or display a live source-derived relay unless the user first publishes a governed Hybrid/Cloud derivative. |
+| WEB-024 | P0 | The signed-in product shall expose exactly three primary destinations (`Bảng điều khiển`, `Phân tích`, and `Dữ liệu`) and use one shared workspace-agent store, with the compact agent on Dashboard/Data and the full thread/history surface in Analysis. |
 
 ## Domain and data contracts
 
@@ -253,6 +254,7 @@ The NestJS/Fastify control plane owns authorization, validation, idempotency, an
 - React component tests cover keyboard, screen reader names, focus, localization, loading/empty/error, and restricted-control states.
 - Contract tests compile against OpenAPI and validate runtime fixtures for every foundation API and live event.
 - Playwright end-to-end tests cover organization/workspace creation, roles, data modes, cloud/hybrid/local intake, evidence navigation, jobs, reviews, approvals, device revocation, comments, notifications, billing grace/suspension, export, and deletion request.
+- Navigation tests prove exactly three primary destinations and one shared workspace-agent store with compact agent on Dashboard/Data and full history in Analysis.
 - Tenant-isolation tests reuse direct identifiers, object grants, cached queries, URLs, browser history, and SSE event IDs across two organizations.
 - Security tests cover XSS, Markdown sanitization, CSRF, CSP, clickjacking, token storage, signed URL leakage, file-type confusion, and authorization race.
 - Performance tests enforce bundle and Web Vitals budgets on Vietnamese content and large paginated fixtures.

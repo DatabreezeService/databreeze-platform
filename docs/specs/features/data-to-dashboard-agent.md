@@ -1,7 +1,7 @@
 # DataBreeze Data-to-Dashboard Agent
 
 **Status:** Product specification<br>
-**Version:** 1.1<br>
+**Version:** 1.2<br>
 **Requirement prefix:** `DDA`<br>
 **Dependencies:** IAM identity/authorization; IAE intake, immutable artifacts, evidence, retention, and deletion; DSM datasets, schemas, mappings, transformations, rules, metrics, profiling, validation, and lineage; JRA typed jobs, review tasks, findings, and approvals; DSO Device capabilities, data modes, transfer, synchronization, and offline queues; NCO notifications/collaboration; BUA entitlements/usage; AUD canonical audit ledger; Web, Windows Desktop, and Android platform contracts; shared Python processing engine; provider-neutral OCR and AI adapters
 
@@ -31,14 +31,16 @@ Vietnamese is the default complete locale; English is a complete secondary local
 
 - Web upload of supported CSV and XLSX worksheets.
 - Windows Desktop intake from user-approved folders containing supported CSV/XLSX files.
-- Android receipt/document capture for a bounded receipt profile with cloud OCR in Hybrid/Cloud destinations.
-- Immutable originals, governed cleaned dataset versions, and versioned dashboard materializations/snapshots.
-- Source profiling, schema/mapping suggestions, typed transformation plans, before/after review, rejects, quality dimensions, and lineage.
+- Android receipt/document capture for bounded receipt, invoice, and table extraction profiles with cloud OCR in Hybrid/Cloud destinations.
+- Immutable originals, governed cleaned dataset versions, permission-filtered source catalogs, and versioned dashboard materializations/snapshots.
+- Source profiling, schema/mapping suggestions, typed transformation plans, automatic safe first-run preparation under `SAFE_NON_LOSSY`, before/after review, rejects, quality dimensions, and lineage.
+- Workspace-owned conversations with version-bound messages, context-change events, and one bounded agent over typed tools.
 - Vietnamese/English typed analysis plans with deterministic execution and evidence.
-- Agent-proposed and user-editable responsive dashboard pages, widgets, filters, and publication.
+- Agent-proposed and user-editable responsive dashboard pages, widgets, filters, private deterministic starter canvases, and publication.
 - `ON_CHANGE`, `MANUAL`, and `SCHEDULED` freshness policies.
 - Dependency-aware recomputation, atomic snapshot publication, freshness/failure visibility, caching, quotas, and cost metering.
 - Local, Hybrid, and Cloud behavior defined by DSO; Hybrid is the default.
+- Workspace-member-only DashboardSnapshot audiences in V1.
 
 ### Explicit non-goals
 
@@ -48,6 +50,9 @@ Vietnamese is the default complete locale; English is a complete secondary local
 - Silent transformation, source overwrite, record omission, dashboard publication, permission expansion, or cross-mode transfer.
 - Factual “percentage correct” claims without a declared ground-truth comparison.
 - A general web-search chatbot, causal oracle, accounting sign-off, or source of facts outside authorized governed data.
+- Public, anonymous, bearer-link, or external guest dashboard resolution in V1.
+- General unbounded document understanding outside published receipt, invoice, and table extraction profiles.
+- Slack, Discord, broad connectors, or genuine streaming as V1 release gates.
 - Broad database/API/cloud-drive/accounting/marketplace connector catalog in V1.
 - General document understanding beyond published capture profiles.
 - Direct persistence reads from any specialist feature module.
@@ -177,6 +182,15 @@ Priorities are `P0` (required for the capability's first production release or s
 | DDA-049 | P1 | An authorized viewer shall export permission-filtered widget data, chart specifications, dashboard metadata, and a provenance manifest in open formats without gaining broader source access. |
 | DDA-050 | P1 | The system shall recommend related governed questions or visualizations using authorized metadata and prior typed results, but recommendations shall not imply a result before deterministic execution. |
 | DDA-051 | P2 | A future streaming extension may maintain continuously updated materializations only after a separate specification defines ordering, lateness, corrections, replay, windowing, capacity, cost, and snapshot-consistency behavior. |
+| DDA-052 | P0 | Every logical dataset shall expose a permission-filtered source catalog with opaque source ID, safe display label, type, version, status, health, transformations, refresh history, and authorized original/evidence action without transferring a Local path. |
+| DDA-053 | P0 | First-run preparation may create an automatically accepted version only under an approved `SAFE_NON_LOSSY` policy, with no omitted rows, no ambiguity, no incompatible drift, no blocked quality gate, complete before/after accounting, immutable original, reversible derived steps, and an immediately visible summary; all other plans shall remain review candidates. |
+| DDA-054 | P0 | An eligible accepted DatasetVersion may receive a private starter DashboardVersion from a deterministic allowlisted template without an AI call; AI-authored or shared-canvas changes shall remain proposals requiring confirmation. |
+| DDA-055 | P0 | Conversations shall be workspace-owned, permission-filtered, dataset-scoped records containing version-bound messages, bounded summaries, retrieved evidence references, context events, retention state, and audit history; history shall never embed unrestricted source content. |
+| DDA-056 | P0 | Opening an old conversation shall restore its recorded dataset/dashboard/filter context; old answers shall retain original provenance; a new request shall use the latest compatible authorized DatasetVersion only after recording and displaying a typed context-change event and shall never rewrite prior answers. |
+| DDA-057 | P0 | Versioned receipt/invoice and generic table extraction profiles shall declare supported media, page/pixel/cell/row/column bounds, output schema, confidence, evidence coordinates, validation, duplicate behavior, review policy, cost admission, and immutable original retention. |
+| DDA-058 | P0 | V1 DashboardSnapshot audiences shall be Owner, Workspace members, or Project members only; public, anonymous, bearer-link, and external guest resolution shall be rejected. |
+| DDA-059 | P0 | A Desktop folder can be Web-usable only through an explicitly consented Cloud or Hybrid projection whose preview declares original transfer, safe label metadata, bytes, classification, destination, and evidence consequences; `LOCAL` shall remain non-transferable. |
+| DDA-060 | P0 | The workspace agent may invoke only registered typed tools over authorized resource IDs; each tool shall resolve tenant scope server-side, enforce the independent agent grant, admit usage, return bounded structured results and evidence, and audit proposals or effects. |
 
 ## 7. Data model extensions
 
@@ -198,6 +212,13 @@ Every entity includes full applicable TenantScope, stable UUID, timestamps, opti
 | `DashboardFolderBinding` | Reference to DSO Device capability/grant, local manifest identity/hash/version, DSM target binding, publication projection, content-safe health, and last accepted source fingerprint. Canonical path remains local. |
 | `ReceiptCaptureProfile` | Versioned receipt field schema, locale/currency behavior, required fields, reconciliation/duplicate rules, confidence policy, OCR adapter capability, and DSM target binding. |
 | `ReceiptExtractionReview` | Capture/source version, candidate-set version, field dispositions/corrections, shared JRA review ID, accepted output binding, and evidence references. |
+| `DatasetSourceCatalogEntry` | Opaque source ID, safe display label, type, version, status, health summary, transformation/receipt refs, authorized original/evidence action, and no Local path. |
+| `PreparationSummary` | Exact input/output/rejected counts, six named quality dimensions, transformation receipts, review reasons, and `automaticPolicy: SAFE_NON_LOSSY | NONE`. |
+| `WorkspaceConversation` | Workspace-owned thread, permission filter, dataset scope, retention state, revision, and content-safe summary pointer. |
+| `ConversationMessage` | Immutable version-bound message, actor, bounded text, evidence refs, and idempotency key. |
+| `ConversationContextEvent` | Typed context change (`CONTEXT_RESTORED`, `DATASET_VERSION_ADVANCED`, `DATASET_ATTACHED`, `DATASET_DETACHED`, `DASHBOARD_VERSION_ADVANCED`, `FILTER_CONTEXT_CHANGED`) with before/after version refs. |
+| `TableExtractionCandidate` | Table-profile candidate bounded by page/column/cell limits with per-cell evidence coordinates and review policy. |
+| `NamedDashboardView` | Personal filter/view state bound to a DashboardVersion without changing the shared published definition. |
 
 Mutable drafts use revision preconditions. Published definitions, accepted outputs, materialized results, and snapshots are immutable. Large layout graphs, result partitions, rejected rows, and provenance manifests use checksummed IAE-managed objects when PostgreSQL row storage would be inappropriate.
 
@@ -279,6 +300,14 @@ Product success measures time to first governed dashboard, ETL-review completion
 ## 14. Acceptance and testing
 
 - A golden Web fixture uploads a messy Vietnamese/English sales CSV/XLSX, exposes deterministic quality dimensions/rejects, accepts a typed ETL plan, creates a governed dataset, answers a question, generates/edits/publishes a dashboard, and resolves every material value to evidence.
+- Source-catalog tests prove opaque IDs, safe labels, Local path redaction, restricted-source non-enumeration, and authorized original viewing.
+- Automatic-preparation tests prove `SAFE_NON_LOSSY` auto-accept bounds and that ambiguous, drifted, or incomplete plans remain review candidates with complete accounting.
+- Starter-canvas tests prove private deterministic template creation without an AI call and that AI/shared-canvas mutations remain proposals.
+- Conversation tests cover workspace ownership, permission filtering, version-bound messages, context restore, typed context-change events, and non-rewrite of prior answers.
+- Table OCR tests cover declared bounds, evidence coordinates, hostile content isolation, and review for uncertainty.
+- Sharing tests reject public, anonymous, bearer-link, and external guest snapshot audiences while preserving workspace/project member resolution.
+- Desktop projection-consent tests prove Cloud/Hybrid preview consequences and that `LOCAL` never transfers.
+- Agent-tool tests prove registered tools only, independent grant enforcement, tenant resolution, usage admission, and audited proposals/effects.
 - Dashboard tests cover responsive pages, stable widget IDs, compatible/incompatible charts, filters, drill-down, permissions, accessibility, Vietnamese/English formatting, version diff, publication, withdrawal, and export.
 - Refresh tests cover duplicate/out-of-order events, debounce, exact dependency selection, cache-key isolation, incremental/full fallback, worker retry, mixed-version rejection, required/optional widget failure, last-good retention, stale reasons, and SSE reconciliation.
 - Hybrid tests prove paths stay local, prohibited bytes never upload, projections match previews/policy, folder replay is idempotent, schema drift/overlap/duplicates quarantine, offline work catches up, and revocation fails closed.

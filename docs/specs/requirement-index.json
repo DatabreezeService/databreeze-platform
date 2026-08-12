@@ -208,6 +208,15 @@
       }
     },
     {
+      "id": "AND-024",
+      "priority": "P0",
+      "requirement": "Android shall support user-initiated receipt/invoice/table capture, uncertain-field review, logical-dataset selection, responsive dashboard viewing, evidence drill-down, and permitted agent analysis without complex canvas authoring.",
+      "source": {
+        "line": 115,
+        "path": "docs/specs/platforms/android.md"
+      }
+    },
+    {
       "id": "AUD-001",
       "priority": "P0",
       "requirement": "AUD shall be the sole authoritative audit ledger; application logs, analytics, outboxes, provider dashboards, and module-specific timelines shall not substitute for it.",
@@ -878,7 +887,7 @@
       "priority": "P0",
       "requirement": "DDA shall compose IAM, IAE, DSM, JRA, DSO, NCO, BUA, and AUD through public contracts and shall not create alternate authorities for identity, bytes/evidence/retention, governed data/definitions, jobs/reviews/approvals, synchronization, usage, or audit.",
       "source": {
-        "line": 129,
+        "line": 134,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -887,7 +896,7 @@
       "priority": "P0",
       "requirement": "Web intake shall accept only published supported CSV/XLSX profiles with explicit size/row/column/sheet/encoding/formula limits, validate actual content rather than extension, and finalize through IAE immutable upload contracts.",
       "source": {
-        "line": 130,
+        "line": 135,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -896,7 +905,7 @@
       "priority": "P0",
       "requirement": "Every source, cleaned output, rejected-row bundle, receipt capture, materialized result, and published snapshot shall bind full TenantScope, exact parent/input versions, content/schema hashes, data classification, effective data-mode policy, and IAE retention/evidence references as applicable.",
       "source": {
-        "line": 131,
+        "line": 136,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -905,7 +914,7 @@
       "priority": "P0",
       "requirement": "DDA shall never overwrite an original or accepted DatasetVersion; mapping, transformation, correction, rerun, and refresh shall produce explicit immutable versions and lineage.",
       "source": {
-        "line": 132,
+        "line": 137,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -914,7 +923,7 @@
       "priority": "P0",
       "requirement": "A proposed ETL plan shall be a versioned graph of allowlisted typed transformations bound to exact input, schema, mapping, rule, and engine versions and shall contain no arbitrary code.",
       "source": {
-        "line": 133,
+        "line": 138,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -923,7 +932,7 @@
       "priority": "P0",
       "requirement": "ETL review shall display source/inferred/target schemas, ordered steps, material assumptions, before/after samples, changed/unchanged/rejected counts, exclusions, unsupported scopes, sampling, quality-gate effects, evidence availability, and estimated resource cost before acceptance.",
       "source": {
-        "line": 134,
+        "line": 139,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -932,7 +941,7 @@
       "priority": "P0",
       "requirement": "Accepted ETL execution shall run through a JRA typed job and register a DSM DatasetVersion only after result-manifest, counts, hashes, schema, lineage, rejected-row accounting, and effective policy verification succeed.",
       "source": {
-        "line": 135,
+        "line": 140,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -941,7 +950,7 @@
       "priority": "P0",
       "requirement": "No input row or field shall be silently omitted; rejected, quarantined, unsupported, truncated, or unprocessed scopes shall remain counted, reason-coded, discoverable, and unable to satisfy a complete quality gate.",
       "source": {
-        "line": 136,
+        "line": 141,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -950,7 +959,7 @@
       "priority": "P0",
       "requirement": "The UI shall report completeness, validity, uniqueness, consistency, freshness, and extraction confidence as separate named dimensions with declared denominator, coverage, rules/expectation, sample status, and limitations.",
       "source": {
-        "line": 137,
+        "line": 142,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -959,7 +968,7 @@
       "priority": "P0",
       "requirement": "DDA shall not label profile or AI output as percentage correct; an overall quality summary, when shown, shall disclose its deterministic formula, weights, missing-dimension behavior, coverage, and inability to prove factual correctness.",
       "source": {
-        "line": 138,
+        "line": 143,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -968,7 +977,7 @@
       "priority": "P0",
       "requirement": "Saved mappings and transform plans shall not auto-apply after material schema drift, ambiguous header matching, incompatible type change, overlapping period, changed duplicate key, or breaking target definition; the source shall enter review.",
       "source": {
-        "line": 139,
+        "line": 144,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -977,7 +986,7 @@
       "priority": "P0",
       "requirement": "A Windows folder binding shall reference an active DSO Device capability/grant while keeping the canonical path and local display name on Desktop; cloud state shall use only opaque binding/capability IDs and content-safe status.",
       "source": {
-        "line": 140,
+        "line": 145,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -986,7 +995,7 @@
       "priority": "P0",
       "requirement": "A versioned folder manifest shall declare purpose, supported file profiles, schema fingerprints, dataset grouping, append/replace/version rules, time/overlap rules, duplicate keys, mapping policy, stability/debounce policy, and publication projection.",
       "source": {
-        "line": 141,
+        "line": 146,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -995,7 +1004,7 @@
       "priority": "P0",
       "requirement": "Desktop shall process a file event only after stability checks and content fingerprinting, deduplicate repeated filesystem events/content, and route ambiguous, drifting, overlapping, duplicate, unsupported, or path-escaping inputs to review or quarantine.",
       "source": {
-        "line": 142,
+        "line": 147,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1004,7 +1013,7 @@
       "priority": "P0",
       "requirement": "The analyst shall represent every data question and dashboard calculation as a versioned typed plan over authorized DSM versions; AI-generated SQL, code, or numeric values shall never become executable or authoritative.",
       "source": {
-        "line": 143,
+        "line": 148,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1013,7 +1022,7 @@
       "priority": "P0",
       "requirement": "Before analysis or dashboard generation, the UI shall show selected datasets, semantic/metric versions, dimensions, filters, date range/time grain, join paths, units, assumptions, output form, and estimated resource cost.",
       "source": {
-        "line": 144,
+        "line": 149,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1022,7 +1031,7 @@
       "priority": "P0",
       "requirement": "Material ambiguity shall produce named alternatives or a clarification request; insufficient, unauthorized, stale, quality-blocked, or unavailable data shall produce a stable non-answer reason rather than an invented result.",
       "source": {
-        "line": 145,
+        "line": 150,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1031,7 +1040,7 @@
       "priority": "P0",
       "requirement": "Deterministic processors shall calculate all displayed numeric results, and every material table/chart/KPI value shall expose exact plan/metric provenance plus permitted row/cell evidence or aggregate definition.",
       "source": {
-        "line": 146,
+        "line": 151,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1040,7 +1049,7 @@
       "priority": "P0",
       "requirement": "AI narrative or visualization rationale shall use only a bounded policy-approved result/provenance package, label interpretation, and link each material numeric claim to deterministic result cells.",
       "source": {
-        "line": 147,
+        "line": 152,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1049,7 +1058,7 @@
       "priority": "P0",
       "requirement": "A Dashboard shall own immutable DashboardVersions containing exact dataset/semantic/metric bindings, pages, responsive layouts, widgets, filters/parameters, query/materialization bindings, freshness policy, publication policy, locale/timezone, parent version, and canonical hash.",
       "source": {
-        "line": 148,
+        "line": 153,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1058,7 +1067,7 @@
       "priority": "P0",
       "requirement": "V1 shall support accessible KPI, table, bar, line/area, pie/donut, and text/evidence-note widgets only when field types, grain, units, output bounds, and evidence behavior are compatible.",
       "source": {
-        "line": 149,
+        "line": 154,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1067,7 +1076,7 @@
       "priority": "P0",
       "requirement": "The canvas shall support adding, moving, resizing, configuring, removing, and restoring widgets; page/widget IDs shall remain stable across layout edits, and responsive breakpoints shall never hide required evidence, warnings, or freshness state.",
       "source": {
-        "line": 150,
+        "line": 155,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1076,7 +1085,7 @@
       "priority": "P0",
       "requirement": "Filters, date ranges, sorting, highlighting, drill-down, and parameter changes shall declare scope and typed behavior, preserve permission/row-field restrictions, and never change an approved/certified definition silently.",
       "source": {
-        "line": 151,
+        "line": 156,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1085,7 +1094,7 @@
       "priority": "P0",
       "requirement": "An agent-created dashboard or canvas change shall remain a proposal showing its typed plan, affected pages/widgets, before/after summary, assumptions, and cost; explicit user acceptance shall create a draft version, not publish it.",
       "source": {
-        "line": 152,
+        "line": 157,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1094,7 +1103,7 @@
       "priority": "P0",
       "requirement": "Publishing shall create an immutable DashboardSnapshot bound to one DashboardVersion, exact materialized results and input/permission versions, audience policy, freshness state, evidence availability, and canonical hash; material change shall create a new subject and invalidate applicable approval.",
       "source": {
-        "line": 153,
+        "line": 158,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1103,7 +1112,7 @@
       "priority": "P0",
       "requirement": "Sharing or viewing a dashboard shall not grant underlying Dataset, original, row/field, evidence, analysis, or folder permissions; every read, filter, drill-down, download, SSE event, and share resolution shall re-authorize current scope.",
       "source": {
-        "line": 154,
+        "line": 159,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1112,7 +1121,7 @@
       "priority": "P0",
       "requirement": "V1 dashboard freshness policies shall be `ON_CHANGE`, `MANUAL`, and `SCHEDULED`; genuine `STREAMING` shall not be represented as implemented without a separately accepted streaming contract.",
       "source": {
-        "line": 155,
+        "line": 160,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1121,7 +1130,7 @@
       "priority": "P0",
       "requirement": "An accepted DSM DatasetVersion or other bound-input event shall resolve a versioned dependency index selecting affected dashboard materialization definitions; the consumer shall fetch protected data through authorized APIs rather than trust event payload content.",
       "source": {
-        "line": 156,
+        "line": 161,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1130,7 +1139,7 @@
       "priority": "P0",
       "requirement": "Materialization cache identity shall include TenantScope, security/permission projection, dashboard/widget and plan versions, dataset/semantic/metric versions, parameters, locale/timezone where value-affecting, engine/adapter versions, and effective policy; an incomplete key shall never reuse a result.",
       "source": {
-        "line": 157,
+        "line": 162,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1139,7 +1148,7 @@
       "priority": "P0",
       "requirement": "Refresh triggers, duplicate events, worker retries, folder replays, and client retries shall be idempotent; compatible changes inside a declared debounce window may coalesce without losing the final accepted input set.",
       "source": {
-        "line": 158,
+        "line": 163,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1148,7 +1157,7 @@
       "priority": "P0",
       "requirement": "DDA may incrementally recompute only results whose processor declares compatible change semantics and verified prior state; otherwise it shall perform a bounded full recomputation and disclose that choice in usage/diagnostics.",
       "source": {
-        "line": 159,
+        "line": 164,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1157,7 +1166,7 @@
       "priority": "P0",
       "requirement": "A DashboardSnapshot shall publish atomically only after every required materialization is verified against one compatible input/definition/permission set; a partial or mixed-version refresh shall never replace the last complete snapshot.",
       "source": {
-        "line": 160,
+        "line": 165,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1166,7 +1175,7 @@
       "priority": "P0",
       "requirement": "Every dashboard shall show last successful refresh, exact input selector/versions, freshness state, pending time, and stable stale/blocked/source-unavailable reason; the last complete snapshot shall remain available subject to current authorization and retention.",
       "source": {
-        "line": 161,
+        "line": 166,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1175,7 +1184,7 @@
       "priority": "P0",
       "requirement": "Connected clients shall receive only content-safe committed refresh events, tolerate duplicate/out-of-order delivery, and reconcile authorized state through REST after reconnect or event gap.",
       "source": {
-        "line": 162,
+        "line": 167,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1184,7 +1193,7 @@
       "priority": "P0",
       "requirement": "For the published small-change reference profile, an `ON_CHANGE` dashboard shall publish a complete new snapshot within 60 seconds p95 after accepted input commit, excluding user-held review/approval and declared source-device unavailability.",
       "source": {
-        "line": 163,
+        "line": 168,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1193,7 +1202,7 @@
       "priority": "P0",
       "requirement": "Admission shall enforce per-workspace storage, profile/ETL, AI, OCR, materialization, refresh-frequency, concurrency, cache-retention, and publication limits; denial shall preserve data and the last good snapshot and provide safe remediation.",
       "source": {
-        "line": 164,
+        "line": 169,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1202,7 +1211,7 @@
       "priority": "P0",
       "requirement": "Hybrid publication shall require an explicit versioned projection of metadata, dashboard-specific aggregates, selected governed rows/columns, evidence derivatives, or original content; the UI shall preview classification, fields, counts/bytes, destination, evidence consequences, and effective policy before transfer.",
       "source": {
-        "line": 165,
+        "line": 170,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1211,7 +1220,7 @@
       "priority": "P0",
       "requirement": "Local and cloud execution of the same typed ETL/analysis/materialization plan and fixture shall produce equivalent governed values, counts, units, quality states, reason codes, and evidence keys; representation bytes may differ only where declared.",
       "source": {
-        "line": 166,
+        "line": 171,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1220,7 +1229,7 @@
       "priority": "P0",
       "requirement": "When a required Local/Hybrid source Device is offline, revoked, stale, or awaiting review/sync, cloud surfaces shall show the last authorized complete snapshot plus exact source/freshness reason and shall not upload, reroute, or substitute data automatically.",
       "source": {
-        "line": 167,
+        "line": 172,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1229,7 +1238,7 @@
       "priority": "P0",
       "requirement": "Android V1 receipt capture shall require explicit user action and an authorized Hybrid/Cloud destination, preserve immutable originals, use encrypted account/workspace-scoped staging, and upload resumably through unique idempotent WorkManager operations.",
       "source": {
-        "line": 168,
+        "line": 173,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1238,7 +1247,7 @@
       "priority": "P0",
       "requirement": "The receipt profile shall version merchant, transaction date/time, currency, subtotal, tax, total, optional payment method/reference, and optional line-item candidates with field/token confidence, adapter/model version, and evidence coordinates.",
       "source": {
-        "line": 169,
+        "line": 174,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1247,7 +1256,7 @@
       "priority": "P0",
       "requirement": "Deterministic receipt validation shall reconcile subtotal/tax/total, enforce required type/currency/date rules, detect probable duplicate captures, and route low-confidence, conflicting, or duplicate candidates to review before governed dataset acceptance.",
       "source": {
-        "line": 170,
+        "line": 175,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1256,7 +1265,7 @@
       "priority": "P0",
       "requirement": "Source values, filenames, worksheet cells, comments, OCR text, metadata, and evidence shall be treated as untrusted data and isolated from system/developer instructions; content shall not authorize tools, queries, canvas mutations, publication, or egress.",
       "source": {
-        "line": 171,
+        "line": 176,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1265,7 +1274,7 @@
       "priority": "P0",
       "requirement": "Workspace AI/egress policy shall specify permitted adapter, locality, metadata, samples, result rows, evidence, retention, and purpose; provider failure or disablement shall not prevent deterministic ETL, saved dashboard viewing, or typed manual analysis.",
       "source": {
-        "line": 172,
+        "line": 177,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1274,7 +1283,7 @@
       "priority": "P0",
       "requirement": "Intake, ETL proposals/acceptance, dataset registration, analyst plans/executions, canvas proposals/acceptance, refreshes, publication, sharing, downloads, evidence access, projection transfer, OCR review, and administrative changes shall be audited by the owning services with content-safe summaries.",
       "source": {
-        "line": 173,
+        "line": 178,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1283,7 +1292,7 @@
       "priority": "P0",
       "requirement": "IAE shall remain authoritative for originals, derivatives, rejected-row bundles, materialized result bytes, snapshots, retention, legal hold, deletion, and recovery; DDA may add a retention constraint but shall not delete IAE content directly.",
       "source": {
-        "line": 174,
+        "line": 179,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1292,7 +1301,7 @@
       "priority": "P1",
       "requirement": "Users shall compare two compatible dashboard snapshots and see changed inputs, transformations, quality dimensions, metrics, filters, widgets, and absolute/percentage/contribution result changes with declared null/zero behavior.",
       "source": {
-        "line": 175,
+        "line": 180,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1301,7 +1310,7 @@
       "priority": "P1",
       "requirement": "Dashboard templates shall support reusable page/widget/filter patterns without embedding another workspace/project's data, secrets, permissions, or materialized results.",
       "source": {
-        "line": 176,
+        "line": 181,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1310,7 +1319,7 @@
       "priority": "P1",
       "requirement": "An authorized viewer shall export permission-filtered widget data, chart specifications, dashboard metadata, and a provenance manifest in open formats without gaining broader source access.",
       "source": {
-        "line": 177,
+        "line": 182,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1319,7 +1328,7 @@
       "priority": "P1",
       "requirement": "The system shall recommend related governed questions or visualizations using authorized metadata and prior typed results, but recommendations shall not imply a result before deterministic execution.",
       "source": {
-        "line": 178,
+        "line": 183,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1328,7 +1337,88 @@
       "priority": "P2",
       "requirement": "A future streaming extension may maintain continuously updated materializations only after a separate specification defines ordering, lateness, corrections, replay, windowing, capacity, cost, and snapshot-consistency behavior.",
       "source": {
-        "line": 179,
+        "line": 184,
+        "path": "docs/specs/features/data-to-dashboard-agent.md"
+      }
+    },
+    {
+      "id": "DDA-052",
+      "priority": "P0",
+      "requirement": "Every logical dataset shall expose a permission-filtered source catalog with opaque source ID, safe display label, type, version, status, health, transformations, refresh history, and authorized original/evidence action without transferring a Local path.",
+      "source": {
+        "line": 185,
+        "path": "docs/specs/features/data-to-dashboard-agent.md"
+      }
+    },
+    {
+      "id": "DDA-053",
+      "priority": "P0",
+      "requirement": "First-run preparation may create an automatically accepted version only under an approved `SAFE_NON_LOSSY` policy, with no omitted rows, no ambiguity, no incompatible drift, no blocked quality gate, complete before/after accounting, immutable original, reversible derived steps, and an immediately visible summary; all other plans shall remain review candidates.",
+      "source": {
+        "line": 186,
+        "path": "docs/specs/features/data-to-dashboard-agent.md"
+      }
+    },
+    {
+      "id": "DDA-054",
+      "priority": "P0",
+      "requirement": "An eligible accepted DatasetVersion may receive a private starter DashboardVersion from a deterministic allowlisted template without an AI call; AI-authored or shared-canvas changes shall remain proposals requiring confirmation.",
+      "source": {
+        "line": 187,
+        "path": "docs/specs/features/data-to-dashboard-agent.md"
+      }
+    },
+    {
+      "id": "DDA-055",
+      "priority": "P0",
+      "requirement": "Conversations shall be workspace-owned, permission-filtered, dataset-scoped records containing version-bound messages, bounded summaries, retrieved evidence references, context events, retention state, and audit history; history shall never embed unrestricted source content.",
+      "source": {
+        "line": 188,
+        "path": "docs/specs/features/data-to-dashboard-agent.md"
+      }
+    },
+    {
+      "id": "DDA-056",
+      "priority": "P0",
+      "requirement": "Opening an old conversation shall restore its recorded dataset/dashboard/filter context; old answers shall retain original provenance; a new request shall use the latest compatible authorized DatasetVersion only after recording and displaying a typed context-change event and shall never rewrite prior answers.",
+      "source": {
+        "line": 189,
+        "path": "docs/specs/features/data-to-dashboard-agent.md"
+      }
+    },
+    {
+      "id": "DDA-057",
+      "priority": "P0",
+      "requirement": "Versioned receipt/invoice and generic table extraction profiles shall declare supported media, page/pixel/cell/row/column bounds, output schema, confidence, evidence coordinates, validation, duplicate behavior, review policy, cost admission, and immutable original retention.",
+      "source": {
+        "line": 190,
+        "path": "docs/specs/features/data-to-dashboard-agent.md"
+      }
+    },
+    {
+      "id": "DDA-058",
+      "priority": "P0",
+      "requirement": "V1 DashboardSnapshot audiences shall be Owner, Workspace members, or Project members only; public, anonymous, bearer-link, and external guest resolution shall be rejected.",
+      "source": {
+        "line": 191,
+        "path": "docs/specs/features/data-to-dashboard-agent.md"
+      }
+    },
+    {
+      "id": "DDA-059",
+      "priority": "P0",
+      "requirement": "A Desktop folder can be Web-usable only through an explicitly consented Cloud or Hybrid projection whose preview declares original transfer, safe label metadata, bytes, classification, destination, and evidence consequences; `LOCAL` shall remain non-transferable.",
+      "source": {
+        "line": 192,
+        "path": "docs/specs/features/data-to-dashboard-agent.md"
+      }
+    },
+    {
+      "id": "DDA-060",
+      "priority": "P0",
+      "requirement": "The workspace agent may invoke only registered typed tools over authorized resource IDs; each tool shall resolve tenant scope server-side, enforce the independent agent grant, admit usage, return bounded structured results and evidence, and audit proposals or effects.",
+      "source": {
+        "line": 193,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
       }
     },
@@ -1887,6 +1977,15 @@
       "requirement": "Desktop shall implement DSO offline-package import through explicit user selection, isolated staging, full manifest/signature/recipient/workspace/purpose/policy/expiry/classification/hash verification, idempotent IAE placement/provisional-intake creation, content-safe receipt reconciliation, and quarantine on any mismatch; it shall not use cloud staging, live relay, or automatic peer discovery.",
       "source": {
         "line": 121,
+        "path": "docs/specs/platforms/desktop.md"
+      }
+    },
+    {
+      "id": "DSK-027",
+      "priority": "P0",
+      "requirement": "Desktop shall provide the V2 workbench with activity rail, source explorer, tabbed governed work area, context-aware docked agent, full Analysis view, and sync/engine/review status bar while retaining preload and IPC security.",
+      "source": {
+        "line": 122,
         "path": "docs/specs/platforms/desktop.md"
       }
     },
@@ -3137,7 +3236,7 @@
       "priority": "P0",
       "requirement": "Every user, organization, workspace, project, membership, service account, session, and device shall use a non-guessable stable UUID and store timestamps in UTC.",
       "source": {
-        "line": 132,
+        "line": 152,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3146,7 +3245,7 @@
       "priority": "P0",
       "requirement": "The server shall enforce organization, workspace, project, resource, action, and channel authorization on every request, stream subscription, job execution, sync mutation, download, export, and shared-link access.",
       "source": {
-        "line": 133,
+        "line": 153,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3155,7 +3254,7 @@
       "priority": "P0",
       "requirement": "Authorization shall deny by default and shall not trust role, tenant, or resource claims supplied outside a verified credential and server-side lookup.",
       "source": {
-        "line": 134,
+        "line": 154,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3164,7 +3263,7 @@
       "priority": "P0",
       "requirement": "The initial roles shall be Owner, Admin, Analyst, Operator, Approver, and Viewer; permission constants shall be versioned independently so bundles can expand without renaming roles.",
       "source": {
-        "line": 135,
+        "line": 155,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3173,7 +3272,7 @@
       "priority": "P0",
       "requirement": "Access tokens shall expire within 15 minutes; refresh tokens shall be rotating and single-use, and detected reuse shall revoke the token family.",
       "source": {
-        "line": 136,
+        "line": 156,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3182,7 +3281,7 @@
       "priority": "P0",
       "requirement": "Organization policy shall support required MFA for all members, privileged roles, or privileged actions, with WebAuthn or TOTP and one-time recovery codes.",
       "source": {
-        "line": 137,
+        "line": 157,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3191,7 +3290,7 @@
       "priority": "P0",
       "requirement": "Each organization enrollment on a Desktop or Android installation shall create a distinct asymmetric Device-identity key pair; private keys shall remain in the OS credential store and server records shall be independently and permanently revocable.",
       "source": {
-        "line": 138,
+        "line": 158,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3200,7 +3299,7 @@
       "priority": "P0",
       "requirement": "Membership removal, device revocation, account suspension, and ownership changes shall invalidate server-side and connected-client authorization within 60 seconds and reject newly authenticated operations immediately; an offline device receives no remote-wipe guarantee and its narrowly allowed cached authorization shall expire within 24 hours.",
       "source": {
-        "line": 139,
+        "line": 159,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3209,7 +3308,7 @@
       "priority": "P0",
       "requirement": "Resource lookup shall prove that the resource belongs to the evaluated workspace before a handler reads metadata or object bytes, preventing identifier-based tenant probing.",
       "source": {
-        "line": 140,
+        "line": 160,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3218,7 +3317,7 @@
       "priority": "P0",
       "requirement": "Invitations shall be single-use, hashed at rest, email-bound, scope-bound, role-bound, and expire in no more than seven days.",
       "source": {
-        "line": 141,
+        "line": 161,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3227,7 +3326,7 @@
       "priority": "P0",
       "requirement": "An organization shall always have at least one active Owner; the last Owner cannot leave or be removed without a completed transfer or organization deletion workflow.",
       "source": {
-        "line": 142,
+        "line": 162,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3236,7 +3335,7 @@
       "priority": "P0",
       "requirement": "Privileged actions shall require a step-up MFA assertion no older than 10 minutes and an immutable audit event containing actor, target, before/after summary, IP class, device, and correlation ID.",
       "source": {
-        "line": 143,
+        "line": 163,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3245,7 +3344,7 @@
       "priority": "P0",
       "requirement": "Service accounts shall be organization-owned, workspace-scoped, action-scoped, non-interactive, and authenticated with hashed rotating secrets or signed keys that show their last-use time.",
       "source": {
-        "line": 144,
+        "line": 164,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3254,7 +3353,7 @@
       "priority": "P1",
       "requirement": "Project membership may only narrow workspace access unless an explicit project guest policy grants access to that project alone; it shall never imply access to sibling projects.",
       "source": {
-        "line": 145,
+        "line": 165,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3263,7 +3362,7 @@
       "priority": "P1",
       "requirement": "Account recovery shall revoke all refresh-token families and require MFA re-enrollment confirmation before privileged actions resume.",
       "source": {
-        "line": 146,
+        "line": 166,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3272,7 +3371,7 @@
       "priority": "P1",
       "requirement": "User locale shall default to Vietnamese (`vi-VN`) while allowing English (`en`) per user without changing stored business values or audit semantics.",
       "source": {
-        "line": 147,
+        "line": 167,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3281,7 +3380,7 @@
       "priority": "P1",
       "requirement": "Client applications may use permission hints to hide controls, but all authoritative enforcement shall remain server-side.",
       "source": {
-        "line": 148,
+        "line": 168,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3290,7 +3389,7 @@
       "priority": "P1",
       "requirement": "Bulk membership and policy changes shall use idempotency keys, return per-item outcomes, and never partially apply an ownership transfer.",
       "source": {
-        "line": 149,
+        "line": 169,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3299,7 +3398,7 @@
       "priority": "P0",
       "requirement": "Every tenant-owned record and repository operation shall declare either organization or workspace scope, validate the complete tenant ancestry for nested resources, and reject optional, missing, or mismatched tenant filters before data access.",
       "source": {
-        "line": 150,
+        "line": 170,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3308,7 +3407,7 @@
       "priority": "P0",
       "requirement": "IAM shall issue versioned signed OfflineAuthorizationSnapshots bound to organization/workspace/project, principal, Device, security and authorization epochs, allowed action/resource scopes, policy revisions, issue time, expiry no later than 24 hours, and signer/key version; a snapshot shall not authorize approval, membership, security/data-mode/retention/billing policy change, deletion, cloud/external effects, or access broader than the last online decision, and every reconnect shall re-authorize current state.",
       "source": {
-        "line": 151,
+        "line": 171,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3317,7 +3416,43 @@
       "priority": "P0",
       "requirement": "IAM shall be the sole authority for DeviceIdentity ID, organization/user ownership, public key, enrollment challenge, activation status, security epoch, and permanent revocation; a revoked identity shall never reactivate, recovery shall create a new identity, and DSO shall reference the IAM identity without maintaining a second identity, key, or authoritative status.",
       "source": {
-        "line": 152,
+        "line": 172,
+        "path": "docs/specs/foundation/identity-workspaces-permissions.md"
+      }
+    },
+    {
+      "id": "IAM-022",
+      "priority": "P0",
+      "requirement": "Email/password registration shall use a six-digit OTP that expires in 10 minutes, permits five failed attempts, permits resend after 60 seconds, stores only protected challenge material, avoids account enumeration, and atomically activates the user, personal organization, personal workspace, Owner membership, and session after verification.",
+      "source": {
+        "line": 173,
+        "path": "docs/specs/foundation/identity-workspaces-permissions.md"
+      }
+    },
+    {
+      "id": "IAM-023",
+      "priority": "P0",
+      "requirement": "Access tokens shall remain at most 15 minutes; rotating refresh families shall expire after 30 days of Web inactivity and 180 days absolute, or 90 days of Desktop/Android inactivity and 365 days absolute; reuse, recovery, suspension, logout-all, device revocation, or compromise shall revoke the family; browser credentials shall remain `HttpOnly`, `Secure`, and `SameSite=Lax`.",
+      "source": {
+        "line": 174,
+        "path": "docs/specs/foundation/identity-workspaces-permissions.md"
+      }
+    },
+    {
+      "id": "IAM-024",
+      "priority": "P0",
+      "requirement": "Agent authority shall be an independent workspace-member grant with `NONE`, `ANALYZE`, `PROPOSE_CHANGES`, or `APPLY_CONFIRMED_CHANGES`; Viewer shall default to `NONE`; grants shall never expand dataset or action permission.",
+      "source": {
+        "line": 175,
+        "path": "docs/specs/foundation/identity-workspaces-permissions.md"
+      }
+    },
+    {
+      "id": "IAM-025",
+      "priority": "P0",
+      "requirement": "The normal UI shall expose Owner, Editor, and Viewer access presets while the six canonical server roles and versioned permission constants remain available to policy enforcement; preset mapping shall be explicit, versioned, and deny-by-default.",
+      "source": {
+        "line": 176,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -4361,7 +4496,7 @@
       "priority": "P0",
       "requirement": "Notifications shall be generated only from committed domain state through a transactional outbox and shall never be the authoritative record of the underlying action.",
       "source": {
-        "line": 85,
+        "line": 86,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -4370,7 +4505,7 @@
       "priority": "P0",
       "requirement": "Each notification intent shall use a deterministic recipient-scoped deduplication key and category-specific window so retries do not create duplicate alerts.",
       "source": {
-        "line": 86,
+        "line": 87,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -4379,7 +4514,7 @@
       "priority": "P0",
       "requirement": "Push, email, lock-screen, and Desktop notification payloads shall exclude sensitive source content, including file/client names, extracted values, evidence snippets, amounts, paths, and secrets.",
       "source": {
-        "line": 87,
+        "line": 88,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -4388,7 +4523,7 @@
       "priority": "P0",
       "requirement": "Notification creation, external delivery, live-stream subscription, deep-link opening, and protected detail read shall each enforce active membership and resource authorization.",
       "source": {
-        "line": 88,
+        "line": 89,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -4397,7 +4532,7 @@
       "priority": "P0",
       "requirement": "A mention shall not grant access; unauthorized or removed recipients shall receive no notification and shall not resolve the target resource.",
       "source": {
-        "line": 89,
+        "line": 90,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -4406,7 +4541,7 @@
       "priority": "P0",
       "requirement": "User preferences shall be applied per organization/workspace, category, urgency, and channel, with locale-aware quiet hours and digest schedules.",
       "source": {
-        "line": 90,
+        "line": 91,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -4415,7 +4550,7 @@
       "priority": "P0",
       "requirement": "Mandatory security, ownership, data-loss-risk, and access-suspension notices may not be disabled, but shall still use content-minimized templates.",
       "source": {
-        "line": 91,
+        "line": 92,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -4424,7 +4559,7 @@
       "priority": "P0",
       "requirement": "Comments shall be tenant- and resource-scoped, versioned on edit, tombstoned on removal, and recorded with author, timestamps, and audit correlation.",
       "source": {
-        "line": 92,
+        "line": 93,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -4433,7 +4568,7 @@
       "priority": "P0",
       "requirement": "Evidence-anchored comments shall reference a valid `IAE` EvidenceReference and preserve the referenced ArtifactVersion even when newer versions exist.",
       "source": {
-        "line": 93,
+        "line": 94,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -4442,7 +4577,7 @@
       "priority": "P0",
       "requirement": "Notification actions such as approve, assign, or retry shall deep-link to the application; no external notification button shall perform the privileged action without authenticated re-authorization and applicable MFA.",
       "source": {
-        "line": 94,
+        "line": 95,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -4451,7 +4586,7 @@
       "priority": "P0",
       "requirement": "Membership removal, device revocation, or resource-access loss shall suppress unsent deliveries and make prior deep links return a non-disclosing denial.",
       "source": {
-        "line": 95,
+        "line": 96,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -4460,7 +4595,7 @@
       "priority": "P1",
       "requirement": "In-app notification states shall be `UNREAD`, `READ`, `ARCHIVED`, or `DISMISSED`; state changes shall synchronize idempotently per user without changing underlying work state.",
       "source": {
-        "line": 96,
+        "line": 97,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -4469,7 +4604,7 @@
       "priority": "P1",
       "requirement": "Threads shall support reply, resolve/reopen, reaction, and assignment reference while preserving immutable event history.",
       "source": {
-        "line": 97,
+        "line": 98,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -4478,7 +4613,7 @@
       "priority": "P1",
       "requirement": "Notification bundles shall update an existing notification count and last-occurrence time within the deduplication window instead of emitting one alert per event.",
       "source": {
-        "line": 98,
+        "line": 99,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -4487,7 +4622,7 @@
       "priority": "P1",
       "requirement": "Approval/review reminders shall be preference-aware within policy bounds, stop after resolution or invalidation, and be limited to one initial, one due-soon, and one overdue delivery unless policy explicitly escalates.",
       "source": {
-        "line": 99,
+        "line": 100,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -4496,7 +4631,7 @@
       "priority": "P1",
       "requirement": "Email and push provider webhooks shall be signature-verified, idempotent, and limited to delivery metadata; they shall not mutate domain decisions.",
       "source": {
-        "line": 100,
+        "line": 101,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -4505,7 +4640,7 @@
       "priority": "P1",
       "requirement": "Vietnamese shall be the default notification locale with English fallback; templates shall use stable message keys and sanitized parameters.",
       "source": {
-        "line": 101,
+        "line": 102,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -4514,7 +4649,7 @@
       "priority": "P1",
       "requirement": "Workspace administrators shall be able to configure allowed external channels and retention without reading private notification content beyond authorized resources.",
       "source": {
-        "line": 102,
+        "line": 103,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -4523,7 +4658,7 @@
       "priority": "P1",
       "requirement": "Offline comment, read-state, and dismissal operations shall use stable operation IDs and explicit conflict rules from `DSO`.",
       "source": {
-        "line": 103,
+        "line": 104,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -4532,7 +4667,7 @@
       "priority": "P1",
       "requirement": "The system shall provide accessible, filterable notification and thread views with pagination and no reliance on color or sound alone.",
       "source": {
-        "line": 104,
+        "line": 105,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },
@@ -5955,6 +6090,15 @@
       "requirement": "For `LOCAL` evidence, Web shall show an open-on-source-device action and explicit device availability; it shall not request or display a live source-derived relay unless the user first publishes a governed Hybrid/Cloud derivative.",
       "source": {
         "line": 116,
+        "path": "docs/specs/platforms/web.md"
+      }
+    },
+    {
+      "id": "WEB-024",
+      "priority": "P0",
+      "requirement": "The signed-in product shall expose exactly three primary destinations (`Bảng điều khiển`, `Phân tích`, and `Dữ liệu`) and use one shared workspace-agent store, with the compact agent on Dashboard/Data and the full thread/history surface in Analysis.",
+      "source": {
+        "line": 117,
         "path": "docs/specs/platforms/web.md"
       }
     }

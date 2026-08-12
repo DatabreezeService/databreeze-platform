@@ -3,7 +3,7 @@
 | Metadata | Value |
 |---|---|
 | Status | Product specification |
-| Version | 1.0 |
+| Version | 1.1 |
 | Requirement prefix | `AND` |
 | Dependencies | `IAM`, `IAE`, `JRA`, `DSO`, `DSM`, `INT`, `NCO`, `BUA`, and `AUD` foundation specifications; Android consumes governed definitions/results, safe integration status, and audit contracts through published foundation or typed feature APIs |
 
@@ -112,6 +112,7 @@ Push displays generic localized text such as “A review needs attention.” The
 | AND-021 | P1 | Background execution shall comply with Android limits, use foreground services only for user-visible capture or policy-compliant long transfer, and never run hidden continuous polling. |
 | AND-022 | P1 | The app shall expose content-redacted diagnostics, sync status, app/protocol version, device revocation state, and safe recovery/export guidance. |
 | AND-023 | P0 | Android shall implement the DSO user-mediated offline-package exporter for strict-Local handoff: explicit item/destination/purpose consent, source Device signature, authenticated encryption and destination key/passphrase envelope, exact manifest/hash/expiry, OS-selected user transfer, content-safe receipt state, and zero cloud upload, live relay, background peer discovery, or unregistered destination. |
+| AND-024 | P0 | Android shall support user-initiated receipt/invoice/table capture, uncertain-field review, logical-dataset selection, responsive dashboard viewing, evidence drill-down, and permitted agent analysis without complex canvas authoring. |
 
 ## Domain and data contracts
 
@@ -267,6 +268,8 @@ Only finalized, policy-permitted domain events synchronize through foundation co
 - Compose UI tests cover Vietnamese/English, TalkBack semantics, switch/keyboard navigation, 200% font, dark/high-contrast themes, loading/error/offline states, and rotation/process recreation.
 - Room migration tests upgrade from every supported production schema and verify account/workspace isolation.
 - WorkManager tests simulate duplicate scheduling, process death, reboot, network loss, token expiry, constraint changes, quota denial, revocation, and lost acknowledgement.
+- Capture-profile tests cover receipt, invoice, and table profiles, uncertain-field review, logical-dataset selection before acceptance, dashboard drill-down, and Viewer agent denial.
+- Instrumented tests cover CameraX capture, encrypted staging, App Links, secure windows, Keystore failure, share-intent staging, and offline-package export handoff.
 - CameraX device tests cover rotation, low light, blur/glare warning, multi-page reorder/retake, storage pressure, permissions, and immutable original/derived output.
 - Share tests use hostile/missing grants, spoofed MIME, oversized streams, slow providers, disappearing URIs, multiple items, filenames with control characters, and cross-profile content.
 - Strict-Local package tests verify explicit consent, destination and purpose binding, signatures/encryption/hashes/expiry, OS-selected transfer, process death, cleanup disclosure, and network capture proving no package byte reaches DataBreeze endpoints or a live peer relay.

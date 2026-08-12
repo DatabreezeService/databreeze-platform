@@ -3,13 +3,13 @@
 | Metadata | Value |
 |---|---|
 | Status | Product specification |
-| Version | 1.0 |
+| Version | 1.1 |
 | Requirement prefix | `DSM` |
 | Dependencies | `IAM` Identity, Workspaces, and Permissions; `IAE` Inbox, Artifacts, and Evidence; `JRA` Jobs, Recipes, and Approvals; `DSO` Devices, Synchronization, and Offline Operation; `BUA` Billing, Usage, and Administration |
 
 ## Purpose
 
-Define the shared governed-data model used by DataBreeze modules for datasets, schemas, semantic and metric definitions, deterministic rules, mappings, profiling, validation, and lineage. This foundation gives local and cloud processors the same versioned contracts while preserving immutable inputs, evidence, tenant isolation, data-location policy, and reproducibility.
+Define the shared governed-data model used by DataBreeze modules for datasets, schemas, semantic and metric definitions, deterministic rules, mappings, profiling, validation, and lineage. This foundation gives local and cloud processors the same versioned contracts while preserving immutable inputs, evidence, tenant isolation, data-location policy, and reproducibility. Automatic first-run preparation under DDA `SAFE_NON_LOSSY` may create an accepted DatasetVersion only when DDA-053 conditions hold; DSM remains the logical-dataset and DatasetVersion authority.
 
 `IAE` remains authoritative for artifacts, artifact versions, dataset snapshots, evidence references, storage locators, and retention. `JRA` remains authoritative for typed execution, durable job state, retry, review, and approval. This specification governs the definitions and result manifests those foundations carry.
 

@@ -3,7 +3,7 @@
 | Metadata | Value |
 |---|---|
 | Status | Product specification |
-| Version | 1.0 |
+| Version | 1.1 |
 | Requirement prefix | `NCO` |
 | Dependencies | `IAM` Identity, Workspaces, and Permissions; `IAE` Inbox, Artifacts, and Evidence; `JRA` Jobs, Recipes, and Approvals; `DSO` Devices, Synchronization, and Offline Operation |
 
@@ -28,6 +28,7 @@ Define secure, deduplicated, preference-aware notifications and contextual colla
 - Using notifications as the source of truth for approvals, jobs, assignments, or audit history.
 - Allowing preferences to suppress account-security, data-loss, or billing-access notices that policy marks mandatory.
 - Guaranteeing delivery by third-party push or email providers.
+- Wiring Slack or Discord as V1 notification or agent channels; those integrations remain deferred.
 
 ## Concepts and components
 

@@ -3,7 +3,7 @@
 | Metadata | Value |
 |---|---|
 | Status | Product specification |
-| Version | 1.0 |
+| Version | 1.1 |
 | Requirement prefix | `IAM` |
 | Dependencies | Platform architecture baseline; all other specifications depend on this specification |
 
@@ -19,7 +19,8 @@ Define the identity, tenant hierarchy, membership, session, device identity, and
 - The hierarchy `User -> Organization -> Workspace -> Project/Client`.
 - Membership lifecycle, initial roles, resource-level authorization, and policy evaluation.
 - Invitation, ownership transfer, account deactivation, and tenant-safe audit records.
-- Authentication through passwordless email or configured OIDC providers without coupling the domain model to one provider.
+- Authentication through email/password with six-digit OTP verification, Google OIDC, and configured OIDC providers without coupling the domain model to one provider.
+- Customer-visible Owner/Editor/Viewer access presets and independent workspace agent grants that never expand dataset or action permission.
 
 ### Non-goals
 
@@ -55,6 +56,10 @@ Define the identity, tenant hierarchy, membership, session, device identity, and
 
 Roles are permission bundles, not authorization decisions. Every request also requires an active membership, matching organization/workspace/project scope, resource visibility, data-mode compatibility, and applicable policy conditions.
 
+The normal customer UI exposes Owner, Editor, and Viewer access presets. Those presets map to the six canonical server roles and versioned permission constants. Preset mapping is explicit, versioned, and deny-by-default. Presets are presentation metadata; the six server roles remain the policy-enforcement vocabulary.
+
+Workspace agent authority is an independent member grant with levels `NONE`, `ANALYZE`, `PROPOSE_CHANGES`, and `APPLY_CONFIRMED_CHANGES`. Viewer defaults to `NONE`. A grant never expands dataset or action permission beyond the member's current authority.
+
 ### Authentication and authorization services
 
 - **Identity service:** account records, identities, recovery, and security state.
@@ -68,15 +73,30 @@ Roles are permission bundles, not authorization decisions. Every request also re
 
 ## Subsystem workflows
 
+### Email/password registration with OTP
+
+1. The client submits email, password, and password confirmation. Public responses never disclose whether the email already owns an account.
+2. The server creates a bounded unverified registration challenge and delivers a six-digit OTP. Only protected challenge material is stored.
+3. The OTP expires in 10 minutes, permits five failed attempts, and may be resent after 60 seconds.
+4. Successful verification atomically activates the user, personal organization, personal workspace, Owner membership, and a refresh family, then signs the user in.
+5. Unverified registrations expire and are removed according to the declared retention policy.
+
+### Google OIDC linking
+
+1. Google Authorization Code with PKCE returns a provider-verified issuer, subject, normalized email, email-verification flag, and authentication time. Provider access tokens never reach clients.
+2. A verified Google email that matches an existing password identity requires a current authenticated session, correct password, or valid email OTP before link creation.
+3. The server never merges accounts silently.
+
 ### Sign-in and session rotation
 
 1. The client authenticates with an enabled identity method.
 2. The server evaluates account state, organization MFA policy, risk signals, and requested scope.
-3. After required MFA, the server issues a 15-minute access token and a single-use refresh token in a server-tracked token family.
+3. After required MFA, the server issues an access token of at most 15 minutes and a single-use refresh token in a server-tracked token family.
 4. Refresh rotates both tokens. Reuse of an already-consumed refresh token revokes the entire family and records a security event.
-5. Interactive sessions expire after 12 hours of inactivity and 30 days absolute. A step-up MFA assertion is valid for 10 minutes for ownership transfer, data deletion, key management, billing changes, and security-policy changes.
+5. Web refresh families expire after 30 days of inactivity and 180 days absolute. Desktop and Android refresh families expire after 90 days of inactivity and 365 days absolute. Recovery, suspension, logout-all, device revocation, or compromise revokes the family.
+6. A step-up MFA assertion is valid for 10 minutes for ownership transfer, data deletion, key management, billing changes, and security-policy changes.
 
-Browser refresh credentials use `HttpOnly`, `Secure`, and `SameSite=Lax` cookies. Desktop and Android refresh credentials are bound to a registered device and stored only in the OS credential vault or Keystore.
+Browser refresh credentials use `HttpOnly`, `Secure`, and `SameSite=Lax` cookies. Desktop and Android refresh credentials are bound to a registered device and stored only in the OS credential vault or Keystore. There is no Keep me signed in checkbox; persistent appearance follows the refresh-family policy above.
 
 ### Device identity enrollment and revocation
 
@@ -150,6 +170,10 @@ The evaluated tenant identifiers come from trusted server-side resource lookup; 
 | IAM-019 | P0 | Every tenant-owned record and repository operation shall declare either organization or workspace scope, validate the complete tenant ancestry for nested resources, and reject optional, missing, or mismatched tenant filters before data access. |
 | IAM-020 | P0 | IAM shall issue versioned signed OfflineAuthorizationSnapshots bound to organization/workspace/project, principal, Device, security and authorization epochs, allowed action/resource scopes, policy revisions, issue time, expiry no later than 24 hours, and signer/key version; a snapshot shall not authorize approval, membership, security/data-mode/retention/billing policy change, deletion, cloud/external effects, or access broader than the last online decision, and every reconnect shall re-authorize current state. |
 | IAM-021 | P0 | IAM shall be the sole authority for DeviceIdentity ID, organization/user ownership, public key, enrollment challenge, activation status, security epoch, and permanent revocation; a revoked identity shall never reactivate, recovery shall create a new identity, and DSO shall reference the IAM identity without maintaining a second identity, key, or authoritative status. |
+| IAM-022 | P0 | Email/password registration shall use a six-digit OTP that expires in 10 minutes, permits five failed attempts, permits resend after 60 seconds, stores only protected challenge material, avoids account enumeration, and atomically activates the user, personal organization, personal workspace, Owner membership, and session after verification. |
+| IAM-023 | P0 | Access tokens shall remain at most 15 minutes; rotating refresh families shall expire after 30 days of Web inactivity and 180 days absolute, or 90 days of Desktop/Android inactivity and 365 days absolute; reuse, recovery, suspension, logout-all, device revocation, or compromise shall revoke the family; browser credentials shall remain `HttpOnly`, `Secure`, and `SameSite=Lax`. |
+| IAM-024 | P0 | Agent authority shall be an independent workspace-member grant with `NONE`, `ANALYZE`, `PROPOSE_CHANGES`, or `APPLY_CONFIRMED_CHANGES`; Viewer shall default to `NONE`; grants shall never expand dataset or action permission. |
+| IAM-025 | P0 | The normal UI shall expose Owner, Editor, and Viewer access presets while the six canonical server roles and versioned permission constants remain available to policy enforcement; preset mapping shall be explicit, versioned, and deny-by-default. |
 
 ## Domain and data contracts
 
@@ -287,6 +311,11 @@ Events use the transactional outbox and contain tenant identifiers, entity revis
 - A matrix test covers every role against representative organization, workspace, project, artifact, job, approval, billing, and device actions.
 - Tenant-isolation tests attempt direct identifiers, nested route mismatches, batch requests, exports, object URLs, event subscriptions, and sync mutations across two organizations.
 - Session tests prove rotation, replay-family revocation, logout, expiry, account recovery, and device revocation.
+- OTP registration tests cover six-digit codes, 10-minute expiry, five failed attempts, 60-second resend, protected challenge storage, generic public responses, and atomic personal workspace activation.
+- OIDC linking tests cover Google nonce/PKCE verification and denial of silent merge for an existing password identity.
+- Refresh-family tests cover Web 30/180-day and Desktop/Android 90/365-day inactivity/absolute policies plus reuse revocation.
+- Access-preset tests prove Owner/Editor/Viewer map to explicit versioned bundles without replacing the six server roles.
+- Agent-grant tests prove Viewer defaults to `NONE`, grants never expand dataset/action permission, and cross-workspace member IDs resolve as not found.
 - MFA tests cover mandatory enrollment, step-up expiry, recovery-code single use, and policy changes.
 - Property tests prove no narrower membership expands access and no project grant reaches a sibling project.
 - Offline-snapshot tests cover schema/signature/key rotation, another principal/Device/workspace/project, security and authorization epoch change, resource/action overreach, clock rollback, 24-hour expiry, and denial of approval, membership/policy/billing/deletion, cloud, or external effects.

@@ -3,7 +3,7 @@
 | Metadata | Value |
 |---|---|
 | Status | Product specification |
-| Version | 1.0 |
+| Version | 1.1 |
 | Requirement prefix | `DSK` |
 | Dependencies | `IAM`, `IAE`, `JRA`, `DSO`, `DSM`, `INT`, `NCO`, `BUA`, and `AUD` foundation specifications; Desktop consumes governed definitions/results, gateway/integration status, and audit contracts through published foundation or typed feature APIs |
 
@@ -119,6 +119,7 @@ The updater downloads a manifest over TLS, verifies a pinned DataBreeze release 
 | DSK-024 | P0 | Offline recipe work shall use `JRA` ProvisionalExecution records with client execution IDs, signed cached definitions, valid offline leases, immutable manifests, and no canonical Job/approval claim; server acceptance shall create at most one canonical Job and rejection shall quarantine the local result. |
 | DSK-025 | P0 | Before offline recipe execution, Desktop shall verify the complete JRA RecipePublicationEnvelope, workspace/recipe version and hash, referenced action handler/input/output schema hashes, DSM definition hashes, policy references, supported envelope schema, signer/key version, signature, and offline-validity time; encrypted cache storage alone shall never satisfy authenticity. |
 | DSK-026 | P0 | Desktop shall implement DSO offline-package import through explicit user selection, isolated staging, full manifest/signature/recipient/workspace/purpose/policy/expiry/classification/hash verification, idempotent IAE placement/provisional-intake creation, content-safe receipt reconciliation, and quarantine on any mismatch; it shall not use cloud staging, live relay, or automatic peer discovery. |
+| DSK-027 | P0 | Desktop shall provide the V2 workbench with activity rail, source explorer, tabbed governed work area, context-aware docked agent, full Analysis view, and sync/engine/review status bar while retaining preload and IPC security. |
 
 ## Domain and data contracts
 
@@ -265,6 +266,7 @@ Only content-safe subsets synchronize. Raw paths and source details remain local
 - Sidecar tests cover framing, schema mismatch, wrong attempt, corrupted output, timeout, cancellation, process-tree kill, resource limit, and scrubbed environment.
 - Network capture proves `LOCAL` forbidden classes and raw paths never leave Desktop.
 - Offline-package tests cover isolated staging, signature/recipient/workspace/purpose/policy/expiry/hash verification, duplicate import, crash recovery, server quarantine, temporary cleanup, and zero cloud/live-relay bytes.
+- V2 workbench tests cover activity rail, source explorer, tabbed work area, docked agent, Analysis full view, status bar, keyboard flow, high contrast, reduced motion, and 200 percent Windows scaling.
 - End-to-end tests cover enrollment, folder grant, local intake, provisional offline execution, idempotent canonical registration or rejection on reconnect, evidence, review, online approval, file-effect preview/apply/undo, revocation, and update rollback.
 - Installer/update tests verify signature and hash failures, downgrade rejection, interrupted install, database migration rollback, and non-admin per-user installation.
 - Accessibility tests run with keyboard, Narrator, high contrast, 125-200% scaling, and reduced motion in Vietnamese and English.
