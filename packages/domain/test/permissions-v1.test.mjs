@@ -178,3 +178,30 @@ test('[IAM-003, IAM-004] administration roles do not bypass approval policy', as
   assert.equal(api.roleHasPermissionV1('admin', 'approval.decision.create'), false);
   assert.equal(api.roleHasPermissionV1('approver', 'approval.decision.create'), true);
 });
+
+test('[IAM-024, IAM-025] publishes versioned access presets and monotonic agent grant levels', async () => {
+  const api = await loadPermissions();
+  assert.ok(api);
+
+  assert.deepEqual([...api.MEMBERSHIP_ACCESS_PRESETS_V1], ['OWNER', 'EDITOR', 'VIEWER']);
+  assert.equal(api.ACCESS_PRESET_MAPPINGS_V1.OWNER.roleId, 'owner');
+  assert.equal(api.ACCESS_PRESET_MAPPINGS_V1.EDITOR.roleId, 'analyst');
+  assert.equal(api.ACCESS_PRESET_MAPPINGS_V1.VIEWER.roleId, 'viewer');
+  assert.ok(
+    api.ACCESS_PRESET_MAPPINGS_V1.EDITOR.permissions.includes('project.record.manage'),
+  );
+  assert.equal(
+    api.ACCESS_PRESET_MAPPINGS_V1.EDITOR.permissions.includes('billing.account.manage'),
+    false,
+  );
+  assert.deepEqual(api.AGENT_LEVEL_ORDER_V1, {
+    NONE: 0,
+    ANALYZE: 1,
+    PROPOSE_CHANGES: 2,
+    APPLY_CONFIRMED_CHANGES: 3,
+  });
+  assert.equal(api.defaultAgentGrantLevelForPresetV1('VIEWER'), 'NONE');
+  assert.equal(api.defaultAgentGrantLevelForPresetV1('EDITOR'), 'ANALYZE');
+  assert.equal(api.maxAgentGrantLevelForPresetV1('VIEWER'), 'ANALYZE');
+  assert.equal(api.lesserAgentGrantLevelV1('APPLY_CONFIRMED_CHANGES', 'ANALYZE'), 'ANALYZE');
+});

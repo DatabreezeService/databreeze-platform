@@ -1,3 +1,7 @@
+import {
+  accessPresetForRoleIdV1,
+  type MembershipAccessPresetV1,
+} from '@databreeze/domain/permissions/v1';
 import { tenantScopeContainsV1, type StableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { IamMembershipRecordV1 } from './iam-repository.port.js';
@@ -27,4 +31,11 @@ export function selectAuthoritativeMembership(
         scopeSpecificity(right.scope) - scopeSpecificity(left.scope) ||
         left.id.localeCompare(right.id),
     )[0];
+}
+
+/** IAM-025: attach customer-visible preset metadata without changing the server role decision. */
+export function membershipAccessPresetV1(
+  membership: IamMembershipRecordV1,
+): MembershipAccessPresetV1 | undefined {
+  return accessPresetForRoleIdV1(membership.roleId);
 }

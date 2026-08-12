@@ -7,6 +7,8 @@ import {
   type MembershipIdentityV1,
 } from '@databreeze/domain/identity/v1';
 import {
+  ACCESS_PRESET_MAPPINGS_V1,
+  isMembershipAccessPresetV1,
   PERMISSIONS_V1,
   roleHasPermissionV1,
   type PermissionV1,
@@ -24,6 +26,7 @@ import type {
   IamRepositoryPortV1,
   IamTransactionPortV1,
 } from './iam-repository.port.js';
+import { membershipAccessPresetV1 } from './membership-authority.js';
 import type { IamTenantContextV1 } from './tenant-context.js';
 
 export const IAM_MEMBERSHIP_SERVICE = Symbol('IAM_MEMBERSHIP_SERVICE');
@@ -48,6 +51,7 @@ export interface IamMembershipInviteInputV1 {
   readonly principalId: unknown;
   readonly scope: unknown;
   readonly roleId: unknown;
+  readonly accessPreset?: unknown;
 }
 
 export type IamMembershipIdGeneratorV1 = () => string;
@@ -166,10 +170,17 @@ export class IamMembershipService {
     if (!principalId.accepted) return rejected(principalId.code);
     const scope = parseScope(input.scope);
     if (!scope.accepted) return rejected(scope.code);
+    let roleId = input.roleId;
+    if (input.accessPreset !== undefined) {
+      if (!isMembershipAccessPresetV1(input.accessPreset)) return rejected('INVALID_ROLE');
+      const mapped = ACCESS_PRESET_MAPPINGS_V1[input.accessPreset].roleId;
+      if (input.roleId !== undefined && input.roleId !== mapped) return rejected('INVALID_ROLE');
+      roleId = mapped;
+    }
     const authorization = await this.authorize(context, scope.value);
     if (authorization !== 'ALLOWED')
       return rejected(authorization === 'UNAVAILABLE' ? 'UNAVAILABLE' : 'SCOPE_DENIED');
-    if (input.roleId === 'owner') {
+    if (roleId === 'owner') {
       if (scope.value.scopeType !== 'organization') return rejected('INVALID_STATE');
       try {
         const actor = await this.repository.findMembership(context, context.actorId);
@@ -194,7 +205,7 @@ export class IamMembershipService {
       principalType: 'USER',
       principalId: principalId.value,
       scope: scope.value,
-      roleId: input.roleId,
+      roleId,
       status: 'INVITED',
       startsAt: startedAt,
       expiresAt,
@@ -391,6 +402,64 @@ export class IamMembershipService {
         const mutationContext = Object.freeze({ ...context, expectedRevision: current.revision });
         await transaction.saveMembership(mutationContext, next);
         return accepted(next);
+      });
+    } catch (error) {
+      return rejected(applicationError(error));
+    }
+  }
+
+  /** IAM-025: change the customer-visible access preset by remapping to a canonical server role. */
+  public async setAccessPreset(
+    context: IamTenantContextV1,
+    membershipIdInput: unknown,
+    accessPresetInput: unknown,
+    expectedRevisionInput: unknown,
+  ): Promise<
+    IamMembershipApplicationResultV1<
+      IamMembershipRecordV1 & { readonly accessPreset: NonNullable<ReturnType<typeof membershipAccessPresetV1>> }
+    >
+  > {
+    const membershipId = parseId(membershipIdInput);
+    if (!membershipId.accepted) return rejected(membershipId.code);
+    if (!isMembershipAccessPresetV1(accessPresetInput)) return rejected('INVALID_ROLE');
+    if (
+      typeof expectedRevisionInput !== 'number' ||
+      !Number.isSafeInteger(expectedRevisionInput) ||
+      expectedRevisionInput < 1
+    )
+      return rejected('CONFLICT');
+    const mappedRoleId = ACCESS_PRESET_MAPPINGS_V1[accessPresetInput].roleId;
+    try {
+      return await this.repository.withTransaction(context, async (transaction) => {
+        const current = (await transaction.listMemberships(context)).find(
+          (membership) => membership.id === membershipId.value,
+        );
+        if (!current) return rejected('NOT_FOUND');
+        const authorization = await this.authorize(
+          context,
+          current.scope,
+          permissionFor(current.scope),
+          transaction,
+        );
+        if (authorization !== 'ALLOWED')
+          return rejected(authorization === 'UNAVAILABLE' ? 'UNAVAILABLE' : 'SCOPE_DENIED');
+        if (current.revision !== expectedRevisionInput) return rejected('CONFLICT');
+        if (mappedRoleId === 'owner' && current.scope.scopeType !== 'organization') {
+          return rejected('INVALID_STATE');
+        }
+        const next: IamMembershipRecordV1 = Object.freeze({
+          ...current,
+          roleId: mappedRoleId,
+          revision: current.revision + 1,
+        });
+        const mutationContext = Object.freeze({ ...context, expectedRevision: current.revision });
+        await transaction.saveMembership(mutationContext, next);
+        return accepted(
+          Object.freeze({
+            ...next,
+            accessPreset: accessPresetInput,
+          }),
+        );
       });
     } catch (error) {
       return rejected(applicationError(error));

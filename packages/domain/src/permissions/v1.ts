@@ -273,3 +273,106 @@ export function roleHasPermissionV1(roleId: unknown, permission: unknown): boole
 
   return INITIAL_ROLE_BUNDLES_V1[roleId].permissions.includes(permission);
 }
+
+/**
+ * IAM-025: customer-visible access presets. Presentation metadata only; authorization
+ * still uses the six canonical server roles and versioned permission constants.
+ */
+export const MEMBERSHIP_ACCESS_PRESETS_V1 = Object.freeze(['OWNER', 'EDITOR', 'VIEWER'] as const);
+
+export type MembershipAccessPresetV1 = (typeof MEMBERSHIP_ACCESS_PRESETS_V1)[number];
+
+const accessPresetSet = new Set<MembershipAccessPresetV1>(MEMBERSHIP_ACCESS_PRESETS_V1);
+
+export function isMembershipAccessPresetV1(value: unknown): value is MembershipAccessPresetV1 {
+  return typeof value === 'string' && accessPresetSet.has(value as MembershipAccessPresetV1);
+}
+
+const editorPermissions = Object.freeze(
+  Array.from(
+    new Set<PermissionV1>([
+      ...INITIAL_ROLE_BUNDLES_V1.analyst.permissions,
+      PERMISSIONS_V1.PROJECT_RECORD_MANAGE,
+    ]),
+  ),
+);
+
+export interface AccessPresetMappingV1 {
+  readonly preset: MembershipAccessPresetV1;
+  readonly roleId: InitialRoleIdV1;
+  readonly permissions: readonly PermissionV1[];
+}
+
+export const ACCESS_PRESET_MAPPINGS_V1: Readonly<
+  Record<MembershipAccessPresetV1, AccessPresetMappingV1>
+> = Object.freeze({
+  OWNER: Object.freeze({
+    preset: 'OWNER',
+    roleId: 'owner',
+    permissions: INITIAL_ROLE_BUNDLES_V1.owner.permissions,
+  }),
+  EDITOR: Object.freeze({
+    preset: 'EDITOR',
+    roleId: 'analyst',
+    permissions: editorPermissions,
+  }),
+  VIEWER: Object.freeze({
+    preset: 'VIEWER',
+    roleId: 'viewer',
+    permissions: INITIAL_ROLE_BUNDLES_V1.viewer.permissions,
+  }),
+});
+
+export function accessPresetForRoleIdV1(roleId: unknown): MembershipAccessPresetV1 | undefined {
+  if (!isRoleIdV1(roleId)) return undefined;
+  if (roleId === 'owner') return 'OWNER';
+  if (roleId === 'analyst') return 'EDITOR';
+  if (roleId === 'viewer') return 'VIEWER';
+  return undefined;
+}
+
+/** IAM-024: closed agent grant levels with monotonic order for lesser-of comparisons. */
+export const AGENT_GRANT_LEVELS_V1 = Object.freeze([
+  'NONE',
+  'ANALYZE',
+  'PROPOSE_CHANGES',
+  'APPLY_CONFIRMED_CHANGES',
+] as const);
+
+export type AgentGrantLevelV1 = (typeof AGENT_GRANT_LEVELS_V1)[number];
+
+export const AGENT_LEVEL_ORDER_V1 = Object.freeze({
+  NONE: 0,
+  ANALYZE: 1,
+  PROPOSE_CHANGES: 2,
+  APPLY_CONFIRMED_CHANGES: 3,
+} as const);
+
+const agentLevelSet = new Set<AgentGrantLevelV1>(AGENT_GRANT_LEVELS_V1);
+
+export function isAgentGrantLevelV1(value: unknown): value is AgentGrantLevelV1 {
+  return typeof value === 'string' && agentLevelSet.has(value as AgentGrantLevelV1);
+}
+
+export function lesserAgentGrantLevelV1(
+  left: AgentGrantLevelV1,
+  right: AgentGrantLevelV1,
+): AgentGrantLevelV1 {
+  return AGENT_LEVEL_ORDER_V1[left] <= AGENT_LEVEL_ORDER_V1[right] ? left : right;
+}
+
+/**
+ * IAM-024: Viewer agent capacity tops at ANALYZE; Owner/Editor may reach APPLY after confirmation.
+ * Grants never expand dataset or action permission beyond the member's access preset.
+ */
+export function maxAgentGrantLevelForPresetV1(
+  preset: MembershipAccessPresetV1,
+): AgentGrantLevelV1 {
+  return preset === 'VIEWER' ? 'ANALYZE' : 'APPLY_CONFIRMED_CHANGES';
+}
+
+export function defaultAgentGrantLevelForPresetV1(
+  preset: MembershipAccessPresetV1,
+): AgentGrantLevelV1 {
+  return preset === 'VIEWER' ? 'NONE' : 'ANALYZE';
+}

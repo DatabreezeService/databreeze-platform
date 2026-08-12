@@ -39,6 +39,7 @@ import {
   AcceptMembershipDto,
   InviteMembershipDto,
   MembershipRejectedResponseDto,
+  SetMembershipAccessPresetDto,
   TransferOwnershipDto,
   TransitionMembershipDto,
 } from './membership.dto.js';
@@ -186,6 +187,30 @@ export class IamMembershipController {
     const context = await this.requestContext.resolve(request);
     const result = this.memberships
       ? await this.memberships.accept(context, membershipId, input.expectedRevision)
+      : this.unavailable();
+    return preserveMembershipStatus(result, reply);
+  }
+
+  @Post(':membershipId/access-preset')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Change the customer-visible Owner/Editor/Viewer access preset' })
+  @ApiBody({ type: SetMembershipAccessPresetDto })
+  @ApiOkResponse({ description: 'The membership with updated access preset.' })
+  @applyMembershipOutcomeResponses()
+  async setAccessPreset(
+    @Req() request: unknown,
+    @Param('membershipId') membershipId: string,
+    @Body() input: SetMembershipAccessPresetDto,
+    @Res({ passthrough: true }) reply?: FastifyReply,
+  ): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    const result = this.memberships
+      ? await this.memberships.setAccessPreset(
+          context,
+          membershipId,
+          input.accessPreset,
+          input.expectedRevision,
+        )
       : this.unavailable();
     return preserveMembershipStatus(result, reply);
   }

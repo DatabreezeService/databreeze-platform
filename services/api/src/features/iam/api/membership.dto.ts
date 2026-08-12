@@ -22,6 +22,7 @@ const MEMBERSHIP_ROLE_IDS = [
   'approver',
   'viewer',
 ] as const;
+const MEMBERSHIP_ACCESS_PRESETS = ['OWNER', 'EDITOR', 'VIEWER'] as const;
 const MEMBERSHIP_ERROR_CODES = [
   'INVALID_IDENTIFIER',
   'INVALID_SCOPE',
@@ -89,6 +90,23 @@ export class InviteMembershipDto {
   @ApiProperty({ enum: MEMBERSHIP_ROLE_IDS })
   @IsIn(MEMBERSHIP_ROLE_IDS)
   roleId!: MembershipRoleIdDtoV1;
+
+  @ApiPropertyOptional({ enum: MEMBERSHIP_ACCESS_PRESETS })
+  @IsOptional()
+  @IsIn(MEMBERSHIP_ACCESS_PRESETS)
+  accessPreset?: (typeof MEMBERSHIP_ACCESS_PRESETS)[number];
+}
+
+export class SetMembershipAccessPresetDto {
+  @ApiProperty({ enum: MEMBERSHIP_ACCESS_PRESETS })
+  @IsIn(MEMBERSHIP_ACCESS_PRESETS)
+  accessPreset!: (typeof MEMBERSHIP_ACCESS_PRESETS)[number];
+
+  @ApiProperty({ minimum: 1, maximum: Number.MAX_SAFE_INTEGER })
+  @IsInt()
+  @Min(1)
+  @Max(Number.MAX_SAFE_INTEGER)
+  expectedRevision!: number;
 }
 
 export class MembershipRejectedResponseDto {

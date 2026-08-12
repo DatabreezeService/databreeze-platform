@@ -48,6 +48,24 @@ import {
 import { IAM_HIERARCHY_SERVICE, IamHierarchyService } from './application/hierarchy.service.js';
 import { IAM_MEMBERSHIP_SERVICE, IamMembershipService } from './application/membership.service.js';
 import {
+  IAM_ACCESS_PRESET_SERVICE,
+  AccessPresetService,
+} from './application/access-preset.service.js';
+import {
+  AGENT_GRANT_REPOSITORY_PORT,
+  type AgentGrantRepositoryPortV1,
+} from './application/agent-grant-repository.port.js';
+import {
+  IAM_AGENT_GRANT_SERVICE,
+  AgentGrantService,
+} from './application/agent-grant.service.js';
+import { InMemoryAgentGrantRepositoryAdapter } from './adapter/in-memory-agent-grant-repository.adapter.js';
+import {
+  PrismaAgentGrantRepositoryAdapter,
+  type AgentGrantDatabaseClientV1,
+} from './adapter/prisma-agent-grant-repository.adapter.js';
+import { AgentGrantController } from './api/agent-grant.controller.js';
+import {
   IAM_INVITATION_SERVICE,
   IAM_PRINCIPAL_EMAIL_LOOKUP_PORT,
   IamInvitationService,
@@ -229,6 +247,10 @@ export interface IamModuleOptions {
   readonly hierarchyDatabase?: IamHierarchyDatabaseClientV1;
   readonly hierarchyService?: IamHierarchyService;
   readonly membershipService?: IamMembershipService;
+  readonly accessPresetService?: AccessPresetService;
+  readonly agentGrantRepository?: AgentGrantRepositoryPortV1;
+  readonly agentGrantDatabase?: AgentGrantDatabaseClientV1;
+  readonly agentGrantService?: AgentGrantService;
   readonly invitationRepository?: IamInvitationRepositoryPortV1;
   readonly invitationDatabase?: IamInvitationDatabaseClientV1;
   readonly invitationService?: IamInvitationService;
@@ -364,6 +386,19 @@ export class IamModule {
     const membershipService =
       options.membershipService ??
       (iamRepository === undefined ? undefined : new IamMembershipService(iamRepository));
+    const accessPresetService = options.accessPresetService ?? new AccessPresetService();
+    const agentGrantRepository =
+      options.agentGrantRepository ??
+      (options.agentGrantDatabase === undefined
+        ? iamRepository === undefined
+          ? undefined
+          : new InMemoryAgentGrantRepositoryAdapter()
+        : new PrismaAgentGrantRepositoryAdapter(options.agentGrantDatabase));
+    const agentGrantService =
+      options.agentGrantService ??
+      (agentGrantRepository === undefined || iamRepository === undefined
+        ? undefined
+        : new AgentGrantService(agentGrantRepository, iamRepository, accessPresetService));
     const invitationRepository =
       options.invitationRepository ??
       (options.invitationDatabase === undefined
@@ -548,6 +583,9 @@ export class IamModule {
     if (mfaService) exports.unshift(MFA_SERVICE);
     if (iamRepository) exports.unshift(IAM_REPOSITORY_PORT);
     if (membershipService) exports.unshift(IAM_MEMBERSHIP_SERVICE);
+    if (agentGrantRepository) exports.unshift(AGENT_GRANT_REPOSITORY_PORT);
+    if (agentGrantService) exports.unshift(IAM_AGENT_GRANT_SERVICE);
+    exports.unshift(IAM_ACCESS_PRESET_SERVICE);
     if (invitationRepository) exports.unshift(IAM_INVITATION_REPOSITORY_PORT);
     if (invitationService) exports.unshift(IAM_INVITATION_SERVICE);
     if (invitationPrincipalEmails) exports.unshift(IAM_PRINCIPAL_EMAIL_LOOKUP_PORT);
@@ -568,6 +606,7 @@ export class IamModule {
         MfaController,
         IamHierarchyController,
         IamMembershipController,
+        AgentGrantController,
         IamInvitationController,
         RegistrationController,
         RecoveryController,
@@ -648,6 +687,26 @@ export class IamModule {
               {
                 provide: IAM_MEMBERSHIP_SERVICE,
                 useValue: membershipService,
+              },
+            ]
+          : []),
+        {
+          provide: IAM_ACCESS_PRESET_SERVICE,
+          useValue: accessPresetService,
+        },
+        ...(agentGrantRepository
+          ? [
+              {
+                provide: AGENT_GRANT_REPOSITORY_PORT,
+                useValue: agentGrantRepository,
+              },
+            ]
+          : []),
+        ...(agentGrantService
+          ? [
+              {
+                provide: IAM_AGENT_GRANT_SERVICE,
+                useValue: agentGrantService,
               },
             ]
           : []),
