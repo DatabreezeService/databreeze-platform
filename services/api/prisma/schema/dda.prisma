@@ -239,3 +239,191 @@ model DependencySequenceRecord {
   @@map("dependency_sequences")
   @@schema("dda")
 }
+
+/// DDA-052: logical source catalog entry referencing IAE/DSM authorities only.
+model DdaDatasetSource {
+  id                   String   @id @db.Uuid
+  organizationId       String   @map("organization_id") @db.Uuid
+  workspaceId          String   @map("workspace_id") @db.Uuid
+  projectId            String?  @map("project_id") @db.Uuid
+  dsmDatasetId         String   @map("dsm_dataset_id") @db.Uuid
+  iaeArtifactVersionId String   @map("iae_artifact_version_id") @db.Uuid
+  sourceType           String   @map("source_type") @db.VarChar(32)
+  safeDisplayLabel     String   @map("safe_display_label") @db.VarChar(200)
+  status               String   @db.VarChar(32)
+  health               String   @db.VarChar(32)
+  revision             Int      @default(1)
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, id], map: "dataset_sources_scope_id_key")
+  @@index([organizationId, workspaceId, updatedAt, id], map: "dataset_sources_workspace_updated_idx")
+  @@map("dataset_sources")
+  @@schema("dda")
+}
+
+/// DDA-052: source-to-dataset assignment within one workspace ancestry.
+model DdaSourceAssignment {
+  id             String   @id @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  projectId      String?  @map("project_id") @db.Uuid
+  sourceId       String   @map("source_id") @db.Uuid
+  dsmDatasetId   String   @map("dsm_dataset_id") @db.Uuid
+  status         String   @db.VarChar(32)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, sourceId, dsmDatasetId], map: "source_assignments_source_dataset_key")
+  @@index([organizationId, workspaceId, updatedAt, id], map: "source_assignments_workspace_updated_idx")
+  @@map("source_assignments")
+  @@schema("dda")
+}
+
+/// DDA-053: Desktop folder placement mismatch review before reversible moves.
+model DdaFolderPlacementReview {
+  id             String   @id @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  projectId      String?  @map("project_id") @db.Uuid
+  sourceId       String   @map("source_id") @db.Uuid
+  decision       String   @db.VarChar(32)
+  reasonCode     String   @map("reason_code") @db.VarChar(64)
+  revision       Int      @default(1)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, id], map: "folder_placement_reviews_scope_id_key")
+  @@index([organizationId, workspaceId, updatedAt, id], map: "folder_placement_reviews_workspace_updated_idx")
+  @@map("folder_placement_reviews")
+  @@schema("dda")
+}
+
+/// DDA-053: append-only reversible folder move receipt bound to an accepted review.
+model DdaFolderMoveReceipt {
+  id             String   @id @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  projectId      String?  @map("project_id") @db.Uuid
+  reviewId       String   @map("review_id") @db.Uuid
+  sourceId       String   @map("source_id") @db.Uuid
+  receiptHash    String   @map("receipt_hash") @db.Char(64)
+  occurredAt     DateTime @map("occurred_at") @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, id], map: "folder_move_receipts_scope_id_key")
+  @@index([organizationId, workspaceId, occurredAt, id], map: "folder_move_receipts_workspace_occurred_idx")
+  @@map("folder_move_receipts")
+  @@schema("dda")
+}
+
+/// DDA-055: workspace-owned conversation thread metadata with retention state.
+model DdaConversation {
+  id             String   @id @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  projectId      String?  @map("project_id") @db.Uuid
+  title          String   @db.VarChar(200)
+  retentionState String   @map("retention_state") @db.VarChar(32)
+  revision       Int      @default(1)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, id], map: "conversations_scope_id_key")
+  @@index([organizationId, workspaceId, updatedAt, id], map: "conversations_workspace_updated_idx")
+  @@map("conversations")
+  @@schema("dda")
+}
+
+/// DDA-055: immutable conversation messages with workspace-scoped idempotency.
+model DdaConversationMessage {
+  id             String   @id @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  conversationId String   @map("conversation_id") @db.Uuid
+  idempotencyKey String   @map("idempotency_key") @db.VarChar(200)
+  role           String   @db.VarChar(16)
+  textDigest     String   @map("text_digest") @db.Char(64)
+  textLength     Int      @map("text_length")
+  datasetVersionId String? @map("dataset_version_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, idempotencyKey], map: "conversation_messages_workspace_idempotency_key")
+  @@index([organizationId, workspaceId, conversationId, createdAt, id], map: "conversation_messages_thread_idx")
+  @@map("conversation_messages")
+  @@schema("dda")
+}
+
+/// DDA-055: append-only conversation context events bound to one conversation scope.
+model DdaConversationContextEvent {
+  id             String   @id @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  conversationId String   @map("conversation_id") @db.Uuid
+  kind           String   @db.VarChar(64)
+  beforeVersionId String? @map("before_version_id") @db.Uuid
+  afterVersionId  String? @map("after_version_id") @db.Uuid
+  occurredAt     DateTime @map("occurred_at") @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([organizationId, workspaceId, conversationId, occurredAt, id], map: "conversation_context_events_thread_idx")
+  @@map("conversation_context_events")
+  @@schema("dda")
+}
+
+/// DDA-055: mutable conversation summary with revision preconditions.
+model DdaConversationSummary {
+  conversationId String   @id @map("conversation_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  summaryDigest  String   @map("summary_digest") @db.Char(64)
+  revision       Int      @default(1)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, conversationId], map: "conversation_summaries_scope_key")
+  @@map("conversation_summaries")
+  @@schema("dda")
+}
+
+/// DDA-057: bounded extraction candidate metadata referencing IAE evidence only.
+model DdaExtractionCandidate {
+  id                   String   @id @db.Uuid
+  organizationId       String   @map("organization_id") @db.Uuid
+  workspaceId          String   @map("workspace_id") @db.Uuid
+  projectId            String?  @map("project_id") @db.Uuid
+  iaeArtifactVersionId String   @map("iae_artifact_version_id") @db.Uuid
+  profileVersion       String   @map("profile_version") @db.VarChar(32)
+  candidateHash        String   @map("candidate_hash") @db.Char(64)
+  pageCount            Int      @map("page_count")
+  columnCount          Int      @map("column_count")
+  cellCount            Int      @map("cell_count")
+  evidenceReferenceId  String   @map("evidence_reference_id") @db.Uuid
+  status               String   @db.VarChar(32)
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, id], map: "extraction_candidates_scope_id_key")
+  @@index([organizationId, workspaceId, updatedAt, id], map: "extraction_candidates_workspace_updated_idx")
+  @@map("extraction_candidates")
+  @@schema("dda")
+}
+
+/// DDA-058: named dashboard view metadata bound to an accepted dashboard version.
+model DdaNamedDashboardView {
+  id                 String   @id @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  workspaceId        String   @map("workspace_id") @db.Uuid
+  projectId          String   @map("project_id") @db.Uuid
+  dashboardId        String   @map("dashboard_id") @db.Uuid
+  dashboardVersionId String   @map("dashboard_version_id") @db.Uuid
+  name               String   @db.VarChar(120)
+  filterDocument     Json     @map("filter_document")
+  revision           Int      @default(1)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, projectId, dashboardId, name], map: "named_dashboard_views_name_key")
+  @@index([organizationId, workspaceId, updatedAt, id], map: "named_dashboard_views_workspace_updated_idx")
+  @@map("named_dashboard_views")
+  @@schema("dda")
+}

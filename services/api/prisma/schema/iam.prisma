@@ -331,3 +331,65 @@ model ServiceAccountRecord {
   @@map("service_accounts")
   @@schema("iam")
 }
+
+/// IAM-022: email OTP challenges store digests only; never raw OTP codes.
+model IamEmailVerificationChallenge {
+  id              String    @id @db.Uuid
+  purpose         String    @db.VarChar(32)
+  admissionDigest String    @map("admission_digest") @db.Char(64)
+  codeDigest      String    @map("code_digest") @db.Char(64)
+  locale          String    @db.VarChar(16)
+  attemptCount    Int       @default(0) @map("attempt_count")
+  resendAvailableAt DateTime @map("resend_available_at") @db.Timestamptz(6)
+  issuedAt        DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt       DateTime  @map("expires_at") @db.Timestamptz(6)
+  status          String    @default("ACTIVE") @db.VarChar(16)
+  consumedAt      DateTime? @map("consumed_at") @db.Timestamptz(6)
+  revokedAt       DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revision        Int       @default(1)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([admissionDigest, purpose, status], map: "email_verification_challenges_admission_purpose_idx")
+  @@index([expiresAt, status], map: "email_verification_challenges_expiry_status_idx")
+  @@map("email_verification_challenges")
+  @@schema("iam")
+}
+
+/// IAM-023: OIDC subject links are hashed provider subjects bound to a user identity.
+model IamOidcIdentityLink {
+  id                 String    @id @db.Uuid
+  userId             String    @map("user_id") @db.Uuid
+  issuer             String    @db.VarChar(256)
+  subjectDigest      String    @map("subject_digest") @db.Char(64)
+  emailDigest        String    @map("email_digest") @db.Char(64)
+  emailVerifiedAtLink Boolean  @map("email_verified_at_link")
+  linkedAt           DateTime  @map("linked_at") @db.Timestamptz(6)
+  revokedAt          DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revision           Int       @default(1)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([issuer, subjectDigest], map: "oidc_identity_links_issuer_subject_key")
+  @@index([userId, revokedAt], map: "oidc_identity_links_user_idx")
+  @@map("oidc_identity_links")
+  @@schema("iam")
+}
+
+/// IAM-024: independent workspace agent grant with closed level vocabulary.
+model WorkspaceAgentGrant {
+  id             String   @id @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  memberId       String   @map("member_id") @db.Uuid
+  level          String   @db.VarChar(32)
+  revision       Int      @default(1)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, memberId], map: "workspace_agent_grants_member_key")
+  @@unique([organizationId, workspaceId, id], map: "workspace_agent_grants_scope_id_key")
+  @@index([organizationId, workspaceId, updatedAt, id], map: "workspace_agent_grants_workspace_updated_idx")
+  @@map("workspace_agent_grants")
+  @@schema("iam")
+}
