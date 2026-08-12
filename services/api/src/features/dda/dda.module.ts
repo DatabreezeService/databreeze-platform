@@ -124,6 +124,14 @@ import type { RefreshUsagePortV1 } from './refresh/application/refresh-usage.por
 import { SnapshotCommitService } from './refresh/application/snapshot-commit.service.js';
 import { InMemorySourceCatalogRepositoryAdapter } from './source-catalog/adapter/in-memory-source-catalog-repository.adapter.js';
 import { PrismaSourceCatalogRepositoryAdapter } from './source-catalog/adapter/prisma-source-catalog-repository.adapter.js';
+import { InMemoryConversationRepositoryAdapter } from './conversation/adapter/in-memory-conversation-repository.adapter.js';
+import { ConversationController } from './conversation/api/conversation.controller.js';
+import {
+  CONVERSATION_REPOSITORY_PORT,
+  type ConversationRepositoryPortV1,
+} from './conversation/application/conversation-repository.port.js';
+import { ConversationContextService } from './conversation/application/conversation-context.service.js';
+import { ConversationService } from './conversation/application/conversation.service.js';
 import { DisabledOpenAiTableExtractionAdapter } from './table-extraction/adapter/openai-table-extraction.adapter.js';
 import { TableExtractionController } from './table-extraction/api/table-extraction.controller.js';
 import { TableExtractionService } from './table-extraction/application/table-extraction.service.js';
@@ -327,6 +335,10 @@ export class DdaModule {
     const tableExtractionService = new TableExtractionService(
       new DisabledOpenAiTableExtractionAdapter(),
     );
+    const conversationRepository: ConversationRepositoryPortV1 =
+      new InMemoryConversationRepositoryAdapter();
+    const conversationService = new ConversationService(conversationRepository);
+    const conversationContextService = new ConversationContextService(conversationRepository);
 
     return {
       module: DdaModule,
@@ -345,6 +357,7 @@ export class DdaModule {
         SourceCatalogController,
         FolderProjectionController,
         TableExtractionController,
+        ConversationController,
       ],
       providers: [
         {
@@ -396,6 +409,9 @@ export class DdaModule {
         { provide: SOURCE_CATALOG_SERVICE, useValue: sourceCatalogService },
         { provide: ORIGINAL_VIEW_SERVICE, useValue: originalViewService },
         { provide: TableExtractionService, useValue: tableExtractionService },
+        { provide: CONVERSATION_REPOSITORY_PORT, useValue: conversationRepository },
+        { provide: ConversationService, useValue: conversationService },
+        { provide: ConversationContextService, useValue: conversationContextService },
         { provide: REQUEST_TENANT_CONTEXT, useValue: requestTenantContext },
       ],
       exports: [
@@ -428,6 +444,9 @@ export class DdaModule {
         SOURCE_CATALOG_SERVICE,
         ORIGINAL_VIEW_SERVICE,
         TableExtractionService,
+        CONVERSATION_REPOSITORY_PORT,
+        ConversationService,
+        ConversationContextService,
       ],
     };
   }
