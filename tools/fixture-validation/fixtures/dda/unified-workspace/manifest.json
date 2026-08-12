@@ -1,0 +1,20 @@
+{
+  "fixtureId": "unified-workspace-golden-v1",
+  "localeDefault": "vi-VN",
+  "artifacts": {
+    "csv": "synthetic-vi-expenses.csv",
+    "xlsx": "synthetic-vi-expenses.xlsx",
+    "receipt": "synthetic-receipt.png",
+    "invoice": "synthetic-invoice.png",
+    "table": "synthetic-table.png",
+    "mismatch": "synthetic-mismatch.csv"
+  },
+  "datasetVersions": 2,
+  "restrictedMemberPreset": "Viewer",
+  "expectations": {
+    "governedRowCount": 3,
+    "qualityState": "READY",
+    "reasonCodes": [],
+    "providerCalls": 0
+  }
+}
