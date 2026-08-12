@@ -124,6 +124,7 @@ import type { RefreshUsagePortV1 } from './refresh/application/refresh-usage.por
 import { SnapshotCommitService } from './refresh/application/snapshot-commit.service.js';
 import { InMemorySourceCatalogRepositoryAdapter } from './source-catalog/adapter/in-memory-source-catalog-repository.adapter.js';
 import { PrismaSourceCatalogRepositoryAdapter } from './source-catalog/adapter/prisma-source-catalog-repository.adapter.js';
+import { FolderProjectionController } from './source-catalog/api/folder-projection.controller.js';
 import { SourceCatalogController } from './source-catalog/api/source-catalog.controller.js';
 import {
   SOURCE_CATALOG_REPOSITORY_PORT,
@@ -336,6 +337,7 @@ export class DdaModule {
         DashboardRefreshEventsController,
         ReceiptExtractionController,
         SourceCatalogController,
+        FolderProjectionController,
       ],
       providers: [
         {
