@@ -124,6 +124,16 @@ import type { RefreshUsagePortV1 } from './refresh/application/refresh-usage.por
 import { SnapshotCommitService } from './refresh/application/snapshot-commit.service.js';
 import { InMemorySourceCatalogRepositoryAdapter } from './source-catalog/adapter/in-memory-source-catalog-repository.adapter.js';
 import { PrismaSourceCatalogRepositoryAdapter } from './source-catalog/adapter/prisma-source-catalog-repository.adapter.js';
+import { OpenAiAgentProviderAdapter } from './agent/adapter/openai-agent-provider.adapter.js';
+import { AgentTurnController } from './agent/api/agent-turn.controller.js';
+import { AgentContextBuilderService } from './agent/application/agent-context-builder.service.js';
+import {
+  AGENT_PROVIDER_PORT,
+  type AgentProviderPortV1,
+  DisabledAgentProviderAdapter,
+} from './agent/application/agent-provider.port.js';
+import { AgentToolRegistryV1 } from './agent/application/agent-tool-registry.js';
+import { AgentTurnService } from './agent/application/agent-turn.service.js';
 import { InMemoryConversationRepositoryAdapter } from './conversation/adapter/in-memory-conversation-repository.adapter.js';
 import { ConversationController } from './conversation/api/conversation.controller.js';
 import {
@@ -339,6 +349,24 @@ export class DdaModule {
       new InMemoryConversationRepositoryAdapter();
     const conversationService = new ConversationService(conversationRepository);
     const conversationContextService = new ConversationContextService(conversationRepository);
+    const agentToolRegistry = new AgentToolRegistryV1();
+    const agentContextBuilder = new AgentContextBuilderService();
+    const agentProvider: AgentProviderPortV1 =
+      options.runtimeMode === 'production'
+        ? new OpenAiAgentProviderAdapter({ enabled: false })
+        : new DisabledAgentProviderAdapter();
+    const agentTurnService = new AgentTurnService({
+      conversations: conversationService,
+      conversationRepository,
+      registry: agentToolRegistry,
+      contextBuilder: agentContextBuilder,
+      provider: agentProvider,
+      resolveAuthorization: async () =>
+        Object.freeze({ allowed: false as const, code: 'INSUFFICIENT_AGENT_LEVEL' as const }),
+      admitUsage: async () => Object.freeze({ allowed: true as const }),
+      executeTool: async () =>
+        Object.freeze({ accepted: false as const, code: 'PROVIDER_DISABLED' as const }),
+    });
 
     return {
       module: DdaModule,
@@ -358,6 +386,7 @@ export class DdaModule {
         FolderProjectionController,
         TableExtractionController,
         ConversationController,
+        AgentTurnController,
       ],
       providers: [
         {
@@ -412,6 +441,10 @@ export class DdaModule {
         { provide: CONVERSATION_REPOSITORY_PORT, useValue: conversationRepository },
         { provide: ConversationService, useValue: conversationService },
         { provide: ConversationContextService, useValue: conversationContextService },
+        { provide: AgentToolRegistryV1, useValue: agentToolRegistry },
+        { provide: AgentContextBuilderService, useValue: agentContextBuilder },
+        { provide: AGENT_PROVIDER_PORT, useValue: agentProvider },
+        { provide: AgentTurnService, useValue: agentTurnService },
         { provide: REQUEST_TENANT_CONTEXT, useValue: requestTenantContext },
       ],
       exports: [
@@ -447,6 +480,10 @@ export class DdaModule {
         CONVERSATION_REPOSITORY_PORT,
         ConversationService,
         ConversationContextService,
+        AgentToolRegistryV1,
+        AgentContextBuilderService,
+        AGENT_PROVIDER_PORT,
+        AgentTurnService,
       ],
     };
   }
