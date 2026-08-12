@@ -14,6 +14,7 @@ export const CSRF_COOKIE_NAME_V1 = 'databreeze_csrf';
 export interface CookieOptionsV1 {
   readonly httpOnly: boolean;
   readonly maxAgeSeconds: number;
+  readonly path?: string;
 }
 
 function validCookieNameV1(name: string): boolean {
@@ -22,6 +23,12 @@ function validCookieNameV1(name: string): boolean {
 
 function validCookieValueV1(value: string): boolean {
   return value.length <= COOKIE_LIMITS_V1.valueLength && COOKIE_VALUE_PATTERN_V1.test(value);
+}
+
+function cookiePathV1(path: string | undefined): string {
+  if (path === undefined || path === '/') return '/';
+  if (path === '/api/iam/session') return path;
+  throw new Error('Cookie path is invalid');
 }
 
 export function serializeCookieV1(name: string, value: string, options: CookieOptionsV1): string {
@@ -34,7 +41,7 @@ export function serializeCookieV1(name: string, value: string, options: CookieOp
   return [
     `${name}=${value}`,
     `Max-Age=${options.maxAgeSeconds}`,
-    'Path=/',
+    `Path=${cookiePathV1(options.path)}`,
     options.httpOnly ? 'HttpOnly' : undefined,
     'Secure',
     'SameSite=Lax',
@@ -43,12 +50,15 @@ export function serializeCookieV1(name: string, value: string, options: CookieOp
     .join('; ');
 }
 
-export function clearCookieV1(name: string, options: Pick<CookieOptionsV1, 'httpOnly'>): string {
+export function clearCookieV1(
+  name: string,
+  options: Pick<CookieOptionsV1, 'httpOnly' | 'path'>,
+): string {
   if (!validCookieNameV1(name)) throw new Error('Cookie name is invalid');
   return [
     `${name}=`,
     'Max-Age=0',
-    'Path=/',
+    `Path=${cookiePathV1(options.path)}`,
     options.httpOnly ? 'HttpOnly' : undefined,
     'Secure',
     'SameSite=Lax',

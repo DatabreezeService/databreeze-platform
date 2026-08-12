@@ -22,6 +22,7 @@ import type {
   SessionRefreshFailureCodeV1,
   SessionRefreshResultV1,
 } from '../application/session-lifecycle.port.js';
+import { sessionPolicyForPlatformV1 } from '../application/session-policy.v1.js';
 
 export interface SessionRecordDatabaseRowV1 {
   readonly id: string;
@@ -95,6 +96,9 @@ interface SessionDelegateV1 {
   findUnique(input: {
     readonly where: { readonly id: string };
   }): Promise<SessionRecordDatabaseRowV1 | null>;
+  findMany(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+  }): Promise<readonly SessionRecordDatabaseRowV1[]>;
   update(input: {
     readonly where: { readonly id: string };
     readonly data: Partial<SessionRecordDatabaseRowV1>;
@@ -152,10 +156,6 @@ export interface SessionLifecycleDatabaseClientV1 {
 export interface SessionLifecycleAdapterOptionsV1 {
   readonly clock?: () => Date;
 }
-
-const ACCESS_TOKEN_SECONDS_V1 = 15 * 60;
-const INACTIVITY_SECONDS_V1 = 60 * 60;
-const ABSOLUTE_SECONDS_V1 = 30 * 24 * 60 * 60;
 
 function stableIdentifier(input: string): StableIdentifierV1 {
   const parsed = parseStableIdentifierV1(input);
@@ -290,7 +290,7 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
     principal: AuthenticatedPrincipalV1,
     clientPlatform: 'android' | 'desktop' | 'web',
   ): Promise<AuthenticationSessionV1> {
-    void clientPlatform;
+    const policy = sessionPolicyForPlatformV1(clientPlatform);
     const now = this.clock();
     const sessionId = stableIdentifier(randomUUID());
     const familyId = stableIdentifier(randomUUID());
@@ -302,9 +302,9 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
       workspaceId: principal.workspaceId,
       familyId,
       issuedAt: now.toISOString(),
-      accessExpiresAt: addSeconds(now, ACCESS_TOKEN_SECONDS_V1),
-      inactivityExpiresAt: addSeconds(now, INACTIVITY_SECONDS_V1),
-      absoluteExpiresAt: addSeconds(now, ABSOLUTE_SECONDS_V1),
+      accessExpiresAt: addSeconds(now, policy.accessTokenSeconds),
+      inactivityExpiresAt: addSeconds(now, policy.inactivitySeconds),
+      absoluteExpiresAt: addSeconds(now, policy.absoluteSeconds),
     });
     if (!created.accepted) throw new Error(`IAM_${created.code}`);
     const refreshToken = tokenFor(refreshTokenId);
@@ -356,6 +356,7 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
       accessToken,
       refreshToken,
       accessExpiresAt: record.accessExpiresAt,
+      refreshExpiresAt: record.absoluteExpiresAt,
     };
   }
 
@@ -363,7 +364,7 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
     refreshTokenInput: unknown,
     clientPlatform: 'android' | 'desktop' | 'web',
   ): Promise<SessionRefreshResultV1> {
-    void clientPlatform;
+    const policy = sessionPolicyForPlatformV1(clientPlatform);
     if (typeof refreshTokenInput !== 'string' || refreshTokenInput.length < 80)
       return { accepted: false, code: 'INVALID_REFRESH_TOKEN' };
     const digest = digestToken(refreshTokenInput);
@@ -430,8 +431,12 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
         data: { status: 'USED', usedAt: now },
       });
       if (consumed.count !== 1) return { accepted: false, code: 'INVALID_REFRESH_TOKEN' };
-      const accessExpiresAt = addSeconds(now, ACCESS_TOKEN_SECONDS_V1, session.absoluteExpiresAt);
-      const inactivityExpiresAt = addSeconds(now, INACTIVITY_SECONDS_V1, session.absoluteExpiresAt);
+      const accessExpiresAt = addSeconds(now, policy.accessTokenSeconds, session.absoluteExpiresAt);
+      const inactivityExpiresAt = addSeconds(
+        now,
+        policy.inactivitySeconds,
+        session.absoluteExpiresAt,
+      );
       await transaction.sessionRecord.update({
         where: { id: session.sessionId },
         data: {
@@ -470,6 +475,7 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
         accessToken: nextAccessToken,
         refreshToken: nextRefreshToken,
         accessExpiresAt,
+        refreshExpiresAt: session.absoluteExpiresAt,
       });
     });
   }
@@ -486,6 +492,22 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
       if (!session) return false;
       await this.revokeSession(transaction, session, now);
       return true;
+    });
+  }
+
+  public async revokeAllForUser(userIdInput: unknown): Promise<number> {
+    if (typeof userIdInput !== 'string') return 0;
+    const userId = parseStableIdentifierV1(userIdInput);
+    if (!userId.accepted) return 0;
+    const now = this.clock();
+    return this.client.$transaction(async (transaction) => {
+      const sessions = await transaction.sessionRecord.findMany({
+        where: { userId: userId.value, status: 'ACTIVE' },
+      });
+      for (const session of sessions) {
+        await this.revokeSession(transaction, session, now);
+      }
+      return sessions.length;
     });
   }
 

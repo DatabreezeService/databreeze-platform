@@ -571,7 +571,8 @@ export function createSessionRecordV1(input: {
     !durationWithin(issuedAt, accessExpiresAt, ACCESS_TOKEN_MAX_SECONDS_V1) ||
     Date.parse(inactivityExpiresAt) <= Date.parse(issuedAt) ||
     Date.parse(inactivityExpiresAt) > Date.parse(absoluteExpiresAt) ||
-    !durationWithin(issuedAt, absoluteExpiresAt, 30 * 24 * 60 * 60)
+    !durationWithin(issuedAt, inactivityExpiresAt, 90 * 24 * 60 * 60) ||
+    !durationWithin(issuedAt, absoluteExpiresAt, 365 * 24 * 60 * 60)
   )
     return rejected('INVALID_LIFETIME');
   return accepted(

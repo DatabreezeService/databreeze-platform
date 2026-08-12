@@ -2,6 +2,8 @@ import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { type DynamicModule, Module } from '@nestjs/common';
 
 import { AuthenticationController } from './api/authentication.controller.js';
+import { EmailVerificationController } from './api/email-verification.controller.js';
+import { OidcController } from './api/oidc.controller.js';
 import { MfaController } from './api/mfa.controller.js';
 import { IamHierarchyController } from './api/hierarchy.controller.js';
 import { IamMembershipController } from './api/membership.controller.js';
@@ -560,6 +562,8 @@ export class IamModule {
       module: IamModule,
       controllers: [
         AuthenticationController,
+        EmailVerificationController,
+        OidcController,
         DeviceIdentityController,
         MfaController,
         IamHierarchyController,

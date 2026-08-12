@@ -29,6 +29,8 @@ export interface SessionLifecyclePortV1 extends SessionIssuerPortV1 {
     clientPlatform: 'android' | 'desktop' | 'web',
   ): Promise<SessionRefreshResultV1>;
   revoke(sessionId: unknown): Promise<boolean>;
+  /** Revokes every active refresh family for the user. Returns revoked session count. */
+  revokeAllForUser?(userId: unknown): Promise<number>;
   findPrincipal(sessionId: unknown): Promise<AuthenticatedPrincipalV1 | undefined>;
   /** Optional until a host enables authenticated request-context resolution. */
   findPrincipalByAccessToken?(accessToken: unknown): Promise<AuthenticatedPrincipalV1 | undefined>;

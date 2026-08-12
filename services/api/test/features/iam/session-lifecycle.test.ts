@@ -44,7 +44,7 @@ void test('[IAM-005] expired and malformed refresh tokens fail without token dis
   let now = new Date('2026-01-01T00:00:00.000Z');
   const adapter = new InMemorySessionLifecycleAdapter({ clock: () => new Date(now) });
   const session = await adapter.issue(principal, 'android');
-  now = new Date('2026-02-01T00:00:00.000Z');
+  now = new Date('2027-01-02T00:00:00.000Z');
   assert.deepEqual(await adapter.refresh(session.refreshToken, 'android'), {
     accepted: false,
     code: 'EXPIRED',

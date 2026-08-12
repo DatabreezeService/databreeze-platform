@@ -20,6 +20,7 @@ import type {
   SessionLifecyclePortV1,
   SessionRefreshResultV1,
 } from '../application/session-lifecycle.port.js';
+import { sessionPolicyForPlatformV1 } from '../application/session-policy.v1.js';
 
 interface SessionEntryV1 {
   readonly record: SessionRecordV1;
@@ -39,10 +40,6 @@ interface RefreshEntryV1 {
 export interface SessionLifecycleAdapterOptionsV1 {
   readonly clock?: () => Date;
 }
-
-const ACCESS_TOKEN_SECONDS_V1 = 15 * 60;
-const INACTIVITY_SECONDS_V1 = 60 * 60;
-const ABSOLUTE_SECONDS_V1 = 30 * 24 * 60 * 60;
 
 function addSeconds(now: Date, seconds: number): string {
   return new Date(now.getTime() + seconds * 1_000).toISOString();
@@ -81,7 +78,7 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
     principal: AuthenticatedPrincipalV1,
     clientPlatform: 'android' | 'desktop' | 'web',
   ): Promise<AuthenticationSessionV1> {
-    void clientPlatform;
+    const policy = sessionPolicyForPlatformV1(clientPlatform);
     const now = this.clock();
     const sessionId = randomUUID();
     const familyId = randomUUID();
@@ -96,9 +93,9 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
       workspaceId: principal.workspaceId,
       familyId: familyIdentifier,
       issuedAt: now.toISOString(),
-      accessExpiresAt: addSeconds(now, ACCESS_TOKEN_SECONDS_V1),
-      inactivityExpiresAt: addSeconds(now, INACTIVITY_SECONDS_V1),
-      absoluteExpiresAt: addSeconds(now, ABSOLUTE_SECONDS_V1),
+      accessExpiresAt: addSeconds(now, policy.accessTokenSeconds),
+      inactivityExpiresAt: addSeconds(now, policy.inactivitySeconds),
+      absoluteExpiresAt: addSeconds(now, policy.absoluteSeconds),
     });
     if (!created.accepted) return Promise.reject(new Error(`IAM_${created.code}`));
     const refreshToken = tokenFor(activeTokenIdentifier);
@@ -122,6 +119,7 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
       accessToken,
       refreshToken,
       accessExpiresAt: created.value.accessExpiresAt,
+      refreshExpiresAt: created.value.absoluteExpiresAt,
     });
   }
 
@@ -129,7 +127,7 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
     refreshTokenInput: unknown,
     clientPlatform: 'android' | 'desktop' | 'web',
   ): Promise<SessionRefreshResultV1> {
-    void clientPlatform;
+    const policy = sessionPolicyForPlatformV1(clientPlatform);
     await Promise.resolve();
     if (typeof refreshTokenInput !== 'string' || refreshTokenInput.length < 80)
       return { accepted: false, code: 'INVALID_REFRESH_TOKEN' };
@@ -174,7 +172,8 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
       sessionId: session.record.sessionId,
       accessToken: nextAccessToken,
       refreshToken: nextRefreshToken,
-      accessExpiresAt: addSeconds(this.clock(), ACCESS_TOKEN_SECONDS_V1),
+      accessExpiresAt: addSeconds(this.clock(), policy.accessTokenSeconds),
+      refreshExpiresAt: session.record.absoluteExpiresAt,
     });
   }
 
@@ -185,6 +184,18 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
     if (!session) return false;
     this.revokeFamily(session.record.familyId);
     return true;
+  }
+
+  public async revokeAllForUser(userIdInput: unknown): Promise<number> {
+    await Promise.resolve();
+    if (typeof userIdInput !== 'string') return 0;
+    let revoked = 0;
+    for (const session of this.sessions.values()) {
+      if (session.principal.userId !== userIdInput || session.familyStatus !== 'ACTIVE') continue;
+      this.revokeFamily(session.record.familyId);
+      revoked += 1;
+    }
+    return revoked;
   }
 
   public async findPrincipal(

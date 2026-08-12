@@ -33,6 +33,7 @@ export interface SessionIssuerPortV1 {
     readonly accessToken: string;
     readonly refreshToken: string;
     readonly accessExpiresAt: string;
+    readonly refreshExpiresAt?: string;
   }>;
 }
 
@@ -49,6 +50,7 @@ export interface AuthenticationSessionV1 {
   readonly accessToken: string;
   readonly refreshToken: string;
   readonly accessExpiresAt: string;
+  readonly refreshExpiresAt?: string;
 }
 
 export interface AuthenticationValueV1 {
