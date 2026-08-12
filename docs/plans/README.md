@@ -18,6 +18,8 @@ Focused OpenAI development validation: [`403-openai-development-validation.md`](
 
 Dashboard workspace redesign: [`404-dashboard-workspace-redesign-design.md`](404-dashboard-workspace-redesign-design.md) records the approved Vietnamese-first canvas and dashboard-local agent experience. [`405-dashboard-workspace-redesign-implementation.md`](405-dashboard-workspace-redesign-implementation.md) is the executable requirement-linked plan for its contracts, scoped APIs, immutable authoring commands, premium Web shell, responsive chart canvas, agent proposal picker, and verification.
 
+Unified workspace transition: [`406-unified-data-workspace-implementation.md`](406-unified-data-workspace-implementation.md) is the proposed master delta plan for the approved unified Web, Desktop, and Android experience. Its canonical specification and execution-authority gates must complete before conflicting product code begins; it reuses plans 402 and 405 rather than rebuilding their DDA and dashboard work.
+
 1. [`000-platform-program.md`](000-platform-program.md) — stable program and release policy.
 2. [`080-data-to-dashboard-program.md`](080-data-to-dashboard-program.md) — approved V1 dependency graph, OpenAI/AWS provider boundary, complete task-gated program, ownership locks, dispatch packets, production sequence, and stop conditions.
 3. [`data-to-dashboard-orchestration.json`](data-to-dashboard-orchestration.json) — machine-readable gates, dependencies, work packages, branches, requirements, writable ownership, checks, and next-work pointer.

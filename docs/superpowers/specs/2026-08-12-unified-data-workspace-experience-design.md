@@ -1,6 +1,6 @@
 # Unified Data Workspace Experience Design
 
-**Status:** User-approved product direction; written review requested
+**Status:** User-approved product direction
 
 **Date:** 2026-08-12
 
