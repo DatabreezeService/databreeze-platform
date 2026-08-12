@@ -119,6 +119,21 @@ import type { RefreshCoordinatorPortV1 } from './refresh/application/refresh-coo
 import { RefreshEventBus } from './refresh/application/refresh-event-bus.js';
 import type { RefreshUsagePortV1 } from './refresh/application/refresh-usage.port.js';
 import { SnapshotCommitService } from './refresh/application/snapshot-commit.service.js';
+import { InMemorySourceCatalogRepositoryAdapter } from './source-catalog/adapter/in-memory-source-catalog-repository.adapter.js';
+import { PrismaSourceCatalogRepositoryAdapter } from './source-catalog/adapter/prisma-source-catalog-repository.adapter.js';
+import { SourceCatalogController } from './source-catalog/api/source-catalog.controller.js';
+import {
+  SOURCE_CATALOG_REPOSITORY_PORT,
+  type SourceCatalogRepositoryPortV1,
+} from './source-catalog/application/source-catalog-repository.port.js';
+import {
+  ORIGINAL_VIEW_SERVICE,
+  OriginalViewService,
+} from './source-catalog/application/original-view.service.js';
+import {
+  SOURCE_CATALOG_SERVICE,
+  SourceCatalogService,
+} from './source-catalog/application/source-catalog.service.js';
 
 export interface DdaEtlPortsV1 {
   readonly iae: EtlIaePortV1;
@@ -159,6 +174,7 @@ export interface DdaModuleOptions {
   readonly receiptRecords?: ReceiptGovernedRecordPort;
   readonly refreshUsage?: RefreshUsagePortV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
+  readonly sourceCatalogRepository?: SourceCatalogRepositoryPortV1;
 }
 
 @Module({})
@@ -281,6 +297,20 @@ export class DdaModule {
       options.receiptRecords ?? createFailClosedReceiptRecordsV1(),
     );
     void receiptAcceptance;
+    const sourceCatalogRepository =
+      options.sourceCatalogRepository ??
+      (options.ddaDatabase === undefined
+        ? new InMemorySourceCatalogRepositoryAdapter()
+        : new PrismaSourceCatalogRepositoryAdapter(
+            options.ddaDatabase as unknown as ConstructorParameters<
+              typeof PrismaSourceCatalogRepositoryAdapter
+            >[0],
+          ));
+    const sourceCatalogService = new SourceCatalogService(sourceCatalogRepository);
+    const originalViewService = new OriginalViewService(
+      sourceCatalogService,
+      sourceCatalogRepository,
+    );
 
     return {
       module: DdaModule,
@@ -295,6 +325,7 @@ export class DdaModule {
         DashboardRefreshController,
         DashboardRefreshEventsController,
         ReceiptExtractionController,
+        SourceCatalogController,
       ],
       providers: [
         {
@@ -337,6 +368,9 @@ export class DdaModule {
         { provide: FreshnessService, useValue: freshnessService },
         { provide: RefreshEventBus, useValue: refreshEventBus },
         { provide: ReceiptExtractionService, useValue: receiptExtraction },
+        { provide: SOURCE_CATALOG_REPOSITORY_PORT, useValue: sourceCatalogRepository },
+        { provide: SOURCE_CATALOG_SERVICE, useValue: sourceCatalogService },
+        { provide: ORIGINAL_VIEW_SERVICE, useValue: originalViewService },
         { provide: REQUEST_TENANT_CONTEXT, useValue: requestTenantContext },
       ],
       exports: [
@@ -363,6 +397,9 @@ export class DdaModule {
         FreshnessService,
         RefreshEventBus,
         ReceiptExtractionService,
+        SOURCE_CATALOG_REPOSITORY_PORT,
+        SOURCE_CATALOG_SERVICE,
+        ORIGINAL_VIEW_SERVICE,
       ],
     };
   }
