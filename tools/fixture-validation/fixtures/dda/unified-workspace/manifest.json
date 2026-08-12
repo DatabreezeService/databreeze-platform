@@ -7,14 +7,44 @@
     "receipt": "synthetic-receipt.png",
     "invoice": "synthetic-invoice.png",
     "table": "synthetic-table.png",
-    "mismatch": "synthetic-mismatch.csv"
+    "mismatch": "synthetic-mismatch.csv",
+    "folderUpdate": "synthetic-folder-update.csv"
   },
   "datasetVersions": 2,
   "restrictedMemberPreset": "Viewer",
+  "conversation": {
+    "title": "Vì sao chi phí ăn uống tăng?",
+    "datasetLabel": "Chi phí văn phòng",
+    "datasetVersionFrom": "phiên bản 1",
+    "datasetVersionTo": "phiên bản 2"
+  },
+  "dashboard": {
+    "title": "Chi phí tháng 1",
+    "starterWidgets": ["KPI", "BAR"]
+  },
+  "journeySteps": [
+    "register-verify",
+    "personal-workspace",
+    "upload-csv-xlsx",
+    "safe-preparation",
+    "starter-dashboard",
+    "filter-evidence",
+    "agent-analysis",
+    "chart-proposal-confirm",
+    "folder-classify-move-undo",
+    "synchronized-refresh",
+    "old-chat-version-transition",
+    "viewer-denial",
+    "table-capture",
+    "provider-outage-fallback",
+    "last-good-snapshot"
+  ],
   "expectations": {
     "governedRowCount": 3,
     "qualityState": "READY",
     "reasonCodes": [],
-    "providerCalls": 0
+    "providerCalls": 0,
+    "localCloudParity": true,
+    "viewerCanMutateSharedCanvas": false
   }
 }
