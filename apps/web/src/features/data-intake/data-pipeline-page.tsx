@@ -10,6 +10,7 @@ import {
   fetchEtlProposal,
   type EtlProposalReviewV1,
 } from './etl-api.ts';
+import { PreparationSummaryPanel } from './preparation-summary-panel.tsx';
 import { UploadPanel } from './upload-panel.tsx';
 
 const EMPTY_REVIEW: Omit<EtlProposalReviewV1, 'proposalId' | 'revision' | 'acceptanceEvidence'> =
@@ -30,6 +31,7 @@ const EMPTY_REVIEW: Omit<EtlProposalReviewV1, 'proposalId' | 'revision' | 'accep
     qualityEffects: Object.freeze([
       Object.freeze({
         dimension: 'completeness',
+        numerator: 0,
         denominator: 1,
         coverage: 0,
         rule: 'required-fields',
@@ -44,7 +46,7 @@ const EMPTY_REVIEW: Omit<EtlProposalReviewV1, 'proposalId' | 'revision' | 'accep
   });
 
 /**
- * DDA-002/005/006 composed Web surface: intake upload then ETL review/accept.
+ * DDA-002/005/006/053 composed Web surface: intake upload then ETL review/accept.
  * Does not invent accepted plans, hashes, or authoritative numbers.
  */
 export function DataPipelinePage() {
@@ -87,6 +89,8 @@ export function DataPipelinePage() {
     configuration,
     proposal: etlQuery.data,
   });
+  const showFirstImportSummary =
+    etlQuery.data !== undefined && etlQuery.data.state === 'ACCEPTED';
 
   async function onAccept() {
     setAcceptStatus(null);
@@ -155,6 +159,31 @@ export function DataPipelinePage() {
       ) : null}
       {statusMessage !== null ? <p role="status">{statusMessage}</p> : null}
       <EtlReviewPage locale={reviewLocale} {...review} />
+      {showFirstImportSummary ? (
+        <PreparationSummaryPanel
+          locale={reviewLocale}
+          mode="FIRST_IMPORT"
+          automaticPolicy="SAFE_NON_LOSSY"
+          counts={{
+            input:
+              review.counts.changed + review.counts.unchanged + review.counts.rejected,
+            output: review.counts.changed + review.counts.unchanged,
+            unchanged: review.counts.unchanged,
+            changed: review.counts.changed,
+            rejected: review.counts.rejected,
+            quarantined: 0,
+            unsupported: 0,
+          }}
+          transformations={review.orderedSteps}
+          warnings={[]}
+          healthDimensions={review.qualityEffects}
+          overallSummary={{
+            formula: 'min(numerator/denominator)',
+            coverage: review.qualityEffects[0]?.coverage ?? 0,
+            provesFactualCorrectness: false,
+          }}
+        />
+      ) : null}
       <button type="button" disabled={!canAccept} onClick={() => void onAccept()}>
         {locale === 'vi-VN' ? 'Chấp nhận đề xuất ETL' : 'Accept ETL proposal'}
       </button>

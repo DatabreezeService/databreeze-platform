@@ -76,8 +76,11 @@ import { DashboardPublicationServiceV1 } from './dashboard/application/dashboard
 import { DashboardQueryServiceV1 } from './dashboard/application/dashboard-query.service.js';
 import type { DashboardDraftRepositoryPortV1 } from './dashboard/application/dashboard-repository.port.js';
 import { InMemoryEtlProposalRepositoryAdapter } from './etl/adapter/in-memory-etl-proposal-repository.adapter.js';
+import { AutomaticPreparationController } from './etl/api/automatic-preparation.controller.js';
 import { EtlAcceptanceController } from './etl/api/etl-acceptance.controller.js';
 import { EtlProposalController } from './etl/api/etl-proposal.controller.js';
+import { AutomaticPreparationEnqueueService } from './etl/application/automatic-preparation-enqueue.service.js';
+import { AutomaticPreparationService } from './etl/application/automatic-preparation.service.js';
 import { EtlAcceptanceServiceV1 } from './etl/application/etl-acceptance.service.js';
 import type {
   EtlAudPortV1,
@@ -261,6 +264,12 @@ export class DdaModule {
     const webIntakeService = new WebIntakeServiceV1(intakeIae);
     const etlProposalService = new EtlProposalServiceV1(etlProposals);
     const etlAcceptanceService = new EtlAcceptanceServiceV1(etlProposals, etlPorts);
+    const automaticPreparationService = new AutomaticPreparationService();
+    const automaticPreparationEnqueueService = new AutomaticPreparationEnqueueService(
+      automaticPreparationService,
+      etlProposals,
+      etlAcceptanceService,
+    );
     const analysisProposalService = new AnalysisProposalServiceV1(
       options.analysisAdapter ?? createFailClosedAnalysisAdapterV1(),
       options.analysisCatalog ?? createFailClosedAnalysisCatalogV1(),
@@ -318,6 +327,7 @@ export class DdaModule {
         WebIntakeController,
         EtlProposalController,
         EtlAcceptanceController,
+        AutomaticPreparationController,
         AnalysisControllerV1,
         DashboardDraftControllerV1,
         DashboardPublicationControllerV1,
@@ -360,6 +370,11 @@ export class DdaModule {
         { provide: WebIntakeServiceV1, useValue: webIntakeService },
         { provide: EtlProposalServiceV1, useValue: etlProposalService },
         { provide: EtlAcceptanceServiceV1, useValue: etlAcceptanceService },
+        { provide: AutomaticPreparationService, useValue: automaticPreparationService },
+        {
+          provide: AutomaticPreparationEnqueueService,
+          useValue: automaticPreparationEnqueueService,
+        },
         { provide: AnalysisProposalServiceV1, useValue: analysisProposalService },
         { provide: AnalysisExecutionServiceV1, useValue: analysisExecutionService },
         { provide: DashboardDraftServiceV1, useValue: dashboardDraftService },
@@ -389,6 +404,8 @@ export class DdaModule {
         WebIntakeServiceV1,
         EtlProposalServiceV1,
         EtlAcceptanceServiceV1,
+        AutomaticPreparationService,
+        AutomaticPreparationEnqueueService,
         AnalysisProposalServiceV1,
         AnalysisExecutionServiceV1,
         DashboardDraftServiceV1,

@@ -1,5 +1,6 @@
 export interface QualityDimensionViewV1 {
   readonly dimension: string;
+  readonly numerator?: number;
   readonly denominator: number;
   readonly coverage: number;
   readonly rule: string;
@@ -18,7 +19,7 @@ export interface QualityDimensionsProps {
   readonly locale?: 'vi' | 'en';
 }
 
-/** DDA-009/010 leaf: separated quality dimensions, never percentage-correct. */
+/** DDA-009/010/053 leaf: separated quality dimensions, never percentage-correct. */
 export function QualityDimensions({
   dimensions,
   overallSummary,
@@ -31,7 +32,9 @@ export function QualityDimensions({
       <ul>
         {dimensions.map((item) => (
           <li key={item.dimension}>
-            <strong>{item.dimension}</strong>: {item.coverage}/{item.denominator} · {item.rule} ·{' '}
+            <strong>{item.dimension}</strong>:{' '}
+            {item.numerator === undefined ? null : `numerator=${item.numerator} · `}
+            denominator={item.denominator} · coverage={item.coverage} · {item.rule} ·{' '}
             {item.expectation} · sample={item.sampleState}
             {item.limitations.length > 0 ? ` · limits: ${item.limitations.join('; ')}` : ''}
           </li>
