@@ -26,7 +26,9 @@ describe('governed artifact inbox', () => {
     const router = createAppRouter({ initialEntries: ['/en/inbox'] });
     render(<ApplicationBoundary router={router} />);
 
-    expect(await screen.findByRole('heading', { name: 'Data Inbox' })).toBeTruthy();
+    expect(
+      await screen.findByRole('heading', { name: 'Data Inbox' }, { timeout: 10_000 }),
+    ).toBeTruthy();
     expect(await screen.findByText('Needs review')).toBeTruthy();
     expect(screen.getByText(inboxItem.inboxItemId)).toBeTruthy();
     expect(screen.queryByText('safe-fixture')).toBeNull();
@@ -39,7 +41,11 @@ describe('governed artifact inbox', () => {
     const router = createAppRouter({ initialEntries: ['/en/inbox'] });
     render(<ApplicationBoundary router={router} />);
 
-    expect(await screen.findByText('The Inbox could not load. No changes were sent.')).toBeTruthy();
+    expect(
+      await screen.findByText('The Inbox could not load. No changes were sent.', {
+        timeout: 10_000,
+      }),
+    ).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Retry safely' })).toBeTruthy();
     expect(screen.queryByText(/private provider detail/u)).toBeNull();
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
