@@ -22,6 +22,12 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.databreeze.android.capture.CaptureProfile
+import com.databreeze.android.capture.CaptureScreen
+import com.databreeze.android.dashboard.DashboardScreen
+import com.databreeze.android.dashboard.DashboardSnapshot
+import com.databreeze.android.dashboard.DashboardViewModel
+import com.databreeze.android.dashboard.DashboardWidget
 import com.databreeze.android.receipts.ReceiptCaptureScreen
 import com.databreeze.android.receipts.ReceiptCaptureViewModel
 import com.databreeze.android.receipts.ReceiptDestination
@@ -35,6 +41,8 @@ import com.databreeze.android.workbench.WorkbenchScreen
 private object AppRoutes {
     const val HOME = "home"
     const val CAPTURE = "capture"
+    const val PROFILE_CAPTURE = "profile-capture"
+    const val DASHBOARD = "dashboard"
     const val WORKBENCH = "workbench"
     const val MODULE = "module/{moduleId}"
     const val REVIEW = "receipt-review/{sessionId}"
@@ -75,6 +83,8 @@ fun DataBreezeApp(
                     HomeScreen(
                         onWorkbench = { navController.navigate(AppRoutes.WORKBENCH) },
                         onCapture = { navController.navigate(AppRoutes.CAPTURE) },
+                        onProfileCapture = { navController.navigate(AppRoutes.PROFILE_CAPTURE) },
+                        onDashboard = { navController.navigate(AppRoutes.DASHBOARD) },
                     )
                 }
                 composable(AppRoutes.WORKBENCH) {
@@ -114,6 +124,32 @@ fun DataBreezeApp(
                         },
                     )
                 }
+                composable(AppRoutes.PROFILE_CAPTURE) {
+                    CaptureScreen(
+                        onConfirmed = { profile: CaptureProfile ->
+                            navController.navigate(AppRoutes.review("profile-${profile.name}"))
+                        },
+                    )
+                }
+                composable(AppRoutes.DASHBOARD) {
+                    val dashboardModel =
+                        remember {
+                            DashboardViewModel().also {
+                                it.load(
+                                    DashboardSnapshot(
+                                        dashboardId = "01DASH00000000000000000001",
+                                        title = "Chi phi",
+                                        widgets =
+                                            listOf(
+                                                DashboardWidget("w1", "kpi", "Tong", "125000"),
+                                            ),
+                                        evidenceImageIds = listOf("01ORIG0000000000000000001"),
+                                    ),
+                                )
+                            }
+                        }
+                    DashboardScreen(viewModel = dashboardModel)
+                }
                 composable(AppRoutes.REVIEW) { entry ->
                     val sessionId = entry.arguments?.getString("sessionId").orEmpty()
                     val reviewModel = remember(sessionId) {
@@ -133,6 +169,8 @@ fun DataBreezeApp(
 private fun HomeScreen(
     onWorkbench: () -> Unit,
     onCapture: () -> Unit,
+    onProfileCapture: () -> Unit,
+    onDashboard: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -148,6 +186,12 @@ private fun HomeScreen(
         }
         Button(onClick = onCapture, modifier = Modifier.testTag("capture-button")) {
             Text(stringResource(R.string.receipt_capture_action))
+        }
+        Button(onClick = onProfileCapture, modifier = Modifier.testTag("profile-capture-button")) {
+            Text("Capture profile")
+        }
+        Button(onClick = onDashboard, modifier = Modifier.testTag("dashboard-button")) {
+            Text("Dashboard")
         }
     }
 }
