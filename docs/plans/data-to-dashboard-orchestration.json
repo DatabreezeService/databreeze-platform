@@ -31,7 +31,7 @@
     "verified",
     "deferred"
   ],
-  "nextWorkPackageId": "UDW-CONTRACTS",
+  "nextWorkPackageId": "DDA-087",
   "gates": [
     {
       "gateId": "G0",
@@ -140,7 +140,7 @@
         "docs/evidence/dda/openai-assistance-evaluation.md",
         "docs/evidence/dda/openai-receipt-evaluation.md"
       ],
-      "notes": "Blocked on owner MANUAL-PREREQUISITES and plan 401 gates. Agent-implementable code-first work continues in plan 402; OpenAI development validation is plan 403. No fabricated credentials or G5 approval."
+      "notes": "Blocked on owner MANUAL-PREREQUISITES and plan 401/406 Task 19 gates. No fabricated credentials, signing, live provider promotion, or G5 approval."
     },
     {
       "gateId": "G6",
@@ -161,9 +161,11 @@
       ],
       "evidence": [
         "docs/plans/406-unified-data-workspace-implementation.md",
-        "docs/evidence/dda/unified-workspace-baseline.md"
+        "docs/evidence/dda/unified-workspace-baseline.md",
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "8b96c76b0ef2d00fefa75b43813b4bcb86392146"
       ],
-      "notes": "Plan 406 Task 1 committed; Task 2 activates UDW lanes. productionReady remains false; G5 remains blocked."
+      "notes": "Plan 406 Tasks 1-18 agent-owned core landed; Task 14/18 leftovers deepened. Task 19 owner gates blocked. productionReady remains false; G5 remains blocked. No live OpenAI; Android connected tests skipped without emulator."
     }
   ],
   "workPackages": [
@@ -642,7 +644,7 @@
       "workPackageId": "UDW-CONTRACTS",
       "name": "unified-workspace-contracts",
       "plan": "docs/plans/406-unified-data-workspace-implementation.md",
-      "status": "ready",
+      "status": "complete",
       "dependsOn": [
         "DDA-087"
       ],
@@ -677,13 +679,22 @@
         "corepack pnpm --filter @databreeze/contracts fixtures:check",
         "corepack pnpm --filter @databreeze/domain test",
         "corepack pnpm --filter @databreeze/contracts contract:check"
+      ],
+      "commit": "686d581a",
+      "evidence": [
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "docs/evidence/dda/unified-workspace-baseline.md",
+        "8b96c76b0ef2d00fefa75b43813b4bcb86392146",
+        "packages/contracts",
+        "feat(contracts): add unified workspace contracts",
+        "686d581a"
       ]
     },
     {
       "workPackageId": "UDW-IAM",
       "name": "unified-workspace-iam",
       "plan": "docs/plans/406-unified-data-workspace-implementation.md",
-      "status": "blocked",
+      "status": "complete",
       "dependsOn": [
         "UDW-CONTRACTS"
       ],
@@ -703,13 +714,21 @@
       ],
       "requiredChecks": [
         "corepack pnpm --filter @databreeze/api test -- email-verification oidc-linking persistent-session-policy access-preset agent-grant"
+      ],
+      "commit": "2966b0ba",
+      "evidence": [
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "docs/evidence/dda/unified-workspace-baseline.md",
+        "8b96c76b0ef2d00fefa75b43813b4bcb86392146",
+        "feat(iam): add workspace agent grants",
+        "2966b0ba"
       ]
     },
     {
       "workPackageId": "UDW-DATA",
       "name": "unified-workspace-data",
       "plan": "docs/plans/406-unified-data-workspace-implementation.md",
-      "status": "blocked",
+      "status": "complete",
       "dependsOn": [
         "UDW-CONTRACTS"
       ],
@@ -733,13 +752,21 @@
       ],
       "requiredChecks": [
         "corepack pnpm --filter @databreeze/api test -- source-catalog automatic-preparation table-extraction"
+      ],
+      "commit": "5770f1fc",
+      "evidence": [
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "docs/evidence/dda/unified-workspace-baseline.md",
+        "8b96c76b0ef2d00fefa75b43813b4bcb86392146",
+        "feat(dda): add governed table extraction",
+        "5770f1fc"
       ]
     },
     {
       "workPackageId": "UDW-CONVERSATION",
       "name": "unified-workspace-conversation",
       "plan": "docs/plans/406-unified-data-workspace-implementation.md",
-      "status": "blocked",
+      "status": "complete",
       "dependsOn": [
         "UDW-CONTRACTS",
         "UDW-IAM"
@@ -757,13 +784,21 @@
       ],
       "requiredChecks": [
         "corepack pnpm --filter @databreeze/api test -- conversation agent"
+      ],
+      "commit": "4f0b1ac9",
+      "evidence": [
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "docs/evidence/dda/unified-workspace-baseline.md",
+        "8b96c76b0ef2d00fefa75b43813b4bcb86392146",
+        "feat(dda): add bounded workspace agent",
+        "4f0b1ac9"
       ]
     },
     {
       "workPackageId": "UDW-WEB",
       "name": "unified-workspace-web",
       "plan": "docs/plans/406-unified-data-workspace-implementation.md",
-      "status": "blocked",
+      "status": "complete",
       "dependsOn": [
         "UDW-IAM",
         "UDW-DATA",
@@ -786,13 +821,22 @@
       "requiredChecks": [
         "corepack pnpm --filter @databreeze/web test",
         "corepack pnpm --filter @databreeze/web typecheck"
+      ],
+      "commit": "4ec1417a",
+      "evidence": [
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "docs/evidence/dda/unified-workspace-baseline.md",
+        "8b96c76b0ef2d00fefa75b43813b4bcb86392146",
+        "apps/web/e2e/unified-workspace.spec.ts",
+        "feat(web): add unified data destination modules",
+        "4ec1417a"
       ]
     },
     {
       "workPackageId": "UDW-DESKTOP",
       "name": "unified-workspace-desktop",
       "plan": "docs/plans/406-unified-data-workspace-implementation.md",
-      "status": "blocked",
+      "status": "complete",
       "dependsOn": [
         "UDW-IAM",
         "UDW-DATA",
@@ -812,13 +856,21 @@
       "requiredChecks": [
         "corepack pnpm --filter @databreeze/desktop test",
         "corepack pnpm --filter @databreeze/desktop security:check"
+      ],
+      "commit": "4c27d4a3",
+      "evidence": [
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "docs/evidence/dda/unified-workspace-baseline.md",
+        "8b96c76b0ef2d00fefa75b43813b4bcb86392146",
+        "feat(desktop): deliver premium V2 workbench",
+        "4c27d4a3"
       ]
     },
     {
       "workPackageId": "UDW-ANDROID",
       "name": "unified-workspace-android",
       "plan": "docs/plans/406-unified-data-workspace-implementation.md",
-      "status": "blocked",
+      "status": "complete",
       "dependsOn": [
         "UDW-WEB",
         "UDW-DESKTOP"
@@ -834,13 +886,22 @@
       ],
       "requiredChecks": [
         "cd apps/android; ./gradlew testDebugUnitTest lintDebug"
-      ]
+      ],
+      "commit": "8076675e",
+      "evidence": [
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "docs/evidence/dda/unified-workspace-baseline.md",
+        "8b96c76b0ef2d00fefa75b43813b4bcb86392146",
+        "feat(android): add governed capture and analysis",
+        "8076675e"
+      ],
+      "notes": "Unit/lint landed. connectedDebugAndroidTest skipped: adb/emulator unavailable."
     },
     {
       "workPackageId": "UDW-INTEGRATION",
       "name": "unified-workspace-integration",
       "plan": "docs/plans/406-unified-data-workspace-implementation.md",
-      "status": "blocked",
+      "status": "in-progress",
       "dependsOn": [
         "UDW-WEB",
         "UDW-DESKTOP",
@@ -869,7 +930,17 @@
         "corepack pnpm orchestration:check",
         "corepack pnpm requirements:check",
         "corepack pnpm contracts:check"
-      ]
+      ],
+      "commit": "8b96c76b",
+      "evidence": [
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "docs/evidence/dda/unified-workspace-baseline.md",
+        "8b96c76b0ef2d00fefa75b43813b4bcb86392146",
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
+        "feat(product): add workspace settings and notifications",
+        "8b96c76b"
+      ],
+      "notes": "Tasks 4/13/17/18 agent-owned verification deepened. Task 19 owner gates remain blocked; productionReady/G5 false."
     }
   ],
   "integrationOrder": [

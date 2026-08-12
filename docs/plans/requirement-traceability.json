@@ -740,11 +740,13 @@
       ],
       "releaseEvidence": [
         "requirement-linked-tests",
-        "docs/evidence/dda/unified-workspace-verification.md"
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "tools/fixture-validation/fixtures/dda/unified-workspace/manifest.json",
+        "connectedDebugAndroidTest skipped: adb/emulator unavailable"
       ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
     },
@@ -4525,16 +4527,22 @@
         "services/api/src/features/dda/source-catalog/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/source-catalog.service.test.ts"
+        "services/api/test/features/dda/source-catalog.service.test.ts",
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
+        "apps/web/e2e/unified-workspace-journey.spec.ts"
       ],
       "releaseEvidence": [
         "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "tools/fixture-validation/fixtures/dda/unified-workspace/manifest.json"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
         "docs/evidence/dda/unified-workspace-verification.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -4549,16 +4557,22 @@
         "services/api/src/features/dda/etl/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/automatic-preparation.service.test.ts"
+        "services/api/test/features/dda/automatic-preparation.service.test.ts",
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
+        "apps/web/e2e/unified-workspace-journey.spec.ts"
       ],
       "releaseEvidence": [
         "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "tools/fixture-validation/fixtures/dda/unified-workspace/manifest.json"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
         "docs/evidence/dda/unified-workspace-verification.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -4573,16 +4587,22 @@
         "services/api/src/features/dda/dashboard/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/starter-dashboard.service.test.ts"
+        "services/api/test/features/dda/starter-dashboard.service.test.ts",
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
+        "apps/web/e2e/unified-workspace-journey.spec.ts"
       ],
       "releaseEvidence": [
         "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "tools/fixture-validation/fixtures/dda/unified-workspace/manifest.json"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
         "docs/evidence/dda/unified-workspace-verification.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -4597,16 +4617,22 @@
         "services/api/src/features/dda/conversation/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/conversation.service.test.ts"
+        "services/api/test/features/dda/conversation.service.test.ts",
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
+        "apps/web/e2e/unified-workspace-journey.spec.ts"
       ],
       "releaseEvidence": [
         "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "tools/fixture-validation/fixtures/dda/unified-workspace/manifest.json"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
         "docs/evidence/dda/unified-workspace-verification.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -4621,16 +4647,22 @@
         "services/api/src/features/dda/conversation/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/conversation-context.service.test.ts"
+        "services/api/test/features/dda/conversation-context.service.test.ts",
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
+        "apps/web/e2e/unified-workspace-journey.spec.ts"
       ],
       "releaseEvidence": [
         "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "tools/fixture-validation/fixtures/dda/unified-workspace/manifest.json"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
         "docs/evidence/dda/unified-workspace-verification.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -4645,16 +4677,22 @@
         "services/api/src/features/dda/table-extraction/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/table-extraction.service.test.ts"
+        "services/api/test/features/dda/table-extraction.service.test.ts",
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
+        "apps/web/e2e/unified-workspace-journey.spec.ts"
       ],
       "releaseEvidence": [
         "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "tools/fixture-validation/fixtures/dda/unified-workspace/manifest.json"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
         "docs/evidence/dda/unified-workspace-verification.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -4669,16 +4707,22 @@
         "services/api/src/features/dda/dashboard/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/dashboard-audience.service.test.ts"
+        "services/api/test/features/dda/dashboard-audience.service.test.ts",
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
+        "apps/web/e2e/unified-workspace-journey.spec.ts"
       ],
       "releaseEvidence": [
         "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "tools/fixture-validation/fixtures/dda/unified-workspace/manifest.json"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
         "docs/evidence/dda/unified-workspace-verification.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -4694,16 +4738,22 @@
         "apps/desktop/src/application/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/folder-projection-consent.test.ts"
+        "services/api/test/features/dda/folder-projection-consent.test.ts",
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
+        "apps/web/e2e/unified-workspace-journey.spec.ts"
       ],
       "releaseEvidence": [
         "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "tools/fixture-validation/fixtures/dda/unified-workspace/manifest.json"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
         "docs/evidence/dda/unified-workspace-verification.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -4718,16 +4768,22 @@
         "services/api/src/features/dda/agent/"
       ],
       "testPaths": [
-        "services/api/test/features/dda/agent-tool-gateway.service.test.ts"
+        "services/api/test/features/dda/agent-tool-gateway.service.test.ts",
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
+        "apps/web/e2e/unified-workspace-journey.spec.ts"
       ],
       "releaseEvidence": [
         "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "tools/fixture-validation/fixtures/dda/unified-workspace/manifest.json"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
         "docs/evidence/dda/unified-workspace-verification.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -6664,16 +6720,20 @@
         "apps/desktop/src/renderer/workbench/"
       ],
       "testPaths": [
-        "apps/desktop/test/"
+        "apps/desktop/test/",
+        "apps/desktop/test/unified-workspace-journey.test.ts"
       ],
       "releaseEvidence": [
         "requirement-linked-tests",
-        "docs/evidence/dda/unified-workspace-verification.md"
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "tools/fixture-validation/fixtures/dda/unified-workspace/manifest.json"
       ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "apps/desktop/test/unified-workspace-journey.test.ts"
+      ],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -11664,16 +11724,22 @@
         "services/api/src/features/iam/"
       ],
       "testPaths": [
-        "services/api/test/features/iam/email-verification.service.test.ts"
+        "services/api/test/features/iam/email-verification.service.test.ts",
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
+        "apps/web/e2e/unified-workspace-journey.spec.ts"
       ],
       "releaseEvidence": [
         "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "tools/fixture-validation/fixtures/dda/unified-workspace/manifest.json"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
         "docs/evidence/dda/unified-workspace-verification.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -11688,16 +11754,22 @@
         "services/api/src/features/iam/"
       ],
       "testPaths": [
-        "services/api/test/features/iam/persistent-session-policy.test.ts"
+        "services/api/test/features/iam/persistent-session-policy.test.ts",
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
+        "apps/web/e2e/unified-workspace-journey.spec.ts"
       ],
       "releaseEvidence": [
         "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "tools/fixture-validation/fixtures/dda/unified-workspace/manifest.json"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
         "docs/evidence/dda/unified-workspace-verification.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -11712,16 +11784,22 @@
         "services/api/src/features/iam/"
       ],
       "testPaths": [
-        "services/api/test/features/iam/agent-grant.service.test.ts"
+        "services/api/test/features/iam/agent-grant.service.test.ts",
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
+        "apps/web/e2e/unified-workspace-journey.spec.ts"
       ],
       "releaseEvidence": [
         "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "tools/fixture-validation/fixtures/dda/unified-workspace/manifest.json"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
         "docs/evidence/dda/unified-workspace-verification.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -11737,16 +11815,22 @@
         "packages/domain/src/permissions/v1.ts"
       ],
       "testPaths": [
-        "services/api/test/features/iam/access-preset.service.test.ts"
+        "services/api/test/features/iam/access-preset.service.test.ts",
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
+        "apps/web/e2e/unified-workspace-journey.spec.ts"
       ],
       "releaseEvidence": [
         "requirement-linked-tests",
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "tools/fixture-validation/fixtures/dda/unified-workspace/manifest.json"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
         "docs/evidence/dda/unified-workspace-verification.md"
       ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -20844,16 +20928,24 @@
         "apps/web/src/"
       ],
       "testPaths": [
-        "apps/web/test/"
+        "apps/web/test/",
+        "apps/web/test/unified-navigation.test.tsx",
+        "apps/web/test/floating-agent.test.tsx",
+        "apps/web/e2e/unified-workspace.spec.ts",
+        "apps/web/e2e/unified-workspace.visual.spec.ts"
       ],
       "releaseEvidence": [
         "requirement-linked-tests",
-        "docs/evidence/dda/unified-workspace-verification.md"
+        "docs/evidence/dda/unified-workspace-verification.md",
+        "tools/fixture-validation/fixtures/dda/unified-workspace/manifest.json"
       ],
-      "status": "planned",
-      "coverage": "planned",
-      "verificationStatus": "not-verified",
-      "verifiedPaths": [],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "apps/web/e2e/unified-workspace.spec.ts",
+        "apps/web/src/app/unified-primary-navigation.ts"
+      ],
       "releaseStatus": "p0-release-gate"
     }
   ]
