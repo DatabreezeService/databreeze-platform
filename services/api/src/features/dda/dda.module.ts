@@ -124,6 +124,9 @@ import type { RefreshUsagePortV1 } from './refresh/application/refresh-usage.por
 import { SnapshotCommitService } from './refresh/application/snapshot-commit.service.js';
 import { InMemorySourceCatalogRepositoryAdapter } from './source-catalog/adapter/in-memory-source-catalog-repository.adapter.js';
 import { PrismaSourceCatalogRepositoryAdapter } from './source-catalog/adapter/prisma-source-catalog-repository.adapter.js';
+import { DisabledOpenAiTableExtractionAdapter } from './table-extraction/adapter/openai-table-extraction.adapter.js';
+import { TableExtractionController } from './table-extraction/api/table-extraction.controller.js';
+import { TableExtractionService } from './table-extraction/application/table-extraction.service.js';
 import { FolderProjectionController } from './source-catalog/api/folder-projection.controller.js';
 import { SourceCatalogController } from './source-catalog/api/source-catalog.controller.js';
 import {
@@ -321,6 +324,9 @@ export class DdaModule {
       sourceCatalogService,
       sourceCatalogRepository,
     );
+    const tableExtractionService = new TableExtractionService(
+      new DisabledOpenAiTableExtractionAdapter(),
+    );
 
     return {
       module: DdaModule,
@@ -338,6 +344,7 @@ export class DdaModule {
         ReceiptExtractionController,
         SourceCatalogController,
         FolderProjectionController,
+        TableExtractionController,
       ],
       providers: [
         {
@@ -388,6 +395,7 @@ export class DdaModule {
         { provide: SOURCE_CATALOG_REPOSITORY_PORT, useValue: sourceCatalogRepository },
         { provide: SOURCE_CATALOG_SERVICE, useValue: sourceCatalogService },
         { provide: ORIGINAL_VIEW_SERVICE, useValue: originalViewService },
+        { provide: TableExtractionService, useValue: tableExtractionService },
         { provide: REQUEST_TENANT_CONTEXT, useValue: requestTenantContext },
       ],
       exports: [
@@ -419,6 +427,7 @@ export class DdaModule {
         SOURCE_CATALOG_REPOSITORY_PORT,
         SOURCE_CATALOG_SERVICE,
         ORIGINAL_VIEW_SERVICE,
+        TableExtractionService,
       ],
     };
   }
