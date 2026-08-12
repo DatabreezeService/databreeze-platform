@@ -84,6 +84,15 @@ class CursorPage(ClosedModel, Generic[TItem]):
             raise ValueError("nextCursor is forbidden for this hasMore value")
         return self
 
+class DdaAgentGrant(ClosedModel):
+    grantId: Identifier
+    level: Annotated[StrictStr, StringConstraints(pattern=r"^(NONE|ANALYZE|PROPOSE_CHANGES|APPLY_CONFIRMED_CHANGES)$")]
+    memberId: Identifier
+    revision: Revision
+    schemaVersion: Literal[1]
+    tenantScope: TenantScope
+    updatedAt: UtcTimestamp
+
 class DdaAnalysisPlan(ClosedModel):
     assumptions: Annotated[list[Annotated[StrictStr, StringConstraints(min_length=1, max_length=500)]], Field(max_length=32)]
     createdAt: UtcTimestamp
@@ -136,6 +145,33 @@ class DdaAnalysisPlanTimeRange(ClosedModel):
 class DdaAnalysisPlanUnitsItem(ClosedModel):
     field: Annotated[StrictStr, StringConstraints(min_length=1, max_length=96)]
     unit: Annotated[StrictStr, StringConstraints(min_length=1, max_length=32)]
+
+class DdaConversation(ClosedModel):
+    activeDatasetIds: Annotated[list[Identifier], Field(max_length=8)]
+    conversationId: Identifier
+    history: Annotated[list[DdaConversationHistoryItem], Field(max_length=50)]
+    page: CursorPage
+    schemaVersion: Literal[1]
+    tenantScope: TenantScope
+    title: Annotated[StrictStr, StringConstraints(min_length=1, max_length=200)]
+    updatedAt: UtcTimestamp
+
+class DdaConversationContextEvent(ClosedModel):
+    afterVersionId: Identifier | None = None
+    beforeVersionId: Identifier | None = None
+    conversationId: Identifier
+    eventId: Identifier
+    kind: Annotated[StrictStr, StringConstraints(pattern=r"^(CONTEXT_RESTORED|DATASET_VERSION_ADVANCED|DATASET_ATTACHED|DATASET_DETACHED|DASHBOARD_VERSION_ADVANCED|FILTER_CONTEXT_CHANGED)$")]
+    occurredAt: UtcTimestamp
+    schemaVersion: Literal[1]
+    tenantScope: TenantScope
+
+class DdaConversationHistoryItem(ClosedModel):
+    createdAt: UtcTimestamp
+    datasetVersionId: Identifier | None = None
+    messageId: Identifier
+    role: Annotated[StrictStr, StringConstraints(pattern=r"^(USER|AGENT|SYSTEM)$")]
+    text: Annotated[StrictStr, StringConstraints(min_length=1, max_length=16000)]
 
 class DdaDashboardSnapshot(ClosedModel):
     audience: Annotated[StrictStr, StringConstraints(pattern=r"^(OWNER|WORKSPACE_VIEWERS|PROJECT_VIEWERS|SHARED_LINK)$")]
@@ -262,6 +298,35 @@ class DdaMaterialization(ClosedModel):
     timezone: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
     widgetId: Identifier
 
+class DdaPreparationSummary(ClosedModel):
+    automaticPolicy: Annotated[StrictStr, StringConstraints(pattern=r"^(SAFE_NON_LOSSY|NONE)$")]
+    counts: DdaPreparationSummaryCounts
+    createdAt: UtcTimestamp
+    datasetVersionId: Identifier
+    qualityDimensions: DdaPreparationSummaryQualityDimensions
+    reviewReasons: Annotated[list[Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]], Field(max_length=32)]
+    schemaVersion: Literal[1]
+    summaryId: Identifier
+    tenantScope: TenantScope
+    transformationReceiptIds: Annotated[list[Identifier], Field(max_length=64)]
+
+class DdaPreparationSummaryCounts(ClosedModel):
+    changed: Annotated[int, Field(strict=True, ge=0)]
+    input: Annotated[int, Field(strict=True, ge=0)]
+    output: Annotated[int, Field(strict=True, ge=0)]
+    quarantined: Annotated[int, Field(strict=True, ge=0)]
+    rejected: Annotated[int, Field(strict=True, ge=0)]
+    unchanged: Annotated[int, Field(strict=True, ge=0)]
+    unsupported: Annotated[int, Field(strict=True, ge=0)]
+
+class DdaPreparationSummaryQualityDimensions(ClosedModel):
+    completeness: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    consistency: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    extractionConfidence: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    freshness: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    uniqueness: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    validity: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+
 class DdaReceiptCandidate(ClosedModel):
     adapterVersion: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
     artifactVersionId: Identifier
@@ -287,6 +352,60 @@ class DdaRefreshEvent(ClosedModel):
     schemaVersion: Literal[1]
     snapshotId: Identifier
     tenantScope: TenantScope
+
+class DdaSourceCatalog(ClosedModel):
+    datasetId: Identifier
+    entries: Annotated[list[DdaSourceCatalogEntriesItem], Field(max_length=100)]
+    generatedAt: UtcTimestamp
+    page: CursorPage
+    schemaVersion: Literal[1]
+    tenantScope: TenantScope
+
+class DdaSourceCatalogEntriesItem(ClosedModel):
+    health: Annotated[StrictStr, StringConstraints(pattern=r"^(HEALTHY|WARNING|BLOCKED|UNKNOWN)$")]
+    originalAction: Annotated[StrictStr, StringConstraints(pattern=r"^(VIEW_SAFE|OPEN_ON_SOURCE_DEVICE|NONE)$")] | None = None
+    safeDisplayLabel: Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]
+    sourceId: Identifier
+    sourceType: Annotated[StrictStr, StringConstraints(pattern=r"^(CSV|XLSX|IMAGE|PDF|RECEIPT|TABLE)$")]
+    status: Annotated[StrictStr, StringConstraints(pattern=r"^(ACTIVE|REVIEW|QUARANTINED|RETIRED)$")]
+    transformationCount: Annotated[int, Field(strict=True, ge=0, le=1000)] | None = None
+    versionId: Identifier
+
+class DdaStarterDashboardEvent(ClosedModel):
+    aiUsed: Literal[False]
+    dashboardVersionId: Identifier
+    datasetVersionId: Identifier
+    eventId: Identifier
+    occurredAt: UtcTimestamp
+    schemaVersion: Literal[1]
+    templateId: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    tenantScope: TenantScope
+
+class DdaTableExtractionCandidate(ClosedModel):
+    artifactVersionId: Identifier
+    candidateHash: Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+    candidateId: Identifier
+    cells: Annotated[list[DdaTableExtractionCandidateCellsItem], Field(max_length=10000)]
+    columns: Annotated[list[Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]], Field(max_length=100)]
+    evidenceReferenceId: Identifier
+    pageCount: Annotated[int, Field(strict=True, ge=1, le=20)]
+    profileVersion: Literal["TABLE_V1"]
+    schemaVersion: Literal[1]
+    tenantScope: TenantScope
+
+class DdaTableExtractionCandidateCellsItem(ClosedModel):
+    column: Annotated[int, Field(strict=True, ge=0, le=99)]
+    confidence: Annotated[int, Field(strict=True, ge=0, le=100)]
+    evidence: DdaTableExtractionCandidateEvidence
+    row: Annotated[int, Field(strict=True, ge=0, le=9999)]
+    text: Annotated[StrictStr, StringConstraints(min_length=1, max_length=500)]
+
+class DdaTableExtractionCandidateEvidence(ClosedModel):
+    height: Annotated[int, Field(strict=True, ge=1)]
+    page: Annotated[int, Field(strict=True, ge=1, le=20)]
+    width: Annotated[int, Field(strict=True, ge=1)]
+    x: Annotated[int, Field(strict=True)]
+    y: Annotated[int, Field(strict=True)]
 
 class EventEnvelope(ClosedModel, Generic[TData]):
     actor: ActorMetadata
@@ -363,6 +482,7 @@ ActorMetadata.model_rebuild()
 CommandEnvelope.model_rebuild()
 CorrelationMetadata.model_rebuild()
 CursorPage.model_rebuild()
+DdaAgentGrant.model_rebuild()
 DdaAnalysisPlan.model_rebuild()
 DdaAnalysisPlanEstimate.model_rebuild()
 DdaAnalysisPlanFiltersItem.model_rebuild()
@@ -371,6 +491,9 @@ DdaAnalysisPlanOutput.model_rebuild()
 DdaAnalysisPlanParametersItem.model_rebuild()
 DdaAnalysisPlanTimeRange.model_rebuild()
 DdaAnalysisPlanUnitsItem.model_rebuild()
+DdaConversation.model_rebuild()
+DdaConversationContextEvent.model_rebuild()
+DdaConversationHistoryItem.model_rebuild()
 DdaDashboardSnapshot.model_rebuild()
 DdaDashboardVersion.model_rebuild()
 DdaDashboardVersionBinding.model_rebuild()
@@ -384,9 +507,18 @@ DdaEtlPlanConfigEntriesItem.model_rebuild()
 DdaEtlPlanTransformationsItem.model_rebuild()
 DdaFolderManifest.model_rebuild()
 DdaMaterialization.model_rebuild()
+DdaPreparationSummary.model_rebuild()
+DdaPreparationSummaryCounts.model_rebuild()
+DdaPreparationSummaryQualityDimensions.model_rebuild()
 DdaReceiptCandidate.model_rebuild()
 DdaReceiptCandidateFieldCandidatesItem.model_rebuild()
 DdaRefreshEvent.model_rebuild()
+DdaSourceCatalog.model_rebuild()
+DdaSourceCatalogEntriesItem.model_rebuild()
+DdaStarterDashboardEvent.model_rebuild()
+DdaTableExtractionCandidate.model_rebuild()
+DdaTableExtractionCandidateCellsItem.model_rebuild()
+DdaTableExtractionCandidateEvidence.model_rebuild()
 EventEnvelope.model_rebuild()
 EventEnvelopeEntity.model_rebuild()
 LocalizedText.model_rebuild()

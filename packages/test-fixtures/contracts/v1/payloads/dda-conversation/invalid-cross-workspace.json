@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "conversationId": "00000000-0000-4000-8000-000000000030",
+  "tenantScope": {
+    "scopeType": "project",
+    "organizationId": "00000000-0000-4000-8000-000000000001",
+    "workspaceId": "00000000-0000-4000-8000-000000000002",
+    "projectId": "00000000-0000-4000-8000-000000000003"
+  },
+  "title": "Cross",
+  "activeDatasetIds": [
+    "00000000-0000-4000-8000-000000000031"
+  ],
+  "history": [
+    {
+      "messageId": "00000000-0000-4000-8000-000000000032",
+      "role": "USER",
+      "text": "hi",
+      "createdAt": "2026-08-12T10:00:00.000Z"
+    }
+  ],
+  "page": {
+    "data": [],
+    "snapshotAt": "2026-08-12T10:00:00.000Z",
+    "hasMore": false
+  },
+  "updatedAt": "2026-08-12T10:00:00.000Z",
+  "foreignWorkspaceId": "00000000-0000-4000-8000-000000000099"
+}

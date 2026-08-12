@@ -39,6 +39,16 @@ export type CursorPage<TItem = unknown> = Omit<CursorPageFields<TItem>, "hasMore
   | { readonly hasMore: false; readonly nextCursor?: never }
 );
 
+export interface DdaAgentGrant {
+  readonly grantId: Identifier;
+  readonly level: string;
+  readonly memberId: Identifier;
+  readonly revision: Revision;
+  readonly schemaVersion: 1;
+  readonly tenantScope: TenantScope;
+  readonly updatedAt: UtcTimestamp;
+}
+
 export interface DdaAnalysisPlan {
   readonly assumptions: readonly string[];
   readonly createdAt: UtcTimestamp;
@@ -98,6 +108,36 @@ export interface DdaAnalysisPlanTimeRange {
 export interface DdaAnalysisPlanUnitsItem {
   readonly field: string;
   readonly unit: string;
+}
+
+export interface DdaConversation {
+  readonly activeDatasetIds: readonly Identifier[];
+  readonly conversationId: Identifier;
+  readonly history: readonly DdaConversationHistoryItem[];
+  readonly page: CursorPage;
+  readonly schemaVersion: 1;
+  readonly tenantScope: TenantScope;
+  readonly title: string;
+  readonly updatedAt: UtcTimestamp;
+}
+
+export interface DdaConversationContextEvent {
+  readonly afterVersionId?: Identifier;
+  readonly beforeVersionId?: Identifier;
+  readonly conversationId: Identifier;
+  readonly eventId: Identifier;
+  readonly kind: string;
+  readonly occurredAt: UtcTimestamp;
+  readonly schemaVersion: 1;
+  readonly tenantScope: TenantScope;
+}
+
+export interface DdaConversationHistoryItem {
+  readonly createdAt: UtcTimestamp;
+  readonly datasetVersionId?: Identifier;
+  readonly messageId: Identifier;
+  readonly role: string;
+  readonly text: string;
 }
 
 export interface DdaDashboardSnapshot {
@@ -238,6 +278,38 @@ export interface DdaMaterialization {
   readonly widgetId: Identifier;
 }
 
+export interface DdaPreparationSummary {
+  readonly automaticPolicy: string;
+  readonly counts: DdaPreparationSummaryCounts;
+  readonly createdAt: UtcTimestamp;
+  readonly datasetVersionId: Identifier;
+  readonly qualityDimensions: DdaPreparationSummaryQualityDimensions;
+  readonly reviewReasons: readonly string[];
+  readonly schemaVersion: 1;
+  readonly summaryId: Identifier;
+  readonly tenantScope: TenantScope;
+  readonly transformationReceiptIds: readonly Identifier[];
+}
+
+export interface DdaPreparationSummaryCounts {
+  readonly changed: number;
+  readonly input: number;
+  readonly output: number;
+  readonly quarantined: number;
+  readonly rejected: number;
+  readonly unchanged: number;
+  readonly unsupported: number;
+}
+
+export interface DdaPreparationSummaryQualityDimensions {
+  readonly completeness: string;
+  readonly consistency: string;
+  readonly extractionConfidence: string;
+  readonly freshness: string;
+  readonly uniqueness: string;
+  readonly validity: string;
+}
+
 export interface DdaReceiptCandidate {
   readonly adapterVersion: string;
   readonly artifactVersionId: Identifier;
@@ -265,6 +337,66 @@ export interface DdaRefreshEvent {
   readonly schemaVersion: 1;
   readonly snapshotId: Identifier;
   readonly tenantScope: TenantScope;
+}
+
+export interface DdaSourceCatalog {
+  readonly datasetId: Identifier;
+  readonly entries: readonly DdaSourceCatalogEntriesItem[];
+  readonly generatedAt: UtcTimestamp;
+  readonly page: CursorPage;
+  readonly schemaVersion: 1;
+  readonly tenantScope: TenantScope;
+}
+
+export interface DdaSourceCatalogEntriesItem {
+  readonly health: string;
+  readonly originalAction?: string;
+  readonly safeDisplayLabel: string;
+  readonly sourceId: Identifier;
+  readonly sourceType: string;
+  readonly status: string;
+  readonly transformationCount?: number;
+  readonly versionId: Identifier;
+}
+
+export interface DdaStarterDashboardEvent {
+  readonly aiUsed: false;
+  readonly dashboardVersionId: Identifier;
+  readonly datasetVersionId: Identifier;
+  readonly eventId: Identifier;
+  readonly occurredAt: UtcTimestamp;
+  readonly schemaVersion: 1;
+  readonly templateId: string;
+  readonly tenantScope: TenantScope;
+}
+
+export interface DdaTableExtractionCandidate {
+  readonly artifactVersionId: Identifier;
+  readonly candidateHash: string;
+  readonly candidateId: Identifier;
+  readonly cells: readonly DdaTableExtractionCandidateCellsItem[];
+  readonly columns: readonly string[];
+  readonly evidenceReferenceId: Identifier;
+  readonly pageCount: number;
+  readonly profileVersion: "TABLE_V1";
+  readonly schemaVersion: 1;
+  readonly tenantScope: TenantScope;
+}
+
+export interface DdaTableExtractionCandidateCellsItem {
+  readonly column: number;
+  readonly confidence: number;
+  readonly evidence: DdaTableExtractionCandidateEvidence;
+  readonly row: number;
+  readonly text: string;
+}
+
+export interface DdaTableExtractionCandidateEvidence {
+  readonly height: number;
+  readonly page: number;
+  readonly width: number;
+  readonly x: number;
+  readonly y: number;
 }
 
 export interface EventEnvelope<TData extends object = JsonObject> {
@@ -351,7 +483,7 @@ export interface WorkspaceScope {
   readonly workspaceId: Identifier;
 }
 
-export type ContractV1SchemaId = "https://schemas.databreeze.dev/contracts/v1/actor-metadata" | "https://schemas.databreeze.dev/contracts/v1/command-envelope" | "https://schemas.databreeze.dev/contracts/v1/correlation-metadata" | "https://schemas.databreeze.dev/contracts/v1/cursor-page" | "https://schemas.databreeze.dev/contracts/v1/dda-analysis-plan" | "https://schemas.databreeze.dev/contracts/v1/dda-dashboard-snapshot" | "https://schemas.databreeze.dev/contracts/v1/dda-dashboard-version" | "https://schemas.databreeze.dev/contracts/v1/dda-etl-plan" | "https://schemas.databreeze.dev/contracts/v1/dda-folder-manifest" | "https://schemas.databreeze.dev/contracts/v1/dda-materialization" | "https://schemas.databreeze.dev/contracts/v1/dda-receipt-candidate" | "https://schemas.databreeze.dev/contracts/v1/dda-refresh-event" | "https://schemas.databreeze.dev/contracts/v1/event-envelope" | "https://schemas.databreeze.dev/contracts/v1/identifier" | "https://schemas.databreeze.dev/contracts/v1/problem-details" | "https://schemas.databreeze.dev/contracts/v1/revision" | "https://schemas.databreeze.dev/contracts/v1/tenant-scope" | "https://schemas.databreeze.dev/contracts/v1/utc-timestamp";
+export type ContractV1SchemaId = "https://schemas.databreeze.dev/contracts/v1/actor-metadata" | "https://schemas.databreeze.dev/contracts/v1/command-envelope" | "https://schemas.databreeze.dev/contracts/v1/correlation-metadata" | "https://schemas.databreeze.dev/contracts/v1/cursor-page" | "https://schemas.databreeze.dev/contracts/v1/dda-agent-grant" | "https://schemas.databreeze.dev/contracts/v1/dda-analysis-plan" | "https://schemas.databreeze.dev/contracts/v1/dda-conversation" | "https://schemas.databreeze.dev/contracts/v1/dda-conversation-context-event" | "https://schemas.databreeze.dev/contracts/v1/dda-dashboard-snapshot" | "https://schemas.databreeze.dev/contracts/v1/dda-dashboard-version" | "https://schemas.databreeze.dev/contracts/v1/dda-etl-plan" | "https://schemas.databreeze.dev/contracts/v1/dda-folder-manifest" | "https://schemas.databreeze.dev/contracts/v1/dda-materialization" | "https://schemas.databreeze.dev/contracts/v1/dda-preparation-summary" | "https://schemas.databreeze.dev/contracts/v1/dda-receipt-candidate" | "https://schemas.databreeze.dev/contracts/v1/dda-refresh-event" | "https://schemas.databreeze.dev/contracts/v1/dda-source-catalog" | "https://schemas.databreeze.dev/contracts/v1/dda-starter-dashboard-event" | "https://schemas.databreeze.dev/contracts/v1/dda-table-extraction-candidate" | "https://schemas.databreeze.dev/contracts/v1/event-envelope" | "https://schemas.databreeze.dev/contracts/v1/identifier" | "https://schemas.databreeze.dev/contracts/v1/problem-details" | "https://schemas.databreeze.dev/contracts/v1/revision" | "https://schemas.databreeze.dev/contracts/v1/tenant-scope" | "https://schemas.databreeze.dev/contracts/v1/utc-timestamp";
 
 export type ContractV1ParseResult<TValue = unknown> =
   | { readonly accepted: true; readonly value: TValue }

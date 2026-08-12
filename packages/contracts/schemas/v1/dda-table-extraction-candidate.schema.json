@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/dda-table-extraction-candidate",
+  "$comment": "DDA-057: bounded table extraction candidate with evidence coordinates.",
+  "title": "DDA Table Extraction Candidate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "candidateId",
+    "tenantScope",
+    "artifactVersionId",
+    "profileVersion",
+    "pageCount",
+    "columns",
+    "cells",
+    "evidenceReferenceId",
+    "candidateHash"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "candidateId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "tenantScope": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/tenant-scope"
+    },
+    "artifactVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "profileVersion": {
+      "type": "string",
+      "const": "TABLE_V1"
+    },
+    "pageCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 20
+    },
+    "columns": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      }
+    },
+    "cells": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "row",
+          "column",
+          "text",
+          "confidence",
+          "evidence"
+        ],
+        "properties": {
+          "row": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9999
+          },
+          "column": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 99
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "confidence": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "evidence": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "page",
+              "x",
+              "y",
+              "width",
+              "height"
+            ],
+            "properties": {
+              "page": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 20
+              },
+              "x": {
+                "type": "integer"
+              },
+              "y": {
+                "type": "integer"
+              },
+              "width": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "evidenceReferenceId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "candidateHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

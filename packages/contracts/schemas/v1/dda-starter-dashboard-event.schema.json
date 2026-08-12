@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/dda-starter-dashboard-event",
+  "$comment": "DDA-054: private deterministic starter dashboard creation event.",
+  "title": "DDA Starter Dashboard Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "tenantScope",
+    "datasetVersionId",
+    "dashboardVersionId",
+    "templateId",
+    "aiUsed",
+    "occurredAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "eventId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "tenantScope": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/tenant-scope"
+    },
+    "datasetVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "dashboardVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "templateId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "aiUsed": {
+      "type": "boolean",
+      "const": false
+    },
+    "occurredAt": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+    }
+  }
+}

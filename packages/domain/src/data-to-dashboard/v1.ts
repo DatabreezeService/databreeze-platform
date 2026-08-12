@@ -7,7 +7,7 @@ import {
   type TenantScopeV1,
 } from '../tenant-scope/v1.js';
 
-/** DDA-001..DDA-051: versioned dashboard-agent vocabulary and immutable constructors. */
+/** DDA-001..DDA-060: versioned dashboard-agent vocabulary and immutable constructors. */
 export const DDA_SCHEMA_VERSION_V1 = 1 as const;
 
 export type DdaDataClassificationV1 = 'PUBLIC' | 'INTERNAL' | 'CONFIDENTIAL' | 'RESTRICTED';
@@ -252,7 +252,10 @@ export type DdaErrorCodeV1 =
   | 'UNSUPPORTED_POLICY'
   | 'CROSS_SCOPE_REFERENCE'
   | 'INCOMPLETE_CACHE_IDENTITY'
-  | 'ORIGINAL_MUTATION';
+  | 'ORIGINAL_MUTATION'
+  | 'UNSUPPORTED_AGENT_LEVEL'
+  | 'UNSUPPORTED_CONTEXT_KIND'
+  | 'BOUNDS_EXCEEDED';
 
 export type DdaResultV1<TValue> =
   | { readonly accepted: true; readonly value: TValue }
@@ -1251,6 +1254,359 @@ export function createDdaRefreshEventV1(input: {
       freshnessState: input.freshnessState as DdaFreshnessStateV1,
       occurredAt,
       eventHash,
+    }),
+  );
+}
+
+export type DdaAgentGrantLevelV1 =
+  | 'NONE'
+  | 'ANALYZE'
+  | 'PROPOSE_CHANGES'
+  | 'APPLY_CONFIRMED_CHANGES';
+
+export type DdaConversationContextKindV1 =
+  | 'CONTEXT_RESTORED'
+  | 'DATASET_VERSION_ADVANCED'
+  | 'DATASET_ATTACHED'
+  | 'DATASET_DETACHED'
+  | 'DASHBOARD_VERSION_ADVANCED'
+  | 'FILTER_CONTEXT_CHANGED';
+
+export type DdaAutomaticPreparationPolicyV1 = 'SAFE_NON_LOSSY' | 'NONE';
+
+const agentGrantLevels = new Set<DdaAgentGrantLevelV1>([
+  'NONE',
+  'ANALYZE',
+  'PROPOSE_CHANGES',
+  'APPLY_CONFIRMED_CHANGES',
+]);
+
+const conversationContextKinds = new Set<DdaConversationContextKindV1>([
+  'CONTEXT_RESTORED',
+  'DATASET_VERSION_ADVANCED',
+  'DATASET_ATTACHED',
+  'DATASET_DETACHED',
+  'DASHBOARD_VERSION_ADVANCED',
+  'FILTER_CONTEXT_CHANGED',
+]);
+
+export interface DdaAgentGrantV1 {
+  readonly schemaVersion: typeof DDA_SCHEMA_VERSION_V1;
+  readonly grantId: StableIdentifierV1;
+  readonly tenantScope: TenantScopeV1;
+  readonly memberId: StableIdentifierV1;
+  readonly level: DdaAgentGrantLevelV1;
+  readonly revision: number;
+  readonly updatedAt: StrictUtcTimestampV1;
+}
+
+export interface DdaConversationContextEventV1 {
+  readonly schemaVersion: typeof DDA_SCHEMA_VERSION_V1;
+  readonly eventId: StableIdentifierV1;
+  readonly conversationId: StableIdentifierV1;
+  readonly tenantScope: TenantScopeV1;
+  readonly kind: DdaConversationContextKindV1;
+  readonly beforeVersionId?: StableIdentifierV1;
+  readonly afterVersionId?: StableIdentifierV1;
+  readonly occurredAt: StrictUtcTimestampV1;
+}
+
+export interface DdaSourceCatalogEntryV1 {
+  readonly sourceId: StableIdentifierV1;
+  readonly safeDisplayLabel: string;
+  readonly sourceType: 'CSV' | 'XLSX' | 'IMAGE' | 'PDF' | 'RECEIPT' | 'TABLE';
+  readonly versionId: StableIdentifierV1;
+  readonly status: 'ACTIVE' | 'REVIEW' | 'QUARANTINED' | 'RETIRED';
+  readonly health: 'HEALTHY' | 'WARNING' | 'BLOCKED' | 'UNKNOWN';
+}
+
+export interface DdaSourceCatalogV1 {
+  readonly schemaVersion: typeof DDA_SCHEMA_VERSION_V1;
+  readonly datasetId: StableIdentifierV1;
+  readonly tenantScope: TenantScopeV1;
+  readonly entries: readonly DdaSourceCatalogEntryV1[];
+  readonly generatedAt: StrictUtcTimestampV1;
+}
+
+export interface DdaPreparationSummaryV1 {
+  readonly schemaVersion: typeof DDA_SCHEMA_VERSION_V1;
+  readonly summaryId: StableIdentifierV1;
+  readonly tenantScope: TenantScopeV1;
+  readonly datasetVersionId: StableIdentifierV1;
+  readonly automaticPolicy: DdaAutomaticPreparationPolicyV1;
+  readonly counts: Readonly<{
+    input: number;
+    output: number;
+    unchanged: number;
+    changed: number;
+    rejected: number;
+    quarantined: number;
+    unsupported: number;
+  }>;
+  readonly createdAt: StrictUtcTimestampV1;
+}
+
+export interface DdaConversationMessageV1 {
+  readonly messageId: StableIdentifierV1;
+  readonly role: 'USER' | 'AGENT' | 'SYSTEM';
+  readonly text: string;
+  readonly createdAt: StrictUtcTimestampV1;
+}
+
+export interface DdaConversationV1 {
+  readonly schemaVersion: typeof DDA_SCHEMA_VERSION_V1;
+  readonly conversationId: StableIdentifierV1;
+  readonly tenantScope: TenantScopeV1;
+  readonly title: string;
+  readonly activeDatasetIds: readonly StableIdentifierV1[];
+  readonly history: readonly DdaConversationMessageV1[];
+  readonly updatedAt: StrictUtcTimestampV1;
+}
+
+export interface DdaTableExtractionCandidateV1 {
+  readonly schemaVersion: typeof DDA_SCHEMA_VERSION_V1;
+  readonly candidateId: StableIdentifierV1;
+  readonly tenantScope: TenantScopeV1;
+  readonly artifactVersionId: StableIdentifierV1;
+  readonly profileVersion: 'TABLE_V1';
+  readonly pageCount: number;
+  readonly columns: readonly string[];
+  readonly cells: readonly Readonly<{
+    row: number;
+    column: number;
+    text: string;
+    confidence: number;
+    evidence: Readonly<{ page: number; x: number; y: number; width: number; height: number }>;
+  }>[];
+  readonly evidenceReferenceId: StableIdentifierV1;
+  readonly candidateHash: string;
+}
+
+export interface DdaStarterDashboardEventV1 {
+  readonly schemaVersion: typeof DDA_SCHEMA_VERSION_V1;
+  readonly eventId: StableIdentifierV1;
+  readonly tenantScope: TenantScopeV1;
+  readonly datasetVersionId: StableIdentifierV1;
+  readonly dashboardVersionId: StableIdentifierV1;
+  readonly templateId: string;
+  readonly aiUsed: false;
+  readonly occurredAt: StrictUtcTimestampV1;
+}
+
+export function createDdaAgentGrantV1(input: {
+  readonly grantId: unknown;
+  readonly tenantScope: unknown;
+  readonly memberId: unknown;
+  readonly level: unknown;
+  readonly revision: unknown;
+  readonly updatedAt: unknown;
+}): DdaResultV1<DdaAgentGrantV1> {
+  const tenantScope = scope(input.tenantScope);
+  if (!tenantScope) return rejected('INVALID_SCOPE');
+  const grantId = identifier(input.grantId);
+  const memberId = identifier(input.memberId);
+  const updatedAt = timestamp(input.updatedAt);
+  if (!grantId || !memberId) return rejected('INVALID_IDENTIFIER');
+  if (!updatedAt) return rejected('INVALID_TIMESTAMP');
+  if (!Number.isSafeInteger(input.revision) || (input.revision as number) < 1) {
+    return rejected('INVALID_VERSION');
+  }
+  if (!agentGrantLevels.has(input.level as DdaAgentGrantLevelV1)) {
+    return rejected('UNSUPPORTED_AGENT_LEVEL');
+  }
+  return accepted(
+    Object.freeze({
+      schemaVersion: DDA_SCHEMA_VERSION_V1,
+      grantId,
+      tenantScope,
+      memberId,
+      level: input.level as DdaAgentGrantLevelV1,
+      revision: input.revision as number,
+      updatedAt,
+    }),
+  );
+}
+
+export function createDdaConversationContextEventV1(input: {
+  readonly eventId: unknown;
+  readonly conversationId: unknown;
+  readonly tenantScope: unknown;
+  readonly kind: unknown;
+  readonly beforeVersionId?: unknown;
+  readonly afterVersionId?: unknown;
+  readonly occurredAt: unknown;
+}): DdaResultV1<DdaConversationContextEventV1> {
+  const tenantScope = scope(input.tenantScope);
+  if (!tenantScope) return rejected('INVALID_SCOPE');
+  const eventId = identifier(input.eventId);
+  const conversationId = identifier(input.conversationId);
+  const occurredAt = timestamp(input.occurredAt);
+  if (!eventId || !conversationId) return rejected('INVALID_IDENTIFIER');
+  if (!occurredAt) return rejected('INVALID_TIMESTAMP');
+  if (!conversationContextKinds.has(input.kind as DdaConversationContextKindV1)) {
+    return rejected('UNSUPPORTED_CONTEXT_KIND');
+  }
+  const beforeVersionId =
+    input.beforeVersionId === undefined ? undefined : identifier(input.beforeVersionId);
+  const afterVersionId =
+    input.afterVersionId === undefined ? undefined : identifier(input.afterVersionId);
+  if (input.beforeVersionId !== undefined && !beforeVersionId) return rejected('INVALID_IDENTIFIER');
+  if (input.afterVersionId !== undefined && !afterVersionId) return rejected('INVALID_IDENTIFIER');
+  return accepted(
+    Object.freeze({
+      schemaVersion: DDA_SCHEMA_VERSION_V1,
+      eventId,
+      conversationId,
+      tenantScope,
+      kind: input.kind as DdaConversationContextKindV1,
+      ...(beforeVersionId ? { beforeVersionId } : {}),
+      ...(afterVersionId ? { afterVersionId } : {}),
+      occurredAt,
+    }),
+  );
+}
+
+export function createDdaConversationV1(input: {
+  readonly conversationId: unknown;
+  readonly tenantScope: unknown;
+  readonly title: unknown;
+  readonly activeDatasetIds: unknown;
+  readonly history: unknown;
+  readonly updatedAt: unknown;
+}): DdaResultV1<DdaConversationV1> {
+  const tenantScope = scope(input.tenantScope);
+  if (!tenantScope) return rejected('INVALID_SCOPE');
+  const conversationId = identifier(input.conversationId);
+  const title = text(input.title, 200);
+  const updatedAt = timestamp(input.updatedAt);
+  if (!conversationId) return rejected('INVALID_IDENTIFIER');
+  if (!title) return rejected('INVALID_TEXT');
+  if (!updatedAt) return rejected('INVALID_TIMESTAMP');
+  if (!Array.isArray(input.activeDatasetIds) || input.activeDatasetIds.length > 8) {
+    return rejected('BOUNDS_EXCEEDED');
+  }
+  const activeDatasetIds = input.activeDatasetIds.map((value) => identifier(value));
+  if (activeDatasetIds.some((value) => !value)) return rejected('INVALID_IDENTIFIER');
+  if (!Array.isArray(input.history) || input.history.length > 50) {
+    return rejected('BOUNDS_EXCEEDED');
+  }
+  const history: DdaConversationMessageV1[] = [];
+  for (const raw of input.history) {
+    if (!raw || typeof raw !== 'object') return rejected('INVALID_COLLECTION');
+    const message = raw as Record<string, unknown>;
+    const messageId = identifier(message['messageId']);
+    const createdAt = timestamp(message['createdAt']);
+    const messageText = text(message['text'], 16000);
+    if (!messageId || !createdAt || !messageText) return rejected('INVALID_TEXT');
+    if (!['USER', 'AGENT', 'SYSTEM'].includes(message['role'] as string)) {
+      return rejected('UNSUPPORTED_POLICY');
+    }
+    history.push(
+      Object.freeze({
+        messageId,
+        role: message['role'] as 'USER' | 'AGENT' | 'SYSTEM',
+        text: messageText,
+        createdAt,
+      }),
+    );
+  }
+  return accepted(
+    Object.freeze({
+      schemaVersion: DDA_SCHEMA_VERSION_V1,
+      conversationId,
+      tenantScope,
+      title,
+      activeDatasetIds: Object.freeze(activeDatasetIds as StableIdentifierV1[]),
+      history: Object.freeze(history),
+      updatedAt,
+    }),
+  );
+}
+
+export function createDdaTableExtractionCandidateV1(input: {
+  readonly candidateId: unknown;
+  readonly tenantScope: unknown;
+  readonly artifactVersionId: unknown;
+  readonly pageCount: unknown;
+  readonly columns: unknown;
+  readonly cells: unknown;
+  readonly evidenceReferenceId: unknown;
+  readonly candidateHash: unknown;
+}): DdaResultV1<DdaTableExtractionCandidateV1> {
+  const tenantScope = scope(input.tenantScope);
+  if (!tenantScope) return rejected('INVALID_SCOPE');
+  const candidateId = identifier(input.candidateId);
+  const artifactVersionId = identifier(input.artifactVersionId);
+  const evidenceReferenceId = identifier(input.evidenceReferenceId);
+  const candidateHash = hash(input.candidateHash);
+  if (!candidateId || !artifactVersionId || !evidenceReferenceId) {
+    return rejected('INVALID_IDENTIFIER');
+  }
+  if (!candidateHash) return rejected('INVALID_HASH');
+  if (
+    !Number.isSafeInteger(input.pageCount) ||
+    (input.pageCount as number) < 1 ||
+    (input.pageCount as number) > 20
+  ) {
+    return rejected('BOUNDS_EXCEEDED');
+  }
+  if (!Array.isArray(input.columns) || input.columns.length < 1 || input.columns.length > 100) {
+    return rejected('BOUNDS_EXCEEDED');
+  }
+  if (!Array.isArray(input.cells) || input.cells.length > 10000) {
+    return rejected('BOUNDS_EXCEEDED');
+  }
+  for (const cell of input.cells) {
+    if (!cell || typeof cell !== 'object') return rejected('INVALID_COLLECTION');
+    const evidence = (cell as { evidence?: unknown }).evidence;
+    if (!evidence || typeof evidence !== 'object') return rejected('INVALID_COLLECTION');
+  }
+  return accepted(
+    Object.freeze({
+      schemaVersion: DDA_SCHEMA_VERSION_V1,
+      candidateId,
+      tenantScope,
+      artifactVersionId,
+      profileVersion: 'TABLE_V1',
+      pageCount: input.pageCount as number,
+      columns: Object.freeze([...(input.columns as string[])]),
+      cells: Object.freeze([...(input.cells as DdaTableExtractionCandidateV1['cells'])]),
+      evidenceReferenceId,
+      candidateHash,
+    }),
+  );
+}
+
+export function createDdaStarterDashboardEventV1(input: {
+  readonly eventId: unknown;
+  readonly tenantScope: unknown;
+  readonly datasetVersionId: unknown;
+  readonly dashboardVersionId: unknown;
+  readonly templateId: unknown;
+  readonly aiUsed: unknown;
+  readonly occurredAt: unknown;
+}): DdaResultV1<DdaStarterDashboardEventV1> {
+  const tenantScope = scope(input.tenantScope);
+  if (!tenantScope) return rejected('INVALID_SCOPE');
+  const eventId = identifier(input.eventId);
+  const datasetVersionId = identifier(input.datasetVersionId);
+  const dashboardVersionId = identifier(input.dashboardVersionId);
+  const templateId = text(input.templateId, 64);
+  const occurredAt = timestamp(input.occurredAt);
+  if (!eventId || !datasetVersionId || !dashboardVersionId) return rejected('INVALID_IDENTIFIER');
+  if (!templateId) return rejected('INVALID_TEXT');
+  if (!occurredAt) return rejected('INVALID_TIMESTAMP');
+  if (input.aiUsed !== false) return rejected('UNSUPPORTED_POLICY');
+  return accepted(
+    Object.freeze({
+      schemaVersion: DDA_SCHEMA_VERSION_V1,
+      eventId,
+      tenantScope,
+      datasetVersionId,
+      dashboardVersionId,
+      templateId,
+      aiUsed: false,
+      occurredAt,
     }),
   );
 }

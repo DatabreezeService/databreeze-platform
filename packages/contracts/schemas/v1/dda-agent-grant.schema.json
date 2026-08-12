@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/dda-agent-grant",
+  "$comment": "IAM-024 / DDA-060: independent workspace agent grant.",
+  "title": "DDA Agent Grant",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "grantId",
+    "tenantScope",
+    "memberId",
+    "level",
+    "revision",
+    "updatedAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "grantId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "tenantScope": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/tenant-scope"
+    },
+    "memberId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "level": {
+      "type": "string",
+      "pattern": "^(NONE|ANALYZE|PROPOSE_CHANGES|APPLY_CONFIRMED_CHANGES)$"
+    },
+    "revision": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/revision"
+    },
+    "updatedAt": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+    }
+  }
+}

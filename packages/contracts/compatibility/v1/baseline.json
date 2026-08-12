@@ -28,10 +28,28 @@
       "sha256": "8d009cb3b0e2232e5efdc297dfdd7b89f697410438d610c92414c014a5d44b19"
     },
     {
+      "name": "dda-agent-grant",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-agent-grant",
+      "path": "schemas/v1/dda-agent-grant.schema.json",
+      "sha256": "4637b87f643017d909dcbbed8a2c7d59d12f589a8f67229ee6bfb7a41dc3c420"
+    },
+    {
       "name": "dda-analysis-plan",
       "id": "https://schemas.databreeze.dev/contracts/v1/dda-analysis-plan",
       "path": "schemas/v1/dda-analysis-plan.schema.json",
       "sha256": "339be1b3d82c78747fa49064761cf4916fa306f32671d7422452b47950d61e7e"
+    },
+    {
+      "name": "dda-conversation",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-conversation",
+      "path": "schemas/v1/dda-conversation.schema.json",
+      "sha256": "6cff82d2f1655850fa3890394f216f0409b8d2410268e8f9cf1f1639bdc903a3"
+    },
+    {
+      "name": "dda-conversation-context-event",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-conversation-context-event",
+      "path": "schemas/v1/dda-conversation-context-event.schema.json",
+      "sha256": "9618828589143b6261a46a2bea1b9bbd30a6f97bf00fef4319e0a5a292cefbab"
     },
     {
       "name": "dda-dashboard-snapshot",
@@ -64,6 +82,12 @@
       "sha256": "960b84b28299e4f91dc895aa013cb9352a85a7987a45cc5568e647f9707b529c"
     },
     {
+      "name": "dda-preparation-summary",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-preparation-summary",
+      "path": "schemas/v1/dda-preparation-summary.schema.json",
+      "sha256": "ba5c195c7af227b529d13b1bab65c059f6905765b5f98a154c40ec8d4a1f97bc"
+    },
+    {
       "name": "dda-receipt-candidate",
       "id": "https://schemas.databreeze.dev/contracts/v1/dda-receipt-candidate",
       "path": "schemas/v1/dda-receipt-candidate.schema.json",
@@ -74,6 +98,24 @@
       "id": "https://schemas.databreeze.dev/contracts/v1/dda-refresh-event",
       "path": "schemas/v1/dda-refresh-event.schema.json",
       "sha256": "1e4e4715d55c7e0f36c00db8bd71ffa5bee327185f1e516454193ce02dff64b9"
+    },
+    {
+      "name": "dda-source-catalog",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-source-catalog",
+      "path": "schemas/v1/dda-source-catalog.schema.json",
+      "sha256": "0d29e73bad95756a31325858e8bd1172c032947f711c0ef815d6841a87cc6d5c"
+    },
+    {
+      "name": "dda-starter-dashboard-event",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-starter-dashboard-event",
+      "path": "schemas/v1/dda-starter-dashboard-event.schema.json",
+      "sha256": "8e3066e0d74c471f6a2884d1ec978f177320f73a007192f413ed099d5e5fd63b"
+    },
+    {
+      "name": "dda-table-extraction-candidate",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-table-extraction-candidate",
+      "path": "schemas/v1/dda-table-extraction-candidate.schema.json",
+      "sha256": "696fbe715aaafc1fb74718120615bd5939a6880b83d9c969ab988a6163213b1e"
     },
     {
       "name": "event-envelope",
@@ -119,11 +161,11 @@
   "generatedPublicOutputs": [
     {
       "path": "generated/kotlin/src/main/kotlin/com/databreeze/contracts/v1/Models.kt",
-      "sha256": "4937ff8fec0063fb331f1dab8e5e0c23ce46f14a273058b1557a576b2931763d"
+      "sha256": "a273231e9363c7283cc5fc0a06b385c5516cecf47eb0aec5e0223221a5cfbbc7"
     },
     {
       "path": "generated/kotlin/src/main/kotlin/com/databreeze/contracts/v1/Validation.kt",
-      "sha256": "74fc4345ab61b9d754ecc0e17cfe343e028f638d55226d13dcbc10a3d879a0cc"
+      "sha256": "395bd2839463160bbdf3feef8b4a87ff2ed96ec7f2cd896a5ce9cb3a8229fa5f"
     },
     {
       "path": "generated/python/databreeze_contracts/__init__.py",
@@ -135,7 +177,7 @@
     },
     {
       "path": "generated/python/databreeze_contracts/v1/__init__.py",
-      "sha256": "505878ef89dd4507e48abd724e35ed27cab84729c9a867f789f91c96f86164e6"
+      "sha256": "299054a64909c9346007bfe200c0bcfee55d016c7187d064f3375808beaf66ce"
     },
     {
       "path": "generated/python/databreeze_contracts/v1/_validation.py",
@@ -143,7 +185,7 @@
     },
     {
       "path": "generated/python/databreeze_contracts/v1/models.py",
-      "sha256": "156d363d676e979ee1474906abaa54b9e00dce8a0bcad3ed0bb1ec741be80679"
+      "sha256": "6bf075a29b008e95aaf4ae55a811cdbd5b1fb30bc78a3cae3793f6fce349c50d"
     },
     {
       "path": "generated/python/pyproject.toml",
@@ -151,11 +193,11 @@
     },
     {
       "path": "generated/typescript/v1/index.ts",
-      "sha256": "1fec89d50683c28c7c3b5bf5bf9503efbfea89526ac83d2eefbc6214507b24a6"
+      "sha256": "73ece696d481e3431064baefed1d20b33433b82a9b3e1e02cfdd0ce3dcd833d0"
     },
     {
       "path": "generated/typescript/v1/validation.mjs",
-      "sha256": "1a70efed8b5bc9e6d56c3ae9fd382ecd5b2527842009463dcb4cc0e6918bcbc7"
+      "sha256": "162e7662c536910b6c5bedceed3817bbbd0bc34a25466ce59fa2e667a4cebacf"
     }
   ],
   "publicPackageSurfaces": [
@@ -177,18 +219,30 @@
               "types": "./generated/typescript/v1/index.ts",
               "import": "./generated/typescript/v1/validation.mjs"
             },
+            "./v2": {
+              "types": "./generated/typescript/v2/index.ts",
+              "import": "./generated/typescript/v2/validation.mjs"
+            },
             "./v1/actor-metadata": "./schemas/v1/actor-metadata.schema.json",
             "./v1/command-envelope": "./schemas/v1/command-envelope.schema.json",
             "./v1/correlation-metadata": "./schemas/v1/correlation-metadata.schema.json",
             "./v1/cursor-page": "./schemas/v1/cursor-page.schema.json",
+            "./v1/dda-agent-grant": "./schemas/v1/dda-agent-grant.schema.json",
             "./v1/dda-analysis-plan": "./schemas/v1/dda-analysis-plan.schema.json",
+            "./v1/dda-conversation": "./schemas/v1/dda-conversation.schema.json",
+            "./v1/dda-conversation-context-event": "./schemas/v1/dda-conversation-context-event.schema.json",
             "./v1/dda-dashboard-snapshot": "./schemas/v1/dda-dashboard-snapshot.schema.json",
             "./v1/dda-dashboard-version": "./schemas/v1/dda-dashboard-version.schema.json",
             "./v1/dda-etl-plan": "./schemas/v1/dda-etl-plan.schema.json",
             "./v1/dda-folder-manifest": "./schemas/v1/dda-folder-manifest.schema.json",
             "./v1/dda-materialization": "./schemas/v1/dda-materialization.schema.json",
+            "./v1/dda-preparation-summary": "./schemas/v1/dda-preparation-summary.schema.json",
             "./v1/dda-receipt-candidate": "./schemas/v1/dda-receipt-candidate.schema.json",
+            "./v2/dda-receipt-upload": "./schemas/v2/dda-receipt-upload.schema.json",
             "./v1/dda-refresh-event": "./schemas/v1/dda-refresh-event.schema.json",
+            "./v1/dda-source-catalog": "./schemas/v1/dda-source-catalog.schema.json",
+            "./v1/dda-starter-dashboard-event": "./schemas/v1/dda-starter-dashboard-event.schema.json",
+            "./v1/dda-table-extraction-candidate": "./schemas/v1/dda-table-extraction-candidate.schema.json",
             "./v1/event-envelope": "./schemas/v1/event-envelope.schema.json",
             "./v1/identifier": "./schemas/v1/identifier.schema.json",
             "./v1/problem-details": "./schemas/v1/problem-details.schema.json",

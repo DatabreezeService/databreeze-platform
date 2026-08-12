@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "candidateId": "00000000-0000-4000-8000-000000000070",
+  "tenantScope": {
+    "scopeType": "project",
+    "organizationId": "00000000-0000-4000-8000-000000000001",
+    "workspaceId": "00000000-0000-4000-8000-000000000002",
+    "projectId": "00000000-0000-4000-8000-000000000003"
+  },
+  "artifactVersionId": "00000000-0000-4000-8000-000000000071",
+  "profileVersion": "TABLE_V1",
+  "pageCount": 1,
+  "columns": [
+    "Item"
+  ],
+  "cells": [
+    {
+      "row": 0,
+      "column": 0,
+      "text": "Cafe",
+      "confidence": 90
+    }
+  ],
+  "evidenceReferenceId": "00000000-0000-4000-8000-000000000072",
+  "candidateHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}

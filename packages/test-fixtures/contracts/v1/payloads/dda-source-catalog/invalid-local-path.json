@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "00000000-0000-4000-8000-000000000010",
+  "tenantScope": {
+    "scopeType": "project",
+    "organizationId": "00000000-0000-4000-8000-000000000001",
+    "workspaceId": "00000000-0000-4000-8000-000000000002",
+    "projectId": "00000000-0000-4000-8000-000000000003"
+  },
+  "entries": [
+    {
+      "sourceId": "00000000-0000-4000-8000-000000000011",
+      "safeDisplayLabel": "Sales August",
+      "sourceType": "CSV",
+      "versionId": "00000000-0000-4000-8000-000000000012",
+      "status": "ACTIVE",
+      "health": "HEALTHY",
+      "localPath": "C:\\Users\\synthetic\\file.csv"
+    }
+  ],
+  "page": {
+    "data": [],
+    "snapshotAt": "2026-08-12T10:00:00.000Z",
+    "hasMore": false
+  },
+  "generatedAt": "2026-08-12T10:00:00.000Z"
+}

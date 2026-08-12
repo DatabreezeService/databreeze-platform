@@ -23,9 +23,24 @@
       "path": "schemas/v1/cursor-page.schema.json"
     },
     {
+      "name": "dda-agent-grant",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-agent-grant",
+      "path": "schemas/v1/dda-agent-grant.schema.json"
+    },
+    {
       "name": "dda-analysis-plan",
       "id": "https://schemas.databreeze.dev/contracts/v1/dda-analysis-plan",
       "path": "schemas/v1/dda-analysis-plan.schema.json"
+    },
+    {
+      "name": "dda-conversation",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-conversation",
+      "path": "schemas/v1/dda-conversation.schema.json"
+    },
+    {
+      "name": "dda-conversation-context-event",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-conversation-context-event",
+      "path": "schemas/v1/dda-conversation-context-event.schema.json"
     },
     {
       "name": "dda-dashboard-snapshot",
@@ -53,6 +68,11 @@
       "path": "schemas/v1/dda-materialization.schema.json"
     },
     {
+      "name": "dda-preparation-summary",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-preparation-summary",
+      "path": "schemas/v1/dda-preparation-summary.schema.json"
+    },
+    {
       "name": "dda-receipt-candidate",
       "id": "https://schemas.databreeze.dev/contracts/v1/dda-receipt-candidate",
       "path": "schemas/v1/dda-receipt-candidate.schema.json"
@@ -66,6 +86,21 @@
       "name": "dda-refresh-event",
       "id": "https://schemas.databreeze.dev/contracts/v1/dda-refresh-event",
       "path": "schemas/v1/dda-refresh-event.schema.json"
+    },
+    {
+      "name": "dda-source-catalog",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-source-catalog",
+      "path": "schemas/v1/dda-source-catalog.schema.json"
+    },
+    {
+      "name": "dda-starter-dashboard-event",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-starter-dashboard-event",
+      "path": "schemas/v1/dda-starter-dashboard-event.schema.json"
+    },
+    {
+      "name": "dda-table-extraction-candidate",
+      "id": "https://schemas.databreeze.dev/contracts/v1/dda-table-extraction-candidate",
+      "path": "schemas/v1/dda-table-extraction-candidate.schema.json"
     },
     {
       "name": "event-envelope",

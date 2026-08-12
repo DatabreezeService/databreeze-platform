@@ -408,3 +408,120 @@ void test('[DDA-003] creates typed analysis plans, folder manifests, receipts, a
   if (!refresh.accepted) return;
   assert.equal('resultCells' in refresh.value, false);
 });
+
+test('creates unified-workspace grants, conversation bounds, and table candidates', async () => {
+  const { createDdaAgentGrantV1, createDdaConversationV1, createDdaTableExtractionCandidateV1, createDdaStarterDashboardEventV1, createDdaConversationContextEventV1 } =
+    await import('@databreeze/domain/data-to-dashboard/v1');
+
+  const grant = createDdaAgentGrantV1({
+    grantId: ids.binding,
+    tenantScope: scope,
+    memberId: ids.permission,
+    level: 'ANALYZE',
+    revision: 1,
+    updatedAt: createdAt,
+  });
+  assert.equal(grant.accepted, true);
+
+  const unknownGrant = createDdaAgentGrantV1({
+    grantId: ids.binding,
+    tenantScope: scope,
+    memberId: ids.permission,
+    level: 'ADMIN',
+    revision: 1,
+    updatedAt: createdAt,
+  });
+  assert.equal(unknownGrant.accepted, false);
+
+  const conversation = createDdaConversationV1({
+    conversationId: ids.event,
+    tenantScope: scope,
+    title: 'Phan tich',
+    activeDatasetIds: [ids.dataset],
+    history: [
+      {
+        messageId: ids.step,
+        role: 'USER',
+        text: 'Tong doanh so?',
+        createdAt,
+      },
+    ],
+    updatedAt: createdAt,
+  });
+  assert.equal(conversation.accepted, true);
+
+  const tooManyDatasets = createDdaConversationV1({
+    conversationId: ids.event,
+    tenantScope: scope,
+    title: 'Too many',
+    activeDatasetIds: Array.from({ length: 9 }, (_, index) => `00000000-0000-4000-8000-${String(200 + index).padStart(12, '0')}`),
+    history: [],
+    updatedAt: createdAt,
+  });
+  assert.equal(tooManyDatasets.accepted, false);
+
+  const context = createDdaConversationContextEventV1({
+    eventId: ids.event,
+    conversationId: ids.snapshot,
+    tenantScope: scope,
+    kind: 'DATASET_VERSION_ADVANCED',
+    beforeVersionId: ids.version,
+    afterVersionId: ids.input,
+    occurredAt: createdAt,
+  });
+  assert.equal(context.accepted, true);
+
+  const table = createDdaTableExtractionCandidateV1({
+    candidateId: ids.capture,
+    tenantScope: scope,
+    artifactVersionId: ids.artifact,
+    pageCount: 1,
+    columns: ['Item'],
+    cells: [
+      {
+        row: 0,
+        column: 0,
+        text: 'Cafe',
+        confidence: 90,
+        evidence: { page: 1, x: 1, y: 1, width: 2, height: 2 },
+      },
+    ],
+    evidenceReferenceId: ids.evidence,
+    candidateHash: hash,
+  });
+  assert.equal(table.accepted, true);
+
+  const missingEvidence = createDdaTableExtractionCandidateV1({
+    candidateId: ids.capture,
+    tenantScope: scope,
+    artifactVersionId: ids.artifact,
+    pageCount: 1,
+    columns: ['Item'],
+    cells: [{ row: 0, column: 0, text: 'Cafe', confidence: 90 }],
+    evidenceReferenceId: ids.evidence,
+    candidateHash: hash,
+  });
+  assert.equal(missingEvidence.accepted, false);
+
+  const starter = createDdaStarterDashboardEventV1({
+    eventId: ids.event,
+    tenantScope: scope,
+    datasetVersionId: ids.version,
+    dashboardVersionId: ids.dashboard,
+    templateId: 'STARTER_KPI_TABLE_V1',
+    aiUsed: false,
+    occurredAt: createdAt,
+  });
+  assert.equal(starter.accepted, true);
+
+  const aiStarter = createDdaStarterDashboardEventV1({
+    eventId: ids.event,
+    tenantScope: scope,
+    datasetVersionId: ids.version,
+    dashboardVersionId: ids.dashboard,
+    templateId: 'STARTER_KPI_TABLE_V1',
+    aiUsed: true,
+    occurredAt: createdAt,
+  });
+  assert.equal(aiStarter.accepted, false);
+});

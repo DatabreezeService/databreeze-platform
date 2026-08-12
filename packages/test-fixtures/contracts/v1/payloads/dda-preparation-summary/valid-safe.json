@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "summaryId": "00000000-0000-4000-8000-000000000020",
+  "tenantScope": {
+    "scopeType": "project",
+    "organizationId": "00000000-0000-4000-8000-000000000001",
+    "workspaceId": "00000000-0000-4000-8000-000000000002",
+    "projectId": "00000000-0000-4000-8000-000000000003"
+  },
+  "datasetVersionId": "00000000-0000-4000-8000-000000000021",
+  "automaticPolicy": "SAFE_NON_LOSSY",
+  "counts": {
+    "input": 10,
+    "output": 10,
+    "unchanged": 8,
+    "changed": 2,
+    "rejected": 0,
+    "quarantined": 0,
+    "unsupported": 0
+  },
+  "qualityDimensions": {
+    "completeness": "10/10",
+    "validity": "10/10",
+    "uniqueness": "10/10",
+    "consistency": "10/10",
+    "freshness": "current",
+    "extractionConfidence": "n/a"
+  },
+  "transformationReceiptIds": [
+    "00000000-0000-4000-8000-000000000022"
+  ],
+  "reviewReasons": [],
+  "createdAt": "2026-08-12T10:00:00.000Z"
+}

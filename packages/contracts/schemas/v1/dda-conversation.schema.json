@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/dda-conversation",
+  "$comment": "DDA-055: workspace-owned conversation page bounds.",
+  "title": "DDA Conversation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "conversationId",
+    "tenantScope",
+    "title",
+    "activeDatasetIds",
+    "history",
+    "page",
+    "updatedAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "conversationId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "tenantScope": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/tenant-scope"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "activeDatasetIds": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+      }
+    },
+    "history": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "messageId",
+          "role",
+          "text",
+          "createdAt"
+        ],
+        "properties": {
+          "messageId": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+          },
+          "role": {
+            "type": "string",
+            "pattern": "^(USER|AGENT|SYSTEM)$"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16000
+          },
+          "datasetVersionId": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+          },
+          "createdAt": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+          }
+        }
+      }
+    },
+    "page": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/cursor-page"
+    },
+    "updatedAt": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+    }
+  }
+}

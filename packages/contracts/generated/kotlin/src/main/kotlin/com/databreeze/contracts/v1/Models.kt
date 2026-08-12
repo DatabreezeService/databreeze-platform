@@ -52,6 +52,16 @@ public data class CursorPage<TItem>(
     }
 }
 
+public data class DdaAgentGrant(
+    public val grantId: Identifier,
+    public val level: String,
+    public val memberId: Identifier,
+    public val revision: Revision,
+    public val schemaVersion: Long,
+    public val tenantScope: TenantScope,
+    public val updatedAt: UtcTimestamp,
+)
+
 public data class DdaAnalysisPlan(
     public val assumptions: List<String>,
     public val createdAt: UtcTimestamp,
@@ -111,6 +121,36 @@ public data class DdaAnalysisPlanTimeRange(
 public data class DdaAnalysisPlanUnitsItem(
     public val field: String,
     public val unit: String,
+)
+
+public data class DdaConversation(
+    public val activeDatasetIds: List<Identifier>,
+    public val conversationId: Identifier,
+    public val history: List<DdaConversationHistoryItem>,
+    public val page: CursorPage<Any?>,
+    public val schemaVersion: Long,
+    public val tenantScope: TenantScope,
+    public val title: String,
+    public val updatedAt: UtcTimestamp,
+)
+
+public data class DdaConversationContextEvent(
+    public val afterVersionId: Identifier? = null,
+    public val beforeVersionId: Identifier? = null,
+    public val conversationId: Identifier,
+    public val eventId: Identifier,
+    public val kind: String,
+    public val occurredAt: UtcTimestamp,
+    public val schemaVersion: Long,
+    public val tenantScope: TenantScope,
+)
+
+public data class DdaConversationHistoryItem(
+    public val createdAt: UtcTimestamp,
+    public val datasetVersionId: Identifier? = null,
+    public val messageId: Identifier,
+    public val role: String,
+    public val text: String,
 )
 
 public data class DdaDashboardSnapshot(
@@ -251,6 +291,38 @@ public data class DdaMaterialization(
     public val widgetId: Identifier,
 )
 
+public data class DdaPreparationSummary(
+    public val automaticPolicy: String,
+    public val counts: DdaPreparationSummaryCounts,
+    public val createdAt: UtcTimestamp,
+    public val datasetVersionId: Identifier,
+    public val qualityDimensions: DdaPreparationSummaryQualityDimensions,
+    public val reviewReasons: List<String>,
+    public val schemaVersion: Long,
+    public val summaryId: Identifier,
+    public val tenantScope: TenantScope,
+    public val transformationReceiptIds: List<Identifier>,
+)
+
+public data class DdaPreparationSummaryCounts(
+    public val changed: Long,
+    public val input: Long,
+    public val output: Long,
+    public val quarantined: Long,
+    public val rejected: Long,
+    public val unchanged: Long,
+    public val unsupported: Long,
+)
+
+public data class DdaPreparationSummaryQualityDimensions(
+    public val completeness: String,
+    public val consistency: String,
+    public val extractionConfidence: String,
+    public val freshness: String,
+    public val uniqueness: String,
+    public val validity: String,
+)
+
 public data class DdaReceiptCandidate(
     public val adapterVersion: String,
     public val artifactVersionId: Identifier,
@@ -278,6 +350,66 @@ public data class DdaRefreshEvent(
     public val schemaVersion: Long,
     public val snapshotId: Identifier,
     public val tenantScope: TenantScope,
+)
+
+public data class DdaSourceCatalog(
+    public val datasetId: Identifier,
+    public val entries: List<DdaSourceCatalogEntriesItem>,
+    public val generatedAt: UtcTimestamp,
+    public val page: CursorPage<Any?>,
+    public val schemaVersion: Long,
+    public val tenantScope: TenantScope,
+)
+
+public data class DdaSourceCatalogEntriesItem(
+    public val health: String,
+    public val originalAction: String? = null,
+    public val safeDisplayLabel: String,
+    public val sourceId: Identifier,
+    public val sourceType: String,
+    public val status: String,
+    public val transformationCount: Long? = null,
+    public val versionId: Identifier,
+)
+
+public data class DdaStarterDashboardEvent(
+    public val aiUsed: Boolean,
+    public val dashboardVersionId: Identifier,
+    public val datasetVersionId: Identifier,
+    public val eventId: Identifier,
+    public val occurredAt: UtcTimestamp,
+    public val schemaVersion: Long,
+    public val templateId: String,
+    public val tenantScope: TenantScope,
+)
+
+public data class DdaTableExtractionCandidate(
+    public val artifactVersionId: Identifier,
+    public val candidateHash: String,
+    public val candidateId: Identifier,
+    public val cells: List<DdaTableExtractionCandidateCellsItem>,
+    public val columns: List<String>,
+    public val evidenceReferenceId: Identifier,
+    public val pageCount: Long,
+    public val profileVersion: String,
+    public val schemaVersion: Long,
+    public val tenantScope: TenantScope,
+)
+
+public data class DdaTableExtractionCandidateCellsItem(
+    public val column: Long,
+    public val confidence: Long,
+    public val evidence: DdaTableExtractionCandidateEvidence,
+    public val row: Long,
+    public val text: String,
+)
+
+public data class DdaTableExtractionCandidateEvidence(
+    public val height: Long,
+    public val page: Long,
+    public val width: Long,
+    public val x: Long,
+    public val y: Long,
 )
 
 public data class EventEnvelope<TData>(

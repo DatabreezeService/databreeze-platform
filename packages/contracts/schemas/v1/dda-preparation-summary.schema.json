@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/dda-preparation-summary",
+  "$comment": "DDA-053: automatic preparation accounting and health dimensions.",
+  "title": "DDA Preparation Summary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "summaryId",
+    "tenantScope",
+    "datasetVersionId",
+    "automaticPolicy",
+    "counts",
+    "qualityDimensions",
+    "transformationReceiptIds",
+    "reviewReasons",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "summaryId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "tenantScope": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/tenant-scope"
+    },
+    "datasetVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "automaticPolicy": {
+      "type": "string",
+      "pattern": "^(SAFE_NON_LOSSY|NONE)$"
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input",
+        "output",
+        "unchanged",
+        "changed",
+        "rejected",
+        "quarantined",
+        "unsupported"
+      ],
+      "properties": {
+        "input": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unchanged": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "changed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rejected": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quarantined": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unsupported": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "qualityDimensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "completeness",
+        "validity",
+        "uniqueness",
+        "consistency",
+        "freshness",
+        "extractionConfidence"
+      ],
+      "properties": {
+        "completeness": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "validity": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "uniqueness": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "consistency": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "freshness": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "extractionConfidence": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "transformationReceiptIds": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+      }
+    },
+    "reviewReasons": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      }
+    },
+    "createdAt": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+    }
+  }
+}

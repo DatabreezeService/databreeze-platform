@@ -343,6 +343,12 @@ function quoted(value) {
   return JSON.stringify(value);
 }
 
+function pythonLiteral(value) {
+  if (typeof value === 'boolean') return value ? 'True' : 'False';
+  if (value === null) return 'None';
+  return quoted(value);
+}
+
 function renderTypeScript(context, version) {
   const lines = [
     `// ${HEADER}`,
@@ -778,7 +784,14 @@ function renderKotlinValidation(context, version) {
 function kotlinType(node, entry, context, parameters) {
   if (parameters.has(node)) return parameters.get(node);
   if (typeof node === 'boolean' || isEmptySchema(node)) return 'Any?';
-  if (node.$ref) return resolveReference(node.$ref, entry, context).name;
+  if (node.$ref) {
+    const resolved = resolveReference(node.$ref, entry, context);
+    const generics = genericParameters(resolved.node);
+    if (generics.length === 0) return resolved.name;
+    return `${resolved.name}<${generics
+      .map(({ kind }) => (kind === 'item' ? 'Any?' : 'JsonObject'))
+      .join(', ')}>`;
+  }
   if ('const' in node) {
     if (typeof node.const === 'boolean') return 'Boolean';
     if (typeof node.const === 'number') return 'Long';
@@ -945,7 +958,7 @@ function pythonType(node, entry, context, parameters) {
   if (parameters.has(node)) return parameters.get(node);
   if (typeof node === 'boolean' || isEmptySchema(node)) return 'Any';
   if (node.$ref) return resolveReference(node.$ref, entry, context).name;
-  if ('const' in node) return `Literal[${quoted(node.const)}]`;
+  if ('const' in node) return `Literal[${pythonLiteral(node.const)}]`;
   if (node.oneOf) return context.nameByNode.get(node);
   if (node.type === 'string') {
     if (node.format === 'uuid') {

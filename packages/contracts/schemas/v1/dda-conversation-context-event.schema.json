@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v1/dda-conversation-context-event",
+  "$comment": "DDA-056: typed conversation context-change events.",
+  "title": "DDA Conversation Context Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "conversationId",
+    "tenantScope",
+    "kind",
+    "occurredAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "eventId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "conversationId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "tenantScope": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/tenant-scope"
+    },
+    "kind": {
+      "type": "string",
+      "pattern": "^(CONTEXT_RESTORED|DATASET_VERSION_ADVANCED|DATASET_ATTACHED|DATASET_DETACHED|DASHBOARD_VERSION_ADVANCED|FILTER_CONTEXT_CHANGED)$"
+    },
+    "beforeVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "afterVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "occurredAt": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+    }
+  }
+}
