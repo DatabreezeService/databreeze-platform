@@ -153,7 +153,10 @@ export function ApplicationRail({
         </button>
       ) : null}
       <p className="application-rail__group-label">{workspaceLabel}</p>
-      <ul className="application-rail__items application-rail__items--primary">
+      <ul
+        aria-label={workspaceLabel}
+        className="application-rail__items application-rail__items--primary"
+      >
         {items.map((item) => {
           const label = udwPrimaryNavLabelV1(locale, item.key);
           return (
@@ -179,7 +182,10 @@ export function ApplicationRail({
       {secondaryItems.length > 0 ? (
         <div className="application-rail__secondary">
           <p className="application-rail__group-label">{toolsLabel}</p>
-          <ul className="application-rail__items application-rail__items--secondary">
+          <ul
+            aria-label={toolsLabel}
+            className="application-rail__items application-rail__items--secondary"
+          >
             {secondaryItems.map((item) => {
               const label = secondaryLabel(locale, item);
               return (
