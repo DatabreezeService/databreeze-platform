@@ -35,6 +35,8 @@ describe('build-time governed navigation', () => {
     expect(screen.getByRole('link', { name: 'Data' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'Jobs' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Devices' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Reviews' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Settings' })).toBeNull();
     expect(UDW_PRIMARY_NAV_ITEMS_V1).toHaveLength(3);
   });
 
