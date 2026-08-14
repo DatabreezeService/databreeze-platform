@@ -170,11 +170,56 @@ function turnError(error: unknown): AnalysisTurnErrorV1 {
 
 function DemoAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) {
   const [demoConversations, setDemoConversations] = useState(DEMO_CONVERSATIONS);
+  const [activeConversationId, setActiveConversationId] = useState(
+    DEMO_CONVERSATIONS[0]?.conversationId,
+  );
+
+  useEffect(() => {
+    workspaceAgentStore.setConversations(
+      demoConversations.map((conversation) => {
+        const context = conversation.datasetContext[0];
+        return {
+          conversationId: conversation.conversationId,
+          title: conversation.title,
+          datasetLabel:
+            context?.datasetLabel ?? (locale === 'vi-VN' ? 'Ngữ cảnh hiện tại' : 'Current context'),
+          datasetVersionLabel:
+            context?.datasetVersionLabel ??
+            (locale === 'vi-VN' ? 'Phiên bản hiện tại' : 'Current version'),
+        };
+      }),
+    );
+    if (activeConversationId !== undefined) {
+      workspaceAgentStore.selectConversation(activeConversationId);
+    }
+  }, [activeConversationId, demoConversations, locale]);
+
   return (
     <AnalysisPage
+      {...(activeConversationId === undefined ? {} : { activeConversationId })}
       locale={locale}
       store={workspaceAgentStore}
       conversations={demoConversations}
+      onCreateConversation={() => {
+        const conversationId = crypto.randomUUID();
+        setDemoConversations((current) => [
+          {
+            conversationId,
+            title: locale === 'vi-VN' ? 'Phân tích mới' : 'New analysis',
+            updatedLabel: locale === 'vi-VN' ? 'Bây giờ' : 'Now',
+            datasetContext: [
+              {
+                datasetLabel: locale === 'vi-VN' ? 'Bán hàng toàn quốc' : 'National sales',
+                datasetVersionLabel: locale === 'vi-VN' ? 'Phiên bản 12' : 'Version 12',
+              },
+            ],
+            messages: [],
+          },
+          ...current,
+        ]);
+        setActiveConversationId(conversationId);
+      }}
+      onSelectConversation={setActiveConversationId}
       onSendMessage={(message: string, conversationId?: string) => {
         if (conversationId === undefined) return;
         setDemoConversations((current) =>
@@ -245,23 +290,30 @@ function LiveAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) 
 
   useEffect(() => {
     if (historyQuery.isError) {
-      workspaceAgentStore.setActiveConversation(undefined);
+      workspaceAgentStore.setConversations([]);
       return;
     }
     if (historyQuery.isSuccess && activeSummary === undefined) {
-      workspaceAgentStore.setActiveConversation(undefined);
+      workspaceAgentStore.setConversations([]);
       return;
     }
     if (activeSummary === undefined) return;
-    const context = datasetContext(activeSummary, locale)[0];
-    if (context === undefined) return;
-    workspaceAgentStore.setActiveConversation({
-      conversationId: activeSummary.conversationId,
-      title: activeSummary.title,
-      datasetLabel: context.datasetLabel,
-      datasetVersionLabel: context.datasetVersionLabel,
-    });
-  }, [activeSummary, historyQuery.isError, historyQuery.isSuccess, locale]);
+    workspaceAgentStore.setConversations(
+      authorizedSummaries.map((summary) => {
+        const context = datasetContext(summary, locale)[0];
+        return {
+          conversationId: summary.conversationId,
+          title: summary.title,
+          datasetLabel:
+            context?.datasetLabel ?? (locale === 'vi-VN' ? 'Ngữ cảnh hiện tại' : 'Current context'),
+          datasetVersionLabel:
+            context?.datasetVersionLabel ??
+            (locale === 'vi-VN' ? 'Phiên bản hiện tại' : 'Current version'),
+        };
+      }),
+    );
+    workspaceAgentStore.selectConversation(activeSummary.conversationId);
+  }, [activeSummary, authorizedSummaries, historyQuery.isError, historyQuery.isSuccess, locale]);
 
   const historyConversations = useMemo(
     () => authorizedSummaries.map((item) => summaryPresentation(item, locale)),

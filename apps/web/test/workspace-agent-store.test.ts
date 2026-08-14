@@ -16,4 +16,33 @@ describe('workspace agent store [WEB-024, DDA-031]', () => {
     expect(workspaceAgentStore.getActiveConversation()).toEqual(conversation);
     workspaceAgentStore.setActiveConversation(undefined);
   });
+
+  it('switches only among supplied authorized conversation summaries', () => {
+    const conversations = [
+      {
+        conversationId: 'conversation-sales',
+        title: 'Revenue review',
+        datasetLabel: 'Sales',
+        datasetVersionLabel: 'version 8',
+      },
+      {
+        conversationId: 'conversation-orders',
+        title: 'Order anomalies',
+        datasetLabel: 'Orders',
+        datasetVersionLabel: 'version 3',
+      },
+    ];
+
+    workspaceAgentStore.setConversations(conversations);
+    workspaceAgentStore.selectConversation('conversation-orders');
+    expect(workspaceAgentStore.getActiveConversation()?.conversationId).toBe(
+      'conversation-orders',
+    );
+
+    workspaceAgentStore.selectConversation('conversation-hidden');
+    expect(workspaceAgentStore.getActiveConversation()?.conversationId).toBe(
+      'conversation-orders',
+    );
+    workspaceAgentStore.setActiveConversation(undefined);
+  });
 });
