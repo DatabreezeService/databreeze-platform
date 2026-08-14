@@ -70,6 +70,16 @@ android {
     buildTypes {
         getByName("release") {
             signingConfig = signingConfigs.findByName("protectedRelease")
+            buildConfigField("boolean", "DATABREEZE_DEMO_MODE", "false")
+        }
+        getByName("debug") {
+            buildConfigField("boolean", "DATABREEZE_DEMO_MODE", "false")
+        }
+        create("demo") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".demo"
+            versionNameSuffix = "-demo"
+            buildConfigField("boolean", "DATABREEZE_DEMO_MODE", "true")
         }
     }
 

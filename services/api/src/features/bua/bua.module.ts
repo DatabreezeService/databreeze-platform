@@ -38,6 +38,9 @@ import {
   type ResultUsageSettlementBindingDatabaseClientV1,
 } from './adapter/prisma-result-usage-settlement-binding-repository.adapter.js';
 import { EntitlementController } from './api/entitlement.controller.js';
+import { PayosController } from './api/payos.controller.js';
+import { PayosPaymentService } from './application/payos-payment.service.js';
+import { PayosPaymentLinkAdapter } from './adapter/payos-payment-link.adapter.js';
 import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
@@ -47,6 +50,7 @@ import {
 export const ENTITLEMENT_ADMISSION_SERVICE = Symbol('ENTITLEMENT_ADMISSION_SERVICE');
 
 export interface BuaModuleOptions {
+  readonly payosPaymentService?: PayosPaymentService;
   readonly entitlementRepository?: EntitlementRepositoryPortV1;
   /** Root composition may share the canonical service with DDA agent admission. */
   readonly entitlementAdmissionService?: EntitlementAdmissionService;
@@ -70,6 +74,25 @@ export interface BuaModuleOptions {
 @Module({})
 export class BuaModule {
   public static register(options: BuaModuleOptions = {}): DynamicModule {
+    const payos = options.payosPaymentService ?? (() => {
+      // The current adapter stores sessions in memory and is local-test only.
+      // Never expose it in a production process before the Prisma inbox/ledger
+      // and tenant/Owner authorization composition are installed.
+      if (process.env['PAYOS_LOCAL_TEST_MODE'] !== 'true') return undefined;
+      const clientId = process.env['PAYOS_CLIENT_ID'];
+      const apiKey = process.env['PAYOS_API_KEY'];
+      const checksumKey = process.env['PAYOS_CHECKSUM_KEY'];
+      const webUrl = process.env['DATABREEZE_WEB_PUBLIC_URL'];
+      if (clientId === undefined || apiKey === undefined || checksumKey === undefined || webUrl === undefined) return undefined;
+      const adapter = new PayosPaymentLinkAdapter({
+        clientId,
+        apiKey,
+        checksumKey,
+        successUrl: process.env['DATABREEZE_PAYOS_SUCCESS_URL'] ?? `${webUrl}/vi-VN/billing/success`,
+        failedUrl: process.env['DATABREEZE_PAYOS_FAILED_URL'] ?? `${webUrl}/vi-VN/billing/failed`,
+      });
+      return new PayosPaymentService(adapter, checksumKey);
+    })();
     const repository =
       options.entitlementRepository ??
       (options.entitlementDatabase === undefined
@@ -107,7 +130,7 @@ export class BuaModule {
           ));
     return {
       module: BuaModule,
-      controllers: [EntitlementController],
+      controllers: [EntitlementController, ...(payos === undefined ? [] : [PayosController])],
       providers: [
         { provide: ENTITLEMENT_REPOSITORY_PORT, useValue: repository },
         { provide: ENTITLEMENT_ADMISSION_SERVICE, useValue: service },
@@ -117,6 +140,7 @@ export class BuaModule {
         },
         { provide: ENTITLEMENT_LEASE_REPOSITORY_PORT, useValue: leaseRepository },
         { provide: ENTITLEMENT_LEASE_SERVICE, useValue: leaseService },
+        ...(payos === undefined ? [] : [{ provide: PayosPaymentService, useValue: payos }]),
         {
           provide: REQUEST_TENANT_CONTEXT,
           useValue: options.requestTenantContext ?? new UnavailableRequestTenantContextAdapter(),

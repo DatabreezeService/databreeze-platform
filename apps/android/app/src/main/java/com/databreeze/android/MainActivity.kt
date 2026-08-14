@@ -35,6 +35,7 @@ import com.databreeze.android.receipts.ReceiptReviewViewModel
 import com.databreeze.android.workbench.ModuleDetailScreen
 import com.databreeze.android.workbench.ProductModuleWorkbench
 import com.databreeze.android.workbench.WorkbenchScreen
+import com.databreeze.android.demo.DemoWorkspaceApp
 
 private object AppRoutes {
     const val HOME = "home"
@@ -54,10 +55,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val application = application as DataBreezeApplication
         setContent {
-            DataBreezeApp(
-                runtime = application.runtime,
-                authenticatedApiRuntime = application.authenticatedApiRuntime,
-            )
+            val demoRepository = application.demoWorkspaceRepository
+            if (demoRepository != null) {
+                DemoWorkspaceApp(repository = demoRepository)
+            } else {
+                DataBreezeApp(
+                    runtime = application.runtime,
+                    authenticatedApiRuntime = application.authenticatedApiRuntime,
+                )
+            }
         }
     }
 }

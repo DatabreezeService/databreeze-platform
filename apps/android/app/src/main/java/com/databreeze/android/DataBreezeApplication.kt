@@ -5,6 +5,7 @@ import androidx.work.Configuration
 import com.databreeze.android.network.AndroidProtectedAuthenticatedApiSessionStore
 import com.databreeze.android.network.AuthenticatedApiConfig
 import com.databreeze.android.network.AuthenticatedApiRuntime
+import com.databreeze.android.demo.DemoWorkspaceRepository
 
 /** Composition root. WorkManager receives only the typed, scope-bound worker factory. */
 class DataBreezeApplication : Application(), Configuration.Provider {
@@ -24,6 +25,11 @@ class DataBreezeApplication : Application(), Configuration.Provider {
 
     val runtime: AndroidRuntime by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         AndroidRuntime.create(this, authenticatedApiRuntime?.api)
+    }
+
+    /** The installable demo flavor is isolated from production authentication and network state. */
+    val demoWorkspaceRepository: DemoWorkspaceRepository? by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+        if (BuildConfig.DATABREEZE_DEMO_MODE) DemoWorkspaceRepository() else null
     }
 
     override val workManagerConfiguration: Configuration

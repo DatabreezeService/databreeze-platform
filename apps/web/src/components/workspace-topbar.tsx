@@ -227,6 +227,9 @@ export function WorkspaceTopbar({
             {mobileNavigationOpen ? <XIcon /> : <MenuIcon />}
           </Button>
         ) : null}
+        <Link className="workspace-topbar__locale" to={`/${locale}/billing`}>
+          {locale === 'vi-VN' ? 'Gói dịch vụ' : 'Billing'}
+        </Link>
         <Link className="workspace-topbar__locale" to={alternatePath}>
           {appMessage(locale, alternateLocale === 'vi-VN' ? 'locale.vietnamese' : 'locale.english')}
         </Link>

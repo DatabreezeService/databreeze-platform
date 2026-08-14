@@ -20,6 +20,7 @@ import {
 import { DashboardPage } from '../features/dashboards/dashboard-page.tsx';
 import { AnalysisRoutePage } from '../features/analysis/analysis-route-page.tsx';
 import { DataRoutePage } from '../features/data/data-route-page.tsx';
+import { BillingPage, BillingReturnPage } from '../features/billing/billing-page.tsx';
 import {
   SignInRoutePage,
   RegisterRoutePage,
@@ -143,6 +144,9 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
                 { path: 'workspace', element: <Navigate replace to="../dashboards" /> },
                 { path: 'analysis', element: <AnalysisRoutePage /> },
                 { path: 'data', element: <DataRoutePage /> },
+                { path: 'billing', element: <BillingPage /> },
+                { path: 'billing/success', element: <BillingReturnPage /> },
+                { path: 'billing/failed', element: <BillingReturnPage /> },
                 ...WEB_FEATURE_REGISTRY.filter((feature) => feature.key !== 'workspace').map((feature) => ({
                   path: feature.path,
                   element:
@@ -152,6 +156,8 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
                       <Suspended><DataPipelinePage /></Suspended>
                     ) : feature.key === 'dashboards' ? (
                       <DashboardPage />
+                    ) : feature.key === 'usage' ? (
+                      <BillingPage />
                     ) : feature.key === 'administration' ? (
                       <WorkspaceSettingsRoute />
                     ) : (
