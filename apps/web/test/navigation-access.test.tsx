@@ -38,15 +38,14 @@ describe('build-time governed navigation', () => {
     expect(UDW_PRIMARY_NAV_ITEMS_V1).toHaveLength(3);
   });
 
-  it('presents placeholder context as semantic content instead of inert controls', async () => {
+  it('presents the dashboard breadcrumb as semantic content instead of inert controls', async () => {
     const router = createAppRouter({ initialEntries: ['/en/dashboards'] });
     render(<ApplicationBoundary router={router} />);
 
-    expect(await screen.findByText('Bright Cloud Organization')).toBeTruthy();
-    expect(screen.getByText('Governed Workspace')).toBeTruthy();
-    expect(screen.getByText('Operations Project')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /Bright Cloud Organization/u })).toBeNull();
-    expect(screen.queryByRole('button', { name: /Governed Workspace/u })).toBeNull();
-    expect(screen.queryByRole('button', { name: /Operations Project/u })).toBeNull();
+    expect(await screen.findByRole('navigation', { name: 'Dashboard breadcrumb' })).toBeTruthy();
+    expect(screen.getByText('Bright Cloud')).toBeTruthy();
+    expect(screen.getByText('Business overview')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Bright Cloud/u })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Business overview/u })).toBeNull();
   });
 });
