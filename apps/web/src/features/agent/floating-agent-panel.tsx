@@ -74,6 +74,7 @@ export function FloatingAgentPanel({
         analysisHref={`/${locale}/analysis${active === undefined ? '' : `?conversation=${encodeURIComponent(active.conversationId)}`}`}
         conversations={snapshot.conversations}
         locale={locale}
+        messages={active?.messages ?? []}
         newConversationHref={`/${locale}/analysis?new=1`}
         onSelectConversation={(conversationId) => store.selectConversation(conversationId)}
       />

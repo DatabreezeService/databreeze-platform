@@ -186,6 +186,12 @@ function DemoAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) 
           datasetVersionLabel:
             context?.datasetVersionLabel ??
             (locale === 'vi-VN' ? 'Phiên bản hiện tại' : 'Current version'),
+          messages: conversation.messages.map((message) => ({
+            messageId: message.messageId,
+            role: message.role === 'USER' ? ('USER' as const) : ('ASSISTANT' as const),
+            text: message.text,
+            ...(message.createdLabel === undefined ? {} : { createdLabel: message.createdLabel }),
+          })),
         };
       }),
     );
@@ -326,6 +332,26 @@ function LiveAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) 
         : loadedConversationPresentation(conversationQuery.data, locale),
     [conversationQuery.data, locale],
   );
+
+  useEffect(() => {
+    if (loadedConversation === undefined || activeSummary === undefined) return;
+    const context = datasetContext(activeSummary, locale)[0];
+    workspaceAgentStore.setActiveConversation({
+      conversationId: loadedConversation.conversationId,
+      title: loadedConversation.title,
+      datasetLabel:
+        context?.datasetLabel ?? (locale === 'vi-VN' ? 'Ngữ cảnh hiện tại' : 'Current context'),
+      datasetVersionLabel:
+        context?.datasetVersionLabel ??
+        (locale === 'vi-VN' ? 'Phiên bản hiện tại' : 'Current version'),
+      messages: loadedConversation.messages.map((message) => ({
+        messageId: message.messageId,
+        role: message.role === 'USER' ? ('USER' as const) : ('ASSISTANT' as const),
+        text: message.text,
+        ...(message.createdLabel === undefined ? {} : { createdLabel: message.createdLabel }),
+      })),
+    });
+  }, [activeSummary, loadedConversation, locale]);
   const conversations = useMemo(
     () =>
       historyConversations.map((item) =>

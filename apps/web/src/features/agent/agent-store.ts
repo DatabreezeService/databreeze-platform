@@ -1,8 +1,16 @@
+export interface AgentMessagePresentationV1 {
+  readonly messageId: string;
+  readonly role: 'USER' | 'ASSISTANT';
+  readonly text: string;
+  readonly createdLabel?: string;
+}
+
 export interface AgentConversationSummaryV1 {
   readonly conversationId: string;
   readonly title: string;
   readonly datasetLabel: string;
   readonly datasetVersionLabel: string;
+  readonly messages?: readonly AgentMessagePresentationV1[];
 }
 
 export interface AgentStoreV1 {
@@ -48,7 +56,9 @@ export function createAgentStore(initial?: AgentConversationSummaryV1): AgentSto
     getActiveConversation: () => active,
     getConversations: () => conversations,
     selectConversation: (conversationId) => {
-      const next = conversations.find((conversation) => conversation.conversationId === conversationId);
+      const next = conversations.find(
+        (conversation) => conversation.conversationId === conversationId,
+      );
       if (next === undefined || next.conversationId === active?.conversationId) return;
       active = next;
       emit();

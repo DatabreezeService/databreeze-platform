@@ -1,14 +1,7 @@
 import { useState, type FormEvent, type ReactNode, type Ref } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useInRouterContext } from 'react-router-dom';
 
-import type { AgentConversationSummaryV1 } from './agent-store.ts';
-
-export interface AgentMessagePresentationV1 {
-  readonly messageId: string;
-  readonly role: 'USER' | 'ASSISTANT';
-  readonly text: string;
-  readonly createdLabel?: string;
-}
+import type { AgentConversationSummaryV1, AgentMessagePresentationV1 } from './agent-store.ts';
 
 export interface AgentChatShellProperties {
   readonly activeConversationId?: string;
@@ -49,6 +42,7 @@ export function AgentChatShell({
   textareaRef,
 }: AgentChatShellProperties) {
   const [draft, setDraft] = useState('');
+  const inRouter = useInRouterContext();
   const text =
     locale === 'vi-VN'
       ? {
@@ -100,12 +94,21 @@ export function AgentChatShell({
           </select>
         </label>
         {onCreateConversation === undefined ? (
-          <Link
-            className="agent-chat-shell__new"
-            to={newConversationHref ?? analysisHref.replace(/\?.*$/u, '?new=1')}
-          >
-            {text.newConversation}
-          </Link>
+          inRouter ? (
+            <Link
+              className="agent-chat-shell__new"
+              to={newConversationHref ?? analysisHref.replace(/\?.*$/u, '?new=1')}
+            >
+              {text.newConversation}
+            </Link>
+          ) : (
+            <a
+              className="agent-chat-shell__new"
+              href={newConversationHref ?? analysisHref.replace(/\?.*$/u, '?new=1')}
+            >
+              {text.newConversation}
+            </a>
+          )
         ) : (
           <button className="agent-chat-shell__new" onClick={onCreateConversation} type="button">
             {text.newConversation}
@@ -160,9 +163,15 @@ export function AgentChatShell({
         </div>
       </form>
 
-      <Link className="agent-chat-shell__analysis-link" to={analysisHref}>
-        {text.analysis}
-      </Link>
+      {inRouter ? (
+        <Link className="agent-chat-shell__analysis-link" to={analysisHref}>
+          {text.analysis}
+        </Link>
+      ) : (
+        <a className="agent-chat-shell__analysis-link" href={analysisHref}>
+          {text.analysis}
+        </a>
+      )}
     </div>
   );
 }
