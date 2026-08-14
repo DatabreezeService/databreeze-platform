@@ -16,6 +16,32 @@ import {
   type RequestTenantContextPortV1,
 } from '../../../platform/http/request-tenant-context.port.js';
 
+type PublicInboxItemResponseV1 = Readonly<{
+  schemaVersion: 1;
+  inboxItemId: string;
+  artifactVersionId: string;
+  state: string;
+  createdAt: string;
+  revision: number;
+}>;
+
+function toPublicInboxItem(item: {
+  readonly inboxItemId: string;
+  readonly artifactVersionId: string;
+  readonly state: string;
+  readonly createdAt: string;
+  readonly revision: number;
+}): PublicInboxItemResponseV1 {
+  return Object.freeze({
+    schemaVersion: 1 as const,
+    inboxItemId: item.inboxItemId,
+    artifactVersionId: item.artifactVersionId,
+    state: item.state,
+    createdAt: item.createdAt,
+    revision: item.revision,
+  });
+}
+
 function parseRevisionHeader(value: string | undefined): number | 'INVALID' | undefined {
   if (value === undefined) return undefined;
   const match = /^(?:W\/)?"?([1-9][0-9]*)"?$/u.exec(value.trim());
@@ -59,9 +85,10 @@ export class InboxController {
 
   @Get('inbox')
   @ApiOperation({ summary: 'List content-free artifact intake items visible to the caller' })
-  async list(@Req() request: unknown): Promise<unknown> {
+  async list(@Req() request: unknown): Promise<readonly PublicInboxItemResponseV1[]> {
     const context = await this.requestContext.resolve(request);
-    return this.intake.list(context);
+    const items = await this.intake.list(context);
+    return Object.freeze(items.map(toPublicInboxItem));
   }
 
   @Patch('inbox/:inboxItemId')

@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { ForbiddenException } from '@nestjs/common';
+
 import {
   computeDashboardSnapshotHashV1,
   createDashboardSnapshotV1,
@@ -15,6 +17,11 @@ import {
 import { InMemoryRefreshCoordinatorAdapter } from '../../../src/features/dda/refresh/adapter/in-memory-refresh-coordinator.adapter.js';
 import { DashboardRefreshController } from '../../../src/features/dda/refresh/api/dashboard-refresh.controller.js';
 import { FreshnessService } from '../../../src/features/dda/refresh/application/freshness.service.js';
+import type { DashboardAuthorizationPortV1 } from '../../../src/features/dda/dashboard/application/dashboard-authorization.port.js';
+import type { DashboardPermissionProjectionPortV1 } from '../../../src/features/dda/dashboard/application/dashboard-http-ports.js';
+import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
+import type { RequestTenantContextPortV1 } from '../../../src/platform/http/request-tenant-context.port.js';
+import { withRefreshSnapshotBindingProof } from './refresh-snapshot-fixture.js';
 
 function id(value: string): StableIdentifierV1 {
   const parsed = parseStableIdentifierV1(value);
@@ -31,6 +38,16 @@ const scopeResult = parseTenantScopeV1({
 });
 assert.equal(scopeResult.accepted, true);
 const scope = scopeResult.accepted ? scopeResult.value : (null as never);
+
+const contextResult = createIamTenantContextV1({
+  actorId: '00000000-0000-4000-8000-0000000000a1',
+  tenantScope: scope,
+  authorizationEpoch: 1,
+  correlationId: '00000000-0000-4000-8000-0000000000c1',
+  idempotencyKey: 'dashboard-refresh-controller',
+});
+assert.equal(contextResult.accepted, true);
+const context = contextResult.accepted ? contextResult.value : (null as never);
 
 const ids = {
   dashboardId: id('00000000-0000-4000-8000-000000000501'),
@@ -60,63 +77,80 @@ function snapshot(permissionProjectionVersionId: StableIdentifierV1 = ids.permis
   const created = createDashboardSnapshotV1({ ...input, canonicalHash });
   assert.equal(created.accepted, true);
   if (!created.accepted) throw new Error('snapshot');
-  return created.value;
+  return withRefreshSnapshotBindingProof(created.value);
 }
 
-function controller(coordinator: InMemoryRefreshCoordinatorAdapter) {
-  return new DashboardRefreshController(new FreshnessService(coordinator));
+function requestContext(): RequestTenantContextPortV1 {
+  return { resolve: () => Promise.resolve(context) };
+}
+
+function authorization(allowed = true): DashboardAuthorizationPortV1 {
+  return {
+    authorizeDashboardAction(input) {
+      assert.equal(input.tenantScope, context.tenantScope);
+      assert.equal(input.actorId, context.actorId);
+      assert.equal(input.dashboardId, ids.dashboardId);
+      assert.equal(input.action, 'VIEW');
+      return Promise.resolve(Object.freeze({ allowed, grantsDatasetAccess: false }));
+    },
+    projectVisibleFields: () => Promise.resolve(Object.freeze([])),
+  };
+}
+
+function projection(
+  permissionProjectionVersionId: StableIdentifierV1 = ids.permission,
+): DashboardPermissionProjectionPortV1 {
+  return {
+    resolve(input) {
+      assert.equal(input.context, context);
+      assert.equal(input.dashboardId, ids.dashboardId);
+      return Promise.resolve(
+        Object.freeze({ accepted: true as const, permissionProjectionVersionId }),
+      );
+    },
+  };
+}
+
+function controller(
+  coordinator: InMemoryRefreshCoordinatorAdapter,
+  auth: DashboardAuthorizationPortV1 = authorization(),
+  projectionPort: DashboardPermissionProjectionPortV1 = projection(),
+  freshnessService: FreshnessService = new FreshnessService(coordinator),
+) {
+  return new DashboardRefreshController(freshnessService, requestContext(), auth, projectionPort);
 }
 
 void test('[DDA-027, DDA-033] freshness reports CURRENT policy states and last-good snapshot', async () => {
   const coordinator = new InMemoryRefreshCoordinatorAdapter();
-  await coordinator.setCurrentSnapshot(ids.dashboardId, snapshot());
-  const result = await controller(coordinator).getFreshness(
-    {
-      tenantScope: scope,
-      authorizedPermissionProjectionVersionId: ids.permission,
-      nowMs: Date.parse('2026-08-10T10:01:00.000Z'),
-    },
-    ids.dashboardId,
-  );
+  await coordinator.setCurrentSnapshot(scope, ids.dashboardId, snapshot());
+  const result = await controller(coordinator).getFreshness({ query: {} }, ids.dashboardId);
   assert.equal(result.accepted, true);
   if (!result.accepted) return;
   assert.equal(result.value.freshnessState, 'CURRENT');
   assert.equal(result.value.freshnessPolicy, 'ON_CHANGE');
   assert.equal(result.value.lastGoodSnapshotId, ids.snapshot);
-  assert.equal(result.value.inputSelectorHash, 'a'.repeat(64));
+  assert.equal(result.value.inputSelectorHash, snapshot().inputSelectorHash);
   assert.equal(result.value.resultCompleteness, 'COMPLETE');
 });
 
 void test('[DDA-033] permission revocation, source unavailable, retention, and pending age are visible', async () => {
   const coordinator = new InMemoryRefreshCoordinatorAdapter();
-  await coordinator.setCurrentSnapshot(ids.dashboardId, snapshot());
-  const freshness = new FreshnessService(coordinator);
-  const http = new DashboardRefreshController(freshness);
+  await coordinator.setCurrentSnapshot(scope, ids.dashboardId, snapshot());
+  const http = controller(coordinator, authorization(false));
 
-  const revoked = await http.getFreshness(
-    {
-      tenantScope: scope,
-      authorizedPermissionProjectionVersionId: id('00000000-0000-4000-8000-000000000599'),
-      nowMs: Date.parse('2026-08-10T10:01:00.000Z'),
-    },
-    ids.dashboardId,
+  await assert.rejects(
+    http.getFreshness({ query: {} }, ids.dashboardId),
+    (error: unknown) => error instanceof ForbiddenException,
   );
-  assert.equal(revoked.accepted, false);
-  if (revoked.accepted) return;
-  assert.equal(revoked.code, 'PERMISSION_REVOKED');
+
+  const freshness = new FreshnessService(coordinator);
+  const allowedHttp = controller(coordinator, authorization(), projection(), freshness);
 
   await freshness.markSourceCondition(ids.dashboardId, {
     kind: 'SOURCE_UNAVAILABLE',
     reasonCode: 'DEVICE_OFFLINE',
   });
-  const unavailable = await http.getFreshness(
-    {
-      tenantScope: scope,
-      authorizedPermissionProjectionVersionId: ids.permission,
-      nowMs: Date.parse('2026-08-10T10:01:00.000Z'),
-    },
-    ids.dashboardId,
-  );
+  const unavailable = await allowedHttp.getFreshness({ query: {} }, ids.dashboardId);
   assert.equal(unavailable.accepted, true);
   if (!unavailable.accepted) return;
   assert.equal(unavailable.value.freshnessState, 'SOURCE_UNAVAILABLE');
@@ -127,52 +161,32 @@ void test('[DDA-033] permission revocation, source unavailable, retention, and p
     kind: 'BLOCKED',
     reasonCode: 'RETENTION_EXPIRED',
   });
-  const blocked = await http.getFreshness(
-    {
-      tenantScope: scope,
-      authorizedPermissionProjectionVersionId: ids.permission,
-      nowMs: Date.parse('2026-08-10T10:01:00.000Z'),
-    },
-    ids.dashboardId,
-  );
+  const blocked = await allowedHttp.getFreshness({ query: {} }, ids.dashboardId);
   assert.equal(blocked.accepted, true);
   if (!blocked.accepted) return;
   assert.equal(blocked.value.freshnessState, 'BLOCKED');
   assert.equal(blocked.value.reasonCode, 'RETENTION_EXPIRED');
 
-  await freshness.markPending(ids.dashboardId, Date.parse('2026-08-10T10:00:00.000Z'));
-  const pending = await http.getFreshness(
-    {
-      tenantScope: scope,
-      authorizedPermissionProjectionVersionId: ids.permission,
-      nowMs: Date.parse('2026-08-10T10:00:45.000Z'),
-    },
-    ids.dashboardId,
-  );
+  await freshness.markPending(ids.dashboardId, Date.now() - 45_000);
+  const pending = await allowedHttp.getFreshness({ query: {} }, ids.dashboardId);
   assert.equal(pending.accepted, true);
   if (!pending.accepted) return;
   assert.equal(pending.value.freshnessState, 'PENDING');
-  assert.equal(pending.value.pendingDurationMs, 45_000);
+  assert.ok((pending.value.pendingDurationMs ?? 0) >= 45_000);
+  assert.ok((pending.value.pendingDurationMs ?? Number.MAX_SAFE_INTEGER) < 46_000);
   assert.equal(pending.value.lastGoodSnapshotId, ids.snapshot);
 });
 
 void test('[DDA-033] stale state keeps last-good visibility with exact input versions', async () => {
   const coordinator = new InMemoryRefreshCoordinatorAdapter();
-  await coordinator.setCurrentSnapshot(ids.dashboardId, snapshot());
+  await coordinator.setCurrentSnapshot(scope, ids.dashboardId, snapshot());
   const freshness = new FreshnessService(coordinator);
-  const http = new DashboardRefreshController(freshness);
+  const http = controller(coordinator, authorization(), projection(), freshness);
   await freshness.markSourceCondition(ids.dashboardId, {
     kind: 'STALE',
     reasonCode: 'NEWER_DATASET_ACCEPTED',
   });
-  const result = await http.getFreshness(
-    {
-      tenantScope: scope,
-      authorizedPermissionProjectionVersionId: ids.permission,
-      nowMs: Date.parse('2026-08-10T10:05:00.000Z'),
-    },
-    ids.dashboardId,
-  );
+  const result = await http.getFreshness({ query: {} }, ids.dashboardId);
   assert.equal(result.accepted, true);
   if (!result.accepted) return;
   assert.equal(result.value.freshnessState, 'STALE');

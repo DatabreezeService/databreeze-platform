@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v3/dda-dashboard-authoring-command-result",
+  "$comment": "DDA-022, DDA-025, DDA-026: bounded result for one idempotent, non-publication dashboard authoring command.",
+  "title": "DDA Dashboard Authoring Command Result",
+  "description": "The server-owned result of a persisted dashboard authoring command. It identifies the replayable command and never represents publication.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "commandId",
+    "dashboardId",
+    "versionId",
+    "revision",
+    "savedAt",
+    "publishes"
+  ],
+  "properties": {
+    "commandId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "dashboardId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "versionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "revision": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/revision"
+    },
+    "savedAt": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+    },
+    "publishes": {
+      "const": false
+    }
+  }
+}

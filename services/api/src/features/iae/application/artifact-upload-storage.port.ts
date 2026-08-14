@@ -11,7 +11,19 @@ export interface ArtifactUploadPartTransferV1 {
   readonly transferId: string;
   readonly sessionId: ArtifactUploadSessionV1['sessionId'];
   readonly partNumber: number;
+  /** Exact single-part PUT capability; it contains no reusable storage credential. */
+  readonly method: 'PUT';
+  readonly url: string;
+  readonly requiredHeaders: Readonly<{
+    readonly 'content-length': string;
+    readonly 'x-amz-checksum-sha256': string;
+  }>;
   readonly expiresAt: ArtifactUploadSessionV1['expiresAt'];
+}
+
+export interface ArtifactUploadVerifiedStorageV1 {
+  readonly opaqueLocator: string;
+  readonly objectVersionId: string;
 }
 
 export type ArtifactUploadStorageErrorCodeV1 =
@@ -35,7 +47,11 @@ export interface ArtifactUploadStoragePortV1 {
   issuePartTransfer(
     context: IamTenantContextV1,
     session: ArtifactUploadSessionV1,
-    partNumber: number,
+    input: {
+      readonly partNumber: number;
+      readonly contentSha256: string;
+      readonly byteSize: number;
+    },
   ): Promise<ArtifactUploadStorageResultV1<ArtifactUploadPartTransferV1>>;
   verifyPart(
     context: IamTenantContextV1,
@@ -47,6 +63,6 @@ export interface ArtifactUploadStoragePortV1 {
     context: IamTenantContextV1,
     session: ArtifactUploadSessionV1,
     assembledSha256: string,
-  ): Promise<ArtifactUploadStorageResultV1<void>>;
+  ): Promise<ArtifactUploadStorageResultV1<ArtifactUploadVerifiedStorageV1>>;
   abort(context: IamTenantContextV1, session: ArtifactUploadSessionV1): Promise<void>;
 }

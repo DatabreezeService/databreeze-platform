@@ -10,561 +10,448 @@
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/actor-metadata",
       "expectedAcceptance": false,
       "source": "payloads/actor-metadata/missing-identity.json",
-      "covers": [
-        "actor.identity"
-      ]
+      "covers": ["actor.identity"]
     },
     {
       "id": "v1.actor-metadata.valid-user",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/actor-metadata",
       "expectedAcceptance": true,
       "source": "payloads/actor-metadata/valid-user.json",
-      "covers": [
-        "actor.identity"
-      ]
+      "covers": ["actor.identity"]
     },
     {
       "id": "v1.command-envelope.missing-idempotency-key",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/command-envelope",
       "expectedAcceptance": false,
       "source": "payloads/command-envelope/missing-idempotency-key.json",
-      "covers": [
-        "command.idempotency"
-      ]
+      "covers": ["command.idempotency"]
     },
     {
       "id": "v1.command-envelope.valid-idempotent",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/command-envelope",
       "expectedAcceptance": true,
       "source": "payloads/command-envelope/valid-idempotent.json",
-      "covers": [
-        "command.idempotency"
-      ]
+      "covers": ["command.idempotency"]
     },
     {
       "id": "v1.correlation-metadata.undeclared-context",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/correlation-metadata",
       "expectedAcceptance": false,
       "source": "payloads/correlation-metadata/undeclared-context.json",
-      "covers": [
-        "correlation.safe-context"
-      ]
+      "covers": ["correlation.safe-context"]
     },
     {
       "id": "v1.correlation-metadata.valid-full-chain",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/correlation-metadata",
       "expectedAcceptance": true,
       "source": "payloads/correlation-metadata/valid-full-chain.json",
-      "covers": [
-        "correlation.safe-context"
-      ]
+      "covers": ["correlation.safe-context"]
     },
     {
       "id": "v1.cursor-page.continuing-without-cursor",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/cursor-page",
       "expectedAcceptance": false,
       "source": "payloads/cursor-page/continuing-without-cursor.json",
-      "covers": [
-        "cursor.continuing"
-      ]
+      "covers": ["cursor.continuing"]
     },
     {
       "id": "v1.cursor-page.terminal-with-cursor",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/cursor-page",
       "expectedAcceptance": false,
       "source": "payloads/cursor-page/terminal-with-cursor.json",
-      "covers": [
-        "cursor.terminal"
-      ]
+      "covers": ["cursor.terminal"]
     },
     {
       "id": "v1.cursor-page.valid-continuing",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/cursor-page",
       "expectedAcceptance": true,
       "source": "payloads/cursor-page/valid-continuing.json",
-      "covers": [
-        "cursor.continuing"
-      ]
+      "covers": ["cursor.continuing"]
     },
     {
       "id": "v1.cursor-page.valid-terminal",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/cursor-page",
       "expectedAcceptance": true,
       "source": "payloads/cursor-page/valid-terminal.json",
-      "covers": [
-        "cursor.terminal"
-      ]
+      "covers": ["cursor.terminal"]
     },
     {
       "id": "v1.dda-agent-grant.invalid-embedded-tool-instruction",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-agent-grant",
       "expectedAcceptance": false,
       "source": "payloads/dda-agent-grant/invalid-embedded-tool-instruction.json",
-      "covers": [
-        "dda-agent-grant.invalid-embedded-tool-instruction"
-      ]
+      "covers": ["dda-agent-grant.invalid-embedded-tool-instruction"]
     },
     {
       "id": "v1.dda-agent-grant.invalid-unknown-level",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-agent-grant",
       "expectedAcceptance": false,
       "source": "payloads/dda-agent-grant/invalid-unknown-level.json",
-      "covers": [
-        "dda-agent-grant.invalid-unknown-level"
-      ]
+      "covers": ["dda-agent-grant.invalid-unknown-level"]
     },
     {
       "id": "v1.dda-agent-grant.valid-analyze",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-agent-grant",
       "expectedAcceptance": true,
       "source": "payloads/dda-agent-grant/valid-analyze.json",
-      "covers": [
-        "dda-agent-grant.valid-analyze"
-      ]
+      "covers": ["dda-agent-grant.valid-analyze"]
     },
     {
       "id": "v1.dda-analysis-plan.invalid-unbounded-output",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-analysis-plan",
       "expectedAcceptance": false,
       "source": "payloads/dda-analysis-plan/invalid-unbounded-output.json",
-      "covers": [
-        "dda.bounded-output"
-      ]
+      "covers": ["dda.bounded-output"]
     },
     {
       "id": "v1.dda-analysis-plan.valid",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-analysis-plan",
       "expectedAcceptance": true,
       "source": "payloads/dda-analysis-plan/valid.json",
-      "covers": [
-        "dda.dda-analysis-plan"
-      ]
+      "covers": ["dda.dda-analysis-plan"]
     },
     {
       "id": "v1.dda-conversation-context-event.valid-advanced",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-conversation-context-event",
       "expectedAcceptance": true,
       "source": "payloads/dda-conversation-context-event/valid-advanced.json",
-      "covers": [
-        "dda-conversation-context-event.valid-advanced"
-      ]
+      "covers": ["dda-conversation-context-event.valid-advanced"]
+    },
+    {
+      "id": "v1.dda-conversation-context-event.invalid-kind",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-conversation-context-event",
+      "expectedAcceptance": false,
+      "source": "payloads/dda-conversation-context-event/invalid-kind.json",
+      "covers": ["dda-conversation-context-event.kind"]
     },
     {
       "id": "v1.dda-conversation.invalid-51-history",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-conversation",
       "expectedAcceptance": false,
       "source": "payloads/dda-conversation/invalid-51-history.json",
-      "covers": [
-        "dda-conversation.invalid-51-history"
-      ]
+      "covers": ["dda-conversation.invalid-51-history"]
     },
     {
       "id": "v1.dda-conversation.invalid-cross-workspace",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-conversation",
       "expectedAcceptance": false,
       "source": "payloads/dda-conversation/invalid-cross-workspace.json",
-      "covers": [
-        "dda-conversation.invalid-cross-workspace"
-      ]
+      "covers": ["dda-conversation.invalid-cross-workspace"]
     },
     {
       "id": "v1.dda-conversation.invalid-long-message",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-conversation",
       "expectedAcceptance": false,
       "source": "payloads/dda-conversation/invalid-long-message.json",
-      "covers": [
-        "dda-conversation.invalid-long-message"
-      ]
+      "covers": ["dda-conversation.invalid-long-message"]
     },
     {
       "id": "v1.dda-conversation.invalid-ninth-dataset",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-conversation",
       "expectedAcceptance": false,
       "source": "payloads/dda-conversation/invalid-ninth-dataset.json",
-      "covers": [
-        "dda-conversation.invalid-ninth-dataset"
-      ]
+      "covers": ["dda-conversation.invalid-ninth-dataset"]
     },
     {
       "id": "v1.dda-conversation.valid-page",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-conversation",
       "expectedAcceptance": true,
       "source": "payloads/dda-conversation/valid-page.json",
-      "covers": [
-        "dda-conversation.valid-page"
-      ]
+      "covers": ["dda-conversation.valid-page"]
     },
     {
       "id": "v1.dda-dashboard-snapshot.invalid-source-content",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-dashboard-snapshot",
       "expectedAcceptance": false,
       "source": "payloads/dda-dashboard-snapshot/invalid-source-content.json",
-      "covers": [
-        "dda.no-source-content"
-      ]
+      "covers": ["dda.no-source-content"]
     },
     {
       "id": "v1.dda-dashboard-snapshot.valid",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-dashboard-snapshot",
       "expectedAcceptance": true,
       "source": "payloads/dda-dashboard-snapshot/valid.json",
-      "covers": [
-        "dda.dda-dashboard-snapshot"
-      ]
+      "covers": ["dda.dda-dashboard-snapshot"]
     },
     {
       "id": "v1.dda-dashboard-version.invalid-cross-tenant",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-dashboard-version",
       "expectedAcceptance": false,
       "source": "payloads/dda-dashboard-version/invalid-cross-tenant.json",
-      "covers": [
-        "dda.tenant-scope"
-      ]
+      "covers": ["dda.tenant-scope"]
     },
     {
       "id": "v1.dda-dashboard-version.invalid-streaming",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-dashboard-version",
       "expectedAcceptance": false,
       "source": "payloads/dda-dashboard-version/invalid-streaming.json",
-      "covers": [
-        "dda.no-streaming"
-      ]
+      "covers": ["dda.no-streaming"]
     },
     {
       "id": "v1.dda-dashboard-version.valid",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-dashboard-version",
       "expectedAcceptance": true,
       "source": "payloads/dda-dashboard-version/valid.json",
-      "covers": [
-        "dda.dda-dashboard-version"
-      ]
+      "covers": ["dda.dda-dashboard-version"]
     },
     {
       "id": "v1.dda-etl-plan.invalid-arbitrary-code",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-etl-plan",
       "expectedAcceptance": false,
       "source": "payloads/dda-etl-plan/invalid-arbitrary-code.json",
-      "covers": [
-        "dda.no-arbitrary-code"
-      ]
+      "covers": ["dda.no-arbitrary-code"]
     },
     {
       "id": "v1.dda-etl-plan.valid",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-etl-plan",
       "expectedAcceptance": true,
       "source": "payloads/dda-etl-plan/valid.json",
-      "covers": [
-        "dda.dda-etl-plan"
-      ]
+      "covers": ["dda.dda-etl-plan"]
     },
     {
       "id": "v1.dda-folder-manifest.invalid-local-path",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-folder-manifest",
       "expectedAcceptance": false,
       "source": "payloads/dda-folder-manifest/invalid-local-path.json",
-      "covers": [
-        "dda.no-local-path"
-      ]
+      "covers": ["dda.no-local-path"]
     },
     {
       "id": "v1.dda-folder-manifest.valid",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-folder-manifest",
       "expectedAcceptance": true,
       "source": "payloads/dda-folder-manifest/valid.json",
-      "covers": [
-        "dda.dda-folder-manifest"
-      ]
+      "covers": ["dda.dda-folder-manifest"]
     },
     {
       "id": "v1.dda-materialization.invalid-cache-identity",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-materialization",
       "expectedAcceptance": false,
       "source": "payloads/dda-materialization/invalid-cache-identity.json",
-      "covers": [
-        "dda.complete-cache-identity"
-      ]
+      "covers": ["dda.complete-cache-identity"]
     },
     {
       "id": "v1.dda-materialization.valid",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-materialization",
       "expectedAcceptance": true,
       "source": "payloads/dda-materialization/valid.json",
-      "covers": [
-        "dda.dda-materialization"
-      ]
+      "covers": ["dda.dda-materialization"]
     },
     {
       "id": "v1.dda-preparation-summary.valid-safe",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-preparation-summary",
       "expectedAcceptance": true,
       "source": "payloads/dda-preparation-summary/valid-safe.json",
-      "covers": [
-        "dda-preparation-summary.valid-safe"
-      ]
+      "covers": ["dda-preparation-summary.valid-safe"]
+    },
+    {
+      "id": "v1.dda-preparation-summary.invalid-negative-count",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-preparation-summary",
+      "expectedAcceptance": false,
+      "source": "payloads/dda-preparation-summary/invalid-negative-count.json",
+      "covers": ["dda-preparation-summary.non-negative-counts"]
     },
     {
       "id": "v1.dda-receipt-candidate.invalid-evidence-coordinate",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-receipt-candidate",
       "expectedAcceptance": false,
       "source": "payloads/dda-receipt-candidate/invalid-evidence-coordinate.json",
-      "covers": [
-        "dda.no-inline-evidence-coordinate"
-      ]
+      "covers": ["dda.no-inline-evidence-coordinate"]
     },
     {
       "id": "v1.dda-receipt-candidate.valid",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-receipt-candidate",
       "expectedAcceptance": true,
       "source": "payloads/dda-receipt-candidate/valid.json",
-      "covers": [
-        "dda.dda-receipt-candidate"
-      ]
+      "covers": ["dda.dda-receipt-candidate"]
     },
     {
       "id": "v1.dda-refresh-event.invalid-content-payload",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-refresh-event",
       "expectedAcceptance": false,
       "source": "payloads/dda-refresh-event/invalid-content-payload.json",
-      "covers": [
-        "dda.content-safe-refresh-event"
-      ]
+      "covers": ["dda.content-safe-refresh-event"]
     },
     {
       "id": "v1.dda-refresh-event.valid",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-refresh-event",
       "expectedAcceptance": true,
       "source": "payloads/dda-refresh-event/valid.json",
-      "covers": [
-        "dda.dda-refresh-event"
-      ]
+      "covers": ["dda.dda-refresh-event"]
     },
     {
       "id": "v1.dda-source-catalog.invalid-local-path",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-source-catalog",
       "expectedAcceptance": false,
       "source": "payloads/dda-source-catalog/invalid-local-path.json",
-      "covers": [
-        "dda-source-catalog.invalid-local-path"
-      ]
+      "covers": ["dda-source-catalog.invalid-local-path"]
     },
     {
       "id": "v1.dda-source-catalog.valid-page",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-source-catalog",
       "expectedAcceptance": true,
       "source": "payloads/dda-source-catalog/valid-page.json",
-      "covers": [
-        "dda-source-catalog.valid-page"
-      ]
+      "covers": ["dda-source-catalog.valid-page"]
     },
     {
       "id": "v1.dda-starter-dashboard-event.invalid-ai-authoritative",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-starter-dashboard-event",
       "expectedAcceptance": false,
       "source": "payloads/dda-starter-dashboard-event/invalid-ai-authoritative.json",
-      "covers": [
-        "dda-starter-dashboard-event.invalid-ai-authoritative"
-      ]
+      "covers": ["dda-starter-dashboard-event.invalid-ai-authoritative"]
     },
     {
       "id": "v1.dda-starter-dashboard-event.valid-private",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-starter-dashboard-event",
       "expectedAcceptance": true,
       "source": "payloads/dda-starter-dashboard-event/valid-private.json",
-      "covers": [
-        "dda-starter-dashboard-event.valid-private"
-      ]
+      "covers": ["dda-starter-dashboard-event.valid-private"]
     },
     {
       "id": "v1.dda-table-extraction-candidate.invalid-101-columns",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-table-extraction-candidate",
       "expectedAcceptance": false,
       "source": "payloads/dda-table-extraction-candidate/invalid-101-columns.json",
-      "covers": [
-        "dda-table-extraction-candidate.invalid-101-columns"
-      ]
+      "covers": ["dda-table-extraction-candidate.invalid-101-columns"]
     },
     {
       "id": "v1.dda-table-extraction-candidate.invalid-missing-evidence",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-table-extraction-candidate",
       "expectedAcceptance": false,
       "source": "payloads/dda-table-extraction-candidate/invalid-missing-evidence.json",
-      "covers": [
-        "dda-table-extraction-candidate.invalid-missing-evidence"
-      ]
+      "covers": ["dda-table-extraction-candidate.invalid-missing-evidence"]
     },
     {
       "id": "v1.dda-table-extraction-candidate.valid-small",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/dda-table-extraction-candidate",
       "expectedAcceptance": true,
       "source": "payloads/dda-table-extraction-candidate/valid-small.json",
-      "covers": [
-        "dda-table-extraction-candidate.valid-small"
-      ]
+      "covers": ["dda-table-extraction-candidate.valid-small"]
     },
     {
       "id": "v1.event-envelope.missing-entity-id",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/event-envelope",
       "expectedAcceptance": false,
       "source": "payloads/event-envelope/missing-entity-id.json",
-      "covers": [
-        "event.identity"
-      ]
+      "covers": ["event.identity"]
     },
     {
       "id": "v1.event-envelope.missing-entity-revision",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/event-envelope",
       "expectedAcceptance": false,
       "source": "payloads/event-envelope/missing-entity-revision.json",
-      "covers": [
-        "event.revision"
-      ]
+      "covers": ["event.revision"]
     },
     {
       "id": "v1.event-envelope.missing-event-id",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/event-envelope",
       "expectedAcceptance": false,
       "source": "payloads/event-envelope/missing-event-id.json",
-      "covers": [
-        "event.identity"
-      ]
+      "covers": ["event.identity"]
     },
     {
       "id": "v1.event-envelope.missing-event-type",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/event-envelope",
       "expectedAcceptance": false,
       "source": "payloads/event-envelope/missing-event-type.json",
-      "covers": [
-        "event.identity"
-      ]
+      "covers": ["event.identity"]
     },
     {
       "id": "v1.event-envelope.valid-workspace-revision",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/event-envelope",
       "expectedAcceptance": true,
       "source": "payloads/event-envelope/valid-workspace-revision.json",
-      "covers": [
-        "event.identity",
-        "event.revision"
-      ]
+      "covers": ["event.identity", "event.revision"]
     },
     {
       "id": "v1.identifier.malformed",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/identifier",
       "expectedAcceptance": false,
       "source": "payloads/identifier/malformed.json",
-      "covers": [
-        "identifier.uuid"
-      ]
+      "covers": ["identifier.uuid"]
     },
     {
       "id": "v1.identifier.valid-uuid",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/identifier",
       "expectedAcceptance": true,
       "source": "payloads/identifier/valid-uuid.json",
-      "covers": [
-        "identifier.uuid"
-      ]
+      "covers": ["identifier.uuid"]
     },
     {
       "id": "v1.problem-details.missing-localization",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/problem-details",
       "expectedAcceptance": false,
       "source": "payloads/problem-details/missing-localization.json",
-      "covers": [
-        "problem.title-localization",
-        "problem.message-localization"
-      ]
+      "covers": ["problem.title-localization", "problem.message-localization"]
     },
     {
       "id": "v1.problem-details.valid-message-localization-rate-limit",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/problem-details",
       "expectedAcceptance": true,
       "source": "payloads/problem-details/valid-message-localization-rate-limit.json",
-      "covers": [
-        "problem.message-localization",
-        "problem.rate-limit"
-      ]
+      "covers": ["problem.message-localization", "problem.rate-limit"]
     },
     {
       "id": "v1.problem-details.valid-title-localization",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/problem-details",
       "expectedAcceptance": true,
       "source": "payloads/problem-details/valid-title-localization.json",
-      "covers": [
-        "problem.title-localization"
-      ]
+      "covers": ["problem.title-localization"]
     },
     {
       "id": "v1.revision.valid-positive",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/revision",
       "expectedAcceptance": true,
       "source": "payloads/revision/valid-positive.json",
-      "covers": [
-        "revision.positive"
-      ]
+      "covers": ["revision.positive"]
     },
     {
       "id": "v1.revision.zero",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/revision",
       "expectedAcceptance": false,
       "source": "payloads/revision/zero.json",
-      "covers": [
-        "revision.positive"
-      ]
+      "covers": ["revision.positive"]
     },
     {
       "id": "v1.tenant-scope.incomplete-project",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/tenant-scope",
       "expectedAcceptance": false,
       "source": "payloads/tenant-scope/incomplete-project.json",
-      "covers": [
-        "tenant.project"
-      ]
+      "covers": ["tenant.project"]
     },
     {
       "id": "v1.tenant-scope.valid-organization",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/tenant-scope",
       "expectedAcceptance": true,
       "source": "payloads/tenant-scope/valid-organization.json",
-      "covers": [
-        "tenant.organization"
-      ]
+      "covers": ["tenant.organization"]
     },
     {
       "id": "v1.tenant-scope.valid-project",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/tenant-scope",
       "expectedAcceptance": true,
       "source": "payloads/tenant-scope/valid-project.json",
-      "covers": [
-        "tenant.project"
-      ]
+      "covers": ["tenant.project"]
     },
     {
       "id": "v1.tenant-scope.valid-workspace",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/tenant-scope",
       "expectedAcceptance": true,
       "source": "payloads/tenant-scope/valid-workspace.json",
-      "covers": [
-        "tenant.workspace"
-      ]
+      "covers": ["tenant.workspace"]
     },
     {
       "id": "v1.utc-timestamp.offset",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp",
       "expectedAcceptance": false,
       "source": "payloads/utc-timestamp/offset.json",
-      "covers": [
-        "timestamp.utc-z"
-      ]
+      "covers": ["timestamp.utc-z"]
     },
     {
       "id": "v1.utc-timestamp.valid-zulu",
       "schemaId": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp",
       "expectedAcceptance": true,
       "source": "payloads/utc-timestamp/valid-zulu.json",
-      "covers": [
-        "timestamp.utc-z"
-      ]
+      "covers": ["timestamp.utc-z"]
     }
   ]
 }

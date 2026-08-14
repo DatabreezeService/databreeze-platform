@@ -12,7 +12,7 @@ describe('data pipeline route composition [DDA-002][DDA-006]', () => {
     expect(screen.getByRole('link', { name: 'Continue to dashboards' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Accept ETL proposal' })).toBeTruthy();
     expect(
-      (screen.getByRole('button', { name: 'Accept ETL proposal' }) as HTMLButtonElement).disabled,
+      screen.getByRole('button', { name: 'Accept ETL proposal' }).hasAttribute('disabled'),
     ).toBe(true);
     expect(screen.queryByText('1,250,000 VND')).toBeNull();
   });
@@ -34,7 +34,7 @@ describe('data pipeline route composition [DDA-002][DDA-006]', () => {
     ).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Upload' })).toBeNull();
     expect(
-      (screen.getByRole('button', { name: 'Accept ETL proposal' }) as HTMLButtonElement).disabled,
+      screen.getByRole('button', { name: 'Accept ETL proposal' }).hasAttribute('disabled'),
     ).toBe(true);
   });
 });

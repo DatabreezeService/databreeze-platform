@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/dda-dashboard-widget-results-accepted",
+  "$comment": "DDA-018/DDA-023/DDA-026/DDA-033/DDA-034: authorized bounded deterministic per-widget results for one exact last-good snapshot.",
+  "title": "DDA Dashboard Widget Results Accepted",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "accepted", "dashboardId", "snapshotId", "freshness", "widgets"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "accepted": { "const": true },
+    "dashboardId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "snapshotId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "freshness": { "$ref": "#/$defs/freshness" },
+    "widgets": {
+      "type": "array",
+      "maxItems": 256,
+      "items": { "$ref": "#/$defs/widgetResult" }
+    }
+  },
+  "$defs": {
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "lastSuccessfulRefreshAt", "inputSelectorHash", "dashboardVersionId", "inputVersionIds"],
+      "properties": {
+        "state": {
+          "enum": ["CURRENT", "PENDING", "STALE", "BLOCKED", "SOURCE_UNAVAILABLE"]
+        },
+        "lastSuccessfulRefreshAt": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+        },
+        "inputSelectorHash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "dashboardVersionId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "inputVersionIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" }
+        },
+        "pendingDurationMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 604800000
+        },
+        "reasonCode": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        }
+      }
+    },
+    "widgetResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["widgetId", "resultState", "rows"],
+      "properties": {
+        "widgetId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "resultState": {
+          "enum": ["READY", "EMPTY", "SAMPLED", "TRUNCATED", "STALE"]
+        },
+        "rows": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": { "$ref": "#/$defs/resultRow" }
+        }
+      }
+    },
+    "resultRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "displayValue", "numericValue", "unit", "provenance"],
+      "properties": {
+        "label": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "displayValue": { "type": "string", "maxLength": 8192 },
+        "numericValue": { "type": "number" },
+        "unit": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "provenance": { "$ref": "#/$defs/provenance" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resultCellId", "planVersionId", "metricVersionId", "datasetVersionId", "evidenceRefs"],
+      "properties": {
+        "resultCellId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "planVersionId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "metricVersionId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "datasetVersionId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "evidenceRefs": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" }
+        }
+      }
+    }
+  }
+}

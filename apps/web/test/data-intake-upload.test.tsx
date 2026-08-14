@@ -4,13 +4,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { UploadPanel } from '../src/features/data-intake/upload-panel.tsx';
 
-const tenantScope = {
-  scopeType: 'project',
-  organizationId: '00000000-0000-4000-8000-000000000001',
-  workspaceId: '00000000-0000-4000-8000-000000000002',
-  projectId: '00000000-0000-4000-8000-000000000003',
-};
-
 describe('[DDA-002] upload panel', () => {
   it('shows Vietnamese progress retry and cancel without source values', async () => {
     const user = userEvent.setup();
@@ -25,7 +18,6 @@ describe('[DDA-002] upload panel', () => {
       <UploadPanel
         locale="vi"
         api={{ finalize }}
-        tenantScope={tenantScope}
         sessionId="00000000-0000-4000-8000-000000000112"
       />,
     );
@@ -35,7 +27,7 @@ describe('[DDA-002] upload panel', () => {
     await user.upload(screen.getByLabelText('Chọn tệp'), file);
     await user.click(screen.getByRole('button', { name: 'Tải lên' }));
     await waitFor(() => expect(finalize).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText(/Đã chốt phiên tải/u)).toBeTruthy();
+    expect(await screen.findByText(/Đã gửi tệp vào Inbox/u)).toBeTruthy();
     expect(screen.queryByText(/Cafe|120000/u)).toBeNull();
   });
 
@@ -46,7 +38,6 @@ describe('[DDA-002] upload panel', () => {
       <UploadPanel
         locale="en"
         api={{ finalize }}
-        tenantScope={tenantScope}
         sessionId="00000000-0000-4000-8000-000000000112"
       />,
     );

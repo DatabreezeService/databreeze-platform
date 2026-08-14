@@ -1,83 +1,62 @@
+/* eslint-disable @typescript-eslint/require-await -- registration doubles implement asynchronous ports. */
+
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createApiApplication } from '../../../src/bootstrap.js';
 import { HmacSha256IamRegistrationAdmissionDigestAdapter } from '../../../src/features/iam/adapter/iam-registration-crypto.adapter.js';
 import { InMemoryRecoveryAdmissionAdapter } from '../../../src/features/iam/adapter/in-memory-recovery-admission.adapter.js';
-import { InMemoryRegistrationRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-registration-repository.adapter.js';
-import { PasswordCredentialService } from '../../../src/features/iam/application/password-credential.service.js';
 
-const registrationAdmissionDigest = new HmacSha256IamRegistrationAdmissionDigestAdapter(
-  'r'.repeat(32),
-);
+const admissionDigest = new HmacSha256IamRegistrationAdmissionDigestAdapter('r'.repeat(32));
+const challengeId = '00000000-0000-4000-8000-000000000301';
 
-function credentials() {
-  return new PasswordCredentialService({
-    hash: async () => {
-      await Promise.resolve();
-      return {
-        schemaVersion: 1,
-        algorithm: 'argon2id',
-        encodedHash: '$argon2id$v=19$m=65536,p=1,t=3$YWJjZA==$ZWZmZw==',
-      };
-    },
-    verify: async () => {
-      await Promise.resolve();
-      return true;
-    },
-  });
-}
-
-void test('[IAM-001, IAM-009, IAM-016] registration HTTP creates a personal hierarchy and rejects a duplicate generically', async () => {
+void test('[IAM-022] registration HTTP accepts email/password and returns only an opaque challenge', async () => {
   const { app } = await createApiApplication({
-    registrationRepository: new InMemoryRegistrationRepositoryAdapter(),
-    passwordCredentials: credentials(),
+    emailVerificationService: {
+      requestEmailVerification: async () => ({
+        accepted: true as const,
+        value: { requested: true as const, challengeId },
+      }),
+    } as never,
     registrationIpAdmission: new InMemoryRecoveryAdmissionAdapter(),
     registrationEmailAdmission: new InMemoryRecoveryAdmissionAdapter(),
-    registrationAdmissionDigest,
+    registrationAdmissionDigest: admissionDigest,
   });
   try {
-    const first = await app.inject({
+    const response = await app.inject({
       method: 'POST',
       url: '/v1/auth/register',
       payload: {
+        schemaVersion: 4,
         email: 'User@example.com',
-        displayName: 'Nguyen An',
         password: 'correct horse battery staple',
+        locale: 'vi-VN',
       },
     });
-    assert.equal(first.statusCode, 202);
-    const body = first.json<Record<string, unknown>>();
-    assert.deepEqual(body, { accepted: true });
-    assert.equal('accessToken' in body, false);
-    assert.equal('email' in body, false);
-
-    const duplicate = await app.inject({
-      method: 'POST',
-      url: '/v1/auth/register',
-      payload: {
-        email: 'user@example.com',
-        displayName: 'Different',
-        password: 'correct horse battery staple',
-      },
+    assert.equal(response.statusCode, 202);
+    assert.deepEqual(response.json(), {
+      schemaVersion: 4,
+      accepted: true,
+      value: { requested: true, challengeId },
     });
-    assert.equal(duplicate.statusCode, 202);
-    assert.deepEqual(duplicate.json(), { accepted: true });
+    assert.equal('accessToken' in response.json<Record<string, unknown>>(), false);
+    assert.equal('email' in response.json<Record<string, unknown>>(), false);
   } finally {
     await app.close();
   }
 });
 
-void test('[IAM-001] registration HTTP fails closed when durable registration is not configured', async () => {
+void test('[IAM-022] registration HTTP fails closed when protected delivery is not configured', async () => {
   const { app } = await createApiApplication();
   try {
     const response = await app.inject({
       method: 'POST',
       url: '/v1/auth/register',
       payload: {
+        schemaVersion: 4,
         email: 'user@example.com',
-        displayName: 'Nguyen An',
         password: 'correct horse battery staple',
+        locale: 'vi-VN',
       },
     });
     assert.equal(response.statusCode, 503);

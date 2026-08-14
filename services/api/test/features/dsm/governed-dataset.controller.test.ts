@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import { createApiApplication } from '../../../src/bootstrap.js';
 import { InMemoryGovernedDatasetRepositoryAdapter } from '../../../src/features/dsm/adapter/in-memory-governed-dataset-repository.adapter.js';
+import type { GovernedDatasetAuthorizationPortV1 } from '../../../src/features/dsm/application/governed-dataset-authorization.port.js';
 import { GovernedDatasetService } from '../../../src/features/dsm/application/governed-dataset.service.js';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
 import type { RequestTenantContextPortV1 } from '../../../src/platform/http/request-tenant-context.port.js';
@@ -25,6 +26,10 @@ function context() {
   if (!result.accepted) throw new Error('fixture context rejected');
   return result.value;
 }
+
+const allowAllAuthorization: GovernedDatasetAuthorizationPortV1 = {
+  authorize: () => Promise.resolve({ accepted: true, value: true }),
+};
 
 void test('[DSM-005, DSM-006, DSM-018, DSM-021] governed dataset HTTP surfaces publish and compare immutable versions', async () => {
   const repository = new InMemoryGovernedDatasetRepositoryAdapter();
@@ -52,6 +57,7 @@ void test('[DSM-005, DSM-006, DSM-018, DSM-021] governed dataset HTTP surfaces p
   };
   const { app } = await createApiApplication({
     governedDatasetRepository: repository,
+    governedDatasetAuthorization: allowAllAuthorization,
     requestTenantContext,
   });
   try {

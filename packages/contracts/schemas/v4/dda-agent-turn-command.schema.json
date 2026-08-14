@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-command",
+  "$comment": "DDA-055/DDA-060/IAM-024: bounded agent-turn request with server-derived tenant and agent authority.",
+  "title": "DDA Agent Turn Command",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "conversationId",
+    "messageId",
+    "text",
+    "idempotencyKey",
+    "locale"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "conversationId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "messageId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8000
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+    },
+    "locale": {
+      "type": "string",
+      "enum": ["vi-VN", "en"]
+    },
+    "contextRevision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "expectedContextRevision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    }
+  }
+}

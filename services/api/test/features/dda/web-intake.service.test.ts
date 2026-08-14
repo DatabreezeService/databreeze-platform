@@ -94,6 +94,72 @@ function zipEntry(name: string, content: Uint8Array): Uint8Array {
   return Buffer.concat([local, central, end]);
 }
 
+function zipArchive(
+  entries: readonly { readonly name: string; readonly content: Uint8Array }[],
+): Uint8Array {
+  const locals: Buffer[] = [];
+  const centrals: Buffer[] = [];
+  let offset = 0;
+  for (const entry of entries) {
+    const nameBytes = Buffer.from(entry.name, 'utf8');
+    const compressed = deflateRawSync(entry.content);
+    const local = Buffer.alloc(30 + nameBytes.length + compressed.length);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(0, 6);
+    local.writeUInt16LE(8, 8);
+    local.writeUInt32LE(crc32(entry.content), 14);
+    local.writeUInt32LE(compressed.length, 18);
+    local.writeUInt32LE(entry.content.length, 22);
+    local.writeUInt16LE(nameBytes.length, 26);
+    nameBytes.copy(local, 30);
+    compressed.copy(local, 30 + nameBytes.length);
+
+    const central = Buffer.alloc(46 + nameBytes.length);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(20, 4);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt16LE(8, 10);
+    central.writeUInt32LE(crc32(entry.content), 16);
+    central.writeUInt32LE(compressed.length, 20);
+    central.writeUInt32LE(entry.content.length, 24);
+    central.writeUInt16LE(nameBytes.length, 28);
+    central.writeUInt32LE(offset, 42);
+    nameBytes.copy(central, 46);
+
+    locals.push(local);
+    centrals.push(central);
+    offset += local.length;
+  }
+  const centralDirectory = Buffer.concat(centrals);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(entries.length, 8);
+  end.writeUInt16LE(entries.length, 10);
+  end.writeUInt32LE(centralDirectory.length, 12);
+  end.writeUInt32LE(offset, 16);
+  return Buffer.concat([...locals, centralDirectory, end]);
+}
+
+function xlsxArchiveWithEntries(
+  entries: readonly { readonly name: string; readonly content: Uint8Array }[],
+): Uint8Array {
+  return zipArchive([
+    {
+      name: 'xl/workbook.xml',
+      content: Buffer.from(
+        '<workbook><sheets><sheet name="S1" sheetId="1" r:id="rId1"/></sheets></workbook>',
+        'utf8',
+      ),
+    },
+    {
+      name: 'xl/worksheets/sheet1.xml',
+      content: Buffer.from('<worksheet/>', 'utf8'),
+    },
+    ...entries,
+  ]);
+}
+
 function minimalXlsx(options?: {
   readonly macro?: boolean;
   readonly sheets?: number;
@@ -509,4 +575,148 @@ void test('[DDA-002] publishes explicit V1 intake profile limits', () => {
   assert.equal(profile.limits.maxFormulas, 500);
   assert.equal(profile.xlsx.macrosAllowed, false);
   assert.equal(profile.xlsx.externalLinksAllowed, false);
+});
+
+void test('[DDA-002] rejects a forged ZIP size header before trusting the entry', async () => {
+  const { service } = createService();
+  const bytes = Buffer.from(zipEntry('xl/worksheets/sheet1.xml', Buffer.from('<worksheet/>')));
+  bytes.writeUInt32LE(0xffffffff, 22);
+  const result = await service.finalizeUpload({
+    tenantScope,
+    sessionId: '00000000-0000-4000-8000-000000000114',
+    fileName: 'forged.xlsx',
+    claimedMediaType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    expectedSha256: sha256(bytes),
+    bytes,
+  });
+  assert.deepEqual(result, { accepted: false, code: 'DDA_INTAKE_ZIP_BOMB' });
+});
+
+void test('[DDA-002] enforces ZIP entry count and actual decompression bounds', async () => {
+  const module = (await import(
+    '../../../src/features/dda/intake/application/web-intake.service.js'
+  )) as Record<string, unknown>;
+  const boundedInflate = module['inflateRawBoundedV1'] as
+    | ((bytes: Uint8Array, maxOutputLength: number) => unknown)
+    | undefined;
+  assert.equal(typeof boundedInflate, 'function');
+  const compressed = deflateRawSync(Buffer.alloc(3_000_000, 0x41));
+  assert.deepEqual(boundedInflate?.(compressed, 1024), {
+    accepted: false,
+    code: 'DDA_INTAKE_ZIP_BOMB',
+  });
+
+  const { service } = createService();
+  const bytes = zipArchive([
+    { name: 'xl/worksheets/sheet1.xml', content: Buffer.from('<worksheet/>') },
+    ...Array.from({ length: 65 }, (_, index) => ({
+      name: `xl/extra${index}.xml`,
+      content: Buffer.from('<extra/>'),
+    })),
+  ]);
+  const result = await service.finalizeUpload({
+    tenantScope,
+    sessionId: '00000000-0000-4000-8000-000000000115',
+    fileName: 'many-entries.xlsx',
+    claimedMediaType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    expectedSha256: sha256(bytes),
+    bytes,
+  });
+  assert.deepEqual(result, { accepted: false, code: 'DDA_INTAKE_ZIP_BOMB' });
+});
+
+void test('[DDA-002] distinguishes the last valid Excel column XFD from invalid XFE', async () => {
+  const { service } = createService();
+  const run = async (cell: string, sessionId: string) => {
+    const bytes = zipEntry(
+      'xl/worksheets/sheet1.xml',
+      Buffer.from(
+        `<worksheet><sheetData><row><c r="${cell}"><v>1</v></c></row></sheetData></worksheet>`,
+      ),
+    );
+    return service.finalizeUpload({
+      tenantScope,
+      sessionId,
+      fileName: 'columns.xlsx',
+      claimedMediaType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      expectedSha256: sha256(bytes),
+      bytes,
+    });
+  };
+  const xfd = await run('XFD1', '00000000-0000-4000-8000-000000000116');
+  assert.deepEqual(xfd, { accepted: false, code: 'DDA_INTAKE_LIMIT_COLUMNS' });
+  const xfe = await run('XFE1', '00000000-0000-4000-8000-000000000117');
+  assert.deepEqual(xfe, { accepted: false, code: 'DDA_INTAKE_UNSUPPORTED_PROFILE' });
+});
+
+void test('[DDA-002] rejects sparse cells beyond the published row bound', async () => {
+  const { service } = createService();
+  const bytes = zipEntry(
+    'xl/worksheets/sheet1.xml',
+    Buffer.from('<worksheet><sheetData><c r="A1048576"><v>1</v></c></sheetData></worksheet>'),
+  );
+  const result = await service.finalizeUpload({
+    tenantScope,
+    sessionId: '00000000-0000-4000-8000-000000000118',
+    fileName: 'sparse.xlsx',
+    claimedMediaType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    expectedSha256: sha256(bytes),
+    bytes,
+  });
+  assert.deepEqual(result, { accepted: false, code: 'DDA_INTAKE_LIMIT_ROWS' });
+});
+
+void test('[DDA-002] rejects malformed shared strings, path traversal, and external relationships', async () => {
+  const { service } = createService();
+  const cases: readonly (readonly [string, string, boolean, string])[] = [
+    ['xl/sharedStrings.xml', '<sst><si><t>unterminated', true, 'DDA_INTAKE_UNSUPPORTED_PROFILE'],
+    ['../xl/worksheets/sheet1.xml', '<worksheet/>', false, 'DDA_INTAKE_UNSUPPORTED_PROFILE'],
+    [
+      'xl/_rels/workbook.xml.rels',
+      '<Relationships><Relationship Target="https://attacker.invalid/book.xlsx" TargetMode="External"/></Relationships>',
+      true,
+      'DDA_INTAKE_EXTERNAL_LINK',
+    ],
+  ] as const;
+  for (const [index, [name, content, includeWorkbook, expectedCode]] of cases.entries()) {
+    const bytes = includeWorkbook
+      ? xlsxArchiveWithEntries([{ name, content: Buffer.from(content) }])
+      : zipEntry(name, Buffer.from(content));
+    const result = await service.finalizeUpload({
+      tenantScope,
+      sessionId: `00000000-0000-4000-8000-${String(119 + index).padStart(12, '0')}`,
+      fileName: 'hostile.xlsx',
+      claimedMediaType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      expectedSha256: sha256(bytes),
+      bytes,
+    });
+    assert.deepEqual(result, { accepted: false, code: expectedCode }, name);
+  }
+});
+
+void test('[DDA-002] decodes Vietnamese UTF-8 and Windows-1258 without latin1 corruption', async () => {
+  const module = (await import(
+    '../../../src/features/dda/intake/application/web-intake.service.js'
+  )) as Record<string, unknown>;
+  const decode = module['decodeCsvTextV1'] as
+    | ((
+        bytes: Uint8Array,
+        encoding?: string,
+      ) => { accepted: boolean; value?: string; code?: string })
+    | undefined;
+  assert.equal(typeof decode, 'function');
+  assert.deepEqual(
+    decode?.(Buffer.from([0xef, 0xbb, 0xbf, ...Buffer.from('Đăng ký', 'utf8')]), 'utf-8-sig'),
+    {
+      accepted: true,
+      value: 'Đăng ký',
+    },
+  );
+  assert.deepEqual(
+    decode?.(Buffer.from([0xd0, 0xe3, 0x6e, 0x67, 0x20, 0x6b, 0x79, 0xec]), 'windows-1258'),
+    {
+      accepted: true,
+      value: 'Đăng ký',
+    },
+  );
 });

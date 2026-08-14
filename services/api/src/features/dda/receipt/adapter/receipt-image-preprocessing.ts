@@ -35,10 +35,7 @@ export function preprocessReceiptImageV1(input: {
   if (input.bytes.byteLength > MAX_BYTES) {
     throw new OpenAiProviderError('OPENAI_UNSAFE_CONFIGURATION');
   }
-  if (
-    input.detail === 'original' &&
-    ORIGINAL_DETAIL_UNSUPPORTED_MODELS.has(input.modelSnapshot)
-  ) {
+  if (input.detail === 'original' && ORIGINAL_DETAIL_UNSUPPORTED_MODELS.has(input.modelSnapshot)) {
     throw new OpenAiProviderError('OPENAI_UNSAFE_CONFIGURATION');
   }
 

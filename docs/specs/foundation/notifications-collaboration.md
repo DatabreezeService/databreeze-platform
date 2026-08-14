@@ -103,6 +103,10 @@ A digest groups eligible low/normal urgency notifications by user and organizati
 | NCO-018 | P1 | Workspace administrators shall be able to configure allowed external channels and retention without reading private notification content beyond authorized resources. |
 | NCO-019 | P1 | Offline comment, read-state, and dismissal operations shall use stable operation IDs and explicit conflict rules from `DSO`. |
 | NCO-020 | P1 | The system shall provide accessible, filterable notification and thread views with pagination and no reliance on color or sound alone. |
+| NCO-021 | P0 | Notification HTTP and stream payloads shall be parsed through generated closed contracts. Because contract majors `v1` and `v2` are already published and immutable, the first canonical NCO notification transport shall be contract major `v3`; clients shall not add notification schema IDs to a published earlier major. |
+| NCO-022 | P0 | Notification list responses shall carry a server-authoritative unread count for the current authorized recipient and tenant scope, independent of the bounded page of records returned. An unavailable or unauthorized repository shall never be represented as a confirmed empty inbox. |
+| NCO-023 | P0 | A committed notification projection shall durably upsert recipient-scoped intent and read-state truth before reporting success. Event replay shall be deduplicated by a deterministic recipient-scoped key, and persistence corruption or outage shall fail closed without emitting partial records. |
+| NCO-024 | P0 | Notification state commands shall bind the authenticated recipient, exact tenant scope, notification ID, expected revision, target state, and idempotency key. Replays shall return the prior result, changed payload reuse shall conflict, and state transitions shall follow the monotonic rules in this specification. |
 
 ## Domain and data contracts
 
@@ -189,11 +193,11 @@ The canonical format is `category:resourceId:resourceRevision:recipientId:reason
 
 ### REST and streams
 
-- `GET /v1/notifications`
-- `PATCH /v1/notifications/{notificationId}`
-- `POST /v1/notifications/bulk-state`
-- `GET|PUT /v1/notification-preferences`
-- `GET /v1/notifications/stream` using authenticated SSE
+- `GET /v3/notifications`
+- `PATCH /v3/notifications/{notificationId}`
+- `POST /v3/notifications/bulk-state`
+- `GET|PUT /v3/notification-preferences`
+- `GET /v3/notifications/stream` using authenticated SSE
 - `GET|POST /v1/resources/{resourceType}/{resourceId}/threads`
 - `GET|POST /v1/threads/{threadId}/comments`
 - `PATCH|DELETE /v1/comments/{commentId}`
@@ -202,6 +206,8 @@ The canonical format is `category:resourceId:resourceRevision:recipientId:reason
 - Provider webhook endpoints under `/v1/webhooks/notification-providers/{provider}`
 
 Mutations require idempotency keys and revision preconditions where applicable. Thread/comment lists use cursor pagination.
+
+The notification routes use contract major `v3` because the earlier package majors were published before the canonical NCO notification schemas existed. This is a transport-version boundary only; unrelated collaboration routes remain on their existing supported major until their own contract changes require a successor. The repository compatibility registry, generated TypeScript/Python/Kotlin models, OpenAPI, Web, Desktop, and Android consumers shall move together and shall not rewrite published `v1` or `v2` baselines.
 
 ### Events
 

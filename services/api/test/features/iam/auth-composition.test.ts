@@ -6,6 +6,7 @@ import { Argon2PasswordHasherAdapter } from '../../../src/features/iam/adapter/a
 import { InMemoryCredentialLookupAdapter } from '../../../src/features/iam/adapter/in-memory-credential-lookup.adapter.js';
 import { InMemorySessionLifecycleAdapter } from '../../../src/features/iam/adapter/in-memory-session-lifecycle.adapter.js';
 import { PasswordCredentialService } from '../../../src/features/iam/application/password-credential.service.js';
+import { REFRESH_COOKIE_PATH_V1 } from '../../../src/features/iam/api/session-cookies.js';
 
 const principal = {
   userId: '00000000-0000-4000-8000-000000000001',
@@ -32,6 +33,7 @@ void test('[IAM-001, IAM-005, IAM-006] configured credentials and sessions issue
       method: 'POST',
       url: '/v1/auth/sign-in',
       payload: {
+        schemaVersion: 4,
         email: 'USER@EXAMPLE.COM',
         password: 'correct horse battery staple',
         clientPlatform: 'web',
@@ -45,6 +47,9 @@ void test('[IAM-001, IAM-005, IAM-006] configured credentials and sessions issue
     }>();
     assert.match(body.sessionId, /^[0-9a-f-]{36}$/u);
     assert.notEqual(body.accessToken, body.refreshToken);
+    const cookies = response.headers['set-cookie'];
+    assert.ok(Array.isArray(cookies));
+    assert.match(cookies[0] ?? '', new RegExp(`Path=${REFRESH_COOKIE_PATH_V1.replaceAll('/', '\\/')};`, 'u'));
   } finally {
     await app.close();
   }

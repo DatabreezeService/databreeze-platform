@@ -1,19 +1,19 @@
 /// DDA-001, DDA-003: dashboard-agent metadata only. Original payloads, datasets, jobs,
 /// devices, usage, and audit remain with IAE/DSM/JRA/DSO/BUA/AUD and are referenced by ID.
 model DashboardRecord {
-  id             String   @id @db.Uuid
-  scopeType      String   @map("scope_type") @db.VarChar(24)
-  organizationId String   @map("organization_id") @db.Uuid
-  workspaceId    String   @map("workspace_id") @db.Uuid
-  projectId      String   @map("project_id") @db.Uuid
-  titleVi        String   @map("title_vi") @db.VarChar(200)
-  titleEn        String   @map("title_en") @db.VarChar(200)
-  status         String   @db.VarChar(24)
-  draftVersionId String?  @map("draft_version_id") @db.Uuid
-  publishedVersionId String? @map("published_version_id") @db.Uuid
-  revision       Int      @default(1)
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                 String   @id @db.Uuid
+  scopeType          String   @map("scope_type") @db.VarChar(24)
+  organizationId     String   @map("organization_id") @db.Uuid
+  workspaceId        String   @map("workspace_id") @db.Uuid
+  projectId          String   @map("project_id") @db.Uuid
+  titleVi            String   @map("title_vi") @db.VarChar(200)
+  titleEn            String   @map("title_en") @db.VarChar(200)
+  status             String   @db.VarChar(24)
+  draftVersionId     String?  @map("draft_version_id") @db.Uuid
+  publishedVersionId String?  @map("published_version_id") @db.Uuid
+  revision           Int      @default(1)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@unique([organizationId, workspaceId, projectId, id], map: "dashboards_scope_id_key")
   @@index([organizationId, workspaceId, projectId], map: "dashboards_scope_idx")
@@ -22,20 +22,20 @@ model DashboardRecord {
 }
 
 model DashboardVersionRecord {
-  id             String   @id @db.Uuid
-  dashboardId    String   @map("dashboard_id") @db.Uuid
-  scopeType      String   @map("scope_type") @db.VarChar(24)
-  organizationId String   @map("organization_id") @db.Uuid
-  workspaceId    String   @map("workspace_id") @db.Uuid
-  projectId      String   @map("project_id") @db.Uuid
-  parentVersionId String? @map("parent_version_id") @db.Uuid
-  layoutGraph    Json     @map("layout_graph")
-  freshnessPolicy String  @map("freshness_policy") @db.VarChar(24)
-  publicationPolicy String @map("publication_policy") @db.VarChar(24)
-  locale         String   @db.VarChar(32)
-  timezone       String   @db.VarChar(64)
-  canonicalHash  String   @map("canonical_hash") @db.Char(64)
-  createdAt      DateTime @map("created_at") @db.Timestamptz(6)
+  id                String   @id @db.Uuid
+  dashboardId       String   @map("dashboard_id") @db.Uuid
+  scopeType         String   @map("scope_type") @db.VarChar(24)
+  organizationId    String   @map("organization_id") @db.Uuid
+  workspaceId       String   @map("workspace_id") @db.Uuid
+  projectId         String   @map("project_id") @db.Uuid
+  parentVersionId   String?  @map("parent_version_id") @db.Uuid
+  layoutGraph       Json     @map("layout_graph")
+  freshnessPolicy   String   @map("freshness_policy") @db.VarChar(24)
+  publicationPolicy String   @map("publication_policy") @db.VarChar(24)
+  locale            String   @db.VarChar(32)
+  timezone          String   @db.VarChar(64)
+  canonicalHash     String   @map("canonical_hash") @db.Char(64)
+  createdAt         DateTime @map("created_at") @db.Timestamptz(6)
 
   @@unique([organizationId, workspaceId, projectId, id], map: "dashboard_versions_scope_id_key")
   @@index([organizationId, workspaceId, projectId, dashboardId], map: "dashboard_versions_scope_idx")
@@ -44,19 +44,19 @@ model DashboardVersionRecord {
 }
 
 model AnalysisPlanRecord {
-  id             String   @id @db.Uuid
-  planId         String   @map("plan_id") @db.Uuid
-  scopeType      String   @map("scope_type") @db.VarChar(24)
-  organizationId String   @map("organization_id") @db.Uuid
-  workspaceId    String   @map("workspace_id") @db.Uuid
-  projectId      String   @map("project_id") @db.Uuid
-  datasetVersionId String @map("dataset_version_id") @db.Uuid
-  semanticVersionId String @map("semantic_version_id") @db.Uuid
-  metricVersionId String @map("metric_version_id") @db.Uuid
-  permissionProjectionVersionId String @map("permission_projection_version_id") @db.Uuid
-  planDocument   Json     @map("plan_document")
-  planHash       String   @map("plan_hash") @db.Char(64)
-  createdAt      DateTime @map("created_at") @db.Timestamptz(6)
+  id                            String   @id @db.Uuid
+  planId                        String   @map("plan_id") @db.Uuid
+  scopeType                     String   @map("scope_type") @db.VarChar(24)
+  organizationId                String   @map("organization_id") @db.Uuid
+  workspaceId                   String   @map("workspace_id") @db.Uuid
+  projectId                     String   @map("project_id") @db.Uuid
+  datasetVersionId              String   @map("dataset_version_id") @db.Uuid
+  semanticVersionId             String   @map("semantic_version_id") @db.Uuid
+  metricVersionId               String   @map("metric_version_id") @db.Uuid
+  permissionProjectionVersionId String   @map("permission_projection_version_id") @db.Uuid
+  planDocument                  Json     @map("plan_document")
+  planHash                      String   @map("plan_hash") @db.Char(64)
+  createdAt                     DateTime @map("created_at") @db.Timestamptz(6)
 
   @@unique([organizationId, workspaceId, projectId, id], map: "analysis_plans_scope_id_key")
   @@index([organizationId, workspaceId, projectId, planId], map: "analysis_plans_scope_idx")
@@ -65,18 +65,18 @@ model AnalysisPlanRecord {
 }
 
 model MaterializationDefinitionRecord {
-  id             String   @id @db.Uuid
-  scopeType      String   @map("scope_type") @db.VarChar(24)
-  organizationId String   @map("organization_id") @db.Uuid
-  workspaceId    String   @map("workspace_id") @db.Uuid
-  projectId      String   @map("project_id") @db.Uuid
-  dashboardVersionId String @map("dashboard_version_id") @db.Uuid
-  widgetId       String   @map("widget_id") @db.Uuid
-  analysisPlanVersionId String @map("analysis_plan_version_id") @db.Uuid
-  resultManifestId String? @map("result_manifest_id") @db.Uuid
-  cacheIdentityHash String @map("cache_identity_hash") @db.Char(64)
-  dependencyEntries Json @map("dependency_entries")
-  createdAt      DateTime @map("created_at") @db.Timestamptz(6)
+  id                    String   @id @db.Uuid
+  scopeType             String   @map("scope_type") @db.VarChar(24)
+  organizationId        String   @map("organization_id") @db.Uuid
+  workspaceId           String   @map("workspace_id") @db.Uuid
+  projectId             String   @map("project_id") @db.Uuid
+  dashboardVersionId    String   @map("dashboard_version_id") @db.Uuid
+  widgetId              String   @map("widget_id") @db.Uuid
+  analysisPlanVersionId String   @map("analysis_plan_version_id") @db.Uuid
+  resultManifestId      String?  @map("result_manifest_id") @db.Uuid
+  cacheIdentityHash     String   @map("cache_identity_hash") @db.Char(64)
+  dependencyEntries     Json     @map("dependency_entries")
+  createdAt             DateTime @map("created_at") @db.Timestamptz(6)
 
   @@unique([organizationId, workspaceId, projectId, id], map: "materialization_definitions_scope_id_key")
   @@unique([organizationId, workspaceId, projectId, cacheIdentityHash], map: "materialization_definitions_cache_key")
@@ -86,20 +86,23 @@ model MaterializationDefinitionRecord {
 }
 
 model DashboardSnapshotRecord {
-  id             String   @id @db.Uuid
-  scopeType      String   @map("scope_type") @db.VarChar(24)
-  organizationId String   @map("organization_id") @db.Uuid
-  workspaceId    String   @map("workspace_id") @db.Uuid
-  projectId      String   @map("project_id") @db.Uuid
-  dashboardVersionId String @map("dashboard_version_id") @db.Uuid
-  materializationIds Json @map("materialization_ids")
-  permissionProjectionVersionId String @map("permission_projection_version_id") @db.Uuid
-  audience       String   @db.VarChar(32)
-  freshnessState String   @map("freshness_state") @db.VarChar(32)
-  evidenceState  String   @map("evidence_state") @db.VarChar(24)
-  evidenceReferenceId String? @map("evidence_reference_id") @db.Uuid
-  canonicalHash  String   @map("canonical_hash") @db.Char(64)
-  createdAt      DateTime @map("created_at") @db.Timestamptz(6)
+  id                            String   @id @db.Uuid
+  scopeType                     String   @map("scope_type") @db.VarChar(24)
+  organizationId                String   @map("organization_id") @db.Uuid
+  workspaceId                   String   @map("workspace_id") @db.Uuid
+  projectId                     String   @map("project_id") @db.Uuid
+  dashboardVersionId            String   @map("dashboard_version_id") @db.Uuid
+  materializationIds            Json     @map("materialization_ids")
+  bindingProof                  Json?    @map("binding_proof")
+  bindingProofVersion           Int?     @map("binding_proof_version")
+  inputSelectorHash             String?  @map("input_selector_hash") @db.Char(64)
+  permissionProjectionVersionId String   @map("permission_projection_version_id") @db.Uuid
+  audience                      String   @db.VarChar(32)
+  freshnessState                String   @map("freshness_state") @db.VarChar(32)
+  evidenceState                 String   @map("evidence_state") @db.VarChar(24)
+  evidenceReferenceId           String?  @map("evidence_reference_id") @db.Uuid
+  canonicalHash                 String   @map("canonical_hash") @db.Char(64)
+  createdAt                     DateTime @map("created_at") @db.Timestamptz(6)
 
   @@unique([organizationId, workspaceId, projectId, id], map: "dashboard_snapshots_scope_id_key")
   @@index([organizationId, workspaceId, projectId, dashboardVersionId], map: "dashboard_snapshots_scope_idx")
@@ -108,18 +111,18 @@ model DashboardSnapshotRecord {
 }
 
 model DashboardRefreshStateRecord {
-  id             String   @id @db.Uuid
-  dashboardId    String   @map("dashboard_id") @db.Uuid
-  scopeType      String   @map("scope_type") @db.VarChar(24)
-  organizationId String   @map("organization_id") @db.Uuid
-  workspaceId    String   @map("workspace_id") @db.Uuid
-  projectId      String   @map("project_id") @db.Uuid
-  freshnessPolicy String  @map("freshness_policy") @db.VarChar(24)
-  lastSnapshotId String?  @map("last_snapshot_id") @db.Uuid
-  lastJobId      String?  @map("last_job_id") @db.Uuid
-  status         String   @db.VarChar(32)
-  reasonCode     String?  @map("reason_code") @db.VarChar(64)
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id              String   @id @db.Uuid
+  dashboardId     String   @map("dashboard_id") @db.Uuid
+  scopeType       String   @map("scope_type") @db.VarChar(24)
+  organizationId  String   @map("organization_id") @db.Uuid
+  workspaceId     String   @map("workspace_id") @db.Uuid
+  projectId       String   @map("project_id") @db.Uuid
+  freshnessPolicy String   @map("freshness_policy") @db.VarChar(24)
+  lastSnapshotId  String?  @map("last_snapshot_id") @db.Uuid
+  lastJobId       String?  @map("last_job_id") @db.Uuid
+  status          String   @db.VarChar(32)
+  reasonCode      String?  @map("reason_code") @db.VarChar(64)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@unique([organizationId, workspaceId, projectId, dashboardId], map: "dashboard_refresh_state_scope_dashboard_key")
   @@index([organizationId, workspaceId, projectId], map: "dashboard_refresh_state_scope_idx")
@@ -129,27 +132,30 @@ model DashboardRefreshStateRecord {
 
 /// Durable open/historical refresh executions (metadata only — no result rows).
 model DashboardRefreshExecutionRecord {
-  id                              String   @id @db.Uuid
-  scopeType                       String   @map("scope_type") @db.VarChar(24)
-  organizationId                  String   @map("organization_id") @db.Uuid
-  workspaceId                     String   @map("workspace_id") @db.Uuid
-  projectId                       String   @map("project_id") @db.Uuid
-  dashboardId                     String   @map("dashboard_id") @db.Uuid
-  dashboardVersionId              String   @map("dashboard_version_id") @db.Uuid
-  permissionProjectionVersionId   String   @map("permission_projection_version_id") @db.Uuid
-  datasetVersionId                String   @map("dataset_version_id") @db.Uuid
-  definitionIds                   Json     @map("definition_ids")
-  inputSelectorHash               String   @map("input_selector_hash") @db.Char(64)
-  sourceEventIds                  Json     @map("source_event_ids")
-  clientRequestIds                Json     @map("client_request_ids")
-  folderReplayKeys                Json     @map("folder_replay_keys")
-  state                           String   @db.VarChar(32)
-  leaseId                         String?  @map("lease_id") @db.VarChar(128)
-  debounceWindowMs                Int      @map("debounce_window_ms")
-  openedAtMs                      BigInt   @map("opened_at_ms")
-  updatedAtMs                     BigInt   @map("updated_at_ms")
-  updatedAt                       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                            String   @id @db.Uuid
+  scopeType                     String   @map("scope_type") @db.VarChar(24)
+  organizationId                String   @map("organization_id") @db.Uuid
+  workspaceId                   String   @map("workspace_id") @db.Uuid
+  projectId                     String   @map("project_id") @db.Uuid
+  dashboardId                   String   @map("dashboard_id") @db.Uuid
+  dashboardVersionId            String   @map("dashboard_version_id") @db.Uuid
+  permissionProjectionVersionId String   @map("permission_projection_version_id") @db.Uuid
+  datasetVersionId              String   @map("dataset_version_id") @db.Uuid
+  definitionIds                 Json     @map("definition_ids")
+  inputSelectorHash             String   @map("input_selector_hash") @db.Char(64)
+  sourceEventIds                Json     @map("source_event_ids")
+  clientRequestIds              Json     @map("client_request_ids")
+  folderReplayKeys              Json     @map("folder_replay_keys")
+  state                         String   @db.VarChar(32)
+  revision                      Int      @default(1)
+  openKey                       String?  @map("open_key") @db.Uuid
+  leaseId                       String?  @map("lease_id") @db.VarChar(128)
+  debounceWindowMs              Int      @map("debounce_window_ms")
+  openedAtMs                    BigInt   @map("opened_at_ms")
+  updatedAtMs                   BigInt   @map("updated_at_ms")
+  updatedAt                     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  @@unique([scopeType, organizationId, workspaceId, projectId, dashboardId, openKey], map: "dashboard_refresh_executions_scope_open_key")
   @@index([organizationId, workspaceId, projectId, dashboardId, state], map: "dashboard_refresh_executions_open_idx")
   @@map("dashboard_refresh_executions")
   @@schema("dda")
@@ -164,7 +170,7 @@ model DashboardRefreshIdempotencyRecord {
   workspaceId    String @map("workspace_id") @db.Uuid
   projectId      String @map("project_id") @db.Uuid
 
-  @@id([keyKind, keyValue], map: "dashboard_refresh_idempotency_pkey")
+  @@id([scopeType, organizationId, workspaceId, projectId, keyKind, keyValue], map: "dashboard_refresh_idempotency_pkey")
   @@index([organizationId, workspaceId, projectId], map: "dashboard_refresh_idempotency_scope_idx")
   @@map("dashboard_refresh_idempotency")
   @@schema("dda")
@@ -188,22 +194,120 @@ model DashboardRefreshEventCorrelationRecord {
   @@schema("dda")
 }
 
-model EtlProposalRecord {
-  id               String   @id @db.Uuid
-  scopeType        String   @map("scope_type") @db.VarChar(24)
-  organizationId   String   @map("organization_id") @db.Uuid
-  workspaceId      String   @map("workspace_id") @db.Uuid
-  projectId        String   @map("project_id") @db.Uuid
-  revision         Int
-  state            String   @db.VarChar(32)
-  blockingReasons  Json     @map("blocking_reasons")
-  planDocument     Json     @map("plan_document")
-  reviewDocument   Json     @map("review_document")
-  createdAt        DateTime @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+/// DDA-034: per-project/dashboard durable event sequence allocator.
+model DashboardRefreshEventSequenceRecord {
+  organizationId String @map("organization_id") @db.Uuid
+  workspaceId    String @map("workspace_id") @db.Uuid
+  projectId      String @map("project_id") @db.Uuid
+  dashboardId    String @map("dashboard_id") @db.Uuid
+  nextSequence   BigInt @default(1) @map("next_sequence")
 
+  @@id([organizationId, workspaceId, projectId, dashboardId], map: "dashboard_refresh_event_sequences_pkey")
+  @@schema("dda")
+}
+
+/// DDA-034/DDA-036: content-safe committed refresh event/outbox rows.
+/// No cell values, source paths, credentials, raw provider data, or result rows are stored.
+model DashboardRefreshEventRecord {
+  eventId            String   @id @map("event_id") @db.Uuid
+  sequence           BigInt
+  scopeType          String   @map("scope_type") @db.VarChar(24)
+  organizationId     String   @map("organization_id") @db.Uuid
+  workspaceId        String   @map("workspace_id") @db.Uuid
+  projectId          String   @map("project_id") @db.Uuid
+  dashboardId        String   @map("dashboard_id") @db.Uuid
+  snapshotId         String   @map("snapshot_id") @db.Uuid
+  freshnessState     String   @map("freshness_state") @db.VarChar(32)
+  eventKind          String   @map("event_kind") @db.VarChar(64)
+  metadata           Json
+  occurredAt         DateTime @map("occurred_at") @db.Timestamptz(6)
+  correlationId      String   @map("correlation_id") @db.Uuid
+  authorizationEpoch Int?     @map("authorization_epoch")
+  eventHash          String   @map("event_hash") @db.Char(64)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, projectId, dashboardId, sequence], map: "dashboard_refresh_events_scope_sequence_key")
+  @@unique([organizationId, workspaceId, projectId, dashboardId, eventHash], map: "dashboard_refresh_events_scope_hash_key")
+  @@index([organizationId, workspaceId, projectId, dashboardId, occurredAt, sequence], map: "dashboard_refresh_events_scope_occurred_idx")
+  @@map("dashboard_refresh_events")
+  @@schema("dda")
+}
+
+model EtlProposalRecord {
+  id              String   @id @db.Uuid
+  scopeType       String   @map("scope_type") @db.VarChar(24)
+  organizationId  String   @map("organization_id") @db.Uuid
+  workspaceId     String   @map("workspace_id") @db.Uuid
+  projectId       String   @map("project_id") @db.Uuid
+  revision        Int
+  state           String   @db.VarChar(32)
+  blockingReasons Json     @map("blocking_reasons")
+  planDocument    Json     @map("plan_document")
+  reviewDocument  Json     @map("review_document")
+  createdAt       DateTime @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, projectId, id], map: "etl_proposals_scope_id_key")
   @@index([organizationId, workspaceId, projectId], map: "etl_proposals_scope_idx")
   @@map("etl_proposals")
+  @@schema("dda")
+}
+
+/// DDA-053: one durable acceptance owner per exact proposal revision and tenant.
+model EtlAcceptanceCommandRecord {
+  id                 String    @id @db.Uuid
+  scopeType          String    @map("scope_type") @db.VarChar(24)
+  organizationId     String    @map("organization_id") @db.Uuid
+  workspaceId        String    @map("workspace_id") @db.Uuid
+  projectId          String    @map("project_id") @db.Uuid
+  proposalId         String    @map("proposal_id") @db.Uuid
+  expectedRevision   Int       @map("expected_revision")
+  commandKey         String    @map("command_key") @db.VarChar(200)
+  payloadFingerprint String    @map("payload_fingerprint") @db.Char(64)
+  state              String    @db.VarChar(16)
+  ownerToken         String    @map("owner_token") @db.VarChar(128)
+  leaseExpiresAt     DateTime? @map("lease_expires_at") @db.Timestamptz(6)
+  resultDocument     Json?     @map("result_document")
+  failureCode        String?   @map("failure_code") @db.VarChar(64)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  completedAt        DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, projectId, commandKey], map: "etl_acceptance_commands_scope_key")
+  @@unique([organizationId, workspaceId, projectId, proposalId, expectedRevision], map: "etl_acceptance_commands_revision_key")
+  @@unique([organizationId, workspaceId, projectId, id], map: "etl_acceptance_commands_scope_id_key")
+  @@index([organizationId, workspaceId, projectId, proposalId, state], map: "etl_acceptance_commands_proposal_state_idx")
+  @@map("etl_acceptance_commands")
+  @@schema("dda")
+}
+
+/// DDA-041/DDA-057: durable receipt command replay metadata and bounded candidate reference.
+model ReceiptExtractionCommandRecord {
+  id                 String    @id @db.Uuid
+  scopeKey           String    @map("scope_key") @db.VarChar(200)
+  scopeType          String    @map("scope_type") @db.VarChar(24)
+  organizationId     String    @map("organization_id") @db.Uuid
+  workspaceId        String?   @map("workspace_id") @db.Uuid
+  projectId          String?   @map("project_id") @db.Uuid
+  operation          String    @db.VarChar(16)
+  artifactVersionId  String    @map("artifact_version_id") @db.Uuid
+  sourceId           String    @map("source_id") @db.Uuid
+  commandKey         String    @map("command_key") @db.VarChar(200)
+  payloadFingerprint String    @map("payload_fingerprint") @db.Char(64)
+  state              String    @db.VarChar(16)
+  ownerToken         String?   @map("owner_token") @db.VarChar(200)
+  leaseExpiresAt     DateTime? @map("lease_expires_at") @db.Timestamptz(6)
+  failureCode        String?   @map("failure_code") @db.VarChar(96)
+  candidateId        String?   @map("candidate_id") @db.Uuid
+  candidateDocument  Json?     @map("candidate_document")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  completedAt        DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  @@unique([scopeKey, operation, artifactVersionId, sourceId, commandKey], map: "receipt_commands_scope_operation_key")
+  @@unique([organizationId, workspaceId, projectId, id], map: "receipt_commands_scope_id_key")
+  @@index([organizationId, workspaceId, projectId, artifactVersionId, state], map: "receipt_commands_artifact_state_idx")
+  @@map("receipt_extraction_commands")
   @@schema("dda")
 }
 
@@ -218,6 +322,130 @@ model DashboardRemovedWidgetRecord {
   @@id([dashboardId, widgetId], map: "dashboard_removed_widgets_pkey")
   @@index([organizationId, workspaceId, projectId], map: "dashboard_removed_widgets_scope_idx")
   @@map("dashboard_removed_widgets")
+  @@schema("dda")
+}
+
+/// DDA-015/017/019: tenant-scoped, preview-only dashboard proposal metadata.
+model DashboardProposalRecord {
+  id                    String   @id @db.Uuid
+  scopeType             String   @map("scope_type") @db.VarChar(24)
+  organizationId        String   @map("organization_id") @db.Uuid
+  workspaceId           String   @map("workspace_id") @db.Uuid
+  projectId             String   @map("project_id") @db.Uuid
+  dashboardId           String   @map("dashboard_id") @db.Uuid
+  parentVersionId       String   @map("parent_version_id") @db.Uuid
+  analysisPlanVersionId String   @map("analysis_plan_version_id") @db.Uuid
+  expectedRevision      Int      @map("expected_revision")
+  state                 String   @db.VarChar(24)
+  proposalDocument      Json     @map("proposal_document")
+  actorId               String   @map("actor_id") @db.Uuid
+  acceptedVersionId     String?  @map("accepted_version_id") @db.Uuid
+  createdAt             DateTime @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, projectId, id], map: "dashboard_proposals_scope_id_key")
+  @@index([organizationId, workspaceId, projectId, dashboardId, createdAt], map: "dashboard_proposals_dashboard_created_idx")
+  @@index([organizationId, workspaceId, projectId, state], map: "dashboard_proposals_state_idx")
+  @@map("dashboard_proposals")
+  @@schema("dda")
+}
+
+/// DDA-022..026: idempotent server-owned dashboard authoring command results.
+model DashboardAuthoringCommandRecord {
+  commandId      String   @map("command_id") @db.Uuid
+  dashboardId    String   @map("dashboard_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  projectId      String   @map("project_id") @db.Uuid
+  versionId      String   @map("version_id") @db.Uuid
+  revision       Int
+  savedAt        DateTime @map("saved_at") @db.Timestamptz(6)
+  publishes      Boolean  @default(false)
+  resultDocument Json     @map("result_document")
+
+  @@id([organizationId, workspaceId, projectId, commandId], map: "dashboard_authoring_commands_pkey")
+  @@index([organizationId, workspaceId, projectId, dashboardId], map: "dashboard_authoring_commands_scope_dashboard_idx")
+  @@index([organizationId, workspaceId, projectId, revision], map: "dashboard_authoring_commands_scope_revision_idx")
+  @@map("dashboard_authoring_commands")
+  @@schema("dda")
+}
+
+/// DDA-025/026/032: tenant-scoped durable publication idempotency and replay pointer.
+model DashboardPublicationIdempotencyRecord {
+  keyValue       String   @map("key_value") @db.VarChar(200)
+  snapshotId     String   @map("snapshot_id") @db.Uuid
+  dashboardId    String   @map("dashboard_id") @db.Uuid
+  versionId      String   @map("version_id") @db.Uuid
+  requestHash    String   @map("request_hash") @db.Char(64)
+  revision       Int
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  projectId      String   @map("project_id") @db.Uuid
+  createdAt      DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@id([organizationId, workspaceId, projectId, keyValue], map: "dashboard_publication_idempotency_pkey")
+  @@unique([organizationId, workspaceId, projectId, snapshotId], map: "dashboard_publication_idempotency_snapshot_key")
+  @@index([organizationId, workspaceId, projectId, dashboardId], map: "dashboard_publication_idempotency_dashboard_idx")
+  @@map("dashboard_publication_idempotency")
+  @@schema("dda")
+}
+
+/// DDA-025/AUD-003: content-safe durable publication audit/outbox metadata.
+/// Payloads and source/evidence content are intentionally excluded.
+model DashboardPublicationAuditOutboxRecord {
+  id                      String   @id @db.Uuid
+  keyValue                String   @map("key_value") @db.VarChar(200)
+  dashboardId             String   @map("dashboard_id") @db.Uuid
+  versionId               String   @map("version_id") @db.Uuid
+  snapshotId              String   @map("snapshot_id") @db.Uuid
+  scopeType               String   @map("scope_type") @db.VarChar(24)
+  organizationId          String   @map("organization_id") @db.Uuid
+  workspaceId             String   @map("workspace_id") @db.Uuid
+  projectId               String   @map("project_id") @db.Uuid
+  actorId                 String   @map("actor_id") @db.Uuid
+  correlationId           String   @map("correlation_id") @db.Uuid
+  authorizationEpoch      Int      @map("authorization_epoch")
+  approvalId              String?  @map("approval_id") @db.Uuid
+  priorPublishedVersionId String?  @map("prior_published_version_id") @db.Uuid
+  audience                String   @db.VarChar(32)
+  action                  String   @db.VarChar(64)
+  createdAt               DateTime @map("created_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, projectId, keyValue], map: "dashboard_publication_audit_key")
+  @@unique([organizationId, workspaceId, projectId, snapshotId], map: "dashboard_publication_audit_snapshot_key")
+  @@index([organizationId, workspaceId, projectId, dashboardId], map: "dashboard_publication_audit_dashboard_idx")
+  @@map("dashboard_publication_audit_outbox")
+  @@schema("dda")
+}
+
+/// DDA-025/AUD-003: durable transactional command for invalidating approvals
+/// of the prior published dashboard-version subject. A dispatcher owned by
+/// the root composition consumes PENDING rows after this publication commit.
+model DashboardPublicationApprovalInvalidationOutboxRecord {
+  id                      String    @id @db.Uuid
+  keyValue                String    @map("key_value") @db.VarChar(200)
+  snapshotId              String    @map("snapshot_id") @db.Uuid
+  dashboardId             String    @map("dashboard_id") @db.Uuid
+  priorPublishedVersionId String    @map("prior_published_version_id") @db.Uuid
+  scopeType               String    @map("scope_type") @db.VarChar(24)
+  organizationId          String    @map("organization_id") @db.Uuid
+  workspaceId             String    @map("workspace_id") @db.Uuid
+  projectId               String    @map("project_id") @db.Uuid
+  action                  String    @db.VarChar(96)
+  state                   String    @db.VarChar(16)
+  attempts                Int       @default(0)
+  leaseOwner              String?   @map("lease_owner") @db.VarChar(128)
+  leaseExpiresAt          DateTime? @map("lease_expires_at") @db.Timestamptz(6)
+  nextAttemptAt           DateTime? @map("next_attempt_at") @db.Timestamptz(6)
+  lastError               String?   @map("last_error") @db.VarChar(512)
+  completedAt             DateTime? @map("completed_at") @db.Timestamptz(6)
+  createdAt               DateTime  @map("created_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, projectId, keyValue, priorPublishedVersionId], map: "dda_pub_inval_scope_subject_key")
+  @@unique([organizationId, workspaceId, projectId, snapshotId, priorPublishedVersionId], map: "dda_pub_inval_scope_snapshot_key")
+  @@index([organizationId, workspaceId, projectId, state], map: "dda_pub_inval_scope_state_idx")
+  @@map("dashboard_publication_approval_invalidation_outbox")
   @@schema("dda")
 }
 
@@ -252,6 +480,7 @@ model DdaDatasetSource {
   safeDisplayLabel     String   @map("safe_display_label") @db.VarChar(200)
   status               String   @db.VarChar(32)
   health               String   @db.VarChar(32)
+  dataMode             String   @map("data_mode") @db.VarChar(16)
   revision             Int      @default(1)
   createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -319,54 +548,83 @@ model DdaFolderMoveReceipt {
 
 /// DDA-055: workspace-owned conversation thread metadata with retention state.
 model DdaConversation {
-  id             String   @id @db.Uuid
-  organizationId String   @map("organization_id") @db.Uuid
-  workspaceId    String   @map("workspace_id") @db.Uuid
-  projectId      String?  @map("project_id") @db.Uuid
-  title          String   @db.VarChar(200)
-  retentionState String   @map("retention_state") @db.VarChar(32)
-  revision       Int      @default(1)
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                        String   @id @db.Uuid
+  scopeType                 String   @map("scope_type") @db.VarChar(24)
+  organizationId            String   @map("organization_id") @db.Uuid
+  workspaceId               String   @map("workspace_id") @db.Uuid
+  projectId                 String?  @map("project_id") @db.Uuid
+  title                     String   @db.VarChar(200)
+  activeDatasetIds          Json     @map("active_dataset_ids")
+  activeDatasetVersionIds   Json     @map("active_dataset_version_ids")
+  dashboardId               String?  @map("dashboard_id") @db.Uuid
+  filterContext             String?  @map("filter_context") @db.VarChar(4000)
+  retentionState            String   @map("retention_state") @db.VarChar(32)
+  retentionHold             Boolean  @default(false) @map("retention_hold")
+  nextSequence              Int      @default(1) @map("next_sequence")
+  revision                  Int      @default(1)
+  createIdempotencyScopeKey String   @map("create_idempotency_scope_key") @db.VarChar(200)
+  createIdempotencyKey      String   @map("create_idempotency_key") @db.VarChar(200)
+  createRequestFingerprint  String   @map("create_request_fingerprint") @db.Char(64)
+  createdAt                 DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@unique([organizationId, workspaceId, id], map: "conversations_scope_id_key")
+  @@unique([organizationId, workspaceId, scopeType, createIdempotencyScopeKey, createIdempotencyKey], map: "conversations_create_idempotency_key")
   @@index([organizationId, workspaceId, updatedAt, id], map: "conversations_workspace_updated_idx")
+  @@index([organizationId, workspaceId, scopeType, projectId, updatedAt, id], map: "conversations_scope_updated_idx")
   @@map("conversations")
   @@schema("dda")
 }
 
-/// DDA-055: immutable conversation messages with workspace-scoped idempotency.
+/// DDA-055: immutable conversation messages with conversation-scoped idempotency.
 model DdaConversationMessage {
-  id             String   @id @db.Uuid
-  organizationId String   @map("organization_id") @db.Uuid
-  workspaceId    String   @map("workspace_id") @db.Uuid
-  conversationId String   @map("conversation_id") @db.Uuid
-  idempotencyKey String   @map("idempotency_key") @db.VarChar(200)
-  role           String   @db.VarChar(16)
-  textDigest     String   @map("text_digest") @db.Char(64)
-  textLength     Int      @map("text_length")
-  datasetVersionId String? @map("dataset_version_id") @db.Uuid
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                 String   @id @db.Uuid
+  scopeType          String   @map("scope_type") @db.VarChar(24)
+  organizationId     String   @map("organization_id") @db.Uuid
+  workspaceId        String   @map("workspace_id") @db.Uuid
+  projectId          String?  @map("project_id") @db.Uuid
+  conversationId     String   @map("conversation_id") @db.Uuid
+  sequence           Int
+  idempotencyKey     String   @map("idempotency_key") @db.VarChar(200)
+  requestFingerprint String   @map("request_fingerprint") @db.Char(64)
+  role               String   @db.VarChar(16)
+  text               String   @db.VarChar(8000)
+  textDigest         String   @map("text_digest") @db.Char(64)
+  textLength         Int      @map("text_length")
+  datasetVersionId   String?  @map("dataset_version_id") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  @@unique([organizationId, workspaceId, idempotencyKey], map: "conversation_messages_workspace_idempotency_key")
+  @@unique([organizationId, workspaceId, conversationId, idempotencyKey], map: "conversation_messages_conversation_idempotency_key")
+  @@unique([organizationId, workspaceId, conversationId, sequence], map: "conversation_messages_conversation_sequence_key")
   @@index([organizationId, workspaceId, conversationId, createdAt, id], map: "conversation_messages_thread_idx")
+  @@index([organizationId, workspaceId, scopeType, projectId, conversationId, sequence], map: "conversation_messages_scope_sequence_idx")
   @@map("conversation_messages")
   @@schema("dda")
 }
 
 /// DDA-055: append-only conversation context events bound to one conversation scope.
 model DdaConversationContextEvent {
-  id             String   @id @db.Uuid
-  organizationId String   @map("organization_id") @db.Uuid
-  workspaceId    String   @map("workspace_id") @db.Uuid
-  conversationId String   @map("conversation_id") @db.Uuid
-  kind           String   @db.VarChar(64)
-  beforeVersionId String? @map("before_version_id") @db.Uuid
-  afterVersionId  String? @map("after_version_id") @db.Uuid
-  occurredAt     DateTime @map("occurred_at") @db.Timestamptz(6)
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                  String   @id @db.Uuid
+  scopeType           String   @map("scope_type") @db.VarChar(24)
+  organizationId      String   @map("organization_id") @db.Uuid
+  workspaceId         String   @map("workspace_id") @db.Uuid
+  projectId           String?  @map("project_id") @db.Uuid
+  conversationId      String   @map("conversation_id") @db.Uuid
+  sequence            Int
+  datasetId           String?  @map("dataset_id") @db.Uuid
+  idempotencyScopeKey String?  @map("idempotency_scope_key") @db.VarChar(200)
+  idempotencyKey      String?  @map("idempotency_key") @db.VarChar(200)
+  requestFingerprint  String?  @map("request_fingerprint") @db.Char(64)
+  kind                String   @db.VarChar(64)
+  beforeVersionId     String?  @map("before_version_id") @db.Uuid
+  afterVersionId      String?  @map("after_version_id") @db.Uuid
+  occurredAt          DateTime @map("occurred_at") @db.Timestamptz(6)
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
+  @@unique([organizationId, workspaceId, conversationId, sequence], map: "conversation_context_events_conversation_sequence_key")
+  @@unique([organizationId, workspaceId, scopeType, projectId, conversationId, idempotencyKey], map: "conversation_context_events_idempotency_key")
   @@index([organizationId, workspaceId, conversationId, occurredAt, id], map: "conversation_context_events_thread_idx")
+  @@index([organizationId, workspaceId, scopeType, projectId, conversationId, sequence], map: "conversation_context_events_scope_sequence_idx")
   @@map("conversation_context_events")
   @@schema("dda")
 }
@@ -374,13 +632,17 @@ model DdaConversationContextEvent {
 /// DDA-055: mutable conversation summary with revision preconditions.
 model DdaConversationSummary {
   conversationId String   @id @map("conversation_id") @db.Uuid
+  scopeType      String   @map("scope_type") @db.VarChar(24)
   organizationId String   @map("organization_id") @db.Uuid
   workspaceId    String   @map("workspace_id") @db.Uuid
+  projectId      String?  @map("project_id") @db.Uuid
+  text           String   @db.VarChar(8000)
   summaryDigest  String   @map("summary_digest") @db.Char(64)
   revision       Int      @default(1)
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@unique([organizationId, workspaceId, conversationId], map: "conversation_summaries_scope_key")
+  @@index([organizationId, workspaceId, scopeType, projectId, conversationId], map: "conversation_summaries_scope_idx")
   @@map("conversation_summaries")
   @@schema("dda")
 }
@@ -425,5 +687,132 @@ model DdaNamedDashboardView {
   @@unique([organizationId, workspaceId, projectId, dashboardId, name], map: "named_dashboard_views_name_key")
   @@index([organizationId, workspaceId, updatedAt, id], map: "named_dashboard_views_workspace_updated_idx")
   @@map("named_dashboard_views")
+  @@schema("dda")
+}
+
+/// NCO-001/NCO-002/NCO-003/NCO-012: recipient-scoped, content-safe notification intent.
+/// This row stores labels and opaque identifiers only. Source content, OCR values,
+/// evidence, credentials, and paths are intentionally not represented.
+model DdaNotificationIntent {
+  id                String    @id @db.Uuid
+  eventId           String    @map("event_id") @db.Uuid
+  eventHash         String    @map("event_hash") @db.Char(64)
+  organizationId    String    @map("organization_id") @db.Uuid
+  workspaceId       String    @map("workspace_id") @db.Uuid
+  recipientId       String    @map("recipient_id") @db.Uuid
+  subjectId         String    @map("subject_id") @db.Uuid
+  kind              String    @db.VarChar(64)
+  action            String    @db.VarChar(32)
+  labelVi           String    @map("label_vi") @db.VarChar(160)
+  labelEn           String    @map("label_en") @db.VarChar(160)
+  createdAt         DateTime  @map("created_at") @db.Timestamptz(6)
+  correlationId     String    @map("correlation_id") @db.Uuid
+  occurrenceCount   Int       @default(1) @map("occurrence_count")
+  firstOccurredAt   DateTime  @map("first_occurred_at") @db.Timestamptz(6)
+  lastOccurredAt    DateTime  @map("last_occurred_at") @db.Timestamptz(6)
+  bundleKey         String    @map("bundle_key") @db.Char(64)
+  bundleWindowStart DateTime  @map("bundle_window_start") @db.Timestamptz(6)
+  state             String    @default("UNREAD") @db.VarChar(16)
+  revision          Int       @default(1)
+  dismissedAt       DateTime? @map("dismissed_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, recipientId, id], map: "notification_intents_recipient_id_key")
+  @@unique([organizationId, workspaceId, recipientId, bundleKey], map: "notification_intents_recipient_bundle_key")
+  @@index([organizationId, workspaceId, recipientId, createdAt, id], map: "notification_intents_recipient_cursor_idx")
+  @@index([organizationId, workspaceId, recipientId, state], map: "notification_intents_recipient_state_idx")
+  @@map("notification_intents")
+  @@schema("dda")
+}
+
+/// NCO-001/NCO-002: durable per-recipient committed-event delivery receipt.
+/// This is the event-id idempotency boundary; intent rows may be bundled.
+model DdaNotificationProjectionReceipt {
+  id             String   @id @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  recipientId    String   @map("recipient_id") @db.Uuid
+  eventId        String   @map("event_id") @db.Uuid
+  eventHash      String   @map("event_hash") @db.Char(64)
+  notificationId String   @map("notification_id") @db.Uuid
+  bundleKey      String   @map("bundle_key") @db.Char(64)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, recipientId, eventId], map: "notification_projection_receipts_event_key")
+  @@index([organizationId, workspaceId, recipientId, notificationId], map: "notification_projection_receipts_notification_idx")
+  @@map("notification_projection_receipts")
+  @@schema("dda")
+}
+
+/// NCO-001: durable monotonic checkpoint for committed notification projection.
+model DdaNotificationProjectionCheckpoint {
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  consumerKey    String   @map("consumer_key") @db.VarChar(120)
+  lastEventId    String   @map("last_event_id") @db.Uuid
+  lastEventHash  String   @map("last_event_hash") @db.Char(64)
+  lastOccurredAt DateTime @map("last_occurred_at") @db.Timestamptz(6)
+  revision       Int      @default(1)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@id([organizationId, workspaceId, consumerKey], map: "notification_projection_checkpoints_pkey")
+  @@map("notification_projection_checkpoints")
+  @@schema("dda")
+}
+
+/// NCO-012: idempotent recipient-scoped notification state command result.
+/// resultDocument contains only the already-public content-safe notification result.
+model DdaNotificationStateCommandReceipt {
+  id               String   @id @db.Uuid
+  organizationId   String   @map("organization_id") @db.Uuid
+  workspaceId      String   @map("workspace_id") @db.Uuid
+  recipientId      String   @map("recipient_id") @db.Uuid
+  notificationId   String   @map("notification_id") @db.Uuid
+  expectedRevision Int      @map("expected_revision")
+  targetState      String   @map("target_state") @db.VarChar(16)
+  idempotencyKey   String   @map("idempotency_key") @db.VarChar(200)
+  fingerprint      String   @db.Char(64)
+  resultDocument   Json     @map("result_document")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, recipientId, notificationId, idempotencyKey], map: "notification_state_receipts_idempotency_key")
+  @@index([organizationId, workspaceId, recipientId, notificationId], map: "notification_state_receipts_notification_idx")
+  @@map("notification_state_command_receipts")
+  @@schema("dda")
+}
+
+/// DDA-060: durable, tenant/actor/tool/idempotency-owned mutation reservation and replay.
+/// Only bounded content-safe tool results and opaque result references are stored; raw rows,
+/// cells, source content, paths, queries, credentials, and provider payloads are not represented.
+model AgentConsequentialCommandRecord {
+  id                       String    @id @db.Uuid
+  tenantScopeKey           String    @map("tenant_scope_key") @db.VarChar(180)
+  scopeType                String    @map("scope_type") @db.VarChar(24)
+  organizationId           String    @map("organization_id") @db.Uuid
+  workspaceId              String?   @map("workspace_id") @db.Uuid
+  projectId                String?   @map("project_id") @db.Uuid
+  actorId                  String    @map("actor_id") @db.Uuid
+  toolName                 String    @map("tool_name") @db.VarChar(64)
+  idempotencyKey           String    @map("idempotency_key") @db.VarChar(200)
+  inputFingerprint         String    @map("input_fingerprint") @db.Char(64)
+  correlationId            String    @map("correlation_id") @db.Uuid
+  state                    String    @db.VarChar(32)
+  ownerToken               String    @map("owner_token") @db.VarChar(128)
+  leaseExpiresAt           DateTime? @map("lease_expires_at") @db.Timestamptz(6)
+  auditIntentAt            DateTime  @map("audit_intent_at") @db.Timestamptz(6)
+  auditAttemptedAt         DateTime? @map("audit_attempted_at") @db.Timestamptz(6)
+  auditSucceededAt         DateTime? @map("audit_succeeded_at") @db.Timestamptz(6)
+  auditFailureCode         String?   @map("audit_failure_code") @db.VarChar(96)
+  resultReferenceId        String?   @map("result_reference_id") @db.Uuid
+  resultDocument           Json?     @map("result_document")
+  failureCode              String?   @map("failure_code") @db.VarChar(96)
+  reconciliationRequiredAt DateTime? @map("reconciliation_required_at") @db.Timestamptz(6)
+  createdAt                DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  completedAt              DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  @@unique([tenantScopeKey, actorId, toolName, idempotencyKey], map: "agent_commands_tenant_actor_tool_key")
+  @@index([organizationId, workspaceId, projectId, state, updatedAt], map: "agent_commands_scope_state_idx")
+  @@index([tenantScopeKey, state, leaseExpiresAt], map: "agent_commands_lease_idx")
+  @@map("agent_consequential_commands")
   @@schema("dda")
 }

@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
+/* eslint-disable @typescript-eslint/require-await -- IPC fakes intentionally mirror async bridge methods. */
+
 import { createDesktopBridgeV1 } from '../src/preload/bridge-v1.ts';
 import {
   DESKTOP_IPC_CHANNELS,
@@ -59,12 +61,7 @@ describe('Desktop V2 workbench security boundary', () => {
     });
     const bridge = createDesktopBridgeV1(invoke);
 
-    expect(Object.keys(bridge.v1).sort()).toEqual([
-      'folders',
-      'session',
-      'sidecar',
-      'workbench',
-    ]);
+    expect(Object.keys(bridge.v1).sort()).toEqual(['folders', 'session', 'sidecar', 'workbench']);
     expect(Object.keys(bridge.v1.workbench).sort()).toEqual([
       'decideFolderReview',
       'getSyncStatus',

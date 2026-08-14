@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 3,
+  "kind": "ACCEPT_PROPOSAL",
+  "commandId": "00000000-0000-4000-8000-000000000101",
+  "dashboardId": "00000000-0000-4000-8000-000000000102",
+  "expectedVersionId": "00000000-0000-4000-8000-000000000103",
+  "expectedRevision": 7,
+  "proposalId": "00000000-0000-4000-8000-000000000104",
+  "selectedOptionIds": ["00000000-0000-4000-8000-000000000105"],
+  "createdAt": "2026-08-11T00:00:00.000Z"
+}

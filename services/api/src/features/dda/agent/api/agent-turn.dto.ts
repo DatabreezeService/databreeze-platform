@@ -1,6 +1,20 @@
-import { IsBoolean, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
+import {
+  Equals,
+  IsInt,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 export class AgentTurnRequestDtoV1 {
+  @Equals(4)
+  public schemaVersion!: 4;
+
   @IsUUID()
   public conversationId!: string;
 
@@ -23,8 +37,16 @@ export class AgentTurnRequestDtoV1 {
   public locale!: string;
 
   @IsOptional()
-  @IsBoolean()
-  public userConfirmation?: boolean;
+  @IsInt()
+  @Min(0)
+  @Max(1_000_000)
+  public contextRevision?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(1_000_000)
+  public expectedContextRevision?: number;
 }
 
 export class AgentDeterministicToolRequestDtoV1 {
@@ -40,4 +62,7 @@ export class AgentDeterministicToolRequestDtoV1 {
   @MinLength(8)
   @MaxLength(128)
   public idempotencyKey!: string;
+
+  @IsObject()
+  public input!: Readonly<Record<string, unknown>>;
 }

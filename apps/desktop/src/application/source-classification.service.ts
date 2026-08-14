@@ -1,8 +1,4 @@
-export type SourceClassificationDispositionV1 =
-  | 'MATCH'
-  | 'MISPLACED'
-  | 'AMBIGUOUS'
-  | 'UNSUPPORTED';
+export type SourceClassificationDispositionV1 = 'MATCH' | 'MISPLACED' | 'AMBIGUOUS' | 'UNSUPPORTED';
 
 export interface SourceClassificationAssignmentV1 {
   readonly logicalDatasetId: string;

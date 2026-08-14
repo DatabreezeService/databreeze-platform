@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 
-import type { TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
+import { tenantScopesEqualV1, type TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import { OpenAiProviderError } from '../../ai/adapter/openai-provider.error.js';
 import type {
@@ -8,7 +8,16 @@ import type {
   DdaBuaPortV1,
   DdaIaePortV1,
 } from '../../application/foundation-ports.js';
+import type { IamTenantContextV1 } from '../../../iam/application/tenant-context.js';
 import type { ReceiptAiPolicyPort } from './receipt-ai-policy.port.js';
+import {
+  UnavailableReceiptExtractionCommandRepositoryAdapter,
+  type ReceiptExtractionCommandRepositoryPortV1,
+} from './receipt-extraction-command.port.js';
+import {
+  UnavailableReceiptMutationAuthorizationAdapter,
+  type ReceiptMutationAuthorizationPortV1,
+} from './receipt-mutation-authorization.port.js';
 import type {
   ReceiptOcrEvidenceCoordinates,
   ReceiptOcrField,
@@ -32,7 +41,11 @@ export type ReceiptExtractionErrorCode =
   | 'OCR_PROVIDER_FAILED'
   | 'CANDIDATE_NOT_FOUND'
   | 'INVALID_CORRECTION'
-  | 'PROCESSING_CONTENT_UNAVAILABLE';
+  | 'PROCESSING_CONTENT_UNAVAILABLE'
+  | 'AUTHORIZATION_DENIED'
+  | 'AUTHORIZATION_UNAVAILABLE'
+  | 'COMMAND_CONFLICT'
+  | 'COMMAND_REPOSITORY_UNAVAILABLE';
 
 export interface ReceiptFieldCandidateView {
   readonly field: string;
@@ -90,9 +103,7 @@ function isRetryableProviderError(error: unknown): boolean {
   return typeof code === 'string' && RETRYABLE_PROVIDER_CODES.has(code);
 }
 
-function mapProcessingContentError(
-  code: string,
-): ReceiptExtractionErrorCode {
+function mapProcessingContentError(code: string): ReceiptExtractionErrorCode {
   switch (code) {
     case 'PROCESSING_CONTENT_SCOPE_DENIED':
       return 'WRONG_SCOPE_ARTIFACT';
@@ -124,9 +135,29 @@ function mapPolicyError(code: string): ReceiptExtractionErrorCode {
   }
 }
 
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map((item) => canonicalize(item));
+  if (typeof value !== 'object' || value === null) return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, child]) => [key, canonicalize(child)]),
+  );
+}
+
+function payloadFingerprint(value: unknown): string {
+  return createHash('sha256')
+    .update(JSON.stringify(canonicalize(value)))
+    .digest('hex');
+}
+
+function commandKey(idempotencyKey: string | undefined, correlationId: string): string {
+  return idempotencyKey ?? `correlation:${correlationId}`;
+}
+
 export class ReceiptExtractionService {
-  private readonly byIdempotency = new Map<string, ReceiptCandidateView>();
-  private readonly byCandidateId = new Map<string, ReceiptCandidateView>();
+  private readonly commands: ReceiptExtractionCommandRepositoryPortV1;
+  private readonly authorization: ReceiptMutationAuthorizationPortV1;
 
   public constructor(
     private readonly ocr: ReceiptOcrPort,
@@ -134,14 +165,20 @@ export class ReceiptExtractionService {
     private readonly aud: DdaAudComposePortV1,
     private readonly policy: ReceiptAiPolicyPort,
     private readonly bua: DdaBuaPortV1,
-  ) {}
-
-  public getCandidate(candidateId: string): ReceiptCandidateView | undefined {
-    return this.byCandidateId.get(candidateId);
+    dependencies?: {
+      readonly commands?: ReceiptExtractionCommandRepositoryPortV1;
+      readonly authorization?: ReceiptMutationAuthorizationPortV1;
+    },
+  ) {
+    this.commands =
+      dependencies?.commands ?? new UnavailableReceiptExtractionCommandRepositoryAdapter();
+    this.authorization =
+      dependencies?.authorization ?? new UnavailableReceiptMutationAuthorizationAdapter();
   }
 
   public async extract(input: {
     readonly tenantScope: TenantScopeV1;
+    readonly context?: IamTenantContextV1;
     readonly artifactVersionId: string;
     readonly profileVersionId: string;
     readonly profileKind: string;
@@ -150,33 +187,82 @@ export class ReceiptExtractionService {
     readonly maxAttempts?: number;
     readonly expectedContentSha256?: string;
   }): Promise<ReceiptExtractionResult> {
+    if (!input.context || !tenantScopesEqualV1(input.context.tenantScope, input.tenantScope)) {
+      return Object.freeze({ accepted: false, code: 'AUTHORIZATION_UNAVAILABLE' as const });
+    }
+    const authorization = await this.authorization.authorize({
+      context: input.context,
+      action: 'RECEIPT_EXTRACT',
+      artifactVersionId: input.artifactVersionId,
+    });
+    if (!authorization.accepted) {
+      return Object.freeze({
+        accepted: false,
+        code:
+          authorization.code === 'FORBIDDEN'
+            ? ('AUTHORIZATION_DENIED' as const)
+            : ('AUTHORIZATION_UNAVAILABLE' as const),
+      });
+    }
+    const tenantScope = input.context.tenantScope;
     if (input.profileKind !== 'receipt') {
       await this.emitOutcome(input, 'DENIED', [input.artifactVersionId]);
       return Object.freeze({ accepted: false, code: 'NON_RECEIPT_PROFILE' as const });
-    }
-    if (input.idempotencyKey) {
-      const prior = this.byIdempotency.get(input.idempotencyKey);
-      if (prior) {
-        return Object.freeze({
-          accepted: true,
-          value: Object.freeze({ ...prior, replayed: true as const }),
-        });
-      }
     }
 
     try {
       await this.iae.requireArtifactVersion({
         id: input.artifactVersionId,
-        tenantScope: input.tenantScope,
+        tenantScope,
       });
     } catch {
       await this.emitOutcome(input, 'DENIED', [input.artifactVersionId]);
       return Object.freeze({ accepted: false, code: 'WRONG_SCOPE_ARTIFACT' as const });
     }
 
+    const commandReservation = await this.commands.reserve({
+      tenantScope,
+      operation: 'EXTRACT',
+      commandKey: commandKey(input.idempotencyKey, input.correlationId),
+      artifactVersionId: input.artifactVersionId,
+      sourceId: input.profileVersionId,
+      payloadFingerprint: payloadFingerprint({
+        artifactVersionId: input.artifactVersionId,
+        profileVersionId: input.profileVersionId,
+        profileKind: input.profileKind,
+        expectedContentSha256: input.expectedContentSha256 ?? null,
+        maxAttempts: input.maxAttempts ?? 1,
+      }),
+    });
+    if (!commandReservation.accepted) {
+      return Object.freeze({
+        accepted: false,
+        code:
+          commandReservation.code === 'COMMAND_CONFLICT'
+            ? ('COMMAND_CONFLICT' as const)
+            : ('COMMAND_REPOSITORY_UNAVAILABLE' as const),
+      });
+    }
+    if (commandReservation.value.kind === 'REPLAY') {
+      return Object.freeze({
+        accepted: true,
+        value: Object.freeze({ ...commandReservation.value.candidate, replayed: true as const }),
+      });
+    }
+    const commandReservationId = commandReservation.value.reservationId;
+    const commandOwnerToken = commandReservation.value.ownerToken;
+    const rejectAfterReservation = async (
+      code: ReceiptExtractionErrorCode,
+      outcome: string = 'DENIED',
+    ): Promise<ReceiptExtractionResult> => {
+      await this.commands.release(commandReservationId, commandOwnerToken);
+      await this.emitOutcome(input, outcome, [input.artifactVersionId]);
+      return Object.freeze({ accepted: false, code });
+    };
+
     const requiresCloudEgress = this.ocr.requiresCloudEgress === true;
     const content = await this.iae.openProcessingContent({
-      tenantScope: input.tenantScope,
+      tenantScope,
       artifactVersionId: input.artifactVersionId,
       ...(input.expectedContentSha256 !== undefined
         ? { expectedContentSha256: input.expectedContentSha256 }
@@ -186,37 +272,33 @@ export class ReceiptExtractionService {
     });
     if (!content.accepted) {
       const code = mapProcessingContentError(content.code);
-      await this.emitOutcome(input, 'DENIED', [input.artifactVersionId]);
-      return Object.freeze({ accepted: false, code });
+      return rejectAfterReservation(code);
     }
 
     const policyDecision = await this.policy.resolveReceiptExtractionPolicy({
-      tenantScope: input.tenantScope,
+      tenantScope,
       payloadBytes: content.value.byteLength,
       requiresCloudEgress,
     });
     if (!policyDecision.accepted) {
       const code = mapPolicyError(policyDecision.code);
-      await this.emitOutcome(input, 'DENIED', [input.artifactVersionId]);
-      return Object.freeze({ accepted: false, code });
+      return rejectAfterReservation(code);
     }
     if (requiresCloudEgress && !policyDecision.value.cloudEgressAllowed) {
-      await this.emitOutcome(input, 'DENIED', [input.artifactVersionId]);
-      return Object.freeze({ accepted: false, code: 'AI_EGRESS_DENIED' as const });
+      return rejectAfterReservation('AI_EGRESS_DENIED');
     }
     if (
       requiresCloudEgress &&
       content.value.byteLength > policyDecision.value.policy.maximumPayloadBytes
     ) {
-      await this.emitOutcome(input, 'DENIED', [input.artifactVersionId]);
-      return Object.freeze({ accepted: false, code: 'PAYLOAD_OVERSIZE' as const });
+      return rejectAfterReservation('PAYLOAD_OVERSIZE');
     }
 
     const reference = {
       id: input.artifactVersionId,
-      tenantScope: input.tenantScope,
+      tenantScope,
     };
-    let reservationId: string | undefined;
+    let buaReservationId: string | undefined;
     try {
       const reservation = await this.bua.reserveCapacity({
         reference,
@@ -227,10 +309,9 @@ export class ReceiptExtractionService {
         retryBudget: input.maxAttempts ?? 1,
         costUnitsEstimate: 1,
       });
-      reservationId = reservation.reservationId;
+      buaReservationId = reservation.reservationId;
     } catch {
-      await this.emitOutcome(input, 'DENIED', [input.artifactVersionId]);
-      return Object.freeze({ accepted: false, code: 'ADMISSION_DENIED' as const });
+      return rejectAfterReservation('ADMISSION_DENIED');
     }
 
     const maxAttempts = input.maxAttempts ?? 1;
@@ -241,7 +322,7 @@ export class ReceiptExtractionService {
         ocrResult = await this.ocr.extract({
           artifactVersionId: input.artifactVersionId,
           profileVersionId: input.profileVersionId,
-          tenantWorkspaceId: workspaceIdOf(input.tenantScope) ?? '',
+          tenantWorkspaceId: workspaceIdOf(tenantScope) ?? '',
           contentSha256: content.value.contentSha256,
           mediaType: content.value.mediaType,
           imageBytes: content.value.bytes,
@@ -258,74 +339,151 @@ export class ReceiptExtractionService {
 
     if (!ocrResult) {
       void lastError;
-      if (reservationId) {
+      if (buaReservationId) {
         await this.bua.finalizeReservation({
-          reservationId,
+          reservationId: buaReservationId,
           reference,
           outcome: 'FAILED',
         });
       }
-      await this.emitOutcome(input, 'FAILED', [input.artifactVersionId]);
-      return Object.freeze({ accepted: false, code: 'OCR_PROVIDER_FAILED' as const });
+      return rejectAfterReservation('OCR_PROVIDER_FAILED', 'FAILED');
     }
     if (!ocrResult.adapterVersion || !ocrResult.modelVersion) {
-      if (reservationId) {
+      if (buaReservationId) {
         await this.bua.finalizeReservation({
-          reservationId,
+          reservationId: buaReservationId,
           reference,
           outcome: 'FAILED',
         });
       }
-      await this.emitOutcome(input, 'FAILED', [input.artifactVersionId]);
-      return Object.freeze({ accepted: false, code: 'MISSING_ADAPTER_VERSION' as const });
+      return rejectAfterReservation('MISSING_ADAPTER_VERSION', 'FAILED');
     }
     for (const field of ocrResult.fields) {
       if (!coordinatesValid(field)) {
-        if (reservationId) {
+        if (buaReservationId) {
           await this.bua.finalizeReservation({
-            reservationId,
+            reservationId: buaReservationId,
             reference,
             outcome: 'FAILED',
           });
         }
-        await this.emitOutcome(input, 'REVIEW_REQUIRED', [input.artifactVersionId]);
-        return Object.freeze({ accepted: false, code: 'MALFORMED_COORDINATES' as const });
+        return rejectAfterReservation('MALFORMED_COORDINATES', 'REVIEW_REQUIRED');
       }
     }
 
     const candidate = this.persistCandidate({
-      tenantScope: input.tenantScope,
+      tenantScope,
       artifactVersionId: input.artifactVersionId,
       profileVersionId: input.profileVersionId,
       adapterVersion: ocrResult.adapterVersion,
       modelVersion: ocrResult.modelVersion,
       fields: ocrResult.fields,
     });
-    if (input.idempotencyKey) this.byIdempotency.set(input.idempotencyKey, candidate);
-    if (reservationId) {
+    if (buaReservationId) {
       await this.bua.finalizeReservation({
-        reservationId,
+        reservationId: buaReservationId,
         reference,
         outcome: 'SUCCEEDED',
       });
     }
     await this.emitOutcome(input, 'SUCCEEDED', [candidate.candidateId, input.artifactVersionId]);
+    const completed = await this.commands.complete(
+      commandReservationId,
+      candidate,
+      commandReservation.value.ownerToken,
+    );
+    if (!completed.accepted) {
+      return Object.freeze({ accepted: false, code: 'COMMAND_REPOSITORY_UNAVAILABLE' as const });
+    }
     return Object.freeze({ accepted: true, value: candidate });
   }
 
   public async correct(input: {
     readonly tenantScope: TenantScopeV1;
+    readonly context?: IamTenantContextV1;
     readonly priorCandidateId: string;
+    readonly artifactVersionId: string;
     readonly correlationId: string;
     readonly fieldUpdates: Readonly<Record<string, string>>;
+    readonly idempotencyKey?: string;
   }): Promise<ReceiptExtractionResult> {
-    const prior = this.byCandidateId.get(input.priorCandidateId);
-    if (!prior || workspaceIdOf(prior.tenantScope) !== workspaceIdOf(input.tenantScope)) {
+    if (!input.context || !tenantScopesEqualV1(input.context.tenantScope, input.tenantScope)) {
+      return Object.freeze({ accepted: false, code: 'AUTHORIZATION_UNAVAILABLE' as const });
+    }
+    const authorization = await this.authorization.authorize({
+      context: input.context,
+      action: 'RECEIPT_CORRECT',
+      artifactVersionId: input.artifactVersionId,
+      candidateId: input.priorCandidateId,
+    });
+    if (!authorization.accepted) {
+      return Object.freeze({
+        accepted: false,
+        code:
+          authorization.code === 'FORBIDDEN'
+            ? ('AUTHORIZATION_DENIED' as const)
+            : ('AUTHORIZATION_UNAVAILABLE' as const),
+      });
+    }
+    const tenantScope = input.context.tenantScope;
+    try {
+      await this.iae.requireArtifactVersion({
+        id: input.artifactVersionId,
+        tenantScope,
+      });
+    } catch {
+      return Object.freeze({ accepted: false, code: 'CANDIDATE_NOT_FOUND' as const });
+    }
+    let prior: ReceiptCandidateView | undefined;
+    try {
+      prior = await this.commands.findCandidate({
+        tenantScope,
+        candidateId: input.priorCandidateId,
+        artifactVersionId: input.artifactVersionId,
+      });
+    } catch {
+      return Object.freeze({ accepted: false, code: 'COMMAND_REPOSITORY_UNAVAILABLE' as const });
+    }
+    if (
+      !prior ||
+      prior.candidateId !== input.priorCandidateId ||
+      prior.artifactVersionId !== input.artifactVersionId ||
+      !tenantScopesEqualV1(prior.tenantScope, input.tenantScope)
+    ) {
       return Object.freeze({ accepted: false, code: 'CANDIDATE_NOT_FOUND' as const });
     }
     if (Object.keys(input.fieldUpdates).length === 0) {
       return Object.freeze({ accepted: false, code: 'INVALID_CORRECTION' as const });
     }
+
+    const commandReservation = await this.commands.reserve({
+      tenantScope,
+      operation: 'CORRECT',
+      commandKey: commandKey(input.idempotencyKey, input.correlationId),
+      artifactVersionId: input.artifactVersionId,
+      sourceId: input.priorCandidateId,
+      payloadFingerprint: payloadFingerprint({
+        artifactVersionId: input.artifactVersionId,
+        priorCandidateId: input.priorCandidateId,
+        fieldUpdates: input.fieldUpdates,
+      }),
+    });
+    if (!commandReservation.accepted) {
+      return Object.freeze({
+        accepted: false,
+        code:
+          commandReservation.code === 'COMMAND_CONFLICT'
+            ? ('COMMAND_CONFLICT' as const)
+            : ('COMMAND_REPOSITORY_UNAVAILABLE' as const),
+      });
+    }
+    if (commandReservation.value.kind === 'REPLAY') {
+      return Object.freeze({
+        accepted: true,
+        value: Object.freeze({ ...commandReservation.value.candidate, replayed: true as const }),
+      });
+    }
+    const reservationId = commandReservation.value.reservationId;
     const fields: ReceiptFieldCandidateView[] = prior.fieldCandidates.map((field) => {
       const updated = input.fieldUpdates[field.field];
       if (updated === undefined) return field;
@@ -338,7 +496,7 @@ export class ReceiptExtractionService {
       return Object.freeze(next);
     });
     const candidate = this.persistCandidate({
-      tenantScope: prior.tenantScope,
+      tenantScope,
       artifactVersionId: prior.artifactVersionId,
       profileVersionId: prior.profileVersionId,
       adapterVersion: prior.adapterVersion,
@@ -348,12 +506,20 @@ export class ReceiptExtractionService {
       evidenceReferenceId: prior.evidenceReferenceId,
     });
     await this.aud.emitContentSafeSummary({
-      tenantScope: input.tenantScope,
+      tenantScope,
       action: 'RECEIPT_CORRECTION',
       outcome: 'SUCCEEDED',
       correlationId: input.correlationId,
       references: [candidate.candidateId, prior.candidateId],
     });
+    const completed = await this.commands.complete(
+      reservationId,
+      candidate,
+      commandReservation.value.ownerToken,
+    );
+    if (!completed.accepted) {
+      return Object.freeze({ accepted: false, code: 'COMMAND_REPOSITORY_UNAVAILABLE' as const });
+    }
     return Object.freeze({ accepted: true, value: candidate });
   }
 
@@ -426,7 +592,6 @@ export class ReceiptExtractionService {
       ...(input.priorCandidateId ? { priorCandidateId: input.priorCandidateId } : {}),
     };
     const frozen = Object.freeze(candidate);
-    this.byCandidateId.set(candidateId, frozen);
     return frozen;
   }
 }

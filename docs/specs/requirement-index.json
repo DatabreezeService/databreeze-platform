@@ -631,6 +631,15 @@
       }
     },
     {
+      "id": "BUA-023",
+      "priority": "P0",
+      "requirement": "Job admission shall create a BUA-owned immutable `ResultUsageSettlementBinding` in the same transaction as its quota reservation and JRA admission. The binding shall be exact to TenantScope, Job, reservation, meter, server-owned settlement formula, maximum admitted units, entitlement decision subject and idempotency identity; JRA shall persist and return only its opaque stable ID. Successful result finalization shall pass that ID plus verified result facts to a BUA transaction participant, which shall resolve the binding, compute the authoritative quantity, consume or release the exact reservation and append idempotent usage in the same transaction as terminal JRA result commit. A missing, mismatched, expired, already-conflicted or unavailable binding shall roll back finalization. Completion code shall never invent a reservation, meter, formula or billable quantity from worker assertions.",
+      "source": {
+        "line": 137,
+        "path": "docs/specs/foundation/billing-usage-administration.md"
+      }
+    },
+    {
       "id": "CRF-001",
       "priority": "P0",
       "requirement": "Every report definition, template, run, version, output, and release shall be scoped to a workspace and client/project.",
@@ -1164,7 +1173,7 @@
     {
       "id": "DDA-032",
       "priority": "P0",
-      "requirement": "A DashboardSnapshot shall publish atomically only after every required materialization is verified against one compatible input/definition/permission set; a partial or mixed-version refresh shall never replace the last complete snapshot.",
+      "requirement": "A DashboardSnapshot shall publish atomically only after every required materialization is represented by a canonical JRA ResultManifest whose output ArtifactVersions were finalized through IAE-024 and whose descriptor, attempt, dashboard/version/widget, plan/metric/dataset, permission-projection, policy, locale/timezone, engine/handler, content hash, byte length, and evidence bindings match one compatible input/definition/permission set. Caller-asserted object references, unverified transfer receipts, partial results, or mixed-version refreshes shall never replace the last complete snapshot.",
       "source": {
         "line": 165,
         "path": "docs/specs/features/data-to-dashboard-agent.md"
@@ -2237,7 +2246,7 @@
       "priority": "P0",
       "requirement": "DSO shall use the IAM DeviceIdentity ID as its only Device identity key and shall not store a second public key, organization/user ownership record, enrollment state, activation state, or authoritative revocation status.",
       "source": {
-        "line": 134,
+        "line": 136,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2246,7 +2255,7 @@
       "priority": "P0",
       "requirement": "DSO capabilities and grants shall require an `ACTIVE` IAM DeviceIdentity with a matching organization and current security epoch; IAM alone shall own the enrollment challenge, proof-of-possession registration, explicit activation, and identity limits.",
       "source": {
-        "line": 135,
+        "line": 137,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2255,7 +2264,7 @@
       "priority": "P0",
       "requirement": "IAM revocation or security-epoch change shall make DSO block new sync, blob, stream, route, transfer, and job-dispatch operations immediately and terminate connected-client grants within 60 seconds; cached offline grants shall expire within 24 hours and fail closed on reconnect, without claiming remote wipe.",
       "source": {
-        "line": 136,
+        "line": 138,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2264,7 +2273,7 @@
       "priority": "P0",
       "requirement": "Synchronization shall use an append-only workspace change log and opaque cursor; it shall not rely on timestamp polling, client clocks, or Redis history.",
       "source": {
-        "line": 137,
+        "line": 139,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2273,7 +2282,7 @@
       "priority": "P0",
       "requirement": "Pull batches and offline pushes shall be idempotent and safely repeatable after timeout, crash, lost acknowledgement, or cursor replay.",
       "source": {
-        "line": 138,
+        "line": 140,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2282,7 +2291,7 @@
       "priority": "P0",
       "requirement": "All synchronized commands shall be re-authorized server-side for principal, device, workspace, project, resource, action, data mode, and entitlement.",
       "source": {
-        "line": 139,
+        "line": 141,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2291,7 +2300,7 @@
       "priority": "P0",
       "requirement": "`LOCAL` mode shall technically prevent upload of original bytes and reconstructable derived content, including chunks, previews, OCR/transcripts, thumbnails, row/cell values, and source snippets, regardless of client request; only a separately confirmed approved derived result may synchronize.",
       "source": {
-        "line": 140,
+        "line": 142,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2300,7 +2309,7 @@
       "priority": "P0",
       "requirement": "Hybrid mode shall be the default and shall synchronize only the explicit data classifications and synchronization payload classes enabled by the workspace policy manifest.",
       "source": {
-        "line": 141,
+        "line": 143,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2309,7 +2318,7 @@
       "priority": "P0",
       "requirement": "Blob transfer shall be resumable, chunk-hashed, content-hash verified, encrypted in transit and at rest, and published only after complete verification.",
       "source": {
-        "line": 142,
+        "line": 144,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2318,7 +2327,7 @@
       "priority": "P0",
       "requirement": "Offline queues shall be encrypted, append-only until acknowledged, dependency-aware, and keyed by stable operation IDs generated before first execution.",
       "source": {
-        "line": 143,
+        "line": 145,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2327,7 +2336,7 @@
       "priority": "P0",
       "requirement": "Conflict handling shall follow the explicit per-entity rules in this specification and shall never silently use last-write-wins for assignments, workflow state, approvals, security, billing, or overlapping corrections.",
       "source": {
-        "line": 144,
+        "line": 146,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2336,7 +2345,7 @@
       "priority": "P0",
       "requirement": "A sync cursor shall advance on a client only after the entire corresponding local transaction commits; partial application shall replay the same batch.",
       "source": {
-        "line": 145,
+        "line": 147,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2345,7 +2354,7 @@
       "priority": "P0",
       "requirement": "Folder capabilities shall be created only through a local OS picker, represented to the cloud by opaque IDs and policy metadata, and limited to approved typed actions.",
       "source": {
-        "line": 146,
+        "line": 148,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2354,7 +2363,7 @@
       "priority": "P1",
       "requirement": "The server shall retain tombstones for at least 90 days and longer than the maximum supported offline interval, with administrative export before a stale device is forced to resnapshot.",
       "source": {
-        "line": 147,
+        "line": 149,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2363,7 +2372,7 @@
       "priority": "P1",
       "requirement": "Initial sync shall use a bounded consistent snapshot plus change-log watermark so concurrent mutations are neither missed nor duplicated.",
       "source": {
-        "line": 148,
+        "line": 150,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2372,7 +2381,7 @@
       "priority": "P1",
       "requirement": "Clients shall support schema-version negotiation and preserve unknown forward-compatible fields; an unsupported breaking version shall require upgrade without corrupting the queue.",
       "source": {
-        "line": 149,
+        "line": 151,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2381,7 +2390,7 @@
       "priority": "P1",
       "requirement": "A device shall report capability versions, local engine version, last sync, queue depth, and coarse health without sending local paths, file names, or source values.",
       "source": {
-        "line": 150,
+        "line": 152,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2390,7 +2399,7 @@
       "priority": "P1",
       "requirement": "Data-mode transitions shall be audited, require Admin authority and recent MFA, and use explicit migration or verified purge workflows for existing replicas.",
       "source": {
-        "line": 151,
+        "line": 153,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2399,7 +2408,7 @@
       "priority": "P1",
       "requirement": "Offline operations rejected after authorization or policy change shall be quarantined with a stable reason and export option; the client shall not repeatedly resubmit them.",
       "source": {
-        "line": 152,
+        "line": 154,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2408,7 +2417,7 @@
       "priority": "P1",
       "requirement": "The system shall expose whether each artifact version is `LOCAL_ONLY`, `CLOUD_ONLY`, or `REPLICATED` and identify available devices without revealing filesystem paths.",
       "source": {
-        "line": 153,
+        "line": 155,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2417,7 +2426,7 @@
       "priority": "P0",
       "requirement": "Every sync cursor shall be bound to principal, device, workspace, effective authorization scope, authorization epoch, data-mode policy, audience, and schema version; any scope change shall invalidate it, force an authorized resnapshot, backfill newly visible history, and lock then purge managed cache that is no longer authorized.",
       "source": {
-        "line": 154,
+        "line": 156,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2426,7 +2435,7 @@
       "priority": "P0",
       "requirement": "Synchronizing an `APPROVED_DERIVED_RESULT` from Local mode shall require an immutable confirmation bound to resource/version, content hash, schema, data classification, policy revision, actor, source Device, destination, and time; a changed subject or policy shall require a new confirmation.",
       "source": {
-        "line": 155,
+        "line": 157,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2435,7 +2444,7 @@
       "priority": "P0",
       "requirement": "DSO shall never reactivate an IAM-revoked DeviceIdentity; recovery shall reference a newly enrolled IAM identity and use an authorized import/reconciliation workflow for preserved local records.",
       "source": {
-        "line": 156,
+        "line": 158,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2444,7 +2453,7 @@
       "priority": "P0",
       "requirement": "An execution route decision shall bind workspace, input placement/version hashes, action type/version, required capabilities, selected target/device when local, data-mode policy revision, authorization epoch, decision subject hash, and expiry; JRA creation shall reject a stale or mismatched decision, and DSO shall not create Jobs directly.",
       "source": {
-        "line": 157,
+        "line": 159,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2453,7 +2462,7 @@
       "priority": "P0",
       "requirement": "A Local `ORIGINAL_CONTENT` item may leave its source Device only through an explicit user-mediated offline package whose manifest binds workspace, source/destination Devices or approved passphrase mode, exact content IDs/hashes/sizes/classifications, purpose, policy and authorization revisions, expiry, encryption/key-envelope profile, source signature, and package hash; import shall verify every binding, create IAE placement/lineage plus an auditable receipt, and shall never use cloud storage, a live relay, background peer transfer, or an unregistered destination.",
       "source": {
-        "line": 158,
+        "line": 160,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2462,7 +2471,7 @@
       "priority": "P0",
       "requirement": "Workspace DataMode shall be the maximum authority; project, resource, module, recipe, and job constraints may only narrow it, and every placement, route, execution, transfer, resume, or sync admission shall enforce the intersection with current Workspace policy and fail closed when a cached effective-policy reference is stale.",
       "source": {
-        "line": 159,
+        "line": 161,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2471,7 +2480,7 @@
       "priority": "P0",
       "requirement": "DSO shall own immutable WorkspaceDataModePolicyVersions and signed DataModePolicyManifests binding workspace, mode, classification-by-payload matrix, allowed placements/executors/destinations, confirmation/offline-package rules, canonical hash, authorization epoch, audience/Device, schema version, issue/expiry no later than the associated IAM offline snapshot or 24 hours, and signer/key version; clients shall reject tampered, stale, wrong-audience, or unsupported manifests, and cache encryption shall not replace signature verification.",
       "source": {
-        "line": 160,
+        "line": 162,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -3232,11 +3241,38 @@
       }
     },
     {
+      "id": "IAE-022",
+      "priority": "P0",
+      "requirement": "Cloud-upload session creation and every part-transfer grant shall pass a server-owned `ArtifactUploadAdmissionPortV1` decision that re-evaluates active IAM membership and upload permission, binds one exact existing InboxItem and ArtifactVersion in the authenticated TenantScope, resolves the current DSO Workspace policy, rejects `LOCAL` and any policy that disallows `ORIGINAL_CONTENT` plus `CLOUD_OBJECT`, and applies server-owned session identifiers, timestamps, expiry, 8-64 MiB part policy, media allow-list, 20 GiB object limit, and current Workspace quota. Clients may declare content hash, byte length, media type, intake identifier, and requested part size only; they shall never assert policy, data mode, quota, artifact identity, authorization epoch, or session lifetime.",
+      "source": {
+        "line": 113,
+        "path": "docs/specs/foundation/inbox-artifacts-evidence.md"
+      }
+    },
+    {
+      "id": "IAE-023",
+      "priority": "P0",
+      "requirement": "Cloud-upload finalization shall use revision-CAS transitions `OPEN -> FINALIZING -> COMPLETED`. Object-store multipart completion shall produce a non-authoritative quarantined exact object version; a separate idempotent reconciliation step shall verify full SHA-256 and byte length and atomically persist the opaque locator plus exact object version with `COMPLETED`. A retry after object completion and before database completion shall reconcile rather than duplicate or expose the object. Ordinary concurrent part revisions shall not abort the whole multipart upload; terminal session transitions revoke or expire only the applicable grants before governed cleanup.",
+      "source": {
+        "line": 114,
+        "path": "docs/specs/foundation/inbox-artifacts-evidence.md"
+      }
+    },
+    {
+      "id": "IAE-024",
+      "priority": "P0",
+      "requirement": "A worker result shall remain non-authoritative until IAE verifies an attempt-bound `JOB_OUTPUT` transfer receipt against the current signed capability, exact TenantScope, worker security epoch, attempt, execution descriptor, declared output object/media/byte policy, SHA-256, byte length, source lineage, and expiry. Before capability issuance, an IAE-owned authority shall derive the exact output ArtifactVersion, placement, authoritative source ArtifactVersion IDs, processor version, data mode, payload class and policy/lineage hashes from immutable server records plus the current authorized execution route; none of those bindings may be supplied or widened by worker output, request bodies or storage metadata. Successful verification shall idempotently finalize one immutable `DERIVED` or `APPROVED_DERIVED_RESULT` ArtifactVersion plus typed lineage and return a content-free attestation reference. Reuse of the same submission with identical bytes and bindings shall replay the exact attestation; changed reuse, an expired or superseded attempt, missing receipt, or any binding mismatch shall fail closed. Prepared or transferred objects without a finalized attestation are non-authoritative and shall be quarantined and cleaned up under JRA-021.",
+      "source": {
+        "line": 115,
+        "path": "docs/specs/foundation/inbox-artifacts-evidence.md"
+      }
+    },
+    {
       "id": "IAM-001",
       "priority": "P0",
       "requirement": "Every user, organization, workspace, project, membership, service account, session, and device shall use a non-guessable stable UUID and store timestamps in UTC.",
       "source": {
-        "line": 152,
+        "line": 154,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3245,7 +3281,7 @@
       "priority": "P0",
       "requirement": "The server shall enforce organization, workspace, project, resource, action, and channel authorization on every request, stream subscription, job execution, sync mutation, download, export, and shared-link access.",
       "source": {
-        "line": 153,
+        "line": 155,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3254,7 +3290,7 @@
       "priority": "P0",
       "requirement": "Authorization shall deny by default and shall not trust role, tenant, or resource claims supplied outside a verified credential and server-side lookup.",
       "source": {
-        "line": 154,
+        "line": 156,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3263,7 +3299,7 @@
       "priority": "P0",
       "requirement": "The initial roles shall be Owner, Admin, Analyst, Operator, Approver, and Viewer; permission constants shall be versioned independently so bundles can expand without renaming roles.",
       "source": {
-        "line": 155,
+        "line": 157,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3272,7 +3308,7 @@
       "priority": "P0",
       "requirement": "Access tokens shall expire within 15 minutes; refresh tokens shall be rotating and single-use, and detected reuse shall revoke the token family.",
       "source": {
-        "line": 156,
+        "line": 158,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3281,7 +3317,7 @@
       "priority": "P0",
       "requirement": "Organization policy shall support required MFA for all members, privileged roles, or privileged actions, with WebAuthn or TOTP and one-time recovery codes.",
       "source": {
-        "line": 157,
+        "line": 159,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3290,7 +3326,7 @@
       "priority": "P0",
       "requirement": "Each organization enrollment on a Desktop or Android installation shall create a distinct asymmetric Device-identity key pair; private keys shall remain in the OS credential store and server records shall be independently and permanently revocable.",
       "source": {
-        "line": 158,
+        "line": 160,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3299,7 +3335,7 @@
       "priority": "P0",
       "requirement": "Membership removal, device revocation, account suspension, and ownership changes shall invalidate server-side and connected-client authorization within 60 seconds and reject newly authenticated operations immediately; an offline device receives no remote-wipe guarantee and its narrowly allowed cached authorization shall expire within 24 hours.",
       "source": {
-        "line": 159,
+        "line": 161,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3308,7 +3344,7 @@
       "priority": "P0",
       "requirement": "Resource lookup shall prove that the resource belongs to the evaluated workspace before a handler reads metadata or object bytes, preventing identifier-based tenant probing.",
       "source": {
-        "line": 160,
+        "line": 162,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3317,7 +3353,7 @@
       "priority": "P0",
       "requirement": "Invitations shall be single-use, hashed at rest, email-bound, scope-bound, role-bound, and expire in no more than seven days.",
       "source": {
-        "line": 161,
+        "line": 163,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3326,7 +3362,7 @@
       "priority": "P0",
       "requirement": "An organization shall always have at least one active Owner; the last Owner cannot leave or be removed without a completed transfer or organization deletion workflow.",
       "source": {
-        "line": 162,
+        "line": 164,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3335,7 +3371,7 @@
       "priority": "P0",
       "requirement": "Privileged actions shall require a step-up MFA assertion no older than 10 minutes and an immutable audit event containing actor, target, before/after summary, IP class, device, and correlation ID.",
       "source": {
-        "line": 163,
+        "line": 165,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3344,7 +3380,7 @@
       "priority": "P0",
       "requirement": "Service accounts shall be organization-owned, workspace-scoped, action-scoped, non-interactive, and authenticated with hashed rotating secrets or signed keys that show their last-use time.",
       "source": {
-        "line": 164,
+        "line": 166,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3353,7 +3389,7 @@
       "priority": "P1",
       "requirement": "Project membership may only narrow workspace access unless an explicit project guest policy grants access to that project alone; it shall never imply access to sibling projects.",
       "source": {
-        "line": 165,
+        "line": 167,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3362,7 +3398,7 @@
       "priority": "P1",
       "requirement": "Account recovery shall revoke all refresh-token families and require MFA re-enrollment confirmation before privileged actions resume.",
       "source": {
-        "line": 166,
+        "line": 168,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3371,7 +3407,7 @@
       "priority": "P1",
       "requirement": "User locale shall default to Vietnamese (`vi-VN`) while allowing English (`en`) per user without changing stored business values or audit semantics.",
       "source": {
-        "line": 167,
+        "line": 169,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3380,7 +3416,7 @@
       "priority": "P1",
       "requirement": "Client applications may use permission hints to hide controls, but all authoritative enforcement shall remain server-side.",
       "source": {
-        "line": 168,
+        "line": 170,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3389,7 +3425,7 @@
       "priority": "P1",
       "requirement": "Bulk membership and policy changes shall use idempotency keys, return per-item outcomes, and never partially apply an ownership transfer.",
       "source": {
-        "line": 169,
+        "line": 171,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3398,7 +3434,7 @@
       "priority": "P0",
       "requirement": "Every tenant-owned record and repository operation shall declare either organization or workspace scope, validate the complete tenant ancestry for nested resources, and reject optional, missing, or mismatched tenant filters before data access.",
       "source": {
-        "line": 170,
+        "line": 172,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3407,7 +3443,7 @@
       "priority": "P0",
       "requirement": "IAM shall issue versioned signed OfflineAuthorizationSnapshots bound to organization/workspace/project, principal, Device, security and authorization epochs, allowed action/resource scopes, policy revisions, issue time, expiry no later than 24 hours, and signer/key version; a snapshot shall not authorize approval, membership, security/data-mode/retention/billing policy change, deletion, cloud/external effects, or access broader than the last online decision, and every reconnect shall re-authorize current state.",
       "source": {
-        "line": 171,
+        "line": 173,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3416,7 +3452,7 @@
       "priority": "P0",
       "requirement": "IAM shall be the sole authority for DeviceIdentity ID, organization/user ownership, public key, enrollment challenge, activation status, security epoch, and permanent revocation; a revoked identity shall never reactivate, recovery shall create a new identity, and DSO shall reference the IAM identity without maintaining a second identity, key, or authoritative status.",
       "source": {
-        "line": 172,
+        "line": 174,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3425,7 +3461,7 @@
       "priority": "P0",
       "requirement": "Email/password registration shall use a six-digit OTP that expires in 10 minutes, permits five failed attempts, permits resend after 60 seconds, stores only protected challenge material, avoids account enumeration, and atomically activates the user, personal organization, personal workspace, Owner membership, and session after verification.",
       "source": {
-        "line": 173,
+        "line": 175,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3434,7 +3470,7 @@
       "priority": "P0",
       "requirement": "Access tokens shall remain at most 15 minutes; rotating refresh families shall expire after 30 days of Web inactivity and 180 days absolute, or 90 days of Desktop/Android inactivity and 365 days absolute; reuse, recovery, suspension, logout-all, device revocation, or compromise shall revoke the family; browser credentials shall remain `HttpOnly`, `Secure`, and `SameSite=Lax`.",
       "source": {
-        "line": 174,
+        "line": 176,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3443,7 +3479,7 @@
       "priority": "P0",
       "requirement": "Agent authority shall be an independent workspace-member grant with `NONE`, `ANALYZE`, `PROPOSE_CHANGES`, or `APPLY_CONFIRMED_CHANGES`; Viewer shall default to `NONE`; grants shall never expand dataset or action permission.",
       "source": {
-        "line": 175,
+        "line": 177,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3452,7 +3488,7 @@
       "priority": "P0",
       "requirement": "The normal UI shall expose Owner, Editor, and Viewer access presets while the six canonical server roles and versioned permission constants remain available to policy enforcement; preset mapping shall be explicit, versioned, and deny-by-default.",
       "source": {
-        "line": 176,
+        "line": 178,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -4195,6 +4231,24 @@
       }
     },
     {
+      "id": "JRA-031",
+      "priority": "P0",
+      "requirement": "Cloud result commit shall use a two-command protocol. `PREPARE_RESULT`, while the exact latest lease and security epoch remain current, shall derive the descriptor-owned output policy and issue stable attempt/descriptor-bound IAE write capabilities without making the Job terminal. After IAE transfer and immutable-result attestation, `FINALIZE_RESULT` shall accept only a stable submission ID, attestation references, descriptor/attempt binding hash, and typed result-binding echo. JRA shall resolve attestations server-side, recheck the current latest attempt, lease, epoch, descriptor, action/output schema and exact subject bindings, then atomically insert the canonical ResultManifest, terminal Attempt/Job transitions, completion replay receipt, canonical AUD/outbox effects, and usage settlement in one serializable transaction. Identical retries shall return the stored completion; changed reuse shall conflict. The legacy completion path shall not issue output grants after committing success and shall not accept caller-asserted object references as authoritative.",
+      "source": {
+        "line": 127,
+        "path": "docs/specs/foundation/jobs-recipes-approvals.md"
+      }
+    },
+    {
+      "id": "JRA-032",
+      "priority": "P0",
+      "requirement": "An admitted Job that can produce metered customer results shall carry exactly one opaque BUA `ResultUsageSettlementBinding` ID supplied by the server-owned `ExecutionAdmissionCoordinator`; the worker and browser shall never supply or alter it. JRA result preparation and immutable descriptors may carry that opaque ID but shall not copy or infer BUA reservation, meter, formula or quantity authority. `FINALIZE_RESULT` shall provide the stored ID and verified result facts to the injected BUA transaction participant and shall roll back ResultManifest, Attempt, Job, replay, AUD and outbox writes if settlement is missing, mismatched, unavailable or rejected.",
+      "source": {
+        "line": 128,
+        "path": "docs/specs/foundation/jobs-recipes-approvals.md"
+      }
+    },
+    {
       "id": "MR-001",
       "priority": "P0",
       "requirement": "The system shall create migration projects scoped to one workspace and optionally one client/project, with owner, `dataModeConstraint`, `effectiveDataModePolicyRef`, locale, time zone, `retentionConstraint`, `effectiveRetentionPolicyRef`, and configurable capacity limits; module constraints shall never broaden workspace policy.",
@@ -4668,6 +4722,42 @@
       "requirement": "The system shall provide accessible, filterable notification and thread views with pagination and no reliance on color or sound alone.",
       "source": {
         "line": 105,
+        "path": "docs/specs/foundation/notifications-collaboration.md"
+      }
+    },
+    {
+      "id": "NCO-021",
+      "priority": "P0",
+      "requirement": "Notification HTTP and stream payloads shall be parsed through generated closed contracts. Because contract majors `v1` and `v2` are already published and immutable, the first canonical NCO notification transport shall be contract major `v3`; clients shall not add notification schema IDs to a published earlier major.",
+      "source": {
+        "line": 106,
+        "path": "docs/specs/foundation/notifications-collaboration.md"
+      }
+    },
+    {
+      "id": "NCO-022",
+      "priority": "P0",
+      "requirement": "Notification list responses shall carry a server-authoritative unread count for the current authorized recipient and tenant scope, independent of the bounded page of records returned. An unavailable or unauthorized repository shall never be represented as a confirmed empty inbox.",
+      "source": {
+        "line": 107,
+        "path": "docs/specs/foundation/notifications-collaboration.md"
+      }
+    },
+    {
+      "id": "NCO-023",
+      "priority": "P0",
+      "requirement": "A committed notification projection shall durably upsert recipient-scoped intent and read-state truth before reporting success. Event replay shall be deduplicated by a deterministic recipient-scoped key, and persistence corruption or outage shall fail closed without emitting partial records.",
+      "source": {
+        "line": 108,
+        "path": "docs/specs/foundation/notifications-collaboration.md"
+      }
+    },
+    {
+      "id": "NCO-024",
+      "priority": "P0",
+      "requirement": "Notification state commands shall bind the authenticated recipient, exact tenant scope, notification ID, expected revision, target state, and idempotency key. Replays shall return the prior result, changed payload reuse shall conflict, and state transitions shall follow the monotonic rules in this specification.",
+      "source": {
+        "line": 109,
         "path": "docs/specs/foundation/notifications-collaboration.md"
       }
     },

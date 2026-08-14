@@ -4,7 +4,6 @@ import test from 'node:test';
 import { parseTenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import { WebIntakeController } from '../../../src/features/dda/intake/api/web-intake.controller.js';
-import { WebIntakeProblemError } from '../../../src/features/dda/intake/application/web-intake-problem.error.js';
 import type { WebIntakeServiceV1 } from '../../../src/features/dda/intake/application/web-intake.service.js';
 
 const scopeResult = parseTenantScopeV1({
@@ -15,38 +14,52 @@ const scopeResult = parseTenantScopeV1({
 });
 assert.equal(scopeResult.accepted, true);
 const tenantScope = scopeResult.accepted ? scopeResult.value : (null as never);
+const request = { headers: { authorization: 'Bearer verified-request' } };
+const requestContext = {
+  resolve: () =>
+    Promise.resolve({
+      tenantScope,
+      actorId: '00000000-0000-4000-8000-000000000004' as never,
+      correlationId: '00000000-0000-4000-8000-000000000005' as never,
+      idempotencyKey: 'web-intake-test',
+      authorizationEpoch: 1,
+      mfaReenrollmentRequired: false,
+    }),
+};
 
 void test('[DDA-002] intake controller returns IDs and status only', async () => {
-  const controller = new WebIntakeController({
-    publishedProfile: () => ({
-      profileId: 'dda.web.tabular.v1',
-      csv: { encodings: ['utf-8'], dialects: ['excel'] },
-      xlsx: { macrosAllowed: false, externalLinksAllowed: false },
-      limits: {
-        maxBytes: 512_000,
-        maxRows: 20_000,
-        maxColumns: 256,
-        maxSheets: 8,
-        maxFormulas: 500,
-      },
-    }),
-    finalizeUpload: () =>
-      Promise.resolve({
-        accepted: true as const,
-        value: {
-          sessionId: '00000000-0000-4000-8000-000000000112',
-          artifactVersionId: '00000000-0000-4000-8000-000000000012',
-          status: 'FINALIZED' as const,
-          profileId: 'dda.web.tabular.v1',
+  const controller = new WebIntakeController(
+    {
+      publishedProfile: () => ({
+        profileId: 'dda.web.tabular.v1',
+        csv: { encodings: ['utf-8'], dialects: ['excel'] },
+        xlsx: { macrosAllowed: false, externalLinksAllowed: false },
+        limits: {
+          maxBytes: 512_000,
+          maxRows: 20_000,
+          maxColumns: 256,
+          maxSheets: 8,
+          maxFormulas: 500,
         },
       }),
-  } as unknown as WebIntakeServiceV1);
+      finalizeUpload: () =>
+        Promise.resolve({
+          accepted: true as const,
+          value: {
+            sessionId: '00000000-0000-4000-8000-000000000112',
+            artifactVersionId: '00000000-0000-4000-8000-000000000012',
+            status: 'FINALIZED' as const,
+            profileId: 'dda.web.tabular.v1',
+          },
+        }),
+    } as unknown as WebIntakeServiceV1,
+    requestContext,
+  );
 
   const profile = await controller.getProfile();
   assert.equal(profile.profileId, 'dda.web.tabular.v1');
 
-  const response = await controller.finalize({
-    tenantScope,
+  const response = await controller.finalize(request, {
     sessionId: '00000000-0000-4000-8000-000000000112',
     fileName: 'sales.csv',
     claimedMediaType: 'text/csv',
@@ -64,29 +77,31 @@ void test('[DDA-002] intake controller returns IDs and status only', async () =>
 });
 
 void test('[DDA-002] intake controller maps rejections to stable Problem codes', async () => {
-  const controller = new WebIntakeController({
-    publishedProfile: () => ({
-      profileId: 'dda.web.tabular.v1',
-      csv: { encodings: ['utf-8'], dialects: ['excel'] },
-      xlsx: { macrosAllowed: false, externalLinksAllowed: false },
-      limits: {
-        maxBytes: 512_000,
-        maxRows: 20_000,
-        maxColumns: 256,
-        maxSheets: 8,
-        maxFormulas: 500,
-      },
-    }),
-    finalizeUpload: () =>
-      Promise.resolve({
-        accepted: false as const,
-        code: 'DDA_INTAKE_CHECKSUM_MISMATCH' as const,
+  const controller = new WebIntakeController(
+    {
+      publishedProfile: () => ({
+        profileId: 'dda.web.tabular.v1',
+        csv: { encodings: ['utf-8'], dialects: ['excel'] },
+        xlsx: { macrosAllowed: false, externalLinksAllowed: false },
+        limits: {
+          maxBytes: 512_000,
+          maxRows: 20_000,
+          maxColumns: 256,
+          maxSheets: 8,
+          maxFormulas: 500,
+        },
       }),
-  } as unknown as WebIntakeServiceV1);
+      finalizeUpload: () =>
+        Promise.resolve({
+          accepted: false as const,
+          code: 'DDA_INTAKE_CHECKSUM_MISMATCH' as const,
+        }),
+    } as unknown as WebIntakeServiceV1,
+    requestContext,
+  );
 
   await assert.rejects(
-    controller.finalize({
-      tenantScope,
+    controller.finalize(request, {
       sessionId: '00000000-0000-4000-8000-000000000110',
       fileName: 'sales.csv',
       claimedMediaType: 'text/csv',
@@ -94,6 +109,8 @@ void test('[DDA-002] intake controller maps rejections to stable Problem codes',
       contentBase64: Buffer.from('x').toString('base64'),
     }),
     (error: unknown) =>
-      error instanceof WebIntakeProblemError && error.code === 'DDA_INTAKE_CHECKSUM_MISMATCH',
+      error instanceof Error &&
+      'getStatus' in error &&
+      (error as { getStatus(): number }).getStatus() === 422,
   );
 });

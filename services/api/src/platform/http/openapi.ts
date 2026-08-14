@@ -2,6 +2,14 @@ import identifierContract from '@databreeze/contracts/v1/identifier' with { type
 import problemDetailsContract from '@databreeze/contracts/v1/problem-details' with { type: 'json' };
 import revisionContract from '@databreeze/contracts/v1/revision' with { type: 'json' };
 import utcTimestampContract from '@databreeze/contracts/v1/utc-timestamp' with { type: 'json' };
+import authoringCommandContract from '@databreeze/contracts/v3/dda-dashboard-authoring-command' with { type: 'json' };
+import authoringCommandResultContract from '@databreeze/contracts/v3/dda-dashboard-authoring-command-result' with { type: 'json' };
+import chartProposalContract from '@databreeze/contracts/v3/dda-dashboard-chart-proposal' with { type: 'json' };
+import workspaceHistoryContract from '@databreeze/contracts/v3/dda-dashboard-workspace-history' with { type: 'json' };
+import notificationContract from '@databreeze/contracts/v3/dda-notification' with { type: 'json' };
+import notificationPageContract from '@databreeze/contracts/v3/dda-notification-page' with { type: 'json' };
+import notificationStateCommandContract from '@databreeze/contracts/v3/dda-notification-state-command' with { type: 'json' };
+import workspaceMemberSettingsContract from '@databreeze/contracts/v3/dda-workspace-member-settings' with { type: 'json' };
 import { DocumentBuilder, SwaggerModule, type OpenAPIObject } from '@nestjs/swagger';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 
@@ -20,6 +28,22 @@ const contractReferences: Readonly<Record<string, string>> = {
   'https://schemas.databreeze.dev/contracts/v1/identifier': '#/components/schemas/Identifier',
   'https://schemas.databreeze.dev/contracts/v1/revision': '#/components/schemas/Revision',
   'https://schemas.databreeze.dev/contracts/v1/utc-timestamp': '#/components/schemas/UtcTimestamp',
+  'https://schemas.databreeze.dev/contracts/v3/dda-dashboard-authoring-command':
+    '#/components/schemas/DdaDashboardAuthoringCommand',
+  'https://schemas.databreeze.dev/contracts/v3/dda-dashboard-authoring-command-result':
+    '#/components/schemas/DdaDashboardAuthoringCommandResult',
+  'https://schemas.databreeze.dev/contracts/v3/dda-dashboard-chart-proposal':
+    '#/components/schemas/DdaDashboardChartProposal',
+  'https://schemas.databreeze.dev/contracts/v3/dda-dashboard-workspace-history':
+    '#/components/schemas/DdaDashboardWorkspaceHistory',
+  'https://schemas.databreeze.dev/contracts/v3/dda-notification':
+    '#/components/schemas/DdaNotification',
+  'https://schemas.databreeze.dev/contracts/v3/dda-notification-page':
+    '#/components/schemas/DdaNotificationPage',
+  'https://schemas.databreeze.dev/contracts/v3/dda-notification-state-command':
+    '#/components/schemas/DdaNotificationStateCommand',
+  'https://schemas.databreeze.dev/contracts/v3/dda-workspace-member-settings':
+    '#/components/schemas/DdaWorkspaceMemberSettings',
 };
 
 function safeContractSchema(contract: object): Record<string, unknown> {
@@ -30,22 +54,36 @@ function safeContractSchema(contract: object): Record<string, unknown> {
   return schema;
 }
 
-function localizeContractReferences(value: unknown): void {
+function localizeContractReferences(value: unknown, componentName?: string): void {
   if (Array.isArray(value)) {
-    for (const entry of value) localizeContractReferences(entry);
+    for (const entry of value) localizeContractReferences(entry, componentName);
     return;
   }
   if (typeof value !== 'object' || value === null) return;
   const record = value as Record<string, unknown>;
   if (typeof record['$ref'] === 'string') {
-    record['$ref'] = contractReferences[record['$ref']] ?? record['$ref'];
+    const reference = record['$ref'];
+    record['$ref'] =
+      contractReferences[reference] ??
+      (componentName !== undefined && reference.startsWith('#/$defs/')
+        ? `#/components/schemas/${componentName}${reference.slice(1)}`
+        : reference);
   }
-  for (const entry of Object.values(record)) localizeContractReferences(entry);
+  for (const entry of Object.values(record)) localizeContractReferences(entry, componentName);
 }
 
 function safeProblemSchema(): Record<string, unknown> {
   const schema = safeContractSchema(problemDetailsContract);
   localizeContractReferences(schema);
+  return schema;
+}
+
+function safeGeneratedContractSchema(
+  componentName: string,
+  contract: object,
+): Record<string, unknown> {
+  const schema = safeContractSchema(contract);
+  localizeContractReferences(schema, componentName);
   return schema;
 }
 
@@ -56,6 +94,38 @@ function addSafetyMetadata(document: OpenAPIObject): OpenAPIObject {
   document.components.schemas['Revision'] = safeContractSchema(revisionContract);
   document.components.schemas['UtcTimestamp'] = safeContractSchema(utcTimestampContract);
   document.components.schemas['ProblemDetails'] = safeProblemSchema();
+  document.components.schemas['DdaDashboardAuthoringCommand'] = safeGeneratedContractSchema(
+    'DdaDashboardAuthoringCommand',
+    authoringCommandContract,
+  );
+  document.components.schemas['DdaDashboardAuthoringCommandResult'] = safeGeneratedContractSchema(
+    'DdaDashboardAuthoringCommandResult',
+    authoringCommandResultContract,
+  );
+  document.components.schemas['DdaDashboardChartProposal'] = safeGeneratedContractSchema(
+    'DdaDashboardChartProposal',
+    chartProposalContract,
+  );
+  document.components.schemas['DdaDashboardWorkspaceHistory'] = safeGeneratedContractSchema(
+    'DdaDashboardWorkspaceHistory',
+    workspaceHistoryContract,
+  );
+  document.components.schemas['DdaNotification'] = safeGeneratedContractSchema(
+    'DdaNotification',
+    notificationContract,
+  );
+  document.components.schemas['DdaNotificationPage'] = safeGeneratedContractSchema(
+    'DdaNotificationPage',
+    notificationPageContract,
+  );
+  document.components.schemas['DdaNotificationStateCommand'] = safeGeneratedContractSchema(
+    'DdaNotificationStateCommand',
+    notificationStateCommandContract,
+  );
+  document.components.schemas['DdaWorkspaceMemberSettings'] = safeGeneratedContractSchema(
+    'DdaWorkspaceMemberSettings',
+    workspaceMemberSettingsContract,
+  );
   const compatibility = document.components.schemas['ClientCompatibilityDto'];
   if (compatibility !== undefined && !('$ref' in compatibility)) {
     compatibility.additionalProperties = false;

@@ -1,5 +1,5 @@
 import {
-  tenantScopeContainsV1,
+  tenantScopesEqualV1,
   type ApprovalDecisionRecordV1,
   type ApprovalPolicyV1,
   type ApprovalRequestV1,
@@ -9,6 +9,7 @@ import type { StableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type {
+  ApprovalRequestSearchV1,
   ApprovalRepositoryPortV1,
   ApprovalTransactionPortV1,
 } from '../application/approval-repository.port.js';
@@ -17,12 +18,8 @@ function scopeForRequest(request: ApprovalRequestV1): TenantScopeV1 {
   return request.tenantScope;
 }
 
-function visible(context: TenantScopeV1, candidate: TenantScopeV1): boolean {
-  return tenantScopeContainsV1(context, candidate) || tenantScopeContainsV1(candidate, context);
-}
-
 function mutable(context: IamTenantContextV1, candidate: TenantScopeV1): boolean {
-  return tenantScopeContainsV1(context.tenantScope, candidate);
+  return tenantScopesEqualV1(context.tenantScope, candidate);
 }
 
 function clonePolicy(policy: ApprovalPolicyV1): ApprovalPolicyV1 {
@@ -55,7 +52,7 @@ export class InMemoryApprovalRepositoryAdapter implements ApprovalRepositoryPort
       context.tenantScope.workspaceId !== policy.workspaceId
     )
       throw new Error('JRA_SCOPE_NARROWING_REQUIRED');
-    const key = `${policy.policyId}:${policy.version}`;
+    const key = `${context.tenantScope.organizationId}:${policy.workspaceId}:${policy.policyId}:${policy.version}`;
     const existing = this.policies.get(key);
     if (existing && JSON.stringify(existing) === JSON.stringify(policy)) return;
     if (existing) throw new Error('JRA_IMMUTABLE_POLICY');
@@ -68,9 +65,13 @@ export class InMemoryApprovalRepositoryAdapter implements ApprovalRepositoryPort
     version: number,
   ): Promise<ApprovalPolicyV1 | undefined> {
     await Promise.resolve();
-    const policy = this.policies.get(`${policyId}:${version}`);
+    if (context.tenantScope.scopeType === 'organization') return undefined;
+    const policy = this.policies.get(
+      `${context.tenantScope.organizationId}:${context.tenantScope.workspaceId}:${policyId}:${version}`,
+    );
     return policy &&
-      context.tenantScope.scopeType !== 'organization' &&
+      (context.tenantScope.scopeType === 'workspace' ||
+        context.tenantScope.scopeType === 'project') &&
       context.tenantScope.workspaceId === policy.workspaceId
       ? clonePolicy(policy)
       : undefined;
@@ -91,9 +92,29 @@ export class InMemoryApprovalRepositoryAdapter implements ApprovalRepositoryPort
   ): Promise<ApprovalRequestV1 | undefined> {
     await Promise.resolve();
     const request = this.requests.get(requestId);
-    return request && visible(context.tenantScope, scopeForRequest(request))
+    return request && tenantScopesEqualV1(context.tenantScope, scopeForRequest(request))
       ? cloneRequest(request)
       : undefined;
+  }
+
+  public async findRequests(
+    context: IamTenantContextV1,
+    search: ApprovalRequestSearchV1 = {},
+  ): Promise<readonly ApprovalRequestV1[]> {
+    await Promise.resolve();
+    return [...this.requests.values()]
+      .filter(
+        (request) =>
+          tenantScopesEqualV1(context.tenantScope, request.tenantScope) &&
+          (search.subjectType === undefined || request.subjectType === search.subjectType) &&
+          (search.subjectId === undefined || request.subjectId === search.subjectId) &&
+          (search.subjectHash === undefined || request.subjectHash === search.subjectHash) &&
+          (search.requestedAction === undefined ||
+            request.requestedAction === search.requestedAction) &&
+          (search.statuses === undefined || search.statuses.includes(request.status)),
+      )
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+      .map(cloneRequest);
   }
 
   public async updateRequest(
@@ -103,13 +124,21 @@ export class InMemoryApprovalRepositoryAdapter implements ApprovalRepositoryPort
   ): Promise<ApprovalRequestV1 | undefined> {
     await Promise.resolve();
     if (!mutable(context, request.tenantScope)) throw new Error('JRA_SCOPE_NARROWING_REQUIRED');
+    if (request.revision !== expectedRevision + 1) throw new Error('JRA_REVISION_INVALID');
     const existing = this.requests.get(request.requestId);
     if (!existing || existing.revision !== expectedRevision) return undefined;
     if (
       JSON.stringify(existing.tenantScope) !== JSON.stringify(request.tenantScope) ||
+      existing.subjectType !== request.subjectType ||
+      existing.subjectId !== request.subjectId ||
+      existing.subjectVersion !== request.subjectVersion ||
       existing.subjectHash !== request.subjectHash ||
+      existing.requestedAction !== request.requestedAction ||
       existing.policyId !== request.policyId ||
-      existing.policyVersion !== request.policyVersion
+      existing.policyVersion !== request.policyVersion ||
+      existing.requestedBy !== request.requestedBy ||
+      existing.createdAt !== request.createdAt ||
+      existing.dueAt !== request.dueAt
     )
       throw new Error('JRA_IMMUTABLE_REQUEST');
     this.requests.set(request.requestId, cloneRequest(request));
@@ -141,7 +170,7 @@ export class InMemoryApprovalRepositoryAdapter implements ApprovalRepositoryPort
   ): Promise<readonly ApprovalDecisionRecordV1[]> {
     await Promise.resolve();
     const request = this.requests.get(requestId);
-    if (!request || !visible(context.tenantScope, request.tenantScope)) return [];
+    if (!request || !tenantScopesEqualV1(context.tenantScope, request.tenantScope)) return [];
     return [...this.decisions.values()]
       .filter((decision) => decision.requestId === requestId)
       .map(cloneDecision);
@@ -168,6 +197,7 @@ export class InMemoryApprovalRepositoryAdapter implements ApprovalRepositoryPort
         findPolicy: this.findPolicy.bind(this),
         saveRequest: this.saveRequest.bind(this),
         findRequest: this.findRequest.bind(this),
+        findRequests: this.findRequests.bind(this),
         updateRequest: this.updateRequest.bind(this),
         saveDecision: this.saveDecision.bind(this),
         listDecisions: this.listDecisions.bind(this),

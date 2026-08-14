@@ -12,6 +12,7 @@
     <string name="receipt_capture_title">Chụp hóa đơn</string>
     <string name="receipt_capture_body">Chụp chủ động, lưu bản gốc bất biến, rồi tải lên đích Hybrid/Cloud đã được cấp quyền.</string>
     <string name="receipt_capture_shutter">Chụp ảnh</string>
+    <string name="receipt_capture_shutter_description">Chụp ảnh hóa đơn</string>
     <string name="receipt_capture_retake">Chụp lại</string>
     <string name="receipt_capture_confirm">Xác nhận và tải lên</string>
     <string name="receipt_capture_upload_queued">Đã xếp hàng tải lên an toàn</string>
@@ -25,6 +26,10 @@
     <string name="receipt_review_save">Lưu hiệu đính</string>
     <string name="receipt_review_ocr_unavailable">Không thể trích xuất OCR vì dịch vụ chưa được cấu hình. Hãy thử lại khi kết nối dịch vụ đã được cấp quyền.</string>
     <string name="back_action">Quay lại</string>
+    <string name="profile_capture_action">Chọn loại tài liệu</string>
+    <string name="dashboard_action">Bảng điều khiển</string>
+    <string name="authenticated_runtime_required_title">Cần đăng nhập</string>
+    <string name="authenticated_runtime_required_body">Đăng nhập và chọn không gian làm việc để truy cập dữ liệu, OCR và bảng điều khiển. Ứng dụng không dùng tài khoản hoặc quyền truy cập mẫu.</string>
     <string name="workbench_action">Mở bàn làm việc mô-đun</string>
     <string name="workbench_title">Bàn làm việc mô-đun</string>
     <string name="workbench_body">Mười mô-đun này là các điểm vào di động chỉ đọc. Công việc, quyền truy cập và quyết định luôn được dịch vụ xác thực lại.</string>

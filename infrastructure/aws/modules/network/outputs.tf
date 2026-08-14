@@ -14,6 +14,10 @@ output "api_security_group_id" {
   value = aws_security_group.api.id
 }
 
+output "api_load_balancer_security_group_id" {
+  value = try(aws_security_group.api_load_balancer[0].id, "")
+}
+
 output "database_security_group_id" {
   value = aws_security_group.database.id
 }

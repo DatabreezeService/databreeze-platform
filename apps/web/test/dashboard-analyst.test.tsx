@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 import { AnalystPanel } from '../src/features/dashboards/analyst-panel.tsx';
@@ -40,5 +41,29 @@ describe('dashboard analyst [DDA-016][DDA-019]', () => {
     render(<AnalystPanel locale="vi-VN" preview={preview} />);
     expect(screen.getByRole('heading', { name: 'Hỏi dữ liệu có kiểm soát' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Đề xuất kế hoạch' })).toBeTruthy();
+  });
+
+  it('keeps a persistent Vietnamese chart-assistant icon after its first-use invitation is dismissed [DDA-015][DDA-024][WEB-014]', async () => {
+    const user = userEvent.setup();
+    render(<AnalystPanel locale="vi-VN" preview={preview} />);
+
+    expect(
+      screen.getByText('Muốn thêm biểu đồ mới hoặc chỉnh biểu đồ hiện tại? Nói với tôi.'),
+    ).toBeTruthy();
+    const openAgent = screen.getByRole('button', { name: 'Mở trợ lý biểu đồ' });
+
+    await user.click(screen.getByRole('button', { name: 'Ẩn lời mời trợ lý biểu đồ' }));
+
+    expect(
+      screen.queryByText('Muốn thêm biểu đồ mới hoặc chỉnh biểu đồ hiện tại? Nói với tôi.'),
+    ).toBeNull();
+    expect(openAgent).toBeTruthy();
+  });
+
+  it('uses the complete English invitation copy [WEB-013]', () => {
+    render(<AnalystPanel locale="en" preview={preview} />);
+
+    expect(screen.getByText('Want a new chart or a change to this one? Talk to me.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Open chart assistant' })).toBeTruthy();
   });
 });

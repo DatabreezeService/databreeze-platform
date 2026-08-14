@@ -4,38 +4,27 @@ import { IsISO8601, IsInt, IsNumber, IsString, IsUUID, Matches, Max, Min } from 
 export class CreateArtifactUploadSessionDto {
   @ApiProperty({ format: 'uuid' })
   @IsUUID()
-  sessionId!: string;
-
-  @ApiProperty({ format: 'uuid' })
-  @IsUUID()
-  artifactId!: string;
+  intakeId!: string;
 
   @ApiProperty({ pattern: '^[0-9a-f]{64}$' })
   @Matches(/^[0-9a-f]{64}$/u)
   expectedSha256!: string;
 
-  @ApiProperty({ minimum: 0 })
+  @ApiProperty({ minimum: 1, maximum: 21474836480 })
   @IsNumber()
-  @Min(0)
+  @Min(1)
+  @Max(21474836480)
   expectedByteSize!: number;
 
   @ApiProperty()
   @IsString()
   mediaType!: string;
 
-  @ApiProperty({ minimum: 1, maximum: 1073741824 })
+  @ApiProperty({ minimum: 8388608, maximum: 67108864 })
   @IsInt()
-  @Min(1)
-  @Max(1073741824)
-  partSize!: number;
-
-  @ApiProperty({ format: 'date-time' })
-  @IsISO8601()
-  createdAt!: string;
-
-  @ApiProperty({ format: 'date-time' })
-  @IsISO8601()
-  expiresAt!: string;
+  @Min(8388608)
+  @Max(67108864)
+  requestedPartSize!: number;
 }
 
 export class RecordArtifactUploadPartDto {
@@ -73,6 +62,16 @@ export class IssueArtifactUploadTransferDto {
   @Min(1)
   @Max(1000000)
   partNumber!: number;
+
+  @ApiProperty({ pattern: '^[0-9a-f]{64}$' })
+  @Matches(/^[0-9a-f]{64}$/u)
+  contentSha256!: string;
+
+  @ApiProperty({ minimum: 0, maximum: 1073741824 })
+  @IsInt()
+  @Min(0)
+  @Max(1073741824)
+  byteSize!: number;
 }
 
 export class CompleteArtifactUploadDto {

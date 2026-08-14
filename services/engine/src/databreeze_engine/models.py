@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from typing import Annotated, Any, Literal, Self
 
 from databreeze_contracts.v1 import CorrelationMetadata, Identifier, UtcTimestamp
@@ -40,6 +41,14 @@ SafeName = Annotated[StrictStr, StringConstraints(pattern=r"^[a-z][a-z0-9_.-]{0,
 Digest = Annotated[StrictStr, StringConstraints(pattern=r"^sha256:[0-9a-f]{64}$")]
 Sha256Hex = Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
 SchemaId = Annotated[StrictStr, StringConstraints(pattern=r"^[a-z][a-z0-9_.-]{0,127}$")]
+OutputName = Annotated[StrictStr, StringConstraints(pattern=r"^[a-z][a-z0-9_.-]{0,127}$")]
+LineageHash = Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+StableIdentifier = Annotated[
+    StrictStr,
+    StringConstraints(
+        pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    ),
+]
 
 
 class ActionReference(ClosedModel):
@@ -104,6 +113,76 @@ class FoundationDigestResult(ClosedModel):
     canonicalizationVersion: Literal["foundation-metadata-v1"]
     itemCount: Annotated[StrictInt, Field(ge=1, le=64)]
     tagCount: Annotated[StrictInt, Field(ge=0, le=64)]
+
+
+class JsonWorkerOutput(ClosedModel):
+    """Bounded typed bytes for one JSON result; never serialized into JRA control requests."""
+
+    kind: Literal["JSON_RESULT"]
+    outputName: OutputName
+    schemaId: SchemaId
+    sourceLineageHash: LineageHash
+    content: Annotated[bytes, Field(min_length=1, max_length=1024 * 1024 * 1024)]
+
+    @property
+    def media_type(self) -> str:
+        return "application/json"
+
+    @property
+    def byte_length(self) -> int:
+        return len(self.content)
+
+    @property
+    def content_sha256(self) -> str:
+        return hashlib.sha256(self.content).hexdigest()
+
+
+class BinaryWorkerOutput(ClosedModel):
+    """Bounded typed opaque bytes for one descriptor-declared binary result."""
+
+    kind: Literal["BINARY_RESULT"]
+    outputName: OutputName
+    schemaId: SchemaId
+    mediaType: Annotated[
+        StrictStr,
+        StringConstraints(pattern=r"^[a-z0-9!#$&^_.+-]+/[a-z0-9!#$&^_.+-]+$"),
+    ]
+    sourceLineageHash: LineageHash
+    content: Annotated[bytes, Field(min_length=1, max_length=1024 * 1024 * 1024)]
+
+    @property
+    def media_type(self) -> str:
+        return self.mediaType
+
+    @property
+    def byte_length(self) -> int:
+        return len(self.content)
+
+    @property
+    def content_sha256(self) -> str:
+        return hashlib.sha256(self.content).hexdigest()
+
+
+WorkerOutput = Annotated[JsonWorkerOutput | BinaryWorkerOutput, Field(discriminator="kind")]
+
+
+class DashboardWidgetSubjectBindings(ClosedModel):
+    dashboardId: StableIdentifier
+    dashboardVersionId: StableIdentifier
+    widgetId: StableIdentifier
+    planVersionId: StableIdentifier
+    metricVersionId: StableIdentifier
+    datasetVersionId: StableIdentifier
+    permissionProjectionVersionId: StableIdentifier
+    policyVersionId: StableIdentifier
+    locale: Literal["vi-VN", "en"]
+    timezone: Annotated[
+        StrictStr,
+        StringConstraints(pattern=r"^[A-Za-z_+-]+(?:/[A-Za-z0-9_+.-]+)+$"),
+    ]
+    inputSelectorHash: Sha256Hex
+    engineVersion: Literal["0.1.0"]
+    handlerDigest: Digest
 
 
 class EngineResult(ClosedModel):

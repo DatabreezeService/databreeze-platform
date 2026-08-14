@@ -28,6 +28,19 @@ variable "kms_key_arn" {
   description = "KMS key for RDS and ElastiCache encryption."
 }
 
+variable "artifact_upload_cors_allowed_origins" {
+  type        = list(string)
+  description = "Exact HTTPS Web origins allowed to use checksum-bound presigned artifact PUT grants."
+  default     = []
+
+  validation {
+    condition = length(var.artifact_upload_cors_allowed_origins) <= 16 && alltrue([
+      for origin in var.artifact_upload_cors_allowed_origins : can(regex("^https://[A-Za-z0-9.-]+(?::[0-9]{1,5})?$", origin))
+    ])
+    error_message = "artifact_upload_cors_allowed_origins must contain at most 16 exact HTTPS origins."
+  }
+}
+
 variable "enable_database" {
   type        = bool
   description = "Create RDS and ElastiCache resources."

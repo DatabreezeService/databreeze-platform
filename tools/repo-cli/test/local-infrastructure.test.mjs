@@ -63,25 +63,103 @@ test('local compose defines pinned, healthy disposable dependencies', () => {
   assert.match(compose, /mailpit:v1\.21\.8/);
   assert.match(compose, /collector-contrib:0\.128\.0/);
   assert.match(compose, /curlimages\/curl:8\.14\.1/);
-  for (const volume of ['postgres-data', 'redis-data', 'minio-data', 'mailpit-data']) {
+  for (const volume of [
+    'postgres-data',
+    'redis-data',
+    'minio-data',
+    'mailpit-data',
+    'web-caddy-data',
+  ]) {
     assert.match(compose, new RegExp(`^  ${volume}:`, 'm'));
   }
   assert.equal((compose.match(/healthcheck:/g) ?? []).length, 6);
-  assert.equal((compose.match(/^\s{4}init: true$/gmu) ?? []).length, 7);
+  assert.equal((compose.match(/^\s{4}init: true$/gmu) ?? []).length, 10);
   assert.match(compose, /minio-init:[\s\S]*depends_on:[\s\S]*condition: service_healthy/u);
   assert.match(compose, /minio-init:[\s\S]*restart: 'no'/u);
   assert.match(compose, /postgres-data:[\s\S]*name: \$\{COMPOSE_PROJECT_NAME/u);
-  assert.equal((compose.match(/networks: \[local\]/g) ?? []).length, 7);
+  assert.equal((compose.match(/networks: \[local\]/g) ?? []).length, 10);
   assert.match(compose, /name: \$\{COMPOSE_PROJECT_NAME:-databreeze-local\}-network/u);
   assert.match(compose, /x-default-logging: &default-logging/u);
   assert.match(compose, /max-size: 10m/u);
   assert.match(compose, /max-file: '3'/u);
-  assert.equal((compose.match(/logging: \*default-logging/g) ?? []).length, 7);
-  assert.equal((compose.match(/127\.0\.0\.1:\$\{/g) ?? []).length, 9);
+  assert.equal((compose.match(/logging: \*default-logging/g) ?? []).length, 10);
+  assert.equal((compose.match(/127\.0\.0\.1:\$\{/g) ?? []).length, 10);
   assert.match(
     read('infrastructure/local/README.md'),
     /Every published port is bound to `127\.0\.0\.1`/u,
   );
+});
+
+test('[Task 18 / WEB-002 / WEB-004] app profile migrates before API and serves Web over loopback HTTPS', () => {
+  const compose = read('infrastructure/local/compose.yml');
+  const envExample = read('infrastructure/local/.env.example');
+  const apiDockerfile = read('infrastructure/containers/api/Dockerfile');
+  const webDockerfile = read('infrastructure/containers/web/Dockerfile');
+  const webDockerignore = read('infrastructure/containers/web/Dockerfile.dockerignore');
+  const caddy = read('infrastructure/local/web/Caddyfile');
+
+  for (const service of ['api-migrate:', 'api:', 'web:']) {
+    assert.match(compose, new RegExp(`^  ${service}`, 'm'));
+  }
+  assert.doesNotMatch(compose, /^ {2}web-health:/m);
+  assert.equal((compose.match(/profiles: \[app\]/g) ?? []).length, 3);
+  assert.match(compose, /api:[\s\S]*api-migrate:[\s\S]*condition: service_completed_successfully/u);
+  assert.match(compose, /api-migrate:[\s\S]*target: migration[\s\S]*restart: 'no'/u);
+  assert.match(compose, /web:[\s\S]*api:[\s\S]*condition: service_healthy/u);
+  assert.match(compose, /api:[\s\S]*expose:[\s\S]*- '3000'/u);
+  assert.doesNotMatch(compose, /127\.0\.0\.1:\$\{API_PORT/u);
+  assert.match(compose, /127\.0\.0\.1:\$\{WEB_HTTPS_PORT:-8443\}:8443/u);
+  assert.match(compose, /api:[\s\S]*read_only: true/u);
+  assert.match(compose, /web:[\s\S]*read_only: true/u);
+  assert.match(compose, /cap_drop:[\s\S]*- ALL/u);
+  assert.match(compose, /no-new-privileges:true/u);
+  assert.match(envExample, /^WEB_HTTPS_PORT=8443$/m);
+
+  assert.match(apiDockerfile, /^FROM build AS migration$/mu);
+  assert.match(apiDockerfile, /^ENV COREPACK_HOME=\/pnpm\/corepack$/mu);
+  assert.match(apiDockerfile, /chmod -R a\+rX \$\{COREPACK_HOME\}/u);
+  assert.match(apiDockerfile, /USER 1000:1000/u);
+  assert.match(
+    apiDockerfile,
+    /ENTRYPOINT \["node", "\/workspace\/services\/api\/node_modules\/prisma\/build\/index\.js", "migrate", "deploy", "--config", "prisma\.config\.ts"\]/u,
+  );
+
+  assert.match(
+    webDockerfile,
+    /^FROM docker\.io\/library\/node:24\.17\.0-bookworm-slim@sha256:[0-9a-f]{64} AS build$/mu,
+  );
+  assert.match(
+    webDockerfile,
+    /^FROM docker\.io\/library\/caddy:2\.10\.0-alpine@sha256:[0-9a-f]{64} AS runtime$/mu,
+  );
+  assert.match(webDockerfile, /pnpm install --frozen-lockfile --filter @databreeze\/web\.\.\./u);
+  assert.match(webDockerfile, /pnpm --filter @databreeze\/web\.\.\. build/u);
+  assert.match(webDockerfile, /USER 1000:1000/u);
+  assert.match(webDockerfile, /setcap -r \/usr\/bin\/caddy/u);
+  assert.match(webDockerfile, /https:\/\/localhost:8443\/health\/ready/u);
+  assert.doesNotMatch(webDockerfile, /https:\/\/127\.0\.0\.1:8443\/health\/ready/u);
+  assert.doesNotMatch(webDockerfile, /ARG\s+.*(?:SECRET|TOKEN|PASSWORD|KEY)/iu);
+  assert.doesNotMatch(webDockerfile, /ENV\s+.*(?:SECRET|TOKEN|PASSWORD|KEY)/iu);
+  assert.match(webDockerfile, /ARG VITE_DATABREEZE_DEMO_MODE=false/u);
+  assert.match(compose, /VITE_DATABREEZE_DEMO_MODE: \$\{VITE_DATABREEZE_DEMO_MODE:-true\}/u);
+  assert.match(envExample, /^VITE_DATABREEZE_DEMO_MODE=true$/m);
+  assert.match(webDockerignore, /^\*\*\/node_modules$/m);
+  assert.match(webDockerignore, /^\*\*\/dist$/m);
+  assert.match(webDockerignore, /^\*\*\/build$/m);
+
+  assert.match(caddy, /https:\/\/localhost:8443/u);
+  assert.match(caddy, /tls internal/u);
+  assert.match(caddy, /skip_install_trust/u);
+  assert.match(caddy, /handle @api \{[\s\S]*reverse_proxy api:3000[\s\S]*\}/u);
+  assert.match(caddy, /handle \{[\s\S]*try_files \{path\} \/index\.html[\s\S]*file_server/u);
+  assert.ok(caddy.indexOf('handle @api') < caddy.indexOf('\thandle {'));
+  assert.doesNotMatch(caddy, /reverse_proxy @api/u);
+  assert.match(caddy, /@api path \/v1\/\* \/v3\/\* \/health\/\*/u);
+  assert.match(caddy, /try_files \{path\} \/index\.html/u);
+  assert.match(caddy, /Content-Security-Policy/u);
+  assert.match(caddy, /connect-src 'self'/u);
+  assert.match(caddy, /frame-ancestors 'none'/u);
+  assert.doesNotMatch(caddy, /Access-Control-Allow-Origin:\s*\*/iu);
 });
 
 test('local bootstrap is credential-free and creates every owned module schema', () => {
@@ -183,6 +261,10 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
     'status',
     'logs',
     'smoke',
+    'app-start',
+    'app-stop',
+    'app-status',
+    'app-logs',
   ]) {
     assert.match(result.stdout, new RegExp(`^  ${command}\\s`, 'm'));
   }

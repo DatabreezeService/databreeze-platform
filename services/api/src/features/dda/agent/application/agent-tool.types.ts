@@ -20,10 +20,18 @@ export type AgentToolCostClassV1 = 'NONE' | 'LOW' | 'MEDIUM' | 'HIGH';
 export type AgentToolSideEffectClassV1 = 'READ' | 'PROPOSAL' | 'MUTATION';
 export type AgentToolAuditPolicyV1 = 'REQUIRED';
 
+export interface AgentToolSchemaV1 {
+  readonly schemaId: string;
+  readonly properties: readonly string[];
+  readonly requiredProperties: readonly string[];
+}
+
 export interface AgentToolDescriptorV1 {
   readonly name: AgentToolNameV1;
   readonly requiredAgentLevel: AgentGrantLevelV1;
   readonly requiredIamAction: PermissionV1;
+  readonly inputSchema: AgentToolSchemaV1;
+  readonly outputSchema: AgentToolSchemaV1;
   readonly maximumRows: number;
   readonly maximumBytes: number;
   readonly costClass: AgentToolCostClassV1;
@@ -47,6 +55,7 @@ export type AgentTurnProblemCodeV1 =
   | 'REPEATED_TOOL_CALL'
   | 'EVIDENCE_UNAUTHORIZED'
   | 'UNCONFIRMED_DASHBOARD_APPLY'
+  | 'IDEMPOTENCY_CONFLICT'
   | 'UNAUTHORIZED'
   | 'CONVERSATION_NOT_FOUND'
   | 'PROVIDER_FAILURE';
@@ -100,3 +109,5 @@ export interface AgentProviderCompletionV1 {
   readonly narrative: string;
   readonly toolCalls: readonly AgentProviderToolCallV1[];
 }
+
+export type AgentToolExecutionResultV1 = AgentResultV1<unknown>;

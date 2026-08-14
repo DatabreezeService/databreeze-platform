@@ -10,10 +10,7 @@
   "artifactVersionId": "00000000-0000-4000-8000-000000000071",
   "profileVersion": "TABLE_V1",
   "pageCount": 1,
-  "columns": [
-    "Item",
-    "Amount"
-  ],
+  "columns": ["Item", "Amount"],
   "cells": [
     {
       "row": 0,

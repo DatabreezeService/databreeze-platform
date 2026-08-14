@@ -22,6 +22,7 @@ export interface AnalysisPlanPreviewV1 {
 export interface AnalysisPlanReviewProps {
   readonly locale: SupportedLocaleV1;
   readonly preview: AnalysisPlanPreviewV1;
+  readonly presentation?: 'standard' | 'manual-fallback';
 }
 
 function label(locale: SupportedLocaleV1, vi: string, en: string): string {
@@ -29,10 +30,32 @@ function label(locale: SupportedLocaleV1, vi: string, en: string): string {
 }
 
 /** DDA-016: show plan bindings before execution. */
-export function AnalysisPlanReview({ locale, preview }: AnalysisPlanReviewProps) {
+export function AnalysisPlanReview({
+  locale,
+  preview,
+  presentation = 'standard',
+}: AnalysisPlanReviewProps) {
+  const isManualFallback = presentation === 'manual-fallback';
   return (
-    <section aria-label={label(locale, 'Xem xét kế hoạch phân tích', 'Analysis plan review')}>
-      <h2>{label(locale, 'Kế hoạch phân tích', 'Analysis plan')}</h2>
+    <section
+      className={
+        isManualFallback
+          ? 'dda-analysis-plan-review dda-analysis-plan-review--manual'
+          : 'dda-analysis-plan-review'
+      }
+      aria-label={label(
+        locale,
+        isManualFallback ? 'Kế hoạch phân tích thủ công' : 'Xem xét kế hoạch phân tích',
+        isManualFallback ? 'Manual analysis plan' : 'Analysis plan review',
+      )}
+    >
+      <h2>
+        {label(
+          locale,
+          isManualFallback ? 'Kế hoạch phân tích thủ công' : 'Kế hoạch phân tích',
+          isManualFallback ? 'Manual analysis plan' : 'Analysis plan',
+        )}
+      </h2>
       <dl>
         <div>
           <dt>{label(locale, 'Tập dữ liệu', 'Datasets')}</dt>

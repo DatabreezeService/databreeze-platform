@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 4,
+  "outcome": "ACCEPTED",
+  "value": {
+    "user": {
+      "id": "00000000-0000-4000-8000-000000000402",
+      "displayName": "Mai Quynh",
+      "locale": "vi-VN",
+      "mfaState": "NOT_CONFIGURED",
+      "clientRole": "OWNER"
+    },
+    "organizations": [],
+    "recentScopes": [],
+    "session": {
+      "scopeType": "workspace",
+      "organizationId": "00000000-0000-4000-8000-000000000403",
+      "workspaceId": "00000000-0000-4000-8000-000000000404",
+      "authorizationEpoch": 1
+    },
+    "platform": {
+      "apiVersion": "v1"
+    }
+  }
+}

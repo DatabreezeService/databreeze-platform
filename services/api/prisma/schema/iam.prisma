@@ -1,53 +1,57 @@
 /// IAM-owned records. Cross-module references remain opaque UUIDs so feature repositories
 /// cannot bypass application authorization with implicit Prisma relations.
 model UserIdentity {
-  id             String   @id @db.Uuid
-  email          String   @unique(map: "users_email_key") @db.VarChar(254)
-  displayName    String   @map("display_name") @db.VarChar(200)
-  locale         String   @default("vi-VN") @db.VarChar(16)
-  status         String   @default("ACTIVE") @db.VarChar(24)
-  securityEpoch  Int      @default(1) @map("security_epoch")
-  mfaReenrollmentRequired Boolean @default(false) @map("mfa_reenrollment_required")
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                      String   @id @db.Uuid
+  email                   String   @unique(map: "users_email_key") @db.VarChar(254)
+  displayName             String   @map("display_name") @db.VarChar(200)
+  locale                  String   @default("vi-VN") @db.VarChar(16)
+  status                  String   @default("ACTIVE") @db.VarChar(24)
+  securityEpoch           Int      @default(1) @map("security_epoch")
+  mfaReenrollmentRequired Boolean  @default(false) @map("mfa_reenrollment_required")
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("users")
   @@schema("iam")
 }
 
 model PasswordCredential {
-  id           String   @id @db.Uuid
-  userId       String   @unique(map: "password_credentials_user_id_key") @map("user_id") @db.Uuid
-  algorithm    String   @default("argon2id") @db.VarChar(32)
-  encodedHash  String   @map("encoded_hash") @db.VarChar(768)
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  rotatedAt    DateTime? @map("rotated_at") @db.Timestamptz(6)
+  id          String    @id @db.Uuid
+  userId      String    @unique(map: "password_credentials_user_id_key") @map("user_id") @db.Uuid
+  algorithm   String    @default("argon2id") @db.VarChar(32)
+  encodedHash String    @map("encoded_hash") @db.VarChar(768)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  rotatedAt   DateTime? @map("rotated_at") @db.Timestamptz(6)
 
   @@map("password_credentials")
   @@schema("iam")
 }
 
 model OrganizationIdentity {
-  id          String   @id @db.Uuid
-  name        String   @db.VarChar(200)
-  personal    Boolean  @default(false)
-  status      String   @default("ACTIVE") @db.VarChar(24)
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id        String   @id @db.Uuid
+  name      String   @db.VarChar(200)
+  personal  Boolean  @default(false)
+  status    String   @default("ACTIVE") @db.VarChar(24)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("organizations")
   @@schema("iam")
 }
 
 model WorkspaceIdentity {
-  id                 String   @id @db.Uuid
-  organizationId     String   @map("organization_id") @db.Uuid
-  name               String   @db.VarChar(200)
-  status             String   @default("ACTIVE") @db.VarChar(24)
-  authorizationEpoch Int      @default(1) @map("authorization_epoch")
-  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                             String   @id @db.Uuid
+  organizationId                 String   @map("organization_id") @db.Uuid
+  name                           String   @db.VarChar(200)
+  status                         String   @default("ACTIVE") @db.VarChar(24)
+  dataModePolicyId               String   @map("data_mode_policy_id") @db.Uuid
+  currentDataModePolicyVersionId String   @map("current_data_mode_policy_version_id") @db.Uuid
+  dataModeProjection             String   @map("data_mode_projection") @db.VarChar(16)
+  authorizationEpoch             Int      @default(1) @map("authorization_epoch")
+  createdAt                      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  @@unique([organizationId, id], map: "workspaces_organization_scope_id_key")
   @@index([organizationId], map: "workspaces_organization_id_idx")
   @@map("workspaces")
   @@schema("iam")
@@ -71,21 +75,22 @@ model ProjectIdentity {
 model MembershipIdentity {
   /// A null-safe raw expression index in 20260803030000_iam_membership_scope_uniqueness
   /// enforces one principal/scope identity because Prisma composite uniques treat NULLs as distinct.
-  id             String   @id @db.Uuid
-  principalType  String   @map("principal_type") @db.VarChar(24)
-  principalId    String   @map("principal_id") @db.Uuid
-  scopeType      String   @map("scope_type") @db.VarChar(24)
-  organizationId String   @map("organization_id") @db.Uuid
-  workspaceId    String?  @map("workspace_id") @db.Uuid
-  projectId      String?  @map("project_id") @db.Uuid
-  roleId         String   @map("role_id") @db.VarChar(32)
-  status         String   @default("INVITED") @db.VarChar(24)
+  id             String    @id @db.Uuid
+  principalType  String    @map("principal_type") @db.VarChar(24)
+  principalId    String    @map("principal_id") @db.Uuid
+  scopeType      String    @map("scope_type") @db.VarChar(24)
+  organizationId String    @map("organization_id") @db.Uuid
+  workspaceId    String?   @map("workspace_id") @db.Uuid
+  projectId      String?   @map("project_id") @db.Uuid
+  roleId         String    @map("role_id") @db.VarChar(32)
+  status         String    @default("INVITED") @db.VarChar(24)
   startsAt       DateTime? @map("starts_at") @db.Timestamptz(6)
   expiresAt      DateTime? @map("expires_at") @db.Timestamptz(6)
-  revision       Int      @default(1)
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  revision       Int       @default(1)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  @@unique([organizationId, workspaceId, id, scopeType], map: "memberships_scope_id_key")
   @@index([principalId, status], map: "memberships_principal_status_idx")
   @@index([organizationId, workspaceId, projectId], map: "memberships_scope_idx")
   @@map("memberships")
@@ -129,18 +134,18 @@ model InvitationDeliveryFailureRecord {
 
 /// IAM-015: recovery bearers are short-lived, email-bound, and hashed at rest.
 model RecoveryChallengeRecord {
-  id           String    @id @db.Uuid
-  userId       String    @map("user_id") @db.Uuid
-  tokenDigest  String    @unique(map: "recovery_challenges_token_digest_key") @map("token_digest") @db.Char(64)
-  emailDigest  String    @map("email_digest") @db.Char(64)
-  issuedAt     DateTime  @map("issued_at") @db.Timestamptz(6)
-  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(6)
-  status       String    @default("ACTIVE") @db.VarChar(16)
-  consumedAt   DateTime? @map("consumed_at") @db.Timestamptz(6)
-  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(6)
-  revision     Int       @default(1)
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id          String    @id @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  tokenDigest String    @unique(map: "recovery_challenges_token_digest_key") @map("token_digest") @db.Char(64)
+  emailDigest String    @map("email_digest") @db.Char(64)
+  issuedAt    DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(6)
+  status      String    @default("ACTIVE") @db.VarChar(16)
+  consumedAt  DateTime? @map("consumed_at") @db.Timestamptz(6)
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revision    Int       @default(1)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([userId, status], map: "recovery_challenges_user_status_idx")
   @@index([expiresAt, status], map: "recovery_challenges_expiry_status_idx")
@@ -158,18 +163,18 @@ model RecoveryCompensationFailureRecord {
 }
 
 model SessionRecord {
-  id                 String   @id @db.Uuid
-  userId             String   @map("user_id") @db.Uuid
-  organizationId     String   @map("organization_id") @db.Uuid
-  workspaceId        String   @map("workspace_id") @db.Uuid
-  familyId           String   @map("family_id") @db.Uuid
-  issuedAt           DateTime @map("issued_at") @db.Timestamptz(6)
-  accessExpiresAt    DateTime @map("access_expires_at") @db.Timestamptz(6)
-  inactivityExpiresAt DateTime @map("inactivity_expires_at") @db.Timestamptz(6)
-  absoluteExpiresAt  DateTime @map("absolute_expires_at") @db.Timestamptz(6)
-  status             String   @default("ACTIVE") @db.VarChar(24)
-  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  revokedAt          DateTime? @map("revoked_at") @db.Timestamptz(6)
+  id                  String    @id @db.Uuid
+  userId              String    @map("user_id") @db.Uuid
+  organizationId      String    @map("organization_id") @db.Uuid
+  workspaceId         String    @map("workspace_id") @db.Uuid
+  familyId            String    @map("family_id") @db.Uuid
+  issuedAt            DateTime  @map("issued_at") @db.Timestamptz(6)
+  accessExpiresAt     DateTime  @map("access_expires_at") @db.Timestamptz(6)
+  inactivityExpiresAt DateTime  @map("inactivity_expires_at") @db.Timestamptz(6)
+  absoluteExpiresAt   DateTime  @map("absolute_expires_at") @db.Timestamptz(6)
+  status              String    @default("ACTIVE") @db.VarChar(24)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  revokedAt           DateTime? @map("revoked_at") @db.Timestamptz(6)
 
   @@index([userId, status], map: "sessions_user_status_idx")
   @@index([organizationId, workspaceId, userId, status], map: "sessions_scope_user_status_idx")
@@ -179,13 +184,13 @@ model SessionRecord {
 }
 
 model RefreshTokenRecord {
-  id          String   @id @db.Uuid
-  sessionId   String   @map("session_id") @db.Uuid
-  familyId    String   @map("family_id") @db.Uuid
-  tokenDigest String   @unique(map: "refresh_tokens_digest_key") @map("token_digest") @db.VarChar(128)
-  status      String   @default("ACTIVE") @db.VarChar(24)
-  issuedAt    DateTime @map("issued_at") @db.Timestamptz(6)
-  expiresAt   DateTime @map("expires_at") @db.Timestamptz(6)
+  id          String    @id @db.Uuid
+  sessionId   String    @map("session_id") @db.Uuid
+  familyId    String    @map("family_id") @db.Uuid
+  tokenDigest String    @unique(map: "refresh_tokens_digest_key") @map("token_digest") @db.VarChar(128)
+  status      String    @default("ACTIVE") @db.VarChar(24)
+  issuedAt    DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(6)
   usedAt      DateTime? @map("used_at") @db.Timestamptz(6)
 
   @@index([familyId, status], map: "refresh_tokens_family_status_idx")
@@ -194,19 +199,19 @@ model RefreshTokenRecord {
 }
 
 model DeviceIdentity {
-  id                String   @id @db.Uuid
-  userId            String   @map("user_id") @db.Uuid
-  organizationId    String   @map("organization_id") @db.Uuid
-  platform          String   @db.VarChar(24)
-  publicKey         String   @map("public_key") @db.VarChar(2048)
-  keyAlgorithm      String   @default("ED25519") @map("key_algorithm") @db.VarChar(32)
-  installationIdHash String? @map("installation_id_hash") @db.VarChar(128)
-  status            String   @default("PENDING") @db.VarChar(24)
-  securityEpoch     Int      @default(1) @map("security_epoch")
-  revision          Int      @default(1)
-  enrolledAt        DateTime @map("enrolled_at") @db.Timestamptz(6)
-  activatedAt       DateTime? @map("activated_at") @db.Timestamptz(6)
-  revokedAt         DateTime? @map("revoked_at") @db.Timestamptz(6)
+  id                 String    @id @db.Uuid
+  userId             String    @map("user_id") @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  platform           String    @db.VarChar(24)
+  publicKey          String    @map("public_key") @db.VarChar(2048)
+  keyAlgorithm       String    @default("ED25519") @map("key_algorithm") @db.VarChar(32)
+  installationIdHash String?   @map("installation_id_hash") @db.VarChar(128)
+  status             String    @default("PENDING") @db.VarChar(24)
+  securityEpoch      Int       @default(1) @map("security_epoch")
+  revision           Int       @default(1)
+  enrolledAt         DateTime  @map("enrolled_at") @db.Timestamptz(6)
+  activatedAt        DateTime? @map("activated_at") @db.Timestamptz(6)
+  revokedAt          DateTime? @map("revoked_at") @db.Timestamptz(6)
 
   @@index([userId, status], map: "devices_user_status_idx")
   @@index([organizationId, status], map: "devices_organization_status_idx")
@@ -216,16 +221,16 @@ model DeviceIdentity {
 
 /// IAM-007: single-use, short-lived proof-of-possession enrollment challenges.
 model DeviceEnrollmentChallenge {
-  id                String   @id @db.Uuid
-  userId            String   @map("user_id") @db.Uuid
-  organizationId    String   @map("organization_id") @db.Uuid
-  platform          String   @db.VarChar(24)
-  installationIdHash String  @map("installation_id_hash") @db.VarChar(128)
-  challengeDigest   String   @map("challenge_digest") @db.VarChar(128)
-  status            String   @default("PENDING") @db.VarChar(16)
-  issuedAt          DateTime @map("issued_at") @db.Timestamptz(6)
-  expiresAt         DateTime @map("expires_at") @db.Timestamptz(6)
-  revision          Int      @default(1)
+  id                 String   @id @db.Uuid
+  userId             String   @map("user_id") @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  platform           String   @db.VarChar(24)
+  installationIdHash String   @map("installation_id_hash") @db.VarChar(128)
+  challengeDigest    String   @map("challenge_digest") @db.VarChar(128)
+  status             String   @default("PENDING") @db.VarChar(16)
+  issuedAt           DateTime @map("issued_at") @db.Timestamptz(6)
+  expiresAt          DateTime @map("expires_at") @db.Timestamptz(6)
+  revision           Int      @default(1)
 
   @@index([organizationId, status, expiresAt], map: "device_enrollment_challenges_org_status_idx")
   @@index([userId, issuedAt], map: "device_enrollment_challenges_user_issued_idx")
@@ -234,15 +239,15 @@ model DeviceEnrollmentChallenge {
 }
 
 model MfaFactor {
-  id              String   @id @db.Uuid
-  userId          String   @map("user_id") @db.Uuid
-  factorType      String   @map("factor_type") @db.VarChar(24)
-  secretReference String   @map("secret_reference") @db.VarChar(512)
-  status          String   @default("PENDING") @db.VarChar(24)
-  enrolledAt      DateTime @map("enrolled_at") @db.Timestamptz(6)
+  id              String    @id @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  factorType      String    @map("factor_type") @db.VarChar(24)
+  secretReference String    @map("secret_reference") @db.VarChar(512)
+  status          String    @default("PENDING") @db.VarChar(24)
+  enrolledAt      DateTime  @map("enrolled_at") @db.Timestamptz(6)
   verifiedAt      DateTime? @map("verified_at") @db.Timestamptz(6)
   revokedAt       DateTime? @map("revoked_at") @db.Timestamptz(6)
-  revision        Int      @default(1)
+  revision        Int       @default(1)
 
   @@index([userId, status], map: "mfa_factors_user_status_idx")
   @@map("mfa_factors")
@@ -264,13 +269,13 @@ model MfaRecoveryCode {
 }
 
 model AccessTokenRecord {
-  id         String    @id @db.Uuid
-  sessionId  String    @map("session_id") @db.Uuid
-  tokenDigest String   @unique(map: "access_tokens_digest_key") @map("token_digest") @db.VarChar(128)
-  issuedAt   DateTime  @map("issued_at") @db.Timestamptz(6)
-  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
-  status     String    @default("ACTIVE") @db.VarChar(24)
-  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
+  id          String    @id @db.Uuid
+  sessionId   String    @map("session_id") @db.Uuid
+  tokenDigest String    @unique(map: "access_tokens_digest_key") @map("token_digest") @db.VarChar(128)
+  issuedAt    DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz(6)
+  status      String    @default("ACTIVE") @db.VarChar(24)
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(6)
 
   @@index([sessionId, status], map: "access_tokens_session_status_idx")
   @@index([expiresAt], map: "access_tokens_expiry_idx")
@@ -304,51 +309,56 @@ model AuthorizationSnapshot {
 
 /// IAM-013: non-interactive identities retain only a digest of their one-time secret.
 model ServiceAccountRecord {
-  id             String    @id @db.Uuid
-  organizationId String    @map("organization_id") @db.Uuid
-  workspaceId    String?   @map("workspace_id") @db.Uuid
-  name           String    @db.VarChar(200)
-  permissions    Json
-  status         String    @default("ACTIVE") @db.VarChar(16)
-  secretDigest   String    @unique(map: "service_accounts_secret_digest_key") @map("secret_digest") @db.Char(64)
-  secretVersion  Int       @default(1) @map("secret_version")
-  secretIssuedAt DateTime  @map("secret_issued_at") @db.Timestamptz(6)
-  secretExpiresAt DateTime? @map("secret_expires_at") @db.Timestamptz(6)
-  lastUsedAt     DateTime? @map("last_used_at") @db.Timestamptz(6)
-  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  revokedAt      DateTime? @map("revoked_at") @db.Timestamptz(6)
-  revision       Int       @default(1)
-  createdByActorId String?  @map("created_by_actor_id") @db.Uuid
-  createIdempotencyKey String? @map("create_idempotency_key") @db.VarChar(200)
-  createRequestHash String? @map("create_request_hash") @db.Char(64)
-  createSecretEnvelope String? @map("create_secret_envelope") @db.Text
+  id                         String    @id @db.Uuid
+  organizationId             String    @map("organization_id") @db.Uuid
+  workspaceId                String?   @map("workspace_id") @db.Uuid
+  name                       String    @db.VarChar(200)
+  permissions                Json
+  status                     String    @default("ACTIVE") @db.VarChar(16)
+  secretDigest               String    @unique(map: "service_accounts_secret_digest_key") @map("secret_digest") @db.Char(64)
+  secretVersion              Int       @default(1) @map("secret_version")
+  secretIssuedAt             DateTime  @map("secret_issued_at") @db.Timestamptz(6)
+  secretExpiresAt            DateTime? @map("secret_expires_at") @db.Timestamptz(6)
+  lastUsedAt                 DateTime? @map("last_used_at") @db.Timestamptz(6)
+  createdAt                  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  revokedAt                  DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revision                   Int       @default(1)
+  createdByActorId           String?   @map("created_by_actor_id") @db.Uuid
+  createIdempotencyKey       String?   @map("create_idempotency_key") @db.VarChar(200)
+  createRequestHash          String?   @map("create_request_hash") @db.Char(64)
+  createSecretEnvelope       String?   @map("create_secret_envelope") @db.Text
   createIdempotencyExpiresAt DateTime? @map("create_idempotency_expires_at") @db.Timestamptz(6)
-  createAccountSnapshot String? @map("create_account_snapshot") @db.Text
+  createAccountSnapshot      String?   @map("create_account_snapshot") @db.Text
 
+  @@unique([organizationId, workspaceId, createdByActorId, createIdempotencyKey], map: "service_accounts_create_idempotency_key")
   @@index([organizationId, workspaceId, status], map: "service_accounts_scope_status_idx")
   @@index([secretExpiresAt, status], map: "service_accounts_expiry_status_idx")
-  @@unique([organizationId, workspaceId, createdByActorId, createIdempotencyKey], map: "service_accounts_create_idempotency_key")
   @@map("service_accounts")
   @@schema("iam")
 }
 
 /// IAM-022: email OTP challenges store digests only; never raw OTP codes.
 model IamEmailVerificationChallenge {
-  id              String    @id @db.Uuid
-  purpose         String    @db.VarChar(32)
-  admissionDigest String    @map("admission_digest") @db.Char(64)
-  codeDigest      String    @map("code_digest") @db.Char(64)
-  locale          String    @db.VarChar(16)
-  attemptCount    Int       @default(0) @map("attempt_count")
-  resendAvailableAt DateTime @map("resend_available_at") @db.Timestamptz(6)
-  issuedAt        DateTime  @map("issued_at") @db.Timestamptz(6)
-  expiresAt       DateTime  @map("expires_at") @db.Timestamptz(6)
-  status          String    @default("ACTIVE") @db.VarChar(16)
-  consumedAt      DateTime? @map("consumed_at") @db.Timestamptz(6)
-  revokedAt       DateTime? @map("revoked_at") @db.Timestamptz(6)
-  revision        Int       @default(1)
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                          String    @id @db.Uuid
+  purpose                     String    @db.VarChar(32)
+  admissionDigest             String    @map("admission_digest") @db.Char(64)
+  codeDigest                  String    @map("code_digest") @db.Char(64)
+  locale                      String    @db.VarChar(16)
+  pendingRegistrationEnvelope String?   @map("pending_registration_envelope") @db.Text
+  attemptCount                Int       @default(0) @map("attempt_count")
+  resendAvailableAt           DateTime  @map("resend_available_at") @db.Timestamptz(6)
+  issuedAt                    DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt                   DateTime  @map("expires_at") @db.Timestamptz(6)
+  status                      String    @default("ACTIVE") @db.VarChar(16)
+  consumedAt                  DateTime? @map("consumed_at") @db.Timestamptz(6)
+  activationIdempotencyKey    String?   @unique(map: "email_verification_challenges_activation_idempotency_key") @map("activation_idempotency_key") @db.VarChar(200)
+  activationRequestHash       String?   @map("activation_request_hash") @db.Char(64)
+  activationResultEnvelope    String?   @map("activation_result_envelope") @db.Text
+  activatedSessionId          String?   @map("activated_session_id") @db.Uuid
+  revokedAt                   DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revision                    Int       @default(1)
+  createdAt                   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([admissionDigest, purpose, status], map: "email_verification_challenges_admission_purpose_idx")
   @@index([expiresAt, status], map: "email_verification_challenges_expiry_status_idx")
@@ -358,17 +368,17 @@ model IamEmailVerificationChallenge {
 
 /// IAM-023: OIDC subject links are hashed provider subjects bound to a user identity.
 model IamOidcIdentityLink {
-  id                 String    @id @db.Uuid
-  userId             String    @map("user_id") @db.Uuid
-  issuer             String    @db.VarChar(256)
-  subjectDigest      String    @map("subject_digest") @db.Char(64)
-  emailDigest        String    @map("email_digest") @db.Char(64)
-  emailVerifiedAtLink Boolean  @map("email_verified_at_link")
-  linkedAt           DateTime  @map("linked_at") @db.Timestamptz(6)
-  revokedAt          DateTime? @map("revoked_at") @db.Timestamptz(6)
-  revision           Int       @default(1)
-  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                  String    @id @db.Uuid
+  userId              String    @map("user_id") @db.Uuid
+  issuer              String    @db.VarChar(256)
+  subjectDigest       String    @map("subject_digest") @db.Char(64)
+  emailDigest         String    @map("email_digest") @db.Char(64)
+  emailVerifiedAtLink Boolean   @map("email_verified_at_link")
+  linkedAt            DateTime  @map("linked_at") @db.Timestamptz(6)
+  revokedAt           DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revision            Int       @default(1)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@unique([issuer, subjectDigest], map: "oidc_identity_links_issuer_subject_key")
   @@index([userId, revokedAt], map: "oidc_identity_links_user_idx")
@@ -391,5 +401,26 @@ model WorkspaceAgentGrant {
   @@unique([organizationId, workspaceId, id], map: "workspace_agent_grants_scope_id_key")
   @@index([organizationId, workspaceId, updatedAt, id], map: "workspace_agent_grants_workspace_updated_idx")
   @@map("workspace_agent_grants")
+  @@schema("iam")
+}
+
+/// IAM-024 / DSM-018: explicit sensitive-dataset deny scope for one workspace member.
+/// The JSON array is canonicalized and strictly validated by the IAM adapter.
+model WorkspaceDatasetRestriction {
+  id               String   @id @db.Uuid
+  organizationId   String   @map("organization_id") @db.Uuid
+  workspaceId      String   @map("workspace_id") @db.Uuid
+  memberId         String   @map("member_id") @db.Uuid
+  memberScopeType  String   @default("WORKSPACE") @map("member_scope_type") @db.VarChar(24)
+  deniedDatasetIds Json     @map("denied_dataset_ids")
+  revision         Int      @default(1)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, memberId], map: "workspace_dataset_restrictions_scope_member_key")
+  @@unique([organizationId, workspaceId, memberId, memberScopeType], map: "workspace_dataset_restrictions_member_scope_key")
+  @@unique([organizationId, workspaceId, id], map: "workspace_dataset_restrictions_scope_id_key")
+  @@index([organizationId, workspaceId, updatedAt, id], map: "workspace_dataset_restrictions_workspace_updated_idx")
+  @@map("workspace_dataset_restrictions")
   @@schema("iam")
 }

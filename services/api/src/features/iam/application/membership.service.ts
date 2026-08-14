@@ -416,7 +416,9 @@ export class IamMembershipService {
     expectedRevisionInput: unknown,
   ): Promise<
     IamMembershipApplicationResultV1<
-      IamMembershipRecordV1 & { readonly accessPreset: NonNullable<ReturnType<typeof membershipAccessPresetV1>> }
+      IamMembershipRecordV1 & {
+        readonly accessPreset: NonNullable<ReturnType<typeof membershipAccessPresetV1>>;
+      }
     >
   > {
     const membershipId = parseId(membershipIdInput);

@@ -4,15 +4,7 @@ import type {
   StarterDashboardTemplateV1,
 } from './starter-dashboard.types.js';
 
-const ALLOWED_WIDGETS = new Set([
-  'KPI',
-  'TABLE',
-  'BAR',
-  'LINE',
-  'AREA',
-  'DONUT',
-  'TEXT_EVIDENCE',
-]);
+const ALLOWED_WIDGETS = new Set(['KPI', 'TABLE', 'BAR', 'LINE', 'AREA', 'DONUT', 'TEXT_EVIDENCE']);
 
 function template(
   templateId: string,
@@ -49,7 +41,11 @@ const TEMPLATES: Readonly<Record<StarterDashboardProfileV1, StarterDashboardTemp
       ['measure', 'time', 'category'],
       [
         { widgetId: 'kpi-spend', type: 'KPI', title: { vi: 'Chi tiêu', en: 'Spend' } },
-        { widgetId: 'donut-merchant', type: 'DONUT', title: { vi: 'Theo nơi bán', en: 'By merchant' } },
+        {
+          widgetId: 'donut-merchant',
+          type: 'DONUT',
+          title: { vi: 'Theo nơi bán', en: 'By merchant' },
+        },
         { widgetId: 'table-receipts', type: 'TABLE', title: { vi: 'Hóa đơn', en: 'Receipts' } },
       ],
     ),
@@ -59,7 +55,11 @@ const TEMPLATES: Readonly<Record<StarterDashboardProfileV1, StarterDashboardTemp
       [
         { widgetId: 'kpi-qty', type: 'KPI', title: { vi: 'Tồn kho', en: 'On hand' } },
         { widgetId: 'bar-sku', type: 'BAR', title: { vi: 'Theo SKU', en: 'By SKU' } },
-        { widgetId: 'table-stock', type: 'TABLE', title: { vi: 'Chi tiết tồn', en: 'Stock detail' } },
+        {
+          widgetId: 'table-stock',
+          type: 'TABLE',
+          title: { vi: 'Chi tiết tồn', en: 'Stock detail' },
+        },
       ],
     ),
     GENERIC_TABLE: template(

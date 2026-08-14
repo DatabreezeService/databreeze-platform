@@ -13,6 +13,25 @@ through adapters, so the same contracts work with managed services later.
 4. Open Mailpit at <http://localhost:8025> and MinIO Console at
    <http://localhost:9001> when you need to inspect local data.
 
+To run the usable local application instead of dependencies alone, run:
+
+```powershell
+pnpm local:services app-start
+```
+
+This one command starts the dependencies, builds the local images, applies the
+complete Prisma migration inventory in a one-shot container, and waits for the
+API and Web gateway to become healthy. Open <https://localhost:8443>; API calls
+remain on that same HTTPS origin and the API container has no published host
+port. Verification mail is captured at <http://localhost:8025>.
+
+Caddy creates a local-only certificate authority in the named
+`web-caddy-data` volume. A browser may require one explicit trust/continue step
+the first time it opens the site. Do not disable HTTPS: the production-shaped
+browser session deliberately retains `HttpOnly`, `Secure`, and `SameSite=Lax`
+cookies. The local CA and synthetic keys are development material only and
+must never be copied into a deployment.
+
 The stack is defined in [`compose.yml`](compose.yml). All state is held in
 named volumes prefixed by the Compose project name; no repository directory is
 mounted for database, object, or mail data. The volumes are disposable and are
@@ -39,6 +58,10 @@ Run these from the repository root:
 | `pnpm local:services persistence-check` | Restart Redis and verify a disposable sentinel survives. |
 | `pnpm local:services status` | Print container/health state without changing it. |
 | `pnpm local:services logs --tail=100` | Print bounded, read-only logs for known local services. |
+| `pnpm local:services app-start` | Build, migrate, start, and wait for the same-origin HTTPS API and Web profile. |
+| `pnpm local:services app-status` | Print dependency, migration, API, and Web health without changing state. |
+| `pnpm local:services app-logs --tail=100` | Print bounded migration, API, and Web logs. |
+| `pnpm local:services app-stop` | Stop API and Web while preserving dependencies, containers, and named volumes. |
 
 The older `pnpm local:smoke -- --start` form remains supported. Port collisions
 can be resolved by copying `.env.example` to `.env` and changing the host port
@@ -54,6 +77,8 @@ or free space is below the configured threshold (`--min-free-gib=N`).
 | MinIO | S3-compatible artifact and result bytes | `localhost:9000` / console `9001` |
 | Mailpit | Captures development SMTP and email previews | SMTP `localhost:1025`, UI `8025` |
 | OpenTelemetry Collector | Receives OTLP traces, metrics, and logs | OTLP gRPC `4317`, HTTP `4318` |
+| API | Durable local control plane; reachable only through the HTTPS gateway | internal `api:3000` |
+| Web gateway | Static Web SPA and same-origin API reverse proxy | `https://localhost:8443` |
 
 The PostgreSQL init script creates the module schemas only. It contains no
 credentials and runs only when the database volume is first initialized.
@@ -62,6 +87,34 @@ from the environment; it never stores them in the repository.
 The collector is a minimal image, so an adjacent curl-only health companion
 probes its health endpoint; this keeps the collector image free of a shell or
 package manager while still making readiness observable.
+
+The app profile uses the explicit `DATABREEZE_RUNTIME_PROFILE=local` API
+composition while retaining `NODE_ENV=production`. PostgreSQL and Redis remain
+durable authorities, Mailpit is the local email provider, and all application
+ports stay on the isolated Compose network except the loopback HTTPS gateway.
+
+Mailpit is the default OTP provider and captures messages at
+<http://localhost:8025>. To deliver OTPs to a real Gmail inbox during local
+testing, set `DATABREEZE_LOCAL_EMAIL_PROVIDER=gmail` in the ignored
+`infrastructure/local/.env`, set the SMTP host to `smtp.gmail.com`, port `465`,
+the Gmail account as both SMTP username and sender, and provide a Google App
+Password through `DATABREEZE_IAM_SMTP_APP_PASSWORD`. Google 2-Step Verification
+must be enabled before an App Password can be created. The API uses
+certificate-validated TLS and never accepts a normal Gmail password or
+plaintext external SMTP. Never commit `.env` or place the App Password in the
+Web bundle.
+
+The local Web image also defaults `VITE_DATABREEZE_DEMO_MODE=true` so the
+dashboard, data, and analysis routes have an immediately inspectable synthetic
+presentation dataset. The top bar labels this mode as `Bản demo cục bộ`; it is
+never enabled by the production Web Dockerfile default and must not be used as
+evidence of live customer metrics.
+Production startup validation is not relaxed or inferred from `DATABASE_URL`.
+MinIO still starts as a foundation dependency. Governed Web CSV/XLSX intake is
+available locally through the local MinIO adapter and can be exercised from
+`/vi-VN/reviews`; the cloud worker and general IAE object-transfer paths remain
+fail-closed until their production-grade local endpoint seam is approved. The
+UI must not represent those advanced paths as usable.
 
 ## Safety and troubleshooting
 

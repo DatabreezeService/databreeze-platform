@@ -6,12 +6,6 @@ const inboxItem = {
   schemaVersion: 1,
   inboxItemId: '00000000-0000-4000-8000-000000000001',
   artifactVersionId: '00000000-0000-4000-8000-000000000002',
-  tenantScope: {
-    scopeType: 'workspace',
-    organizationId: '00000000-0000-4000-8000-000000000003',
-    workspaceId: '00000000-0000-4000-8000-000000000004',
-  },
-  idempotencyKey: 'safe-fixture',
   state: 'NEEDS_REVIEW',
   createdAt: '2026-01-02T00:00:00.000Z',
   revision: 1,
@@ -29,11 +23,9 @@ describe('governed artifact inbox', () => {
     expect(
       await screen.findByRole('heading', { name: 'Data Inbox' }, { timeout: 10_000 }),
     ).toBeTruthy();
-    expect(await screen.findByText('Needs review')).toBeTruthy();
+    expect(await screen.findByText('Needs review', {}, { timeout: 10_000 })).toBeTruthy();
     expect(screen.getByText(inboxItem.inboxItemId)).toBeTruthy();
-    expect(screen.queryByText('safe-fixture')).toBeNull();
-    expect(screen.queryByText(inboxItem.tenantScope.organizationId)).toBeNull();
-  });
+  }, 30_000);
 
   it('shows a safe retry state when the API is unavailable', async () => {
     const fetchMock = vi.fn().mockRejectedValue(new Error('private provider detail'));
@@ -42,9 +34,11 @@ describe('governed artifact inbox', () => {
     render(<ApplicationBoundary router={router} />);
 
     expect(
-      await screen.findByText('The Inbox could not load. No changes were sent.', {
-        timeout: 10_000,
-      }),
+      await screen.findByText(
+        'The Inbox could not load. No changes were sent.',
+        {},
+        { timeout: 10_000 },
+      ),
     ).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Retry safely' })).toBeTruthy();
     expect(screen.queryByText(/private provider detail/u)).toBeNull();

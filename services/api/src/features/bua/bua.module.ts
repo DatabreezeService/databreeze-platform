@@ -29,6 +29,14 @@ import {
   ENTITLEMENT_REPOSITORY_PORT,
   type EntitlementRepositoryPortV1,
 } from './application/entitlement-repository.port.js';
+import {
+  RESULT_USAGE_SETTLEMENT_BINDING_REPOSITORY_PORT,
+  type ResultUsageSettlementBindingRepositoryPortV1,
+} from './application/result-usage-settlement-binding.port.js';
+import {
+  PrismaResultUsageSettlementBindingRepository,
+  type ResultUsageSettlementBindingDatabaseClientV1,
+} from './adapter/prisma-result-usage-settlement-binding-repository.adapter.js';
 import { EntitlementController } from './api/entitlement.controller.js';
 import {
   REQUEST_TENANT_CONTEXT,
@@ -40,8 +48,12 @@ export const ENTITLEMENT_ADMISSION_SERVICE = Symbol('ENTITLEMENT_ADMISSION_SERVI
 
 export interface BuaModuleOptions {
   readonly entitlementRepository?: EntitlementRepositoryPortV1;
+  /** Root composition may share the canonical service with DDA agent admission. */
+  readonly entitlementAdmissionService?: EntitlementAdmissionService;
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly entitlementDatabase?: EntitlementDatabaseClientV1;
+  readonly resultUsageSettlementBindingRepository?: ResultUsageSettlementBindingRepositoryPortV1;
+  readonly resultUsageSettlementBindingDatabase?: ResultUsageSettlementBindingDatabaseClientV1;
   readonly entitlementLeaseRepository?: EntitlementLeaseRepositoryPortV1;
   readonly entitlementLeaseDatabase?: EntitlementLeaseDatabaseClientV1;
   readonly entitlementLeaseService?:
@@ -63,7 +75,15 @@ export class BuaModule {
       (options.entitlementDatabase === undefined
         ? new InMemoryEntitlementRepositoryAdapter()
         : new PrismaEntitlementRepositoryAdapter(options.entitlementDatabase));
-    const service = new EntitlementAdmissionService(repository);
+    const service =
+      options.entitlementAdmissionService ?? new EntitlementAdmissionService(repository);
+    const resultUsageSettlementBindingRepository =
+      options.resultUsageSettlementBindingRepository ??
+      (options.resultUsageSettlementBindingDatabase === undefined
+        ? undefined
+        : new PrismaResultUsageSettlementBindingRepository(
+            options.resultUsageSettlementBindingDatabase,
+          ));
     const leaseRepository =
       options.entitlementLeaseRepository ??
       (options.entitlementLeaseDatabase === undefined
@@ -91,6 +111,10 @@ export class BuaModule {
       providers: [
         { provide: ENTITLEMENT_REPOSITORY_PORT, useValue: repository },
         { provide: ENTITLEMENT_ADMISSION_SERVICE, useValue: service },
+        {
+          provide: RESULT_USAGE_SETTLEMENT_BINDING_REPOSITORY_PORT,
+          useValue: resultUsageSettlementBindingRepository,
+        },
         { provide: ENTITLEMENT_LEASE_REPOSITORY_PORT, useValue: leaseRepository },
         { provide: ENTITLEMENT_LEASE_SERVICE, useValue: leaseService },
         {
@@ -101,6 +125,7 @@ export class BuaModule {
       exports: [
         ENTITLEMENT_REPOSITORY_PORT,
         ENTITLEMENT_ADMISSION_SERVICE,
+        RESULT_USAGE_SETTLEMENT_BINDING_REPOSITORY_PORT,
         ENTITLEMENT_LEASE_REPOSITORY_PORT,
         ENTITLEMENT_LEASE_SERVICE,
       ],

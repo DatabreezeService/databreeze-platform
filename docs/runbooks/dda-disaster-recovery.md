@@ -15,7 +15,17 @@
 
 ## Commands (owner-operated)
 
-```text
-# After restore into staging (example; adjust identifiers):
-node tools/recovery/verify-dda-restore.mjs --database-url <staging-restored-url>
+```powershell
+# After restoring into an isolated staging database, enter the URL privately.
+$restoredSecret = Read-Host 'Restored staging DATABASE_URL' -AsSecureString
+$restoredPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($restoredSecret)
+try {
+  $env:DATABREEZE_RESTORED_DATABASE_URL = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($restoredPointer)
+  node tools/recovery/verify-dda-restore.mjs --acknowledge-isolated-restored-staging
+} finally {
+  Remove-Item Env:DATABREEZE_RESTORED_DATABASE_URL -ErrorAction SilentlyContinue
+  [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($restoredPointer)
+}
 ```
+
+The verifier prints only allowlisted table counts and never prints the URL or row contents.

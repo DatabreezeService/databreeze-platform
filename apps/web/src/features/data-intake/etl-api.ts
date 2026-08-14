@@ -27,7 +27,6 @@ export type EtlProposalReviewV1 = Omit<
 
 export interface AcceptEtlProposalInputV1 {
   readonly baseUrl: string;
-  readonly tenantScope: unknown;
   readonly proposalId: string;
   readonly expectedRevision: number;
   readonly idempotencyKey: string;
@@ -187,9 +186,7 @@ export async function fetchEtlProposal(
     beforeSample: Object.freeze([] as const),
     afterSample: Object.freeze([] as const),
     counts: Object.freeze({ ...(payload['counts'] as EtlProposalReviewV1['counts']) }),
-    exclusions: Object.freeze([
-      ...(payload['exclusions'] as EtlProposalReviewV1['exclusions']),
-    ]),
+    exclusions: Object.freeze([...(payload['exclusions'] as EtlProposalReviewV1['exclusions'])]),
     unsupportedScopes: Object.freeze([
       ...(payload['unsupportedScopes'] as EtlProposalReviewV1['unsupportedScopes']),
     ]),
@@ -219,7 +216,7 @@ export function etlAcceptEnabled(input: {
   );
 }
 
-/** DDA-004/007: accept only with explicit tenant scope and evidence hashes. */
+/** DDA-004/007: accept only with server-owned tenant context and evidence hashes. */
 export async function acceptEtlProposal(
   input: AcceptEtlProposalInputV1,
 ): Promise<AcceptEtlProposalResultV1> {
@@ -228,7 +225,6 @@ export async function acceptEtlProposal(
     headers: { Accept: 'application/json', 'content-type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify({
-      tenantScope: input.tenantScope,
       proposalId: input.proposalId,
       expectedRevision: input.expectedRevision,
       idempotencyKey: input.idempotencyKey,
@@ -241,6 +237,8 @@ export async function acceptEtlProposal(
   if (response.status === 401 || response.status === 403) {
     throw new Error('ETL_ACCEPT_UNAUTHORIZED');
   }
+  if (response.status === 400) throw new Error('ETL_ACCEPT_INVALID');
+  if (response.status === 409) throw new Error('ETL_ACCEPT_CONFLICT');
   if (!response.ok) throw new Error('ETL_ACCEPT_UNAVAILABLE');
   const payload: unknown = await response.json();
   if (

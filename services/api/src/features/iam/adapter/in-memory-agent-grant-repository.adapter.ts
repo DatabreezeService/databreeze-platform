@@ -84,8 +84,16 @@ export class InMemoryAgentGrantRepositoryAdapter implements AgentGrantRepository
     memberId: StableIdentifierV1,
   ): Promise<WorkspaceDatasetRestrictionRecordV1 | undefined> {
     await Promise.resolve();
-    const key = memberKey(context, memberId);
-    if (key === undefined) return undefined;
+    const scopeKey = workspaceKey(context);
+    if (scopeKey === undefined) return undefined;
+    const epochKey: string = scopeKey;
+    const key = `${epochKey}:${memberId}`;
+    if (
+      context.workspaceAuthorizationEpoch !== undefined &&
+      (this.epochs.get(epochKey) ?? 1) !== context.workspaceAuthorizationEpoch
+    ) {
+      throw new Error('IAM_STALE_AUTHORIZATION');
+    }
     const record = this.restrictions.get(key);
     return record ? cloneRestrictions(record) : undefined;
   }
@@ -115,6 +123,13 @@ export class InMemoryAgentGrantRepositoryAdapter implements AgentGrantRepository
     const next = (this.epochs.get(key) ?? 1) + 1;
     this.epochs.set(key, next);
     return next;
+  }
+
+  public async resolveWorkspaceAuthorizationEpoch(context: IamTenantContextV1): Promise<number> {
+    await Promise.resolve();
+    const key = workspaceKey(context);
+    if (key === undefined) throw new Error('IAM_SCOPE_DENIED');
+    return this.epochs.get(key) ?? 1;
   }
 
   public async withTransaction<TValue>(

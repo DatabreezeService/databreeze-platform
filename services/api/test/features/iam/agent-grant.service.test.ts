@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
+import {
+  parseStableIdentifierV1,
+  type StableIdentifierV1,
+} from '@databreeze/domain/tenant-scope/v1';
 
 import { InMemoryAgentGrantRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-agent-grant-repository.adapter.js';
 import { InMemoryIamRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-iam-repository.adapter.js';
@@ -10,7 +13,10 @@ import {
   AGENT_LEVEL_ORDER,
   AgentGrantService,
 } from '../../../src/features/iam/application/agent-grant.service.js';
-import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
+import {
+  createIamTenantContextV1,
+  type IamTenantContextV1,
+} from '../../../src/features/iam/application/tenant-context.js';
 
 const ids = {
   organization: '00000000-0000-4000-8000-000000000701',
@@ -24,6 +30,7 @@ const ids = {
   grant: '00000000-0000-4000-8000-000000000709',
   dataset: '00000000-0000-4000-8000-00000000070a',
   restrictedDataset: '00000000-0000-4000-8000-00000000070b',
+  foreignDataset: '00000000-0000-4000-8000-00000000070c',
 };
 
 function stable(value: string) {
@@ -33,7 +40,12 @@ function stable(value: string) {
   return parsed.value;
 }
 
-function workspaceContext(actorId: string, key: string, workspaceId = ids.workspace) {
+function workspaceContext(
+  actorId: string,
+  key: string,
+  workspaceId = ids.workspace,
+  authorizationEpoch = 1,
+) {
   const result = createIamTenantContextV1({
     tenantScope: {
       scopeType: 'workspace',
@@ -43,7 +55,7 @@ function workspaceContext(actorId: string, key: string, workspaceId = ids.worksp
     actorId: stable(actorId),
     correlationId: stable(ids.correlation),
     idempotencyKey: key,
-    authorizationEpoch: 1,
+    authorizationEpoch,
   });
   assert.equal(result.accepted, true);
   if (!result.accepted) throw new Error('invalid agent grant fixture context');
@@ -100,6 +112,9 @@ function service() {
     new AccessPresetService(),
     () => ids.grant,
     () => new Date('2026-08-12T00:00:00.000Z'),
+    {
+      validate: () => Promise.resolve({ accepted: true as const }),
+    },
   );
 }
 
@@ -158,7 +173,7 @@ void test('[IAM-024] Viewer may receive ANALYZE without gaining edit permission'
   });
   assert.equal(updated.accepted, true);
   const decision = await grants.authorize({
-    context: workspaceContext(ids.viewerMember, 'viewer-analyze-use'),
+    context: workspaceContext(ids.viewerMember, 'viewer-analyze-use', ids.workspace, 2),
     memberId: ids.viewerMember,
     requestedLevel: 'ANALYZE',
     resourceIds: [ids.dataset],
@@ -179,7 +194,7 @@ void test('[IAM-024] Editor may be denied agent access with an explicit NONE gra
   });
   assert.equal(updated.accepted, true);
   const decision = await grants.authorize({
-    context: workspaceContext(ids.editorMember, 'editor-none-use'),
+    context: workspaceContext(ids.editorMember, 'editor-none-use', ids.workspace, 2),
     memberId: ids.editorMember,
     requestedLevel: 'ANALYZE',
     resourceIds: [ids.dataset],
@@ -200,7 +215,7 @@ void test('[IAM-024, DDA-060] PROPOSE_CHANGES cannot apply and APPLY still requi
   assert.equal(updated.accepted, true);
 
   const proposeApply = await grants.authorize({
-    context: workspaceContext(ids.editorMember, 'propose-apply'),
+    context: workspaceContext(ids.editorMember, 'propose-apply', ids.workspace, 2),
     memberId: ids.editorMember,
     requestedLevel: 'APPLY_CONFIRMED_CHANGES',
     resourceIds: [ids.dataset],
@@ -217,7 +232,7 @@ void test('[IAM-024, DDA-060] PROPOSE_CHANGES cannot apply and APPLY still requi
     expectedRevision: 1,
   });
   const withoutConfirmation = await grants.authorize({
-    context: workspaceContext(ids.editorMember, 'apply-no-confirm'),
+    context: workspaceContext(ids.editorMember, 'apply-no-confirm', ids.workspace, 3),
     memberId: ids.editorMember,
     requestedLevel: 'APPLY_CONFIRMED_CHANGES',
     resourceIds: [ids.dataset],
@@ -229,7 +244,7 @@ void test('[IAM-024, DDA-060] PROPOSE_CHANGES cannot apply and APPLY still requi
   assert.equal(withoutConfirmation.value.requiresConfirmation, true);
 
   const withConfirmation = await grants.authorize({
-    context: workspaceContext(ids.editorMember, 'apply-confirm'),
+    context: workspaceContext(ids.editorMember, 'apply-confirm', ids.workspace, 3),
     memberId: ids.editorMember,
     requestedLevel: 'APPLY_CONFIRMED_CHANGES',
     resourceIds: [ids.dataset],
@@ -253,12 +268,24 @@ void test('[IAM-024, DSM-018] restricted datasets return a non-enumerating denia
   );
   assert.equal(restricted.accepted, true);
   const decision = await grants.authorize({
-    context: workspaceContext(ids.editorMember, 'restrict-use'),
+    context: workspaceContext(ids.editorMember, 'restrict-use', ids.workspace, 2),
     memberId: ids.editorMember,
     requestedLevel: 'ANALYZE',
     resourceIds: [ids.restrictedDataset],
   });
   assert.deepEqual(decision, { accepted: false, code: 'NOT_FOUND' });
+
+  const projection = await grants.authorize({
+    context: workspaceContext(ids.editorMember, 'restrict-projection', ids.workspace, 2),
+    memberId: ids.editorMember,
+    requestedLevel: 'ANALYZE',
+    resourceIds: [],
+  });
+  assert.equal(projection.accepted, true);
+  if (!projection.accepted) return;
+  assert.deepEqual(projection.value.deniedDatasetIds, [stable(ids.restrictedDataset)]);
+  assert.equal(Object.keys(projection.value).includes('deniedDatasetIds'), false);
+  assert.equal(JSON.stringify(projection.value).includes(ids.restrictedDataset), false);
 });
 
 void test('[IAM-002, IAM-024] role downgrade takes effect on the next authorization decision', async () => {
@@ -303,7 +330,7 @@ void test('[IAM-002, IAM-024] role downgrade takes effect on the next authorizat
     revision: 2,
   });
   const decision = await grants.authorize({
-    context: workspaceContext(ids.editorMember, 'downgrade-use'),
+    context: workspaceContext(ids.editorMember, 'downgrade-use', ids.workspace, 2),
     memberId: ids.editorMember,
     requestedLevel: 'APPLY_CONFIRMED_CHANGES',
     resourceIds: [ids.dataset],
@@ -324,7 +351,7 @@ void test('[IAM-024] grants never expand dataset or action permission beyond the
   });
   assert.equal(updated.accepted, true);
   const decision = await grants.authorize({
-    context: workspaceContext(ids.viewerMember, 'cap-use'),
+    context: workspaceContext(ids.viewerMember, 'cap-use', ids.workspace, 2),
     memberId: ids.viewerMember,
     requestedLevel: 'APPLY_CONFIRMED_CHANGES',
     resourceIds: [ids.dataset],
@@ -335,4 +362,207 @@ void test('[IAM-024] grants never expand dataset or action permission beyond the
   assert.equal(decision.value.effectiveLevel, 'ANALYZE');
   assert.equal(decision.value.canMutateDatasets, false);
   assert.equal(decision.value.allowed, false);
+});
+
+void test('[IAM-024, DSM-018] restriction writes canonicalize once, validate targets, and reload durable truth', async () => {
+  const repository = new InMemoryAgentGrantRepositoryAdapter();
+  const targetCalls: string[][] = [];
+  const targetValidator = {
+    validate: (...args: readonly [unknown, readonly string[]]) => {
+      const datasetIds = args[1];
+      targetCalls.push([...datasetIds]);
+      return Promise.resolve({ accepted: true as const });
+    },
+  };
+  const grants = new AgentGrantService(
+    repository,
+    seedMemberships(),
+    new AccessPresetService(),
+    () => ids.grant,
+    () => new Date('2026-08-12T00:00:00.000Z'),
+    targetValidator,
+  );
+
+  const created = await grants.setDatasetRestrictions(
+    workspaceContext(ids.ownerMember, 'canonical-restrictions'),
+    {
+      memberId: ids.editorMember,
+      deniedDatasetIds: [ids.restrictedDataset, ids.dataset, ids.restrictedDataset],
+      expectedRevision: 0,
+    },
+  );
+  assert.equal(created.accepted, true);
+  if (!created.accepted) return;
+  assert.deepEqual(created.value.deniedDatasetIds, [
+    stable(ids.dataset),
+    stable(ids.restrictedDataset),
+  ]);
+  assert.deepEqual(targetCalls, [[stable(ids.dataset), stable(ids.restrictedDataset)]]);
+
+  const loaded = await grants.getDatasetRestrictions(
+    workspaceContext(ids.ownerMember, 'canonical-restrictions-read', ids.workspace, 2),
+    { memberId: ids.editorMember },
+  );
+  assert.deepEqual(loaded, {
+    accepted: true,
+    value: {
+      memberId: stable(ids.editorMember),
+      deniedDatasetIds: [stable(ids.dataset), stable(ids.restrictedDataset)],
+      revision: 1,
+    },
+  });
+});
+
+void test('[IAM-024, DSM-018] dataset target validation returns safe not-found and unavailable outcomes', async () => {
+  const memberships = seedMemberships();
+  const repository = new InMemoryAgentGrantRepositoryAdapter();
+  const notFound = new AgentGrantService(
+    repository,
+    memberships,
+    new AccessPresetService(),
+    () => ids.grant,
+    () => new Date('2026-08-12T00:00:00.000Z'),
+    {
+      validate: () => Promise.resolve({ accepted: false as const, code: 'NOT_FOUND' as const }),
+    },
+  );
+  assert.deepEqual(
+    await notFound.setDatasetRestrictions(workspaceContext(ids.ownerMember, 'target-not-found'), {
+      memberId: ids.editorMember,
+      deniedDatasetIds: [ids.restrictedDataset],
+      expectedRevision: 0,
+    }),
+    { accepted: false, code: 'NOT_FOUND' },
+  );
+
+  const unavailable = new AgentGrantService(
+    repository,
+    memberships,
+    new AccessPresetService(),
+    () => ids.grant,
+    () => new Date('2026-08-12T00:00:00.000Z'),
+    {
+      validate: () => Promise.resolve({ accepted: false as const, code: 'UNAVAILABLE' as const }),
+    },
+  );
+  assert.deepEqual(
+    await unavailable.setDatasetRestrictions(
+      workspaceContext(ids.ownerMember, 'target-unavailable'),
+      {
+        memberId: ids.editorMember,
+        deniedDatasetIds: [ids.restrictedDataset],
+        expectedRevision: 0,
+      },
+    ),
+    { accepted: false, code: 'UNAVAILABLE' },
+  );
+
+  const defaultUnavailable = new AgentGrantService(
+    repository,
+    memberships,
+    new AccessPresetService(),
+    () => ids.grant,
+    () => new Date('2026-08-12T00:00:00.000Z'),
+  );
+  assert.deepEqual(
+    await defaultUnavailable.setDatasetRestrictions(
+      workspaceContext(ids.ownerMember, 'target-default-unavailable'),
+      {
+        memberId: ids.editorMember,
+        deniedDatasetIds: [ids.restrictedDataset],
+        expectedRevision: 0,
+      },
+    ),
+    { accepted: false, code: 'UNAVAILABLE' },
+  );
+});
+
+void test('[IAM-024, DSM-018] target validation rejects foreign-workspace and deleted opaque datasets', async () => {
+  const catalog = new Set([`${ids.workspace}:${ids.dataset}`]);
+  const validator = {
+    validate: (requestContext: IamTenantContextV1, datasetIds: readonly StableIdentifierV1[]) => {
+      if (requestContext.tenantScope.scopeType !== 'workspace') {
+        return Promise.resolve({ accepted: false as const, code: 'NOT_FOUND' as const });
+      }
+      const workspaceId = requestContext.tenantScope.workspaceId;
+      return Promise.resolve(
+        datasetIds.every((datasetId) => catalog.has(`${workspaceId}:${datasetId}`))
+          ? { accepted: true as const }
+          : { accepted: false as const, code: 'NOT_FOUND' as const },
+      );
+    },
+  };
+  const grants = new AgentGrantService(
+    new InMemoryAgentGrantRepositoryAdapter(),
+    seedMemberships(),
+    new AccessPresetService(),
+    () => ids.grant,
+    () => new Date('2026-08-12T00:00:00.000Z'),
+    validator,
+  );
+  const first = await grants.setDatasetRestrictions(
+    workspaceContext(ids.ownerMember, 'target-valid'),
+    {
+      memberId: ids.editorMember,
+      deniedDatasetIds: [ids.dataset],
+      expectedRevision: 0,
+    },
+  );
+  assert.equal(first.accepted, true);
+
+  assert.deepEqual(
+    await grants.setDatasetRestrictions(workspaceContext(ids.ownerMember, 'target-foreign'), {
+      memberId: ids.editorMember,
+      deniedDatasetIds: [ids.foreignDataset],
+      expectedRevision: 1,
+    }),
+    { accepted: false, code: 'NOT_FOUND' },
+  );
+
+  catalog.delete(`${ids.workspace}:${ids.dataset}`);
+  assert.deepEqual(
+    await grants.setDatasetRestrictions(workspaceContext(ids.ownerMember, 'target-deleted'), {
+      memberId: ids.editorMember,
+      deniedDatasetIds: [ids.dataset],
+      expectedRevision: 1,
+    }),
+    { accepted: false, code: 'NOT_FOUND' },
+  );
+});
+
+void test('[IAM-024] an existing effective authority context becomes stale after restriction change', async () => {
+  const grants = service();
+  const existingSessionContext = workspaceContext(ids.editorMember, 'session-before-restriction');
+  const changed = await grants.setDatasetRestrictions(
+    workspaceContext(ids.ownerMember, 'session-restriction-change'),
+    {
+      memberId: ids.editorMember,
+      deniedDatasetIds: [ids.restrictedDataset],
+      expectedRevision: 0,
+    },
+  );
+  assert.equal(changed.accepted, true);
+
+  assert.deepEqual(
+    await grants.authorize({
+      context: existingSessionContext,
+      memberId: ids.editorMember,
+      requestedLevel: 'ANALYZE',
+      resourceIds: [],
+    }),
+    { accepted: false, code: 'STALE_AUTHORIZATION' },
+  );
+  const freshContext = workspaceContext(
+    ids.editorMember,
+    'session-after-restriction',
+    ids.workspace,
+    2,
+  );
+  const fresh = await grants.authorize({
+    context: freshContext,
+    memberId: ids.editorMember,
+    requestedLevel: 'ANALYZE',
+    resourceIds: [],
+  });
+  assert.equal(fresh.accepted, true);
 });

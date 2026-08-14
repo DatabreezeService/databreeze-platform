@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/require-await -- storage doubles mirror async ports. */
+
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import test from 'node:test';

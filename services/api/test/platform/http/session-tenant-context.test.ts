@@ -13,14 +13,23 @@ const principal = {
 };
 const correlationId = '00000000-0000-4000-8000-000000000010';
 
+function workspaceEpoch(value = principal.securityEpoch) {
+  return {
+    resolveWorkspaceAuthorizationEpoch: () => Promise.resolve(value),
+  };
+}
+
 void test('derives a workspace tenant context from a bearer session and never accepts client scope fields', async () => {
   const seen: string[] = [];
-  const adapter = new SessionRequestTenantContextAdapter({
-    findPrincipalByAccessToken: (token) => {
-      seen.push(String(token));
-      return Promise.resolve(principal);
+  const adapter = new SessionRequestTenantContextAdapter(
+    {
+      findPrincipalByAccessToken: (token) => {
+        seen.push(String(token));
+        return Promise.resolve(principal);
+      },
     },
-  });
+    workspaceEpoch(),
+  );
 
   const context = await adapter.resolve({
     id: 'request-001',
@@ -48,13 +57,17 @@ void test('derives a workspace tenant context from a bearer session and never ac
     authorizationEpoch: principal.securityEpoch,
     mfaRequired: principal.mfaRequired,
     mfaReenrollmentRequired: false,
+    workspaceAuthorizationEpoch: principal.securityEpoch,
   });
 });
 
 void test('rejects missing, ambiguous, malformed, and unknown bearer credentials', async () => {
-  const adapter = new SessionRequestTenantContextAdapter({
-    findPrincipalByAccessToken: () => Promise.resolve(undefined),
-  });
+  const adapter = new SessionRequestTenantContextAdapter(
+    {
+      findPrincipalByAccessToken: () => Promise.resolve(undefined),
+    },
+    workspaceEpoch(),
+  );
   for (const request of [
     { headers: {} },
     { headers: { authorization: ['Bearer one', 'Bearer two'] } },
@@ -69,9 +82,12 @@ void test('rejects missing, ambiguous, malformed, and unknown bearer credentials
 });
 
 void test('uses the request id for read-only calls and rejects unsafe principal state', async () => {
-  const adapter = new SessionRequestTenantContextAdapter({
-    findPrincipalByAccessToken: () => Promise.resolve({ ...principal, securityEpoch: 0 }),
-  });
+  const adapter = new SessionRequestTenantContextAdapter(
+    {
+      findPrincipalByAccessToken: () => Promise.resolve({ ...principal, securityEpoch: 0 }),
+    },
+    workspaceEpoch(),
+  );
   await assert.rejects(
     adapter.resolve({
       id: 'request-read-001',
@@ -86,10 +102,13 @@ void test('uses the request id for read-only calls and rejects unsafe principal 
 });
 
 void test('[IAM-015] carries the live recovery re-enrollment gate into protected request context', async () => {
-  const adapter = new SessionRequestTenantContextAdapter({
-    findPrincipalByAccessToken: () =>
-      Promise.resolve({ ...principal, mfaReenrollmentRequired: true }),
-  });
+  const adapter = new SessionRequestTenantContextAdapter(
+    {
+      findPrincipalByAccessToken: () =>
+        Promise.resolve({ ...principal, mfaReenrollmentRequired: true }),
+    },
+    workspaceEpoch(),
+  );
   const context = await adapter.resolve({
     method: 'GET',
     headers: { authorization: 'Bearer opaque-access-token-123456789' },
@@ -98,10 +117,13 @@ void test('[IAM-015] carries the live recovery re-enrollment gate into protected
 });
 
 void test('[IAM-005] rejects a session principal that omits the MFA re-enrollment state', async () => {
-  const adapter = new SessionRequestTenantContextAdapter({
-    findPrincipalByAccessToken: () =>
-      Promise.resolve({ ...principal, mfaReenrollmentRequired: undefined } as never),
-  });
+  const adapter = new SessionRequestTenantContextAdapter(
+    {
+      findPrincipalByAccessToken: () =>
+        Promise.resolve({ ...principal, mfaReenrollmentRequired: undefined } as never),
+    },
+    workspaceEpoch(),
+  );
   await assert.rejects(
     adapter.resolve({
       method: 'GET',
@@ -115,9 +137,12 @@ void test('[IAM-005] rejects a session principal that omits the MFA re-enrollmen
 });
 
 void test('requires an explicit idempotency key for authenticated mutations', async () => {
-  const adapter = new SessionRequestTenantContextAdapter({
-    findPrincipalByAccessToken: () => Promise.resolve(principal),
-  });
+  const adapter = new SessionRequestTenantContextAdapter(
+    {
+      findPrincipalByAccessToken: () => Promise.resolve(principal),
+    },
+    workspaceEpoch(),
+  );
 
   await assert.rejects(
     adapter.resolve({
@@ -133,9 +158,12 @@ void test('requires an explicit idempotency key for authenticated mutations', as
 });
 
 void test('reports session authority outages separately from rejected bearer credentials', async () => {
-  const adapter = new SessionRequestTenantContextAdapter({
-    findPrincipalByAccessToken: () => Promise.reject(new Error('database unavailable')),
-  });
+  const adapter = new SessionRequestTenantContextAdapter(
+    {
+      findPrincipalByAccessToken: () => Promise.reject(new Error('database unavailable')),
+    },
+    workspaceEpoch(),
+  );
   await assert.rejects(
     adapter.resolve({
       headers: { authorization: 'Bearer opaque-access-token-123456789' },
@@ -145,4 +173,22 @@ void test('reports session authority outages separately from rejected bearer cre
       return true;
     },
   );
+});
+
+void test('[IAM-024] resolves the live workspace authorization epoch on every session context request', async () => {
+  let epoch = 11;
+  const adapter = new SessionRequestTenantContextAdapter(
+    { findPrincipalByAccessToken: () => Promise.resolve(principal) },
+    { resolveWorkspaceAuthorizationEpoch: () => Promise.resolve(epoch) },
+  );
+  const request = {
+    method: 'GET',
+    headers: { authorization: 'Bearer opaque-access-token-123456789' },
+  };
+  const first = await adapter.resolve(request);
+  assert.equal(first.authorizationEpoch, principal.securityEpoch);
+  assert.equal(first.workspaceAuthorizationEpoch, 11);
+  epoch = 12;
+  const second = await adapter.resolve(request);
+  assert.equal(second.workspaceAuthorizationEpoch, 12);
 });

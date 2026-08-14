@@ -12,6 +12,7 @@ import {
 } from '../src/application/reversible-file-move.service.ts';
 
 async function createFs(root: string): Promise<ReversibleFileMoveFsV1> {
+  await Promise.resolve();
   return {
     async readBytes(relativePath) {
       return readFile(join(root, relativePath));
@@ -111,9 +112,11 @@ describe('[DSO-009][DSK-014] reversible file move', () => {
     });
     expect(committed.accepted).toBe(true);
     if (!committed.accepted) return;
-    expect(await access(join(root, 'inbox', 'a.csv')).then(() => false).catch(() => true)).toBe(
-      true,
-    );
+    expect(
+      await access(join(root, 'inbox', 'a.csv'))
+        .then(() => false)
+        .catch(() => true),
+    ).toBe(true);
     const moved = await readFile(join(root, committed.value.relativeDestination));
     expect(createHash('sha256').update(moved).digest('hex')).toBe(fingerprint);
 

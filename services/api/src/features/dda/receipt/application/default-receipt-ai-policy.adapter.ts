@@ -5,10 +5,7 @@ import {
 } from '@databreeze/domain/data-to-dashboard/policy-v1';
 import type { TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
-import type {
-  ReceiptAiPolicyPort,
-  ReceiptAiPolicyResultV1,
-} from './receipt-ai-policy.port.js';
+import type { ReceiptAiPolicyPort, ReceiptAiPolicyResultV1 } from './receipt-ai-policy.port.js';
 
 export interface ReceiptAiPolicyStoreV1 {
   getPolicy(tenantScope: TenantScopeV1): DdaAiEgressPolicyV1 | undefined;
@@ -30,7 +27,8 @@ export class DefaultReceiptAiPolicyAdapter implements ReceiptAiPolicyPort {
       return Object.freeze({ accepted: false, code: 'TENANT_REVOKED' as const });
     }
 
-    const policy = this.store?.getPolicy(input.tenantScope) ?? defaultDeniedPolicy(input.tenantScope);
+    const policy =
+      this.store?.getPolicy(input.tenantScope) ?? defaultDeniedPolicy(input.tenantScope);
     if (!input.requiresCloudEgress) {
       return Object.freeze({
         accepted: true,

@@ -16,7 +16,12 @@ Dependencies / Ph? thu?c: 010 ? 020 ? 030 ? 040 ? 050 ? 060 ? 070 ? 100/110/120/
 
 ### Task 1: IAE artifacts and evidence
 
-Primary requirements / Y?u c?u ch?nh: IAE-001, IAE-002, IAE-003, IAE-004, IAE-005, IAE-006, IAE-007, IAE-008, IAE-009, IAE-010, IAE-011, IAE-012, IAE-013, IAE-014, IAE-015, IAE-016, IAE-017, IAE-018, IAE-019, IAE-020, IAE-021
+Primary requirements / Y?u c?u ch?nh: IAE-001, IAE-002, IAE-003, IAE-004, IAE-005, IAE-006, IAE-007, IAE-008, IAE-009, IAE-010, IAE-011, IAE-012, IAE-013, IAE-014, IAE-015, IAE-016, IAE-017, IAE-018, IAE-019, IAE-020, IAE-021, IAE-022, IAE-023
+
+Production upload amendment / Bổ sung tải lên production:
+- Add the fail-closed `ArtifactUploadAdmissionPortV1` and compose it only at the root from IAM authorization, exact IAE intake/version authority, current DSO Workspace policy, and quota policy.
+- Publish additive unpublished v4 upload-create and part-transfer request/accepted contracts; preserve published v1-v3 bytes.
+- Implement serializable revision CAS, `OPEN -> FINALIZING -> COMPLETED`, exact-version quarantined S3 reconciliation, 8-64 MiB parts, 20 GiB maximum objects, ListParts pagination, and concurrent-part tests.
 
 Paths / ???ng d?n:
 - services/api/src/features/artifacts-datasets-evidence/{domain,application,adapter,api}/

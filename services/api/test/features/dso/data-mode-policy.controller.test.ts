@@ -30,14 +30,14 @@ function jsonObject(response: { json(): unknown }): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-void test('[DSO-008, DSO-026] HTTP data-mode policy endpoints derive tenant scope from the caller', async () => {
+void test('[DSO-008, DSO-018, DSO-026] HTTP data-mode policy surface is read-only until guarded activation', async () => {
   const tenantContext = context();
   const requestTenantContext: RequestTenantContextPortV1 = {
     resolve: () => Promise.resolve(tenantContext),
   };
   const { app } = await createApiApplication({ requestTenantContext });
   try {
-    const published = await app.inject({
+    const legacyPublish = await app.inject({
       method: 'POST',
       url: '/v1/data-mode-policies',
       payload: {
@@ -58,14 +58,13 @@ void test('[DSO-008, DSO-026] HTTP data-mode policy endpoints derive tenant scop
         publishedAt: '2026-01-01T00:00:00.000Z',
       },
     });
-    assert.equal(published.statusCode, 200);
-    assert.equal(jsonObject(published)['accepted'], true);
+    assert.equal(legacyPublish.statusCode, 404);
     const listed = await app.inject({ method: 'GET', url: `/v1/data-mode-policies/${policyId}` });
     assert.equal(listed.statusCode, 200);
     const listedBody = jsonObject(listed);
     const listedValue = listedBody['value'];
     assert.ok(Array.isArray(listedValue));
-    assert.equal(listedValue.length, 1);
+    assert.equal(listedValue.length, 0);
   } finally {
     await app.close();
   }

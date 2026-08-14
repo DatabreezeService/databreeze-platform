@@ -9,9 +9,9 @@ import {
 } from '@nestjs/swagger';
 
 import {
-  IAM_REGISTRATION_SERVICE,
-  type RegistrationService,
-} from '../application/registration.service.js';
+  EmailVerificationService,
+  IAM_EMAIL_VERIFICATION_SERVICE,
+} from '../application/email-verification.service.js';
 import {
   IAM_REGISTRATION_EMAIL_ADMISSION,
   IAM_REGISTRATION_IP_ADMISSION,
@@ -31,14 +31,14 @@ function requestIp(request: unknown): string {
   return normalized.length > 0 && normalized.length <= 128 ? normalized : 'unknown';
 }
 
-/** IAM-001/IAM-009: account registration creates a safe personal hierarchy without a session. */
+/** IAM-022: request protected email verification without disclosing account existence. */
 @ApiTags('auth')
 @Controller('v1/auth')
 export class RegistrationController {
   public constructor(
     @Optional()
-    @Inject(IAM_REGISTRATION_SERVICE)
-    private readonly registration: RegistrationService | undefined,
+    @Inject(IAM_EMAIL_VERIFICATION_SERVICE)
+    private readonly registration: EmailVerificationService | undefined,
     @Optional()
     @Inject(IAM_REGISTRATION_IP_ADMISSION)
     private readonly ipAdmission?: RegistrationAdmissionPortV1,
@@ -54,7 +54,7 @@ export class RegistrationController {
   @HttpCode(202)
   @ApiOperation({
     summary: 'Create an account and personal organization hierarchy',
-    description: 'Registration does not return bearer material; sign in separately after creation.',
+    description: 'Always returns an opaque OTP challenge when admission and delivery succeed.',
   })
   @ApiBody({ type: RegistrationDto })
   @ApiAcceptedResponse({ type: RegistrationResponseDto })
@@ -106,14 +106,14 @@ export class RegistrationController {
       if (!admitted) throw new RegistrationProblemError('REGISTRATION_REQUEST_REJECTED');
     }
 
-    const result = await this.registration.register(input);
+    const result = await this.registration.requestEmailVerification({ ...input, clientPlatform: 'web' });
     if (!result.accepted) {
       throw new RegistrationProblemError(
-        result.code === 'REGISTRATION_UNAVAILABLE'
+        result.code === 'VERIFICATION_UNAVAILABLE'
           ? 'REGISTRATION_UNAVAILABLE'
           : 'REGISTRATION_REQUEST_REJECTED',
       );
     }
-    return { accepted: true };
+    return { schemaVersion: 4, accepted: true, value: result.value };
   }
 }

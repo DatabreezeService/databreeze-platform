@@ -28,6 +28,20 @@ output "ecs_cluster" {
   value = module.compute.cluster_arn
 }
 
+output "artifact_bucket" {
+  value = module.data.artifact_bucket_name
+}
+
+output "api_load_balancer_dns_name" {
+  description = "Content-safe public API load balancer DNS name for reviewed DNS and TLS smoke checks."
+  value       = module.compute.api_load_balancer_dns_name
+}
+
+output "api_https_listener_arn" {
+  description = "Content-safe public API HTTPS listener ARN for deployment evidence."
+  value       = module.compute.api_https_listener_arn
+}
+
 output "github_deploy_role" {
   value = module.security.github_deploy_role_arn
 }

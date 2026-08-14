@@ -5,6 +5,7 @@ import {
   CSRF_COOKIE_NAME_V1,
   COOKIE_LIMITS_V1,
   REFRESH_COOKIE_NAME_V1,
+  REFRESH_COOKIE_PATH_V1,
   clearCookieV1,
   readCookieValueV1,
   serializeCookieV1,
@@ -143,5 +144,24 @@ void test('creates deletion cookies without weakening the original security attr
   assert.equal(
     clearCookieV1(CSRF_COOKIE_NAME_V1, { httpOnly: false }),
     `${CSRF_COOKIE_NAME_V1}=; Max-Age=0; Path=/; Secure; SameSite=Lax`,
+  );
+});
+
+void test('[IAM-023] refresh cookies are scoped to the route family that rotates and revokes them', () => {
+  assert.equal(REFRESH_COOKIE_PATH_V1, '/v1/auth');
+  assert.match(
+    serializeCookieV1(REFRESH_COOKIE_NAME_V1, refreshToken, {
+      httpOnly: true,
+      maxAgeSeconds: 2_592_000,
+      path: REFRESH_COOKIE_PATH_V1,
+    }),
+    /Path=\/v1\/auth;/u,
+  );
+  assert.match(
+    clearCookieV1(REFRESH_COOKIE_NAME_V1, {
+      httpOnly: true,
+      path: REFRESH_COOKIE_PATH_V1,
+    }),
+    /Path=\/v1\/auth;/u,
   );
 });

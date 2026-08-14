@@ -13,18 +13,13 @@ describe('Desktop V2 workbench tabs', () => {
     ];
 
     const { rerender } = render(
-      <WorkbenchTabs
-        activeTabId="tab-dataset"
-        locale="vi-VN"
-        onChange={onChange}
-        tabs={tabs}
-      />,
+      <WorkbenchTabs activeTabId="tab-dataset" locale="vi-VN" onChange={onChange} tabs={tabs} />,
     );
 
     const tablist = screen.getByRole('tablist', { name: 'Thẻ bàn làm việc' });
-    expect(within(tablist).getByRole('tab', { name: 'Chi phi Q1' }).getAttribute('aria-selected')).toBe(
-      'true',
-    );
+    expect(
+      within(tablist).getByRole('tab', { name: 'Chi phi Q1' }).getAttribute('aria-selected'),
+    ).toBe('true');
 
     await user.click(within(tablist).getByRole('tab', { name: 'Hoa don 12' }));
     expect(onChange).toHaveBeenCalledWith({

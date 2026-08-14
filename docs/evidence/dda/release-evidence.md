@@ -13,7 +13,7 @@
 | Android upload/extraction | `:app:testDebugUnitTest` (focused receipt tests), `:app:lintDebug`, `:app:assembleDebug` | Pass |
 | Android emulator journey | `:app:connectedDebugAndroidTest` | **Blocked** — no emulator/device attached (AVD `Medium_Phone` exists; adb device list empty) |
 | Offline OpenAI eval | plan 402 Task 8 / `openai-receipt-evaluation.md` | Offline green; live quality 0/6; not promotable |
-| Restore verifier | `node tools/recovery/verify-dda-restore.mjs` | Exit 2 blocked without owner `--database-url` |
+| Restore verifier | `node tools/recovery/verify-dda-restore.mjs --fixture-only` | Offline checklist passes; live verifier is environment-only and awaits an isolated owner-restored staging database |
 | OpenTofu apply | — | Never run |
 | OpenTofu validate | `corepack pnpm infra:validate` | **Blocked here** — Docker CLI present but daemon `dockerDesktopLinuxEngine` not running |
 

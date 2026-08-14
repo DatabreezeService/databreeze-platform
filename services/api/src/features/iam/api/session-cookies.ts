@@ -10,6 +10,7 @@ export const COOKIE_LIMITS_V1 = Object.freeze({
 
 export const REFRESH_COOKIE_NAME_V1 = 'databreeze_refresh';
 export const CSRF_COOKIE_NAME_V1 = 'databreeze_csrf';
+export const REFRESH_COOKIE_PATH_V1 = '/v1/auth';
 
 export interface CookieOptionsV1 {
   readonly httpOnly: boolean;
@@ -27,7 +28,7 @@ function validCookieValueV1(value: string): boolean {
 
 function cookiePathV1(path: string | undefined): string {
   if (path === undefined || path === '/') return '/';
-  if (path === '/api/iam/session') return path;
+  if (path === REFRESH_COOKIE_PATH_V1) return path;
   throw new Error('Cookie path is invalid');
 }
 

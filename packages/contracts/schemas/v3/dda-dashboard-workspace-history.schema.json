@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v3/dda-dashboard-workspace-history",
+  "$comment": "DDA-020, DDA-043, DDA-045: permission-safe workspace history metadata without source content.",
+  "title": "DDA Dashboard Workspace History",
+  "description": "A bounded, content-safe history page for authorized dashboard and analysis subjects. It carries no source path, source bytes, prompts, result rows, or evidence content.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "items"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 3
+    },
+    "items": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "$ref": "#/$defs/historyEntry"
+      }
+    },
+    "nextCursor": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    }
+  },
+  "$defs": {
+    "historyLocalizedText": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vi",
+        "en"
+      ],
+      "properties": {
+        "vi": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "en": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      }
+    },
+    "historyEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "subjectId",
+        "title",
+        "updatedAt"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "pattern": "^(ANALYSIS|DASHBOARD)$"
+        },
+        "subjectId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "title": {
+          "$ref": "#/$defs/historyLocalizedText"
+        },
+        "updatedAt": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+        },
+        "safeStatus": {
+          "type": "string",
+          "pattern": "^(CURRENT|STALE|BLOCKED)$"
+        }
+      }
+    }
+  }
+}

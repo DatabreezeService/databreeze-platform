@@ -3,7 +3,7 @@
 | Metadata | Value |
 |---|---|
 | Status | Product specification |
-| Version | 1.1 |
+| Version | 1.4 |
 | Requirement prefix | `IAE` |
 | Dependencies | `IAM` Identity, Workspaces, and Permissions |
 
@@ -110,6 +110,9 @@ Deletion is a distinct IAE-owned authorized workflow. Effective deletion eligibi
 | IAE-019 | P0 | Resolving evidence whose source is `LOCAL` shall return an open-on-source-device descriptor or `SOURCE_OFFLINE`; another Device receives content only through a verified DSO-025 user-mediated offline package that creates its own `DEVICE_LOCAL` placement or through explicit publication as a governed derived artifact, never through an implicit live-render relay. |
 | IAE-020 | P0 | An ArtifactVersion or DatasetSnapshot shall support zero or more typed content placements across authorized devices and cloud objects; availability shall be derived from verified placements rather than one mutable storage class or locator. |
 | IAE-021 | P0 | IAE shall alone determine authoritative deletion eligibility from the Workspace retention minimum, resource/module retention constraints, evidence/report lineage, active approvals, legal holds, AUD retention class, and recovery window; features shall never delete IAE bytes directly, and local cache cleanup shall not represent authoritative retention or deletion. |
+| IAE-022 | P0 | Cloud-upload session creation and every part-transfer grant shall pass a server-owned `ArtifactUploadAdmissionPortV1` decision that re-evaluates active IAM membership and upload permission, binds one exact existing InboxItem and ArtifactVersion in the authenticated TenantScope, resolves the current DSO Workspace policy, rejects `LOCAL` and any policy that disallows `ORIGINAL_CONTENT` plus `CLOUD_OBJECT`, and applies server-owned session identifiers, timestamps, expiry, 8-64 MiB part policy, media allow-list, 20 GiB object limit, and current Workspace quota. Clients may declare content hash, byte length, media type, intake identifier, and requested part size only; they shall never assert policy, data mode, quota, artifact identity, authorization epoch, or session lifetime. |
+| IAE-023 | P0 | Cloud-upload finalization shall use revision-CAS transitions `OPEN -> FINALIZING -> COMPLETED`. Object-store multipart completion shall produce a non-authoritative quarantined exact object version; a separate idempotent reconciliation step shall verify full SHA-256 and byte length and atomically persist the opaque locator plus exact object version with `COMPLETED`. A retry after object completion and before database completion shall reconcile rather than duplicate or expose the object. Ordinary concurrent part revisions shall not abort the whole multipart upload; terminal session transitions revoke or expire only the applicable grants before governed cleanup. |
+| IAE-024 | P0 | A worker result shall remain non-authoritative until IAE verifies an attempt-bound `JOB_OUTPUT` transfer receipt against the current signed capability, exact TenantScope, worker security epoch, attempt, execution descriptor, declared output object/media/byte policy, SHA-256, byte length, source lineage, and expiry. Before capability issuance, an IAE-owned authority shall derive the exact output Artifact, ArtifactVersion, placement and lineage IDs from server-owned prepared-result authority, including authoritative source ArtifactVersion IDs, processor version, data mode, payload class and policy/lineage hashes; none of those bindings may be supplied or widened by worker output, request bodies or storage metadata. The internal transfer/finalization boundary shall derive worker identity, TenantScope and security epoch from the service-account bearer and may resolve only a MAC-authenticated opaque capability reference, never a worker-supplied capability ID. Successful verification shall idempotently finalize one immutable `DERIVED` or `APPROVED_DERIVED_RESULT` ArtifactVersion plus typed lineage and return a content-free attestation reference. Reuse of the same submission with identical bytes and bindings shall replay the exact attestation; changed reuse, an expired or superseded attempt, missing receipt, or any binding mismatch shall fail closed. Prepared or transferred objects without a finalized attestation are non-authoritative and shall be quarantined and cleaned up under JRA-021. |
 
 ## Domain and data contracts
 
@@ -190,6 +193,7 @@ Supported transform types are `IDENTITY`, `PAGE_RENDER`, `OCR_SPAN`, `SHEET_CELL
 - Artifact access is evaluated against workspace, project, retention state, version, requested representation, and action.
 - Original download is a separate permission from preview, derived-output read, evidence view, and export.
 - Signed object URLs expire within five minutes, bind one object and disposition, and are issued only after authorization; object storage is not publicly listable.
+- Upload-part URLs expire within five minutes, bind one session, exact part number, exact byte length, and exact SHA-256 checksum. Grant records are durable and revalidated before a part is recorded. A grant issued while the same session remains `OPEN` is not invalidated only because another verified part advanced the session revision.
 - Local storage locators are opaque device handles encrypted for that device. Cloud services do not receive raw Windows paths.
 - File names, OCR text, extracted values, thumbnails, and evidence snippets are sensitive content and are excluded from general logs, analytics, notification payloads, and malware alerts.
 - Safe preview isolates active content, macros, embedded scripts, external links, and formula execution. DataBreeze does not execute document macros.
@@ -202,6 +206,7 @@ Supported transform types are `IDENTITY`, `PAGE_RENDER`, `OCR_SPAN`, `SHEET_CELL
 - In `LOCAL` mode, losing the sole device may make original bytes unrecoverable. The product must show this state and offer user-controlled backup/export, never imply cloud recovery.
 - If metadata commits but outbox delivery is delayed, an outbox relay republishes the event; consumers deduplicate by event ID.
 - If object upload succeeds but database finalization fails, the unreferenced object is quarantined and garbage-collected after reconciliation.
+- Finalization reconciliation is idempotent across process restarts. It addresses one exact versioned object, never deletes a bucket key without a version identifier after completion, and removes upload/transfer control records only after the database owns the verified locator or terminal cleanup is durable.
 - Evidence resolution failures return stable reasons: `SOURCE_OFFLINE`, `SOURCE_REVOKED`, `VERSION_DELETED`, `COORDINATE_STALE`, or `ACCESS_DENIED`. They do not silently jump to another version.
 - Restored databases reconcile object manifests by ID, length, and hash before objects become downloadable.
 
@@ -235,6 +240,8 @@ Events contain identifiers and safe classification metadata, not source text or 
 - Intake adapters implement `inspect`, `stage`, `finalize`, and `abort` and declare whether they can transmit original bytes.
 - Media processors emit a versioned extraction schema plus EvidenceReferences and lineage edges.
 - Storage adapters implement immutability, range read, digest verification, retention, and verified deletion.
+- `ArtifactUploadAdmissionPortV1` is the only cloud-upload admission seam. Root composition supplies it from IAM authorization, exact IAE intake/version authority, current DSO Workspace policy, and quota policy. It exposes no feature persistence and fails closed when any authority is unavailable.
+- Upload persistence implements revision CAS in a serializable transaction. Finalization persists `FINALIZING` before external multipart completion and supports idempotent reconciliation of an exact versioned quarantined object into an opaque verified placement locator.
 - Evidence coordinate types are versioned tagged unions; unknown types remain storable and return an unsupported-render response instead of being discarded.
 
 ## Performance and capacity budgets
@@ -261,7 +268,7 @@ Events contain identifiers and safe classification metadata, not source text or 
 - Local-mode network-capture tests prove original bytes, previews, OCR/transcripts, row/cell values, thumbnails, source snippets, and local paths never leave the device unless the user explicitly publishes an allowed derived output.
 - Tenant-isolation tests cover metadata, hashes, upload sessions, signed URLs, preview tiles, evidence, exports, and deletion requests.
 - Retention-layering tests prove a feature cannot shorten the Workspace minimum or bypass lineage, approval, legal hold, AUD class, or recovery window; local cache cleanup leaves canonical retention and other placements unchanged.
-- Resumable-upload tests interrupt every part boundary, retry finalization, corrupt checksums, and verify one final ArtifactVersion.
+- Resumable-upload tests interrupt every part boundary and every `OPEN -> FINALIZING -> COMPLETED` boundary, retry finalization after object completion, race concurrent part revisions, corrupt checksums, exercise ListParts pagination, and verify one exact versioned final object plus one final ArtifactVersion.
 - Source-change tests prove old evidence remains bound to the old version and affected outputs become stale.
 - Malware and active-content tests prove quarantine and safe-preview isolation.
 - Acceptance requires a report value to navigate to the exact source coordinate on an authorized surface or return an explicit resolution reason. For Local evidence, a non-source client can request Open on Source Device but receives no rendered content through the control plane.

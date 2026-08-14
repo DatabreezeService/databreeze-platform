@@ -11,6 +11,10 @@ import { DeviceSyncAuthorizationAdapter } from '../../../src/features/dso/adapte
 import { DATA_MODE_POLICY_REPOSITORY_PORT } from '../../../src/features/dso/application/data-mode-policy-repository.port.js';
 import { PrismaDataModePolicyRepositoryAdapter } from '../../../src/features/dso/adapter/prisma-data-mode-policy-repository.adapter.js';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
+import {
+  UnavailableWorkspaceDataModePolicyActivationUseCase,
+  WORKSPACE_DATA_MODE_POLICY_ACTIVATION_USE_CASE,
+} from '../../../src/features/dso/application/workspace-data-mode-policy-activation.port.js';
 
 function provider(module: ReturnType<typeof DsoModule.register>, token: symbol): unknown {
   const match = module.providers?.find(
@@ -59,6 +63,14 @@ void test('[DSO-008, DSO-026] production DSO composition selects durable data-mo
   assert.ok(
     provider(registered, DATA_MODE_POLICY_REPOSITORY_PORT) instanceof
       PrismaDataModePolicyRepositoryAdapter,
+  );
+});
+
+void test('[DSO-018/026/027] database storage alone never enables policy activation', () => {
+  const registered = DsoModule.register({ dataModePolicyDatabase: {} as never });
+  assert.ok(
+    provider(registered, WORKSPACE_DATA_MODE_POLICY_ACTIVATION_USE_CASE) instanceof
+      UnavailableWorkspaceDataModePolicyActivationUseCase,
   );
 });
 

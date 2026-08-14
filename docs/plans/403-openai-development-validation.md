@@ -27,7 +27,7 @@ Cursor must finish the offline contract and safety work first. The owner then ru
 - Execute from `codex/dda-400-production` at `480eb8b` or a descendant. Do not restart plans 081-087.
 - Do not run this plan until plan 402 Tasks 1-3 have fresh passing evidence. Focused work may use an isolated branch/worktree, but integration still requires the clean baseline.
 - Never accept a key through Cursor chat, Codex chat, a patch, a test, `.env`, `.env.local`, `local.properties`, source control, fixture metadata, logs, screenshots, or reports.
-- Local live evaluation reads `OPENAI_API_KEY` only from the manually launched server/evaluator process. Production continues to use `databreeze/{env}/openai/receipt-ocr` in AWS Secrets Manager.
+- Local live evaluation reads `OPENAI_API_KEY` only from the manually launched server/evaluator process. Production uses the shared server-only `databreeze/{env}/openai/api-key` secret in AWS Secrets Manager.
 - Do not put `OPENAI_API_KEY` in Web, Desktop, Android, Vite, Electron renderer, Gradle, generated contracts, or any API response.
 - Standard unit, integration, E2E, and CI commands must never make a live OpenAI request. Live mode requires an explicit `--live`, an approved synthetic manifest, a request cap, and a separate acknowledgement flag.
 - Use a dedicated development/evaluation OpenAI project and project service account with low spend/rate limits. Do not use a personal all-project key or the future production key.

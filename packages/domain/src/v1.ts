@@ -6,6 +6,7 @@ export * from './artifact-governance/v1.js';
 export * from './artifact-retention/v1.js';
 export * from './artifact-export/v1.js';
 export * from './artifact-upload/v1.js';
+export * from './artifact-processing-content/v1.js';
 export * from './protected-document/v1.js';
 export * from './dataset/v1.js';
 export * from './dataset-governance/v1.js';

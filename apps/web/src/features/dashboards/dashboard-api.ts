@@ -1,6 +1,7 @@
 export interface DashboardDraftFixtureV1 {
   readonly dashboardId: string;
   readonly versionId: string;
+  readonly revision?: number;
   readonly pages: readonly {
     readonly pageId: string;
     readonly title: { readonly vi: string; readonly en: string };
@@ -27,6 +28,10 @@ export interface DashboardLiveConfigurationV1 {
   readonly dashboardId: string;
 }
 
+export interface DashboardApiBaseConfigurationV1 {
+  readonly baseUrl: string;
+}
+
 type DashboardEnvironment = Readonly<Record<string, unknown>>;
 
 function configuredString(environment: DashboardEnvironment, key: string): string | undefined {
@@ -38,14 +43,25 @@ function configuredString(environment: DashboardEnvironment, key: string): strin
 /** DDA-020: only load live dashboard data with an explicit governed target. */
 export function dashboardLiveConfiguration(
   environment: DashboardEnvironment = import.meta.env,
+  dashboardIdOverride?: string,
 ): DashboardLiveConfigurationV1 | undefined {
   const apiBaseUrl = configuredString(environment, 'VITE_DATABREEZE_API_BASE_URL');
-  const dashboardId = configuredString(environment, 'VITE_DATABREEZE_DASHBOARD_ID');
+  const dashboardId =
+    dashboardIdOverride ?? configuredString(environment, 'VITE_DATABREEZE_DASHBOARD_ID');
   if (apiBaseUrl === undefined || dashboardId === undefined) return undefined;
   return Object.freeze({
     baseUrl: apiBaseUrl.replace(/\/$/u, ''),
     dashboardId,
   });
+}
+
+export function dashboardApiBaseConfiguration(
+  environment: DashboardEnvironment = import.meta.env,
+): DashboardApiBaseConfigurationV1 | undefined {
+  const apiBaseUrl = configuredString(environment, 'VITE_DATABREEZE_API_BASE_URL');
+  return apiBaseUrl === undefined
+    ? undefined
+    : Object.freeze({ baseUrl: apiBaseUrl.replace(/\/$/u, '') });
 }
 
 export function dashboardDemoMode(environment: DashboardEnvironment = import.meta.env): boolean {
@@ -64,7 +80,9 @@ function isDashboardDraft(value: unknown): value is DashboardDraftFixtureV1 {
   if (
     !isRecord(value) ||
     typeof value['dashboardId'] !== 'string' ||
-    typeof value['versionId'] !== 'string'
+    typeof value['versionId'] !== 'string' ||
+    (value['revision'] !== undefined &&
+      (!Number.isInteger(value['revision']) || (value['revision'] as number) < 1))
   )
     return false;
   if (
@@ -133,31 +151,28 @@ export async function fetchDashboardDraft(
 }
 
 /** Accept creates a draft only; publication remains a separate authorized action (DDA-024). */
-export async function acceptDashboardProposal(input: {
+export function acceptDashboardProposal(input: {
   readonly proposalId: string;
   readonly dashboardId: string;
 }): Promise<{ readonly draftOnly: true; readonly versionId: string }> {
   void input;
-  return Object.freeze({
-    draftOnly: true as const,
-    versionId: '00000000-0000-4000-8000-000000000011',
-  });
+  return Promise.resolve(
+    Object.freeze({
+      draftOnly: true as const,
+      versionId: '00000000-0000-4000-8000-000000000011',
+    }),
+  );
 }
 
 export interface PublishDashboardSnapshotInputV1 {
   readonly baseUrl: string;
   readonly dashboardId: string;
   readonly versionId: string;
-  readonly audience: 'OWNER' | 'WORKSPACE_VIEWERS' | 'PROJECT_VIEWERS' | 'SHARED_LINK';
+  readonly audience: 'OWNER' | 'WORKSPACE_VIEWERS' | 'PROJECT_VIEWERS';
   readonly materializationIds: readonly string[];
   readonly permissionProjectionVersionId: string;
   readonly expectedRevision: number;
   readonly idempotencyKey: string;
-  readonly context: {
-    readonly organizationId: string;
-    readonly workspaceId: string;
-    readonly projectId?: string;
-  };
   readonly signal?: AbortSignal;
 }
 
@@ -175,7 +190,6 @@ export async function publishDashboardSnapshot(
     headers: { Accept: 'application/json', 'content-type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify({
-      context: input.context,
       dashboardId: input.dashboardId,
       versionId: input.versionId,
       audience: input.audience,

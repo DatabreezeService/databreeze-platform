@@ -28,7 +28,9 @@ describe('build-time governed navigation', () => {
     });
     render(<ApplicationBoundary router={router} />);
 
-    expect(await screen.findByRole('link', { name: 'Dashboards' })).toBeTruthy();
+    const navigation = await screen.findByRole('navigation', { name: 'Primary navigation' });
+    expect(navigation.classList.contains('application-rail')).toBe(true);
+    expect(screen.getByRole('link', { name: 'Dashboards' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Analysis' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Data' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'Jobs' })).toBeNull();

@@ -1,7 +1,9 @@
 import {
-  parseStableIdentifierV1,
-  parseStrictUtcTimestampV1,
-} from '@databreeze/domain/tenant-scope/v1';
+  hasOnlyKeysBrowser,
+  isRecordBrowser,
+  parseStableIdentifierBrowser,
+  parseStrictUtcTimestampBrowser,
+} from '../../lib/browser-validation.ts';
 
 const inboxStates = [
   'NEW',
@@ -30,11 +32,23 @@ function apiBaseUrl(): string {
 }
 
 function parseInboxItem(input: unknown): InboxListItem | undefined {
-  if (typeof input !== 'object' || input === null || Array.isArray(input)) return undefined;
-  const item = input as Record<string, unknown>;
-  const inboxItemId = parseStableIdentifierV1(item['inboxItemId']);
-  const artifactVersionId = parseStableIdentifierV1(item['artifactVersionId']);
-  const createdAt = parseStrictUtcTimestampV1(item['createdAt']);
+  if (
+    !isRecordBrowser(input) ||
+    !hasOnlyKeysBrowser(input, [
+      'schemaVersion',
+      'inboxItemId',
+      'artifactVersionId',
+      'state',
+      'createdAt',
+      'revision',
+    ]) ||
+    input['schemaVersion'] !== 1
+  )
+    return undefined;
+  const item = input;
+  const inboxItemId = parseStableIdentifierBrowser(item['inboxItemId']);
+  const artifactVersionId = parseStableIdentifierBrowser(item['artifactVersionId']);
+  const createdAt = parseStrictUtcTimestampBrowser(item['createdAt']);
   if (!inboxItemId.accepted || !artifactVersionId.accepted || !createdAt.accepted) return undefined;
   if (!inboxStates.includes(item['state'] as InboxState)) return undefined;
   if (

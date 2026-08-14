@@ -37,8 +37,8 @@
 
 | Area | Files | Responsibility |
 |---|---|---|
-| Generated contracts | `packages/contracts/schemas/v1/dda-dashboard-chart-proposal.schema.json`, `dda-dashboard-authoring-command.schema.json`, `dda-dashboard-workspace-history.schema.json` | Bounded proposal, explicit authoring command, and permission-safe history payloads shared by API and clients. |
-| Contract fixtures/generation | `packages/contracts/manifest.json`, `packages/contracts/package.json`, `packages/contracts/test/schemas.test.mjs`, `packages/test-fixtures/contracts/v1/**`, generated TypeScript/Python/Kotlin outputs and compatibility baseline | Prove schema bounds, hostile-input rejection, and cross-runtime parity. |
+| Generated contracts | `packages/contracts/schemas/v3/dda-dashboard-chart-proposal.schema.json`, `dda-dashboard-authoring-command.schema.json`, `dda-dashboard-workspace-history.schema.json` | Bounded proposal, explicit authoring command, and permission-safe history payloads shared by API and clients. |
+| Contract fixtures/generation | `packages/contracts/manifest.json`, `packages/contracts/package.json`, `packages/contracts/test/schemas.test.mjs`, `packages/test-fixtures/contracts/v3/**`, generated TypeScript/Python/Kotlin outputs and reviewed v3 compatibility baseline | Prove schema bounds, hostile-input rejection, and cross-runtime parity. |
 | Proposal/history persistence | `services/api/prisma/schema/dda.prisma`, additive migration, `dashboard-proposal-repository.port.ts`, Prisma/in-memory adapters, `dashboard-workspace-history.*` | Store proposal metadata and return scoped, reauthorized history without source content. |
 | Proposal API | `dashboard-proposal.controller.ts`, `dashboard-proposal.dto.ts`, `dashboard-proposal.service.ts`, `dashboard-proposal-context.port.ts` | Resolve authorized context server-side and return two to four compatible preview-only alternatives. |
 | Version mutation API | `dashboard-draft.service.ts`, `dashboard-draft.controller.ts`, `dashboard.dto.ts`, repository adapters | Accept selected proposal options or bounded manual layout commands into a new immutable parented version with concurrency and idempotency. |
@@ -57,25 +57,25 @@
 
 **Files:**
 
-- Create: `packages/contracts/schemas/v1/dda-dashboard-chart-proposal.schema.json`
-- Create: `packages/contracts/schemas/v1/dda-dashboard-authoring-command.schema.json`
-- Create: `packages/contracts/schemas/v1/dda-dashboard-workspace-history.schema.json`
-- Create: `packages/test-fixtures/contracts/v1/payloads/dda-dashboard-chart-proposal/valid.json`
-- Create: `packages/test-fixtures/contracts/v1/payloads/dda-dashboard-chart-proposal/invalid-authoritative-value.json`
-- Create: `packages/test-fixtures/contracts/v1/payloads/dda-dashboard-authoring-command/valid-accept.json`
-- Create: `packages/test-fixtures/contracts/v1/payloads/dda-dashboard-authoring-command/invalid-publish.json`
-- Create: `packages/test-fixtures/contracts/v1/payloads/dda-dashboard-workspace-history/valid.json`
-- Create: `packages/test-fixtures/contracts/v1/payloads/dda-dashboard-workspace-history/invalid-source-content.json`
+- Create: `packages/contracts/schemas/v3/dda-dashboard-chart-proposal.schema.json`
+- Create: `packages/contracts/schemas/v3/dda-dashboard-authoring-command.schema.json`
+- Create: `packages/contracts/schemas/v3/dda-dashboard-workspace-history.schema.json`
+- Create: `packages/test-fixtures/contracts/v3/payloads/dda-dashboard-chart-proposal/valid.json`
+- Create: `packages/test-fixtures/contracts/v3/payloads/dda-dashboard-chart-proposal/invalid-authoritative-value.json`
+- Create: `packages/test-fixtures/contracts/v3/payloads/dda-dashboard-authoring-command/valid-accept.json`
+- Create: `packages/test-fixtures/contracts/v3/payloads/dda-dashboard-authoring-command/invalid-publish.json`
+- Create: `packages/test-fixtures/contracts/v3/payloads/dda-dashboard-workspace-history/valid.json`
+- Create: `packages/test-fixtures/contracts/v3/payloads/dda-dashboard-workspace-history/invalid-source-content.json`
 - Modify: `packages/contracts/manifest.json`
 - Modify: `packages/contracts/package.json`
 - Modify: `packages/contracts/test/schemas.test.mjs`
-- Modify: `packages/test-fixtures/contracts/v1/manifest.json`
+- Modify: `packages/test-fixtures/contracts/v3/manifest.json`
 - Regenerate: `packages/contracts/generated/**`
-- Regenerate: `packages/contracts/compatibility/v1/baseline.json`
+- Create reviewed: `packages/contracts/compatibility/v3/baseline.json`
 
 **Interfaces:**
 
-- Produces: generated `DdaDashboardChartProposal`, `DdaDashboardAuthoringCommand`, and `DdaDashboardWorkspaceHistory` types from `@databreeze/contracts/v1`.
+- Produces: generated `DdaDashboardChartProposal`, `DdaDashboardAuthoringCommand`, and `DdaDashboardWorkspaceHistory` types from `@databreeze/contracts/v3`.
 - `DdaDashboardChartProposal` contains `proposalId`, `dashboardId`, `parentVersionId`, `expectedRevision`, `analysisPlanVersionId`, optional target widget, two-to-four `options`, required proposal summary, `previewOnly: true`, `publishes: false`, and `createdAt`.
 - Each option contains an allowlisted widget type, localized title/rationale/accessibility description, typed binding IDs, supported spans from `[3,4,6,8,12]`, default span, assumptions, and bounded CPU/memory estimate. It contains no result values or source rows.
 - `DdaDashboardAuthoringCommand` is a discriminated `oneOf` for `ACCEPT_PROPOSAL`, `SET_LAYOUT`, `REMOVE_WIDGET`, `RESTORE_WIDGET`, and `CONFIGURE_PRESENTATION`; every variant carries `commandId`, `dashboardId`, `expectedVersionId`, and `expectedRevision`. There is no publication variant.
@@ -133,10 +133,10 @@ Run:
 
 ```powershell
 corepack pnpm --filter @databreeze/contracts generate
-corepack pnpm --filter @databreeze/contracts compatibility:baseline
+corepack pnpm --filter @databreeze/contracts exec node scripts/contract-compatibility.mjs update --version 3 --approve-new-version
 ```
 
-Inspect the diff and verify it contains only the three new schemas, exports, generated models/validators, fixtures, and additive baseline entries.
+Inspect the diff and verify it contains only the three new v3 schemas, exports, generated models/validators, fixtures, and the reviewed v3 baseline; published v1/v2 baselines must remain unchanged.
 
 - [ ] **Step 5: Run contract and parity verification**
 
@@ -153,7 +153,7 @@ Expected: all pass; the invalid value, publication, source-path, cross-scope, ov
 - [ ] **Step 6: Commit the contract slice**
 
 ```powershell
-git add packages/contracts packages/test-fixtures/contracts/v1
+git add packages/contracts packages/test-fixtures/contracts/v3
 git commit -m "feat(contracts): add dashboard authoring contracts"
 ```
 
@@ -179,7 +179,7 @@ git commit -m "feat(contracts): add dashboard authoring contracts"
 
 - Produces `DashboardWorkspaceHistoryPortV1.list(input)` returning `{items, nextCursor}` with already scoped candidate entries.
 - `DashboardWorkspaceHistoryServiceV1.list(context, {cursor, limit})` reauthorizes each entry through server ports, removes denied entries without revealing their existence, sorts by `updatedAt DESC, subjectId ASC`, and caps `limit` at 50.
-- HTTP: `GET /v1/dda/dashboards/workspace-history?cursor=<opaque>&limit=30`; scope comes only from `REQUEST_TENANT_CONTEXT`.
+- HTTP: `GET /v3/dda/dashboards/workspace-history?cursor=<opaque>&limit=30`; scope comes only from `REQUEST_TENANT_CONTEXT`.
 
 - [ ] **Step 1: Write failing service tests for scope, ordering, and non-enumeration**
 
@@ -266,7 +266,7 @@ git commit -m "feat(dda): add scoped dashboard workspace history"
 
 **Interfaces:**
 
-- HTTP: `POST /v1/dda/dashboards/:dashboardId/proposals` with `{question, analysisPlanVersionId, targetPageId, targetWidgetId?, locale}` only.
+- HTTP: `POST /v3/dda/dashboards/:dashboardId/proposals` with `{question, analysisPlanVersionId, targetPageId, targetWidgetId?, locale}` only.
 - `DashboardProposalContextPortV1.resolve(context, input)` returns server-authorized fields, metrics, result shapes, current dashboard/version/revision, widget allowlist, responsive rules, and cost bounds. The browser never supplies those authority values.
 - `DashboardProposalRepositoryPortV1.save(record)`, `.findById(scope, proposalId)`, and `.markAccepted(scope, proposalId, acceptedVersionId)` persist preview metadata only.
 - A successful response validates as `DdaDashboardChartProposal`, returns two to four compatible options, and always has `previewOnly: true` and `publishes: false`.
@@ -360,7 +360,7 @@ git commit -m "feat(dda): persist governed chart proposals"
 
 **Interfaces:**
 
-- HTTP: `POST /v1/dda/dashboards/:dashboardId/authoring-commands` with generated `DdaDashboardAuthoringCommand` excluding tenant context.
+- HTTP: `POST /v3/dda/dashboards/:dashboardId/authoring-commands` with generated `DdaDashboardAuthoringCommand` excluding tenant context.
 - Produces `{dashboardId, versionId, revision, savedAt, publishes: false}`.
 - Repository adds `findCommandResult(scope, commandId)` and atomic `commitAuthoringVersion({expectedRevision, identity, version, commandResult, removedWidget?})` so idempotency and optimistic concurrency are database-enforced.
 
@@ -480,7 +480,7 @@ Do not import every weight, italic style, or subset.
 
 - [ ] **Step 4: Implement generated-contract validation and stable API errors**
 
-Use `@databreeze/contracts/v1` validators before accepting payloads. Transport requests include credentials, `Accept: application/json`, and idempotency command IDs. Map 401/403 to `UNAUTHORIZED`, 404 to `NOT_FOUND`, 409 to `REVISION_CONFLICT`, 422 to `INVALID_PROPOSAL`, 429 to `BUDGET_DENIED`, and other failures to `UNAVAILABLE`.
+Use `@databreeze/contracts/v3` validators before accepting payloads. Transport requests include credentials, `Accept: application/json`, and idempotency command IDs. Map 401/403 to `UNAUTHORIZED`, 404 to `NOT_FOUND`, 409 to `REVISION_CONFLICT`, 422 to `INVALID_PROPOSAL`, 429 to `BUDGET_DENIED`, and other failures to `UNAVAILABLE`.
 
 - [ ] **Step 5: Implement the pure state model and query/mutation hook**
 

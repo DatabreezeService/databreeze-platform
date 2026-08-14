@@ -15,6 +15,9 @@ def test_dda_processor_digest_pins_match_reviewed_artifacts() -> None:
     verified = verify_dda_processor_digests()
     assert set(verified) == set(DDA_PROCESSOR_DIGESTS)
     assert verified == DDA_PROCESSOR_DIGESTS
+    assert DDA_PROCESSOR_DIGESTS["dda_materialize_query.py"] == (
+        "sha256:4418b6da9b59b7d3c7694599c2ffd4b5af89c6f097e69fc5160941842200e272"
+    )
     assert "dda.etl.intake" in DDA_ACTION_TYPES
     assert "dda.materialize.query" in DDA_ACTION_TYPES
 
@@ -23,7 +26,7 @@ def test_dda_processor_digest_fails_closed_on_drift(monkeypatch: pytest.MonkeyPa
     original = digests.DDA_PROCESSOR_DIGESTS
 
     class BrokenFiles:
-        def joinpath(self, filename: str):  # noqa: ANN201
+        def joinpath(self, filename: str):
             class Handle:
                 def read_bytes(self) -> bytes:
                     return b"tampered-processor-bytes"

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global fetch */
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -7,15 +8,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { openaiReceiptTextFormatV1 } from '@databreeze/domain/dda-receipt-openai/v1';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const FIXTURE_DIR = join(
-  __dirname,
-  '../fixtures/dda/receipt-expense/openai-eval',
-);
+const FIXTURE_DIR = join(__dirname, '../fixtures/dda/receipt-expense/openai-eval');
 
-const SECRET_FRAGMENT_PATTERNS = [
-  /sk-[a-zA-Z0-9]{20,}/u,
-  /Bearer\s+[A-Za-z0-9._-]{20,}/u,
-];
+const SECRET_FRAGMENT_PATTERNS = [/sk-[a-zA-Z0-9]{20,}/u, /Bearer\s+[A-Za-z0-9._-]{20,}/u];
 
 function fail(message) {
   const error = new Error(message);
@@ -62,9 +57,10 @@ function sanitizeProviderErrorText(value) {
 export function formatProviderHttpError(status, body) {
   const parts = [`provider HTTP ${status}`];
   if (body && typeof body === 'object' && !Array.isArray(body)) {
-    const error = body.error && typeof body.error === 'object' && !Array.isArray(body.error)
-      ? body.error
-      : body;
+    const error =
+      body.error && typeof body.error === 'object' && !Array.isArray(body.error)
+        ? body.error
+        : body;
     const type = sanitizeProviderErrorText(error.type);
     const code = sanitizeProviderErrorText(error.code);
     const message = sanitizeProviderErrorText(error.message);
@@ -207,7 +203,8 @@ function scoreCase({ caseId, expected, parsed, response }) {
     Number(parsed.subtotal.normalizedValue ?? parsed.subtotal.sourceValue) ===
       expected.arithmetic.subtotal &&
     Number(parsed.tax.normalizedValue ?? parsed.tax.sourceValue) === expected.arithmetic.tax &&
-    Number(parsed.total.normalizedValue ?? parsed.total.sourceValue) === expected.arithmetic.total &&
+    Number(parsed.total.normalizedValue ?? parsed.total.sourceValue) ===
+      expected.arithmetic.total &&
     Math.abs(
       Number(parsed.subtotal.normalizedValue ?? parsed.subtotal.sourceValue) +
         Number(parsed.tax.normalizedValue ?? parsed.tax.sourceValue) -
@@ -252,6 +249,63 @@ function installOfflineNetworkGuard() {
   if (globalThis.WebSocket) globalThis.WebSocket = block;
 }
 
+function readPngIhdr(bytes) {
+  // PNG signature (8) + length(4) + 'IHDR'(4) + width(4) + height(4)
+  if (bytes.length < 24) return undefined;
+  const isPng =
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47 &&
+    bytes[4] === 0x0d &&
+    bytes[5] === 0x0a &&
+    bytes[6] === 0x1a &&
+    bytes[7] === 0x0a;
+  if (!isPng) return undefined;
+  const width = bytes.readUInt32BE(16);
+  const height = bytes.readUInt32BE(20);
+  return { width, height };
+}
+
+function countUniqueColorsSampled(bytes, sampleStride = 17) {
+  const colors = new Set();
+  for (let i = 8; i + 2 < bytes.length; i += sampleStride) {
+    colors.add((bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2]);
+    if (colors.size >= 64) break;
+  }
+  return colors.size;
+}
+
+export function admitReceiptFixtureImage(item, bytes, admission) {
+  const rules = admission ?? {
+    minimumWidth: 400,
+    minimumHeight: 600,
+    minimumByteLength: 8000,
+    minimumUniqueColors: 16,
+    rejectUniformFills: true,
+    requireNonBlankContent: true,
+  };
+  if (bytes.byteLength < rules.minimumByteLength) {
+    fail(`fixture admission rejected tiny/blank image ${item.image}`);
+  }
+  const ihdr = readPngIhdr(bytes);
+  if (!ihdr) fail(`fixture admission rejected non-PNG image ${item.image}`);
+  if (ihdr.width < rules.minimumWidth || ihdr.height < rules.minimumHeight) {
+    fail(`fixture admission rejected undersized image ${item.image}`);
+  }
+  if (item.width !== ihdr.width || item.height !== ihdr.height) {
+    fail(`fixture dimension mismatch for ${item.image}`);
+  }
+  const uniqueColors = countUniqueColorsSampled(bytes);
+  if (rules.rejectUniformFills && uniqueColors < rules.minimumUniqueColors) {
+    fail(`fixture admission rejected uniform/low-information image ${item.image}`);
+  }
+  if (rules.requireNonBlankContent && uniqueColors < 4) {
+    fail(`fixture admission rejected blank image ${item.image}`);
+  }
+  return { width: ihdr.width, height: ihdr.height, uniqueColors };
+}
+
 function loadCorpus(corpusName) {
   const manifestPath = join(FIXTURE_DIR, 'manifest.json');
   if (!existsSync(manifestPath)) fail('manifest.json missing');
@@ -268,6 +322,7 @@ function loadCorpus(corpusName) {
     const bytes = readFileSync(imagePath);
     const digest = sha256(bytes);
     if (digest !== item.contentSha256) fail(`hash mismatch for ${item.image}`);
+    admitReceiptFixtureImage(item, bytes, manifest.admission);
     const expected = loadJson(expectedPath);
     if (!expected.requiredFields) fail(`expected values absent for ${item.caseId}`);
     assertNoSecrets(expected, item.expected);
@@ -454,9 +509,7 @@ async function runLive(args) {
       });
       continue;
     }
-    caseScores.push(
-      scoreCase({ caseId: item.caseId, expected, parsed: parsed.value, response }),
-    );
+    caseScores.push(scoreCase({ caseId: item.caseId, expected, parsed: parsed.value, response }));
   }
 
   const report = {

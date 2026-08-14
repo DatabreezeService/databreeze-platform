@@ -9,12 +9,42 @@ import {
 import { AutomaticPreparationService } from '../../../src/features/dda/etl/application/automatic-preparation.service.js';
 
 const safePlan: AutomaticPreparationPlanV1 = {
+  sourceColumns: ['name', 'amount'],
   steps: [
-    { kind: 'RENAME_COLUMNS', reversible: true, omitsRows: false },
-    { kind: 'TRIM_TEXT', reversible: true, omitsRows: false },
-    { kind: 'CAST_TYPE', reversible: true, omitsRows: false },
+    {
+      stepId: 'step-rename',
+      kind: 'RENAME_COLUMNS',
+      config: { mapping: 'name:name' },
+      reversible: true,
+      omitsRows: false,
+    },
+    {
+      stepId: 'step-trim',
+      kind: 'TRIM_TEXT',
+      config: { field: 'name' },
+      reversible: true,
+      omitsRows: false,
+    },
+    {
+      stepId: 'step-cast',
+      kind: 'CAST_TYPE',
+      config: { field: 'amount', to: 'number' },
+      reversible: true,
+      omitsRows: false,
+    },
   ],
 };
+
+const safeProof = (stepId: string, config: Record<string, unknown>) => ({
+  stepId,
+  engineProduced: true as const,
+  verifiedConfig: config,
+  sourceColumns: ['name', 'amount'],
+  outputColumns: ['name', 'amount'],
+  lossless: true as const,
+  reversible: true as const,
+  exactAllColumnIdentity: false,
+});
 
 const safeProfile: AutomaticPreparationProfileV1 = {
   policy: 'SAFE_NON_LOSSY',
@@ -39,6 +69,11 @@ const safeProfile: AutomaticPreparationProfileV1 = {
     quarantined: 0,
     unsupported: 0,
   },
+  stepProofs: [
+    safeProof('step-rename', { mapping: 'name:name' }),
+    safeProof('step-trim', { field: 'name' }),
+    safeProof('step-cast', { field: 'amount', to: 'number' }),
+  ],
 };
 
 void test('[DDA-053] safe header aliases and type annotations auto-accept under SAFE_NON_LOSSY', () => {
@@ -77,7 +112,16 @@ void test('[DDA-053] row filters, rejects, overlap, and blocked quality dimensio
   assert.equal(
     classifyAutomaticPreparation(
       {
-        steps: [{ kind: 'FILTER_ROWS', reversible: false, omitsRows: true }],
+        sourceColumns: ['name', 'amount'],
+        steps: [
+          {
+            stepId: 'step-filter',
+            kind: 'FILTER_ROWS',
+            config: { reason: 'invalid' },
+            reversible: false,
+            omitsRows: true,
+          },
+        ],
       },
       safeProfile,
     ).decision,
@@ -144,9 +188,40 @@ void test('[DDA-053] service routes auto-accept, review, and blocked decisions',
   );
   assert.equal(
     service.classifyAndRoute(
-      { steps: [{ kind: 'FILTER_ROWS', reversible: false, omitsRows: true }] },
+      {
+        sourceColumns: ['name', 'amount'],
+        steps: [
+          {
+            stepId: 'step-filter',
+            kind: 'FILTER_ROWS',
+            config: { reason: 'invalid' },
+            reversible: false,
+            omitsRows: true,
+          },
+        ],
+      },
       safeProfile,
     ).kind,
     'BLOCKED_REVIEW_ITEM',
   );
+});
+
+void test('[DDA-053] actual transformation configs require proof of reversibility', () => {
+  for (const kind of ['SELECT_COLUMNS', 'CAST_TYPE', 'TRIM_TEXT', 'NORMALIZE_TEXT']) {
+    const result = classifyAutomaticPreparation(
+      {
+        steps: [
+          {
+            stepId: `step-${kind}`,
+            kind,
+            config: kind === 'SELECT_COLUMNS' ? { columns: ['id'] } : { field: 'value' },
+            reversible: true,
+            omitsRows: false,
+          },
+        ],
+      } as never,
+      safeProfile,
+    );
+    assert.notEqual(result.decision, 'AUTO_ACCEPT_SAFE', kind);
+  }
 });

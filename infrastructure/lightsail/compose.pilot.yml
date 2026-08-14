@@ -1,0 +1,221 @@
+name: ${COMPOSE_PROJECT_NAME:-databreeze-pilot}
+
+x-default-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '3'
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-docker.io/library/postgres:17.5-alpine@sha256:6567bca8d7bc8c82c5922425a0baee57be8402df92bae5eacad5f01ae9544daa}
+    init: true
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-databreeze}
+      POSTGRES_USER: ${POSTGRES_USER:-databreeze}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set on the pilot host}
+    networks: [pilot]
+    logging: *default-logging
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: ${REDIS_IMAGE:-docker.io/library/redis:7.4.5-alpine@sha256:bb186d083732f669da90be8b0f975a37812b15e913465bb14d845db72a4e3e08}
+    init: true
+    command: ['redis-server', '--appendonly', 'yes']
+    networks: [pilot]
+    logging: *default-logging
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  minio:
+    image: ${MINIO_IMAGE:-quay.io/minio/minio:RELEASE.2025-06-13T11-33-47Z@sha256:064117214caceaa8d8a90ef7caa58f2b2aeb316b5156afe9ee8da5b4d83e12c8}
+    init: true
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-databreeze}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set on the pilot host}
+    networks: [pilot]
+    logging: *default-logging
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: [CMD, curl, -f, http://127.0.0.1:9000/minio/health/live]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  minio-init:
+    image: ${MINIO_MC_IMAGE:-quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727}
+    init: true
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks: [pilot]
+    logging: *default-logging
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-databreeze}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD must be set on the pilot host}
+      MINIO_BUCKET_ARTIFACTS: ${MINIO_BUCKET_ARTIFACTS:-databreeze-artifacts}
+      MINIO_BUCKET_RESULTS: ${MINIO_BUCKET_RESULTS:-databreeze-results}
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - >-
+        until mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}";
+        do sleep 1; done; mc mb --ignore-existing "local/$${MINIO_BUCKET_ARTIFACTS}"; mc mb
+        --ignore-existing "local/$${MINIO_BUCKET_RESULTS}";
+    restart: 'no'
+
+  mailpit:
+    image: ${MAILPIT_IMAGE:-axllent/mailpit:v1.21.8@sha256:81370195cd4a0eab9604d17c2617a7525b0486f9365555253b6c5376c6350f1a}
+    init: true
+    environment:
+      MP_MAX_MESSAGES: ${MAILPIT_MAX_MESSAGES:-5000}
+      MP_DATABASE: /data/mailpit.db
+    ports:
+      - '127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025'
+    networks: [pilot]
+    logging: *default-logging
+    volumes:
+      - mailpit-data:/data
+    healthcheck:
+      test: [CMD, wget, --no-verbose, --tries=1, --spider, http://127.0.0.1:8025/api/v1/info]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  api-migrate:
+    image: ${API_MIGRATION_IMAGE:?API_MIGRATION_IMAGE must be an immutable published image}
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-databreeze}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-databreeze}?schema=public
+      HOME: /tmp
+      COREPACK_HOME: /tmp/corepack
+    networks: [pilot]
+    logging: *default-logging
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    restart: 'no'
+
+  api:
+    image: ${API_IMAGE:?API_IMAGE must be an immutable published image}
+    init: true
+    depends_on:
+      api-migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-databreeze}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-databreeze}?schema=public
+      DATABREEZE_RUNTIME_PROFILE: pilot
+      DATABREEZE_PILOT_HTTPS_ORIGIN:
+        https://${DATABREEZE_PILOT_DOMAIN:?DATABREEZE_PILOT_DOMAIN must be set}
+      DATABREEZE_REDIS_URL: redis://redis:6379
+      DATABREEZE_IAM_SMTP_HOST: mailpit
+      DATABREEZE_IAM_SMTP_PORT: 1025
+      DATABREEZE_IAM_EMAIL_FROM_ADDRESS: ${DATABREEZE_IAM_EMAIL_FROM_ADDRESS:-verify@databreeze.local}
+      DATABREEZE_IAM_EMAIL_VERIFICATION_DIGEST_KEY:
+        ${DATABREEZE_IAM_EMAIL_VERIFICATION_DIGEST_KEY:?DATABREEZE_IAM_EMAIL_VERIFICATION_DIGEST_KEY
+        must be set}
+      DATABREEZE_IAM_EMAIL_VERIFICATION_ENVELOPE_KEY:
+        ${DATABREEZE_IAM_EMAIL_VERIFICATION_ENVELOPE_KEY:?DATABREEZE_IAM_EMAIL_VERIFICATION_ENVELOPE_KEY
+        must be set}
+      DATABREEZE_IAM_REGISTRATION_ADMISSION_KEY:
+        ${DATABREEZE_IAM_REGISTRATION_ADMISSION_KEY:?DATABREEZE_IAM_REGISTRATION_ADMISSION_KEY must
+        be set}
+      DATABREEZE_SERVICE_ACCOUNT_SECRET_ENVELOPE_KEY:
+        ${DATABREEZE_SERVICE_ACCOUNT_SECRET_ENVELOPE_KEY:?DATABREEZE_SERVICE_ACCOUNT_SECRET_ENVELOPE_KEY
+        must be set}
+      DATABREEZE_LOCAL_MINIO_ENDPOINT: http://minio:9000
+      DATABREEZE_LOCAL_MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-databreeze}
+      DATABREEZE_LOCAL_MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      DATABREEZE_LOCAL_MINIO_BUCKET: ${MINIO_BUCKET_ARTIFACTS:-databreeze-artifacts}
+    expose: ['3000']
+    networks: [pilot]
+    logging: *default-logging
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    restart: unless-stopped
+
+  web:
+    image: ${WEB_IMAGE:?WEB_IMAGE must be an immutable published image}
+    init: true
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      DATABREEZE_PILOT_DOMAIN: ${DATABREEZE_PILOT_DOMAIN:?DATABREEZE_PILOT_DOMAIN must be set}
+      DATABREEZE_ACME_EMAIL: ${DATABREEZE_ACME_EMAIL:?DATABREEZE_ACME_EMAIL must be set}
+    ports:
+      - '80:80'
+      - '443:443'
+    networks: [pilot]
+    logging: *default-logging
+    volumes:
+      - caddy-data:/data
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    read_only: true
+    tmpfs:
+      - /config:rw,noexec,nosuid,size=16m,uid=1000,gid=1000
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    healthcheck:
+      test: [CMD, wget, --quiet, --spider, http://api:3000/health/ready]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+    name: ${COMPOSE_PROJECT_NAME:-databreeze-pilot}-postgres-data
+  redis-data:
+    name: ${COMPOSE_PROJECT_NAME:-databreeze-pilot}-redis-data
+  minio-data:
+    name: ${COMPOSE_PROJECT_NAME:-databreeze-pilot}-minio-data
+  mailpit-data:
+    name: ${COMPOSE_PROJECT_NAME:-databreeze-pilot}-mailpit-data
+  caddy-data:
+    name: ${COMPOSE_PROJECT_NAME:-databreeze-pilot}-caddy-data
+
+networks:
+  pilot:
+    name: ${COMPOSE_PROJECT_NAME:-databreeze-pilot}-network

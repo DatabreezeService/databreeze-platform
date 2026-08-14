@@ -1,6 +1,4 @@
-import type {
-  DdaAiEgressPolicyV1,
-} from '@databreeze/domain/data-to-dashboard/policy-v1';
+import type { DdaAiEgressPolicyV1 } from '@databreeze/domain/data-to-dashboard/policy-v1';
 import type { TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
 export type ReceiptAiPolicyErrorCodeV1 =

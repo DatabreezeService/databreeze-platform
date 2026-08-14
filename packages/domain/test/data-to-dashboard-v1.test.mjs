@@ -410,8 +410,13 @@ void test('[DDA-003] creates typed analysis plans, folder manifests, receipts, a
 });
 
 test('creates unified-workspace grants, conversation bounds, and table candidates', async () => {
-  const { createDdaAgentGrantV1, createDdaConversationV1, createDdaTableExtractionCandidateV1, createDdaStarterDashboardEventV1, createDdaConversationContextEventV1 } =
-    await import('@databreeze/domain/data-to-dashboard/v1');
+  const {
+    createDdaAgentGrantV1,
+    createDdaConversationV1,
+    createDdaTableExtractionCandidateV1,
+    createDdaStarterDashboardEventV1,
+    createDdaConversationContextEventV1,
+  } = await import('@databreeze/domain/data-to-dashboard/v1');
 
   const grant = createDdaAgentGrantV1({
     grantId: ids.binding,
@@ -454,7 +459,10 @@ test('creates unified-workspace grants, conversation bounds, and table candidate
     conversationId: ids.event,
     tenantScope: scope,
     title: 'Too many',
-    activeDatasetIds: Array.from({ length: 9 }, (_, index) => `00000000-0000-4000-8000-${String(200 + index).padStart(12, '0')}`),
+    activeDatasetIds: Array.from(
+      { length: 9 },
+      (_, index) => `00000000-0000-4000-8000-${String(200 + index).padStart(12, '0')}`,
+    ),
     history: [],
     updatedAt: createdAt,
   });

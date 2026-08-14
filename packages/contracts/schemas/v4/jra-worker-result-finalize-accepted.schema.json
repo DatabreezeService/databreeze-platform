@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-finalize-accepted",
+  "$comment": "JRA-012/JRA-031: canonical immutable result-manifest receipt returned after the server-owned atomic commit.",
+  "title": "JRA Worker Result Finalize Accepted",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "accepted", "submissionId", "attemptId", "resultManifestId", "resultManifestHash", "outcome", "revision"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "accepted": { "const": true },
+    "submissionId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "attemptId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "resultManifestId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "resultManifestHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "outcome": { "const": "SUCCEEDED" },
+    "revision": { "$ref": "https://schemas.databreeze.dev/contracts/v1/revision" }
+  }
+}

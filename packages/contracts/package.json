@@ -13,6 +13,14 @@
       "types": "./generated/typescript/v2/index.ts",
       "import": "./generated/typescript/v2/validation.mjs"
     },
+    "./v3": {
+      "types": "./generated/typescript/v3/index.ts",
+      "import": "./generated/typescript/v3/validation.mjs"
+    },
+    "./v4": {
+      "types": "./generated/typescript/v4/index.ts",
+      "import": "./generated/typescript/v4/validation.mjs"
+    },
     "./v1/actor-metadata": "./schemas/v1/actor-metadata.schema.json",
     "./v1/command-envelope": "./schemas/v1/command-envelope.schema.json",
     "./v1/correlation-metadata": "./schemas/v1/correlation-metadata.schema.json",
@@ -38,14 +46,39 @@
     "./v1/problem-details": "./schemas/v1/problem-details.schema.json",
     "./v1/revision": "./schemas/v1/revision.schema.json",
     "./v1/tenant-scope": "./schemas/v1/tenant-scope.schema.json",
-    "./v1/utc-timestamp": "./schemas/v1/utc-timestamp.schema.json"
+    "./v1/utc-timestamp": "./schemas/v1/utc-timestamp.schema.json",
+    "./v3/dda-dashboard-authoring-command": "./schemas/v3/dda-dashboard-authoring-command.schema.json",
+    "./v3/dda-dashboard-authoring-command-result": "./schemas/v3/dda-dashboard-authoring-command-result.schema.json",
+    "./v3/dda-dashboard-chart-proposal": "./schemas/v3/dda-dashboard-chart-proposal.schema.json",
+    "./v3/dda-dashboard-workspace-history": "./schemas/v3/dda-dashboard-workspace-history.schema.json",
+    "./v3/dda-notification": "./schemas/v3/dda-notification.schema.json",
+    "./v3/dda-notification-page": "./schemas/v3/dda-notification-page.schema.json",
+    "./v3/dda-notification-state-command": "./schemas/v3/dda-notification-state-command.schema.json",
+    "./v3/dda-workspace-member-settings": "./schemas/v3/dda-workspace-member-settings.schema.json",
+    "./v4/dda-agent-turn-accepted": "./schemas/v4/dda-agent-turn-accepted.schema.json",
+    "./v4/dda-agent-turn-command": "./schemas/v4/dda-agent-turn-command.schema.json",
+    "./v4/dda-conversation-list-accepted": "./schemas/v4/dda-conversation-list-accepted.schema.json",
+    "./v4/dda-conversation-load-accepted": "./schemas/v4/dda-conversation-load-accepted.schema.json",
+    "./v4/dda-conversation-summary": "./schemas/v4/dda-conversation-summary.schema.json",
+    "./v4/dda-dashboard-widget-results-accepted": "./schemas/v4/dda-dashboard-widget-results-accepted.schema.json",
+    "./v4/iam-auth-session": "./schemas/v4/iam-auth-session.schema.json",
+    "./v4/iam-bootstrap-response": "./schemas/v4/iam-bootstrap-response.schema.json",
+    "./v4/iam-email-verification-command": "./schemas/v4/iam-email-verification-command.schema.json",
+    "./v4/iam-password-sign-in-command": "./schemas/v4/iam-password-sign-in-command.schema.json",
+    "./v4/iam-registration-accepted": "./schemas/v4/iam-registration-accepted.schema.json",
+    "./v4/iam-registration-command": "./schemas/v4/iam-registration-command.schema.json"
+    ,"./v4/jra-worker-dashboard-widget-result-output": "./schemas/v4/jra-worker-dashboard-widget-result-output.schema.json"
+    ,"./v4/jra-worker-result-finalize-accepted": "./schemas/v4/jra-worker-result-finalize-accepted.schema.json"
+    ,"./v4/jra-worker-result-finalize-command": "./schemas/v4/jra-worker-result-finalize-command.schema.json"
+    ,"./v4/jra-worker-result-prepare-accepted": "./schemas/v4/jra-worker-result-prepare-accepted.schema.json"
+    ,"./v4/jra-worker-result-prepare-command": "./schemas/v4/jra-worker-result-prepare-command.schema.json"
   },
   "scripts": {
     "build": "node scripts/build.mjs && node scripts/generate-models.mjs --check",
     "compatibility:baseline": "node scripts/contract-compatibility.mjs update",
     "compatibility:check": "node scripts/contract-compatibility.mjs check",
-    "contract:check": "node scripts/generate-models.mjs --check && node scripts/contract-compatibility.mjs check && node ../../tools/fixture-validation/src/run-contract-parity.mjs && node ../../tools/fixture-validation/src/run-contract-parity.mjs --fixture-manifest ../../packages/test-fixtures/contracts/v2/manifest.json",
-    "fixtures:check": "node ../../tools/fixture-validation/src/run-contract-parity.mjs && node ../../tools/fixture-validation/src/run-contract-parity.mjs --fixture-manifest ../../packages/test-fixtures/contracts/v2/manifest.json",
+    "contract:check": "node scripts/generate-models.mjs --check && node scripts/contract-compatibility.mjs check && node ../../tools/fixture-validation/src/run-contract-parity.mjs && node ../../tools/fixture-validation/src/run-contract-parity.mjs --fixture-manifest ../../packages/test-fixtures/contracts/v2/manifest.json && node ../../tools/fixture-validation/src/run-contract-parity.mjs --fixture-manifest ../../packages/test-fixtures/contracts/v3/manifest.json && node ../../tools/fixture-validation/src/run-contract-parity.mjs --fixture-manifest ../../packages/test-fixtures/contracts/v4/manifest.json",
+    "fixtures:check": "node ../../tools/fixture-validation/src/run-contract-parity.mjs && node ../../tools/fixture-validation/src/run-contract-parity.mjs --fixture-manifest ../../packages/test-fixtures/contracts/v2/manifest.json && node ../../tools/fixture-validation/src/run-contract-parity.mjs --fixture-manifest ../../packages/test-fixtures/contracts/v3/manifest.json && node ../../tools/fixture-validation/src/run-contract-parity.mjs --fixture-manifest ../../packages/test-fixtures/contracts/v4/manifest.json",
     "generate": "node scripts/generate-models.mjs",
     "generate:check": "node scripts/generate-models.mjs --check",
     "test": "node --test \"test/**/*.test.mjs\"",

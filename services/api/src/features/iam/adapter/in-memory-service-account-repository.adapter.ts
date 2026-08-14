@@ -13,6 +13,7 @@ import type {
   ServiceAccountRepositoryPortV1,
   ServiceAccountTransactionPortV1,
 } from '../application/service-account-repository.port.js';
+import type { WorkerCredentialLookupPortV1 } from '../application/worker-credential-lookup.port.js';
 
 function accountScope(account: ServiceAccountV1): TenantScopeV1 {
   return account.workspaceId === undefined
@@ -66,7 +67,9 @@ function sameCreateRecord(
 }
 
 /** Deterministic local adapter with the same visibility and optimistic-write rules as PostgreSQL. */
-export class InMemoryServiceAccountRepositoryAdapter implements ServiceAccountRepositoryPortV1 {
+export class InMemoryServiceAccountRepositoryAdapter
+  implements ServiceAccountRepositoryPortV1, WorkerCredentialLookupPortV1
+{
   private accounts = new Map<string, ServiceAccountV1>();
   private createRecords = new Map<string, ServiceAccountCreateReplayV1>();
   private transactionTail: Promise<void> = Promise.resolve();
@@ -88,6 +91,24 @@ export class InMemoryServiceAccountRepositoryAdapter implements ServiceAccountRe
     const account = [...this.accounts.values()].find(
       (candidate) => candidate.secretDigest === secretDigest && visibleInScope(context, candidate),
     );
+    return account ? clone(account) : undefined;
+  }
+
+  public async findCurrentWorkerCredentialByDigest(
+    secretDigest: string,
+  ): Promise<ServiceAccountV1 | undefined> {
+    await Promise.resolve();
+    const account = [...this.accounts.values()].find(
+      (candidate) => candidate.secretDigest === secretDigest,
+    );
+    return account ? clone(account) : undefined;
+  }
+
+  public async findCurrentWorkerCredentialById(
+    workerId: ServiceAccountV1['id'],
+  ): Promise<ServiceAccountV1 | undefined> {
+    await Promise.resolve();
+    const account = this.accounts.get(workerId);
     return account ? clone(account) : undefined;
   }
 

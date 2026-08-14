@@ -57,7 +57,11 @@ describe('[DDA-006][DDA-009][DDA-010] etl review page', () => {
     expect(screen.getByText(/completeness/u)).toBeTruthy();
     expect(screen.getByText(/evidence=AVAILABLE/u)).toBeTruthy();
     expect(screen.getByText(/cost=12ms\/32MB/u)).toBeTruthy();
-    expect(screen.getByText(/Khong chung minh do chinh xac thuc te/u)).toBeTruthy();
+    expect(
+      screen.getByText(
+        /Tỷ lệ này đo mức đạt quy tắc, không khẳng định dữ liệu đúng với thực tế\./u,
+      ),
+    ).toBeTruthy();
     expect(screen.queryByText(/percentage correct/iu)).toBeNull();
   });
 });

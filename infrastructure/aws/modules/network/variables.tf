@@ -25,6 +25,12 @@ variable "enable_nat_gateway" {
   default     = false
 }
 
+variable "enable_public_api" {
+  type        = bool
+  description = "Create the public HTTPS load-balancer security boundary for the hosted API."
+  default     = false
+}
+
 variable "tags" {
   type        = map(string)
   description = "Additional resource tags."

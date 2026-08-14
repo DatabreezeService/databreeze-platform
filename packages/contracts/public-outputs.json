@@ -39,6 +39,42 @@
           "pointers": ["/dependencies", "/exports", "/name"]
         }
       ]
+    },
+    {
+      "contractVersion": 3,
+      "generatedFiles": [
+        "generated/kotlin/src/main/kotlin/com/databreeze/contracts/v3/Models.kt",
+        "generated/kotlin/src/main/kotlin/com/databreeze/contracts/v3/Validation.kt",
+        "generated/python/databreeze_contracts/v3/__init__.py",
+        "generated/python/databreeze_contracts/v3/_validation.py",
+        "generated/python/databreeze_contracts/v3/models.py",
+        "generated/typescript/v3/index.ts",
+        "generated/typescript/v3/validation.mjs"
+      ],
+      "jsonSurfaces": [
+        {
+          "path": "package.json",
+          "pointers": ["/dependencies", "/exports", "/name"]
+        }
+      ]
+    },
+    {
+      "contractVersion": 4,
+      "generatedFiles": [
+        "generated/kotlin/src/main/kotlin/com/databreeze/contracts/v4/Models.kt",
+        "generated/kotlin/src/main/kotlin/com/databreeze/contracts/v4/Validation.kt",
+        "generated/python/databreeze_contracts/v4/__init__.py",
+        "generated/python/databreeze_contracts/v4/_validation.py",
+        "generated/python/databreeze_contracts/v4/models.py",
+        "generated/typescript/v4/index.ts",
+        "generated/typescript/v4/validation.mjs"
+      ],
+      "jsonSurfaces": [
+        {
+          "path": "package.json",
+          "pointers": ["/dependencies", "/exports", "/name"]
+        }
+      ]
     }
   ]
 }

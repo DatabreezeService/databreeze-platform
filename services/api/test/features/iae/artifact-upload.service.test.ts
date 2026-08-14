@@ -11,6 +11,10 @@ import type {
   ArtifactUploadRepositoryPortV1,
   ArtifactUploadTransactionPortV1,
 } from '../../../src/features/iae/application/artifact-upload-repository.port.js';
+import type {
+  ArtifactUploadAdmissionDecisionV1,
+  ArtifactUploadAdmissionPortV1,
+} from '../../../src/features/iae/application/artifact-upload-admission.port.js';
 import { ArtifactUploadService } from '../../../src/features/iae/application/artifact-upload.service.js';
 import { InMemoryArtifactUploadRepositoryAdapter } from '../../../src/features/iae/adapter/in-memory-artifact-upload-repository.adapter.js';
 import { InMemoryArtifactUploadStorageAdapter } from '../../../src/features/iae/adapter/in-memory-artifact-upload-storage.adapter.js';
@@ -66,28 +70,55 @@ const contextResult = createIamTenantContextV1({
 if (!contextResult.accepted) throw new Error('fixture context invalid');
 const context = contextResult.value;
 
+const admissionDecision = {
+  tenantScope: context.tenantScope,
+  intakeId: '12121212-1212-4121-8121-121212121212',
+  artifactId: '66666666-6666-4666-8666-666666666666',
+  artifactVersionId: '13131313-1313-4131-8131-131313131313',
+  policyVersionId: '14141414-1414-4141-8141-141414141414',
+  authorizationEpoch: context.authorizationEpoch,
+  expectedSha256: 'a'.repeat(64),
+  expectedByteSize: 4,
+  mediaType: 'application/octet-stream',
+  partSize: 4,
+} as unknown as ArtifactUploadAdmissionDecisionV1;
+
+const allowingAdmission: ArtifactUploadAdmissionPortV1 = {
+  admitCreate: () => Promise.resolve({ accepted: true, value: admissionDecision }),
+  authorizeGrant: () => Promise.resolve({ accepted: true, value: true }),
+};
+
+function service(
+  repository: ArtifactUploadRepositoryPortV1,
+  storage = new InMemoryArtifactUploadStorageAdapter(
+    () => new Date('2026-08-02T00:00:00.000Z'),
+  ),
+) {
+  return new ArtifactUploadService(repository, storage, allowingAdmission, {
+    clock: () => new Date('2026-08-02T00:00:00.000Z'),
+    ids: { next: () => '55555555-5555-4555-8555-555555555555' },
+  });
+}
+
 void test('IAE-014 service persists parts and rejects stale completion', async () => {
-  const service = new ArtifactUploadService(
-    new InMemoryArtifactUploadRepositoryAdapter(),
-    new InMemoryArtifactUploadStorageAdapter(),
-  );
-  const created = await service.create(context, {
-    sessionId: '55555555-5555-4555-8555-555555555555',
-    artifactId: '66666666-6666-4666-8666-666666666666',
-    tenantScope: context.tenantScope,
+  const uploadService = service(new InMemoryArtifactUploadRepositoryAdapter());
+  const created = await uploadService.create(context, {
+    intakeId: admissionDecision.intakeId,
     expectedSha256: 'a'.repeat(64),
     expectedByteSize: 4,
     mediaType: 'application/octet-stream',
-    partSize: 4,
-    createdAt: '2026-08-02T00:00:00.000Z',
-    expiresAt: '2026-08-02T01:00:00.000Z',
+    requestedPartSize: 4,
   });
   assert.equal(created.accepted, true);
   if (!created.accepted) return;
-  const transfer = await service.issuePartTransfer(context, created.value.sessionId, 1);
+  const transfer = await uploadService.issuePartTransfer(context, created.value.sessionId, {
+    partNumber: 1,
+    contentSha256: 'b'.repeat(64),
+    byteSize: 4,
+  });
   assert.equal(transfer.accepted, true);
   if (!transfer.accepted) return;
-  const part = await service.recordPart(context, created.value.sessionId, {
+  const part = await uploadService.recordPart(context, created.value.sessionId, {
     transferId: transfer.value.transferId,
     partNumber: 1,
     contentSha256: 'b'.repeat(64),
@@ -97,7 +128,7 @@ void test('IAE-014 service persists parts and rejects stale completion', async (
   });
   assert.equal(part.accepted, true);
   if (!part.accepted) return;
-  const completed = await service.complete(context, created.value.sessionId, {
+  const completed = await uploadService.complete(context, created.value.sessionId, {
     assembledSha256: 'a'.repeat(64),
     expectedRevision: 2,
   });
@@ -108,30 +139,30 @@ void test('IAE-014 service persists parts and rejects stale completion', async (
 
 void test('IAE-014 expiration revokes storage-side partial state before persisting terminal status', async () => {
   const storage = new TrackingStorageAdapter();
-  const service = new ArtifactUploadService(new InMemoryArtifactUploadRepositoryAdapter(), storage);
-  const created = await service.create(context, {
-    sessionId: '77777777-7777-4777-8777-777777777777',
-    artifactId: '88888888-8888-4888-8888-888888888888',
-    tenantScope: context.tenantScope,
+  const uploadService = service(new InMemoryArtifactUploadRepositoryAdapter(), storage);
+  const created = await uploadService.create(context, {
+    intakeId: admissionDecision.intakeId,
     expectedSha256: 'a'.repeat(64),
     expectedByteSize: 4,
     mediaType: 'application/octet-stream',
-    partSize: 4,
-    createdAt: '2026-08-02T00:00:00.000Z',
-    expiresAt: '2026-08-02T01:00:00.000Z',
+    requestedPartSize: 4,
   });
   assert.equal(created.accepted, true);
   if (!created.accepted) return;
-  const expired = await service.expire(
+  const expired = await uploadService.expire(
     context,
     created.value.sessionId,
-    '2026-08-02T01:00:00.000Z',
+    '2026-08-03T00:00:00.000Z',
   );
   assert.equal(expired.accepted, true);
   if (!expired.accepted) return;
   assert.equal(expired.value.state, 'EXPIRED');
   assert.equal(storage.abortCalls, 1);
-  const transfer = await service.issuePartTransfer(context, created.value.sessionId, 1);
+  const transfer = await uploadService.issuePartTransfer(context, created.value.sessionId, {
+    partNumber: 1,
+    contentSha256: 'b'.repeat(64),
+    byteSize: 4,
+  });
   assert.deepEqual(transfer, { accepted: false, code: 'UPLOAD_SESSION_EXPIRED' });
 });
 
@@ -139,6 +170,10 @@ void test('IAE-014 transfer issuance revalidates the session before returning a 
   const created = createArtifactUploadSessionV1({
     sessionId: '99999999-9999-4999-8999-999999999991',
     artifactId: '99999999-9999-4999-8999-999999999992',
+    artifactVersionId: admissionDecision.artifactVersionId,
+    intakeId: admissionDecision.intakeId,
+    policyVersionId: admissionDecision.policyVersionId,
+    authorizationEpoch: admissionDecision.authorizationEpoch,
     tenantScope: context.tenantScope,
     expectedSha256: 'a'.repeat(64),
     expectedByteSize: 4,
@@ -153,12 +188,32 @@ void test('IAE-014 transfer issuance revalidates the session before returning a 
   assert.equal(expired.accepted, true);
   if (!expired.accepted) return;
 
-  const service = new ArtifactUploadService(
-    new RevalidatingUploadRepository(created.value, expired.value),
-    new InMemoryArtifactUploadStorageAdapter(),
-  );
-  assert.deepEqual(await service.issuePartTransfer(context, created.value.sessionId, 1), {
+  const uploadService = service(new RevalidatingUploadRepository(created.value, expired.value));
+  assert.deepEqual(await uploadService.issuePartTransfer(context, created.value.sessionId, {
+    partNumber: 1,
+    contentSha256: 'b'.repeat(64),
+    byteSize: 4,
+  }), {
     accepted: false,
     code: 'UPLOAD_SESSION_EXPIRED',
   });
+});
+
+void test('[IAE-022] create ignores client authority and uses server-owned identity and lifetime', async () => {
+  const uploadService = service(new InMemoryArtifactUploadRepositoryAdapter());
+  const created = await uploadService.create(context, {
+    intakeId: admissionDecision.intakeId,
+    expectedSha256: admissionDecision.expectedSha256,
+    expectedByteSize: admissionDecision.expectedByteSize,
+    mediaType: admissionDecision.mediaType,
+    requestedPartSize: admissionDecision.partSize,
+  });
+  assert.equal(created.accepted, true);
+  if (!created.accepted) return;
+  assert.equal(created.value.sessionId, '55555555-5555-4555-8555-555555555555');
+  assert.equal(created.value.artifactId, admissionDecision.artifactId);
+  assert.equal(created.value.artifactVersionId, admissionDecision.artifactVersionId);
+  assert.equal(created.value.intakeId, admissionDecision.intakeId);
+  assert.equal(created.value.createdAt, '2026-08-02T00:00:00.000Z');
+  assert.equal(created.value.expiresAt, '2026-08-03T00:00:00.000Z');
 });

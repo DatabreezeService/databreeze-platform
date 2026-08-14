@@ -26,20 +26,20 @@ model ArtifactVersion {
 
 /// IAE-001, IAE-013: idempotent intake state before routing or processing.
 model InboxItem {
-  id                String   @id @db.Uuid
-  scopeType         String   @map("scope_type") @db.VarChar(24)
-  organizationId    String   @map("organization_id") @db.Uuid
-  workspaceId       String?  @map("workspace_id") @db.Uuid
-  projectId         String?  @map("project_id") @db.Uuid
-  idempotencyKey    String   @map("idempotency_key") @db.VarChar(200)
-  artifactVersionId String   @map("artifact_version_id") @db.Uuid
-  state             String   @db.VarChar(24)
-  assigneeId        String?  @map("assignee_id") @db.Uuid
-  labels            Json     @default("[]")
-  priority          String   @default("NORMAL") @db.VarChar(16)
+  id                String    @id @db.Uuid
+  scopeType         String    @map("scope_type") @db.VarChar(24)
+  organizationId    String    @map("organization_id") @db.Uuid
+  workspaceId       String?   @map("workspace_id") @db.Uuid
+  projectId         String?   @map("project_id") @db.Uuid
+  idempotencyKey    String    @map("idempotency_key") @db.VarChar(200)
+  artifactVersionId String    @map("artifact_version_id") @db.Uuid
+  state             String    @db.VarChar(24)
+  assigneeId        String?   @map("assignee_id") @db.Uuid
+  labels            Json      @default("[]")
+  priority          String    @default("NORMAL") @db.VarChar(16)
   dueAt             DateTime? @map("due_at") @db.Timestamptz(6)
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  revision          Int      @default(1)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  revision          Int       @default(1)
 
   @@unique([organizationId, workspaceId, projectId, idempotencyKey], map: "inbox_items_scope_idempotency_key")
   @@index([artifactVersionId], map: "inbox_items_artifact_version_idx")
@@ -50,17 +50,17 @@ model InboxItem {
 
 /// IAE-007, IAE-012: derived versions retain exact source and coordinate lineage.
 model ArtifactLineageRecord {
-  id                      String   @id @db.Uuid
-  scopeType               String   @map("scope_type") @db.VarChar(24)
-  organizationId          String   @map("organization_id") @db.Uuid
-  workspaceId             String?  @map("workspace_id") @db.Uuid
-  projectId               String?  @map("project_id") @db.Uuid
-  derivedArtifactVersionId String  @map("derived_artifact_version_id") @db.Uuid
-  sourceVersionIds      Json     @map("source_version_ids")
-  processorVersion      String   @map("processor_version") @db.VarChar(128)
-  recipeVersion         String?  @map("recipe_version") @db.VarChar(128)
-  coordinateLineage     Json     @map("coordinate_lineage")
-  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                       String   @id @db.Uuid
+  scopeType                String   @map("scope_type") @db.VarChar(24)
+  organizationId           String   @map("organization_id") @db.Uuid
+  workspaceId              String?  @map("workspace_id") @db.Uuid
+  projectId                String?  @map("project_id") @db.Uuid
+  derivedArtifactVersionId String   @map("derived_artifact_version_id") @db.Uuid
+  sourceVersionIds         Json     @map("source_version_ids")
+  processorVersion         String   @map("processor_version") @db.VarChar(128)
+  recipeVersion            String?  @map("recipe_version") @db.VarChar(128)
+  coordinateLineage        Json     @map("coordinate_lineage")
+  createdAt                DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@unique([derivedArtifactVersionId], map: "artifact_lineage_derived_version_key")
   @@index([organizationId, workspaceId, projectId], map: "artifact_lineage_scope_idx")
@@ -78,15 +78,46 @@ model ContentPlacement {
   kind              String   @db.VarChar(16)
   opaqueReference   String   @map("opaque_reference") @db.VarChar(512)
   contentSha256     String   @map("content_sha256") @db.Char(64)
+  payloadClass      String   @default("ORIGINAL_CONTENT") @map("payload_class") @db.VarChar(48)
   available         Boolean  @default(true)
   revision          Int      @default(1)
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  @@unique([artifactVersionId, kind], map: "content_placements_version_kind_key")
   @@index([artifactVersionId], map: "content_placements_artifact_version_idx")
   @@index([organizationId, workspaceId, projectId], map: "content_placements_scope_idx")
-  @@unique([artifactVersionId, kind], map: "content_placements_version_kind_key")
   @@map("content_placements")
+  @@schema("iae")
+}
+
+/// IAE-024: immutable content-free proof that exact attempt-bound worker bytes became
+/// one governed derived ArtifactVersion. Provider object identities are intentionally absent.
+model WorkerResultFinalizationAttestationRecord {
+  id                      String   @id @db.Uuid
+  scopeKey                String   @map("scope_key") @db.VarChar(128)
+  scopeType               String   @map("scope_type") @db.VarChar(24)
+  organizationId          String   @map("organization_id") @db.Uuid
+  workspaceId             String?  @map("workspace_id") @db.Uuid
+  projectId               String?  @map("project_id") @db.Uuid
+  jobId                   String   @map("job_id") @db.Uuid
+  attemptId               String   @map("attempt_id") @db.Uuid
+  executionDescriptorId   String   @map("execution_descriptor_id") @db.Uuid
+  executionDescriptorHash String   @map("execution_descriptor_hash") @db.Char(64)
+  submissionId            String   @map("submission_id") @db.Uuid
+  artifactVersionId       String   @map("artifact_version_id") @db.Uuid
+  contentSha256           String   @map("content_sha256") @db.Char(64)
+  contentLength           BigInt   @map("content_length")
+  mediaType               String   @map("media_type") @db.VarChar(255)
+  sourceLineageHash       String   @map("source_lineage_hash") @db.Char(64)
+  outputPolicyHash        String   @map("output_policy_hash") @db.Char(64)
+  requestHash             String   @map("request_hash") @db.Char(64)
+  finalizedAt             DateTime @map("finalized_at") @db.Timestamptz(6)
+
+  @@unique([scopeKey, submissionId], map: "worker_result_attestations_scope_submission_key")
+  @@unique([scopeKey, artifactVersionId], map: "worker_result_attestations_scope_version_key")
+  @@index([organizationId, workspaceId, projectId, attemptId], map: "worker_result_attestations_scope_attempt_idx")
+  @@map("worker_result_finalization_attestations")
   @@schema("iae")
 }
 
@@ -110,25 +141,60 @@ model EvidenceReference {
 
 /// IAE-005, IAE-006: short-lived, revocable, device-bound evidence grants.
 model EvidenceGrantRecord {
-  id                  String    @id @db.Uuid
-  evidenceId          String    @map("evidence_id") @db.Uuid
-  artifactVersionId   String    @map("artifact_version_id") @db.Uuid
-  scopeType           String    @map("scope_type") @db.VarChar(24)
-  organizationId      String    @map("organization_id") @db.Uuid
-  workspaceId         String?   @map("workspace_id") @db.Uuid
-  projectId           String?   @map("project_id") @db.Uuid
-  recipientDeviceId   String    @map("recipient_device_id") @db.Uuid
-  action              String    @db.VarChar(24)
-  issuedAt            DateTime  @map("issued_at") @db.Timestamptz(6)
-  expiresAt           DateTime  @map("expires_at") @db.Timestamptz(6)
-  authorizationEpoch  Int       @map("authorization_epoch")
-  maxExcerptBytes     Int       @map("max_excerpt_bytes")
-  revokedAt           DateTime? @map("revoked_at") @db.Timestamptz(6)
+  id                 String    @id @db.Uuid
+  evidenceId         String    @map("evidence_id") @db.Uuid
+  artifactVersionId  String    @map("artifact_version_id") @db.Uuid
+  scopeType          String    @map("scope_type") @db.VarChar(24)
+  organizationId     String    @map("organization_id") @db.Uuid
+  workspaceId        String?   @map("workspace_id") @db.Uuid
+  projectId          String?   @map("project_id") @db.Uuid
+  recipientDeviceId  String    @map("recipient_device_id") @db.Uuid
+  action             String    @db.VarChar(24)
+  issuedAt           DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt          DateTime  @map("expires_at") @db.Timestamptz(6)
+  authorizationEpoch Int       @map("authorization_epoch")
+  maxExcerptBytes    Int       @map("max_excerpt_bytes")
+  revokedAt          DateTime? @map("revoked_at") @db.Timestamptz(6)
 
   @@index([evidenceId], map: "evidence_grants_evidence_idx")
   @@index([artifactVersionId], map: "evidence_grants_artifact_version_idx")
   @@index([organizationId, workspaceId, projectId, recipientDeviceId], map: "evidence_grants_scope_device_idx")
   @@map("evidence_grants")
+  @@schema("iae")
+}
+
+/// IAE/JRA-006, IAE/JRA-023: durable attempt-bound worker object capabilities and receipts.
+/// The record stores opaque references and policy metadata only; it never stores content bytes,
+/// database credentials, local paths, or provider URLs.
+model WorkerObjectCapabilityRecord {
+  id             String    @id @db.Uuid
+  grantType      String    @map("grant_type") @db.VarChar(16)
+  attemptId      String    @map("attempt_id") @db.Uuid
+  jobId          String    @map("job_id") @db.Uuid
+  workerId       String    @map("worker_id") @db.Uuid
+  scopeType      String    @map("scope_type") @db.VarChar(24)
+  organizationId String    @map("organization_id") @db.Uuid
+  workspaceId    String?   @map("workspace_id") @db.Uuid
+  projectId      String?   @map("project_id") @db.Uuid
+  objectId       String?   @map("object_id") @db.VarChar(256)
+  objectIds      Json      @map("object_ids")
+  objectBindings Json      @map("object_bindings")
+  resultFinalizationBinding Json? @map("result_finalization_binding")
+  action         String    @db.VarChar(16)
+  securityEpoch  Int       @map("security_epoch")
+  maxBytes       BigInt    @map("max_bytes")
+  issuedAt       DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt      DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt      DateTime? @map("revoked_at") @db.Timestamptz(6)
+  contentSha256  String?   @map("content_sha256") @db.Char(64)
+  contentLength  BigInt?   @map("content_length")
+  transferredAt  DateTime? @map("transferred_at") @db.Timestamptz(6)
+
+  @@unique([attemptId, grantType, objectId], map: "worker_object_capabilities_attempt_output_key")
+  @@index([jobId, attemptId], map: "worker_object_capabilities_job_attempt_idx")
+  @@index([organizationId, workspaceId, projectId, workerId], map: "worker_object_capabilities_scope_worker_idx")
+  @@index([expiresAt], map: "worker_object_capabilities_expiry_idx")
+  @@map("worker_object_capability_records")
   @@schema("iae")
 }
 
@@ -172,22 +238,24 @@ model ArtifactExportManifestRecord {
 
 /// IAE-014: resumable, content-addressed upload sessions with bounded part metadata.
 model ArtifactUploadSessionRecord {
-  id             String   @id @db.Uuid
-  artifactId     String   @map("artifact_id") @db.Uuid
-  scopeType      String   @map("scope_type") @db.VarChar(24)
-  organizationId String   @map("organization_id") @db.Uuid
-  workspaceId    String?  @map("workspace_id") @db.Uuid
-  projectId      String?  @map("project_id") @db.Uuid
-  expectedSha256 String   @map("expected_sha256") @db.Char(64)
-  expectedByteSize BigInt @map("expected_byte_size")
-  mediaType      String   @map("media_type") @db.VarChar(255)
-  partSize       Int      @map("part_size")
-  totalParts     Int      @map("total_parts")
-  parts          Json
-  state          String   @db.VarChar(16)
-  createdAt      DateTime @map("created_at") @db.Timestamptz(6)
-  expiresAt      DateTime @map("expires_at") @db.Timestamptz(6)
-  revision       Int      @default(1)
+  id               String   @id @db.Uuid
+  artifactId       String   @map("artifact_id") @db.Uuid
+  admission        Json
+  verifiedObject   Json?    @map("verified_object")
+  scopeType        String   @map("scope_type") @db.VarChar(24)
+  organizationId   String   @map("organization_id") @db.Uuid
+  workspaceId      String?  @map("workspace_id") @db.Uuid
+  projectId        String?  @map("project_id") @db.Uuid
+  expectedSha256   String   @map("expected_sha256") @db.Char(64)
+  expectedByteSize BigInt   @map("expected_byte_size")
+  mediaType        String   @map("media_type") @db.VarChar(255)
+  partSize         Int      @map("part_size")
+  totalParts       Int      @map("total_parts")
+  parts            Json
+  state            String   @db.VarChar(16)
+  createdAt        DateTime @map("created_at") @db.Timestamptz(6)
+  expiresAt        DateTime @map("expires_at") @db.Timestamptz(6)
+  revision         Int      @default(1)
 
   @@index([artifactId], map: "artifact_upload_sessions_artifact_idx")
   @@index([organizationId, workspaceId, projectId, state], map: "artifact_upload_sessions_scope_state_idx")

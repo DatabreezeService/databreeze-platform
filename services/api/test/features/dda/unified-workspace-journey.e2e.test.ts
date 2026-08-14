@@ -41,7 +41,9 @@ type UnifiedWorkspaceManifest = {
 };
 
 function loadManifest(): UnifiedWorkspaceManifest {
-  return JSON.parse(readFileSync(path.join(fixtureDir, 'manifest.json'), 'utf8')) as UnifiedWorkspaceManifest;
+  return JSON.parse(
+    readFileSync(path.join(fixtureDir, 'manifest.json'), 'utf8'),
+  ) as UnifiedWorkspaceManifest;
 }
 
 void test('[UDW-JOURNEY] golden fixture declares the full cross-platform journey without providers', () => {

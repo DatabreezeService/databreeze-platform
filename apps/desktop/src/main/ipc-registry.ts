@@ -182,7 +182,8 @@ async function unwrapFolderResult<T>(
 function resolveWorkbench(partial: Partial<WorkbenchMainPort> | undefined): WorkbenchMainPort {
   const fallback = createFailClosedWorkbenchPort();
   if (partial === undefined) return fallback;
-  return {
+  /* eslint-disable @typescript-eslint/unbound-method -- bind preserves caller-provided port context. */
+  const resolved = {
     readSession: partial.readSession?.bind(partial) ?? fallback.readSession,
     listCatalogPage: partial.listCatalogPage?.bind(partial) ?? fallback.listCatalogPage,
     readOriginalDescriptor:
@@ -195,6 +196,8 @@ function resolveWorkbench(partial: Partial<WorkbenchMainPort> | undefined): Work
     verifyOtp: partial.verifyOtp?.bind(partial) ?? fallback.verifyOtp,
     startGoogleOidc: partial.startGoogleOidc?.bind(partial) ?? fallback.startGoogleOidc,
   };
+  /* eslint-enable @typescript-eslint/unbound-method */
+  return resolved;
 }
 
 export function registerDesktopIpcV1({
@@ -298,6 +301,7 @@ export function registerDesktopIpcV1({
       getActiveWindow,
       () => undefined,
       async () => {
+        await Promise.resolve();
         if (folderWatchers === undefined) return Object.freeze([]);
         return folderWatchers.listReviewQueue();
       },

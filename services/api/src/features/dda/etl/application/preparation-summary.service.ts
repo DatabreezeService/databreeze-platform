@@ -25,7 +25,11 @@ export interface PreparationSummaryInputV1 {
   readonly counts: PreparationSummaryCountsV1;
   readonly transformations: readonly string[];
   readonly warnings: readonly string[];
-  readonly exclusions: readonly { readonly scope: string; readonly reasonCode: string; readonly count: number }[];
+  readonly exclusions: readonly {
+    readonly scope: string;
+    readonly reasonCode: string;
+    readonly count: number;
+  }[];
   readonly healthDimensions: readonly PreparationHealthDimensionV1[];
 }
 

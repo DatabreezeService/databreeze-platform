@@ -21,10 +21,7 @@ export type WorkbenchIpcChannel =
 export type WorkbenchActivity = 'dashboard' | 'analysis' | 'data' | 'reviews' | 'settings';
 export type WorkbenchImportProfile = 'CSV' | 'XLSX' | 'IMAGE' | 'PDF';
 export type WorkbenchDatasetHealth = 'READY' | 'ATTENTION' | 'BLOCKED';
-export type WorkbenchReviewKind =
-  | 'OCR_REVIEW_REQUIRED'
-  | 'SOURCE_MISMATCH'
-  | 'PREPARATION_BLOCKED';
+export type WorkbenchReviewKind = 'OCR_REVIEW_REQUIRED' | 'SOURCE_MISMATCH' | 'PREPARATION_BLOCKED';
 
 export interface WorkbenchSessionSnapshot {
   readonly signedIn: boolean;
@@ -102,9 +99,7 @@ export interface WorkbenchBridgeV1 {
     readonly email: string;
     readonly password: string;
   }) => Promise<WorkbenchSessionSnapshot>;
-  readonly verifyOtp: (request: {
-    readonly code: string;
-  }) => Promise<WorkbenchSessionSnapshot>;
+  readonly verifyOtp: (request: { readonly code: string }) => Promise<WorkbenchSessionSnapshot>;
   readonly startGoogleOidc: () => Promise<{ readonly accepted: true }>;
 }
 
@@ -256,12 +251,7 @@ function parseArray<T>(value: unknown, parseItem: (item: unknown) => T, max = 10
 }
 
 export function parseWorkbenchCatalogPage(value: unknown): WorkbenchCatalogPage {
-  const record = exactDataRecord(value, [
-    'datasets',
-    'folders',
-    'recentAnalyses',
-    'reviewItems',
-  ]);
+  const record = exactDataRecord(value, ['datasets', 'folders', 'recentAnalyses', 'reviewItems']);
   const result: WorkbenchCatalogPage = Object.freeze({
     datasets: parseArray(record.datasets, parseDatasetRecord),
     folders: parseArray(record.folders, parseFolderRecord),
@@ -276,11 +266,15 @@ export function parseWorkbenchCatalogPageRequest(value: unknown): WorkbenchCatal
   if (value === undefined) return Object.freeze({ cursor: null });
   const record = exactDataRecord(value, ['cursor']);
   if (record.cursor !== null) {
-    if (typeof record.cursor !== 'string' || record.cursor.length === 0 || record.cursor.length > 128) {
+    if (
+      typeof record.cursor !== 'string' ||
+      record.cursor.length === 0 ||
+      record.cursor.length > 128
+    ) {
       throw new Error('INVALID_CURSOR');
     }
   }
-  return Object.freeze({ cursor: record.cursor as string | null });
+  return Object.freeze({ cursor: record.cursor });
 }
 
 export function parseWorkbenchOriginalDescriptor(value: unknown): WorkbenchOriginalDescriptor {
@@ -288,7 +282,11 @@ export function parseWorkbenchOriginalDescriptor(value: unknown): WorkbenchOrigi
   const result: WorkbenchOriginalDescriptor = Object.freeze({
     descriptorId: boundedId(record.descriptorId),
     label: boundedLabel(record.label),
-    mediaKind: primitiveEnum(record.mediaKind, ['IMAGE', 'PDF', 'TABULAR'] as const, 'INVALID_MEDIA'),
+    mediaKind: primitiveEnum(
+      record.mediaKind,
+      ['IMAGE', 'PDF', 'TABULAR'] as const,
+      'INVALID_MEDIA',
+    ),
   });
   withinResultBudget(result);
   return result;
@@ -366,7 +364,11 @@ export function parseWorkbenchOtpRequest(value: unknown): { readonly code: strin
 
 export function parseWorkbenchAgentTurnRequest(value: unknown): { readonly message: string } {
   const record = exactDataRecord(value, ['message']);
-  if (typeof record.message !== 'string' || record.message.length === 0 || record.message.length > 4000) {
+  if (
+    typeof record.message !== 'string' ||
+    record.message.length === 0 ||
+    record.message.length > 4000
+  ) {
     throw new Error('INVALID_MESSAGE');
   }
   return Object.freeze({ message: record.message });

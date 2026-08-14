@@ -11,7 +11,7 @@ export type SessionListProperties = {
 };
 
 export function SessionList({ locale, sessions, onRevoke }: SessionListProperties) {
-  const label = locale === 'vi-VN' ? 'Danh sách phiên' : 'Session list';
+  const label = locale === 'vi-VN' ? 'Danh sách phiên đăng nhập' : 'Session list';
   return (
     <ul aria-label={label}>
       {sessions.map((session) => (
@@ -19,7 +19,7 @@ export function SessionList({ locale, sessions, onRevoke }: SessionListPropertie
           <span>{session.deviceLabel}</span>
           {session.current ? null : (
             <button onClick={() => onRevoke(session.sessionId)} type="button">
-              {locale === 'vi-VN' ? 'Thu hồi' : 'Revoke'}
+              {locale === 'vi-VN' ? 'Thu hồi phiên' : 'Revoke session'}
             </button>
           )}
         </li>

@@ -40,6 +40,8 @@ export const AUDIT_LEDGER_SERVICE = Symbol('AUDIT_LEDGER_SERVICE');
 
 export interface AudModuleOptions {
   readonly auditRepository?: AuditRepositoryPortV1;
+  /** Root composition may share the canonical ledger with DDA audit adapters. */
+  readonly auditLedgerService?: AuditLedgerService;
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly auditDatabase?: AuditDatabaseClientV1;
   readonly auditAttestationRepository?: AuditAttestationRepositoryPortV1;
@@ -61,7 +63,7 @@ export class AudModule {
       (options.auditDatabase === undefined
         ? new InMemoryAuditRepositoryAdapter()
         : new PrismaAuditRepositoryAdapter(options.auditDatabase, digest));
-    const service = new AuditLedgerService(repository, digest);
+    const service = options.auditLedgerService ?? new AuditLedgerService(repository, digest);
     const attestationRepository =
       options.auditAttestationRepository ??
       (options.auditAttestationDatabase === undefined

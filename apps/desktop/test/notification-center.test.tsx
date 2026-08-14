@@ -4,9 +4,7 @@ import { NotificationCenter } from '../src/renderer/workbench/notification-cente
 
 describe('Desktop notification center', () => {
   it('renders in-app fallback labels in Vietnamese', () => {
-    render(
-      <NotificationCenter locale="vi-VN" items={[{ id: '1', label: 'Dong bo that bai' }]} />,
-    );
+    render(<NotificationCenter locale="vi-VN" items={[{ id: '1', label: 'Dong bo that bai' }]} />);
     expect(screen.getByRole('region', { name: 'Trung tâm thông báo' })).toBeTruthy();
     expect(screen.getByText('Dong bo that bai')).toBeTruthy();
   });

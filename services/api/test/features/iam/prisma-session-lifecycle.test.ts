@@ -173,6 +173,17 @@ void test('[IAM-005, IAM-006] Prisma sessions persist opaque bounded access and 
   assert.equal(await adapter.findPrincipalByAccessToken('not-a-token'), undefined);
 });
 
+void test('[IAM-023] Prisma refresh accepts a slid access expiry after the original session issue time', async () => {
+  let now = new Date('2026-01-01T00:00:00.000Z');
+  const { client } = createDatabase();
+  const adapter = new PrismaSessionLifecycleAdapter(client, { clock: () => new Date(now) });
+  const issued = await adapter.issue(principal, 'web');
+
+  now = new Date('2026-01-01T00:00:01.000Z');
+  const rotated = await adapter.refresh(issued.refreshToken, 'web');
+  assert.equal(rotated.accepted, true);
+});
+
 void test('[IAM-015] live session lookup carries the MFA re-enrollment gate from the user record', async () => {
   const { client } = createDatabase();
   const adapter = new PrismaSessionLifecycleAdapter(client, {
@@ -232,7 +243,7 @@ void test('[IAM-005] expired refresh tokens fail closed without returning token 
   const { client } = createDatabase();
   const adapter = new PrismaSessionLifecycleAdapter(client, { clock: () => new Date(now) });
   const session = await adapter.issue(principal, 'android');
-  now = new Date('2026-02-01T00:00:00.000Z');
+  now = new Date('2026-04-02T00:00:00.000Z');
   assert.deepEqual(await adapter.refresh(session.refreshToken, 'android'), {
     accepted: false,
     code: 'EXPIRED',
@@ -248,7 +259,7 @@ void test('[IAM-005] refresh cannot restart an expired inactivity window', async
   const { client, sessions, refreshTokens, accessTokens } = createDatabase();
   const adapter = new PrismaSessionLifecycleAdapter(client, { clock: () => new Date(now) });
   const session = await adapter.issue(principal, 'android');
-  now = new Date('2026-01-01T01:00:00.000Z');
+  now = new Date('2026-04-02T00:00:00.000Z');
 
   assert.deepEqual(await adapter.refresh(session.refreshToken, 'android'), {
     accepted: false,

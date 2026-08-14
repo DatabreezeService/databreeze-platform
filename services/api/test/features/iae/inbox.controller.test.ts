@@ -48,8 +48,17 @@ void test('[IAE-001, IAM-009] HTTP inbox listing uses the configured tenant cont
   try {
     const response = await app.inject({ method: 'GET', url: '/v1/artifacts/inbox' });
     assert.equal(response.statusCode, 200);
-    assert.deepEqual(response.json(), [created.accepted ? created.value : undefined]);
-    assert.doesNotMatch(response.body, /opaque|path|byte|excerpt/iu);
+    assert.deepEqual(response.json(), [
+      {
+        schemaVersion: 1,
+        inboxItemId,
+        artifactVersionId,
+        state: 'NEW',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        revision: 1,
+      },
+    ]);
+    assert.doesNotMatch(response.body, /tenantScope|idempotencyKey|opaque|path|byte|excerpt/iu);
   } finally {
     await app.close();
   }

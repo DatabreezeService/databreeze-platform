@@ -148,6 +148,108 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  api-migrate:
+    profiles: [app]
+    build:
+      context: ../..
+      dockerfile: infrastructure/containers/api/Dockerfile
+      target: migration
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-databreeze}:${POSTGRES_PASSWORD:-databreeze-local-change-me}@postgres:5432/${POSTGRES_DB:-databreeze}?schema=public
+      HOME: /tmp
+      COREPACK_HOME: /tmp/corepack
+    networks: [local]
+    logging: *default-logging
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: 'no'
+
+  api:
+    profiles: [app]
+    build:
+      context: ../..
+      dockerfile: infrastructure/containers/api/Dockerfile
+      target: runtime
+    init: true
+    depends_on:
+      api-migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-databreeze}:${POSTGRES_PASSWORD:-databreeze-local-change-me}@postgres:5432/${POSTGRES_DB:-databreeze}?schema=public
+      DATABREEZE_RUNTIME_PROFILE: local
+      DATABREEZE_LOCAL_HTTPS_ORIGIN: https://localhost:${WEB_HTTPS_PORT:-8443}
+      DATABREEZE_REDIS_URL: redis://redis:6379
+      DATABREEZE_LOCAL_EMAIL_PROVIDER: ${DATABREEZE_LOCAL_EMAIL_PROVIDER:-mailpit}
+      DATABREEZE_IAM_SMTP_HOST: ${DATABREEZE_IAM_SMTP_HOST:-mailpit}
+      DATABREEZE_IAM_SMTP_PORT: ${DATABREEZE_IAM_SMTP_PORT:-1025}
+      DATABREEZE_IAM_SMTP_USERNAME: ${DATABREEZE_IAM_SMTP_USERNAME:-}
+      DATABREEZE_IAM_SMTP_APP_PASSWORD: ${DATABREEZE_IAM_SMTP_APP_PASSWORD:-}
+      DATABREEZE_IAM_EMAIL_FROM_ADDRESS: ${DATABREEZE_IAM_EMAIL_FROM_ADDRESS:-verify@databreeze.local}
+      DATABREEZE_IAM_EMAIL_VERIFICATION_DIGEST_KEY: ${DATABREEZE_IAM_EMAIL_VERIFICATION_DIGEST_KEY:-ERERERERERERERERERERERERERERERERERERERERERE}
+      DATABREEZE_IAM_EMAIL_VERIFICATION_ENVELOPE_KEY: ${DATABREEZE_IAM_EMAIL_VERIFICATION_ENVELOPE_KEY:-EhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhI}
+      DATABREEZE_IAM_REGISTRATION_ADMISSION_KEY: ${DATABREEZE_IAM_REGISTRATION_ADMISSION_KEY:-ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM}
+      DATABREEZE_SERVICE_ACCOUNT_SECRET_ENVELOPE_KEY: ${DATABREEZE_SERVICE_ACCOUNT_SECRET_ENVELOPE_KEY:-FBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQ}
+      DATABREEZE_LOCAL_MINIO_ENDPOINT: http://minio:9000
+      DATABREEZE_LOCAL_MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-databreeze}
+      DATABREEZE_LOCAL_MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-databreeze-local-change-me}
+      DATABREEZE_LOCAL_MINIO_BUCKET: ${MINIO_BUCKET_ARTIFACTS:-databreeze-artifacts}
+    expose:
+      - '3000'
+    networks: [local]
+    logging: *default-logging
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
+  web:
+    profiles: [app]
+    build:
+      context: ../..
+      dockerfile: infrastructure/containers/web/Dockerfile
+      target: runtime
+      args:
+        VITE_DATABREEZE_DEMO_MODE: ${VITE_DATABREEZE_DEMO_MODE:-true}
+    init: true
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - '127.0.0.1:${WEB_HTTPS_PORT:-8443}:8443'
+    networks: [local]
+    logging: *default-logging
+    read_only: true
+    tmpfs:
+      - /config:rw,noexec,nosuid,size=16m,uid=1000,gid=1000
+    volumes:
+      - web-caddy-data:/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
 volumes:
   postgres-data:
     name: ${COMPOSE_PROJECT_NAME:-databreeze-local}-postgres-data
@@ -157,6 +259,8 @@ volumes:
     name: ${COMPOSE_PROJECT_NAME:-databreeze-local}-minio-data
   mailpit-data:
     name: ${COMPOSE_PROJECT_NAME:-databreeze-local}-mailpit-data
+  web-caddy-data:
+    name: ${COMPOSE_PROJECT_NAME:-databreeze-local}-web-caddy-data
 
 networks:
   local:

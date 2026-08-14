@@ -13,6 +13,7 @@ import {
 } from '@databreeze/domain/tenant-scope/v1';
 
 import { InMemoryRefreshCoordinatorAdapter } from '../../../src/features/dda/refresh/adapter/in-memory-refresh-coordinator.adapter.js';
+import { withRefreshSnapshotBindingProof } from './refresh-snapshot-fixture.js';
 import { RefreshOrchestratorService } from '../../../src/features/dda/refresh/application/refresh-orchestrator.service.js';
 import { SnapshotCommitService } from '../../../src/features/dda/refresh/application/snapshot-commit.service.js';
 
@@ -24,6 +25,15 @@ const scopeResult = parseTenantScopeV1({
 });
 assert.equal(scopeResult.accepted, true);
 const scope = scopeResult.accepted ? scopeResult.value : (null as never);
+
+const otherScopeResult = parseTenantScopeV1({
+  scopeType: 'project',
+  organizationId: '00000000-0000-4000-8000-000000000101',
+  workspaceId: '00000000-0000-4000-8000-000000000102',
+  projectId: '00000000-0000-4000-8000-000000000103',
+});
+assert.equal(otherScopeResult.accepted, true);
+const otherScope = otherScopeResult.accepted ? otherScopeResult.value : (null as never);
 
 function id(value: string): StableIdentifierV1 {
   const parsed = parseStableIdentifierV1(value);
@@ -62,7 +72,7 @@ function snapshot(snapshotId: StableIdentifierV1) {
   const created = createDashboardSnapshotV1({ ...input, canonicalHash });
   assert.equal(created.accepted, true);
   if (!created.accepted) throw new Error('snapshot');
-  return created.value;
+  return withRefreshSnapshotBindingProof(created.value);
 }
 
 function trigger(overrides: Record<string, unknown> = {}) {
@@ -85,7 +95,7 @@ function trigger(overrides: Record<string, unknown> = {}) {
 
 void test('[DDA-030] duplicate events, worker/client retries, and folder replay are idempotent', async () => {
   const coordinator = new InMemoryRefreshCoordinatorAdapter();
-  await coordinator.setCurrentSnapshot(ids.dashboardId, snapshot(ids.snapshot));
+  await coordinator.setCurrentSnapshot(scope, ids.dashboardId, snapshot(ids.snapshot));
   const orchestrator = new RefreshOrchestratorService(
     coordinator,
     new SnapshotCommitService(coordinator),
@@ -110,9 +120,59 @@ void test('[DDA-030] duplicate events, worker/client retries, and folder replay 
   }
 });
 
+void test('[DDA-030] the same idempotency keys are independent across tenant scopes', async () => {
+  const coordinator = new InMemoryRefreshCoordinatorAdapter();
+  const orchestrator = new RefreshOrchestratorService(
+    coordinator,
+    new SnapshotCommitService(coordinator),
+  );
+
+  const first = await orchestrator.acceptTrigger(trigger());
+  const otherTenant = await orchestrator.acceptTrigger(trigger({ tenantScope: otherScope }));
+  assert.equal(first.accepted, true);
+  assert.equal(otherTenant.accepted, true);
+  if (!first.accepted || !otherTenant.accepted) return;
+  assert.notEqual(otherTenant.value.refreshId, first.value.refreshId);
+});
+
+void test('[DDA-030] concurrent instances reserve one compatible refresh', async () => {
+  const coordinator = new InMemoryRefreshCoordinatorAdapter();
+  const firstOrchestrator = new RefreshOrchestratorService(
+    coordinator,
+    new SnapshotCommitService(coordinator),
+  );
+  const secondOrchestrator = new RefreshOrchestratorService(
+    coordinator,
+    new SnapshotCommitService(coordinator),
+  );
+
+  const [first, second] = await Promise.all([
+    firstOrchestrator.acceptTrigger(
+      trigger({
+        sourceEventId: '00000000-0000-4000-8000-000000000451',
+        clientRequestId: 'client-451',
+        folderReplayKey: 'folder-451',
+      }),
+    ),
+    secondOrchestrator.acceptTrigger(
+      trigger({
+        sourceEventId: '00000000-0000-4000-8000-000000000452',
+        clientRequestId: 'client-452',
+        folderReplayKey: 'folder-452',
+        occurredAtMs: 1_001,
+      }),
+    ),
+  ]);
+  assert.equal(first.accepted, true);
+  assert.equal(second.accepted, true);
+  if (!first.accepted || !second.accepted) return;
+  assert.equal(second.value.refreshId, first.value.refreshId);
+  assert.equal(first.value.coalesced || second.value.coalesced, true);
+});
+
 void test('[DDA-030] compatible changes coalesce inside debounce window and keep final input set', async () => {
   const coordinator = new InMemoryRefreshCoordinatorAdapter();
-  await coordinator.setCurrentSnapshot(ids.dashboardId, snapshot(ids.snapshot));
+  await coordinator.setCurrentSnapshot(scope, ids.dashboardId, snapshot(ids.snapshot));
   const orchestrator = new RefreshOrchestratorService(
     coordinator,
     new SnapshotCommitService(coordinator),
@@ -148,7 +208,7 @@ void test('[DDA-030] compatible changes coalesce inside debounce window and keep
 
 void test('[DDA-030] incompatible permission/definition/input sets never coalesce', async () => {
   const coordinator = new InMemoryRefreshCoordinatorAdapter();
-  await coordinator.setCurrentSnapshot(ids.dashboardId, snapshot(ids.snapshot));
+  await coordinator.setCurrentSnapshot(scope, ids.dashboardId, snapshot(ids.snapshot));
   const orchestrator = new RefreshOrchestratorService(
     coordinator,
     new SnapshotCommitService(coordinator),
@@ -172,7 +232,7 @@ void test('[DDA-030] incompatible permission/definition/input sets never coalesc
 
 void test('[DDA-030] lease expiry and crash recovery keep explicit refresh states and last-good snapshot', async () => {
   const coordinator = new InMemoryRefreshCoordinatorAdapter();
-  await coordinator.setCurrentSnapshot(ids.dashboardId, snapshot(ids.snapshot));
+  await coordinator.setCurrentSnapshot(scope, ids.dashboardId, snapshot(ids.snapshot));
   const orchestrator = new RefreshOrchestratorService(
     coordinator,
     new SnapshotCommitService(coordinator),
@@ -181,36 +241,44 @@ void test('[DDA-030] lease expiry and crash recovery keep explicit refresh state
   assert.equal(accepted.accepted, true);
   if (!accepted.accepted) return;
 
-  const running = await orchestrator.markRunning(accepted.value.refreshId, 'lease-1');
+  const running = await orchestrator.markRunning(scope, accepted.value.refreshId, 'lease-1');
   assert.equal(running.accepted, true);
 
-  const expired = await orchestrator.handleLeaseExpiry(accepted.value.refreshId, 'lease-1');
+  const expired = await orchestrator.handleLeaseExpiry(scope, accepted.value.refreshId, 'lease-1');
   assert.equal(expired.accepted, true);
   if (!expired.accepted) return;
   assert.equal(expired.value.state, 'PENDING');
 
   const afterDispatchCrash = await orchestrator.recoverAfterCrash(
+    scope,
     accepted.value.refreshId,
     'AFTER_JOB_DISPATCH',
+    'lease-2',
   );
   assert.equal(afterDispatchCrash.accepted, true);
   if (!afterDispatchCrash.accepted) return;
   assert.equal(afterDispatchCrash.value.state, 'RUNNING');
 
   const afterVerifyCrash = await orchestrator.recoverAfterCrash(
+    scope,
     accepted.value.refreshId,
     'AFTER_RESULT_VERIFICATION',
+    'lease-2',
   );
   assert.equal(afterVerifyCrash.accepted, true);
   if (!afterVerifyCrash.accepted) return;
   assert.equal(afterVerifyCrash.value.state, 'VERIFYING');
 
   const duringCommitCrash = await orchestrator.recoverAfterCrash(
+    scope,
     accepted.value.refreshId,
     'DURING_SNAPSHOT_COMMIT',
   );
   assert.equal(duringCommitCrash.accepted, true);
   if (!duringCommitCrash.accepted) return;
   assert.equal(duringCommitCrash.value.state, 'FAILED');
-  assert.equal((await coordinator.getCurrentSnapshot(ids.dashboardId))?.snapshotId, ids.snapshot);
+  assert.equal(
+    (await coordinator.getCurrentSnapshot(scope, ids.dashboardId))?.snapshotId,
+    ids.snapshot,
+  );
 });

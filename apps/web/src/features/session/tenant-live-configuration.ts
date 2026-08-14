@@ -1,8 +1,11 @@
+import { currentAuthBootstrapV1 } from '../auth/auth-session.ts';
+
 export interface TenantLiveConfigurationV1 {
   readonly organizationId: string;
   readonly workspaceId: string;
   readonly projectId?: string;
-  readonly sessionId: string;
+  /** Optional legacy finalize-session handle; create/upload is server-owned. */
+  readonly sessionId?: string;
   readonly tenantScope:
     | {
         readonly scopeType: 'workspace';
@@ -27,40 +30,39 @@ function configuredString(environment: TenantEnvironment, key: string): string |
 
 /**
  * DDA-002/006: live intake, ETL accept, and publish require explicit tenant context.
- * Fail closed when organization, workspace, or intake session is missing.
+ * The authenticated bootstrap is authoritative; a build-time intake-session variable is
+ * optional and is used only by the legacy finalize-session fallback.
  */
 export function tenantLiveConfiguration(
   environment: TenantEnvironment = import.meta.env,
 ): TenantLiveConfigurationV1 | undefined {
-  const organizationId = configuredString(environment, 'VITE_DATABREEZE_ORGANIZATION_ID');
-  const workspaceId = configuredString(environment, 'VITE_DATABREEZE_WORKSPACE_ID');
+  const scope = currentAuthBootstrapV1()?.session;
   const sessionId = configuredString(environment, 'VITE_DATABREEZE_INTAKE_SESSION_ID');
-  if (organizationId === undefined || workspaceId === undefined || sessionId === undefined) {
+  if (scope === undefined || scope.scopeType === 'organization') {
     return undefined;
   }
-  const projectId = configuredString(environment, 'VITE_DATABREEZE_PROJECT_ID');
-  if (projectId !== undefined) {
+  if (scope.scopeType === 'project') {
     return Object.freeze({
-      organizationId,
-      workspaceId,
-      projectId,
-      sessionId,
+      organizationId: scope.organizationId,
+      workspaceId: scope.workspaceId,
+      projectId: scope.projectId,
+      ...(sessionId === undefined ? {} : { sessionId }),
       tenantScope: Object.freeze({
         scopeType: 'project' as const,
-        organizationId,
-        workspaceId,
-        projectId,
+        organizationId: scope.organizationId,
+        workspaceId: scope.workspaceId,
+        projectId: scope.projectId,
       }),
     });
   }
   return Object.freeze({
-    organizationId,
-    workspaceId,
-    sessionId,
+    organizationId: scope.organizationId,
+    workspaceId: scope.workspaceId,
+    ...(sessionId === undefined ? {} : { sessionId }),
     tenantScope: Object.freeze({
       scopeType: 'workspace' as const,
-      organizationId,
-      workspaceId,
+      organizationId: scope.organizationId,
+      workspaceId: scope.workspaceId,
     }),
   });
 }

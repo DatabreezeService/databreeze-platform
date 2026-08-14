@@ -5,9 +5,15 @@
   "type": "module",
   "exports": {
     "./contracts/v1": "./contracts/v1/manifest.json",
-    "./contracts/v2": "./contracts/v2/manifest.json"
+    "./contracts/v2": "./contracts/v2/manifest.json",
+    "./contracts/v3": "./contracts/v3/manifest.json",
+    "./contracts/v4": "./contracts/v4/manifest.json"
   },
   "scripts": {
     "test": "node --test test/**/*.test.mjs"
+  },
+  "devDependencies": {
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1"
   }
 }

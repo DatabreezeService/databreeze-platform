@@ -83,6 +83,131 @@
       "path": "schemas/v2/dda-receipt-upload.schema.json"
     },
     {
+      "name": "dda-dashboard-authoring-command",
+      "id": "https://schemas.databreeze.dev/contracts/v3/dda-dashboard-authoring-command",
+      "path": "schemas/v3/dda-dashboard-authoring-command.schema.json"
+    },
+    {
+      "name": "dda-dashboard-authoring-command-result",
+      "id": "https://schemas.databreeze.dev/contracts/v3/dda-dashboard-authoring-command-result",
+      "path": "schemas/v3/dda-dashboard-authoring-command-result.schema.json"
+    },
+    {
+      "name": "dda-dashboard-chart-proposal",
+      "id": "https://schemas.databreeze.dev/contracts/v3/dda-dashboard-chart-proposal",
+      "path": "schemas/v3/dda-dashboard-chart-proposal.schema.json"
+    },
+    {
+      "name": "dda-dashboard-workspace-history",
+      "id": "https://schemas.databreeze.dev/contracts/v3/dda-dashboard-workspace-history",
+      "path": "schemas/v3/dda-dashboard-workspace-history.schema.json"
+    },
+    {
+      "name": "dda-notification",
+      "id": "https://schemas.databreeze.dev/contracts/v3/dda-notification",
+      "path": "schemas/v3/dda-notification.schema.json"
+    },
+    {
+      "name": "dda-notification-page",
+      "id": "https://schemas.databreeze.dev/contracts/v3/dda-notification-page",
+      "path": "schemas/v3/dda-notification-page.schema.json"
+    },
+    {
+      "name": "dda-notification-state-command",
+      "id": "https://schemas.databreeze.dev/contracts/v3/dda-notification-state-command",
+      "path": "schemas/v3/dda-notification-state-command.schema.json"
+    },
+    {
+      "name": "dda-workspace-member-settings",
+      "id": "https://schemas.databreeze.dev/contracts/v3/dda-workspace-member-settings",
+      "path": "schemas/v3/dda-workspace-member-settings.schema.json"
+    },
+    {
+      "name": "dda-agent-turn-accepted",
+      "id": "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-accepted",
+      "path": "schemas/v4/dda-agent-turn-accepted.schema.json"
+    },
+    {
+      "name": "dda-agent-turn-command",
+      "id": "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-command",
+      "path": "schemas/v4/dda-agent-turn-command.schema.json"
+    },
+    {
+      "name": "dda-conversation-list-accepted",
+      "id": "https://schemas.databreeze.dev/contracts/v4/dda-conversation-list-accepted",
+      "path": "schemas/v4/dda-conversation-list-accepted.schema.json"
+    },
+    {
+      "name": "dda-conversation-load-accepted",
+      "id": "https://schemas.databreeze.dev/contracts/v4/dda-conversation-load-accepted",
+      "path": "schemas/v4/dda-conversation-load-accepted.schema.json"
+    },
+    {
+      "name": "dda-conversation-summary",
+      "id": "https://schemas.databreeze.dev/contracts/v4/dda-conversation-summary",
+      "path": "schemas/v4/dda-conversation-summary.schema.json"
+    },
+    {
+      "name": "dda-dashboard-widget-results-accepted",
+      "id": "https://schemas.databreeze.dev/contracts/v4/dda-dashboard-widget-results-accepted",
+      "path": "schemas/v4/dda-dashboard-widget-results-accepted.schema.json"
+    },
+    {
+      "name": "iam-auth-session",
+      "id": "https://schemas.databreeze.dev/contracts/v4/iam-auth-session",
+      "path": "schemas/v4/iam-auth-session.schema.json"
+    },
+    {
+      "name": "iam-bootstrap-response",
+      "id": "https://schemas.databreeze.dev/contracts/v4/iam-bootstrap-response",
+      "path": "schemas/v4/iam-bootstrap-response.schema.json"
+    },
+    {
+      "name": "iam-email-verification-command",
+      "id": "https://schemas.databreeze.dev/contracts/v4/iam-email-verification-command",
+      "path": "schemas/v4/iam-email-verification-command.schema.json"
+    },
+    {
+      "name": "iam-password-sign-in-command",
+      "id": "https://schemas.databreeze.dev/contracts/v4/iam-password-sign-in-command",
+      "path": "schemas/v4/iam-password-sign-in-command.schema.json"
+    },
+    {
+      "name": "iam-registration-accepted",
+      "id": "https://schemas.databreeze.dev/contracts/v4/iam-registration-accepted",
+      "path": "schemas/v4/iam-registration-accepted.schema.json"
+    },
+    {
+      "name": "iam-registration-command",
+      "id": "https://schemas.databreeze.dev/contracts/v4/iam-registration-command",
+      "path": "schemas/v4/iam-registration-command.schema.json"
+    },
+    {
+      "name": "jra-worker-dashboard-widget-result-output",
+      "id": "https://schemas.databreeze.dev/contracts/v4/jra-worker-dashboard-widget-result-output",
+      "path": "schemas/v4/jra-worker-dashboard-widget-result-output.schema.json"
+    },
+    {
+      "name": "jra-worker-result-finalize-accepted",
+      "id": "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-finalize-accepted",
+      "path": "schemas/v4/jra-worker-result-finalize-accepted.schema.json"
+    },
+    {
+      "name": "jra-worker-result-finalize-command",
+      "id": "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-finalize-command",
+      "path": "schemas/v4/jra-worker-result-finalize-command.schema.json"
+    },
+    {
+      "name": "jra-worker-result-prepare-accepted",
+      "id": "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-prepare-accepted",
+      "path": "schemas/v4/jra-worker-result-prepare-accepted.schema.json"
+    },
+    {
+      "name": "jra-worker-result-prepare-command",
+      "id": "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-prepare-command",
+      "path": "schemas/v4/jra-worker-result-prepare-command.schema.json"
+    },
+    {
       "name": "dda-refresh-event",
       "id": "https://schemas.databreeze.dev/contracts/v1/dda-refresh-event",
       "path": "schemas/v1/dda-refresh-event.schema.json"

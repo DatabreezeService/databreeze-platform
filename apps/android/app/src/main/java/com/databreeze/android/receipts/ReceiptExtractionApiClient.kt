@@ -3,6 +3,8 @@ package com.databreeze.android.receipts
 import com.databreeze.android.network.AuthenticatedApiTransport
 import com.databreeze.android.network.AuthenticatedHttpRequest
 import com.databreeze.android.network.AuthenticatedHttpResult
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 
 data class ReceiptExtractionRequest(
     val artifactVersionId: String,
@@ -17,6 +19,8 @@ data class ReceiptCandidateCorrection(
     val fields: List<ReceiptFieldCandidate>,
     val idempotencyKey: String,
     val revision: Long,
+    val artifactVersionId: String? = null,
+    val correlationId: String? = null,
 )
 
 sealed interface ReceiptExtractionApiResult {
@@ -41,38 +45,68 @@ sealed interface ReceiptCandidateReadResult {
 /**
  * Authenticated server OCR extraction/review client.
  *
- * Uses published contracts v2 receipt-upload wire operations. The client never runs OCR or holds
- * a provider key; provider failure retains the original and the manual correction path.
+ * Tenant authority comes exclusively from the authenticated server session. Control-plane
+ * requests contain resource IDs and idempotency only; the client never sends a tenant scope,
+ * runs OCR, or holds a provider key.
  */
 class ReceiptExtractionApiClient(
     private val transport: AuthenticatedApiTransport,
-    private val organizationId: String,
-    private val workspaceId: String,
-    private val nowIso: () -> String,
+    @Suppress("UNUSED_PARAMETER") organizationId: String = "",
+    @Suppress("UNUSED_PARAMETER") workspaceId: String = "",
+    @Suppress("UNUSED_PARAMETER") nowIso: () -> String = { "" },
 ) {
+    private data class CandidateContext(
+        val artifactVersionId: String,
+        val profileVersionId: String,
+        val correlationId: String,
+        val fields: List<ReceiptFieldCandidate>,
+    )
+
+    private data class ParsedCandidate(
+        val ready: ReceiptCandidateReadResult.Ready,
+        val artifactVersionId: String,
+        val profileVersionId: String,
+    )
+
+    private val mapper = jacksonObjectMapper()
+    private val candidateContexts = mutableMapOf<String, CandidateContext>()
+
     suspend fun requestExtraction(request: ReceiptExtractionRequest): ReceiptExtractionApiResult {
         val body =
-            ReceiptWireEnvelope.requestExtraction(
-                organizationId = organizationId,
-                workspaceId = workspaceId,
-                artifactVersionId = request.artifactVersionId,
-                profileVersionId = request.profileVersionId,
-                correlationId = request.correlationId,
-                idempotencyKey = request.idempotencyKey,
-                revision = request.revision,
+            mapper.writeValueAsString(
+                linkedMapOf(
+                    "artifactVersionId" to request.artifactVersionId,
+                    "profileVersionId" to request.profileVersionId,
+                    "profileKind" to "receipt",
+                    "correlationId" to request.correlationId,
+                    "idempotencyKey" to request.idempotencyKey,
+                ),
             )
         return when (
             val response =
                 transport.execute(
                     AuthenticatedHttpRequest(
                         method = "POST",
-                        path = "/v1/receipt-candidates/${request.artifactVersionId}/extraction",
+                        path = "/v1/dda/receipts/extract",
                         jsonBody = body,
                         idempotencyKey = request.idempotencyKey,
                     ),
                 )
         ) {
-            is AuthenticatedHttpResult.Success -> parseExtractionAccepted(response.body)
+            is AuthenticatedHttpResult.Success -> {
+                val unavailable = parseUnavailable(response.body)
+                if (unavailable != null) return unavailable
+                val parsed = parseCandidate(response.body)
+                    ?: return ReceiptExtractionApiResult.Rejected("receipt_candidate_invalid")
+                if (
+                    parsed.artifactVersionId != request.artifactVersionId ||
+                    parsed.profileVersionId != request.profileVersionId
+                ) {
+                    return ReceiptExtractionApiResult.Rejected("receipt_candidate_scope_mismatch")
+                }
+                remember(parsed, request.correlationId)
+                ReceiptExtractionApiResult.Accepted(parsed.ready.candidateId)
+            }
             is AuthenticatedHttpResult.TerminalAuthFailure ->
                 ReceiptExtractionApiResult.Rejected("receipt_extraction_auth_denied")
             is AuthenticatedHttpResult.RetryableFailure,
@@ -85,29 +119,40 @@ class ReceiptExtractionApiClient(
         candidateId: String,
         idempotencyKey: String,
         revision: Long,
+        artifactVersionId: String? = null,
     ): ReceiptCandidateReadResult {
-        val body =
-            ReceiptWireEnvelope.readCandidate(
-                organizationId = organizationId,
-                workspaceId = workspaceId,
-                candidateId = candidateId,
-                idempotencyKey = idempotencyKey,
-                revision = revision,
-            )
-        // Control-plane envelope travels as the request body for idempotent read intent; the
-        // route remains a GET of the exact candidate version.
+        val artifactId = artifactVersionId ?: candidateContexts[candidateId]?.artifactVersionId
+            ?: return ReceiptCandidateReadResult.Rejected("receipt_artifact_context_missing")
+        if (!isUuid(candidateId) || !isUuid(artifactId) || revision < 1) {
+            return ReceiptCandidateReadResult.Rejected("receipt_candidate_request_invalid")
+        }
         return when (
             val response =
                 transport.execute(
                     AuthenticatedHttpRequest(
                         method = "GET",
-                        path = "/v1/receipt-candidates/$candidateId",
-                        jsonBody = body,
+                        path =
+                            "/v1/dda/receipts/candidates/$candidateId" +
+                                "?artifactVersionId=$artifactId",
                         idempotencyKey = idempotencyKey,
                     ),
                 )
         ) {
-            is AuthenticatedHttpResult.Success -> parseCandidate(response.body)
+            is AuthenticatedHttpResult.Success -> {
+                val unavailable = parseCandidateUnavailable(response.body)
+                if (unavailable != null) return unavailable
+                val parsed = parseCandidate(response.body)
+                    ?: return ReceiptCandidateReadResult.Rejected("receipt_candidate_invalid")
+                if (
+                    parsed.ready.candidateId != candidateId ||
+                    parsed.artifactVersionId != artifactId
+                ) {
+                    return ReceiptCandidateReadResult.Rejected("receipt_candidate_scope_mismatch")
+                }
+                val priorCorrelation = candidateContexts[candidateId]?.correlationId ?: candidateId
+                remember(parsed, priorCorrelation)
+                parsed.ready
+            }
             is AuthenticatedHttpResult.TerminalAuthFailure ->
                 ReceiptCandidateReadResult.Rejected("receipt_candidate_auth_denied")
             is AuthenticatedHttpResult.RetryableFailure,
@@ -117,34 +162,65 @@ class ReceiptExtractionApiClient(
     }
 
     suspend fun correctCandidate(correction: ReceiptCandidateCorrection): ReceiptExtractionApiResult {
-        val envelope =
-            ReceiptWireEnvelope.correctCandidate(
-                organizationId = organizationId,
-                workspaceId = workspaceId,
-                candidateId = correction.priorCandidateId,
-                idempotencyKey = correction.idempotencyKey,
-                revision = correction.revision,
-            )
-        // Field values travel on the dedicated correction DTO beside the v2 envelope; they are
-        // never written to ordinary telemetry.
-        val fieldsJson =
-            correction.fields.joinToString(prefix = "[", postfix = "]") { field ->
-                """{"field":"${escape(field.field)}","value":"${escape(field.value)}","confidence":${field.confidence}}"""
-            }
+        val prior = candidateContexts[correction.priorCandidateId]
+            ?: return ReceiptExtractionApiResult.Rejected("receipt_candidate_context_missing")
+        if (
+            correction.artifactVersionId != null &&
+            correction.artifactVersionId != prior.artifactVersionId
+        ) {
+            return ReceiptExtractionApiResult.Rejected("receipt_candidate_scope_mismatch")
+        }
+        if (correction.revision < 1) {
+            return ReceiptExtractionApiResult.Rejected("receipt_correction_request_invalid")
+        }
+
+        val priorByField = prior.fields.associateBy { it.field }
+        if (priorByField.size != prior.fields.size || correction.fields.map { it.field }.toSet().size != correction.fields.size) {
+            return ReceiptExtractionApiResult.Rejected("receipt_correction_fields_invalid")
+        }
+        val updates = linkedMapOf<String, String>()
+        for (field in correction.fields) {
+            val original = priorByField[field.field]
+                ?: return ReceiptExtractionApiResult.Rejected("receipt_correction_fields_invalid")
+            if (field.value != original.value) updates[field.field] = field.value
+        }
+        if (updates.isEmpty()) {
+            return ReceiptExtractionApiResult.Rejected("receipt_correction_empty")
+        }
+
+        val correlationId = correction.correlationId ?: prior.correlationId
         val requestBody =
-            """{"envelope":$envelope,"fields":$fieldsJson,"correctedAt":"${nowIso()}"}"""
+            mapper.writeValueAsString(
+                linkedMapOf(
+                    "priorCandidateId" to correction.priorCandidateId,
+                    "artifactVersionId" to prior.artifactVersionId,
+                    "correlationId" to correlationId,
+                    "fieldUpdates" to updates,
+                    "idempotencyKey" to correction.idempotencyKey,
+                ),
+            )
         return when (
             val response =
                 transport.execute(
                     AuthenticatedHttpRequest(
                         method = "POST",
-                        path = "/v1/receipt-candidates/${correction.priorCandidateId}/corrections",
+                        path = "/v1/dda/receipts/correct",
                         jsonBody = requestBody,
                         idempotencyKey = correction.idempotencyKey,
                     ),
                 )
         ) {
-            is AuthenticatedHttpResult.Success -> parseExtractionAccepted(response.body)
+            is AuthenticatedHttpResult.Success -> {
+                val unavailable = parseUnavailable(response.body)
+                if (unavailable != null) return unavailable
+                val parsed = parseCandidate(response.body)
+                    ?: return ReceiptExtractionApiResult.Rejected("receipt_candidate_invalid")
+                if (parsed.artifactVersionId != prior.artifactVersionId) {
+                    return ReceiptExtractionApiResult.Rejected("receipt_candidate_scope_mismatch")
+                }
+                remember(parsed, correlationId)
+                ReceiptExtractionApiResult.Accepted(parsed.ready.candidateId)
+            }
             is AuthenticatedHttpResult.TerminalAuthFailure ->
                 ReceiptExtractionApiResult.Rejected("receipt_correction_auth_denied")
             is AuthenticatedHttpResult.RetryableFailure,
@@ -153,58 +229,107 @@ class ReceiptExtractionApiClient(
         }
     }
 
-    private fun parseExtractionAccepted(body: String): ReceiptExtractionApiResult {
-        val status = extractJsonString(body, "status")
-        if (status == "provider_unavailable") {
-            return ReceiptExtractionApiResult.Unavailable(
-                extractJsonString(body, "code") ?: "server_ocr_unavailable",
+    private fun remember(parsed: ParsedCandidate, correlationId: String) {
+        candidateContexts[parsed.ready.candidateId] =
+            CandidateContext(
+                artifactVersionId = parsed.artifactVersionId,
+                profileVersionId = parsed.profileVersionId,
+                correlationId = correlationId,
+                fields = parsed.ready.fields.map { it.copy() },
             )
-        }
-        val candidateId = extractJsonString(body, "candidateId")
-            ?: return ReceiptExtractionApiResult.Rejected("candidate_id_missing")
-        return ReceiptExtractionApiResult.Accepted(candidateId)
     }
 
-    private fun parseCandidate(body: String): ReceiptCandidateReadResult {
-        val status = extractJsonString(body, "status")
-        if (status == "provider_unavailable") {
-            return ReceiptCandidateReadResult.Unavailable(
-                extractJsonString(body, "code") ?: "server_ocr_unavailable",
-            )
-        }
-        val candidateId =
-            extractJsonString(body, "candidateId")
-                ?: return ReceiptCandidateReadResult.Rejected("candidate_id_missing")
-        val adapterVersion = extractJsonString(body, "adapterVersion") ?: "unknown"
-        val fields = parseFields(body)
-        return ReceiptCandidateReadResult.Ready(candidateId, adapterVersion, fields)
+    private fun parseUnavailable(body: String): ReceiptExtractionApiResult.Unavailable? {
+        val root = readTree(body) ?: return null
+        if (root.text("status") != "provider_unavailable") return null
+        return ReceiptExtractionApiResult.Unavailable(
+            root.text("code") ?: "server_ocr_unavailable",
+        )
     }
 
-    private fun parseFields(body: String): List<ReceiptFieldCandidate> {
-        val block =
-            Regex(""""fields"\s*:\s*\[(.*)]""", RegexOption.DOT_MATCHES_ALL)
-                .find(body)
-                ?.groupValues
-                ?.getOrNull(1)
-                ?: return emptyList()
-        return Regex(
-            """\{[^{}]*"field"\s*:\s*"([^"]+)"[^{}]*"value"\s*:\s*"([^"]*)"[^{}]*"confidence"\s*:\s*(\d+)[^{}]*("evidenceCropId"\s*:\s*"([^"]*)")?[^{}]*}""",
-        ).findAll(block)
-            .map { match ->
+    private fun parseCandidateUnavailable(body: String): ReceiptCandidateReadResult.Unavailable? {
+        val root = readTree(body) ?: return null
+        if (root.text("status") != "provider_unavailable") return null
+        return ReceiptCandidateReadResult.Unavailable(
+            root.text("code") ?: "server_ocr_unavailable",
+        )
+    }
+
+    private fun parseCandidate(body: String): ParsedCandidate? {
+        val root = readTree(body) ?: return null
+        val schemaVersion = root.get("schemaVersion") ?: return null
+        if (!schemaVersion.canConvertToLong() || schemaVersion.longValue() != 1L) return null
+        val candidateId = root.text("candidateId") ?: return null
+        val artifactVersionId = root.text("artifactVersionId") ?: return null
+        val profileVersionId = root.text("profileVersionId") ?: return null
+        val adapterVersion = root.text("adapterVersion") ?: return null
+        val evidenceReferenceId = root.text("evidenceReferenceId") ?: return null
+        val candidateHash = root.text("candidateHash") ?: return null
+        if (
+            !isUuid(candidateId) ||
+            !isUuid(artifactVersionId) ||
+            !isUuid(profileVersionId) ||
+            !isUuid(evidenceReferenceId) ||
+            adapterVersion.length !in 1..64 ||
+            !SHA256_PATTERN.matches(candidateHash) ||
+            !isTenantScopeShape(root.get("tenantScope"))
+        ) {
+            return null
+        }
+        val fieldsNode = root.get("fieldCandidates") ?: return null
+        if (!fieldsNode.isArray || fieldsNode.size() > 64) return null
+        val fields = mutableListOf<ReceiptFieldCandidate>()
+        for (fieldNode in fieldsNode) {
+            val field = fieldNode.text("field") ?: return null
+            val value = fieldNode.text("value") ?: return null
+            val confidenceNode = fieldNode.get("confidence") ?: return null
+            if (!confidenceNode.canConvertToInt()) return null
+            val confidence = confidenceNode.intValue()
+            if (field.length !in 1..64 || value.length !in 1..500 || confidence !in 0..100) {
+                return null
+            }
+            fields +=
                 ReceiptFieldCandidate(
-                    field = match.groupValues[1],
-                    value = match.groupValues[2],
-                    confidence = match.groupValues[3].toInt(),
-                    evidenceCropId = match.groupValues.getOrNull(5)?.takeIf { it.isNotEmpty() },
+                    field = field,
+                    value = value,
+                    confidence = confidence,
+                    evidenceCropId = evidenceReferenceId,
                 )
-            }.toList()
+        }
+        if (fields.map { it.field }.toSet().size != fields.size) return null
+        return ParsedCandidate(
+            ready = ReceiptCandidateReadResult.Ready(candidateId, adapterVersion, fields),
+            artifactVersionId = artifactVersionId,
+            profileVersionId = profileVersionId,
+        )
     }
 
-    private fun extractJsonString(body: String, key: String): String? {
-        val match = Regex("\"${Regex.escape(key)}\"\\s*:\\s*\"([^\"]+)\"").find(body) ?: return null
-        return match.groupValues.getOrNull(1)?.takeIf { it.isNotEmpty() }
+    private fun readTree(body: String): JsonNode? =
+        runCatching { mapper.readTree(body) }.getOrNull()?.takeIf { it.isObject }
+
+    private fun JsonNode.text(key: String): String? =
+        get(key)?.takeIf { it.isTextual }?.textValue()?.takeIf { it.isNotEmpty() }
+
+    private fun isUuid(value: String): Boolean =
+        UUID_PATTERN.matches(value)
+
+    private fun isTenantScopeShape(node: JsonNode?): Boolean {
+        if (node == null || !node.isObject) return false
+        val scopeType = node.text("scopeType") ?: return false
+        if (!isUuid(node.text("organizationId") ?: return false)) return false
+        return when (scopeType) {
+            "organization" -> true
+            "workspace" -> isUuid(node.text("workspaceId") ?: return false)
+            "project" ->
+                isUuid(node.text("workspaceId") ?: return false) &&
+                    isUuid(node.text("projectId") ?: return false)
+            else -> false
+        }
     }
 
-    private fun escape(value: String): String =
-        value.replace("\\", "\\\\").replace("\"", "\\\"")
+    private companion object {
+        val UUID_PATTERN =
+            Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$")
+        val SHA256_PATTERN = Regex("^[0-9a-f]{64}$")
+    }
 }

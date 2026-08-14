@@ -39,11 +39,13 @@ test('AWS container validation command is pinned, isolated, and non-applying', (
   assert.match(help.stdout, /does not\s+apply infrastructure/u);
   const source = read('tools/repo-cli/src/validate-aws-opentofu.mjs');
   assert.match(source, /'fmt',\s*'-check',\s*'-recursive'/u);
-  assert.match(source, /'init',\s*'-backend=false',\s*'-input=false',\s*'-lockfile=readonly'/u);
-  assert.match(source, /'validate', '-no-color'/u);
-  assert.match(source, /'test', '-no-color'/u);
+  assert.match(source, /tofu init -backend=false -input=false[\s\S]*-no-color/u);
+  assert.match(source, /cp -a \/workspace\/\./u);
+  assert.match(source, /'--entrypoint',\s*'sh'/u);
+  assert.match(source, /tofu validate -no-color/u);
+  assert.match(source, /tofu test -no-color/u);
   assert.match(source, /target=\/workspace,readonly/u);
-  assert.match(source, /TF_DATA_DIR=\/tmp\/databreeze-tofu/u);
+  assert.match(source, /TF_DATA_DIR=\$\{containerDataDirectory\}/u);
   assert.doesNotMatch(source, /['"]apply['"]/u);
   assert.match(
     read('package.json'),
@@ -135,12 +137,170 @@ test('AWS validation script is non-applying and reports missing OpenTofu clearly
     /AWS infrastructure baseline|OpenTofu is not installed/,
   );
   const source = read('tools/repo-cli/src/check-aws-infrastructure.mjs');
-  assert.match(source, /init', '-backend=false/);
+  assert.match(source, /'init'[\s\S]*'-backend=false'/u);
   assert.match(source, /'-lockfile=readonly'/u);
   assert.match(source, /validate', '-no-color/);
   assert.match(source, /process\.exitCode \?\? 0/);
   assert.match(source, /missing required safety boundary/u);
   assert.doesNotMatch(source, /tofu',\s*\['apply'/u);
+});
+
+test('AWS validation runs compute plus staging and production OpenTofu tests when available', () => {
+  const check = read('tools/repo-cli/src/check-aws-infrastructure.mjs');
+  const container = read('tools/repo-cli/src/validate-aws-opentofu.mjs');
+  assert.match(check, /path\.join\('modules', 'compute'\)/u);
+  assert.match(check, /path\.join\('environments', 'staging'\)/u);
+  assert.match(check, /path\.join\('environments', 'production'\)/u);
+  assert.match(container, /\/workspace\/modules\/compute/u);
+  assert.match(container, /\/workspace\/environments\/staging/u);
+  assert.match(container, /\/workspace\/environments\/production/u);
+  assert.match(check, /spawnSync\('tofu',\s*\['test',\s*'-no-color'/u);
+  assert.match(container, /tofu test -no-color/u);
+});
+
+test('AWS runtime contract separates API and worker task roles and documents whole-secret rotation rollback', () => {
+  const compute = read('infrastructure/aws/modules/compute/main.tf');
+  const runbook = read('infrastructure/aws/modules/compute/README.md');
+  assert.match(compute, /aws_iam_role"\s+"api_task"/u);
+  assert.match(compute, /aws_iam_role"\s+"worker_task"/u);
+  assert.match(compute, /task_role_arn\s*=\s*aws_iam_role\.api_task\.arn/u);
+  assert.match(compute, /task_role_arn\s*=\s*aws_iam_role\.worker_task\.arn/u);
+  assert.match(compute, /aws_iam_role_policy_attachment\.api_execution/u);
+  assert.match(compute, /aws_iam_role_policy\.execution_secrets/u);
+  assert.match(compute, /aws_iam_role_policy_attachment\.worker_execution/u);
+  const apiService =
+    compute.match(
+      /resource\s+"aws_ecs_service"\s+"api"[\s\S]*?resource\s+"aws_ecs_service"\s+"worker"/u,
+    )?.[0] ?? '';
+  const workerService =
+    compute.match(/resource\s+"aws_ecs_service"\s+"worker"[\s\S]*$/u)?.[0] ?? '';
+  assert.match(
+    apiService,
+    /depends_on\s*=\s*\[[\s\S]*aws_iam_role_policy_attachment\.api_execution[\s\S]*aws_iam_role_policy\.execution_secrets/u,
+  );
+  assert.match(
+    workerService,
+    /depends_on\s*=\s*\[[\s\S]*aws_iam_role_policy_attachment\.worker_execution/u,
+  );
+  assert.match(workerService, /aws_iam_role_policy\.execution_secrets/u);
+  assert.match(compute, /healthCheck/u);
+  assert.match(compute, /command\s+=\s+\["CMD",\s*"\/nodejs\/bin\/node"/u);
+  assert.match(compute, /\/health\/ready/u);
+  assert.doesNotMatch(compute, /CMD-SHELL|\/health\/live/u);
+  assert.match(runbook, /update-secret-version-stage/u);
+  assert.match(runbook, /AWSCURRENT/u);
+  assert.match(runbook, /force-new-deployment/u);
+  assert.match(runbook, /circuit breaker/u);
+});
+
+test('AWS hosted API uses a public HTTPS ALB and only ALB-to-API ingress', () => {
+  const network = read('infrastructure/aws/modules/network/main.tf');
+  const compute = read('infrastructure/aws/modules/compute/main.tf');
+  const production = read('infrastructure/aws/environments/production/main.tf');
+
+  assert.match(network, /aws_security_group"\s+"api_load_balancer"/u);
+  assert.match(network, /aws_vpc_security_group_ingress_rule"\s+"api_from_load_balancer"/u);
+  assert.match(network, /referenced_security_group_id\s*=\s*aws_security_group\.api_load_balancer/u);
+  assert.match(compute, /aws_lb"\s+"api"/u);
+  assert.match(compute, /aws_lb_target_group"\s+"api"/u);
+  assert.match(compute, /aws_lb_listener"\s+"api_https"/u);
+  assert.match(compute, /protocol\s*=\s*"HTTPS"/u);
+  assert.match(compute, /certificate_arn\s*=\s*var\.api_certificate_arn/u);
+  assert.match(compute, /path\s*=\s*"\/health\/ready"/u);
+  assert.match(compute, /dynamic "load_balancer"\s*\{/u);
+  assert.match(production, /public_subnet_ids\s*=\s*module\.network\.public_subnet_ids/u);
+  assert.match(
+    production,
+    /api_load_balancer_security_group_id\s*=\s*module\.network\.api_load_balancer_security_group_id/u,
+  );
+  assert.match(production, /api_certificate_arn\s*=\s*var\.api_certificate_arn/u);
+
+  for (const environment of ['alpha', 'staging', 'production']) {
+    const outputs = read(`infrastructure/aws/environments/${environment}/outputs.tf`);
+    assert.match(
+      outputs,
+      /output "api_load_balancer_dns_name"[\s\S]*module\.compute\.api_load_balancer_dns_name/u,
+    );
+    assert.match(
+      outputs,
+      /output "api_https_listener_arn"[\s\S]*module\.compute\.api_https_listener_arn/u,
+    );
+  }
+});
+
+test('AWS Web CSP receives only reviewed exact HTTPS API origins', () => {
+  const production = read('infrastructure/aws/environments/production/main.tf');
+  const variables = read('infrastructure/aws/environments/production/variables.tf');
+  const productionShape = read(
+    'infrastructure/aws/environments/production/production-shaped.tfvars.example',
+  );
+
+  assert.match(production, /connect_src_origins\s*=\s*var\.web_connect_src_origins/u);
+  assert.match(variables, /variable "web_connect_src_origins"[\s\S]*type\s*=\s*list\(string\)/u);
+  assert.match(
+    productionShape,
+    /web_connect_src_origins\s*=\s*\["https:\/\/api\.[a-z0-9.-]+"\]/u,
+  );
+  assert.doesNotMatch(productionShape, /web_connect_src_origins[^\n]*\*/u);
+});
+
+test('AWS exposes dashboard proposal AI as an independently gated server-side feature', () => {
+  const compute = read('infrastructure/aws/modules/compute/main.tf');
+  const variables = read('infrastructure/aws/modules/compute/variables.tf');
+  const production = read('infrastructure/aws/environments/production/main.tf');
+
+  assert.match(variables, /variable "openai_dashboard_enabled"/u);
+  assert.match(variables, /variable "openai_dashboard_model"/u);
+  assert.match(compute, /DATABREEZE_OPENAI_DASHBOARD_ENABLED/u);
+  assert.match(compute, /DATABREEZE_OPENAI_DASHBOARD_MODEL/u);
+  assert.match(
+    compute,
+    /var\.openai_agent_enabled\s*\|\|\s*var\.openai_receipt_enabled\s*\|\|\s*var\.openai_dashboard_enabled/u,
+  );
+  assert.match(production, /openai_dashboard_enabled\s*=\s*var\.openai_dashboard_enabled/u);
+  assert.match(production, /openai_dashboard_model\s*=\s*var\.openai_dashboard_model/u);
+});
+
+test('AWS composes IAM OTP secrets, TLS Redis admission, and least-privilege SES delivery', () => {
+  const security = read('infrastructure/aws/modules/security/main.tf');
+  const securityOutputs = read('infrastructure/aws/modules/security/outputs.tf');
+  const compute = read('infrastructure/aws/modules/compute/main.tf');
+  const computeVariables = read('infrastructure/aws/modules/compute/variables.tf');
+  const production = read('infrastructure/aws/environments/production/main.tf');
+
+  for (const secret of [
+    'email-verification-digest-key',
+    'email-verification-envelope-key',
+    'registration-admission-key',
+  ]) {
+    assert.match(security, new RegExp(`databreeze/\\$\\{var\\.name\\}/iam/${secret}`));
+  }
+  for (const output of [
+    'email_verification_digest_key_secret_arn',
+    'email_verification_envelope_key_secret_arn',
+    'registration_admission_key_secret_arn',
+  ]) {
+    assert.match(securityOutputs, new RegExp(`output "${output}"`));
+    assert.match(production, new RegExp(`${output}\\s*=\\s*module\\.security\\.${output}`));
+  }
+  for (const environmentName of [
+    'DATABREEZE_IAM_EMAIL_VERIFICATION_DIGEST_KEY',
+    'DATABREEZE_IAM_EMAIL_VERIFICATION_ENVELOPE_KEY',
+    'DATABREEZE_IAM_REGISTRATION_ADMISSION_KEY',
+    'DATABREEZE_REDIS_URL',
+    'DATABREEZE_IAM_EMAIL_FROM_ADDRESS',
+    'DATABREEZE_IAM_EMAIL_SES_REGION',
+  ]) {
+    assert.match(compute, new RegExp(environmentName));
+  }
+  assert.match(production, /redis_url\s*=\s*module\.data\.redis_endpoint/u);
+  assert.match(computeVariables, /variable "iam_email_from_address"/u);
+  assert.match(compute, /Action\s*=\s*\["ses:SendEmail"\]/u);
+  assert.match(
+    compute,
+    /Resource\s*=\s*\["arn:\$\{data\.aws_partition\.current\.partition\}:ses:\$\{var\.region\}:\$\{data\.aws_caller_identity\.current\.account_id\}:identity\/\$\{var\.iam_email_from_address\}"\]/u,
+  );
+  assert.doesNotMatch(compute, /ses:\*|ses:SendRawEmail/u);
 });
 
 test('AWS provider selection is locked for reproducible validation', () => {

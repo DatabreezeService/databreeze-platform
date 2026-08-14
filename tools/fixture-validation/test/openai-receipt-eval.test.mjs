@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+/* global Buffer */
+
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
@@ -71,6 +73,84 @@ void test('[DDA-043] recorded responses and expected fixtures contain no secret-
   assert.doesNotMatch(recorded, /sk-[a-zA-Z0-9]{20,}/u);
   assert.doesNotMatch(manifest, /sk-[a-zA-Z0-9]{20,}/u);
   assert.match(manifest, /noCustomerData/u);
+});
+
+void test('[DDA-041, DDA-042] corpus admission rejects tiny uniform blank low-information fixtures', async () => {
+  const { admitReceiptFixtureImage } = await import('../src/run-openai-receipt-eval.mjs');
+  const { deflateSync } = await import('node:zlib');
+
+  function solidPng(width, height, rgb = [0xff, 0x00, 0x00]) {
+    const raw = Buffer.alloc((width * 3 + 1) * height);
+    for (let y = 0; y < height; y += 1) {
+      const row = y * (width * 3 + 1);
+      raw[row] = 0;
+      for (let x = 0; x < width; x += 1) {
+        const i = row + 1 + x * 3;
+        raw[i] = rgb[0];
+        raw[i + 1] = rgb[1];
+        raw[i + 2] = rgb[2];
+      }
+    }
+    const ihdr = Buffer.alloc(13);
+    ihdr.writeUInt32BE(width, 0);
+    ihdr.writeUInt32BE(height, 4);
+    ihdr[8] = 8;
+    ihdr[9] = 2;
+    const crcTable = (() => {
+      const table = new Uint32Array(256);
+      for (let n = 0; n < 256; n += 1) {
+        let c = n;
+        for (let k = 0; k < 8; k += 1) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+        table[n] = c >>> 0;
+      }
+      return table;
+    })();
+    const crc = (type, data) => {
+      let c = 0xffffffff;
+      for (const b of Buffer.from(type)) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8);
+      for (const b of data) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8);
+      return (c ^ 0xffffffff) >>> 0;
+    };
+    const chunk = (type, data) => {
+      const len = Buffer.alloc(4);
+      len.writeUInt32BE(data.length, 0);
+      const typeBuf = Buffer.from(type);
+      const crcBuf = Buffer.alloc(4);
+      crcBuf.writeUInt32BE(crc(type, data), 0);
+      return Buffer.concat([len, typeBuf, data, crcBuf]);
+    };
+    return Buffer.concat([
+      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      chunk('IHDR', ihdr),
+      chunk('IDAT', deflateSync(raw)),
+      chunk('IEND', Buffer.alloc(0)),
+    ]);
+  }
+
+  const tiny = solidPng(64, 96);
+  assert.throws(
+    () =>
+      admitReceiptFixtureImage({ image: 'tiny-uniform.png', width: 64, height: 96 }, tiny, {
+        minimumWidth: 400,
+        minimumHeight: 600,
+        minimumByteLength: 8000,
+        minimumUniqueColors: 16,
+        rejectUniformFills: true,
+        requireNonBlankContent: true,
+      }),
+    /tiny|undersized|uniform|low-information|blank/iu,
+  );
+
+  const report = await runOpenAiReceiptEval(['--offline']);
+  assert.equal(report.offlineVerified, true);
+  for (const row of report.caseScores.filter((item) =>
+    ['synthetic-vi', 'synthetic-en', 'synthetic-hostile'].includes(item.caseId),
+  )) {
+    assert.ok(row.requiredFieldCoverage?.startsWith('6/') || row.perField);
+  }
+  const manifest = JSON.parse(readFileSync(join(FIXTURE_DIR, 'manifest.json'), 'utf8'));
+  assert.ok(manifest.admission);
+  assert.ok(manifest.cases.every((item) => item.width >= 400 && item.height >= 600));
 });
 
 function collectObjectSchemas(node, path, out) {
@@ -201,7 +281,11 @@ void test('[DDA-041, DDA-042] live request uses canonical strict schema without 
     collectObjectSchemas(capturedBody.text.format.schema, 'schema', objectSchemas);
     assert.ok(objectSchemas.length >= 3);
     for (const { path, schema } of objectSchemas) {
-      assert.equal(schema.additionalProperties, false, `${path} must set additionalProperties:false`);
+      assert.equal(
+        schema.additionalProperties,
+        false,
+        `${path} must set additionalProperties:false`,
+      );
       assert.equal(typeof schema.properties, 'object', `${path} must declare properties`);
       assert.ok(Array.isArray(schema.required), `${path} must declare required`);
       assert.deepEqual(

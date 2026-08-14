@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 4,
+  "conversationId": "00000000-0000-4000-8000-000000000401",
+  "title": "Phan tich doanh thu",
+  "datasets": [
+    {
+      "datasetId": "00000000-0000-4000-8000-000000000402",
+      "datasetVersionId": "00000000-0000-4000-8000-000000000403"
+    }
+  ],
+  "createdAt": "2026-08-13T01:00:00.000Z",
+  "updatedAt": "2026-08-13T02:00:00.000Z",
+  "tenantScope": {
+    "scopeType": "workspace",
+    "organizationId": "00000000-0000-4000-8000-000000000405",
+    "workspaceId": "00000000-0000-4000-8000-000000000406"
+  }
+}

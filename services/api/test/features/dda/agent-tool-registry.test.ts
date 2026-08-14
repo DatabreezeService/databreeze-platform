@@ -38,6 +38,21 @@ void test('[DDA-060] each tool declares level, IAM action, bounds, and audit pol
   }
 });
 
+void test('[DDA-060] every tool declares a closed output schema with required keys', () => {
+  const registry = new AgentToolRegistryV1();
+  for (const name of AGENT_TOOL_NAMES_V1) {
+    const resolved = registry.resolve(name);
+    assert.equal(resolved.accepted, true);
+    if (!resolved.accepted) return;
+    const { properties, requiredProperties } = resolved.value.outputSchema;
+    assert.equal(new Set(properties).size, properties.length, `${name} output keys are unique`);
+    assert.ok(requiredProperties.length > 0, `${name} has required output keys`);
+    for (const required of requiredProperties) {
+      assert.equal(properties.includes(required), true, `${name} requires declared key`);
+    }
+  }
+});
+
 void test('[DDA-060] applyConfirmed requires APPLY_CONFIRMED_CHANGES and mutation class', () => {
   const registry = new AgentToolRegistryV1();
   const resolved = registry.resolve('dashboard.applyConfirmed');

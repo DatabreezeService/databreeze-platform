@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { type AuthenticatedPrincipalV1 } from '../../features/iam/application/authentication.port.js';
+import type { WorkspaceAuthorizationEpochResolverPortV1 } from '../../features/iam/application/agent-grant-repository.port.js';
 import { createIamTenantContextV1 } from '../../features/iam/application/tenant-context.js';
 import {
   RequestTenantContextProblemError,
@@ -19,6 +20,20 @@ interface RequestLikeV1 {
 
 export interface SessionPrincipalLookupV1 {
   findPrincipalByAccessToken(accessToken: unknown): Promise<AuthenticatedPrincipalV1 | undefined>;
+}
+
+export class UnavailableWorkspaceAuthorizationEpochResolverAdapter
+  implements WorkspaceAuthorizationEpochResolverPortV1
+{
+  public async resolveWorkspaceAuthorizationEpoch(
+    context: Parameters<
+      WorkspaceAuthorizationEpochResolverPortV1['resolveWorkspaceAuthorizationEpoch']
+    >[0],
+  ): Promise<number> {
+    void context;
+    await Promise.resolve();
+    throw new Error('IAM_AUTHORIZATION_EPOCH_UNAVAILABLE');
+  }
 }
 
 function requestLike(input: unknown): RequestLikeV1 | undefined {
@@ -66,7 +81,10 @@ function bearerToken(request: RequestLikeV1): string | undefined {
 
 /** Resolve every protected request from the live IAM session, never from body scope hints. */
 export class SessionRequestTenantContextAdapter implements RequestTenantContextPortV1 {
-  public constructor(private readonly sessions: SessionPrincipalLookupV1) {}
+  public constructor(
+    private readonly sessions: SessionPrincipalLookupV1,
+    private readonly workspaceEpoch: WorkspaceAuthorizationEpochResolverPortV1 = new UnavailableWorkspaceAuthorizationEpochResolverAdapter(),
+  ) {}
 
   public async resolve(request: unknown) {
     const input = requestLike(request);
@@ -98,6 +116,19 @@ export class SessionRequestTenantContextAdapter implements RequestTenantContextP
       mfaReenrollmentRequired: principal.mfaReenrollmentRequired,
     });
     if (!context.accepted) throw new RequestTenantContextProblemError('CONTEXT_INVALID');
-    return context.value;
+    let workspaceAuthorizationEpoch: number;
+    try {
+      workspaceAuthorizationEpoch = await this.workspaceEpoch.resolveWorkspaceAuthorizationEpoch(
+        context.value,
+      );
+    } catch {
+      throw new RequestTenantContextProblemError('AUTHENTICATION_UNAVAILABLE');
+    }
+    const resolved = createIamTenantContextV1({
+      ...context.value,
+      workspaceAuthorizationEpoch,
+    });
+    if (!resolved.accepted) throw new RequestTenantContextProblemError('CONTEXT_INVALID');
+    return resolved.value;
   }
 }

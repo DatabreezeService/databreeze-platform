@@ -60,7 +60,9 @@ const FORMULA_PREFIX = /^[=+\-@]/u;
 
 export function admitTableMedia(
   input: TableMediaAdmissionInputV1,
-): { readonly accepted: true } | { readonly accepted: false; readonly code: TableMediaAdmissionCodeV1 } {
+):
+  | { readonly accepted: true }
+  | { readonly accepted: false; readonly code: TableMediaAdmissionCodeV1 } {
   if (!ALLOWED_MIME.has(input.mimeType.toLowerCase())) {
     return Object.freeze({ accepted: false, code: 'UNSUPPORTED_MIME' });
   }
@@ -87,11 +89,13 @@ function hasExtraProperty(value: unknown): boolean {
 }
 
 /** DDA-057: deterministic table candidate validation; never registers DatasetVersion. */
-export function validateTableExtractionCandidate(
-  input: TableExtractionRawCandidateV1,
-):
+export function validateTableExtractionCandidate(input: TableExtractionRawCandidateV1):
   | { readonly accepted: true; readonly warnings: readonly string[] }
-  | { readonly accepted: false; readonly code: TableValidationCodeV1; readonly requiresReview: true } {
+  | {
+      readonly accepted: false;
+      readonly code: TableValidationCodeV1;
+      readonly requiresReview: true;
+    } {
   if (input.profileVersion !== 'TABLE_V1') {
     return Object.freeze({
       accepted: false,

@@ -37,7 +37,7 @@
 |---|---|
 | DDA-038 | `partial` — messy-sales processor parity harness green; foundation ports still partly prototype |
 | DDA-040 | `partial` — durable encrypted staging + contracts v2 authenticated upload/extraction clients; emulator/device/Play still blocked |
-| DDA-044 | `partial` — OpenAI fail-closed + egress + offline eval green; owner live synthetic plumbing verified but extraction quality failed (0/6 required fields on `gpt-4o-mini-2024-07-18` / `detail: high`); `promotionEligible`/`productionReady` remain false (§3) |
+| DDA-044 | `partial` — OpenAI fail-closed + egress + offline eval green on **repaired readable corpus**; assistance Tasks 6–10 offline green; prior live run plumbing-only (solid-square corpus invalidated quality conclusions); `promotionEligible`/`productionReady` remain false (§3) |
 | DDA-051 | `deferred` / `post-ga` — streaming rejected in V1 enums |
 | DDA-001..050 others | remain lane `partial` / planned unless already evidenced |
 
@@ -56,7 +56,8 @@ No requirement is promoted by this baseline freeze.
 
 - Real IAE/DSM/JRA/BUA/AUD/DSO adapters instead of DdaModule prototype ports
 - Full ActionRegistry ActionHandler enrollment (digest pins exist; typed multi-action protocol pending)
-- Live OpenAI extraction quality on pinned cheap baseline (plumbing verified; 0/6 field coverage — model/prompt/corpus iteration or capped stronger-model comparison still needed before promotion)
+- Live OpenAI extraction quality on repaired readable corpus (prior solid-square live run is plumbing-only / quality-invalid; owner max-1 re-run still needed)
+- Live OpenAI assistance smoke (mapping/analyst/narrative/dashboard) — offline only in this wave
 - Prisma-backed DDA repositories (still in-memory adapters)
 - CSP-safe chart paths without `unsafe-eval` (CSP kept strict)
 - Signed Desktop/Android artifacts, restore drill, staged AWS apply

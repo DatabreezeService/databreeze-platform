@@ -8,10 +8,7 @@ import addFormats from 'ajv-formats';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const manifestPath = resolve(packageRoot, 'contracts/v2/manifest.json');
-const schemaPath = resolve(
-  packageRoot,
-  '../contracts/schemas/v2/dda-receipt-upload.schema.json',
-);
+const schemaPath = resolve(packageRoot, '../contracts/schemas/v2/dda-receipt-upload.schema.json');
 
 test('v2 receipt-upload fixtures cover accept and reject paths', () => {
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));

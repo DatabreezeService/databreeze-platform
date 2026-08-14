@@ -53,6 +53,11 @@ import {
   type GovernedDatasetRepositoryPortV1,
 } from './application/governed-dataset-repository.port.js';
 import {
+  GOVERNED_DATASET_AUTHORIZATION_PORT,
+  UnavailableGovernedDatasetAuthorizationAdapter,
+  type GovernedDatasetAuthorizationPortV1,
+} from './application/governed-dataset-authorization.port.js';
+import {
   MAPPING_REPOSITORY_PORT,
   type MappingRepositoryPortV1,
 } from './application/mapping-repository.port.js';
@@ -88,6 +93,7 @@ import {
 
 export interface DsmModuleOptions {
   readonly governedDatasetRepository?: GovernedDatasetRepositoryPortV1;
+  readonly governedDatasetAuthorization?: GovernedDatasetAuthorizationPortV1;
   /** Production composition passes the generated Prisma client; tests may keep the port in-memory. */
   readonly governedDatasetDatabase?: GovernedDatasetDatabaseClientV1;
   readonly mappingRepository?: MappingRepositoryPortV1;
@@ -130,6 +136,12 @@ export class DsmModule {
         DatasetExportController,
       ],
       providers: [
+        {
+          provide: GOVERNED_DATASET_AUTHORIZATION_PORT,
+          useValue:
+            options.governedDatasetAuthorization ??
+            new UnavailableGovernedDatasetAuthorizationAdapter(),
+        },
         {
           provide: GOVERNED_DATASET_REPOSITORY_PORT,
           useValue:

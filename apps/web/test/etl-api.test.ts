@@ -71,11 +71,6 @@ describe('ETL live API configuration [DDA-006]', () => {
     await expect(
       acceptEtlProposal({
         baseUrl: 'https://api.example.test',
-        tenantScope: {
-          scopeType: 'workspace',
-          organizationId: '00000000-0000-4000-8000-000000000001',
-          workspaceId: '00000000-0000-4000-8000-000000000002',
-        },
         proposalId: 'proposal-123',
         expectedRevision: 1,
         idempotencyKey: '00000000-0000-4000-8000-0000000000aa',
@@ -97,7 +92,8 @@ describe('ETL live API configuration [DDA-006]', () => {
         credentials: 'include',
       }),
     );
-    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)) as {
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const body = JSON.parse(requestInit.body as string) as {
       expected: { contentHash: string };
     };
     expect(body.expected.contentHash).toBe('a'.repeat(64));
@@ -243,7 +239,8 @@ describe('ETL live API configuration [DDA-006]', () => {
         proposal: readyProposal,
       }),
     ).toBe(false);
-    const { acceptanceEvidence: _omitEvidence, ...proposalWithoutEvidence } = readyProposal;
+    const { acceptanceEvidence: _acceptanceEvidence, ...proposalWithoutEvidence } = readyProposal;
+    void _acceptanceEvidence;
     expect(
       etlAcceptEnabled({
         tenantConfigured: true,

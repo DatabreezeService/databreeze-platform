@@ -99,7 +99,14 @@ function parseStructuredOutput(raw: unknown): OpenAiReceiptStructuredOutputV1 {
       throw new OpenAiProviderError('OPENAI_SCHEMA');
     }
   }
-  for (const key of ['merchant', 'transactionDate', 'currency', 'subtotal', 'tax', 'total'] as const) {
+  for (const key of [
+    'merchant',
+    'transactionDate',
+    'currency',
+    'subtotal',
+    'tax',
+    'total',
+  ] as const) {
     if (!fieldValid(raw[key])) throw new OpenAiProviderError('OPENAI_SCHEMA');
   }
   if (raw['transactionTime'] !== null && !fieldValid(raw['transactionTime'])) {
@@ -291,9 +298,7 @@ export class OpenAiReceiptOcrAdapter implements ReceiptOcrPort {
       input: Object.freeze([
         Object.freeze({
           role: 'system',
-          content: Object.freeze([
-            Object.freeze({ type: 'input_text', text: prompt.systemText }),
-          ]),
+          content: Object.freeze([Object.freeze({ type: 'input_text', text: prompt.systemText })]),
         }),
         Object.freeze({
           role: 'user',

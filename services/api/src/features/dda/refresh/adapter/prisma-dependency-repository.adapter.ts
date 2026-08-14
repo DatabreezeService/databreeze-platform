@@ -167,7 +167,9 @@ export class PrismaDependencyRepositoryAdapter implements DependencyRepositoryPo
       },
     });
     return Object.freeze(
-      rows.map(rowToBinding).filter((binding) => matchesReference(binding, changeKind, referenceId)),
+      rows
+        .map(rowToBinding)
+        .filter((binding) => matchesReference(binding, changeKind, referenceId)),
     );
   }
 
@@ -195,7 +197,9 @@ export class PrismaDependencyRepositoryAdapter implements DependencyRepositoryPo
     const row = await this.client.dependencyProcessedEventRecord.findFirst({
       where: { eventId },
     });
-    return row === null ? undefined : Object.freeze({ eventId: row.eventId, sequence: row.sequence });
+    return row === null
+      ? undefined
+      : Object.freeze({ eventId: row.eventId, sequence: row.sequence });
   }
 
   public async highestSequence(tenantScope: TenantScopeV1): Promise<number> {

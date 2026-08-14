@@ -21,10 +21,8 @@ test('secret patterns include OpenAI key shapes without embedding a contiguous k
 });
 
 test('secret patterns still catch private keys and cloud tokens', () => {
-  assert.ok(
-    scanTextForSecrets('-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----').includes(
-      'private key',
-    ),
-  );
+  const begin = '-----BEGIN ' + 'PRIVATE KEY-----';
+  const end = '-----END ' + 'PRIVATE KEY-----';
+  assert.ok(scanTextForSecrets(`${begin}\nabc\n${end}`).includes('private key'));
   assert.ok(scanTextForSecrets('AKIA' + '0123456789ABCDEF').includes('AWS access key'));
 });

@@ -1,4 +1,8 @@
+import type { DdaDashboardAuthoringCommand } from '@databreeze/contracts/v3';
 import type { IamTenantContextV1 } from '../../../iam/application/tenant-context.js';
+
+/** Generated closed command union. Tenant context is always resolved from the request. */
+export type DashboardAuthoringCommandDtoV1 = DdaDashboardAuthoringCommand;
 
 export interface AcceptDashboardProposalDtoV1 {
   readonly context: IamTenantContextV1;

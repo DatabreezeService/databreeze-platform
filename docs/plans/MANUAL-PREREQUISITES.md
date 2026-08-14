@@ -93,7 +93,7 @@ All checklist items above remain `not-ready` unless the product owner updates th
 
 | Item | Expected secret / config | Validation | Evidence destination |
 |---|---|---|---|
-| §2 Secrets Manager OpenAI | `databreeze/{env}/openai/receipt-ocr` | `aws secretsmanager describe-secret --secret-id ... --query ARN` | `docs/operations/openai-provider-runbook.md` |
+| §2 Secrets Manager OpenAI | `databreeze/{env}/openai/api-key` | `aws secretsmanager describe-secret --secret-id ... --query ARN` | `docs/operations/openai-provider-runbook.md` |
 | §2 Staging/production compose | OpenTofu envs under `infrastructure/aws/environments/{staging,production}` | `pnpm infra:check` (plan-only; no apply) | `docs/evidence/dda/production-gate-matrix.md` |
 | §3 OpenAI API key | Inject as `OPENAI_API_KEY` to API/worker only | `openai-egress-policy.test.ts` fail-closed | `docs/evidence/dda/openai-receipt-evaluation.md` (pending) |
 | §3 Model pin | `DATABREEZE_OPENAI_RECEIPT_MODEL` | Eval harness after corpus approval | same |

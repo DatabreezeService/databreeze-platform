@@ -5,9 +5,9 @@ Canonical OpenAPI, JSON Schema, event, typed-job, and compatibility definitions 
 ## Public interfaces
 
 - `manifest.json` is the deterministic registry for canonical source schemas.
-- `schemas/v1/*.schema.json` and `schemas/v2/*.schema.json` contain closed JSON Schema 2020-12 definitions with stable absolute IDs and references. Published versions are immutable; additive schemas require a new `vN` ID namespace.
-- `@databreeze/contracts/v1` and `@databreeze/contracts/v2` export structural TypeScript contracts plus the generated
-  `parseV1Contract` / `parseV2Contract` runtime validators backed by the canonical schema registry.
+- `schemas/v1/*.schema.json`, `schemas/v2/*.schema.json`, and `schemas/v3/*.schema.json` contain closed JSON Schema 2020-12 definitions with stable absolute IDs and references. Published versions are immutable; additive schemas require a new `vN` ID namespace.
+- `@databreeze/contracts/v1`, `@databreeze/contracts/v2`, and `@databreeze/contracts/v3` export structural TypeScript contracts plus the generated
+  `parseV1Contract`, `parseV2Contract`, and `parseV3Contract` runtime validators backed by the canonical schema registry. A newer version may reference an immutable schema from an earlier version; the generator includes that dependency for model and validator generation while exposing only the newer version's public IDs to its parser.
 - `generated/kotlin/src/main/kotlin/com/databreeze/contracts/vN` provides standard Kotlin models
   and public `parseVNContract` model/validation entry points.
 - `generated/python/databreeze_contracts/vN` are the Pydantic model packages for Python consumers (`v2+` importable as submodules; the package root still re-exports `v1` only).

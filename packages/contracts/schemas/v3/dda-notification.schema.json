@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v3/dda-notification",
+  "$comment": "NCO-001/NCO-003/NCO-017: content-safe, server-authoritative in-app notification.",
+  "title": "DDA Notification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "workspaceId",
+    "subjectId",
+    "kind",
+    "labelVi",
+    "labelEn",
+    "action",
+    "createdAt",
+    "correlationId",
+    "state",
+    "revision"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 3
+    },
+    "id": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "workspaceId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "subjectId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "kind": {
+      "type": "string",
+      "pattern": "^(REVIEW_REQUIRED|PREPARATION_BLOCKED|SOURCE_MISMATCH|SYNC_FAILED|REFRESH_BLOCKED|OCR_REVIEW_REQUIRED|AGENT_BUDGET_DENIED|SECURITY_NOTICE)$"
+    },
+    "labelVi": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+    },
+    "labelEn": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+    },
+    "action": {
+      "type": "string",
+      "pattern": "^(OPEN_DASHBOARDS|OPEN_ANALYSIS|OPEN_DATA|OPEN_INBOX|OPEN_SETTINGS)$"
+    },
+    "createdAt": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+    },
+    "correlationId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "state": {
+      "type": "string",
+      "pattern": "^(UNREAD|READ|ARCHIVED|DISMISSED)$"
+    },
+    "revision": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/revision"
+    }
+  }
+}

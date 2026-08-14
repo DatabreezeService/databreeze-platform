@@ -29,7 +29,7 @@ function stable(value: string) {
   return parsed.value;
 }
 
-function context(actorId: string, workspaceId: string, key: string) {
+function context(actorId: string, workspaceId: string, key: string, authorizationEpoch = 1) {
   const result = createIamTenantContextV1({
     tenantScope: {
       scopeType: 'workspace',
@@ -39,7 +39,7 @@ function context(actorId: string, workspaceId: string, key: string) {
     actorId: stable(actorId),
     correlationId: stable(ids.correlation),
     idempotencyKey: key,
-    authorizationEpoch: 1,
+    authorizationEpoch,
   });
   assert.equal(result.accepted, true);
   if (!result.accepted) throw new Error('invalid tenant isolation context');
@@ -116,7 +116,7 @@ void test('[IAM-009, IAM-019, IAM-024] cross-workspace member and resource IDs r
 
   assert.deepEqual(
     await service.authorize({
-      context: context(ids.ownerA, ids.workspaceA, 'cross-member'),
+      context: context(ids.ownerA, ids.workspaceA, 'cross-member', 2),
       memberId: ids.memberB,
       requestedLevel: 'ANALYZE',
       resourceIds: [ids.dataset],

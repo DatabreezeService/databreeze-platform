@@ -89,8 +89,7 @@ export function DataPipelinePage() {
     configuration,
     proposal: etlQuery.data,
   });
-  const showFirstImportSummary =
-    etlQuery.data !== undefined && etlQuery.data.state === 'ACCEPTED';
+  const showFirstImportSummary = etlQuery.data !== undefined && etlQuery.data.state === 'ACCEPTED';
 
   async function onAccept() {
     setAcceptStatus(null);
@@ -110,7 +109,6 @@ export function DataPipelinePage() {
     try {
       await acceptEtlProposal({
         baseUrl: configuration.baseUrl,
-        tenantScope: tenant.tenantScope,
         proposalId: etlQuery.data.proposalId,
         expectedRevision: acceptanceEvidence.revision,
         idempotencyKey: crypto.randomUUID(),
@@ -124,7 +122,9 @@ export function DataPipelinePage() {
         },
       });
       setAcceptStatus(
-        locale === 'vi-VN' ? 'Đã gửi yêu cầu chấp nhận ETL.' : 'ETL acceptance request was submitted.',
+        locale === 'vi-VN'
+          ? 'Đã gửi yêu cầu chấp nhận ETL.'
+          : 'ETL acceptance request was submitted.',
       );
       await etlQuery.refetch();
     } catch (error) {
@@ -142,57 +142,95 @@ export function DataPipelinePage() {
   }
 
   return (
-    <section aria-label={locale === 'vi-VN' ? 'Tiếp nhận và ETL' : 'Intake and ETL'}>
-      <h1>{locale === 'vi-VN' ? 'Tiếp nhận và xem xét ETL' : 'Intake and ETL review'}</h1>
-      <p>
-        {locale === 'vi-VN'
-          ? 'Tải CSV/XLSX được quản trị, rồi xem xét ánh xạ và chất lượng trước khi chấp nhận.'
-          : 'Upload governed CSV/XLSX, then review mapping and quality before acceptance.'}
-      </p>
-      {tenantMissingMessage !== null ? <p role="status">{tenantMissingMessage}</p> : null}
-      {tenant !== undefined ? (
-        <UploadPanel
-          locale={reviewLocale}
-          tenantScope={tenant.tenantScope}
-          sessionId={tenant.sessionId}
-        />
-      ) : null}
-      {statusMessage !== null ? <p role="status">{statusMessage}</p> : null}
-      <EtlReviewPage locale={reviewLocale} {...review} />
-      {showFirstImportSummary ? (
-        <PreparationSummaryPanel
-          locale={reviewLocale}
-          mode="FIRST_IMPORT"
-          automaticPolicy="SAFE_NON_LOSSY"
-          counts={{
-            input:
-              review.counts.changed + review.counts.unchanged + review.counts.rejected,
-            output: review.counts.changed + review.counts.unchanged,
-            unchanged: review.counts.unchanged,
-            changed: review.counts.changed,
-            rejected: review.counts.rejected,
-            quarantined: 0,
-            unsupported: 0,
-          }}
-          transformations={review.orderedSteps}
-          warnings={[]}
-          healthDimensions={review.qualityEffects}
-          overallSummary={{
-            formula: 'min(numerator/denominator)',
-            coverage: review.qualityEffects[0]?.coverage ?? 0,
-            provesFactualCorrectness: false,
-          }}
-        />
-      ) : null}
-      <button type="button" disabled={!canAccept} onClick={() => void onAccept()}>
-        {locale === 'vi-VN' ? 'Chấp nhận đề xuất ETL' : 'Accept ETL proposal'}
-      </button>
-      {acceptStatus !== null ? <p role="status">{acceptStatus}</p> : null}
-      <p>
-        <a href={`/${locale}/dashboards`}>
-          {locale === 'vi-VN' ? 'Tiếp tục tới bảng điều khiển' : 'Continue to dashboards'}
-        </a>
-      </p>
+    <section
+      className="data-pipeline-page"
+      aria-label={locale === 'vi-VN' ? 'Tiếp nhận và ETL' : 'Intake and ETL'}
+    >
+      <header className="data-pipeline-page__hero">
+        <div>
+          <p className="data-pipeline-page__eyebrow">
+            {locale === 'vi-VN' ? 'Dữ liệu · Kiểm soát thay đổi' : 'Data · Controlled change'}
+          </p>
+          <h1>{locale === 'vi-VN' ? 'Tiếp nhận và xem xét ETL' : 'Intake and ETL review'}</h1>
+          <p className="data-pipeline-page__intro">
+            {locale === 'vi-VN'
+              ? 'Tải CSV/XLSX được quản trị, rồi xem xét ánh xạ và chất lượng trước khi chấp nhận.'
+              : 'Upload governed CSV/XLSX, then review mapping and quality before acceptance.'}
+          </p>
+        </div>
+        <span className="data-pipeline-page__status-pill">
+          {review.state === 'AWAITING_UPLOAD'
+            ? locale === 'vi-VN'
+              ? 'Đang chờ tệp'
+              : 'Awaiting file'
+            : review.state}
+        </span>
+      </header>
+
+      <div className="data-pipeline-page__workspace">
+        <div className="data-pipeline-page__main-column">
+          {tenantMissingMessage !== null ? (
+            <p className="data-pipeline-page__notice" role="status">
+              {tenantMissingMessage}
+            </p>
+          ) : null}
+          {tenant !== undefined ? <UploadPanel locale={reviewLocale} /> : null}
+          {statusMessage !== null ? (
+            <p className="data-pipeline-page__notice" role="status">
+              {statusMessage}
+            </p>
+          ) : null}
+          <EtlReviewPage locale={reviewLocale} {...review} />
+          {showFirstImportSummary ? (
+            <PreparationSummaryPanel
+              locale={reviewLocale}
+              mode="FIRST_IMPORT"
+              automaticPolicy="SAFE_NON_LOSSY"
+              counts={{
+                input: review.counts.changed + review.counts.unchanged + review.counts.rejected,
+                output: review.counts.changed + review.counts.unchanged,
+                unchanged: review.counts.unchanged,
+                changed: review.counts.changed,
+                rejected: review.counts.rejected,
+                quarantined: 0,
+                unsupported: 0,
+              }}
+              transformations={review.orderedSteps}
+              warnings={[]}
+              healthDimensions={review.qualityEffects}
+              overallSummary={{
+                formula: 'min(numerator/denominator)',
+                coverage: review.qualityEffects[0]?.coverage ?? 0,
+                provesFactualCorrectness: false,
+              }}
+            />
+          ) : null}
+        </div>
+
+        <aside className="data-pipeline-page__action-card">
+          <p className="data-pipeline-page__eyebrow">
+            {locale === 'vi-VN' ? 'Bước tiếp theo' : 'Next step'}
+          </p>
+          <h2>{locale === 'vi-VN' ? 'Giữ quyền kiểm soát' : 'Keep control in your hands'}</h2>
+          <p>
+            {locale === 'vi-VN'
+              ? 'Mọi thay đổi đều cần bằng chứng và quyền phù hợp trước khi ghi nhận.'
+              : 'Every change needs the right evidence and permission before it is committed.'}
+          </p>
+          <button type="button" disabled={!canAccept} onClick={() => void onAccept()}>
+            {locale === 'vi-VN' ? 'Chấp nhận đề xuất ETL' : 'Accept ETL proposal'}
+          </button>
+          {acceptStatus !== null ? (
+            <p className="data-pipeline-page__action-status" role="status">
+              {acceptStatus}
+            </p>
+          ) : null}
+          <a className="data-pipeline-page__dashboard-link" href={`/${locale}/dashboards`}>
+            {locale === 'vi-VN' ? 'Tiếp tục tới bảng điều khiển' : 'Continue to dashboards'}
+            <span aria-hidden="true">↗</span>
+          </a>
+        </aside>
+      </div>
     </section>
   );
 }

@@ -28,10 +28,10 @@ describe('[DDA-053][DDA-009] preparation and quality surfaces', () => {
         }}
       />,
     );
-    expect(screen.getByText(/numerator=97/u)).toBeTruthy();
-    expect(screen.getByText(/denominator=100/u)).toBeTruthy();
-    expect(screen.getByText(/coverage=0.97/u)).toBeTruthy();
-    expect(screen.getByText(/Does not prove factual correctness/u)).toBeTruthy();
+    expect(screen.getByText(/97 rows passed/u)).toBeTruthy();
+    expect(screen.getByText(/100 rows checked/u)).toBeTruthy();
+    expect(screen.getAllByText(/97%/u)).toHaveLength(2);
+    expect(screen.getByText(/not factual correctness/u)).toBeTruthy();
     expect(screen.queryByText(/percentage correct/iu)).toBeNull();
   });
 
@@ -71,8 +71,8 @@ describe('[DDA-053][DDA-009] preparation and quality surfaces', () => {
       />,
     );
     expect(screen.getByRole('heading', { name: 'Tóm tắt chuẩn bị' })).toBeTruthy();
-    expect(screen.getByText(/SAFE_NON_LOSSY/u)).toBeTruthy();
+    expect(screen.getByText('An toàn, không mất dữ liệu')).toBeTruthy();
     expect(screen.getByText('TRIM_TEXT')).toBeTruthy();
-    expect(screen.getByText(/Khong chung minh do chinh xac thuc te/u)).toBeTruthy();
+    expect(screen.getByText(/không khẳng định dữ liệu đúng với thực tế/u)).toBeTruthy();
   });
 });

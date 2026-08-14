@@ -1,7 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsIn, IsString, MaxLength, MinLength } from 'class-validator';
+import { Equals, IsEmail, IsIn, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class SignInDto {
+  @ApiProperty({ enum: [4] })
+  @Equals(4)
+  schemaVersion!: 4;
+
   @ApiProperty({ example: 'ngu***@example.com', maxLength: 254 })
   @IsEmail()
   @MaxLength(254)

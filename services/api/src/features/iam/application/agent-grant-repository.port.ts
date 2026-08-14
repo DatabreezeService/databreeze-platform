@@ -28,6 +28,26 @@ export interface WorkspaceDatasetRestrictionRecordV1 {
   readonly updatedAt: StrictUtcTimestampV1;
 }
 
+export type AgentGrantDatasetTargetValidationResultV1 =
+  | { readonly accepted: true }
+  | { readonly accepted: false; readonly code: 'NOT_FOUND' | 'UNAVAILABLE' };
+
+/** IAM-owned seam for a DSM-backed exact-workspace dataset catalog check. */
+export interface AgentGrantDatasetTargetValidationPortV1 {
+  validate(
+    context: IamTenantContextV1,
+    datasetIds: readonly StableIdentifierV1[],
+  ): Promise<AgentGrantDatasetTargetValidationResultV1>;
+}
+
+/**
+ * Effective workspace authorization epoch used by IAM decisions and cache/session freshness.
+ * This is deliberately distinct from UserIdentity.securityEpoch.
+ */
+export interface WorkspaceAuthorizationEpochResolverPortV1 {
+  resolveWorkspaceAuthorizationEpoch(context: IamTenantContextV1): Promise<number>;
+}
+
 export interface AgentGrantTransactionPortV1 {
   findGrant(
     context: IamTenantContextV1,
@@ -50,7 +70,9 @@ export interface AgentGrantTransactionPortV1 {
   bumpAuthorizationEpoch(context: IamTenantContextV1): Promise<number>;
 }
 
-export interface AgentGrantRepositoryPortV1 extends AgentGrantTransactionPortV1 {
+export interface AgentGrantRepositoryPortV1
+  extends AgentGrantTransactionPortV1,
+    WorkspaceAuthorizationEpochResolverPortV1 {
   withTransaction<TValue>(
     context: IamTenantContextV1,
     work: (transaction: AgentGrantTransactionPortV1) => Promise<TValue>,

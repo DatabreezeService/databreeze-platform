@@ -17,6 +17,8 @@ test('Desktop is an independently buildable workspace package', () => {
     'build',
     'dev',
     'lint',
+    'package:win:plan',
+    'package:win:unsigned',
     'security:check',
     'test',
     'typecheck',

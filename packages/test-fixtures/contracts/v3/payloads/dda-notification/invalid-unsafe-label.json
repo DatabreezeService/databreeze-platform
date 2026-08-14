@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 3,
+  "id": "00000000-0000-4000-8000-000000000301",
+  "workspaceId": "00000000-0000-4000-8000-000000000302",
+  "subjectId": "00000000-0000-4000-8000-000000000303",
+  "kind": "SYNC_FAILED",
+  "labelVi": "Đồng bộ cần chú ý",
+  "labelEn": "Security\u0000notice",
+  "action": "OPEN_DATA",
+  "createdAt": "2026-08-12T00:00:00.000Z",
+  "correlationId": "00000000-0000-4000-8000-000000000304",
+  "state": "UNREAD",
+  "revision": 1
+}

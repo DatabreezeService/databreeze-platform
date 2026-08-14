@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 4,
+  "accepted": true,
+  "narrative": "Da tinh bang bo xu ly xac dinh.",
+  "toolResults": [
+    {
+      "toolCallId": "call-analysis-1",
+      "name": "analysis.execute",
+      "result": {
+        "resultId": "00000000-0000-4000-8000-000000000401",
+        "evidenceRefs": [
+          {
+            "evidenceId": "00000000-0000-4000-8000-000000000402",
+            "kind": "RESULT_CELL"
+          }
+        ],
+        "provenance": {
+          "planVersionId": "00000000-0000-4000-8000-000000000403",
+          "datasetVersionId": "00000000-0000-4000-8000-000000000404",
+          "engineVersion": "engine-1.0.0"
+        }
+      }
+    }
+  ]
+}

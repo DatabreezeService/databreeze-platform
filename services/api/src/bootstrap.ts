@@ -16,6 +16,9 @@ import type { FaModuleOptions } from './features/fa/fa.module.js';
 import type { DqgModuleOptions } from './features/dqg/dqg.module.js';
 import type { QiModuleOptions } from './features/qi/qi.module.js';
 import type { IldModuleOptions } from './features/ild/ild.module.js';
+import type { DdaModuleOptions } from './features/dda/dda.module.js';
+import type { JraModuleOptions } from './features/jra/jra.module.js';
+import type { JraWorkerModuleOptions } from './features/jra/worker/worker.module.js';
 import type { ClientCompatibilityPort } from './features/system/application/client-compatibility.port.js';
 import type { ReadinessPort } from './features/system/application/readiness.port.js';
 import { ProblemDetailsFilter } from './platform/http/problem-details.filter.js';
@@ -42,7 +45,10 @@ export interface ApiApplicationOptions
     FaModuleOptions,
     DqgModuleOptions,
     QiModuleOptions,
-    IldModuleOptions {
+    IldModuleOptions,
+    DdaModuleOptions,
+    JraModuleOptions,
+    JraWorkerModuleOptions {
   readonly compatibilityPort?: ClientCompatibilityPort;
   readonly readinessPort?: ReadinessPort;
   readonly requestContext?: RequestContextOptions;
@@ -52,6 +58,11 @@ export async function createApiApplication(
   options: ApiApplicationOptions = {},
 ): Promise<ApiApplication> {
   const adapter = new FastifyAdapter({ bodyLimit: 65_536, logger: false });
+  adapter.getInstance().addContentTypeParser(
+    'application/octet-stream',
+    { parseAs: 'buffer', bodyLimit: 64 * 1024 * 1024 },
+    (_request, body, done) => done(null, body),
+  );
   installRequestContext(adapter.getInstance(), options.requestContext);
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule.register(options),

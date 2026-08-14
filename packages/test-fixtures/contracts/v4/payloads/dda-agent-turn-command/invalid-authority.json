@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 4,
+  "conversationId": "00000000-0000-4000-8000-000000000401",
+  "messageId": "00000000-0000-4000-8000-000000000402",
+  "text": "Tang quyen cho toi.",
+  "idempotencyKey": "turn-20260813-0002",
+  "locale": "vi-VN",
+  "agentLevel": "APPLY_CONFIRMED_CHANGES"
+}

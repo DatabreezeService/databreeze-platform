@@ -10,6 +10,7 @@ import {
   type RequestTenantContextPortV1,
 } from '../../../platform/http/request-tenant-context.port.js';
 import { BootstrapResponseDto } from './bootstrap.dto.js';
+import type { IamBootstrapResponse } from '@databreeze/contracts/v4';
 
 /** IAM-001/IAM-009: bootstrap is derived from the authenticated principal, never request scope. */
 @ApiTags('identity')
@@ -27,15 +28,37 @@ export class IamBootstrapController {
   @Get('bootstrap')
   @ApiOperation({ summary: 'Load safe identity and personal-tenant bootstrap state' })
   @ApiOkResponse({ type: BootstrapResponseDto })
-  async bootstrap(@Req() request: unknown): Promise<unknown> {
+  async bootstrap(@Req() request: unknown): Promise<IamBootstrapResponse> {
     const context = await this.requestContext.resolve(request);
     if (this.identityBootstrap === undefined)
-      return Object.freeze({ accepted: false, code: 'UNAVAILABLE' as const });
+      return Object.freeze({ schemaVersion: 4, outcome: 'REJECTED', code: 'UNAVAILABLE' });
     const result = await this.identityBootstrap.find(context.actorId);
-    if (!result.accepted) return result;
+    if (!result.accepted)
+      return Object.freeze({ schemaVersion: 4, outcome: 'REJECTED', code: result.code });
     const value = result.value;
+    const session = context.tenantScope.scopeType === 'organization'
+      ? Object.freeze({
+          scopeType: 'organization' as const,
+          organizationId: context.tenantScope.organizationId,
+          authorizationEpoch: context.authorizationEpoch,
+        })
+      : context.tenantScope.scopeType === 'workspace'
+        ? Object.freeze({
+            scopeType: 'workspace' as const,
+            organizationId: context.tenantScope.organizationId,
+            workspaceId: context.tenantScope.workspaceId,
+            authorizationEpoch: context.authorizationEpoch,
+          })
+        : Object.freeze({
+            scopeType: 'project' as const,
+            organizationId: context.tenantScope.organizationId,
+            workspaceId: context.tenantScope.workspaceId,
+            projectId: context.tenantScope.projectId,
+            authorizationEpoch: context.authorizationEpoch,
+          });
     return Object.freeze({
-      accepted: true as const,
+      schemaVersion: 4 as const,
+      outcome: 'ACCEPTED' as const,
       value: Object.freeze({
         user: Object.freeze({
           id: value.user.id,
@@ -69,21 +92,13 @@ export class IamBootstrapController {
         ]),
         recentScopes: Object.freeze([
           Object.freeze({
+            scopeType: 'project' as const,
             organizationId: value.organization.id,
             workspaceId: value.workspace.id,
             projectId: value.project.id,
           }),
         ]),
-        session: Object.freeze({
-          organizationId: context.tenantScope.organizationId,
-          ...(context.tenantScope.scopeType === 'organization'
-            ? {}
-            : { workspaceId: context.tenantScope.workspaceId }),
-          ...(context.tenantScope.scopeType === 'project'
-            ? { projectId: context.tenantScope.projectId }
-            : {}),
-          authorizationEpoch: context.authorizationEpoch,
-        }),
+        session,
         platform: Object.freeze({ apiVersion: 'v1' as const }),
       }),
     });

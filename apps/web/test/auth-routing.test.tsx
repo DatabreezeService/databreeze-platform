@@ -1,0 +1,56 @@
+import { act, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
+
+import { ApplicationBoundary, createAppRouter } from '../src/app/app.tsx';
+import { clearAuthSessionV1, initializeWebAuthenticationStateV1 } from '../src/features/auth/auth-session.ts';
+
+afterEach(clearAuthSessionV1);
+
+describe('live authentication routing [IAM-023, WEB-002, WEB-004]', () => {
+  it('redirects a signed-out in-app navigation to the localized sign-in route', async () => {
+    const router = createAppRouter({
+      authenticationState: 'signed-out',
+      initialEntries: ['/en/data'],
+    });
+
+    render(<ApplicationBoundary router={router} />);
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/en/sign-in'));
+    expect(screen.getByRole('heading', { name: 'Sign in' })).toBeTruthy();
+  });
+
+  it('renders public authentication routes without the protected workspace shell', async () => {
+    const router = createAppRouter({
+      authenticationState: 'signed-out',
+      initialEntries: ['/vi-VN/register'],
+    });
+
+    render(<ApplicationBoundary router={router} />);
+
+    expect(await screen.findByRole('heading', { name: 'Tạo tài khoản' })).toBeTruthy();
+    expect(screen.queryByRole('navigation', { name: 'Điều hướng chính' })).toBeNull();
+  });
+
+  it('keeps signed-in users out of public authentication routes', async () => {
+    const router = createAppRouter({
+      authenticationState: 'signed-in',
+      initialEntries: ['/en/sign-in'],
+    });
+
+    render(<ApplicationBoundary router={router} />);
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/en/data'));
+    expect(await screen.findByRole('navigation', { name: 'Primary navigation' })).toBeTruthy();
+  });
+
+  it('reacts to session establishment and revocation without a stale router snapshot', async () => {
+    const router = createAppRouter({ authenticationState: 'signed-out', initialEntries: ['/en/sign-in'] });
+    render(<ApplicationBoundary router={router} />);
+
+    act(() => initializeWebAuthenticationStateV1('signed-in'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/en/data'));
+
+    act(() => clearAuthSessionV1());
+    await waitFor(() => expect(router.state.location.pathname).toBe('/en/sign-in'));
+  });
+});

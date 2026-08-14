@@ -204,6 +204,8 @@ const adminPermissions = [
 
 const ownerPermissionSet = new Set<PermissionV1>([
   ...adminPermissions,
+  // WEB-002 / DDA-002: workspace Owners may create governed artifact intake.
+  PERMISSIONS_V1.ARTIFACT_DERIVED_CREATE,
   PERMISSIONS_V1.ORGANIZATION_OWNERSHIP_TRANSFER,
   PERMISSIONS_V1.BILLING_ACCOUNT_READ,
   PERMISSIONS_V1.BILLING_ACCOUNT_MANAGE,
@@ -365,9 +367,7 @@ export function lesserAgentGrantLevelV1(
  * IAM-024: Viewer agent capacity tops at ANALYZE; Owner/Editor may reach APPLY after confirmation.
  * Grants never expand dataset or action permission beyond the member's access preset.
  */
-export function maxAgentGrantLevelForPresetV1(
-  preset: MembershipAccessPresetV1,
-): AgentGrantLevelV1 {
+export function maxAgentGrantLevelForPresetV1(preset: MembershipAccessPresetV1): AgentGrantLevelV1 {
   return preset === 'VIEWER' ? 'ANALYZE' : 'APPLY_CONFIRMED_CHANGES';
 }
 

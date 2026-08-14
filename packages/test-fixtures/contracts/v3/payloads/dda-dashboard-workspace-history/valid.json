@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 3,
+  "items": [
+    {
+      "kind": "ANALYSIS",
+      "subjectId": "00000000-0000-4000-8000-000000000301",
+      "title": {
+        "vi": "Doanh thu theo khu vực",
+        "en": "Revenue by region"
+      },
+      "updatedAt": "2026-08-11T00:00:00.000Z",
+      "safeStatus": "CURRENT"
+    },
+    {
+      "kind": "DASHBOARD",
+      "subjectId": "00000000-0000-4000-8000-000000000302",
+      "title": {
+        "vi": "Tổng quan bán hàng",
+        "en": "Sales overview"
+      },
+      "updatedAt": "2026-08-10T00:00:00.000Z",
+      "safeStatus": "STALE"
+    }
+  ],
+  "nextCursor": "eyJ1cGRhdGVkQXQiOiIyMDI2LTA4LTEwVDAwOjAwOjAwLjAwMFoifQ"
+}

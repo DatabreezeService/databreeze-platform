@@ -98,6 +98,44 @@ resource "aws_security_group" "api" {
   }
 }
 
+resource "aws_security_group" "api_load_balancer" {
+  count       = var.enable_public_api ? 1 : 0
+  name        = "${var.name}-api-load-balancer"
+  description = "Public HTTPS edge for the DataBreeze API."
+  vpc_id      = aws_vpc.this.id
+  tags        = merge(local.common_tags, { Name = "${var.name}-api-load-balancer" })
+}
+
+resource "aws_vpc_security_group_ingress_rule" "api_load_balancer_https" {
+  count             = var.enable_public_api ? 1 : 0
+  security_group_id = aws_security_group.api_load_balancer[0].id
+  cidr_ipv4         = "0.0.0.0/0"
+  from_port         = 443
+  to_port           = 443
+  ip_protocol       = "tcp"
+  description       = "Public HTTPS only."
+}
+
+resource "aws_vpc_security_group_egress_rule" "api_load_balancer_to_api" {
+  count                        = var.enable_public_api ? 1 : 0
+  security_group_id            = aws_security_group.api_load_balancer[0].id
+  referenced_security_group_id = aws_security_group.api.id
+  from_port                    = 3000
+  to_port                      = 3000
+  ip_protocol                  = "tcp"
+  description                  = "Forward HTTPS requests only to API tasks."
+}
+
+resource "aws_vpc_security_group_ingress_rule" "api_from_load_balancer" {
+  count                        = var.enable_public_api ? 1 : 0
+  security_group_id            = aws_security_group.api.id
+  referenced_security_group_id = aws_security_group.api_load_balancer[0].id
+  from_port                    = 3000
+  to_port                      = 3000
+  ip_protocol                  = "tcp"
+  description                  = "Accept API traffic only from the public load balancer."
+}
+
 resource "aws_security_group" "database" {
   name        = "${var.name}-database"
   description = "Private PostgreSQL access from the API security group."

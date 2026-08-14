@@ -40,9 +40,9 @@ describe('Desktop V2 activity rail', () => {
 
     const rail = screen.getByRole('navigation', { name: 'Workbench activities' });
     expect(within(rail).getByRole('button', { name: 'Dashboard' })).toBeTruthy();
-    expect(within(rail).getByRole('button', { name: 'Analysis' }).getAttribute('aria-current')).toBe(
-      'page',
-    );
+    expect(
+      within(rail).getByRole('button', { name: 'Analysis' }).getAttribute('aria-current'),
+    ).toBe('page');
     expect(within(rail).getByRole('button', { name: 'Data' })).toBeTruthy();
     expect(within(rail).getByRole('button', { name: 'Reviews' })).toBeTruthy();
     expect(within(rail).getByRole('button', { name: 'Settings' })).toBeTruthy();
@@ -81,8 +81,8 @@ describe('Desktop V2 activity rail', () => {
       />,
     );
 
-    expect(container.querySelector('.activity-rail')?.classList.contains('activity-rail--motion')).toBe(
-      false,
-    );
+    expect(
+      container.querySelector('.activity-rail')?.classList.contains('activity-rail--motion'),
+    ).toBe(false);
   });
 });

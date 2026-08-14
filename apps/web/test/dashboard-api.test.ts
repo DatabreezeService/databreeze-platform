@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  dashboardApiBaseConfiguration,
   dashboardLiveConfiguration,
   fetchDashboardDraft,
   publishDashboardSnapshot,
@@ -23,6 +24,15 @@ describe('dashboard live API configuration [DDA-020]', () => {
       baseUrl: 'https://api.example.test',
       dashboardId: 'dashboard-123',
     });
+    expect(
+      dashboardApiBaseConfiguration({ VITE_DATABREEZE_API_BASE_URL: 'https://api.example.test/' }),
+    ).toEqual({ baseUrl: 'https://api.example.test' });
+    expect(
+      dashboardLiveConfiguration(
+        { VITE_DATABREEZE_API_BASE_URL: 'https://api.example.test/' },
+        'dashboard-from-history',
+      ),
+    ).toEqual({ baseUrl: 'https://api.example.test', dashboardId: 'dashboard-from-history' });
   });
 
   it('rejects a malformed draft response instead of rendering invented data', async () => {
@@ -81,10 +91,6 @@ describe('dashboard live API configuration [DDA-020]', () => {
       permissionProjectionVersionId: '00000000-0000-4000-8000-000000000021',
       expectedRevision: 1,
       idempotencyKey: '00000000-0000-4000-8000-000000000031',
-      context: {
-        organizationId: '00000000-0000-4000-8000-000000000001',
-        workspaceId: '00000000-0000-4000-8000-000000000002',
-      },
     });
 
     expect(result).toEqual({ accepted: true, revision: 2 });
@@ -95,6 +101,8 @@ describe('dashboard live API configuration [DDA-020]', () => {
         credentials: 'include',
       }),
     );
+    const request = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(JSON.parse(request.body as string)).not.toHaveProperty('context');
   });
 
   it('fails closed when publish is unauthorized', async () => {
@@ -109,10 +117,6 @@ describe('dashboard live API configuration [DDA-020]', () => {
         permissionProjectionVersionId: '00000000-0000-4000-8000-000000000021',
         expectedRevision: 1,
         idempotencyKey: '00000000-0000-4000-8000-000000000031',
-        context: {
-          organizationId: '00000000-0000-4000-8000-000000000001',
-          workspaceId: '00000000-0000-4000-8000-000000000002',
-        },
       }),
     ).rejects.toThrow('DASHBOARD_PUBLISH_UNAUTHORIZED');
   });

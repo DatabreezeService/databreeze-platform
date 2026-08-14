@@ -1,4 +1,7 @@
 import type { DdaAnalysisPlanV1 } from '@databreeze/domain/data-to-dashboard/v1';
+import type { IamTenantContextV1 } from '../../../iam/application/tenant-context.js';
+
+export const DETERMINISTIC_RESULT_PORT = Symbol('DETERMINISTIC_RESULT_PORT');
 
 export type DeterministicNonAnswerV1 =
   | 'SOURCE_UNAVAILABLE'
@@ -34,5 +37,7 @@ export interface DeterministicResultPortV1 {
   execute(input: {
     readonly plan: DdaAnalysisPlanV1;
     readonly tenantScope: unknown;
+    /** Trusted request context for fresh IAM/DSM/JRA authorization. */
+    readonly context?: IamTenantContextV1;
   }): Promise<DeterministicResultResponseV1>;
 }

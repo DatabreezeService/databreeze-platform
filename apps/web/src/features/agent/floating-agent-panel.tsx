@@ -11,15 +11,16 @@ export function FloatingAgentPanel({
 }) {
   if (surface === 'analysis') {
     return (
-      <section aria-label={locale === 'vi-VN' ? 'Phân tích' : 'Analysis'} className="analysis-agent-region">
+      <section
+        aria-label={locale === 'vi-VN' ? 'Phân tích' : 'Analysis'}
+        className="analysis-agent-region"
+      >
         <p>
           {locale === 'vi-VN'
             ? 'Trợ lý dùng toàn bộ khu vực Phân tích, không hiện nút nổi thứ hai.'
             : 'The agent uses the full Analysis area. No second floating button.'}
         </p>
-        {store.getActiveConversation() ? (
-          <p>{store.getActiveConversation()?.title}</p>
-        ) : null}
+        {store.getActiveConversation() ? <p>{store.getActiveConversation()?.title}</p> : null}
       </section>
     );
   }

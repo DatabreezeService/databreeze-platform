@@ -1,4 +1,5 @@
 import { normalizeEmailAddressV1 } from '@databreeze/domain/identity/v1';
+import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { OidcIdentityPortV1, OidcVerifiedIdentityV1 } from './oidc-identity.port.js';
 
@@ -89,6 +90,14 @@ export class IdentityLinkingService {
     const subjectDigest = digestSubject(identity.subject);
     const existingLink = await this.ports.repository.findLink(identity.issuer, subjectDigest);
     if (existingLink) {
+      const authenticatedUserId =
+        typeof proof.authenticatedUserId === 'string' &&
+        parseStableIdentifierV1(proof.authenticatedUserId).accepted
+          ? proof.authenticatedUserId
+          : undefined;
+      if (authenticatedUserId !== existingLink.userId) {
+        return { accepted: false, code: 'SILENT_MERGE_DENIED' };
+      }
       return {
         accepted: true,
         value: {
@@ -102,6 +111,7 @@ export class IdentityLinkingService {
     if (passwordUser) {
       const sessionMatches =
         typeof proof.authenticatedUserId === 'string' &&
+        parseStableIdentifierV1(proof.authenticatedUserId).accepted &&
         proof.authenticatedUserId === passwordUser.userId;
       if (!sessionMatches && !proof.passwordConfirmed && !proof.emailOtpConfirmed) {
         return { accepted: false, code: 'SILENT_MERGE_DENIED' };

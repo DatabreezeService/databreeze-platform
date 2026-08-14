@@ -15,10 +15,23 @@ const datasetId = '00000000-0000-4000-8000-000000000701';
 const oldVersion = '00000000-0000-4000-8000-000000000702';
 const newVersion = '00000000-0000-4000-8000-000000000703';
 
+function resolverFor(
+  result:
+    | { readonly accepted: true; readonly value: { readonly datasetVersionId: string } }
+    | { readonly accepted: false; readonly code: 'CONTEXT_REVIEW_REQUIRED' },
+) {
+  return {
+    resolveLatestCompatibleVersion: () => Promise.resolve(result),
+  };
+}
+
 void test('[DDA-056] compatible latest version emits one DATASET_VERSION_ADVANCED event', async () => {
   const repo = new InMemoryConversationRepositoryAdapter();
   const conversations = new ConversationService(repo);
-  const context = new ConversationContextService(repo);
+  const context = new ConversationContextService(
+    repo,
+    resolverFor({ accepted: true, value: { datasetVersionId: newVersion } }),
+  );
   const created = await conversations.createConversation(
     { tenantScope, memberAuthorized: true },
     {
@@ -34,7 +47,7 @@ void test('[DDA-056] compatible latest version emits one DATASET_VERSION_ADVANCE
   const resolved = await context.resolveTurnContext({
     tenantScope,
     conversationId: created.value.conversationId,
-    latestCompatibleVersions: { [datasetId]: newVersion },
+    idempotencyKey: 'context-service-1',
   });
   assert.equal(resolved.accepted, true);
   if (!resolved.accepted) return;
@@ -47,7 +60,10 @@ void test('[DDA-056] compatible latest version emits one DATASET_VERSION_ADVANCE
 void test('[DDA-056] incompatible drift leaves active version unchanged', async () => {
   const repo = new InMemoryConversationRepositoryAdapter();
   const conversations = new ConversationService(repo);
-  const context = new ConversationContextService(repo);
+  const context = new ConversationContextService(
+    repo,
+    resolverFor({ accepted: false, code: 'CONTEXT_REVIEW_REQUIRED' }),
+  );
   const created = await conversations.createConversation(
     { tenantScope, memberAuthorized: true },
     {
@@ -63,8 +79,7 @@ void test('[DDA-056] incompatible drift leaves active version unchanged', async 
   const resolved = await context.resolveTurnContext({
     tenantScope,
     conversationId: created.value.conversationId,
-    latestCompatibleVersions: { [datasetId]: newVersion },
-    incompatibleDatasetIds: [datasetId],
+    idempotencyKey: 'context-service-2',
   });
   assert.equal(resolved.accepted, false);
   if (resolved.accepted) return;
@@ -78,4 +93,76 @@ void test('[DDA-056] incompatible drift leaves active version unchanged', async 
   assert.equal(loaded.accepted, true);
   if (!loaded.accepted) return;
   assert.equal(loaded.value.conversation.activeDatasetVersionIds[datasetId], oldVersion);
+});
+
+void test('[DDA-056] context resolution ignores caller version claims and replays a durable transition', async () => {
+  const repo = new InMemoryConversationRepositoryAdapter();
+  const conversations = new ConversationService(repo);
+  let calls = 0;
+  const context = new ConversationContextService(repo, {
+    resolveLatestCompatibleVersion: () => {
+      calls += 1;
+      return Promise.resolve({
+        accepted: true as const,
+        value: { datasetVersionId: newVersion },
+      });
+    },
+  });
+  const created = await conversations.createConversation(
+    { tenantScope, memberAuthorized: true },
+    {
+      title: 'Server resolved',
+      datasetIds: [datasetId],
+      datasetVersionIds: { [datasetId]: oldVersion },
+    },
+    'create-ctx-3',
+  );
+  assert.equal(created.accepted, true);
+  if (!created.accepted) return;
+
+  const input = {
+    tenantScope,
+    conversationId: created.value.conversationId,
+    idempotencyKey: 'turn-idempotency-1',
+  };
+  const first = await context.resolveTurnContext(input);
+  const replay = await context.resolveTurnContext(input);
+
+  assert.equal(first.accepted, true);
+  assert.equal(replay.accepted, true);
+  if (!first.accepted || !replay.accepted) return;
+  assert.equal(first.conversation.activeDatasetVersionIds[datasetId], newVersion);
+  assert.equal(replay.conversation.activeDatasetVersionIds[datasetId], newVersion);
+  assert.equal(first.event?.afterVersionId, newVersion);
+  assert.equal(replay.event?.afterVersionId, newVersion);
+  assert.equal(calls, 2);
+});
+
+void test('[DDA-056] malformed server resolver decisions fail closed', async () => {
+  const repo = new InMemoryConversationRepositoryAdapter();
+  const conversations = new ConversationService(repo);
+  const context = new ConversationContextService(repo, {
+    resolveLatestCompatibleVersion: () => ({ accepted: true, value: undefined }) as never,
+  });
+  const created = await conversations.createConversation(
+    { tenantScope, memberAuthorized: true },
+    {
+      title: 'Malformed resolver',
+      datasetIds: [datasetId],
+      datasetVersionIds: { [datasetId]: oldVersion },
+    },
+    'create-ctx-malformed',
+  );
+  assert.equal(created.accepted, true);
+  if (!created.accepted) return;
+
+  const resolved = await context.resolveTurnContext({
+    tenantScope,
+    conversationId: created.value.conversationId,
+    idempotencyKey: 'context-malformed',
+  });
+  assert.deepEqual(resolved, {
+    accepted: false,
+    code: 'CONTEXT_AUTHORITY_UNAVAILABLE',
+  });
 });

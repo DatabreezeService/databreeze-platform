@@ -31,6 +31,7 @@ export class DashboardExportServiceV1 {
     },
   ): Promise<DashboardExportResultV1> {
     const decision = await this.authorization.authorizeDashboardAction({
+      context,
       tenantScope: context.tenantScope,
       actorId: context.actorId,
       snapshotId: input.snapshotId,
@@ -40,6 +41,7 @@ export class DashboardExportServiceV1 {
 
     const visible = new Set(
       await this.authorization.projectVisibleFields({
+        context,
         tenantScope: context.tenantScope,
         actorId: context.actorId,
         snapshotId: input.snapshotId,

@@ -3,6 +3,7 @@ import {
   parseStableIdentifierV1,
   parseStrictUtcTimestampV1,
   type StableIdentifierV1,
+  type TenantScopeV1,
 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { IamTenantContextV1 } from '../../../iam/application/tenant-context.js';
@@ -14,6 +15,50 @@ import type {
   SourceCatalogHealthV1,
 } from '../application/source-catalog-repository.port.js';
 
+const SOURCE_TYPES = new Set<SourceCatalogSourceTypeV1>([
+  'CSV',
+  'XLSX',
+  'IMAGE',
+  'PDF',
+  'RECEIPT',
+  'TABLE',
+]);
+const SOURCE_STATUSES = new Set<SourceCatalogStatusV1>([
+  'ACTIVE',
+  'REVIEW',
+  'QUARANTINED',
+  'RETIRED',
+]);
+const SOURCE_HEALTH = new Set<SourceCatalogHealthV1>(['HEALTHY', 'WARNING', 'BLOCKED', 'UNKNOWN']);
+const SOURCE_DATA_MODES = new Set(['CLOUD', 'HYBRID', 'LOCAL'] as const);
+const SOURCE_PREVIEW_KINDS = new Set([
+  'CSV_SAFE_GRID',
+  'XLSX_SAFE_GRID',
+  'IMAGE',
+  'PDF',
+  'OPEN_ON_SOURCE_DEVICE',
+] as const);
+
+function isSafeDisplayLabel(value: unknown): value is string {
+  if (typeof value !== 'string') {
+    return false;
+  }
+  const trimmed = value.trim();
+  const hasAbsoluteWindowsPath = /^[A-Za-z]:[\\/]/u.test(trimmed);
+  const hasAbsoluteOrRelativePathPrefix =
+    trimmed.startsWith('/') || trimmed.startsWith('\\') || /^(?:\.{1,2}|~)[\\/]/u.test(trimmed);
+  const hasPathLikeSeparator = /(?:^|[^\s])[\\/](?=\S)/u.test(trimmed);
+  return (
+    trimmed.length > 0 &&
+    trimmed.length <= 200 &&
+    !/[\p{Cc}\p{Cf}]/u.test(trimmed) &&
+    !hasAbsoluteWindowsPath &&
+    !hasAbsoluteOrRelativePathPrefix &&
+    !hasPathLikeSeparator &&
+    !/^[A-Za-z][A-Za-z0-9+.-]*:/u.test(trimmed)
+  );
+}
+
 export interface SourceCatalogDatabaseRowV1 {
   readonly id: string;
   readonly organizationId: string;
@@ -21,12 +66,24 @@ export interface SourceCatalogDatabaseRowV1 {
   readonly projectId: string | null;
   readonly dsmDatasetId: string;
   readonly iaeArtifactVersionId: string;
-  readonly sourceType: string;
-  readonly safeDisplayLabel: string;
-  readonly status: string;
-  readonly health: string;
-  readonly revision: number;
-  readonly updatedAt: Date;
+  readonly sourceType: unknown;
+  readonly safeDisplayLabel: unknown;
+  readonly status: unknown;
+  readonly health: unknown;
+  readonly dataMode: unknown;
+  readonly previewKind?: unknown;
+  readonly revision: unknown;
+  readonly updatedAt: unknown;
+}
+
+export interface SourceCatalogAssignmentDatabaseRowV1 {
+  readonly id: string;
+  readonly organizationId: string;
+  readonly workspaceId: string;
+  readonly projectId: string | null;
+  readonly sourceId: string;
+  readonly dsmDatasetId: string;
+  readonly status: unknown;
 }
 
 interface SourceCatalogDelegateV1 {
@@ -39,8 +96,15 @@ interface SourceCatalogDelegateV1 {
   }): Promise<SourceCatalogDatabaseRowV1 | null>;
 }
 
+interface SourceCatalogAssignmentDelegateV1 {
+  findMany(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+  }): Promise<readonly SourceCatalogAssignmentDatabaseRowV1[]>;
+}
+
 export interface SourceCatalogDatabaseClientV1 {
   readonly ddaDatasetSource: SourceCatalogDelegateV1;
+  readonly ddaSourceAssignment: SourceCatalogAssignmentDelegateV1;
 }
 
 function recordFromRow(row: SourceCatalogDatabaseRowV1): SourceCatalogRecordV1 | undefined {
@@ -49,19 +113,52 @@ function recordFromRow(row: SourceCatalogDatabaseRowV1): SourceCatalogRecordV1 |
   const workspaceId = parseStableIdentifierV1(row.workspaceId);
   const dsmDatasetId = parseStableIdentifierV1(row.dsmDatasetId);
   const iaeArtifactVersionId = parseStableIdentifierV1(row.iaeArtifactVersionId);
-  const updatedAt = parseStrictUtcTimestampV1(row.updatedAt.toISOString());
+  const updatedAtDate =
+    row.updatedAt instanceof Date && Number.isFinite(row.updatedAt.getTime())
+      ? row.updatedAt
+      : undefined;
+  const updatedAt =
+    updatedAtDate === undefined
+      ? { accepted: false as const, code: 'INVALID_UTC_TIMESTAMP' as const }
+      : parseStrictUtcTimestampV1(updatedAtDate.toISOString());
+  const sourceType = row.sourceType;
+  const status = row.status;
+  const health = row.health;
+  const dataMode = row.dataMode;
+  const previewKind = row.previewKind;
   if (
     !id.accepted ||
     !organizationId.accepted ||
     !workspaceId.accepted ||
     !dsmDatasetId.accepted ||
     !iaeArtifactVersionId.accepted ||
-    !updatedAt.accepted
+    !updatedAt.accepted ||
+    typeof sourceType !== 'string' ||
+    !SOURCE_TYPES.has(sourceType as SourceCatalogSourceTypeV1) ||
+    typeof status !== 'string' ||
+    !SOURCE_STATUSES.has(status as SourceCatalogStatusV1) ||
+    typeof health !== 'string' ||
+    !SOURCE_HEALTH.has(health as SourceCatalogHealthV1) ||
+    typeof dataMode !== 'string' ||
+    !SOURCE_DATA_MODES.has(dataMode as 'CLOUD' | 'HYBRID' | 'LOCAL') ||
+    (previewKind !== undefined &&
+      (typeof previewKind !== 'string' ||
+        !SOURCE_PREVIEW_KINDS.has(
+          previewKind as
+            | 'CSV_SAFE_GRID'
+            | 'XLSX_SAFE_GRID'
+            | 'IMAGE'
+            | 'PDF'
+            | 'OPEN_ON_SOURCE_DEVICE',
+        ))) ||
+    !isSafeDisplayLabel(row.safeDisplayLabel) ||
+    typeof row.revision !== 'number' ||
+    !Number.isSafeInteger(row.revision) ||
+    row.revision <= 0
   ) {
     return undefined;
   }
-  const projectId =
-    row.projectId === null ? undefined : parseStableIdentifierV1(row.projectId);
+  const projectId = row.projectId === null ? undefined : parseStableIdentifierV1(row.projectId);
   if (row.projectId !== null && (!projectId || !projectId.accepted)) return undefined;
   return Object.freeze({
     id: id.value,
@@ -70,25 +167,91 @@ function recordFromRow(row: SourceCatalogDatabaseRowV1): SourceCatalogRecordV1 |
     ...(projectId && projectId.accepted ? { projectId: projectId.value } : {}),
     dsmDatasetId: dsmDatasetId.value,
     iaeArtifactVersionId: iaeArtifactVersionId.value,
-    sourceType: row.sourceType as SourceCatalogSourceTypeV1,
+    sourceType: sourceType as SourceCatalogSourceTypeV1,
     safeDisplayLabel: row.safeDisplayLabel,
-    status: row.status as SourceCatalogStatusV1,
-    health: row.health as SourceCatalogHealthV1,
+    status: status as SourceCatalogStatusV1,
+    health: health as SourceCatalogHealthV1,
     versionId: iaeArtifactVersionId.value,
-    dataMode: 'CLOUD' as const,
+    dataMode: dataMode as 'CLOUD' | 'HYBRID' | 'LOCAL',
     revision: row.revision,
     updatedAt: updatedAt.value,
+    ...(previewKind === undefined
+      ? {}
+      : {
+          previewKind: previewKind as
+            | 'CSV_SAFE_GRID'
+            | 'XLSX_SAFE_GRID'
+            | 'IMAGE'
+            | 'PDF'
+            | 'OPEN_ON_SOURCE_DEVICE',
+        }),
   });
 }
 
-function workspaceFilter(context: IamTenantContextV1): Readonly<Record<string, unknown>> | undefined {
-  if (context.tenantScope.scopeType !== 'workspace' || !context.tenantScope.workspaceId) {
-    return undefined;
+function scopeFilter(context: IamTenantContextV1): Readonly<Record<string, unknown>> {
+  const scope = context.tenantScope;
+  if (scope.scopeType === 'organization') {
+    return { organizationId: scope.organizationId };
+  }
+  if (scope.scopeType === 'workspace') {
+    return {
+      organizationId: scope.organizationId,
+      workspaceId: scope.workspaceId,
+    };
   }
   return {
-    organizationId: context.tenantScope.organizationId,
-    workspaceId: context.tenantScope.workspaceId,
+    organizationId: scope.organizationId,
+    workspaceId: scope.workspaceId,
+    OR: [{ projectId: scope.projectId }, { projectId: null }],
   };
+}
+
+function sourceScope(record: SourceCatalogRecordV1): TenantScopeV1 {
+  return record.projectId === undefined
+    ? {
+        scopeType: 'workspace',
+        organizationId: record.organizationId,
+        workspaceId: record.workspaceId,
+      }
+    : {
+        scopeType: 'project',
+        organizationId: record.organizationId,
+        workspaceId: record.workspaceId,
+        projectId: record.projectId,
+      };
+}
+
+function visible(context: IamTenantContextV1, record: SourceCatalogRecordV1): boolean {
+  const recordScope = sourceScope(record);
+  return (
+    tenantScopeContainsV1(context.tenantScope, recordScope) ||
+    tenantScopeContainsV1(recordScope, context.tenantScope)
+  );
+}
+
+function assignmentScopeWhere(record: SourceCatalogRecordV1): Readonly<Record<string, unknown>> {
+  return {
+    organizationId: record.organizationId,
+    workspaceId: record.workspaceId,
+    sourceId: record.id,
+    status: 'ACTIVE',
+  };
+}
+
+function activeAssignmentMatches(
+  assignments: readonly SourceCatalogAssignmentDatabaseRowV1[],
+  record: SourceCatalogRecordV1,
+): boolean {
+  if (assignments.length !== 1) return false;
+  const assignment = assignments[0];
+  if (assignment === undefined || assignment.status !== 'ACTIVE') return false;
+  return (
+    assignment.organizationId === record.organizationId &&
+    assignment.workspaceId === record.workspaceId &&
+    (assignment.projectId ?? undefined) === record.projectId &&
+    assignment.sourceId === record.id &&
+    assignment.dsmDatasetId === record.dsmDatasetId
+  );
 }
 
 /** Prisma adapter for DDA-052 dataset source catalog metadata. */
@@ -99,42 +262,42 @@ export class PrismaSourceCatalogRepositoryAdapter implements SourceCatalogReposi
     context: IamTenantContextV1,
     datasetId: StableIdentifierV1,
   ): Promise<readonly SourceCatalogRecordV1[]> {
-    const filter = workspaceFilter(context);
-    if (!filter) return [];
+    const filter = scopeFilter(context);
     const rows = await this.db.ddaDatasetSource.findMany({
       where: { ...filter, dsmDatasetId: datasetId },
       orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
     });
-    return rows
+    const records = rows
       .map((row) => recordFromRow(row))
       .filter((record): record is SourceCatalogRecordV1 => record !== undefined)
-      .filter((record) =>
-        tenantScopeContainsV1(context.tenantScope, {
-          scopeType: 'workspace',
-          organizationId: record.organizationId,
-          workspaceId: record.workspaceId,
-        }),
-      );
+      .filter((record) => record.dsmDatasetId === datasetId)
+      .filter((record) => visible(context, record));
+    const assigned = await Promise.all(
+      records.map(async (record) => {
+        const assignments = await this.db.ddaSourceAssignment.findMany({
+          where: assignmentScopeWhere(record),
+        });
+        return activeAssignmentMatches(assignments, record) ? record : undefined;
+      }),
+    );
+    return assigned.filter((record): record is SourceCatalogRecordV1 => record !== undefined);
   }
 
   public async findSource(
     context: IamTenantContextV1,
     sourceId: StableIdentifierV1,
   ): Promise<SourceCatalogRecordV1 | undefined> {
-    const filter = workspaceFilter(context);
-    if (!filter) return undefined;
+    const filter = scopeFilter(context);
     const row = await this.db.ddaDatasetSource.findFirst({
       where: { ...filter, id: sourceId },
     });
     if (!row) return undefined;
     const record = recordFromRow(row);
     if (!record) return undefined;
-    return tenantScopeContainsV1(context.tenantScope, {
-      scopeType: 'workspace',
-      organizationId: record.organizationId,
-      workspaceId: record.workspaceId,
-    })
-      ? record
-      : undefined;
+    if (!visible(context, record)) return undefined;
+    const assignments = await this.db.ddaSourceAssignment.findMany({
+      where: assignmentScopeWhere(record),
+    });
+    return activeAssignmentMatches(assignments, record) ? record : undefined;
   }
 }

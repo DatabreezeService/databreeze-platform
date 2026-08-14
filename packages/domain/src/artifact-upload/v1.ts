@@ -9,7 +9,19 @@ import {
 
 /** IAE-014: resumable multipart upload state is bounded, revisioned, and content-addressed. */
 export const ARTIFACT_UPLOAD_SCHEMA_VERSION_V1 = 1 as const;
-export type ArtifactUploadStateV1 = 'OPEN' | 'COMPLETED' | 'ABORTED' | 'EXPIRED';
+export type ArtifactUploadStateV1 =
+  | 'OPEN'
+  | 'FINALIZING'
+  | 'COMPLETED'
+  | 'ABORTED'
+  | 'EXPIRED';
+
+export interface ArtifactUploadVerifiedObjectV1 {
+  /** Opaque application locator, never a bucket, key, path, or reusable URL. */
+  readonly opaqueLocator: string;
+  /** Exact immutable object-store version used for reconciliation and deletion. */
+  readonly objectVersionId: string;
+}
 
 export interface ArtifactUploadPartV1 {
   readonly partNumber: number;
@@ -22,6 +34,10 @@ export interface ArtifactUploadSessionV1 {
   readonly schemaVersion: typeof ARTIFACT_UPLOAD_SCHEMA_VERSION_V1;
   readonly sessionId: StableIdentifierV1;
   readonly artifactId: StableIdentifierV1;
+  readonly artifactVersionId: StableIdentifierV1;
+  readonly intakeId: StableIdentifierV1;
+  readonly policyVersionId: StableIdentifierV1;
+  readonly authorizationEpoch: number;
   readonly tenantScope: TenantScopeV1;
   readonly expectedSha256: string;
   readonly expectedByteSize: number;
@@ -30,6 +46,7 @@ export interface ArtifactUploadSessionV1 {
   readonly totalParts: number;
   readonly parts: readonly ArtifactUploadPartV1[];
   readonly state: ArtifactUploadStateV1;
+  readonly verifiedObject?: ArtifactUploadVerifiedObjectV1;
   readonly createdAt: StrictUtcTimestampV1;
   readonly expiresAt: StrictUtcTimestampV1;
   readonly revision: number;
@@ -108,6 +125,10 @@ function validPart(part: unknown, totalParts: number): part is ArtifactUploadPar
 export function createArtifactUploadSessionV1(input: {
   readonly sessionId: unknown;
   readonly artifactId: unknown;
+  readonly artifactVersionId: unknown;
+  readonly intakeId: unknown;
+  readonly policyVersionId: unknown;
+  readonly authorizationEpoch: unknown;
   readonly tenantScope: unknown;
   readonly expectedSha256: unknown;
   readonly expectedByteSize: unknown;
@@ -118,13 +139,23 @@ export function createArtifactUploadSessionV1(input: {
 }): ArtifactUploadResultV1<ArtifactUploadSessionV1> {
   const sessionId = identifier(input.sessionId);
   const artifactId = identifier(input.artifactId);
+  const artifactVersionId = identifier(input.artifactVersionId);
+  const intakeId = identifier(input.intakeId);
+  const policyVersionId = identifier(input.policyVersionId);
   const tenantScope = parseTenantScopeV1(input.tenantScope);
   const expectedSha256 = hash(input.expectedSha256);
   const partSize = positiveInteger(input.partSize);
   const mediaTypeValue = mediaType(input.mediaType);
   const createdAt = timestamp(input.createdAt);
   const expiresAt = timestamp(input.expiresAt);
-  if (!sessionId || !artifactId) return rejected('INVALID_IDENTIFIER');
+  if (!sessionId || !artifactId || !artifactVersionId || !intakeId || !policyVersionId)
+    return rejected('INVALID_IDENTIFIER');
+  if (
+    typeof input.authorizationEpoch !== 'number' ||
+    !Number.isSafeInteger(input.authorizationEpoch) ||
+    input.authorizationEpoch < 1
+  )
+    return rejected('INVALID_STATE');
   if (!tenantScope.accepted) return rejected('INVALID_SCOPE');
   if (!expectedSha256) return rejected('INVALID_HASH');
   if (
@@ -144,6 +175,10 @@ export function createArtifactUploadSessionV1(input: {
       schemaVersion: ARTIFACT_UPLOAD_SCHEMA_VERSION_V1,
       sessionId,
       artifactId,
+      artifactVersionId,
+      intakeId,
+      policyVersionId,
+      authorizationEpoch: input.authorizationEpoch,
       tenantScope: tenantScope.value,
       expectedSha256,
       expectedByteSize: input.expectedByteSize,
@@ -209,7 +244,7 @@ export function recordArtifactUploadPartV1(
   );
 }
 
-export function completeArtifactUploadSessionV1(
+export function beginArtifactUploadFinalizationV1(
   session: ArtifactUploadSessionV1,
   input: { readonly assembledSha256: unknown; readonly expectedRevision: unknown },
 ): ArtifactUploadResultV1<ArtifactUploadSessionV1> {
@@ -224,15 +259,54 @@ export function completeArtifactUploadSessionV1(
     return rejected('SIZE_MISMATCH');
   if (assembledSha256 !== session.expectedSha256) return rejected('DIGEST_MISMATCH');
   return accepted(
-    Object.freeze({ ...session, state: 'COMPLETED' as const, revision: session.revision + 1 }),
+    Object.freeze({ ...session, state: 'FINALIZING' as const, revision: session.revision + 1 }),
   );
 }
+
+function boundedOpaqueLocator(input: unknown): string | undefined {
+  return typeof input === 'string' && /^[A-Za-z0-9_-]{16,512}$/u.test(input) ? input : undefined;
+}
+
+function boundedObjectVersion(input: unknown): string | undefined {
+  if (typeof input !== 'string' || input.length < 1 || input.length > 1024) return undefined;
+  for (const character of input) {
+    const codePoint = character.codePointAt(0);
+    if (codePoint !== undefined && (codePoint <= 0x1f || codePoint === 0x7f)) return undefined;
+  }
+  return input;
+}
+
+export function completeArtifactUploadFinalizationV1(
+  session: ArtifactUploadSessionV1,
+  input: {
+    readonly opaqueLocator: unknown;
+    readonly objectVersionId: unknown;
+    readonly expectedRevision: unknown;
+  },
+): ArtifactUploadResultV1<ArtifactUploadSessionV1> {
+  if (session.state !== 'FINALIZING') return rejected('INVALID_STATE');
+  if (input.expectedRevision !== session.revision) return rejected('REVISION_CONFLICT');
+  const opaqueLocator = boundedOpaqueLocator(input.opaqueLocator);
+  const objectVersionId = boundedObjectVersion(input.objectVersionId);
+  if (!opaqueLocator || !objectVersionId) return rejected('INVALID_STATE');
+  return accepted(
+    Object.freeze({
+      ...session,
+      state: 'COMPLETED' as const,
+      verifiedObject: Object.freeze({ opaqueLocator, objectVersionId }),
+      revision: session.revision + 1,
+    }),
+  );
+}
+
+/** @deprecated Use the explicit two-phase finalization functions. */
+export const completeArtifactUploadSessionV1 = beginArtifactUploadFinalizationV1;
 
 export function abortArtifactUploadSessionV1(
   session: ArtifactUploadSessionV1,
   expectedRevision: unknown,
 ): ArtifactUploadResultV1<ArtifactUploadSessionV1> {
-  if (session.state !== 'OPEN') return rejected('INVALID_STATE');
+  if (session.state !== 'OPEN' && session.state !== 'FINALIZING') return rejected('INVALID_STATE');
   if (expectedRevision !== session.revision) return rejected('REVISION_CONFLICT');
   return accepted(
     Object.freeze({ ...session, state: 'ABORTED' as const, revision: session.revision + 1 }),
@@ -245,7 +319,7 @@ export function expireArtifactUploadSessionV1(
 ): ArtifactUploadResultV1<ArtifactUploadSessionV1> {
   const timestampValue = timestamp(now);
   if (!timestampValue) return rejected('INVALID_TIMESTAMP');
-  if (session.state !== 'OPEN') return rejected('INVALID_STATE');
+  if (session.state !== 'OPEN' && session.state !== 'FINALIZING') return rejected('INVALID_STATE');
   if (Date.parse(timestampValue) < Date.parse(session.expiresAt))
     return rejected('INVALID_TIMESTAMP');
   return accepted(

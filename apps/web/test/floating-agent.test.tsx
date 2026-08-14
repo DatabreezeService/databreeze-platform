@@ -10,7 +10,7 @@ describe('floating agent surfaces', () => {
   it('shows the floating agent on the composed dashboard route', async () => {
     const router = createAppRouter({ initialEntries: ['/vi-VN/dashboards'] });
     render(<ApplicationBoundary router={router} />);
-    expect(await screen.findByRole('button', { name: 'Mở trợ lý' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Mở trợ lý biểu đồ' })).toBeTruthy();
   });
 
   it('shows the floating agent on dashboard and data routes', () => {

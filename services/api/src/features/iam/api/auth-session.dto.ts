@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  Equals,
   IsBoolean,
   IsISO8601,
   IsOptional,
@@ -11,6 +12,10 @@ import {
 
 /** IAM-005, IAM-006, IAM-012: public response shape for browser and native clients. */
 export class AuthSessionDto {
+  @ApiProperty({ enum: [4] })
+  @Equals(4)
+  schemaVersion!: 4;
+
   @ApiProperty({ format: 'uuid' })
   @IsUUID()
   sessionId!: string;

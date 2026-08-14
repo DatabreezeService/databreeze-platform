@@ -44,7 +44,9 @@ void test('[DDA-060] context package respects hard bounds', () => {
   if (!built.accepted) return;
   assert.equal(built.value.datasetBindings.length, 8);
   assert.equal(built.value.recentMessages.length, 12);
-  assert.equal(built.value.summaryText.length, 8_000);
+  assert.equal(built.value.summaryText, 'CONVERSATION_SUMMARY_AVAILABLE_CONTENT_SAFE');
+  assert.equal(built.value.recentMessages[0]?.text, 'USER_MESSAGE_AVAILABLE');
+  assert.equal(built.value.filterContext, 'FILTER_CONTEXT_AVAILABLE_CONTENT_SAFE');
   assert.equal(built.value.evidenceRefs.length, 24);
   assert.equal(built.value.estimatedProviderTokenCeiling, 24_000);
   assert.equal(built.value.locale, 'vi-VN');

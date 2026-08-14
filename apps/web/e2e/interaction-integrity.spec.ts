@@ -61,9 +61,7 @@ test('representative shell interactions do not write browser persistence', async
   });
   await page.goto('/en/dashboards');
 
-  await page.getByRole('searchbox', { name: 'Search' }).fill('invoice review');
-  await page.getByRole('button', { name: 'Search' }).click();
-  await page.getByRole('button', { name: 'Notifications' }).click();
+  await page.getByRole('button', { name: /Notifications/u }).click();
   if (testInfo.project.name === 'mobile-chromium') {
     await page.getByRole('button', { name: 'Open navigation' }).click();
   }

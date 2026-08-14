@@ -1,9 +1,8 @@
 import type { TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
-
 import type {
   ArtifactProcessingContentHandleV1,
   ArtifactProcessingContentResultV1,
-} from '../../iae/application/artifact-processing-content.port.js';
+} from '@databreeze/domain/artifact-processing-content/v1';
 
 /** DDA-001: composition ports naming foreign authorities without owning them. */
 export const DDA_IAE_PORT = Symbol('DDA_IAE_PORT');

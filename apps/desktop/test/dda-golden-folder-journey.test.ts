@@ -45,7 +45,9 @@ function crc32(buffer: Buffer): number {
   return (crc ^ 0xffffffff) >>> 0;
 }
 
-function zipStore(entries: ReadonlyArray<{ readonly name: string; readonly data: Buffer }>): Buffer {
+function zipStore(
+  entries: ReadonlyArray<{ readonly name: string; readonly data: Buffer }>,
+): Buffer {
   const localParts: Buffer[] = [];
   const centralParts: Buffer[] = [];
   let offset = 0;

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 4,
+  "outcome": "ACCEPTED",
+  "value": {
+    "user": {
+      "id": "00000000-0000-4000-8000-000000000402",
+      "displayName": "Mai Quynh",
+      "locale": "vi-VN",
+      "mfaState": "NOT_CONFIGURED"
+    },
+    "organizations": [
+      {
+        "id": "00000000-0000-4000-8000-000000000403",
+        "name": "DataBreeze",
+        "personal": true,
+        "status": "ACTIVE",
+        "workspaces": [
+          {
+            "id": "00000000-0000-4000-8000-000000000404",
+            "name": "Không gian chính",
+            "status": "ACTIVE",
+            "projects": [
+              {
+                "id": "00000000-0000-4000-8000-000000000405",
+                "name": "Dữ liệu đầu tiên",
+                "kind": "INTERNAL",
+                "status": "ACTIVE"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "recentScopes": [
+      {
+        "scopeType": "project",
+        "organizationId": "00000000-0000-4000-8000-000000000403",
+        "workspaceId": "00000000-0000-4000-8000-000000000404",
+        "projectId": "00000000-0000-4000-8000-000000000405"
+      }
+    ],
+    "session": {
+      "scopeType": "project",
+      "organizationId": "00000000-0000-4000-8000-000000000403",
+      "workspaceId": "00000000-0000-4000-8000-000000000404",
+      "projectId": "00000000-0000-4000-8000-000000000405",
+      "authorizationEpoch": 1
+    },
+    "platform": {
+      "apiVersion": "v1"
+    }
+  }
+}

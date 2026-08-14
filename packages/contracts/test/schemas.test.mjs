@@ -12,12 +12,25 @@ import addFormats from 'ajv-formats';
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const manifestPath = resolve(packageRoot, 'manifest.json');
 const schemaBase = 'https://schemas.databreeze.dev/contracts/v1';
+const schemaBaseV3 = 'https://schemas.databreeze.dev/contracts/v3';
+const schemaBaseV4 = 'https://schemas.databreeze.dev/contracts/v4';
 
 const ids = {
   actorMetadata: `${schemaBase}/actor-metadata`,
   commandEnvelope: `${schemaBase}/command-envelope`,
   correlationMetadata: `${schemaBase}/correlation-metadata`,
   cursorPage: `${schemaBase}/cursor-page`,
+  dashboardAuthoringCommandResult: `${schemaBaseV3}/dda-dashboard-authoring-command-result`,
+  agentTurnAccepted: `${schemaBaseV4}/dda-agent-turn-accepted`,
+  agentTurnCommand: `${schemaBaseV4}/dda-agent-turn-command`,
+  conversationListAccepted: `${schemaBaseV4}/dda-conversation-list-accepted`,
+  conversationLoadAccepted: `${schemaBaseV4}/dda-conversation-load-accepted`,
+  conversationSummary: `${schemaBaseV4}/dda-conversation-summary`,
+  iamBootstrapResponse: `${schemaBaseV4}/iam-bootstrap-response`,
+  notification: `${schemaBaseV3}/dda-notification`,
+  notificationPage: `${schemaBaseV3}/dda-notification-page`,
+  notificationStateCommand: `${schemaBaseV3}/dda-notification-state-command`,
+  workspaceMemberSettings: `${schemaBaseV3}/dda-workspace-member-settings`,
   eventEnvelope: `${schemaBase}/event-envelope`,
   identifier: `${schemaBase}/identifier`,
   problemDetails: `${schemaBase}/problem-details`,
@@ -77,6 +90,34 @@ test('publishes the complete deterministic registry and compiles every real sche
     ['dda-preparation-summary', `${schemaBase}/dda-preparation-summary`],
     ['dda-receipt-candidate', `${schemaBase}/dda-receipt-candidate`],
     ['dda-receipt-upload', 'https://schemas.databreeze.dev/contracts/v2/dda-receipt-upload'],
+    ['dda-dashboard-authoring-command', `${schemaBaseV3}/dda-dashboard-authoring-command`],
+    [
+      'dda-dashboard-authoring-command-result',
+      `${schemaBaseV3}/dda-dashboard-authoring-command-result`,
+    ],
+    ['dda-dashboard-chart-proposal', `${schemaBaseV3}/dda-dashboard-chart-proposal`],
+    ['dda-dashboard-workspace-history', `${schemaBaseV3}/dda-dashboard-workspace-history`],
+    ['dda-notification', `${schemaBaseV3}/dda-notification`],
+    ['dda-notification-page', `${schemaBaseV3}/dda-notification-page`],
+    ['dda-notification-state-command', `${schemaBaseV3}/dda-notification-state-command`],
+    ['dda-workspace-member-settings', `${schemaBaseV3}/dda-workspace-member-settings`],
+    ['dda-agent-turn-accepted', `${schemaBaseV4}/dda-agent-turn-accepted`],
+    ['dda-agent-turn-command', `${schemaBaseV4}/dda-agent-turn-command`],
+    ['dda-conversation-list-accepted', `${schemaBaseV4}/dda-conversation-list-accepted`],
+    ['dda-conversation-load-accepted', `${schemaBaseV4}/dda-conversation-load-accepted`],
+    ['dda-conversation-summary', `${schemaBaseV4}/dda-conversation-summary`],
+    ['dda-dashboard-widget-results-accepted', `${schemaBaseV4}/dda-dashboard-widget-results-accepted`],
+    ['iam-auth-session', `${schemaBaseV4}/iam-auth-session`],
+    ['iam-bootstrap-response', `${schemaBaseV4}/iam-bootstrap-response`],
+    ['iam-email-verification-command', `${schemaBaseV4}/iam-email-verification-command`],
+    ['iam-password-sign-in-command', `${schemaBaseV4}/iam-password-sign-in-command`],
+    ['iam-registration-accepted', `${schemaBaseV4}/iam-registration-accepted`],
+    ['iam-registration-command', `${schemaBaseV4}/iam-registration-command`],
+    ['jra-worker-dashboard-widget-result-output', `${schemaBaseV4}/jra-worker-dashboard-widget-result-output`],
+    ['jra-worker-result-finalize-accepted', `${schemaBaseV4}/jra-worker-result-finalize-accepted`],
+    ['jra-worker-result-finalize-command', `${schemaBaseV4}/jra-worker-result-finalize-command`],
+    ['jra-worker-result-prepare-accepted', `${schemaBaseV4}/jra-worker-result-prepare-accepted`],
+    ['jra-worker-result-prepare-command', `${schemaBaseV4}/jra-worker-result-prepare-command`],
     ['dda-refresh-event', `${schemaBase}/dda-refresh-event`],
     ['dda-source-catalog', `${schemaBase}/dda-source-catalog`],
     ['dda-starter-dashboard-event', `${schemaBase}/dda-starter-dashboard-event`],
@@ -112,6 +153,8 @@ test('exports only declared registry schema and generated TypeScript entry point
     '.',
     './v1',
     './v2',
+    './v3',
+    './v4',
     './v1/actor-metadata',
     './v1/command-envelope',
     './v1/correlation-metadata',
@@ -138,6 +181,31 @@ test('exports only declared registry schema and generated TypeScript entry point
     './v1/revision',
     './v1/tenant-scope',
     './v1/utc-timestamp',
+    './v3/dda-dashboard-authoring-command',
+    './v3/dda-dashboard-authoring-command-result',
+    './v3/dda-dashboard-chart-proposal',
+    './v3/dda-dashboard-workspace-history',
+    './v3/dda-notification',
+    './v3/dda-notification-page',
+    './v3/dda-notification-state-command',
+    './v3/dda-workspace-member-settings',
+    './v4/dda-agent-turn-accepted',
+    './v4/dda-agent-turn-command',
+    './v4/dda-conversation-list-accepted',
+    './v4/dda-conversation-load-accepted',
+    './v4/dda-conversation-summary',
+    './v4/dda-dashboard-widget-results-accepted',
+    './v4/iam-auth-session',
+    './v4/iam-bootstrap-response',
+    './v4/iam-email-verification-command',
+    './v4/iam-password-sign-in-command',
+    './v4/iam-registration-accepted',
+    './v4/iam-registration-command',
+    './v4/jra-worker-dashboard-widget-result-output',
+    './v4/jra-worker-result-finalize-accepted',
+    './v4/jra-worker-result-finalize-command',
+    './v4/jra-worker-result-prepare-accepted',
+    './v4/jra-worker-result-prepare-command',
   ]);
   for (const target of Object.values(packageJson.exports)) {
     const paths = typeof target === 'string' ? [target] : Object.values(target);
@@ -149,6 +217,169 @@ test('exports only declared registry schema and generated TypeScript entry point
       );
     }
   }
+});
+
+test('[Plan 408 / IAM-001 / IAM-009 / WEB-003] Web bootstrap is closed and server scoped', () => {
+  const validate = validatorFor(ids.iamBootstrapResponse);
+  const response = {
+    schemaVersion: 4,
+    outcome: 'ACCEPTED',
+    value: {
+      user: {
+        id: actorId,
+        displayName: 'Nguyen An',
+        locale: 'vi-VN',
+        mfaState: 'ENABLED',
+      },
+      organizations: [{
+        id: organizationId,
+        name: 'Nguyen An DataBreeze',
+        personal: true,
+        status: 'ACTIVE',
+        workspaces: [{
+          id: workspaceId,
+          name: 'Personal workspace',
+          status: 'ACTIVE',
+          projects: [{
+            id: projectId,
+            name: 'Personal project',
+            kind: 'INTERNAL',
+            status: 'ACTIVE',
+          }],
+        }],
+      }],
+      recentScopes: [{ scopeType: 'project', organizationId, workspaceId, projectId }],
+      session: { scopeType: 'project', organizationId, workspaceId, projectId, authorizationEpoch: 1 },
+      platform: { apiVersion: 'v1' },
+    },
+  };
+
+  assert.equal(validate(response), true, JSON.stringify(validate.errors));
+  assert.equal(validate({ ...response, clientRole: 'owner' }), false);
+  assert.equal(validate({ schemaVersion: 4, outcome: 'REJECTED', code: 'UNAVAILABLE' }), true);
+});
+
+test('[DDA-055][DDA-056] conversation transports are closed, bounded, and omit client authority', () => {
+  const summary = {
+    schemaVersion: 4,
+    conversationId: organizationId,
+    title: 'Phan tich doanh thu',
+    datasets: [{ datasetId: workspaceId, datasetVersionId: projectId }],
+    dashboardId: actorId,
+    filterContext: 'month = 8',
+    createdAt: '2026-08-13T01:00:00.000Z',
+    updatedAt: '2026-08-13T02:00:00.000Z',
+  };
+  const list = {
+    schemaVersion: 4,
+    accepted: true,
+    items: [summary],
+    nextCursor: 'cursor-v4-conversations-page-2',
+  };
+  const load = {
+    schemaVersion: 4,
+    accepted: true,
+    conversation: summary,
+    messages: [
+      {
+        messageId: correlationId,
+        conversationId: organizationId,
+        role: 'USER',
+        text: 'So sanh doanh thu.',
+        sequence: 1,
+        datasetVersionId: projectId,
+        createdAt: '2026-08-13T01:30:00.000Z',
+      },
+    ],
+    contextEvents: [
+      {
+        eventId: workspaceId,
+        conversationId: organizationId,
+        kind: 'DATASET_VERSION_ADVANCED',
+        datasetId: workspaceId,
+        beforeVersionId: projectId,
+        afterVersionId: actorId,
+        sequence: 2,
+        occurredAt: '2026-08-13T01:45:00.000Z',
+      },
+    ],
+    nextCursor: 'cursor-v4-messages-page-2',
+  };
+
+  assert.equal(validatorFor(ids.conversationSummary)(summary), true);
+  assert.equal(validatorFor(ids.conversationListAccepted)(list), true);
+  assert.equal(validatorFor(ids.conversationLoadAccepted)(load), true);
+  assert.equal(
+    validatorFor(ids.conversationSummary)({ ...summary, tenantScope: { scopeType: 'workspace' } }),
+    false,
+  );
+  assert.equal(
+    validatorFor(ids.conversationListAccepted)({ ...list, nextCursor: 'not opaque' }),
+    false,
+  );
+  assert.equal(
+    validatorFor(ids.conversationLoadAccepted)({
+      ...load,
+      messages: Array.from({ length: 51 }, () => load.messages[0]),
+    }),
+    false,
+  );
+  assert.equal(
+    validatorFor(ids.conversationLoadAccepted)({
+      ...load,
+      contextEvents: [{ ...load.contextEvents[0], authorizationEpoch: 7 }],
+    }),
+    false,
+  );
+});
+
+test('[DDA-060] agent turn command and accepted result use exact bounded envelopes', () => {
+  const command = {
+    schemaVersion: 4,
+    conversationId: organizationId,
+    messageId: workspaceId,
+    text: 'Tinh doanh thu theo khu vuc.',
+    idempotencyKey: 'turn-20260813-0001',
+    locale: 'vi-VN',
+    contextRevision: 2,
+    expectedContextRevision: 2,
+  };
+  const accepted = {
+    schemaVersion: 4,
+    accepted: true,
+    narrative: 'Da tinh bang bo xu ly xac dinh.',
+    toolResults: [
+      {
+        toolCallId: 'call-analysis-1',
+        name: 'analysis.execute',
+        result: {
+          resultId: projectId,
+          evidenceRefs: [{ evidenceId: actorId, kind: 'RESULT_CELL' }],
+          provenance: {
+            planVersionId: correlationId,
+            datasetVersionId: workspaceId,
+            engineVersion: 'engine-1.0.0',
+          },
+        },
+      },
+    ],
+  };
+
+  assert.equal(validatorFor(ids.agentTurnCommand)(command), true);
+  assert.equal(validatorFor(ids.agentTurnAccepted)(accepted), true);
+  assert.equal(validatorFor(ids.agentTurnCommand)({ ...command, agentLevel: 'ANALYZE' }), false);
+  assert.equal(validatorFor(ids.agentTurnCommand)({ ...command, schemaVersion: 3 }), false);
+  assert.equal(
+    validatorFor(ids.agentTurnAccepted)({ ...accepted, idempotencyKey: command.idempotencyKey }),
+    false,
+  );
+  assert.equal(
+    validatorFor(ids.agentTurnAccepted)({
+      ...accepted,
+      toolResults: [{ ...accepted.toolResults[0], result: { value: 42 } }],
+    }),
+    false,
+  );
 });
 
 test('rejects a malformed UUID identifier', () => {
@@ -357,6 +588,115 @@ test('rejects unknown cursor page fields', () => {
       snapshotAt: '2026-08-01T01:30:00Z',
       hasMore: false,
       pageInfo: {},
+    }),
+    false,
+  );
+});
+
+test('keeps notification records closed, content-safe, and revisioned', () => {
+  const validateNotification = validatorFor(ids.notification);
+  const notification = {
+    schemaVersion: 3,
+    id: '018f47f2-5ee1-7d8d-a4c2-8f0e19e4cc06',
+    workspaceId,
+    subjectId: actorId,
+    kind: 'SECURITY_NOTICE',
+    labelVi: 'Thông báo bảo mật',
+    labelEn: 'Security notice',
+    action: 'OPEN_SETTINGS',
+    createdAt: '2026-08-01T01:30:00.125Z',
+    correlationId,
+    state: 'UNREAD',
+    revision: 1,
+  };
+
+  assert.equal(validateNotification(notification), true);
+  assert.equal(validateNotification({ ...notification, labelEn: 'Security\u0000notice' }), false);
+  assert.equal(validateNotification({ ...notification, action: 'https://example.test' }), false);
+
+  const validatePage = validatorFor(ids.notificationPage);
+  assert.equal(validatePage({ schemaVersion: 3, items: [notification], unreadCount: 4 }), true);
+  assert.equal(
+    validatePage({
+      schemaVersion: 3,
+      items: [notification],
+      unreadCount: 4,
+      nextCursor: 'not-opaque',
+    }),
+    false,
+  );
+
+  const validateCommand = validatorFor(ids.notificationStateCommand);
+  assert.equal(
+    validateCommand({
+      schemaVersion: 3,
+      state: 'READ',
+      expectedRevision: 1,
+      idempotencyKey: 'notification-read-018f47f2',
+    }),
+    true,
+  );
+  assert.equal(validateCommand({ schemaVersion: 3, state: 'READ', expectedRevision: 1 }), false);
+  assert.equal(validateCommand({ schemaVersion: 3, state: 'READ', expectedRevision: 0 }), false);
+
+  const validateResult = validatorFor(ids.dashboardAuthoringCommandResult);
+  assert.equal(
+    validateResult({
+      commandId: actorId,
+      dashboardId: workspaceId,
+      versionId: projectId,
+      revision: 2,
+      savedAt: '2026-08-01T01:30:00.125Z',
+      publishes: false,
+    }),
+    true,
+  );
+  assert.equal(
+    validateResult({
+      commandId: actorId,
+      dashboardId: workspaceId,
+      versionId: projectId,
+      revision: 2,
+      savedAt: '2026-08-01T01:30:00.125Z',
+      publishes: true,
+    }),
+    false,
+  );
+
+  const validateSettings = validatorFor(ids.workspaceMemberSettings);
+  assert.equal(
+    validateSettings({
+      schemaVersion: 3,
+      workspaceId,
+      canManage: true,
+      members: [
+        {
+          memberId: actorId,
+          displayName: 'Owner',
+          accessPreset: 'OWNER',
+          agentGrantLevel: 'APPLY_CONFIRMED_CHANGES',
+          agentGrantRevision: 2,
+          membershipRevision: 1,
+        },
+      ],
+    }),
+    true,
+  );
+  assert.equal(
+    validateSettings({
+      schemaVersion: 3,
+      workspaceId,
+      canManage: true,
+      members: [
+        {
+          memberId: actorId,
+          displayName: 'Viewer',
+          accessPreset: 'VIEWER',
+          agentGrantLevel: 'APPLY_CONFIRMED_CHANGES',
+          agentGrantRevision: 2,
+          membershipRevision: 1,
+        },
+      ],
     }),
     false,
   );

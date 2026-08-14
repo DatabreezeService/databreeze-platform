@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { parseTenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
+import { BadRequestException } from '@nestjs/common';
 
 import { InMemoryDashboardDraftRepositoryAdapter } from '../../../src/features/dda/dashboard/adapter/in-memory-dashboard-draft-repository.adapter.js';
 import { DashboardDraftControllerV1 } from '../../../src/features/dda/dashboard/api/dashboard-draft.controller.js';
@@ -167,4 +168,55 @@ void test('[DDA-020] GET draft fails closed on revocation and missing draft', as
     requestContext,
   );
   await assert.rejects(() => missing.getDraft({}, ids.dashboard), /DASHBOARD_DRAFT_NOT_FOUND/u);
+});
+
+void test('[DDA-024][DDA-026] deprecated browser mutation aliases fail closed', async () => {
+  const controller = new DashboardDraftControllerV1(
+    new DashboardDraftServiceV1(new InMemoryDashboardDraftRepositoryAdapter(), allowAllAuth()),
+    {
+      resolve() {
+        return Promise.resolve(context);
+      },
+    },
+  );
+
+  const expectInvalidCommand = async (operation: () => Promise<unknown>) => {
+    await assert.rejects(operation, (error: unknown) => {
+      assert.equal(error instanceof BadRequestException, true);
+      assert.deepEqual((error as BadRequestException).getResponse(), {
+        code: 'INVALID_COMMAND',
+      });
+      return true;
+    });
+  };
+
+  await expectInvalidCommand(() =>
+    controller.accept(
+      {},
+      {
+        context,
+        proposalId: '00000000-0000-4000-8000-0000000000b1',
+        version: {},
+      },
+    ),
+  );
+  await expectInvalidCommand(() =>
+    controller.restore({}, {
+      dashboardId: ids.dashboard,
+      versionId: ids.version,
+      widgetId: ids.widget,
+    } as never),
+  );
+  await expectInvalidCommand(() =>
+    controller.filter({}, {
+      dashboardId: ids.dashboard,
+      versionId: ids.version,
+      filter: {
+        filterId: ids.filter,
+        field: 'region',
+        operator: 'IN',
+        scope: 'DASHBOARD',
+      },
+    } as never),
+  );
 });

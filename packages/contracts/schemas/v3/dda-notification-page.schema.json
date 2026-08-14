@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v3/dda-notification-page",
+  "$comment": "NCO-012/NCO-020: cursor-paginated notification reconciliation with an authoritative unread count.",
+  "title": "DDA Notification Page",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "items", "unreadCount"],
+  "properties": {
+    "schemaVersion": {
+      "const": 3
+    },
+    "items": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "$ref": "https://schemas.databreeze.dev/contracts/v3/dda-notification"
+      }
+    },
+    "nextCursor": {
+      "type": "string",
+      "minLength": 12,
+      "maxLength": 512,
+      "pattern": "^cursor-v1-[A-Za-z0-9_-]+$"
+    },
+    "unreadCount": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    }
+  }
+}

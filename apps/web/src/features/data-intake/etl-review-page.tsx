@@ -49,31 +49,31 @@ export function EtlReviewPage({
 }: EtlReviewPageProps) {
   const title = locale === 'en' ? 'ETL review' : 'Xem xét ETL';
   return (
-    <article aria-label={title}>
+    <article className="etl-review-card" aria-label={title}>
       <h2>{title}</h2>
       <p>
         {locale === 'en' ? 'State' : 'Trạng thái'}: {state}
       </p>
-      <section aria-label="schemas">
+      <section className="etl-review-card__schemas" aria-label="schemas">
         <p>source: {sourceSchema.join(', ')}</p>
         <p>inferred: {inferredSchema.join(', ')}</p>
         <p>target: {targetSchema.join(', ')}</p>
       </section>
-      <section aria-label="steps">
+      <section className="etl-review-card__steps" aria-label="steps">
         <ol>
           {orderedSteps.map((step) => (
             <li key={step}>{step}</li>
           ))}
         </ol>
       </section>
-      <section aria-label="assumptions">
+      <section className="etl-review-card__assumptions" aria-label="assumptions">
         <ul>
           {assumptions.map((item) => (
             <li key={item}>{item}</li>
           ))}
         </ul>
       </section>
-      <section aria-label="samples">
+      <section className="etl-review-card__samples" aria-label="samples">
         <p>before: {JSON.stringify(beforeSample)}</p>
         <p>after: {JSON.stringify(afterSample)}</p>
       </section>

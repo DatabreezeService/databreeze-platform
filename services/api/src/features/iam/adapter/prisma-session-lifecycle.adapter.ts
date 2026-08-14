@@ -184,21 +184,54 @@ function tokenFor(tokenId: string): string {
 }
 
 function sessionFromRow(row: SessionRecordDatabaseRowV1): SessionRecordV1 {
-  const created = createSessionRecordV1({
-    sessionId: row.id,
-    userId: row.userId,
-    organizationId: row.organizationId,
-    workspaceId: row.workspaceId,
-    familyId: row.familyId,
-    issuedAt: timestamp(row.issuedAt),
-    accessExpiresAt: timestamp(row.accessExpiresAt),
-    inactivityExpiresAt: timestamp(row.inactivityExpiresAt),
-    absoluteExpiresAt: timestamp(row.absoluteExpiresAt),
-  });
-  if (!created.accepted) throw new Error('IAM_PERSISTED_SESSION_INVALID');
+  const sessionId = stableIdentifier(row.id);
+  const userId = stableIdentifier(row.userId);
+  const organizationId = stableIdentifier(row.organizationId);
+  const workspaceId = stableIdentifier(row.workspaceId);
+  const familyId = stableIdentifier(row.familyId);
+  const issuedAt = timestamp(row.issuedAt);
+  const accessExpiresAt = timestamp(row.accessExpiresAt);
+  const inactivityExpiresAt = timestamp(row.inactivityExpiresAt);
+  const absoluteExpiresAt = timestamp(row.absoluteExpiresAt);
+  if (!issuedAt || !accessExpiresAt || !inactivityExpiresAt || !absoluteExpiresAt) {
+    throw new Error('IAM_PERSISTED_SESSION_INVALID');
+  }
+  const issuedAtMs = Date.parse(issuedAt);
+  const accessExpiresAtMs = Date.parse(accessExpiresAt);
+  const inactivityExpiresAtMs = Date.parse(inactivityExpiresAt);
+  const absoluteExpiresAtMs = Date.parse(absoluteExpiresAt);
+  // Access expiry is deliberately slid on refresh. Its <=15-minute lifetime is
+  // validated against the access-token row at issuance; comparing it with the
+  // immutable session issuedAt would reject every normal refresh after 0ms.
+  if (
+    !Number.isFinite(issuedAtMs) ||
+    !Number.isFinite(accessExpiresAtMs) ||
+    !Number.isFinite(inactivityExpiresAtMs) ||
+    !Number.isFinite(absoluteExpiresAtMs) ||
+    accessExpiresAtMs <= issuedAtMs ||
+    accessExpiresAtMs > inactivityExpiresAtMs ||
+    inactivityExpiresAtMs <= issuedAtMs ||
+    inactivityExpiresAtMs > absoluteExpiresAtMs ||
+    inactivityExpiresAtMs - issuedAtMs > 90 * 24 * 60 * 60 * 1_000 ||
+    absoluteExpiresAtMs - issuedAtMs > 365 * 24 * 60 * 60 * 1_000
+  ) {
+    throw new Error('IAM_PERSISTED_SESSION_INVALID');
+  }
+  const created = {
+    schemaVersion: 1 as const,
+    sessionId,
+    userId,
+    organizationId,
+    workspaceId,
+    familyId,
+    issuedAt,
+    accessExpiresAt,
+    inactivityExpiresAt,
+    absoluteExpiresAt,
+  };
   if (row.status !== 'ACTIVE' && row.status !== 'REVOKED' && row.status !== 'EXPIRED')
     throw new Error('IAM_PERSISTED_SESSION_INVALID');
-  return Object.freeze({ ...created.value, status: row.status });
+  return Object.freeze({ ...created, status: row.status });
 }
 
 function tokenFromRow(row: RefreshTokenDatabaseRowV1): {

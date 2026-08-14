@@ -55,16 +55,14 @@ import {
   AGENT_GRANT_REPOSITORY_PORT,
   type AgentGrantRepositoryPortV1,
 } from './application/agent-grant-repository.port.js';
-import {
-  IAM_AGENT_GRANT_SERVICE,
-  AgentGrantService,
-} from './application/agent-grant.service.js';
+import { IAM_AGENT_GRANT_SERVICE, AgentGrantService } from './application/agent-grant.service.js';
 import { InMemoryAgentGrantRepositoryAdapter } from './adapter/in-memory-agent-grant-repository.adapter.js';
 import {
   PrismaAgentGrantRepositoryAdapter,
   type AgentGrantDatabaseClientV1,
 } from './adapter/prisma-agent-grant-repository.adapter.js';
 import { AgentGrantController } from './api/agent-grant.controller.js';
+import { WorkspaceSettingsController } from './api/workspace-settings.controller.js';
 import {
   IAM_INVITATION_SERVICE,
   IAM_PRINCIPAL_EMAIL_LOOKUP_PORT,
@@ -93,6 +91,7 @@ import {
 import {
   PrismaIdentityBootstrapRepositoryAdapter,
   type IdentityBootstrapDatabaseClientV1,
+  type IdentityBootstrapPolicyProvisionerFactoryV1,
 } from './adapter/prisma-identity-bootstrap-repository.adapter.js';
 import {
   PrismaMfaRepositoryAdapter,
@@ -160,6 +159,23 @@ import {
 } from './adapter/iam-recovery-crypto.adapter.js';
 import { InMemoryRecoveryAdmissionAdapter } from './adapter/in-memory-recovery-admission.adapter.js';
 import { HmacSha256IamRegistrationAdmissionDigestAdapter } from './adapter/iam-registration-crypto.adapter.js';
+import { HmacSha256EmailVerificationDigestAdapter } from './adapter/in-memory-email-verification-repository.adapter.js';
+import { Aes256GcmEmailVerificationEnvelopeAdapter } from './adapter/email-verification-envelope.adapter.js';
+import {
+  PrismaEmailVerificationRepositoryAdapter,
+  type EmailVerificationDatabaseClientV1,
+} from './adapter/prisma-email-verification-repository.adapter.js';
+import {
+  EmailVerificationService,
+  IAM_EMAIL_VERIFICATION_SERVICE,
+  type EmailVerificationClockV1,
+} from './application/email-verification.service.js';
+import type {
+  EmailVerificationDeliveryPortV1,
+  EmailVerificationDigestPortV1,
+  EmailVerificationEnvelopePortV1,
+  EmailVerificationRepositoryPortV1,
+} from './application/email-verification-repository.port.js';
 import {
   RedisRecoveryAdmissionAdapter,
   type RecoveryAdmissionCounterPortV1,
@@ -232,6 +248,7 @@ export interface IamModuleOptions {
   readonly sessionDatabase?: SessionLifecycleDatabaseClientV1;
   readonly identityBootstrapRepository?: IdentityBootstrapRepositoryPortV1;
   readonly identityBootstrapDatabase?: IdentityBootstrapDatabaseClientV1;
+  readonly identityBootstrapPolicyProvisionerFactory?: IdentityBootstrapPolicyProvisionerFactoryV1;
   readonly identityBootstrapService?: IdentityBootstrapService;
   readonly mfaRepository?: MfaRepositoryPortV1;
   readonly mfaDatabase?: MfaDatabaseClientV1;
@@ -276,6 +293,15 @@ export interface IamModuleOptions {
   readonly registrationAdmissionDigest?: RegistrationAdmissionDigestPortV1;
   readonly registrationAdmissionKey?: RegistrationAdmissionDigestKeyV1;
   readonly registrationAdmissionPreviousKeys?: readonly RegistrationAdmissionDigestKeyV1[];
+  readonly emailVerificationRepository?: EmailVerificationRepositoryPortV1;
+  readonly emailVerificationDatabase?: EmailVerificationDatabaseClientV1;
+  readonly emailVerificationService?: EmailVerificationService;
+  readonly emailVerificationDigest?: EmailVerificationDigestPortV1;
+  readonly emailVerificationDigestKey?: string | Uint8Array;
+  readonly emailVerificationEnvelope?: EmailVerificationEnvelopePortV1;
+  readonly emailVerificationEnvelopeKey?: string | Uint8Array;
+  readonly emailVerificationDelivery?: EmailVerificationDeliveryPortV1;
+  readonly emailVerificationClock?: EmailVerificationClockV1;
   readonly recoveryRepository?: RecoveryRepositoryPortV1;
   readonly recoveryDatabase?: RecoveryDatabaseClientV1;
   readonly recoveryService?: RecoveryService;
@@ -347,7 +373,10 @@ export class IamModule {
       options.identityBootstrapRepository ??
       (options.identityBootstrapDatabase === undefined
         ? undefined
-        : new PrismaIdentityBootstrapRepositoryAdapter(options.identityBootstrapDatabase));
+        : new PrismaIdentityBootstrapRepositoryAdapter(
+            options.identityBootstrapDatabase,
+            options.identityBootstrapPolicyProvisionerFactory,
+          ));
     const identityBootstrapService =
       options.identityBootstrapService ??
       (identityBootstrapRepository === undefined
@@ -434,7 +463,10 @@ export class IamModule {
       options.registrationRepository ??
       (options.registrationDatabase === undefined
         ? undefined
-        : new PrismaRegistrationRepositoryAdapter(options.registrationDatabase));
+        : new PrismaRegistrationRepositoryAdapter(
+            options.registrationDatabase,
+            options.identityBootstrapPolicyProvisionerFactory,
+          ));
     const registrationService =
       options.registrationService ??
       (registrationRepository && options.passwordCredentials
@@ -473,8 +505,42 @@ export class IamModule {
             windowSeconds: 15 * 60,
             ...options.registrationEmailAdmissionOptions,
           }));
+    const emailVerificationRepository =
+      options.emailVerificationRepository ??
+      (options.emailVerificationDatabase === undefined && options.registrationDatabase === undefined
+        ? undefined
+        : new PrismaEmailVerificationRepositoryAdapter(
+            (options.emailVerificationDatabase ?? options.registrationDatabase) as EmailVerificationDatabaseClientV1,
+            options.identityBootstrapPolicyProvisionerFactory,
+          ));
+    const emailVerificationDigest =
+      options.emailVerificationDigest ??
+      (options.emailVerificationDigestKey === undefined
+        ? undefined
+        : new HmacSha256EmailVerificationDigestAdapter(options.emailVerificationDigestKey));
+    const emailVerificationEnvelope =
+      options.emailVerificationEnvelope ??
+      (options.emailVerificationEnvelopeKey === undefined
+        ? undefined
+        : new Aes256GcmEmailVerificationEnvelopeAdapter(options.emailVerificationEnvelopeKey));
+    const emailVerificationService =
+      options.emailVerificationService ??
+      (emailVerificationRepository &&
+      emailVerificationDigest &&
+      emailVerificationEnvelope &&
+      options.emailVerificationDelivery &&
+      options.passwordCredentials
+        ? new EmailVerificationService({
+            repository: emailVerificationRepository,
+            digest: emailVerificationDigest,
+            envelope: emailVerificationEnvelope,
+            delivery: options.emailVerificationDelivery,
+            passwordCredentials: options.passwordCredentials,
+            ...(options.emailVerificationClock ? { clock: options.emailVerificationClock } : {}),
+          })
+        : undefined);
     if (
-      registrationService !== undefined &&
+      (registrationService !== undefined || emailVerificationService !== undefined) &&
       (registrationIpAdmission === undefined ||
         registrationEmailAdmission === undefined ||
         registrationAdmissionDigest === undefined)
@@ -591,6 +657,7 @@ export class IamModule {
     if (invitationPrincipalEmails) exports.unshift(IAM_PRINCIPAL_EMAIL_LOOKUP_PORT);
     if (registrationRepository) exports.unshift(IAM_REGISTRATION_REPOSITORY_PORT);
     if (registrationService) exports.unshift(IAM_REGISTRATION_SERVICE);
+    if (emailVerificationService) exports.unshift(IAM_EMAIL_VERIFICATION_SERVICE);
     if (recoveryRepository) exports.unshift(IAM_RECOVERY_REPOSITORY_PORT);
     if (recoveryService) exports.unshift(IAM_RECOVERY_ADMISSION_PORT);
     if (recoveryService) exports.unshift(IAM_RECOVERY_COMPLETION_ADMISSION_PORT);
@@ -607,6 +674,7 @@ export class IamModule {
         IamHierarchyController,
         IamMembershipController,
         AgentGrantController,
+        WorkspaceSettingsController,
         IamInvitationController,
         RegistrationController,
         RecoveryController,
@@ -758,6 +826,9 @@ export class IamModule {
           : []),
         ...(registrationAdmissionDigest
           ? [{ provide: IAM_REGISTRATION_ADMISSION_DIGEST, useValue: registrationAdmissionDigest }]
+          : []),
+        ...(emailVerificationService
+          ? [{ provide: IAM_EMAIL_VERIFICATION_SERVICE, useValue: emailVerificationService }]
           : []),
         ...(recoveryRepository
           ? [

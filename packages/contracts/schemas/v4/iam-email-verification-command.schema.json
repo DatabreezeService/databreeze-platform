@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/iam-email-verification-command",
+  "$comment": "IAM-022/IAM-023: bounded OTP activation command. Tenant and user identity are server-derived.",
+  "title": "IAM Email Verification Command",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "challengeId", "code", "idempotencyKey", "clientPlatform"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "challengeId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "code": { "type": "string", "pattern": "^[0-9]{6}$" },
+    "idempotencyKey": { "type": "string", "minLength": 8, "maxLength": 200, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,199}$" },
+    "clientPlatform": { "type": "string", "enum": ["android", "desktop", "web"] }
+  }
+}

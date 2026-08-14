@@ -2,6 +2,8 @@ package com.databreeze.fixturevalidation
 
 import com.databreeze.contracts.v1.parseV1Contract
 import com.databreeze.contracts.v2.parseV2Contract
+import com.databreeze.contracts.v3.parseV3Contract
+import com.databreeze.contracts.v4.parseV4Contract
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import java.nio.file.Files
@@ -14,6 +16,10 @@ private val mapper: ObjectMapper = jacksonObjectMapper()
 private fun parseContract(schemaId: String, payloadSource: String): Boolean =
     if (schemaId.contains("/contracts/v2/")) {
         parseV2Contract(schemaId, payloadSource).accepted
+    } else if (schemaId.contains("/contracts/v3/")) {
+        parseV3Contract(schemaId, payloadSource).accepted
+    } else if (schemaId.contains("/contracts/v4/")) {
+        parseV4Contract(schemaId, payloadSource).accepted
     } else {
         parseV1Contract(schemaId, payloadSource).accepted
     }

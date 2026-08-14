@@ -1,19 +1,10 @@
-import type {
-  StableIdentifierV1,
-  TenantScopeV1,
-} from '@databreeze/domain/tenant-scope/v1';
+import type { StableIdentifierV1, TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { IamTenantContextV1 } from '../../../iam/application/tenant-context.js';
 
 export const SOURCE_CATALOG_REPOSITORY_PORT = Symbol('SOURCE_CATALOG_REPOSITORY_PORT');
 
-export type SourceCatalogSourceTypeV1 =
-  | 'CSV'
-  | 'XLSX'
-  | 'IMAGE'
-  | 'PDF'
-  | 'RECEIPT'
-  | 'TABLE';
+export type SourceCatalogSourceTypeV1 = 'CSV' | 'XLSX' | 'IMAGE' | 'PDF' | 'RECEIPT' | 'TABLE';
 
 export type SourceCatalogStatusV1 = 'ACTIVE' | 'REVIEW' | 'QUARANTINED' | 'RETIRED';
 export type SourceCatalogHealthV1 = 'HEALTHY' | 'WARNING' | 'BLOCKED' | 'UNKNOWN';

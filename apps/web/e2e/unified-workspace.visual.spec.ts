@@ -15,12 +15,15 @@ for (const viewport of VIEWPORTS) {
   test(`UDW shell stays readable at ${viewport.name} without legacy primary nav`, async ({
     page,
   }, testInfo) => {
-    test.skip(testInfo.project.name === 'mobile-chromium' && viewport.name !== 'mobile', 'One project');
+    test.skip(
+      testInfo.project.name === 'mobile-chromium' && viewport.name !== 'mobile',
+      'One project',
+    );
     test.skip(testInfo.project.name === 'chromium' && viewport.name === 'mobile', 'Mobile project');
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await page.goto('/vi-VN/dashboards');
 
-    const heading = page.getByRole('heading', { name: 'Bảng điều khiển' });
+    const heading = page.locator('.dda-dashboard-header h2');
     await expect(heading).toBeVisible();
     const box = await heading.boundingBox();
     expect(box).not.toBeNull();
@@ -38,7 +41,7 @@ for (const viewport of VIEWPORTS) {
     await expect(nav.getByRole('link', { name: 'Dữ liệu' })).toBeVisible();
     await expect(nav.getByRole('link', { name: 'Hộp thư đến' })).toHaveCount(0);
 
-    await expect(page.getByRole('button', { name: 'Mở trợ lý' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Mở trợ lý biểu đồ' })).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('lang', 'vi-VN');
   });
 }
@@ -48,7 +51,7 @@ test('analysis surface has no duplicate floating agent control', async ({ page }
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/vi-VN/analysis');
   await expect(page.getByRole('heading', { name: 'Phân tích' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Mở trợ lý' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Mở trợ lý biểu đồ' })).toHaveCount(0);
 });
 
 test('preview CSP stays strict while UDW routes render', async ({ page }, testInfo) => {

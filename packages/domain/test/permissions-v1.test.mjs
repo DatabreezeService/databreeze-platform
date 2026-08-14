@@ -64,6 +64,7 @@ test('[IAM-004] maps exactly six immutable initial role bundles', async () => {
       'workspace.settings.manage',
       'project.record.read',
       'project.record.manage',
+      'artifact.derived.create',
       'job.execution.read',
       'billing.account.read',
       'billing.account.manage',
@@ -187,9 +188,7 @@ test('[IAM-024, IAM-025] publishes versioned access presets and monotonic agent 
   assert.equal(api.ACCESS_PRESET_MAPPINGS_V1.OWNER.roleId, 'owner');
   assert.equal(api.ACCESS_PRESET_MAPPINGS_V1.EDITOR.roleId, 'analyst');
   assert.equal(api.ACCESS_PRESET_MAPPINGS_V1.VIEWER.roleId, 'viewer');
-  assert.ok(
-    api.ACCESS_PRESET_MAPPINGS_V1.EDITOR.permissions.includes('project.record.manage'),
-  );
+  assert.ok(api.ACCESS_PRESET_MAPPINGS_V1.EDITOR.permissions.includes('project.record.manage'));
   assert.equal(
     api.ACCESS_PRESET_MAPPINGS_V1.EDITOR.permissions.includes('billing.account.manage'),
     false,

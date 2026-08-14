@@ -1,5 +1,6 @@
 import {
   tenantScopeContainsV1,
+  tenantScopesEqualV1,
   type GovernedDatasetDefinitionV1,
   type TenantScopeV1,
 } from '@databreeze/domain/v1';
@@ -12,7 +13,7 @@ import type {
 } from '../application/governed-dataset-repository.port.js';
 
 function visible(context: TenantScopeV1, candidate: TenantScopeV1): boolean {
-  return tenantScopeContainsV1(context, candidate) || tenantScopeContainsV1(candidate, context);
+  return tenantScopesEqualV1(context, candidate);
 }
 
 function clone(definition: GovernedDatasetDefinitionV1): GovernedDatasetDefinitionV1 {
@@ -74,6 +75,19 @@ export class InMemoryGovernedDatasetRepositoryAdapter implements GovernedDataset
       .map(clone);
   }
 
+  public async listPublished(
+    context: IamTenantContextV1,
+  ): Promise<readonly GovernedDatasetDefinitionV1[]> {
+    await Promise.resolve();
+    return [...this.definitions.values()]
+      .filter(
+        (definition) =>
+          definition.status === 'PUBLISHED' && visible(context.tenantScope, definition.tenantScope),
+      )
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+      .map(clone);
+  }
+
   public async withTransaction<TValue>(
     context: IamTenantContextV1,
     work: (transaction: GovernedDatasetTransactionPortV1) => Promise<TValue>,
@@ -90,6 +104,7 @@ export class InMemoryGovernedDatasetRepositoryAdapter implements GovernedDataset
         save: this.save.bind(this),
         find: this.find.bind(this),
         list: this.list.bind(this),
+        listPublished: this.listPublished.bind(this),
       });
     } catch (error) {
       this.definitions = before;

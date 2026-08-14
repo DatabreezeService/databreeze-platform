@@ -9,8 +9,6 @@ export function createEmptyDesktopSession(): WorkbenchSessionSnapshot {
   });
 }
 
-export function restoreDesktopSessionSnapshot(
-  value: unknown,
-): WorkbenchSessionSnapshot {
+export function restoreDesktopSessionSnapshot(value: unknown): WorkbenchSessionSnapshot {
   return parseWorkbenchSessionSnapshot(value);
 }

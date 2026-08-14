@@ -1,17 +1,15 @@
-import wordmarkUrl from '@databreeze/design-tokens/brand/generated/web/navigation-wordmark-blue-204x50.png';
-import { formatMessageV1 } from '@databreeze/i18n/v1';
-import { Button } from '@databreeze/ui/v1';
-import { useEffect, useState, type FormEvent } from 'react';
-import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { LocaleProvider, normalizeRouteLocale } from '../app/locale-context.tsx';
 import { appMessage } from '../app/messages.ts';
 import type { WebAccessContext } from '../app/navigation.ts';
-import {
-  UDW_PRIMARY_NAV_ITEMS_V1,
-  udwPrimaryNavLabelV1,
-} from '../app/unified-primary-navigation.ts';
-import { WorkspaceSwitcher } from '../features/workspace/workspace-switcher.tsx';
-import { BellIcon, MenuIcon, SearchIcon, XIcon } from './icons.tsx';
+import { UDW_PRIMARY_NAV_ITEMS_V1 } from '../app/unified-primary-navigation.ts';
+import { DashboardWorkspace } from '../features/dashboards/dashboard-workspace.tsx';
+import { createAuthApiV1 } from '../features/auth/auth-api.ts';
+import { currentAuthBootstrapV1 } from '../features/auth/auth-session.ts';
+import { ApplicationRail } from './application-rail.tsx';
+import { WorkspaceTopbar } from './workspace-topbar.tsx';
+import '../styles/workspace-shell.css';
 
 const MOBILE_QUERY = '(max-width: 767px)';
 
@@ -34,159 +32,62 @@ function useIsMobile(): boolean {
   return isMobile;
 }
 
+/** WEB-002/013/014/022: shared shell keeps routes and server-authorized feature boundaries intact. */
 export function ShellLayout({ accessContext }: { readonly accessContext: WebAccessContext }) {
   void accessContext;
   const { locale: routeLocale } = useParams();
   const locale = normalizeRouteLocale(routeLocale);
   const location = useLocation();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [navigationOpen, setNavigationOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [searchStatus, setSearchStatus] = useState('');
-  const alternateLocale = locale === 'en' ? 'vi-VN' : 'en';
-  const logicalPath = location.pathname.split('/').slice(2).join('/');
-  const alternatePath = `/${alternateLocale}/${logicalPath}${location.search}${location.hash}`;
+  const bootstrap = currentAuthBootstrapV1();
+  const logicalPath = location.pathname.split('/').filter(Boolean).slice(1).join('/');
+  const isDashboardWorkspace = logicalPath === 'dashboards';
 
   useEffect(() => {
     setNavigationOpen(false);
   }, [location.pathname]);
-
-  function handleSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSearchStatus(appMessage(locale, 'placeholder.unavailable'));
-  }
-
-  const primaryNavigation = (
-    <ul>
-      {UDW_PRIMARY_NAV_ITEMS_V1.map((item) => (
-        <li key={item.key}>
-          <NavLink
-            className={({ isActive }) =>
-              isActive ? 'primary-navigation__link is-active' : 'primary-navigation__link'
-            }
-            end
-            to={`/${locale}/${item.path}`}
-          >
-            {udwPrimaryNavLabelV1(locale, item.key)}
-          </NavLink>
-        </li>
-      ))}
-    </ul>
-  );
 
   return (
     <LocaleProvider locale={locale}>
       <a className="skip-link" href="#main-content">
         {appMessage(locale, 'skip.main')}
       </a>
-      <div className="app-shell">
-        <header className="topbar">
-          <Link
-            aria-label={`DataBreeze: ${appMessage(locale, 'home.heading')}`}
-            className="brand-link"
-            to={`/${locale}/dashboards`}
-          >
-            <img alt="DataBreeze" height="50" src={wordmarkUrl} width="204" />
-          </Link>
-          {isMobile ? (
-            <Button
-              aria-controls="primary-navigation"
-              aria-expanded={navigationOpen}
-              aria-label={appMessage(locale, navigationOpen ? 'nav.close' : 'nav.open')}
-              className="icon-button mobile-menu-button"
-              onClick={() => setNavigationOpen((open) => !open)}
-              variant="secondary"
-            >
-              {navigationOpen ? <XIcon /> : <MenuIcon />}
-            </Button>
-          ) : null}
-          <form
-            aria-label={appMessage(locale, 'search.label')}
-            className="global-search"
-            onSubmit={handleSearch}
-            role="search"
-          >
-            <label className="sr-only" htmlFor="global-search-input">
-              {appMessage(locale, 'search.label')}
-            </label>
-            <input
-              id="global-search-input"
-              name="query"
-              placeholder={appMessage(locale, 'search.placeholder')}
-              type="search"
-            />
-            <Button
-              aria-label={formatMessageV1(locale, 'action.search')}
-              className="search-submit"
-              type="submit"
-              variant="secondary"
-            >
-              <SearchIcon />
-              <span>{formatMessageV1(locale, 'action.search')}</span>
-            </Button>
-          </form>
-          <div className="topbar__actions">
-            <WorkspaceSwitcher
-              locale={locale}
-              workspaces={[{ id: 'ws-1', name: appMessage(locale, 'context.workspace') }]}
-            />
-            <Link className="locale-link" to={alternatePath}>
-              {appMessage(
-                locale,
-                alternateLocale === 'vi-VN' ? 'locale.vietnamese' : 'locale.english',
-              )}
-            </Link>
-            <Button
-              aria-expanded={notificationsOpen}
-              aria-label={appMessage(locale, 'notifications.label')}
-              className="icon-button"
-              onClick={() => setNotificationsOpen((open) => !open)}
-              variant="secondary"
-            >
-              <BellIcon />
-            </Button>
-          </div>
-          {searchStatus === '' ? null : (
-            <p className="sr-only" role="status">
-              {searchStatus}
-            </p>
-          )}
-          {notificationsOpen ? (
-            <div className="notification-panel">
-              <p>{appMessage(locale, 'notifications.label')}</p>
-              <ul>
-                <li>{appMessage(locale, 'home.item.review')}</li>
-                <li>{appMessage(locale, 'home.item.approval')}</li>
-              </ul>
-            </div>
-          ) : null}
-        </header>
-        <aside className="context-rail" aria-label={formatMessageV1(locale, 'scope.workspace')}>
-          <dl>
-            <div className="context-rail__item">
-              <dt>{formatMessageV1(locale, 'scope.organization')}</dt>
-              <dd>{appMessage(locale, 'context.organization')}</dd>
-            </div>
-            <div className="context-rail__item">
-              <dt>{formatMessageV1(locale, 'scope.workspace')}</dt>
-              <dd>{appMessage(locale, 'context.workspace')}</dd>
-            </div>
-            <div className="context-rail__item">
-              <dt>{formatMessageV1(locale, 'scope.project')}</dt>
-              <dd>{appMessage(locale, 'context.project')}</dd>
-            </div>
-          </dl>
-        </aside>
-        <nav
-          aria-label={appMessage(locale, 'nav.label')}
-          className="primary-navigation"
-          hidden={isMobile && !navigationOpen}
-          id="primary-navigation"
+      <div className={`app-shell${isDashboardWorkspace ? ' app-shell--dashboard' : ''}`}>
+        <WorkspaceTopbar
+          {...(bootstrap === undefined ? {} : { bootstrap })}
+          dashboardMode={isDashboardWorkspace}
+          isMobile={isMobile}
+          locale={locale}
+          mobileNavigationOpen={navigationOpen}
+          onMobileNavigationOpenChange={setNavigationOpen}
+          onSignOut={async () => {
+            const result = await createAuthApiV1({
+              baseUrl: import.meta.env['VITE_DATABREEZE_API_BASE_URL'] ?? '',
+            }).signOut();
+            if (result.accepted) navigate(`/${locale}/sign-in`, { replace: true });
+          }}
+        />
+        <ApplicationRail
+          isMobile={isMobile}
+          items={UDW_PRIMARY_NAV_ITEMS_V1}
+          locale={locale}
+          mobileOpen={navigationOpen}
+          onMobileOpenChange={setNavigationOpen}
+        />
+        <main
+          className={`main-workspace${isDashboardWorkspace ? ' main-workspace--dashboard' : ''}`}
+          id="main-content"
+          tabIndex={-1}
         >
-          {primaryNavigation}
-        </nav>
-        <main className="main-workspace" id="main-content" tabIndex={-1}>
-          <Outlet />
+          {isDashboardWorkspace ? (
+            <DashboardWorkspace locale={locale}>
+              <Outlet />
+            </DashboardWorkspace>
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
     </LocaleProvider>

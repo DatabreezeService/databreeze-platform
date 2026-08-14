@@ -10,9 +10,7 @@ export interface FilePlacementPreviewV1 {
 }
 
 /** DSK-010: map classification into a placement preview for review. */
-export function previewFilePlacement(
-  input: SourceClassificationInputV1,
-): FilePlacementPreviewV1 {
+export function previewFilePlacement(input: SourceClassificationInputV1): FilePlacementPreviewV1 {
   const classification = classifyStableFile(input);
   const recommendedAction =
     classification.disposition === 'MISPLACED'

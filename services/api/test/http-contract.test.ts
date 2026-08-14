@@ -319,6 +319,7 @@ void test('sign-in returns a session DTO and maps authentication failures withou
         method: 'POST',
         url: '/v1/auth/sign-in',
         payload: {
+          schemaVersion: 4,
           email: 'user@example.com',
           password: 'correct horse battery staple',
           clientPlatform: 'web',
@@ -326,6 +327,7 @@ void test('sign-in returns a session DTO and maps authentication failures withou
       });
       assert.equal(response.statusCode, 200);
       assert.deepEqual(response.json(), {
+        schemaVersion: 4,
         sessionId: '00000000-0000-4000-8000-000000000010',
         userId: '00000000-0000-4000-8000-000000000001',
         organizationId: '00000000-0000-4000-8000-000000000002',
@@ -360,6 +362,7 @@ void test('sign-in returns a session DTO and maps authentication failures withou
         method: 'POST',
         url: '/v1/auth/sign-in',
         payload: {
+          schemaVersion: 4,
           email: 'user@example.com',
           password: 'correct horse battery staple',
           clientPlatform: 'web',
@@ -375,6 +378,7 @@ void test('sign-in returns a session DTO and maps authentication failures withou
       method: 'POST',
       url: '/v1/auth/sign-in',
       payload: {
+        schemaVersion: 4,
         email: 'user@example.com',
         password: 'correct horse battery staple',
         clientPlatform: 'web',
@@ -384,7 +388,7 @@ void test('sign-in returns a session DTO and maps authentication failures withou
   });
 });
 
-void test('refresh rotates Web cookies without returning the refresh token and preserves native delivery', async () => {
+void test('[IAM-023] refresh returns the identity-bound v4 session, rotates Web cookies, and preserves native delivery', async () => {
   const refreshed = {
     sessionId: '00000000-0000-4000-8000-000000000020',
     accessToken: 'next-access-token',
@@ -392,6 +396,14 @@ void test('refresh rotates Web cookies without returning the refresh token and p
     accessExpiresAt: '2026-01-01T00:15:00.000Z',
   };
   const presented: string[] = [];
+  const principal = {
+    userId: '00000000-0000-4000-8000-000000000001',
+    organizationId: '00000000-0000-4000-8000-000000000002',
+    workspaceId: '00000000-0000-4000-8000-000000000003',
+    securityEpoch: 4,
+    mfaRequired: true,
+    mfaReenrollmentRequired: false,
+  };
   await withApp(
     {
       sessions: {
@@ -401,7 +413,8 @@ void test('refresh rotates Web cookies without returning the refresh token and p
           return Promise.resolve({ accepted: true as const, value: refreshed });
         },
         revoke: () => Promise.resolve(true),
-        findPrincipal: () => Promise.resolve(undefined),
+        findPrincipal: (sessionId) =>
+          Promise.resolve(sessionId === refreshed.sessionId ? principal : undefined),
       },
     },
     async (app) => {
@@ -417,9 +430,16 @@ void test('refresh rotates Web cookies without returning the refresh token and p
       });
       assert.equal(web.statusCode, 200);
       assert.deepEqual(web.json(), {
+        schemaVersion: 4,
         sessionId: refreshed.sessionId,
+        userId: principal.userId,
+        organizationId: principal.organizationId,
+        workspaceId: principal.workspaceId,
         accessToken: refreshed.accessToken,
         accessExpiresAt: refreshed.accessExpiresAt,
+        securityEpoch: principal.securityEpoch,
+        mfaRequired: principal.mfaRequired,
+        mfaReenrollmentRequired: principal.mfaReenrollmentRequired,
       });
       const webCookies = web.headers['set-cookie'];
       assert.ok(Array.isArray(webCookies));
@@ -436,10 +456,36 @@ void test('refresh rotates Web cookies without returning the refresh token and p
         payload: { clientPlatform: 'desktop', refreshToken: 'desktop-refresh-token' },
       });
       assert.equal(native.statusCode, 200);
-      const nativeBody = parsedBody<{ readonly refreshToken?: unknown }>(native);
+      const nativeBody = parsedBody<{
+        readonly refreshToken?: unknown;
+        readonly schemaVersion?: unknown;
+        readonly userId?: unknown;
+      }>(native);
       assert.equal(nativeBody['refreshToken'], refreshed.refreshToken);
+      assert.equal(nativeBody['schemaVersion'], 4);
+      assert.equal(nativeBody['userId'], principal.userId);
       assert.equal(native.headers['set-cookie'], undefined);
       assert.deepEqual(presented, ['current-refresh-token']);
+    },
+  );
+
+  await withApp(
+    {
+      sessions: {
+        issue: () => Promise.reject(new Error('not used')),
+        refresh: () => Promise.resolve({ accepted: true as const, value: refreshed }),
+        revoke: () => Promise.resolve(true),
+        findPrincipal: () => Promise.resolve(undefined),
+      },
+    },
+    async (app) => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/refresh',
+        payload: { clientPlatform: 'desktop', refreshToken: 'desktop-refresh-token' },
+      });
+      assertProblem(response, 401, 'SESSION_INVALID');
+      assert.doesNotMatch(response.body, /next-access-token|next-refresh-token/u);
     },
   );
 

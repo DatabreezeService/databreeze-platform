@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  completeArtifactUploadSessionV1,
+  beginArtifactUploadFinalizationV1,
+  completeArtifactUploadFinalizationV1,
   createArtifactUploadSessionV1,
   expireArtifactUploadSessionV1,
   recordArtifactUploadPartV1,
@@ -11,6 +12,10 @@ import {
 const base = {
   sessionId: '11111111-1111-4111-8111-111111111111',
   artifactId: '22222222-2222-4222-8222-222222222222',
+  artifactVersionId: '55555555-5555-4555-8555-555555555555',
+  intakeId: '66666666-6666-4666-8666-666666666666',
+  policyVersionId: '77777777-7777-4777-8777-777777777777',
+  authorizationEpoch: 3,
   tenantScope: {
     scopeType: 'workspace',
     organizationId: '33333333-3333-4333-8333-333333333333',
@@ -38,7 +43,7 @@ void test('[IAE-014] upload sessions require every bounded part before completio
   assert.equal(first.accepted, true);
   if (!first.accepted) return;
   assert.deepEqual(
-    completeArtifactUploadSessionV1(first.value, {
+    beginArtifactUploadFinalizationV1(first.value, {
       assembledSha256: base.expectedSha256,
       expectedRevision: 2,
     }),
@@ -53,13 +58,22 @@ void test('[IAE-014] upload sessions require every bounded part before completio
   });
   assert.equal(second.accepted, true);
   if (!second.accepted) return;
-  const completed = completeArtifactUploadSessionV1(second.value, {
+  const finalizing = beginArtifactUploadFinalizationV1(second.value, {
     assembledSha256: base.expectedSha256,
     expectedRevision: 3,
+  });
+  assert.equal(finalizing.accepted, true);
+  if (!finalizing.accepted) return;
+  assert.equal(finalizing.value.state, 'FINALIZING');
+  const completed = completeArtifactUploadFinalizationV1(finalizing.value, {
+    opaqueLocator: 'opaque_verified_locator_1234',
+    objectVersionId: 'exact-object-version-1',
+    expectedRevision: 4,
   });
   assert.equal(completed.accepted, true);
   if (!completed.accepted) return;
   assert.equal(completed.value.state, 'COMPLETED');
+  assert.equal(completed.value.verifiedObject?.objectVersionId, 'exact-object-version-1');
 });
 
 void test('[IAE-014] upload sessions reject a premature expiration timestamp', () => {

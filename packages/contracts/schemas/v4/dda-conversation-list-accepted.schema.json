@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/dda-conversation-list-accepted",
+  "$comment": "DDA-055/INT-005: bounded permission-filtered conversation history page.",
+  "title": "DDA Conversation List Accepted",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "accepted", "items"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "accepted": { "const": true },
+    "items": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "$ref": "https://schemas.databreeze.dev/contracts/v4/dda-conversation-summary"
+      }
+    },
+    "nextCursor": { "$ref": "#/$defs/conversationListOpaqueCursor" }
+  },
+  "$defs": {
+    "conversationListOpaqueCursor": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 512,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    }
+  }
+}

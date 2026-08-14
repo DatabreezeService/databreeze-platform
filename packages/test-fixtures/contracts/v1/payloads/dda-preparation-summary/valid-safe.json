@@ -26,9 +26,7 @@
     "freshness": "current",
     "extractionConfidence": "n/a"
   },
-  "transformationReceiptIds": [
-    "00000000-0000-4000-8000-000000000022"
-  ],
+  "transformationReceiptIds": ["00000000-0000-4000-8000-000000000022"],
   "reviewReasons": [],
   "createdAt": "2026-08-12T10:00:00.000Z"
 }

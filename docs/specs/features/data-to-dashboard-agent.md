@@ -1,7 +1,7 @@
 # DataBreeze Data-to-Dashboard Agent
 
 **Status:** Product specification<br>
-**Version:** 1.2<br>
+**Version:** 1.3<br>
 **Requirement prefix:** `DDA`<br>
 **Dependencies:** IAM identity/authorization; IAE intake, immutable artifacts, evidence, retention, and deletion; DSM datasets, schemas, mappings, transformations, rules, metrics, profiling, validation, and lineage; JRA typed jobs, review tasks, findings, and approvals; DSO Device capabilities, data modes, transfer, synchronization, and offline queues; NCO notifications/collaboration; BUA entitlements/usage; AUD canonical audit ledger; Web, Windows Desktop, and Android platform contracts; shared Python processing engine; provider-neutral OCR and AI adapters
 
@@ -162,7 +162,7 @@ Priorities are `P0` (required for the capability's first production release or s
 | DDA-029 | P0 | Materialization cache identity shall include TenantScope, security/permission projection, dashboard/widget and plan versions, dataset/semantic/metric versions, parameters, locale/timezone where value-affecting, engine/adapter versions, and effective policy; an incomplete key shall never reuse a result. |
 | DDA-030 | P0 | Refresh triggers, duplicate events, worker retries, folder replays, and client retries shall be idempotent; compatible changes inside a declared debounce window may coalesce without losing the final accepted input set. |
 | DDA-031 | P0 | DDA may incrementally recompute only results whose processor declares compatible change semantics and verified prior state; otherwise it shall perform a bounded full recomputation and disclose that choice in usage/diagnostics. |
-| DDA-032 | P0 | A DashboardSnapshot shall publish atomically only after every required materialization is verified against one compatible input/definition/permission set; a partial or mixed-version refresh shall never replace the last complete snapshot. |
+| DDA-032 | P0 | A DashboardSnapshot shall publish atomically only after every required materialization is represented by a canonical JRA ResultManifest whose output ArtifactVersions were finalized through IAE-024 and whose descriptor, attempt, dashboard/version/widget, plan/metric/dataset, permission-projection, policy, locale/timezone, engine/handler, content hash, byte length, and evidence bindings match one compatible input/definition/permission set. Caller-asserted object references, unverified transfer receipts, partial results, or mixed-version refreshes shall never replace the last complete snapshot. |
 | DDA-033 | P0 | Every dashboard shall show last successful refresh, exact input selector/versions, freshness state, pending time, and stable stale/blocked/source-unavailable reason; the last complete snapshot shall remain available subject to current authorization and retention. |
 | DDA-034 | P0 | Connected clients shall receive only content-safe committed refresh events, tolerate duplicate/out-of-order delivery, and reconcile authorized state through REST after reconnect or event gap. |
 | DDA-035 | P0 | For the published small-change reference profile, an `ON_CHANGE` dashboard shall publish a complete new snapshot within 60 seconds p95 after accepted input commit, excluding user-held review/approval and declared source-device unavailability. |

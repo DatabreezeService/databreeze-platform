@@ -16,10 +16,12 @@ const SUPPORTED_KEYWORDS = new Set([
   'anyOf',
   'const',
   'description',
+  'enum',
   'else',
   'format',
   'if',
   'items',
+  'minItems',
   'maxItems',
   'maxLength',
   'maximum',
@@ -33,8 +35,9 @@ const SUPPORTED_KEYWORDS = new Set([
   'then',
   'title',
   'type',
+  'uniqueItems',
 ]);
-const SUPPORTED_TYPES = new Set(['array', 'boolean', 'integer', 'object', 'string']);
+const SUPPORTED_TYPES = new Set(['array', 'boolean', 'integer', 'number', 'object', 'string']);
 const SUPPORTED_FORMATS = new Set(['date-time', 'uri-reference', 'uuid']);
 
 function fail(message) {
@@ -110,6 +113,16 @@ function validateSchemaNode(node, sourcePath, location = '#') {
   if ('const' in node && !['boolean', 'number', 'string'].includes(typeof node.const)) {
     fail(`Unsupported const value in ${sourcePath}${location}`);
   }
+  if ('enum' in node) {
+    if (
+      !Array.isArray(node.enum) ||
+      node.enum.length === 0 ||
+      !node.enum.every((value) => ['boolean', 'number', 'string'].includes(typeof value)) ||
+      new Set(node.enum.map((value) => JSON.stringify(value))).size !== node.enum.length
+    ) {
+      fail(`Unsupported enum value in ${sourcePath}${location}`);
+    }
+  }
 }
 
 function isString(value) {
@@ -150,9 +163,11 @@ function loadRegistry(sourceRoot) {
     if (!isString(entry.name) || !isString(entry.id) || !isString(entry.path)) {
       fail(`${manifestPath}#/schemas/${index} must contain string name, id, and path values`);
     }
-    if (names.has(entry.name) || ids.has(entry.id))
+    const contractVersion = contractVersionOf(entry.path);
+    const nameKey = `${contractVersion}:${entry.name}`;
+    if (names.has(nameKey) || ids.has(entry.id))
       fail(`Duplicate schema registry entry: ${entry.name}`);
-    names.add(entry.name);
+    names.add(nameKey);
     ids.add(entry.id);
     const schemaPath = resolve(root, entry.path);
     const relativePath = relative(root, schemaPath);
@@ -163,7 +178,6 @@ function loadRegistry(sourceRoot) {
     validateSchemaNode(schema, entry.path);
     if (schema.$schema !== manifest.draft) fail(`Schema draft does not match ${entry.path}`);
     if (schema.$id !== entry.id) fail(`Manifest ID does not match ${entry.path}`);
-    const contractVersion = contractVersionOf(entry.path);
     const expectedIdPrefix = `https://schemas.databreeze.dev/contracts/v${contractVersion}/`;
     const exampleIdPrefix = `https://schemas.example.test/contracts/v${contractVersion}/`;
     if (!entry.id.startsWith(expectedIdPrefix) && !entry.id.startsWith(exampleIdPrefix)) {
@@ -212,7 +226,37 @@ function validateReferences(node, entry, byId, location = '#') {
   }
 }
 
+function collectReferences(node, references) {
+  if (typeof node !== 'object' || node === null) return;
+  if (typeof node.$ref === 'string' && !node.$ref.startsWith('#/')) {
+    references.add(node.$ref);
+  }
+  for (const child of Object.values(node)) collectReferences(child, references);
+}
+
+function resolveEntryClosure(publicEntries, byId) {
+  const entriesById = new Map(publicEntries.map((entry) => [entry.id, entry]));
+  const pending = [...publicEntries];
+  while (pending.length > 0) {
+    const entry = pending.pop();
+    const references = new Set();
+    collectReferences(entry.schema, references);
+    for (const reference of references) {
+      const dependency = byId.get(reference);
+      if (!dependency) fail(`Unresolved schema reference ${reference} in ${entry.path}`);
+      if (!entriesById.has(dependency.id)) {
+        entriesById.set(dependency.id, dependency);
+        pending.push(dependency);
+      }
+    }
+  }
+  return [...entriesById.values()].sort((left, right) => compareStrings(left.name, right.name));
+}
+
 function buildModelContext(registry) {
+  const publicEntries = registry.entries;
+  const entries = resolveEntryClosure(publicEntries, registry.byId);
+  const modelRegistry = { ...registry, entries, publicEntries };
   const nameByNode = new Map();
   const entryByNode = new Map();
   const nodesByName = new Map();
@@ -226,7 +270,7 @@ function buildModelContext(registry) {
     nodesByName.set(name, node);
   }
 
-  for (const entry of registry.entries) {
+  for (const entry of entries) {
     register(entry.schema, entry.modelName, entry);
     for (const [definitionName, definition] of Object.entries(entry.schema.$defs ?? {}).sort(
       compareEntries,
@@ -235,7 +279,7 @@ function buildModelContext(registry) {
     }
   }
 
-  for (const entry of registry.entries) {
+  for (const entry of entries) {
     const unionRoots = [
       [entry.schema, entry.modelName],
       ...Object.entries(entry.schema.$defs ?? {}).map(([definitionName, definition]) => [
@@ -246,7 +290,7 @@ function buildModelContext(registry) {
     for (const [node, unionName] of unionRoots) {
       if (!node?.oneOf) continue;
       for (const alternative of node.oneOf) {
-        const target = resolveReference(alternative.$ref, entry, registry, nameByNode);
+        const target = resolveReference(alternative.$ref, entry, modelRegistry, nameByNode);
         unionMembership.set(target.node, unionName);
       }
     }
@@ -276,10 +320,10 @@ function buildModelContext(registry) {
     }
     if (node.items && typeof node.items === 'object') collect(node.items, ownerName, entry);
   }
-  for (const entry of registry.entries) collect(entry.schema, entry.modelName, entry);
+  for (const entry of entries) collect(entry.schema, entry.modelName, entry);
 
   return {
-    ...registry,
+    ...modelRegistry,
     entryByNode,
     nameByNode,
     nodesByName,
@@ -426,7 +470,7 @@ function renderTypeScript(context, version) {
       );
     }
   }
-  const schemaIds = context.entries.map(({ id }) => quoted(id));
+  const schemaIds = context.publicEntries.map(({ id }) => quoted(id));
   lines.push(
     `export type ContractV${version}SchemaId = ${schemaIds.join(' | ')};`,
     '',
@@ -445,25 +489,148 @@ function renderTypeScript(context, version) {
 
 function renderTypeScriptValidation(context, version) {
   const schemas = context.entries.map(({ schema }) => `  ${JSON.stringify(schema)},`);
+  if (version < 4) {
+    return `${[
+      `// ${HEADER}`,
+      '',
+      "import Ajv2020 from 'ajv/dist/2020.js';",
+      "import addFormats from 'ajv-formats';",
+      '',
+      'const schemas = [',
+      ...schemas,
+      '];',
+      '',
+      'const ajv = new Ajv2020({ allErrors: true, strict: true });',
+      'addFormats(ajv);',
+      'for (const schema of schemas) ajv.addSchema(schema);',
+      '',
+      'const validators = new Map(',
+      '  schemas.map((schema) => {',
+      '    const validate = ajv.getSchema(schema.$id);',
+      '    if (!validate) throw new Error(`No generated validator for ${schema.$id}`);',
+      '    return [schema.$id, validate];',
+      '  }),',
+      ');',
+      '',
+      `export function parseV${version}Contract(schemaId, payload) {`,
+      '  const validate = validators.get(schemaId);',
+      `  if (!validate) throw new TypeError(\`Unknown v${version} contract schema: \${schemaId}\`);`,
+      '  return validate(payload) ? { accepted: true, value: payload } : { accepted: false };',
+      '}',
+    ].join('\n')}\n`;
+  }
+  const hasDependencies = context.entries.length !== context.publicEntries.length;
+  const publicSchemaIds = context.publicEntries.map(({ id }) => `  ${JSON.stringify(id)},`);
+  const validatorLines = hasDependencies
+    ? [
+        'const publicSchemaIds = new Set([',
+        ...publicSchemaIds,
+        ']);',
+        '',
+        'const validators = new Map(',
+        '  schemas.filter((schema) => publicSchemaIds.has(schema.$id)).map((schema) => {',
+      ]
+    : ['const validators = new Map(', '  schemas.map((schema) => {'];
   return `${[
     `// ${HEADER}`,
-    '',
-    "import Ajv2020 from 'ajv/dist/2020.js';",
-    "import addFormats from 'ajv-formats';",
     '',
     'const schemas = [',
     ...schemas,
     '];',
     '',
-    'const ajv = new Ajv2020({ allErrors: true, strict: true });',
-    'addFormats(ajv);',
-    'for (const schema of schemas) ajv.addSchema(schema);',
+    '// This validator is intentionally interpreter-based. Ajv is used by the',
+    '// authoring/test toolchain, but browser clients must not require eval/new',
+    '// Function because the production CSP correctly omits unsafe-eval.',
+    'function pointer(root, reference) {',
+    "  return reference.split('/').slice(1).reduce((value, part) => value?.[part.replaceAll('~1', '/').replaceAll('~0', '~')], root);",
+    '}',
     '',
-    'const validators = new Map(',
-    '  schemas.map((schema) => {',
-    '    const validate = ajv.getSchema(schema.$id);',
-    '    if (!validate) throw new Error(`No generated validator for ${schema.$id}`);',
-    '    return [schema.$id, validate];',
+    'function externalReference(reference, root) {',
+    "  const hashIndex = reference.indexOf('#');",
+    "  const id = hashIndex === -1 ? reference : reference.slice(0, hashIndex);",
+    "  const target = id === '' ? root : schemas.find((schema) => schema.$id === id);",
+    "  if (target === undefined) return undefined;",
+    "  const fragment = hashIndex === -1 ? '' : reference.slice(hashIndex);",
+    "  return fragment === '' ? { schema: target, root: target } : { schema: pointer(target, fragment), root: target };",
+    '}',
+    '',
+    'function primitiveTypeMatches(type, value) {',
+    "  if (type === 'object') return value !== null && typeof value === 'object' && !Array.isArray(value);",
+    "  if (type === 'array') return Array.isArray(value);",
+    "  if (type === 'integer') return Number.isInteger(value);",
+    "  if (type === 'number') return typeof value === 'number' && Number.isFinite(value);",
+    "  if (type === 'string') return typeof value === 'string';",
+    "  if (type === 'boolean') return typeof value === 'boolean';",
+    '  return true;',
+    '}',
+    '',
+    'function sameValue(left, right) {',
+    '  if (Object.is(left, right)) return true;',
+    '  if (typeof left !== typeof right || left === null || right === null) return false;',
+    "  if (typeof left !== 'object') return false;",
+    '  const leftKeys = Object.keys(left);',
+    '  const rightKeys = Object.keys(right);',
+    '  return leftKeys.length === rightKeys.length && leftKeys.every((key) => Object.prototype.hasOwnProperty.call(right, key) && sameValue(left[key], right[key]));',
+    '}',
+    '',
+    'function formatMatches(format, value) {',
+    "  if (format === 'uuid') return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);",
+    "  if (format === 'date-time') return /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$/u.test(value);",
+    "  if (format === 'uri-reference') return !/[\\u0000-\\u0020<>\\[\\]\\\\^`{|}]/u.test(value) && !value.includes('\\n') && !value.includes('\\r');",
+    '  return true;',
+    '}',
+    '',
+    'function validateSchema(schema, value, root, trail = new Set()) {',
+    '  if (schema === true || schema === undefined) return true;',
+    '  if (schema === false || schema === null || typeof schema !== "object") return false;',
+    '  if (schema.$ref) {',
+    '    const resolved = externalReference(schema.$ref, root);',
+    '    if (resolved === undefined || resolved.schema === undefined) return false;',
+    '    const marker = `${schema.$ref}:${typeof value}:${value && typeof value === "object" ? Object.keys(value).join(",") : String(value)}`;',
+    '    if (trail.has(marker)) return true;',
+    '    const nextTrail = new Set(trail); nextTrail.add(marker);',
+    '    return validateSchema(resolved.schema, value, resolved.root, nextTrail);',
+    '  }',
+    "  if (schema.const !== undefined && !sameValue(value, schema.const)) return false;",
+    "  if (schema.enum !== undefined && !schema.enum.some((candidate) => sameValue(value, candidate))) return false;",
+    "  if (schema.type !== undefined && !(Array.isArray(schema.type) ? schema.type.some((type) => primitiveTypeMatches(type, value)) : primitiveTypeMatches(schema.type, value))) return false;",
+    "  if (schema.type === 'string' || schema.type === undefined && typeof value === 'string') {",
+    '    if (schema.minLength !== undefined && value.length < schema.minLength) return false;',
+    '    if (schema.maxLength !== undefined && value.length > schema.maxLength) return false;',
+    '    if (schema.pattern !== undefined && !(new RegExp(schema.pattern, "u")).test(value)) return false;',
+    '    if (schema.format !== undefined && !formatMatches(schema.format, value)) return false;',
+    '  }',
+    "  if (schema.type === 'number' || schema.type === 'integer' || (schema.type === undefined && typeof value === 'number')) {",
+    '    if (schema.minimum !== undefined && value < schema.minimum) return false;',
+    '    if (schema.maximum !== undefined && value > schema.maximum) return false;',
+    '  }',
+    "  if (schema.type === 'array' || (schema.type === undefined && Array.isArray(value))) {",
+    '    if (schema.minItems !== undefined && value.length < schema.minItems) return false;',
+    '    if (schema.maxItems !== undefined && value.length > schema.maxItems) return false;',
+    '    if (schema.uniqueItems && value.some((item, index) => value.slice(0, index).some((prior) => sameValue(prior, item)))) return false;',
+    '    if (schema.items !== undefined && !value.every((item) => validateSchema(schema.items, item, root, trail))) return false;',
+    '  }',
+    "  if (schema.type === 'object' || (schema.type === undefined && value !== null && typeof value === 'object' && !Array.isArray(value))) {",
+    '    const properties = schema.properties ?? {};',
+    '    for (const required of schema.required ?? []) if (!Object.prototype.hasOwnProperty.call(value, required)) return false;',
+    '    if (schema.additionalProperties === false && Object.keys(value).some((key) => !Object.prototype.hasOwnProperty.call(properties, key))) return false;',
+    '    for (const [key, child] of Object.entries(properties)) if (Object.prototype.hasOwnProperty.call(value, key) && !validateSchema(child, value[key], root, trail)) return false;',
+    '  }',
+    '  if (schema.allOf !== undefined && !schema.allOf.every((child) => validateSchema(child, value, root, trail))) return false;',
+    '  if (schema.anyOf !== undefined && !schema.anyOf.some((child) => validateSchema(child, value, root, trail))) return false;',
+    '  if (schema.oneOf !== undefined && schema.oneOf.filter((child) => validateSchema(child, value, root, trail)).length !== 1) return false;',
+    '  if (schema.not !== undefined && validateSchema(schema.not, value, root, trail)) return false;',
+    '  if (schema.if !== undefined) {',
+    '    const branch = validateSchema(schema.if, value, root, trail) ? schema.then : schema.else;',
+    '    if (branch !== undefined && !validateSchema(branch, value, root, trail)) return false;',
+    '  }',
+    '  return true;',
+    '}',
+    '',
+    '',
+    ...validatorLines,
+    '    if (!schema.$id) throw new Error(`No generated validator for schema`);',
+    '    return [schema.$id, (payload) => validateSchema(schema, payload, schema)];',
     '  }),',
     ');',
     '',
@@ -504,6 +671,7 @@ function typescriptType(node, entry, context, parameters) {
   if (typeof node === 'boolean' || isEmptySchema(node)) return 'unknown';
   if (node.$ref) return resolveReference(node.$ref, entry, context).name;
   if ('const' in node) return quoted(node.const);
+  if ('enum' in node) return node.enum.map((value) => quoted(value)).join(' | ');
   if (node.oneOf) {
     return node.oneOf
       .map((alternative) => typescriptType(alternative, entry, context, parameters))
@@ -511,6 +679,7 @@ function typescriptType(node, entry, context, parameters) {
   }
   if (node.type === 'string') return 'string';
   if (node.type === 'integer') return 'number';
+  if (node.type === 'number') return 'number';
   if (node.type === 'boolean') return 'boolean';
   if (node.type === 'array') {
     const item = typescriptType(node.items, entry, context, parameters);
@@ -644,6 +813,7 @@ function renderKotlinModelExpression(entry, context) {
   }
   if (node.type === 'string') return ['mapper.treeToValue(payload, String::class.java)'];
   if (node.type === 'integer') return ['payload.longValue()'];
+  if (node.type === 'number') return ['payload.doubleValue()'];
   if (node.type === 'boolean') return ['payload.booleanValue()'];
   if (node.type !== 'object') fail(`Cannot render Kotlin parser for ${entry.path}`);
 
@@ -667,7 +837,15 @@ function renderKotlinValidation(context, version) {
     const encoded = Buffer.from(JSON.stringify(schema), 'utf8').toString('base64');
     return `    ${quoted(id)} to decodeSchema(${quoted(encoded)}),`;
   });
-  const modelCases = context.entries.flatMap((entry) => {
+  const publicSchemaIds = context.publicEntries.map((entry) => `    ${quoted(entry.id)},`);
+  const hasDependencies = context.entries.length !== context.publicEntries.length;
+  const publicSchemaBlock = hasDependencies
+    ? ['private val publicSchemaIds: Set<String> = setOf(', ...publicSchemaIds, ')', '']
+    : [];
+  const schemaIdGuard = hasDependencies
+    ? `    require(schemaId in publicSchemaIds) { "Unknown v${version} contract schema: $schemaId" }`
+    : `    require(schemaId in schemaSources) { "Unknown v${version} contract schema: $schemaId" }`;
+  const modelCases = context.publicEntries.flatMap((entry) => {
     const [first, ...rest] = renderKotlinModelExpression(entry, context);
     return [`    ${quoted(entry.id)} -> ${first}`, ...rest.map((line) => `    ${line}`)];
   });
@@ -752,6 +930,7 @@ function renderKotlinValidation(context, version) {
     ...schemaEntries,
     ')',
     '',
+    ...publicSchemaBlock,
     'private val schemaRegistry: SchemaRegistry =',
     '    SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12) { builder ->',
     '        builder.schemas(schemaSources)',
@@ -763,7 +942,7 @@ function renderKotlinValidation(context, version) {
     '}',
     '',
     `public fun parseV${version}Contract(schemaId: String, payloadSource: String): ContractV${version}ParseResult {`,
-    `    require(schemaId in schemaSources) { "Unknown v${version} contract schema: \$schemaId" }`,
+    schemaIdGuard,
     '    return try {',
     '        val payload = mapper.readTree(payloadSource)',
     '        val model = constructGeneratedModel(schemaId, payload)',
@@ -792,6 +971,11 @@ function kotlinType(node, entry, context, parameters) {
       .map(({ kind }) => (kind === 'item' ? 'Any?' : 'JsonObject'))
       .join(', ')}>`;
   }
+  if ('enum' in node) {
+    if (node.type === 'integer') return 'Long';
+    if (node.type === 'boolean') return 'Boolean';
+    return 'String';
+  }
   if ('const' in node) {
     if (typeof node.const === 'boolean') return 'Boolean';
     if (typeof node.const === 'number') return 'Long';
@@ -800,6 +984,7 @@ function kotlinType(node, entry, context, parameters) {
   if (node.oneOf) return context.nameByNode.get(node);
   if (node.type === 'string') return 'String';
   if (node.type === 'integer') return 'Long';
+  if (node.type === 'number') return 'Double';
   if (node.type === 'boolean') return 'Boolean';
   if (node.type === 'array') return `List<${kotlinType(node.items, entry, context, parameters)}>`;
   if (node.type === 'object') return context.nameByNode.get(node) ?? 'JsonObject';
@@ -810,8 +995,11 @@ function unionDiscriminator(node, entry, context) {
   const alternatives = node.oneOf.map(
     (alternative) => resolveReference(alternative.$ref, entry, context).node,
   );
-  const candidates = Object.keys(alternatives[0].properties ?? {}).filter((property) =>
-    alternatives.every((alternative) => 'const' in (alternative.properties?.[property] ?? {})),
+  const candidates = Object.keys(alternatives[0].properties ?? {}).filter(
+    (property) =>
+      alternatives.every((alternative) => 'const' in (alternative.properties?.[property] ?? {})) &&
+      new Set(alternatives.map((alternative) => alternative.properties[property].const)).size ===
+        alternatives.length,
   );
   if (candidates.length !== 1) fail(`A closed union must have one discriminator in ${entry.path}`);
   return candidates[0];
@@ -819,6 +1007,9 @@ function unionDiscriminator(node, entry, context) {
 
 function renderPython(context) {
   const models = [...context.nodesByName.entries()].sort(compareEntries);
+  const usesJsonNumber = context.entries.some(({ schema }) =>
+    JSON.stringify(schema).includes('"type":"number"'),
+  );
   const genericNames = [
     ...new Set(
       models.flatMap(([, node]) =>
@@ -839,6 +1030,7 @@ function renderPython(context) {
     '    ConfigDict,',
     '    Field,',
     '    StrictBool,',
+    ...(usesJsonNumber ? ['    StrictFloat,'] : []),
     '    StrictStr,',
     '    StringConstraints,',
     '    model_validator,',
@@ -959,6 +1151,7 @@ function pythonType(node, entry, context, parameters) {
   if (typeof node === 'boolean' || isEmptySchema(node)) return 'Any';
   if (node.$ref) return resolveReference(node.$ref, entry, context).name;
   if ('const' in node) return `Literal[${pythonLiteral(node.const)}]`;
+  if ('enum' in node) return `Literal[${node.enum.map(pythonLiteral).join(', ')}]`;
   if (node.oneOf) return context.nameByNode.get(node);
   if (node.type === 'string') {
     if (node.format === 'uuid') {
@@ -984,12 +1177,21 @@ function pythonType(node, entry, context, parameters) {
     if (node.maximum !== undefined) argumentsList.push(`le=${node.maximum}`);
     return `Annotated[int, Field(${argumentsList.join(', ')})]`;
   }
+  if (node.type === 'number') {
+    const argumentsList = [];
+    if (node.minimum !== undefined) argumentsList.push(`ge=${node.minimum}`);
+    if (node.maximum !== undefined) argumentsList.push(`le=${node.maximum}`);
+    return argumentsList.length
+      ? `Annotated[StrictFloat, Field(${argumentsList.join(', ')})]`
+      : 'StrictFloat';
+  }
   if (node.type === 'boolean') return 'StrictBool';
   if (node.type === 'array') {
     const list = `list[${pythonType(node.items, entry, context, parameters)}]`;
-    return node.maxItems !== undefined
-      ? `Annotated[${list}, Field(max_length=${node.maxItems})]`
-      : list;
+    const bounds = [];
+    if (node.minItems !== undefined) bounds.push(`min_length=${node.minItems}`);
+    if (node.maxItems !== undefined) bounds.push(`max_length=${node.maxItems}`);
+    return bounds.length ? `Annotated[${list}, Field(${bounds.join(', ')})]` : list;
   }
   if (node.type === 'object') return context.nameByNode.get(node) ?? 'JsonObject';
   fail(`Cannot render Python type from ${entry.path}`);
@@ -1154,9 +1356,9 @@ function renderPythonProject() {
 
 export function generateContractFiles(sourceRoot) {
   const registry = loadRegistry(sourceRoot);
-  const versions = [
-    ...new Set(registry.entries.map((entry) => entry.contractVersion)),
-  ].sort((left, right) => left - right);
+  const versions = [...new Set(registry.entries.map((entry) => entry.contractVersion))].sort(
+    (left, right) => left - right,
+  );
   if (versions.length === 0) fail('Canonical contract manifest has no schemas');
 
   const files = new Map([

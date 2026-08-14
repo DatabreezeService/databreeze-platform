@@ -7,6 +7,7 @@ import {
 } from '@databreeze/domain/identity/v1';
 import {
   parseStableIdentifierV1,
+  parseStrictUtcTimestampV1,
   type StableIdentifierV1,
   type StrictUtcTimestampV1,
 } from '@databreeze/domain/tenant-scope/v1';
@@ -23,7 +24,7 @@ import type {
 import { sessionPolicyForPlatformV1 } from '../application/session-policy.v1.js';
 
 interface SessionEntryV1 {
-  readonly record: SessionRecordV1;
+  record: SessionRecordV1;
   readonly principal: AuthenticatedPrincipalV1;
   activeTokenId: StableIdentifierV1;
   familyStatus: 'ACTIVE' | 'REVOKED';
@@ -41,8 +42,9 @@ export interface SessionLifecycleAdapterOptionsV1 {
   readonly clock?: () => Date;
 }
 
-function addSeconds(now: Date, seconds: number): string {
-  return new Date(now.getTime() + seconds * 1_000).toISOString();
+function addSeconds(now: Date, seconds: number, upperBound?: string): string {
+  const candidate = new Date(now.getTime() + seconds * 1_000).toISOString();
+  return !upperBound || candidate <= upperBound ? candidate : upperBound;
 }
 
 function digestToken(token: string): string {
@@ -135,7 +137,15 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
     if (!token) return { accepted: false, code: 'INVALID_REFRESH_TOKEN' };
     const session = this.sessions.get(token.sessionId);
     if (!session) return { accepted: false, code: 'INVALID_REFRESH_TOKEN' };
-    const now = this.clock().toISOString();
+    const nowDate = this.clock();
+    const now = nowDate.toISOString();
+    if (
+      nowDate.getTime() >= Date.parse(session.record.inactivityExpiresAt) ||
+      nowDate.getTime() >= Date.parse(session.record.absoluteExpiresAt)
+    ) {
+      this.expireFamily(token.familyId);
+      return { accepted: false, code: 'EXPIRED' };
+    }
     const nextTokenId = stableIdentifier(randomUUID());
     const rotated = rotateRefreshFamilyV1({
       now,
@@ -158,6 +168,21 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
     }
     token.status = 'USED';
     session.activeTokenId = nextTokenId;
+    const accessExpiresAt = parseStrictUtcTimestampV1(
+      addSeconds(nowDate, policy.accessTokenSeconds),
+    );
+    const inactivityExpiresAt = parseStrictUtcTimestampV1(
+      addSeconds(nowDate, policy.inactivitySeconds, session.record.absoluteExpiresAt),
+    );
+    if (!accessExpiresAt.accepted || !inactivityExpiresAt.accepted) {
+      this.expireFamily(token.familyId);
+      return { accepted: false, code: 'EXPIRED' };
+    }
+    session.record = Object.freeze({
+      ...session.record,
+      accessExpiresAt: accessExpiresAt.value,
+      inactivityExpiresAt: inactivityExpiresAt.value,
+    });
     const nextRefreshToken = tokenFor(nextTokenId);
     const nextAccessToken = tokenFor(stableIdentifier(randomUUID()));
     this.refreshTokens.set(digestToken(nextRefreshToken), {
@@ -172,7 +197,7 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
       sessionId: session.record.sessionId,
       accessToken: nextAccessToken,
       refreshToken: nextRefreshToken,
-      accessExpiresAt: addSeconds(this.clock(), policy.accessTokenSeconds),
+      accessExpiresAt: session.record.accessExpiresAt,
       refreshExpiresAt: session.record.absoluteExpiresAt,
     });
   }
@@ -229,6 +254,22 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
     }
     for (const token of this.refreshTokens.values()) {
       if (token.familyId === familyId && token.status === 'ACTIVE') token.status = 'REVOKED';
+    }
+  }
+
+  private expireFamily(familyId: StableIdentifierV1): void {
+    for (const session of this.sessions.values()) {
+      if (session.record.familyId === familyId) {
+        session.record = Object.freeze({ ...session.record, status: 'EXPIRED' });
+        session.familyStatus = 'REVOKED';
+      }
+    }
+    for (const token of this.refreshTokens.values()) {
+      if (token.familyId === familyId && token.status === 'ACTIVE') token.status = 'EXPIRED';
+    }
+    for (const [digest, sessionId] of this.accessTokens.entries()) {
+      const session = this.sessions.get(sessionId);
+      if (session?.record.familyId === familyId) this.accessTokens.delete(digest);
     }
   }
 }

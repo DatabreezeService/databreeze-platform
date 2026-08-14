@@ -26,22 +26,22 @@ model DatasetDefinitionRecord {
 
 /// DSM-002, DSM-012, DSM-014: immutable result metadata pinned to exact inputs and definitions.
 model DatasetVersionRecord {
-  id                     String   @id @db.Uuid
-  datasetId              String   @map("dataset_id") @db.Uuid
-  scopeType              String   @map("scope_type") @db.VarChar(24)
-  organizationId         String   @map("organization_id") @db.Uuid
-  workspaceId            String?  @map("workspace_id") @db.Uuid
-  projectId              String?  @map("project_id") @db.Uuid
+  id                      String   @id @db.Uuid
+  datasetId               String   @map("dataset_id") @db.Uuid
+  scopeType               String   @map("scope_type") @db.VarChar(24)
+  organizationId          String   @map("organization_id") @db.Uuid
+  workspaceId             String?  @map("workspace_id") @db.Uuid
+  projectId               String?  @map("project_id") @db.Uuid
   inputArtifactVersionIds Json     @map("input_artifact_version_ids")
-  schemaVersionId        String   @map("schema_version_id") @db.Uuid
-  mappingVersionId       String   @map("mapping_version_id") @db.Uuid
-  ruleSetVersionId       String   @map("rule_set_version_id") @db.Uuid
-  engineBuild            String   @map("engine_build") @db.VarChar(128)
-  contentFingerprint     String   @map("content_fingerprint") @db.Char(64)
-  rowCount               BigInt   @map("row_count")
-  qualityState           String   @map("quality_state") @db.VarChar(24)
-  lineageManifestHash    String   @map("lineage_manifest_hash") @db.Char(64)
-  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  schemaVersionId         String   @map("schema_version_id") @db.Uuid
+  mappingVersionId        String   @map("mapping_version_id") @db.Uuid
+  ruleSetVersionId        String   @map("rule_set_version_id") @db.Uuid
+  engineBuild             String   @map("engine_build") @db.VarChar(128)
+  contentFingerprint      String   @map("content_fingerprint") @db.Char(64)
+  rowCount                BigInt   @map("row_count")
+  qualityState            String   @map("quality_state") @db.VarChar(24)
+  lineageManifestHash     String   @map("lineage_manifest_hash") @db.Char(64)
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@unique([datasetId, id], map: "dataset_versions_dataset_version_key")
   @@index([organizationId, workspaceId, projectId, datasetId], map: "dataset_versions_scope_idx")
@@ -74,23 +74,23 @@ model DatasetQualityResultRecord {
 
 /// DSM-011: immutable disclosure of profiling completeness, sampling, exclusions, and budgets.
 model DatasetProfileRecord {
-  id                String    @id @db.Uuid
-  datasetVersionId  String    @map("dataset_version_id") @db.Uuid
-  scopeType         String    @map("scope_type") @db.VarChar(24)
-  organizationId    String    @map("organization_id") @db.Uuid
-  workspaceId       String?   @map("workspace_id") @db.Uuid
-  projectId         String?   @map("project_id") @db.Uuid
-  completeness      String    @db.VarChar(32)
-  samplingMethod    String    @map("sampling_method") @db.VarChar(96)
-  samplingSeed      String?   @map("sampling_seed") @db.Char(64)
-  excludedScopes    Json      @map("excluded_scopes")
-  rowCountScanned   BigInt    @map("row_count_scanned")
-  rowCountAvailable BigInt?   @map("row_count_available")
-  maxRows           BigInt    @map("max_rows")
-  maxBytes          BigInt    @map("max_bytes")
-  maxDurationMs     BigInt    @map("max_duration_ms")
+  id                 String   @id @db.Uuid
+  datasetVersionId   String   @map("dataset_version_id") @db.Uuid
+  scopeType          String   @map("scope_type") @db.VarChar(24)
+  organizationId     String   @map("organization_id") @db.Uuid
+  workspaceId        String?  @map("workspace_id") @db.Uuid
+  projectId          String?  @map("project_id") @db.Uuid
+  completeness       String   @db.VarChar(32)
+  samplingMethod     String   @map("sampling_method") @db.VarChar(96)
+  samplingSeed       String?  @map("sampling_seed") @db.Char(64)
+  excludedScopes     Json     @map("excluded_scopes")
+  rowCountScanned    BigInt   @map("row_count_scanned")
+  rowCountAvailable  BigInt?  @map("row_count_available")
+  maxRows            BigInt   @map("max_rows")
+  maxBytes           BigInt   @map("max_bytes")
+  maxDurationMs      BigInt   @map("max_duration_ms")
   profileFingerprint String   @map("profile_fingerprint") @db.Char(64)
-  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@index([datasetVersionId], map: "dataset_profiles_dataset_version_idx")
   @@index([organizationId, workspaceId, projectId, datasetVersionId], map: "dataset_profiles_scope_idx")
@@ -100,31 +100,31 @@ model DatasetProfileRecord {
 
 /// DSM-022: governed export verification metadata; raw rows live only in the approved output.
 model DatasetExportManifestRecord {
-  id                    String   @id @db.Uuid
-  datasetId             String   @map("dataset_id") @db.Uuid
-  datasetVersionId      String   @map("dataset_version_id") @db.Uuid
-  scopeType             String   @map("scope_type") @db.VarChar(24)
-  organizationId        String   @map("organization_id") @db.Uuid
-  workspaceId           String?  @map("workspace_id") @db.Uuid
-  projectId             String?  @map("project_id") @db.Uuid
-  dataMode              String   @map("data_mode") @db.VarChar(16)
-  payloadClass          String   @map("payload_class") @db.VarChar(32)
-  format                String   @db.VarChar(16)
-  rowCount              BigInt   @map("row_count")
-  byteSize              BigInt   @map("byte_size")
-  contentSha256         String   @map("content_sha256") @db.Char(64)
-  schemaVersionId       String   @map("schema_version_id") @db.Uuid
-  mappingVersionId      String   @map("mapping_version_id") @db.Uuid
-  ruleSetVersionId      String   @map("rule_set_version_id") @db.Uuid
-  semanticManifestHash  String   @map("semantic_manifest_hash") @db.Char(64)
-  metricManifestHash    String   @map("metric_manifest_hash") @db.Char(64)
-  qualityManifestHash   String   @map("quality_manifest_hash") @db.Char(64)
-  lineageManifestHash   String   @map("lineage_manifest_hash") @db.Char(64)
-  evidenceManifestHash  String   @map("evidence_manifest_hash") @db.Char(64)
-  policyHash            String   @map("policy_hash") @db.Char(64)
-  qualityState          String   @map("quality_state") @db.VarChar(24)
-  approvalState         String   @map("approval_state") @db.VarChar(16)
-  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                   String   @id @db.Uuid
+  datasetId            String   @map("dataset_id") @db.Uuid
+  datasetVersionId     String   @map("dataset_version_id") @db.Uuid
+  scopeType            String   @map("scope_type") @db.VarChar(24)
+  organizationId       String   @map("organization_id") @db.Uuid
+  workspaceId          String?  @map("workspace_id") @db.Uuid
+  projectId            String?  @map("project_id") @db.Uuid
+  dataMode             String   @map("data_mode") @db.VarChar(16)
+  payloadClass         String   @map("payload_class") @db.VarChar(32)
+  format               String   @db.VarChar(16)
+  rowCount             BigInt   @map("row_count")
+  byteSize             BigInt   @map("byte_size")
+  contentSha256        String   @map("content_sha256") @db.Char(64)
+  schemaVersionId      String   @map("schema_version_id") @db.Uuid
+  mappingVersionId     String   @map("mapping_version_id") @db.Uuid
+  ruleSetVersionId     String   @map("rule_set_version_id") @db.Uuid
+  semanticManifestHash String   @map("semantic_manifest_hash") @db.Char(64)
+  metricManifestHash   String   @map("metric_manifest_hash") @db.Char(64)
+  qualityManifestHash  String   @map("quality_manifest_hash") @db.Char(64)
+  lineageManifestHash  String   @map("lineage_manifest_hash") @db.Char(64)
+  evidenceManifestHash String   @map("evidence_manifest_hash") @db.Char(64)
+  policyHash           String   @map("policy_hash") @db.Char(64)
+  qualityState         String   @map("quality_state") @db.VarChar(24)
+  approvalState        String   @map("approval_state") @db.VarChar(16)
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@index([datasetVersionId], map: "dataset_export_manifests_dataset_version_idx")
   @@index([organizationId, workspaceId, projectId, datasetVersionId], map: "dataset_export_manifests_scope_idx")
@@ -134,21 +134,21 @@ model DatasetExportManifestRecord {
 
 /// DSM-025: canonical workspace reference identities are versioned and immutable.
 model ReferenceEntityVersionRecord {
-  id                   String   @id @db.Uuid
-  entityId             String   @map("entity_id") @db.Uuid
-  scopeType            String   @map("scope_type") @db.VarChar(24)
-  organizationId       String   @map("organization_id") @db.Uuid
-  workspaceId          String?  @map("workspace_id") @db.Uuid
-  projectId            String?  @map("project_id") @db.Uuid
-  entityType           String   @map("entity_type") @db.VarChar(32)
-  displayName          String   @map("display_name") @db.VarChar(255)
-  roles                Json
-  aliases              Json
-  externalIdentifiers  Json     @map("external_identifiers")
-  status               String   @db.VarChar(16)
-  visibility           String   @db.VarChar(16)
-  canonicalHash        String   @map("canonical_hash") @db.Char(64)
-  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                  String   @id @db.Uuid
+  entityId            String   @map("entity_id") @db.Uuid
+  scopeType           String   @map("scope_type") @db.VarChar(24)
+  organizationId      String   @map("organization_id") @db.Uuid
+  workspaceId         String?  @map("workspace_id") @db.Uuid
+  projectId           String?  @map("project_id") @db.Uuid
+  entityType          String   @map("entity_type") @db.VarChar(32)
+  displayName         String   @map("display_name") @db.VarChar(255)
+  roles               Json
+  aliases             Json
+  externalIdentifiers Json     @map("external_identifiers")
+  status              String   @db.VarChar(16)
+  visibility          String   @db.VarChar(16)
+  canonicalHash       String   @map("canonical_hash") @db.Char(64)
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@unique([entityId, id], map: "reference_entity_versions_entity_version_key")
   @@index([organizationId, workspaceId, projectId, entityId], map: "reference_entities_scope_idx")

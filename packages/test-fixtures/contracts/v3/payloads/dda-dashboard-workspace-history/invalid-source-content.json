@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 3,
+  "items": [
+    {
+      "kind": "DASHBOARD",
+      "subjectId": "00000000-0000-4000-8000-000000000302",
+      "title": {
+        "vi": "Bảng điều khiển",
+        "en": "Dashboard"
+      },
+      "updatedAt": "2026-08-10T00:00:00.000Z"
+    }
+  ],
+  "sourcePath": "C:\\private\\sales.xlsx"
+}

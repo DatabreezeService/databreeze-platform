@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 3,
+  "proposalId": "00000000-0000-4000-8000-000000000201",
+  "dashboardId": "00000000-0000-4000-8000-000000000202",
+  "parentVersionId": "00000000-0000-4000-8000-000000000203",
+  "expectedRevision": 7,
+  "analysisPlanVersionId": "00000000-0000-4000-8000-000000000204",
+  "target": {
+    "pageId": "00000000-0000-4000-8000-000000000205"
+  },
+  "options": [
+    {
+      "optionId": "00000000-0000-4000-8000-000000000206",
+      "type": "BAR",
+      "title": {
+        "vi": "So sánh theo khu vực",
+        "en": "Compare by region"
+      },
+      "rationale": {
+        "vi": "Làm nổi bật chênh lệch giữa các khu vực.",
+        "en": "Highlights differences between regions."
+      },
+      "accessibilityDescription": {
+        "vi": "Biểu đồ cột có bảng dữ liệu dự phòng.",
+        "en": "Bar chart with an accessible fallback table."
+      },
+      "binding": {
+        "analysisPlanVersionId": "00000000-0000-4000-8000-000000000204",
+        "materializationDefinitionId": "00000000-0000-4000-8000-000000000207",
+        "dimensionIds": ["00000000-0000-4000-8000-000000000208"],
+        "measureIds": ["00000000-0000-4000-8000-000000000209"]
+      },
+      "dimensions": [
+        {
+          "id": "00000000-0000-4000-8000-000000000208",
+          "label": {
+            "vi": "Khu vực",
+            "en": "Region"
+          }
+        }
+      ],
+      "measures": [
+        {
+          "id": "00000000-0000-4000-8000-000000000209",
+          "label": {
+            "vi": "Doanh thu",
+            "en": "Revenue"
+          }
+        }
+      ],
+      "supportedSpans": [6, 8, 12],
+      "defaultSpan": 8,
+      "assumptions": ["Uses the currently authorized sales dataset version."],
+      "estimate": {
+        "cpuMs": 250,
+        "memoryMb": 96
+      },
+      "evidenceBehavior": "REQUIRED"
+    },
+    {
+      "optionId": "00000000-0000-4000-8000-00000000020a",
+      "type": "TABLE",
+      "title": {
+        "vi": "Bảng chi tiết",
+        "en": "Detail table"
+      },
+      "rationale": {
+        "vi": "Cho phép kiểm tra từng giá trị và bằng chứng.",
+        "en": "Makes each value and its evidence easy to inspect."
+      },
+      "accessibilityDescription": {
+        "vi": "Bảng dữ liệu với tiêu đề hàng và cột rõ ràng.",
+        "en": "Data table with explicit row and column labels."
+      },
+      "binding": {
+        "analysisPlanVersionId": "00000000-0000-4000-8000-000000000204",
+        "materializationDefinitionId": "00000000-0000-4000-8000-00000000020b",
+        "dimensionIds": ["00000000-0000-4000-8000-000000000208"],
+        "measureIds": ["00000000-0000-4000-8000-000000000209"]
+      },
+      "dimensions": [
+        {
+          "id": "00000000-0000-4000-8000-000000000208",
+          "label": {
+            "vi": "Khu vực",
+            "en": "Region"
+          }
+        }
+      ],
+      "measures": [
+        {
+          "id": "00000000-0000-4000-8000-000000000209",
+          "label": {
+            "vi": "Doanh thu",
+            "en": "Revenue"
+          }
+        }
+      ],
+      "supportedSpans": [8, 12],
+      "defaultSpan": 12,
+      "assumptions": [],
+      "estimate": {
+        "cpuMs": 180,
+        "memoryMb": 64
+      },
+      "evidenceBehavior": "REQUIRED"
+    }
+  ],
+  "summary": {
+    "vi": "Hai phương án trình bày đã được kiểm tra theo kế hoạch phân tích đã chọn.",
+    "en": "Two presentation alternatives were checked against the selected analysis plan."
+  },
+  "previewOnly": true,
+  "publishes": false,
+  "createdAt": "2026-08-11T00:00:00.000Z"
+}

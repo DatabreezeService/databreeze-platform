@@ -6,10 +6,13 @@ import {
   IsBoolean,
   IsIn,
   IsISO8601,
+  IsInt,
   IsOptional,
   IsString,
   IsUUID,
   MaxLength,
+  Max,
+  Min,
   MinLength,
   ValidateNested,
 } from 'class-validator';
@@ -107,4 +110,20 @@ export class PublishGovernedDatasetDto {
   @ApiProperty({ format: 'date-time' })
   @IsISO8601()
   publishedAt!: string;
+}
+
+export class ListGovernedDatasetQueryDto {
+  @ApiPropertyOptional({ maxLength: 512 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(512)
+  cursor?: string;
+
+  @ApiPropertyOptional({ minimum: 1, maximum: 100, default: 25 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
 }

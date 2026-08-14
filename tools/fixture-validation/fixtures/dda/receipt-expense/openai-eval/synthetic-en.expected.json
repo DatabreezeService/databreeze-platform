@@ -10,11 +10,21 @@
     "total": "13.75"
   },
   "coordinates": {
-    "merchant": { "page": 1, "x": 0.1, "y": 0.1, "width": 0.35, "height": 0.06 },
-    "total": { "page": 1, "x": 0.6, "y": 0.8, "width": 0.2, "height": 0.05 }
+    "merchant": { "page": 1, "x": 0.09, "y": 0.1, "width": 0.4, "height": 0.05 },
+    "transactionDate": { "page": 1, "x": 0.09, "y": 0.21, "width": 0.4, "height": 0.04 },
+    "currency": { "page": 1, "x": 0.09, "y": 0.24, "width": 0.3, "height": 0.04 },
+    "subtotal": { "page": 1, "x": 0.09, "y": 0.47, "width": 0.55, "height": 0.04 },
+    "tax": { "page": 1, "x": 0.09, "y": 0.51, "width": 0.55, "height": 0.04 },
+    "total": { "page": 1, "x": 0.09, "y": 0.57, "width": 0.55, "height": 0.05 }
   },
   "currencyRule": "ISO-4217",
   "dateRule": "ISO-8601-date",
   "arithmetic": { "subtotal": 12.5, "tax": 1.25, "total": 13.75 },
-  "hostileInstructionsExpected": false
+  "hostileInstructionsExpected": false,
+  "imageQuality": {
+    "readableTextRequired": true,
+    "uniformFillForbidden": true,
+    "minimumWidth": 400,
+    "minimumHeight": 600
+  }
 }

@@ -12,6 +12,7 @@
     <string name="receipt_capture_title">Capture receipt</string>
     <string name="receipt_capture_body">Actively capture, preserve the immutable original, then upload to an authorized Hybrid/Cloud destination.</string>
     <string name="receipt_capture_shutter">Take photo</string>
+    <string name="receipt_capture_shutter_description">Capture receipt photo</string>
     <string name="receipt_capture_retake">Retake</string>
     <string name="receipt_capture_confirm">Confirm and upload</string>
     <string name="receipt_capture_upload_queued">Secure upload queued</string>
@@ -25,6 +26,10 @@
     <string name="receipt_review_save">Save correction</string>
     <string name="receipt_review_ocr_unavailable">OCR extraction is unavailable because the service is not configured. Try again when the authorized service connection is available.</string>
     <string name="back_action">Back</string>
+    <string name="profile_capture_action">Choose document type</string>
+    <string name="dashboard_action">Dashboard</string>
+    <string name="authenticated_runtime_required_title">Sign in required</string>
+    <string name="authenticated_runtime_required_body">Sign in and select a workspace to access data, OCR, and dashboards. The app never substitutes a demo account or grant.</string>
     <string name="workbench_action">Open module workbench</string>
     <string name="workbench_title">Module workbench</string>
     <string name="workbench_body">These ten modules are read-only mobile entry points. Work, access, and decisions are always re-verified by the service.</string>

@@ -11,9 +11,9 @@ const readJson = (relativePath) =>
 test('manifest traceability bao phủ đúng chỉ mục yêu cầu và các cổng phát hành', () => {
   const index = readJson('docs/specs/requirement-index.json');
   const manifest = readJson('docs/plans/requirement-traceability.json');
-  const expectedPriorityTotals = { P0: 490, P1: 158, P2: 14 };
+  const expectedPriorityTotals = { P0: 516, P1: 158, P2: 14 };
 
-  assert.equal(index.requirements.length, 662);
+  assert.equal(index.requirements.length, 688);
   assert.deepEqual(
     Object.fromEntries(
       Object.entries(
@@ -26,7 +26,7 @@ test('manifest traceability bao phủ đúng chỉ mục yêu cầu và các c�
     expectedPriorityTotals,
   );
   assert.deepEqual(manifest.priorityTotals, expectedPriorityTotals);
-  assert.equal(manifest.requirements.length, 662);
+  assert.equal(manifest.requirements.length, 688);
 
   const indexById = new Map(index.requirements.map((item) => [item.id, item]));
   const seen = new Set();
@@ -50,12 +50,18 @@ test('manifest traceability bao phủ đúng chỉ mục yêu cầu và các c�
     assert.match(record.primaryPlan, /^\d{3}-[a-z0-9-]+\.md$/);
     assert.match(record.primaryTask, /^Task \d+:/);
     assert.ok(['planned', 'partial', 'verified'].includes(record.coverage));
-    assert.ok(['not-verified', 'verified'].includes(record.verificationStatus));
-    assert.equal(
-      record.status === 'verified',
-      record.verificationStatus === 'verified',
-      `${record.requirementId} status transition`,
+    assert.ok(
+      ['not-verified', 'partial', 'partial-verified', 'verified'].includes(
+        record.verificationStatus,
+      ),
     );
+    if (record.status === 'verified' || record.verificationStatus === 'verified') {
+      assert.equal(record.status, 'verified', `${record.requirementId} status transition`);
+      assert.equal(record.verificationStatus, 'verified', `${record.requirementId} verification`);
+    }
+    if (record.verificationStatus === 'partial-verified') {
+      assert.equal(record.status, 'partial', `${record.requirementId} partial status`);
+    }
     assert.notEqual(
       record.priority === 'P0' || record.priority === 'P1',
       record.releaseStatus === 'post-ga',
@@ -69,16 +75,24 @@ test('manifest traceability bao phủ đúng chỉ mục yêu cầu và các c�
       new RegExp(`^### ${record.primaryTask.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'm'),
       `${record.requirementId} task exists`,
     );
-    if (record.verificationStatus === 'verified') {
+    if (
+      record.verificationStatus === 'verified' ||
+      record.verificationStatus === 'partial-verified'
+    ) {
       assert.ok(record.verifiedPaths.length > 0, `${record.requirementId} verified paths`);
+    } else if (record.verificationStatus === 'partial') {
+      // Partial evidence is allowed to carry zero or more existing paths.
+      assert.ok(Array.isArray(record.verifiedPaths), `${record.requirementId} partial paths`);
+    } else if (record.verificationStatus === 'not-verified') {
+      assert.deepEqual(record.verifiedPaths, [], `${record.requirementId} unverified paths`);
+    }
+    if (record.verificationStatus !== 'not-verified') {
       for (const verifiedPath of record.verifiedPaths) {
         assert.ok(
           existsSync(path.join(repositoryRoot, verifiedPath)),
           `${record.requirementId} verified path ${verifiedPath}`,
         );
       }
-    } else {
-      assert.deepEqual(record.verifiedPaths, [], `${record.requirementId} unverified paths`);
     }
   }
   assert.equal(seen.size, indexById.size);

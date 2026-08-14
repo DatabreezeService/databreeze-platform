@@ -17,6 +17,8 @@
     "typecheck": "tsc --build --pretty false"
   },
   "dependencies": {
+    "@fontsource/be-vietnam-pro": "5.3.0",
+    "@databreeze/contracts": "workspace:*",
     "@databreeze/design-tokens": "workspace:*",
     "@databreeze/domain": "workspace:*",
     "@databreeze/i18n": "workspace:*",
@@ -25,6 +27,9 @@
     "@tanstack/react-query": "5.101.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "react-grid-layout": "2.2.3",
+    "react-is": "19.2.8",
+    "recharts": "3.10.1",
     "react-router-dom": "7.18.2"
   },
   "devDependencies": {

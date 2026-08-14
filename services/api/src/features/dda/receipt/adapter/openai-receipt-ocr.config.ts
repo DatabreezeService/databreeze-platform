@@ -28,7 +28,7 @@ export const OPENAI_RECEIPT_PINNED_MODEL = 'gpt-4o-mini-2024-07-18';
 const DEFAULT_MODEL = OPENAI_RECEIPT_PINNED_MODEL;
 const DEFAULT_DETAIL: ReceiptImageDetailV1 = 'high';
 const DEFAULT_BASE_URL = 'https://api.openai.com/v1';
-const SECRET_NAME = 'databreeze/{env}/openai/receipt-ocr';
+const SECRET_NAME = 'databreeze/{env}/openai/api-key';
 
 function parseDetail(raw: string | undefined): ReceiptImageDetailV1 {
   if (raw === 'low' || raw === 'original' || raw === 'high') return raw;

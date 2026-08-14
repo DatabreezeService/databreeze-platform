@@ -1,4 +1,7 @@
-import { QualityDimensions, type QualityDimensionViewV1 } from '../data-intake/quality-dimensions.tsx';
+import {
+  QualityDimensions,
+  type QualityDimensionViewV1,
+} from '../data-intake/quality-dimensions.tsx';
 
 export interface PreparationSummaryPanelProps {
   readonly locale?: 'vi' | 'en';
@@ -34,6 +37,32 @@ export function PreparationSummaryPanel({
   healthDimensions,
   overallSummary,
 }: PreparationSummaryPanelProps) {
+  const copy =
+    locale === 'en'
+      ? {
+          changed: 'Changed safely',
+          input: 'Input rows',
+          output: 'Output rows',
+          policy: 'Automatic policy',
+          quarantined: 'Quarantined',
+          rejected: 'Rejected',
+          transformations: 'What changed',
+          unchanged: 'Unchanged',
+          unsupported: 'Unsupported',
+          warnings: 'Needs attention',
+        }
+      : {
+          changed: 'Đã đổi an toàn',
+          input: 'Hàng đầu vào',
+          output: 'Hàng đầu ra',
+          policy: 'Chính sách tự động',
+          quarantined: 'Đã cách ly',
+          rejected: 'Đã từ chối',
+          transformations: 'Những gì đã thay đổi',
+          unchanged: 'Không đổi',
+          unsupported: 'Không hỗ trợ',
+          warnings: 'Cần chú ý',
+        };
   const title =
     locale === 'en'
       ? mode === 'COMPATIBLE_REFRESH'
@@ -49,7 +78,7 @@ export function PreparationSummaryPanel({
 
   if (mode === 'COMPATIBLE_REFRESH') {
     return (
-      <section aria-label={title}>
+      <section aria-label={title} className="preparation-summary-panel is-compact">
         <h3>{title}</h3>
         <p>
           {locale === 'en'
@@ -61,27 +90,58 @@ export function PreparationSummaryPanel({
   }
 
   return (
-    <section aria-label={title}>
-      <h3>{title}</h3>
-      <p>
-        {locale === 'en' ? 'Policy' : 'Chính sách'}: {automaticPolicy}
-      </p>
-      <p>
-        input={counts.input} output={counts.output} unchanged={counts.unchanged}{' '}
-        changed={counts.changed} rejected={counts.rejected} quarantined={counts.quarantined}{' '}
-        unsupported={counts.unsupported}
-      </p>
-      <ul aria-label={locale === 'en' ? 'Transformations' : 'Phép biến đổi'}>
-        {transformations.map((step) => (
-          <li key={step}>{step}</li>
+    <section aria-label={title} className="preparation-summary-panel">
+      <header className="preparation-summary-panel__header">
+        <div>
+          <p>{copy.policy}</p>
+          <h3>{title}</h3>
+        </div>
+        <span>
+          {automaticPolicy === 'SAFE_NON_LOSSY'
+            ? locale === 'en'
+              ? 'Safe, non-lossy'
+              : 'An toàn, không mất dữ liệu'
+            : automaticPolicy}
+        </span>
+      </header>
+      <dl className="preparation-summary-panel__counts">
+        {(
+          [
+            [copy.input, counts.input],
+            [copy.output, counts.output],
+            [copy.unchanged, counts.unchanged],
+            [copy.changed, counts.changed],
+            [copy.quarantined, counts.quarantined],
+            [copy.rejected, counts.rejected],
+            [copy.unsupported, counts.unsupported],
+          ] as const
+        ).map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value.toLocaleString(locale === 'en' ? 'en' : 'vi-VN')}</dd>
+          </div>
         ))}
-      </ul>
-      {warnings.length > 0 ? (
-        <ul aria-label={locale === 'en' ? 'Warnings' : 'Cảnh báo'}>
-          {warnings.map((warning) => (
-            <li key={warning}>{warning}</li>
+      </dl>
+      <section
+        className="preparation-summary-panel__transformations"
+        aria-label={copy.transformations}
+      >
+        <h4>{copy.transformations}</h4>
+        <ul>
+          {transformations.map((step) => (
+            <li key={step}>{step}</li>
           ))}
         </ul>
+      </section>
+      {warnings.length > 0 ? (
+        <aside className="preparation-summary-panel__warnings" aria-label={copy.warnings}>
+          <strong>{copy.warnings}</strong>
+          <ul>
+            {warnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        </aside>
       ) : null}
       <QualityDimensions
         dimensions={healthDimensions}

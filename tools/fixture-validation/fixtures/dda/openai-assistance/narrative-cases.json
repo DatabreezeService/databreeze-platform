@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "purpose": "NARRATIVE",
+  "attestation": { "noCustomerData": true, "source": "project-generated" },
+  "cases": [
+    {
+      "caseId": "narrative-vi-kpi",
+      "locale": "vi",
+      "cells": [{ "cellId": "cell-revenue", "label": "Doanh so", "value": "120000" }],
+      "requireCitedCells": true
+    },
+    {
+      "caseId": "narrative-en-kpi",
+      "locale": "en",
+      "cells": [{ "cellId": "cell-revenue", "label": "Revenue", "value": "120000" }],
+      "requireCitedCells": true
+    }
+  ]
+}

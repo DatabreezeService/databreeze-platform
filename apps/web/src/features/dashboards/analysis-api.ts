@@ -5,7 +5,7 @@ export interface AnalysisLiveConfigurationV1 {
 }
 
 export interface AnalysisProposalResultV1 {
-  readonly proposalId: string;
+  readonly planVersionId: string;
   readonly planPreview: AnalysisPlanPreviewV1;
 }
 
@@ -51,11 +51,6 @@ function isPlanPreview(value: unknown): value is AnalysisPlanPreviewV1 {
 export async function proposeAnalysisPlan(input: {
   readonly baseUrl: string;
   readonly question: string;
-  readonly context: {
-    readonly organizationId: string;
-    readonly workspaceId: string;
-    readonly projectId?: string;
-  };
   readonly signal?: AbortSignal;
 }): Promise<AnalysisProposalResultV1> {
   const init: RequestInit = {
@@ -63,7 +58,6 @@ export async function proposeAnalysisPlan(input: {
     headers: { Accept: 'application/json', 'content-type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify({
-      context: input.context,
       request: { question: input.question },
     }),
   };
@@ -74,12 +68,18 @@ export async function proposeAnalysisPlan(input: {
   }
   if (!response.ok) throw new Error('ANALYSIS_PROPOSAL_UNAVAILABLE');
   const payload: unknown = await response.json();
-  if (!isRecord(payload) || typeof payload['proposalId'] !== 'string') {
+  if (
+    !isRecord(payload) ||
+    payload['accepted'] !== true ||
+    !isRecord(payload['value']) ||
+    !isRecord(payload['value']['plan']) ||
+    typeof payload['value']['plan']['planVersionId'] !== 'string'
+  ) {
     throw new Error('ANALYSIS_PROPOSAL_INVALID');
   }
-  if (!isPlanPreview(payload['planPreview'])) throw new Error('ANALYSIS_PROPOSAL_INVALID');
+  if (!isPlanPreview(payload['value']['preview'])) throw new Error('ANALYSIS_PROPOSAL_INVALID');
   return Object.freeze({
-    proposalId: payload['proposalId'],
-    planPreview: Object.freeze(payload['planPreview']),
+    planVersionId: payload['value']['plan']['planVersionId'],
+    planPreview: Object.freeze(payload['value']['preview']),
   });
 }

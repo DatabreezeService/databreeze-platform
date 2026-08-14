@@ -110,9 +110,7 @@ export function createDesktopBridgeV1(invoke: DesktopInvoke): DesktopBridgeV1 {
       const request = parseOrRejectRequest(() =>
         parseWorkbenchCatalogPageRequest(argumentsList[0]),
       );
-      return parseWorkbenchCatalogPage(
-        await invoke(WORKBENCH_IPC_CHANNELS.catalogPage, request),
-      );
+      return parseWorkbenchCatalogPage(await invoke(WORKBENCH_IPC_CHANNELS.catalogPage, request));
     },
     readOriginalDescriptor: async (...argumentsList: unknown[]) => {
       rejectExtraArguments(argumentsList, 1);
@@ -156,9 +154,7 @@ export function createDesktopBridgeV1(invoke: DesktopInvoke): DesktopBridgeV1 {
     verifyOtp: async (...argumentsList: unknown[]) => {
       rejectExtraArguments(argumentsList, 1);
       const request = parseOrRejectRequest(() => parseWorkbenchOtpRequest(argumentsList[0]));
-      return parseWorkbenchSessionSnapshot(
-        await invoke(WORKBENCH_IPC_CHANNELS.verifyOtp, request),
-      );
+      return parseWorkbenchSessionSnapshot(await invoke(WORKBENCH_IPC_CHANNELS.verifyOtp, request));
     },
     startGoogleOidc: async (...argumentsList: unknown[]) => {
       rejectUnexpectedArguments(argumentsList);

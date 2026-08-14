@@ -3,6 +3,8 @@ import { dirname, resolve } from 'node:path';
 
 import { parseV1Contract } from '@databreeze/contracts/v1';
 import { parseV2Contract } from '@databreeze/contracts/v2';
+import { parseV3Contract } from '@databreeze/contracts/v3';
+import { parseV4Contract } from '@databreeze/contracts/v4';
 
 function fail(message) {
   throw new Error(message);
@@ -11,6 +13,12 @@ function fail(message) {
 function parseContract(schemaId, payload) {
   if (schemaId.includes('/contracts/v2/')) {
     return parseV2Contract(schemaId, payload);
+  }
+  if (schemaId.includes('/contracts/v3/')) {
+    return parseV3Contract(schemaId, payload);
+  }
+  if (schemaId.includes('/contracts/v4/')) {
+    return parseV4Contract(schemaId, payload);
   }
   return parseV1Contract(schemaId, payload);
 }

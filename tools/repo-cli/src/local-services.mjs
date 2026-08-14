@@ -19,7 +19,10 @@ const services = [
   'otel-collector-health',
 ];
 const completionServices = ['minio-init'];
-const logServices = [...services, 'minio-init'];
+const appServices = ['api', 'web'];
+const appCompletionServices = ['minio-init', 'api-migrate'];
+const logServices = [...services, 'minio-init', ...appServices, 'api-migrate'];
+const appLogServices = ['api', 'web', 'api-migrate'];
 const hostPorts = [
   { service: 'postgres', key: 'POSTGRES_PORT', fallback: 5432 },
   { service: 'redis', key: 'REDIS_PORT', fallback: 6379 },
@@ -31,6 +34,8 @@ const hostPorts = [
   { service: 'otel-collector', key: 'OTEL_HTTP_PORT', fallback: 4318 },
   { service: 'otel-collector', key: 'OTEL_HEALTH_PORT', fallback: 13133 },
 ];
+const appHostPorts = [{ service: 'web', key: 'WEB_HTTPS_PORT', fallback: 8443 }];
+const allHostPorts = [...hostPorts, ...appHostPorts];
 
 function usage() {
   console.log(`Usage: pnpm local:services <command> [options]
@@ -47,10 +52,14 @@ Commands (all preserve named volumes):
   status                print current container and health state
   logs                  print bounded local container logs (read-only)
   smoke                 legacy readiness command (use --start to start first)
+  app-start             build, migrate, and start the same-origin HTTPS API and Web profile
+  app-stop              stop API and Web containers while preserving dependencies and volumes
+  app-status            print dependency, migration, API, and Web state
+  app-logs              print bounded API, migration, and Web logs (read-only)
 
 Options:
   --start               with smoke, start services before polling
-  --wait-seconds=N      readiness timeout (default: 60, maximum: 3600)
+  --wait-seconds=N      readiness timeout (default: services 60, app 600; maximum: 3600)
   --tail=N              log lines per service (default: 100, maximum: 1000)
   --service=NAME        limit logs to one known local service
   --min-free-gib=N      minimum host free space (default: 5)
@@ -81,7 +90,7 @@ function environment() {
   if (process.env.COMPOSE_PROJECT_NAME !== undefined) {
     fileValues.set('COMPOSE_PROJECT_NAME', process.env.COMPOSE_PROJECT_NAME);
   }
-  for (const definition of hostPorts) {
+  for (const definition of allHostPorts) {
     if (process.env[definition.key] !== undefined)
       fileValues.set(definition.key, process.env[definition.key]);
   }
@@ -114,6 +123,10 @@ function composeArgs(values = environment()) {
   const envFile = existsSync(localEnvFile) ? localEnvFile : exampleEnvFile;
   const project = projectName(values);
   return ['compose', '--project-name', project, '--env-file', envFile, '-f', composeFile];
+}
+
+function appComposeArgs(values = environment()) {
+  return [...composeArgs(values), '--profile', 'app'];
 }
 
 function runDocker(args, { allowFailure = false, capture = true, timeoutMs = 30_000 } = {}) {
@@ -174,7 +187,7 @@ function requireDocker() {
 }
 
 function validateCompose(values) {
-  runDocker([...composeArgs(values), 'config', '--quiet']);
+  runDocker([...appComposeArgs(values), 'config', '--quiet']);
 }
 
 function ensureDiskSpace(minFreeGib) {
@@ -216,10 +229,10 @@ function portAvailable(port) {
   });
 }
 
-async function ensurePorts(values) {
+async function ensurePorts(values, definitions = hostPorts) {
   const collisions = [];
   const configured = new Map();
-  for (const definition of hostPorts) {
+  for (const definition of definitions) {
     const port = portValue(definition, values);
     const prior = configured.get(port);
     if (prior && prior.key !== definition.key) {
@@ -276,14 +289,19 @@ function inspectCompletion(service, values) {
   return classifyCompletionStatus(status, Number(rawExitCode));
 }
 
-async function waitForReady(values, waitSeconds) {
+async function waitForReady(
+  values,
+  waitSeconds,
+  healthServices = services,
+  successfulCompletionServices = completionServices,
+) {
   const deadline = Date.now() + waitSeconds * 1000;
   let last = new Map();
   let lastCompletions = new Map();
   while (Date.now() <= deadline) {
-    last = new Map(services.map((service) => [service, inspectHealth(service, values)]));
+    last = new Map(healthServices.map((service) => [service, inspectHealth(service, values)]));
     lastCompletions = new Map(
-      completionServices.map((service) => [service, inspectCompletion(service, values)]),
+      successfulCompletionServices.map((service) => [service, inspectCompletion(service, values)]),
     );
     const failedCompletion = [...lastCompletions.entries()].find(
       ([, result]) => result.state === 'failed',
@@ -297,20 +315,26 @@ async function waitForReady(values, waitSeconds) {
       ) &&
       [...lastCompletions.values()].every(({ state }) => state === 'complete')
     ) {
-      console.log(`Local services ready (${[...services, ...completionServices].join(', ')}).`);
+      console.log(
+        `Local services ready (${[...healthServices, ...successfulCompletionServices].join(
+          ', ',
+        )}).`,
+      );
       return;
     }
     const summary = [
-      ...services.map((service) => `${service}=${last.get(service).detail}`),
-      ...completionServices.map((service) => `${service}=${lastCompletions.get(service).detail}`),
+      ...healthServices.map((service) => `${service}=${last.get(service).detail}`),
+      ...successfulCompletionServices.map(
+        (service) => `${service}=${lastCompletions.get(service).detail}`,
+      ),
     ].join(' ');
     process.stdout.write(`Waiting for local services: ${summary}\r`);
     await delay(1000);
   }
   console.error('\nLocal services did not become ready:');
-  for (const service of services)
+  for (const service of healthServices)
     console.error(`- ${service}: ${last.get(service)?.detail ?? 'unknown'}`);
-  for (const service of completionServices) {
+  for (const service of successfulCompletionServices) {
     console.error(`- ${service}: ${lastCompletions.get(service)?.detail ?? 'unknown'}`);
   }
   fail(`readiness timeout after ${waitSeconds}s`);
@@ -323,7 +347,7 @@ function parseArguments(argv, values = environment()) {
     command = argumentsToParse.shift();
   const options = {
     start: false,
-    waitSeconds: 60,
+    waitSeconds: command.startsWith('app-') ? 600 : 60,
     tail: 100,
     service: undefined,
     minFreeGib: Number(values.get('DATABREEZE_MIN_FREE_GIB') ?? 5),
@@ -381,6 +405,10 @@ function parseArguments(argv, values = environment()) {
       'status',
       'logs',
       'smoke',
+      'app-start',
+      'app-stop',
+      'app-status',
+      'app-logs',
     ].includes(command)
   ) {
     fail(`unknown command: ${command}`);
@@ -418,6 +446,13 @@ export async function main(argv = process.argv.slice(2)) {
       console.log(`${service}: ${inspectCompletion(service, values).detail}`);
     return;
   }
+  if (command === 'app-status') {
+    for (const service of [...services, ...appServices])
+      console.log(`${service}: ${inspectHealth(service, values).detail}`);
+    for (const service of appCompletionServices)
+      console.log(`${service}: ${inspectCompletion(service, values).detail}`);
+    return;
+  }
   if (command === 'logs') {
     const selected = options.service ? [options.service] : logServices;
     runDocker(
@@ -426,9 +461,49 @@ export async function main(argv = process.argv.slice(2)) {
     );
     return;
   }
+  if (command === 'app-logs') {
+    const selected = options.service ? [options.service] : appLogServices;
+    runDocker(
+      [...appComposeArgs(values), 'logs', '--no-color', `--tail=${options.tail}`, ...selected],
+      { capture: false, timeoutMs: 120_000 },
+    );
+    return;
+  }
   if (command === 'stop') {
     runDocker([...composeArgs(values), 'stop'], { timeoutMs: operationTimeoutMs });
     console.log('Local services stopped; named volumes and containers were preserved.');
+    return;
+  }
+  if (command === 'app-stop') {
+    runDocker([...appComposeArgs(values), 'stop', 'web', 'api', 'api-migrate'], {
+      timeoutMs: operationTimeoutMs,
+    });
+    console.log('Local API and Web stopped; dependencies, containers, and volumes were preserved.');
+    return;
+  }
+
+  if (command === 'app-start') {
+    ensureDiskSpace(options.minFreeGib);
+    await ensurePorts(values, allHostPorts);
+    // The migration service is a disposable one-shot container. Remove only
+    // that exact service before recreate so an interrupted start cannot leave
+    // its fixed Compose name blocking the next idempotent start. Named
+    // database/object volumes are never touched.
+    runDocker([...appComposeArgs(values), 'rm', '--stop', '--force', 'api-migrate'], {
+      timeoutMs: operationTimeoutMs,
+    });
+    runDocker([...appComposeArgs(values), 'up', '--detach', '--build'], {
+      timeoutMs: operationTimeoutMs,
+    });
+    await waitForReady(
+      values,
+      options.waitSeconds,
+      [...services, ...appServices],
+      appCompletionServices,
+    );
+    console.log(
+      `DataBreeze local app ready at https://localhost:${portValue(appHostPorts[0], values)}. Mailpit: http://localhost:${portValue(hostPorts[5], values)}.`,
+    );
     return;
   }
 

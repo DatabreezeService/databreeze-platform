@@ -80,6 +80,9 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "dso"\."device_sync_operations"/);
   assert.match(diff.stdout, /CREATE TABLE "dso"\."device_sync_conflicts"/);
   assert.match(diff.stdout, /CREATE TABLE "dso"\."strict_local_package_manifests"/);
+  assert.match(diff.stdout, /CREATE TABLE "dso"\."execution_route_decisions"/);
+  assert.match(diff.stdout, /CREATE TABLE "dso"\."workspace_data_mode_policies"/);
+  assert.match(diff.stdout, /CREATE TABLE "dso"\."workspace_policy_activations"/);
   assert.match(diff.stdout, /CREATE TABLE "sa"\."spreadsheet_audit_results"/);
   assert.match(diff.stdout, /CREATE TABLE "dda"\."dashboards"/);
   assert.match(diff.stdout, /CREATE TABLE "dda"\."dashboard_versions"/);
@@ -87,6 +90,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "dda"\."materialization_definitions"/);
   assert.match(diff.stdout, /CREATE TABLE "dda"\."dashboard_snapshots"/);
   assert.match(diff.stdout, /CREATE TABLE "dda"\."dashboard_refresh_state"/);
+  assert.match(diff.stdout, /CREATE TABLE "dda"\."notification_intents"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."authorization_snapshots"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."mfa_recovery_codes"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."invitation_tokens"/);
@@ -97,7 +101,9 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "iam"\."service_accounts"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."recovery_compensation_failures"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."invitation_delivery_failures"/);
+  assert.match(diff.stdout, /CREATE TABLE "iam"\."workspace_dataset_restrictions"/);
   assert.match(diff.stdout, /CREATE TABLE "bua"\."entitlement_leases"/);
+  assert.match(diff.stdout, /CREATE TABLE "bua"\."result_usage_settlement_bindings"/);
   assert.match(diff.stdout, /CREATE TABLE "aud"\."audit_seal_attestations"/);
 
   const migrationsDirectory = path.join(apiDirectory, 'prisma', 'migrations');
@@ -151,7 +157,33 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260804040000_iam_invitation_delivery_failures',
     '20260810010000_dda_foundation',
     '20260811010000_dda_durable_runtime',
+    '20260811020000_dda_dashboard_proposals',
     '20260812010000_unified_workspace',
+    '20260812020000_dda_dashboard_authoring_commands',
+    '20260813010000_dda_dashboard_publications',
+    '20260813020000_dda_conversation_durability',
+    '20260813030000_iam_workspace_dataset_restrictions',
+    '20260813040000_dda_refresh_event_backplane',
+    '20260813040000_jra_durable_approvals',
+    '20260813040100_dda_receipt_etl_command_durability',
+    '20260813040200_dda_notification_intents',
+    '20260813050000_dda_source_catalog_data_mode',
+    '20260813050000_jra_worker_completions',
+    '20260814010000_dda_refresh_identity_atomicity',
+    '20260814020000_dda_agent_consequential_commands',
+    '20260814030000_dda_notification_durability',
+    '20260814040000_iae_worker_capabilities',
+    '20260814050000_iam_verified_registration_activation',
+    '20260814060000_jra_cloud_worker_assignment',
+    '20260814070000_iae_worker_object_transfers',
+    '20260814070000_jra_execution_request_descriptors',
+    '20260814080000_dso_execution_route_decisions',
+    '20260814090000_bua_result_usage_settlement_binding',
+    '20260814090000_dso_workspace_policy_authority',
+    '20260814090100_dso_workspace_policy_authority_contract',
+    '20260814100000_iae_artifact_upload_finalization',
+    '20260814110000_iae_worker_result_finalization',
+    '20260814110100_jra_worker_result_finalization',
     'migration_lock.toml',
   ]);
   const migration = await readFile(
@@ -650,4 +682,31 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     compensationFailureMigration,
     /CREATE TABLE "iam"\."recovery_compensation_failures"/u,
   );
+  const datasetRestrictionMigration = await readFile(
+    path.join(
+      migrationsDirectory,
+      '20260813030000_iam_workspace_dataset_restrictions',
+      'migration.sql',
+    ),
+    'utf8',
+  );
+  for (const statement of [
+    'CREATE TABLE "iam"."workspace_dataset_restrictions"',
+    'workspace_dataset_restrictions_scope_member_key',
+    'workspace_dataset_restrictions_workspace_updated_idx',
+    '"denied_dataset_ids" JSONB NOT NULL',
+    'workspaces_organization_scope_id_key',
+    'memberships_scope_id_key',
+    'workspace_dataset_restrictions_workspace_scope_fkey',
+    'workspace_dataset_restrictions_member_scope_fkey',
+    'ON DELETE RESTRICT',
+  ]) {
+    assert.match(
+      datasetRestrictionMigration,
+      new RegExp(statement.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&')),
+    );
+  }
+  assert.match(datasetRestrictionMigration, /No backfill/u);
+  assert.doesNotMatch(datasetRestrictionMigration, /REFERENCES "dsm"/u);
+  assert.doesNotMatch(datasetRestrictionMigration, /CREATE TABLE "(?!iam")/u);
 });

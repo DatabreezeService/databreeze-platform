@@ -1,5 +1,7 @@
 import type { TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
+import type { EtlAcceptanceIdempotencyPortV1 } from './etl-acceptance-idempotency.port.js';
+
 export const ETL_PROPOSAL_REPOSITORY_PORT = Symbol('ETL_PROPOSAL_REPOSITORY_PORT');
 
 export type EtlProposalStateV1 = 'NEEDS_REVIEW' | 'READY_FOR_ACCEPTANCE' | 'ACCEPTED' | 'REJECTED';
@@ -79,8 +81,12 @@ export interface EtlProposalRecordV1 {
   readonly tenantScope?: TenantScopeV1;
 }
 
-export interface EtlProposalRepositoryPortV1 {
+export interface EtlProposalRepositoryPortV1 extends EtlAcceptanceIdempotencyPortV1 {
   save(record: EtlProposalRecordV1): Promise<EtlProposalRecordV1>;
-  findById(proposalId: string): Promise<EtlProposalRecordV1 | undefined>;
+  /** HTTP callers must provide the trusted scope; the optional form preserves legacy service composition. */
+  findById(
+    proposalId: string,
+    tenantScope?: TenantScopeV1,
+  ): Promise<EtlProposalRecordV1 | undefined>;
   update(record: EtlProposalRecordV1): Promise<EtlProposalRecordV1>;
 }

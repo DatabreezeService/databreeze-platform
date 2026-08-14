@@ -632,6 +632,13 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
   }
 }
 
+/** BUA-023: adapt an existing owner transaction without opening a nested transaction. */
+export function entitlementTransactionForDatabase(
+  client: EntitlementDatabaseClientV1,
+): EntitlementTransactionPortV1 {
+  return new PrismaEntitlementTransactionAdapter(client);
+}
+
 export class PrismaEntitlementRepositoryAdapter implements EntitlementRepositoryPortV1 {
   public constructor(private readonly client: EntitlementDatabaseClientV1) {}
 

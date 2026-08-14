@@ -1,0 +1,30 @@
+{
+	admin off
+	local_certs
+	skip_install_trust
+	storage file_system {
+		root /data/caddy
+	}
+}
+
+https://localhost:8443 {
+	tls internal
+	encode zstd gzip
+
+	@api path /v1/* /v3/* /health/*
+	handle @api {
+		reverse_proxy api:3000
+	}
+
+	header {
+		Content-Security-Policy "default-src 'self'; base-uri 'self'; connect-src 'self'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; upgrade-insecure-requests"
+		Referrer-Policy "no-referrer"
+		X-Content-Type-Options "nosniff"
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

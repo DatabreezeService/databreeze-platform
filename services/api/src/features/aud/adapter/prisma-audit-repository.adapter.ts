@@ -413,6 +413,14 @@ class PrismaAuditTransactionAdapter implements AuditTransactionPortV1 {
   }
 }
 
+/** AUD-001/AUD-002: adapt an existing owner transaction without opening a nested transaction. */
+export function auditTransactionForDatabase(
+  client: AuditDatabaseClientV1,
+  digestPort: AuditDigestPortV1,
+): AuditTransactionPortV1 {
+  return new PrismaAuditTransactionAdapter(client, digestPort);
+}
+
 export class PrismaAuditRepositoryAdapter implements AuditRepositoryPortV1 {
   public constructor(
     private readonly client: AuditDatabaseClientV1,

@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 from importlib.resources import files
 
-# sha256 digests of reviewed processor source bytes (computed 2026-08-10).
+# sha256 digests of reviewed processor source bytes (computed 2026-08-12).
 DDA_PROCESSOR_DIGESTS: dict[str, str] = {
     "dda_etl_execute.py": "sha256:a3506729ef6a6f324151b57432a930e06fb486abfa567d4c0b151406a79a3953",
     "dda_etl_intake.py": "sha256:d354320fce2a33d6b24226398be23c18ebc6ecaaf6b84e8485fca81f2b68e0ab",
@@ -20,7 +20,7 @@ DDA_PROCESSOR_DIGESTS: dict[str, str] = {
         "sha256:8b497ed6731a1eb9f6ad379f08e11b209d87472b437bc16e0fd4d1a8ac3d795b"
     ),
     "dda_materialize_query.py": (
-        "sha256:91f8dc60289101a36ecc4e9578eb59e8b4b25d4a38db92c854dfaa6ce42a854e"
+        "sha256:4418b6da9b59b7d3c7694599c2ffd4b5af89c6f097e69fc5160941842200e272"
     ),
     "dda_materialize_snapshot.py": (
         "sha256:48864f745a48877ebe153adb32f811490b5aa79928e78af3884852f37454b550"

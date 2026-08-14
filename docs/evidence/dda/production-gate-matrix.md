@@ -9,12 +9,12 @@
 |---|---|---|---|---|
 | 1 | Release manifest + evidence matrix | in-progress | — | This file + `release-manifest.json` (`productionReady: false`) |
 | 2 | Staging/production AWS OpenTofu | partial | §2 AWS accounts/OIDC | `infrastructure/aws/environments/{staging,production}` plan-only |
-| 3 | OpenAI receipt/AI adapters | partial | §3 OpenAI project/key/eval + quality | Fail-closed adapter + egress + offline corpus green; owner live synthetic plumbing verified (`schemaFailure: false`, 3 requests) but extraction quality failed (0/6 fields; `promotionEligible`/`productionReady` false). See `openai-receipt-evaluation.md`. |
+| 3 | OpenAI receipt/AI adapters | partial | §3 OpenAI project/key/eval + quality | Fail-closed adapters for receipt + mapping/analyst/narrative/dashboard; offline corpus **repaired** (readable 600×900 fixtures + admission tests). Prior live run retained as **plumbing only** (solid-square corpus invalidated model-quality conclusions). Assistance Tasks 6–10 offline green; live assistance not run. `productionReady`/`promotionEligible` false. See `openai-receipt-evaluation.md` + `openai-assistance-evaluation.md`. |
 | 4 | Tenant isolation / API protection | partial | §2 staging deploy | Unit/composition tests; e2e against live staging blocked |
 | 5 | Retention / deletion / privacy | partial | §2 retention approvals, §3 OpenAI retention | Runbook drafted; live proof blocked |
-| 6 | Backup / restore / DR | blocked | §2 AWS + restore rehearsal | Runbook + verify script scaffold |
+| 6 | Backup / restore / DR | blocked | §2 AWS + restore rehearsal | Content-safe environment-only live verifier implemented; real isolated restore evidence pending |
 | 7 | Observability / alarms | partial | §8 on-call owners | Runbooks drafted; CloudWatch apply blocked |
-| 8 | Performance / cost | partial | §3/§8 budgets | Load scripts scaffold; live p95 blocked |
+| 8 | Performance / cost | partial | §3/§8 budgets | Bounded HTTPS staging readiness load probe implemented; representative live p95/cost evidence pending |
 | 9 | Web a11y / i18n / CSP | partial | §4 devices/browsers | Strict CSP retained (no `unsafe-eval`); dashboard live/API mode wired with fail-closed empty states; full AA review blocked |
 | 10 | Desktop signing / release | blocked | §5 Windows signing identity | Runbook drafted; governed FS watcher attaches after capability-backed binding (capability still fail-closed until DSO enrollment) |
 | 11 | Android Play / signing | blocked | §6 Play account/signing | CameraX + durable staging + authenticated v2 upload/extraction clients when `AuthenticatedApiConfig` supplied (else fail-closed); JVM/lint/assemble green; emulator `connectedDebugAndroidTest` blocked without device; Play signing blocked |

@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/jra-worker-dashboard-widget-result-output",
+  "$comment": "DDA-032/JRA-012/JRA-031/IAE-024: one deterministic dashboard-widget JSON output bound to the exact snapshot proof; transported under outputSchemaId dda.dashboard-widget-result.v4.",
+  "title": "JRA Worker Dashboard Widget Result Output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "widgetResult", "subjectBindings"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "kind": { "const": "DASHBOARD_WIDGET_RESULT" },
+    "widgetResult": { "$ref": "#/$defs/workerDashboardWidgetResult" },
+    "subjectBindings": { "$ref": "#/$defs/workerDashboardSubjectBindings" }
+  },
+  "$defs": {
+    "workerDashboardWidgetResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["widgetId", "resultState", "rows"],
+      "properties": {
+        "widgetId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "resultState": { "enum": ["READY", "EMPTY", "SAMPLED", "TRUNCATED", "STALE"] },
+        "rows": { "type": "array", "maxItems": 1000, "items": { "$ref": "#/$defs/workerDashboardResultRow" } }
+      }
+    },
+    "workerDashboardResultRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "displayValue", "numericValue", "unit", "provenance"],
+      "properties": {
+        "label": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "displayValue": { "type": "string", "maxLength": 8192 },
+        "numericValue": { "type": "number" },
+        "unit": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "provenance": { "$ref": "#/$defs/workerDashboardResultProvenance" }
+      }
+    },
+    "workerDashboardResultProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resultCellId", "planVersionId", "metricVersionId", "datasetVersionId", "evidenceRefs"],
+      "properties": {
+        "resultCellId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "planVersionId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "metricVersionId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "datasetVersionId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "evidenceRefs": { "type": "array", "maxItems": 32, "uniqueItems": true, "items": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" } }
+      }
+    },
+    "workerDashboardSubjectBindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dashboardId", "dashboardVersionId", "widgetId", "planVersionId", "metricVersionId", "datasetVersionId", "permissionProjectionVersionId", "policyVersionId", "locale", "timezone", "inputSelectorHash", "engineVersion", "handlerDigest"],
+      "properties": {
+        "dashboardId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "dashboardVersionId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "widgetId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "planVersionId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "metricVersionId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "datasetVersionId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "permissionProjectionVersionId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "policyVersionId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "locale": { "enum": ["vi-VN", "en"] },
+        "timezone": { "type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[A-Za-z_+-]+(?:/[A-Za-z0-9_+.-]+)+$" },
+        "inputSelectorHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "engineVersion": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "handlerDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      }
+    }
+  }
+}

@@ -43,12 +43,7 @@ export function SourceImportDialog({
   if (!open) return null;
 
   return (
-    <div
-      aria-label={copy.dialog}
-      aria-modal="true"
-      className="source-import-dialog"
-      role="dialog"
-    >
+    <div aria-label={copy.dialog} aria-modal="true" className="source-import-dialog" role="dialog">
       <fieldset>
         <legend>{copy.dialog}</legend>
         {PROFILES.map((item) => (

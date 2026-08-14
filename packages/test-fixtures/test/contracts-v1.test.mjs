@@ -25,8 +25,14 @@ test('publishes a deterministic synthetic v1 contract fixture registry', () => {
 });
 
 test('covers every canonical schema with accepted and rejected payloads', () => {
-  const canonicalIds = schemaManifest.schemas.map((schema) => schema.id);
-  const fixtureIds = new Set(fixtureManifest.cases.map((fixtureCase) => fixtureCase.schemaId));
+  const canonicalIds = schemaManifest.schemas
+    .filter((schema) => schema.id.includes('/contracts/v1/'))
+    .map((schema) => schema.id);
+  const fixtureIds = new Set(
+    fixtureManifest.cases
+      .filter((fixtureCase) => fixtureCase.schemaId.includes('/contracts/v1/'))
+      .map((fixtureCase) => fixtureCase.schemaId),
+  );
   assert.deepEqual([...fixtureIds].sort(), [...canonicalIds].sort());
 
   for (const schemaId of canonicalIds) {

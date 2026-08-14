@@ -7,6 +7,8 @@
 - Task 1 sở hữu DSO-001 đến DSO-027.
 - Task 2 sở hữu AND-001 đến AND-023 và DSK-001 đến DSK-026. `DSK-001`, `DSK-002`, `DSK-008` giữ `partial` và `not-verified` trong manifest vì shell hiện có; không requirement nào được đánh dấu verified bởi plan này.
 
+**Approved authority subplan:** `051-dso-workspace-policy-authority.md` defines the DSO-018/024/026/027 and IAM-002/003/012/019/020 atomic publish-and-activate prerequisite for durable execution routing.
+
 **Kiến trúc / Architecture:** `devices-sync-offline` là mô-đun NestJS/Fastify. Domain xác định device, capability, operation và conflict; application điều phối IAM authorization, JRA jobs và AUD events; adapters thực hiện Prisma, queue, object grant và signed transfer. Desktop Electron và Android Kotlin/Compose dùng hợp đồng v1 đã sinh; Python engine chỉ nhận typed processor payload, không nhận database credential hay arbitrary command.
 
 ## Phụ thuộc và giới hạn / Dependencies and boundaries

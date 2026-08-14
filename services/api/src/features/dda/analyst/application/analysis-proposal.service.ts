@@ -6,30 +6,15 @@ import { createHash, randomUUID } from 'node:crypto';
 
 import type { IamTenantContextV1 } from '../../../iam/application/tenant-context.js';
 import type { AnalysisAdapterPortV1 } from './analysis-adapter.port.js';
+import { asAnalysisCatalogResolverV1 } from './analysis-catalog-resolver.service.js';
+import type {
+  AnalysisCatalogAuthorityPortV1,
+  AnalysisCatalogResolverV1,
+  AnalysisCatalogV1,
+  AnalysisNonAnswerReasonV1,
+} from './analysis-catalog.port.js';
 
-/** Stable non-answer reasons from DDA-018 / plan 083. */
-export type AnalysisNonAnswerReasonV1 =
-  | 'AMBIGUOUS_REQUEST'
-  | 'INSUFFICIENT_DATA'
-  | 'UNAUTHORIZED_DATA'
-  | 'STALE_INPUT'
-  | 'QUALITY_BLOCKED'
-  | 'SOURCE_UNAVAILABLE'
-  | 'UNSUPPORTED_PLAN'
-  | 'BUDGET_DENIED'
-  | 'ADAPTER_UNAVAILABLE';
-
-export interface AnalysisCatalogV1 {
-  readonly datasetVersionId: string;
-  readonly semanticVersionId: string;
-  readonly metricVersionId: string;
-  readonly permissionProjectionVersionId: string;
-  readonly authorizedFields: readonly string[];
-  readonly authorizedJoins: readonly string[];
-  readonly units: Readonly<Record<string, string>>;
-  readonly grains: readonly string[];
-  readonly blockedReason?: AnalysisNonAnswerReasonV1;
-}
+export type { AnalysisCatalogV1, AnalysisNonAnswerReasonV1 } from './analysis-catalog.port.js';
 
 export interface AnalysisRecommendationV1 {
   readonly question: string;
@@ -81,17 +66,32 @@ function hasHostileExecutablePayload(input: Record<string, unknown>): boolean {
 
 /** DDA-015..019, DDA-044, DDA-050: typed analyst proposals without authoritative AI numbers. */
 export class AnalysisProposalServiceV1 {
+  private readonly catalogResolver: AnalysisCatalogResolverV1;
+
   public constructor(
     private readonly adapter: AnalysisAdapterPortV1,
-    private readonly catalog: AnalysisCatalogV1,
-  ) {}
+    catalogSource: AnalysisCatalogResolverV1 | AnalysisCatalogAuthorityPortV1 | AnalysisCatalogV1,
+  ) {
+    this.catalogResolver = asAnalysisCatalogResolverV1(catalogSource);
+  }
 
   public async propose(
     context: IamTenantContextV1,
     input: Record<string, unknown>,
   ): Promise<AnalysisProposalResultV1> {
-    if (this.catalog.blockedReason) {
-      return Object.freeze({ accepted: false, code: this.catalog.blockedReason });
+    const catalogResult = await this.catalogResolver.resolve(context, {
+      datasetVersionId: input['datasetVersionId'],
+      semanticVersionId: input['semanticVersionId'],
+      metricVersionId: input['metricVersionId'],
+      permissionProjectionVersionId: input['permissionProjectionVersionId'],
+      ...(input['memberId'] === undefined ? {} : { memberId: input['memberId'] }),
+    });
+    if (!catalogResult.accepted) {
+      return Object.freeze({ accepted: false, code: catalogResult.code });
+    }
+    const catalog = catalogResult.value;
+    if (catalog.blockedReason) {
+      return Object.freeze({ accepted: false, code: catalog.blockedReason });
     }
     if (hasHostileExecutablePayload(input)) {
       return Object.freeze({ accepted: false, code: 'UNSUPPORTED_PLAN' as const });
@@ -133,13 +133,26 @@ export class AnalysisProposalServiceV1 {
       return Object.freeze({ accepted: false, code: 'INSUFFICIENT_DATA' as const });
     }
 
+    const authorized = new Set(catalog.authorizedFields);
+    const catalogUnits = catalog.units;
+    if (
+      Object.entries(units as Record<string, unknown>).some(
+        ([field, unit]) =>
+          !authorized.has(field) || typeof unit !== 'string' || catalogUnits[field] !== unit,
+      )
+    ) {
+      return Object.freeze({ accepted: false, code: 'UNAUTHORIZED_DATA' as const });
+    }
+    if (!catalog.grains.includes(input['timeGrain'])) {
+      return Object.freeze({ accepted: false, code: 'UNAUTHORIZED_DATA' as const });
+    }
+
     const output = input['output'] as { form?: string; maxRows?: number } | undefined;
     if (!output || typeof output.maxRows !== 'number' || output.maxRows > 10_000) {
       return Object.freeze({ accepted: false, code: 'UNSUPPORTED_PLAN' as const });
     }
 
     const dimensions = Array.isArray(input['dimensions']) ? (input['dimensions'] as string[]) : [];
-    const authorized = new Set(this.catalog.authorizedFields);
     if (dimensions.some((field) => !authorized.has(field))) {
       return Object.freeze({ accepted: false, code: 'UNAUTHORIZED_DATA' as const });
     }
@@ -156,50 +169,125 @@ export class AnalysisProposalServiceV1 {
 
     let adapterUsed = false;
     let rationale: string | undefined;
+    let planPatch: Readonly<Record<string, unknown>> | undefined;
     const manual = input['manualTypedPlan'] === true;
     const available = await this.adapter.isAvailable();
     if (!manual && available) {
       const proposal = await this.adapter.proposeTypedPlan({
         question: typeof input['question'] === 'string' ? input['question'] : '',
         tenantScope: context.tenantScope,
+        catalog: {
+          datasetVersionId: catalog.datasetVersionId,
+          semanticVersionId: catalog.semanticVersionId,
+          metricVersionId: catalog.metricVersionId,
+          permissionProjectionVersionId: catalog.permissionProjectionVersionId,
+          authorizedFields: catalog.authorizedFields,
+          authorizedJoins: catalog.authorizedJoins,
+          allowedMetrics: catalog.authorizedFields,
+          allowedDimensions: catalog.authorizedFields,
+          units: catalog.units,
+          grains: catalog.grains,
+          timeBounds: {
+            start:
+              typeof (input['timeRange'] as { start?: unknown } | undefined)?.start === 'string'
+                ? (input['timeRange'] as { start: string }).start
+                : '1970-01-01T00:00:00.000Z',
+            end:
+              typeof (input['timeRange'] as { end?: unknown } | undefined)?.end === 'string'
+                ? (input['timeRange'] as { end: string }).end
+                : '2100-01-01T00:00:00.000Z',
+          },
+          locale: typeof input['locale'] === 'string' && input['locale'] === 'en' ? 'en' : 'vi',
+          outputBounds: {
+            form: typeof output?.form === 'string' ? output.form : 'TABLE',
+            maxRows: typeof output?.maxRows === 'number' ? output.maxRows : 100,
+          },
+          estimatedCostLimits: { cpuMs: 5_000, memoryMb: 512 },
+        },
       });
       if (proposal.status === 'PROPOSED') {
         adapterUsed = true;
         rationale = proposal.rationale;
+        planPatch = proposal.planPatch;
+        if (planPatch && hasHostileExecutablePayload(planPatch as Record<string, unknown>)) {
+          return Object.freeze({ accepted: false, code: 'UNSUPPORTED_PLAN' as const });
+        }
       }
     }
+
+    const mergedDimensions =
+      planPatch && Array.isArray(planPatch['dimensions'])
+        ? (planPatch['dimensions'] as string[])
+        : dimensions;
+    if (mergedDimensions.some((field) => !authorized.has(field))) {
+      return Object.freeze({ accepted: false, code: 'UNAUTHORIZED_DATA' as const });
+    }
+    const mergedFilters =
+      planPatch && Array.isArray(planPatch['filters'])
+        ? (planPatch['filters'] as Record<string, string>[])
+        : filters;
+    if (mergedFilters.some((filter) => !authorized.has(String(filter['field'] ?? '')))) {
+      return Object.freeze({ accepted: false, code: 'UNAUTHORIZED_DATA' as const });
+    }
+    const mergedJoins =
+      planPatch && Array.isArray(planPatch['joins'])
+        ? (planPatch['joins'] as Record<string, string>[])
+        : joins;
+    if (mergedJoins.length > 0) {
+      const allowedJoins = new Set(catalog.authorizedJoins);
+      if (
+        mergedJoins.some((join) => !allowedJoins.has(String(join['joinId'] ?? join['id'] ?? '')))
+      ) {
+        return Object.freeze({ accepted: false, code: 'UNAUTHORIZED_DATA' as const });
+      }
+    }
+    const mergedGrain =
+      planPatch && typeof planPatch['timeGrain'] === 'string'
+        ? planPatch['timeGrain']
+        : input['timeGrain'];
+    if (typeof mergedGrain !== 'string' || !catalog.grains.includes(mergedGrain)) {
+      return Object.freeze({ accepted: false, code: 'UNAUTHORIZED_DATA' as const });
+    }
+    const mergedOutput =
+      planPatch && planPatch['output'] && typeof planPatch['output'] === 'object'
+        ? (planPatch['output'] as { form?: string; maxRows?: number })
+        : output;
+    const mergedAssumptions =
+      planPatch && Array.isArray(planPatch['assumptions'])
+        ? (planPatch['assumptions'] as string[])
+        : ((input['assumptions'] as string[]) ?? []);
 
     const createdAt = new Date().toISOString().replace(/\.\d{3}Z$/u, '.000Z');
     const planId = randomUUID();
     const planVersionId = randomUUID();
     const hash = planHash({
-      datasetVersionId: input['datasetVersionId'],
-      semanticVersionId: input['semanticVersionId'],
-      metricVersionId: input['metricVersionId'],
-      dimensions,
-      filters,
-      timeGrain: input['timeGrain'],
-      output,
+      datasetVersionId: catalog.datasetVersionId,
+      semanticVersionId: catalog.semanticVersionId,
+      metricVersionId: catalog.metricVersionId,
+      dimensions: mergedDimensions,
+      filters: mergedFilters,
+      timeGrain: mergedGrain,
+      output: mergedOutput,
     });
 
     const created = createDdaAnalysisPlanV1({
       planId,
       planVersionId,
       tenantScope: context.tenantScope,
-      datasetVersionId: input['datasetVersionId'],
-      semanticVersionId: input['semanticVersionId'],
-      metricVersionId: input['metricVersionId'],
-      dimensions,
-      filters,
+      datasetVersionId: catalog.datasetVersionId,
+      semanticVersionId: catalog.semanticVersionId,
+      metricVersionId: catalog.metricVersionId,
+      dimensions: mergedDimensions,
+      filters: mergedFilters,
       timeRange: input['timeRange'],
-      timeGrain: input['timeGrain'],
-      joins,
+      timeGrain: mergedGrain,
+      joins: mergedJoins,
       units,
       parameters: (input['parameters'] as Record<string, string | number | boolean>) ?? {},
-      output,
-      assumptions: (input['assumptions'] as string[]) ?? [],
+      output: mergedOutput,
+      assumptions: mergedAssumptions,
       estimate: input['estimate'],
-      permissionProjectionVersionId: input['permissionProjectionVersionId'],
+      permissionProjectionVersionId: catalog.permissionProjectionVersionId,
       planHash: hash,
       createdAt,
     });

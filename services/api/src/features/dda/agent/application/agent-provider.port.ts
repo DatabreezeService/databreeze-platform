@@ -1,4 +1,10 @@
-import type { AgentContextPackageV1, AgentProviderCompletionV1, AgentResultV1 } from './agent-tool.types.js';
+/* eslint-disable @typescript-eslint/require-await -- disabled provider mirrors the async provider port. */
+
+import type {
+  AgentContextPackageV1,
+  AgentProviderCompletionV1,
+  AgentResultV1,
+} from './agent-tool.types.js';
 
 export const AGENT_PROVIDER_PORT = Symbol('AGENT_PROVIDER_PORT');
 

@@ -97,8 +97,9 @@ void test('[DDA-001] cross-tenant fixture identifier is rejected by contracts su
 });
 
 void test('[DDA-044] copied OpenAI adapter allowlist from another tenant never authorizes receipt egress', async () => {
-  const { DefaultReceiptAiPolicyAdapter } =
-    await import('../../../src/features/dda/receipt/application/default-receipt-ai-policy.adapter.js');
+  const { DefaultReceiptAiPolicyAdapter } = await import(
+    '../../../src/features/dda/receipt/application/default-receipt-ai-policy.adapter.js'
+  );
 
   const policyA = createDdaAiEgressPolicyV1({
     policyId: '00000000-0000-4000-8000-0000000000aa',

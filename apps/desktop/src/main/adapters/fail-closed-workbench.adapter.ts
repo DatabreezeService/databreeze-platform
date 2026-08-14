@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/require-await -- this adapter mirrors the asynchronous IPC contract while fail-closed. */
+
 import type {
   WorkbenchCatalogPage,
   WorkbenchOriginalDescriptor,
@@ -9,9 +11,7 @@ import type {
 export interface WorkbenchMainPort {
   readSession(): Promise<WorkbenchSessionSnapshot>;
   listCatalogPage(request: { cursor: string | null }): Promise<WorkbenchCatalogPage>;
-  readOriginalDescriptor(request: {
-    descriptorId: string;
-  }): Promise<WorkbenchOriginalDescriptor>;
+  readOriginalDescriptor(request: { descriptorId: string }): Promise<WorkbenchOriginalDescriptor>;
   decideFolderReview(request: {
     reviewId: string;
     decision: 'approve' | 'reject';
@@ -48,8 +48,12 @@ export function createFailClosedWorkbenchPort(): WorkbenchMainPort {
     readOriginalDescriptor: async () => {
       throw new Error('WORKBENCH_ORIGINAL_UNAVAILABLE');
     },
-    decideFolderReview: async () => Object.freeze({ accepted: true as const }),
-    runAgentTurn: async () => Object.freeze({ accepted: true as const }),
+    decideFolderReview: async () => {
+      throw new Error('WORKBENCH_REVIEW_UNAVAILABLE');
+    },
+    runAgentTurn: async () => {
+      throw new Error('WORKBENCH_AGENT_UNAVAILABLE');
+    },
     getSyncStatus: async () =>
       Object.freeze({
         folderMonitoring: 'unavailable' as const,
@@ -57,9 +61,15 @@ export function createFailClosedWorkbenchPort(): WorkbenchMainPort {
         engineHealth: 'not-installed' as const,
         pendingReviewCount: 0,
       }),
-    importSource: async () => Object.freeze({ accepted: true as const }),
+    importSource: async () => {
+      throw new Error('WORKBENCH_IMPORT_UNAVAILABLE');
+    },
     signInWithPassword: async () => signedOut,
-    verifyOtp: async () => signedOut,
-    startGoogleOidc: async () => Object.freeze({ accepted: true as const }),
+    verifyOtp: async () => {
+      throw new Error('WORKBENCH_OTP_UNAVAILABLE');
+    },
+    startGoogleOidc: async () => {
+      throw new Error('WORKBENCH_GOOGLE_OIDC_UNAVAILABLE');
+    },
   };
 }

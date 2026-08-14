@@ -61,3 +61,20 @@ void test('[IAM-023] logout-current and logout-all revoke session families', asy
   assert.equal(await adapter.revokeAllForUser(principal.userId), 1);
   assert.equal(await adapter.findPrincipal(second.sessionId), undefined);
 });
+
+void test('[IAM-023] in-memory refresh enforces and slides the inactivity window', async () => {
+  let now = new Date('2026-01-01T00:00:00.000Z');
+  const adapter = new InMemorySessionLifecycleAdapter({ clock: () => new Date(now) });
+  const issued = await adapter.issue(principal, 'web');
+
+  now = new Date('2026-01-10T00:00:00.000Z');
+  const rotated = await adapter.refresh(issued.refreshToken, 'web');
+  assert.equal(rotated.accepted, true);
+  if (!rotated.accepted) return;
+
+  now = new Date('2026-02-09T00:00:00.000Z');
+  assert.deepEqual(await adapter.refresh(rotated.value.refreshToken, 'web'), {
+    accepted: false,
+    code: 'EXPIRED',
+  });
+});

@@ -20,7 +20,7 @@ export const uploadPanelCopyVi: UploadPanelCopyV1 = {
   retry: 'Thử lại an toàn',
   cancel: 'Hủy',
   progress: 'Đang tải',
-  success: 'Đã chốt phiên tải',
+  success: 'Đã gửi tệp vào Inbox',
   failure: 'Không thể tải tệp. Không có thay đổi nào được gửi.',
 };
 
@@ -31,15 +31,14 @@ export const uploadPanelCopyEn: UploadPanelCopyV1 = {
   retry: 'Retry safely',
   cancel: 'Cancel',
   progress: 'Uploading',
-  success: 'Upload session finalized',
+  success: 'File added to Inbox',
   failure: 'The file could not upload. No changes were sent.',
 };
 
 export interface UploadPanelProps {
   readonly locale?: 'vi' | 'en';
   readonly api?: WebIntakeApiV1;
-  readonly tenantScope: unknown;
-  readonly sessionId: string;
+  readonly sessionId?: string;
 }
 
 async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
@@ -57,7 +56,6 @@ function toBase64(bytes: ArrayBuffer): string {
 export function UploadPanel({
   locale = 'vi',
   api = createWebIntakeApi(),
-  tenantScope,
   sessionId,
 }: UploadPanelProps) {
   const copy = locale === 'en' ? uploadPanelCopyEn : uploadPanelCopyVi;
@@ -86,14 +84,25 @@ export function UploadPanel({
       const mediaType = file.name.toLowerCase().endsWith('.xlsx')
         ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         : 'text/csv';
-      const result = await api.finalize({
-        sessionId,
-        fileName: file.name,
-        claimedMediaType: mediaType,
-        expectedSha256,
-        contentBase64: toBase64(buffer),
-        tenantScope,
-      });
+      const result = api.upload
+        ? await api.upload({
+            fileName: file.name,
+            claimedMediaType: mediaType,
+            expectedSha256,
+            contentBase64: toBase64(buffer),
+            idempotencyKey: `web-upload-${crypto.randomUUID()}`,
+          })
+        : sessionId === undefined
+          ? (() => {
+              throw new Error('INTAKE_UNAVAILABLE');
+            })()
+          : await api.finalize({
+              sessionId,
+              fileName: file.name,
+              claimedMediaType: mediaType,
+              expectedSha256,
+              contentBase64: toBase64(buffer),
+            });
       if (abort.signal.aborted) {
         setStatus('cancelled');
         return;
@@ -109,9 +118,9 @@ export function UploadPanel({
   }
 
   return (
-    <section aria-label={copy.title}>
+    <section className="upload-panel" aria-label={copy.title}>
       <h2>{copy.title}</h2>
-      <label>
+      <label className="upload-panel__picker">
         {copy.chooseFile}
         <input
           type="file"
@@ -124,7 +133,7 @@ export function UploadPanel({
           }}
         />
       </label>
-      <div>
+      <div className="upload-panel__actions">
         <button
           type="button"
           onClick={() => void runUpload()}
@@ -144,16 +153,20 @@ export function UploadPanel({
         </button>
       </div>
       {status === 'uploading' ? (
-        <p role="status">
+        <p className="upload-panel__progress" role="status">
           {copy.progress}: {progress}%
         </p>
       ) : null}
       {status === 'success' && artifactVersionId ? (
-        <p role="status">
+        <p className="upload-panel__success" role="status">
           {copy.success}: {artifactVersionId}
         </p>
       ) : null}
-      {status === 'failure' ? <p role="alert">{copy.failure}</p> : null}
+      {status === 'failure' ? (
+        <p className="upload-panel__failure" role="alert">
+          {copy.failure}
+        </p>
+      ) : null}
     </section>
   );
 }

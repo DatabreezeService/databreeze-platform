@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 4,
+  "accepted": true,
+  "dashboardId": "00000000-0000-4000-8000-000000000101",
+  "snapshotId": "00000000-0000-4000-8000-000000000102",
+  "freshness": {
+    "state": "CURRENT",
+    "lastSuccessfulRefreshAt": "2026-08-13T10:00:00.000Z",
+    "inputSelectorHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "dashboardVersionId": "00000000-0000-4000-8000-000000000103",
+    "inputVersionIds": ["00000000-0000-4000-8000-000000000104"]
+  },
+  "widgets": [
+    {
+      "widgetId": "00000000-0000-4000-8000-000000000105",
+      "resultState": "READY",
+      "rows": [
+        {
+          "label": "Doanh thu",
+          "displayValue": "1.250.000 ₫",
+          "numericValue": 1250000,
+          "unit": "VND",
+          "provenance": {
+            "resultCellId": "00000000-0000-4000-8000-000000000106",
+            "planVersionId": "00000000-0000-4000-8000-000000000107",
+            "metricVersionId": "00000000-0000-4000-8000-000000000108",
+            "datasetVersionId": "00000000-0000-4000-8000-000000000104",
+            "evidenceRefs": ["00000000-0000-4000-8000-000000000109"],
+            "tenantScope": {
+              "organizationId": "00000000-0000-4000-8000-000000000110"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

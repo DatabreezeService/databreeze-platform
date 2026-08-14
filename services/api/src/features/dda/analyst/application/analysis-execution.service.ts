@@ -51,6 +51,7 @@ export class AnalysisExecutionServiceV1 {
     const response = await this.results.execute({
       plan: input.plan,
       tenantScope: context.tenantScope,
+      context,
     });
     if ('status' in response) {
       return Object.freeze({ accepted: false, code: response.status });

@@ -1,0 +1,281 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v3/dda-dashboard-chart-proposal",
+  "$comment": "DDA-003, DDA-015, DDA-016, DDA-020, DDA-021, DDA-024, DDA-043: bounded preview-only chart authoring proposal.",
+  "title": "DDA Dashboard Chart Proposal",
+  "description": "A permission-scoped, preview-only set of compatible dashboard presentation alternatives. It never carries authoritative result values or source rows.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "proposalId",
+    "dashboardId",
+    "parentVersionId",
+    "expectedRevision",
+    "analysisPlanVersionId",
+    "options",
+    "summary",
+    "previewOnly",
+    "publishes",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 3
+    },
+    "proposalId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "dashboardId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "parentVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "expectedRevision": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/revision"
+    },
+    "analysisPlanVersionId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "target": {
+      "$ref": "#/$defs/chartProposalTarget"
+    },
+    "options": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/chartProposalOption"
+      }
+    },
+    "summary": {
+      "$ref": "#/$defs/chartProposalSummary"
+    },
+    "previewOnly": {
+      "const": true
+    },
+    "publishes": {
+      "const": false
+    },
+    "createdAt": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+    }
+  },
+  "$defs": {
+    "chartSpan": {
+      "type": "integer",
+      "enum": [3, 4, 6, 8, 12]
+    },
+    "chartProposalEvidenceBehavior": {
+      "type": "string",
+      "enum": ["REQUIRED", "OPTIONAL", "UNAVAILABLE"]
+    },
+    "chartProposalWidgetType": {
+      "type": "string",
+      "enum": ["KPI", "TABLE", "BAR", "LINE", "AREA", "PIE", "DONUT", "TEXT_NOTE", "EVIDENCE_NOTE"]
+    },
+    "chartProposalLocalizedText": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vi",
+        "en"
+      ],
+      "properties": {
+        "vi": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "en": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      }
+    },
+    "chartProposalSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vi",
+        "en"
+      ],
+      "properties": {
+        "vi": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "en": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      }
+    },
+    "chartProposalTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pageId"
+      ],
+      "properties": {
+        "pageId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "widgetId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        }
+      }
+    },
+    "chartProposalField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "label": {
+          "$ref": "#/$defs/chartProposalLocalizedText"
+        }
+      }
+    },
+    "chartProposalBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "analysisPlanVersionId",
+        "materializationDefinitionId",
+        "dimensionIds",
+        "measureIds"
+      ],
+      "properties": {
+        "analysisPlanVersionId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "materializationDefinitionId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "dimensionIds": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+          }
+        },
+        "measureIds": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+          }
+        }
+      }
+    },
+    "chartProposalEstimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cpuMs",
+        "memoryMb"
+      ],
+      "properties": {
+        "cpuMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 120000
+        },
+        "memoryMb": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4096
+        }
+      }
+    },
+    "chartProposalOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "optionId",
+        "type",
+        "title",
+        "rationale",
+        "accessibilityDescription",
+        "binding",
+        "dimensions",
+        "measures",
+        "supportedSpans",
+        "defaultSpan",
+        "assumptions",
+        "estimate",
+        "evidenceBehavior"
+      ],
+      "properties": {
+        "optionId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "type": {
+          "$ref": "#/$defs/chartProposalWidgetType"
+        },
+        "title": {
+          "$ref": "#/$defs/chartProposalLocalizedText"
+        },
+        "rationale": {
+          "$ref": "#/$defs/chartProposalLocalizedText"
+        },
+        "accessibilityDescription": {
+          "$ref": "#/$defs/chartProposalLocalizedText"
+        },
+        "binding": {
+          "$ref": "#/$defs/chartProposalBinding"
+        },
+        "dimensions": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/chartProposalField"
+          }
+        },
+        "measures": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/chartProposalField"
+          }
+        },
+        "supportedSpans": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "items": {
+            "$ref": "#/$defs/chartSpan"
+          }
+        },
+        "defaultSpan": {
+          "$ref": "#/$defs/chartSpan"
+        },
+        "assumptions": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "estimate": {
+          "$ref": "#/$defs/chartProposalEstimate"
+        },
+        "evidenceBehavior": {
+          "$ref": "#/$defs/chartProposalEvidenceBehavior"
+        }
+      }
+    }
+  }
+}

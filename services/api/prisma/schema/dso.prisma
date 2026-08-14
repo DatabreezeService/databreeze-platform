@@ -1,26 +1,26 @@
 /// DSO-owned immutable synchronization operations. Payloads are limited to
 /// approved metadata or derived classes; original content is never stored here.
 model DeviceSyncOperationRecord {
-  id                String    @id @db.Uuid
-  scopeType         String    @map("scope_type") @db.VarChar(24)
-  organizationId    String    @map("organization_id") @db.Uuid
-  workspaceId       String?   @map("workspace_id") @db.Uuid
-  projectId         String?   @map("project_id") @db.Uuid
-  deviceId          String    @map("device_id") @db.Uuid
-  entityType        String    @map("entity_type") @db.VarChar(64)
-  entityId          String    @map("entity_id") @db.Uuid
-  kind              String    @db.VarChar(16)
-  payloadClass      String    @map("payload_class") @db.VarChar(40)
-  payloadDigest     String    @map("payload_digest") @db.VarChar(128)
-  encryptedPayload  String?   @map("encrypted_payload") @db.VarChar(16384)
-  dependencyIds     Json      @map("dependency_ids")
-  baseRevision      Int?      @map("base_revision")
-  status            String    @db.VarChar(16)
-  revision          Int       @default(1)
-  createdAt         DateTime  @map("created_at") @db.Timestamptz(6)
-  acknowledgedAt    DateTime? @map("acknowledged_at") @db.Timestamptz(6)
-  idempotencyKey    String    @map("idempotency_key") @db.VarChar(200)
-  syncSequence      Int       @default(autoincrement()) @unique(map: "device_sync_operations_sync_sequence_key") @map("sync_sequence")
+  id               String    @id @db.Uuid
+  scopeType        String    @map("scope_type") @db.VarChar(24)
+  organizationId   String    @map("organization_id") @db.Uuid
+  workspaceId      String?   @map("workspace_id") @db.Uuid
+  projectId        String?   @map("project_id") @db.Uuid
+  deviceId         String    @map("device_id") @db.Uuid
+  entityType       String    @map("entity_type") @db.VarChar(64)
+  entityId         String    @map("entity_id") @db.Uuid
+  kind             String    @db.VarChar(16)
+  payloadClass     String    @map("payload_class") @db.VarChar(40)
+  payloadDigest    String    @map("payload_digest") @db.VarChar(128)
+  encryptedPayload String?   @map("encrypted_payload") @db.VarChar(16384)
+  dependencyIds    Json      @map("dependency_ids")
+  baseRevision     Int?      @map("base_revision")
+  status           String    @db.VarChar(16)
+  revision         Int       @default(1)
+  createdAt        DateTime  @map("created_at") @db.Timestamptz(6)
+  acknowledgedAt   DateTime? @map("acknowledged_at") @db.Timestamptz(6)
+  idempotencyKey   String    @map("idempotency_key") @db.VarChar(200)
+  syncSequence     Int       @default(autoincrement()) @unique(map: "device_sync_operations_sync_sequence_key") @map("sync_sequence")
 
   @@index([organizationId, workspaceId, projectId, status], map: "device_sync_operations_scope_status_idx")
   @@index([deviceId, createdAt], map: "device_sync_operations_device_created_idx")
@@ -32,21 +32,21 @@ model DeviceSyncOperationRecord {
 
 /// DSO-018: conflicts are explicit records; no last-write-wins resolution is implicit.
 model DeviceSyncConflictRecord {
-  id                String    @id @db.Uuid
-  operationId       String    @map("operation_id") @db.Uuid
-  scopeType         String    @map("scope_type") @db.VarChar(24)
-  organizationId    String    @map("organization_id") @db.Uuid
-  workspaceId       String?   @map("workspace_id") @db.Uuid
-  projectId         String?   @map("project_id") @db.Uuid
-  deviceId          String    @map("device_id") @db.Uuid
-  entityType        String    @map("entity_type") @db.VarChar(64)
-  entityId          String    @map("entity_id") @db.Uuid
-  reason            String    @db.VarChar(32)
-  status            String    @db.VarChar(16)
-  expectedRevision  Int?      @map("expected_revision")
-  actualRevision    Int?      @map("actual_revision")
-  detectedAt        DateTime  @map("detected_at") @db.Timestamptz(6)
-  resolvedAt        DateTime? @map("resolved_at") @db.Timestamptz(6)
+  id               String    @id @db.Uuid
+  operationId      String    @map("operation_id") @db.Uuid
+  scopeType        String    @map("scope_type") @db.VarChar(24)
+  organizationId   String    @map("organization_id") @db.Uuid
+  workspaceId      String?   @map("workspace_id") @db.Uuid
+  projectId        String?   @map("project_id") @db.Uuid
+  deviceId         String    @map("device_id") @db.Uuid
+  entityType       String    @map("entity_type") @db.VarChar(64)
+  entityId         String    @map("entity_id") @db.Uuid
+  reason           String    @db.VarChar(32)
+  status           String    @db.VarChar(16)
+  expectedRevision Int?      @map("expected_revision")
+  actualRevision   Int?      @map("actual_revision")
+  detectedAt       DateTime  @map("detected_at") @db.Timestamptz(6)
+  resolvedAt       DateTime? @map("resolved_at") @db.Timestamptz(6)
 
   @@unique([operationId, reason], map: "device_sync_conflicts_operation_reason_key")
   @@index([organizationId, workspaceId, projectId, status], map: "device_sync_conflicts_scope_status_idx")
@@ -57,20 +57,20 @@ model DeviceSyncConflictRecord {
 
 /// DSO-019, DSO-020: strict-Local packages carry only signed metadata and digests.
 model StrictLocalPackageManifestRecord {
-  id               String    @id @db.Uuid
-  scopeType        String    @map("scope_type") @db.VarChar(24)
-  organizationId   String    @map("organization_id") @db.Uuid
-  workspaceId      String?   @map("workspace_id") @db.Uuid
-  projectId        String?   @map("project_id") @db.Uuid
-  deviceId         String    @map("device_id") @db.Uuid
-  purpose          String    @db.VarChar(200)
-  destinationClass String    @map("destination_class") @db.VarChar(64)
-  itemDigests      Json      @map("item_digests")
-  packageDigest    String    @map("package_digest") @db.VarChar(128)
-  issuedAt         DateTime  @map("issued_at") @db.Timestamptz(6)
-  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(6)
-  status           String    @db.VarChar(16)
-  revision         Int       @default(1)
+  id               String   @id @db.Uuid
+  scopeType        String   @map("scope_type") @db.VarChar(24)
+  organizationId   String   @map("organization_id") @db.Uuid
+  workspaceId      String?  @map("workspace_id") @db.Uuid
+  projectId        String?  @map("project_id") @db.Uuid
+  deviceId         String   @map("device_id") @db.Uuid
+  purpose          String   @db.VarChar(200)
+  destinationClass String   @map("destination_class") @db.VarChar(64)
+  itemDigests      Json     @map("item_digests")
+  packageDigest    String   @map("package_digest") @db.VarChar(128)
+  issuedAt         DateTime @map("issued_at") @db.Timestamptz(6)
+  expiresAt        DateTime @map("expires_at") @db.Timestamptz(6)
+  status           String   @db.VarChar(16)
+  revision         Int      @default(1)
 
   @@index([organizationId, workspaceId, projectId, status], map: "strict_local_packages_scope_status_idx")
   @@index([deviceId, expiresAt], map: "strict_local_packages_device_expiry_idx")
@@ -97,16 +97,16 @@ model DeviceTransferReceiptRecord {
 
 /// DSO-023: malformed or offline audit fragments remain quarantined until reconciliation.
 model LocalAuditFragmentRecord {
-  id                     String   @id @db.Uuid
-  scopeType              String   @map("scope_type") @db.VarChar(24)
-  organizationId         String   @map("organization_id") @db.Uuid
-  workspaceId            String?  @map("workspace_id") @db.Uuid
-  projectId              String?  @map("project_id") @db.Uuid
-  deviceId               String   @map("device_id") @db.Uuid
-  fragmentDigest         String   @map("fragment_digest") @db.VarChar(128)
-  encryptedFragmentRef   String   @map("encrypted_fragment_ref") @db.VarChar(512)
-  status                 String   @db.VarChar(16)
-  receivedAt             DateTime @map("received_at") @db.Timestamptz(6)
+  id                   String   @id @db.Uuid
+  scopeType            String   @map("scope_type") @db.VarChar(24)
+  organizationId       String   @map("organization_id") @db.Uuid
+  workspaceId          String?  @map("workspace_id") @db.Uuid
+  projectId            String?  @map("project_id") @db.Uuid
+  deviceId             String   @map("device_id") @db.Uuid
+  fragmentDigest       String   @map("fragment_digest") @db.VarChar(128)
+  encryptedFragmentRef String   @map("encrypted_fragment_ref") @db.VarChar(512)
+  status               String   @db.VarChar(16)
+  receivedAt           DateTime @map("received_at") @db.Timestamptz(6)
 
   @@unique([deviceId, fragmentDigest], map: "local_audit_fragments_device_digest_key")
   @@index([organizationId, workspaceId, projectId, status], map: "local_audit_fragments_scope_status_idx")
@@ -116,20 +116,20 @@ model LocalAuditFragmentRecord {
 
 /// IAM-020, DSO-005: opaque grants are revocable, scoped, and never contain local paths.
 model DeviceGrantRecord {
-  id                  String   @id @db.Uuid
-  deviceId            String   @map("device_id") @db.Uuid
-  scopeType           String   @map("scope_type") @db.VarChar(24)
-  organizationId      String   @map("organization_id") @db.Uuid
-  workspaceId         String?  @map("workspace_id") @db.Uuid
-  projectId           String?  @map("project_id") @db.Uuid
-  bindingId           String   @map("binding_id") @db.Uuid
-  capabilityDigest    String   @map("capability_digest") @db.VarChar(128)
-  authorizationEpoch  Int      @map("authorization_epoch")
-  effects             Json
-  issuedAt            DateTime @map("issued_at") @db.Timestamptz(6)
-  expiresAt           DateTime @map("expires_at") @db.Timestamptz(6)
-  status              String   @db.VarChar(16)
-  revision            Int      @default(1)
+  id                 String   @id @db.Uuid
+  deviceId           String   @map("device_id") @db.Uuid
+  scopeType          String   @map("scope_type") @db.VarChar(24)
+  organizationId     String   @map("organization_id") @db.Uuid
+  workspaceId        String?  @map("workspace_id") @db.Uuid
+  projectId          String?  @map("project_id") @db.Uuid
+  bindingId          String   @map("binding_id") @db.Uuid
+  capabilityDigest   String   @map("capability_digest") @db.VarChar(128)
+  authorizationEpoch Int      @map("authorization_epoch")
+  effects            Json
+  issuedAt           DateTime @map("issued_at") @db.Timestamptz(6)
+  expiresAt          DateTime @map("expires_at") @db.Timestamptz(6)
+  status             String   @db.VarChar(16)
+  revision           Int      @default(1)
 
   @@index([organizationId, workspaceId, projectId, deviceId, status], map: "device_grants_scope_device_status_idx")
   @@index([deviceId, expiresAt], map: "device_grants_device_expiry_idx")
@@ -157,19 +157,19 @@ model DeviceCapabilityRecord {
 
 /// DSO-005: operational grants carry only typed actions, classifications, and payload classes.
 model DeviceOperationalGrantRecord {
-  id                              String   @id @db.Uuid
-  deviceId                        String   @map("device_id") @db.Uuid
-  organizationId                  String   @map("organization_id") @db.Uuid
-  workspaceId                     String   @map("workspace_id") @db.Uuid
-  capabilityId                    String   @map("capability_id") @db.Uuid
-  authorizationEpoch              Int      @map("authorization_epoch")
-  allowedActionTypes              Json     @map("allowed_action_types")
-  allowedDataClassifications     Json     @map("allowed_data_classifications")
-  synchronizationPayloadClasses   Json     @map("synchronization_payload_classes")
-  issuedAt                        DateTime @map("issued_at") @db.Timestamptz(6)
-  expiresAt                       DateTime? @map("expires_at") @db.Timestamptz(6)
-  status                          String   @db.VarChar(16)
-  revision                        Int      @default(1)
+  id                            String    @id @db.Uuid
+  deviceId                      String    @map("device_id") @db.Uuid
+  organizationId                String    @map("organization_id") @db.Uuid
+  workspaceId                   String    @map("workspace_id") @db.Uuid
+  capabilityId                  String    @map("capability_id") @db.Uuid
+  authorizationEpoch            Int       @map("authorization_epoch")
+  allowedActionTypes            Json      @map("allowed_action_types")
+  allowedDataClassifications    Json      @map("allowed_data_classifications")
+  synchronizationPayloadClasses Json      @map("synchronization_payload_classes")
+  issuedAt                      DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt                     DateTime? @map("expires_at") @db.Timestamptz(6)
+  status                        String    @db.VarChar(16)
+  revision                      Int       @default(1)
 
   @@index([organizationId, workspaceId, deviceId, status], map: "device_operational_grants_scope_status_idx")
   @@index([deviceId, expiresAt], map: "device_operational_grants_device_expiry_idx")
@@ -180,21 +180,102 @@ model DeviceOperationalGrantRecord {
 
 /// DSO-008/026: immutable workspace data-mode policy versions.
 model DeviceDataModePolicyRecord {
-  id                       String   @id @db.Uuid
-  policyId                 String   @map("policy_id") @db.Uuid
-  organizationId           String   @map("organization_id") @db.Uuid
-  workspaceId              String   @map("workspace_id") @db.Uuid
-  revision                 Int
-  mode                     String   @db.VarChar(16)
-  allowedPayloadClasses   Json     @map("allowed_payload_classes")
-  allowedPlacementKinds   Json     @map("allowed_placement_kinds")
-  allowedExecutorClasses  Json     @map("allowed_executor_classes")
-  allowedDestinationClasses Json   @map("allowed_destination_classes")
-  canonicalHash            String   @map("canonical_hash") @db.VarChar(64)
-  publishedAt              DateTime @map("published_at") @db.Timestamptz(6)
+  id                        String   @id @db.Uuid
+  policyId                  String   @map("policy_id") @db.Uuid
+  organizationId            String   @map("organization_id") @db.Uuid
+  workspaceId               String   @map("workspace_id") @db.Uuid
+  revision                  Int
+  mode                      String   @db.VarChar(16)
+  allowedPayloadClasses     Json     @map("allowed_payload_classes")
+  allowedPlacementKinds     Json     @map("allowed_placement_kinds")
+  allowedExecutorClasses    Json     @map("allowed_executor_classes")
+  allowedDestinationClasses Json     @map("allowed_destination_classes")
+  canonicalHash             String   @map("canonical_hash") @db.VarChar(64)
+  publishedAt               DateTime @map("published_at") @db.Timestamptz(6)
 
   @@unique([policyId, revision], map: "device_data_mode_policies_policy_revision_key")
+  @@unique([organizationId, workspaceId, policyId, id], map: "device_data_mode_policies_scope_version_key")
   @@index([organizationId, workspaceId, policyId, revision], map: "device_data_mode_policies_scope_idx")
   @@map("device_data_mode_policies")
+  @@schema("dso")
+}
+
+/// DSO-026/027: authoritative current Workspace policy pointer. Versions remain immutable.
+model WorkspaceDataModePolicyRecord {
+  id                 String   @id @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  workspaceId        String   @map("workspace_id") @db.Uuid
+  currentVersionId   String   @map("current_version_id") @db.Uuid
+  currentVersionHash String   @map("current_version_hash") @db.Char(64)
+  revision           Int
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId], map: "workspace_data_mode_policies_workspace_key")
+  @@unique([organizationId, workspaceId, id], map: "workspace_data_mode_policies_scope_id_key")
+  @@index([organizationId, workspaceId, currentVersionId], map: "workspace_data_mode_policies_current_idx")
+  @@map("workspace_data_mode_policies")
+  @@schema("dso")
+}
+
+/// DSO-027: immutable idempotency receipt for one atomic publish-and-activate command.
+model WorkspacePolicyActivationRecord {
+  id                    String   @id @default(uuid()) @db.Uuid
+  organizationId        String   @map("organization_id") @db.Uuid
+  workspaceId           String   @map("workspace_id") @db.Uuid
+  idempotencyKey         String   @map("idempotency_key") @db.VarChar(200)
+  requestHash            String   @map("request_hash") @db.Char(64)
+  policySnapshot         Json     @map("policy_snapshot")
+  aggregateRevision      Int      @map("aggregate_revision")
+  authorizationEpoch     Int      @map("authorization_epoch")
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, idempotencyKey], map: "workspace_policy_activations_idempotency_key")
+  @@index([organizationId, workspaceId, createdAt], map: "workspace_policy_activations_scope_idx")
+  @@map("workspace_policy_activations")
+  @@schema("dso")
+}
+
+/// DSO-024/026/027: an immutable, expiring routing decision binds exact authorized metadata and
+/// the current Workspace policy. It contains no object bytes, paths, URLs, or credentials.
+model ExecutionRouteDecisionRecord {
+  id                      String   @id @db.Uuid
+  routeId                 String   @map("route_id") @db.Uuid
+  revision                Int
+  scopeType               String   @map("scope_type") @db.VarChar(24)
+  organizationId          String   @map("organization_id") @db.Uuid
+  workspaceId             String   @map("workspace_id") @db.Uuid
+  projectId               String?  @map("project_id") @db.Uuid
+  artifactVersionId       String   @map("artifact_version_id") @db.Uuid
+  artifactVersionHash     String   @map("artifact_version_hash") @db.Char(64)
+  placementId             String   @map("placement_id") @db.Uuid
+  placementHash           String   @map("placement_hash") @db.Char(64)
+  dataMode                String   @map("data_mode") @db.VarChar(16)
+  dataClassification      String   @map("data_classification") @db.VarChar(24)
+  payloadClass            String   @map("payload_class") @db.VarChar(40)
+  placementKind           String   @map("placement_kind") @db.VarChar(64)
+  placementAvailable      Boolean  @map("placement_available")
+  actionType              String   @map("action_type") @db.VarChar(128)
+  actionVersion           Int      @map("action_version")
+  requiredCapabilities    Json     @map("required_capabilities")
+  target                  String   @db.VarChar(16)
+  targetDeviceId          String?  @map("target_device_id") @db.Uuid
+  executorClass           String   @map("executor_class") @db.VarChar(64)
+  grantedCapabilities     Json     @map("granted_capabilities")
+  narrowingConstraints    Json     @map("narrowing_constraints")
+  dataModePolicyId        String   @map("data_mode_policy_id") @db.Uuid
+  dataModePolicyVersionId String   @map("data_mode_policy_version_id") @db.Uuid
+  dataModePolicyRevision  Int      @map("data_mode_policy_revision")
+  dataModePolicyHash      String   @map("data_mode_policy_hash") @db.Char(64)
+  authorizationEpoch      Int      @map("authorization_epoch")
+  decisionSubjectHash     String   @map("decision_subject_hash") @db.Char(64)
+  createdAt               DateTime @map("created_at") @db.Timestamptz(6)
+  expiresAt               DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@unique([routeId, revision], map: "execution_route_decisions_route_revision_key")
+  @@index([organizationId, workspaceId, projectId, id], map: "execution_route_decisions_scope_id_idx")
+  @@index([organizationId, workspaceId, dataModePolicyVersionId, expiresAt], map: "execution_route_decisions_policy_idx")
+  @@index([artifactVersionId, placementId], map: "execution_route_decisions_input_idx")
+  @@map("execution_route_decisions")
   @@schema("dso")
 }

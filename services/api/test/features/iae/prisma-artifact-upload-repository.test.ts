@@ -28,6 +28,10 @@ const context = contextResult.value;
 const created = createArtifactUploadSessionV1({
   sessionId: '55555555-5555-4555-8555-555555555555',
   artifactId: '66666666-6666-4666-8666-666666666666',
+  artifactVersionId: '77777777-7777-4777-8777-777777777777',
+  intakeId: '88888888-8888-4888-8888-888888888888',
+  policyVersionId: '99999999-9999-4999-8999-999999999999',
+  authorizationEpoch: context.authorizationEpoch,
   tenantScope: context.tenantScope,
   expectedSha256: 'a'.repeat(64),
   expectedByteSize: 4,
@@ -46,7 +50,10 @@ const part = recordArtifactUploadPartV1(created.value, {
 });
 if (!part.accepted) throw new Error('fixture part invalid');
 
-function client(rows: ArtifactUploadDatabaseRowV1[]): ArtifactUploadDatabaseClientV1 {
+function client(
+  rows: ArtifactUploadDatabaseRowV1[],
+  isolationLevels: string[] = [],
+): ArtifactUploadDatabaseClientV1 {
   return {
     artifactUploadSessionRecord: {
       create({ data }) {
@@ -60,15 +67,17 @@ function client(rows: ArtifactUploadDatabaseRowV1[]): ArtifactUploadDatabaseClie
       findUnique({ where }) {
         return Promise.resolve(rows.find((row) => row.id === where.id) ?? null);
       },
-      update({ where, data }) {
+      updateMany({ where, data }) {
         const current = rows.find((row) => row.id === where.id);
-        if (!current) throw new Error('fixture upload not found');
+        if (!current || current.revision !== where.revision || current.state !== where.state)
+          return Promise.resolve({ count: 0 });
         const next = { ...current, ...data };
         rows[rows.indexOf(current)] = next;
-        return Promise.resolve(next);
+        return Promise.resolve({ count: 1 });
       },
     },
-    $transaction(work) {
+    $transaction(work, options) {
+      isolationLevels.push(options?.isolationLevel ?? 'unset');
       return work(this);
     },
   };
@@ -82,4 +91,27 @@ void test('IAE-014 Prisma upload adapter preserves parts, revisions, and immutab
   await repository.save(context, part.value);
   assert.deepEqual(await repository.find(context, created.value.sessionId), part.value);
   assert.equal(rows.length, 1);
+});
+
+void test('[IAE-014][IAE-023] Prisma upload transitions use serializable revision/state CAS', async () => {
+  const rows: ArtifactUploadDatabaseRowV1[] = [];
+  const isolationLevels: string[] = [];
+  const repository = new PrismaArtifactUploadRepositoryAdapter(client(rows, isolationLevels));
+  await repository.save(context, created.value);
+  const first = recordArtifactUploadPartV1(created.value, {
+    partNumber: 1,
+    contentSha256: 'c'.repeat(64),
+    byteSize: 4,
+    uploadedAt: '2026-08-02T00:11:00.000Z',
+    expectedRevision: 1,
+  });
+  assert.equal(first.accepted, true);
+  if (!first.accepted) return;
+  const results = await Promise.allSettled([
+    repository.withTransaction(context, (transaction) => transaction.save(context, part.value)),
+    repository.withTransaction(context, (transaction) => transaction.save(context, first.value)),
+  ]);
+  assert.equal(results.filter(({ status }) => status === 'fulfilled').length, 1);
+  assert.equal(results.filter(({ status }) => status === 'rejected').length, 1);
+  assert.ok(isolationLevels.every((level) => level === 'Serializable'));
 });

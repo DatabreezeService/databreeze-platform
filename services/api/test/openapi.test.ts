@@ -103,6 +103,10 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
     assert.deepEqual(paths, [
       '/health/live',
       '/health/ready',
+      '/internal/worker/assignment',
+      '/internal/worker/claim',
+      '/internal/worker/complete',
+      '/internal/worker/heartbeat',
       '/v1/artifact-deletion-requests/{requestId}',
       '/v1/artifact-deletion-requests/{requestId}/authorize',
       '/v1/artifact-upload-sessions',
@@ -129,17 +133,18 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       '/v1/audit/attestations/{attestationId}/verify',
       '/v1/audit/events',
       '/v1/audit/seals',
+      '/v1/auth/email-verification/verify',
       '/v1/auth/me',
       '/v1/auth/mfa/factors',
       '/v1/auth/mfa/factors/{factorId}/verify',
       '/v1/auth/mfa/recovery/redeem',
+      '/v1/auth/oidc/google/callback',
       '/v1/auth/recovery',
       '/v1/auth/recovery/complete',
       '/v1/auth/refresh',
       '/v1/auth/register',
       '/v1/auth/sign-in',
       '/v1/auth/sign-out',
-      '/v1/data-mode-policies',
       '/v1/data-mode-policies/{policyId}',
       '/v1/data-quality-guard/ephemeral-validation',
       '/v1/dataset-exports',
@@ -160,21 +165,32 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       '/v1/datasets/{datasetId}/versions',
       '/v1/datasets/{datasetId}/versions/{versionId}',
       '/v1/datasets/{datasetId}/versions/{versionId}/publish',
+      '/v1/dda/agent/tools/deterministic',
+      '/v1/dda/agent/turns',
       '/v1/dda/analysis/execute',
       '/v1/dda/analysis/propose',
+      '/v1/dda/automatic-preparation/evaluate',
+      '/v1/dda/conversations',
+      '/v1/dda/conversations/{conversationId}',
       '/v1/dda/dashboards/draft/accept',
       '/v1/dda/dashboards/draft/filter',
       '/v1/dda/dashboards/draft/restore-widget',
       '/v1/dda/dashboards/publication/publish',
       '/v1/dda/dashboards/query/authorize',
       '/v1/dda/dashboards/query/view',
+      '/v1/dda/dashboards/{dashboardId}/draft',
       '/v1/dda/dashboards/{dashboardId}/freshness',
       '/v1/dda/dashboards/{dashboardId}/refresh-events',
+      '/v1/dda/datasets/{datasetId}/sources',
+      '/v1/dda/datasets/{datasetId}/sources/{sourceId}/original-view',
       '/v1/dda/etl-acceptances',
       '/v1/dda/etl-proposals',
       '/v1/dda/etl-proposals/{proposalId}',
+      '/v1/dda/folder-projections/consent',
+      '/v1/dda/receipts/candidates/{candidateId}',
       '/v1/dda/receipts/correct',
       '/v1/dda/receipts/extract',
+      '/v1/dda/table-extractions',
       '/v1/dda/web-intake/finalize',
       '/v1/dda/web-intake/profile',
       '/v1/devices/enroll',
@@ -205,6 +221,7 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       '/v1/me/bootstrap',
       '/v1/memberships',
       '/v1/memberships/{membershipId}/accept',
+      '/v1/memberships/{membershipId}/access-preset',
       '/v1/memberships/{membershipId}/transfer-ownership',
       '/v1/memberships/{membershipId}/transition',
       '/v1/organizations/{organizationId}',
@@ -231,14 +248,33 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       '/v1/system/compatibility',
       '/v1/system/compatibility/check',
       '/v1/system/modules',
+      '/v1/workspaces/agent-grants/{memberId}',
+      '/v1/workspaces/agent-grants/{memberId}/authorize',
+      '/v1/workspaces/agent-grants/{memberId}/dataset-restrictions',
       '/v1/workspaces/{workspaceId}',
       '/v1/workspaces/{workspaceId}/projects',
+      '/v3/dda/dashboards/workspace-history',
+      '/v3/dda/dashboards/{dashboardId}/authoring-commands',
+      '/v3/dda/dashboards/{dashboardId}/proposals',
+      '/v3/dda/dashboards/{dashboardId}/proposals/{proposalId}',
+      '/v3/notifications',
+      '/v3/notifications/{notificationId}',
+      '/v3/workspaces/settings',
     ]);
     assert.ok(
-      paths.filter((path) => !path.startsWith('/health/')).every((path) => path.startsWith('/v1/')),
+      paths
+        .filter((path) => !path.startsWith('/health/'))
+        .every(
+          (path) =>
+            path.startsWith('/v1/') ||
+            path.startsWith('/v3/') ||
+            path.startsWith('/internal/worker/'),
+        ),
     );
 
-    const ddaPaths = paths.filter((path) => path.startsWith('/v1/dda/'));
+    const ddaPaths = paths.filter(
+      (path) => path.startsWith('/v1/dda/') || path.startsWith('/v3/dda/'),
+    );
     assert.ok(ddaPaths.length >= 17, 'OpenAPI must document DDA routes');
     for (const path of ddaPaths) {
       const pathItem = firstDocument.paths[path] as PathItemLike;
@@ -294,9 +330,10 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
     assert.equal(documentedClientVersion.test('1.2.3'), true);
     assert.equal(documentedClientVersion.test('1.2.3-beta.1'), true);
     assert.equal(documentedClientVersion.test('1.2.3garbage'), false);
-    const refreshResponse = firstDocument.components?.schemas?.[
-      'SessionRefreshResponseDto'
-    ] as Record<string, unknown>;
+    const refreshResponse = firstDocument.components?.schemas?.['AuthSessionDto'] as Record<
+      string,
+      unknown
+    >;
     const refreshToken = (refreshResponse['properties'] as Record<string, Record<string, unknown>>)[
       'refreshToken'
     ];
@@ -404,6 +441,7 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       'GET /v1/system/modules',
       'POST /v1/auth/sign-in',
       'POST /v1/auth/register',
+      'POST /v1/auth/email-verification/verify',
       'POST /v1/auth/recovery',
       'POST /v1/auth/recovery/complete',
       'POST /v1/auth/refresh',

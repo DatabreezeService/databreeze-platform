@@ -1,5 +1,8 @@
+import type { IamTenantContextV1 } from '../../../iam/application/tenant-context.js';
+
 export type DashboardAuthActionV1 =
   | 'VIEW'
+  | 'EDIT'
   | 'FILTER'
   | 'DRILL'
   | 'DOWNLOAD'
@@ -21,6 +24,8 @@ export interface DashboardAuthorizationDecisionV1 {
 
 export interface DashboardAuthorizationPortV1 {
   authorizeDashboardAction(input: {
+    /** Trusted request context supplied by the API boundary; client fields are never accepted. */
+    readonly context?: IamTenantContextV1;
     readonly tenantScope: unknown;
     readonly actorId: unknown;
     readonly snapshotId?: string;
@@ -28,6 +33,8 @@ export interface DashboardAuthorizationPortV1 {
     readonly action: DashboardAuthActionV1;
   }): Promise<DashboardAuthorizationDecisionV1>;
   projectVisibleFields(input: {
+    /** Trusted request context supplied by the API boundary; client fields are never accepted. */
+    readonly context?: IamTenantContextV1;
     readonly tenantScope: unknown;
     readonly actorId: unknown;
     readonly snapshotId: string;

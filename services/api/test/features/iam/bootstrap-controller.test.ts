@@ -77,7 +77,8 @@ void test('[IAM-001, IAM-009] bootstrap controller derives the actor from the au
   } as never;
   const controller = new IamBootstrapController(service, { resolve: async () => context });
   const result = await controller.bootstrap({});
-  assert.equal((result as { readonly accepted: boolean }).accepted, true);
+  assert.equal((result as { readonly schemaVersion: number }).schemaVersion, 4);
+  assert.equal((result as { readonly outcome: string }).outcome, 'ACCEPTED');
   assert.deepEqual(calls, [bootstrap.user.id]);
   assert.equal(
     (result as { readonly value: { readonly user: { readonly id: string } } }).value.user.id,
@@ -89,6 +90,7 @@ void test('[IAM-001, IAM-009] bootstrap controller derives the actor from the au
     'ENABLED',
   );
   assert.deepEqual((value as { readonly session: unknown }).session, {
+    scopeType: 'workspace',
     organizationId: bootstrap.organization.id,
     workspaceId: bootstrap.workspace.id,
     authorizationEpoch: 1,
@@ -108,6 +110,7 @@ void test('[IAM-001, IAM-009] bootstrap controller derives the actor from the au
   });
   assert.deepEqual((value as { readonly recentScopes: unknown }).recentScopes, [
     {
+      scopeType: 'project',
       organizationId: bootstrap.organization.id,
       workspaceId: bootstrap.workspace.id,
       projectId: bootstrap.project.id,
@@ -132,9 +135,10 @@ void test('[IAM-001] bootstrap session preserves an authenticated project scope'
     { resolve: async () => context },
   );
   const result = await controller.bootstrap({});
-  assert.equal((result as { readonly accepted: boolean }).accepted, true);
-  if (!(result as { readonly accepted: boolean }).accepted) return;
+  assert.equal(result.outcome, 'ACCEPTED');
+  if (result.outcome !== 'ACCEPTED') return;
   assert.deepEqual((result as { readonly value: { readonly session: unknown } }).value.session, {
+    scopeType: 'project',
     organizationId: bootstrap.organization.id,
     workspaceId: bootstrap.workspace.id,
     projectId: bootstrap.project.id,
@@ -144,5 +148,9 @@ void test('[IAM-001] bootstrap session preserves an authenticated project scope'
 
 void test('[IAM-001] bootstrap controller fails closed when durable identity storage is unavailable', async () => {
   const controller = new IamBootstrapController(undefined, { resolve: async () => ({}) as never });
-  assert.deepEqual(await controller.bootstrap({}), { accepted: false, code: 'UNAVAILABLE' });
+  assert.deepEqual(await controller.bootstrap({}), {
+    schemaVersion: 4,
+    outcome: 'REJECTED',
+    code: 'UNAVAILABLE',
+  });
 });

@@ -7,6 +7,9 @@ aws_region                          = "ap-southeast-1"
 availability_zones                  = ["ap-southeast-1a", "ap-southeast-1b"]
 enable_nat_gateway                  = true
 enable_cloudfront                   = true
+web_aliases                         = []
+web_acm_certificate_arn             = ""
+web_connect_src_origins             = ["https://api.example.test"]
 enable_database                     = true
 enable_ecs_services                 = true
 backup_retention_period             = 7
@@ -17,6 +20,23 @@ redis_automatic_failover_enabled    = true
 redis_multi_az_enabled              = true
 api_desired_count                   = 2
 worker_desired_count                = 2
+worker_api_endpoint                 = "https://api.example.com"
 github_repository                   = "OWNER/REPOSITORY"
 api_image                           = "ghcr.io/OWNER/databreeze-api@sha256:REPLACE_WITH_64_CHAR_DIGEST"
 worker_image                        = "ghcr.io/OWNER/databreeze-worker@sha256:REPLACE_WITH_64_CHAR_DIGEST"
+api_certificate_arn                 = "arn:aws:acm:ap-southeast-1:123456789012:certificate/00000000-0000-4000-8000-000000000001"
+iam_email_from_address              = "verify@example.test"
+
+# Set either feature flag true only after the owner populates the dedicated
+# databreeze/production/openai/api-key secret out of band.
+openai_agent_enabled           = false
+openai_receipt_enabled         = false
+openai_dashboard_enabled       = false
+openai_agent_model             = "gpt-4o-mini-2024-07-18"
+openai_agent_timeout_ms        = 30000
+openai_agent_max_output_tokens = 2048
+openai_receipt_model           = "gpt-4o-mini-2024-07-18"
+openai_dashboard_model         = "gpt-4o-mini-2024-07-18"
+openai_image_detail            = "high"
+openai_timeout_ms              = 30000
+openai_max_output_tokens       = 2048

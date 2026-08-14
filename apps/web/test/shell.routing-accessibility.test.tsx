@@ -46,13 +46,15 @@ describe('accessible responsive composition', () => {
   it('provides a skip link and named semantic landmarks', async () => {
     renderShell('/vi-VN/dashboards');
 
-    expect(await screen.findByRole('banner')).toBeTruthy();
+    await screen.findByRole('navigation', { name: 'Điều hướng chính' });
+    expect(document.querySelector('header.workspace-topbar')).not.toBeNull();
     expect(screen.getByRole('navigation', { name: 'Điều hướng chính' })).toBeTruthy();
     expect(screen.getByRole('main')).toHaveProperty('id', 'main-content');
     expect(
       screen.getByRole('link', { name: 'Bỏ qua để đến nội dung chính' }).getAttribute('href'),
     ).toBe('#main-content');
-    expect(screen.getByRole('search', { name: 'Tìm kiếm trong không gian làm việc' })).toBeTruthy();
+    expect(screen.queryByRole('search', { name: 'Tìm kiếm trong không gian làm việc' })).toBeNull();
+    expect(screen.getByRole('navigation', { name: 'Đường dẫn bảng điều khiển' })).toBeTruthy();
   });
 
   it('opens mobile navigation from the keyboard and exposes its controlled state', async () => {

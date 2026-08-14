@@ -13,6 +13,7 @@ import {
   type ProjectIdentityDatabaseRowV1,
   type MembershipIdentityDatabaseRowV1,
 } from '../../../src/features/iam/adapter/prisma-identity-bootstrap-repository.adapter.js';
+import type { InitialWorkspacePolicyProvisionerPortV1 } from '../../../src/features/iam/application/initial-workspace-policy-provisioner.port.js';
 
 const userId = '00000000-0000-4000-8000-000000000001';
 const organizationId = '00000000-0000-4000-8000-000000000002';
@@ -20,6 +21,8 @@ const workspaceId = '00000000-0000-4000-8000-000000000003';
 const projectId = '00000000-0000-4000-8000-000000000004';
 const membershipId = '00000000-0000-4000-8000-000000000005';
 const createdAt = new Date('2026-01-01T00:00:00.000Z');
+const policyId = '00000000-0000-4000-8000-000000000010' as never;
+const policyVersionId = '00000000-0000-4000-8000-000000000011' as never;
 const input = {
   user: {
     id: userId,
@@ -43,6 +46,8 @@ function createDatabase(): {
   readonly transactionCalls: { value: number };
   readonly transactionWriteCalls: { value: number };
   readonly organizationFindManyCalls: { value: number };
+  readonly policyProvisionCalls: { value: number };
+  readonly policyProvisioner: InitialWorkspacePolicyProvisionerPortV1;
 } {
   const users = new Map<string, UserIdentityDatabaseRowV1>([
     [
@@ -65,6 +70,18 @@ function createDatabase(): {
   const transactionCalls = { value: 0 };
   const transactionWriteCalls = { value: 0 };
   const organizationFindManyCalls = { value: 0 };
+  const policyProvisionCalls = { value: 0 };
+  const policyProvisioner: InitialWorkspacePolicyProvisionerPortV1 = {
+    provision: async (candidate) => {
+      policyProvisionCalls.value += 1;
+      assert.deepEqual(candidate, {
+        organizationId,
+        workspaceId,
+        publishedAt: createdAt.toISOString(),
+      });
+      return Object.freeze({ policyId, policyVersionId, dataModeProjection: 'HYBRID' as const });
+    },
+  };
   const client = {
     userIdentity: {
       findUnique: async ({ where }: { readonly where: { readonly id: string } }) =>
@@ -196,6 +213,8 @@ function createDatabase(): {
     transactionCalls,
     transactionWriteCalls,
     organizationFindManyCalls,
+    policyProvisionCalls,
+    policyProvisioner,
   };
 }
 
@@ -209,8 +228,10 @@ void test('[IAM-001, IAM-009, IAM-011] Prisma bootstrap persists and reconstruct
     transactionCalls,
     transactionWriteCalls,
     organizationFindManyCalls,
+    policyProvisionCalls,
+    policyProvisioner,
   } = createDatabase();
-  const adapter = new PrismaIdentityBootstrapRepositoryAdapter(client);
+  const adapter = new PrismaIdentityBootstrapRepositoryAdapter(client, () => policyProvisioner);
   const validated = bootstrapPersonalOrganizationV1(input);
   assert.equal(validated.accepted, true);
   if (!validated.accepted) return;
@@ -218,6 +239,18 @@ void test('[IAM-001, IAM-009, IAM-011] Prisma bootstrap persists and reconstruct
   await adapter.save(validated.value);
   assert.equal(transactionCalls.value, 1);
   assert.equal(transactionWriteCalls.value, 4);
+  assert.equal(policyProvisionCalls.value, 1);
+  assert.deepEqual(workspaces.get(workspaceId), {
+    id: workspaceId,
+    organizationId,
+    name: validated.value.workspace.name,
+    status: 'ACTIVE',
+    dataModePolicyId: policyId,
+    currentDataModePolicyVersionId: policyVersionId,
+    dataModeProjection: 'HYBRID',
+    authorizationEpoch: 1,
+    createdAt,
+  });
   assert.equal(organizations.size, 1);
   assert.equal(workspaces.size, 1);
   assert.equal(projects.size, 1);
@@ -227,8 +260,12 @@ void test('[IAM-001, IAM-009, IAM-011] Prisma bootstrap persists and reconstruct
 });
 
 void test('[IAM-011] repeated bootstrap is immutable and conflicting hierarchy is rejected', async () => {
-  const { client, organizations } = createDatabase();
-  const adapter = new PrismaIdentityBootstrapRepositoryAdapter(client);
+  const state = createDatabase();
+  const { client, organizations } = state;
+  const adapter = new PrismaIdentityBootstrapRepositoryAdapter(
+    client,
+    () => state.policyProvisioner,
+  );
   const validated = bootstrapPersonalOrganizationV1(input);
   assert.equal(validated.accepted, true);
   if (!validated.accepted) return;
@@ -279,7 +316,10 @@ void test('[IAM-001, IAM-011] bootstrap lookup selects the personal organization
     expiresAt: null,
     revision: 1,
   });
-  const adapter = new PrismaIdentityBootstrapRepositoryAdapter(state.client);
+  const adapter = new PrismaIdentityBootstrapRepositoryAdapter(
+    state.client,
+    () => state.policyProvisioner,
+  );
   await adapter.save(validated.value);
 
   assert.equal(
@@ -295,7 +335,10 @@ void test('[IAM-011] bootstrap lookup rejects two personal organizations', async
   if (!validated.accepted) return;
   const secondOrganizationId = '00000000-0000-4000-8000-000000000008';
   const secondMembershipId = '00000000-0000-4000-8000-000000000009';
-  const adapter = new PrismaIdentityBootstrapRepositoryAdapter(state.client);
+  const adapter = new PrismaIdentityBootstrapRepositoryAdapter(
+    state.client,
+    () => state.policyProvisioner,
+  );
   await adapter.save(validated.value);
   state.organizations.set(secondOrganizationId, {
     id: secondOrganizationId,
@@ -330,7 +373,10 @@ void test('[IAM-009] bootstrap lookup rejects unparseable membership timestamps'
   const validated = bootstrapPersonalOrganizationV1(input);
   assert.equal(validated.accepted, true);
   if (!validated.accepted) return;
-  const adapter = new PrismaIdentityBootstrapRepositoryAdapter(state.client);
+  const adapter = new PrismaIdentityBootstrapRepositoryAdapter(
+    state.client,
+    () => state.policyProvisioner,
+  );
   await adapter.save(validated.value);
   const membership = state.memberships.get(membershipId);
   assert.ok(membership);
@@ -347,7 +393,10 @@ void test('[IAM-001, IAM-011] bootstrap lookup survives personal workspace and p
   const validated = bootstrapPersonalOrganizationV1(input);
   assert.equal(validated.accepted, true);
   if (!validated.accepted) return;
-  const adapter = new PrismaIdentityBootstrapRepositoryAdapter(state.client);
+  const adapter = new PrismaIdentityBootstrapRepositoryAdapter(
+    state.client,
+    () => state.policyProvisioner,
+  );
   await adapter.save(validated.value);
   const workspace = state.workspaces.get(workspaceId);
   const project = state.projects.get(projectId);
@@ -363,7 +412,10 @@ void test('[IAM-001, IAM-011] bootstrap lookup survives personal workspace and p
 
 void test('[IAM-001] bootstrap transaction rollback does not retain a partially written hierarchy', async () => {
   const state = createDatabase();
-  const adapter = new PrismaIdentityBootstrapRepositoryAdapter(state.client);
+  const adapter = new PrismaIdentityBootstrapRepositoryAdapter(
+    state.client,
+    () => state.policyProvisioner,
+  );
   const validated = bootstrapPersonalOrganizationV1(input);
   assert.equal(validated.accepted, true);
   if (!validated.accepted) return;

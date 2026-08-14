@@ -1,0 +1,191 @@
+name: lightsail-pilot
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/lightsail-pilot.yml'
+      - 'apps/web/**'
+      - 'infrastructure/containers/api/**'
+      - 'infrastructure/containers/web/**'
+      - 'infrastructure/lightsail/**'
+      - 'packages/**'
+      - 'services/api/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/lightsail-pilot.yml'
+      - 'apps/web/**'
+      - 'infrastructure/containers/api/**'
+      - 'infrastructure/containers/web/**'
+      - 'infrastructure/lightsail/**'
+      - 'packages/**'
+      - 'services/api/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lightsail-pilot
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+
+jobs:
+  validate:
+    name: Validate pilot release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea528caeca8642d1e84bdaf3f7d6820020
+        with:
+          node-version-file: .node-version
+      - name: Enable pinned pnpm
+        run: corepack enable && corepack prepare pnpm@11.18.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Validate contracts and Web/API builds
+        run: |
+          pnpm contracts:check
+          pnpm --filter @databreeze/api typecheck
+          pnpm --filter @databreeze/web typecheck
+          pnpm --filter @databreeze/web build
+      - name: Validate pilot Compose and scripts
+        run: |
+          docker compose --env-file infrastructure/lightsail/.env.example \
+            -f infrastructure/lightsail/compose.pilot.yml config --quiet
+          bash -n infrastructure/lightsail/*.sh
+          node --test tools/repo-cli/test/lightsail-deployment.test.mjs
+
+  publish:
+    name: Publish immutable pilot images
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      api_image: ${{ steps.manifest.outputs.api_image }}
+      api_migration_image: ${{ steps.manifest.outputs.api_migration_image }}
+      web_image: ${{ steps.manifest.outputs.web_image }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Log in to GHCR
+        env:
+          CR_PAT: ${{ secrets.GITHUB_TOKEN }}
+        run:
+          echo "$CR_PAT" | docker login "$REGISTRY" --username "${{ github.actor }}"
+          --password-stdin
+      - name: Build and publish API runtime image
+        env:
+          IMAGE: ${{ env.IMAGE_PREFIX }}/databreeze-api:${{ github.sha }}
+        run: |
+          docker build --file infrastructure/containers/api/Dockerfile --target runtime --tag "$IMAGE" .
+          docker push "$IMAGE" >/dev/null
+      - name: Build and publish API migration image
+        env:
+          IMAGE: ${{ env.IMAGE_PREFIX }}/databreeze-api-migration:${{ github.sha }}
+        run: |
+          docker build --file infrastructure/containers/api/Dockerfile --target migration --tag "$IMAGE" .
+          docker push "$IMAGE" >/dev/null
+      - name: Build and publish Web image
+        env:
+          IMAGE: ${{ env.IMAGE_PREFIX }}/databreeze-web:${{ github.sha }}
+        run: |
+          docker build --file infrastructure/containers/web/Dockerfile --target runtime \
+            --build-arg VITE_DATABREEZE_DEMO_MODE=true --tag "$IMAGE" .
+          docker push "$IMAGE" >/dev/null
+      - name: Write immutable release manifest
+        id: manifest
+        shell: bash
+        env:
+          API_TAG: ${{ env.IMAGE_PREFIX }}/databreeze-api:${{ github.sha }}
+          MIGRATION_TAG: ${{ env.IMAGE_PREFIX }}/databreeze-api-migration:${{ github.sha }}
+          WEB_TAG: ${{ env.IMAGE_PREFIX }}/databreeze-web:${{ github.sha }}
+        run: |
+          set -euo pipefail
+          manifest="$RUNNER_TEMP/databreeze-${GITHUB_SHA}.env"
+          api_digest="$(docker image inspect "$API_TAG" --format '{{index .RepoDigests 0}}')"
+          migration_digest="$(docker image inspect "$MIGRATION_TAG" --format '{{index .RepoDigests 0}}')"
+          web_digest="$(docker image inspect "$WEB_TAG" --format '{{index .RepoDigests 0}}')"
+          printf 'API_IMAGE=%s\nAPI_MIGRATION_IMAGE=%s\nWEB_IMAGE=%s\n' \
+            "$api_digest" "$migration_digest" "$web_digest" > "$manifest"
+          printf 'api_image=%s\n' "$api_digest" >> "$GITHUB_OUTPUT"
+          printf 'api_migration_image=%s\n' "$migration_digest" >> "$GITHUB_OUTPUT"
+          printf 'web_image=%s\n' "$web_digest" >> "$GITHUB_OUTPUT"
+          cat "$manifest"
+
+  deploy:
+    name: Deploy pilot to Lightsail
+    if: github.event_name != 'pull_request'
+    needs: publish
+    runs-on: ubuntu-24.04
+    environment: pilot
+    timeout-minutes: 15
+    steps:
+      - name: Configure SSH trust
+        shell: bash
+        env:
+          LIGHTSAIL_KNOWN_HOSTS: ${{ secrets.LIGHTSAIL_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$LIGHTSAIL_KNOWN_HOSTS"
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$LIGHTSAIL_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+      - name: Install deployment key
+        shell: bash
+        env:
+          LIGHTSAIL_SSH_PRIVATE_KEY: ${{ secrets.LIGHTSAIL_SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$LIGHTSAIL_SSH_PRIVATE_KEY"
+          printf '%s\n' "$LIGHTSAIL_SSH_PRIVATE_KEY" > "$RUNNER_TEMP/lightsail-key"
+          chmod 600 "$RUNNER_TEMP/lightsail-key"
+      - name: Upload release manifest
+        shell: bash
+        env:
+          LIGHTSAIL_HOST: ${{ secrets.LIGHTSAIL_HOST }}
+          LIGHTSAIL_DEPLOY_USER: ${{ secrets.LIGHTSAIL_DEPLOY_USER }}
+          API_IMAGE: ${{ needs.publish.outputs.api_image }}
+          API_MIGRATION_IMAGE: ${{ needs.publish.outputs.api_migration_image }}
+          WEB_IMAGE: ${{ needs.publish.outputs.web_image }}
+        run: |
+          set -euo pipefail
+          test -n "$LIGHTSAIL_HOST"
+          test -n "$LIGHTSAIL_DEPLOY_USER"
+          test -n "$API_IMAGE"
+          test -n "$API_MIGRATION_IMAGE"
+          test -n "$WEB_IMAGE"
+          printf 'API_IMAGE=%s\nAPI_MIGRATION_IMAGE=%s\nWEB_IMAGE=%s\n' \
+            "$API_IMAGE" "$API_MIGRATION_IMAGE" "$WEB_IMAGE" \
+            > "$RUNNER_TEMP/databreeze-release.env"
+          scp -i "$RUNNER_TEMP/lightsail-key" "$RUNNER_TEMP/databreeze-release.env" \
+            "${LIGHTSAIL_DEPLOY_USER}@${LIGHTSAIL_HOST}:/tmp/databreeze-${GITHUB_SHA}.env"
+      - name: Deploy and verify
+        shell: bash
+        env:
+          LIGHTSAIL_HOST: ${{ secrets.LIGHTSAIL_HOST }}
+          LIGHTSAIL_DEPLOY_USER: ${{ secrets.LIGHTSAIL_DEPLOY_USER }}
+        run: |
+          set -euo pipefail
+          ssh -i "$RUNNER_TEMP/lightsail-key" "${LIGHTSAIL_DEPLOY_USER}@${LIGHTSAIL_HOST}" \
+            "sudo install -m 0640 /tmp/databreeze-${GITHUB_SHA}.env /opt/databreeze/releases/${GITHUB_SHA}.env && sudo /opt/databreeze/deploy.sh /opt/databreeze/releases/${GITHUB_SHA}.env && rm -f /tmp/databreeze-${GITHUB_SHA}.env"

@@ -27,6 +27,10 @@ void test('[IAE-014] storage adapter binds transfer grants to sessions and hides
   const session = createArtifactUploadSessionV1({
     sessionId: '00000000-0000-4000-8000-000000000785',
     artifactId: '00000000-0000-4000-8000-000000000786',
+    artifactVersionId: '00000000-0000-4000-8000-000000000788',
+    intakeId: '00000000-0000-4000-8000-000000000789',
+    policyVersionId: '00000000-0000-4000-8000-000000000790',
+    authorizationEpoch: context.authorizationEpoch,
     tenantScope: context.tenantScope,
     expectedSha256: 'a'.repeat(64),
     expectedByteSize: 4,
@@ -37,8 +41,14 @@ void test('[IAE-014] storage adapter binds transfer grants to sessions and hides
   });
   assert.equal(session.accepted, true);
   if (!session.accepted) return;
-  const storage = new InMemoryArtifactUploadStorageAdapter();
-  const grant = await storage.issuePartTransfer(context, session.value, 1);
+  const storage = new InMemoryArtifactUploadStorageAdapter(
+    () => new Date('2026-01-01T00:00:00.000Z'),
+  );
+  const grant = await storage.issuePartTransfer(context, session.value, {
+    partNumber: 1,
+    contentSha256: 'b'.repeat(64),
+    byteSize: 4,
+  });
   assert.equal(grant.accepted, true);
   if (!grant.accepted) return;
   const part = {

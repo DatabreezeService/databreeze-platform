@@ -13,6 +13,7 @@ import {
 } from '@databreeze/domain/tenant-scope/v1';
 
 import { InMemoryRefreshCoordinatorAdapter } from '../../../src/features/dda/refresh/adapter/in-memory-refresh-coordinator.adapter.js';
+import { withRefreshSnapshotBindingProof } from './refresh-snapshot-fixture.js';
 import { RefreshAdmissionService } from '../../../src/features/dda/refresh/application/refresh-admission.service.js';
 import type { RefreshUsagePortV1 } from '../../../src/features/dda/refresh/application/refresh-usage.port.js';
 
@@ -62,7 +63,7 @@ function snapshot() {
   const created = createDashboardSnapshotV1({ ...input, canonicalHash });
   assert.equal(created.accepted, true);
   if (!created.accepted) throw new Error('snapshot');
-  return created.value;
+  return withRefreshSnapshotBindingProof(created.value);
 }
 
 class FakeUsagePort implements RefreshUsagePortV1 {
@@ -132,7 +133,7 @@ const usageClasses = [
 
 void test('[DDA-036] admission enforces usage classes at organization/workspace/project scopes', async () => {
   const coordinator = new InMemoryRefreshCoordinatorAdapter();
-  await coordinator.setCurrentSnapshot(ids.dashboardId, snapshot());
+  await coordinator.setCurrentSnapshot(scope, ids.dashboardId, snapshot());
   const usage = new FakeUsagePort();
   const service = new RefreshAdmissionService(coordinator, usage);
 
@@ -159,7 +160,7 @@ void test('[DDA-036] admission enforces usage classes at organization/workspace/
 
 void test('[DDA-036] denial preserves last-good snapshot, creates no partial publish, and audits safely', async () => {
   const coordinator = new InMemoryRefreshCoordinatorAdapter();
-  await coordinator.setCurrentSnapshot(ids.dashboardId, snapshot());
+  await coordinator.setCurrentSnapshot(scope, ids.dashboardId, snapshot());
   const usage = new FakeUsagePort();
   usage.deniedClass = 'MATERIALIZATION';
   const service = new RefreshAdmissionService(coordinator, usage);
@@ -175,7 +176,10 @@ void test('[DDA-036] denial preserves last-good snapshot, creates no partial pub
   });
   assert.equal(denied.accepted, false);
   if (denied.accepted) return;
-  assert.equal((await coordinator.getCurrentSnapshot(ids.dashboardId))?.snapshotId, ids.snapshot);
+  assert.equal(
+    (await coordinator.getCurrentSnapshot(scope, ids.dashboardId))?.snapshotId,
+    ids.snapshot,
+  );
   assert.equal(usage.reservations.size, 0);
   assert.equal(usage.audit.length, 1);
   assert.deepEqual(usage.audit[0], {
@@ -189,7 +193,7 @@ void test('[DDA-036] denial preserves last-good snapshot, creates no partial pub
 
 void test('[DDA-036] paid-resource admission is fail-closed and reservation is idempotent', async () => {
   const coordinator = new InMemoryRefreshCoordinatorAdapter();
-  await coordinator.setCurrentSnapshot(ids.dashboardId, snapshot());
+  await coordinator.setCurrentSnapshot(scope, ids.dashboardId, snapshot());
   const usage = new FakeUsagePort();
   const service = new RefreshAdmissionService(coordinator, usage);
 

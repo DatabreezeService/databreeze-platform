@@ -3,7 +3,7 @@
 | Metadata | Value |
 |---|---|
 | Status | Product specification |
-| Version | 1.1 |
+| Version | 1.2 |
 | Requirement prefix | `DSO` |
 | Dependencies | `IAM` Identity, Workspaces, and Permissions; `IAE` Inbox, Artifacts, and Evidence; exposes route/capability and dispatch contracts composed with `JRA` by the application-layer `ExecutionAdmissionCoordinator` |
 
@@ -102,6 +102,10 @@ The Workspace DataMode policy is always the maximum authority. A project, artifa
 
 DSO publishes each policy change as a new immutable WorkspaceDataModePolicyVersion with a canonical hash. IAM Workspace records only stable/current policy IDs and a content-safe mode projection for authorization and UI; IAM does not own the matrix. A client uses a DataModePolicyManifest only after verifying schema, workspace, audience/Device, authorization epoch, policy version/hash, issue/expiry, signer/key version, and signature. Local encryption protects a cached manifest's confidentiality but is not proof of authenticity.
 
+For DSO-018, DSO-026, and DSO-027, publishing a WorkspaceDataModePolicyVersion is also its activation command; V1 has no inactive candidate lifecycle. The command supplies the expected DSO policy aggregate revision and current version plus the expected IAM Workspace policy projection and authorization epoch. One server transaction creates the immutable version, compare-and-swaps the DSO current pointer, compare-and-swaps IAM's content-safe IDs/mode projection, increments the Workspace authorization epoch exactly once, and appends the required audit/outbox records. Exact idempotent replay returns the committed binding without incrementing the epoch again. Any stale, missing, malformed, or cross-tenant binding rolls back every effect and all current-policy consumers fail closed. The transition still requires DSO-018 Admin authority, recent MFA, and the applicable confirmed migration or verified purge workflow before this transaction begins.
+
+IAM-022 personal-workspace activation is the only V1 initialization path before an authenticated Workspace administrator exists. In the same registration transaction, a narrow DSO participant creates the server-owned DSO-008 `HYBRID` revision-1 policy and exact current pointer, returning only the policy ID, version ID and content-safe mode projection for the IAM Workspace row. This participant accepts exact organization/workspace ancestry and the server transaction time only; it accepts no client-selected mode, policy matrix, IDs, hashes or timestamps. Exact replay returns the same immutable binding and any partial, mismatched or cross-tenant state fails closed. This initialization is not a DSO-018 transition and cannot update an existing Workspace policy.
+
 ### User-mediated Local export/import
 
 1. On the source Device, an authorized user selects exact immutable ArtifactVersions or provisional capture items, a registered destination Device when known, and a declared processing purpose.
@@ -138,7 +142,7 @@ IAM is the sole revocation authority. DSO consumes `iam.device.revoked` and also
 | DSO-005 | P0 | Pull batches and offline pushes shall be idempotent and safely repeatable after timeout, crash, lost acknowledgement, or cursor replay. |
 | DSO-006 | P0 | All synchronized commands shall be re-authorized server-side for principal, device, workspace, project, resource, action, data mode, and entitlement. |
 | DSO-007 | P0 | `LOCAL` mode shall technically prevent upload of original bytes and reconstructable derived content, including chunks, previews, OCR/transcripts, thumbnails, row/cell values, and source snippets, regardless of client request; only a separately confirmed approved derived result may synchronize. |
-| DSO-008 | P0 | Hybrid mode shall be the default and shall synchronize only the explicit data classifications and synchronization payload classes enabled by the workspace policy manifest. |
+| DSO-008 | P0 | Hybrid mode shall be the default. IAM-022 personal-workspace activation shall create its server-owned immutable revision-1 HYBRID policy and exact current pointer in the same transaction, without client policy authority; exact replay shall return the same binding. Hybrid mode shall synchronize only the explicit data classifications and synchronization payload classes enabled by the workspace policy manifest. |
 | DSO-009 | P0 | Blob transfer shall be resumable, chunk-hashed, content-hash verified, encrypted in transit and at rest, and published only after complete verification. |
 | DSO-010 | P0 | Offline queues shall be encrypted, append-only until acknowledged, dependency-aware, and keyed by stable operation IDs generated before first execution. |
 | DSO-011 | P0 | Conflict handling shall follow the explicit per-entity rules in this specification and shall never silently use last-write-wins for assignments, workflow state, approvals, security, billing, or overlapping corrections. |
@@ -362,6 +366,8 @@ IAM owns `POST /v1/devices/enrollment-challenges`, `POST /v1/devices/enroll`, `P
 DSO consumes `iam.device.enrolled`, `iam.device.activated`, `iam.device.revoked`, and IAM security-epoch changes. DSO emits `dso.device.capabilities_changed`, `dso.device.grant_changed`, `dso.device.health_changed`, `sync.operation.applied`, `sync.operation.rejected`, `sync.conflict.created`, `sync.conflict.resolved`, `sync.cursor.expired`, `blob.transfer.completed`, `workspace.data_mode_policy.published`, and `workspace.data_mode.changed`.
 
 Events use the transactional outbox. Device health telemetry is operational data, not a durable domain event unless it changes device state.
+
+`POST /v1/workspaces/{workspaceId}/data-mode-policy/versions` is the atomic publish-and-activate command described by DSO-018/026/027. It requires `Idempotency-Key` and the expected DSO aggregate revision/current version, IAM current policy projection, and Workspace authorization epoch. There is no separate V1 activation endpoint.
 
 ### Extension points
 

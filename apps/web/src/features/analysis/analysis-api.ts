@@ -1,0 +1,242 @@
+import type {
+  ContractV4ParseResult,
+  ContractV4SchemaId,
+  DdaAgentTurnAccepted,
+  DdaAgentTurnCommand,
+  DdaConversationListAccepted,
+  DdaConversationLoadAccepted,
+} from '@databreeze/contracts/v4';
+
+const CONVERSATION_LIST_SCHEMA =
+  'https://schemas.databreeze.dev/contracts/v4/dda-conversation-list-accepted' as const;
+const CONVERSATION_LOAD_SCHEMA =
+  'https://schemas.databreeze.dev/contracts/v4/dda-conversation-load-accepted' as const;
+const AGENT_TURN_SCHEMA =
+  'https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-accepted' as const;
+
+export type AnalysisConversationApiErrorCodeV1 =
+  | 'CONVERSATION_ABORTED'
+  | 'CONVERSATION_FORBIDDEN'
+  | 'CONVERSATION_NOT_FOUND'
+  | 'CONVERSATION_RESPONSE_INVALID'
+  | 'CONVERSATION_UNAVAILABLE'
+  | 'AGENT_TURN_ABORTED'
+  | 'AGENT_TURN_FORBIDDEN'
+  | 'AGENT_TURN_STALE_CONTEXT'
+  | 'AGENT_TURN_USAGE_DENIED'
+  | 'AGENT_TURN_RESPONSE_INVALID'
+  | 'AGENT_TURN_UNAVAILABLE';
+
+export class AnalysisConversationApiError extends Error {
+  public constructor(readonly code: AnalysisConversationApiErrorCodeV1) {
+    super(code);
+    this.name = 'AnalysisConversationApiError';
+  }
+}
+
+export interface ConversationApiBaseInputV1 {
+  readonly baseUrl?: string;
+  readonly signal?: AbortSignal;
+}
+
+export interface FetchAuthorizedConversationHistoryInputV1 extends ConversationApiBaseInputV1 {
+  readonly cursor?: string;
+  readonly limit?: number;
+}
+
+export interface FetchAuthorizedConversationInputV1 extends ConversationApiBaseInputV1 {
+  readonly conversationId: string;
+  readonly beforeCursor?: string;
+  readonly limit?: number;
+}
+
+export interface RunAuthorizedAgentTurnInputV1 extends ConversationApiBaseInputV1 {
+  readonly conversationId: string;
+  readonly messageId: string;
+  readonly text: string;
+  readonly idempotencyKey: string;
+  readonly locale: 'en' | 'vi-VN';
+  readonly contextRevision?: number;
+  readonly expectedContextRevision?: number;
+}
+
+function configuredBaseUrl(
+  environment: Readonly<Record<string, unknown>> = import.meta.env,
+): string {
+  const configured = environment['VITE_DATABREEZE_API_BASE_URL'];
+  return (typeof configured === 'string' ? configured.trim() : '').replace(/\/+$/u, '');
+}
+
+export interface AnalysisConversationApiConfigurationV1 {
+  readonly baseUrl: string;
+}
+
+export function analysisConversationApiConfiguration(
+  environment: Readonly<Record<string, unknown>> = import.meta.env,
+): AnalysisConversationApiConfigurationV1 {
+  return Object.freeze({ baseUrl: configuredBaseUrl(environment) });
+}
+
+function endpoint(baseUrl: string | undefined, path: string): string {
+  return `${(baseUrl ?? configuredBaseUrl()).replace(/\/+$/u, '')}${path}`;
+}
+
+function isAbort(error: unknown): boolean {
+  return (
+    (typeof DOMException !== 'undefined' &&
+      error instanceof DOMException &&
+      error.name === 'AbortError') ||
+    (typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError')
+  );
+}
+
+function requestInit(method: 'GET' | 'POST', signal: AbortSignal | undefined, body?: unknown) {
+  return {
+    method,
+    credentials: 'include' as const,
+    headers:
+      method === 'POST'
+        ? { Accept: 'application/json', 'content-type': 'application/json' }
+        : { Accept: 'application/json' },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    ...(signal === undefined ? {} : { signal }),
+  } satisfies RequestInit;
+}
+
+async function parseV4<TValue>(
+  schemaId: ContractV4SchemaId,
+  value: unknown,
+): Promise<ContractV4ParseResult<TValue>> {
+  // Keep Ajv outside the initial workspace shell chunk. The validator is loaded
+  // only when an authorized conversation request returns.
+  const { parseV4Contract } = await import('@databreeze/contracts/v4');
+  return parseV4Contract<TValue>(schemaId, value);
+}
+
+function conversationStatus(response: Response): void {
+  if (response.status === 401 || response.status === 403) {
+    throw new AnalysisConversationApiError('CONVERSATION_FORBIDDEN');
+  }
+  if (response.status === 404) {
+    throw new AnalysisConversationApiError('CONVERSATION_NOT_FOUND');
+  }
+  if (!response.ok) throw new AnalysisConversationApiError('CONVERSATION_UNAVAILABLE');
+}
+
+function agentTurnStatus(response: Response): void {
+  if (response.status === 401 || response.status === 403) {
+    throw new AnalysisConversationApiError('AGENT_TURN_FORBIDDEN');
+  }
+  if (response.status === 409) {
+    throw new AnalysisConversationApiError('AGENT_TURN_STALE_CONTEXT');
+  }
+  if (response.status === 429) {
+    throw new AnalysisConversationApiError('AGENT_TURN_USAGE_DENIED');
+  }
+  if (!response.ok) throw new AnalysisConversationApiError('AGENT_TURN_UNAVAILABLE');
+}
+
+async function responseJson(response: Response, invalidCode: AnalysisConversationApiErrorCodeV1) {
+  try {
+    return await response.json();
+  } catch {
+    throw new AnalysisConversationApiError(invalidCode);
+  }
+}
+
+/** DDA-055: permission-filtered workspace history with no client-supplied tenant authority. */
+export async function fetchAuthorizedConversationHistory(
+  input: FetchAuthorizedConversationHistoryInputV1 = {},
+): Promise<DdaConversationListAccepted> {
+  const search = new URLSearchParams({ limit: String(input.limit ?? 20) });
+  if (input.cursor !== undefined) search.set('cursor', input.cursor);
+  let response: Response;
+  try {
+    response = await globalThis.fetch(
+      endpoint(input.baseUrl, `/v1/dda/conversations?${search.toString()}`),
+      requestInit('GET', input.signal),
+    );
+  } catch (error) {
+    throw new AnalysisConversationApiError(
+      isAbort(error) ? 'CONVERSATION_ABORTED' : 'CONVERSATION_UNAVAILABLE',
+    );
+  }
+  conversationStatus(response);
+  const parsed = await parseV4<DdaConversationListAccepted>(
+    CONVERSATION_LIST_SCHEMA,
+    await responseJson(response, 'CONVERSATION_RESPONSE_INVALID'),
+  );
+  if (!parsed.accepted) {
+    throw new AnalysisConversationApiError('CONVERSATION_RESPONSE_INVALID');
+  }
+  return parsed.value;
+}
+
+/** DDA-055/DDA-056: load one bounded, reauthorized message and context-event page. */
+export async function fetchAuthorizedConversation(
+  input: FetchAuthorizedConversationInputV1,
+): Promise<DdaConversationLoadAccepted> {
+  const search = new URLSearchParams({ limit: String(input.limit ?? 50) });
+  if (input.beforeCursor !== undefined) search.set('beforeCursor', input.beforeCursor);
+  let response: Response;
+  try {
+    response = await globalThis.fetch(
+      endpoint(
+        input.baseUrl,
+        `/v1/dda/conversations/${encodeURIComponent(input.conversationId)}?${search.toString()}`,
+      ),
+      requestInit('GET', input.signal),
+    );
+  } catch (error) {
+    throw new AnalysisConversationApiError(
+      isAbort(error) ? 'CONVERSATION_ABORTED' : 'CONVERSATION_UNAVAILABLE',
+    );
+  }
+  conversationStatus(response);
+  const parsed = await parseV4<DdaConversationLoadAccepted>(
+    CONVERSATION_LOAD_SCHEMA,
+    await responseJson(response, 'CONVERSATION_RESPONSE_INVALID'),
+  );
+  if (!parsed.accepted) {
+    throw new AnalysisConversationApiError('CONVERSATION_RESPONSE_INVALID');
+  }
+  return parsed.value;
+}
+
+/** IAM-024/DDA-060: send one generated, idempotent command to the bounded agent gateway. */
+export async function runAuthorizedAgentTurn(
+  input: RunAuthorizedAgentTurnInputV1,
+): Promise<DdaAgentTurnAccepted> {
+  const command: DdaAgentTurnCommand = {
+    schemaVersion: 4,
+    conversationId: input.conversationId,
+    messageId: input.messageId,
+    text: input.text,
+    idempotencyKey: input.idempotencyKey,
+    locale: input.locale,
+    ...(input.contextRevision === undefined ? {} : { contextRevision: input.contextRevision }),
+    ...(input.expectedContextRevision === undefined
+      ? {}
+      : { expectedContextRevision: input.expectedContextRevision }),
+  };
+  let response: Response;
+  try {
+    response = await globalThis.fetch(
+      endpoint(input.baseUrl, '/v1/dda/agent/turns'),
+      requestInit('POST', input.signal, command),
+    );
+  } catch (error) {
+    throw new AnalysisConversationApiError(
+      isAbort(error) ? 'AGENT_TURN_ABORTED' : 'AGENT_TURN_UNAVAILABLE',
+    );
+  }
+  agentTurnStatus(response);
+  const parsed = await parseV4<DdaAgentTurnAccepted>(
+    AGENT_TURN_SCHEMA,
+    await responseJson(response, 'AGENT_TURN_RESPONSE_INVALID'),
+  );
+  if (!parsed.accepted) {
+    throw new AnalysisConversationApiError('AGENT_TURN_RESPONSE_INVALID');
+  }
+  return parsed.value;
+}

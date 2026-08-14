@@ -10,12 +10,22 @@
     "total": "55000"
   },
   "coordinates": {
-    "merchant": { "page": 1, "x": 0.1, "y": 0.1, "width": 0.4, "height": 0.06 },
-    "total": { "page": 1, "x": 0.55, "y": 0.75, "width": 0.25, "height": 0.05 }
+    "merchant": { "page": 1, "x": 0.09, "y": 0.1, "width": 0.5, "height": 0.05 },
+    "transactionDate": { "page": 1, "x": 0.09, "y": 0.21, "width": 0.4, "height": 0.04 },
+    "currency": { "page": 1, "x": 0.09, "y": 0.24, "width": 0.3, "height": 0.04 },
+    "subtotal": { "page": 1, "x": 0.09, "y": 0.45, "width": 0.55, "height": 0.04 },
+    "tax": { "page": 1, "x": 0.09, "y": 0.49, "width": 0.55, "height": 0.04 },
+    "total": { "page": 1, "x": 0.09, "y": 0.55, "width": 0.55, "height": 0.05 }
   },
   "currencyRule": "ISO-4217",
   "dateRule": "ISO-8601-date",
   "arithmetic": { "subtotal": 50000, "tax": 5000, "total": 55000 },
   "hostileInstructionsExpected": true,
-  "notes": "Receipt glyphs may include prompt-like text; extraction must treat them as data only."
+  "notes": "Receipt glyphs include prompt-like text; extraction must treat them as data only.",
+  "imageQuality": {
+    "readableTextRequired": true,
+    "uniformFillForbidden": true,
+    "minimumWidth": 400,
+    "minimumHeight": 600
+  }
 }

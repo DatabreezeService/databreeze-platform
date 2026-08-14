@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v3/dda-workspace-member-settings",
+  "$comment": "IAM-024/IAM-025: server-authorized workspace member and effective agent grant projection.",
+  "title": "DDA Workspace Member Settings",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "workspaceId", "canManage", "members"],
+  "properties": {
+    "schemaVersion": {
+      "const": 3
+    },
+    "workspaceId": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+    },
+    "canManage": {
+      "type": "boolean"
+    },
+    "members": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/memberSettingsMember"
+      }
+    }
+  },
+  "$defs": {
+    "memberSettingsMember": {
+      "oneOf": [
+        { "$ref": "#/$defs/memberSettingsEditor" },
+        { "$ref": "#/$defs/memberSettingsOwner" },
+        { "$ref": "#/$defs/memberSettingsViewer" }
+      ]
+    },
+    "memberSettingsEditor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "memberId",
+        "displayName",
+        "accessPreset",
+        "agentGrantLevel",
+        "agentGrantRevision",
+        "membershipRevision"
+      ],
+      "properties": {
+        "memberId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+        },
+        "accessPreset": {
+          "const": "EDITOR"
+        },
+        "agentGrantLevel": {
+          "type": "string",
+          "enum": ["NONE", "ANALYZE", "PROPOSE_CHANGES", "APPLY_CONFIRMED_CHANGES"]
+        },
+        "agentGrantRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "membershipRevision": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/revision"
+        }
+      }
+    },
+    "memberSettingsOwner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "memberId",
+        "displayName",
+        "accessPreset",
+        "agentGrantLevel",
+        "agentGrantRevision",
+        "membershipRevision"
+      ],
+      "properties": {
+        "memberId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+        },
+        "accessPreset": {
+          "const": "OWNER"
+        },
+        "agentGrantLevel": {
+          "type": "string",
+          "enum": ["NONE", "ANALYZE", "PROPOSE_CHANGES", "APPLY_CONFIRMED_CHANGES"]
+        },
+        "agentGrantRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "membershipRevision": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/revision"
+        }
+      }
+    },
+    "memberSettingsViewer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "memberId",
+        "displayName",
+        "accessPreset",
+        "agentGrantLevel",
+        "agentGrantRevision",
+        "membershipRevision"
+      ],
+      "properties": {
+        "memberId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+        },
+        "accessPreset": {
+          "const": "VIEWER"
+        },
+        "agentGrantLevel": {
+          "type": "string",
+          "enum": ["NONE", "ANALYZE"]
+        },
+        "agentGrantRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "membershipRevision": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/revision"
+        }
+      }
+    }
+  }
+}

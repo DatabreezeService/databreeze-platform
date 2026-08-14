@@ -75,33 +75,21 @@ export interface DashboardVersionRecordCreateV1 {
 
 export interface DdaDashboardDatabaseClientV1 {
   readonly dashboardRecord: {
-    upsert(input: {
-      readonly where: { readonly id: string };
-      readonly create: DashboardRecordCreateV1;
-      readonly update: Omit<DashboardRecordCreateV1, 'id'>;
-    }): Promise<DashboardRecordRowV1>;
+    create(input: { readonly data: DashboardRecordCreateV1 }): Promise<DashboardRecordRowV1>;
+    updateMany(input: {
+      readonly where: Readonly<Record<string, unknown>>;
+      readonly data: Readonly<Record<string, unknown>>;
+    }): Promise<{ readonly count: number }>;
     findFirst(input: {
-      readonly where: {
-        readonly id: string;
-        readonly organizationId: string;
-        readonly workspaceId: string;
-        readonly projectId: string;
-      };
+      readonly where: Readonly<Record<string, unknown>>;
     }): Promise<DashboardRecordRowV1 | null>;
   };
   readonly dashboardVersionRecord: {
-    upsert(input: {
-      readonly where: { readonly id: string };
-      readonly create: DashboardVersionRecordCreateV1;
-      readonly update: Omit<DashboardVersionRecordCreateV1, 'id' | 'createdAt'>;
+    create(input: {
+      readonly data: DashboardVersionRecordCreateV1;
     }): Promise<DashboardVersionRecordRowV1>;
     findFirst(input: {
-      readonly where: {
-        readonly id: string;
-        readonly organizationId: string;
-        readonly workspaceId: string;
-        readonly projectId: string;
-      };
+      readonly where: Readonly<Record<string, unknown>>;
     }): Promise<DashboardVersionRecordRowV1 | null>;
   };
 }
@@ -183,6 +171,69 @@ function rowToVersion(row: DashboardVersionRecordRowV1): DashboardVersionV1 {
   return created.value;
 }
 
+function uniqueConstraint(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { readonly code?: unknown }).code === 'P2002'
+  );
+}
+
+function canonicalJson(value: unknown): string {
+  if (value === undefined) throw new Error('DDA_PERSISTED_VERSION_INVALID');
+  if (value === null || typeof value === 'boolean' || typeof value === 'string') {
+    return JSON.stringify(value);
+  }
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) throw new Error('DDA_PERSISTED_VERSION_INVALID');
+    return JSON.stringify(value);
+  }
+  if (typeof value !== 'object') throw new Error('DDA_PERSISTED_VERSION_INVALID');
+  if (Array.isArray(value)) return `[${value.map((item) => canonicalJson(item)).join(',')}]`;
+  const entries = Object.entries(value as Readonly<Record<string, unknown>>).sort(
+    ([left], [right]) => left.localeCompare(right),
+  );
+  return `{${entries
+    .map(([key, child]) => `${JSON.stringify(key)}:${canonicalJson(child)}`)
+    .join(',')}}`;
+}
+
+function canonicalLayoutGraph(value: unknown): string {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('DDA_PERSISTED_VERSION_INVALID');
+  }
+  const graph = value as Readonly<Record<string, unknown>>;
+  return canonicalJson({
+    pages: graph['pages'],
+    widgets: graph['widgets'],
+    filters: graph['filters'],
+    datasetBindings: graph['datasetBindings'],
+  });
+}
+
+function immutableVersionMatches(
+  row: DashboardVersionRecordRowV1,
+  data: DashboardVersionRecordCreateV1,
+): boolean {
+  return (
+    row.id === data.id &&
+    row.dashboardId === data.dashboardId &&
+    row.scopeType === data.scopeType &&
+    row.organizationId === data.organizationId &&
+    row.workspaceId === data.workspaceId &&
+    row.projectId === data.projectId &&
+    row.parentVersionId === data.parentVersionId &&
+    canonicalLayoutGraph(row.layoutGraph) === canonicalLayoutGraph(data.layoutGraph) &&
+    row.freshnessPolicy === data.freshnessPolicy &&
+    row.publicationPolicy === data.publicationPolicy &&
+    row.locale === data.locale &&
+    row.timezone === data.timezone &&
+    row.canonicalHash === data.canonicalHash &&
+    row.createdAt.getTime() === data.createdAt.getTime()
+  );
+}
+
 export class PrismaDashboardRepositoryAdapter implements DashboardRepositoryPortV1 {
   public constructor(private readonly client: DdaDashboardDatabaseClientV1) {}
 
@@ -198,11 +249,34 @@ export class PrismaDashboardRepositoryAdapter implements DashboardRepositoryPort
       publishedVersionId: identity.publishedVersionId ?? null,
       revision: identity.revision,
     };
-    await this.client.dashboardRecord.upsert({
+    const existing = await this.client.dashboardRecord.findFirst({
       where: { id: identity.dashboardId },
-      create: data,
-      update: {
+    });
+    if (existing === null) {
+      try {
+        await this.client.dashboardRecord.create({ data });
+        return;
+      } catch (error) {
+        if (uniqueConstraint(error)) throw new Error('DDA_DASHBOARD_IDENTITY_CONFLICT');
+        throw error;
+      }
+    }
+    if (
+      existing.organizationId !== scope.organizationId ||
+      existing.workspaceId !== scope.workspaceId ||
+      existing.projectId !== scope.projectId ||
+      existing.scopeType !== scope.scopeType ||
+      identity.revision !== existing.revision + 1
+    ) {
+      throw new Error('DDA_DASHBOARD_IDENTITY_CONFLICT');
+    }
+    const updated = await this.client.dashboardRecord.updateMany({
+      where: {
+        id: identity.dashboardId,
         ...scope,
+        revision: existing.revision,
+      },
+      data: {
         titleVi: data.titleVi,
         titleEn: data.titleEn,
         status: data.status,
@@ -211,6 +285,7 @@ export class PrismaDashboardRepositoryAdapter implements DashboardRepositoryPort
         revision: data.revision,
       },
     });
+    if (updated.count !== 1) throw new Error('DDA_DASHBOARD_IDENTITY_CONFLICT');
   }
 
   public async findByDashboardId(
@@ -250,21 +325,25 @@ export class PrismaDashboardRepositoryAdapter implements DashboardRepositoryPort
       canonicalHash: version.canonicalHash,
       createdAt: new Date(version.createdAt),
     };
-    await this.client.dashboardVersionRecord.upsert({
+    const existing = await this.client.dashboardVersionRecord.findFirst({
       where: { id: version.versionId },
-      create: data,
-      update: {
-        dashboardId: data.dashboardId,
-        ...scope,
-        parentVersionId: data.parentVersionId,
-        layoutGraph: data.layoutGraph,
-        freshnessPolicy: data.freshnessPolicy,
-        publicationPolicy: data.publicationPolicy,
-        locale: data.locale,
-        timezone: data.timezone,
-        canonicalHash: data.canonicalHash,
-      },
     });
+    if (existing !== null) {
+      if (immutableVersionMatches(existing, data)) return;
+      throw new Error('DDA_IMMUTABLE_VERSION_CONFLICT');
+    }
+    try {
+      await this.client.dashboardVersionRecord.create({ data });
+    } catch (error) {
+      if (uniqueConstraint(error)) {
+        const raced = await this.client.dashboardVersionRecord.findFirst({
+          where: { id: version.versionId },
+        });
+        if (raced !== null && immutableVersionMatches(raced, data)) return;
+        throw new Error('DDA_IMMUTABLE_VERSION_CONFLICT');
+      }
+      throw error;
+    }
   }
 
   public async findVersion(

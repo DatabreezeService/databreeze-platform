@@ -38,10 +38,28 @@ void test('[DDA-055] create append list and load conversation with workspace own
   );
   assert.equal(appended.accepted, true);
 
-  const listed = await service.listConversations({ tenantScope, memberAuthorized: true }, undefined, 20);
+  const conflictingReplay = await service.appendUserMessage(
+    { tenantScope, memberAuthorized: true },
+    created.value.conversationId,
+    {
+      messageId: '00000000-0000-4000-8000-000000000802',
+      text: 'Different request under the same key',
+      idempotencyKey: 'msg-1',
+    },
+  );
+  assert.deepEqual(conflictingReplay, {
+    accepted: false,
+    code: 'DDA_CONVERSATION_MESSAGE_IDEMPOTENCY_CONFLICT',
+  });
+
+  const listed = await service.listConversations(
+    { tenantScope, memberAuthorized: true },
+    undefined,
+    20,
+  );
   assert.equal(listed.accepted, true);
   if (!listed.accepted) return;
-  assert.equal(listed.value.length, 1);
+  assert.equal(listed.value.items.length, 1);
 
   const loaded = await service.loadConversation(
     { tenantScope, memberAuthorized: true },

@@ -1220,6 +1220,9 @@ Expected: unit, lint, and connected tests pass on the documented emulator profil
 - Create: `services/api/src/features/dda/notification/dda-notification-policy.ts`
 - Create: `services/api/src/features/dda/notification/dda-notification-projector.ts`
 - Create: `services/api/test/features/dda/dda-notification-policy.test.ts`
+- Create: `packages/contracts/schemas/v3/dda-notification.schema.json`
+- Create: `packages/contracts/schemas/v3/dda-notification-page.schema.json`
+- Create: `packages/contracts/schemas/v3/dda-notification-state-command.schema.json`
 - Create: `apps/web/src/features/notifications/notification-center.tsx`
 - Create: `apps/web/src/features/settings/workspace-settings-page.tsx`
 - Create: `apps/web/src/features/settings/member-access-table.tsx`
@@ -1231,6 +1234,9 @@ Expected: unit, lint, and connected tests pass on the documented emulator profil
 **Interfaces:**
 
 - In-app notification kinds are `REVIEW_REQUIRED`, `PREPARATION_BLOCKED`, `SOURCE_MISMATCH`, `SYNC_FAILED`, `REFRESH_BLOCKED`, `OCR_REVIEW_REQUIRED`, `AGENT_BUDGET_DENIED`, and `SECURITY_NOTICE`.
+- Notification HTTP/SSE surfaces and generated consumers use the new canonical contract major `v3`. Published `v1` and `v2` baselines remain byte-for-byte immutable.
+- List responses expose a server-authoritative recipient unread count independent of page size, and unavailable state never renders as an empty inbox.
+- State commands bind authenticated recipient, exact scope, expected revision, target state, and idempotency key, with monotonic transitions and payload-conflict detection.
 - Routine successful refreshes stay quiet by default. Related events group by workspace, subject, kind, and unresolved state.
 - Desktop system notifications are limited to source problems, sync failures, and explicitly enabled review alerts and reveal no source content on the lock screen.
 - Email remains limited to OTP, password recovery, and serious security events. Slack and Discord are not wired in this release.
@@ -1253,6 +1259,8 @@ Expected: projectors and surfaces are missing.
 - [ ] **Step 3: Implement content-safe projection and committed-event reconciliation**
 
 Create NCO notifications only from committed domain events using idempotent event IDs. Clients reconcile through REST after SSE gaps or reconnect. Notification payloads contain safe labels, status, opaque subject ID, action route, created time, and correlation ID, never source values, OCR text, paths, or unrestricted evidence.
+
+Generate and publish the reviewed `v3` contract baseline with the repository compatibility tool. Update API, Web, Desktop, Android, OpenAPI, fixture manifests, and runtime validators together; the compatibility check must continue to reject any notification schema added to published `v1` or `v2`.
 
 - [ ] **Step 4: Implement settings and Desktop system notifications**
 

@@ -6,6 +6,9 @@ name                                = "staging"
 availability_zones                  = ["ap-southeast-1a", "ap-southeast-1b"]
 enable_nat_gateway                  = false
 enable_cloudfront                   = false
+web_aliases                         = []
+web_acm_certificate_arn             = ""
+web_connect_src_origins             = []
 enable_database                     = false
 enable_ecs_services                 = false
 backup_retention_period             = 1
@@ -16,4 +19,21 @@ redis_automatic_failover_enabled    = false
 redis_multi_az_enabled              = false
 api_desired_count                   = 1
 worker_desired_count                = 1
+worker_api_endpoint                 = ""
 github_repository                   = ""
+api_certificate_arn                 = ""
+iam_email_from_address              = ""
+
+# Keep OpenAI features disabled until the owner populates the dedicated
+# databreeze/staging/openai/api-key secret out of band.
+openai_agent_enabled           = false
+openai_receipt_enabled         = false
+openai_dashboard_enabled       = false
+openai_agent_model             = "gpt-4o-mini-2024-07-18"
+openai_agent_timeout_ms        = 30000
+openai_agent_max_output_tokens = 2048
+openai_receipt_model           = "gpt-4o-mini-2024-07-18"
+openai_dashboard_model         = "gpt-4o-mini-2024-07-18"
+openai_image_detail            = "high"
+openai_timeout_ms              = 30000
+openai_max_output_tokens       = 2048

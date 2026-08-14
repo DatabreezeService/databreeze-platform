@@ -4,6 +4,8 @@ locals {
 
 data "aws_caller_identity" "current" {}
 
+data "aws_partition" "current" {}
+
 data "aws_iam_policy_document" "platform_key" {
   statement {
     sid       = "AccountAdministration"
@@ -12,7 +14,7 @@ data "aws_iam_policy_document" "platform_key" {
     resources = ["*"]
     principals {
       type        = "AWS"
-      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+      identifiers = ["arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:root"]
     }
   }
 
@@ -25,8 +27,7 @@ data "aws_iam_policy_document" "platform_key" {
       type = "Service"
       identifiers = [
         "logs.${var.region}.amazonaws.com",
-        "s3.amazonaws.com",
-        "secretsmanager.amazonaws.com"
+        "s3.amazonaws.com"
       ]
     }
     condition {
@@ -39,9 +40,34 @@ data "aws_iam_policy_document" "platform_key" {
       variable = "kms:ViaService"
       values = [
         "logs.${var.region}.amazonaws.com",
-        "s3.${var.region}.amazonaws.com",
-        "secretsmanager.${var.region}.amazonaws.com"
+        "s3.${var.region}.amazonaws.com"
       ]
+    }
+  }
+
+  statement {
+    sid       = "SecretsManagerDataBreezeSecrets"
+    effect    = "Allow"
+    actions   = ["kms:Decrypt", "kms:DescribeKey", "kms:Encrypt", "kms:GenerateDataKey*", "kms:ReEncrypt*"]
+    resources = ["*"]
+    principals {
+      type        = "Service"
+      identifiers = ["secretsmanager.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "kms:CallerAccount"
+      values   = [data.aws_caller_identity.current.account_id]
+    }
+    condition {
+      test     = "StringLike"
+      variable = "kms:ViaService"
+      values   = ["secretsmanager.${var.region}.amazonaws.com"]
+    }
+    condition {
+      test     = "StringLike"
+      variable = "kms:EncryptionContext:SecretARN"
+      values   = ["arn:${data.aws_partition.current.partition}:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:databreeze/${var.name}/*"]
     }
   }
 
@@ -62,7 +88,7 @@ data "aws_iam_policy_document" "platform_key" {
     condition {
       test     = "ArnLike"
       variable = "AWS:SourceArn"
-      values   = ["arn:aws:cloudfront::${data.aws_caller_identity.current.account_id}:distribution/*"]
+      values   = ["arn:${data.aws_partition.current.partition}:cloudfront::${data.aws_caller_identity.current.account_id}:distribution/*"]
     }
   }
 }
@@ -82,10 +108,66 @@ resource "aws_kms_alias" "platform" {
 
 resource "aws_secretsmanager_secret" "database" {
   name                    = "databreeze/${var.name}/database"
-  description             = "Database credential reference; value is injected out of band."
+  description             = "Owner-populated raw PostgreSQL DATABASE_URL; value is injected out of band and never stored in Terraform."
   kms_key_id              = aws_kms_key.platform.arn
   recovery_window_in_days = 30
   tags                    = merge(local.common_tags, { Name = "${var.name}-database" })
+}
+
+resource "aws_secretsmanager_secret" "csrf_allowed_origins" {
+  name                    = "databreeze/${var.name}/csrf-allowed-origins"
+  description             = "Owner-populated comma-separated exact HTTPS origins for DATABREEZE_CSRF_ALLOWED_ORIGINS; value is injected out of band and never stored in Terraform."
+  kms_key_id              = aws_kms_key.platform.arn
+  recovery_window_in_days = 30
+  tags                    = merge(local.common_tags, { Name = "${var.name}-csrf-allowed-origins" })
+}
+
+resource "aws_secretsmanager_secret" "service_account_secret_envelope_key" {
+  name                    = "databreeze/${var.name}/iam/service-account-envelope-key"
+  description             = "Owner-populated base64url-encoded 32-byte service-account envelope key; value is injected out of band and never stored in Terraform."
+  kms_key_id              = aws_kms_key.platform.arn
+  recovery_window_in_days = 30
+  tags                    = merge(local.common_tags, { Name = "${var.name}-service-account-envelope-key" })
+}
+
+resource "aws_secretsmanager_secret" "email_verification_digest_key" {
+  name                    = "databreeze/${var.name}/iam/email-verification-digest-key"
+  description             = "Owner-populated base64url-encoded 32-byte email-verification HMAC key; value is injected out of band and never stored in Terraform."
+  kms_key_id              = aws_kms_key.platform.arn
+  recovery_window_in_days = 30
+  tags                    = merge(local.common_tags, { Name = "${var.name}-email-verification-digest-key" })
+}
+
+resource "aws_secretsmanager_secret" "email_verification_envelope_key" {
+  name                    = "databreeze/${var.name}/iam/email-verification-envelope-key"
+  description             = "Owner-populated base64url-encoded 32-byte email-verification envelope key; value is injected out of band and never stored in Terraform."
+  kms_key_id              = aws_kms_key.platform.arn
+  recovery_window_in_days = 30
+  tags                    = merge(local.common_tags, { Name = "${var.name}-email-verification-envelope-key" })
+}
+
+resource "aws_secretsmanager_secret" "registration_admission_key" {
+  name                    = "databreeze/${var.name}/iam/registration-admission-key"
+  description             = "Owner-populated base64url-encoded 32-byte registration-admission HMAC key; value is injected out of band and never stored in Terraform."
+  kms_key_id              = aws_kms_key.platform.arn
+  recovery_window_in_days = 30
+  tags                    = merge(local.common_tags, { Name = "${var.name}-registration-admission-key" })
+}
+
+resource "aws_secretsmanager_secret" "iae_worker_capability_signing_key" {
+  name                    = "databreeze/${var.name}/iae/worker-capability-signing-key"
+  description             = "Owner-populated base64url-encoded 32-byte IAE worker-capability HMAC signing key for API use only; value is injected out of band and never stored in Terraform."
+  kms_key_id              = aws_kms_key.platform.arn
+  recovery_window_in_days = 30
+  tags                    = merge(local.common_tags, { Name = "${var.name}-iae-worker-capability-signing-key" })
+}
+
+resource "aws_secretsmanager_secret" "worker_service_account_bearer" {
+  name                    = "databreeze/${var.name}/worker/service-account-bearer"
+  description             = "Owner-populated protected worker service-account bearer; value is injected out of band and never stored in Terraform."
+  kms_key_id              = aws_kms_key.platform.arn
+  recovery_window_in_days = 30
+  tags                    = merge(local.common_tags, { Name = "${var.name}-worker-service-account-bearer" })
 }
 
 resource "aws_secretsmanager_secret" "application" {
@@ -102,6 +184,14 @@ resource "aws_secretsmanager_secret" "openai_receipt_ocr" {
   kms_key_id              = aws_kms_key.platform.arn
   recovery_window_in_days = 30
   tags                    = merge(local.common_tags, { Name = "${var.name}-openai-receipt-ocr" })
+}
+
+resource "aws_secretsmanager_secret" "openai_api_key" {
+  name                    = "databreeze/${var.name}/openai/api-key"
+  description             = "Owner-populated raw OPENAI_API_KEY for explicitly enabled server-side API features; value is injected out of band and never stored in Terraform."
+  kms_key_id              = aws_kms_key.platform.arn
+  recovery_window_in_days = 30
+  tags                    = merge(local.common_tags, { Name = "${var.name}-openai-api-key" })
 }
 
 resource "aws_iam_openid_connect_provider" "github" {

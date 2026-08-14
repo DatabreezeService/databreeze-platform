@@ -25,15 +25,13 @@ import androidx.navigation.compose.rememberNavController
 import com.databreeze.android.capture.CaptureProfile
 import com.databreeze.android.capture.CaptureScreen
 import com.databreeze.android.dashboard.DashboardScreen
-import com.databreeze.android.dashboard.DashboardSnapshot
 import com.databreeze.android.dashboard.DashboardViewModel
-import com.databreeze.android.dashboard.DashboardWidget
+import com.databreeze.android.network.AuthenticatedApiRuntime
 import com.databreeze.android.receipts.ReceiptCaptureScreen
 import com.databreeze.android.receipts.ReceiptCaptureViewModel
 import com.databreeze.android.receipts.ReceiptDestination
 import com.databreeze.android.receipts.ReceiptReviewScreen
 import com.databreeze.android.receipts.ReceiptReviewViewModel
-import com.databreeze.android.storage.AccountWorkspaceScope
 import com.databreeze.android.workbench.ModuleDetailScreen
 import com.databreeze.android.workbench.ProductModuleWorkbench
 import com.databreeze.android.workbench.WorkbenchScreen
@@ -51,14 +49,15 @@ private object AppRoutes {
     fun review(sessionId: String): String = "receipt-review/$sessionId"
 }
 
-private val localScope = AccountWorkspaceScope("local-account", "local-workspace")
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val application = application as DataBreezeApplication
         setContent {
-            DataBreezeApp(runtime = application.runtime, scope = localScope)
+            DataBreezeApp(
+                runtime = application.runtime,
+                authenticatedApiRuntime = application.authenticatedApiRuntime,
+            )
         }
     }
 }
@@ -67,7 +66,7 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 fun DataBreezeApp(
     runtime: AndroidRuntime,
-    scope: AccountWorkspaceScope = localScope,
+    authenticatedApiRuntime: AuthenticatedApiRuntime? = null,
 ) {
     val navController = rememberNavController()
     DataBreezeTheme {
@@ -105,60 +104,68 @@ fun DataBreezeApp(
                     )
                 }
                 composable(AppRoutes.CAPTURE) {
-                    val viewModel = remember(runtime, scope) {
-                        ReceiptCaptureViewModel(
-                            scope = scope,
-                            stagingStore = runtime.receiptStagingStore,
-                            uploadScheduler = runtime.receiptUploadScheduler,
-                            keyHandle = runtime.receiptKeyHandle,
-                        ).also {
-                            it.setDestination(ReceiptDestination.Hybrid(workspaceGrantId = "grant-local"))
-                            it.setScopeAuthorized(true)
-                        }
-                    }
-                    ReceiptCaptureScreen(
-                        viewModel = viewModel,
-                        onBack = { navController.popBackStack() },
-                        onOpenReview = { sessionId ->
-                            navController.navigate(AppRoutes.review(sessionId))
-                        },
-                    )
-                }
-                composable(AppRoutes.PROFILE_CAPTURE) {
-                    CaptureScreen(
-                        onConfirmed = { profile: CaptureProfile ->
-                            navController.navigate(AppRoutes.review("profile-${profile.name}"))
-                        },
-                    )
-                }
-                composable(AppRoutes.DASHBOARD) {
-                    val dashboardModel =
-                        remember {
-                            DashboardViewModel().also {
-                                it.load(
-                                    DashboardSnapshot(
-                                        dashboardId = "01DASH00000000000000000001",
-                                        title = "Chi phi",
-                                        widgets =
-                                            listOf(
-                                                DashboardWidget("w1", "kpi", "Tong", "125000"),
-                                            ),
-                                        evidenceImageIds = listOf("01ORIG0000000000000000001"),
+                    val authenticated = authenticatedApiRuntime
+                    if (authenticated == null) {
+                        RuntimeConfigurationRequiredScreen(onBack = { navController.popBackStack() })
+                    } else {
+                        val viewModel = remember(runtime, authenticated) {
+                            ReceiptCaptureViewModel(
+                                scope = authenticated.scope,
+                                stagingStore = runtime.receiptStagingStore,
+                                uploadScheduler = runtime.receiptUploadScheduler,
+                                keyHandle = runtime.receiptKeyHandle,
+                            ).also {
+                                it.setDestination(
+                                    ReceiptDestination.Hybrid(
+                                        workspaceGrantId = authenticated.receiptWorkspaceGrantId,
                                     ),
                                 )
+                                it.setScopeAuthorized(true)
                             }
                         }
-                    DashboardScreen(viewModel = dashboardModel)
+                        ReceiptCaptureScreen(
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() },
+                            onOpenReview = { sessionId ->
+                                navController.navigate(AppRoutes.review(sessionId))
+                            },
+                        )
+                    }
+                }
+                composable(AppRoutes.PROFILE_CAPTURE) {
+                    if (authenticatedApiRuntime == null) {
+                        RuntimeConfigurationRequiredScreen(onBack = { navController.popBackStack() })
+                    } else {
+                        CaptureScreen(
+                            onConfirmed = { _: CaptureProfile -> navController.popBackStack() },
+                        )
+                    }
+                }
+                composable(AppRoutes.DASHBOARD) {
+                    if (authenticatedApiRuntime == null) {
+                        RuntimeConfigurationRequiredScreen(onBack = { navController.popBackStack() })
+                    } else {
+                        DashboardScreen(viewModel = remember { DashboardViewModel() })
+                    }
                 }
                 composable(AppRoutes.REVIEW) { entry ->
                     val sessionId = entry.arguments?.getString("sessionId").orEmpty()
-                    val reviewModel = remember(sessionId) {
-                        ReceiptReviewViewModel().also { it.showExtractionUnavailable() }
+                    if (authenticatedApiRuntime == null) {
+                        RuntimeConfigurationRequiredScreen(onBack = { navController.popBackStack() })
+                    } else {
+                        val reviewModel = remember(sessionId, runtime.receiptExtractionApiClient) {
+                            ReceiptReviewViewModel(runtime.receiptExtractionApiClient).also {
+                                it.loadCandidateFromServer(
+                                    candidateId = sessionId,
+                                    idempotencyKey = "receipt-review-$sessionId",
+                                )
+                            }
+                        }
+                        ReceiptReviewScreen(
+                            viewModel = reviewModel,
+                            onBack = { navController.popBackStack() },
+                        )
                     }
-                    ReceiptReviewScreen(
-                        viewModel = reviewModel,
-                        onBack = { navController.popBackStack() },
-                    )
                 }
             }
         }
@@ -188,10 +195,32 @@ private fun HomeScreen(
             Text(stringResource(R.string.receipt_capture_action))
         }
         Button(onClick = onProfileCapture, modifier = Modifier.testTag("profile-capture-button")) {
-            Text("Capture profile")
+            Text(stringResource(R.string.profile_capture_action))
         }
         Button(onClick = onDashboard, modifier = Modifier.testTag("dashboard-button")) {
-            Text("Dashboard")
+            Text(stringResource(R.string.dashboard_action))
         }
+    }
+}
+
+@Composable
+private fun RuntimeConfigurationRequiredScreen(onBack: () -> Unit) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(24.dp)
+                .testTag("authenticated-runtime-required"),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(
+            stringResource(R.string.authenticated_runtime_required_title),
+            style = MaterialTheme.typography.headlineSmall,
+        )
+        Text(
+            stringResource(R.string.authenticated_runtime_required_body),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        Button(onClick = onBack) { Text(stringResource(R.string.back_action)) }
     }
 }

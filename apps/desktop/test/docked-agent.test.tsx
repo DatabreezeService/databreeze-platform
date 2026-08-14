@@ -6,15 +6,12 @@ import { DockedAgent } from '../src/renderer/workbench/docked-agent.tsx';
 describe('Desktop V2 docked agent', () => {
   it('renders docked agent with Vietnamese labels for Dashboard and Data', () => {
     render(
-      <DockedAgent
-        locale="vi-VN"
-        open
-        onOpenChange={() => undefined}
-        onSubmit={() => undefined}
-      />,
+      <DockedAgent locale="vi-VN" open onOpenChange={() => undefined} onSubmit={() => undefined} />,
     );
 
-    expect(screen.getByRole('complementary', { name: 'Tác nhân không gian làm việc' })).toBeTruthy();
+    expect(
+      screen.getByRole('complementary', { name: 'Tác nhân không gian làm việc' }),
+    ).toBeTruthy();
     expect(screen.getByRole('textbox', { name: 'Tin nhắn tới tác nhân' })).toBeTruthy();
   });
 
@@ -44,7 +41,9 @@ describe('Desktop V2 docked agent', () => {
       />,
     );
 
-    expect(screen.queryByRole('complementary', { name: 'Tác nhân không gian làm việc' })).toBeNull();
+    expect(
+      screen.queryByRole('complementary', { name: 'Tác nhân không gian làm việc' }),
+    ).toBeNull();
     expect(screen.getByRole('main', { name: 'Khu vực phân tích' })).toBeTruthy();
   });
 
@@ -67,7 +66,13 @@ describe('Desktop V2 docked agent', () => {
         }}
         catalog={{
           folders: [],
-          datasets: [],
+          datasets: [
+            {
+              datasetId: '01DATASET00000000000000001',
+              displayName: 'Monthly sales',
+              health: 'READY',
+            },
+          ],
           reviewItems: [],
           recentAnalyses: [],
         }}
@@ -75,6 +80,8 @@ describe('Desktop V2 docked agent', () => {
     );
 
     expect(screen.getAllByRole('complementary', { name: 'Workspace agent' })).toHaveLength(1);
+    expect(screen.getByRole('region', { name: 'Workspace overview' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Every source, in one calm view' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /floating agent/iu })).toBeNull();
   });
 });

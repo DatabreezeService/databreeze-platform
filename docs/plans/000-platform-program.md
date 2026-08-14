@@ -8,7 +8,7 @@
 
 Implement DataBreeze as one Vietnamese-first data-to-dashboard agent across Web, Windows Desktop, and Android. The product turns user-controlled CSV/XLSX files, approved folders, and reviewed receipt captures into governed DatasetVersions, typed deterministic analyses, editable interactive dashboards, and immutable permission-scoped snapshots with evidence and efficient on-change refresh.
 
-The repository contains 662 normative requirements. The 51 DDA requirements define V1 product scope. Existing foundation requirements remain binding wherever DDA composes them. Specialist-module requirements remain valid for those modules' later releases but are not parallel V1 commitments.
+The repository contains 682 normative requirements. The 51 DDA requirements define V1 product scope. Existing foundation requirements remain binding wherever DDA composes them. Specialist-module requirements remain valid for those modules' later releases but are not parallel V1 commitments.
 
 ## Locked decisions
 

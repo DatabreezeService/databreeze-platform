@@ -118,3 +118,102 @@ variable "worker_memory" {
   type    = number
   default = 2048
 }
+
+variable "worker_api_endpoint" {
+  type        = string
+  description = "Exact HTTPS API origin used by the authenticated worker; required before ECS services are enabled."
+  default     = ""
+
+  validation {
+    condition     = trimspace(var.worker_api_endpoint) == "" || can(regex("^https://[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?(?::443)?$", trimspace(var.worker_api_endpoint)))
+    error_message = "worker_api_endpoint must be empty or an exact HTTPS origin without credentials, path, query, or fragment."
+  }
+}
+
+variable "web_aliases" {
+  type        = list(string)
+  description = "Optional custom Web hostnames for CloudFront."
+  default     = []
+}
+
+variable "web_acm_certificate_arn" {
+  type        = string
+  description = "Reviewed us-east-1 ACM certificate ARN for Web CloudFront aliases."
+  default     = ""
+}
+
+variable "web_connect_src_origins" {
+  type        = list(string)
+  description = "Exact reviewed HTTPS API origins allowed by the Web Content Security Policy."
+  default     = []
+}
+
+variable "api_certificate_arn" {
+  type        = string
+  description = "Reviewed ACM certificate ARN for the hosted API; required when ECS services are enabled."
+  default     = ""
+}
+
+variable "iam_email_from_address" {
+  type        = string
+  description = "Owner-configured SES-verified sender address for registration OTP delivery."
+  default     = ""
+}
+
+variable "openai_agent_enabled" {
+  type        = bool
+  description = "Enable the API OpenAI agent after the owner populates the dedicated secret."
+  default     = false
+}
+
+variable "openai_receipt_enabled" {
+  type        = bool
+  description = "Enable API receipt OCR after the owner populates the dedicated secret."
+  default     = false
+}
+
+variable "openai_dashboard_enabled" {
+  type        = bool
+  description = "Enable typed OpenAI dashboard proposals after the owner populates the dedicated secret."
+  default     = false
+}
+
+variable "openai_agent_model" {
+  type    = string
+  default = "gpt-4o-mini-2024-07-18"
+}
+
+variable "openai_agent_timeout_ms" {
+  type    = number
+  default = 30000
+}
+
+variable "openai_agent_max_output_tokens" {
+  type    = number
+  default = 2048
+}
+
+variable "openai_receipt_model" {
+  type    = string
+  default = "gpt-4o-mini-2024-07-18"
+}
+
+variable "openai_dashboard_model" {
+  type    = string
+  default = "gpt-4o-mini-2024-07-18"
+}
+
+variable "openai_image_detail" {
+  type    = string
+  default = "high"
+}
+
+variable "openai_timeout_ms" {
+  type    = number
+  default = 30000
+}
+
+variable "openai_max_output_tokens" {
+  type    = number
+  default = 2048
+}

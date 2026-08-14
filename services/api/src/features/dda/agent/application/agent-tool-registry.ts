@@ -5,13 +5,30 @@ import {
   type AgentResultV1,
   type AgentToolDescriptorV1,
   type AgentToolNameV1,
+  type AgentToolSchemaV1,
 } from './agent-tool.types.js';
+
+function schema(
+  schemaId: string,
+  properties: readonly string[],
+  requiredProperties: readonly string[],
+): AgentToolSchemaV1 {
+  return Object.freeze({
+    schemaId,
+    properties: Object.freeze([...properties]),
+    requiredProperties: Object.freeze([...requiredProperties]),
+  });
+}
 
 function descriptor(
   name: AgentToolNameV1,
   requiredAgentLevel: AgentGrantLevelV1,
   requiredIamAction: AgentToolDescriptorV1['requiredIamAction'],
   options: {
+    readonly inputProperties: readonly string[];
+    readonly requiredInputProperties: readonly string[];
+    readonly outputProperties: readonly string[];
+    readonly requiredOutputProperties: readonly string[];
     readonly maximumRows: number;
     readonly maximumBytes: number;
     readonly costClass: AgentToolDescriptorV1['costClass'];
@@ -24,6 +41,16 @@ function descriptor(
     name,
     requiredAgentLevel,
     requiredIamAction,
+    inputSchema: schema(
+      `dda.agent.input.${name}.v1`,
+      options.inputProperties,
+      options.requiredInputProperties,
+    ),
+    outputSchema: schema(
+      `dda.agent.output.${name}.v1`,
+      options.outputProperties,
+      options.requiredOutputProperties,
+    ),
     maximumRows: options.maximumRows,
     maximumBytes: options.maximumBytes,
     costClass: options.costClass,
@@ -37,6 +64,10 @@ function descriptor(
 const DESCRIPTORS: ReadonlyMap<AgentToolNameV1, AgentToolDescriptorV1> = new Map(
   [
     descriptor('dataset.describe', 'ANALYZE', PERMISSIONS_V1.ARTIFACT_RECORD_READ, {
+      inputProperties: ['datasetId'],
+      requiredInputProperties: ['datasetId'],
+      outputProperties: ['datasetId', 'schema', 'evidenceRefs'],
+      requiredOutputProperties: ['datasetId', 'schema', 'evidenceRefs'],
       maximumRows: 1,
       maximumBytes: 32_768,
       costClass: 'NONE',
@@ -44,6 +75,10 @@ const DESCRIPTORS: ReadonlyMap<AgentToolNameV1, AgentToolDescriptorV1> = new Map
       timeoutMs: 5_000,
     }),
     descriptor('dataset.sample', 'ANALYZE', PERMISSIONS_V1.ARTIFACT_RECORD_READ, {
+      inputProperties: ['datasetId', 'limit', 'columns'],
+      requiredInputProperties: ['datasetId'],
+      outputProperties: ['datasetId', 'sampleId', 'columns', 'evidenceRefs'],
+      requiredOutputProperties: ['datasetId', 'sampleId', 'columns', 'evidenceRefs'],
       maximumRows: 50,
       maximumBytes: 65_536,
       costClass: 'LOW',
@@ -51,6 +86,24 @@ const DESCRIPTORS: ReadonlyMap<AgentToolNameV1, AgentToolDescriptorV1> = new Map
       timeoutMs: 10_000,
     }),
     descriptor('analysis.plan', 'ANALYZE', PERMISSIONS_V1.PROJECT_RECORD_READ, {
+      inputProperties: ['datasetId', 'question'],
+      requiredInputProperties: ['datasetId', 'question'],
+      outputProperties: [
+        'planId',
+        'planVersionId',
+        'datasetId',
+        'datasetVersionId',
+        'preview',
+        'evidenceRefs',
+      ],
+      requiredOutputProperties: [
+        'planId',
+        'planVersionId',
+        'datasetId',
+        'datasetVersionId',
+        'preview',
+        'evidenceRefs',
+      ],
       maximumRows: 1,
       maximumBytes: 32_768,
       costClass: 'LOW',
@@ -58,6 +111,10 @@ const DESCRIPTORS: ReadonlyMap<AgentToolNameV1, AgentToolDescriptorV1> = new Map
       timeoutMs: 15_000,
     }),
     descriptor('analysis.execute', 'ANALYZE', PERMISSIONS_V1.JOB_EXECUTION_RUN, {
+      inputProperties: ['planId', 'datasetId', 'datasetVersionId', 'parameters'],
+      requiredInputProperties: ['planId', 'datasetId', 'datasetVersionId'],
+      outputProperties: ['resultId', 'evidenceRefs', 'provenance'],
+      requiredOutputProperties: ['resultId', 'evidenceRefs', 'provenance'],
       maximumRows: 500,
       maximumBytes: 262_144,
       costClass: 'MEDIUM',
@@ -65,21 +122,56 @@ const DESCRIPTORS: ReadonlyMap<AgentToolNameV1, AgentToolDescriptorV1> = new Map
       timeoutMs: 30_000,
     }),
     descriptor('dashboard.propose', 'PROPOSE_CHANGES', PERMISSIONS_V1.PROJECT_RECORD_MANAGE, {
+      inputProperties: [
+        'dashboardId',
+        'question',
+        'analysisPlanVersionId',
+        'targetPageId',
+        'targetWidgetId',
+      ],
+      requiredInputProperties: ['dashboardId', 'question'],
+      outputProperties: ['proposalId', 'options', 'evidenceRefs'],
+      requiredOutputProperties: ['proposalId', 'options', 'evidenceRefs'],
       maximumRows: 4,
       maximumBytes: 65_536,
       costClass: 'MEDIUM',
       sideEffectClass: 'PROPOSAL',
       timeoutMs: 20_000,
     }),
-    descriptor('dashboard.applyConfirmed', 'APPLY_CONFIRMED_CHANGES', PERMISSIONS_V1.PROJECT_RECORD_MANAGE, {
-      maximumRows: 1,
-      maximumBytes: 32_768,
-      costClass: 'HIGH',
-      sideEffectClass: 'MUTATION',
-      timeoutMs: 20_000,
-      requiresUserConfirmation: true,
-    }),
+    descriptor(
+      'dashboard.applyConfirmed',
+      'APPLY_CONFIRMED_CHANGES',
+      PERMISSIONS_V1.PROJECT_RECORD_MANAGE,
+      {
+        inputProperties: [
+          'previewCommandId',
+          'userConfirmation',
+          'expectedVersion',
+          'revision',
+          'idempotencyKey',
+        ],
+        requiredInputProperties: [
+          'previewCommandId',
+          'userConfirmation',
+          'expectedVersion',
+          'revision',
+          'idempotencyKey',
+        ],
+        outputProperties: ['commandId', 'revision', 'evidenceRefs'],
+        requiredOutputProperties: ['commandId', 'revision', 'evidenceRefs'],
+        maximumRows: 1,
+        maximumBytes: 32_768,
+        costClass: 'HIGH',
+        sideEffectClass: 'MUTATION',
+        timeoutMs: 20_000,
+        requiresUserConfirmation: true,
+      },
+    ),
     descriptor('dashboard.explainValue', 'ANALYZE', PERMISSIONS_V1.ARTIFACT_RECORD_READ, {
+      inputProperties: ['dashboardId', 'widgetId', 'cellId'],
+      requiredInputProperties: ['dashboardId', 'widgetId'],
+      outputProperties: ['explanation', 'evidenceRefs'],
+      requiredOutputProperties: ['explanation', 'evidenceRefs'],
       maximumRows: 20,
       maximumBytes: 65_536,
       costClass: 'LOW',
@@ -87,6 +179,10 @@ const DESCRIPTORS: ReadonlyMap<AgentToolNameV1, AgentToolDescriptorV1> = new Map
       timeoutMs: 10_000,
     }),
     descriptor('evidence.resolve', 'ANALYZE', PERMISSIONS_V1.ARTIFACT_RECORD_READ, {
+      inputProperties: ['evidenceId'],
+      requiredInputProperties: ['evidenceId'],
+      outputProperties: ['evidenceId', 'kind', 'reference'],
+      requiredOutputProperties: ['evidenceId', 'kind', 'reference'],
       maximumRows: 1,
       maximumBytes: 131_072,
       costClass: 'LOW',
@@ -94,6 +190,10 @@ const DESCRIPTORS: ReadonlyMap<AgentToolNameV1, AgentToolDescriptorV1> = new Map
       timeoutMs: 10_000,
     }),
     descriptor('source.open', 'ANALYZE', PERMISSIONS_V1.ARTIFACT_RECORD_READ, {
+      inputProperties: ['sourceId'],
+      requiredInputProperties: ['sourceId'],
+      outputProperties: ['sourceId', 'kind', 'iaeContentReferenceId', 'evidenceRefs'],
+      requiredOutputProperties: ['sourceId', 'kind', 'evidenceRefs'],
       maximumRows: 1,
       maximumBytes: 65_536,
       costClass: 'LOW',
@@ -101,6 +201,10 @@ const DESCRIPTORS: ReadonlyMap<AgentToolNameV1, AgentToolDescriptorV1> = new Map
       timeoutMs: 10_000,
     }),
     descriptor('etl.proposeCorrection', 'PROPOSE_CHANGES', PERMISSIONS_V1.ARTIFACT_DERIVED_CREATE, {
+      inputProperties: ['datasetId', 'issueId', 'correction'],
+      requiredInputProperties: ['datasetId', 'issueId', 'correction'],
+      outputProperties: ['proposalId', 'state', 'evidenceRefs'],
+      requiredOutputProperties: ['proposalId', 'state', 'evidenceRefs'],
       maximumRows: 1,
       maximumBytes: 65_536,
       costClass: 'MEDIUM',

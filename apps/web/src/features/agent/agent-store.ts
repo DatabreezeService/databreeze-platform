@@ -13,9 +13,7 @@ export interface AgentStoreV1 {
 }
 
 /** One agent store persists conversation context across destinations. */
-export function createAgentStore(
-  initial?: AgentConversationSummaryV1,
-): AgentStoreV1 {
+export function createAgentStore(initial?: AgentConversationSummaryV1): AgentStoreV1 {
   let active = initial;
   let open = false;
   return {

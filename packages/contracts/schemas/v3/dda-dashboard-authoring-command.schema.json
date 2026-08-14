@@ -1,0 +1,322 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v3/dda-dashboard-authoring-command",
+  "$comment": "DDA-020, DDA-022, DDA-024, DDA-025: explicit, immutable, non-publication dashboard authoring commands.",
+  "title": "DDA Dashboard Authoring Command",
+  "description": "A closed discriminated command for confirmed dashboard presentation changes. Publication and audience changes are not command variants.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/acceptProposalCommand"
+    },
+    {
+      "$ref": "#/$defs/setLayoutCommand"
+    },
+    {
+      "$ref": "#/$defs/removeWidgetCommand"
+    },
+    {
+      "$ref": "#/$defs/restoreWidgetCommand"
+    },
+    {
+      "$ref": "#/$defs/configurePresentationCommand"
+    }
+  ],
+  "$defs": {
+    "authoringLocalizedText": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vi",
+        "en"
+      ],
+      "properties": {
+        "vi": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "en": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      }
+    },
+    "authoringLayoutCell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "widgetId",
+        "x",
+        "y",
+        "w",
+        "h"
+      ],
+      "properties": {
+        "widgetId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "x": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 11
+        },
+        "y": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "w": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "h": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        }
+      }
+    },
+    "authoringDisplayOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "showTitle": {
+          "type": "boolean"
+        },
+        "showLegend": {
+          "type": "boolean"
+        },
+        "showEvidence": {
+          "type": "boolean"
+        }
+      }
+    },
+    "acceptProposalCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "kind",
+        "commandId",
+        "dashboardId",
+        "expectedVersionId",
+        "expectedRevision",
+        "proposalId",
+        "selectedOptionIds",
+        "createdAt"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 3
+        },
+        "kind": {
+          "const": "ACCEPT_PROPOSAL"
+        },
+        "commandId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "dashboardId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "expectedVersionId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "expectedRevision": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/revision"
+        },
+        "proposalId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "selectedOptionIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+          }
+        },
+        "createdAt": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+        }
+      }
+    },
+    "setLayoutCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "kind",
+        "commandId",
+        "dashboardId",
+        "expectedVersionId",
+        "expectedRevision",
+        "breakpoint",
+        "cells",
+        "createdAt"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 3
+        },
+        "kind": {
+          "const": "SET_LAYOUT"
+        },
+        "commandId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "dashboardId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "expectedVersionId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "expectedRevision": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/revision"
+        },
+        "breakpoint": {
+          "type": "string",
+          "pattern": "^(desktop|tablet|mobile)$"
+        },
+        "cells": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "$ref": "#/$defs/authoringLayoutCell"
+          }
+        },
+        "createdAt": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+        }
+      }
+    },
+    "removeWidgetCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "kind",
+        "commandId",
+        "dashboardId",
+        "expectedVersionId",
+        "expectedRevision",
+        "widgetId",
+        "createdAt"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 3
+        },
+        "kind": {
+          "const": "REMOVE_WIDGET"
+        },
+        "commandId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "dashboardId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "expectedVersionId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "expectedRevision": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/revision"
+        },
+        "widgetId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "createdAt": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+        }
+      }
+    },
+    "restoreWidgetCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "kind",
+        "commandId",
+        "dashboardId",
+        "expectedVersionId",
+        "expectedRevision",
+        "widgetId",
+        "createdAt"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 3
+        },
+        "kind": {
+          "const": "RESTORE_WIDGET"
+        },
+        "commandId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "dashboardId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "expectedVersionId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "expectedRevision": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/revision"
+        },
+        "widgetId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "createdAt": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+        }
+      }
+    },
+    "configurePresentationCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "kind",
+        "commandId",
+        "dashboardId",
+        "expectedVersionId",
+        "expectedRevision",
+        "widgetId",
+        "createdAt"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 3
+        },
+        "kind": {
+          "const": "CONFIGURE_PRESENTATION"
+        },
+        "commandId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "dashboardId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "expectedVersionId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "expectedRevision": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/revision"
+        },
+        "widgetId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "title": {
+          "$ref": "#/$defs/authoringLocalizedText"
+        },
+        "display": {
+          "$ref": "#/$defs/authoringDisplayOptions"
+        },
+        "createdAt": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+        }
+      }
+    }
+  }
+}

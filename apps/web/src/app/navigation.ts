@@ -76,6 +76,12 @@ export const DEFAULT_ACCESS_CONTEXT: WebAccessContext = Object.freeze({
   permissions: Object.freeze(Object.values(PERMISSIONS_V1)),
 });
 
+/** Production bootstrap does not fabricate client-side permission or entitlement grants. */
+export const EMPTY_ACCESS_CONTEXT: WebAccessContext = Object.freeze({
+  entitlements: Object.freeze([]),
+  permissions: Object.freeze([]),
+});
+
 export function filterNavigationItems(
   accessContext: WebAccessContext = DEFAULT_ACCESS_CONTEXT,
 ): readonly NavigationItem[] {

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/iam-auth-session",
+  "$comment": "IAM-005/IAM-006/IAM-023/WEB-004: public session response. Browser refresh credentials remain HttpOnly and are omitted.",
+  "title": "IAM Auth Session",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "sessionId", "userId", "organizationId", "workspaceId", "accessToken", "accessExpiresAt", "securityEpoch", "mfaRequired", "mfaReenrollmentRequired"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "sessionId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "userId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "organizationId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "workspaceId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "accessToken": { "type": "string", "minLength": 80, "maxLength": 4096, "pattern": "^[A-Za-z0-9._~-]+$" },
+    "refreshToken": { "type": "string", "minLength": 80, "maxLength": 4096, "pattern": "^[A-Za-z0-9._~-]+$" },
+    "accessExpiresAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" },
+    "securityEpoch": { "type": "integer", "minimum": 1 },
+    "mfaRequired": { "type": "boolean" },
+    "mfaReenrollmentRequired": { "type": "boolean" }
+  }
+}

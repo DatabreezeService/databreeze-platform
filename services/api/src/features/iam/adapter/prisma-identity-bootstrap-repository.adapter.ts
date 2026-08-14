@@ -15,6 +15,7 @@ import type {
   IdentityBootstrapRepositoryPortV1,
   IdentityBootstrapTransactionPortV1,
 } from '../application/identity-bootstrap-repository.port.js';
+import type { InitialWorkspacePolicyProvisionerPortV1 } from '../application/initial-workspace-policy-provisioner.port.js';
 
 export interface UserIdentityDatabaseRowV1 {
   readonly id: string;
@@ -39,6 +40,9 @@ export interface WorkspaceIdentityDatabaseRowV1 {
   readonly organizationId: string;
   readonly name: string;
   readonly status: string;
+  readonly dataModePolicyId: string;
+  readonly currentDataModePolicyVersionId: string;
+  readonly dataModeProjection: string;
   readonly authorizationEpoch: number;
   readonly createdAt: Date;
 }
@@ -116,6 +120,10 @@ export interface IdentityBootstrapDatabaseClientV1 {
   ): Promise<TValue>;
 }
 
+export type IdentityBootstrapPolicyProvisionerFactoryV1 = (
+  transaction: IdentityBootstrapDatabaseClientV1,
+) => InitialWorkspacePolicyProvisionerPortV1;
+
 function stableId(input: unknown): StableIdentifierV1 | undefined {
   const parsed = parseStableIdentifierV1(input);
   return parsed.accepted ? parsed.value : undefined;
@@ -189,6 +197,9 @@ function bootstrapFromRows(
     !workspaceCreatedAt ||
     workspace.organizationId !== organizationId ||
     workspace.status !== 'ACTIVE' ||
+    !stableId(workspace.dataModePolicyId) ||
+    !stableId(workspace.currentDataModePolicyVersionId) ||
+    !['LOCAL', 'HYBRID', 'CLOUD'].includes(workspace.dataModeProjection) ||
     !Number.isSafeInteger(workspace.authorizationEpoch) ||
     workspace.authorizationEpoch < 1
   )
@@ -268,7 +279,10 @@ function bootstrapFromRows(
 export class PrismaIdentityBootstrapTransactionAdapter
   implements IdentityBootstrapTransactionPortV1
 {
-  public constructor(private readonly client: IdentityBootstrapDatabaseClientV1) {}
+  public constructor(
+    private readonly client: IdentityBootstrapDatabaseClientV1,
+    private readonly initialWorkspacePolicy?: InitialWorkspacePolicyProvisionerPortV1,
+  ) {}
 
   public async findByUserId(
     userId: PersonalOrganizationBootstrapV1['user']['id'],
@@ -332,6 +346,15 @@ export class PrismaIdentityBootstrapTransactionAdapter
     if (!userRow) throw new Error('IAM_USER_NOT_FOUND');
     if (!ownedFieldsMatch(userFromRow(userRow), bootstrap.user))
       throw new Error('IAM_BOOTSTRAP_CONFLICT');
+    if (!this.initialWorkspacePolicy)
+      throw new Error('IAM_INITIAL_WORKSPACE_POLICY_UNAVAILABLE');
+    const policy = await this.initialWorkspacePolicy.provision({
+      organizationId: bootstrap.organization.id,
+      workspaceId: bootstrap.workspace.id,
+      publishedAt: bootstrap.workspace.createdAt,
+    });
+    if (policy.dataModeProjection !== 'HYBRID')
+      throw new Error('IAM_INITIAL_WORKSPACE_POLICY_INVALID');
     const organizationData: OrganizationIdentityDatabaseRowV1 = {
       id: bootstrap.organization.id,
       name: bootstrap.organization.name,
@@ -344,6 +367,9 @@ export class PrismaIdentityBootstrapTransactionAdapter
       organizationId: bootstrap.workspace.organizationId,
       name: bootstrap.workspace.name,
       status: bootstrap.workspace.status,
+      dataModePolicyId: policy.policyId,
+      currentDataModePolicyVersionId: policy.policyVersionId,
+      dataModeProjection: policy.dataModeProjection,
       authorizationEpoch: bootstrap.workspace.authorizationEpoch,
       createdAt: new Date(bootstrap.workspace.createdAt),
     };
@@ -390,7 +416,10 @@ export class PrismaIdentityBootstrapTransactionAdapter
 }
 
 export class PrismaIdentityBootstrapRepositoryAdapter implements IdentityBootstrapRepositoryPortV1 {
-  public constructor(private readonly client: IdentityBootstrapDatabaseClientV1) {}
+  public constructor(
+    private readonly client: IdentityBootstrapDatabaseClientV1,
+    private readonly policyProvisionerFactory?: IdentityBootstrapPolicyProvisionerFactoryV1,
+  ) {}
 
   public findByUserId(userId: PersonalOrganizationBootstrapV1['user']['id']) {
     return new PrismaIdentityBootstrapTransactionAdapter(this.client).findByUserId(userId);
@@ -398,7 +427,10 @@ export class PrismaIdentityBootstrapRepositoryAdapter implements IdentityBootstr
 
   public save(bootstrap: PersonalOrganizationBootstrapV1) {
     return this.client.$transaction((transaction) =>
-      new PrismaIdentityBootstrapTransactionAdapter(transaction).save(bootstrap),
+      new PrismaIdentityBootstrapTransactionAdapter(
+        transaction,
+        this.policyProvisionerFactory?.(transaction),
+      ).save(bootstrap),
     );
   }
 
@@ -406,7 +438,12 @@ export class PrismaIdentityBootstrapRepositoryAdapter implements IdentityBootstr
     work: (transaction: IdentityBootstrapTransactionPortV1) => Promise<TValue>,
   ): Promise<TValue> {
     return this.client.$transaction((transaction) =>
-      work(new PrismaIdentityBootstrapTransactionAdapter(transaction)),
+      work(
+        new PrismaIdentityBootstrapTransactionAdapter(
+          transaction,
+          this.policyProvisionerFactory?.(transaction),
+        ),
+      ),
     );
   }
 }

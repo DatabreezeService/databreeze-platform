@@ -13,9 +13,7 @@ test('dashboard route renders safely under the strict preview CSP', async ({ pag
   await page.goto('/en/dashboards');
 
   await expect(page.getByRole('heading', { name: 'Dashboards' })).toBeVisible();
-  await expect(
-    page.getByText('Dashboard data is not available. No changes were sent.'),
-  ).toBeVisible();
+  await expect(page.getByTestId('dashboard-evidence-warning')).toBeVisible();
 });
 
 test('the document does not advertise unsupported frame ancestors through meta CSP', async ({

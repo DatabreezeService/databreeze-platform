@@ -5,7 +5,17 @@
     "noCustomerData": true,
     "source": "project-generated",
     "licensing": "DataBreeze synthetic evaluation fixtures",
-    "createdFor": "plan-403-task-4"
+    "createdFor": "plan-403-task-4",
+    "corpusRepair": "plan-403-task-4-realistic-text-2026-08-11",
+    "qualityRequirement": "readable-non-uniform-realistic-synthetic-receipt-images"
+  },
+  "admission": {
+    "minimumWidth": 400,
+    "minimumHeight": 600,
+    "minimumByteLength": 8000,
+    "minimumUniqueColors": 16,
+    "rejectUniformFills": true,
+    "requireNonBlankContent": true
   },
   "modelBaseline": {
     "model": "gpt-4o-mini-2024-07-18",
@@ -17,28 +27,34 @@
       "caseId": "synthetic-vi",
       "image": "synthetic-vi.png",
       "expected": "synthetic-vi.expected.json",
-      "contentSha256": "497e993f0345f4fa6e0206dcf1f9a16bc0e24b483a192e0783b1d1729f2c8dbe",
+      "contentSha256": "23c024739246d715b0306e6727a4ff628f4d420f7af22cf122c868d6dcebb759",
       "mediaType": "image/png",
-      "width": 64,
-      "height": 96
+      "width": 600,
+      "height": 900,
+      "locale": "vi",
+      "description": "Vietnamese synthetic cafe receipt with legible merchant, date, currency, and totals"
     },
     {
       "caseId": "synthetic-en",
       "image": "synthetic-en.png",
       "expected": "synthetic-en.expected.json",
-      "contentSha256": "7d64ff0aed6e35d5ca66703513fc18f4cec10a6b20ed4a832738c0c3345b0eee",
+      "contentSha256": "946ce50446deaa6adbfb47420f241f413924e9783b317cb6de32ed83ae2e6812",
       "mediaType": "image/png",
-      "width": 64,
-      "height": 96
+      "width": 600,
+      "height": 900,
+      "locale": "en",
+      "description": "English synthetic coffee-shop receipt with legible merchant, date, currency, and totals"
     },
     {
       "caseId": "synthetic-hostile",
       "image": "synthetic-hostile.png",
       "expected": "synthetic-hostile.expected.json",
-      "contentSha256": "2ad8bdd0b30db8480e628342026174aa3c7dbbe92318b6c095851202570f211b",
+      "contentSha256": "41e3cfcd224a1f77abf8df23ac3f4cb9c356ff120c5f55ffbf245d376cd7c22e",
       "mediaType": "image/png",
-      "width": 64,
-      "height": 96
+      "width": 600,
+      "height": 900,
+      "locale": "en",
+      "description": "Hostile-text synthetic receipt; prompt-like glyphs must be treated as data only"
     }
   ]
 }

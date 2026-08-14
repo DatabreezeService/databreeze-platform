@@ -9,6 +9,14 @@ import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js
 
 export const APPROVAL_REPOSITORY_PORT = Symbol('APPROVAL_REPOSITORY_PORT');
 
+export interface ApprovalRequestSearchV1 {
+  readonly subjectType?: string;
+  readonly subjectId?: StableIdentifierV1;
+  readonly subjectHash?: string;
+  readonly requestedAction?: string;
+  readonly statuses?: readonly ApprovalRequestV1['status'][];
+}
+
 export interface ApprovalTransactionPortV1 {
   savePolicy(context: IamTenantContextV1, policy: ApprovalPolicyV1): Promise<void>;
   findPolicy(
@@ -21,6 +29,10 @@ export interface ApprovalTransactionPortV1 {
     context: IamTenantContextV1,
     requestId: StableIdentifierV1,
   ): Promise<ApprovalRequestV1 | undefined>;
+  findRequests(
+    context: IamTenantContextV1,
+    search?: ApprovalRequestSearchV1,
+  ): Promise<readonly ApprovalRequestV1[]>;
   updateRequest(
     context: IamTenantContextV1,
     request: ApprovalRequestV1,

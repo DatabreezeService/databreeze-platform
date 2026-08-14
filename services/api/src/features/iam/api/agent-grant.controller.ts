@@ -24,7 +24,17 @@ import {
   ApiServiceUnavailableResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
 
@@ -37,19 +47,16 @@ import {
   type RequestTenantContextPortV1,
 } from '../../../platform/http/request-tenant-context.port.js';
 
-const AGENT_LEVELS = [
-  'NONE',
-  'ANALYZE',
-  'PROPOSE_CHANGES',
-  'APPLY_CONFIRMED_CHANGES',
-] as const;
+const AGENT_LEVELS = ['NONE', 'ANALYZE', 'PROPOSE_CHANGES', 'APPLY_CONFIRMED_CHANGES'] as const;
 const AGENT_GRANT_ERROR_CODES = [
   'INVALID_IDENTIFIER',
   'INVALID_LEVEL',
+  'INVALID_DATASET_RESTRICTIONS',
   'INVALID_SCOPE',
   'SCOPE_DENIED',
   'NOT_FOUND',
   'CONFLICT',
+  'STALE_AUTHORIZATION',
   'UNAVAILABLE',
 ] as const;
 
@@ -80,9 +87,9 @@ export class SetDatasetRestrictionsDto {
   @IsUUID('4', { each: true })
   deniedDatasetIds!: string[];
 
-  @ApiProperty({ minimum: 1, maximum: Number.MAX_SAFE_INTEGER })
+  @ApiProperty({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER })
   @IsInt()
-  @Min(1)
+  @Min(0)
   @Max(Number.MAX_SAFE_INTEGER)
   expectedRevision!: number;
 }
@@ -116,6 +123,7 @@ function grantStatus(result: unknown): number {
     case 'NOT_FOUND':
       return HttpStatus.NOT_FOUND;
     case 'CONFLICT':
+    case 'STALE_AUTHORIZATION':
       return HttpStatus.CONFLICT;
     case 'UNAVAILABLE':
       return HttpStatus.SERVICE_UNAVAILABLE;
@@ -183,6 +191,22 @@ export class AgentGrantController {
     const context = await this.requestContext.resolve(request);
     const result = this.grants
       ? await this.grants.getMemberGrant(context, { memberId })
+      : this.unavailable();
+    return preserveGrantStatus(result, reply);
+  }
+
+  @Get(':memberId/dataset-restrictions')
+  @ApiOperation({ summary: 'Read one member sensitive-dataset restrictions' })
+  @ApiOkResponse({ description: 'The current canonical dataset restrictions.' })
+  @applyGrantOutcomeResponses()
+  async getRestrictions(
+    @Req() request: unknown,
+    @Param('memberId') memberId: string,
+    @Res({ passthrough: true }) reply?: FastifyReply,
+  ): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    const result = this.grants
+      ? await this.grants.getDatasetRestrictions(context, { memberId })
       : this.unavailable();
     return preserveGrantStatus(result, reply);
   }

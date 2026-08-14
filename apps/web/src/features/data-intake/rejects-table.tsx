@@ -11,16 +11,16 @@ export interface RejectsTableProps {
 
 /** DDA-008 leaf: reason-coded rejects/exclusions. */
 export function RejectsTable({ rejects, locale = 'vi' }: RejectsTableProps) {
-  const title = locale === 'en' ? 'Rejected and excluded scopes' : 'Pham vi bi loai/tu choi';
+  const title = locale === 'en' ? 'Rejected and excluded scopes' : 'Phạm vi bị loại / từ chối';
   return (
-    <section aria-label={title}>
+    <section className="rejects-card" aria-label={title}>
       <h3>{title}</h3>
       <table>
         <thead>
           <tr>
-            <th>{locale === 'en' ? 'Scope' : 'Pham vi'}</th>
-            <th>{locale === 'en' ? 'Reason' : 'Ly do'}</th>
-            <th>{locale === 'en' ? 'Count' : 'So luong'}</th>
+            <th>{locale === 'en' ? 'Scope' : 'Phạm vi'}</th>
+            <th>{locale === 'en' ? 'Reason' : 'Lý do'}</th>
+            <th>{locale === 'en' ? 'Count' : 'Số lượng'}</th>
           </tr>
         </thead>
         <tbody>

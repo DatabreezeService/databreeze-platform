@@ -19,6 +19,7 @@ export class DashboardQueryServiceV1 {
     input: { readonly snapshotId: string; readonly action: DashboardAuthActionV1 },
   ): Promise<DashboardQueryResultV1<{ readonly allowed: true }>> {
     const decision = await this.authorization.authorizeDashboardAction({
+      context,
       tenantScope: context.tenantScope,
       actorId: context.actorId,
       snapshotId: input.snapshotId,
@@ -48,6 +49,7 @@ export class DashboardQueryServiceV1 {
     }>
   > {
     const decision = await this.authorization.authorizeDashboardAction({
+      context,
       tenantScope: context.tenantScope,
       actorId: context.actorId,
       snapshotId: input.snapshotId,
@@ -57,6 +59,7 @@ export class DashboardQueryServiceV1 {
 
     const visible = new Set(
       await this.authorization.projectVisibleFields({
+        context,
         tenantScope: context.tenantScope,
         actorId: context.actorId,
         snapshotId: input.snapshotId,

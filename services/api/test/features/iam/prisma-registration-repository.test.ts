@@ -17,6 +17,16 @@ const projectId = '00000000-0000-4000-8000-000000000004';
 const membershipId = '00000000-0000-4000-8000-000000000005';
 const credentialId = '00000000-0000-4000-8000-000000000006';
 const createdAt = new Date('2026-08-03T00:00:00.000Z');
+const policyId = '00000000-0000-4000-8000-000000000010' as never;
+const policyVersionId = '00000000-0000-4000-8000-000000000011' as never;
+const policyFactory = () => ({
+  provision: () =>
+    Promise.resolve({
+      policyId,
+      policyVersionId,
+      dataModeProjection: 'HYBRID' as const,
+    }),
+});
 
 const input: RegistrationPersistenceInputV1 = {
   email: 'user@example.com',
@@ -157,7 +167,7 @@ function createDatabase() {
 
 void test('[IAM-001, IAM-009] Prisma registration persists the user, credential, and hierarchy in one transaction', async () => {
   const database = createDatabase();
-  const adapter = new PrismaRegistrationRepositoryAdapter(database.client);
+  const adapter = new PrismaRegistrationRepositoryAdapter(database.client, policyFactory);
   await adapter.withTransaction((transaction) => transaction.save(input));
   assert.equal(database.transactionCalls.value, 1);
   assert.equal(database.state.users.size, 1);
@@ -178,7 +188,7 @@ void test('[IAM-001, IAM-009] Prisma registration persists the user, credential,
 
 void test('[IAM-001] Prisma registration maps an existing normalized email and concurrent unique race to a conflict', async () => {
   const database = createDatabase();
-  const adapter = new PrismaRegistrationRepositoryAdapter(database.client);
+  const adapter = new PrismaRegistrationRepositoryAdapter(database.client, policyFactory);
   await adapter.withTransaction((transaction) => transaction.save(input));
   assert.equal(
     await adapter.withTransaction((transaction) => transaction.findByEmail('user@example.com')),
@@ -214,7 +224,7 @@ void test('[IAM-001] Prisma registration rolls back user and credential when hie
       }
     },
   } as RegistrationDatabaseClientV1;
-  const adapter = new PrismaRegistrationRepositoryAdapter(failing);
+  const adapter = new PrismaRegistrationRepositoryAdapter(failing, policyFactory);
   await assert.rejects(
     adapter.withTransaction((transaction) => transaction.save(input)),
     /project write failed/,

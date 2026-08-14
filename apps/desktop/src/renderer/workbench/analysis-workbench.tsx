@@ -10,12 +10,9 @@ import { ActivityRail } from './activity-rail.tsx';
 import { DockedAgent } from './docked-agent.tsx';
 import { SourceExplorer, type SourceExplorerOpenTarget } from './source-explorer.tsx';
 import { SourceImportDialog } from './source-import-dialog.tsx';
-import {
-  WorkbenchTabs,
-  type WorkbenchTab,
-  type WorkbenchTabsChange,
-} from './workbench-tabs.tsx';
+import { WorkbenchTabs, type WorkbenchTab, type WorkbenchTabsChange } from './workbench-tabs.tsx';
 import { WorkbenchStatusBar } from './workbench-status-bar.tsx';
+import { WorkspaceOverview } from './workspace-overview.tsx';
 
 export type AnalysisWorkbenchProperties = {
   readonly activity?: WorkbenchActivity;
@@ -150,6 +147,15 @@ export function AnalysisWorkbench({
     setClosedTabs([]);
   }
 
+  function openOriginal(fileId: string) {
+    const id = `tab-original-${fileId}`;
+    setTabs((current) => {
+      if (current.some((tab) => tab.id === id)) return current;
+      return [...current, { id, kind: 'original', title: fileId }];
+    });
+    setActiveTabId(id);
+  }
+
   return (
     <div
       className={className}
@@ -181,10 +187,20 @@ export function AnalysisWorkbench({
           {lastGoodLabel !== undefined ? (
             <p className="analysis-workbench__last-good">{lastGoodLabel}</p>
           ) : null}
-          {tabs.length === 0 ? <p>{copy.empty}</p> : null}
-          {activeTabId !== null ? (
-            <p>{tabs.find((tab) => tab.id === activeTabId)?.title}</p>
+          {tabs.length === 0 && (activity === 'dashboard' || activity === 'data') ? (
+            <WorkspaceOverview
+              catalog={catalog}
+              locale={locale}
+              onAskAgent={() => setAgentOpen(true)}
+              onOpenDataset={(datasetId) => openItem({ kind: 'dataset', id: datasetId })}
+              onOpenFile={openOriginal}
+              onOpenReview={(reviewId) => openItem({ kind: 'review', id: reviewId })}
+            />
           ) : null}
+          {tabs.length === 0 && activity !== 'dashboard' && activity !== 'data' ? (
+            <p>{copy.empty}</p>
+          ) : null}
+          {activeTabId !== null ? <p>{tabs.find((tab) => tab.id === activeTabId)?.title}</p> : null}
         </main>
         {showDock ? (
           <DockedAgent

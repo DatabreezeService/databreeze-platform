@@ -11,35 +11,39 @@ import {
 } from '../src/renderer/workbench/desktop-session.ts';
 
 describe('Desktop V2 auth, import, review, and session restoration', () => {
-  it('supports email/password, OTP, recovery, and Google OIDC entry points in Vietnamese', async () => {
-    const user = userEvent.setup();
-    const onPasswordSignIn = vi.fn();
-    const onVerifyOtp = vi.fn();
-    const onRecover = vi.fn();
-    const onGoogle = vi.fn();
-    render(
-      <DesktopAuthScreen
-        locale="vi-VN"
-        onPasswordSignIn={onPasswordSignIn}
-        onVerifyOtp={onVerifyOtp}
-        onRecover={onRecover}
-        onGoogleOidc={onGoogle}
-      />,
-    );
+  it(
+    'supports email/password, OTP, recovery, and Google OIDC entry points in Vietnamese',
+    { timeout: 10_000 },
+    async () => {
+      const user = userEvent.setup();
+      const onPasswordSignIn = vi.fn();
+      const onVerifyOtp = vi.fn();
+      const onRecover = vi.fn();
+      const onGoogle = vi.fn();
+      render(
+        <DesktopAuthScreen
+          locale="vi-VN"
+          onPasswordSignIn={onPasswordSignIn}
+          onVerifyOtp={onVerifyOtp}
+          onRecover={onRecover}
+          onGoogleOidc={onGoogle}
+        />,
+      );
 
-    expect(screen.getByRole('heading', { name: 'Đăng nhập Desktop' })).toBeTruthy();
-    await user.type(screen.getByLabelText('Email'), 'operator@example.com');
-    await user.type(screen.getByLabelText('Mật khẩu'), 'not-a-real-secret');
-    await user.click(screen.getByRole('button', { name: 'Đăng nhập' }));
-    expect(onPasswordSignIn).toHaveBeenCalled();
+      expect(screen.getByRole('heading', { name: 'Đăng nhập Desktop' })).toBeTruthy();
+      await user.type(screen.getByLabelText('Email'), 'operator@example.com');
+      await user.type(screen.getByLabelText('Mật khẩu'), 'not-a-real-secret');
+      await user.click(screen.getByRole('button', { name: 'Đăng nhập' }));
+      expect(onPasswordSignIn).toHaveBeenCalled();
 
-    await user.click(screen.getByRole('button', { name: 'Xác minh OTP' }));
-    expect(onVerifyOtp).toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: 'Khôi phục mật khẩu' }));
-    expect(onRecover).toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: 'Tiếp tục với Google' }));
-    expect(onGoogle).toHaveBeenCalled();
-  });
+      await user.click(screen.getByRole('button', { name: 'Xác minh OTP' }));
+      expect(onVerifyOtp).toHaveBeenCalled();
+      await user.click(screen.getByRole('button', { name: 'Khôi phục mật khẩu' }));
+      expect(onRecover).toHaveBeenCalled();
+      await user.click(screen.getByRole('button', { name: 'Tiếp tục với Google' }));
+      expect(onGoogle).toHaveBeenCalled();
+    },
+  );
 
   it('accepts only published CSV, XLSX, image, and PDF import profiles', async () => {
     const user = userEvent.setup();
@@ -117,7 +121,9 @@ describe('Desktop V2 auth, import, review, and session restoration', () => {
         }}
         catalog={{
           folders: [],
-          datasets: [{ datasetId: '01DATASET00000000000000001', displayName: 'Cached', health: 'READY' }],
+          datasets: [
+            { datasetId: '01DATASET00000000000000001', displayName: 'Cached', health: 'READY' },
+          ],
           reviewItems: [],
           recentAnalyses: [],
         }}

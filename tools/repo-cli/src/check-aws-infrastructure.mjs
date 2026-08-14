@@ -27,9 +27,20 @@ const requiredFiles = [
   'environments/production/versions.tf',
   'modules/network/main.tf',
   'modules/security/main.tf',
+  'modules/security/versions.tf',
+  'modules/security/tests/platform-key-policy.tofutest.hcl',
   'modules/web/main.tf',
   'modules/data/main.tf',
   'modules/compute/main.tf',
+  'modules/compute/versions.tf',
+  'modules/compute/tests/runtime-secret-contract.tofutest.hcl',
+];
+const tofuTargets = [
+  path.join('modules', 'compute'),
+  path.join('modules', 'security'),
+  path.join('environments', 'alpha'),
+  path.join('environments', 'staging'),
+  path.join('environments', 'production'),
 ];
 
 function fail(message) {
@@ -114,15 +125,23 @@ if (tofu.error?.code === 'ENOENT') {
   console.error(tofu.stdout || tofu.stderr);
   process.exitCode = tofu.status ?? 1;
 } else {
-  const alphaDirectory = path.join(infrastructureRoot, 'environments', 'alpha');
-  const tofuDataDirectory = mkdtempSync(path.join(os.tmpdir(), 'databreeze-tofu-'));
-  const tofuEnvironment = { ...process.env, TF_DATA_DIR: tofuDataDirectory };
-  try {
+  for (const relativeDirectory of tofuTargets) {
+    const targetDirectory = path.join(infrastructureRoot, relativeDirectory);
+    const tofuDataDirectory = mkdtempSync(path.join(os.tmpdir(), 'databreeze-tofu-'));
+    const tofuEnvironment = { ...process.env, TF_DATA_DIR: tofuDataDirectory };
     const init = spawnSync(
       'tofu',
-      ['init', '-backend=false', '-input=false', '-lockfile=readonly', '-no-color'],
+      [
+        'init',
+        '-backend=false',
+        '-input=false',
+        ...(existsSync(path.join(targetDirectory, '.terraform.lock.hcl'))
+          ? ['-lockfile=readonly']
+          : []),
+        '-no-color',
+      ],
       {
-        cwd: alphaDirectory,
+        cwd: targetDirectory,
         env: tofuEnvironment,
         encoding: 'utf8',
       },
@@ -132,7 +151,7 @@ if (tofu.error?.code === 'ENOENT') {
       process.exitCode = init.status ?? 1;
     } else {
       const validate = spawnSync('tofu', ['validate', '-no-color'], {
-        cwd: alphaDirectory,
+        cwd: targetDirectory,
         env: tofuEnvironment,
         encoding: 'utf8',
       });
@@ -140,10 +159,19 @@ if (tofu.error?.code === 'ENOENT') {
         console.error(validate.stdout || validate.stderr);
         process.exitCode = validate.status ?? 1;
       } else {
-        console.log('OpenTofu formatting, initialization, and validation passed.');
+        const tests = spawnSync('tofu', ['test', '-no-color'], {
+          cwd: targetDirectory,
+          env: tofuEnvironment,
+          encoding: 'utf8',
+        });
+        if (tests.status !== 0) {
+          console.error(tests.stdout || tests.stderr);
+          process.exitCode = tests.status ?? 1;
+        } else {
+          console.log(`OpenTofu validation passed for ${relativeDirectory}.`);
+        }
       }
     }
-  } finally {
     rmSync(tofuDataDirectory, { recursive: true, force: true });
   }
 }

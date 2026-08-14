@@ -3,6 +3,10 @@ import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import {
+  ARTIFACT_UPLOAD_ADMISSION_PORT,
+  type ArtifactUploadAdmissionPortV1,
+} from '../application/artifact-upload-admission.port.js';
+import {
   ARTIFACT_UPLOAD_REPOSITORY_PORT,
   type ArtifactUploadRepositoryPortV1,
 } from '../application/artifact-upload-repository.port.js';
@@ -33,9 +37,10 @@ export class ArtifactUploadController {
   public constructor(
     @Inject(ARTIFACT_UPLOAD_REPOSITORY_PORT) repository: ArtifactUploadRepositoryPortV1,
     @Inject(ARTIFACT_UPLOAD_STORAGE_PORT) storage: ArtifactUploadStoragePortV1,
+    @Inject(ARTIFACT_UPLOAD_ADMISSION_PORT) admission: ArtifactUploadAdmissionPortV1,
     @Inject(REQUEST_TENANT_CONTEXT) private readonly requestContext: RequestTenantContextPortV1,
   ) {
-    this.uploads = new ArtifactUploadService(repository, storage);
+    this.uploads = new ArtifactUploadService(repository, storage, admission);
   }
 
   @Post(':sessionId/parts/transfer')
@@ -49,7 +54,7 @@ export class ArtifactUploadController {
     const context = await this.requestContext.resolve(request);
     const sessionId = parseStableIdentifierV1(sessionIdInput);
     if (!sessionId.accepted) return Object.freeze({ accepted: false, code: 'INVALID_IDENTIFIER' });
-    return this.uploads.issuePartTransfer(context, sessionId.value, input.partNumber);
+    return this.uploads.issuePartTransfer(context, sessionId.value, input);
   }
 
   @Post()
@@ -60,7 +65,7 @@ export class ArtifactUploadController {
     @Body() input: CreateArtifactUploadSessionDto,
   ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
-    return this.uploads.create(context, { ...input, tenantScope: context.tenantScope });
+    return this.uploads.create(context, input);
   }
 
   @Get(':sessionId')

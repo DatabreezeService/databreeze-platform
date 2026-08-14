@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 3,
+  "proposalId": "00000000-0000-4000-8000-000000000201",
+  "dashboardId": "00000000-0000-4000-8000-000000000202",
+  "parentVersionId": "00000000-0000-4000-8000-000000000203",
+  "expectedRevision": 7,
+  "analysisPlanVersionId": "00000000-0000-4000-8000-000000000204",
+  "options": [
+    {
+      "optionId": "00000000-0000-4000-8000-000000000206",
+      "type": "KPI",
+      "title": {
+        "vi": "Tổng doanh thu",
+        "en": "Total revenue"
+      },
+      "rationale": {
+        "vi": "Tóm tắt chỉ số đã chọn.",
+        "en": "Summarizes the selected metric."
+      },
+      "accessibilityDescription": {
+        "vi": "Thẻ KPI có bảng dữ liệu dự phòng.",
+        "en": "KPI card with an accessible fallback table."
+      },
+      "binding": {
+        "analysisPlanVersionId": "00000000-0000-4000-8000-000000000204",
+        "materializationDefinitionId": "00000000-0000-4000-8000-000000000207",
+        "dimensionIds": [],
+        "measureIds": ["00000000-0000-4000-8000-000000000209"]
+      },
+      "dimensions": [],
+      "measures": [
+        {
+          "id": "00000000-0000-4000-8000-000000000209",
+          "label": {
+            "vi": "Doanh thu",
+            "en": "Revenue"
+          }
+        }
+      ],
+      "supportedSpans": [3, 4, 6],
+      "defaultSpan": 4,
+      "assumptions": [],
+      "estimate": {
+        "cpuMs": 100,
+        "memoryMb": 32
+      },
+      "evidenceBehavior": "REQUIRED"
+    },
+    {
+      "optionId": "00000000-0000-4000-8000-00000000020a",
+      "type": "TABLE",
+      "title": {
+        "vi": "Bảng",
+        "en": "Table"
+      },
+      "rationale": {
+        "vi": "Hiển thị dữ liệu.",
+        "en": "Shows the data."
+      },
+      "accessibilityDescription": {
+        "vi": "Bảng dữ liệu.",
+        "en": "Data table."
+      },
+      "binding": {
+        "analysisPlanVersionId": "00000000-0000-4000-8000-000000000204",
+        "materializationDefinitionId": "00000000-0000-4000-8000-00000000020b",
+        "dimensionIds": [],
+        "measureIds": ["00000000-0000-4000-8000-000000000209"]
+      },
+      "dimensions": [],
+      "measures": [
+        {
+          "id": "00000000-0000-4000-8000-000000000209",
+          "label": {
+            "vi": "Doanh thu",
+            "en": "Revenue"
+          }
+        }
+      ],
+      "supportedSpans": [8, 12],
+      "defaultSpan": 12,
+      "assumptions": [],
+      "estimate": {
+        "cpuMs": 100,
+        "memoryMb": 32
+      },
+      "evidenceBehavior": "REQUIRED"
+    }
+  ],
+  "values": [
+    {
+      "value": 42
+    }
+  ],
+  "summary": {
+    "vi": "Không được chứa giá trị kết quả trong đề xuất.",
+    "en": "A proposal must not contain result values."
+  },
+  "previewOnly": true,
+  "publishes": false,
+  "createdAt": "2026-08-11T00:00:00.000Z"
+}

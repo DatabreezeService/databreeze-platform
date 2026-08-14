@@ -58,12 +58,7 @@ describe('Desktop V2 source explorer', () => {
     const onOpenItem = vi.fn();
     const onImport = vi.fn();
     render(
-      <SourceExplorer
-        catalog={catalog}
-        locale="en"
-        onOpenItem={onOpenItem}
-        onImport={onImport}
-      />,
+      <SourceExplorer catalog={catalog} locale="en" onOpenItem={onOpenItem} onImport={onImport} />,
     );
 
     expect(screen.getByRole('region', { name: 'Source explorer' })).toBeTruthy();

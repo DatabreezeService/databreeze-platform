@@ -7,11 +7,13 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from pydantic import ValidationError
+from databreeze_contracts.v4 import JraWorkerDashboardWidgetResultOutput
+from pydantic import BaseModel, ValidationError
 
 from .handler import CancellationView, DisabledProgressSink, HandlerContext
 from .json_codec import encode_json
 from .models import (
+    DashboardWidgetSubjectBindings,
     EngineError,
     EngineExecutionRequest,
     EngineResult,
@@ -19,11 +21,14 @@ from .models import (
     JsonRpcErrorResponse,
     JsonRpcRequest,
     JsonRpcSuccessResponse,
+    JsonWorkerOutput,
 )
+from .processors.dda_materialize_query import DdaWidgetMaterializationResult
 from .registry import RegistryError, default_registry
 
 WallClock = Callable[[], datetime]
 MonotonicClock = Callable[[], float]
+DASHBOARD_WIDGET_OUTPUT_SCHEMA_ID = "dda.dashboard-widget-result.v4"
 
 _ERROR_SPECS: dict[str, tuple[int, str]] = {
     "PARSE_ERROR": (-32700, "Parse error"),
@@ -45,6 +50,56 @@ class EngineDispatchError(Exception):
     def __init__(self, code: str) -> None:
         super().__init__(code)
         self.code = code
+
+
+def serialize_worker_output(
+    output: BaseModel,
+    *,
+    output_name: str,
+    schema_id: str,
+    source_lineage_hash: str,
+) -> JsonWorkerOutput:
+    """Create deterministic bounded JSON bytes for the worker-result transport."""
+    return JsonWorkerOutput(
+        kind="JSON_RESULT",
+        outputName=output_name,
+        schemaId=schema_id,
+        sourceLineageHash=source_lineage_hash,
+        content=encode_json(output.model_dump(mode="json")),
+    )
+
+
+def serialize_dashboard_widget_output(
+    widget_result: DdaWidgetMaterializationResult,
+    *,
+    subject_bindings: DashboardWidgetSubjectBindings,
+) -> JsonWorkerOutput:
+    """Serialize one widget and its exact snapshot-proof bindings into one closed artifact."""
+    if widget_result.widgetId != subject_bindings.widgetId:
+        raise EngineDispatchError("VALIDATION_FAILED")
+    for row in widget_result.rows:
+        provenance = row.provenance
+        if (
+            provenance.planVersionId != subject_bindings.planVersionId
+            or provenance.metricVersionId != subject_bindings.metricVersionId
+            or provenance.datasetVersionId != subject_bindings.datasetVersionId
+        ):
+            raise EngineDispatchError("VALIDATION_FAILED")
+    artifact = JraWorkerDashboardWidgetResultOutput.model_validate(
+        {
+            "schemaVersion": 4,
+            "kind": "DASHBOARD_WIDGET_RESULT",
+            "widgetResult": widget_result.model_dump(mode="json"),
+            "subjectBindings": subject_bindings.model_dump(mode="json"),
+        }
+    )
+    return JsonWorkerOutput(
+        kind="JSON_RESULT",
+        outputName="widget-result",
+        schemaId=DASHBOARD_WIDGET_OUTPUT_SCHEMA_ID,
+        sourceLineageHash=subject_bindings.inputSelectorHash,
+        content=encode_json(artifact.model_dump(mode="json")),
+    )
 
 
 def _deadline(value: str) -> datetime:

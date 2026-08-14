@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/iam-registration-command",
+  "$comment": "IAM-022: bounded email/password registration request. Display names and tenant authority are server-owned.",
+  "title": "IAM Registration Command",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "email", "password", "locale"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "email": { "type": "string", "minLength": 3, "maxLength": 254, "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$" },
+    "password": { "type": "string", "minLength": 12, "maxLength": 128, "pattern": "^[^\\u0000\\r\\n]+$" },
+    "locale": { "type": "string", "enum": ["vi-VN", "en"] }
+  }
+}

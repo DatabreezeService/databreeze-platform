@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/iam-registration-accepted",
+  "$comment": "IAM-022: enumeration-safe registration acceptance containing only an opaque OTP challenge.",
+  "title": "IAM Registration Accepted",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "accepted", "value"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "accepted": { "const": true },
+    "value": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requested", "challengeId"],
+      "properties": {
+        "requested": { "const": true },
+        "challengeId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" }
+      }
+    }
+  }
+}

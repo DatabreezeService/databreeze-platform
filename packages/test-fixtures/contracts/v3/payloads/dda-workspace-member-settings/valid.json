@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 3,
+  "workspaceId": "00000000-0000-4000-8000-000000000302",
+  "canManage": true,
+  "members": [
+    {
+      "memberId": "00000000-0000-4000-8000-000000000305",
+      "displayName": "Nguyễn An",
+      "accessPreset": "EDITOR",
+      "agentGrantLevel": "PROPOSE_CHANGES",
+      "agentGrantRevision": 2,
+      "membershipRevision": 3
+    }
+  ]
+}

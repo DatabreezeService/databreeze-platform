@@ -3,6 +3,7 @@ import { normalizeEmailAddressV1 } from '@databreeze/domain/identity/v1';
 import {
   PrismaIdentityBootstrapTransactionAdapter,
   type IdentityBootstrapDatabaseClientV1,
+  type IdentityBootstrapPolicyProvisionerFactoryV1,
   type UserIdentityDatabaseRowV1,
 } from './prisma-identity-bootstrap-repository.adapter.js';
 import {
@@ -43,7 +44,10 @@ function uniqueConflict(error: unknown): boolean {
 }
 
 class PrismaRegistrationTransactionAdapter implements RegistrationTransactionPortV1 {
-  public constructor(private readonly client: RegistrationDatabaseClientV1) {}
+  public constructor(
+    private readonly client: RegistrationDatabaseClientV1,
+    private readonly policyProvisionerFactory?: IdentityBootstrapPolicyProvisionerFactoryV1,
+  ) {}
 
   public async findByEmail(emailInput: string): Promise<boolean> {
     const email = normalizeEmailAddressV1(emailInput);
@@ -77,7 +81,10 @@ class PrismaRegistrationTransactionAdapter implements RegistrationTransactionPor
           createdAt: new Date(input.bootstrap.user.createdAt),
         },
       });
-      await new PrismaIdentityBootstrapTransactionAdapter(this.client).save(input.bootstrap);
+      await new PrismaIdentityBootstrapTransactionAdapter(
+        this.client,
+        this.policyProvisionerFactory?.(this.client),
+      ).save(input.bootstrap);
     } catch (error) {
       if (uniqueConflict(error)) throw new RegistrationConflictError();
       throw error;
@@ -87,13 +94,16 @@ class PrismaRegistrationTransactionAdapter implements RegistrationTransactionPor
 
 /** PostgreSQL adapter for the atomic account and personal-tenant registration unit. */
 export class PrismaRegistrationRepositoryAdapter implements RegistrationRepositoryPortV1 {
-  public constructor(private readonly client: RegistrationDatabaseClientV1) {}
+  public constructor(
+    private readonly client: RegistrationDatabaseClientV1,
+    private readonly policyProvisionerFactory?: IdentityBootstrapPolicyProvisionerFactoryV1,
+  ) {}
 
   public withTransaction<TValue>(
     work: (transaction: RegistrationTransactionPortV1) => Promise<TValue>,
   ): Promise<TValue> {
     return this.client.$transaction((transaction) =>
-      work(new PrismaRegistrationTransactionAdapter(transaction)),
+      work(new PrismaRegistrationTransactionAdapter(transaction, this.policyProvisionerFactory)),
     );
   }
 }

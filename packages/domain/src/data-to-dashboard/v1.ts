@@ -1450,7 +1450,8 @@ export function createDdaConversationContextEventV1(input: {
     input.beforeVersionId === undefined ? undefined : identifier(input.beforeVersionId);
   const afterVersionId =
     input.afterVersionId === undefined ? undefined : identifier(input.afterVersionId);
-  if (input.beforeVersionId !== undefined && !beforeVersionId) return rejected('INVALID_IDENTIFIER');
+  if (input.beforeVersionId !== undefined && !beforeVersionId)
+    return rejected('INVALID_IDENTIFIER');
   if (input.afterVersionId !== undefined && !afterVersionId) return rejected('INVALID_IDENTIFIER');
   return accepted(
     Object.freeze({

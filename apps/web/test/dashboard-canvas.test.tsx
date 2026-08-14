@@ -1,9 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment -- Vitest asymmetric matchers are intentionally `any`. */
+
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { DashboardCanvas } from '../src/features/dashboards/dashboard-canvas.tsx';
 import { WIDGET_CATALOG_V1 } from '../src/features/dashboards/widget-catalog.ts';
+import type { DashboardWidgetLayoutsV1 } from '../src/features/dashboards/responsive-widget-grid.tsx';
 
 const draft = {
   dashboardId: '00000000-0000-4000-8000-00000000001b',
@@ -32,6 +35,36 @@ const draft = {
   warning: 'Evidence remains visible',
 };
 
+const layouts: DashboardWidgetLayoutsV1 = {
+  desktop: [
+    {
+      widgetId: '00000000-0000-4000-8000-00000000001d',
+      x: 0,
+      y: 0,
+      w: 6,
+      h: 4,
+    },
+  ],
+  tablet: [
+    {
+      widgetId: '00000000-0000-4000-8000-00000000001d',
+      x: 0,
+      y: 0,
+      w: 6,
+      h: 4,
+    },
+  ],
+  mobile: [
+    {
+      widgetId: '00000000-0000-4000-8000-00000000001d',
+      x: 0,
+      y: 0,
+      w: 12,
+      h: 4,
+    },
+  ],
+};
+
 describe('dashboard canvas [DDA-021][DDA-022]', () => {
   it('exposes allowlisted widgets and chart fallback tables', () => {
     expect(WIDGET_CATALOG_V1.map((entry) => entry.type)).toEqual(
@@ -50,23 +83,100 @@ describe('dashboard canvas [DDA-021][DDA-022]', () => {
     render(<DashboardCanvas locale="en" draft={draft} />);
     expect(screen.getByRole('table', { name: 'Chart fallback table' })).toBeTruthy();
     expect(screen.getAllByText('Evidence remains visible').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Freshness: FRESH').length).toBeGreaterThan(0);
+    expect(screen.getByText('Data is fresh')).toBeTruthy();
   });
 
-  it('supports keyboard-accessible add, remove, and restore without hiding warnings', async () => {
+  it('opens the governed chart conversation from the dashboard header', async () => {
     const user = userEvent.setup();
-    render(<DashboardCanvas locale="en" draft={draft} breakpoint="mobile" />);
-    await user.click(screen.getByRole('button', { name: 'Add widget' }));
-    await user.click(screen.getByRole('button', { name: /TABLE/u }));
-    expect(screen.getAllByRole('article').length).toBeGreaterThan(1);
-    await user.click(screen.getAllByRole('button', { name: 'Remove' })[0]!);
-    expect(screen.getByRole('button', { name: 'Restore widget' })).toBeTruthy();
+    const onOpenAgent = vi.fn();
+    render(
+      <DashboardCanvas
+        locale="en"
+        draft={draft}
+        layouts={layouts}
+        header={{
+          title: { vi: 'Doanh số khu vực', en: 'Regional sales' },
+          dataset: { vi: 'Bán hàng đã cấp quyền', en: 'Authorized sales' },
+          autosave: 'SAVED',
+        }}
+        onOpenAgent={onOpenAgent}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Regional sales' })).toBeTruthy();
+    expect(screen.getByText(/Authorized sales/u)).toBeTruthy();
+    expect(screen.getByText('Saved')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add chart' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Add widget' })).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Add chart' }));
+    expect(onOpenAgent).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps a widget ID stable across keyboard move, remove, and restore on mobile', async () => {
+    const user = userEvent.setup();
+    const onLayoutCommand = vi.fn();
+    const onRemoveWidget = vi.fn();
+    const onRestoreWidget = vi.fn();
+    render(
+      <DashboardCanvas
+        locale="en"
+        draft={draft}
+        breakpoint="mobile"
+        layouts={layouts}
+        onLayoutCommand={onLayoutCommand}
+        onRemoveWidget={onRemoveWidget}
+        onRestoreWidget={onRestoreWidget}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Layout actions for Total sales' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Increase height' }));
+    expect(screen.queryByRole('button', { name: 'Save layout' })).toBeNull();
+    expect(onLayoutCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'SET_LAYOUT',
+        breakpoint: 'mobile',
+        cells: expect.arrayContaining([
+          expect.objectContaining({
+            widgetId: '00000000-0000-4000-8000-00000000001d',
+            w: 12,
+          }),
+        ]),
+      }),
+    );
+
+    await user.click(screen.getByRole('menuitem', { name: 'Remove widget' }));
+    expect(onRemoveWidget).toHaveBeenCalledWith('00000000-0000-4000-8000-00000000001d');
+    expect(screen.queryByTestId('widget-00000000-0000-4000-8000-00000000001d')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Restore widget' }));
+    expect(onRestoreWidget).toHaveBeenCalledWith('00000000-0000-4000-8000-00000000001d');
+    expect(screen.getByTestId('widget-00000000-0000-4000-8000-00000000001d')).toBeTruthy();
     expect(screen.getAllByText('Evidence remains visible').length).toBeGreaterThan(0);
+  });
+
+  it('keeps filter scope visible and delegates the typed filter value to its owner', async () => {
+    const user = userEvent.setup();
+    const onFilterChange = vi.fn();
+    render(<DashboardCanvas locale="en" draft={draft} onFilterChange={onFilterChange} />);
+
+    const datasetControl = screen.getByRole('button', { name: 'Protected dataset scope' });
+    expect(datasetControl.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByRole('textbox', { name: 'region IN' })).toBeNull();
+    await user.click(datasetControl);
+    expect(datasetControl.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByText('Region')).toBeTruthy();
+    expect(screen.getByText('Dashboard')).toBeTruthy();
+    await user.type(screen.getByRole('textbox', { name: 'region IN' }), 'North');
+    expect(onFilterChange).toHaveBeenLastCalledWith(
+      '00000000-0000-4000-8000-00000000001e',
+      'North',
+    );
   });
 
   it('replaces canvas widget values when a live draft version arrives without inventing KPIs', () => {
     const { rerender } = render(<DashboardCanvas locale="en" draft={draft} />);
-    expect(screen.getByText('1,250,000 VND')).toBeTruthy();
+    expect(screen.getAllByText('1,250,000 VND').length).toBeGreaterThan(0);
 
     const liveDraft = {
       ...draft,
@@ -83,6 +193,6 @@ describe('dashboard canvas [DDA-021][DDA-022]', () => {
     };
     rerender(<DashboardCanvas locale="en" draft={liveDraft} />);
     expect(screen.getByText('governed-amount')).toBeTruthy();
-    expect(screen.queryByText('1,250,000 VND')).toBeNull();
+    expect(screen.queryAllByText('1,250,000 VND').length).toBe(0);
   });
 });

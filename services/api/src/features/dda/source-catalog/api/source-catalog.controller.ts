@@ -1,5 +1,5 @@
 import {
-  Body,
+  BadRequestException,
   Controller,
   Get,
   HttpCode,
@@ -11,20 +11,19 @@ import {
   Query,
   Req,
   Res,
+  ServiceUnavailableException,
+  UnauthorizedException,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOkResponse,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
 
 import {
   REQUEST_TENANT_CONTEXT,
+  RequestTenantContextProblemError,
+  UnavailableRequestTenantContextAdapter,
   type RequestTenantContextPortV1,
 } from '../../../../platform/http/request-tenant-context.port.js';
 import {
@@ -40,15 +39,40 @@ export class ListSourceCatalogQueryDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  @MaxLength(512)
   cursor?: string;
 
-  @ApiPropertyOptional({ minimum: 1, maximum: 100 })
+  @ApiPropertyOptional({ minimum: 1, maximum: 50 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  @Max(100)
+  @Max(50)
   limit?: number;
+}
+
+const AUTHORITY_FIELDS = new Set([
+  'context',
+  'tenantScope',
+  'memberAuthorized',
+  'actor',
+  'actorId',
+  'memberId',
+  'organizationId',
+  'orgId',
+  'workspaceId',
+  'projectId',
+  'authorization',
+  'authorized',
+  'role',
+]);
+
+function hasClientAuthorityField(value: unknown, seen = new WeakSet<object>()): boolean {
+  if (typeof value !== 'object' || value === null || seen.has(value)) return false;
+  seen.add(value);
+  return Object.entries(value).some(
+    ([key, child]) => AUTHORITY_FIELDS.has(key) || hasClientAuthorityField(child, seen),
+  );
 }
 
 function statusFor(result: unknown): number {
@@ -84,9 +108,14 @@ export class SourceCatalogController {
     @Optional()
     @Inject(ORIGINAL_VIEW_SERVICE)
     private readonly originals: OriginalViewService | undefined,
+    @Optional()
     @Inject(REQUEST_TENANT_CONTEXT)
-    private readonly requestContext: RequestTenantContextPortV1,
-  ) {}
+    requestContext?: RequestTenantContextPortV1,
+  ) {
+    this.requestContext = requestContext ?? new UnavailableRequestTenantContextAdapter();
+  }
+
+  private readonly requestContext: RequestTenantContextPortV1;
 
   private unavailable() {
     return { accepted: false as const, code: 'UNAVAILABLE' as const };
@@ -101,10 +130,16 @@ export class SourceCatalogController {
     @Query() query: ListSourceCatalogQueryDto,
     @Res({ passthrough: true }) reply?: FastifyReply,
   ): Promise<unknown> {
-    const context = await this.requestContext.resolve(request);
-    const result = this.catalog
-      ? await this.catalog.listDatasetSources(context, datasetId, query.cursor, query.limit)
-      : this.unavailable();
+    this.rejectClientAuthority(request, query);
+    const context = await this.resolveContext(request);
+    let result;
+    try {
+      result = this.catalog
+        ? await this.catalog.listDatasetSources(context, datasetId, query.cursor, query.limit)
+        : this.unavailable();
+    } catch {
+      result = this.unavailable();
+    }
     return preserve(result, reply);
   }
 
@@ -114,13 +149,48 @@ export class SourceCatalogController {
   @ApiOkResponse({ description: 'The original view descriptor.' })
   async resolveOriginalView(
     @Req() request: unknown,
+    @Param('datasetId') datasetId: string,
     @Param('sourceId') sourceId: string,
     @Res({ passthrough: true }) reply?: FastifyReply,
   ): Promise<unknown> {
-    const context = await this.requestContext.resolve(request);
-    const result = this.originals
-      ? await this.originals.resolveOriginalView(context, sourceId)
-      : this.unavailable();
+    this.rejectClientAuthority(request);
+    const context = await this.resolveContext(request);
+    let result;
+    try {
+      result = this.originals
+        ? await this.originals.resolveOriginalView(context, datasetId, sourceId)
+        : this.unavailable();
+    } catch {
+      result = this.unavailable();
+    }
     return preserve(result, reply);
+  }
+
+  private rejectClientAuthority(request: unknown, ...clientInputs: readonly unknown[]): void {
+    const requestRecord =
+      typeof request === 'object' && request !== null && !Array.isArray(request)
+        ? (request as Record<string, unknown>)
+        : undefined;
+    if (
+      clientInputs.some((input) => hasClientAuthorityField(input)) ||
+      hasClientAuthorityField(requestRecord?.['body']) ||
+      hasClientAuthorityField(requestRecord?.['query']) ||
+      hasClientAuthorityField(requestRecord?.['params'])
+    ) {
+      throw new BadRequestException();
+    }
+  }
+
+  private async resolveContext(request: unknown) {
+    try {
+      return await this.requestContext.resolve(request);
+    } catch (error) {
+      if (error instanceof RequestTenantContextProblemError) {
+        if (error.code === 'CONTEXT_INVALID') throw new BadRequestException();
+        if (error.code === 'AUTHENTICATION_FAILED') throw new UnauthorizedException();
+        throw new ServiceUnavailableException();
+      }
+      throw new ServiceUnavailableException();
+    }
   }
 }

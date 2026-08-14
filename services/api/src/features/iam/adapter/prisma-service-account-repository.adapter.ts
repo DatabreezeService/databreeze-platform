@@ -18,6 +18,7 @@ import type {
   ServiceAccountRepositoryPortV1,
   ServiceAccountTransactionPortV1,
 } from '../application/service-account-repository.port.js';
+import type { WorkerCredentialLookupPortV1 } from '../application/worker-credential-lookup.port.js';
 
 export interface ServiceAccountDatabaseRowV1 {
   readonly id: string;
@@ -410,7 +411,9 @@ class PrismaServiceAccountTransactionAdapter implements ServiceAccountTransactio
 }
 
 /** PostgreSQL adapter for scoped service-account metadata and optimistic lifecycle writes. */
-export class PrismaServiceAccountRepositoryAdapter implements ServiceAccountRepositoryPortV1 {
+export class PrismaServiceAccountRepositoryAdapter
+  implements ServiceAccountRepositoryPortV1, WorkerCredentialLookupPortV1
+{
   public constructor(private readonly client: ServiceAccountDatabaseClientV1) {}
 
   public withTransaction<TValue>(
@@ -458,6 +461,22 @@ export class PrismaServiceAccountRepositoryAdapter implements ServiceAccountRepo
       context,
       secretDigest,
     );
+  }
+
+  /** Root-only lookup used after the bearer secret has been reduced to its digest. */
+  public async findCurrentWorkerCredentialByDigest(
+    secretDigest: string,
+  ): Promise<ServiceAccountV1 | undefined> {
+    const row = await this.client.serviceAccount.findFirst({ where: { secretDigest } });
+    return row ? accountFromRow(row) : undefined;
+  }
+
+  /** Root-only current-epoch lookup used to recheck revocation between worker operations. */
+  public async findCurrentWorkerCredentialById(
+    workerId: StableIdentifierV1,
+  ): Promise<ServiceAccountV1 | undefined> {
+    const row = await this.client.serviceAccount.findFirst({ where: { id: workerId } });
+    return row ? accountFromRow(row) : undefined;
   }
 
   public listServiceAccounts(context: IamTenantContextV1) {

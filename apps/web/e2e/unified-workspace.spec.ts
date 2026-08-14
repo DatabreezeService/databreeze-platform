@@ -6,9 +6,7 @@ import { expect, test } from '@playwright/test';
  * Not a production-readiness claim.
  */
 test.describe('unified data workspace shell', () => {
-  test('Vietnamese primary rail exposes exactly three destinations', async ({
-    page,
-  }, testInfo) => {
+  test('Vietnamese primary rail exposes exactly three destinations', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name === 'mobile-chromium', 'Desktop UDW nav');
     await page.goto('/vi-VN/dashboards');
 
@@ -28,7 +26,7 @@ test.describe('unified data workspace shell', () => {
     const nav = page.getByRole('navigation', { name: 'Primary navigation' });
     await expect(nav.getByRole('link', { name: 'Dashboards' })).toBeVisible();
     await expect(nav.getByRole('link', { name: 'Analysis' })).toBeVisible();
-    await expect(nav.getByRole('link', { name: 'Data' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Data', exact: true })).toBeVisible();
   });
 
   test('workspace legacy path redirects into dashboards', async ({ page }, testInfo) => {
@@ -43,7 +41,7 @@ test.describe('unified data workspace shell', () => {
   }, testInfo) => {
     test.skip(testInfo.project.name === 'mobile-chromium', 'Desktop agent surfaces');
     await page.goto('/vi-VN/dashboards');
-    await expect(page.getByRole('button', { name: 'Mở trợ lý' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Mở trợ lý biểu đồ' })).toBeVisible();
 
     await page.goto('/vi-VN/data');
     await expect(page.getByRole('heading', { name: 'Dữ liệu' })).toBeVisible();
@@ -71,7 +69,10 @@ test.describe('unified data workspace shell', () => {
     test.skip(testInfo.project.name !== 'mobile-chromium', 'Mobile UDW nav');
     await page.goto('/en/dashboards');
     await page.getByRole('button', { name: 'Open navigation' }).click();
-    await page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: 'Data', exact: true }).click();
+    await page
+      .getByRole('navigation', { name: 'Primary navigation' })
+      .getByRole('link', { name: 'Data', exact: true })
+      .click();
     await expect(page).toHaveURL(/\/en\/data$/u);
     await expect(page.getByRole('heading', { name: 'Data' })).toBeVisible();
   });

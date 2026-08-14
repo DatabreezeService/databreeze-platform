@@ -3,7 +3,7 @@
 | Metadata | Value |
 |---|---|
 | Status | Product specification |
-| Version | 1.1 |
+| Version | 1.2 |
 | Requirement prefix | `IAM` |
 | Dependencies | Platform architecture baseline; all other specifications depend on this specification |
 
@@ -78,7 +78,7 @@ Workspace agent authority is an independent member grant with levels `NONE`, `AN
 1. The client submits email, password, and password confirmation. Public responses never disclose whether the email already owns an account.
 2. The server creates a bounded unverified registration challenge and delivers a six-digit OTP. Only protected challenge material is stored.
 3. The OTP expires in 10 minutes, permits five failed attempts, and may be resent after 60 seconds.
-4. Successful verification atomically activates the user, personal organization, personal workspace, Owner membership, and a refresh family, then signs the user in.
+4. Successful verification atomically activates the user, personal organization, personal workspace, Owner membership, the server-owned initial `HYBRID` Workspace data-mode policy and current-policy reference, and a refresh family, then signs the user in. The client supplies no policy IDs, matrix, projection, or policy timestamp.
 5. Unverified registrations expire and are removed according to the declared retention policy.
 
 ### Google OIDC linking
@@ -110,8 +110,10 @@ Browser refresh credentials use `HttpOnly`, `Secure`, and `SameSite=Lax` cookies
 
 1. An authenticated user creates or receives a personal organization.
 2. Organization creation atomically creates an Owner membership and audit event.
-3. A permitted Owner or Admin creates a workspace, chooses `LOCAL`, `HYBRID`, or `CLOUD`, and receives a default private project; the application transaction asks DSO to publish the initial immutable WorkspaceDataModePolicyVersion and records only its IDs/projection on Workspace.
+3. A permitted Owner or Admin creates a workspace, chooses `LOCAL`, `HYBRID`, or `CLOUD`, and receives a default private project; the application transaction asks DSO to publish the initial immutable WorkspaceDataModePolicyVersion and records only its IDs/projection on Workspace. During IAM-022 personal registration, no authenticated administrator exists yet, so the same transaction invokes a narrow DSO initial-policy participant with the server-owned `HYBRID` default required by DSO-008. It is not a data-mode transition, accepts no client policy fields, creates revision 1 plus the exact current pointer, and exact replay returns the same immutable binding.
 4. The system provisions default policies without creating sample customer data or granting access to other members.
+
+For IAM-002, IAM-003, IAM-012, and IAM-019, IAM exposes a scope-only current Workspace execution-policy reference containing exact organization/workspace ancestry, DSO policy/current-version IDs, the content-safe mode projection, and the live Workspace authorization epoch. It does not expose or evaluate the DSO policy matrix. A DSO publish-and-activate command compare-and-swaps this reference in the same server transaction as the DSO current pointer and increments `authorizationEpoch` exactly once; exact idempotent replay does not increment twice. Stale or cross-tenant expected references reject the whole transaction. Consumers must compare this projection with DSO's exact current aggregate/version and fail closed on any mismatch.
 
 ### Invitation and membership change
 
@@ -170,7 +172,7 @@ The evaluated tenant identifiers come from trusted server-side resource lookup; 
 | IAM-019 | P0 | Every tenant-owned record and repository operation shall declare either organization or workspace scope, validate the complete tenant ancestry for nested resources, and reject optional, missing, or mismatched tenant filters before data access. |
 | IAM-020 | P0 | IAM shall issue versioned signed OfflineAuthorizationSnapshots bound to organization/workspace/project, principal, Device, security and authorization epochs, allowed action/resource scopes, policy revisions, issue time, expiry no later than 24 hours, and signer/key version; a snapshot shall not authorize approval, membership, security/data-mode/retention/billing policy change, deletion, cloud/external effects, or access broader than the last online decision, and every reconnect shall re-authorize current state. |
 | IAM-021 | P0 | IAM shall be the sole authority for DeviceIdentity ID, organization/user ownership, public key, enrollment challenge, activation status, security epoch, and permanent revocation; a revoked identity shall never reactivate, recovery shall create a new identity, and DSO shall reference the IAM identity without maintaining a second identity, key, or authoritative status. |
-| IAM-022 | P0 | Email/password registration shall use a six-digit OTP that expires in 10 minutes, permits five failed attempts, permits resend after 60 seconds, stores only protected challenge material, avoids account enumeration, and atomically activates the user, personal organization, personal workspace, Owner membership, and session after verification. |
+| IAM-022 | P0 | Email/password registration shall use a six-digit OTP that expires in 10 minutes, permits five failed attempts, permits resend after 60 seconds, stores only protected challenge material, avoids account enumeration, and atomically activates the user, personal organization, personal workspace, server-owned initial HYBRID DSO policy/current reference, Owner membership, and session after verification. The client shall supply none of the initial policy authority fields and exact replay shall not create a second binding. |
 | IAM-023 | P0 | Access tokens shall remain at most 15 minutes; rotating refresh families shall expire after 30 days of Web inactivity and 180 days absolute, or 90 days of Desktop/Android inactivity and 365 days absolute; reuse, recovery, suspension, logout-all, device revocation, or compromise shall revoke the family; browser credentials shall remain `HttpOnly`, `Secure`, and `SameSite=Lax`. |
 | IAM-024 | P0 | Agent authority shall be an independent workspace-member grant with `NONE`, `ANALYZE`, `PROPOSE_CHANGES`, or `APPLY_CONFIRMED_CHANGES`; Viewer shall default to `NONE`; grants shall never expand dataset or action permission. |
 | IAM-025 | P0 | The normal UI shall expose Owner, Editor, and Viewer access presets while the six canonical server roles and versioned permission constants remain available to policy enforcement; preset mapping shall be explicit, versioned, and deny-by-default. |

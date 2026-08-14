@@ -123,9 +123,12 @@ void test('[DDA-041] original detail fails closed on unsupported pinned mini mod
       },
     },
   });
-  assert.throws(() => adapter.buildRequest(request()), (error: unknown) => {
-    return error instanceof OpenAiProviderError && error.code === 'OPENAI_UNSAFE_CONFIGURATION';
-  });
+  assert.throws(
+    () => adapter.buildRequest(request()),
+    (error: unknown) => {
+      return error instanceof OpenAiProviderError && error.code === 'OPENAI_UNSAFE_CONFIGURATION';
+    },
+  );
 });
 
 void test('[DDA-041, DDA-042] valid structured output maps to ReceiptOcrResult with version metadata', async () => {
@@ -243,8 +246,7 @@ void test('[DDA-041] refusal, incomplete, tool, schema, and coordinate failures 
     );
     await assert.rejects(
       () => adapter.extract(request()),
-      (error: unknown) =>
-        error instanceof OpenAiProviderError && error.code === testCase.code,
+      (error: unknown) => error instanceof OpenAiProviderError && error.code === testCase.code,
       testCase.name,
     );
   }

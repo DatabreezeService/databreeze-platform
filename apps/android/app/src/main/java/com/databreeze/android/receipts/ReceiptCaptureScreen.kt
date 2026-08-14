@@ -137,6 +137,7 @@ fun ReceiptCaptureScreen(
                 modifier = Modifier.testTag("receipt-capture-deny"),
             )
         }
+        val shutterDescription = stringResource(R.string.receipt_capture_shutter_description)
         Button(
             onClick = {
                 if (!state.cameraPermissionGranted) {
@@ -158,7 +159,7 @@ fun ReceiptCaptureScreen(
             },
             modifier = Modifier
                 .testTag("receipt-capture-shutter")
-                .semantics { contentDescription = "Capture receipt photo" },
+                .semantics { contentDescription = shutterDescription },
             enabled = state.denyReason == null ||
                 state.denyReason == ReceiptCaptureDenyReason.CAMERA_PERMISSION_MISSING,
         ) {

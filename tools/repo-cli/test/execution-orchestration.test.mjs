@@ -21,7 +21,7 @@ const expectedPlans = new Map([
   ['030', ['030-artifacts-datasets-evidence.md', 47]],
   ['040', ['040-jobs-processing-approvals.md', 30]],
   ['050', ['050-devices-sync-offline.md', 76]],
-  ['060', ['060-collaboration-integrations.md', 42]],
+  ['060', ['060-collaboration-integrations.md', 46]],
   ['070', ['070-dogfood-folder-spreadsheet.md', 0]],
   ['100', ['100-folder-autopilot.md', 34]],
   ['110', ['110-spreadsheet-auditor.md', 27]],
@@ -100,8 +100,8 @@ test('execution ledger covers the complete dependency-ordered implementation pro
     ledger.plans.map((plan) => plan.planId),
     [...expectedPlans.keys()],
   );
-  assert.equal(ledger.requirementTotals.total, 618);
-  assert.deepEqual(ledger.requirementTotals.byPriority, { P0: 451, P1: 154, P2: 13 });
+  assert.equal(ledger.requirementTotals.total, 622);
+  assert.deepEqual(ledger.requirementTotals.byPriority, { P0: 455, P1: 154, P2: 13 });
 
   const traceCounts = traceability.requirements.reduce((counts, requirement) => {
     counts[requirement.primaryPlan] = (counts[requirement.primaryPlan] ?? 0) + 1;
@@ -202,7 +202,7 @@ test('repository checker validates the committed orchestration package', () => {
   });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /"planCount":19/u);
-  assert.match(result.stdout, /"requirementCount":618/u);
+  assert.match(result.stdout, /"requirementCount":622/u);
 });
 
 test('ledger records verified task evidence before advancing the next task', () => {

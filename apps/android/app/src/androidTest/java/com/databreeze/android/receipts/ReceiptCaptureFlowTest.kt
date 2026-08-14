@@ -17,20 +17,8 @@ class ReceiptCaptureFlowTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun active_capture_confirm_queues_secure_upload() {
+    fun capture_never_uses_a_demo_scope_when_protected_session_is_absent() {
         composeRule.onNodeWithTag("capture-button").performClick()
-        composeRule.onNodeWithTag("receipt-capture-screen").assertIsDisplayed()
-        composeRule.onNodeWithTag("receipt-capture-shutter").performClick()
-        composeRule.onNodeWithTag("receipt-capture-confirm").performClick()
-        composeRule.waitUntil(timeoutMillis = 5_000) {
-            runCatching {
-                composeRule.onNodeWithTag("receipt-capture-queued").assertIsDisplayed()
-                true
-            }.getOrDefault(false) ||
-                runCatching {
-                    composeRule.onNodeWithTag("receipt-review-screen").assertIsDisplayed()
-                    true
-                }.getOrDefault(false)
-        }
+        composeRule.onNodeWithTag("authenticated-runtime-required").assertIsDisplayed()
     }
 }

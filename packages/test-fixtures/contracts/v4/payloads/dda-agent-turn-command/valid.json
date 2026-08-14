@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 4,
+  "conversationId": "00000000-0000-4000-8000-000000000401",
+  "messageId": "00000000-0000-4000-8000-000000000402",
+  "text": "Tinh doanh thu theo khu vuc.",
+  "idempotencyKey": "turn-20260813-0001",
+  "locale": "vi-VN",
+  "contextRevision": 2,
+  "expectedContextRevision": 2
+}

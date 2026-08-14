@@ -8,11 +8,7 @@ export function FloatingAgentButton({
   readonly locale: 'en' | 'vi-VN';
 }) {
   return (
-    <button
-      className="floating-agent-button"
-      type="button"
-      onClick={() => store.setOpen(true)}
-    >
+    <button className="floating-agent-button" type="button" onClick={() => store.setOpen(true)}>
       {locale === 'vi-VN' ? 'Mở trợ lý' : 'Open agent'}
     </button>
   );

@@ -3,7 +3,7 @@
 | Metadata | Value |
 |---|---|
 | Status | Product specification |
-| Version | 1.0 |
+| Version | 1.2 |
 | Requirement prefix | `JRA` |
 | Dependencies | `IAM` authorization; `IAE` immutable inputs/evidence; `DSM` immutable definitions; composed with `DSO` route decisions and `BUA` admission proposals by the application-layer `ExecutionAdmissionCoordinator` |
 
@@ -124,6 +124,8 @@ Transient failures retry only under the action's declared policy. An expired lea
 | JRA-028 | P0 | JRA shall be the only authority for ApprovalPolicy, ApprovalRequest, and ApprovalDecision; a feature may expose an authorized facade and persist a subject binding/projection containing the JRA request ID, exact resource version, and subject hash, but shall not persist an independent decision or weaken eligibility, separation of duties, MFA, expiry, or invalidation. |
 | JRA-029 | P0 | Every asynchronous feature run shall reference one canonical `jraJobId` and pinned JRA result manifest; JRA alone shall own dispatch, progress, cancellation, retry, and terminal execution state, while feature lifecycle state is an idempotent projection from committed JRA results/events with a documented mapping when states differ. |
 | JRA-030 | P0 | Offline execution shall accept a cached RecipeVersion only with a supported signed RecipePublicationEnvelope binding workspace, recipe ID/version/hash, action definitions and handler/schema hashes, referenced DSM definition hashes, policy references, issue/offline-validity time, schema version, and signer/key version; cache encryption alone shall not establish authenticity. |
+| JRA-031 | P0 | Cloud result commit shall use a two-command protocol. `PREPARE_RESULT`, while the exact latest lease and security epoch remain current, shall derive the descriptor-owned output policy and issue stable attempt/descriptor-bound IAE write capabilities without making the Job terminal. After IAE transfer and immutable-result attestation, `FINALIZE_RESULT` shall accept only a stable submission ID, attestation references, descriptor/attempt binding hash, and typed result-binding echo. JRA shall resolve attestations server-side, recheck the current latest attempt, lease, epoch, descriptor, action/output schema and exact subject bindings, then atomically insert the canonical ResultManifest, terminal Attempt/Job transitions, completion replay receipt, canonical AUD/outbox effects, and usage settlement in one serializable transaction. Identical retries shall return the stored completion; changed reuse shall conflict. The legacy completion path shall not issue output grants after committing success and shall not accept caller-asserted object references as authoritative. |
+| JRA-032 | P0 | An admitted Job that can produce metered customer results shall carry exactly one opaque BUA `ResultUsageSettlementBinding` ID supplied by the server-owned `ExecutionAdmissionCoordinator`; the worker and browser shall never supply or alter it. JRA result preparation and immutable descriptors may carry that opaque ID but shall not copy or infer BUA reservation, meter, formula or quantity authority. `FINALIZE_RESULT` shall provide the stored ID and verified result facts to the injected BUA transaction participant and shall roll back ResultManifest, Attempt, Job, replay, AUD and outbox writes if settlement is missing, mismatched, unavailable or rejected. |
 
 ## Domain and data contracts
 

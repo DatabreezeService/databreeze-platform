@@ -32,6 +32,7 @@ test('[IAM-001, IAM-002, IAM-003, IAM-004, IAM-009, IAM-019 partial] publishes o
     './artifact-retention/v1',
     './artifact-export/v1',
     './artifact-upload/v1',
+    './artifact-processing-content/v1',
     './protected-document/v1',
     './dataset/v1',
     './dataset-governance/v1',

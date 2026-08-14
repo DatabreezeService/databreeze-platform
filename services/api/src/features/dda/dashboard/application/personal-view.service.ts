@@ -1,11 +1,10 @@
+/* eslint-disable @typescript-eslint/require-await -- local store preserves the async service contract. */
+
 import { randomUUID } from 'node:crypto';
 
 import type { TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
-export type PersonalViewProblemCodeV1 =
-  | 'UNAUTHORIZED'
-  | 'NOT_FOUND'
-  | 'REVISION_CONFLICT';
+export type PersonalViewProblemCodeV1 = 'UNAUTHORIZED' | 'NOT_FOUND' | 'REVISION_CONFLICT';
 
 export type PersonalViewResultV1<TValue> =
   | { readonly accepted: true; readonly value: TValue }
@@ -116,10 +115,7 @@ export class PersonalViewService {
     if (!context.memberAuthorized) return rejected('UNAUTHORIZED');
     const existing = this.#views.get(viewId);
     if (!existing) return rejected('NOT_FOUND');
-    if (
-      existing.ownerActorId !== context.actorId &&
-      existing.sharedWithWorkspace !== true
-    ) {
+    if (existing.ownerActorId !== context.actorId && existing.sharedWithWorkspace !== true) {
       return rejected('UNAUTHORIZED');
     }
     void context.tenantScope;

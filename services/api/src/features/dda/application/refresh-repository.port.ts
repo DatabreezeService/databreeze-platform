@@ -4,7 +4,12 @@ import type {
 } from '@databreeze/domain/data-to-dashboard/v1';
 import type { TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
-import type { RefreshRecordV1 } from '../refresh/application/refresh-coordinator.port.js';
+import type {
+  RefreshRecordV1,
+  RefreshLifecycleTransitionInputV1,
+  RefreshTriggerReservationInputV1,
+  RefreshTriggerReservationResultV1,
+} from '../refresh/application/refresh-coordinator.port.js';
 
 export const REFRESH_REPOSITORY_PORT = Symbol('REFRESH_REPOSITORY_PORT');
 
@@ -39,11 +44,18 @@ export interface RefreshRepositoryPortV1 {
     snapshotId: string,
   ): Promise<DashboardSnapshotV1 | undefined>;
   recordRefreshEvent(event: DdaRefreshEventV1): Promise<void>;
+  reserveRefreshTrigger(
+    input: RefreshTriggerReservationInputV1,
+  ): Promise<RefreshTriggerReservationResultV1>;
+  transitionRefresh(input: RefreshLifecycleTransitionInputV1): Promise<RefreshRecordV1>;
   saveRefresh(record: RefreshRecordV1): Promise<void>;
-  findRefresh(refreshId: string): Promise<RefreshRecordV1 | undefined>;
-  findOpenRefresh(dashboardId: string): Promise<RefreshRecordV1 | undefined>;
+  findRefresh(tenantScope: TenantScopeV1, refreshId: string): Promise<RefreshRecordV1 | undefined>;
+  findOpenRefresh(
+    tenantScope: TenantScopeV1,
+    dashboardId: string,
+  ): Promise<RefreshRecordV1 | undefined>;
   findByIdempotency(input: {
-    readonly tenantScope?: TenantScopeV1;
+    readonly tenantScope: TenantScopeV1;
     readonly sourceEventId?: string;
     readonly clientRequestId?: string;
     readonly folderReplayKey?: string;

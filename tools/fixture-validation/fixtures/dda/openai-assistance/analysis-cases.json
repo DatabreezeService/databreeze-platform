@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "purpose": "PLAN_PROPOSAL",
+  "attestation": { "noCustomerData": true, "source": "project-generated" },
+  "cases": [
+    {
+      "caseId": "analysis-vi-region-sales",
+      "locale": "vi",
+      "question": "Doanh so theo vung thang nay?",
+      "expectedDimensions": ["region"],
+      "forbidden": ["generatedSql", "numericValues"]
+    },
+    {
+      "caseId": "analysis-en-monthly-trend",
+      "locale": "en",
+      "question": "Monthly sales trend?",
+      "expectedDimensions": ["month"],
+      "forbidden": ["generatedCode", "resultCells"]
+    }
+  ]
+}

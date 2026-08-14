@@ -16,6 +16,7 @@ dependencies = [
 [project.scripts]
 databreeze-engine-sidecar = "databreeze_engine.sidecar:main"
 databreeze-engine-cloud = "databreeze_engine.cloud:main"
+databreeze-engine-worker = "databreeze_engine.worker_main:main"
 
 [dependency-groups]
 dev = [

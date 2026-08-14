@@ -1,14 +1,26 @@
-import type { TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
+import {
+  tenantScopesEqualV1,
+  type StableIdentifierV1,
+  type TenantScopeV1,
+} from '@databreeze/domain/tenant-scope/v1';
 import type { DdaEtlPlanV1 } from '@databreeze/domain/data-to-dashboard/v1';
+import type { IamTenantContextV1 } from '../../../iam/application/tenant-context.js';
 
 import {
   AutomaticPreparationService,
   type AutomaticPreparationRouteV1,
 } from './automatic-preparation.service.js';
-import type {
-  AutomaticPreparationPlanV1,
-  AutomaticPreparationProfileV1,
-} from './automatic-preparation-policy.js';
+import type { AutomaticPreparationPlanV1 } from './automatic-preparation-policy.js';
+import {
+  type AutomaticPreparationDatasetAuthorityPortV1,
+  type AutomaticPreparationDatasetAuthorityValueV1,
+  type AutomaticPreparationPolicyAuthorityPortV1,
+  type AutomaticPreparationProfileAuthorityPortV1,
+  type AutomaticPreparationProfileAuthorityValueV1,
+  UnavailableAutomaticPreparationDatasetAuthorityAdapter,
+  UnavailableAutomaticPreparationPolicyAuthorityAdapter,
+  UnavailableAutomaticPreparationProfileAuthorityAdapter,
+} from './automatic-preparation-authority.port.js';
 import {
   EtlAcceptanceServiceV1,
   type EtlAcceptanceProblemCodeV1,
@@ -26,6 +38,13 @@ import {
 
 export type AutomaticPreparationEnqueueProblemCodeV1 =
   | 'DDA_ETL_NOT_FOUND'
+  | 'DDA_ETL_REVISION_CONFLICT'
+  | 'DDA_ETL_POLICY_UNAVAILABLE'
+  | 'DDA_ETL_PROFILE_UNAVAILABLE'
+  | 'DDA_ETL_PROFILE_INVALID'
+  | 'DDA_ETL_DATASET_UNAVAILABLE'
+  | 'DDA_ETL_SCOPE_MISMATCH'
+  | 'DDA_ETL_UNAUTHORIZED'
   | EtlAcceptanceProblemCodeV1
   | 'DDA_PREPARATION_SUMMARY_INVALID';
 
@@ -52,28 +71,49 @@ export type AutomaticPreparationEnqueueValueV1 =
       readonly reasonCodes: readonly string[];
     };
 
-const SAFE_KINDS = new Set([
-  'RENAME_COLUMNS',
-  'TRIM_TEXT',
-  'NORMALIZE_TEXT',
-  'CAST_TYPE',
-  'SELECT_COLUMNS',
-]);
-
 function rejected(
   code: AutomaticPreparationEnqueueProblemCodeV1,
 ): AutomaticPreparationEnqueueResultV1<never> {
   return Object.freeze({ accepted: false, code });
 }
 
+function sameScope(left: TenantScopeV1, right: TenantScopeV1): boolean {
+  return tenantScopesEqualV1(left, right);
+}
+
+function sameIdentifiers(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function profileEvidenceMatchesAuthorities(
+  profile: AutomaticPreparationProfileAuthorityValueV1,
+  dataset: AutomaticPreparationDatasetAuthorityValueV1,
+): boolean {
+  const accounting = profile.profile.accounting;
+  const rejected = accounting.rejected + accounting.quarantined + accounting.unsupported;
+  return (
+    profile.expected.rowCount === accounting.output &&
+    profile.expected.rejectedCount === rejected &&
+    profile.expected.contentHash === dataset.contentHash &&
+    profile.expected.schemaHash === dataset.schemaHash &&
+    sameIdentifiers(profile.expected.lineageIds, dataset.lineageIds)
+  );
+}
+
 /** Map an immutable ETL plan into the automatic-preparation step view. */
-export function planFromEtlProposal(plan: DdaEtlPlanV1): AutomaticPreparationPlanV1 {
+export function planFromEtlProposal(
+  plan: DdaEtlPlanV1,
+  sourceColumns: readonly string[],
+): AutomaticPreparationPlanV1 {
   return Object.freeze({
+    sourceColumns: Object.freeze([...sourceColumns]),
     steps: Object.freeze(
       plan.transformations.map((step) =>
         Object.freeze({
+          stepId: step.stepId,
           kind: step.kind,
-          reversible: SAFE_KINDS.has(step.kind),
+          config: Object.freeze({ ...step.config }),
+          reversible: false,
           omitsRows: step.kind === 'FILTER_ROWS' || step.kind === 'DEDUPLICATE',
         }),
       ),
@@ -131,31 +171,105 @@ function defaultHealthDimensions(
 
 /** DDA-053: classify then enqueue accepted JRA only for AUTO_ACCEPT_SAFE. */
 export class AutomaticPreparationEnqueueService {
+  private readonly profileAuthority: AutomaticPreparationProfileAuthorityPortV1;
+  private readonly policyAuthority: AutomaticPreparationPolicyAuthorityPortV1;
+  private readonly datasetAuthority: AutomaticPreparationDatasetAuthorityPortV1;
+
   public constructor(
     private readonly preparation: AutomaticPreparationService,
     private readonly proposals: EtlProposalRepositoryPortV1,
     private readonly acceptance: EtlAcceptanceServiceV1,
-  ) {}
+    authorities: {
+      readonly profile?: AutomaticPreparationProfileAuthorityPortV1;
+      readonly policy?: AutomaticPreparationPolicyAuthorityPortV1;
+      readonly dataset?: AutomaticPreparationDatasetAuthorityPortV1;
+    } = {},
+  ) {
+    this.profileAuthority =
+      authorities.profile ?? new UnavailableAutomaticPreparationProfileAuthorityAdapter();
+    this.policyAuthority =
+      authorities.policy ?? new UnavailableAutomaticPreparationPolicyAuthorityAdapter();
+    this.datasetAuthority =
+      authorities.dataset ?? new UnavailableAutomaticPreparationDatasetAuthorityAdapter();
+  }
 
   public async evaluateAndMaybeEnqueue(input: {
     readonly tenantScope: TenantScopeV1;
+    readonly actorId: StableIdentifierV1;
     readonly proposalId: string;
-    readonly profile: AutomaticPreparationProfileV1;
     readonly idempotencyKey: string;
-    readonly correlationId: string;
-    readonly expected: {
-      readonly rowCount: number;
-      readonly rejectedCount: number;
-      readonly contentHash: string;
-      readonly schemaHash: string;
-      readonly lineageIds: readonly string[];
-    };
+    readonly expectedRevision: number;
+    readonly correlationId: StableIdentifierV1;
   }): Promise<AutomaticPreparationEnqueueResultV1<AutomaticPreparationEnqueueValueV1>> {
-    const proposal = await this.proposals.findById(input.proposalId);
+    const proposal = await this.proposals.findById(input.proposalId, input.tenantScope);
     if (!proposal) return rejected('DDA_ETL_NOT_FOUND');
+    if (proposal.revision !== input.expectedRevision) return rejected('DDA_ETL_REVISION_CONFLICT');
 
-    const plan = planFromEtlProposal(proposal.plan as DdaEtlPlanV1);
-    const route = this.preparation.classifyAndRoute(plan, input.profile);
+    const planRecord = proposal.plan as Partial<DdaEtlPlanV1>;
+    if (
+      typeof planRecord.planVersionId !== 'string' ||
+      typeof planRecord.inputArtifactVersionId !== 'string'
+    ) {
+      return rejected('DDA_ETL_PROFILE_INVALID');
+    }
+
+    const dataset = await this.resolveDataset({
+      tenantScope: input.tenantScope,
+      proposalId: input.proposalId,
+      proposalRevision: proposal.revision,
+      inputArtifactVersionId: planRecord.inputArtifactVersionId,
+    });
+    if (!dataset.accepted) return rejected(dataset.code);
+
+    const profile = await this.resolveProfile({
+      tenantScope: input.tenantScope,
+      actorId: input.actorId,
+      proposalId: input.proposalId,
+      proposalRevision: proposal.revision,
+      planVersionId: planRecord.planVersionId,
+      inputArtifactVersionId: planRecord.inputArtifactVersionId,
+    });
+    if (!profile.accepted) return rejected(profile.code);
+
+    const policy = await this.resolvePolicy({
+      tenantScope: input.tenantScope,
+      actorId: input.actorId,
+      proposalId: input.proposalId,
+      proposalRevision: proposal.revision,
+      inputArtifactVersionId: planRecord.inputArtifactVersionId,
+      policyVersionId:
+        typeof planRecord.dataModePolicyVersionId === 'string'
+          ? planRecord.dataModePolicyVersionId
+          : '',
+    });
+    if (!policy.accepted) return rejected(policy.code);
+    if (!sameScope(policy.value.tenantScope, input.tenantScope)) {
+      return rejected('DDA_ETL_SCOPE_MISMATCH');
+    }
+    if (!policy.value.authorized) return rejected('DDA_ETL_UNAUTHORIZED');
+    if (
+      policy.value.policyVersionId !== planRecord.dataModePolicyVersionId ||
+      profile.value.planVersionId !== planRecord.planVersionId ||
+      profile.value.inputArtifactVersionId !== planRecord.inputArtifactVersionId ||
+      profile.value.proposalRevision !== proposal.revision ||
+      profile.value.proposalId !== input.proposalId ||
+      !profile.value.engineProduced ||
+      !profile.value.immutable ||
+      !sameScope(profile.value.tenantScope, input.tenantScope) ||
+      dataset.value.inputArtifactVersionId !== planRecord.inputArtifactVersionId ||
+      !dataset.value.immutableOriginal ||
+      !sameScope(dataset.value.tenantScope, input.tenantScope) ||
+      !profileEvidenceMatchesAuthorities(profile.value, dataset.value)
+    ) {
+      return rejected('DDA_ETL_PROFILE_INVALID');
+    }
+
+    const plan = planFromEtlProposal(proposal.plan as DdaEtlPlanV1, dataset.value.sourceColumns);
+    const route = this.preparation.classifyAndRoute(
+      plan,
+      profile.value.profile,
+      policy.value.automaticPolicy,
+    );
 
     if (route.kind === 'ETL_REVIEW') {
       return Object.freeze({
@@ -181,27 +295,53 @@ export class AutomaticPreparationEnqueueService {
       });
     }
 
+    const finalProposal = await this.proposals.findById(input.proposalId, input.tenantScope);
+    if (!finalProposal) return rejected('DDA_ETL_NOT_FOUND');
+    if (finalProposal.revision !== input.expectedRevision) {
+      return rejected('DDA_ETL_REVISION_CONFLICT');
+    }
+    const finalPolicy = await this.recheckPolicy({
+      tenantScope: input.tenantScope,
+      actorId: input.actorId,
+      proposalId: input.proposalId,
+      proposalRevision: finalProposal.revision,
+      inputArtifactVersionId: planRecord.inputArtifactVersionId,
+      policyVersionId: policy.value.policyVersionId,
+      authorizationEpoch: policy.value.authorizationEpoch,
+    });
+    if (!finalPolicy.accepted) return rejected(finalPolicy.code);
+    if (
+      !finalPolicy.value.authorized ||
+      !sameScope(finalPolicy.value.tenantScope, input.tenantScope) ||
+      finalPolicy.value.policyVersionId !== planRecord.dataModePolicyVersionId ||
+      finalPolicy.value.automaticPolicy !== 'SAFE_NON_LOSSY'
+    ) {
+      return rejected('DDA_ETL_POLICY_CHANGED');
+    }
+
     const accepted = await this.acceptance.accept({
       tenantScope: input.tenantScope,
+      context: this.acceptanceContext(
+        input,
+        finalProposal.revision,
+        finalPolicy.value.authorizationEpoch,
+      ),
       proposalId: input.proposalId,
-      expectedRevision: proposal.revision,
+      expectedRevision: finalProposal.revision,
       idempotencyKey: input.idempotencyKey,
       correlationId: input.correlationId,
-      expected: input.expected,
+      expected: profile.value.expected,
     });
     if (!accepted.accepted) {
-      await this.markBlocked(proposal, [
-        'EXECUTION_DIVERGED_FROM_PREVIEW',
-        accepted.code,
-      ]);
+      await this.markBlocked(proposal, ['EXECUTION_DIVERGED_FROM_PREVIEW', accepted.code]);
       return rejected(accepted.code);
     }
 
     const summaryResult = buildPreparationSummary({
       summaryId: input.correlationId,
       datasetVersionId: accepted.value.datasetVersionId,
-      automaticPolicy: input.profile.policy,
-      counts: input.profile.accounting,
+      automaticPolicy: policy.value.automaticPolicy,
+      counts: profile.value.profile.accounting,
       transformations: plan.steps.map((step) => step.kind),
       warnings: [],
       exclusions: proposal.review.exclusions.map((item) =>
@@ -213,7 +353,7 @@ export class AutomaticPreparationEnqueueService {
       ),
       healthDimensions: defaultHealthDimensions(
         proposal.review.qualityEffects,
-        input.profile.accounting.input,
+        profile.value.profile.accounting.input,
       ),
     });
     if (!summaryResult.accepted) {
@@ -235,14 +375,92 @@ export class AutomaticPreparationEnqueueService {
     proposal: EtlProposalRecordV1,
     reasonCodes: readonly string[],
   ): Promise<void> {
-    const merged = Object.freeze([
-      ...new Set([...proposal.blockingReasons, ...reasonCodes]),
-    ]);
+    const merged = Object.freeze([...new Set([...proposal.blockingReasons, ...reasonCodes])]);
     await this.proposals.update({
       ...proposal,
       state: 'NEEDS_REVIEW',
       blockingReasons: merged,
       revision: proposal.revision + 1,
     });
+  }
+
+  private acceptanceContext(
+    input: {
+      readonly tenantScope: TenantScopeV1;
+      readonly actorId: StableIdentifierV1;
+      readonly idempotencyKey: string;
+      readonly correlationId: StableIdentifierV1;
+    },
+    expectedRevision: number,
+    authorizationEpoch: number,
+  ): IamTenantContextV1 {
+    return Object.freeze({
+      tenantScope: input.tenantScope,
+      actorId: input.actorId,
+      correlationId: input.correlationId,
+      idempotencyKey: input.idempotencyKey,
+      authorizationEpoch,
+      mfaReenrollmentRequired: false,
+      expectedRevision,
+    });
+  }
+
+  private async resolveDataset(input: {
+    readonly tenantScope: TenantScopeV1;
+    readonly proposalId: string;
+    readonly proposalRevision: number;
+    readonly inputArtifactVersionId: string;
+  }) {
+    try {
+      return await this.datasetAuthority.resolve(input);
+    } catch {
+      return rejected('DDA_ETL_DATASET_UNAVAILABLE');
+    }
+  }
+
+  private async resolveProfile(input: {
+    readonly tenantScope: TenantScopeV1;
+    readonly actorId: StableIdentifierV1;
+    readonly proposalId: string;
+    readonly proposalRevision: number;
+    readonly planVersionId: string;
+    readonly inputArtifactVersionId: string;
+  }) {
+    try {
+      return await this.profileAuthority.resolve(input);
+    } catch {
+      return rejected('DDA_ETL_PROFILE_UNAVAILABLE');
+    }
+  }
+
+  private async resolvePolicy(input: {
+    readonly tenantScope: TenantScopeV1;
+    readonly actorId: StableIdentifierV1;
+    readonly proposalId: string;
+    readonly proposalRevision: number;
+    readonly inputArtifactVersionId: string;
+    readonly policyVersionId: string;
+  }) {
+    try {
+      return await this.policyAuthority.resolve(input);
+    } catch {
+      return rejected('DDA_ETL_POLICY_UNAVAILABLE');
+    }
+  }
+
+  private async recheckPolicy(input: {
+    readonly tenantScope: TenantScopeV1;
+    readonly actorId: StableIdentifierV1;
+    readonly proposalId: string;
+    readonly proposalRevision: number;
+    readonly inputArtifactVersionId: string;
+    readonly policyVersionId: string;
+    readonly authorizationEpoch: number;
+  }) {
+    try {
+      return await this.policyAuthority.recheck(input);
+    } catch {
+      return rejected('DDA_ETL_POLICY_UNAVAILABLE');
+    }
   }
 }

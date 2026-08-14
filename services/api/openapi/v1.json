@@ -665,9 +665,7 @@
           "200": {
             "description": "",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/SessionRefreshResponseDto" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AuthSessionDto" } }
             },
             "headers": {
               "X-Correlation-Id": {
@@ -834,81 +832,6 @@
         "tags": ["auth"]
       }
     },
-    "/v1/auth/email-verification/request": {
-      "post": {
-        "operationId": "EmailVerificationController.request",
-        "parameters": [
-          {
-            "name": "X-Correlation-Id",
-            "in": "header",
-            "required": false,
-            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
-            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/RequestEmailVerificationDto" }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Generic accepted request shape",
-            "headers": {
-              "X-Correlation-Id": {
-                "description": "Stable UUID that correlates related requests and errors.",
-                "schema": { "format": "uuid", "type": "string" }
-              },
-              "X-Request-Id": {
-                "description": "Unique UUID generated for this HTTP request.",
-                "schema": { "format": "uuid", "type": "string" }
-              }
-            }
-          },
-          "400": {
-            "description": "The request was malformed or failed closed validation.",
-            "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
-              }
-            },
-            "headers": {
-              "X-Correlation-Id": {
-                "description": "Stable UUID that correlates related requests and errors.",
-                "schema": { "format": "uuid", "type": "string" }
-              },
-              "X-Request-Id": {
-                "description": "Unique UUID generated for this HTTP request.",
-                "schema": { "format": "uuid", "type": "string" }
-              }
-            }
-          },
-          "500": {
-            "description": "An unexpected failure was safely mapped.",
-            "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
-              }
-            },
-            "headers": {
-              "X-Correlation-Id": {
-                "description": "Stable UUID that correlates related requests and errors.",
-                "schema": { "format": "uuid", "type": "string" }
-              },
-              "X-Request-Id": {
-                "description": "Unique UUID generated for this HTTP request.",
-                "schema": { "format": "uuid", "type": "string" }
-              }
-            }
-          }
-        },
-        "summary": "Request a registration email OTP without revealing account existence",
-        "tags": ["auth"]
-      }
-    },
     "/v1/auth/email-verification/verify": {
       "post": {
         "operationId": "EmailVerificationController.verify",
@@ -930,8 +853,11 @@
           }
         },
         "responses": {
-          "201": {
+          "200": {
             "description": "",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/AuthSessionDto" } }
+            },
             "headers": {
               "X-Correlation-Id": {
                 "description": "Stable UUID that correlates related requests and errors.",
@@ -961,6 +887,19 @@
               }
             }
           },
+          "401": {
+            "description": "The verification command was rejected.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
           "500": {
             "description": "An unexpected failure was safely mapped.",
             "content": {
@@ -978,9 +917,22 @@
                 "schema": { "format": "uuid", "type": "string" }
               }
             }
+          },
+          "503": {
+            "description": "Verification persistence or protected delivery is unavailable.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
           }
         },
-        "summary": "Verify registration OTP and activate personal workspace",
+        "summary": "Verify registration OTP and atomically activate the personal workspace session",
         "tags": ["auth"]
       }
     },
@@ -1053,6 +1005,7 @@
             }
           }
         },
+        "security": [{ "bearer": [] }],
         "summary": "Complete Google OIDC authorization code exchange without returning provider tokens",
         "tags": ["auth"]
       }
@@ -2938,6 +2891,178 @@
         "tags": ["identity"]
       }
     },
+    "/v1/memberships/{membershipId}/access-preset": {
+      "post": {
+        "operationId": "IamMembershipController.setAccessPreset",
+        "parameters": [
+          {
+            "name": "membershipId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SetMembershipAccessPresetDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The membership with updated access preset.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated actor lacks the required scope.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "404": {
+            "description": "The membership is not visible.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "409": {
+            "description": "The membership revision or ownership invariant conflicts.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "410": {
+            "description": "The invitation has expired.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "503": {
+            "description": "Membership persistence is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MembershipRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Change the customer-visible Owner/Editor/Viewer access preset",
+        "tags": ["identity"]
+      }
+    },
     "/v1/memberships/{membershipId}/transfer-ownership": {
       "post": {
         "operationId": "IamMembershipController.transferOwnership",
@@ -3107,6 +3232,828 @@
         },
         "security": [{ "bearer": [] }],
         "summary": "Transfer organization ownership to an active member",
+        "tags": ["identity"]
+      }
+    },
+    "/v1/workspaces/agent-grants/{memberId}": {
+      "get": {
+        "operationId": "AgentGrantController.getGrant",
+        "parameters": [
+          { "name": "memberId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The effective agent grant.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated actor lacks workspace settings authority.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "404": {
+            "description": "The member or restricted resource is not visible.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "409": {
+            "description": "The grant revision conflicts.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "503": {
+            "description": "Agent grant persistence is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Read one member agent grant or the policy default",
+        "tags": ["identity"]
+      },
+      "post": {
+        "operationId": "AgentGrantController.setGrant",
+        "parameters": [
+          { "name": "memberId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/SetAgentGrantDto" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated agent grant.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated actor lacks workspace settings authority.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "404": {
+            "description": "The member or restricted resource is not visible.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "409": {
+            "description": "The grant revision conflicts.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "503": {
+            "description": "Agent grant persistence is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Create or replace one member agent grant",
+        "tags": ["identity"]
+      }
+    },
+    "/v1/workspaces/agent-grants/{memberId}/dataset-restrictions": {
+      "get": {
+        "operationId": "AgentGrantController.getRestrictions",
+        "parameters": [
+          { "name": "memberId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The current canonical dataset restrictions.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated actor lacks workspace settings authority.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "404": {
+            "description": "The member or restricted resource is not visible.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "409": {
+            "description": "The grant revision conflicts.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "503": {
+            "description": "Agent grant persistence is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Read one member sensitive-dataset restrictions",
+        "tags": ["identity"]
+      },
+      "post": {
+        "operationId": "AgentGrantController.setRestrictions",
+        "parameters": [
+          { "name": "memberId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SetDatasetRestrictionsDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated dataset restrictions.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated actor lacks workspace settings authority.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "404": {
+            "description": "The member or restricted resource is not visible.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "409": {
+            "description": "The grant revision conflicts.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "503": {
+            "description": "Agent grant persistence is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Replace sensitive dataset deny scopes for one member",
+        "tags": ["identity"]
+      }
+    },
+    "/v1/workspaces/agent-grants/{memberId}/authorize": {
+      "post": {
+        "operationId": "AgentGrantController.authorize",
+        "parameters": [
+          { "name": "memberId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AuthorizeAgentGrantDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The authorization decision.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated actor lacks workspace settings authority.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "404": {
+            "description": "The member or restricted resource is not visible.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "409": {
+            "description": "The grant revision conflicts.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "503": {
+            "description": "Agent grant persistence is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentGrantRejectedResponseDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Evaluate the effective agent level for requested resources",
+        "tags": ["identity"]
+      }
+    },
+    "/v3/workspaces/settings": {
+      "get": {
+        "operationId": "WorkspaceSettingsController.getSettings",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Server-authorized member settings projection.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DdaWorkspaceMemberSettings" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor lacks workspace settings read permission.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "503": {
+            "description": "IAM or agent-grant persistence is unavailable.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Read the authorized workspace member and agent settings projection",
         "tags": ["identity"]
       }
     },
@@ -3404,7 +4351,7 @@
     },
     "/v1/auth/register": {
       "post": {
-        "description": "Registration does not return bearer material; sign in separately after creation.",
+        "description": "Always returns an opaque OTP challenge when admission and delivery succeed.",
         "operationId": "RegistrationController.register",
         "parameters": [
           {
@@ -6109,6 +7056,204 @@
         "tags": ["artifacts"]
       }
     },
+    "/internal/iae/worker/objects/{objectId}": {
+      "get": {
+        "operationId": "WorkerObjectTransferController.read",
+        "parameters": [
+          { "name": "objectId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "tags": ["WorkerObjectTransfer"]
+      },
+      "put": {
+        "operationId": "WorkerObjectTransferController.write",
+        "parameters": [
+          { "name": "objectId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "tags": ["WorkerObjectTransfer"]
+      }
+    },
+    "/internal/iae/worker/results/finalize": {
+      "post": {
+        "operationId": "WorkerObjectTransferController.finalize",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "tags": ["WorkerObjectTransfer"]
+      }
+    },
     "/v1/datasets": {
       "post": {
         "operationId": "GovernedDatasetController.create",
@@ -6182,6 +7327,84 @@
         },
         "security": [{ "bearer": [] }],
         "summary": "Create an immutable governed dataset definition draft",
+        "tags": ["datasets"]
+      },
+      "get": {
+        "operationId": "GovernedDatasetController.listIndex",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": { "maxLength": 512, "type": "string" }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": { "minimum": 1, "maximum": 100, "default": 25, "type": "number" }
+          },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "List latest published logical datasets visible to the caller",
         "tags": ["datasets"]
       }
     },
@@ -9258,82 +10481,6 @@
         "tags": ["devices"]
       }
     },
-    "/v1/data-mode-policies": {
-      "post": {
-        "operationId": "DataModePolicyController.publish",
-        "parameters": [
-          {
-            "name": "X-Correlation-Id",
-            "in": "header",
-            "required": false,
-            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
-            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/PublishDataModePolicyDto" }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "headers": {
-              "X-Correlation-Id": {
-                "description": "Stable UUID that correlates related requests and errors.",
-                "schema": { "format": "uuid", "type": "string" }
-              },
-              "X-Request-Id": {
-                "description": "Unique UUID generated for this HTTP request.",
-                "schema": { "format": "uuid", "type": "string" }
-              }
-            }
-          },
-          "400": {
-            "description": "The request was malformed or failed closed validation.",
-            "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
-              }
-            },
-            "headers": {
-              "X-Correlation-Id": {
-                "description": "Stable UUID that correlates related requests and errors.",
-                "schema": { "format": "uuid", "type": "string" }
-              },
-              "X-Request-Id": {
-                "description": "Unique UUID generated for this HTTP request.",
-                "schema": { "format": "uuid", "type": "string" }
-              }
-            }
-          },
-          "500": {
-            "description": "An unexpected failure was safely mapped.",
-            "content": {
-              "application/problem+json": {
-                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
-              }
-            },
-            "headers": {
-              "X-Correlation-Id": {
-                "description": "Stable UUID that correlates related requests and errors.",
-                "schema": { "format": "uuid", "type": "string" }
-              },
-              "X-Request-Id": {
-                "description": "Unique UUID generated for this HTTP request.",
-                "schema": { "format": "uuid", "type": "string" }
-              }
-            }
-          }
-        },
-        "security": [{ "bearer": [] }],
-        "summary": "Publish an immutable workspace data-mode policy version",
-        "tags": ["devices"]
-      }
-    },
     "/v1/data-mode-policies/{policyId}": {
       "get": {
         "operationId": "DataModePolicyController.list",
@@ -11097,6 +12244,73 @@
         "tags": ["dda"]
       }
     },
+    "/v1/dda/automatic-preparation/evaluate": {
+      "post": {
+        "operationId": "AutomaticPreparationController.evaluate",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "tags": ["dda"]
+      }
+    },
     "/v1/dda/analysis/propose": {
       "post": {
         "operationId": "AnalysisControllerV1.propose",
@@ -11247,6 +12461,87 @@
         "responses": {
           "200": {
             "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "tags": ["dda", "dda-dashboard-draft"]
+      }
+    },
+    "/v3/dda/dashboards/{dashboardId}/authoring-commands": {
+      "post": {
+        "operationId": "DashboardDraftControllerV1.authoringCommand",
+        "parameters": [
+          { "name": "dashboardId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DdaDashboardAuthoringCommand" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The persisted, non-publication authoring command result.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DdaDashboardAuthoringCommandResult" }
+              }
+            },
             "headers": {
               "X-Correlation-Id": {
                 "description": "Stable UUID that correlates related requests and errors.",
@@ -11701,6 +12996,313 @@
         "tags": ["dda", "dda-dashboard-query"]
       }
     },
+    "/v1/dda/dashboards/{dashboardId}/snapshots/{snapshotId}/widget-results": {
+      "get": {
+        "operationId": "DashboardWidgetResultsControllerV1.get",
+        "parameters": [
+          { "name": "dashboardId", "required": true, "in": "path", "schema": { "type": "string" } },
+          { "name": "snapshotId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Read bounded deterministic results for an exact authorized snapshot",
+        "tags": ["dda-dashboard-results"]
+      }
+    },
+    "/v3/dda/dashboards/workspace-history": {
+      "get": {
+        "operationId": "DashboardWorkspaceHistoryControllerV1.list",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": { "maxLength": 512, "type": "string" }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": { "minimum": 1, "maximum": 50, "default": 30, "type": "number" }
+          },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A permission-filtered, cursor-paged history page.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DdaDashboardWorkspaceHistory" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "List current-scope dashboard and analysis history metadata",
+        "tags": ["dda"]
+      }
+    },
+    "/v3/dda/dashboards/{dashboardId}/proposals": {
+      "post": {
+        "operationId": "DashboardProposalControllerV1.createProposal",
+        "parameters": [
+          { "name": "dashboardId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DashboardProposalRequestDtoV1" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Two to four compatible preview-only chart alternatives.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DdaDashboardChartProposal" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Generate permission-scoped preview chart proposals",
+        "tags": ["dda"]
+      }
+    },
+    "/v3/dda/dashboards/{dashboardId}/proposals/{proposalId}": {
+      "get": {
+        "operationId": "DashboardProposalControllerV1.readProposal",
+        "parameters": [
+          { "name": "dashboardId", "required": true, "in": "path", "schema": { "type": "string" } },
+          { "name": "proposalId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Read a permission-scoped preview chart proposal",
+        "tags": ["dda"]
+      }
+    },
     "/v1/dda/dashboards/{dashboardId}/freshness": {
       "get": {
         "operationId": "DashboardRefreshController.getFreshness",
@@ -11853,7 +13455,7 @@
           }
         ],
         "responses": {
-          "201": {
+          "200": {
             "description": "",
             "headers": {
               "X-Correlation-Id": {
@@ -11920,7 +13522,7 @@
           }
         ],
         "responses": {
-          "201": {
+          "200": {
             "description": "",
             "headers": {
               "X-Correlation-Id": {
@@ -11973,6 +13575,1386 @@
         "security": [{ "bearer": [] }],
         "tags": ["dda", "dda-receipts"]
       }
+    },
+    "/v1/dda/receipts/candidates/{candidateId}": {
+      "get": {
+        "operationId": "ReceiptExtractionController.readCandidate",
+        "parameters": [
+          { "name": "candidateId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "tags": ["dda", "dda-receipts"]
+      }
+    },
+    "/v1/dda/datasets/{datasetId}/sources": {
+      "get": {
+        "operationId": "SourceCatalogController.listSources",
+        "parameters": [
+          { "name": "datasetId", "required": true, "in": "path", "schema": { "type": "string" } },
+          { "name": "cursor", "required": false, "in": "query", "schema": { "type": "string" } },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": { "minimum": 1, "maximum": 50, "type": "number" }
+          },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The source catalog page.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "List permission-filtered sources for one logical dataset",
+        "tags": ["dda"]
+      }
+    },
+    "/v1/dda/datasets/{datasetId}/sources/{sourceId}/original-view": {
+      "post": {
+        "operationId": "SourceCatalogController.resolveOriginalView",
+        "parameters": [
+          { "name": "datasetId", "required": true, "in": "path", "schema": { "type": "string" } },
+          { "name": "sourceId", "required": true, "in": "path", "schema": { "type": "string" } },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The original view descriptor.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Resolve a safe original view for one authorized source",
+        "tags": ["dda"]
+      }
+    },
+    "/v1/dda/folder-projections/consent": {
+      "post": {
+        "operationId": "FolderProjectionController.consent",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "tags": ["dda"]
+      }
+    },
+    "/v1/dda/table-extractions": {
+      "post": {
+        "operationId": "TableExtractionController.extract",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "tags": ["dda"]
+      }
+    },
+    "/v1/dda/conversations": {
+      "post": {
+        "operationId": "ConversationController.create",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "tags": ["dda"]
+      },
+      "get": {
+        "operationId": "ConversationController.list",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "tags": ["dda"]
+      }
+    },
+    "/v1/dda/conversations/{conversationId}": {
+      "get": {
+        "operationId": "ConversationController.load",
+        "parameters": [
+          {
+            "name": "conversationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "tags": ["dda"]
+      }
+    },
+    "/v1/dda/agent/turns": {
+      "post": {
+        "operationId": "AgentTurnController.runTurn",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AgentTurnRequestDtoV1" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "tags": ["dda"]
+      }
+    },
+    "/v1/dda/agent/tools/deterministic": {
+      "post": {
+        "operationId": "AgentTurnController.executeDeterministic",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AgentDeterministicToolRequestDtoV1" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "tags": ["dda"]
+      }
+    },
+    "/v3/notifications": {
+      "get": {
+        "operationId": "DdaNotificationControllerV1.list",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": { "minimum": 1, "maximum": 50, "type": "number" }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": { "maxLength": 512, "type": "string" }
+          },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A cursor page with an authoritative unread count.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DdaNotificationPage" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid limit, cursor, or client authority field.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "403": {
+            "description": "The authenticated actor lacks workspace scope.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "503": {
+            "description": "Committed notification persistence is unavailable.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "List content-safe notifications for the authenticated workspace actor",
+        "tags": ["notifications"]
+      }
+    },
+    "/v3/notifications/{notificationId}": {
+      "patch": {
+        "operationId": "DdaNotificationControllerV1.setState",
+        "parameters": [
+          {
+            "name": "notificationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DdaNotificationStateCommand" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated notification.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/DdaNotification" } }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The notification command is invalid.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "404": {
+            "description": "The notification is not visible.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "409": {
+            "description": "The notification revision conflicts.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "503": {
+            "description": "Notification persistence is unavailable.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Update one authenticated actor notification state",
+        "tags": ["notifications"]
+      }
+    },
+    "/internal/worker/assignment": {
+      "post": {
+        "operationId": "WorkerController.assignment",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Claim the next authenticated, identity-scoped worker assignment",
+        "tags": ["internal-worker"]
+      }
+    },
+    "/internal/worker/claim": {
+      "post": {
+        "operationId": "WorkerController.claim",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/WorkerClaimDto" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Claim an authenticated, attempt-scoped worker lease",
+        "tags": ["internal-worker"]
+      }
+    },
+    "/internal/worker/heartbeat": {
+      "post": {
+        "operationId": "WorkerController.heartbeat",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/WorkerHeartbeatDto" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Renew an authenticated, attempt-scoped worker lease",
+        "tags": ["internal-worker"]
+      }
+    },
+    "/internal/worker/results/prepare": {
+      "post": {
+        "operationId": "WorkerController.prepareResult",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/WorkerPrepareResultDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WorkerPrepareResultAcceptedDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Prepare stable descriptor-bound result write capabilities",
+        "tags": ["internal-worker"]
+      }
+    },
+    "/internal/worker/results/finalize": {
+      "post": {
+        "operationId": "WorkerController.finalizeResult",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/WorkerFinalizeResultDto" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WorkerFinalizeResultAcceptedDto" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Finalize verified attestations into one canonical result manifest",
+        "tags": ["internal-worker"]
+      }
+    },
+    "/internal/worker/complete": {
+      "post": {
+        "operationId": "WorkerController.complete",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/WorkerCompleteDto" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Commit one authenticated, attempt-scoped worker completion",
+        "tags": ["internal-worker"]
+      }
     }
   },
   "info": {
@@ -12024,15 +15006,17 @@
       "SignInDto": {
         "type": "object",
         "properties": {
+          "schemaVersion": { "type": "number", "enum": [4] },
           "email": { "type": "string", "example": "ngu***@example.com", "maxLength": 254 },
           "password": { "type": "string", "minLength": 12, "maxLength": 128, "writeOnly": true },
           "clientPlatform": { "type": "string", "enum": ["android", "desktop", "web"] }
         },
-        "required": ["email", "password", "clientPlatform"]
+        "required": ["schemaVersion", "email", "password", "clientPlatform"]
       },
       "AuthSessionDto": {
         "type": "object",
         "properties": {
+          "schemaVersion": { "type": "number", "enum": [4] },
           "sessionId": { "type": "string", "format": "uuid" },
           "userId": { "type": "string", "format": "uuid" },
           "organizationId": { "type": "string", "format": "uuid" },
@@ -12045,6 +15029,7 @@
           "mfaReenrollmentRequired": { "type": "boolean" }
         },
         "required": [
+          "schemaVersion",
           "sessionId",
           "userId",
           "organizationId",
@@ -12064,16 +15049,6 @@
         },
         "required": ["clientPlatform"]
       },
-      "SessionRefreshResponseDto": {
-        "type": "object",
-        "properties": {
-          "sessionId": { "type": "string", "format": "uuid" },
-          "accessToken": { "type": "string", "minLength": 1, "maxLength": 4096 },
-          "refreshToken": { "type": "string", "minLength": 1, "maxLength": 4096 },
-          "accessExpiresAt": { "type": "string", "format": "date-time" }
-        },
-        "required": ["sessionId", "accessToken", "accessExpiresAt"]
-      },
       "SessionSignOutDto": {
         "type": "object",
         "properties": {
@@ -12082,8 +15057,17 @@
         },
         "required": ["clientPlatform", "sessionId"]
       },
-      "RequestEmailVerificationDto": { "type": "object", "properties": {} },
-      "VerifyEmailRegistrationDto": { "type": "object", "properties": {} },
+      "VerifyEmailRegistrationDto": {
+        "type": "object",
+        "properties": {
+          "schemaVersion": { "type": "number", "enum": [4] },
+          "challengeId": { "type": "string", "format": "uuid" },
+          "code": { "type": "string", "pattern": "^[0-9]{6}$" },
+          "idempotencyKey": { "type": "string", "minLength": 8, "maxLength": 200 },
+          "clientPlatform": { "type": "string", "enum": ["android", "desktop", "web"] }
+        },
+        "required": ["schemaVersion", "challengeId", "code", "idempotencyKey", "clientPlatform"]
+      },
       "OidcCallbackDto": { "type": "object", "properties": {} },
       "IssueDeviceEnrollmentChallengeDto": {
         "type": "object",
@@ -12208,7 +15192,8 @@
           "roleId": {
             "type": "string",
             "enum": ["owner", "admin", "analyst", "operator", "approver", "viewer"]
-          }
+          },
+          "accessPreset": { "type": "string", "enum": ["OWNER", "EDITOR", "VIEWER"] }
         },
         "required": ["principalId", "scope", "roleId"]
       },
@@ -12227,12 +15212,72 @@
         },
         "required": ["expectedRevision"]
       },
+      "SetMembershipAccessPresetDto": {
+        "type": "object",
+        "properties": {
+          "accessPreset": { "type": "string", "enum": ["OWNER", "EDITOR", "VIEWER"] },
+          "expectedRevision": { "type": "number", "minimum": 1, "maximum": 9007199254740991 }
+        },
+        "required": ["accessPreset", "expectedRevision"]
+      },
       "TransferOwnershipDto": {
         "type": "object",
         "properties": {
           "expectedRevision": { "type": "number", "minimum": 1, "maximum": 9007199254740991 }
         },
         "required": ["expectedRevision"]
+      },
+      "AgentGrantRejectedResponseDto": {
+        "type": "object",
+        "properties": {
+          "accepted": { "type": "boolean", "enum": [false], "example": false },
+          "code": {
+            "type": "string",
+            "enum": [
+              "INVALID_IDENTIFIER",
+              "INVALID_LEVEL",
+              "INVALID_DATASET_RESTRICTIONS",
+              "INVALID_SCOPE",
+              "SCOPE_DENIED",
+              "NOT_FOUND",
+              "CONFLICT",
+              "STALE_AUTHORIZATION",
+              "UNAVAILABLE"
+            ]
+          }
+        },
+        "required": ["accepted", "code"]
+      },
+      "SetAgentGrantDto": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": ["NONE", "ANALYZE", "PROPOSE_CHANGES", "APPLY_CONFIRMED_CHANGES"]
+          },
+          "expectedRevision": { "type": "number", "minimum": 1, "maximum": 9007199254740991 }
+        },
+        "required": ["level", "expectedRevision"]
+      },
+      "SetDatasetRestrictionsDto": {
+        "type": "object",
+        "properties": {
+          "deniedDatasetIds": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "expectedRevision": { "type": "number", "minimum": 0, "maximum": 9007199254740991 }
+        },
+        "required": ["deniedDatasetIds", "expectedRevision"]
+      },
+      "AuthorizeAgentGrantDto": {
+        "type": "object",
+        "properties": {
+          "requestedLevel": {
+            "type": "string",
+            "enum": ["NONE", "ANALYZE", "PROPOSE_CHANGES", "APPLY_CONFIRMED_CHANGES"]
+          },
+          "resourceIds": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "confirmationPresent": { "type": "boolean" }
+        },
+        "required": ["requestedLevel", "resourceIds"]
       },
       "IssueInvitationDto": {
         "type": "object",
@@ -12270,22 +15315,26 @@
       "RegistrationDto": {
         "type": "object",
         "properties": {
+          "schemaVersion": { "type": "number", "enum": [4] },
           "email": {
             "type": "string",
             "format": "email",
             "example": "nguyen@example.com",
             "maxLength": 254
           },
-          "displayName": { "type": "string", "minLength": 1, "maxLength": 200 },
           "password": { "type": "string", "minLength": 12, "maxLength": 128, "writeOnly": true },
           "locale": { "type": "string", "enum": ["vi-VN", "en"], "default": "vi-VN" }
         },
-        "required": ["email", "displayName", "password"]
+        "required": ["schemaVersion", "email", "password"]
       },
       "RegistrationResponseDto": {
         "type": "object",
-        "properties": { "accepted": { "type": "boolean", "enum": [true], "example": true } },
-        "required": ["accepted"]
+        "properties": {
+          "schemaVersion": { "type": "number", "enum": [4] },
+          "accepted": { "type": "boolean", "enum": [true], "example": true },
+          "value": { "type": "object" }
+        },
+        "required": ["schemaVersion", "accepted", "value"]
       },
       "RecoveryRequestDto": {
         "type": "object",
@@ -12621,30 +15670,28 @@
       },
       "IssueArtifactUploadTransferDto": {
         "type": "object",
-        "properties": { "partNumber": { "type": "number", "minimum": 1, "maximum": 1000000 } },
-        "required": ["partNumber"]
+        "properties": {
+          "partNumber": { "type": "number", "minimum": 1, "maximum": 1000000 },
+          "contentSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "byteSize": { "type": "number", "minimum": 0, "maximum": 1073741824 }
+        },
+        "required": ["partNumber", "contentSha256", "byteSize"]
       },
       "CreateArtifactUploadSessionDto": {
         "type": "object",
         "properties": {
-          "sessionId": { "type": "string", "format": "uuid" },
-          "artifactId": { "type": "string", "format": "uuid" },
+          "intakeId": { "type": "string", "format": "uuid" },
           "expectedSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-          "expectedByteSize": { "type": "number", "minimum": 0 },
+          "expectedByteSize": { "type": "number", "minimum": 1, "maximum": 21474836480 },
           "mediaType": { "type": "string" },
-          "partSize": { "type": "number", "minimum": 1, "maximum": 1073741824 },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "expiresAt": { "type": "string", "format": "date-time" }
+          "requestedPartSize": { "type": "number", "minimum": 8388608, "maximum": 67108864 }
         },
         "required": [
-          "sessionId",
-          "artifactId",
+          "intakeId",
           "expectedSha256",
           "expectedByteSize",
           "mediaType",
-          "partSize",
-          "createdAt",
-          "expiresAt"
+          "requestedPartSize"
         ]
       },
       "RecordArtifactUploadPartDto": {
@@ -13351,59 +16398,6 @@
         "properties": { "expectedRevision": { "type": "number", "minimum": 1 } },
         "required": ["expectedRevision"]
       },
-      "PublishDataModePolicyDto": {
-        "type": "object",
-        "properties": {
-          "policyId": { "type": "string", "format": "uuid" },
-          "policyVersionId": { "type": "string", "format": "uuid" },
-          "revision": { "type": "number", "minimum": 1 },
-          "mode": { "type": "string", "enum": ["LOCAL", "HYBRID", "CLOUD"] },
-          "allowedPayloadClasses": {
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "items": {
-                "enum": [
-                  "CONTROL_METADATA",
-                  "APPROVED_DERIVED_RESULT",
-                  "RECONSTRUCTABLE_DERIVED_CONTENT",
-                  "ORIGINAL_CONTENT"
-                ]
-              }
-            }
-          },
-          "allowedPlacementKinds": {
-            "maxItems": 32,
-            "type": "array",
-            "items": { "type": "string" }
-          },
-          "allowedExecutorClasses": {
-            "maxItems": 32,
-            "type": "array",
-            "items": { "type": "string" }
-          },
-          "allowedDestinationClasses": {
-            "maxItems": 32,
-            "type": "array",
-            "items": { "type": "string" }
-          },
-          "canonicalHash": { "type": "string", "minLength": 64, "maxLength": 64 },
-          "publishedAt": { "type": "string", "format": "date-time" },
-          "parentVersionId": { "type": "string", "format": "uuid" }
-        },
-        "required": [
-          "policyId",
-          "policyVersionId",
-          "revision",
-          "mode",
-          "allowedPayloadClasses",
-          "allowedPlacementKinds",
-          "allowedExecutorClasses",
-          "allowedDestinationClasses",
-          "canonicalHash",
-          "publishedAt"
-        ]
-      },
       "CreateAuditAttestationDto": {
         "type": "object",
         "properties": {
@@ -13909,6 +16903,239 @@
         },
         "required": ["invoice", "governingLines"]
       },
+      "DashboardProposalRequestDtoV1": {
+        "type": "object",
+        "properties": {
+          "question": { "type": "string", "maxLength": 4000 },
+          "analysisPlanVersionId": { "type": "string", "format": "uuid" },
+          "targetPageId": { "type": "string", "format": "uuid" },
+          "targetWidgetId": { "type": "string", "format": "uuid" },
+          "locale": { "type": "string", "enum": ["vi", "en"] }
+        },
+        "required": ["question", "analysisPlanVersionId", "targetPageId", "locale"]
+      },
+      "AgentTurnRequestDtoV1": { "type": "object", "properties": {} },
+      "AgentDeterministicToolRequestDtoV1": { "type": "object", "properties": {} },
+      "WorkerClaimDto": {
+        "type": "object",
+        "properties": {
+          "attemptId": { "type": "string", "format": "uuid" },
+          "leaseToken": { "type": "string", "minLength": 1, "maxLength": 512, "writeOnly": true },
+          "expectedRevision": { "type": "number", "minimum": 1, "maximum": 9007199254740991 },
+          "descriptorId": { "type": "string", "format": "uuid" },
+          "descriptorHash": { "type": "string", "minLength": 64, "maxLength": 64 },
+          "attemptBindingHash": { "type": "string", "minLength": 64, "maxLength": 64 }
+        },
+        "required": [
+          "attemptId",
+          "leaseToken",
+          "expectedRevision",
+          "descriptorId",
+          "descriptorHash",
+          "attemptBindingHash"
+        ]
+      },
+      "WorkerHeartbeatDto": {
+        "type": "object",
+        "properties": {
+          "attemptId": { "type": "string", "format": "uuid" },
+          "leaseToken": { "type": "string", "minLength": 1, "maxLength": 512, "writeOnly": true },
+          "expectedRevision": { "type": "number", "minimum": 1, "maximum": 9007199254740991 },
+          "nextLeaseExpiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          }
+        },
+        "required": ["attemptId", "leaseToken", "expectedRevision", "nextLeaseExpiresAt"]
+      },
+      "WorkerOutputDeclarationDto": {
+        "type": "object",
+        "properties": {
+          "kind": { "type": "string", "enum": ["JSON_RESULT", "BINARY_RESULT"] },
+          "outputName": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "schemaId": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "mediaType": { "type": "string", "minLength": 3, "maxLength": 255 },
+          "contentSha256": { "type": "string", "minLength": 64, "maxLength": 64 },
+          "byteLength": { "type": "number", "minimum": 1, "maximum": 1073741824 },
+          "sourceLineageHash": { "type": "string", "minLength": 64, "maxLength": 64 }
+        },
+        "required": [
+          "kind",
+          "outputName",
+          "schemaId",
+          "mediaType",
+          "contentSha256",
+          "byteLength",
+          "sourceLineageHash"
+        ]
+      },
+      "WorkerPrepareResultDto": {
+        "type": "object",
+        "properties": {
+          "attemptId": { "type": "string", "format": "uuid" },
+          "leaseToken": { "type": "string", "minLength": 1, "maxLength": 512, "writeOnly": true },
+          "expectedRevision": { "type": "number", "minimum": 1, "maximum": 9007199254740991 },
+          "schemaVersion": { "type": "number", "enum": [4] },
+          "idempotencyKey": { "type": "string", "minLength": 8, "maxLength": 128 },
+          "outputs": {
+            "minItems": 1,
+            "maxItems": 32,
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/WorkerOutputDeclarationDto" }
+          }
+        },
+        "required": [
+          "attemptId",
+          "leaseToken",
+          "expectedRevision",
+          "schemaVersion",
+          "idempotencyKey",
+          "outputs"
+        ]
+      },
+      "WorkerPreparedOutputDto": {
+        "type": "object",
+        "properties": {
+          "outputName": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "capabilityId": { "type": "string", "format": "uuid" },
+          "objectId": { "type": "string", "format": "uuid" },
+          "maxBytes": { "type": "number", "minimum": 1, "maximum": 1073741824 },
+          "allowedMediaTypes": {
+            "minItems": 1,
+            "maxItems": 16,
+            "uniqueItems": true,
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "writeCapability": { "type": "string", "minLength": 16, "maxLength": 4096 }
+        },
+        "required": [
+          "outputName",
+          "capabilityId",
+          "objectId",
+          "maxBytes",
+          "allowedMediaTypes",
+          "writeCapability"
+        ]
+      },
+      "WorkerPrepareResultAcceptedDto": {
+        "type": "object",
+        "properties": {
+          "schemaVersion": { "type": "number", "enum": [4] },
+          "accepted": { "type": "boolean", "enum": [true] },
+          "submissionId": { "type": "string", "format": "uuid" },
+          "attemptId": { "type": "string", "format": "uuid" },
+          "descriptorBindingHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+          },
+          "outputs": {
+            "minItems": 1,
+            "maxItems": 32,
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/WorkerPreparedOutputDto" }
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "accepted",
+          "submissionId",
+          "attemptId",
+          "descriptorBindingHash",
+          "expiresAt",
+          "outputs"
+        ]
+      },
+      "WorkerResultAttestationDto": {
+        "type": "object",
+        "properties": {
+          "outputName": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "attestationId": { "type": "string", "format": "uuid" }
+        },
+        "required": ["outputName", "attestationId"]
+      },
+      "WorkerResultBindingDto": {
+        "type": "object",
+        "properties": {
+          "kind": { "type": "string", "enum": ["OUTPUT_SET"] },
+          "outputSchemaId": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "outputNames": {
+            "minItems": 1,
+            "maxItems": 32,
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["kind", "outputSchemaId", "outputNames"]
+      },
+      "WorkerFinalizeResultDto": {
+        "type": "object",
+        "properties": {
+          "attemptId": { "type": "string", "format": "uuid" },
+          "leaseToken": { "type": "string", "minLength": 1, "maxLength": 512, "writeOnly": true },
+          "expectedRevision": { "type": "number", "minimum": 1, "maximum": 9007199254740991 },
+          "schemaVersion": { "type": "number", "enum": [4] },
+          "submissionId": { "type": "string", "format": "uuid" },
+          "descriptorBindingHash": { "type": "string", "minLength": 64, "maxLength": 64 },
+          "idempotencyKey": { "type": "string", "minLength": 8, "maxLength": 128 },
+          "attestations": {
+            "minItems": 1,
+            "maxItems": 32,
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/WorkerResultAttestationDto" }
+          },
+          "resultBinding": { "$ref": "#/components/schemas/WorkerResultBindingDto" }
+        },
+        "required": [
+          "attemptId",
+          "leaseToken",
+          "expectedRevision",
+          "schemaVersion",
+          "submissionId",
+          "descriptorBindingHash",
+          "idempotencyKey",
+          "attestations",
+          "resultBinding"
+        ]
+      },
+      "WorkerFinalizeResultAcceptedDto": {
+        "type": "object",
+        "properties": {
+          "schemaVersion": { "type": "number", "enum": [4] },
+          "accepted": { "type": "boolean", "enum": [true] },
+          "submissionId": { "type": "string", "format": "uuid" },
+          "attemptId": { "type": "string", "format": "uuid" },
+          "resultManifestId": { "type": "string", "format": "uuid" },
+          "resultManifestHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "outcome": { "type": "string", "enum": ["SUCCEEDED"] },
+          "revision": { "type": "number", "minimum": 1, "maximum": 9007199254740991 }
+        },
+        "required": [
+          "schemaVersion",
+          "accepted",
+          "submissionId",
+          "attemptId",
+          "resultManifestId",
+          "resultManifestHash",
+          "outcome",
+          "revision"
+        ]
+      },
+      "WorkerCompleteDto": {
+        "type": "object",
+        "properties": {
+          "attemptId": { "type": "string", "format": "uuid" },
+          "leaseToken": { "type": "string", "minLength": 1, "maxLength": 512, "writeOnly": true },
+          "expectedRevision": { "type": "number", "minimum": 1, "maximum": 9007199254740991 },
+          "outcome": { "type": "string", "enum": ["SUCCEEDED", "FAILED", "CANCELLED"] },
+          "resultManifestHash": { "type": "string", "minLength": 64, "maxLength": 64 },
+          "resultReferences": { "maxItems": 128, "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["attemptId", "leaseToken", "expectedRevision", "outcome", "resultReferences"]
+      },
       "Identifier": {
         "title": "Stable UUID Identifier",
         "description": "An opaque stable UUID identifier.",
@@ -13974,6 +17201,677 @@
               "limit": { "type": "integer", "minimum": 0 },
               "remaining": { "type": "integer", "minimum": 0 },
               "resetAt": { "$ref": "#/components/schemas/UtcTimestamp" }
+            }
+          }
+        }
+      },
+      "DdaDashboardAuthoringCommand": {
+        "title": "DDA Dashboard Authoring Command",
+        "description": "A closed discriminated command for confirmed dashboard presentation changes. Publication and audience changes are not command variants.",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/DdaDashboardAuthoringCommand/$defs/acceptProposalCommand"
+          },
+          { "$ref": "#/components/schemas/DdaDashboardAuthoringCommand/$defs/setLayoutCommand" },
+          { "$ref": "#/components/schemas/DdaDashboardAuthoringCommand/$defs/removeWidgetCommand" },
+          {
+            "$ref": "#/components/schemas/DdaDashboardAuthoringCommand/$defs/restoreWidgetCommand"
+          },
+          {
+            "$ref": "#/components/schemas/DdaDashboardAuthoringCommand/$defs/configurePresentationCommand"
+          }
+        ],
+        "$defs": {
+          "authoringLocalizedText": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["vi", "en"],
+            "properties": {
+              "vi": { "type": "string", "minLength": 1, "maxLength": 200 },
+              "en": { "type": "string", "minLength": 1, "maxLength": 200 }
+            }
+          },
+          "authoringLayoutCell": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["widgetId", "x", "y", "w", "h"],
+            "properties": {
+              "widgetId": { "$ref": "#/components/schemas/Identifier" },
+              "x": { "type": "integer", "minimum": 0, "maximum": 11 },
+              "y": { "type": "integer", "minimum": 0, "maximum": 10000 },
+              "w": { "type": "integer", "minimum": 1, "maximum": 12 },
+              "h": { "type": "integer", "minimum": 1, "maximum": 1000 }
+            }
+          },
+          "authoringDisplayOptions": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "showTitle": { "type": "boolean" },
+              "showLegend": { "type": "boolean" },
+              "showEvidence": { "type": "boolean" }
+            }
+          },
+          "acceptProposalCommand": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "kind",
+              "commandId",
+              "dashboardId",
+              "expectedVersionId",
+              "expectedRevision",
+              "proposalId",
+              "selectedOptionIds",
+              "createdAt"
+            ],
+            "properties": {
+              "schemaVersion": { "const": 3 },
+              "kind": { "const": "ACCEPT_PROPOSAL" },
+              "commandId": { "$ref": "#/components/schemas/Identifier" },
+              "dashboardId": { "$ref": "#/components/schemas/Identifier" },
+              "expectedVersionId": { "$ref": "#/components/schemas/Identifier" },
+              "expectedRevision": { "$ref": "#/components/schemas/Revision" },
+              "proposalId": { "$ref": "#/components/schemas/Identifier" },
+              "selectedOptionIds": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 8,
+                "uniqueItems": true,
+                "items": { "$ref": "#/components/schemas/Identifier" }
+              },
+              "createdAt": { "$ref": "#/components/schemas/UtcTimestamp" }
+            }
+          },
+          "setLayoutCommand": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "kind",
+              "commandId",
+              "dashboardId",
+              "expectedVersionId",
+              "expectedRevision",
+              "breakpoint",
+              "cells",
+              "createdAt"
+            ],
+            "properties": {
+              "schemaVersion": { "const": 3 },
+              "kind": { "const": "SET_LAYOUT" },
+              "commandId": { "$ref": "#/components/schemas/Identifier" },
+              "dashboardId": { "$ref": "#/components/schemas/Identifier" },
+              "expectedVersionId": { "$ref": "#/components/schemas/Identifier" },
+              "expectedRevision": { "$ref": "#/components/schemas/Revision" },
+              "breakpoint": { "type": "string", "pattern": "^(desktop|tablet|mobile)$" },
+              "cells": {
+                "type": "array",
+                "maxItems": 128,
+                "items": {
+                  "$ref": "#/components/schemas/DdaDashboardAuthoringCommand/$defs/authoringLayoutCell"
+                }
+              },
+              "createdAt": { "$ref": "#/components/schemas/UtcTimestamp" }
+            }
+          },
+          "removeWidgetCommand": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "kind",
+              "commandId",
+              "dashboardId",
+              "expectedVersionId",
+              "expectedRevision",
+              "widgetId",
+              "createdAt"
+            ],
+            "properties": {
+              "schemaVersion": { "const": 3 },
+              "kind": { "const": "REMOVE_WIDGET" },
+              "commandId": { "$ref": "#/components/schemas/Identifier" },
+              "dashboardId": { "$ref": "#/components/schemas/Identifier" },
+              "expectedVersionId": { "$ref": "#/components/schemas/Identifier" },
+              "expectedRevision": { "$ref": "#/components/schemas/Revision" },
+              "widgetId": { "$ref": "#/components/schemas/Identifier" },
+              "createdAt": { "$ref": "#/components/schemas/UtcTimestamp" }
+            }
+          },
+          "restoreWidgetCommand": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "kind",
+              "commandId",
+              "dashboardId",
+              "expectedVersionId",
+              "expectedRevision",
+              "widgetId",
+              "createdAt"
+            ],
+            "properties": {
+              "schemaVersion": { "const": 3 },
+              "kind": { "const": "RESTORE_WIDGET" },
+              "commandId": { "$ref": "#/components/schemas/Identifier" },
+              "dashboardId": { "$ref": "#/components/schemas/Identifier" },
+              "expectedVersionId": { "$ref": "#/components/schemas/Identifier" },
+              "expectedRevision": { "$ref": "#/components/schemas/Revision" },
+              "widgetId": { "$ref": "#/components/schemas/Identifier" },
+              "createdAt": { "$ref": "#/components/schemas/UtcTimestamp" }
+            }
+          },
+          "configurePresentationCommand": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "schemaVersion",
+              "kind",
+              "commandId",
+              "dashboardId",
+              "expectedVersionId",
+              "expectedRevision",
+              "widgetId",
+              "createdAt"
+            ],
+            "properties": {
+              "schemaVersion": { "const": 3 },
+              "kind": { "const": "CONFIGURE_PRESENTATION" },
+              "commandId": { "$ref": "#/components/schemas/Identifier" },
+              "dashboardId": { "$ref": "#/components/schemas/Identifier" },
+              "expectedVersionId": { "$ref": "#/components/schemas/Identifier" },
+              "expectedRevision": { "$ref": "#/components/schemas/Revision" },
+              "widgetId": { "$ref": "#/components/schemas/Identifier" },
+              "title": {
+                "$ref": "#/components/schemas/DdaDashboardAuthoringCommand/$defs/authoringLocalizedText"
+              },
+              "display": {
+                "$ref": "#/components/schemas/DdaDashboardAuthoringCommand/$defs/authoringDisplayOptions"
+              },
+              "createdAt": { "$ref": "#/components/schemas/UtcTimestamp" }
+            }
+          }
+        }
+      },
+      "DdaDashboardAuthoringCommandResult": {
+        "title": "DDA Dashboard Authoring Command Result",
+        "description": "The server-owned result of a persisted dashboard authoring command. It identifies the replayable command and never represents publication.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["commandId", "dashboardId", "versionId", "revision", "savedAt", "publishes"],
+        "properties": {
+          "commandId": { "$ref": "#/components/schemas/Identifier" },
+          "dashboardId": { "$ref": "#/components/schemas/Identifier" },
+          "versionId": { "$ref": "#/components/schemas/Identifier" },
+          "revision": { "$ref": "#/components/schemas/Revision" },
+          "savedAt": { "$ref": "#/components/schemas/UtcTimestamp" },
+          "publishes": { "const": false }
+        }
+      },
+      "DdaDashboardChartProposal": {
+        "title": "DDA Dashboard Chart Proposal",
+        "description": "A permission-scoped, preview-only set of compatible dashboard presentation alternatives. It never carries authoritative result values or source rows.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "proposalId",
+          "dashboardId",
+          "parentVersionId",
+          "expectedRevision",
+          "analysisPlanVersionId",
+          "options",
+          "summary",
+          "previewOnly",
+          "publishes",
+          "createdAt"
+        ],
+        "properties": {
+          "schemaVersion": { "const": 3 },
+          "proposalId": { "$ref": "#/components/schemas/Identifier" },
+          "dashboardId": { "$ref": "#/components/schemas/Identifier" },
+          "parentVersionId": { "$ref": "#/components/schemas/Identifier" },
+          "expectedRevision": { "$ref": "#/components/schemas/Revision" },
+          "analysisPlanVersionId": { "$ref": "#/components/schemas/Identifier" },
+          "target": {
+            "$ref": "#/components/schemas/DdaDashboardChartProposal/$defs/chartProposalTarget"
+          },
+          "options": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 4,
+            "items": {
+              "$ref": "#/components/schemas/DdaDashboardChartProposal/$defs/chartProposalOption"
+            }
+          },
+          "summary": {
+            "$ref": "#/components/schemas/DdaDashboardChartProposal/$defs/chartProposalSummary"
+          },
+          "previewOnly": { "const": true },
+          "publishes": { "const": false },
+          "createdAt": { "$ref": "#/components/schemas/UtcTimestamp" }
+        },
+        "$defs": {
+          "chartSpan": { "type": "integer", "enum": [3, 4, 6, 8, 12] },
+          "chartProposalEvidenceBehavior": {
+            "type": "string",
+            "enum": ["REQUIRED", "OPTIONAL", "UNAVAILABLE"]
+          },
+          "chartProposalWidgetType": {
+            "type": "string",
+            "enum": [
+              "KPI",
+              "TABLE",
+              "BAR",
+              "LINE",
+              "AREA",
+              "PIE",
+              "DONUT",
+              "TEXT_NOTE",
+              "EVIDENCE_NOTE"
+            ]
+          },
+          "chartProposalLocalizedText": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["vi", "en"],
+            "properties": {
+              "vi": { "type": "string", "minLength": 1, "maxLength": 200 },
+              "en": { "type": "string", "minLength": 1, "maxLength": 200 }
+            }
+          },
+          "chartProposalSummary": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["vi", "en"],
+            "properties": {
+              "vi": { "type": "string", "minLength": 1, "maxLength": 500 },
+              "en": { "type": "string", "minLength": 1, "maxLength": 500 }
+            }
+          },
+          "chartProposalTarget": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["pageId"],
+            "properties": {
+              "pageId": { "$ref": "#/components/schemas/Identifier" },
+              "widgetId": { "$ref": "#/components/schemas/Identifier" }
+            }
+          },
+          "chartProposalField": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "label"],
+            "properties": {
+              "id": { "$ref": "#/components/schemas/Identifier" },
+              "label": {
+                "$ref": "#/components/schemas/DdaDashboardChartProposal/$defs/chartProposalLocalizedText"
+              }
+            }
+          },
+          "chartProposalBinding": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "analysisPlanVersionId",
+              "materializationDefinitionId",
+              "dimensionIds",
+              "measureIds"
+            ],
+            "properties": {
+              "analysisPlanVersionId": { "$ref": "#/components/schemas/Identifier" },
+              "materializationDefinitionId": { "$ref": "#/components/schemas/Identifier" },
+              "dimensionIds": {
+                "type": "array",
+                "maxItems": 32,
+                "items": { "$ref": "#/components/schemas/Identifier" }
+              },
+              "measureIds": {
+                "type": "array",
+                "maxItems": 32,
+                "items": { "$ref": "#/components/schemas/Identifier" }
+              }
+            }
+          },
+          "chartProposalEstimate": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["cpuMs", "memoryMb"],
+            "properties": {
+              "cpuMs": { "type": "integer", "minimum": 0, "maximum": 120000 },
+              "memoryMb": { "type": "integer", "minimum": 0, "maximum": 4096 }
+            }
+          },
+          "chartProposalOption": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "optionId",
+              "type",
+              "title",
+              "rationale",
+              "accessibilityDescription",
+              "binding",
+              "dimensions",
+              "measures",
+              "supportedSpans",
+              "defaultSpan",
+              "assumptions",
+              "estimate",
+              "evidenceBehavior"
+            ],
+            "properties": {
+              "optionId": { "$ref": "#/components/schemas/Identifier" },
+              "type": {
+                "$ref": "#/components/schemas/DdaDashboardChartProposal/$defs/chartProposalWidgetType"
+              },
+              "title": {
+                "$ref": "#/components/schemas/DdaDashboardChartProposal/$defs/chartProposalLocalizedText"
+              },
+              "rationale": {
+                "$ref": "#/components/schemas/DdaDashboardChartProposal/$defs/chartProposalLocalizedText"
+              },
+              "accessibilityDescription": {
+                "$ref": "#/components/schemas/DdaDashboardChartProposal/$defs/chartProposalLocalizedText"
+              },
+              "binding": {
+                "$ref": "#/components/schemas/DdaDashboardChartProposal/$defs/chartProposalBinding"
+              },
+              "dimensions": {
+                "type": "array",
+                "maxItems": 32,
+                "items": {
+                  "$ref": "#/components/schemas/DdaDashboardChartProposal/$defs/chartProposalField"
+                }
+              },
+              "measures": {
+                "type": "array",
+                "maxItems": 32,
+                "items": {
+                  "$ref": "#/components/schemas/DdaDashboardChartProposal/$defs/chartProposalField"
+                }
+              },
+              "supportedSpans": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 5,
+                "items": {
+                  "$ref": "#/components/schemas/DdaDashboardChartProposal/$defs/chartSpan"
+                }
+              },
+              "defaultSpan": {
+                "$ref": "#/components/schemas/DdaDashboardChartProposal/$defs/chartSpan"
+              },
+              "assumptions": {
+                "type": "array",
+                "maxItems": 16,
+                "items": { "type": "string", "minLength": 1, "maxLength": 500 }
+              },
+              "estimate": {
+                "$ref": "#/components/schemas/DdaDashboardChartProposal/$defs/chartProposalEstimate"
+              },
+              "evidenceBehavior": {
+                "$ref": "#/components/schemas/DdaDashboardChartProposal/$defs/chartProposalEvidenceBehavior"
+              }
+            }
+          }
+        }
+      },
+      "DdaDashboardWorkspaceHistory": {
+        "title": "DDA Dashboard Workspace History",
+        "description": "A bounded, content-safe history page for authorized dashboard and analysis subjects. It carries no source path, source bytes, prompts, result rows, or evidence content.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["schemaVersion", "items"],
+        "properties": {
+          "schemaVersion": { "const": 3 },
+          "items": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/DdaDashboardWorkspaceHistory/$defs/historyEntry"
+            }
+          },
+          "nextCursor": { "type": "string", "minLength": 1, "maxLength": 512 }
+        },
+        "$defs": {
+          "historyLocalizedText": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["vi", "en"],
+            "properties": {
+              "vi": { "type": "string", "minLength": 1, "maxLength": 200 },
+              "en": { "type": "string", "minLength": 1, "maxLength": 200 }
+            }
+          },
+          "historyEntry": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "subjectId", "title", "updatedAt"],
+            "properties": {
+              "kind": { "type": "string", "pattern": "^(ANALYSIS|DASHBOARD)$" },
+              "subjectId": { "$ref": "#/components/schemas/Identifier" },
+              "title": {
+                "$ref": "#/components/schemas/DdaDashboardWorkspaceHistory/$defs/historyLocalizedText"
+              },
+              "updatedAt": { "$ref": "#/components/schemas/UtcTimestamp" },
+              "safeStatus": { "type": "string", "pattern": "^(CURRENT|STALE|BLOCKED)$" }
+            }
+          }
+        }
+      },
+      "DdaNotification": {
+        "title": "DDA Notification",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "id",
+          "workspaceId",
+          "subjectId",
+          "kind",
+          "labelVi",
+          "labelEn",
+          "action",
+          "createdAt",
+          "correlationId",
+          "state",
+          "revision"
+        ],
+        "properties": {
+          "schemaVersion": { "const": 3 },
+          "id": { "$ref": "#/components/schemas/Identifier" },
+          "workspaceId": { "$ref": "#/components/schemas/Identifier" },
+          "subjectId": { "$ref": "#/components/schemas/Identifier" },
+          "kind": {
+            "type": "string",
+            "pattern": "^(REVIEW_REQUIRED|PREPARATION_BLOCKED|SOURCE_MISMATCH|SYNC_FAILED|REFRESH_BLOCKED|OCR_REVIEW_REQUIRED|AGENT_BUDGET_DENIED|SECURITY_NOTICE)$"
+          },
+          "labelVi": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+          },
+          "labelEn": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+          },
+          "action": {
+            "type": "string",
+            "pattern": "^(OPEN_DASHBOARDS|OPEN_ANALYSIS|OPEN_DATA|OPEN_INBOX|OPEN_SETTINGS)$"
+          },
+          "createdAt": { "$ref": "#/components/schemas/UtcTimestamp" },
+          "correlationId": { "$ref": "#/components/schemas/Identifier" },
+          "state": { "type": "string", "pattern": "^(UNREAD|READ|ARCHIVED|DISMISSED)$" },
+          "revision": { "$ref": "#/components/schemas/Revision" }
+        }
+      },
+      "DdaNotificationPage": {
+        "title": "DDA Notification Page",
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["schemaVersion", "items", "unreadCount"],
+        "properties": {
+          "schemaVersion": { "const": 3 },
+          "items": {
+            "type": "array",
+            "maxItems": 50,
+            "items": { "$ref": "#/components/schemas/DdaNotification" }
+          },
+          "nextCursor": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 512,
+            "pattern": "^cursor-v1-[A-Za-z0-9_-]+$"
+          },
+          "unreadCount": { "type": "integer", "minimum": 0, "maximum": 1000000 }
+        }
+      },
+      "DdaNotificationStateCommand": {
+        "title": "DDA Notification State Command",
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["schemaVersion", "state", "expectedRevision", "idempotencyKey"],
+        "properties": {
+          "schemaVersion": { "const": 3 },
+          "state": { "type": "string", "pattern": "^(READ|ARCHIVED|DISMISSED)$" },
+          "expectedRevision": { "$ref": "#/components/schemas/Revision" },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$"
+          }
+        }
+      },
+      "DdaWorkspaceMemberSettings": {
+        "title": "DDA Workspace Member Settings",
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["schemaVersion", "workspaceId", "canManage", "members"],
+        "properties": {
+          "schemaVersion": { "const": 3 },
+          "workspaceId": { "$ref": "#/components/schemas/Identifier" },
+          "canManage": { "type": "boolean" },
+          "members": {
+            "type": "array",
+            "maxItems": 10000,
+            "items": {
+              "$ref": "#/components/schemas/DdaWorkspaceMemberSettings/$defs/memberSettingsMember"
+            }
+          }
+        },
+        "$defs": {
+          "memberSettingsMember": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DdaWorkspaceMemberSettings/$defs/memberSettingsEditor"
+              },
+              {
+                "$ref": "#/components/schemas/DdaWorkspaceMemberSettings/$defs/memberSettingsOwner"
+              },
+              {
+                "$ref": "#/components/schemas/DdaWorkspaceMemberSettings/$defs/memberSettingsViewer"
+              }
+            ]
+          },
+          "memberSettingsEditor": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "memberId",
+              "displayName",
+              "accessPreset",
+              "agentGrantLevel",
+              "agentGrantRevision",
+              "membershipRevision"
+            ],
+            "properties": {
+              "memberId": { "$ref": "#/components/schemas/Identifier" },
+              "displayName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+              },
+              "accessPreset": { "const": "EDITOR" },
+              "agentGrantLevel": {
+                "type": "string",
+                "enum": ["NONE", "ANALYZE", "PROPOSE_CHANGES", "APPLY_CONFIRMED_CHANGES"]
+              },
+              "agentGrantRevision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "membershipRevision": { "$ref": "#/components/schemas/Revision" }
+            }
+          },
+          "memberSettingsOwner": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "memberId",
+              "displayName",
+              "accessPreset",
+              "agentGrantLevel",
+              "agentGrantRevision",
+              "membershipRevision"
+            ],
+            "properties": {
+              "memberId": { "$ref": "#/components/schemas/Identifier" },
+              "displayName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+              },
+              "accessPreset": { "const": "OWNER" },
+              "agentGrantLevel": {
+                "type": "string",
+                "enum": ["NONE", "ANALYZE", "PROPOSE_CHANGES", "APPLY_CONFIRMED_CHANGES"]
+              },
+              "agentGrantRevision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "membershipRevision": { "$ref": "#/components/schemas/Revision" }
+            }
+          },
+          "memberSettingsViewer": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "memberId",
+              "displayName",
+              "accessPreset",
+              "agentGrantLevel",
+              "agentGrantRevision",
+              "membershipRevision"
+            ],
+            "properties": {
+              "memberId": { "$ref": "#/components/schemas/Identifier" },
+              "displayName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+              },
+              "accessPreset": { "const": "VIEWER" },
+              "agentGrantLevel": { "type": "string", "enum": ["NONE", "ANALYZE"] },
+              "agentGrantRevision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "membershipRevision": { "$ref": "#/components/schemas/Revision" }
             }
           }
         }

@@ -16,7 +16,7 @@
     "infrastructure": "OpenTofu alpha/staging/production plan-only compositions"
   },
   "openai": {
-    "secretName": "databreeze/{env}/openai/receipt-ocr",
+    "secretName": "databreeze/{env}/openai/api-key",
     "envApiKey": "OPENAI_API_KEY",
     "envModel": "DATABREEZE_OPENAI_RECEIPT_MODEL",
     "envKillSwitch": "DATABREEZE_OPENAI_RECEIPT_ENABLED",

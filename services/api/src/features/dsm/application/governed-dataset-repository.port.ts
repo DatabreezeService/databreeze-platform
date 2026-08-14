@@ -15,6 +15,8 @@ export interface GovernedDatasetTransactionPortV1 {
     context: IamTenantContextV1,
     datasetId: StableIdentifierV1,
   ): Promise<readonly GovernedDatasetDefinitionV1[]>;
+  /** DSM-018: the database query is tenant-filtered; callers still re-check scope. */
+  listPublished(context: IamTenantContextV1): Promise<readonly GovernedDatasetDefinitionV1[]>;
 }
 
 export interface GovernedDatasetRepositoryPortV1 extends GovernedDatasetTransactionPortV1 {

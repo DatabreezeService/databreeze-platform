@@ -19,12 +19,6 @@ describe('web intake live API [DDA-002]', () => {
         claimedMediaType: 'text/csv',
         expectedSha256: 'a'.repeat(64),
         contentBase64: 'bmFtZSxhCmEsMQ==',
-        tenantScope: {
-          scopeType: 'project',
-          organizationId: '00000000-0000-4000-8000-000000000001',
-          workspaceId: '00000000-0000-4000-8000-000000000002',
-          projectId: '00000000-0000-4000-8000-000000000003',
-        },
       }),
     ).rejects.toThrow('INTAKE_UNAUTHORIZED');
 
@@ -47,7 +41,6 @@ describe('web intake live API [DDA-002]', () => {
         claimedMediaType: 'text/csv',
         expectedSha256: 'a'.repeat(64),
         contentBase64: 'bmFtZSxhCmEsMQ==',
-        tenantScope: {},
       }),
     ).rejects.toThrow('INTAKE_UNAVAILABLE');
   });

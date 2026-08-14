@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -74,4 +75,31 @@ test('discovers the root workspace and enforces the repository runtime policy', 
     expectedRuntimeVersions.nodejs,
   );
   assert.deepEqual(readToolVersions(), expectedRuntimeVersions);
+});
+
+test('Turbo child tasks use the repository-pinned package manager when PATH contains another pnpm', () => {
+  const fakeBin = mkdtempSync(path.join(os.tmpdir(), 'databreeze-fake-pnpm-'));
+  try {
+    if (process.platform === 'win32') {
+      writeFileSync(path.join(fakeBin, 'pnpm.cmd'), '@echo off\r\necho 99.0.0\r\n', 'utf8');
+    } else {
+      const fakePnpm = path.join(fakeBin, 'pnpm');
+      writeFileSync(fakePnpm, '#!/bin/sh\necho 99.0.0\n', 'utf8');
+      chmodSync(fakePnpm, 0o755);
+    }
+
+    const launcher = path.join(repositoryRoot, 'tools', 'repo-cli', 'src', 'run-pinned-turbo.mjs');
+    const output = execFileSync(process.execPath, [launcher, '--verify-only'], {
+      cwd: repositoryRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        PATH: `${fakeBin}${path.delimiter}${process.env.PATH ?? ''}`,
+      },
+    }).trim();
+
+    assert.equal(output, expectedRuntimeVersions.pnpm);
+  } finally {
+    rmSync(fakeBin, { recursive: true, force: true });
+  }
 });

@@ -1,5 +1,34 @@
 import org.gradle.api.tasks.Sync
 
+fun String.asBuildConfigString(): String =
+    "\"" + replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+
+fun protectedSetting(gradleName: String, environmentName: String) =
+    providers.gradleProperty(gradleName)
+        .orElse(providers.environmentVariable(environmentName))
+        .map(String::trim)
+
+val apiBaseUrl =
+    protectedSetting("databreeze.apiBaseUrl", "DATABREEZE_ANDROID_API_BASE_URL")
+        .orElse("")
+val allowInsecureDebugLoopback =
+    protectedSetting(
+        "databreeze.allowInsecureDebugLoopback",
+        "DATABREEZE_ANDROID_ALLOW_INSECURE_LOOPBACK",
+    ).orElse("false")
+
+val releaseStoreFile =
+    protectedSetting("databreeze.release.storeFile", "DATABREEZE_ANDROID_KEYSTORE_PATH")
+val releaseStorePassword =
+    protectedSetting("databreeze.release.storePassword", "DATABREEZE_ANDROID_KEYSTORE_PASSWORD")
+val releaseKeyAlias =
+    protectedSetting("databreeze.release.keyAlias", "DATABREEZE_ANDROID_KEY_ALIAS")
+val releaseKeyPassword =
+    protectedSetting("databreeze.release.keyPassword", "DATABREEZE_ANDROID_KEY_PASSWORD")
+val releaseSigningValues =
+    listOf(releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword)
+val completeReleaseSigning = releaseSigningValues.all { it.isPresent && it.get().isNotEmpty() }
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -19,6 +48,29 @@ android {
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
+        buildConfigField("String", "DATABREEZE_API_BASE_URL", apiBaseUrl.get().asBuildConfigString())
+        buildConfigField(
+            "boolean",
+            "DATABREEZE_ALLOW_INSECURE_LOOPBACK",
+            (allowInsecureDebugLoopback.get().toBooleanStrictOrNull() ?: false).toString(),
+        )
+    }
+
+    signingConfigs {
+        if (completeReleaseSigning) {
+            create("protectedRelease") {
+                storeFile = file(releaseStoreFile.get())
+                storePassword = releaseStorePassword.get()
+                keyAlias = releaseKeyAlias.get()
+                keyPassword = releaseKeyPassword.get()
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            signingConfig = signingConfigs.findByName("protectedRelease")
+        }
     }
 
     buildFeatures {
@@ -51,6 +103,27 @@ android {
     lint {
         disable += "PropertyEscape"
         warningsAsErrors = false
+    }
+}
+
+val validateReleaseSigningConfiguration by tasks.registering {
+    group = "verification"
+    description = "Fails release builds on partial signing configuration; no values are printed."
+    doLast {
+        val presentCount = releaseSigningValues.count { it.isPresent && it.get().isNotEmpty() }
+        if (presentCount in 1..3) {
+            throw GradleException("ANDROID_RELEASE_SIGNING_CONFIGURATION_INCOMPLETE")
+        }
+        if (presentCount == 4 && !file(releaseStoreFile.get()).isFile) {
+            throw GradleException("ANDROID_RELEASE_KEYSTORE_UNAVAILABLE")
+        }
+        logger.lifecycle(if (presentCount == 4) "Android release signing: CONFIGURED" else "Android release signing: UNSIGNED")
+    }
+}
+
+tasks.configureEach {
+    if (name.matches(Regex("^(assemble|bundle|package|sign).*Release.*"))) {
+        dependsOn(validateReleaseSigningConfiguration)
     }
 }
 

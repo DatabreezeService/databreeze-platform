@@ -3,7 +3,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import test from 'node:test';
 
 import { createDdaAiEgressPolicyV1 } from '@databreeze/domain/data-to-dashboard/policy-v1';
-import { parseTenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
+import { parseTenantScopeV1, type TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import { OpenAiProviderError } from '../../../src/features/dda/ai/adapter/openai-provider.error.js';
 import type {
@@ -11,14 +11,16 @@ import type {
   DdaBuaPortV1,
   DdaIaePortV1,
 } from '../../../src/features/dda/application/foundation-ports.js';
+import { InMemoryReceiptExtractionCommandRepositoryAdapter } from '../../../src/features/dda/receipt/application/in-memory-receipt-extraction-command-repository.adapter.js';
+import type { ReceiptExtractionCommandRepositoryPortV1 } from '../../../src/features/dda/receipt/application/receipt-extraction-command.port.js';
 import { DefaultReceiptAiPolicyAdapter } from '../../../src/features/dda/receipt/application/default-receipt-ai-policy.adapter.js';
 import { DeterministicFakeReceiptOcrAdapter } from '../../../src/features/dda/receipt/application/deterministic-fake-receipt-ocr.adapter.js';
+import type { ReceiptMutationAuthorizationPortV1 } from '../../../src/features/dda/receipt/application/receipt-mutation-authorization.port.js';
 import { ReceiptExtractionService } from '../../../src/features/dda/receipt/application/receipt-extraction.service.js';
 import type { ReceiptAiPolicyPort } from '../../../src/features/dda/receipt/application/receipt-ai-policy.port.js';
 import type { ReceiptOcrPort } from '../../../src/features/dda/receipt/application/receipt-ocr.port.js';
-import {
-  deterministicCapabilitiesWhenAiUnavailableV1,
-} from '@databreeze/domain/data-to-dashboard/policy-v1';
+import { deterministicCapabilitiesWhenAiUnavailableV1 } from '@databreeze/domain/data-to-dashboard/policy-v1';
+import type { IamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
 
 const scopeResult = parseTenantScopeV1({
   scopeType: 'project',
@@ -38,17 +40,48 @@ const otherScopeResult = parseTenantScopeV1({
 assert.equal(otherScopeResult.accepted, true);
 const otherScope = otherScopeResult.accepted ? otherScopeResult.value : (null as never);
 
+const sameWorkspaceOtherProjectResult = parseTenantScopeV1({
+  scopeType: 'project',
+  organizationId: '00000000-0000-4000-8000-000000000001',
+  workspaceId: '00000000-0000-4000-8000-000000000002',
+  projectId: '00000000-0000-4000-8000-000000000099',
+});
+assert.equal(sameWorkspaceOtherProjectResult.accepted, true);
+const sameWorkspaceOtherProject = sameWorkspaceOtherProjectResult.accepted
+  ? sameWorkspaceOtherProjectResult.value
+  : (null as never);
+
 const ARTIFACT = '00000000-0000-4000-8000-000000000023';
 const PROFILE = '00000000-0000-4000-8000-000000000011';
 const CORRELATION = '00000000-0000-4000-8000-000000000041';
 const PNG_BYTES = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x01]);
 const PNG_HASH = createHash('sha256').update(PNG_BYTES).digest('hex');
 
-function iaePort(ownedArtifactIds: ReadonlySet<string>, options?: {
-  readonly mediaType?: string;
-  readonly bytes?: Uint8Array;
-  readonly contentSha256?: string;
-}): DdaIaePortV1 {
+function testContext(tenantScope: TenantScopeV1): IamTenantContextV1 {
+  return {
+    tenantScope,
+    actorId: '00000000-0000-4000-8000-000000000004' as never,
+    correlationId: CORRELATION as never,
+    idempotencyKey: 'receipt-service-test',
+    authorizationEpoch: 1,
+    mfaReenrollmentRequired: false,
+  };
+}
+
+const allowReceiptMutation: ReceiptMutationAuthorizationPortV1 = {
+  authorize() {
+    return Promise.resolve({ accepted: true as const });
+  },
+};
+
+function iaePort(
+  ownedArtifactIds: ReadonlySet<string>,
+  options?: {
+    readonly mediaType?: string;
+    readonly bytes?: Uint8Array;
+    readonly contentSha256?: string;
+  },
+): DdaIaePortV1 {
   const bytes = options?.bytes ?? PNG_BYTES;
   const contentSha256 = options?.contentSha256 ?? createHash('sha256').update(bytes).digest('hex');
   const mediaType = options?.mediaType ?? 'image/png';
@@ -181,6 +214,8 @@ function serviceWith(
     readonly aud?: DdaAudComposePortV1;
     readonly policy?: ReceiptAiPolicyPort;
     readonly bua?: DdaBuaPortV1;
+    readonly commands?: ReceiptExtractionCommandRepositoryPortV1;
+    readonly authorization?: ReceiptMutationAuthorizationPortV1;
   },
 ): ReceiptExtractionService {
   return new ReceiptExtractionService(
@@ -193,6 +228,10 @@ function serviceWith(
     },
     options?.policy ?? localPolicy(),
     options?.bua ?? admittingBua(),
+    {
+      commands: options?.commands ?? new InMemoryReceiptExtractionCommandRepositoryAdapter(),
+      authorization: options?.authorization ?? allowReceiptMutation,
+    },
   );
 }
 
@@ -201,6 +240,7 @@ void test('[DDA-041] extraction rejects wrong-scope artifact and non-receipt pro
   const service = serviceWith(new DeterministicFakeReceiptOcrAdapter(), { aud });
   const wrongScope = await service.extract({
     tenantScope: otherScope,
+    context: testContext(otherScope),
     artifactVersionId: ARTIFACT,
     profileVersionId: PROFILE,
     profileKind: 'receipt',
@@ -211,6 +251,7 @@ void test('[DDA-041] extraction rejects wrong-scope artifact and non-receipt pro
 
   const nonReceipt = await service.extract({
     tenantScope: scope,
+    context: testContext(scope),
     artifactVersionId: ARTIFACT,
     profileVersionId: PROFILE,
     profileKind: 'invoice-general',
@@ -247,6 +288,7 @@ void test('[DDA-041] provider timeout retries then surfaces reviewable failure w
   const service = serviceWith(flaky);
   const result = await service.extract({
     tenantScope: scope,
+    context: testContext(scope),
     artifactVersionId: ARTIFACT,
     profileVersionId: PROFILE,
     profileKind: 'receipt',
@@ -269,6 +311,7 @@ void test('[DDA-041] schema and refusal provider errors are not retried', async 
   const service = serviceWith(refusing);
   const result = await service.extract({
     tenantScope: scope,
+    context: testContext(scope),
     artifactVersionId: ARTIFACT,
     profileVersionId: PROFILE,
     profileKind: 'receipt',
@@ -336,6 +379,7 @@ void test('[DDA-041] malformed coordinates, missing adapter version, and prompt-
 
   const coordsResult = await serviceWith(badCoordinates, { aud }).extract({
     tenantScope: scope,
+    context: testContext(scope),
     artifactVersionId: ARTIFACT,
     profileVersionId: PROFILE,
     profileKind: 'receipt',
@@ -347,6 +391,7 @@ void test('[DDA-041] malformed coordinates, missing adapter version, and prompt-
 
   const adapterResult = await serviceWith(missingAdapter, { aud }).extract({
     tenantScope: scope,
+    context: testContext(scope),
     artifactVersionId: ARTIFACT,
     profileVersionId: PROFILE,
     profileKind: 'receipt',
@@ -358,6 +403,7 @@ void test('[DDA-041] malformed coordinates, missing adapter version, and prompt-
 
   const promptResult = await serviceWith(promptLike, { aud }).extract({
     tenantScope: scope,
+    context: testContext(scope),
     artifactVersionId: ARTIFACT,
     profileVersionId: PROFILE,
     profileKind: 'receipt',
@@ -373,6 +419,7 @@ void test('[DDA-041] duplicate extraction callback returns the prior immutable c
   const service = serviceWith(new DeterministicFakeReceiptOcrAdapter());
   const first = await service.extract({
     tenantScope: scope,
+    context: testContext(scope),
     artifactVersionId: ARTIFACT,
     profileVersionId: PROFILE,
     profileKind: 'receipt',
@@ -381,6 +428,7 @@ void test('[DDA-041] duplicate extraction callback returns the prior immutable c
   });
   const second = await service.extract({
     tenantScope: scope,
+    context: testContext(scope),
     artifactVersionId: ARTIFACT,
     profileVersionId: PROFILE,
     profileKind: 'receipt',
@@ -395,10 +443,144 @@ void test('[DDA-041] duplicate extraction callback returns the prior immutable c
   assert.equal(second.value.replayed, true);
 });
 
+void test('[DDA-041] same idempotency key cannot replay a candidate across tenant scopes', async () => {
+  const service = serviceWith(new DeterministicFakeReceiptOcrAdapter());
+  const first = await service.extract({
+    tenantScope: scope,
+    context: testContext(scope),
+    artifactVersionId: ARTIFACT,
+    profileVersionId: PROFILE,
+    profileKind: 'receipt',
+    correlationId: CORRELATION,
+    idempotencyKey: 'cross-tenant-replay-key',
+  });
+  assert.equal(first.accepted, true);
+
+  const crossTenant = await service.extract({
+    tenantScope: otherScope,
+    context: testContext(otherScope),
+    artifactVersionId: ARTIFACT,
+    profileVersionId: PROFILE,
+    profileKind: 'receipt',
+    correlationId: CORRELATION,
+    idempotencyKey: 'cross-tenant-replay-key',
+  });
+  assert.equal(crossTenant.accepted, false);
+  if (!crossTenant.accepted) assert.equal(crossTenant.code, 'WRONG_SCOPE_ARTIFACT');
+});
+
+void test('[DDA-041] idempotent replay reauthorizes the exact artifact before returning', async () => {
+  let authorizationCalls = 0;
+  const service = serviceWith(new DeterministicFakeReceiptOcrAdapter(), {
+    iae: {
+      ...iaePort(new Set([ARTIFACT])),
+      requireArtifactVersion(reference) {
+        authorizationCalls += 1;
+        return iaePort(new Set([ARTIFACT])).requireArtifactVersion(reference);
+      },
+    },
+  });
+  const input = {
+    tenantScope: scope,
+    context: testContext(scope),
+    artifactVersionId: ARTIFACT,
+    profileVersionId: PROFILE,
+    profileKind: 'receipt',
+    correlationId: CORRELATION,
+    idempotencyKey: 'reauthorize-replay-key',
+  };
+  assert.equal((await service.extract(input)).accepted, true);
+  assert.equal((await service.extract(input)).accepted, true);
+  assert.equal(authorizationCalls, 2);
+});
+
+void test('[IAM-019] Viewer or unavailable receipt mutation authority stops before admission and OCR', async () => {
+  let buaCalls = 0;
+  let ocrCalls = 0;
+  const ocr: ReceiptOcrPort = {
+    extract() {
+      ocrCalls += 1;
+      return Promise.reject(new Error('must not run'));
+    },
+  };
+  const denied = serviceWith(ocr, {
+    bua: {
+      ...admittingBua(),
+      reserveCapacity(input) {
+        buaCalls += 1;
+        return admittingBua().reserveCapacity(input);
+      },
+    },
+    authorization: {
+      authorize() {
+        return Promise.resolve({ accepted: false as const, code: 'FORBIDDEN' as const });
+      },
+    },
+  });
+  const result = await denied.extract({
+    tenantScope: scope,
+    context: testContext(scope),
+    artifactVersionId: ARTIFACT,
+    profileVersionId: PROFILE,
+    profileKind: 'receipt',
+    correlationId: CORRELATION,
+    idempotencyKey: 'viewer-denied-receipt',
+  });
+  assert.deepEqual(result, { accepted: false, code: 'AUTHORIZATION_DENIED' });
+  assert.equal(buaCalls, 0);
+  assert.equal(ocrCalls, 0);
+
+  const unavailable = serviceWith(new DeterministicFakeReceiptOcrAdapter(), {
+    authorization: {
+      authorize() {
+        return Promise.resolve({
+          accepted: false as const,
+          code: 'AUTHORIZATION_UNAVAILABLE' as const,
+        });
+      },
+    },
+  });
+  const unavailableResult = await unavailable.extract({
+    tenantScope: scope,
+    context: testContext(scope),
+    artifactVersionId: ARTIFACT,
+    profileVersionId: PROFILE,
+    profileKind: 'receipt',
+    correlationId: CORRELATION,
+  });
+  assert.deepEqual(unavailableResult, { accepted: false, code: 'AUTHORIZATION_UNAVAILABLE' });
+});
+
+void test('[DDA-041] same receipt command key with a different payload conflicts', async () => {
+  const service = serviceWith(new DeterministicFakeReceiptOcrAdapter());
+  const first = await service.extract({
+    tenantScope: scope,
+    context: testContext(scope),
+    artifactVersionId: ARTIFACT,
+    profileVersionId: PROFILE,
+    profileKind: 'receipt',
+    correlationId: CORRELATION,
+    idempotencyKey: 'receipt-command-conflict',
+  });
+  assert.equal(first.accepted, true);
+  const conflicting = await service.extract({
+    tenantScope: scope,
+    context: testContext(scope),
+    artifactVersionId: ARTIFACT,
+    profileVersionId: PROFILE,
+    profileKind: 'receipt',
+    correlationId: CORRELATION,
+    idempotencyKey: 'receipt-command-conflict',
+    maxAttempts: 2,
+  });
+  assert.deepEqual(conflicting, { accepted: false, code: 'COMMAND_CONFLICT' });
+});
+
 void test('[DDA-041] correction creates a new candidate version without mutating the prior extraction', async () => {
   const service = serviceWith(new DeterministicFakeReceiptOcrAdapter());
   const extracted = await service.extract({
     tenantScope: scope,
+    context: testContext(scope),
     artifactVersionId: ARTIFACT,
     profileVersionId: PROFILE,
     profileKind: 'receipt',
@@ -408,7 +590,9 @@ void test('[DDA-041] correction creates a new candidate version without mutating
   if (!extracted.accepted) return;
   const corrected = await service.correct({
     tenantScope: scope,
+    context: testContext(scope),
     priorCandidateId: extracted.value.candidateId,
+    artifactVersionId: ARTIFACT,
     correlationId: CORRELATION,
     fieldUpdates: { total: '121000' },
   });
@@ -416,8 +600,32 @@ void test('[DDA-041] correction creates a new candidate version without mutating
   if (!corrected.accepted) return;
   assert.notEqual(corrected.value.candidateId, extracted.value.candidateId);
   assert.equal(corrected.value.priorCandidateId, extracted.value.candidateId);
-  const prior = service.getCandidate(extracted.value.candidateId);
-  assert.equal(prior?.fieldCandidates.find((f) => f.field === 'total')?.value, '120000');
+  assert.equal(extracted.value.fieldCandidates.find((f) => f.field === 'total')?.value, '120000');
+});
+
+void test('[DDA-041] correction cannot cross a project boundary in the same workspace', async () => {
+  const service = serviceWith(new DeterministicFakeReceiptOcrAdapter());
+  const extracted = await service.extract({
+    tenantScope: scope,
+    context: testContext(scope),
+    artifactVersionId: ARTIFACT,
+    profileVersionId: PROFILE,
+    profileKind: 'receipt',
+    correlationId: CORRELATION,
+  });
+  assert.equal(extracted.accepted, true);
+  if (!extracted.accepted) return;
+
+  const crossProject = await service.correct({
+    tenantScope: sameWorkspaceOtherProject,
+    context: testContext(sameWorkspaceOtherProject),
+    priorCandidateId: extracted.value.candidateId,
+    artifactVersionId: ARTIFACT,
+    correlationId: CORRELATION,
+    fieldUpdates: { merchant: 'Cross-project correction' },
+  });
+  assert.equal(crossProject.accepted, false);
+  if (!crossProject.accepted) assert.equal(crossProject.code, 'CANDIDATE_NOT_FOUND');
 });
 
 void test('[DDA-036, DDA-043, DDA-044] egress/admission denials fail before OCR and emit content-safe AUD', async () => {
@@ -457,6 +665,7 @@ void test('[DDA-036, DDA-043, DDA-044] egress/admission denials fail before OCR 
     }),
   }).extract({
     tenantScope: scope,
+    context: testContext(scope),
     artifactVersionId: ARTIFACT,
     profileVersionId: PROFILE,
     profileKind: 'receipt',
@@ -491,6 +700,7 @@ void test('[DDA-036, DDA-043, DDA-044] egress/admission denials fail before OCR 
     }),
   }).extract({
     tenantScope: scope,
+    context: testContext(scope),
     artifactVersionId: ARTIFACT,
     profileVersionId: PROFILE,
     profileKind: 'receipt',
@@ -504,6 +714,7 @@ void test('[DDA-036, DDA-043, DDA-044] egress/admission denials fail before OCR 
     bua: denyingBua(),
   }).extract({
     tenantScope: scope,
+    context: testContext(scope),
     artifactVersionId: ARTIFACT,
     profileVersionId: PROFILE,
     profileKind: 'receipt',
@@ -520,6 +731,7 @@ void test('[DDA-041] unsupported content type and hash mismatch fail closed', as
     iae: iaePort(new Set([ARTIFACT]), { mediaType: 'application/pdf' }),
   }).extract({
     tenantScope: scope,
+    context: testContext(scope),
     artifactVersionId: ARTIFACT,
     profileVersionId: PROFILE,
     profileKind: 'receipt',
@@ -530,6 +742,7 @@ void test('[DDA-041] unsupported content type and hash mismatch fail closed', as
 
   const mismatch = await serviceWith(new DeterministicFakeReceiptOcrAdapter()).extract({
     tenantScope: scope,
+    context: testContext(scope),
     artifactVersionId: ARTIFACT,
     profileVersionId: PROFILE,
     profileKind: 'receipt',
@@ -547,6 +760,7 @@ void test('[DDA-045] deterministic fake OCR works without credentials; OpenAI di
   });
   const extracted = await service.extract({
     tenantScope: scope,
+    context: testContext(scope),
     artifactVersionId: ARTIFACT,
     profileVersionId: PROFILE,
     profileKind: 'receipt',
@@ -556,7 +770,9 @@ void test('[DDA-045] deterministic fake OCR works without credentials; OpenAI di
   if (!extracted.accepted) return;
   const corrected = await service.correct({
     tenantScope: scope,
+    context: testContext(scope),
     priorCandidateId: extracted.value.candidateId,
+    artifactVersionId: ARTIFACT,
     correlationId: CORRELATION,
     fieldUpdates: { merchant: 'Manual Cafe' },
   });

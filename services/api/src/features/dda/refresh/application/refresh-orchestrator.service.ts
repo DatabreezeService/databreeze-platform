@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto';
-
 import type { TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type {
@@ -38,16 +36,6 @@ export type RefreshOrchestratorResultV1 =
   | { readonly accepted: true; readonly value: RefreshAcceptanceV1 }
   | { readonly accepted: false; readonly code: string };
 
-function compatible(left: RefreshRecordV1, trigger: RefreshTriggerV1): boolean {
-  return (
-    left.dashboardVersionId === trigger.dashboardVersionId &&
-    left.permissionProjectionVersionId === trigger.permissionProjectionVersionId &&
-    left.datasetVersionId === trigger.datasetVersionId &&
-    left.definitionIds.length === trigger.definitionIds.length &&
-    left.definitionIds.every((id, index) => id === trigger.definitionIds[index])
-  );
-}
-
 function toAcceptance(
   record: RefreshRecordV1,
   flags: { readonly idempotentReplay: boolean; readonly coalesced: boolean },
@@ -72,84 +60,47 @@ export class RefreshOrchestratorService {
   }
 
   public async acceptTrigger(trigger: RefreshTriggerV1): Promise<RefreshOrchestratorResultV1> {
-    const existing = await this.coordinator.findByIdempotency({
-      sourceEventId: trigger.sourceEventId,
-      clientRequestId: trigger.clientRequestId,
-      folderReplayKey: trigger.folderReplayKey,
-    });
-    if (existing) {
-      return Object.freeze({
-        accepted: true,
-        value: toAcceptance(existing, { idempotentReplay: true, coalesced: false }),
-      });
-    }
-
-    const open = await this.coordinator.findOpenRefresh(trigger.dashboardId);
-    if (
-      open &&
-      open.state === 'PENDING' &&
-      compatible(open, trigger) &&
-      trigger.occurredAtMs - open.openedAtMs <= open.debounceWindowMs
-    ) {
-      const coalesced: RefreshRecordV1 = Object.freeze({
-        ...open,
-        inputSelectorHash: trigger.inputSelectorHash,
-        sourceEventIds: Object.freeze([...open.sourceEventIds, trigger.sourceEventId]),
-        clientRequestIds: Object.freeze([...open.clientRequestIds, trigger.clientRequestId]),
-        folderReplayKeys: Object.freeze([...open.folderReplayKeys, trigger.folderReplayKey]),
-        updatedAtMs: trigger.occurredAtMs,
-      });
-      await this.coordinator.saveRefresh(coalesced);
-      return Object.freeze({
-        accepted: true,
-        value: toAcceptance(coalesced, { idempotentReplay: false, coalesced: true }),
-      });
-    }
-
-    if (open && !compatible(open, trigger)) {
-      await this.coordinator.saveRefresh(
-        Object.freeze({ ...open, state: 'SUPERSEDED', updatedAtMs: trigger.occurredAtMs }),
-      );
-    }
-
-    const refreshId = randomUUID();
-    const created: RefreshRecordV1 = Object.freeze({
-      refreshId,
+    const reservation = await this.coordinator.reserveRefreshTrigger({
       tenantScope: trigger.tenantScope,
+      sourceEventId: trigger.sourceEventId,
       dashboardId: trigger.dashboardId,
       dashboardVersionId: trigger.dashboardVersionId,
       permissionProjectionVersionId: trigger.permissionProjectionVersionId,
       datasetVersionId: trigger.datasetVersionId,
-      definitionIds: Object.freeze([...trigger.definitionIds]),
+      definitionIds: trigger.definitionIds,
       inputSelectorHash: trigger.inputSelectorHash,
-      sourceEventIds: Object.freeze([trigger.sourceEventId]),
-      clientRequestIds: Object.freeze([trigger.clientRequestId]),
-      folderReplayKeys: Object.freeze([trigger.folderReplayKey]),
-      state: 'PENDING',
       debounceWindowMs: trigger.debounceWindowMs,
-      openedAtMs: trigger.occurredAtMs,
-      updatedAtMs: trigger.occurredAtMs,
+      occurredAtMs: trigger.occurredAtMs,
+      clientRequestId: trigger.clientRequestId,
+      folderReplayKey: trigger.folderReplayKey,
     });
-    await this.coordinator.saveRefresh(created);
     return Object.freeze({
       accepted: true,
-      value: toAcceptance(created, { idempotentReplay: false, coalesced: false }),
+      value: toAcceptance(reservation.record, {
+        idempotentReplay: reservation.idempotentReplay,
+        coalesced: reservation.coalesced,
+      }),
     });
   }
 
   public async markRunning(
+    tenantScope: TenantScopeV1,
     refreshId: string,
     leaseId: string,
   ): Promise<RefreshOrchestratorResultV1> {
-    const refresh = await this.coordinator.findRefresh(refreshId);
+    const refresh = await this.coordinator.findRefresh(tenantScope, refreshId);
     if (!refresh) return Object.freeze({ accepted: false, code: 'REFRESH_NOT_FOUND' });
-    const running = Object.freeze({
-      ...refresh,
-      state: 'RUNNING' as const,
-      leaseId,
+    const running = await this.coordinator.transitionRefresh({
+      tenantScope,
+      refreshId,
+      dashboardId: refresh.dashboardId,
+      expectedRevision: refresh.revision,
+      expectedState: refresh.state,
+      ...(refresh.leaseId === undefined ? {} : { expectedLeaseId: refresh.leaseId }),
+      nextState: 'RUNNING',
+      nextLeaseId: leaseId,
       updatedAtMs: refresh.updatedAtMs + 1,
     });
-    await this.coordinator.saveRefresh(running);
     return Object.freeze({
       accepted: true,
       value: toAcceptance(running, { idempotentReplay: false, coalesced: false }),
@@ -157,22 +108,25 @@ export class RefreshOrchestratorService {
   }
 
   public async handleLeaseExpiry(
+    tenantScope: TenantScopeV1,
     refreshId: string,
     leaseId: string,
   ): Promise<RefreshOrchestratorResultV1> {
-    const refresh = await this.coordinator.findRefresh(refreshId);
+    const refresh = await this.coordinator.findRefresh(tenantScope, refreshId);
     if (!refresh) return Object.freeze({ accepted: false, code: 'REFRESH_NOT_FOUND' });
     if (refresh.leaseId !== leaseId) {
       return Object.freeze({ accepted: false, code: 'LEASE_MISMATCH' });
     }
-    const { leaseId: _expiredLease, ...rest } = refresh;
-    void _expiredLease;
-    const pending: RefreshRecordV1 = Object.freeze({
-      ...rest,
-      state: 'PENDING',
+    const pending = await this.coordinator.transitionRefresh({
+      tenantScope,
+      refreshId,
+      dashboardId: refresh.dashboardId,
+      expectedRevision: refresh.revision,
+      expectedState: refresh.state,
+      expectedLeaseId: leaseId,
+      nextState: 'PENDING',
       updatedAtMs: refresh.updatedAtMs + 1,
     });
-    await this.coordinator.saveRefresh(pending);
     return Object.freeze({
       accepted: true,
       value: toAcceptance(pending, { idempotentReplay: false, coalesced: false }),
@@ -180,10 +134,12 @@ export class RefreshOrchestratorService {
   }
 
   public async recoverAfterCrash(
+    tenantScope: TenantScopeV1,
     refreshId: string,
     checkpoint: 'AFTER_JOB_DISPATCH' | 'AFTER_RESULT_VERIFICATION' | 'DURING_SNAPSHOT_COMMIT',
+    leaseId?: string,
   ): Promise<RefreshOrchestratorResultV1> {
-    const refresh = await this.coordinator.findRefresh(refreshId);
+    const refresh = await this.coordinator.findRefresh(tenantScope, refreshId);
     if (!refresh) return Object.freeze({ accepted: false, code: 'REFRESH_NOT_FOUND' });
 
     const nextState: RefreshLifecycleStateV1 =
@@ -193,12 +149,24 @@ export class RefreshOrchestratorService {
           ? 'VERIFYING'
           : 'FAILED';
 
-    const recovered = Object.freeze({
-      ...refresh,
-      state: nextState,
+    const nextLeaseId =
+      nextState === 'RUNNING' || nextState === 'VERIFYING'
+        ? (leaseId ?? refresh.leaseId)
+        : undefined;
+    if ((nextState === 'RUNNING' || nextState === 'VERIFYING') && nextLeaseId === undefined) {
+      return Object.freeze({ accepted: false, code: 'REFRESH_LEASE_REQUIRED' });
+    }
+    const recovered = await this.coordinator.transitionRefresh({
+      tenantScope,
+      refreshId,
+      dashboardId: refresh.dashboardId,
+      expectedRevision: refresh.revision,
+      expectedState: refresh.state,
+      ...(refresh.leaseId === undefined ? {} : { expectedLeaseId: refresh.leaseId }),
+      nextState,
+      ...(nextLeaseId === undefined ? {} : { nextLeaseId }),
       updatedAtMs: refresh.updatedAtMs + 1,
     });
-    await this.coordinator.saveRefresh(recovered);
     return Object.freeze({
       accepted: true,
       value: toAcceptance(recovered, { idempotentReplay: false, coalesced: false }),

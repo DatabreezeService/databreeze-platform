@@ -10,6 +10,11 @@
       "contractVersion": 2,
       "baseline": "compatibility/v2/baseline.json",
       "sha256": "2713e4e86d20915c60f1c5046a2b8f9f2adaab1325dfdbc66da9306a27ed57da"
+    },
+    {
+      "contractVersion": 3,
+      "baseline": "compatibility/v3/baseline.json",
+      "sha256": "0812c49427345f25d9169f47960c658a316e5b074ae5f89e053a02fad81cecbb"
     }
   ]
 }

@@ -8,9 +8,9 @@
     "deliveryBatches": "docs/plans/004-luna-max-execution-plan.md"
   },
   "requirementTotals": {
-    "total": 618,
+    "total": 622,
     "byPriority": {
-      "P0": 451,
+      "P0": 455,
       "P1": 154,
       "P2": 13
     }
@@ -376,7 +376,7 @@
     {
       "planId": "060",
       "file": "060-collaboration-integrations.md",
-      "requirementCount": 42,
+      "requirementCount": 46,
       "dependencies": ["050"],
       "status": "planned",
       "taskIds": ["NCO-001", "NCO-002", "NCO-003", "NCO-004", "INT-001", "INT-002", "INT-003", "INT-004", "NCO-005", "INT-005"]

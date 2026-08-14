@@ -4,8 +4,8 @@ import test from 'node:test';
 import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import { InMemorySourceCatalogRepositoryAdapter } from '../../../src/features/dda/source-catalog/adapter/in-memory-source-catalog-repository.adapter.js';
-import { SourceCatalogService } from '../../../src/features/dda/source-catalog/application/source-catalog.service.js';
 import { createIamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
+import { createTestSourceCatalogService } from './source-catalog.test-support.js';
 
 const ids = {
   organization: '00000000-0000-4000-8000-000000000901',
@@ -101,7 +101,7 @@ function seedRepository() {
 }
 
 void test('[DDA-052] lists multiple authorized sources for one logical dataset with stable cursor pages', async () => {
-  const service = new SourceCatalogService(seedRepository());
+  const service = createTestSourceCatalogService(seedRepository());
   const first = await service.listDatasetSources(context(), ids.dataset, undefined, 1);
   assert.equal(first.accepted, true);
   if (!first.accepted) return;
@@ -122,11 +122,14 @@ void test('[DDA-052] lists multiple authorized sources for one logical dataset w
 });
 
 void test('[DDA-052, DSM-018] missing or restricted sources are non-enumerating denials', async () => {
-  const service = new SourceCatalogService(seedRepository());
-  assert.deepEqual(await service.listDatasetSources(context(), '00000000-0000-4000-8000-000000000999'), {
-    accepted: false,
-    code: 'NOT_FOUND',
-  });
+  const service = createTestSourceCatalogService(seedRepository());
+  assert.deepEqual(
+    await service.listDatasetSources(context(), '00000000-0000-4000-8000-000000000999'),
+    {
+      accepted: false,
+      code: 'NOT_FOUND',
+    },
+  );
   const listed = await service.listDatasetSources(context(), ids.dataset, undefined, 50);
   assert.equal(listed.accepted, true);
   if (!listed.accepted) return;
@@ -155,7 +158,7 @@ void test('[DDA-052, DSO-002] LOCAL originals never serialize a Desktop path and
       updatedAt: '2026-08-12T00:00:00.000Z',
     },
   ]);
-  const service = new SourceCatalogService(repository);
+  const service = createTestSourceCatalogService(repository);
   const listed = await service.listDatasetSources(context(), ids.dataset, undefined, 10);
   assert.equal(listed.accepted, true);
   if (!listed.accepted) return;
@@ -165,9 +168,9 @@ void test('[DDA-052, DSO-002] LOCAL originals never serialize a Desktop path and
 });
 
 void test('[DDA-052, IAM-009] sibling workspace dataset IDs resolve as not found', async () => {
-  const service = new SourceCatalogService(seedRepository());
-  assert.deepEqual(
-    await service.listDatasetSources(context(ids.siblingWorkspace), ids.dataset),
-    { accepted: false, code: 'NOT_FOUND' },
-  );
+  const service = createTestSourceCatalogService(seedRepository());
+  assert.deepEqual(await service.listDatasetSources(context(ids.siblingWorkspace), ids.dataset), {
+    accepted: false,
+    code: 'NOT_FOUND',
+  });
 });

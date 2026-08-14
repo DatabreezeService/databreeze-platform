@@ -8,6 +8,8 @@ import { parseTenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import { InMemoryEtlProposalRepositoryAdapter } from '../../../src/features/dda/etl/adapter/in-memory-etl-proposal-repository.adapter.js';
 import { EtlAcceptanceServiceV1 } from '../../../src/features/dda/etl/application/etl-acceptance.service.js';
+import type { EtlAcceptanceAuthorizationPortV1 } from '../../../src/features/dda/etl/application/etl-acceptance-authorization.port.js';
+import type { EtlProposalAuthorityPortV1 } from '../../../src/features/dda/etl/application/etl-proposal-authority.port.js';
 import type {
   EtlAudPortV1,
   EtlBuaPortV1,
@@ -26,6 +28,44 @@ const golden = JSON.parse(readFileSync(resolve(fixtureRoot, 'golden-valid.json')
 const scopeResult = parseTenantScopeV1(golden['dda-etl-plan']['tenantScope']);
 assert.equal(scopeResult.accepted, true);
 const tenantScope = scopeResult.accepted ? scopeResult.value : (null as never);
+
+const otherScopeResult = parseTenantScopeV1({
+  scopeType: 'project',
+  organizationId: '00000000-0000-4000-8000-000000000001',
+  workspaceId: '00000000-0000-4000-8000-000000000099',
+  projectId: '00000000-0000-4000-8000-000000000099',
+});
+assert.equal(otherScopeResult.accepted, true);
+const otherScope = otherScopeResult.accepted ? otherScopeResult.value : (null as never);
+
+const acceptanceContext = {
+  tenantScope,
+  actorId: '00000000-0000-4000-8000-000000000004' as never,
+  correlationId: '00000000-0000-4000-8000-000000000401' as never,
+  idempotencyKey: 'etl-service-test',
+  authorizationEpoch: 1,
+  mfaReenrollmentRequired: false,
+};
+const otherAcceptanceContext = {
+  ...acceptanceContext,
+  tenantScope: otherScope,
+};
+const allowEtlAcceptance: EtlAcceptanceAuthorizationPortV1 = {
+  authorize() {
+    return Promise.resolve({ accepted: true as const });
+  },
+};
+const allowEtlProposalAuthority: EtlProposalAuthorityPortV1 = {
+  authorizeAndResolve(input) {
+    return Promise.resolve({
+      accepted: true as const,
+      value: { planInput: input.planInput, reviewContext: input.reviewContext },
+    });
+  },
+  reauthorize() {
+    return Promise.resolve({ accepted: true as const });
+  },
+};
 
 const MESSY_SALES_ROWS = 5;
 const MESSY_SALES_ACCEPTED = 4;
@@ -197,9 +237,13 @@ void test('[DDA-007] golden messy-sales acceptance registers immutable DatasetVe
   const proposalService = new EtlProposalServiceV1(repo);
   const proposal = await seedProposal(proposalService);
   const ports = createPorts();
-  const service = new EtlAcceptanceServiceV1(repo, ports);
+  const service = new EtlAcceptanceServiceV1(repo, ports, {
+    authorization: allowEtlAcceptance,
+    proposalAuthority: allowEtlProposalAuthority,
+  });
   const result = await service.accept({
     tenantScope,
+    context: acceptanceContext,
     proposalId: proposal.proposalId,
     expectedRevision: 1,
     idempotencyKey: 'messy-sales-accept-1',
@@ -226,9 +270,13 @@ void test('[DDA-004][DDA-007] replay is idempotent and revision conflicts fail c
   const proposalService = new EtlProposalServiceV1(repo);
   const proposal = await seedProposal(proposalService);
   const ports = createPorts();
-  const service = new EtlAcceptanceServiceV1(repo, ports);
+  const service = new EtlAcceptanceServiceV1(repo, ports, {
+    authorization: allowEtlAcceptance,
+    proposalAuthority: allowEtlProposalAuthority,
+  });
   const first = await service.accept({
     tenantScope,
+    context: acceptanceContext,
     proposalId: proposal.proposalId,
     expectedRevision: 1,
     idempotencyKey: 'replay-key',
@@ -244,6 +292,7 @@ void test('[DDA-004][DDA-007] replay is idempotent and revision conflicts fail c
   assert.equal(first.accepted, true);
   const replay = await service.accept({
     tenantScope,
+    context: acceptanceContext,
     proposalId: proposal.proposalId,
     expectedRevision: 1,
     idempotencyKey: 'replay-key',
@@ -264,6 +313,7 @@ void test('[DDA-004][DDA-007] replay is idempotent and revision conflicts fail c
 
   const conflict = await service.accept({
     tenantScope,
+    context: acceptanceContext,
     proposalId: proposal.proposalId,
     expectedRevision: 99,
     idempotencyKey: 'conflict-key',
@@ -280,6 +330,235 @@ void test('[DDA-004][DDA-007] replay is idempotent and revision conflicts fail c
   if (!conflict.accepted) assert.equal(conflict.code, 'DDA_ETL_REVISION_CONFLICT');
 });
 
+void test('[DDA-004][DDA-007] same idempotency key cannot replay acceptance across tenant scopes', async () => {
+  const repo = new InMemoryEtlProposalRepositoryAdapter();
+  const proposalService = new EtlProposalServiceV1(repo);
+  const proposal = await seedProposal(proposalService);
+  const service = new EtlAcceptanceServiceV1(repo, createPorts(), {
+    authorization: allowEtlAcceptance,
+    proposalAuthority: allowEtlProposalAuthority,
+  });
+  const expected = {
+    rowCount: MESSY_SALES_ACCEPTED,
+    rejectedCount: MESSY_SALES_REJECTED,
+    contentHash: MESSY_CONTENT_HASH,
+    schemaHash: MESSY_SCHEMA_HASH,
+    lineageIds: MESSY_LINEAGE,
+  };
+  const first = await service.accept({
+    tenantScope,
+    context: acceptanceContext,
+    proposalId: proposal.proposalId,
+    expectedRevision: 1,
+    idempotencyKey: 'cross-tenant-etl-key',
+    correlationId: '00000000-0000-4000-8000-000000000406',
+    expected,
+  });
+  assert.equal(first.accepted, true);
+
+  const crossTenant = await service.accept({
+    tenantScope: otherScope,
+    context: otherAcceptanceContext,
+    proposalId: proposal.proposalId,
+    expectedRevision: 1,
+    idempotencyKey: 'cross-tenant-etl-key',
+    correlationId: '00000000-0000-4000-8000-000000000407',
+    expected,
+  });
+  assert.equal(crossTenant.accepted, false);
+  if (!crossTenant.accepted) assert.equal(crossTenant.code, 'DDA_ETL_NOT_FOUND');
+});
+
+void test('[DDA-007] concurrent acceptance reserves one expected revision before side effects', async () => {
+  const repo = new InMemoryEtlProposalRepositoryAdapter();
+  const proposalService = new EtlProposalServiceV1(repo);
+  const proposal = await seedProposal(proposalService);
+  let jraCalls = 0;
+  let iaeCalls = 0;
+  let dsmCalls = 0;
+  let auditCalls = 0;
+  const service = new EtlAcceptanceServiceV1(
+    repo,
+    createPorts({
+      jra: {
+        createTypedJob() {
+          jraCalls += 1;
+          return Promise.resolve({
+            accepted: true as const,
+            jobId: '00000000-0000-4000-8000-000000000304',
+            replayed: false,
+          });
+        },
+      },
+      iae: {
+        registerDerivative() {
+          iaeCalls += 1;
+          return Promise.resolve({
+            accepted: true as const,
+            artifactVersionId: '00000000-0000-4000-8000-000000000302',
+          });
+        },
+      },
+      dsm: {
+        registerDatasetVersion() {
+          dsmCalls += 1;
+          return Promise.resolve({
+            accepted: true as const,
+            datasetVersionId: '00000000-0000-4000-8000-000000000303',
+            revision: 1,
+          });
+        },
+      },
+      aud: {
+        emit() {
+          auditCalls += 1;
+          return Promise.resolve({ accepted: true as const });
+        },
+      },
+    }),
+    { authorization: allowEtlAcceptance, proposalAuthority: allowEtlProposalAuthority },
+  );
+  const input = {
+    tenantScope,
+    context: acceptanceContext,
+    proposalId: proposal.proposalId,
+    expectedRevision: 1,
+    correlationId: '00000000-0000-4000-8000-000000000408',
+    expected: {
+      rowCount: MESSY_SALES_ACCEPTED,
+      rejectedCount: MESSY_SALES_REJECTED,
+      contentHash: MESSY_CONTENT_HASH,
+      schemaHash: MESSY_SCHEMA_HASH,
+      lineageIds: MESSY_LINEAGE,
+    },
+  };
+  const [first, second] = await Promise.all([
+    service.accept({ ...input, idempotencyKey: 'concurrent-etl-key-1' }),
+    service.accept({ ...input, idempotencyKey: 'concurrent-etl-key-2' }),
+  ]);
+  const accepted = [first, second].filter((result) => result.accepted);
+  assert.equal(accepted.length, 1);
+  assert.equal(jraCalls, 1);
+  assert.equal(iaeCalls, 1);
+  assert.equal(dsmCalls, 1);
+  assert.equal(auditCalls, 1);
+  const rejectedResult = [first, second].find((result) => !result.accepted);
+  assert.ok(rejectedResult);
+  if (rejectedResult && !rejectedResult.accepted) {
+    assert.equal(rejectedResult.code, 'DDA_ETL_REVISION_CONFLICT');
+  }
+});
+
+void test('[IAM-019] Viewer or unavailable ETL acceptance authority stops before BUA and JRA', async () => {
+  const repo = new InMemoryEtlProposalRepositoryAdapter();
+  const proposalService = new EtlProposalServiceV1(repo);
+  const proposal = await seedProposal(proposalService);
+  let buaCalls = 0;
+  let jraCalls = 0;
+  const ports = createPorts({
+    bua: {
+      admit() {
+        buaCalls += 1;
+        return Promise.resolve({ accepted: true as const });
+      },
+    },
+    jra: {
+      createTypedJob() {
+        jraCalls += 1;
+        return Promise.resolve({
+          accepted: true as const,
+          jobId: '00000000-0000-4000-8000-000000000304',
+          replayed: false,
+        });
+      },
+    },
+  });
+  const denied = new EtlAcceptanceServiceV1(repo, ports, {
+    authorization: {
+      authorize() {
+        return Promise.resolve({ accepted: false as const, code: 'FORBIDDEN' as const });
+      },
+    },
+  });
+  const input = {
+    tenantScope,
+    context: acceptanceContext,
+    proposalId: proposal.proposalId,
+    expectedRevision: 1,
+    idempotencyKey: 'viewer-denied-etl',
+    correlationId: '00000000-0000-4000-8000-000000000409',
+    expected: {
+      rowCount: MESSY_SALES_ACCEPTED,
+      rejectedCount: MESSY_SALES_REJECTED,
+      contentHash: MESSY_CONTENT_HASH,
+      schemaHash: MESSY_SCHEMA_HASH,
+      lineageIds: MESSY_LINEAGE,
+    },
+  };
+  assert.deepEqual(await denied.accept(input), {
+    accepted: false,
+    code: 'DDA_ETL_AUTHORIZATION_DENIED',
+  });
+  assert.equal(buaCalls, 0);
+  assert.equal(jraCalls, 0);
+
+  const unavailable = new EtlAcceptanceServiceV1(repo, ports, {
+    authorization: {
+      authorize() {
+        return Promise.resolve({
+          accepted: false as const,
+          code: 'AUTHORIZATION_UNAVAILABLE' as const,
+        });
+      },
+    },
+  });
+  assert.deepEqual(await unavailable.accept({ ...input, idempotencyKey: 'unavailable-etl' }), {
+    accepted: false,
+    code: 'DDA_ETL_AUTHORIZATION_UNAVAILABLE',
+  });
+});
+
+void test('[DDA-007] same ETL command key with a different payload conflicts', async () => {
+  const repo = new InMemoryEtlProposalRepositoryAdapter();
+  const proposalService = new EtlProposalServiceV1(repo);
+  const proposal = await seedProposal(proposalService);
+  const service = new EtlAcceptanceServiceV1(repo, createPorts(), {
+    authorization: allowEtlAcceptance,
+    proposalAuthority: allowEtlProposalAuthority,
+  });
+  const expected = {
+    rowCount: MESSY_SALES_ACCEPTED,
+    rejectedCount: MESSY_SALES_REJECTED,
+    contentHash: MESSY_CONTENT_HASH,
+    schemaHash: MESSY_SCHEMA_HASH,
+    lineageIds: MESSY_LINEAGE,
+  };
+  assert.equal(
+    (
+      await service.accept({
+        tenantScope,
+        context: acceptanceContext,
+        proposalId: proposal.proposalId,
+        expectedRevision: 1,
+        idempotencyKey: 'etl-command-conflict',
+        correlationId: '00000000-0000-4000-8000-000000000410',
+        expected,
+      })
+    ).accepted,
+    true,
+  );
+  const conflicting = await service.accept({
+    tenantScope,
+    context: acceptanceContext,
+    proposalId: proposal.proposalId,
+    expectedRevision: 1,
+    idempotencyKey: 'etl-command-conflict',
+    correlationId: '00000000-0000-4000-8000-000000000410',
+    expected: { ...expected, rowCount: MESSY_SALES_ACCEPTED - 1 },
+  });
+  assert.deepEqual(conflicting, { accepted: false, code: 'DDA_ETL_COMMAND_CONFLICT' });
+});
+
 void test('[DDA-007] stale proposal partial output hash schema reject and policy failures', async () => {
   const repo = new InMemoryEtlProposalRepositoryAdapter();
   const proposalService = new EtlProposalServiceV1(repo);
@@ -290,9 +569,13 @@ void test('[DDA-007] stale proposal partial output hash schema reject and policy
     blockingReasons: ['BREAKING_TYPE_CHANGE'],
   });
 
-  const staleService = new EtlAcceptanceServiceV1(repo, createPorts());
+  const staleService = new EtlAcceptanceServiceV1(repo, createPorts(), {
+    authorization: allowEtlAcceptance,
+    proposalAuthority: allowEtlProposalAuthority,
+  });
   const stale = await staleService.accept({
     tenantScope,
+    context: acceptanceContext,
     proposalId: proposal.proposalId,
     expectedRevision: 1,
     idempotencyKey: 'stale',
@@ -388,9 +671,13 @@ void test('[DDA-007] stale proposal partial output hash schema reject and policy
   ];
 
   for (const item of cases) {
-    const service = new EtlAcceptanceServiceV1(repo, item.ports);
+    const service = new EtlAcceptanceServiceV1(repo, item.ports, {
+      authorization: allowEtlAcceptance,
+      proposalAuthority: allowEtlProposalAuthority,
+    });
     const result = await service.accept({
       tenantScope,
+      context: acceptanceContext,
       proposalId: fresh.proposalId,
       expectedRevision: 1,
       idempotencyKey: `case-${item.name}`,

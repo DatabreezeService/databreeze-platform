@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 4,
+  "attemptId": "10000000-0000-4000-8000-000000000001",
+  "leaseToken": "lease_token_opaque_1234",
+  "expectedRevision": 3,
+  "idempotencyKey": "result-prepare-10000000",
+  "outputs": [
+    {
+      "kind": "JSON_RESULT",
+      "outputName": "primary",
+      "schemaId": "dda.materialize-query-result.v1",
+      "mediaType": "application/json",
+      "contentSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "byteLength": 4096,
+      "sourceLineageHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  ]
+}

@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/iam-bootstrap-response",
+  "$comment": "Plan 408 / IAM-001 / IAM-009 / WEB-002 / WEB-003: content-safe authenticated Web bootstrap derived exclusively from server identity and scope.",
+  "title": "IAM Bootstrap Response",
+  "oneOf": [
+    { "$ref": "#/$defs/iamBootstrapResponseAccepted" },
+    { "$ref": "#/$defs/iamBootstrapResponseRejected" }
+  ],
+  "$defs": {
+    "iamBootstrapResponseAccepted": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "outcome", "value"],
+      "properties": {
+        "schemaVersion": { "const": 4 },
+        "outcome": { "const": "ACCEPTED" },
+        "value": { "$ref": "#/$defs/iamBootstrapValue" }
+      }
+    },
+    "iamBootstrapResponseRejected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "outcome", "code"],
+      "properties": {
+        "schemaVersion": { "const": 4 },
+        "outcome": { "const": "REJECTED" },
+        "code": { "enum": ["INVALID_IDENTIFIER", "NOT_FOUND", "UNAVAILABLE"] }
+      }
+    },
+    "iamBootstrapValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["user", "organizations", "recentScopes", "session", "platform"],
+      "properties": {
+        "user": { "$ref": "#/$defs/iamBootstrapUser" },
+        "organizations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/iamBootstrapOrganization" }
+        },
+        "recentScopes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/iamBootstrapScope" }
+        },
+        "session": { "$ref": "#/$defs/iamBootstrapSession" },
+        "platform": { "$ref": "#/$defs/iamBootstrapPlatform" }
+      }
+    },
+    "iamBootstrapUser": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "displayName", "locale", "mfaState"],
+      "properties": {
+        "id": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "locale": { "enum": ["vi-VN", "en"] },
+        "mfaState": { "enum": ["ENABLED", "NOT_CONFIGURED"] }
+      }
+    },
+    "iamBootstrapOrganization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "personal", "status", "workspaces"],
+      "properties": {
+        "id": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "personal": { "type": "boolean" },
+        "status": { "enum": ["ACTIVE", "SUSPENDED", "DEACTIVATED"] },
+        "workspaces": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": { "$ref": "#/$defs/iamBootstrapWorkspace" }
+        }
+      }
+    },
+    "iamBootstrapWorkspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "status", "projects"],
+      "properties": {
+        "id": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "status": { "enum": ["ACTIVE", "ARCHIVED"] },
+        "projects": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": { "$ref": "#/$defs/iamBootstrapProject" }
+        }
+      }
+    },
+    "iamBootstrapProject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "kind", "status"],
+      "properties": {
+        "id": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "kind": { "enum": ["INTERNAL", "CLIENT", "LOCATION", "ENGAGEMENT"] },
+        "status": { "enum": ["ACTIVE", "ARCHIVED"] }
+      }
+    },
+    "iamBootstrapScope": {
+      "oneOf": [
+        { "$ref": "#/$defs/iamBootstrapOrganizationScope" },
+        { "$ref": "#/$defs/iamBootstrapWorkspaceScope" },
+        { "$ref": "#/$defs/iamBootstrapProjectScope" }
+      ]
+    },
+    "iamBootstrapOrganizationScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scopeType", "organizationId"],
+      "properties": {
+        "scopeType": { "const": "organization" },
+        "organizationId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" }
+      }
+    },
+    "iamBootstrapWorkspaceScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scopeType", "organizationId", "workspaceId"],
+      "properties": {
+        "scopeType": { "const": "workspace" },
+        "organizationId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "workspaceId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" }
+      }
+    },
+    "iamBootstrapProjectScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scopeType", "organizationId", "workspaceId", "projectId"],
+      "properties": {
+        "scopeType": { "const": "project" },
+        "organizationId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "workspaceId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "projectId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" }
+      }
+    },
+    "iamBootstrapSession": {
+      "oneOf": [
+        { "$ref": "#/$defs/iamBootstrapOrganizationSession" },
+        { "$ref": "#/$defs/iamBootstrapWorkspaceSession" },
+        { "$ref": "#/$defs/iamBootstrapProjectSession" }
+      ]
+    },
+    "iamBootstrapOrganizationSession": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scopeType", "organizationId", "authorizationEpoch"],
+      "properties": {
+        "scopeType": { "const": "organization" },
+        "organizationId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "authorizationEpoch": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "iamBootstrapWorkspaceSession": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scopeType", "organizationId", "workspaceId", "authorizationEpoch"],
+      "properties": {
+        "scopeType": { "const": "workspace" },
+        "organizationId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "workspaceId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "authorizationEpoch": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "iamBootstrapProjectSession": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scopeType", "organizationId", "workspaceId", "projectId", "authorizationEpoch"],
+      "properties": {
+        "scopeType": { "const": "project" },
+        "organizationId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "workspaceId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "projectId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "authorizationEpoch": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "iamBootstrapPlatform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["apiVersion"],
+      "properties": {
+        "apiVersion": { "const": "v1" }
+      }
+    }
+  }
+}

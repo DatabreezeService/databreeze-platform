@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v3/dda-notification-state-command",
+  "$comment": "NCO-012/NCO-024: recipient-scoped idempotent notification state mutation with an optimistic revision.",
+  "title": "DDA Notification State Command",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "state", "expectedRevision", "idempotencyKey"],
+  "properties": {
+    "schemaVersion": {
+      "const": 3
+    },
+    "state": {
+      "type": "string",
+      "pattern": "^(READ|ARCHIVED|DISMISSED)$"
+    },
+    "expectedRevision": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v1/revision"
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$"
+    }
+  }
+}

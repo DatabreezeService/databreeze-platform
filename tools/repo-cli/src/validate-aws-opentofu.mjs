@@ -6,15 +6,23 @@ import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const infrastructureRoot = path.join(repositoryRoot, 'infrastructure', 'aws');
-const alphaDirectory = '/workspace/environments/alpha';
 const containerDataDirectory = '/tmp/databreeze-tofu';
+const containerWorkspaceDirectory = '/tmp/databreeze-tofu-workspace';
+const validationTargets = [
+  { directory: '/workspace/modules/compute', dataName: 'compute', lockfile: false },
+  { directory: '/workspace/modules/security', dataName: 'security', lockfile: false },
+  { directory: '/workspace/environments/alpha', dataName: 'alpha', lockfile: true },
+  { directory: '/workspace/environments/staging', dataName: 'staging', lockfile: true },
+  { directory: '/workspace/environments/production', dataName: 'production', lockfile: true },
+];
 
 function usage() {
   console.log(`Usage: pnpm infra:validate
 
-Runs format, backend-disabled initialization, validation, and a mocked plan
-test through the official pinned OpenTofu container. The command does not
-apply infrastructure and removes its isolated provider cache on completion.`);
+Runs format, backend-disabled initialization, validation, and mocked plan
+tests for compute, security, alpha, staging, and production through the
+official pinned OpenTofu container. The command does not apply infrastructure
+and removes its isolated provider cache on completion.`);
 }
 
 function fail(message) {
@@ -73,29 +81,36 @@ export function main(argv = process.argv.slice(2)) {
       '-recursive',
       '/workspace',
     ]);
-    const base = [
-      'run',
-      '--rm',
-      '--workdir',
-      alphaDirectory,
-      '--mount',
-      sourceMount,
-      '--mount',
-      dataMount,
-      '--env',
-      'TF_DATA_DIR=/tmp/databreeze-tofu',
-      image,
-    ];
-    runDocker([
-      ...base,
-      'init',
-      '-backend=false',
-      '-input=false',
-      '-lockfile=readonly',
-      '-no-color',
-    ]);
-    runDocker([...base, 'validate', '-no-color']);
-    runDocker([...base, 'test', '-no-color']);
+    for (const target of validationTargets) {
+      const targetPath = target.directory.replace(/^\/workspace/u, '');
+      const base = [
+        'run',
+        '--rm',
+        '--entrypoint',
+        'sh',
+        '--mount',
+        sourceMount,
+        '--mount',
+        dataMount,
+        '--env',
+        `TF_DATA_DIR=${containerDataDirectory}/${target.dataName}`,
+        image,
+      ];
+      runDocker([
+        ...base,
+        '-c',
+        [
+          'set -eu',
+          `rm -rf ${containerWorkspaceDirectory}`,
+          `mkdir -p ${containerWorkspaceDirectory}`,
+          `cp -a /workspace/. ${containerWorkspaceDirectory}/`,
+          `cd ${containerWorkspaceDirectory}${targetPath}`,
+          `tofu init -backend=false -input=false ${target.lockfile ? '-lockfile=readonly ' : ''}-no-color`,
+          'tofu validate -no-color',
+          'tofu test -no-color',
+        ].join('; '),
+      ]);
+    }
   } finally {
     removeValidationDirectory(validationDirectory);
   }

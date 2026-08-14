@@ -13,7 +13,9 @@ import {
 } from '@databreeze/domain/tenant-scope/v1';
 
 import { InMemoryRefreshCoordinatorAdapter } from '../../../src/features/dda/refresh/adapter/in-memory-refresh-coordinator.adapter.js';
+import { withRefreshSnapshotBindingProof } from './refresh-snapshot-fixture.js';
 import { SnapshotCommitService } from '../../../src/features/dda/refresh/application/snapshot-commit.service.js';
+import type { WorkerVerifiedResultManifestPortV1 } from '../../../src/features/jra/worker/worker-result-finalization.port.js';
 
 const scopeResult = parseTenantScopeV1({
   scopeType: 'project',
@@ -62,19 +64,48 @@ function makeSnapshot(snapshotId: StableIdentifierV1, materializationIds: Stable
   const created = createDashboardSnapshotV1({ ...input, canonicalHash });
   assert.equal(created.accepted, true);
   if (!created.accepted) throw new Error('snapshot');
-  return created.value;
+  return withRefreshSnapshotBindingProof(created.value);
+}
+
+function refresh(refreshId: string, inputSelectorHash = 'a'.repeat(64)) {
+  return {
+    refreshId,
+    tenantScope: scope,
+    dashboardId: ids.dashboardId,
+    dashboardVersionId: ids.dashboardVersionId,
+    permissionProjectionVersionId: ids.permission,
+    datasetVersionId: '00000000-0000-4000-8000-000000000221',
+    definitionIds: [],
+    inputSelectorHash,
+    sourceEventIds: [],
+    clientRequestIds: [],
+    folderReplayKeys: [],
+    state: 'VERIFYING' as const,
+    revision: 1,
+    leaseId: 'lease-1',
+    debounceWindowMs: 0,
+    openedAtMs: 1,
+    updatedAtMs: 1,
+  };
 }
 
 void test('[DDA-032] atomic commit swaps pointer only after complete verification', async () => {
   const coordinator = new InMemoryRefreshCoordinatorAdapter();
   const previous = makeSnapshot(ids.snapshotOld, [ids.matA]);
-  await coordinator.setCurrentSnapshot(ids.dashboardId, previous);
+  await coordinator.setCurrentSnapshot(scope, ids.dashboardId, previous);
 
   const service = new SnapshotCommitService(coordinator);
   const next = makeSnapshot(ids.snapshotNew, [ids.matA, ids.matB]);
+  await coordinator.saveRefresh(
+    refresh('00000000-0000-4000-8000-000000000211', next.inputSelectorHash),
+  );
   const committed = await service.commit({
+    tenantScope: scope,
     dashboardId: ids.dashboardId,
     refreshId: '00000000-0000-4000-8000-000000000211',
+    expectedRevision: 1,
+    expectedLeaseId: 'lease-1',
+    expectedInputSelectorHash: next.inputSelectorHash,
     snapshot: next,
     materializations: [
       {
@@ -99,7 +130,7 @@ void test('[DDA-032] atomic commit swaps pointer only after complete verificatio
   if (!committed.accepted) return;
   assert.equal(committed.value.state, 'COMMITTED');
   assert.equal(
-    (await coordinator.getCurrentSnapshot(ids.dashboardId))?.snapshotId,
+    (await coordinator.getCurrentSnapshot(scope, ids.dashboardId))?.snapshotId,
     ids.snapshotNew,
   );
 });
@@ -107,7 +138,7 @@ void test('[DDA-032] atomic commit swaps pointer only after complete verificatio
 void test('[DDA-032] partial/mixed/failed results never replace the last complete snapshot', async () => {
   const coordinator = new InMemoryRefreshCoordinatorAdapter();
   const previous = makeSnapshot(ids.snapshotOld, [ids.matA]);
-  await coordinator.setCurrentSnapshot(ids.dashboardId, previous);
+  await coordinator.setCurrentSnapshot(scope, ids.dashboardId, previous);
   const service = new SnapshotCommitService(coordinator);
   const next = makeSnapshot(ids.snapshotNew, [ids.matA, ids.matB]);
 
@@ -204,8 +235,12 @@ void test('[DDA-032] partial/mixed/failed results never replace the last complet
 
   for (const [index, scenario] of cases.entries()) {
     const result = await service.commit({
+      tenantScope: scope,
       dashboardId: ids.dashboardId,
       refreshId: `00000000-0000-4000-8000-00000000030${index}`,
+      expectedRevision: 1,
+      expectedLeaseId: 'lease-1',
+      expectedInputSelectorHash: 'a'.repeat(64),
       snapshot: next,
       materializations: scenario.materializations,
     });
@@ -213,7 +248,7 @@ void test('[DDA-032] partial/mixed/failed results never replace the last complet
     if (result.accepted) continue;
     assert.equal(result.code, scenario.code, scenario.name);
     assert.equal(
-      (await coordinator.getCurrentSnapshot(ids.dashboardId))?.snapshotId,
+      (await coordinator.getCurrentSnapshot(scope, ids.dashboardId))?.snapshotId,
       ids.snapshotOld,
       scenario.name,
     );
@@ -223,12 +258,16 @@ void test('[DDA-032] partial/mixed/failed results never replace the last complet
 void test('[DDA-032] database commit failure retains previous snapshot pointer', async () => {
   const coordinator = new InMemoryRefreshCoordinatorAdapter({ failCommit: true });
   const previous = makeSnapshot(ids.snapshotOld, [ids.matA]);
-  await coordinator.setCurrentSnapshot(ids.dashboardId, previous);
+  await coordinator.setCurrentSnapshot(scope, ids.dashboardId, previous);
   const service = new SnapshotCommitService(coordinator);
   const next = makeSnapshot(ids.snapshotNew, [ids.matA]);
   const result = await service.commit({
+    tenantScope: scope,
     dashboardId: ids.dashboardId,
     refreshId: '00000000-0000-4000-8000-000000000311',
+    expectedRevision: 1,
+    expectedLeaseId: 'lease-1',
+    expectedInputSelectorHash: 'a'.repeat(64),
     snapshot: next,
     materializations: [
       {
@@ -245,7 +284,127 @@ void test('[DDA-032] database commit failure retains previous snapshot pointer',
   if (result.accepted) return;
   assert.equal(result.code, 'SNAPSHOT_COMMIT_FAILED');
   assert.equal(
-    (await coordinator.getCurrentSnapshot(ids.dashboardId))?.snapshotId,
+    (await coordinator.getCurrentSnapshot(scope, ids.dashboardId))?.snapshotId,
+    ids.snapshotOld,
+  );
+});
+
+void test('[DDA-032][JRA-031] caller-asserted VERIFIED status cannot replace the snapshot without an exact JRA manifest', async () => {
+  const coordinator = new InMemoryRefreshCoordinatorAdapter();
+  const previous = makeSnapshot(ids.snapshotOld, [ids.matA]);
+  await coordinator.setCurrentSnapshot(scope, ids.dashboardId, previous);
+  const manifests: WorkerVerifiedResultManifestPortV1 = {
+    findVerified: () => Promise.resolve(undefined),
+  };
+  const service = new SnapshotCommitService(coordinator, manifests);
+  const next = makeSnapshot(ids.snapshotNew, [ids.matA]);
+
+  const result = await service.commit({
+    tenantScope: scope,
+    dashboardId: ids.dashboardId,
+    refreshId: '00000000-0000-4000-8000-000000000312',
+    expectedRevision: 1,
+    expectedLeaseId: 'lease-1',
+    expectedInputSelectorHash: next.inputSelectorHash,
+    snapshot: next,
+    materializations: [
+      {
+        materializationId: ids.matA,
+        resultManifestId: '00000000-0000-4000-8000-00000000f007',
+        resultManifestHash: 'b'.repeat(64),
+        cacheIdentityHash: 'c'.repeat(64),
+        datasetVersionId: '00000000-0000-4000-8000-000000000221',
+        permissionProjectionVersionId: ids.permission,
+        status: 'VERIFIED',
+      },
+    ],
+  });
+
+  assert.deepEqual(result, { accepted: false, code: 'INCOMPLETE_MATERIALIZATION_SET' });
+  assert.equal(
+    (await coordinator.getCurrentSnapshot(scope, ids.dashboardId))?.snapshotId,
+    ids.snapshotOld,
+  );
+});
+
+void test('[DDA-025][DDA-032][JRA-031] a manifest with a mismatched policy binding cannot replace the snapshot', async () => {
+  const coordinator = new InMemoryRefreshCoordinatorAdapter();
+  const previous = makeSnapshot(ids.snapshotOld, [ids.matA]);
+  const next = makeSnapshot(ids.snapshotNew, [ids.matA]);
+  const proof = next.bindingProof[0];
+  assert.notEqual(proof, undefined);
+  if (proof === undefined) return;
+  await coordinator.setCurrentSnapshot(scope, ids.dashboardId, previous);
+  await coordinator.saveRefresh(
+    refresh('00000000-0000-4000-8000-000000000313', next.inputSelectorHash),
+  );
+  const manifests: WorkerVerifiedResultManifestPortV1 = {
+    findVerified: () =>
+      Promise.resolve({
+        resultManifestId: proof.resultManifestId,
+        resultManifestHash: 'b'.repeat(64),
+        jobId: id('00000000-0000-4000-8000-000000000231'),
+        attemptId: id('00000000-0000-4000-8000-000000000232'),
+        tenantScope: scope,
+        descriptorId: id('00000000-0000-4000-8000-000000000233'),
+        descriptorHash: 'd'.repeat(64),
+        outputSchemaId: 'dda.dashboard-widget-result.v4',
+        engineVersion: proof.engineVersion,
+        sourceArtifactVersionIds: [id('00000000-0000-4000-8000-000000000234')],
+        sourceLineageHash: 'e'.repeat(64),
+        subjectBindings: {
+          dashboardId: ids.dashboardId,
+          dashboardVersionId: proof.dashboardVersionId,
+          widgetId: proof.widgetId,
+          planVersionId: proof.analysisPlanVersionId,
+          metricVersionId: proof.metricVersionId,
+          datasetVersionId: proof.datasetVersionId,
+          permissionProjectionVersionId: proof.permissionProjectionVersionId,
+          policyVersionId: id('00000000-0000-4000-8000-000000000999'),
+          locale: proof.locale,
+          timezone: proof.timezone,
+          inputSelectorHash: next.inputSelectorHash,
+          engineVersion: proof.engineVersion,
+          handlerDigest: `sha256:${'f'.repeat(64)}`,
+        },
+        attestations: [
+          {
+            attestationId: id('00000000-0000-4000-8000-000000000235'),
+            artifactVersionId: id('00000000-0000-4000-8000-000000000236'),
+            contentSha256: 'a'.repeat(64),
+            contentLength: 128,
+            mediaType: 'application/json',
+          },
+        ],
+        finalizedAt: next.createdAt,
+      }),
+  };
+  const service = new SnapshotCommitService(coordinator, manifests);
+
+  const result = await service.commit({
+    tenantScope: scope,
+    dashboardId: ids.dashboardId,
+    refreshId: '00000000-0000-4000-8000-000000000313',
+    expectedRevision: 1,
+    expectedLeaseId: 'lease-1',
+    expectedInputSelectorHash: next.inputSelectorHash,
+    snapshot: next,
+    materializations: [
+      {
+        materializationId: ids.matA,
+        resultManifestId: proof.resultManifestId,
+        resultManifestHash: 'b'.repeat(64),
+        cacheIdentityHash: proof.cacheIdentityHash,
+        datasetVersionId: proof.datasetVersionId,
+        permissionProjectionVersionId: proof.permissionProjectionVersionId,
+        status: 'VERIFIED',
+      },
+    ],
+  });
+
+  assert.deepEqual(result, { accepted: false, code: 'INCOMPLETE_MATERIALIZATION_SET' });
+  assert.equal(
+    (await coordinator.getCurrentSnapshot(scope, ids.dashboardId))?.snapshotId,
     ids.snapshotOld,
   );
 });

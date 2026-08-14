@@ -52,12 +52,12 @@ export interface GovernedDatasetDatabaseDelegateV1 {
   create(input: {
     readonly data: GovernedDatasetDatabaseCreateDataV1;
   }): Promise<GovernedDatasetDatabaseRowV1>;
-  findUnique(input: {
-    readonly where: { readonly id: string };
+  findFirst(input: {
+    readonly where: Readonly<Record<string, unknown>>;
   }): Promise<GovernedDatasetDatabaseRowV1 | null>;
   findMany(input: {
-    readonly where: Readonly<Record<string, string>>;
-    readonly orderBy: { readonly createdAt: 'asc' };
+    readonly where: Readonly<Record<string, unknown>>;
+    readonly orderBy: Readonly<Record<string, 'asc' | 'desc'>>;
   }): Promise<readonly GovernedDatasetDatabaseRowV1[]>;
 }
 
@@ -124,9 +124,11 @@ function domainToCreate(
   };
 }
 
-function visible(context: TenantScopeV1, row: GovernedDatasetDatabaseRowV1): boolean {
-  const candidate = domainScope(row);
-  return tenantScopeContainsV1(context, candidate) || tenantScopeContainsV1(candidate, context);
+function publishedIndexWhere(context: IamTenantContextV1): Readonly<Record<string, unknown>> {
+  return Object.freeze({
+    ...databaseScope(context.tenantScope),
+    status: 'PUBLISHED',
+  });
 }
 
 class PrismaGovernedDatasetTransactionAdapter implements GovernedDatasetTransactionPortV1 {
@@ -139,8 +141,8 @@ class PrismaGovernedDatasetTransactionAdapter implements GovernedDatasetTransact
     if (!tenantScopeContainsV1(context.tenantScope, definition.tenantScope)) {
       throw new Error('DSM_SCOPE_NARROWING_REQUIRED');
     }
-    const existing = await this.client.datasetDefinitionRecord.findUnique({
-      where: { id: definition.versionId },
+    const existing = await this.client.datasetDefinitionRecord.findFirst({
+      where: { id: definition.versionId, ...databaseScope(definition.tenantScope) },
     });
     if (existing !== null) {
       if (JSON.stringify(rowToDomain(existing)) !== JSON.stringify(definition)) {
@@ -155,12 +157,10 @@ class PrismaGovernedDatasetTransactionAdapter implements GovernedDatasetTransact
     context: IamTenantContextV1,
     versionId: GovernedDatasetDefinitionV1['versionId'],
   ): Promise<GovernedDatasetDefinitionV1 | undefined> {
-    const row = await this.client.datasetDefinitionRecord.findUnique({ where: { id: versionId } });
-    return row === null
-      ? undefined
-      : visible(context.tenantScope, row)
-        ? rowToDomain(row)
-        : undefined;
+    const row = await this.client.datasetDefinitionRecord.findFirst({
+      where: { id: versionId, ...databaseScope(context.tenantScope) },
+    });
+    return row === null ? undefined : rowToDomain(row);
   }
 
   public async list(
@@ -168,10 +168,20 @@ class PrismaGovernedDatasetTransactionAdapter implements GovernedDatasetTransact
     datasetId: GovernedDatasetDefinitionV1['datasetId'],
   ): Promise<readonly GovernedDatasetDefinitionV1[]> {
     const rows = await this.client.datasetDefinitionRecord.findMany({
-      where: { datasetId, organizationId: context.tenantScope.organizationId },
+      where: { datasetId, ...databaseScope(context.tenantScope) },
       orderBy: { createdAt: 'asc' },
     });
-    return rows.filter((row) => visible(context.tenantScope, row)).map(rowToDomain);
+    return rows.map(rowToDomain);
+  }
+
+  public async listPublished(
+    context: IamTenantContextV1,
+  ): Promise<readonly GovernedDatasetDefinitionV1[]> {
+    const rows = await this.client.datasetDefinitionRecord.findMany({
+      where: publishedIndexWhere(context),
+      orderBy: { createdAt: 'asc' },
+    });
+    return rows.filter((row) => row.status === 'PUBLISHED').map(rowToDomain);
   }
 }
 
@@ -203,5 +213,11 @@ export class PrismaGovernedDatasetRepositoryAdapter implements GovernedDatasetRe
     datasetId: GovernedDatasetDefinitionV1['datasetId'],
   ): Promise<readonly GovernedDatasetDefinitionV1[]> {
     return new PrismaGovernedDatasetTransactionAdapter(this.client).list(context, datasetId);
+  }
+
+  public listPublished(
+    context: IamTenantContextV1,
+  ): Promise<readonly GovernedDatasetDefinitionV1[]> {
+    return new PrismaGovernedDatasetTransactionAdapter(this.client).listPublished(context);
   }
 }

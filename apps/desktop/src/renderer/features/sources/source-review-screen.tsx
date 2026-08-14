@@ -41,11 +41,7 @@ export interface SourceReviewScreenProps {
 }
 
 /** DSK-010: rich misplaced/ambiguous source review surface. */
-export function SourceReviewScreen({
-  locale = 'vi',
-  record,
-  onAction,
-}: SourceReviewScreenProps) {
+export function SourceReviewScreen({ locale = 'vi', record, onAction }: SourceReviewScreenProps) {
   const title = locale === 'en' ? 'Source review' : 'Xem xét nguồn';
   return (
     <section aria-label={title}>

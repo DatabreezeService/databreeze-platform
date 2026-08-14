@@ -56,6 +56,8 @@ Desktop.ini
 data/
 !infrastructure/aws/modules/data/
 !infrastructure/aws/modules/data/**
+!apps/web/src/features/data/
+!apps/web/src/features/data/**
 runtime/
 uploads/
 artifacts/
@@ -69,4 +71,3 @@ reports/
 
 # Local mentor-demo state (087)
 .demo-state/
-

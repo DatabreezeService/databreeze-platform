@@ -7,11 +7,7 @@ export type WorkspaceAudienceV1 =
   | 'EXTERNAL_GUEST'
   | 'SHARED_LINK';
 
-const ALLOWED = new Set<WorkspaceAudienceV1>([
-  'OWNER',
-  'WORKSPACE_VIEWERS',
-  'PROJECT_VIEWERS',
-]);
+const ALLOWED = new Set<WorkspaceAudienceV1>(['OWNER', 'WORKSPACE_VIEWERS', 'PROJECT_VIEWERS']);
 
 /** DDA-058: first production sharing surface is workspace-member-only. */
 export function assertWorkspaceOnlyAudienceV1(

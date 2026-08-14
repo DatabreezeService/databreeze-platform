@@ -60,7 +60,9 @@ export function SourceExplorer({
               {folder.displayName}
             </button>
             {folder.pendingReviewCount > 0 ? (
-              <span className="source-explorer__badge">{copy.pending(folder.pendingReviewCount)}</span>
+              <span className="source-explorer__badge">
+                {copy.pending(folder.pendingReviewCount)}
+              </span>
             ) : null}
           </li>
         ))}
@@ -84,10 +86,7 @@ export function SourceExplorer({
       <ul className="source-explorer__list">
         {catalog.reviewItems.map((item) => (
           <li key={item.reviewId}>
-            <button
-              onClick={() => onOpenItem({ kind: 'review', id: item.reviewId })}
-              type="button"
-            >
+            <button onClick={() => onOpenItem({ kind: 'review', id: item.reviewId })} type="button">
               {item.label}
             </button>
           </li>

@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/dda-conversation-load-accepted",
+  "$comment": "DDA-055/DDA-056: bounded authorized conversation page with immutable messages and visible context events.",
+  "title": "DDA Conversation Load Accepted",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "accepted",
+    "conversation",
+    "messages",
+    "contextEvents"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "accepted": { "const": true },
+    "conversation": {
+      "$ref": "https://schemas.databreeze.dev/contracts/v4/dda-conversation-summary"
+    },
+    "messages": {
+      "type": "array",
+      "maxItems": 50,
+      "items": { "$ref": "#/$defs/publicMessage" }
+    },
+    "contextEvents": {
+      "type": "array",
+      "maxItems": 50,
+      "items": { "$ref": "#/$defs/contextEvent" }
+    },
+    "nextCursor": { "$ref": "#/$defs/conversationLoadOpaqueCursor" }
+  },
+  "$defs": {
+    "conversationLoadOpaqueCursor": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 512,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "publicMessage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "messageId",
+        "conversationId",
+        "role",
+        "text",
+        "sequence",
+        "createdAt"
+      ],
+      "properties": {
+        "messageId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "conversationId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["USER", "AGENT", "SYSTEM"]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8000
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "datasetVersionId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "createdAt": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+        }
+      }
+    },
+    "contextEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "eventId",
+        "conversationId",
+        "kind",
+        "sequence",
+        "occurredAt"
+      ],
+      "properties": {
+        "eventId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "conversationId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "CONTEXT_RESTORED",
+            "DATASET_VERSION_ADVANCED",
+            "DATASET_ATTACHED",
+            "DATASET_DETACHED",
+            "DASHBOARD_VERSION_ADVANCED",
+            "FILTER_CONTEXT_CHANGED"
+          ]
+        },
+        "datasetId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "beforeVersionId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "afterVersionId": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "occurredAt": {
+          "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp"
+        }
+      },
+      "if": {
+        "properties": {
+          "kind": { "const": "DATASET_VERSION_ADVANCED" }
+        },
+        "required": ["kind"]
+      },
+      "then": {
+        "properties": {
+          "datasetId": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+          },
+          "beforeVersionId": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+          },
+          "afterVersionId": {
+            "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier"
+          }
+        },
+        "required": ["datasetId", "beforeVersionId", "afterVersionId"]
+      }
+    }
+  }
+}

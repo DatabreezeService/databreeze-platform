@@ -11,6 +11,7 @@ import type {
   JraAdmissionRepositoryPortV1,
   JraAdmissionTransactionPortV1,
 } from '../application/admission-repository.port.js';
+import type { ExecutionRequestDescriptorV1 } from '../application/execution-request-descriptor.js';
 
 function visible(context: TenantScopeV1, candidate: TenantScopeV1): boolean {
   return tenantScopeContainsV1(context, candidate) || tenantScopeContainsV1(candidate, context);
@@ -35,9 +36,16 @@ function cloneDispatch(record: JobDispatchRecordV1): JobDispatchRecordV1 {
   return Object.freeze({ ...record, tenantScope: Object.freeze({ ...record.tenantScope }) });
 }
 
+function cloneExecutionRequest(
+  descriptor: ExecutionRequestDescriptorV1,
+): ExecutionRequestDescriptorV1 {
+  return structuredClone(descriptor);
+}
+
 /** Atomic in-memory admission adapter for the JRA job plus dispatch boundary. */
 export class InMemoryAdmissionRepositoryAdapter implements JraAdmissionRepositoryPortV1 {
   private jobs = new Map<string, JobV1>();
+  private executionRequests = new Map<string, ExecutionRequestDescriptorV1>();
   private dispatches = new Map<string, JobDispatchRecordV1>();
   private transactionTail: Promise<void> = Promise.resolve();
 
@@ -65,6 +73,26 @@ export class InMemoryAdmissionRepositoryAdapter implements JraAdmissionRepositor
         visible(context.tenantScope, candidate.tenantScope),
     );
     return job ? cloneJob(job) : undefined;
+  }
+
+  private saveExecutionRequest(
+    context: IamTenantContextV1,
+    descriptor: ExecutionRequestDescriptorV1,
+  ): void {
+    if (!mutable(context, descriptor.tenantScope)) throw new Error('JRA_SCOPE_NARROWING_REQUIRED');
+    const existing = this.executionRequests.get(descriptor.jobId);
+    if (existing?.canonicalHash === descriptor.canonicalHash) return;
+    if (existing) throw new Error('JRA_IMMUTABLE_EXECUTION_REQUEST');
+    this.executionRequests.set(descriptor.jobId, cloneExecutionRequest(descriptor));
+  }
+
+  private findExecutionRequestByJob(
+    context: IamTenantContextV1,
+    jobId: StableIdentifierV1,
+  ): ExecutionRequestDescriptorV1 | undefined {
+    const descriptor = this.executionRequests.get(jobId);
+    if (!descriptor || !visible(context.tenantScope, descriptor.tenantScope)) return undefined;
+    return cloneExecutionRequest(descriptor);
   }
 
   private saveDispatch(context: IamTenantContextV1, record: JobDispatchRecordV1): void {
@@ -104,7 +132,11 @@ export class InMemoryAdmissionRepositoryAdapter implements JraAdmissionRepositor
       release = resolve;
     });
     await previous;
-    const before = { jobs: new Map(this.jobs), dispatches: new Map(this.dispatches) };
+    const before = {
+      jobs: new Map(this.jobs),
+      executionRequests: new Map(this.executionRequests),
+      dispatches: new Map(this.dispatches),
+    };
     try {
       return await work({
         saveJob: async (_context, job) => {
@@ -114,6 +146,14 @@ export class InMemoryAdmissionRepositoryAdapter implements JraAdmissionRepositor
         findJobByIdempotency: async (_context, key) => {
           await Promise.resolve();
           return this.findJobByIdempotency(context, key);
+        },
+        saveExecutionRequest: async (_context, descriptor) => {
+          await Promise.resolve();
+          this.saveExecutionRequest(context, descriptor);
+        },
+        findExecutionRequestByJob: async (_context, jobId) => {
+          await Promise.resolve();
+          return this.findExecutionRequestByJob(context, jobId);
         },
         saveDispatch: async (_context, record) => {
           await Promise.resolve();
@@ -126,6 +166,7 @@ export class InMemoryAdmissionRepositoryAdapter implements JraAdmissionRepositor
       });
     } catch (error) {
       this.jobs = before.jobs;
+      this.executionRequests = before.executionRequests;
       this.dispatches = before.dispatches;
       throw error;
     } finally {

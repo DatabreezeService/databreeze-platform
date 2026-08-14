@@ -35,9 +35,40 @@ from databreeze_contracts.v1 import (
     UtcTimestamp,
 )
 from databreeze_contracts.v2 import DdaReceiptUpload
+from databreeze_contracts.v3 import (
+  DdaDashboardAuthoringCommand,
+  DdaDashboardAuthoringCommandResult,
+  DdaDashboardChartProposal,
+  DdaDashboardWorkspaceHistory,
+  DdaNotification,
+  DdaNotificationPage,
+  DdaNotificationStateCommand,
+  DdaWorkspaceMemberSettings,
+)
+from databreeze_contracts.v4 import (
+    DdaAgentTurnAccepted,
+    DdaAgentTurnCommand,
+    DdaConversationListAccepted,
+    DdaConversationLoadAccepted,
+    DdaConversationSummary,
+    DdaDashboardWidgetResultsAccepted,
+    IamAuthSession,
+    IamBootstrapResponse,
+    IamEmailVerificationCommand,
+    IamPasswordSignInCommand,
+    IamRegistrationAccepted,
+    IamRegistrationCommand,
+    JraWorkerDashboardWidgetResultOutput,
+    JraWorkerResultFinalizeAccepted,
+    JraWorkerResultFinalizeCommand,
+    JraWorkerResultPrepareAccepted,
+    JraWorkerResultPrepareCommand,
+)
 
 SCHEMA_BASE = "https://schemas.databreeze.dev/contracts/v1"
 SCHEMA_BASE_V2 = "https://schemas.databreeze.dev/contracts/v2"
+SCHEMA_BASE_V3 = "https://schemas.databreeze.dev/contracts/v3"
+SCHEMA_BASE_V4 = "https://schemas.databreeze.dev/contracts/v4"
 ADAPTERS: dict[str, TypeAdapter[Any]] = {
     f"{SCHEMA_BASE}/actor-metadata": TypeAdapter(ActorMetadata),
     f"{SCHEMA_BASE}/command-envelope": TypeAdapter(CommandEnvelope[dict[str, Any]]),
@@ -65,6 +96,31 @@ ADAPTERS: dict[str, TypeAdapter[Any]] = {
     f"{SCHEMA_BASE}/tenant-scope": TypeAdapter(TenantScope),
     f"{SCHEMA_BASE}/utc-timestamp": TypeAdapter(UtcTimestamp),
     f"{SCHEMA_BASE_V2}/dda-receipt-upload": TypeAdapter(DdaReceiptUpload),
+    f"{SCHEMA_BASE_V3}/dda-dashboard-authoring-command": TypeAdapter(DdaDashboardAuthoringCommand),
+    f"{SCHEMA_BASE_V3}/dda-dashboard-authoring-command-result": TypeAdapter(DdaDashboardAuthoringCommandResult),
+    f"{SCHEMA_BASE_V3}/dda-dashboard-chart-proposal": TypeAdapter(DdaDashboardChartProposal),
+    f"{SCHEMA_BASE_V3}/dda-dashboard-workspace-history": TypeAdapter(DdaDashboardWorkspaceHistory),
+    f"{SCHEMA_BASE_V3}/dda-notification": TypeAdapter(DdaNotification),
+    f"{SCHEMA_BASE_V3}/dda-notification-page": TypeAdapter(DdaNotificationPage),
+    f"{SCHEMA_BASE_V3}/dda-notification-state-command": TypeAdapter(DdaNotificationStateCommand),
+    f"{SCHEMA_BASE_V3}/dda-workspace-member-settings": TypeAdapter(DdaWorkspaceMemberSettings),
+    f"{SCHEMA_BASE_V4}/dda-agent-turn-accepted": TypeAdapter(DdaAgentTurnAccepted),
+    f"{SCHEMA_BASE_V4}/dda-agent-turn-command": TypeAdapter(DdaAgentTurnCommand),
+    f"{SCHEMA_BASE_V4}/dda-conversation-list-accepted": TypeAdapter(DdaConversationListAccepted),
+    f"{SCHEMA_BASE_V4}/dda-conversation-load-accepted": TypeAdapter(DdaConversationLoadAccepted),
+    f"{SCHEMA_BASE_V4}/dda-conversation-summary": TypeAdapter(DdaConversationSummary),
+    f"{SCHEMA_BASE_V4}/dda-dashboard-widget-results-accepted": TypeAdapter(DdaDashboardWidgetResultsAccepted),
+    f"{SCHEMA_BASE_V4}/iam-auth-session": TypeAdapter(IamAuthSession),
+    f"{SCHEMA_BASE_V4}/iam-bootstrap-response": TypeAdapter(IamBootstrapResponse),
+    f"{SCHEMA_BASE_V4}/iam-email-verification-command": TypeAdapter(IamEmailVerificationCommand),
+    f"{SCHEMA_BASE_V4}/iam-password-sign-in-command": TypeAdapter(IamPasswordSignInCommand),
+    f"{SCHEMA_BASE_V4}/iam-registration-accepted": TypeAdapter(IamRegistrationAccepted),
+    f"{SCHEMA_BASE_V4}/iam-registration-command": TypeAdapter(IamRegistrationCommand),
+    f"{SCHEMA_BASE_V4}/jra-worker-dashboard-widget-result-output": TypeAdapter(JraWorkerDashboardWidgetResultOutput),
+    f"{SCHEMA_BASE_V4}/jra-worker-result-finalize-accepted": TypeAdapter(JraWorkerResultFinalizeAccepted),
+    f"{SCHEMA_BASE_V4}/jra-worker-result-finalize-command": TypeAdapter(JraWorkerResultFinalizeCommand),
+    f"{SCHEMA_BASE_V4}/jra-worker-result-prepare-accepted": TypeAdapter(JraWorkerResultPrepareAccepted),
+    f"{SCHEMA_BASE_V4}/jra-worker-result-prepare-command": TypeAdapter(JraWorkerResultPrepareCommand),
 }
 
 

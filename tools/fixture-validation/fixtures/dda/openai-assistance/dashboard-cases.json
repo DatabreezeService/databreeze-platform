@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "purpose": "PLAN_PROPOSAL",
+  "attestation": { "noCustomerData": true, "source": "project-generated" },
+  "cases": [
+    {
+      "caseId": "dashboard-vi-overview",
+      "locale": "vi",
+      "widgetAllowlist": ["KPI", "TABLE", "BAR"],
+      "forbidden": ["script", "html", "url", "permissionExpansion"],
+      "previewOnly": true,
+      "publishes": false
+    }
+  ]
+}

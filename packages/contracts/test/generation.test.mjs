@@ -142,13 +142,13 @@ test('fails loudly when a schema uses an unsupported construct', () => {
     cpSync(fixtureRoot, source, { recursive: true });
     const schemaPath = resolve(source, 'schemas/v1/alpha.schema.json');
     const schema = JSON.parse(readFileSync(schemaPath, 'utf8'));
-    schema.enum = ['alpha'];
+    schema.examples = ['alpha'];
     writeFileSync(schemaPath, `${JSON.stringify(schema, null, 2)}\n`);
 
     const result = runGenerator('--source', source, '--output', resolve(directory, 'output'));
 
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /Unsupported JSON Schema keyword "enum"/);
+    assert.match(result.stderr, /Unsupported JSON Schema keyword "examples"/);
     assert.match(result.stderr, /alpha\.schema\.json/);
   });
 });

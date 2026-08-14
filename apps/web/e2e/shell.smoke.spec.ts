@@ -31,19 +31,10 @@ test('mobile navigation opens and follows a UDW route', async ({ page }, testInf
   await expect(page).toHaveURL(/\/en\/analysis$/u);
 });
 
-test('search submit is visible, keyboard reachable, and has a full touch target', async ({
+test('compact shell keeps workspace context visible without a global search strip', async ({
   page,
 }) => {
   await page.goto('/en/dashboards');
-
-  const searchInput = page.getByRole('searchbox', { name: 'Search' });
-  const submit = page.getByRole('button', { name: 'Search' });
-  await searchInput.focus();
-  await page.keyboard.press('Tab');
-
-  await expect(submit).toBeFocused();
-  await expect(submit).toBeVisible();
-  const bounds = await submit.boundingBox();
-  expect(bounds?.width).toBeGreaterThanOrEqual(44);
-  expect(bounds?.height).toBeGreaterThanOrEqual(44);
+  await expect(page.getByText('Governed Workspace')).toBeVisible();
+  await expect(page.getByRole('search')).toHaveCount(0);
 });

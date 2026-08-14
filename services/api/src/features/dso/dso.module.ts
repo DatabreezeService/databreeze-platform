@@ -75,6 +75,29 @@ import {
   type RequestTenantContextPortV1,
   UnavailableRequestTenantContextAdapter,
 } from '../../platform/http/request-tenant-context.port.js';
+import { InMemoryExecutionRouteRepositoryAdapter } from './adapter/in-memory-execution-route-repository.adapter.js';
+import {
+  PrismaExecutionRouteRepositoryAdapter,
+  type ExecutionRouteDatabaseClientV1,
+} from './adapter/prisma-execution-route-repository.adapter.js';
+import {
+  EXECUTION_ROUTE_REPOSITORY_PORT,
+  type ExecutionRouteRepositoryPortV1,
+} from './application/execution-route-repository.port.js';
+import {
+  UnavailableExecutionRouteWorkspacePolicyAuthority,
+  type ExecutionRouteWorkspacePolicyAuthorityPortV1,
+} from './application/execution-route-policy-authority.port.js';
+import {
+  EXECUTION_ROUTE_AUTHORITY_PORT,
+  ExecutionRouteService,
+  type ExecutionRouteClockPortV1,
+} from './application/execution-route.service.js';
+import {
+  WORKSPACE_DATA_MODE_POLICY_ACTIVATION_USE_CASE,
+  UnavailableWorkspaceDataModePolicyActivationUseCase,
+  type WorkspaceDataModePolicyActivationUseCaseV1,
+} from './application/workspace-data-mode-policy-activation.port.js';
 
 export interface DsoModuleOptions {
   readonly deviceSyncRepository?: DeviceSyncRepositoryPortV1;
@@ -92,6 +115,14 @@ export interface DsoModuleOptions {
   readonly deviceSyncAuthorization?: DeviceSyncAuthorizationPortV1;
   readonly deviceIdentityAuthority?: DeviceIdentityAuthorityPortV1;
   readonly deviceAuthorizationRepository?: DeviceAuthorizationRepositoryPortV1;
+  readonly executionRouteRepository?: ExecutionRouteRepositoryPortV1;
+  /** Production composition passes the generated Prisma client; no route can use in-memory state. */
+  readonly executionRouteDatabase?: ExecutionRouteDatabaseClientV1;
+  /** Root-composed current Workspace policy plus IAM authorization epoch authority. */
+  readonly executionRouteWorkspacePolicyAuthority?: ExecutionRouteWorkspacePolicyAuthorityPortV1;
+  readonly executionRouteClock?: ExecutionRouteClockPortV1;
+  /** Root-only atomic DSO/IAM publish-and-activate coordinator. */
+  readonly workspaceDataModePolicyActivation?: WorkspaceDataModePolicyActivationUseCaseV1;
 }
 
 function useCase(
@@ -123,6 +154,17 @@ export class DsoModule {
         ? new InMemoryDeviceAuthorizationRepositoryAdapter()
         : new PrismaDeviceAuthorizationRepositoryAdapter(options.deviceAuthorizationDatabase));
     const authorizationService = new DeviceAuthorizationService(authorizationRepository);
+    const executionRouteRepository =
+      options.executionRouteRepository ??
+      (options.executionRouteDatabase === undefined
+        ? new InMemoryExecutionRouteRepositoryAdapter()
+        : new PrismaExecutionRouteRepositoryAdapter(options.executionRouteDatabase));
+    const executionRouteAuthority = new ExecutionRouteService(
+      executionRouteRepository,
+      options.executionRouteWorkspacePolicyAuthority ??
+        new UnavailableExecutionRouteWorkspacePolicyAuthority(),
+      options.executionRouteClock,
+    );
     const authorization =
       options.deviceSyncAuthorization ??
       new DeviceSyncAuthorizationAdapter(
@@ -156,6 +198,14 @@ export class DsoModule {
         },
         { provide: DATA_MODE_POLICY_REPOSITORY_PORT, useValue: policyRepository },
         { provide: DATA_MODE_POLICY_SERVICE, useValue: policyService },
+        { provide: EXECUTION_ROUTE_REPOSITORY_PORT, useValue: executionRouteRepository },
+        { provide: EXECUTION_ROUTE_AUTHORITY_PORT, useValue: executionRouteAuthority },
+        {
+          provide: WORKSPACE_DATA_MODE_POLICY_ACTIVATION_USE_CASE,
+          useValue:
+            options.workspaceDataModePolicyActivation ??
+            new UnavailableWorkspaceDataModePolicyActivationUseCase(),
+        },
         { provide: DEVICE_SYNC_AUTHORIZATION, useValue: authorization },
         {
           provide: DEVICE_SYNC_CURSOR_SIGNER,
@@ -181,6 +231,9 @@ export class DsoModule {
         DEVICE_CAPABILITY_SERVICE,
         DATA_MODE_POLICY_REPOSITORY_PORT,
         DATA_MODE_POLICY_SERVICE,
+        EXECUTION_ROUTE_REPOSITORY_PORT,
+        EXECUTION_ROUTE_AUTHORITY_PORT,
+        WORKSPACE_DATA_MODE_POLICY_ACTIVATION_USE_CASE,
       ],
     };
   }

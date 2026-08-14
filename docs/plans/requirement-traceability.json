@@ -1,7 +1,7 @@
 {
   "version": 1,
   "priorityTotals": {
-    "P0": 506,
+    "P0": 516,
     "P1": 158,
     "P2": 14
   },
@@ -1949,6 +1949,32 @@
       ],
       "status": "partial",
       "coverage": "partial",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "BUA-023",
+      "priority": "P0",
+      "primaryPlan": "407-worker-result-finalization-v2.md",
+      "primaryTask": "Task 7: Secure worker transfer, effects and executable runtime closure",
+      "supportingTasks": [
+        "407-worker-result-finalization-v2.md - Task 3: JRA finalize-result transaction"
+      ],
+      "codePaths": [
+        "services/api/src/features/bua/",
+        "services/api/src/features/jra/worker/",
+        "services/api/src/platform/jra-worker-result-effects.composition.ts",
+        "services/api/prisma/schema/bua.prisma"
+      ],
+      "testPaths": [
+        "services/api/test/features/bua/",
+        "services/api/test/features/jra/worker-result-finalization.test.ts",
+        "services/api/test/platform/worker-result-production-composition.test.ts"
+      ],
+      "releaseEvidence": [],
+      "status": "planned",
+      "coverage": "planned",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "p0-release-gate"
@@ -11015,6 +11041,76 @@
       "releaseStatus": "p0-release-gate"
     },
     {
+      "requirementId": "IAE-022",
+      "priority": "P0",
+      "primaryPlan": "030-artifacts-datasets-evidence.md",
+      "primaryTask": "Task 1: IAE artifacts and evidence",
+      "supportingTasks": [
+        "407-worker-result-finalization-v2.md - Task 1: IAE worker-result attestation"
+      ],
+      "codePaths": [
+        "services/api/src/features/iae/application/artifact-upload-admission.port.ts",
+        "services/api/src/platform/iae-artifact-upload-admission.composition.ts",
+        "services/api/src/features/iae/application/artifact-upload.service.ts"
+      ],
+      "testPaths": [
+        "services/api/test/features/iae/artifact-upload-admission.test.ts",
+        "services/api/test/features/iae/artifact-upload.service.test.ts"
+      ],
+      "releaseEvidence": [],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "IAE-023",
+      "priority": "P0",
+      "primaryPlan": "030-artifacts-datasets-evidence.md",
+      "primaryTask": "Task 1: IAE artifacts and evidence",
+      "supportingTasks": [
+        "407-worker-result-finalization-v2.md - Task 1: IAE worker-result attestation"
+      ],
+      "codePaths": [
+        "services/api/src/features/iae/application/artifact-upload.service.ts",
+        "services/api/src/features/iae/adapter/s3-artifact-upload-storage.adapter.ts",
+        "services/api/src/features/iae/adapter/prisma-artifact-upload-repository.adapter.ts"
+      ],
+      "testPaths": [
+        "services/api/test/features/iae/s3-artifact-upload-storage.adapter.test.ts",
+        "services/api/test/features/iae/prisma-artifact-upload-repository.test.ts"
+      ],
+      "releaseEvidence": [],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "IAE-024",
+      "priority": "P0",
+      "primaryPlan": "407-worker-result-finalization-v2.md",
+      "primaryTask": "Task 1: IAE worker-result attestation",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/iae/application/worker-result-finalization.port.ts",
+        "services/api/src/features/iae/application/worker-result-finalization.service.ts",
+        "services/api/src/features/iae/adapter/prisma-worker-result-finalization.adapter.ts"
+      ],
+      "testPaths": [
+        "services/api/test/features/iae/worker-result-finalization.service.test.ts",
+        "services/api/test/features/iae/prisma-worker-result-finalization.adapter.test.ts"
+      ],
+      "releaseEvidence": [],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
       "requirementId": "IAM-001",
       "priority": "P0",
       "primaryPlan": "020-identity-audit-entitlements.md",
@@ -14376,6 +14472,57 @@
       "releaseStatus": "p0-release-gate"
     },
     {
+      "requirementId": "JRA-031",
+      "priority": "P0",
+      "primaryPlan": "407-worker-result-finalization-v2.md",
+      "primaryTask": "Task 3: JRA finalize-result transaction",
+      "supportingTasks": [
+        "407-worker-result-finalization-v2.md - Task 2: JRA prepare-result authority",
+        "407-worker-result-finalization-v2.md - Task 4: Generated worker transport and Python client"
+      ],
+      "codePaths": [
+        "services/api/src/features/jra/worker/",
+        "services/api/prisma/schema/jra.prisma",
+        "services/engine/src/databreeze_engine/worker_client.py"
+      ],
+      "testPaths": [
+        "services/api/test/features/jra/worker-result-preparation.test.ts",
+        "services/api/test/features/jra/worker-result-finalization.test.ts",
+        "services/engine/tests/test_worker_client.py"
+      ],
+      "releaseEvidence": [],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "JRA-032",
+      "priority": "P0",
+      "primaryPlan": "407-worker-result-finalization-v2.md",
+      "primaryTask": "Task 7: Secure worker transfer, effects and executable runtime closure",
+      "supportingTasks": [
+        "407-worker-result-finalization-v2.md - Task 3: JRA finalize-result transaction"
+      ],
+      "codePaths": [
+        "services/api/src/features/jra/worker/",
+        "services/api/src/features/bua/",
+        "services/api/prisma/schema/jra.prisma"
+      ],
+      "testPaths": [
+        "services/api/test/features/jra/worker-result-preparation.test.ts",
+        "services/api/test/features/jra/worker-result-finalization.test.ts",
+        "services/api/test/platform/worker-result-production-composition.test.ts"
+      ],
+      "releaseEvidence": [],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
       "requirementId": "MR-001",
       "priority": "P0",
       "primaryPlan": "300-migration-ready.md",
@@ -16017,6 +16164,110 @@
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
       "releaseStatus": "ga-completion"
+    },
+    {
+      "requirementId": "NCO-021",
+      "priority": "P0",
+      "primaryPlan": "060-collaboration-integrations.md",
+      "primaryTask": "Task 1: NCO collaboration",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/notification/",
+        "packages/contracts/schemas/v3/dda-notification*.schema.json",
+        "apps/web/src/features/notifications/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/notification/",
+        "apps/web/test/notification-store.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "NCO-022",
+      "priority": "P0",
+      "primaryPlan": "060-collaboration-integrations.md",
+      "primaryTask": "Task 1: NCO collaboration",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/notification/",
+        "services/api/src/features/dda/notification/notification-page.service.ts",
+        "apps/web/src/features/notifications/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/notification/",
+        "apps/web/test/notification-store.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "NCO-023",
+      "priority": "P0",
+      "primaryPlan": "060-collaboration-integrations.md",
+      "primaryTask": "Task 1: NCO collaboration",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/notification/",
+        "services/api/prisma/migrations/20260814030000_dda_notification_durability/",
+        "apps/web/src/features/notifications/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/notification/",
+        "apps/web/test/notification-store.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "NCO-024",
+      "priority": "P0",
+      "primaryPlan": "060-collaboration-integrations.md",
+      "primaryTask": "Task 1: NCO collaboration",
+      "supportingTasks": [],
+      "codePaths": [
+        "services/api/src/features/dda/notification/",
+        "packages/contracts/schemas/v3/dda-notification-state-command.schema.json",
+        "apps/web/src/features/notifications/"
+      ],
+      "testPaths": [
+        "services/api/test/features/dda/notification/",
+        "apps/web/test/notification-store.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "security-and-tenant-gate",
+        "release-manager-approval"
+      ],
+      "status": "planned",
+      "coverage": "planned",
+      "verificationStatus": "not-verified",
+      "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
     },
     {
       "requirementId": "OC-001",

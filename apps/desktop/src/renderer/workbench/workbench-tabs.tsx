@@ -39,12 +39,7 @@ const LABELS = {
   },
 } as const;
 
-export function WorkbenchTabs({
-  activeTabId,
-  locale,
-  tabs,
-  onChange,
-}: WorkbenchTabsProperties) {
+export function WorkbenchTabs({ activeTabId, locale, tabs, onChange }: WorkbenchTabsProperties) {
   const copy = LABELS[locale];
 
   return (

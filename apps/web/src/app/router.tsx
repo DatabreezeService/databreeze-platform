@@ -1,12 +1,14 @@
 import { DEFAULT_LOCALE_V1, SUPPORTED_LOCALES_V1 } from '@databreeze/i18n/v1';
-import { lazy, Suspense, type ReactElement } from 'react';
+import { lazy, Suspense, useSyncExternalStore, type ReactElement } from 'react';
 import {
   Navigate,
+  Outlet,
   createBrowserRouter,
   createMemoryRouter,
   redirect,
   type LoaderFunctionArgs,
   type RouteObject,
+  useParams,
 } from 'react-router-dom';
 import { ShellLayout } from '../components/shell-layout.tsx';
 import {
@@ -24,24 +26,35 @@ import {
   VerifyEmailRoutePage,
 } from '../features/auth/auth-route-pages.tsx';
 import { PRODUCT_MODULE_REGISTRY } from '../features/product-modules/product-module-registry.ts';
+import { normalizeRouteLocale } from './locale-context.tsx';
 import { WEB_FEATURE_REGISTRY } from './feature-registry.ts';
-import { DEFAULT_ACCESS_CONTEXT, type WebAccessContext } from './navigation.ts';
+import { DEFAULT_ACCESS_CONTEXT, EMPTY_ACCESS_CONTEXT, type WebAccessContext } from './navigation.ts';
+import {
+  currentWebAuthenticationStateV1,
+  initializeWebAuthenticationStateV1,
+  subscribeWebAuthenticationStateV1,
+  type WebAuthenticationStateV1,
+} from '../features/auth/auth-session.ts';
 
 /**
  * Keep Ajv-backed contract validators out of the UDW shell chunk so preview CSP
  * (`script-src 'self'` without unsafe-eval) can render Dashboards/Analysis/Data.
  */
-const InboxPage = lazy(async () => {
-  const module = await import('../features/inbox/inbox-page.tsx');
-  return { default: module.InboxPage };
-});
 const DataPipelinePage = lazy(async () => {
   const module = await import('../features/data-intake/data-pipeline-page.tsx');
   return { default: module.DataPipelinePage };
 });
+const InboxPage = lazy(async () => {
+  const module = await import('../features/inbox/inbox-page.tsx');
+  return { default: module.InboxPage };
+});
 const ProductModuleWorkbench = lazy(async () => {
   const module = await import('../features/product-modules/product-module-workbench.tsx');
   return { default: module.ProductModuleWorkbench };
+});
+const WorkspaceSettingsRoutePage = lazy(async () => {
+  const module = await import('../features/settings/workspace-settings-page.tsx');
+  return { default: module.WorkspaceSettingsRoutePage };
 });
 
 function Suspended({ children }: { readonly children: ReactElement }) {
@@ -75,6 +88,30 @@ function canonicalLocaleLoader({ request }: LoaderFunctionArgs) {
   return pathname === undefined ? null : redirect(`${pathname}${url.search}${url.hash}`);
 }
 
+function WorkspaceSettingsRoute() {
+  const { locale } = useParams();
+  return <WorkspaceSettingsRoutePage locale={locale === 'en' ? 'en' : 'vi-VN'} />;
+}
+
+function AuthenticationGate({
+  publicRoute,
+}: {
+  readonly publicRoute: boolean;
+}) {
+  const authenticationState = useSyncExternalStore(
+    subscribeWebAuthenticationStateV1,
+    currentWebAuthenticationStateV1,
+    currentWebAuthenticationStateV1,
+  );
+  const { locale: routeLocale } = useParams();
+  const locale = normalizeRouteLocale(routeLocale);
+  if (publicRoute && authenticationState === 'signed-in')
+    return <Navigate replace to={`/${locale}/data`} />;
+  if (!publicRoute && authenticationState === 'signed-out')
+    return <Navigate replace to={`/${locale}/sign-in`} />;
+  return <Outlet />;
+}
+
 function createRoutes(accessContext: WebAccessContext): RouteObject[] {
   return [
     {
@@ -85,44 +122,52 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
     {
       path: '/:locale',
       loader: canonicalLocaleLoader,
-      element: <ShellLayout accessContext={accessContext} />,
       errorElement: <RouteErrorPage />,
       hydrateFallbackElement: <div aria-hidden="true" />,
       children: [
-        { index: true, element: <Navigate replace to="dashboards" /> },
-        { path: 'workspace', element: <Navigate replace to="../dashboards" /> },
-        { path: 'analysis', element: <AnalysisRoutePage /> },
-        { path: 'data', element: <DataRoutePage /> },
-        { path: 'sign-in', element: <SignInRoutePage /> },
-        { path: 'register', element: <RegisterRoutePage /> },
-        { path: 'verify-email', element: <VerifyEmailRoutePage /> },
-        ...WEB_FEATURE_REGISTRY.filter((feature) => feature.key !== 'workspace').map((feature) => ({
-          path: feature.path,
-          element:
-            feature.key === 'inbox' ? (
-              <Suspended>
-                <InboxPage />
-              </Suspended>
-            ) : feature.key === 'reviews' ? (
-              <Suspended>
-                <DataPipelinePage />
-              </Suspended>
-            ) : feature.key === 'dashboards' ? (
-              <DashboardPage />
-            ) : (
-              <UnavailableFeature featureKey={feature.key} />
-            ),
-        })),
-        ...PRODUCT_MODULE_REGISTRY.map((module) => ({
-          path: `modules/${module.slug}`,
-          element: (
-            <Suspended>
-              <ProductModuleWorkbench module={module} />
-            </Suspended>
-          ),
-        })),
-        { path: 'debug/route-error', element: <RouteFailure /> },
-        { path: '*', element: <NotFoundPage /> },
+        {
+          element: <AuthenticationGate publicRoute />,
+          children: [
+            { path: 'sign-in', element: <SignInRoutePage /> },
+            { path: 'register', element: <RegisterRoutePage /> },
+            { path: 'verify-email', element: <VerifyEmailRoutePage /> },
+          ],
+        },
+        {
+          element: <AuthenticationGate publicRoute={false} />,
+          children: [
+            {
+              element: <ShellLayout accessContext={accessContext} />,
+              children: [
+                { index: true, element: <Navigate replace to="dashboards" /> },
+                { path: 'workspace', element: <Navigate replace to="../dashboards" /> },
+                { path: 'analysis', element: <AnalysisRoutePage /> },
+                { path: 'data', element: <DataRoutePage /> },
+                ...WEB_FEATURE_REGISTRY.filter((feature) => feature.key !== 'workspace').map((feature) => ({
+                  path: feature.path,
+                  element:
+                    feature.key === 'inbox' ? (
+                      <Suspended><InboxPage /></Suspended>
+                    ) : feature.key === 'reviews' ? (
+                      <Suspended><DataPipelinePage /></Suspended>
+                    ) : feature.key === 'dashboards' ? (
+                      <DashboardPage />
+                    ) : feature.key === 'administration' ? (
+                      <WorkspaceSettingsRoute />
+                    ) : (
+                      <UnavailableFeature featureKey={feature.key} />
+                    ),
+                })),
+                ...PRODUCT_MODULE_REGISTRY.map((module) => ({
+                  path: `modules/${module.slug}`,
+                  element: <Suspended><ProductModuleWorkbench module={module} /></Suspended>,
+                })),
+                { path: 'debug/route-error', element: <RouteFailure /> },
+                { path: '*', element: <NotFoundPage /> },
+              ],
+            },
+          ],
+        },
       ],
     },
     {
@@ -135,15 +180,21 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
 
 export interface CreateAppRouterOptions {
   readonly accessContext?: WebAccessContext;
+  readonly authenticationState?: WebAuthenticationStateV1;
   readonly initialEntries?: readonly string[];
 }
 
 export function createAppRouter(options: CreateAppRouterOptions = {}) {
+  initializeWebAuthenticationStateV1(options.authenticationState ?? 'signed-in');
   return createMemoryRouter(createRoutes(options.accessContext ?? DEFAULT_ACCESS_CONTEXT), {
     initialEntries: [...(options.initialEntries ?? [`/${DEFAULT_LOCALE_V1}/dashboards`])],
   });
 }
 
-export function createBrowserAppRouter(accessContext: WebAccessContext = DEFAULT_ACCESS_CONTEXT) {
+export function createBrowserAppRouter(
+  accessContext: WebAccessContext = EMPTY_ACCESS_CONTEXT,
+  authenticationState: WebAuthenticationStateV1 = currentWebAuthenticationStateV1(),
+) {
+  initializeWebAuthenticationStateV1(authenticationState);
   return createBrowserRouter(createRoutes(accessContext));
 }

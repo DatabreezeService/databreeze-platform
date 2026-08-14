@@ -67,7 +67,10 @@ export class FreshnessService {
     readonly authorizedPermissionProjectionVersionId: string;
     readonly nowMs: number;
   }): Promise<FreshnessResultV1> {
-    const snapshot = await this.coordinator.getCurrentSnapshot(input.dashboardId);
+    const snapshot = await this.coordinator.getCurrentSnapshot(
+      input.tenantScope,
+      input.dashboardId,
+    );
     if (!snapshot) {
       return Object.freeze({ accepted: false, code: 'DASHBOARD_NOT_FOUND' });
     }

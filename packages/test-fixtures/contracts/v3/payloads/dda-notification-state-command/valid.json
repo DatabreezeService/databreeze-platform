@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 3,
+  "state": "READ",
+  "expectedRevision": 4,
+  "idempotencyKey": "notification-read-00000000"
+}

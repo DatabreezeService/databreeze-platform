@@ -9,6 +9,9 @@ export interface TableExtractionPortV1 {
     readonly pageCount: number;
   }): Promise<
     | { readonly accepted: true; readonly candidate: TableExtractionRawCandidateV1 }
-    | { readonly accepted: false; readonly code: 'PROVIDER_DISABLED' | 'PROVIDER_TIMEOUT' | 'MALFORMED_JSON' }
+    | {
+        readonly accepted: false;
+        readonly code: 'PROVIDER_DISABLED' | 'PROVIDER_TIMEOUT' | 'MALFORMED_JSON';
+      }
   >;
 }

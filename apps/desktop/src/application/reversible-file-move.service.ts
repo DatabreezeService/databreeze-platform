@@ -82,9 +82,7 @@ function uniqueDestination(
   existsSync: (relativePath: string) => Promise<boolean>,
 ): Promise<string> {
   const normalizedDir = normalizeRelative(directory).replace(/\/$/, '');
-  const base = fileName.includes('.')
-    ? fileName.slice(0, fileName.lastIndexOf('.'))
-    : fileName;
+  const base = fileName.includes('.') ? fileName.slice(0, fileName.lastIndexOf('.')) : fileName;
   const ext = fileName.includes('.') ? fileName.slice(fileName.lastIndexOf('.')) : '';
   let candidate = `${normalizedDir}/${fileName}`;
   let index = 1;

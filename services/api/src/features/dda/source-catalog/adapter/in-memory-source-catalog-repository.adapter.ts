@@ -1,6 +1,7 @@
 import {
   tenantScopeContainsV1,
   type StableIdentifierV1,
+  type TenantScopeV1,
 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { IamTenantContextV1 } from '../../../iam/application/tenant-context.js';
@@ -15,19 +16,49 @@ function clone(record: SourceCatalogRecordV1): SourceCatalogRecordV1 {
     ...(record.deniedPrincipalIds
       ? { deniedPrincipalIds: Object.freeze([...record.deniedPrincipalIds]) }
       : {}),
-    ...(record.evidenceOverlay ? { evidenceOverlay: Object.freeze({ ...record.evidenceOverlay }) } : {}),
+    ...(record.evidenceOverlay
+      ? { evidenceOverlay: Object.freeze({ ...record.evidenceOverlay }) }
+      : {}),
   });
 }
 
+export interface SourceCatalogAssignmentRecordV1 {
+  readonly id: StableIdentifierV1;
+  readonly organizationId: StableIdentifierV1;
+  readonly workspaceId: StableIdentifierV1;
+  readonly projectId?: StableIdentifierV1;
+  readonly sourceId: StableIdentifierV1;
+  readonly dsmDatasetId: StableIdentifierV1;
+  readonly status: string;
+}
+
+function sourceScope(record: {
+  readonly organizationId: StableIdentifierV1;
+  readonly workspaceId: StableIdentifierV1;
+  readonly projectId?: StableIdentifierV1;
+}): TenantScopeV1 {
+  return record.projectId === undefined
+    ? {
+        scopeType: 'workspace',
+        organizationId: record.organizationId,
+        workspaceId: record.workspaceId,
+      }
+    : {
+        scopeType: 'project',
+        organizationId: record.organizationId,
+        workspaceId: record.workspaceId,
+        projectId: record.projectId,
+      };
+}
+
 function visible(context: IamTenantContextV1, record: SourceCatalogRecordV1): boolean {
-  if (context.tenantScope.scopeType !== 'workspace') return false;
-  if (record.organizationId !== context.tenantScope.organizationId) return false;
-  if (record.workspaceId !== context.tenantScope.workspaceId) return false;
-  return tenantScopeContainsV1(context.tenantScope, {
-    scopeType: 'workspace',
-    organizationId: record.organizationId,
-    workspaceId: record.workspaceId,
-  });
+  const recordScope = sourceScope(record);
+  // Workspace rows are inherited by project contexts; project rows are visible
+  // to their workspace ancestor, but never to a sibling project.
+  return (
+    tenantScopeContainsV1(context.tenantScope, recordScope) ||
+    tenantScopeContainsV1(recordScope, context.tenantScope)
+  );
 }
 
 function authorized(context: IamTenantContextV1, record: SourceCatalogRecordV1): boolean {
@@ -37,9 +68,36 @@ function authorized(context: IamTenantContextV1, record: SourceCatalogRecordV1):
 /** Deterministic local adapter for DDA-052 source catalog records. */
 export class InMemorySourceCatalogRepositoryAdapter implements SourceCatalogRepositoryPortV1 {
   private records: SourceCatalogRecordV1[] = [];
+  private assignments: SourceCatalogAssignmentRecordV1[] = [];
 
   public seed(records: readonly SourceCatalogRecordV1[]): void {
     this.records = records.map((record) => clone(record));
+    this.assignments = records.map((record) => ({
+      id: record.id,
+      organizationId: record.organizationId,
+      workspaceId: record.workspaceId,
+      ...(record.projectId === undefined ? {} : { projectId: record.projectId }),
+      sourceId: record.id,
+      dsmDatasetId: record.dsmDatasetId,
+      status: 'ACTIVE',
+    }));
+  }
+
+  public seedAssignments(assignments: readonly SourceCatalogAssignmentRecordV1[]): void {
+    this.assignments = assignments.map((assignment) => Object.freeze({ ...assignment }));
+  }
+
+  private hasCanonicalActiveAssignment(record: SourceCatalogRecordV1): boolean {
+    const activeAssignments = this.assignments.filter(
+      (assignment) =>
+        assignment.status === 'ACTIVE' &&
+        assignment.organizationId === record.organizationId &&
+        assignment.workspaceId === record.workspaceId &&
+        assignment.sourceId === record.id,
+    );
+    return (
+      activeAssignments.length === 1 && activeAssignments[0]?.dsmDatasetId === record.dsmDatasetId
+    );
   }
 
   public async listByDataset(
@@ -52,6 +110,7 @@ export class InMemorySourceCatalogRepositoryAdapter implements SourceCatalogRepo
         (record) =>
           visible(context, record) &&
           authorized(context, record) &&
+          this.hasCanonicalActiveAssignment(record) &&
           record.dsmDatasetId === datasetId,
       )
       .map((record) => clone(record));
@@ -63,7 +122,13 @@ export class InMemorySourceCatalogRepositoryAdapter implements SourceCatalogRepo
   ): Promise<SourceCatalogRecordV1 | undefined> {
     await Promise.resolve();
     const record = this.records.find((item) => item.id === sourceId);
-    if (!record || !visible(context, record) || !authorized(context, record)) return undefined;
+    if (
+      !record ||
+      !visible(context, record) ||
+      !authorized(context, record) ||
+      !this.hasCanonicalActiveAssignment(record)
+    )
+      return undefined;
     return clone(record);
   }
 }

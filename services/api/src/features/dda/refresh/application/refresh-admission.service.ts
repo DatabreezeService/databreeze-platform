@@ -35,9 +35,11 @@ export class RefreshAdmissionService {
     readonly scopeLevel: RefreshUsageScopeLevelV1;
     readonly usageClasses: readonly RefreshUsageClassV1[];
   }): Promise<RefreshAdmissionResultV1> {
-    void input.tenantScope;
     // Preserve last-good by never mutating snapshot pointer on deny paths.
-    const lastGood = await this.coordinator.getCurrentSnapshot(input.dashboardId);
+    const lastGood = await this.coordinator.getCurrentSnapshot(
+      input.tenantScope,
+      input.dashboardId,
+    );
     void lastGood;
 
     for (const usageClass of input.usageClasses) {

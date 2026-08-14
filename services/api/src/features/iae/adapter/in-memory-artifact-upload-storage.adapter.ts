@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 import type {
   ArtifactUploadPartV1,
@@ -11,6 +11,7 @@ import type {
   ArtifactUploadPartTransferV1,
   ArtifactUploadStoragePortV1,
   ArtifactUploadStorageResultV1,
+  ArtifactUploadVerifiedStorageV1,
 } from '../application/artifact-upload-storage.port.js';
 
 function accepted<TValue>(value: TValue): ArtifactUploadStorageResultV1<TValue> {
@@ -27,33 +28,62 @@ function rejected<TValue>(
 export class InMemoryArtifactUploadStorageAdapter implements ArtifactUploadStoragePortV1 {
   private transfers = new Map<
     string,
-    { readonly sessionId: string; readonly partNumber: number }
+    {
+      readonly sessionId: string;
+      readonly partNumber: number;
+      readonly contentSha256: string;
+      readonly byteSize: number;
+      readonly expiresAt: number;
+    }
   >();
   private parts = new Map<string, ArtifactUploadPartV1>();
   private finalized = new Set<string>();
 
+  public constructor(private readonly clock: () => Date = () => new Date()) {}
+
   public async issuePartTransfer(
     context: IamTenantContextV1,
     session: ArtifactUploadSessionV1,
-    partNumber: number,
+    input: {
+      readonly partNumber: number;
+      readonly contentSha256: string;
+      readonly byteSize: number;
+    },
   ): Promise<ArtifactUploadStorageResultV1<ArtifactUploadPartTransferV1>> {
     await Promise.resolve();
     if (!tenantScopeContainsV1(context.tenantScope, session.tenantScope))
       return rejected('UPLOAD_STORAGE_SCOPE_DENIED');
     if (
       session.state !== 'OPEN' ||
-      !Number.isSafeInteger(partNumber) ||
-      partNumber < 1 ||
-      partNumber > session.totalParts
+      !Number.isSafeInteger(input.partNumber) ||
+      input.partNumber < 1 ||
+      input.partNumber > session.totalParts ||
+      !/^[0-9a-f]{64}$/u.test(input.contentSha256) ||
+      !Number.isSafeInteger(input.byteSize) ||
+      input.byteSize < 0 ||
+      input.byteSize > session.partSize
     )
       return rejected('UPLOAD_STORAGE_NOT_READY');
     const transferId = randomUUID();
-    this.transfers.set(transferId, { sessionId: session.sessionId, partNumber });
+    const expiresAt = Math.min(this.clock().getTime() + 300_000, Date.parse(session.expiresAt));
+    this.transfers.set(transferId, {
+      sessionId: session.sessionId,
+      partNumber: input.partNumber,
+      contentSha256: input.contentSha256,
+      byteSize: input.byteSize,
+      expiresAt,
+    });
     return accepted({
       transferId,
       sessionId: session.sessionId,
-      partNumber,
-      expiresAt: session.expiresAt,
+      partNumber: input.partNumber,
+      method: 'PUT',
+      url: `memory://artifact-upload/${transferId}`,
+      requiredHeaders: Object.freeze({
+        'content-length': String(input.byteSize),
+        'x-amz-checksum-sha256': Buffer.from(input.contentSha256, 'hex').toString('base64'),
+      }),
+      expiresAt: new Date(expiresAt).toISOString() as ArtifactUploadSessionV1['expiresAt'],
     });
   }
 
@@ -72,7 +102,10 @@ export class InMemoryArtifactUploadStorageAdapter implements ArtifactUploadStora
       if (
         transfer === undefined ||
         transfer.sessionId !== session.sessionId ||
-        transfer.partNumber !== part.partNumber
+        transfer.partNumber !== part.partNumber ||
+        transfer.contentSha256 !== part.contentSha256 ||
+        transfer.byteSize !== part.byteSize ||
+        transfer.expiresAt <= this.clock().getTime()
       )
         return rejected('UPLOAD_STORAGE_TRANSFER_INVALID');
       this.transfers.delete(transferId);
@@ -92,11 +125,11 @@ export class InMemoryArtifactUploadStorageAdapter implements ArtifactUploadStora
     context: IamTenantContextV1,
     session: ArtifactUploadSessionV1,
     assembledSha256: string,
-  ): Promise<ArtifactUploadStorageResultV1<void>> {
+  ): Promise<ArtifactUploadStorageResultV1<ArtifactUploadVerifiedStorageV1>> {
     await Promise.resolve();
     if (!tenantScopeContainsV1(context.tenantScope, session.tenantScope))
       return rejected('UPLOAD_STORAGE_SCOPE_DENIED');
-    if (session.state !== 'OPEN') return rejected('UPLOAD_STORAGE_NOT_READY');
+    if (session.state !== 'FINALIZING') return rejected('UPLOAD_STORAGE_NOT_READY');
     if (assembledSha256 !== session.expectedSha256)
       return rejected('UPLOAD_STORAGE_DIGEST_MISMATCH');
     if (session.parts.length !== session.totalParts) return rejected('UPLOAD_STORAGE_NOT_READY');
@@ -105,7 +138,12 @@ export class InMemoryArtifactUploadStorageAdapter implements ArtifactUploadStora
         return rejected('UPLOAD_STORAGE_NOT_READY');
     }
     this.finalized.add(session.sessionId);
-    return accepted(undefined);
+    return accepted({
+      opaqueLocator: createHash('sha256')
+        .update(`memory:${session.sessionId}`)
+        .digest('base64url'),
+      objectVersionId: `memory-${session.revision}`,
+    });
   }
 
   public async abort(context: IamTenantContextV1, session: ArtifactUploadSessionV1): Promise<void> {

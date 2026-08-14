@@ -1,64 +1,304 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Optional,
+  Param,
+  Post,
+  Query,
+  Req,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
-import { parseTenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
+import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
+import {
+  ReceiptExtractionService,
+  type ReceiptExtractionErrorCode,
+} from '../application/receipt-extraction.service.js';
+import {
+  RECEIPT_EXTRACTION_COMMAND_REPOSITORY_PORT,
+  UnavailableReceiptExtractionCommandRepositoryAdapter,
+  type ReceiptExtractionCommandRepositoryPortV1,
+} from '../application/receipt-extraction-command.port.js';
+import {
+  RECEIPT_MUTATION_AUTHORIZATION_PORT,
+  UnavailableReceiptMutationAuthorizationAdapter,
+  type ReceiptMutationAuthorizationPortV1,
+} from '../application/receipt-mutation-authorization.port.js';
 import type {
+  ReceiptCandidateReadQueryDto,
   ReceiptCorrectionRequestDto,
   ReceiptExtractionRequestDto,
 } from './receipt-extraction.dto.js';
-import { ReceiptExtractionService } from '../application/receipt-extraction.service.js';
+import {
+  REQUEST_TENANT_CONTEXT,
+  RequestTenantContextProblemError,
+  UnavailableRequestTenantContextAdapter,
+  type RequestTenantContextPortV1,
+} from '../../../../platform/http/request-tenant-context.port.js';
 
-/** Nest HTTP surface composed by plan 087; leaf service remains 086-owned. */
+const AUTHORITY_FIELDS = new Set([
+  'context',
+  'tenantScope',
+  'memberAuthorized',
+  'actor',
+  'actorId',
+  'memberId',
+  'organizationId',
+  'orgId',
+  'workspaceId',
+  'projectId',
+  'authorization',
+  'authorized',
+  'role',
+]);
+const SAFE_RECEIPT_ERROR = Object.freeze({ error: 'DDA_RECEIPT_REJECTED' });
+
+function hasClientAuthorityField(value: unknown, depth = 0): boolean {
+  if (depth > 8 || typeof value !== 'object' || value === null) return false;
+  if (Array.isArray(value)) return value.some((item) => hasClientAuthorityField(item, depth + 1));
+  return Object.entries(value).some(
+    ([key, child]) => AUTHORITY_FIELDS.has(key) || hasClientAuthorityField(child, depth + 1),
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isNonEmptyText(value: unknown): value is string {
+  return (
+    typeof value === 'string' && value.length > 0 && value.length <= 512 && !/\p{Cc}/u.test(value)
+  );
+}
+
+function isStableIdentifier(value: unknown): value is string {
+  return parseStableIdentifierV1(value).accepted;
+}
+
+function isFieldUpdates(value: unknown): value is Readonly<Record<string, string>> {
+  return (
+    isRecord(value) &&
+    Object.entries(value).every(
+      ([key, child]) => isNonEmptyText(key) && typeof child === 'string' && child.length <= 10_000,
+    )
+  );
+}
+
+function receiptProblemStatus(code: ReceiptExtractionErrorCode): HttpStatus {
+  if (code === 'WRONG_SCOPE_ARTIFACT' || code === 'CANDIDATE_NOT_FOUND') {
+    return HttpStatus.NOT_FOUND;
+  }
+  if (
+    code === 'AI_EGRESS_DENIED' ||
+    code === 'PURPOSE_DENIED' ||
+    code === 'EVIDENCE_TRANSFER_DENIED' ||
+    code === 'DISCLOSURE_MISSING' ||
+    code === 'TENANT_REVOKED'
+  )
+    return HttpStatus.FORBIDDEN;
+  if (code === 'ADMISSION_DENIED') return HttpStatus.TOO_MANY_REQUESTS;
+  if (
+    code === 'NON_RECEIPT_PROFILE' ||
+    code === 'UNSUPPORTED_CONTENT_TYPE' ||
+    code === 'INVALID_CORRECTION'
+  )
+    return HttpStatus.BAD_REQUEST;
+  if (code === 'AUTHORIZATION_DENIED') return HttpStatus.FORBIDDEN;
+  if (code === 'COMMAND_CONFLICT') return HttpStatus.CONFLICT;
+  if (code === 'HASH_MISMATCH' || code === 'PAYLOAD_OVERSIZE' || code === 'MALFORMED_COORDINATES')
+    return HttpStatus.UNPROCESSABLE_ENTITY;
+  return HttpStatus.SERVICE_UNAVAILABLE;
+}
+
+function throwReceiptProblem(code: ReceiptExtractionErrorCode): never {
+  throw new HttpException(SAFE_RECEIPT_ERROR, receiptProblemStatus(code));
+}
+
+/** Nest HTTP surface for governed receipt extraction and correction. */
 @ApiTags('dda-receipts')
 @ApiTags('dda')
 @ApiBearerAuth()
 @Controller('v1/dda/receipts')
 export class ReceiptExtractionController {
-  public constructor(private readonly service: ReceiptExtractionService) {}
+  private readonly requestContext: RequestTenantContextPortV1;
+  private readonly commands: ReceiptExtractionCommandRepositoryPortV1;
+  private readonly mutationAuthorization: ReceiptMutationAuthorizationPortV1;
+
+  public constructor(
+    private readonly service: ReceiptExtractionService,
+    @Optional()
+    @Inject(REQUEST_TENANT_CONTEXT)
+    requestContext?: RequestTenantContextPortV1,
+    @Optional()
+    @Inject(RECEIPT_EXTRACTION_COMMAND_REPOSITORY_PORT)
+    commands?: ReceiptExtractionCommandRepositoryPortV1,
+    @Optional()
+    @Inject(RECEIPT_MUTATION_AUTHORIZATION_PORT)
+    mutationAuthorization?: ReceiptMutationAuthorizationPortV1,
+  ) {
+    this.requestContext = requestContext ?? new UnavailableRequestTenantContextAdapter();
+    this.commands = commands ?? new UnavailableReceiptExtractionCommandRepositoryAdapter();
+    this.mutationAuthorization =
+      mutationAuthorization ?? new UnavailableReceiptMutationAuthorizationAdapter();
+  }
 
   @Post('extract')
-  public async extract(@Body() body: ReceiptExtractionRequestDto): Promise<{
-    readonly statusCode: number;
-    readonly body: Record<string, unknown>;
-  }> {
-    const scope = parseTenantScopeV1(body.tenantScope);
-    if (!scope.accepted) {
-      return { statusCode: 400, body: { code: 'INVALID_SCOPE' } };
+  @HttpCode(HttpStatus.OK)
+  public async extract(
+    @Req() request: unknown,
+    @Body() body: ReceiptExtractionRequestDto,
+  ): Promise<Record<string, unknown>> {
+    this.rejectClientAuthority(body, request);
+    if (
+      !isRecord(body) ||
+      !isStableIdentifier(body.artifactVersionId) ||
+      !isStableIdentifier(body.profileVersionId) ||
+      !isNonEmptyText(body.profileKind) ||
+      !isStableIdentifier(body.correlationId) ||
+      (body.idempotencyKey !== undefined && !isNonEmptyText(body.idempotencyKey))
+    ) {
+      throw new BadRequestException();
     }
-    const result = await this.service.extract({
-      tenantScope: scope.value,
-      artifactVersionId: body.artifactVersionId,
-      profileVersionId: body.profileVersionId,
-      profileKind: body.profileKind,
-      correlationId: body.correlationId,
-      ...(body.idempotencyKey ? { idempotencyKey: body.idempotencyKey } : {}),
-    });
-    if (!result.accepted) {
-      const statusCode = result.code === 'WRONG_SCOPE_ARTIFACT' ? 403 : 422;
-      return { statusCode, body: { code: result.code } };
+    const context = await this.resolveContext(request);
+    let result: Awaited<ReturnType<ReceiptExtractionService['extract']>>;
+    try {
+      const serviceInput = {
+        tenantScope: context.tenantScope,
+        context,
+        actorId: context.actorId,
+        artifactVersionId: body.artifactVersionId,
+        profileVersionId: body.profileVersionId,
+        profileKind: body.profileKind,
+        correlationId: body.correlationId,
+        ...(body.idempotencyKey ? { idempotencyKey: body.idempotencyKey } : {}),
+      };
+      result = await this.service.extract(serviceInput);
+    } catch {
+      throw new ServiceUnavailableException();
     }
-    return { statusCode: 200, body: result.value as unknown as Record<string, unknown> };
+    if (!result.accepted) throwReceiptProblem(result.code);
+    return result.value as unknown as Record<string, unknown>;
   }
 
   @Post('correct')
-  public async correct(@Body() body: ReceiptCorrectionRequestDto): Promise<{
-    readonly statusCode: number;
-    readonly body: Record<string, unknown>;
-  }> {
-    const scope = parseTenantScopeV1(body.tenantScope);
-    if (!scope.accepted) {
-      return { statusCode: 400, body: { code: 'INVALID_SCOPE' } };
+  @HttpCode(HttpStatus.OK)
+  public async correct(
+    @Req() request: unknown,
+    @Body() body: ReceiptCorrectionRequestDto,
+  ): Promise<Record<string, unknown>> {
+    this.rejectClientAuthority(body, request);
+    if (
+      !isRecord(body) ||
+      !isStableIdentifier(body.priorCandidateId) ||
+      !isStableIdentifier(body.artifactVersionId) ||
+      !isStableIdentifier(body.correlationId) ||
+      !isFieldUpdates(body.fieldUpdates) ||
+      (body.idempotencyKey !== undefined && !isNonEmptyText(body.idempotencyKey))
+    ) {
+      throw new BadRequestException();
     }
-    const result = await this.service.correct({
-      tenantScope: scope.value,
-      priorCandidateId: body.priorCandidateId,
-      correlationId: body.correlationId,
-      fieldUpdates: body.fieldUpdates,
-    });
-    if (!result.accepted) {
-      return { statusCode: 422, body: { code: result.code } };
+    const context = await this.resolveContext(request);
+    let result: Awaited<ReturnType<ReceiptExtractionService['correct']>>;
+    try {
+      const serviceInput = {
+        tenantScope: context.tenantScope,
+        context,
+        actorId: context.actorId,
+        priorCandidateId: body.priorCandidateId,
+        artifactVersionId: body.artifactVersionId,
+        correlationId: body.correlationId,
+        fieldUpdates: body.fieldUpdates,
+        ...(body.idempotencyKey ? { idempotencyKey: body.idempotencyKey } : {}),
+      };
+      result = await this.service.correct(serviceInput);
+    } catch {
+      throw new ServiceUnavailableException();
     }
-    return { statusCode: 200, body: result.value as unknown as Record<string, unknown> };
+    if (!result.accepted) throwReceiptProblem(result.code);
+    return result.value as unknown as Record<string, unknown>;
+  }
+
+  @Get('candidates/:candidateId')
+  @HttpCode(HttpStatus.OK)
+  public async readCandidate(
+    @Req() request: unknown,
+    @Param('candidateId') candidateId: string,
+    @Query() query: ReceiptCandidateReadQueryDto,
+  ): Promise<Record<string, unknown>> {
+    this.rejectClientAuthority(query, request);
+    if (
+      !isStableIdentifier(candidateId) ||
+      !isRecord(query) ||
+      !isStableIdentifier(query.artifactVersionId)
+    ) {
+      throw new BadRequestException();
+    }
+    const context = await this.resolveContext(request);
+    let authorization: Awaited<ReturnType<ReceiptMutationAuthorizationPortV1['authorize']>>;
+    try {
+      authorization = await this.mutationAuthorization.authorize({
+        context,
+        action: 'RECEIPT_CORRECT',
+        artifactVersionId: query.artifactVersionId,
+        candidateId,
+      });
+    } catch {
+      throwReceiptProblem('AUTHORIZATION_UNAVAILABLE');
+    }
+    if (!authorization.accepted) {
+      throwReceiptProblem(
+        authorization.code === 'FORBIDDEN' ? 'AUTHORIZATION_DENIED' : 'AUTHORIZATION_UNAVAILABLE',
+      );
+    }
+
+    let candidate: Awaited<ReturnType<ReceiptExtractionCommandRepositoryPortV1['findCandidate']>>;
+    try {
+      candidate = await this.commands.findCandidate({
+        tenantScope: context.tenantScope,
+        candidateId,
+        artifactVersionId: query.artifactVersionId,
+      });
+    } catch {
+      throwReceiptProblem('COMMAND_REPOSITORY_UNAVAILABLE');
+    }
+    if (candidate === undefined) throwReceiptProblem('CANDIDATE_NOT_FOUND');
+    return candidate as unknown as Record<string, unknown>;
+  }
+
+  private rejectClientAuthority(body: unknown, request: unknown): void {
+    const requestRecord =
+      typeof request === 'object' && request !== null && !Array.isArray(request)
+        ? (request as Record<string, unknown>)
+        : undefined;
+    if (
+      hasClientAuthorityField(body) ||
+      hasClientAuthorityField(requestRecord?.['body']) ||
+      hasClientAuthorityField(requestRecord?.['query']) ||
+      hasClientAuthorityField(requestRecord?.['params'])
+    ) {
+      throw new BadRequestException();
+    }
+  }
+
+  private async resolveContext(request: unknown) {
+    try {
+      return await this.requestContext.resolve(request);
+    } catch (error) {
+      if (error instanceof RequestTenantContextProblemError) {
+        if (error.code === 'CONTEXT_INVALID') throw new BadRequestException();
+        if (error.code === 'AUTHENTICATION_FAILED') throw new UnauthorizedException();
+        throw new ServiceUnavailableException();
+      }
+      throw new ServiceUnavailableException();
+    }
   }
 }

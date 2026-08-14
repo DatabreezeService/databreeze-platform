@@ -4,7 +4,6 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -23,22 +22,9 @@ class MainActivityTest {
     }
 
     @Test
-    fun receipt_capture_survives_activity_recreation_after_confirm() {
-        val queuedText = composeRule.activity.getString(R.string.receipt_capture_upload_queued)
+    fun receipt_capture_fails_closed_without_a_protected_authenticated_session() {
         composeRule.onNodeWithTag("capture-button").performClick()
-        composeRule.onNodeWithTag("receipt-capture-screen").assertIsDisplayed()
-        composeRule.onNodeWithTag("receipt-capture-shutter").performClick()
-        composeRule.onNodeWithTag("receipt-capture-confirm").performClick()
-        composeRule.waitUntil(timeoutMillis = 5_000) {
-            runCatching {
-                composeRule.onNodeWithText(queuedText).assertIsDisplayed()
-                true
-            }.getOrDefault(false) ||
-                runCatching {
-                    composeRule.onNodeWithTag("receipt-review-screen").assertIsDisplayed()
-                    true
-                }.getOrDefault(false)
-        }
+        composeRule.onNodeWithTag("authenticated-runtime-required").assertIsDisplayed()
 
         composeRule.activityRule.scenario.recreate()
         composeRule.onNodeWithTag("home-screen").assertIsDisplayed()
@@ -67,6 +53,6 @@ class MainActivityTest {
         composeRule.onNodeWithContentDescription(openCaptureDescription).performClick()
         composeRule.onNodeWithTag("module-detail-operations-capture").assertIsDisplayed()
         composeRule.onNodeWithTag("module-open-capture").performClick()
-        composeRule.onNodeWithTag("receipt-capture-screen").assertIsDisplayed()
+        composeRule.onNodeWithTag("authenticated-runtime-required").assertIsDisplayed()
     }
 }

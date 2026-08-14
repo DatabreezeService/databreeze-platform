@@ -24,6 +24,7 @@ import { SessionProblemError } from '../application/session-problem.error.js';
 import {
   CSRF_COOKIE_NAME_V1,
   REFRESH_COOKIE_NAME_V1,
+  REFRESH_COOKIE_PATH_V1,
   clearCookieV1,
   readCookieValueV1,
   serializeCookieV1,
@@ -31,7 +32,6 @@ import {
 import { AuthSessionDto } from './auth-session.dto.js';
 import { SignInDto } from './sign-in.dto.js';
 import { SessionRefreshDto } from './session-refresh.dto.js';
-import { SessionRefreshResponseDto } from './session-refresh-response.dto.js';
 import { SessionSignOutDto } from './session-sign-out.dto.js';
 import { CurrentSessionDto } from './current-session.dto.js';
 import {
@@ -91,6 +91,7 @@ export class AuthenticationController {
         serializeCookieV1(REFRESH_COOKIE_NAME_V1, result.value.session.refreshToken, {
           httpOnly: true,
           maxAgeSeconds: 2_592_000,
+          path: REFRESH_COOKIE_PATH_V1,
         }),
         serializeCookieV1(CSRF_COOKIE_NAME_V1, csrfToken, {
           httpOnly: false,
@@ -99,6 +100,7 @@ export class AuthenticationController {
       ]);
     }
     return {
+      schemaVersion: 4,
       sessionId: result.value.session.sessionId,
       userId: result.value.principal.userId,
       organizationId: result.value.principal.organizationId,
@@ -118,14 +120,14 @@ export class AuthenticationController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Rotate a short-lived session' })
   @ApiBody({ type: SessionRefreshDto })
-  @ApiOkResponse({ type: SessionRefreshResponseDto })
+  @ApiOkResponse({ type: AuthSessionDto })
   @ApiUnauthorizedResponse({ description: 'The refresh session was rejected.' })
   @ApiServiceUnavailableResponse({ description: 'Session persistence is unavailable.' })
   async refresh(
     @Body() input: SessionRefreshDto,
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
-  ): Promise<SessionRefreshResponseDto> {
+  ): Promise<AuthSessionDto> {
     if (this.sessions === undefined) throw new SessionProblemError('SESSION_UNAVAILABLE');
     const refreshToken =
       input.clientPlatform === 'web'
@@ -144,12 +146,27 @@ export class AuthenticationController {
       throw new SessionProblemError('SESSION_UNAVAILABLE');
     }
     if (!result.accepted) throw new SessionProblemError('SESSION_INVALID');
+    let principal: Awaited<ReturnType<SessionLifecyclePortV1['findPrincipal']>>;
+    try {
+      principal = await this.sessions.findPrincipal(result.value.sessionId);
+    } catch {
+      throw new SessionProblemError('SESSION_UNAVAILABLE');
+    }
+    if (!principal) {
+      try {
+        await this.sessions.revoke(result.value.sessionId);
+      } catch {
+        // The public result remains identity-safe even when best-effort cleanup is unavailable.
+      }
+      throw new SessionProblemError('SESSION_INVALID');
+    }
     if (input.clientPlatform === 'web') {
       const csrfToken = randomBytes(32).toString('base64url');
       reply.header('Set-Cookie', [
         serializeCookieV1(REFRESH_COOKIE_NAME_V1, result.value.refreshToken, {
           httpOnly: true,
           maxAgeSeconds: 2_592_000,
+          path: REFRESH_COOKIE_PATH_V1,
         }),
         serializeCookieV1(CSRF_COOKIE_NAME_V1, csrfToken, {
           httpOnly: false,
@@ -158,10 +175,17 @@ export class AuthenticationController {
       ]);
     }
     return {
+      schemaVersion: 4,
       sessionId: result.value.sessionId,
+      userId: principal.userId,
+      organizationId: principal.organizationId,
+      workspaceId: principal.workspaceId,
       accessToken: result.value.accessToken,
       accessExpiresAt: result.value.accessExpiresAt,
       ...(input.clientPlatform === 'web' ? {} : { refreshToken: result.value.refreshToken }),
+      securityEpoch: principal.securityEpoch,
+      mfaRequired: principal.mfaRequired,
+      mfaReenrollmentRequired: principal.mfaReenrollmentRequired,
     };
   }
 
@@ -197,7 +221,10 @@ export class AuthenticationController {
     }
     if (input.clientPlatform === 'web') {
       reply.header('Set-Cookie', [
-        clearCookieV1(REFRESH_COOKIE_NAME_V1, { httpOnly: true }),
+        clearCookieV1(REFRESH_COOKIE_NAME_V1, {
+          httpOnly: true,
+          path: REFRESH_COOKIE_PATH_V1,
+        }),
         clearCookieV1(CSRF_COOKIE_NAME_V1, { httpOnly: false }),
       ]);
     }

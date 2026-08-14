@@ -60,6 +60,9 @@ export class BootstrapOrganizationDto {
 }
 
 export class BootstrapScopeDto {
+  @ApiProperty({ enum: ['organization', 'workspace', 'project'] })
+  scopeType!: 'organization' | 'workspace' | 'project';
+
   @ApiProperty({ format: 'uuid' })
   organizationId!: string;
 
@@ -71,6 +74,9 @@ export class BootstrapScopeDto {
 }
 
 export class BootstrapSessionDto {
+  @ApiProperty({ enum: ['organization', 'workspace', 'project'] })
+  scopeType!: 'organization' | 'workspace' | 'project';
+
   @ApiProperty({ format: 'uuid' })
   organizationId!: string;
 
@@ -107,8 +113,11 @@ export class BootstrapValueDto {
 }
 
 export class BootstrapResponseDto {
-  @ApiProperty()
-  accepted!: boolean;
+  @ApiProperty({ enum: [4] })
+  schemaVersion!: 4;
+
+  @ApiProperty({ enum: ['ACCEPTED', 'REJECTED'] })
+  outcome!: 'ACCEPTED' | 'REJECTED';
 
   @ApiPropertyOptional({ type: BootstrapValueDto })
   value?: BootstrapValueDto;
