@@ -101,6 +101,84 @@ class AnalysisPlanValue(ClosedModel):
 class AvailablePreview(ClosedModel):
     available: Literal[True]
 
+class BuaPayosCheckoutCommand(ClosedModel):
+    planId: Literal["personal-monthly", "personal-annual", "professional-monthly", "professional-annual", "team-monthly", "team-annual"]
+    schemaVersion: Literal[4]
+
+class BuaPayosCheckoutSession(ClosedModel):
+    amountVnd: Annotated[int, Field(strict=True, ge=1)]
+    checkoutUrl: Annotated[StrictStr, StringConstraints(pattern=r"^https://")] | None = None
+    currency: Literal["VND"]
+    orderCode: Annotated[int, Field(strict=True, ge=1)]
+    paymentOrderId: Identifier
+    planId: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    schemaVersion: Literal[4]
+    status: Literal["PENDING", "PAID", "CANCELLED", "FAILED"]
+
+class BuaPayosPaymentStatus(ClosedModel):
+    amountVnd: Annotated[int, Field(strict=True, ge=1)]
+    checkoutUrl: Annotated[StrictStr, StringConstraints(pattern=r"^https://")] | None = None
+    currency: Literal["VND"]
+    orderCode: Annotated[int, Field(strict=True, ge=1)]
+    paymentOrderId: Identifier
+    planId: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    schemaVersion: Literal[4]
+    status: Literal["PENDING", "PAID", "CANCELLED", "FAILED"]
+
+class BuaPayosPlanCatalog(ClosedModel):
+    plans: list[BuaPayosPlanCatalogPlansItem]
+    schemaVersion: Literal[4]
+
+class BuaPayosPlanCatalogAllowances(ClosedModel):
+    agentCreditsPerMonth: Annotated[int, Field(strict=True, ge=0)]
+    agentEnabledMembers: Annotated[int, Field(strict=True, ge=0)]
+    connectedFolders: Literal["unlimited"]
+    etlRowsPerMonth: Annotated[int, Field(strict=True, ge=0)]
+    governedStorageGb: Annotated[int, Field(strict=True, ge=0)]
+    logicalDatasets: Annotated[int, Field(strict=True, ge=0)]
+    ocrPagesPerMonth: Annotated[int, Field(strict=True, ge=0)]
+    refreshMinutes: Annotated[int, Field(strict=True, ge=1)]
+    viewerMembers: Annotated[int, Field(strict=True, ge=0)]
+    workspaces: Annotated[int, Field(strict=True, ge=0)]
+
+class BuaPayosPlanCatalogPlansItem(ClosedModel):
+    allowances: BuaPayosPlanCatalogAllowances
+    amountVnd: Annotated[int, Field(strict=True, ge=1)]
+    benefitsEn: Annotated[list[Annotated[StrictStr, StringConstraints(min_length=1, max_length=160)]], Field(min_length=1, max_length=8)]
+    benefitsVi: Annotated[list[Annotated[StrictStr, StringConstraints(min_length=1, max_length=160)]], Field(min_length=1, max_length=8)]
+    billingCycle: Literal["monthly", "annual"]
+    description: Annotated[StrictStr, StringConstraints(min_length=1, max_length=25)]
+    displayNameEn: Annotated[StrictStr, StringConstraints(min_length=1, max_length=80)]
+    displayNameVi: Annotated[StrictStr, StringConstraints(min_length=1, max_length=80)]
+    family: Literal["personal", "professional", "team"]
+    id: Literal["personal-monthly", "personal-annual", "professional-monthly", "professional-annual", "team-monthly", "team-annual"]
+    taglineEn: Annotated[StrictStr, StringConstraints(min_length=1, max_length=240)]
+    taglineVi: Annotated[StrictStr, StringConstraints(min_length=1, max_length=240)]
+
+class BuaPayosWebhookEvent(ClosedModel):
+    code: Annotated[StrictStr, StringConstraints(min_length=1, max_length=32)]
+    data: BuaPayosWebhookEventData
+    desc: Annotated[StrictStr, StringConstraints(max_length=500)]
+    signature: Annotated[StrictStr, StringConstraints(pattern=r"^[A-Fa-f0-9]{64}$")]
+    success: StrictBool
+
+class BuaPayosWebhookEventData(ClosedModel):
+    accountNumber: Annotated[StrictStr, StringConstraints(max_length=128)] | None = None
+    amount: Annotated[int, Field(strict=True, ge=1)]
+    canceledAt: Annotated[StrictStr, StringConstraints(max_length=64)] | None = None
+    code: Annotated[StrictStr, StringConstraints(max_length=32)]
+    counterAccountBankId: Annotated[StrictStr, StringConstraints(max_length=128)] | None = None
+    counterAccountNumber: Annotated[StrictStr, StringConstraints(max_length=128)] | None = None
+    currency: Annotated[StrictStr, StringConstraints(max_length=8)] | None = None
+    desc: Annotated[StrictStr, StringConstraints(max_length=500)] | None = None
+    description: Annotated[StrictStr, StringConstraints(max_length=500)] | None = None
+    orderCode: Annotated[int, Field(strict=True, ge=1)]
+    paymentLinkId: Annotated[StrictStr, StringConstraints(max_length=128)] | None = None
+    reference: Annotated[StrictStr, StringConstraints(max_length=128)] | None = None
+    transactionDateTime: Annotated[StrictStr, StringConstraints(max_length=64)] | None = None
+    virtualAccountName: Annotated[StrictStr, StringConstraints(max_length=128)] | None = None
+    virtualAccountNumber: Annotated[StrictStr, StringConstraints(max_length=128)] | None = None
+
 class ContextEvent(ClosedModel):
     afterVersionId: Identifier | None = None
     beforeVersionId: Identifier | None = None
@@ -544,6 +622,14 @@ AnalysisExecuteValue.model_rebuild()
 AnalysisPlanResult.model_rebuild()
 AnalysisPlanValue.model_rebuild()
 AvailablePreview.model_rebuild()
+BuaPayosCheckoutCommand.model_rebuild()
+BuaPayosCheckoutSession.model_rebuild()
+BuaPayosPaymentStatus.model_rebuild()
+BuaPayosPlanCatalog.model_rebuild()
+BuaPayosPlanCatalogAllowances.model_rebuild()
+BuaPayosPlanCatalogPlansItem.model_rebuild()
+BuaPayosWebhookEvent.model_rebuild()
+BuaPayosWebhookEventData.model_rebuild()
 ContextEvent.model_rebuild()
 DashboardApplyConfirmedResult.model_rebuild()
 DashboardApplyConfirmedValue.model_rebuild()

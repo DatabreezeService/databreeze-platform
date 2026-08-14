@@ -35,6 +35,92 @@ export interface AvailablePreview {
   readonly available: true;
 }
 
+export interface BuaPayosCheckoutCommand {
+  readonly planId: "personal-monthly" | "personal-annual" | "professional-monthly" | "professional-annual" | "team-monthly" | "team-annual";
+  readonly schemaVersion: 4;
+}
+
+export interface BuaPayosCheckoutSession {
+  readonly amountVnd: number;
+  readonly checkoutUrl?: string;
+  readonly currency: "VND";
+  readonly orderCode: number;
+  readonly paymentOrderId: Identifier;
+  readonly planId: string;
+  readonly schemaVersion: 4;
+  readonly status: "PENDING" | "PAID" | "CANCELLED" | "FAILED";
+}
+
+export interface BuaPayosPaymentStatus {
+  readonly amountVnd: number;
+  readonly checkoutUrl?: string;
+  readonly currency: "VND";
+  readonly orderCode: number;
+  readonly paymentOrderId: Identifier;
+  readonly planId: string;
+  readonly schemaVersion: 4;
+  readonly status: "PENDING" | "PAID" | "CANCELLED" | "FAILED";
+}
+
+export interface BuaPayosPlanCatalog {
+  readonly plans: readonly BuaPayosPlanCatalogPlansItem[];
+  readonly schemaVersion: 4;
+}
+
+export interface BuaPayosPlanCatalogAllowances {
+  readonly agentCreditsPerMonth: number;
+  readonly agentEnabledMembers: number;
+  readonly connectedFolders: "unlimited";
+  readonly etlRowsPerMonth: number;
+  readonly governedStorageGb: number;
+  readonly logicalDatasets: number;
+  readonly ocrPagesPerMonth: number;
+  readonly refreshMinutes: number;
+  readonly viewerMembers: number;
+  readonly workspaces: number;
+}
+
+export interface BuaPayosPlanCatalogPlansItem {
+  readonly allowances: BuaPayosPlanCatalogAllowances;
+  readonly amountVnd: number;
+  readonly benefitsEn: readonly string[];
+  readonly benefitsVi: readonly string[];
+  readonly billingCycle: "monthly" | "annual";
+  readonly description: string;
+  readonly displayNameEn: string;
+  readonly displayNameVi: string;
+  readonly family: "personal" | "professional" | "team";
+  readonly id: "personal-monthly" | "personal-annual" | "professional-monthly" | "professional-annual" | "team-monthly" | "team-annual";
+  readonly taglineEn: string;
+  readonly taglineVi: string;
+}
+
+export interface BuaPayosWebhookEvent {
+  readonly code: string;
+  readonly data: BuaPayosWebhookEventData;
+  readonly desc: string;
+  readonly signature: string;
+  readonly success: boolean;
+}
+
+export interface BuaPayosWebhookEventData {
+  readonly accountNumber?: string;
+  readonly amount: number;
+  readonly canceledAt?: string;
+  readonly code: string;
+  readonly counterAccountBankId?: string;
+  readonly counterAccountNumber?: string;
+  readonly currency?: string;
+  readonly desc?: string;
+  readonly description?: string;
+  readonly orderCode: number;
+  readonly paymentLinkId?: string;
+  readonly reference?: string;
+  readonly transactionDateTime?: string;
+  readonly virtualAccountName?: string;
+  readonly virtualAccountNumber?: string;
+}
+
 export interface ContextEvent {
   readonly afterVersionId?: Identifier;
   readonly beforeVersionId?: Identifier;
@@ -574,7 +660,7 @@ export interface WorkerResultBinding {
   readonly outputSchemaId: FinalizeSafeName;
 }
 
-export type ContractV4SchemaId = "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-command" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-list-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-load-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-summary" | "https://schemas.databreeze.dev/contracts/v4/dda-dashboard-widget-results-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-auth-session" | "https://schemas.databreeze.dev/contracts/v4/iam-bootstrap-response" | "https://schemas.databreeze.dev/contracts/v4/iam-email-verification-command" | "https://schemas.databreeze.dev/contracts/v4/iam-password-sign-in-command" | "https://schemas.databreeze.dev/contracts/v4/iam-registration-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-registration-command" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-dashboard-widget-result-output" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-finalize-accepted" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-finalize-command" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-prepare-accepted" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-prepare-command";
+export type ContractV4SchemaId = "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-command" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-session" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-payment-status" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-plan-catalog" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-webhook-event" | "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-command" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-list-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-load-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-summary" | "https://schemas.databreeze.dev/contracts/v4/dda-dashboard-widget-results-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-auth-session" | "https://schemas.databreeze.dev/contracts/v4/iam-bootstrap-response" | "https://schemas.databreeze.dev/contracts/v4/iam-email-verification-command" | "https://schemas.databreeze.dev/contracts/v4/iam-password-sign-in-command" | "https://schemas.databreeze.dev/contracts/v4/iam-registration-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-registration-command" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-dashboard-widget-result-output" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-finalize-accepted" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-finalize-command" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-prepare-accepted" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-prepare-command";
 
 export type ContractV4ParseResult<TValue = unknown> =
   | { readonly accepted: true; readonly value: TValue }

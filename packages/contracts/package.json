@@ -72,6 +72,11 @@
     ,"./v4/jra-worker-result-finalize-command": "./schemas/v4/jra-worker-result-finalize-command.schema.json"
     ,"./v4/jra-worker-result-prepare-accepted": "./schemas/v4/jra-worker-result-prepare-accepted.schema.json"
     ,"./v4/jra-worker-result-prepare-command": "./schemas/v4/jra-worker-result-prepare-command.schema.json"
+    ,"./v4/bua-payos-plan-catalog": "./schemas/v4/bua-payos-plan-catalog.schema.json"
+    ,"./v4/bua-payos-checkout-command": "./schemas/v4/bua-payos-checkout-command.schema.json"
+    ,"./v4/bua-payos-checkout-session": "./schemas/v4/bua-payos-checkout-session.schema.json"
+    ,"./v4/bua-payos-payment-status": "./schemas/v4/bua-payos-payment-status.schema.json"
+    ,"./v4/bua-payos-webhook-event": "./schemas/v4/bua-payos-webhook-event.schema.json"
   },
   "scripts": {
     "build": "node scripts/build.mjs && node scripts/generate-models.mjs --check",

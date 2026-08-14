@@ -126,6 +126,7 @@ const DATABASE_OPTION_KEYS = [
   'auditDatabase',
   'auditAttestationDatabase',
   'entitlementDatabase',
+  'paymentDatabase',
   'resultUsageSettlementBindingDatabase',
   'entitlementLeaseDatabase',
   'spreadsheetAuditDatabase',

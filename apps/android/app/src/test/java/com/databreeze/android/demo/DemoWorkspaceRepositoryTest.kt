@@ -47,4 +47,29 @@ class DemoWorkspaceRepositoryTest {
         assertEquals(3, repository.state.value.conversation.messages.size)
         assertTrue(reply.text.isNotBlank())
     }
+
+    @Test
+    fun role_switch_enforces_billing_and_capture_permissions() {
+        val repository = DemoWorkspaceRepository(now = { "2026-08-14T10:00:00Z" })
+
+        repository.switchRole(DemoRole.VIEWER)
+        assertFalse(repository.hasPermission(DemoPermission.BILLING_ACCOUNT_READ))
+        assertFalse(repository.hasPermission(DemoPermission.ARTIFACT_DERIVED_CREATE))
+        assertTrue(repository.createCheckout("professional-monthly") == null)
+
+        repository.switchRole(DemoRole.OWNER)
+        assertTrue(repository.hasPermission(DemoPermission.BILLING_ACCOUNT_MANAGE))
+        assertEquals(399_000L, repository.createCheckout("professional-monthly")?.amountVnd)
+        assertEquals(DemoCheckoutStatus.FAILED, repository.failCheckout("team-monthly")?.status)
+        assertEquals("professional-monthly", repository.state.value.subscription.planId)
+    }
+
+    @Test
+    fun owner_can_invite_member_and_audit_event_is_appended() {
+        val repository = DemoWorkspaceRepository(now = { "2026-08-14T10:00:00Z" })
+
+        assertTrue(repository.inviteMember("new@databreeze.local", DemoRole.OPERATOR))
+        assertTrue(repository.state.value.members.any { it.email == "new@databreeze.local" })
+        assertTrue(repository.state.value.auditEvents.any { it.action == "workspace.member.invited" })
+    }
 }

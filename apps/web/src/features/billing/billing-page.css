@@ -136,6 +136,9 @@
 .billing-plan-card__benefits { display: grid; gap: 9px; margin: 19px 0 22px; padding: 16px 0 0; border-top: 1px solid #edf0f5; list-style: none; }
 .billing-plan-card__benefits li { display: flex; align-items: flex-start; gap: 8px; color: #425571; font-size: 12px; line-height: 1.4; }
 .billing-plan-card__benefits li span { color: #16815c; font-weight: 900; }
+.billing-plan-card__allowances { display: grid; gap: 6px; margin: 0 0 20px; padding: 0; color: #687b95; font-size: 11px; line-height: 1.4; list-style: none; }
+.billing-plan-card__allowances li { padding-left: 13px; position: relative; }
+.billing-plan-card__allowances li::before { content: ''; width: 5px; height: 5px; position: absolute; inset-inline-start: 0; inset-block-start: 0.52em; border-radius: 50%; background: #6d9ef2; }
 .billing-plan-card__button { width: 100%; min-height: 43px; margin-top: auto; border: 1px solid var(--workspace-cobalt); border-radius: 11px; color: #ffffff; background: var(--workspace-cobalt); font-size: 13px; font-weight: 800; cursor: pointer; transition: background 160ms ease, transform 160ms ease; }
 .billing-plan-card__button:hover:not(:disabled) { background: var(--workspace-cobalt-deep); transform: translateY(-1px); }
 .billing-plan-card__button:disabled { cursor: wait; opacity: 0.62; }

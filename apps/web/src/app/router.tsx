@@ -21,6 +21,7 @@ import { DashboardPage } from '../features/dashboards/dashboard-page.tsx';
 import { AnalysisRoutePage } from '../features/analysis/analysis-route-page.tsx';
 import { DataRoutePage } from '../features/data/data-route-page.tsx';
 import { BillingPage, BillingReturnPage } from '../features/billing/billing-page.tsx';
+import { UsagePage } from '../features/usage/usage-page.tsx';
 import {
   SignInRoutePage,
   RegisterRoutePage,
@@ -157,7 +158,7 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
                     ) : feature.key === 'dashboards' ? (
                       <DashboardPage />
                     ) : feature.key === 'usage' ? (
-                      <BillingPage />
+                      <UsagePage />
                     ) : feature.key === 'administration' ? (
                       <WorkspaceSettingsRoute />
                     ) : (

@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/bua-payos-webhook-event",
+  "$comment": "BUA-007: provider webhook envelope. The API verifies signature, amount, order and durable event identity before settlement.",
+  "title": "BUA PayOS Webhook Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["code", "desc", "success", "data", "signature"],
+  "properties": {
+    "code": { "type": "string", "minLength": 1, "maxLength": 32 },
+    "desc": { "type": "string", "maxLength": 500 },
+    "success": { "type": "boolean" },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["orderCode", "amount", "code"],
+      "properties": {
+        "orderCode": { "type": "integer", "minimum": 1 },
+        "amount": { "type": "integer", "minimum": 1 },
+        "code": { "type": "string", "maxLength": 32 },
+        "desc": { "type": "string", "maxLength": 500 },
+        "description": { "type": "string", "maxLength": 500 },
+        "reference": { "type": "string", "maxLength": 128 },
+        "paymentLinkId": { "type": "string", "maxLength": 128 },
+        "accountNumber": { "type": "string", "maxLength": 128 },
+        "transactionDateTime": { "type": "string", "maxLength": 64 },
+        "currency": { "type": "string", "maxLength": 8 },
+        "counterAccountBankId": { "type": "string", "maxLength": 128 },
+        "counterAccountNumber": { "type": "string", "maxLength": 128 },
+        "virtualAccountName": { "type": "string", "maxLength": 128 },
+        "virtualAccountNumber": { "type": "string", "maxLength": 128 },
+        "canceledAt": { "type": "string", "maxLength": 64 }
+      }
+    },
+    "signature": { "type": "string", "pattern": "^[A-Fa-f0-9]{64}$" }
+  }
+}

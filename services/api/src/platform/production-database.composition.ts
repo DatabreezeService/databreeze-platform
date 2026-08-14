@@ -130,6 +130,7 @@ type DatabaseOptionKey =
   | 'auditDatabase'
   | 'auditAttestationDatabase'
   | 'entitlementDatabase'
+  | 'paymentDatabase'
   | 'resultUsageSettlementBindingDatabase'
   | 'entitlementLeaseDatabase'
   | 'spreadsheetAuditDatabase'
@@ -685,6 +686,7 @@ function optionsFor(
     auditDatabase: asDatabasePort<'auditDatabase'>(client),
     auditAttestationDatabase: asDatabasePort<'auditAttestationDatabase'>(client),
     entitlementDatabase: asDatabasePort<'entitlementDatabase'>(client),
+    paymentDatabase: asDatabasePort<'paymentDatabase'>(client),
     resultUsageSettlementBindingDatabase:
       asDatabasePort<'resultUsageSettlementBindingDatabase'>(client),
     entitlementLeaseDatabase: asDatabasePort<'entitlementLeaseDatabase'>(client),

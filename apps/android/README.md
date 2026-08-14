@@ -26,3 +26,33 @@ Connected instrumentation requires an attached emulator or device. A clean check
 `./gradlew :app:compileDebugAndroidTestKotlin`; the release gate must record the device-backed run separately.
 
 The launcher mark is copied from the approved generated DataBreeze asset; it is not redrawn or recolored.
+
+## Demo APK and mock API
+
+The `demo` build is a self-contained, network-free APK for local presentation and UI acceptance. Its
+`MockDataBreezeApi` boundary models the authenticated session, workspace, dashboard, datasets, capture/review,
+analysis, notifications, PayOS checkout, members, and audit queries/mutations. Fixtures are kept in the repository
+adapter rather than in Compose screens, so an HTTP adapter can replace it without changing navigation.
+
+Build and install it with JDK 21 and an Android SDK configured through `ANDROID_HOME`:
+
+```text
+./gradlew :app:testDemoUnitTest
+./gradlew :app:assembleDemo
+adb install -r app/build/outputs/apk/demo/app-demo.apk
+```
+
+Inside the APK, the role button in the top bar opens all six canonical roles. The mock permission matrix is:
+
+| Role | Capture/review | Analysis | Members | Billing |
+| --- | --- | --- | --- | --- |
+| Owner | Full | Full | Manage | Manage/PayOS mock |
+| Admin | Create/manage | Read/run | Manage | Denied |
+| Analyst | Create/manage | Read/run | Read | Denied |
+| Operator | Capture/run | Read | Read | Denied |
+| Approver | Review/approve | Read | Read | Denied |
+| Viewer | Read only | Read | Read | Denied |
+
+Selecting a PayOS plan uses the server-owned demo catalog amount, records a checkout/audit event, updates the
+subscription projection, and redirects to Dashboard. This is deliberately mock-only; no PayOS or AI key is packaged
+in the APK.

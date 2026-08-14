@@ -87,6 +87,92 @@ public data class AvailablePreview(
     public val available: Boolean,
 )
 
+public data class BuaPayosCheckoutCommand(
+    public val planId: String,
+    public val schemaVersion: Long,
+)
+
+public data class BuaPayosCheckoutSession(
+    public val amountVnd: Long,
+    public val checkoutUrl: String? = null,
+    public val currency: String,
+    public val orderCode: Long,
+    public val paymentOrderId: Identifier,
+    public val planId: String,
+    public val schemaVersion: Long,
+    public val status: String,
+)
+
+public data class BuaPayosPaymentStatus(
+    public val amountVnd: Long,
+    public val checkoutUrl: String? = null,
+    public val currency: String,
+    public val orderCode: Long,
+    public val paymentOrderId: Identifier,
+    public val planId: String,
+    public val schemaVersion: Long,
+    public val status: String,
+)
+
+public data class BuaPayosPlanCatalog(
+    public val plans: List<BuaPayosPlanCatalogPlansItem>,
+    public val schemaVersion: Long,
+)
+
+public data class BuaPayosPlanCatalogAllowances(
+    public val agentCreditsPerMonth: Long,
+    public val agentEnabledMembers: Long,
+    public val connectedFolders: String,
+    public val etlRowsPerMonth: Long,
+    public val governedStorageGb: Long,
+    public val logicalDatasets: Long,
+    public val ocrPagesPerMonth: Long,
+    public val refreshMinutes: Long,
+    public val viewerMembers: Long,
+    public val workspaces: Long,
+)
+
+public data class BuaPayosPlanCatalogPlansItem(
+    public val allowances: BuaPayosPlanCatalogAllowances,
+    public val amountVnd: Long,
+    public val benefitsEn: List<String>,
+    public val benefitsVi: List<String>,
+    public val billingCycle: String,
+    public val description: String,
+    public val displayNameEn: String,
+    public val displayNameVi: String,
+    public val family: String,
+    public val id: String,
+    public val taglineEn: String,
+    public val taglineVi: String,
+)
+
+public data class BuaPayosWebhookEvent(
+    public val code: String,
+    public val data: BuaPayosWebhookEventData,
+    public val desc: String,
+    public val signature: String,
+    public val success: Boolean,
+)
+
+public data class BuaPayosWebhookEventData(
+    public val accountNumber: String? = null,
+    public val amount: Long,
+    public val canceledAt: String? = null,
+    public val code: String,
+    public val counterAccountBankId: String? = null,
+    public val counterAccountNumber: String? = null,
+    public val currency: String? = null,
+    public val desc: String? = null,
+    public val description: String? = null,
+    public val orderCode: Long,
+    public val paymentLinkId: String? = null,
+    public val reference: String? = null,
+    public val transactionDateTime: String? = null,
+    public val virtualAccountName: String? = null,
+    public val virtualAccountNumber: String? = null,
+)
+
 public data class ContextEvent(
     public val afterVersionId: Identifier? = null,
     public val beforeVersionId: Identifier? = null,

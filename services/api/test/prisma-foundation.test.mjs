@@ -104,6 +104,11 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "iam"\."workspace_dataset_restrictions"/);
   assert.match(diff.stdout, /CREATE TABLE "bua"\."entitlement_leases"/);
   assert.match(diff.stdout, /CREATE TABLE "bua"\."result_usage_settlement_bindings"/);
+  assert.match(diff.stdout, /CREATE TABLE "bua"\."payment_orders"/);
+  assert.match(diff.stdout, /CREATE TABLE "bua"\."payment_webhook_inbox"/);
+  assert.match(diff.stdout, /CREATE TABLE "bua"\."subscriptions"/);
+  assert.match(diff.stdout, /CREATE TABLE "bua"\."invoices"/);
+  assert.match(diff.stdout, /CREATE TABLE "bua"\."payment_audit_events"/);
   assert.match(diff.stdout, /CREATE TABLE "aud"\."audit_seal_attestations"/);
 
   const migrationsDirectory = path.join(apiDirectory, 'prisma', 'migrations');
@@ -184,6 +189,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260814100000_iae_artifact_upload_finalization',
     '20260814110000_iae_worker_result_finalization',
     '20260814110100_jra_worker_result_finalization',
+    '20260814120000_bua_payments',
     'migration_lock.toml',
   ]);
   const migration = await readFile(

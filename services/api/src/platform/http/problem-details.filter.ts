@@ -11,6 +11,7 @@ import { AuthenticationProblemError } from '../../features/iam/application/authe
 import { SessionProblemError } from '../../features/iam/application/session-problem.error.js';
 import { MfaProblemError } from '../../features/iam/application/mfa-problem.error.js';
 import { EntitlementProblemError } from '../../features/bua/application/entitlement-problem.error.js';
+import { PayosPaymentProblemError } from '../../features/bua/application/payos-payment.service.js';
 import { DeviceIdentityProblemError } from '../../features/iam/application/device-identity-problem.error.js';
 import { InvitationProblemError } from '../../features/iam/application/invitation-problem.error.js';
 import { RegistrationProblemError } from '../../features/iam/application/registration-problem.error.js';
@@ -88,6 +89,25 @@ function describe(error: unknown, correlationId: string): ProblemInput {
         : notFound
           ? HttpStatus.NOT_FOUND
           : HttpStatus.BAD_REQUEST,
+    };
+  }
+  if (error instanceof PayosPaymentProblemError) {
+    const status =
+      error.code === 'PAYOS_UNAUTHORIZED'
+        ? HttpStatus.FORBIDDEN
+        : error.code === 'PAYOS_ORDER_NOT_FOUND' || error.code === 'PAYOS_SCOPE_MISMATCH'
+          ? HttpStatus.NOT_FOUND
+          : error.code === 'PAYOS_IDEMPOTENCY_CONFLICT'
+            ? HttpStatus.CONFLICT
+            : error.code === 'PAYOS_CHECKOUT_UNAVAILABLE' || error.code === 'PAYOS_UNAVAILABLE'
+              ? HttpStatus.SERVICE_UNAVAILABLE
+              : HttpStatus.BAD_REQUEST;
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: `api.error.${error.code.toLowerCase()}`,
+      retryable: status === HttpStatus.SERVICE_UNAVAILABLE,
+      status,
     };
   }
   if (error instanceof DeviceIdentityProblemError) {

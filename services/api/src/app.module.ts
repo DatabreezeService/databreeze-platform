@@ -50,7 +50,10 @@ import { IamReceiptMutationAuthorizationAdapter } from './features/dda/receipt/a
 import { IamGovernedDatasetAuthorizationAdapter } from './features/dsm/adapter/iam-governed-dataset-authorization.adapter.js';
 import { IamSourceCatalogAuthorizationAdapter } from './features/dda/source-catalog/adapter/iam-source-catalog-authorization.adapter.js';
 import { roleHasPermissionV1 } from '@databreeze/domain/permissions/v1';
-import { tenantScopesEqualV1 } from '@databreeze/domain/tenant-scope/v1';
+import {
+  tenantScopeContainsV1,
+  tenantScopesEqualV1,
+} from '@databreeze/domain/tenant-scope/v1';
 import {
   JraWorkerModule,
   type JraWorkerModuleOptions,
@@ -332,6 +335,26 @@ export class AppModule {
               };
             },
           };
+    const billingAuthorization =
+      options.billingAuthorization ??
+      (iamActionSource === undefined
+        ? undefined
+        : {
+            // Billing is organization-owned. A workspace session is therefore
+            // authorized by an active organization/workspace ancestor membership,
+            // while unrelated tenants still fail closed.
+            authorize: async ({ context, permission }: { readonly context: import('./features/iam/application/tenant-context.js').IamTenantContextV1; readonly permission: import('@databreeze/domain/permissions/v1').PermissionV1 }) =>
+              iamRepository === undefined
+                ? { allowed: false }
+                : {
+                    allowed: await (async () => {
+                      const membership = await iamRepository.findMembership(context, context.actorId);
+                      return membership?.status === 'ACTIVE' &&
+                        tenantScopeContainsV1(membership.scope, context.tenantScope) &&
+                        roleHasPermissionV1(membership.roleId, permission);
+                    })(),
+                  },
+          });
     const agentIamActionAuthorization =
       options.agentIamActionAuthorization ??
       (iamActionSource === undefined
@@ -523,6 +546,7 @@ export class AppModule {
       ...(iaeAuthorization === undefined ? {} : { iaeAuthorization }),
       ...(iaeOriginalViewPort === undefined ? {} : { iaeOriginalViewPort }),
       accessPresetService,
+      ...(billingAuthorization === undefined ? {} : { billingAuthorization }),
       ...(agentGrantRepository === undefined ? {} : { agentGrantRepository }),
       ...(executionRouteWorkspacePolicyAuthority === undefined
         ? {}

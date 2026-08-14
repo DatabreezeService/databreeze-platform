@@ -256,6 +256,31 @@
       "name": "utc-timestamp",
       "id": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp",
       "path": "schemas/v1/utc-timestamp.schema.json"
+    },
+    {
+      "name": "bua-payos-plan-catalog",
+      "id": "https://schemas.databreeze.dev/contracts/v4/bua-payos-plan-catalog",
+      "path": "schemas/v4/bua-payos-plan-catalog.schema.json"
+    },
+    {
+      "name": "bua-payos-checkout-command",
+      "id": "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-command",
+      "path": "schemas/v4/bua-payos-checkout-command.schema.json"
+    },
+    {
+      "name": "bua-payos-checkout-session",
+      "id": "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-session",
+      "path": "schemas/v4/bua-payos-checkout-session.schema.json"
+    },
+    {
+      "name": "bua-payos-payment-status",
+      "id": "https://schemas.databreeze.dev/contracts/v4/bua-payos-payment-status",
+      "path": "schemas/v4/bua-payos-payment-status.schema.json"
+    },
+    {
+      "name": "bua-payos-webhook-event",
+      "id": "https://schemas.databreeze.dev/contracts/v4/bua-payos-webhook-event",
+      "path": "schemas/v4/bua-payos-webhook-event.schema.json"
     }
   ]
 }
