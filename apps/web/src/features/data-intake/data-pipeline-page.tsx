@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocale } from '../../app/locale-context.tsx';
 import { useQuery } from '@tanstack/react-query';
+import { dashboardDemoMode } from '../dashboards/dashboard-api.ts';
 import { tenantLiveConfiguration } from '../session/tenant-live-configuration.ts';
 import { EtlReviewPage } from './etl-review-page.tsx';
 import {
@@ -11,7 +12,30 @@ import {
   type EtlProposalReviewV1,
 } from './etl-api.ts';
 import { PreparationSummaryPanel } from './preparation-summary-panel.tsx';
+import type { WebIntakeApiV1 } from './intake-api.ts';
 import { UploadPanel } from './upload-panel.tsx';
+
+const DEMO_INTAKE_API: WebIntakeApiV1 = Object.freeze({
+  async upload() {
+    return Object.freeze({
+      accepted: true,
+      sessionId: '00000000-0000-4000-8000-000000000301',
+      artifactVersionId: '00000000-0000-4000-8000-000000000302',
+      status: 'PENDING_REVIEW',
+      profileId: 'dda.web.tabular.v1',
+      replayed: false,
+    });
+  },
+  async finalize() {
+    return Object.freeze({
+      accepted: true,
+      sessionId: '00000000-0000-4000-8000-000000000301',
+      artifactVersionId: '00000000-0000-4000-8000-000000000302',
+      status: 'FINALIZED',
+      profileId: 'dda.web.tabular.v1',
+    });
+  },
+});
 
 const EMPTY_REVIEW: Omit<EtlProposalReviewV1, 'proposalId' | 'revision' | 'acceptanceEvidence'> =
   Object.freeze({
@@ -49,7 +73,9 @@ const EMPTY_REVIEW: Omit<EtlProposalReviewV1, 'proposalId' | 'revision' | 'accep
  * DDA-002/005/006/053 composed Web surface: intake upload then ETL review/accept.
  * Does not invent accepted plans, hashes, or authoritative numbers.
  */
-export function DataPipelinePage() {
+export function DataPipelinePage({
+  demoMode = dashboardDemoMode(),
+}: { readonly demoMode?: boolean } = {}) {
   const locale = useLocale();
   const reviewLocale = locale === 'vi-VN' ? 'vi' : 'en';
   const tenant = tenantLiveConfiguration();
@@ -60,7 +86,7 @@ export function DataPipelinePage() {
       if (configuration === undefined) throw new Error('ETL_CONFIGURATION_UNAVAILABLE');
       return fetchEtlProposal(configuration, signal);
     },
-    enabled: configuration !== undefined,
+    enabled: !demoMode && configuration !== undefined,
     retry: false,
   });
   const [acceptStatus, setAcceptStatus] = useState<string | null>(null);
@@ -77,7 +103,7 @@ export function DataPipelinePage() {
           ? 'Đề xuất ETL chưa khả dụng. Không có thay đổi nào được gửi.'
           : 'ETL proposal is not available. No changes were sent.';
   const tenantMissingMessage =
-    tenant === undefined
+    tenant === undefined && !demoMode
       ? locale === 'vi-VN'
         ? 'Cần ngữ cảnh tenant trước khi tải lên hoặc chấp nhận ETL. Không có thay đổi nào được gửi.'
         : 'Tenant context is required before upload or ETL acceptance. No changes were sent.'
@@ -85,7 +111,7 @@ export function DataPipelinePage() {
   const acceptanceEvidence =
     etlQuery.data !== undefined ? etlQuery.data.acceptanceEvidence : undefined;
   const canAccept = etlAcceptEnabled({
-    tenantConfigured: tenant !== undefined,
+    tenantConfigured: tenant !== undefined && !demoMode,
     configuration,
     proposal: etlQuery.data,
   });
@@ -174,7 +200,9 @@ export function DataPipelinePage() {
               {tenantMissingMessage}
             </p>
           ) : null}
-          {tenant !== undefined ? <UploadPanel locale={reviewLocale} /> : null}
+          {tenant !== undefined || demoMode ? (
+            <UploadPanel locale={reviewLocale} {...(demoMode ? { api: DEMO_INTAKE_API } : {})} />
+          ) : null}
           {statusMessage !== null ? (
             <p className="data-pipeline-page__notice" role="status">
               {statusMessage}
