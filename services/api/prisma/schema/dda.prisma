@@ -203,6 +203,7 @@ model DashboardRefreshEventSequenceRecord {
   nextSequence   BigInt @default(1) @map("next_sequence")
 
   @@id([organizationId, workspaceId, projectId, dashboardId], map: "dashboard_refresh_event_sequences_pkey")
+  @@map("dashboard_refresh_event_sequences")
   @@schema("dda")
 }
 
