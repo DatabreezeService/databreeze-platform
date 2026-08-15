@@ -6,7 +6,10 @@ import { RegisterPage } from '../src/features/auth/register-page.tsx';
 import { VerifyEmailPage } from '../src/features/auth/verify-email-page.tsx';
 
 describe('auth product surfaces', () => {
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    window.history.replaceState({}, '', '/');
+  });
 
   it('renders complete readable Vietnamese authentication copy', () => {
     render(<SignInPage locale="vi-VN" onSignedIn={() => undefined} />);
@@ -21,6 +24,7 @@ describe('auth product surfaces', () => {
     expect(container.querySelector('.auth-page__story')).toBeTruthy();
     expect(container.querySelector('.auth-page__panel')).toBeTruthy();
     expect(container.querySelector('.auth-page__story-top .auth-brand')).toBeTruthy();
+    expect(container.querySelector('canvas.auth-matrix')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'DataBreeze' })).toBeTruthy();
     expect(screen.getByRole('heading', { level: 2, name: /Dữ liệu biết cất lời/u })).toBeTruthy();
     expect(screen.getAllByRole('listitem')).toHaveLength(3);
@@ -28,6 +32,48 @@ describe('auth product surfaces', () => {
     expect(screen.getByText('AI có kiểm chứng')).toBeTruthy();
     expect(screen.getByText('Cách ly theo tenant')).toBeTruthy();
     expect(screen.getByText(/Mỗi số liệu gắn với nguồn đã kiểm tra/u)).toBeTruthy();
+  });
+
+  it('keeps Home top-left and shows the current language in a flag dropdown', async () => {
+    const user = userEvent.setup();
+    render(<SignInPage locale="vi-VN" onSignedIn={() => undefined} />);
+
+    expect(screen.getByRole('link', { name: 'Trang chủ' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /tiếng việt/i })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /english/i })).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: /tiếng việt/i }));
+    expect(screen.getByRole('option', { name: /english/i }).getAttribute('href')).toBe('/en/sign-in');
+    expect(screen.getByRole('option', { name: /tiếng việt/i }).getAttribute('href')).toBe(
+      '/vi-VN/sign-in',
+    );
+  });
+
+  it('labels the language menu as English on the English surface', async () => {
+    const user = userEvent.setup();
+    render(<SignInPage locale="en" onSignedIn={() => undefined} />);
+
+    expect(screen.getByRole('link', { name: 'Home' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /english/i })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: /english/i }));
+    expect(screen.getByRole('option', { name: /english/i }).getAttribute('href')).toBe('/en/sign-in');
+    expect(screen.getByRole('option', { name: /tiếng việt/i }).getAttribute('href')).toBe(
+      '/vi-VN/sign-in',
+    );
+  });
+
+  it('preserves the current auth path when switching locale', async () => {
+    window.history.replaceState({}, '', '/vi-VN/register');
+    const user = userEvent.setup();
+    render(<RegisterPage locale="vi-VN" onRegistered={() => undefined} />);
+
+    await user.click(screen.getByRole('button', { name: /tiếng việt/i }));
+    expect(screen.getByRole('option', { name: /english/i }).getAttribute('href')).toBe(
+      '/en/register',
+    );
+    expect(screen.getByRole('option', { name: /tiếng việt/i }).getAttribute('href')).toBe(
+      '/vi-VN/register',
+    );
   });
 
   it('renders Vietnamese email/password sign-in without keep-me-signed-in or display name', () => {

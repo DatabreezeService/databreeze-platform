@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { AuthLocaleMenu } from './auth-locale-menu.tsx';
+import { AuthMatrixField } from './auth-matrix-field.tsx';
 
 const STORY_PROOFS = {
   'vi-VN': [
@@ -50,6 +52,7 @@ export function AuthPageShell({
   return (
     <div className="auth-page">
       <aside className="auth-page__story">
+        <AuthMatrixField />
         <header className="auth-page__story-top">
           <a href={`/${locale}`} className="auth-brand" aria-label="DataBreeze">
             <img src="/landing/assets/databreeze-mark.png" alt="" className="auth-brand__mark" />
@@ -84,24 +87,20 @@ export function AuthPageShell({
               <span aria-hidden="true">←</span>
               <span>{isVi ? 'Trang chủ' : 'Home'}</span>
             </a>
-            <a
-              href={isVi ? '/en/sign-in' : '/vi-VN/sign-in'}
-              className="auth-page__locale-toggle"
-              aria-label={isVi ? 'Switch to English' : 'Chuyển sang Tiếng Việt'}
-            >
-              {isVi ? 'English' : 'Tiếng Việt'}
-            </a>
+            <AuthLocaleMenu locale={locale} />
           </nav>
 
-          <div className="auth-card">
-            <div className="auth-card__heading">
-              <h1 id="auth-card-title">{title}</h1>
-              <p className="auth-card__description">{description}</p>
+          <div className="auth-page__panel-main">
+            <div className="auth-card">
+              <div className="auth-card__heading">
+                <h1 id="auth-card-title">{title}</h1>
+                <p className="auth-card__description">{description}</p>
+              </div>
+
+              {children}
+
+              {footer ? <div className="auth-card__footer">{footer}</div> : null}
             </div>
-
-            {children}
-
-            {footer ? <div className="auth-card__footer">{footer}</div> : null}
           </div>
         </div>
       </section>
