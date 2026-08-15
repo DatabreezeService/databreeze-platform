@@ -26,7 +26,10 @@ val webHost = webBaseUrl.map { raw ->
 val enforceProductionConfig =
     protectedSetting("databreeze.enforceProductionConfig", "DATABREEZE_ANDROID_ENFORCE_PRODUCTION_CONFIG")
         .map { it.equals("true", ignoreCase = true) }
-        .orElse(false)
+    .orElse(false)
+val runtimeEnvironment =
+    protectedSetting("databreeze.environment", "DATABREEZE_ANDROID_ENVIRONMENT")
+        .orElse("LOCAL")
 val releaseTaskRequested = gradle.startParameter.taskNames.any { taskName ->
     taskName.contains("Release", ignoreCase = true)
 }
@@ -70,6 +73,7 @@ android {
             "DATABREEZE_ALLOW_INSECURE_LOOPBACK",
             (allowInsecureDebugLoopback.get().toBooleanStrictOrNull() ?: false).toString(),
         )
+        buildConfigField("String", "DATABREEZE_ENVIRONMENT", runtimeEnvironment.get().uppercase().asBuildConfigString())
         manifestPlaceholders["databreezeWebHost"] = webHost.get()
     }
 
@@ -167,6 +171,9 @@ val validateProductionRuntimeConfiguration by tasks.registering {
             throw GradleException("ANDROID_WEB_BASE_URL_MUST_BE_HTTPS")
         }
         if (webHost.get() == "invalid.local") throw GradleException("ANDROID_WEB_HOST_INVALID")
+        if (runtimeEnvironment.get().uppercase() !in setOf("STAGING", "PRODUCTION")) {
+            throw GradleException("ANDROID_RELEASE_ENVIRONMENT_INVALID")
+        }
         logger.lifecycle("Android production runtime config: VALIDATED")
     }
 }

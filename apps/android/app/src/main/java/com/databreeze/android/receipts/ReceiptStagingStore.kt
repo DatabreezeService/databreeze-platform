@@ -31,7 +31,13 @@ interface ReceiptStagingStore {
 
     fun metadata(scope: AccountWorkspaceScope, artifactSessionId: String): ReceiptStagingMetadata?
 
+    /** Returns metadata only; no plaintext bytes or filesystem paths cross this boundary. */
+    fun list(scope: AccountWorkspaceScope): List<ReceiptStagingMetadata> = emptyList()
+
     fun clearScope(scope: AccountWorkspaceScope)
+
+    /** Removes one unfinalized staged item after an explicit retake/delete action. */
+    fun delete(scope: AccountWorkspaceScope, artifactSessionId: String) = Unit
 
     /** Ciphertext-only usage for the diagnostics/retention surface. */
     fun usageBytes(scope: AccountWorkspaceScope): Long = 0L
@@ -94,9 +100,18 @@ class InMemoryReceiptStagingStore(
         return entry.metadata
     }
 
+    override fun list(scope: AccountWorkspaceScope): List<ReceiptStagingMetadata> = entries.values
+        .filter { it.scopeKey == scope.stableKey }
+        .map { it.metadata }
+        .sortedBy { it.artifactSessionId }
+
     override fun clearScope(scope: AccountWorkspaceScope) {
         val doomed = entries.filterValues { it.scopeKey == scope.stableKey }.keys
         doomed.forEach { entries.remove(it) }
+    }
+
+    override fun delete(scope: AccountWorkspaceScope, artifactSessionId: String) {
+        entries.remove(entryKey(scope, artifactSessionId))
     }
 
     override fun usageBytes(scope: AccountWorkspaceScope): Long = entries

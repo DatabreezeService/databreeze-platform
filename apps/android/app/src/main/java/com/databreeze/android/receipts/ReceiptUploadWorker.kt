@@ -24,6 +24,8 @@ private const val UPLOADED = "uploaded_bytes"
 private const val TOTAL = "total_bytes"
 private const val WIFI_ONLY = "wifi_only"
 private const val REQUIRES_CHARGING = "requires_charging"
+private const val FILE_NAME = "file_name"
+private const val MEDIA_TYPE = "media_type"
 
 data class ReceiptUploadWorkInput(
     val request: ReceiptUploadRequest,
@@ -39,6 +41,8 @@ data class ReceiptUploadWorkInput(
         .putLong(TOTAL, request.totalBytes)
         .putBoolean(WIFI_ONLY, request.policy.wifiOnly)
         .putBoolean(REQUIRES_CHARGING, request.policy.requiresCharging)
+        .putString(FILE_NAME, request.fileName)
+        .putString(MEDIA_TYPE, request.mediaType)
         .build()
 
     companion object {
@@ -59,6 +63,8 @@ data class ReceiptUploadWorkInput(
                     destination = destination,
                     uploadedBytes = data.getLong(UPLOADED, 0L),
                     totalBytes = data.getLong(TOTAL, 0L),
+                    fileName = data.getString(FILE_NAME) ?: "receipt.jpg",
+                    mediaType = data.getString(MEDIA_TYPE) ?: "image/jpeg",
                     policy = ReceiptTransferPolicy(
                         wifiOnly = data.getBoolean(WIFI_ONLY, false),
                         requiresCharging = data.getBoolean(REQUIRES_CHARGING, false),

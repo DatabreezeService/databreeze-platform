@@ -46,6 +46,8 @@ data class ReceiptUploadRequest(
     val uploadedBytes: Long,
     val totalBytes: Long,
     val policy: ReceiptTransferPolicy = ReceiptTransferPolicy(),
+    val fileName: String = "receipt.jpg",
+    val mediaType: String = "image/jpeg",
 ) {
     init {
         require(artifactSessionId.matches(SAFE_ID)) { "artifactSessionId must be opaque" }
@@ -53,11 +55,15 @@ data class ReceiptUploadRequest(
         require(uploadedBytes >= 0L) { "uploadedBytes cannot be negative" }
         require(totalBytes > 0L) { "totalBytes must be positive" }
         require(uploadedBytes <= totalBytes) { "uploadedBytes cannot exceed totalBytes" }
+        require(fileName.isNotBlank() && fileName.length <= 128 && fileName.matches(FILE_NAME)) { "fileName must be bounded" }
+        require(mediaType.matches(MEDIA_TYPE)) { "mediaType must be a valid MIME type" }
     }
 
     companion object {
         private val SAFE_ID = Regex("[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")
         private val SHA256_DIGEST = Regex("sha256:[0-9a-fA-F]{64}")
+        private val MEDIA_TYPE = Regex("[a-z0-9][a-z0-9!#$&^_.+-]*/[a-z0-9][a-z0-9!#$&^_.+-]*", RegexOption.IGNORE_CASE)
+        private val FILE_NAME = Regex("[A-Za-z0-9][A-Za-z0-9 ._()\\-]{0,127}")
     }
 }
 
@@ -96,10 +102,9 @@ class ReceiptCaptureGate {
     ): ReceiptCaptureDenyReason? {
         if (!cameraPermissionGranted) return ReceiptCaptureDenyReason.CAMERA_PERMISSION_MISSING
         if (destination == null) return ReceiptCaptureDenyReason.MISSING_DESTINATION
-        if (destination is ReceiptDestination.StrictLocal) {
-            return ReceiptCaptureDenyReason.STRICT_LOCAL_DESTINATION
-        }
         if (!scopeAuthorized) return ReceiptCaptureDenyReason.SCOPE_UNAUTHORIZED
+        // Strict-Local is an authorised capture mode. It stages encrypted originals for
+        // an explicit handoff and must never be sent through the upload scheduler.
         return null
     }
 }

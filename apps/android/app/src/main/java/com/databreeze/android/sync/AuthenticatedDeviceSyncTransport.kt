@@ -4,6 +4,7 @@ import com.databreeze.android.network.AuthenticatedApiTransport
 import com.databreeze.android.network.AuthenticatedHttpRequest
 import com.databreeze.android.network.AuthenticatedHttpResult
 import com.databreeze.android.storage.AccountWorkspaceScope
+import com.databreeze.android.storage.DeviceSyncOperationEntity
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import java.time.Instant
@@ -17,6 +18,7 @@ class AuthenticatedDeviceSyncTransport(
     private val transport: AuthenticatedApiTransport,
     private val deviceId: String,
     private val grantId: String,
+    private val organizationId: String? = null,
     private val now: () -> String = { Instant.now().toString() },
 ) : SyncTransport {
     private val mapper = jacksonObjectMapper()
@@ -24,6 +26,12 @@ class AuthenticatedDeviceSyncTransport(
     override suspend fun synchronize(
         request: SyncRequest,
         mutations: List<String>,
+    ): SyncTransportResult = synchronize(request, mutations, emptyList())
+
+    override suspend fun synchronize(
+        request: SyncRequest,
+        mutations: List<String>,
+        operations: List<DeviceSyncOperationEntity>,
     ): SyncTransportResult {
         if (deviceId.isBlank() || grantId.isBlank()) return SyncTransportResult.Rejected("device_enrollment_required")
         val cursor = if (request.cursor.isNullOrBlank()) {
@@ -71,11 +79,21 @@ class AuthenticatedDeviceSyncTransport(
         )
         val pullOutcome = pull.toSyncResult()
         if (pullOutcome !is SyncTransportResult.Accepted) return pullOutcome
-        // The local queue deliberately stores only opaque IDs/digests. It must never fabricate a
-        // DSO batch (which requires tenant scope, entity identity and a signed cursor). Callers
-        // that have a complete typed change use the operation API; the background worker retries
-        // safely after that operation has been admitted.
+        // Admit complete typed operations through the durable DSO endpoint. The Room queue keeps
+        // the encrypted payload and the worker passes only identifiers in WorkManager input.
+        // Each request is idempotent by operation ID, so a lost acknowledgement is safe to retry.
+        for (operation in operations.take(100)) {
+            when (val admitted = admit(operation, request.scope)) {
+                SyncTransportResult.Accepted -> Unit
+                else -> return admitted
+            }
+        }
+
+        // Legacy digest-only queue records do not contain enough typed identity for DSO. Keep the
+        // fail-closed behavior instead of fabricating an entity or sending source content.
         if (mutations.isNotEmpty()) return SyncTransportResult.Rejected("sync_mutation_contract_required")
+
+        if (operations.isNotEmpty()) return SyncTransportResult.Accepted
 
         val push = transport.execute(
             AuthenticatedHttpRequest(
@@ -93,6 +111,58 @@ class AuthenticatedDeviceSyncTransport(
             ),
         )
         return push.toSyncResult()
+    }
+
+    private suspend fun admit(
+        operation: DeviceSyncOperationEntity,
+        scope: AccountWorkspaceScope,
+    ): SyncTransportResult {
+        if (operation.accountId != scope.accountId || operation.workspaceId != scope.workspaceId) {
+            return SyncTransportResult.Rejected("sync_scope_mismatch")
+        }
+        val dependencies = operation.dependencyIds?.let {
+            runCatching { mapper.readTree(it).takeIf { node -> node.isArray }?.mapNotNull { id -> id.textValue() }?.takeIf { ids -> ids.size <= 64 } }.getOrNull()
+        }
+        if (operation.dependencyIds != null && dependencies == null) return SyncTransportResult.Rejected("sync_dependency_invalid")
+        val body = mapper.writeValueAsString(
+            linkedMapOf(
+                "operationId" to operation.operationId,
+                "deviceId" to operation.deviceId,
+                "tenantScope" to buildMap {
+                    put("scopeType", "workspace")
+                    put("accountId", operation.accountId)
+                    put("workspaceId", operation.workspaceId)
+                    organizationId?.takeIf { it.isNotBlank() }?.let { put("organizationId", it) }
+                },
+                "entityType" to operation.entityType,
+                "entityId" to operation.entityId,
+                "kind" to operation.kind,
+                "payloadClass" to operation.payloadClass,
+                "payloadDigest" to operation.payloadDigest,
+                "createdAt" to Instant.ofEpochMilli(operation.createdAtEpochMs).toString(),
+                "encryptedPayload" to operation.encryptedPayload,
+                "dependencyIds" to dependencies,
+                "baseRevision" to operation.baseRevision,
+                "policyVersionId" to operation.policyVersionId,
+                "classification" to operation.classification,
+            ).filterValues { it != null },
+        )
+        return when (
+            val response = transport.execute(
+                AuthenticatedHttpRequest(
+                    method = "POST",
+                    path = "/v1/devices/sync/operations",
+                    jsonBody = body,
+                    idempotencyKey = "android-operation-${operation.operationId}",
+                ),
+            )
+        ) {
+            is AuthenticatedHttpResult.Success -> response.toSyncResult()
+            is AuthenticatedHttpResult.TerminalAuthFailure -> SyncTransportResult.Rejected("sync_auth_denied")
+            is AuthenticatedHttpResult.RetryableFailure,
+            is AuthenticatedHttpResult.NetworkFailure,
+            -> SyncTransportResult.Retryable
+        }
     }
 
     private fun requestCursor(request: SyncRequest): Map<String, Any> {

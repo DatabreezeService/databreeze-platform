@@ -2,13 +2,13 @@ package com.databreeze.android.evidence
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +25,9 @@ import com.databreeze.android.R
 import com.databreeze.android.network.ArtifactApiResult
 import com.databreeze.android.network.ArtifactEvidenceSummary
 import com.databreeze.android.network.AuthenticatedArtifactApiClient
+import com.databreeze.android.ui.AppCard
+import com.databreeze.android.ui.AppSectionHeader
+import com.databreeze.android.ui.AppStatusBanner
 import kotlinx.coroutines.launch
 
 /** Exact-version evidence drill-down. It intentionally renders only server-approved references. */
@@ -59,30 +62,42 @@ fun EvidenceScreen(
         loading = false
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(stringResource(R.string.evidence_title), style = MaterialTheme.typography.headlineSmall)
-        Text(stringResource(R.string.evidence_body), style = MaterialTheme.typography.bodyMedium)
-        OutlinedTextField(
-            value = versionId,
-            onValueChange = { versionId = it },
-            label = { Text(stringResource(R.string.evidence_version_id)) },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-        )
-        Button(
-            onClick = ::load,
-            enabled = versionId.isNotBlank() && !loading,
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text(if (loading) stringResource(R.string.evidence_loading) else stringResource(R.string.evidence_load)) }
-        status?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
-            items(items, key = { it.id }) { item ->
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text("${item.kind} · ${item.id}", style = MaterialTheme.typography.titleSmall)
-                    Text(item.locator, style = MaterialTheme.typography.bodySmall)
+        item {
+            AppSectionHeader(
+                eyebrow = stringResource(R.string.evidence_action),
+                title = stringResource(R.string.evidence_title),
+                description = stringResource(R.string.evidence_body),
+            )
+        }
+        item {
+            AppCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = versionId,
+                        onValueChange = { versionId = it },
+                        label = { Text(stringResource(R.string.evidence_version_id)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                    Button(
+                        onClick = ::load,
+                        enabled = versionId.isNotBlank() && !loading,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text(if (loading) stringResource(R.string.evidence_loading) else stringResource(R.string.evidence_load)) }
+                }
+            }
+        }
+        status?.let { item { AppStatusBanner(it, error = true) } }
+        items(items, key = { it.id }) { item ->
+            AppCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text("${item.kind} · ${item.id}", style = androidx.compose.material3.MaterialTheme.typography.titleSmall)
+                    Text(item.locator, style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
                     Button(
                         onClick = {
                             scope.launch {
@@ -96,13 +111,13 @@ fun EvidenceScreen(
                                 }
                             }
                         },
+                        modifier = Modifier.fillMaxWidth(),
                     ) { Text(stringResource(R.string.evidence_verify_reference)) }
                 }
             }
         }
         selectedEvidence?.let { id ->
-            Text(stringResource(R.string.evidence_selected, id), style = MaterialTheme.typography.bodySmall)
+            item { AppStatusBanner(stringResource(R.string.evidence_selected, id)) }
         }
-        Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.back_action)) }
     }
 }

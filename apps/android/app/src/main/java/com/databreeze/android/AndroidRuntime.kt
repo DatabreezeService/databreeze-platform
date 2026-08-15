@@ -14,7 +14,6 @@ import com.databreeze.android.network.AuthenticatedApprovalApiClient
 import com.databreeze.android.network.AuthenticatedInvoiceApiClient
 import com.databreeze.android.network.HttpUrlConnectionAuthenticatedApiTransport
 import com.databreeze.android.receipts.AuthenticatedReceiptUploadApiClient
-import com.databreeze.android.receipts.AuthenticatedReceiptIntakeApiClient
 import com.databreeze.android.receipts.FailClosedReceiptUploadApiClient
 import com.databreeze.android.receipts.FileBackedReceiptStagingStore
 import com.databreeze.android.receipts.ReceiptExtractionApiClient
@@ -29,6 +28,7 @@ import com.databreeze.android.receipts.RecordingReceiptUploadScheduler
 import com.databreeze.android.receipts.StagedReceiptUploadTransport
 import com.databreeze.android.receipts.UnconfiguredReceiptUploadTransport
 import com.databreeze.android.receipts.WorkManagerReceiptUploadScheduler
+import com.databreeze.android.capture.EncryptedVoiceArtifactStore
 import com.databreeze.android.security.AndroidDeviceKeyStore
 import com.databreeze.android.security.DeviceKeyHandle
 import com.databreeze.android.security.DeviceKeyStore
@@ -63,6 +63,7 @@ class AndroidRuntime internal constructor(
     val receiptUploadTransport: ReceiptUploadTransport,
     val receiptUploadApiClient: ReceiptUploadApiClient,
     val receiptArtifactReferenceStore: ReceiptArtifactReferenceStore = InMemoryReceiptArtifactReferenceStore(),
+    val voiceArtifactStore: EncryptedVoiceArtifactStore? = null,
     val receiptExtractionApiClient: ReceiptExtractionApiClient?,
     val billingApiClient: AuthenticatedBillingApiClient? = null,
     val datasetApiClient: AuthenticatedDatasetApiClient? = null,
@@ -96,6 +97,7 @@ class AndroidRuntime internal constructor(
             syncRevocationGuard.revoke(scope)
             syncScheduler.cancel(scope)
             receiptStagingStore.clearScope(scope)
+            voiceArtifactStore?.clear(scope)
             receiptArtifactReferenceStore.clear()
             localStore.clear(scope)
             localStore.close()
@@ -117,6 +119,7 @@ class AndroidRuntime internal constructor(
             val deviceKeyStore = AndroidDeviceKeyStore()
             val receiptKeyHandle = deviceKeyStore.getOrCreate("receipt-staging")
             val receiptCipher = DevicePayloadCipher(deviceKeyStore)
+            val voiceArtifactStore = EncryptedVoiceArtifactStore(context.applicationContext, deviceKeyStore, receiptKeyHandle)
             val receiptStagingRoot = File(context.applicationContext.filesDir, "receipt-staging")
             val receiptStaging =
                 FileBackedReceiptStagingStore(receiptStagingRoot, receiptCipher, deviceKeyStore)
@@ -138,14 +141,21 @@ class AndroidRuntime internal constructor(
                         transport = apiTransport,
                         deviceId = apiConfig.deviceId,
                         grantId = apiConfig.workspaceGrantId,
+                        organizationId = apiConfig.organizationId,
                     )
                 } else {
                     UnconfiguredSyncTransport()
                 }
             val receiptUploadApiClient: ReceiptUploadApiClient =
                 if (apiConfig != null && apiTransport != null) {
-                    AuthenticatedReceiptIntakeApiClient(
+                    // Production always uses the IAE resumable control plane. The bounded
+                    // /dda/receipts/intake adapter remains available for compatibility tests,
+                    // but must never be selected by the production composition because it sends
+                    // the complete original as one Base64 request.
+                    AuthenticatedReceiptUploadApiClient(
                         transport = apiTransport,
+                        organizationId = apiConfig.organizationId,
+                        workspaceId = apiConfig.workspaceId,
                         references = receiptArtifactReferences,
                     )
                 } else {
@@ -211,6 +221,7 @@ class AndroidRuntime internal constructor(
                 receiptUploadTransport = receiptTransport,
                 receiptUploadApiClient = receiptUploadApiClient,
                 receiptArtifactReferenceStore = receiptArtifactReferences,
+                voiceArtifactStore = voiceArtifactStore,
                 receiptExtractionApiClient = receiptExtractionApiClient,
                 billingApiClient = billingApiClient,
                 datasetApiClient = datasetApiClient,
@@ -239,6 +250,7 @@ class AndroidRuntime internal constructor(
             receiptUploadTransport: ReceiptUploadTransport = UnconfiguredReceiptUploadTransport(),
             receiptUploadApiClient: ReceiptUploadApiClient = FailClosedReceiptUploadApiClient(),
             receiptArtifactReferenceStore: ReceiptArtifactReferenceStore = InMemoryReceiptArtifactReferenceStore(),
+            voiceArtifactStore: EncryptedVoiceArtifactStore? = null,
             receiptExtractionApiClient: ReceiptExtractionApiClient? = null,
             billingApiClient: AuthenticatedBillingApiClient? = null,
             datasetApiClient: AuthenticatedDatasetApiClient? = null,
@@ -267,6 +279,7 @@ class AndroidRuntime internal constructor(
             receiptUploadTransport = receiptUploadTransport,
             receiptUploadApiClient = receiptUploadApiClient,
             receiptArtifactReferenceStore = receiptArtifactReferenceStore,
+            voiceArtifactStore = voiceArtifactStore,
             receiptExtractionApiClient = receiptExtractionApiClient,
             billingApiClient = billingApiClient,
             datasetApiClient = datasetApiClient,

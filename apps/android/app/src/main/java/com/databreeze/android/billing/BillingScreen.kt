@@ -11,12 +11,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,6 +30,9 @@ import com.databreeze.android.network.AuthenticatedBillingApiClient
 import com.databreeze.android.network.BillingApiResult
 import com.databreeze.android.network.BillingPlan
 import com.databreeze.android.network.BillingSession
+import com.databreeze.android.ui.AppCard
+import com.databreeze.android.ui.AppSectionHeader
+import com.databreeze.android.ui.AppStatusBanner
 import java.text.NumberFormat
 import java.util.Locale
 import kotlinx.coroutines.launch
@@ -42,7 +42,6 @@ import kotlinx.coroutines.launch
  * The server owns the catalog and amount; this screen only submits an immutable plan id.
  */
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
 fun AuthenticatedBillingScreen(
     client: AuthenticatedBillingApiClient,
     onBack: () -> Unit,
@@ -90,30 +89,25 @@ fun AuthenticatedBillingScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.android_billing_title)) },
-                navigationIcon = {
-                    OutlinedButton(onClick = onBack, modifier = Modifier.padding(start = 8.dp)) {
-                        Text(stringResource(R.string.back_action))
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
             item {
-                Text(stringResource(R.string.android_billing_server_owned), style = MaterialTheme.typography.bodyMedium)
-                if (loading) Text(stringResource(R.string.android_billing_loading))
-                message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                AppSectionHeader(
+                    eyebrow = stringResource(R.string.android_billing_title),
+                    title = stringResource(R.string.android_billing_choose),
+                    description = stringResource(R.string.android_billing_server_owned),
+                )
+                if (loading) {
+                    Text(stringResource(R.string.android_billing_loading), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                message?.let { AppStatusBanner(it, error = true, modifier = Modifier.padding(top = 8.dp)) }
             }
             currentSession?.let { session ->
                 item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(stringResource(R.string.android_billing_order, session.orderCode), style = MaterialTheme.typography.titleMedium)
                             Text(stringResource(R.string.android_billing_amount, formatVnd(session.amountVnd)))
@@ -136,7 +130,7 @@ fun AuthenticatedBillingScreen(
                 }
             }
             items(plans, key = { it.id }) { plan ->
-                Card(modifier = Modifier.fillMaxWidth()) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(plan.displayNameVi, style = MaterialTheme.typography.titleMedium)
                         Text(plan.taglineVi, style = MaterialTheme.typography.bodyMedium)
@@ -166,7 +160,6 @@ fun AuthenticatedBillingScreen(
                     }
                 }
             }
-        }
     }
 }
 

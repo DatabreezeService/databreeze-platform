@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AssistChip
@@ -41,9 +39,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.databreeze.android.DataBreezeTheme
 import com.databreeze.android.R
+import com.databreeze.android.ui.AppBottomNavigation
+import com.databreeze.android.ui.AppNavItem
 import java.util.Locale
 
 private object DemoRoutes {
@@ -66,6 +67,7 @@ private object DemoRoutes {
 fun DemoWorkspaceApp(repository: MockDataBreezeApi) {
     val state by repository.state.collectAsState()
     val navigation = rememberNavController()
+    val currentRoute by navigation.currentBackStackEntryAsState()
     val unreadNotifications = state.notifications.count { !it.read }
     val notificationsDescription = stringResource(
         R.string.demo_notifications_content_description,
@@ -105,13 +107,12 @@ fun DemoWorkspaceApp(repository: MockDataBreezeApi) {
             },
             bottomBar = {
                 DemoBottomNavigation(
+                    selectedRoute = currentRoute?.destination?.route ?: DemoRoutes.HOME,
                     onHome = { navigation.navigate(DemoRoutes.HOME) },
                     onCapture = { navigation.navigate(DemoRoutes.CAPTURE) },
                     onData = { navigation.navigate(DemoRoutes.DATASETS) },
                     onDashboard = { navigation.navigate(DemoRoutes.DASHBOARD) },
-                    onTracking = { navigation.navigate(DemoRoutes.TRACKING) },
                     onAnalysis = { navigation.navigate(DemoRoutes.ANALYSIS) },
-                    onBilling = { navigation.navigate(DemoRoutes.BILLING) },
                 )
             },
         ) { padding ->
@@ -232,38 +233,32 @@ fun DemoWorkspaceApp(repository: MockDataBreezeApi) {
 
 @Composable
 private fun DemoBottomNavigation(
+    selectedRoute: String,
     onHome: () -> Unit,
     onCapture: () -> Unit,
     onData: () -> Unit,
     onDashboard: () -> Unit,
-    onTracking: () -> Unit,
     onAnalysis: () -> Unit,
-    onBilling: () -> Unit,
 ) {
-    Surface(shadowElevation = 3.dp) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 4.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            DemoNavButton(R.string.demo_nav_home, onHome)
-            DemoNavButton(R.string.demo_nav_capture, onCapture)
-            DemoNavButton(R.string.demo_nav_data, onData)
-            DemoNavButton(R.string.demo_nav_dashboard, onDashboard)
-            DemoNavButton(R.string.demo_nav_tracking, onTracking)
-            DemoNavButton(R.string.demo_nav_analysis, onAnalysis)
-            DemoNavButton(R.string.demo_nav_billing, onBilling)
-        }
-    }
-}
-
-@Composable
-private fun DemoNavButton(label: Int, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = Modifier.height(44.dp)) {
-        Text(stringResource(label), style = MaterialTheme.typography.labelSmall)
-    }
+    AppBottomNavigation(
+        items = listOf(
+            AppNavItem(DemoRoutes.HOME, stringResource(R.string.demo_nav_home), "⌂"),
+            AppNavItem(DemoRoutes.CAPTURE, stringResource(R.string.demo_nav_capture), "＋"),
+            AppNavItem(DemoRoutes.DASHBOARD, stringResource(R.string.demo_nav_dashboard), "▦"),
+            AppNavItem(DemoRoutes.DATASETS, stringResource(R.string.demo_nav_data), "◫"),
+            AppNavItem(DemoRoutes.ANALYSIS, stringResource(R.string.demo_nav_analysis), "◒"),
+        ),
+        selectedRoute = selectedRoute,
+        onNavigate = { route ->
+            when (route) {
+                DemoRoutes.HOME -> onHome()
+                DemoRoutes.CAPTURE -> onCapture()
+                DemoRoutes.DATASETS -> onData()
+                DemoRoutes.DASHBOARD -> onDashboard()
+                DemoRoutes.ANALYSIS -> onAnalysis()
+            }
+        },
+    )
 }
 
 @Composable

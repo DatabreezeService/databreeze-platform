@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -24,6 +22,9 @@ import com.databreeze.android.network.AuthenticatedMobileApiClient
 import com.databreeze.android.network.MobileApiResult
 import com.databreeze.android.network.MobileTaskCard
 import com.databreeze.android.network.MobileConflictCard
+import com.databreeze.android.ui.AppCard
+import com.databreeze.android.ui.AppSectionHeader
+import com.databreeze.android.ui.AppStatusBanner
 
 @Composable
 fun MobileTasksScreen(client: AuthenticatedMobileApiClient, onBack: () -> Unit) {
@@ -38,24 +39,33 @@ fun MobileTasksScreen(client: AuthenticatedMobileApiClient, onBack: () -> Unit) 
         }
         when (val result = client.conflicts()) { is MobileApiResult.Ready -> conflicts = result.value; else -> Unit }
     }
-    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(stringResource(R.string.mobile_tasks_title))
-        if (conflicts.isNotEmpty()) {
-            Text("Conflicts requiring review")
-            conflicts.forEach { conflict -> Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) { Text(conflict.reason); Text(conflict.status) } } }
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            AppSectionHeader(
+                eyebrow = stringResource(R.string.mobile_tasks_action),
+                title = stringResource(R.string.mobile_tasks_title),
+                description = stringResource(R.string.more_tasks_description),
+            )
         }
-        error?.let { Text(it) }
-        LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(tasks, key = { "${it.resourceType}:${it.resourceId}" }) { task ->
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(task.safeTitleKey)
-                        Text("${task.taskType} - ${task.evidenceAvailability}")
-                        Text(task.permittedActions.joinToString(", "))
-                    }
+        if (conflicts.isNotEmpty()) {
+            item { AppStatusBanner("Conflicts requiring review", error = true) }
+            items(conflicts, key = { it.conflictId }) { conflict ->
+                AppCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) { Text(conflict.reason); Text(conflict.status) } }
+            }
+        }
+        error?.let { item { AppStatusBanner(it, error = true) } }
+        items(tasks, key = { "${it.resourceType}:${it.resourceId}" }) { task ->
+            AppCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(task.safeTitleKey, style = androidx.compose.material3.MaterialTheme.typography.titleSmall)
+                    Text("${task.taskType} · ${task.evidenceAvailability}", style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+                    Text(task.permittedActions.joinToString(", "), style = androidx.compose.material3.MaterialTheme.typography.labelSmall)
                 }
             }
         }
-        Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.back_action)) }
     }
 }

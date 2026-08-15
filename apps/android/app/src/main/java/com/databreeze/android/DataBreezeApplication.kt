@@ -53,7 +53,14 @@ class DataBreezeApplication : Application(), Configuration.Provider {
         MutableStateFlow(AndroidRuntime.create(this, authenticatedApiRuntime?.api))
     }
 
-    val runtimeState: StateFlow<AndroidRuntime> = runtimeStateHolder.asStateFlow()
+    /**
+     * Do not evaluate the lazy runtime while Android is still constructing the
+     * Application object.  The previous eager property initializer reached the
+     * Keystore-backed session store before attachBaseContext(), where
+     * Context.applicationContext is null and the process crashed on launch.
+     */
+    val runtimeState: StateFlow<AndroidRuntime>
+        get() = runtimeStateHolder.asStateFlow()
     val runtime: AndroidRuntime get() = runtimeStateHolder.value
 
     /** Rebuilds API adapters after login, refresh, workspace switch, or sign-out. */
@@ -62,10 +69,13 @@ class DataBreezeApplication : Application(), Configuration.Provider {
     }
 
     /** Stores only the server-issued device identity; grants remain server-controlled. */
-    fun persistDeviceEnrollment(deviceId: String): Boolean {
+    fun persistDeviceEnrollment(deviceId: String, workspaceGrantId: String? = null): Boolean {
         val current = protectedApiSessionStore.currentSession() ?: return false
         if (deviceId.isBlank()) return false
-        val saved = protectedApiSessionStore.replace(current.copy(deviceId = deviceId))
+        val grant = workspaceGrantId?.takeIf { it.isNotBlank() } ?: current.receiptWorkspaceGrantId
+        val saved = protectedApiSessionStore.replace(
+            current.copy(deviceId = deviceId, receiptWorkspaceGrantId = grant),
+        )
         if (saved) refreshRuntime()
         return saved
     }

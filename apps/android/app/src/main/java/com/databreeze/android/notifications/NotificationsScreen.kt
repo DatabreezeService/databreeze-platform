@@ -2,13 +2,12 @@ package com.databreeze.android.notifications
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,6 +22,9 @@ import com.databreeze.android.R
 import com.databreeze.android.network.AuthenticatedNotificationsApiClient
 import com.databreeze.android.network.NotificationSummary
 import com.databreeze.android.network.NotificationsApiResult
+import com.databreeze.android.ui.AppCard
+import com.databreeze.android.ui.AppSectionHeader
+import com.databreeze.android.ui.AppStatusBanner
 
 @Composable
 fun NotificationsScreen(client: AuthenticatedNotificationsApiClient, onBack: () -> Unit) {
@@ -36,20 +38,27 @@ fun NotificationsScreen(client: AuthenticatedNotificationsApiClient, onBack: () 
             NotificationsApiResult.Retryable -> error = "network_unavailable"
         }
     }
-    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(stringResource(R.string.notifications_title, unread))
-        error?.let { Text(it) }
-        LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(items, key = { it.id }) { item ->
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(12.dp)) {
-                        Text(item.title)
-                        Text(item.state)
-                        Text(item.createdAt)
-                    }
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            AppSectionHeader(
+                eyebrow = stringResource(R.string.notifications_action),
+                title = stringResource(R.string.notifications_title, unread),
+                description = stringResource(R.string.more_notifications_description),
+            )
+        }
+        error?.let { item { AppStatusBanner(it, error = true) } }
+        items(items, key = { it.id }) { item ->
+            AppCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(item.title, style = androidx.compose.material3.MaterialTheme.typography.titleSmall)
+                    Text(item.state, style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+                    Text(item.createdAt, style = androidx.compose.material3.MaterialTheme.typography.labelSmall, color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
-        Button(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.back_action)) }
     }
 }

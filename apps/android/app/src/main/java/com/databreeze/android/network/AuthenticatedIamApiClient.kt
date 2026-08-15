@@ -8,6 +8,8 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URI
 import java.nio.charset.StandardCharsets
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /** Result boundary for public/native IAM calls. Error bodies are never surfaced or persisted. */
 sealed interface IamApiResult<out TValue> {
@@ -217,39 +219,40 @@ class AuthenticatedIamApiClient(
         data object Retryable : PublicCall
     }
 
-    private suspend fun executePublic(method: String, path: String, body: String?): PublicCall {
-        if (baseUrl == null) return PublicCall.Rejected("api_not_configured")
-        return try {
-            val uri = URI.create(baseUrl.trimEnd('/') + "/" + path.trimStart('/'))
-            val connection = (uri.toURL().openConnection() as HttpURLConnection).apply {
-                requestMethod = method
-                connectTimeout = 10_000
-                readTimeout = 30_000
-                doInput = true
-                setRequestProperty("Accept", "application/json")
-                if (body != null) {
-                    doOutput = true
-                    setRequestProperty("Content-Type", "application/json")
-                    val bytes = body.toByteArray(StandardCharsets.UTF_8)
-                    setRequestProperty("Content-Length", bytes.size.toString())
-                    outputStream.use { it.write(bytes) }
+    private suspend fun executePublic(method: String, path: String, body: String?): PublicCall =
+        withContext(Dispatchers.IO) {
+            if (baseUrl == null) return@withContext PublicCall.Rejected("api_not_configured")
+            try {
+                val uri = URI.create(baseUrl.trimEnd('/') + "/" + path.trimStart('/'))
+                val connection = (uri.toURL().openConnection() as HttpURLConnection).apply {
+                    requestMethod = method
+                    connectTimeout = 10_000
+                    readTimeout = 30_000
+                    doInput = true
+                    setRequestProperty("Accept", "application/json")
+                    if (body != null) {
+                        doOutput = true
+                        setRequestProperty("Content-Type", "application/json")
+                        val bytes = body.toByteArray(StandardCharsets.UTF_8)
+                        setRequestProperty("Content-Length", bytes.size.toString())
+                        outputStream.use { it.write(bytes) }
+                    }
                 }
+                val status = connection.responseCode
+                val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+                val responseBody = stream?.bufferedReader(StandardCharsets.UTF_8)?.use { it.readText() }.orEmpty()
+                when {
+                    status in 200..299 -> PublicCall.Success(PublicHttpResponse(status, responseBody))
+                    status == 408 || status == 429 || status >= 500 -> PublicCall.Retryable
+                    status == 401 || status == 403 -> PublicCall.Rejected("credentials_rejected")
+                    else -> PublicCall.Rejected("request_rejected")
+                }
+            } catch (_: IOException) {
+                PublicCall.Retryable
+            } catch (_: IllegalArgumentException) {
+                PublicCall.Rejected("request_invalid")
             }
-            val status = connection.responseCode
-            val stream = if (status in 200..299) connection.inputStream else connection.errorStream
-            val responseBody = stream?.bufferedReader(StandardCharsets.UTF_8)?.use { it.readText() }.orEmpty()
-            when {
-                status in 200..299 -> PublicCall.Success(PublicHttpResponse(status, responseBody))
-                status == 408 || status == 429 || status >= 500 -> PublicCall.Retryable
-                status == 401 || status == 403 -> PublicCall.Rejected("credentials_rejected")
-                else -> PublicCall.Rejected("request_rejected")
-            }
-        } catch (_: IOException) {
-            PublicCall.Retryable
-        } catch (_: IllegalArgumentException) {
-            PublicCall.Rejected("request_invalid")
         }
-    }
 
     private companion object {
         val EMAIL_PATTERN = Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")

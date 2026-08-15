@@ -12,13 +12,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -34,6 +40,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.databreeze.android.capture.CaptureProfile
 import com.databreeze.android.capture.CaptureScreen
@@ -68,8 +75,19 @@ import com.databreeze.android.notifications.NotificationsScreen
 import com.databreeze.android.tasks.MobileTasksScreen
 import com.databreeze.android.evidence.EvidenceScreen
 import com.databreeze.android.approvals.ApprovalScreen
+import com.databreeze.android.sync.StrictLocalScreen
 import com.databreeze.android.network.DeviceEnrollmentApiClient
 import com.databreeze.android.security.AndroidDeviceSigningKeyStore
+import com.databreeze.android.ui.AppActionRow
+import com.databreeze.android.ui.AppBottomNavigation
+import com.databreeze.android.ui.AppCard
+import com.databreeze.android.ui.AppMetricCard
+import com.databreeze.android.ui.AppMoreListItem
+import com.databreeze.android.ui.AppNavItem
+import com.databreeze.android.ui.AppSectionHeader
+import com.databreeze.android.ui.AppStatusBanner
+import com.databreeze.android.ui.AppTopBar
+import com.databreeze.android.storage.AccountWorkspaceScope
 import java.security.MessageDigest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -93,6 +111,8 @@ private object AppRoutes {
     const val TASKS = "tasks"
     const val EVIDENCE = "evidence"
     const val APPROVALS = "approvals"
+    const val STRICT_LOCAL = "strict-local"
+    const val MORE = "more"
 
     fun moduleDetail(moduleId: String): String = "module/$moduleId"
     fun review(sessionId: String): String = "receipt-review/$sessionId"
@@ -137,7 +157,18 @@ class MainActivity : ComponentActivity() {
                                 },
                                 paymentOrderCode = paymentOrderCode,
                                 routeToken = routeToken,
-                                onDeviceEnrolled = { application.persistDeviceEnrollment(it) },
+                                onDeviceEnrolled = { deviceId, grantId ->
+                                    val saved = application.persistDeviceEnrollment(deviceId, grantId)
+                                    saved && !grantId.isNullOrBlank()
+                                },
+                                onCleanupVerified = {
+                                    lifecycleScope.launch {
+                                        val scope = current.session.let { AccountWorkspaceScope(it.accountId, it.workspaceId) }
+                                        runtime.receiptStagingStore.list(scope)
+                                            .filter { runtime.receiptArtifactReferenceStore.find(it.artifactSessionId) != null }
+                                            .forEach { runtime.receiptStagingStore.delete(scope, it.artifactSessionId) }
+                                    }
+                                },
                             )
                         }
                     }
@@ -182,11 +213,40 @@ fun DataBreezeApp(
     onSignOut: (() -> Unit)? = null,
     paymentOrderCode: Long? = null,
     routeToken: String? = null,
-    onDeviceEnrolled: ((String) -> Boolean)? = null,
+    onDeviceEnrolled: ((String, String?) -> Boolean)? = null,
+    onCleanupVerified: () -> Unit = {},
 ) {
     val navController = rememberNavController()
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route ?: AppRoutes.HOME
     var selectedDatasetId by remember { mutableStateOf("") }
     var selectedDatasetVersionId by remember { mutableStateOf("") }
+    var bootstrap by remember(session?.sessionId) { mutableStateOf<LiveBootstrapSnapshot?>(null) }
+    var bootstrapError by remember(session?.sessionId) { mutableStateOf<String?>(null) }
+    var role by remember(session?.sessionId) { mutableStateOf<String?>(null) }
+    val navigateTo: (String) -> Unit = { route ->
+        navController.navigate(route) {
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+    LaunchedEffect(iamApiClient, session?.sessionId) {
+        bootstrap = null
+        bootstrapError = null
+        role = null
+        if (iamApiClient != null && session != null) {
+            when (val result = iamApiClient.bootstrap(session)) {
+                is IamApiResult.Success -> bootstrap = result.value
+                is IamApiResult.Rejected -> bootstrapError = result.code
+                IamApiResult.Retryable -> bootstrapError = "network_unavailable"
+            }
+            when (val result = iamApiClient.currentRole(session)) {
+                is IamApiResult.Success -> role = result.value
+                is IamApiResult.Rejected -> role = "unknown"
+                IamApiResult.Retryable -> role = "pending"
+            }
+        }
+    }
     LaunchedEffect(routeToken, runtime.mobileApiClient) {
         val token = routeToken ?: return@LaunchedEffect
         val client = runtime.mobileApiClient ?: return@LaunchedEffect
@@ -201,7 +261,55 @@ fun DataBreezeApp(
     }
     DataBreezeTheme {
         Scaffold(
-            topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }) },
+            containerColor = MaterialTheme.colorScheme.background,
+            topBar = {
+                AppTopBar(
+                    title = when {
+                        currentRoute == AppRoutes.HOME -> stringResource(R.string.home_title)
+                        currentRoute == AppRoutes.CAPTURE -> stringResource(R.string.receipt_capture_title)
+                        currentRoute == AppRoutes.DASHBOARD -> stringResource(R.string.dashboard_action)
+                        currentRoute == AppRoutes.DATASETS -> stringResource(R.string.datasets_action)
+                        currentRoute == AppRoutes.ANALYSIS -> stringResource(R.string.analysis_action)
+                        currentRoute == AppRoutes.BILLING -> stringResource(R.string.android_billing_title)
+                        currentRoute == AppRoutes.MORE -> stringResource(R.string.app_more_title)
+                        currentRoute == AppRoutes.TASKS -> stringResource(R.string.mobile_tasks_action)
+                        currentRoute == AppRoutes.NOTIFICATIONS -> stringResource(R.string.notifications_action)
+                        currentRoute == AppRoutes.OPERATIONS -> stringResource(R.string.operations_tracking_action)
+                        currentRoute == AppRoutes.EVIDENCE -> stringResource(R.string.evidence_action)
+                        currentRoute == AppRoutes.APPROVALS -> stringResource(R.string.approvals_action)
+                        currentRoute == AppRoutes.DIAGNOSTICS -> stringResource(R.string.diagnostics_action)
+                        currentRoute == AppRoutes.STRICT_LOCAL -> stringResource(R.string.strict_local_title)
+                        currentRoute == AppRoutes.WORKBENCH -> stringResource(R.string.workbench_title)
+                        else -> stringResource(R.string.app_name)
+                    },
+                    scopeLabel = bootstrap?.let { "${it.organizationName} · ${it.workspaceName}" },
+                    showBack = currentRoute != AppRoutes.HOME && currentRoute != AppRoutes.MORE,
+                    onBack = { navController.popBackStack() },
+                    onNotifications = { navigateTo(AppRoutes.NOTIFICATIONS) },
+                )
+            },
+            bottomBar = {
+                val compactRoutes = setOf(AppRoutes.PROFILE_CAPTURE, AppRoutes.VOICE_CAPTURE, AppRoutes.REVIEW, AppRoutes.MODULE, AppRoutes.STRICT_LOCAL)
+                if (currentRoute !in compactRoutes) {
+                    AppBottomNavigation(
+                        items = listOf(
+                            AppNavItem(AppRoutes.HOME, stringResource(R.string.demo_nav_home), "⌂"),
+                            AppNavItem(AppRoutes.CAPTURE, stringResource(R.string.demo_nav_capture), "＋"),
+                            AppNavItem(AppRoutes.DASHBOARD, stringResource(R.string.demo_nav_dashboard), "▦"),
+                            AppNavItem(AppRoutes.DATASETS, stringResource(R.string.demo_nav_data), "◫"),
+                            AppNavItem(AppRoutes.MORE, stringResource(R.string.app_more_title), "⋯"),
+                        ),
+                        selectedRoute = when {
+                            currentRoute == AppRoutes.HOME -> AppRoutes.HOME
+                            currentRoute == AppRoutes.CAPTURE -> AppRoutes.CAPTURE
+                            currentRoute == AppRoutes.DASHBOARD -> AppRoutes.DASHBOARD
+                            currentRoute == AppRoutes.DATASETS -> AppRoutes.DATASETS
+                            else -> AppRoutes.MORE
+                        },
+                        onNavigate = navigateTo,
+                    )
+                }
+            },
         ) { padding ->
             NavHost(
                 navController = navController,
@@ -210,7 +318,7 @@ fun DataBreezeApp(
             ) {
                 composable(AppRoutes.HOME) {
                     HomeScreen(
-                        onWorkbench = { navController.navigate(AppRoutes.WORKBENCH) },
+                        onMore = { navigateTo(AppRoutes.MORE) },
                         onCapture = { navController.navigate(AppRoutes.CAPTURE) },
                         onProfileCapture = { navController.navigate(AppRoutes.PROFILE_CAPTURE) },
                         onVoiceCapture = { navController.navigate(AppRoutes.VOICE_CAPTURE) },
@@ -224,8 +332,24 @@ fun DataBreezeApp(
                         onTasks = { navController.navigate(AppRoutes.TASKS) },
                         onEvidence = { navController.navigate(AppRoutes.EVIDENCE) },
                         onApprovals = { navController.navigate(AppRoutes.APPROVALS) },
-                        session = session,
-                        iamApiClient = iamApiClient,
+                        bootstrap = bootstrap,
+                        bootstrapError = bootstrapError,
+                        role = role,
+                        onSignOut = onSignOut,
+                    )
+                }
+                composable(AppRoutes.MORE) {
+                    MoreScreen(
+                        role = role,
+                        onWorkbench = { navigateTo(AppRoutes.WORKBENCH) },
+                        onBilling = { navigateTo(AppRoutes.BILLING) },
+                        onDiagnostics = { navigateTo(AppRoutes.DIAGNOSTICS) },
+                        onOperations = { navigateTo(AppRoutes.OPERATIONS) },
+                        onNotifications = { navigateTo(AppRoutes.NOTIFICATIONS) },
+                        onTasks = { navigateTo(AppRoutes.TASKS) },
+                        onEvidence = { navigateTo(AppRoutes.EVIDENCE) },
+                        onApprovals = { navigateTo(AppRoutes.APPROVALS) },
+                        onStrictLocal = { navigateTo(AppRoutes.STRICT_LOCAL) },
                         onSignOut = onSignOut,
                     )
                 }
@@ -250,11 +374,11 @@ fun DataBreezeApp(
                     val authenticated = authenticatedApiRuntime
                     if (authenticated == null) {
                         RuntimeConfigurationRequiredScreen(onBack = { navController.popBackStack() })
-                    } else if (authenticated.receiptWorkspaceGrantId.isBlank()) {
+                    } else if (authenticated.deviceId.isBlank() || authenticated.receiptWorkspaceGrantId.isBlank()) {
                         DeviceEnrollmentRequiredScreen(
                             api = authenticated.api,
-                            onEnrolled = { deviceId ->
-                                val saved = onDeviceEnrolled?.invoke(deviceId) == true
+                            onEnrolled = { deviceId, grantId ->
+                                val saved = onDeviceEnrolled?.invoke(deviceId, grantId) == true
                                 if (saved) navController.popBackStack()
                                 saved
                             },
@@ -267,6 +391,8 @@ fun DataBreezeApp(
                                 stagingStore = runtime.receiptStagingStore,
                                 uploadScheduler = runtime.receiptUploadScheduler,
                                 keyHandle = runtime.receiptKeyHandle,
+                                localStore = runtime.localStore,
+                                deviceId = authenticated.deviceId,
                             ).also {
                                 it.setDestination(
                                     ReceiptDestination.Hybrid(
@@ -278,6 +404,7 @@ fun DataBreezeApp(
                         }
                         ReceiptCaptureScreen(
                             viewModel = viewModel,
+                            workspaceGrantId = authenticated.receiptWorkspaceGrantId,
                             onBack = { navController.popBackStack() },
                             onOpenReview = { sessionId ->
                                 navController.navigate(AppRoutes.review(sessionId))
@@ -297,6 +424,7 @@ fun DataBreezeApp(
                 composable(AppRoutes.VOICE_CAPTURE) {
                     VoiceCaptureScreen(
                         runtime = runtime,
+                        scope = authenticatedApiRuntime?.scope,
                         onSave = { navController.popBackStack() },
                         onBack = { navController.popBackStack() },
                     )
@@ -308,17 +436,24 @@ fun DataBreezeApp(
                     } else {
                         val dashboardModel = remember { DashboardViewModel() }
                         var snapshotId by remember { mutableStateOf("") }
-                        Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedTextField(
-                                value = snapshotId,
-                                onValueChange = { snapshotId = it },
-                                label = { Text(stringResource(R.string.dashboard_snapshot_id)) },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            Button(
-                                onClick = { dashboardModel.loadFromServer(dashboardClient, snapshotId.trim()) },
-                                enabled = snapshotId.isNotBlank(),
-                            ) { Text(stringResource(R.string.dashboard_load)) }
+                        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            AppCard(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)) {
+                                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Text(stringResource(R.string.dashboard_snapshot_id), style = MaterialTheme.typography.labelLarge)
+                                    OutlinedTextField(
+                                        value = snapshotId,
+                                        onValueChange = { snapshotId = it },
+                                        label = { Text(stringResource(R.string.dashboard_snapshot_id)) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        singleLine = true,
+                                    )
+                                    Button(
+                                        onClick = { dashboardModel.loadFromServer(dashboardClient, snapshotId.trim()) },
+                                        enabled = snapshotId.isNotBlank(),
+                                        modifier = Modifier.fillMaxWidth(),
+                                    ) { Text(stringResource(R.string.dashboard_load)) }
+                                }
+                            }
                             DashboardScreen(viewModel = dashboardModel)
                         }
                     }
@@ -338,17 +473,18 @@ fun DataBreezeApp(
                             }
                         }
                         Column(Modifier.fillMaxSize()) {
-                            status?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
-                            DatasetPickerScreen(
-                                viewModel = model,
-                                onSelected = { id ->
-                                    selectedDatasetId = id
-                                    selectedDatasetVersionId = model.state.options
-                                        .firstOrNull { it.datasetId == id }
-                                        ?.versionId.orEmpty()
-                                },
-                            )
-                            Button(onClick = { navController.popBackStack() }, modifier = Modifier.padding(16.dp)) { Text(stringResource(R.string.back_action)) }
+                            status?.let { AppStatusBanner(it, error = true, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) }
+                            androidx.compose.foundation.layout.Box(Modifier.weight(1f)) {
+                                DatasetPickerScreen(
+                                    viewModel = model,
+                                    onSelected = { id ->
+                                        selectedDatasetId = id
+                                        selectedDatasetVersionId = model.state.options
+                                            .firstOrNull { it.datasetId == id }
+                                            ?.versionId.orEmpty()
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -384,7 +520,7 @@ fun DataBreezeApp(
                         onSync = {
                             authenticatedApiRuntime?.let { runtime.syncScheduler.enqueue(it.scope) }
                         },
-                        onCleanup = { authenticatedApiRuntime?.let { runtime.receiptStagingStore.clearScope(it.scope) } },
+                        onCleanup = onCleanupVerified,
                         onBack = { navController.popBackStack() },
                     )
                 }
@@ -411,7 +547,19 @@ fun DataBreezeApp(
                 composable(AppRoutes.APPROVALS) {
                     val client = runtime.approvalApiClient
                     if (client == null) RuntimeConfigurationRequiredScreen(onBack = { navController.popBackStack() })
-                    else ApprovalScreen(client = client, onBack = { navController.popBackStack() })
+                    else ApprovalScreen(client = client, actorRole = role, onBack = { navController.popBackStack() })
+                }
+                composable(AppRoutes.STRICT_LOCAL) {
+                    val authenticated = authenticatedApiRuntime
+                    if (authenticated == null || runtime.strictLocalPackageExporter == null) {
+                        RuntimeConfigurationRequiredScreen(onBack = { navController.popBackStack() })
+                    } else {
+                        StrictLocalScreen(
+                            runtime = runtime,
+                            scope = authenticated.scope,
+                            onBack = { navController.popBackStack() },
+                        )
+                    }
                 }
                 composable(AppRoutes.REVIEW) { entry ->
                     val sessionId = entry.arguments?.getString("sessionId").orEmpty()
@@ -440,7 +588,7 @@ fun DataBreezeApp(
 
 @Composable
 private fun HomeScreen(
-    onWorkbench: () -> Unit,
+    onMore: () -> Unit,
     onCapture: () -> Unit,
     onProfileCapture: () -> Unit,
     onVoiceCapture: () -> Unit,
@@ -454,109 +602,177 @@ private fun HomeScreen(
     onTasks: () -> Unit,
     onEvidence: () -> Unit,
     onApprovals: () -> Unit,
-    session: ProtectedAuthenticatedApiSession? = null,
-    iamApiClient: AuthenticatedIamApiClient? = null,
+    bootstrap: LiveBootstrapSnapshot? = null,
+    bootstrapError: String? = null,
+    role: String? = null,
     onSignOut: (() -> Unit)? = null,
 ) {
-    var bootstrap by remember(session?.sessionId) { mutableStateOf<LiveBootstrapSnapshot?>(null) }
-    var bootstrapError by remember(session?.sessionId) { mutableStateOf<String?>(null) }
-    var role by remember(session?.sessionId) { mutableStateOf<String?>(null) }
-    LaunchedEffect(iamApiClient, session?.sessionId) {
-        if (iamApiClient != null && session != null) {
-            when (val result = iamApiClient.bootstrap(session)) {
-                is IamApiResult.Success -> bootstrap = result.value
-                is IamApiResult.Rejected -> bootstrapError = result.code
-                IamApiResult.Retryable -> bootstrapError = "network_unavailable"
+    val canOperate = role?.allowsOperatorSurface() == true
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().testTag("home-screen"),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        item {
+            AppSectionHeader(
+                eyebrow = stringResource(R.string.app_name),
+                title = stringResource(R.string.home_title),
+                description = stringResource(R.string.home_body),
+            )
+        }
+        item {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Text(stringResource(R.string.home_current_space), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    bootstrap?.let {
+                        Text(stringResource(R.string.auth_workspace_context, it.organizationName, it.workspaceName), style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.auth_project_context, it.projectName), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } ?: Text(stringResource(R.string.home_loading_workspace), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    role?.let { Text(stringResource(R.string.auth_role_context, it), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                }
             }
-            when (val result = iamApiClient.currentRole(session)) {
-                is IamApiResult.Success -> role = result.value
-                is IamApiResult.Rejected -> if (role == null) role = "unknown"
-                IamApiResult.Retryable -> if (role == null) role = "pending"
+        }
+        bootstrapError?.let { error ->
+            item { AppStatusBanner(stringResource(R.string.auth_bootstrap_error, error), error = true) }
+        }
+        item {
+            AppActionRow(
+                glyph = "＋",
+                title = stringResource(R.string.receipt_capture_action),
+                description = stringResource(R.string.receipt_capture_body),
+                onClick = onCapture,
+                enabled = canOperate,
+                modifier = Modifier.testTag("capture-button"),
+            )
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                AppMetricCard(
+                    label = stringResource(R.string.home_access_label),
+                    value = role ?: "—",
+                    supporting = stringResource(R.string.home_server_authority),
+                    modifier = Modifier.weight(1f),
+                )
+                AppMetricCard(
+                    label = stringResource(R.string.home_data_mode_label),
+                    value = bootstrap?.workspaceName ?: "—",
+                    supporting = stringResource(R.string.home_server_authority),
+                    modifier = Modifier.weight(1f),
+                    accent = MaterialTheme.colorScheme.tertiary,
+                )
+            }
+        }
+        item { Text(stringResource(R.string.home_quick_actions), style = MaterialTheme.typography.titleMedium, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold) }
+        item {
+            AppActionRow(
+                glyph = "▦",
+                title = stringResource(R.string.dashboard_action),
+                description = stringResource(R.string.home_dashboard_description),
+                onClick = onDashboard,
+                modifier = Modifier.testTag("dashboard-button"),
+            )
+        }
+        item {
+            AppActionRow(
+                glyph = "◫",
+                title = stringResource(R.string.datasets_action),
+                description = stringResource(R.string.home_datasets_description),
+                onClick = onDatasets,
+                modifier = Modifier.testTag("datasets-button"),
+            )
+        }
+        item {
+            AppActionRow(
+                glyph = "◒",
+                title = stringResource(R.string.analysis_action),
+                description = stringResource(R.string.home_analysis_description),
+                onClick = onAnalysis,
+                modifier = Modifier.testTag("analysis-button"),
+            )
+        }
+        item {
+            AppActionRow(
+                glyph = "⋯",
+                title = stringResource(R.string.app_more_title),
+                description = stringResource(R.string.app_more_body),
+                onClick = onMore,
+                modifier = Modifier.testTag("workbench-button"),
+            )
+        }
+        onSignOut?.let { signOut ->
+            item {
+                androidx.compose.material3.OutlinedButton(onClick = signOut, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.auth_sign_out))
+                }
             }
         }
     }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-            .testTag("home-screen"),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+}
+
+@Composable
+private fun MoreScreen(
+    role: String?,
+    onWorkbench: () -> Unit,
+    onBilling: () -> Unit,
+    onDiagnostics: () -> Unit,
+    onOperations: () -> Unit,
+    onNotifications: () -> Unit,
+    onTasks: () -> Unit,
+    onEvidence: () -> Unit,
+    onApprovals: () -> Unit,
+    onStrictLocal: () -> Unit,
+    onSignOut: (() -> Unit)?,
+) {
+    val canReview = role?.allowsReviewSurface() == true
+    val isAdmin = role.isAdministrative()
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(stringResource(R.string.home_title), style = MaterialTheme.typography.headlineSmall)
-        Text(stringResource(R.string.home_body), style = MaterialTheme.typography.bodyLarge)
-        bootstrap?.let {
-            Text(
-                stringResource(R.string.auth_workspace_context, it.organizationName, it.workspaceName),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Text(
-                stringResource(R.string.auth_project_context, it.projectName),
-                style = MaterialTheme.typography.bodySmall,
+        item {
+            AppSectionHeader(
+                eyebrow = stringResource(R.string.app_more_eyebrow),
+                title = stringResource(R.string.app_more_title),
+                description = stringResource(R.string.app_more_body),
             )
         }
-        bootstrapError?.let {
-            Text(
-                stringResource(R.string.auth_bootstrap_error, it),
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-        role?.let { Text(stringResource(R.string.auth_role_context, it), style = MaterialTheme.typography.bodyMedium) }
-        Button(onClick = onWorkbench, modifier = Modifier.testTag("workbench-button")) {
-            Text(stringResource(R.string.workbench_action))
-        }
-        // Navigation hints are role-aware, while every server request remains authoritative and
-        // tenant-scoped. A missing role never grants an administrative surface.
-        if (role == null || role?.allowsOperatorSurface() == true) {
-            Button(onClick = onCapture, modifier = Modifier.testTag("capture-button")) {
-                Text(stringResource(R.string.receipt_capture_action))
+        if (canReview) {
+            item {
+                AppMoreListItem(stringResource(R.string.mobile_tasks_action), stringResource(R.string.more_tasks_description), "✓", onTasks, Modifier.testTag("tasks-button"))
             }
-            Button(onClick = onProfileCapture, modifier = Modifier.testTag("profile-capture-button")) {
-                Text(stringResource(R.string.profile_capture_action))
+            item {
+                AppMoreListItem(stringResource(R.string.evidence_action), stringResource(R.string.more_evidence_description), "⌕", onEvidence, Modifier.testTag("evidence-button"))
             }
-            Button(onClick = onVoiceCapture, modifier = Modifier.testTag("voice-capture-button")) {
-                Text(stringResource(R.string.voice_capture_action))
+            item {
+                AppMoreListItem(stringResource(R.string.approvals_action), stringResource(R.string.more_approvals_description), "↗", onApprovals, Modifier.testTag("approvals-button"))
             }
         }
-        Button(onClick = onDashboard, modifier = Modifier.testTag("dashboard-button")) {
-            Text(stringResource(R.string.dashboard_action))
+        item {
+            AppMoreListItem(stringResource(R.string.notifications_action), stringResource(R.string.more_notifications_description), "◌", onNotifications, Modifier.testTag("notifications-button"))
         }
-        Button(onClick = onBilling, modifier = Modifier.testTag("billing-button")) {
-            Text(stringResource(R.string.demo_nav_billing))
+        item {
+            AppMoreListItem(stringResource(R.string.diagnostics_action), stringResource(R.string.more_diagnostics_description), "⚙", onDiagnostics, Modifier.testTag("diagnostics-button"))
         }
-        Button(onClick = onDatasets, modifier = Modifier.testTag("datasets-button")) {
-            Text(stringResource(R.string.datasets_action))
+        item {
+            AppMoreListItem(stringResource(R.string.strict_local_title), stringResource(R.string.strict_local_body), "⇩", onStrictLocal, Modifier.testTag("strict-local-button"))
         }
-        Button(onClick = onAnalysis, modifier = Modifier.testTag("analysis-button")) {
-            Text(stringResource(R.string.analysis_action))
+        item {
+            AppMoreListItem(stringResource(R.string.workbench_action), stringResource(R.string.more_workbench_description), "▤", onWorkbench, Modifier.testTag("workbench-button"))
         }
-        Button(onClick = onEvidence, modifier = Modifier.testTag("evidence-button")) {
-            Text(stringResource(R.string.evidence_action))
-        }
-        Button(onClick = onDiagnostics, modifier = Modifier.testTag("diagnostics-button")) {
-            Text(stringResource(R.string.diagnostics_action))
-        }
-        if (role.isAdministrative()) {
-            Button(onClick = onOperations, modifier = Modifier.testTag("operations-button")) {
-                Text(stringResource(R.string.operations_tracking_action))
+        if (isAdmin) {
+            item {
+                AppMoreListItem(stringResource(R.string.operations_tracking_action), stringResource(R.string.more_operations_description), "◈", onOperations, Modifier.testTag("operations-button"))
             }
-        }
-        Button(onClick = onNotifications, modifier = Modifier.testTag("notifications-button")) {
-            Text(stringResource(R.string.notifications_action))
-        }
-        if (role == null || role?.allowsReviewSurface() == true) {
-            Button(onClick = onTasks, modifier = Modifier.testTag("tasks-button")) {
-                Text(stringResource(R.string.mobile_tasks_action))
-            }
-        }
-        if (role == null || role?.contains("APPROV") == true || role.isAdministrative()) {
-            Button(onClick = onApprovals, modifier = Modifier.testTag("approvals-button")) {
-                Text("Approvals")
+            item {
+                AppMoreListItem(stringResource(R.string.demo_nav_billing), stringResource(R.string.more_billing_description), "₫", onBilling, Modifier.testTag("billing-button"))
             }
         }
         onSignOut?.let { signOut ->
-            Button(onClick = signOut, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.auth_sign_out))
+            item {
+                androidx.compose.material3.OutlinedButton(onClick = signOut, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    Text(stringResource(R.string.auth_sign_out))
+                }
             }
         }
     }
@@ -606,13 +822,14 @@ private fun RuntimeConfigurationRequiredScreen(onBack: () -> Unit) {
 @Composable
 private fun DeviceEnrollmentRequiredScreen(
     api: com.databreeze.android.network.AuthenticatedApiConfig,
-    onEnrolled: (String) -> Boolean,
+    onEnrolled: (String, String?) -> Boolean,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
+    val existingDeviceId = api.deviceId
     val client = remember(api) {
         val installation = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID).orEmpty()
         DeviceEnrollmentApiClient(
@@ -622,6 +839,30 @@ private fun DeviceEnrollmentRequiredScreen(
                 .digest(installation.toByteArray(Charsets.UTF_8))
                 .joinToString("") { "%02x".format(it) },
         )
+    }
+    val grants = remember(api) {
+        com.databreeze.android.network.DeviceGrantApiClient(
+            transport = com.databreeze.android.network.HttpUrlConnectionAuthenticatedApiTransport(api.baseUrl, api.tokenProvider),
+            workspaceId = api.workspaceId,
+        )
+    }
+    fun resolveGrant(deviceId: String, onResult: (String?) -> Unit) {
+        scope.launch {
+            when (val result = grants.list(deviceId)) {
+                is com.databreeze.android.network.DeviceGrantApiClient.Result.Ready -> {
+                    val active = result.grants.firstOrNull { it.status == "ACTIVE" }
+                    onResult(active?.id)
+                }
+                is com.databreeze.android.network.DeviceGrantApiClient.Result.Rejected -> {
+                    message = result.code
+                    onResult(null)
+                }
+                com.databreeze.android.network.DeviceGrantApiClient.Result.Retryable -> {
+                    message = context.getString(R.string.auth_network_error)
+                    onResult(null)
+                }
+            }
+        }
     }
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp).testTag("device-enrollment-required"),
@@ -641,19 +882,38 @@ private fun DeviceEnrollmentRequiredScreen(
                 busy = true
                 message = null
                 scope.launch {
-                    when (val result = client.enroll()) {
-                        is DeviceEnrollmentApiClient.Result.Enrolled -> {
-                            if (!onEnrolled(result.deviceId)) message = context.getString(R.string.device_session_persist_failed)
+                    if (existingDeviceId.isNotBlank()) {
+                        resolveGrant(existingDeviceId) { grantId ->
+                            if (!onEnrolled(existingDeviceId, grantId)) {
+                                message = context.getString(R.string.device_grant_required)
+                            }
+                            busy = false
                         }
-                        is DeviceEnrollmentApiClient.Result.Rejected -> message = result.code
-                        DeviceEnrollmentApiClient.Result.Retryable -> message = context.getString(R.string.auth_network_error)
+                    } else {
+                        when (val result = client.enroll()) {
+                            is DeviceEnrollmentApiClient.Result.Enrolled -> {
+                                resolveGrant(result.deviceId) { grantId ->
+                                    if (!onEnrolled(result.deviceId, grantId)) {
+                                        message = context.getString(R.string.device_grant_required)
+                                    }
+                                    busy = false
+                                }
+                            }
+                            is DeviceEnrollmentApiClient.Result.Rejected -> {
+                                message = result.code
+                                busy = false
+                            }
+                            DeviceEnrollmentApiClient.Result.Retryable -> {
+                                message = context.getString(R.string.auth_network_error)
+                                busy = false
+                            }
+                        }
                     }
-                    busy = false
                 }
             },
             enabled = !busy,
             modifier = Modifier.fillMaxWidth(),
-        ) { Text(if (busy) stringResource(R.string.device_enrollment_busy) else stringResource(R.string.device_enrollment_start)) }
+        ) { Text(if (busy) stringResource(R.string.device_enrollment_busy) else if (existingDeviceId.isBlank()) stringResource(R.string.device_enrollment_start) else stringResource(R.string.device_grant_refresh)) }
         Button(onClick = onBack) { Text(stringResource(R.string.back_action)) }
     }
 }

@@ -26,6 +26,7 @@ class AuthenticatedReceiptUploadApiClient(
     private val workspaceId: String,
     private val nowIso: () -> String = { Instant.now().toString() },
     private val presignedUploader: PresignedPartUploader = PresignedPartUploader { url, headers, bytes -> putPresignedDefault(url, headers, bytes) },
+    private val references: ReceiptArtifactReferenceStore? = null,
 ) : ReceiptUploadApiClient {
     private val mapper = jacksonObjectMapper()
 
@@ -50,6 +51,20 @@ class AuthenticatedReceiptUploadApiClient(
             val end = minOf(offset + partSize, command.originalBytes.size)
             val bytes = command.originalBytes.copyOfRange(offset, end)
             val partDigest = sha256Hex(bytes)
+            val existingPart = createValue.get("parts")
+                ?.takeIf { it.isArray }
+                ?.firstOrNull { part ->
+                    part.get("partNumber")?.intValue() == partNumber &&
+                        part.get("contentSha256")?.textValue()?.equals(partDigest, ignoreCase = true) == true &&
+                        part.get("byteSize")?.intValue() == bytes.size
+                }
+            if (existingPart != null) {
+                // A retry after process death can reuse a recorded part. Do not issue a second
+                // presigned transfer or mutate the revision when the server already verified it.
+                offset = end
+                partNumber++
+                continue
+            }
             val transferResponse = executeJson("POST", "/v1/artifact-upload-sessions/$sessionId/parts/transfer", mapper.writeValueAsString(mapOf(
                 "partNumber" to partNumber, "contentSha256" to partDigest, "byteSize" to bytes.size,
             )), "${command.idempotencyKey}:transfer:$partNumber") ?: return ReceiptUploadApiResult.Retryable
@@ -73,7 +88,17 @@ class AuthenticatedReceiptUploadApiClient(
         val complete = executeJson("POST", "/v1/artifact-upload-sessions/$sessionId/complete", mapper.writeValueAsString(mapOf(
             "assembledSha256" to digest, "expectedRevision" to revision,
         )), "${command.idempotencyKey}:complete") ?: return ReceiptUploadApiResult.Retryable
-        return if (complete.acceptedValue() != null) ReceiptUploadApiResult.Accepted else ReceiptUploadApiResult.Rejected(complete.code())
+        val completedValue = complete.acceptedValue()
+        if (completedValue == null) return ReceiptUploadApiResult.Rejected(complete.code())
+        // The artifact version is normally minted by the complete transition; accept the
+        // create response only for providers that return the immutable version early.
+        val artifactVersionId = completedValue.get("artifactVersionId")?.textValue()
+            ?: createValue.get("artifactVersionId")?.textValue()
+        if (artifactVersionId != null && isUuid(artifactVersionId)) {
+            references?.save(command.artifactSessionId, artifactVersionId, command.contentDigest)
+            return ReceiptUploadApiResult.AcceptedArtifact(artifactVersionId, sessionId)
+        }
+        return ReceiptUploadApiResult.Accepted
     }
 
     private suspend fun executeJson(method: String, path: String, body: String, idempotency: String): JsonNode? {
@@ -99,6 +124,9 @@ class AuthenticatedReceiptUploadApiClient(
             when (connection.responseCode) { in 200..299 -> PresignedUploadResult.Accepted; 408, 429 -> PresignedUploadResult.Retryable; in 500..599 -> PresignedUploadResult.Retryable; else -> PresignedUploadResult.Rejected("transfer_rejected") }
         } catch (_: IOException) { PresignedUploadResult.Retryable }
         }
+        fun isUuid(value: String): Boolean =
+            UUID_PATTERN.matches(value)
+        val UUID_PATTERN = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$")
     }
 
     private fun JsonNode.acceptedValue(): JsonNode? = takeIf { get("accepted")?.booleanValue() == true }?.get("value")

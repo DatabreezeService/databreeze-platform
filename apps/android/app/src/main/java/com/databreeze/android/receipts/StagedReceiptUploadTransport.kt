@@ -75,8 +75,8 @@ class StagedReceiptUploadTransport(
                 originalBytes = original,
                 totalBytes = request.totalBytes,
                 idempotencyKey = idempotencyKey(request),
-                fileName = "receipt-${request.artifactSessionId}.jpg",
-                mediaType = "image/jpeg",
+                fileName = request.fileName,
+                mediaType = request.mediaType,
             ),
         ).toTransportResult()
     }

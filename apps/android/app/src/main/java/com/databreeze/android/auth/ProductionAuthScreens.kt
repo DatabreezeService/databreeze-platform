@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -23,6 +24,10 @@ import androidx.compose.ui.unit.dp
 import com.databreeze.android.R
 import com.databreeze.android.network.AndroidSessionManager
 import com.databreeze.android.network.IamApiResult
+import com.databreeze.android.ui.AppBrandMark
+import com.databreeze.android.ui.AppCard
+import com.databreeze.android.ui.AppSectionHeader
+import com.databreeze.android.ui.AppStatusBanner
 import kotlinx.coroutines.launch
 
 /** Production login. There is no demo identity or fallback credential. */
@@ -38,47 +43,61 @@ fun ProductionSignInScreen(
     val scope = rememberCoroutineScope()
     val networkError = stringResource(R.string.auth_network_error)
 
-    Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp).testTag("production-sign-in"),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().testTag("production-sign-in"),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 24.dp, vertical = 28.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-        Text(stringResource(R.string.auth_sign_in_title), style = MaterialTheme.typography.headlineSmall)
-        Text(stringResource(R.string.auth_sign_in_body), style = MaterialTheme.typography.bodyLarge)
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it; error = null },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            label = { Text(stringResource(R.string.auth_email)) },
-            enabled = !submitting,
-        )
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it; error = null },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            label = { Text(stringResource(R.string.auth_password)) },
-            visualTransformation = PasswordVisualTransformation(),
-            enabled = !submitting,
-        )
-        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        Button(
-            onClick = {
-                submitting = true
-                error = null
-                scope.launch {
-                    when (val result = sessionManager.signIn(email, password)) {
-                        is IamApiResult.Success -> onAuthenticated()
-                        is IamApiResult.Rejected -> error = authError(result.code)
-                        IamApiResult.Retryable -> error = networkError
+        item {
+            AppBrandMark()
+            AppSectionHeader(
+                eyebrow = stringResource(R.string.app_name),
+                title = stringResource(R.string.auth_sign_in_title),
+                description = stringResource(R.string.auth_sign_in_body),
+                modifier = Modifier.padding(top = 10.dp),
+            )
+        }
+        item {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it; error = null },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        label = { Text(stringResource(R.string.auth_email)) },
+                        enabled = !submitting,
+                    )
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it; error = null },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        label = { Text(stringResource(R.string.auth_password)) },
+                        visualTransformation = PasswordVisualTransformation(),
+                        enabled = !submitting,
+                    )
+                    error?.let { AppStatusBanner(it, error = true) }
+                    Button(
+                        onClick = {
+                            submitting = true
+                            error = null
+                            scope.launch {
+                                when (val result = sessionManager.signIn(email, password)) {
+                                    is IamApiResult.Success -> onAuthenticated()
+                                    is IamApiResult.Rejected -> error = authError(result.code)
+                                    IamApiResult.Retryable -> error = networkError
+                                }
+                                submitting = false
+                            }
+                        },
+                        enabled = !submitting && email.isNotBlank() && password.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(if (submitting) stringResource(R.string.auth_signing_in) else stringResource(R.string.auth_sign_in))
                     }
-                    submitting = false
                 }
-            },
-            enabled = !submitting && email.isNotBlank() && password.isNotBlank(),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(if (submitting) stringResource(R.string.auth_signing_in) else stringResource(R.string.auth_sign_in))
+            }
         }
     }
 }
@@ -87,10 +106,14 @@ fun ProductionSignInScreen(
 fun MfaRequiredScreen(onSignOut: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp).testTag("mfa-required"),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-        Text(stringResource(R.string.auth_mfa_required_title), style = MaterialTheme.typography.headlineSmall)
-        Text(stringResource(R.string.auth_mfa_required_body), style = MaterialTheme.typography.bodyLarge)
+        AppBrandMark()
+        AppSectionHeader(
+            eyebrow = stringResource(R.string.app_name),
+            title = stringResource(R.string.auth_mfa_required_title),
+            description = stringResource(R.string.auth_mfa_required_body),
+        )
         Button(onClick = onSignOut, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.auth_sign_out))
         }

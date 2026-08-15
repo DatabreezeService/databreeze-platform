@@ -20,6 +20,9 @@ import androidx.compose.ui.unit.dp
 import com.databreeze.android.AndroidRuntime
 import com.databreeze.android.R
 import com.databreeze.android.network.AuthenticatedApiRuntime
+import com.databreeze.android.ui.AppCard
+import com.databreeze.android.ui.AppSectionHeader
+import com.databreeze.android.ui.AppStatusBanner
 
 /** Redacted device recovery surface: no tokens, paths, source bytes or provider secrets. */
 @Composable
@@ -35,11 +38,20 @@ fun DiagnosticsScreen(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(stringResource(R.string.diagnostics_title), style = MaterialTheme.typography.headlineSmall)
-        Text(stringResource(R.string.diagnostics_scope, authenticated?.scope?.stableKey ?: "signed-out"))
-        Text(stringResource(R.string.diagnostics_staging, authenticated?.scope?.let { runtime.receiptStagingStore.usageBytes(it) } ?: 0L))
-        Text(stringResource(R.string.diagnostics_sync_transport, runtime.syncTransport::class.simpleName ?: "unknown"))
-        Text(stringResource(R.string.diagnostics_enrollment, if (authenticated?.deviceId?.isNotBlank() == true) "ready" else "required"))
+        AppSectionHeader(
+            eyebrow = stringResource(R.string.diagnostics_action),
+            title = stringResource(R.string.diagnostics_title),
+            description = stringResource(R.string.more_diagnostics_description),
+        )
+        AppCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.diagnostics_scope, authenticated?.scope?.stableKey ?: "signed-out"), style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.diagnostics_staging, authenticated?.scope?.let { runtime.receiptStagingStore.usageBytes(it) } ?: 0L), style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.diagnostics_sync_transport, runtime.syncTransport::class.simpleName ?: "unknown"), style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.diagnostics_enrollment, if (authenticated?.deviceId?.isNotBlank() == true) "ready" else "required"), style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        AppStatusBanner(stringResource(R.string.diagnostics_redaction_note))
         Button(onClick = onSync, enabled = authenticated != null, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.diagnostics_sync_now))
         }

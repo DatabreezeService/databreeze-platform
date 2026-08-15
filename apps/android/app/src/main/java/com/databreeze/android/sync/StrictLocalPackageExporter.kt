@@ -41,6 +41,12 @@ class StrictLocalPackageExporter(
         data object Retryable : Result
     }
 
+    sealed interface ReceiptResult {
+        data object Accepted : ReceiptResult
+        data class Rejected(val code: String) : ReceiptResult
+        data object Retryable : ReceiptResult
+    }
+
     data class EncryptedPackage(val bytes: ByteArray, val packageDigest: String, val itemDigests: List<String>)
 
     /** Builds the actual encrypted offline hand-off. It never POSTs bytes to cloud and only
@@ -49,11 +55,30 @@ class StrictLocalPackageExporter(
         keyStore: DeviceKeyStore,
         keyHandle: DeviceKeyHandle,
         records: List<ByteArray>,
+        manifest: Manifest? = null,
+        serverValue: String? = null,
     ): EncryptedPackage {
         require(records.isNotEmpty() && records.size <= 64) { "strict-local records are bounded" }
         require(records.all { it.isNotEmpty() && it.size <= 20 * 1024 * 1024 }) { "strict-local record too large" }
         val itemDigests = records.map { sha256(it) }
-        val plain = mapper.writeValueAsString(mapOf("schemaVersion" to 1, "items" to records.map { Base64.getEncoder().encodeToString(it) })).toByteArray(Charsets.UTF_8)
+        val plain = mapper.writeValueAsString(
+            linkedMapOf(
+                "schemaVersion" to 1,
+                "manifest" to manifest?.let {
+                    linkedMapOf(
+                        "packageId" to it.packageId,
+                        "purpose" to it.purpose,
+                        "destinationClass" to it.destinationClass,
+                        "itemDigests" to it.itemDigests,
+                        "packageDigest" to it.packageDigest,
+                        "issuedAt" to it.issuedAt,
+                        "expiresAt" to it.expiresAt,
+                    )
+                },
+                "authorization" to serverValue,
+                "items" to records.map { Base64.getEncoder().encodeToString(it) },
+            ).filterValues { it != null },
+        ).toByteArray(Charsets.UTF_8)
         val encrypted = DevicePayloadCipher(keyStore).encrypt(keyHandle, plain)
         val envelope = mapper.writeValueAsBytes(mapOf("schemaVersion" to 1, "iv" to Base64.getEncoder().encodeToString(encrypted.iv), "ciphertext" to Base64.getEncoder().encodeToString(encrypted.ciphertext), "itemDigests" to itemDigests))
         return EncryptedPackage(envelope, sha256(envelope), itemDigests)
@@ -115,6 +140,33 @@ class StrictLocalPackageExporter(
             is AuthenticatedHttpResult.RetryableFailure,
             is AuthenticatedHttpResult.NetworkFailure,
             -> Result.Retryable
+        }
+    }
+
+    suspend fun recordTransferReceipt(manifest: Manifest, status: String = "ACCEPTED"): ReceiptResult {
+        if (status !in setOf("ACCEPTED", "REJECTED", "QUARANTINED")) return ReceiptResult.Rejected("strict_local_receipt_invalid")
+        val body = mapper.writeValueAsString(
+            linkedMapOf(
+                "receiptId" to UUID.randomUUID().toString(),
+                "packageId" to manifest.packageId,
+                "deviceId" to deviceId,
+                "destinationClass" to manifest.destinationClass,
+                "packageDigest" to manifest.packageDigest,
+                "receivedAt" to now().toString(),
+                "manifestVerified" to true,
+                "status" to status,
+            ),
+        )
+        return when (val response = transport.execute(AuthenticatedHttpRequest("POST", "/v1/devices/sync/packages/receipts", body))) {
+            is AuthenticatedHttpResult.Success -> {
+                val root = runCatching { mapper.readTree(response.body) }.getOrNull()
+                if (root?.get("accepted")?.booleanValue() == true) ReceiptResult.Accepted
+                else ReceiptResult.Rejected(root?.get("code")?.textValue() ?: "strict_local_receipt_rejected")
+            }
+            is AuthenticatedHttpResult.TerminalAuthFailure -> ReceiptResult.Rejected("strict_local_auth_denied")
+            is AuthenticatedHttpResult.RetryableFailure,
+            is AuthenticatedHttpResult.NetworkFailure,
+            -> ReceiptResult.Retryable
         }
     }
 

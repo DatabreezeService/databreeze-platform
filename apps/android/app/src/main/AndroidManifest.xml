@@ -53,6 +53,10 @@
                 <data android:mimeType="image/jpeg" />
                 <data android:mimeType="image/png" />
                 <data android:mimeType="image/webp" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="text/csv" />
+                <data android:mimeType="application/vnd.ms-excel" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SEND_MULTIPLE" />
@@ -60,6 +64,10 @@
                 <data android:mimeType="image/jpeg" />
                 <data android:mimeType="image/png" />
                 <data android:mimeType="image/webp" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="text/csv" />
+                <data android:mimeType="application/vnd.ms-excel" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
             </intent-filter>
         </activity>
     </application>
