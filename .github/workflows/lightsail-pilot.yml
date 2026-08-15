@@ -39,7 +39,9 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+  # GHCR repository names must be lowercase; github.repository preserves the
+  # organization casing used on GitHub.
+  IMAGE_PREFIX: ghcr.io/databreezeservice/databreeze-platform
 
 jobs:
   validate:
