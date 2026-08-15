@@ -3,15 +3,18 @@ import { useEffect, useRef } from 'react';
 const BLUE = { r: 61, g: 80, b: 255 };
 const PERIWINKLE = { r: 167, g: 175, b: 255 };
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 13, 7, 15, 5];
-const WAVE = { periodMs: 8000, span: 30, band: 4, tail: 6 } as const;
+const WAVE = { periodMs: 8000, span: 30, band: 4, tail: 6, seed: 17, jitter: 1.45 } as const;
 const CELL = 3;
 const GAP = 2;
+const LEAD = 1.2;
 
 export type AuthSquareWave = {
   readonly periodMs: number;
   readonly span: number;
   readonly band: number;
   readonly tail: number;
+  readonly seed?: number;
+  readonly jitter?: number;
 };
 
 function prefersReducedMotion(): boolean {
@@ -21,21 +24,43 @@ function prefersReducedMotion(): boolean {
   );
 }
 
+function fract(value: number): number {
+  return value - Math.floor(value);
+}
+
+function cellNoise(col: number, row: number, seed: number, salt: number): number {
+  return fract(Math.sin(col * 127.1 + row * 311.7 + seed * 74.7 + salt) * 43758.5453123);
+}
+
 export function authSquareWaveLevel(
   col: number,
   row: number,
   timeMs: number,
   wave: AuthSquareWave,
 ): number {
+  const jitterAmp = wave.jitter ?? 1.35;
+  const seed = wave.seed ?? 0;
+  const phaseNoise = cellNoise(col, row, seed, 0.17);
+  const grainNoise = cellNoise(col * 0.37, row * 0.41, seed, 2.63);
+  const brightNoise = cellNoise(col, row, seed, 19.13);
+  const phaseJitter = ((phaseNoise - 0.5) * 1.55 + (grainNoise - 0.5) * 0.7) * jitterAmp;
   const front = ((timeMs % wave.periodMs) / wave.periodMs) * wave.span;
-  const delta = front - (col + row);
-  if (delta < 0 || delta > wave.band + wave.tail) return 0;
-  if (delta <= wave.band) {
+  const delta = front - (col + row) - phaseJitter;
+  if (delta < -LEAD || delta > wave.band + wave.tail) return 0;
+
+  let envelope = 0;
+  if (delta < 0) {
+    const t = (delta + LEAD) / LEAD;
+    envelope = 0.55 * t * t;
+  } else if (delta <= wave.band) {
     const t = delta / Math.max(wave.band, Number.EPSILON);
-    return 0.55 + 0.45 * Math.sin(t * Math.PI);
+    envelope = 0.55 + 0.45 * Math.sin(t * Math.PI);
+  } else {
+    const fade = 1 - (delta - wave.band) / wave.tail;
+    envelope = Math.max(0, fade * fade);
   }
-  const fade = 1 - (delta - wave.band) / wave.tail;
-  return Math.max(0, fade * fade);
+
+  return envelope * (0.88 + 0.12 * brightNoise);
 }
 
 function writeCell(

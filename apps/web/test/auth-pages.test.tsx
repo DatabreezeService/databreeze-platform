@@ -49,6 +49,33 @@ describe('auth product surfaces', () => {
     expect(authSquareWaveLevel(0, 0, 5000, WAVE)).toBeLessThan(0.15);
   });
 
+  it('jitters cells on the same diagonal so the front is not a straight line', () => {
+    const timeMs = 2000;
+    const a = authSquareWaveLevel(4, 2, timeMs, WAVE);
+    const b = authSquareWaveLevel(3, 3, timeMs, WAVE);
+    const c = authSquareWaveLevel(2, 4, timeMs, WAVE);
+
+    expect(a).toBeGreaterThan(0);
+    expect(b).toBeGreaterThan(0);
+    expect(c).toBeGreaterThan(0);
+    expect(new Set([a, b, c]).size).toBeGreaterThan(1);
+  });
+
+  it('varies the same cell when the noise seed differs', () => {
+    const timeMs = 2000;
+    const withSeed = (seed: number) =>
+      authSquareWaveLevel(4, 2, timeMs, { ...WAVE, seed });
+
+    expect(withSeed(1)).not.toBe(withSeed(99));
+  });
+
+  it('keeps a soft falloff instead of a hard leading band', () => {
+    const slightlyAhead = authSquareWaveLevel(0.35, 0, 0, { ...WAVE, seed: 0, jitter: 0 });
+
+    expect(slightlyAhead).toBeGreaterThan(0);
+    expect(slightlyAhead).toBeLessThan(0.35);
+  });
+
   it('keeps Home top-left and shows the current language in a flag dropdown', async () => {
     const user = userEvent.setup();
     render(<SignInPage locale="vi-VN" onSignedIn={() => undefined} />);
