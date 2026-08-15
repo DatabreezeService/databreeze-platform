@@ -6,7 +6,10 @@ export function SignInPage({
   onSignedIn,
 }: {
   readonly locale: 'en' | 'vi-VN';
-  readonly onSignedIn: (input: { readonly email: string; readonly password: string }) => Promise<unknown> | unknown;
+  readonly onSignedIn: (input: {
+    readonly email: string;
+    readonly password: string;
+  }) => Promise<unknown> | unknown;
 }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,7 +23,12 @@ export function SignInPage({
     setError(false);
     try {
       const result = await onSignedIn({ email, password });
-      if (typeof result === 'object' && result !== null && 'accepted' in result && result.accepted === false) {
+      if (
+        typeof result === 'object' &&
+        result !== null &&
+        'accepted' in result &&
+        result.accepted === false
+      ) {
         setError(true);
       }
     } catch {
@@ -33,9 +41,12 @@ export function SignInPage({
   return (
     <AuthPageShell
       locale={locale}
-      eyebrow={isVi ? 'Truy cập tài khoản' : 'Account Access'}
       title={isVi ? 'Đăng nhập' : 'Sign in'}
-      description={isVi ? 'Nhập thông tin để vào không gian dữ liệu của bạn.' : 'Enter your credentials to access your workspace.'}
+      description={
+        isVi
+          ? 'Nhập thông tin để vào không gian dữ liệu của bạn.'
+          : 'Enter your credentials to access your workspace.'
+      }
       footer={
         <p>
           {isVi ? 'Chưa có tài khoản?' : 'Don’t have an account?'}{' '}
@@ -76,18 +87,34 @@ export function SignInPage({
               <span className="auth-form__spinner" aria-hidden="true" />
               <span>{isVi ? 'Đang kiểm tra…' : 'Signing in…'}</span>
             </span>
+          ) : isVi ? (
+            'Đăng nhập'
           ) : (
-            isVi ? 'Đăng nhập' : 'Sign in'
+            'Sign in'
           )}
         </button>
       </form>
       {error ? (
         <div className="auth-form__error" role="alert">
-          <svg className="auth-form__error-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <svg
+            className="auth-form__error-icon"
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden="true"
+          >
             <circle cx="8" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M8 5v4M8 11.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <path
+              d="M8 5v4M8 11.5v.5"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
           </svg>
-          <span>{isVi ? 'Email hoặc mật khẩu không đúng.' : 'Email or password is incorrect.'}</span>
+          <span>
+            {isVi ? 'Email hoặc mật khẩu không đúng.' : 'Email or password is incorrect.'}
+          </span>
         </div>
       ) : null}
     </AuthPageShell>

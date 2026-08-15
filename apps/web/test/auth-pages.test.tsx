@@ -15,6 +15,20 @@ describe('auth product surfaces', () => {
     expect(screen.getByRole('button', { name: 'Đăng nhập' })).toBeTruthy();
   });
 
+  it('fills the left half with brand story proofs beside a square form panel', () => {
+    const { container } = render(<SignInPage locale="vi-VN" onSignedIn={() => undefined} />);
+
+    expect(container.querySelector('.auth-page__story')).toBeTruthy();
+    expect(container.querySelector('.auth-page__panel')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'DataBreeze' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: /Dữ liệu biết cất lời/u })).toBeTruthy();
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
+    expect(screen.getByText('Nguồn gốc minh bạch')).toBeTruthy();
+    expect(screen.getByText('AI có kiểm chứng')).toBeTruthy();
+    expect(screen.getByText('Cách ly theo tenant')).toBeTruthy();
+    expect(screen.getByText(/Mỗi số liệu gắn với nguồn đã kiểm tra/u)).toBeTruthy();
+  });
+
   it('renders Vietnamese email/password sign-in without keep-me-signed-in or display name', () => {
     render(<SignInPage locale="vi-VN" onSignedIn={() => undefined} />);
     expect(screen.getByRole('heading', { name: 'Đăng nhập' })).toBeTruthy();
