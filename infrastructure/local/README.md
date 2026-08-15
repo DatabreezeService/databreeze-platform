@@ -1,5 +1,8 @@
 # Local Infrastructure
 
+For the relationship between the HMR watcher profile, built local gateway,
+and Lightsail deployment, see [Local development and Lightsail pilot](../../docs/architecture/local-and-pilot-development.md).
+
 This directory contains the disposable services used by the DataBreeze control
 plane during development. It is deliberately provider-neutral: application
 code talks to PostgreSQL, Redis, S3-compatible object storage, SMTP, and OTLP

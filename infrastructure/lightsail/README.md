@@ -1,5 +1,7 @@
 # DataBreeze Lightsail pilot
 
+The complete local-to-pilot topology is documented in [Local development and Lightsail pilot](../../docs/architecture/local-and-pilot-development.md).
+
 This is the low-cost single-server pilot profile. It is intended for a small
 two-month validation period, not high-availability customer production. One
 Lightsail Linux instance runs Caddy, Web, API, PostgreSQL, Redis, and MinIO.
