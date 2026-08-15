@@ -50,30 +50,30 @@ export function AuthPageShell({
   return (
     <div className="auth-page">
       <aside className="auth-page__story">
-        <div className="auth-page__story-inner">
+        <header className="auth-page__story-top">
           <a href={`/${locale}`} className="auth-brand" aria-label="DataBreeze">
             <img src="/landing/assets/databreeze-mark.png" alt="" className="auth-brand__mark" />
             <span className="auth-brand__name">DataBreeze</span>
           </a>
+        </header>
 
-          <div className="auth-page__story-body">
-            <h2 className="auth-story__title">
-              {isVi ? 'Dữ liệu biết cất lời.' : 'Data that speaks with evidence.'}
-            </h2>
-            <p className="auth-story__desc">
-              {isVi
-                ? 'Biến dữ liệu rời rạc thành dashboard sống, được kiểm tra, có bằng chứng và luôn cập nhật.'
-                : 'Turn fragmented data into live, governed dashboards with verifiable lineage and real-time freshness.'}
-            </p>
-            <ul className="auth-story__proofs">
-              {proofs.map((proof) => (
-                <li key={proof.title}>
-                  <strong>{proof.title}</strong>
-                  <span>{proof.body}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+        <div className="auth-page__story-body">
+          <h2 className="auth-story__title">
+            {isVi ? 'Dữ liệu biết cất lời.' : 'Data that speaks with evidence.'}
+          </h2>
+          <p className="auth-story__desc">
+            {isVi
+              ? 'Biến dữ liệu rời rạc thành dashboard sống, được kiểm tra, có bằng chứng và luôn cập nhật.'
+              : 'Turn fragmented data into live, governed dashboards with verifiable lineage and real-time freshness.'}
+          </p>
+          <ul className="auth-story__proofs">
+            {proofs.map((proof) => (
+              <li key={proof.title}>
+                <strong>{proof.title}</strong>
+                <span>{proof.body}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </aside>
 

@@ -20,6 +20,7 @@ describe('auth product surfaces', () => {
 
     expect(container.querySelector('.auth-page__story')).toBeTruthy();
     expect(container.querySelector('.auth-page__panel')).toBeTruthy();
+    expect(container.querySelector('.auth-page__story-top .auth-brand')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'DataBreeze' })).toBeTruthy();
     expect(screen.getByRole('heading', { level: 2, name: /Dữ liệu biết cất lời/u })).toBeTruthy();
     expect(screen.getAllByRole('listitem')).toHaveLength(3);
