@@ -64,6 +64,13 @@ test('Lightsail pilot workflow passes immutable image digests between jobs', asy
   assert.doesNotThrow(() => parse(workflow));
   assert.match(workflow, /packages:\s*write/u);
   assert.match(workflow, /environment:\s*pilot/u);
+  assert.match(
+    workflow,
+    /LIGHTSAIL_GHCR_USERNAME:\s*\$\{\{\s*secrets\.LIGHTSAIL_GHCR_USERNAME\s*\}\}/u,
+  );
+  assert.match(workflow, /LIGHTSAIL_GHCR_TOKEN:\s*\$\{\{\s*secrets\.LIGHTSAIL_GHCR_TOKEN\s*\}\}/u);
+  assert.match(workflow, /docker login [^\n]*--password-stdin/u);
+  assert.match(workflow, /docker logout/u);
   assert.match(workflow, /api_image:\s*\$\{\{\s*steps\.manifest\.outputs\.api_image\s*\}\}/u);
   assert.match(
     workflow,

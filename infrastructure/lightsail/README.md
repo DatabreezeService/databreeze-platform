@@ -84,12 +84,15 @@ least-privilege deployment account can be added before a wider rollout.
 | `LIGHTSAIL_DEPLOY_USER` | `ubuntu` (or an owner-created pilot user with passwordless sudo) |
 | `LIGHTSAIL_SSH_PRIVATE_KEY` | Dedicated deploy key, never a personal key |
 | `LIGHTSAIL_KNOWN_HOSTS` | Pinned `known_hosts` line for the instance |
+| `LIGHTSAIL_GHCR_USERNAME` | GitHub username that owns the read-only GHCR package token |
+| `LIGHTSAIL_GHCR_TOKEN` | Read-only GHCR token with `read:packages` access |
 
 On the server, install the pilot files with `bootstrap.sh` and create and
-review `/opt/databreeze/.env`. The workflow invokes the pilot scripts through
-`sudo`; keep SSH restricted to the owner/admin IP. If the GHCR packages are private,
-log in to GHCR on the server once with a read-only package token; the workflow
-never sends the server `.env` or application secrets to GitHub.
+review `/opt/databreeze/.env`. The workflow logs the server's root Docker
+client into GHCR with the two `LIGHTSAIL_GHCR_*` secrets immediately before
+pulling the immutable images, then removes those credentials in an always-run
+cleanup step. Keep SSH restricted to the owner/admin IP. The workflow never
+sends the server `.env` or application secrets to GitHub.
 
 The workflow intentionally leaves OpenAI, worker execution, and external
 email disabled for this budget pilot. Turn those on only in a separate,

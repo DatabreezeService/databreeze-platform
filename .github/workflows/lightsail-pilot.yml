@@ -189,6 +189,26 @@ jobs:
             > "$RUNNER_TEMP/databreeze-release.env"
           scp -i "$RUNNER_TEMP/lightsail-key" "$RUNNER_TEMP/databreeze-release.env" \
             "${LIGHTSAIL_DEPLOY_USER}@${LIGHTSAIL_HOST}:/tmp/databreeze-${GITHUB_SHA}.env"
+      - name: Authenticate Lightsail to GHCR
+        shell: bash
+        env:
+          LIGHTSAIL_HOST: ${{ secrets.LIGHTSAIL_HOST }}
+          LIGHTSAIL_DEPLOY_USER: ${{ secrets.LIGHTSAIL_DEPLOY_USER }}
+          LIGHTSAIL_GHCR_USERNAME: ${{ secrets.LIGHTSAIL_GHCR_USERNAME }}
+          LIGHTSAIL_GHCR_TOKEN: ${{ secrets.LIGHTSAIL_GHCR_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$LIGHTSAIL_HOST"
+          test -n "$LIGHTSAIL_DEPLOY_USER"
+          test -n "$LIGHTSAIL_GHCR_USERNAME"
+          test -n "$LIGHTSAIL_GHCR_TOKEN"
+          if [[ ! "$LIGHTSAIL_GHCR_USERNAME" =~ ^[A-Za-z0-9-]+$ ]]; then
+            echo 'LIGHTSAIL_GHCR_USERNAME contains unsupported characters.' >&2
+            exit 2
+          fi
+          printf '%s\n' "$LIGHTSAIL_GHCR_TOKEN" |
+            ssh -i "$RUNNER_TEMP/lightsail-key" "${LIGHTSAIL_DEPLOY_USER}@${LIGHTSAIL_HOST}" \
+              "sudo docker login \"$REGISTRY\" --username \"$LIGHTSAIL_GHCR_USERNAME\" --password-stdin"
       - name: Deploy and verify
         shell: bash
         env:
@@ -198,3 +218,15 @@ jobs:
           set -euo pipefail
           ssh -i "$RUNNER_TEMP/lightsail-key" "${LIGHTSAIL_DEPLOY_USER}@${LIGHTSAIL_HOST}" \
             "sudo install -m 0640 /tmp/databreeze-${GITHUB_SHA}.env /opt/databreeze/releases/${GITHUB_SHA}.env && sudo /opt/databreeze/deploy.sh /opt/databreeze/releases/${GITHUB_SHA}.env && rm -f /tmp/databreeze-${GITHUB_SHA}.env"
+      - name: Remove Lightsail GHCR credentials
+        if: always()
+        shell: bash
+        env:
+          LIGHTSAIL_HOST: ${{ secrets.LIGHTSAIL_HOST }}
+          LIGHTSAIL_DEPLOY_USER: ${{ secrets.LIGHTSAIL_DEPLOY_USER }}
+        run: |
+          set -euo pipefail
+          test -n "$LIGHTSAIL_HOST"
+          test -n "$LIGHTSAIL_DEPLOY_USER"
+          ssh -i "$RUNNER_TEMP/lightsail-key" "${LIGHTSAIL_DEPLOY_USER}@${LIGHTSAIL_HOST}" \
+            "sudo docker logout \"$REGISTRY\" >/dev/null 2>&1 || true"
