@@ -50,9 +50,14 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea528caeca8642d1e84bdaf3f7d6820020
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version-file: .node-version
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff
+        with:
+          version: 0.11.32
+          enable-cache: false
       - name: Enable pinned pnpm
         run: corepack enable && corepack prepare pnpm@11.18.0 --activate
       - name: Install dependencies
@@ -62,7 +67,7 @@ jobs:
           pnpm contracts:check
           pnpm --filter @databreeze/api typecheck
           pnpm --filter @databreeze/web typecheck
-          pnpm --filter @databreeze/web build
+          pnpm --filter @databreeze/web... build
       - name: Validate pilot Compose and scripts
         run: |
           docker compose --env-file infrastructure/lightsail/.env.example \
