@@ -1,9 +1,12 @@
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { authSquareWaveLevel } from '../src/features/auth/auth-matrix-field.tsx';
 import { SignInPage } from '../src/features/auth/sign-in-page.tsx';
 import { RegisterPage } from '../src/features/auth/register-page.tsx';
 import { VerifyEmailPage } from '../src/features/auth/verify-email-page.tsx';
+
+const WAVE = { periodMs: 8000, span: 30, band: 4, tail: 6 };
 
 describe('auth product surfaces', () => {
   afterEach(() => {
@@ -24,7 +27,9 @@ describe('auth product surfaces', () => {
     expect(container.querySelector('.auth-page__story')).toBeTruthy();
     expect(container.querySelector('.auth-page__panel')).toBeTruthy();
     expect(container.querySelector('.auth-page__story-top .auth-brand')).toBeTruthy();
-    expect(container.querySelector('canvas.auth-matrix')).toBeTruthy();
+    const field = container.querySelector('canvas.auth-matrix');
+    expect(field).toBeTruthy();
+    expect(field?.getAttribute('data-field')).toBe('square-wave');
     expect(screen.getByRole('link', { name: 'DataBreeze' })).toBeTruthy();
     expect(screen.getByRole('heading', { level: 2, name: /Dữ liệu biết cất lời/u })).toBeTruthy();
     expect(screen.getAllByRole('listitem')).toHaveLength(3);
@@ -32,6 +37,16 @@ describe('auth product surfaces', () => {
     expect(screen.getByText('AI có kiểm chứng')).toBeTruthy();
     expect(screen.getByText('Cách ly theo tenant')).toBeTruthy();
     expect(screen.getByText(/Mỗi số liệu gắn với nguồn đã kiểm tra/u)).toBeTruthy();
+  });
+
+  it('advances a square wave from top-left toward bottom-right', () => {
+    expect(authSquareWaveLevel(0, 0, 800, WAVE)).toBeGreaterThan(0.4);
+    expect(authSquareWaveLevel(10, 10, 800, WAVE)).toBeLessThan(0.1);
+  });
+
+  it('returns squares toward idle after the wave has passed', () => {
+    expect(authSquareWaveLevel(0, 0, 1000, WAVE)).toBeGreaterThan(0.5);
+    expect(authSquareWaveLevel(0, 0, 5000, WAVE)).toBeLessThan(0.15);
   });
 
   it('keeps Home top-left and shows the current language in a flag dropdown', async () => {
