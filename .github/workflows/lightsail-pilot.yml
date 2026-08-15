@@ -192,6 +192,24 @@ jobs:
             > "$RUNNER_TEMP/databreeze-release.env"
           scp -i "$RUNNER_TEMP/lightsail-key" "$RUNNER_TEMP/databreeze-release.env" \
             "${LIGHTSAIL_DEPLOY_USER}@${LIGHTSAIL_HOST}:/tmp/databreeze-${GITHUB_SHA}.env"
+      - name: Upload deployment files
+        shell: bash
+        env:
+          LIGHTSAIL_HOST: ${{ secrets.LIGHTSAIL_HOST }}
+          LIGHTSAIL_DEPLOY_USER: ${{ secrets.LIGHTSAIL_DEPLOY_USER }}
+        run: |
+          set -euo pipefail
+          test -n "$LIGHTSAIL_HOST"
+          test -n "$LIGHTSAIL_DEPLOY_USER"
+          ssh -i "$RUNNER_TEMP/lightsail-key" "${LIGHTSAIL_DEPLOY_USER}@${LIGHTSAIL_HOST}" \
+            "install -d -m 0700 /tmp/databreeze-${GITHUB_SHA}"
+          scp -i "$RUNNER_TEMP/lightsail-key" \
+            infrastructure/lightsail/Caddyfile \
+            infrastructure/lightsail/compose.pilot.yml \
+            infrastructure/lightsail/deploy.sh \
+            infrastructure/lightsail/healthcheck.sh \
+            infrastructure/lightsail/rollback.sh \
+            "${LIGHTSAIL_DEPLOY_USER}@${LIGHTSAIL_HOST}:/tmp/databreeze-${GITHUB_SHA}/"
       - name: Authenticate Lightsail to GHCR
         shell: bash
         env:
@@ -220,7 +238,26 @@ jobs:
         run: |
           set -euo pipefail
           ssh -i "$RUNNER_TEMP/lightsail-key" "${LIGHTSAIL_DEPLOY_USER}@${LIGHTSAIL_HOST}" \
-            "sudo install -m 0640 /tmp/databreeze-${GITHUB_SHA}.env /opt/databreeze/releases/${GITHUB_SHA}.env && sudo /opt/databreeze/deploy.sh /opt/databreeze/releases/${GITHUB_SHA}.env && rm -f /tmp/databreeze-${GITHUB_SHA}.env"
+            "set -e
+            sudo install -m 0640 /tmp/databreeze-${GITHUB_SHA}/Caddyfile /opt/databreeze/Caddyfile
+            sudo install -m 0640 /tmp/databreeze-${GITHUB_SHA}/compose.pilot.yml /opt/databreeze/compose.pilot.yml
+            sudo install -m 0750 /tmp/databreeze-${GITHUB_SHA}/deploy.sh /opt/databreeze/deploy.sh
+            sudo install -m 0750 /tmp/databreeze-${GITHUB_SHA}/healthcheck.sh /opt/databreeze/healthcheck.sh
+            sudo install -m 0750 /tmp/databreeze-${GITHUB_SHA}/rollback.sh /opt/databreeze/rollback.sh
+            sudo install -m 0640 /tmp/databreeze-${GITHUB_SHA}.env /opt/databreeze/releases/${GITHUB_SHA}.env
+            sudo /opt/databreeze/deploy.sh /opt/databreeze/releases/${GITHUB_SHA}.env"
+      - name: Remove temporary deployment files
+        if: always()
+        shell: bash
+        env:
+          LIGHTSAIL_HOST: ${{ secrets.LIGHTSAIL_HOST }}
+          LIGHTSAIL_DEPLOY_USER: ${{ secrets.LIGHTSAIL_DEPLOY_USER }}
+        run: |
+          set -euo pipefail
+          test -n "$LIGHTSAIL_HOST"
+          test -n "$LIGHTSAIL_DEPLOY_USER"
+          ssh -i "$RUNNER_TEMP/lightsail-key" "${LIGHTSAIL_DEPLOY_USER}@${LIGHTSAIL_HOST}" \
+            "sudo rm -rf /tmp/databreeze-${GITHUB_SHA} /tmp/databreeze-${GITHUB_SHA}.env"
       - name: Remove Lightsail GHCR credentials
         if: always()
         shell: bash
