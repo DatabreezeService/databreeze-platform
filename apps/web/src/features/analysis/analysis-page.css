@@ -75,7 +75,7 @@
   width: 1px;
   height: 1px;
   overflow: hidden;
-  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
   white-space: nowrap;
 }
 
@@ -131,7 +131,7 @@
   width: 1px;
   height: 1px;
   overflow: hidden;
-  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
   white-space: nowrap;
 }
 
@@ -346,7 +346,7 @@
 .analysis-conversation-thread__context dt,
 .analysis-conversation-thread__context dd {
   margin: 0;
-  font-size: 9.5px;
+  font-size: 11px;
 }
 
 .analysis-conversation-thread__context dt {
@@ -518,7 +518,7 @@
 .analysis-conversation-thread__composer span {
   max-width: 180px;
   color: var(--workspace-muted, #68778d);
-  font-size: 9.5px;
+  font-size: 11px;
   line-height: 1.35;
   text-align: end;
 }

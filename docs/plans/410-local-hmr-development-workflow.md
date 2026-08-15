@@ -15,7 +15,7 @@
 - Development may use loopback HTTP only; production/pilot HTTPS and fail-closed runtime profiles remain unchanged.
 - Keep Vietnamese as the default locale and do not change public contracts for a dev-server convenience.
 - Web proxy targets are explicit loopback paths only; no arbitrary browser-controlled proxy destination is accepted.
-- The API host process uses the repository's current development composition. In this branch that composition is intentionally database-free; the Docker PostgreSQL/Redis/MinIO/Mailpit services are available for adapters and integration checks but are not presented as durable API persistence until those adapters are wired.
+- The API host process uses the repository's local database-backed composition. Docker PostgreSQL is required, `DATABASE_URL` is configured, and Prisma migrations are applied before the watched API starts. Redis, MinIO, and Mailpit remain available for adapters and local verification.
 
 ---
 

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, URL } from 'node:url';
 
 const PNPM_EXECUTABLE = 'corepack';
 const REPOSITORY_ROOT = path.resolve(
@@ -116,6 +116,14 @@ export function localDevelopmentEnvironment(overrides = {}) {
   };
 }
 
+/** Vite HMR keeps NODE_ENV=development so React Refresh stays enabled. */
+export function webDevelopmentEnvironment(overrides = {}) {
+  return {
+    ...databaseBackedDevelopmentEnvironment(overrides),
+    NODE_ENV: 'development',
+  };
+}
+
 export function renderDevelopmentInstructions() {
   return `Local DataBreeze development
 
@@ -178,7 +186,7 @@ export async function main(argv = process.argv.slice(2)) {
     if (prerequisiteCode !== 0) return prerequisiteCode;
     return runProcess(DEV_COMMANDS.web, {
       cwd: path.resolve(REPOSITORY_ROOT, DEV_WORKING_DIRECTORIES.web),
-      env: { ...process.env, ...databaseBackedDevelopmentEnvironment() },
+      env: { ...process.env, ...webDevelopmentEnvironment() },
     });
   }
   throw new Error(`Unknown local development command: ${command}`);

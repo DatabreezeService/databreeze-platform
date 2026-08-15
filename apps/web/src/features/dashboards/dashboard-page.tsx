@@ -321,8 +321,7 @@ export function DashboardPage() {
       const widget = globalThis.document.querySelector<HTMLElement>(
         `[data-testid="widget-${pendingWidgetFocusId}"]`,
       );
-      if (widget === null) return;
-      widget.focus();
+      widget?.focus();
       setPendingWidgetFocusId(undefined);
     });
     return () => globalThis.cancelAnimationFrame(frame);
@@ -736,7 +735,7 @@ export function DashboardPage() {
         text:
           locale === 'vi-VN'
             ? `Đã thêm ${nextWidgets.length} biểu đồ vào canvas.`
-            : `Added ${nextWidgets.length} charts to the canvas.`,
+            : `Added ${nextWidgets.length} ${nextWidgets.length === 1 ? 'chart' : 'charts'} to the canvas.`,
         createdLabel: locale === 'vi-VN' ? 'Bây giờ' : 'Now',
       });
     }

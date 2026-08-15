@@ -7,7 +7,7 @@ export type SessionRow = {
 export type SessionListProperties = {
   readonly locale: 'vi-VN' | 'en';
   readonly sessions: readonly SessionRow[];
-  readonly onRevoke: (sessionId: string) => void;
+  readonly onRevoke?: (sessionId: string) => void;
 };
 
 export function SessionList({ locale, sessions, onRevoke }: SessionListProperties) {
@@ -29,7 +29,7 @@ export function SessionList({ locale, sessions, onRevoke }: SessionListPropertie
                   : 'Other session'}
             </small>
           </span>
-          {session.current ? null : (
+          {session.current || onRevoke === undefined ? null : (
             <button onClick={() => onRevoke(session.sessionId)} type="button">
               {locale === 'vi-VN' ? 'Thu hồi phiên' : 'Revoke session'}
             </button>

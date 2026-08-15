@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import brandMarkUrl from '@databreeze/design-tokens/brand/generated/web/favicon-32.png';
 
 import type { AnalysisConversationV1 } from './analysis-model.ts';
@@ -58,6 +58,7 @@ export function ConversationThread({
 }: ConversationThreadProps) {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const text = copy(locale);
   const canSend = onSendMessage !== undefined;
 
@@ -111,7 +112,14 @@ export function ConversationThread({
           <p>{text.empty}</p>
           <div className="analysis-conversation-thread__prompts">
             {text.prompts.map(([label, prompt]) => (
-              <button key={label} onClick={() => setDraft(prompt)} type="button">
+              <button
+                key={label}
+                onClick={() => {
+                  setDraft(prompt);
+                  composerRef.current?.focus();
+                }}
+                type="button"
+              >
                 {label}
               </button>
             ))}
@@ -145,6 +153,7 @@ export function ConversationThread({
           id={`analysis-composer-${conversation.conversationId}`}
           onChange={(event) => setDraft(event.target.value)}
           placeholder={text.placeholder}
+          ref={composerRef}
           rows={3}
           value={draft}
         />

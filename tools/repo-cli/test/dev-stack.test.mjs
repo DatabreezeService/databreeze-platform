@@ -8,6 +8,7 @@ import {
   databaseBackedDevelopmentEnvironment,
   localDevelopmentEnvironment,
   renderDevelopmentInstructions,
+  webDevelopmentEnvironment,
 } from '../src/dev-stack.mjs';
 
 test('local development commands keep infrastructure in Docker and app processes on the host', () => {
@@ -36,7 +37,14 @@ test('development instructions are explicit about the HMR URL and Docker-only se
 });
 
 test('database-backed development environment points host watchers at the Docker services', () => {
-  const environment = databaseBackedDevelopmentEnvironment();
+  const environment = databaseBackedDevelopmentEnvironment({
+    DATABASE_URL:
+      'postgresql://databreeze:databreeze-local-change-me@127.0.0.1:5432/databreeze?schema=public',
+    REDIS_PORT: '6379',
+    MINIO_API_PORT: '9000',
+    MAILPIT_SMTP_PORT: '1025',
+    DATABREEZE_LOCAL_EMAIL_PROVIDER: 'mailpit',
+  });
 
   assert.equal(environment.NODE_ENV, 'production');
   assert.equal(environment.DATABREEZE_RUNTIME_PROFILE, 'local');
@@ -49,6 +57,23 @@ test('database-backed development environment points host watchers at the Docker
   assert.equal(environment.VITE_DATABREEZE_DEMO_MODE, 'false');
   assert.equal(environment.VITE_DATABREEZE_API_BASE_URL, '');
   assert.match(environment.DATABASE_URL, /@127\.0\.0\.1:5432\//u);
+});
+
+test('web development keeps Vite in development while using the database-backed local flags', () => {
+  const environment = webDevelopmentEnvironment({
+    DATABASE_URL:
+      'postgresql://databreeze:databreeze-local-change-me@127.0.0.1:5432/databreeze?schema=public',
+    REDIS_PORT: '6379',
+    MINIO_API_PORT: '9000',
+    MAILPIT_SMTP_PORT: '1025',
+    DATABREEZE_LOCAL_EMAIL_PROVIDER: 'mailpit',
+  });
+
+  assert.equal(environment.NODE_ENV, 'development');
+  assert.equal(environment.VITE_DATABREEZE_DEMO_MODE, 'false');
+  assert.equal(environment.VITE_DATABREEZE_API_BASE_URL, '');
+  assert.equal(environment.DATABREEZE_RUNTIME_PROFILE, 'local');
+  assert.equal(environment.DATABREEZE_LOCAL_HMR_ORIGIN, 'http://127.0.0.1:5173');
 });
 
 test('web development builds runtime domain exports before starting Vite', () => {

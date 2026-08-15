@@ -19,9 +19,7 @@ const TABLET_QUERY = '(min-width: 768px) and (max-width: 1023px)';
 
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() =>
-    typeof globalThis.matchMedia === 'function'
-      ? globalThis.matchMedia(query).matches
-      : false,
+    typeof globalThis.matchMedia === 'function' ? globalThis.matchMedia(query).matches : false,
   );
 
   useEffect(() => {

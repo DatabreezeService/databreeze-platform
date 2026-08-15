@@ -37,11 +37,11 @@ Mailpit:    http://127.0.0.1:8025
 ```
 
 Vite proxies `/v1`, `/v3`, and `/health` to
-`http://127.0.0.1:3000`. The current API development composition is
-database-free by design; the Docker PostgreSQL/Redis/MinIO/Mailpit services
-remain available for adapters and integration checks. The pilot/production
-`https://localhost:8443` URL serves a built bundle and is intentionally not a
-hot-reload development URL.
+`http://127.0.0.1:3000`. The watched API uses Docker PostgreSQL through
+`DATABASE_URL`, with Prisma migrations applied on start; Redis, MinIO, and
+Mailpit remain available for adapters and local verification. The
+pilot/production `https://localhost:8443` URL serves a built bundle and is
+intentionally not a hot-reload development URL.
 
 ## Change workflow
 

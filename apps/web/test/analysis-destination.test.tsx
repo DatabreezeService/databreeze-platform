@@ -126,6 +126,9 @@ describe('[DDA-055][DDA-056] Analysis destination', () => {
       (screen.getByRole('textbox', { name: 'Nhập câu hỏi phân tích' }) as HTMLTextAreaElement)
         .value,
     ).toBe('Tìm điểm bất thường trong dữ liệu này');
+    expect(document.activeElement).toBe(
+      screen.getByRole('textbox', { name: 'Nhập câu hỏi phân tích' }),
+    );
     expect(submitted).toEqual([]);
 
     await user.click(screen.getByRole('button', { name: 'Gửi câu hỏi' }));

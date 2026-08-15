@@ -1,7 +1,12 @@
-import { useState, type FormEvent, type ReactNode, type Ref } from 'react';
+import { useId, useState, type FormEvent, type ReactNode, type Ref } from 'react';
 import { Link, useInRouterContext } from 'react-router-dom';
 
 import type { AgentConversationSummaryV1, AgentMessagePresentationV1 } from './agent-store.ts';
+
+function newConversationPath(analysisHref: string, explicitHref?: string): string {
+  if (explicitHref !== undefined) return explicitHref;
+  return `${analysisHref.split('?')[0] ?? analysisHref}?new=1`;
+}
 
 export interface AgentChatShellProperties {
   readonly activeConversationId?: string;
@@ -42,7 +47,9 @@ export function AgentChatShell({
   textareaRef,
 }: AgentChatShellProperties) {
   const [draft, setDraft] = useState('');
+  const composerId = useId();
   const inRouter = useInRouterContext();
+  const createHref = newConversationPath(analysisHref, newConversationHref);
   const text =
     locale === 'vi-VN'
       ? {
@@ -70,8 +77,12 @@ export function AgentChatShell({
     event.preventDefault();
     const message = draft.trim();
     if (message === '' || submitting || onSubmitMessage === undefined) return;
-    await onSubmitMessage(message);
-    setDraft('');
+    try {
+      await onSubmitMessage(message);
+      setDraft('');
+    } catch {
+      // The caller owns localized failure copy. Preserve the draft for retry.
+    }
   }
 
   return (
@@ -85,7 +96,11 @@ export function AgentChatShell({
             onChange={(event) => onSelectConversation(event.target.value)}
             value={activeConversationId ?? ''}
           >
-            {conversations.length === 0 ? <option value="">{text.noConversation}</option> : null}
+            {activeConversationId === undefined ? (
+              <option value="">
+                {conversations.length === 0 ? text.noConversation : text.switchConversation}
+              </option>
+            ) : null}
             {conversations.map((conversation) => (
               <option key={conversation.conversationId} value={conversation.conversationId}>
                 {conversation.title}
@@ -95,17 +110,11 @@ export function AgentChatShell({
         </label>
         {onCreateConversation === undefined ? (
           inRouter ? (
-            <Link
-              className="agent-chat-shell__new"
-              to={newConversationHref ?? analysisHref.replace(/\?.*$/u, '?new=1')}
-            >
+            <Link className="agent-chat-shell__new" to={createHref}>
               {text.newConversation}
             </Link>
           ) : (
-            <a
-              className="agent-chat-shell__new"
-              href={newConversationHref ?? analysisHref.replace(/\?.*$/u, '?new=1')}
-            >
+            <a className="agent-chat-shell__new" href={createHref}>
               {text.newConversation}
             </a>
           )
@@ -132,8 +141,8 @@ export function AgentChatShell({
             </article>
           ))
         )}
-        {children}
       </div>
+      {children}
 
       {stateMessage === undefined ? null : (
         <p className="agent-chat-shell__state" role={stateTone}>
@@ -142,12 +151,12 @@ export function AgentChatShell({
       )}
 
       <form className="agent-chat-shell__composer" onSubmit={(event) => void submit(event)}>
-        <label htmlFor="agent-chat-composer">{text.composer}</label>
+        <label htmlFor={composerId}>{text.composer}</label>
         <div>
           <textarea
             aria-label={text.composer}
             disabled={onSubmitMessage === undefined}
-            id="agent-chat-composer"
+            id={composerId}
             onChange={(event) => setDraft(event.target.value)}
             placeholder={text.inputPlaceholder}
             ref={textareaRef}

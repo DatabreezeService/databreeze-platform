@@ -288,7 +288,7 @@ a {
   letter-spacing: -0.04em;
 }
 .inbox-page .table-scroll {
-  overflow: hidden auto;
+  overflow: auto;
   border: 1px solid #dbe5f4;
   border-radius: 16px;
   background: #ffffff;

@@ -31,13 +31,18 @@ const DEMO_WORKSPACE_SETTINGS: WorkspaceSettingsProjection = Object.freeze({
   ]),
 });
 
-const DEMO_SESSIONS: readonly SessionRow[] = Object.freeze([
-  Object.freeze({
-    sessionId: '00000000-0000-4000-8000-000000000403',
-    deviceLabel: 'Chrome · Windows · Phiên hiện tại',
-    current: true,
-  }),
-]);
+function demoSessions(locale: SupportedLocaleV1): readonly SessionRow[] {
+  return Object.freeze([
+    Object.freeze({
+      sessionId: '00000000-0000-4000-8000-000000000403',
+      deviceLabel:
+        locale === 'vi-VN'
+          ? 'Chrome · Windows · Phiên hiện tại'
+          : 'Chrome · Windows · Current session',
+      current: true,
+    }),
+  ]);
+}
 
 export interface WorkspaceSettingsPageProperties {
   readonly locale: SupportedLocaleV1;
@@ -196,7 +201,7 @@ export function WorkspaceSettingsPage({
                 <h2>{appMessage(locale, 'settings.workspace.sessions')}</h2>
               </div>
             </div>
-            <SessionList locale={locale} onRevoke={() => undefined} sessions={sessions} />
+            <SessionList locale={locale} sessions={sessions} />
           </section>
         </>
       )}
@@ -242,7 +247,7 @@ export function WorkspaceSettingsRoutePage({
           );
         }}
         projection={demoProjection}
-        sessions={DEMO_SESSIONS}
+        sessions={demoSessions(locale)}
       />
     );
   }

@@ -78,7 +78,18 @@ export function createAgentStore(initial?: AgentConversationSummaryV1): AgentSto
       emit();
     },
     setConversations: (nextConversations) => {
-      conversations = Object.freeze([...nextConversations]);
+      const previousById = new Map(
+        conversations.map((conversation) => [conversation.conversationId, conversation]),
+      );
+      conversations = Object.freeze(
+        nextConversations.map((conversation) => {
+          const previous = previousById.get(conversation.conversationId);
+          if (previous?.messages === undefined || conversation.messages !== undefined) {
+            return conversation;
+          }
+          return { ...conversation, messages: previous.messages };
+        }),
+      );
       if (conversations.length === 0) active = undefined;
       else {
         active =
