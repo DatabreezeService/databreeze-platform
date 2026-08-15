@@ -68,6 +68,7 @@ test('Lightsail pilot workflow passes immutable image digests between jobs', asy
   assert.match(workflow, /environment:\s*pilot/u);
   const deployJob = workflow.split('\n  deploy:\n', 2)[1] ?? '';
   assert.match(deployJob, /permissions:[\s\S]*packages:\s*read/u);
+  assert.match(deployJob, /Checkout repository[\s\S]*actions\/checkout/u);
   assert.match(deployJob, /LIGHTSAIL_GHCR_USERNAME:\s*\$\{\{\s*github\.actor\s*\}\}/u);
   assert.match(deployJob, /LIGHTSAIL_GHCR_TOKEN:\s*\$\{\{\s*secrets\.GITHUB_TOKEN\s*\}\}/u);
   assert.doesNotMatch(deployJob, /secrets\.LIGHTSAIL_GHCR_/u);
