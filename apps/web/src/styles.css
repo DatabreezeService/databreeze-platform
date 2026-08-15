@@ -870,8 +870,23 @@ td:first-child {
 }
 
 .auth-page__panel {
-  background: #07091d;
+  position: relative;
   overflow-y: auto;
+  background:
+    radial-gradient(ellipse 70% 55% at 82% 12%, rgba(61, 80, 255, 0.16), transparent 62%),
+    #07091d;
+}
+
+.auth-page__panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(219, 223, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(219, 223, 255, 0.045) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 88%);
 }
 
 .auth-page__panel-inner {
