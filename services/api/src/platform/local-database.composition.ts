@@ -251,22 +251,26 @@ function localRedisUrl(environment: RuntimeEnvironment): string {
   }
 }
 
-function localHttpsOrigin(
+function localBrowserOrigin(
   environment: RuntimeEnvironment,
   profile: typeof LOCAL_RUNTIME_PROFILE | typeof PILOT_RUNTIME_PROFILE,
 ): string {
-  const candidate =
-    environment[
-      profile === PILOT_RUNTIME_PROFILE
-        ? 'DATABREEZE_PILOT_HTTPS_ORIGIN'
-        : 'DATABREEZE_LOCAL_HTTPS_ORIGIN'
-    ]?.trim();
+  const hmrHttp =
+    profile === LOCAL_RUNTIME_PROFILE && environment['DATABREEZE_LOCAL_HMR_HTTP'] === 'true';
+  const hmrCandidate = environment['DATABREEZE_LOCAL_HMR_ORIGIN']?.trim();
+  const candidate = hmrHttp
+    ? hmrCandidate
+    : environment[
+        profile === PILOT_RUNTIME_PROFILE
+          ? 'DATABREEZE_PILOT_HTTPS_ORIGIN'
+          : 'DATABREEZE_LOCAL_HTTPS_ORIGIN'
+      ]?.trim();
   if (!candidate) throw new Error(LOCAL_HTTPS_ORIGIN_ERROR);
   try {
     const parsed = new URL(candidate);
     if (
-      parsed.protocol !== 'https:' ||
-      (profile === LOCAL_RUNTIME_PROFILE
+      (hmrHttp ? parsed.protocol !== 'http:' : parsed.protocol !== 'https:') ||
+      (hmrHttp || profile === LOCAL_RUNTIME_PROFILE
         ? !isLoopback(parsed.hostname)
         : isLoopback(parsed.hostname)) ||
       parsed.username !== '' ||
@@ -400,7 +404,7 @@ async function createComposeDatabaseComposition(
   }
   const connectionString = localDatabaseUrl(environment);
   const redisUrl = localRedisUrl(environment);
-  const httpsOrigin = localHttpsOrigin(environment, profile);
+  const httpsOrigin = localBrowserOrigin(environment, profile);
   const emailProvider = localEmailProvider(environment);
   const smtpOptions = emailProvider === 'mailpit' ? localSmtpOptions(environment) : undefined;
   const gmailSmtpOptions =

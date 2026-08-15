@@ -41,11 +41,20 @@ corepack pnpm dev:api
 corepack pnpm dev:web
 ```
 
-The Web URL is <http://127.0.0.1:5173/vi-VN/workspace>; it uses Vite HMR and
-proxies API paths to <http://127.0.0.1:3000>. The current API composition is
-database-free, so these services are infrastructure available to local
-adapters rather than an assertion that every API feature is PostgreSQL-backed.
-The pilot/production Caddy URL is for built-image validation, not HMR.
+The Web URL is <http://127.0.0.1:5173/vi-VN/sign-in>; it uses Vite HMR and
+proxies API paths to the watched host API at <http://127.0.0.1:3000>. The
+`dev:api` watcher uses the database-backed local composition, runs Prisma
+generation/migrations, and talks to the Docker PostgreSQL, Redis, and Mailpit
+services. Registration, OTP, sign-in, refresh, logout, and durable data
+changes therefore exercise the real local backend while Web source changes
+update without a rebuild. The pilot/production Caddy URL is for built-image
+validation, not HMR.
+
+For this HMR profile, use the loopback HTTP URL above. The built gateway is a
+separate HTTPS endpoint at <https://localhost:8443>; opening it as
+`http://localhost:8443` produces “Client sent an HTTP request to an HTTPS
+server”. It serves the built Web image and intentionally keeps Secure cookies;
+it is not the hot-reload endpoint.
 
 The stack is defined in [`compose.yml`](compose.yml). All state is held in
 named volumes prefixed by the Compose project name; no repository directory is

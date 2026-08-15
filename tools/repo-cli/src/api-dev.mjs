@@ -9,7 +9,7 @@ const apiDirectory = path.join(repositoryRoot, 'services', 'api');
 function runPnpm(args) {
   const result = spawnSync(pnpmExecutable, ['pnpm', ...args], {
     cwd: repositoryRoot,
-    env: { ...process.env, NODE_ENV: 'development' },
+    env: { ...process.env },
     shell: process.platform === 'win32',
     stdio: 'inherit',
     windowsHide: false,
@@ -23,7 +23,7 @@ function start(command, args) {
     cwd: repositoryRoot,
     env: {
       ...process.env,
-      NODE_ENV: 'development',
+      NODE_ENV: process.env.NODE_ENV ?? 'development',
       HOST: '127.0.0.1',
       PORT: '3000',
     },
@@ -37,6 +37,21 @@ function stop(child) {
   if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
 }
 
+// Keep this command self-starting: the user may run only dev:api after Docker
+// Desktop is ready. The lifecycle command is idempotent when dependencies are
+// already healthy and never starts the built API/Web containers.
+runPnpm(['local:services', 'start']);
+runPnpm(['--filter', '@databreeze/api', 'prisma:generate']);
+runPnpm([
+  '--filter',
+  '@databreeze/api',
+  'exec',
+  'prisma',
+  'migrate',
+  'deploy',
+  '--config',
+  'prisma.config.ts',
+]);
 runPnpm(['--filter', '@databreeze/domain', 'build']);
 runPnpm(['--filter', '@databreeze/telemetry', 'build']);
 runPnpm(['--filter', '@databreeze/api', 'build']);

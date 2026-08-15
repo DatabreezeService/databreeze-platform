@@ -27,6 +27,34 @@ void test('production request context requires explicit HTTPS browser origins', 
   );
 });
 
+void test('[WEB-004] production-shaped local HMR accepts only loopback HTTP when explicitly enabled', () => {
+  const previousProfile = process.env['DATABREEZE_RUNTIME_PROFILE'];
+  const previousHmr = process.env['DATABREEZE_LOCAL_HMR_HTTP'];
+  process.env['DATABREEZE_RUNTIME_PROFILE'] = 'local';
+  process.env['DATABREEZE_LOCAL_HMR_HTTP'] = 'true';
+  try {
+    assert.doesNotThrow(() =>
+      validateRequestContextOptionsV1(
+        { csrf: { allowedOrigins: ['http://127.0.0.1:5173'] } },
+        'production',
+      ),
+    );
+    assert.throws(
+      () =>
+        validateRequestContextOptionsV1(
+          { csrf: { allowedOrigins: ['http://example.test'] } },
+          'production',
+        ),
+      /CSRF_ALLOWED_ORIGINS_INVALID/u,
+    );
+  } finally {
+    if (previousProfile === undefined) delete process.env['DATABREEZE_RUNTIME_PROFILE'];
+    else process.env['DATABREEZE_RUNTIME_PROFILE'] = previousProfile;
+    if (previousHmr === undefined) delete process.env['DATABREEZE_LOCAL_HMR_HTTP'];
+    else process.env['DATABREEZE_LOCAL_HMR_HTTP'] = previousHmr;
+  }
+});
+
 void test('allows safe methods and non-cookie clients without a CSRF token', () => {
   assert.deepEqual(evaluateCsrfRequestV1({ method: 'GET', headers: {} }, { allowedOrigins }), {
     accepted: true,

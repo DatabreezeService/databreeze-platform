@@ -5,6 +5,7 @@ import {
   DEV_COMMANDS,
   DEV_WORKING_DIRECTORIES,
   DEV_WEB_PREREQUISITE,
+  databaseBackedDevelopmentEnvironment,
   localDevelopmentEnvironment,
   renderDevelopmentInstructions,
 } from '../src/dev-stack.mjs';
@@ -27,10 +28,27 @@ test('local development commands keep infrastructure in Docker and app processes
 test('development instructions are explicit about the HMR URL and Docker-only services', () => {
   const instructions = renderDevelopmentInstructions();
 
-  assert.match(instructions, /http:\/\/127\.0\.0\.1:5173\/vi-VN\/workspace/u);
+  assert.match(instructions, /http:\/\/127\.0\.0\.1:5173\/vi-VN\/sign-in/u);
   assert.match(instructions, /Vite HMR/u);
   assert.match(instructions, /PostgreSQL.*Redis.*MinIO.*Mailpit/isu);
-  assert.match(instructions, /do not use.*8443.*source editing/isu);
+  assert.match(instructions, /database-backed/iu);
+  assert.match(instructions, /8443.*production-shaped validation/isu);
+});
+
+test('database-backed development environment points host watchers at the Docker services', () => {
+  const environment = databaseBackedDevelopmentEnvironment();
+
+  assert.equal(environment.NODE_ENV, 'production');
+  assert.equal(environment.DATABREEZE_RUNTIME_PROFILE, 'local');
+  assert.equal(environment.DATABREEZE_LOCAL_HMR_HTTP, 'true');
+  assert.equal(environment.DATABREEZE_LOCAL_HMR_ORIGIN, 'http://127.0.0.1:5173');
+  assert.equal(environment.DATABREEZE_REDIS_URL, 'redis://127.0.0.1:6379');
+  assert.equal(environment.DATABREEZE_IAM_SMTP_HOST, '127.0.0.1');
+  assert.equal(environment.DATABREEZE_IAM_SMTP_PORT, '1025');
+  assert.equal(environment.DATABREEZE_LOCAL_MINIO_ENDPOINT, 'http://127.0.0.1:9000');
+  assert.equal(environment.VITE_DATABREEZE_DEMO_MODE, 'false');
+  assert.equal(environment.VITE_DATABREEZE_API_BASE_URL, '');
+  assert.match(environment.DATABASE_URL, /@127\.0\.0\.1:5432\//u);
 });
 
 test('web development builds runtime domain exports before starting Vite', () => {
