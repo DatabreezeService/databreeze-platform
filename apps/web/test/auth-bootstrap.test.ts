@@ -116,6 +116,21 @@ describe('Web authentication bootstrap [IAM-023, WEB-002, WEB-004]', () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
+  it('does not redirect a signed-out user away from the locale landing page', async () => {
+    for (const pathname of ['/', '/vi-VN', '/en']) {
+      const replace = vi.fn();
+      await recoverSessionBeforeAppStartV1({
+        api: {
+          recoverWebSession: vi.fn(async () => ({ accepted: false as const, code: 'AUTH_FAILED' as const })),
+          loadBootstrap: vi.fn(),
+        },
+        pathname,
+        replace,
+      });
+      expect(replace).not.toHaveBeenCalled();
+    }
+  });
+
   it('does not mount application routes until session recovery settles', async () => {
     let settle: ((value: { readonly accepted: true }) => void) | undefined;
     const recovery = new Promise<{ readonly accepted: true }>((resolve) => {

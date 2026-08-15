@@ -29,7 +29,7 @@ test('local development commands keep infrastructure in Docker and app processes
 test('development instructions are explicit about the HMR URL and Docker-only services', () => {
   const instructions = renderDevelopmentInstructions();
 
-  assert.match(instructions, /http:\/\/127\.0\.0\.1:5173\/vi-VN\/sign-in/u);
+  assert.match(instructions, /http:\/\/127\.0\.0\.1:5173\/vi-VN$/mu);
   assert.match(instructions, /Vite HMR/u);
   assert.match(instructions, /PostgreSQL.*Redis.*MinIO.*Mailpit/isu);
   assert.match(instructions, /database-backed/iu);

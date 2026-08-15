@@ -25,6 +25,7 @@ import {
   RegisterRoutePage,
   VerifyEmailRoutePage,
 } from '../features/auth/auth-route-pages.tsx';
+import { LandingRoutePage } from '../features/landing/landing-page.tsx';
 import { PRODUCT_MODULE_REGISTRY } from '../features/product-modules/product-module-registry.ts';
 import { normalizeRouteLocale } from './locale-context.tsx';
 import { WEB_FEATURE_REGISTRY } from './feature-registry.ts';
@@ -72,7 +73,7 @@ const logicalRoots = new Set([
 ]);
 
 function canonicalPathname(pathname: string): string | undefined {
-  if (pathname === '/') return `/${DEFAULT_LOCALE_V1}/dashboards`;
+  if (pathname === '/') return `/${DEFAULT_LOCALE_V1}`;
   const segments = pathname.split('/').filter(Boolean);
   const first = segments[0];
   if (first !== undefined && SUPPORTED_LOCALES_V1.includes(first as 'en' | 'vi-VN'))
@@ -128,6 +129,7 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
         {
           element: <AuthenticationGate publicRoute />,
           children: [
+            { index: true, element: <LandingRoutePage /> },
             { path: 'sign-in', element: <SignInRoutePage /> },
             { path: 'register', element: <RegisterRoutePage /> },
             { path: 'verify-email', element: <VerifyEmailRoutePage /> },
@@ -139,7 +141,6 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
             {
               element: <ShellLayout accessContext={accessContext} />,
               children: [
-                { index: true, element: <Navigate replace to="dashboards" /> },
                 { path: 'workspace', element: <Navigate replace to="../dashboards" /> },
                 { path: 'analysis', element: <AnalysisRoutePage /> },
                 { path: 'data', element: <DataRoutePage /> },
