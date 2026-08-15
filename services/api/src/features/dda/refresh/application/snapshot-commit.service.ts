@@ -1,10 +1,7 @@
 import type { DashboardSnapshotV1 } from '@databreeze/domain/data-to-dashboard/v1';
 
 import type { RefreshCoordinatorPortV1 } from './refresh-coordinator.port.js';
-import {
-  parseStableIdentifierV1,
-  type TenantScopeV1,
-} from '@databreeze/domain/tenant-scope/v1';
+import { parseStableIdentifierV1, type TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 import type { WorkerVerifiedResultManifestPortV1 } from '../../../jra/worker/worker-result-finalization.port.js';
 import {
   readDashboardSnapshotBindingProofV1,
@@ -96,9 +93,7 @@ export class SnapshotCommitService {
     const proofByMaterializationId = new Map<
       string,
       DashboardPublicationMaterializationBindingProofV1
-    >(
-      (bindingProof ?? []).map((proof) => [proof.materializationId, proof]),
-    );
+    >((bindingProof ?? []).map((proof) => [proof.materializationId, proof]));
     const requiredIds = new Set(input.snapshot.materializationIds);
     const providedIds = new Set(input.materializations.map((item) => item.materializationId));
     for (const required of requiredIds) {

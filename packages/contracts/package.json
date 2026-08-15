@@ -66,12 +66,12 @@
     "./v4/iam-email-verification-command": "./schemas/v4/iam-email-verification-command.schema.json",
     "./v4/iam-password-sign-in-command": "./schemas/v4/iam-password-sign-in-command.schema.json",
     "./v4/iam-registration-accepted": "./schemas/v4/iam-registration-accepted.schema.json",
-    "./v4/iam-registration-command": "./schemas/v4/iam-registration-command.schema.json"
-    ,"./v4/jra-worker-dashboard-widget-result-output": "./schemas/v4/jra-worker-dashboard-widget-result-output.schema.json"
-    ,"./v4/jra-worker-result-finalize-accepted": "./schemas/v4/jra-worker-result-finalize-accepted.schema.json"
-    ,"./v4/jra-worker-result-finalize-command": "./schemas/v4/jra-worker-result-finalize-command.schema.json"
-    ,"./v4/jra-worker-result-prepare-accepted": "./schemas/v4/jra-worker-result-prepare-accepted.schema.json"
-    ,"./v4/jra-worker-result-prepare-command": "./schemas/v4/jra-worker-result-prepare-command.schema.json"
+    "./v4/iam-registration-command": "./schemas/v4/iam-registration-command.schema.json",
+    "./v4/jra-worker-dashboard-widget-result-output": "./schemas/v4/jra-worker-dashboard-widget-result-output.schema.json",
+    "./v4/jra-worker-result-finalize-accepted": "./schemas/v4/jra-worker-result-finalize-accepted.schema.json",
+    "./v4/jra-worker-result-finalize-command": "./schemas/v4/jra-worker-result-finalize-command.schema.json",
+    "./v4/jra-worker-result-prepare-accepted": "./schemas/v4/jra-worker-result-prepare-accepted.schema.json",
+    "./v4/jra-worker-result-prepare-command": "./schemas/v4/jra-worker-result-prepare-command.schema.json"
   },
   "scripts": {
     "build": "node scripts/build.mjs && node scripts/generate-models.mjs --check",

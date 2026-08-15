@@ -3,7 +3,10 @@ import {
   type IdentityBootstrapDatabaseClientV1,
   type IdentityBootstrapPolicyProvisionerFactoryV1,
 } from './prisma-identity-bootstrap-repository.adapter.js';
-import type { EmailVerificationChallengeRecordV1, EmailVerificationRepositoryPortV1 } from '../application/email-verification-repository.port.js';
+import type {
+  EmailVerificationChallengeRecordV1,
+  EmailVerificationRepositoryPortV1,
+} from '../application/email-verification-repository.port.js';
 
 interface ChallengeRowV1 {
   readonly id: string;
@@ -26,10 +29,18 @@ interface ChallengeRowV1 {
 }
 
 interface ChallengeDelegateV1 {
-  findFirst(input: { readonly where: Readonly<Record<string, unknown>>; readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>> }): Promise<ChallengeRowV1 | null>;
-  findUnique(input: { readonly where: Readonly<Record<string, unknown>> }): Promise<ChallengeRowV1 | null>;
+  findFirst(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+    readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
+  }): Promise<ChallengeRowV1 | null>;
+  findUnique(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+  }): Promise<ChallengeRowV1 | null>;
   create(input: { readonly data: Readonly<Record<string, unknown>> }): Promise<ChallengeRowV1>;
-  updateMany(input: { readonly where: Readonly<Record<string, unknown>>; readonly data: Readonly<Record<string, unknown>> }): Promise<{ readonly count: number }>;
+  updateMany(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+    readonly data: Readonly<Record<string, unknown>>;
+  }): Promise<{ readonly count: number }>;
 }
 
 interface CreateDelegateV1 {
@@ -37,7 +48,9 @@ interface CreateDelegateV1 {
 }
 
 interface UserDelegateV1 extends CreateDelegateV1 {
-  findUnique(input: { readonly where: Readonly<Record<string, unknown>> }): Promise<{ readonly id: string } | null>;
+  findUnique(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+  }): Promise<{ readonly id: string } | null>;
 }
 
 export interface EmailVerificationDatabaseClientV1 extends IdentityBootstrapDatabaseClientV1 {
@@ -47,13 +60,19 @@ export interface EmailVerificationDatabaseClientV1 extends IdentityBootstrapData
   readonly sessionRecord: CreateDelegateV1;
   readonly refreshTokenRecord: CreateDelegateV1;
   readonly accessTokenRecord: CreateDelegateV1;
-  $transaction<TValue>(work: (transaction: EmailVerificationDatabaseClientV1) => Promise<TValue>): Promise<TValue>;
+  $transaction<TValue>(
+    work: (transaction: EmailVerificationDatabaseClientV1) => Promise<TValue>,
+  ): Promise<TValue>;
 }
 
 function record(row: ChallengeRowV1): EmailVerificationChallengeRecordV1 {
-  const status = row.status === 'ACTIVE' || row.status === 'CONSUMED' || row.status === 'REVOKED' || row.status === 'LOCKED'
-    ? row.status
-    : 'REVOKED';
+  const status =
+    row.status === 'ACTIVE' ||
+    row.status === 'CONSUMED' ||
+    row.status === 'REVOKED' ||
+    row.status === 'LOCKED'
+      ? row.status
+      : 'REVOKED';
   return Object.freeze({
     id: row.id,
     purpose: row.purpose,
@@ -67,15 +86,21 @@ function record(row: ChallengeRowV1): EmailVerificationChallengeRecordV1 {
     expiresAt: row.expiresAt.toISOString(),
     status,
     ...(row.consumedAt ? { consumedAt: row.consumedAt.toISOString() } : {}),
-    ...(row.activationIdempotencyKey ? { activationIdempotencyKey: row.activationIdempotencyKey } : {}),
+    ...(row.activationIdempotencyKey
+      ? { activationIdempotencyKey: row.activationIdempotencyKey }
+      : {}),
     ...(row.activationRequestHash ? { activationRequestHash: row.activationRequestHash } : {}),
-    ...(row.activationResultEnvelope ? { activationResultEnvelope: row.activationResultEnvelope } : {}),
+    ...(row.activationResultEnvelope
+      ? { activationResultEnvelope: row.activationResultEnvelope }
+      : {}),
     ...(row.activatedSessionId ? { activatedSessionId: row.activatedSessionId } : {}),
     revision: row.revision,
   });
 }
 
-function persistence(challenge: EmailVerificationChallengeRecordV1): Readonly<Record<string, unknown>> {
+function persistence(
+  challenge: EmailVerificationChallengeRecordV1,
+): Readonly<Record<string, unknown>> {
   return {
     id: challenge.id,
     purpose: challenge.purpose,
@@ -118,13 +143,17 @@ export class PrismaEmailVerificationRepositoryAdapter implements EmailVerificati
   }
 
   public async findById(challengeId: string) {
-    const row = await this.client.iamEmailVerificationChallenge.findUnique({ where: { id: challengeId } });
+    const row = await this.client.iamEmailVerificationChallenge.findUnique({
+      where: { id: challengeId },
+    });
     return row ? record(row) : undefined;
   }
 
   public async save(challenge: EmailVerificationChallengeRecordV1): Promise<void> {
     const data = persistence(challenge);
-    const existing = await this.client.iamEmailVerificationChallenge.findUnique({ where: { id: challenge.id } });
+    const existing = await this.client.iamEmailVerificationChallenge.findUnique({
+      where: { id: challenge.id },
+    });
     if (!existing) {
       if (challenge.revision !== 1) throw new Error('IAM_EMAIL_VERIFICATION_REVISION_CONFLICT');
       await this.client.iamEmailVerificationChallenge.create({ data });
@@ -149,10 +178,17 @@ export class PrismaEmailVerificationRepositoryAdapter implements EmailVerificati
   ): Promise<boolean> {
     try {
       return await this.client.$transaction(async (transaction) => {
-        const existingUser = await transaction.userIdentity.findUnique({ where: { email: input.pending.email } });
+        const existingUser = await transaction.userIdentity.findUnique({
+          where: { email: input.pending.email },
+        });
         if (existingUser) return false;
         const reserved = await transaction.iamEmailVerificationChallenge.updateMany({
-          where: { id: input.challengeId, revision: input.expectedRevision, status: 'ACTIVE', activationIdempotencyKey: null },
+          where: {
+            id: input.challengeId,
+            revision: input.expectedRevision,
+            status: 'ACTIVE',
+            activationIdempotencyKey: null,
+          },
           data: {
             status: 'CONSUMED',
             consumedAt: new Date(input.consumedAt),
@@ -165,49 +201,59 @@ export class PrismaEmailVerificationRepositoryAdapter implements EmailVerificati
         });
         if (reserved.count !== 1) return false;
         const bootstrap = input.pending.bootstrap;
-        await transaction.userIdentity.create({ data: {
-          id: bootstrap.user.id,
-          email: input.pending.email,
-          displayName: bootstrap.user.displayName,
-          locale: bootstrap.user.locale,
-          status: bootstrap.user.status,
-          securityEpoch: bootstrap.user.securityEpoch,
-          createdAt: new Date(bootstrap.user.createdAt),
-        } });
-        await transaction.passwordCredential.create({ data: {
-          id: input.pending.credentialId,
-          userId: bootstrap.user.id,
-          algorithm: input.pending.credential.algorithm,
-          encodedHash: input.pending.credential.encodedHash,
-          createdAt: new Date(bootstrap.user.createdAt),
-        } });
+        await transaction.userIdentity.create({
+          data: {
+            id: bootstrap.user.id,
+            email: input.pending.email,
+            displayName: bootstrap.user.displayName,
+            locale: bootstrap.user.locale,
+            status: bootstrap.user.status,
+            securityEpoch: bootstrap.user.securityEpoch,
+            createdAt: new Date(bootstrap.user.createdAt),
+          },
+        });
+        await transaction.passwordCredential.create({
+          data: {
+            id: input.pending.credentialId,
+            userId: bootstrap.user.id,
+            algorithm: input.pending.credential.algorithm,
+            encodedHash: input.pending.credential.encodedHash,
+            createdAt: new Date(bootstrap.user.createdAt),
+          },
+        });
         await new PrismaIdentityBootstrapTransactionAdapter(
           transaction,
           this.policyProvisionerFactory?.(transaction),
         ).save(bootstrap);
         const session = input.sessionPersistence.session;
-        await transaction.sessionRecord.create({ data: {
-          ...session,
-          issuedAt: new Date(session.issuedAt),
-          accessExpiresAt: new Date(session.accessExpiresAt),
-          inactivityExpiresAt: new Date(session.inactivityExpiresAt),
-          absoluteExpiresAt: new Date(session.absoluteExpiresAt),
-          status: 'ACTIVE',
-        } });
+        await transaction.sessionRecord.create({
+          data: {
+            ...session,
+            issuedAt: new Date(session.issuedAt),
+            accessExpiresAt: new Date(session.accessExpiresAt),
+            inactivityExpiresAt: new Date(session.inactivityExpiresAt),
+            absoluteExpiresAt: new Date(session.absoluteExpiresAt),
+            status: 'ACTIVE',
+          },
+        });
         const refresh = input.sessionPersistence.refreshToken;
-        await transaction.refreshTokenRecord.create({ data: {
-          ...refresh,
-          issuedAt: new Date(refresh.issuedAt),
-          expiresAt: new Date(refresh.expiresAt),
-          status: 'ACTIVE',
-        } });
+        await transaction.refreshTokenRecord.create({
+          data: {
+            ...refresh,
+            issuedAt: new Date(refresh.issuedAt),
+            expiresAt: new Date(refresh.expiresAt),
+            status: 'ACTIVE',
+          },
+        });
         const access = input.sessionPersistence.accessToken;
-        await transaction.accessTokenRecord.create({ data: {
-          ...access,
-          issuedAt: new Date(access.issuedAt),
-          expiresAt: new Date(access.expiresAt),
-          status: 'ACTIVE',
-        } });
+        await transaction.accessTokenRecord.create({
+          data: {
+            ...access,
+            issuedAt: new Date(access.issuedAt),
+            expiresAt: new Date(access.expiresAt),
+            status: 'ACTIVE',
+          },
+        });
         return true;
       });
     } catch (error) {

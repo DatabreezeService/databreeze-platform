@@ -139,9 +139,7 @@ export class InMemoryArtifactUploadStorageAdapter implements ArtifactUploadStora
     }
     this.finalized.add(session.sessionId);
     return accepted({
-      opaqueLocator: createHash('sha256')
-        .update(`memory:${session.sessionId}`)
-        .digest('base64url'),
+      opaqueLocator: createHash('sha256').update(`memory:${session.sessionId}`).digest('base64url'),
       objectVersionId: `memory-${session.revision}`,
     });
   }

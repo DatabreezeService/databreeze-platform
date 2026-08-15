@@ -98,9 +98,7 @@ const rawSnapshot = createDashboardSnapshotV1({
 });
 assert.equal(rawSnapshot.accepted, true);
 if (!rawSnapshot.accepted) throw new Error('TEST_SNAPSHOT_INVALID');
-const snapshot = withRefreshSnapshotBindingProof(
-  rawSnapshot.value,
-);
+const snapshot = withRefreshSnapshotBindingProof(rawSnapshot.value);
 const proofCandidate = snapshot.bindingProof[0];
 assert.notEqual(proofCandidate, undefined);
 if (proofCandidate === undefined) throw new Error('TEST_PROOF_INVALID');
@@ -183,10 +181,12 @@ const manifest: WorkerVerifiedResultManifestV1 = Object.freeze({
   finalizedAt: createdAt,
 });
 
-function adapter(overrides: {
-  readonly manifest?: WorkerVerifiedResultManifestV1 | undefined;
-  readonly openedHash?: string;
-} = {}) {
+function adapter(
+  overrides: {
+    readonly manifest?: WorkerVerifiedResultManifestV1 | undefined;
+    readonly openedHash?: string;
+  } = {},
+) {
   return new VerifiedDashboardWidgetResultReaderAdapterV1({
     snapshots: {
       findSnapshot: async () => snapshot,

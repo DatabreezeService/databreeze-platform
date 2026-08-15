@@ -68,22 +68,23 @@ describe('generated-contract auth transport [IAM-022, IAM-023, WEB-004]', () => 
   it('verifies six-digit OTP and keeps the browser refresh token out of JavaScript', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () =>
-        new Response(
-          JSON.stringify({
-            schemaVersion: 4,
-            sessionId: '00000000-0000-4000-8000-000000000401',
-            userId: '00000000-0000-4000-8000-000000000402',
-            organizationId: '00000000-0000-4000-8000-000000000403',
-            workspaceId: '00000000-0000-4000-8000-000000000404',
-            accessToken: `${'a'.repeat(80)}`,
-            accessExpiresAt: '2026-08-13T00:15:00.000Z',
-            securityEpoch: 1,
-            mfaRequired: false,
-            mfaReenrollmentRequired: false,
-          }),
-          { status: 200, headers: { 'content-type': 'application/json' } },
-        ),
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              schemaVersion: 4,
+              sessionId: '00000000-0000-4000-8000-000000000401',
+              userId: '00000000-0000-4000-8000-000000000402',
+              organizationId: '00000000-0000-4000-8000-000000000403',
+              workspaceId: '00000000-0000-4000-8000-000000000404',
+              accessToken: `${'a'.repeat(80)}`,
+              accessExpiresAt: '2026-08-13T00:15:00.000Z',
+              securityEpoch: 1,
+              mfaRequired: false,
+              mfaReenrollmentRequired: false,
+            }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          ),
       ),
     );
     const api = createAuthApiV1({ baseUrl: 'https://api.example.test' } as never);
@@ -101,15 +102,18 @@ describe('generated-contract auth transport [IAM-022, IAM-023, WEB-004]', () => 
   it('rejects a malformed successful payload instead of trusting the network', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () =>
-        new Response(JSON.stringify({ accepted: true, accessToken: 'provider-secret' }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        }),
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ accepted: true, accessToken: 'provider-secret' }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          }),
       ),
     );
     const api = createAuthApiV1({ baseUrl: 'https://api.example.test' } as never);
-    await expect(api.signInWithPassword({ email: 'owner@example.com', password: 'password' })).resolves.toEqual({
+    await expect(
+      api.signInWithPassword({ email: 'owner@example.com', password: 'password' }),
+    ).resolves.toEqual({
       accepted: false,
       code: 'AUTH_FAILED',
     });
@@ -137,7 +141,10 @@ describe('generated-contract auth transport [IAM-022, IAM-023, WEB-004]', () => 
         { status: 200, headers: { 'content-type': 'application/json' } },
       );
     });
-    const api = createAuthApiV1({ baseUrl: 'https://api.example.test', fetcher: fetchMock as never });
+    const api = createAuthApiV1({
+      baseUrl: 'https://api.example.test',
+      fetcher: fetchMock as never,
+    });
 
     await expect(api.recoverWebSession()).resolves.toEqual({ accepted: true });
     expect(fetchMock).toHaveBeenCalledWith(
@@ -152,44 +159,63 @@ describe('generated-contract auth transport [IAM-022, IAM-023, WEB-004]', () => 
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
       expect(new Headers(init?.headers).get('authorization')).toBe(`Bearer ${session.accessToken}`);
       expect(init?.credentials).toBe('include');
-      return new Response(JSON.stringify({
-        schemaVersion: 4,
-        outcome: 'ACCEPTED',
-        value: {
-          user: { id: session.userId, displayName: 'Mai Quynh', locale: 'vi-VN', mfaState: 'NOT_CONFIGURED' },
-          organizations: [{
-            id: session.organizationId,
-            name: 'DataBreeze',
-            personal: true,
-            status: 'ACTIVE',
-            workspaces: [{
-              id: session.workspaceId,
-              name: 'Không gian chính',
-              status: 'ACTIVE',
-              projects: [{
-                id: '00000000-0000-4000-8000-000000000405',
-                name: 'Dữ liệu đầu tiên',
-                kind: 'INTERNAL',
+      return new Response(
+        JSON.stringify({
+          schemaVersion: 4,
+          outcome: 'ACCEPTED',
+          value: {
+            user: {
+              id: session.userId,
+              displayName: 'Mai Quynh',
+              locale: 'vi-VN',
+              mfaState: 'NOT_CONFIGURED',
+            },
+            organizations: [
+              {
+                id: session.organizationId,
+                name: 'DataBreeze',
+                personal: true,
                 status: 'ACTIVE',
-              }],
-            }],
-          }],
-          recentScopes: [{
-            scopeType: 'workspace',
-            organizationId: session.organizationId,
-            workspaceId: session.workspaceId,
-          }],
-          session: {
-            scopeType: 'workspace',
-            organizationId: session.organizationId,
-            workspaceId: session.workspaceId,
-            authorizationEpoch: 1,
+                workspaces: [
+                  {
+                    id: session.workspaceId,
+                    name: 'Không gian chính',
+                    status: 'ACTIVE',
+                    projects: [
+                      {
+                        id: '00000000-0000-4000-8000-000000000405',
+                        name: 'Dữ liệu đầu tiên',
+                        kind: 'INTERNAL',
+                        status: 'ACTIVE',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+            recentScopes: [
+              {
+                scopeType: 'workspace',
+                organizationId: session.organizationId,
+                workspaceId: session.workspaceId,
+              },
+            ],
+            session: {
+              scopeType: 'workspace',
+              organizationId: session.organizationId,
+              workspaceId: session.workspaceId,
+              authorizationEpoch: 1,
+            },
+            platform: { apiVersion: 'v1' },
           },
-          platform: { apiVersion: 'v1' },
-        },
-      }), { status: 200, headers: { 'content-type': 'application/json' } });
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
     });
-    const api = createAuthApiV1({ baseUrl: 'https://api.example.test', fetcher: fetchMock as never });
+    const api = createAuthApiV1({
+      baseUrl: 'https://api.example.test',
+      fetcher: fetchMock as never,
+    });
 
     await expect(api.loadBootstrap()).resolves.toMatchObject({
       accepted: true,
@@ -208,10 +234,21 @@ describe('generated-contract auth transport [IAM-022, IAM-023, WEB-004]', () => 
         schemaVersion: 4,
         outcome: 'ACCEPTED',
         value: {
-          user: { id: session.userId, displayName: 'Mai', locale: 'vi-VN', mfaState: 'NOT_CONFIGURED', clientRole: 'OWNER' },
+          user: {
+            id: session.userId,
+            displayName: 'Mai',
+            locale: 'vi-VN',
+            mfaState: 'NOT_CONFIGURED',
+            clientRole: 'OWNER',
+          },
           organizations: [],
           recentScopes: [],
-          session: { scopeType: 'workspace', organizationId: session.organizationId, workspaceId: session.workspaceId, authorizationEpoch: 1 },
+          session: {
+            scopeType: 'workspace',
+            organizationId: session.organizationId,
+            workspaceId: session.workspaceId,
+            authorizationEpoch: 1,
+          },
           platform: { apiVersion: 'v1' },
         },
       },
@@ -219,10 +256,13 @@ describe('generated-contract auth transport [IAM-022, IAM-023, WEB-004]', () => 
     for (const payload of payloads) {
       const api = createAuthApiV1({
         baseUrl: 'https://api.example.test',
-        fetcher: vi.fn(async () => new Response(JSON.stringify(payload), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        })) as never,
+        fetcher: vi.fn(
+          async () =>
+            new Response(JSON.stringify(payload), {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            }),
+        ) as never,
       });
       await expect(api.loadBootstrap()).resolves.toEqual({ accepted: false, code: 'AUTH_FAILED' });
     }
@@ -244,15 +284,16 @@ describe('generated-contract auth transport [IAM-022, IAM-023, WEB-004]', () => 
       },
       {
         cookie: `databreeze_csrf=${'c'.repeat(43)}`,
-        fetcher: vi.fn(async () =>
-          new Response(
-            JSON.stringify({
-              sessionId: '00000000-0000-4000-8000-000000000401',
-              accessToken: 'legacy-partial-response',
-              accessExpiresAt: '2026-08-13T00:15:00.000Z',
-            }),
-            { status: 200, headers: { 'content-type': 'application/json' } },
-          ),
+        fetcher: vi.fn(
+          async () =>
+            new Response(
+              JSON.stringify({
+                sessionId: '00000000-0000-4000-8000-000000000401',
+                accessToken: 'legacy-partial-response',
+                accessExpiresAt: '2026-08-13T00:15:00.000Z',
+              }),
+              { status: 200, headers: { 'content-type': 'application/json' } },
+            ),
         ),
       },
     ];
@@ -260,8 +301,14 @@ describe('generated-contract auth transport [IAM-022, IAM-023, WEB-004]', () => 
     for (const testCase of cases) {
       globalThis.document.cookie = 'databreeze_csrf=; Max-Age=0; Path=/';
       if (testCase.cookie !== '') globalThis.document.cookie = `${testCase.cookie}; Path=/`;
-      const api = createAuthApiV1({ baseUrl: 'https://api.example.test', fetcher: testCase.fetcher as never });
-      await expect(api.recoverWebSession()).resolves.toEqual({ accepted: false, code: 'AUTH_FAILED' });
+      const api = createAuthApiV1({
+        baseUrl: 'https://api.example.test',
+        fetcher: testCase.fetcher as never,
+      });
+      await expect(api.recoverWebSession()).resolves.toEqual({
+        accepted: false,
+        code: 'AUTH_FAILED',
+      });
       expect(currentAccessTokenV1()).toBeUndefined();
     }
     expect(cases[2]?.fetcher).not.toHaveBeenCalled();

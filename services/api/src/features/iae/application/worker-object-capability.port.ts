@@ -274,9 +274,7 @@ export interface IaeWorkerCapabilitySignerPortV1 {
 export interface IaeWorkerCapabilityVerifierPortV1 {
   verify(payload: IaeWorkerCapabilitySigningPayloadV1, signedCapability: string): Promise<boolean>;
 }
-export const IAE_WORKER_CAPABILITY_VERIFIER_PORT = Symbol(
-  'IAE_WORKER_CAPABILITY_VERIFIER_PORT',
-);
+export const IAE_WORKER_CAPABILITY_VERIFIER_PORT = Symbol('IAE_WORKER_CAPABILITY_VERIFIER_PORT');
 
 /** Resolves only the authenticated opaque capability reference; all authority is re-verified. */
 export interface IaeWorkerCapabilityReferenceResolverPortV1 {

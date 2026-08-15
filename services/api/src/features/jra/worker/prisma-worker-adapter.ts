@@ -24,7 +24,10 @@ import {
   type StrictUtcTimestampV1,
   type TenantScopeV1,
 } from '@databreeze/domain/tenant-scope/v1';
-import { createResultManifestV1, type ResultManifestV1 } from '@databreeze/domain/result-manifest/v1';
+import {
+  createResultManifestV1,
+  type ResultManifestV1,
+} from '@databreeze/domain/result-manifest/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import {
@@ -614,16 +617,12 @@ function descriptorOutputPolicy(descriptor: ExecutionRequestDescriptorV1) {
   return descriptor.outputPolicy;
 }
 
-function descriptorOutputLineageAuthority(
-  descriptor: ExecutionRequestDescriptorV1,
-):
+function descriptorOutputLineageAuthority(descriptor: ExecutionRequestDescriptorV1):
   | Readonly<{
       sourceArtifactVersionIds: readonly StableIdentifierV1[];
       processorVersion: string;
       dataMode: 'Hybrid' | 'Cloud';
-      payloadClass:
-        | 'RECONSTRUCTABLE_DERIVED_CONTENT'
-        | 'APPROVED_DERIVED_RESULT';
+      payloadClass: 'RECONSTRUCTABLE_DERIVED_CONTENT' | 'APPROVED_DERIVED_RESULT';
       sourceLineageHash: string;
     }>
   | undefined {
@@ -665,7 +664,9 @@ function descriptorSubjectBindings(
   for (const [key, value] of Object.entries(descriptor.parameters)) {
     if (RESULT_SUBJECT_BINDINGS.has(key) && typeof value === 'string') bindings[key] = value;
   }
-  return Object.freeze(Object.fromEntries(Object.entries(bindings).sort(([a], [b]) => a.localeCompare(b))));
+  return Object.freeze(
+    Object.fromEntries(Object.entries(bindings).sort(([a], [b]) => a.localeCompare(b))),
+  );
 }
 
 function stringRecord(value: unknown): Readonly<Record<string, string>> | undefined {
@@ -711,7 +712,8 @@ function preparedFromRow(
   )
     return undefined;
   const outputs = outputPolicy.map((candidate) => {
-    if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate)) return undefined;
+    if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate))
+      return undefined;
     const output = candidate as Record<string, unknown>;
     if (
       !['JSON_RESULT', 'BINARY_RESULT'].includes(output['kind'] as string) ||
@@ -738,21 +740,28 @@ function preparedFromRow(
       (output['dataMode'] !== 'Hybrid' && output['dataMode'] !== 'Cloud') ||
       (output['payloadClass'] !== 'RECONSTRUCTABLE_DERIVED_CONTENT' &&
         output['payloadClass'] !== 'APPROVED_DERIVED_RESULT')
-    ) return undefined;
+    )
+      return undefined;
     return Object.freeze({
-      kind: output['kind'] as 'JSON_RESULT' | 'BINARY_RESULT', outputName: output['outputName'],
-      schemaId: output['schemaId'], mediaType: output['mediaType'],
-      contentSha256: output['contentSha256'], byteLength: output['byteLength'] as number,
-      sourceLineageHash: output['sourceLineageHash'], objectId: output['objectId'],
+      kind: output['kind'] as 'JSON_RESULT' | 'BINARY_RESULT',
+      outputName: output['outputName'],
+      schemaId: output['schemaId'],
+      mediaType: output['mediaType'],
+      contentSha256: output['contentSha256'],
+      byteLength: output['byteLength'] as number,
+      sourceLineageHash: output['sourceLineageHash'],
+      objectId: output['objectId'],
       maxBytes: output['maxBytes'] as number,
       allowedMediaTypes: Object.freeze([...(output['allowedMediaTypes'] as string[])]),
       sourceArtifactVersionIds: Object.freeze(
         (output['sourceArtifactVersionIds'] as string[]).map(
           (value) =>
-            (parseStableIdentifierV1(value) as {
-              accepted: true;
-              value: StableIdentifierV1;
-            }).value,
+            (
+              parseStableIdentifierV1(value) as {
+                accepted: true;
+                value: StableIdentifierV1;
+              }
+            ).value,
         ),
       ),
       processorVersion: output['processorVersion'],
@@ -1517,8 +1526,7 @@ export class PrismaJraWorkerAdapter
               descriptorId: loaded.descriptor.descriptorId,
               descriptorHash: loaded.descriptor.canonicalHash,
               attemptBindingHash: input.authorization.attemptBindingHash,
-              resultUsageSettlementBindingId:
-                loaded.descriptor.resultUsageSettlementBindingId,
+              resultUsageSettlementBindingId: loaded.descriptor.resultUsageSettlementBindingId,
               outputSchemaId: loaded.descriptor.action.outputSchemaId,
               outputPolicy,
               outputPolicyHash,
@@ -1606,8 +1614,7 @@ export class PrismaJraWorkerAdapter
     const manifests = transaction.resultManifestRecord;
     if (!preparations || !finalizations || !manifests || !this.finalizationEffects)
       return { accepted: false, code: 'FINALIZATION_UNAVAILABLE' };
-    if (!(await this.current(input.identity)))
-      return { accepted: false, code: 'STALE_ATTEMPT' };
+    if (!(await this.current(input.identity))) return { accepted: false, code: 'STALE_ATTEMPT' };
     const scope = databaseScope(input.identity.tenantScope);
     const existing = await finalizations.findFirst({
       where: { submissionId: input.submissionId, ...scope },
@@ -1707,16 +1714,14 @@ export class PrismaJraWorkerAdapter
       );
     }
     const resultManifestId = parseStableIdentifierV1(randomUUID());
-    if (!resultManifestId.accepted)
-      return { accepted: false, code: 'FINALIZATION_UNAVAILABLE' };
+    if (!resultManifestId.accepted) return { accepted: false, code: 'FINALIZATION_UNAVAILABLE' };
     const sourceArtifactVersionIds = lineageAuthority.sourceArtifactVersionIds;
     const engineVersion = expectedBindings['engineVersion'];
     if (sourceArtifactVersionIds.length === 0 || !engineVersion)
       return { accepted: false, code: 'ATTESTATION_REJECTED' };
     const lineageHashes = preparation.outputs.map((output) => output.sourceLineageHash);
-    const sourceLineageHash = new Set(lineageHashes).size === 1
-      ? lineageHashes[0]!
-      : canonicalHash(lineageHashes);
+    const sourceLineageHash =
+      new Set(lineageHashes).size === 1 ? lineageHashes[0]! : canonicalHash(lineageHashes);
     const manifestWithoutHash = {
       resultManifestId: resultManifestId.value,
       jobId: loaded.job.jobId,
@@ -1734,8 +1739,7 @@ export class PrismaJraWorkerAdapter
     };
     const manifestHash = canonicalHash(manifestWithoutHash);
     const manifestResult = createResultManifestV1({ ...manifestWithoutHash, manifestHash });
-    if (!manifestResult.accepted)
-      return { accepted: false, code: 'ATTESTATION_REJECTED' };
+    if (!manifestResult.accepted) return { accepted: false, code: 'ATTESTATION_REJECTED' };
     const nextAttempt = completeExecutionAttemptV1(
       loaded.attempt,
       input.leaseTokenHash,
@@ -1743,8 +1747,7 @@ export class PrismaJraWorkerAdapter
       input.now,
       manifestHash,
     );
-    if (!nextAttempt.accepted)
-      return { accepted: false, code: 'STALE_ATTEMPT' };
+    if (!nextAttempt.accepted) return { accepted: false, code: 'STALE_ATTEMPT' };
     const attemptUpdate = await transaction.executionAttemptRecord.updateMany({
       where: {
         id: loaded.attempt.attemptId,
@@ -1759,7 +1762,10 @@ export class PrismaJraWorkerAdapter
     let currentJob = loaded.job;
     if (currentJob.state === 'DISPATCHED') {
       const running = transitionJobV1(currentJob, 'RUNNING', input.now);
-      if (!running.accepted || !(await this.persistResultJob(transaction, input, currentJob, running.value)))
+      if (
+        !running.accepted ||
+        !(await this.persistResultJob(transaction, input, currentJob, running.value))
+      )
         return { accepted: false, code: 'STALE_ATTEMPT' };
       currentJob = running.value;
     }
@@ -1850,7 +1856,11 @@ export class PrismaJraWorkerAdapter
     next: JobV1,
   ): Promise<boolean> {
     const update = await transaction.jobRecord.updateMany({
-      where: { id: current.jobId, ...databaseScope(current.tenantScope), revision: current.revision },
+      where: {
+        id: current.jobId,
+        ...databaseScope(current.tenantScope),
+        revision: current.revision,
+      },
       data: {
         state: next.state,
         revision: next.revision,
@@ -1967,9 +1977,7 @@ export class PrismaJraWorkerAdapter
       ),
       sourceLineageHash: row.sourceLineageHash,
       subjectBindings,
-      attestations: Object.freeze(
-        attestations as NonNullable<(typeof attestations)[number]>[],
-      ),
+      attestations: Object.freeze(attestations as NonNullable<(typeof attestations)[number]>[]),
       finalizedAt: finalizedAt.value,
     });
   }

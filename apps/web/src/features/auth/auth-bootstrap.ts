@@ -1,5 +1,9 @@
 import type { AuthApiV1 } from './auth-api.ts';
-import { clearAuthSessionV1, rememberAuthBootstrapV1, type WebAuthenticationStateV1 } from './auth-session.ts';
+import {
+  clearAuthSessionV1,
+  rememberAuthBootstrapV1,
+  type WebAuthenticationStateV1,
+} from './auth-session.ts';
 
 const PUBLIC_AUTH_ROUTES_V1 = new Set(['sign-in', 'register', 'verify-email']);
 const PUBLIC_LOCALES_V1 = new Set(['en', 'vi-VN']);

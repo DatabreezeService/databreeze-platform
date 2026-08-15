@@ -69,15 +69,9 @@ void test('[IAM-022] Node SMTP transport is loopback-only and bounded before any
         error instanceof Error && error.message === 'IAM_LOCAL_SMTP_CONFIGURATION_INVALID',
     );
   }
-  assert.doesNotThrow(() =>
-    new NodeLoopbackSmtpSenderAdapter({ host: '127.0.0.1', port: 1025 }),
-  );
-  assert.doesNotThrow(() =>
-    new NodeLoopbackSmtpSenderAdapter({ host: 'localhost', port: 1025 }),
-  );
-  assert.doesNotThrow(() =>
-    new NodeLoopbackSmtpSenderAdapter({ host: 'mailpit', port: 1025 }),
-  );
+  assert.doesNotThrow(() => new NodeLoopbackSmtpSenderAdapter({ host: '127.0.0.1', port: 1025 }));
+  assert.doesNotThrow(() => new NodeLoopbackSmtpSenderAdapter({ host: 'localhost', port: 1025 }));
+  assert.doesNotThrow(() => new NodeLoopbackSmtpSenderAdapter({ host: 'mailpit', port: 1025 }));
   assert.throws(
     () => new NodeLoopbackSmtpSenderAdapter({ host: '127.0.0.1', port: 0 }),
     (error: unknown) =>

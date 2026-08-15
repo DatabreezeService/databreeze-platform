@@ -213,8 +213,7 @@ export class IaeWorkerResultWriteCapabilityService
       !expiresAt
     )
       return rejected('INVALID_PREPARATION');
-    if (!(await this.securityEpoch.isCurrent(identity)))
-      return rejected('SECURITY_EPOCH_REVOKED');
+    if (!(await this.securityEpoch.isCurrent(identity))) return rejected('SECURITY_EPOCH_REVOKED');
 
     try {
       return await this.repository.withTransaction(identity.tenantScope, async (transaction) => {

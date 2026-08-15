@@ -134,7 +134,10 @@ class FakeS3 {
     }
     if (command instanceof CopyObjectCommand) {
       this.published = true;
-      return Promise.resolve({ CopyObjectResult: { ETag: '"published-etag"' }, VersionId: 'exact-version-1' });
+      return Promise.resolve({
+        CopyObjectResult: { ETag: '"published-etag"' },
+        VersionId: 'exact-version-1',
+      });
     }
     if (command instanceof HeadObjectCommand) {
       if (command.input.Key?.includes('/objects/') && !this.published)

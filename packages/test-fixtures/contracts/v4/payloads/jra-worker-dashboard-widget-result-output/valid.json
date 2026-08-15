@@ -4,19 +4,21 @@
   "widgetResult": {
     "widgetId": "50000000-0000-4000-8000-000000000001",
     "resultState": "READY",
-    "rows": [{
-      "label": "Doanh thu",
-      "displayValue": "42 VND",
-      "numericValue": 42,
-      "unit": "VND",
-      "provenance": {
-        "resultCellId": "50000000-0000-4000-8000-000000000005",
-        "planVersionId": "50000000-0000-4000-8000-000000000002",
-        "metricVersionId": "50000000-0000-4000-8000-000000000003",
-        "datasetVersionId": "50000000-0000-4000-8000-000000000004",
-        "evidenceRefs": ["50000000-0000-4000-8000-000000000006"]
+    "rows": [
+      {
+        "label": "Doanh thu",
+        "displayValue": "42 VND",
+        "numericValue": 42,
+        "unit": "VND",
+        "provenance": {
+          "resultCellId": "50000000-0000-4000-8000-000000000005",
+          "planVersionId": "50000000-0000-4000-8000-000000000002",
+          "metricVersionId": "50000000-0000-4000-8000-000000000003",
+          "datasetVersionId": "50000000-0000-4000-8000-000000000004",
+          "evidenceRefs": ["50000000-0000-4000-8000-000000000006"]
+        }
       }
-    }]
+    ]
   },
   "subjectBindings": {
     "dashboardId": "50000000-0000-4000-8000-000000000007",

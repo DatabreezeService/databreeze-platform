@@ -346,8 +346,7 @@ export class PrismaIdentityBootstrapTransactionAdapter
     if (!userRow) throw new Error('IAM_USER_NOT_FOUND');
     if (!ownedFieldsMatch(userFromRow(userRow), bootstrap.user))
       throw new Error('IAM_BOOTSTRAP_CONFLICT');
-    if (!this.initialWorkspacePolicy)
-      throw new Error('IAM_INITIAL_WORKSPACE_POLICY_UNAVAILABLE');
+    if (!this.initialWorkspacePolicy) throw new Error('IAM_INITIAL_WORKSPACE_POLICY_UNAVAILABLE');
     const policy = await this.initialWorkspacePolicy.provision({
       organizationId: bootstrap.organization.id,
       workspaceId: bootstrap.workspace.id,

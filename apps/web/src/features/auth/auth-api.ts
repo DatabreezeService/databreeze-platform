@@ -16,9 +16,11 @@ import {
   rememberAuthSessionV1,
 } from './auth-session.ts';
 
-const REGISTRATION_ACCEPTED_SCHEMA = 'https://schemas.databreeze.dev/contracts/v4/iam-registration-accepted';
+const REGISTRATION_ACCEPTED_SCHEMA =
+  'https://schemas.databreeze.dev/contracts/v4/iam-registration-accepted';
 const AUTH_SESSION_SCHEMA = 'https://schemas.databreeze.dev/contracts/v4/iam-auth-session';
-const BOOTSTRAP_RESPONSE_SCHEMA = 'https://schemas.databreeze.dev/contracts/v4/iam-bootstrap-response';
+const BOOTSTRAP_RESPONSE_SCHEMA =
+  'https://schemas.databreeze.dev/contracts/v4/iam-bootstrap-response';
 
 export interface AuthApiOptionsV1 {
   readonly baseUrl?: string;
@@ -28,7 +30,9 @@ export interface AuthApiOptionsV1 {
 export type AuthFailureV1 = { readonly accepted: false; readonly code: 'AUTH_FAILED' };
 
 export interface AuthApiV1 {
-  readonly register: (input: Omit<IamRegistrationCommand, 'schemaVersion'>) => Promise<
+  readonly register: (
+    input: Omit<IamRegistrationCommand, 'schemaVersion'>,
+  ) => Promise<
     { readonly accepted: true; readonly value: IamRegistrationAccepted['value'] } | AuthFailureV1
   >;
   readonly verifyEmailRegistration: (
@@ -49,11 +53,7 @@ function failure(): AuthFailureV1 {
   return Object.freeze({ accepted: false, code: 'AUTH_FAILED' });
 }
 
-async function request(
-  fetcher: typeof fetch,
-  url: string,
-  body: unknown,
-): Promise<unknown> {
+async function request(fetcher: typeof fetch, url: string, body: unknown): Promise<unknown> {
   try {
     const response = await fetcher(url, {
       method: 'POST',
@@ -61,7 +61,8 @@ async function request(
       headers: { 'content-type': 'application/json', accept: 'application/json' },
       body: JSON.stringify(body),
     });
-    if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return undefined;
+    if (!response.ok || !response.headers.get('content-type')?.includes('application/json'))
+      return undefined;
     return await response.json();
   } catch {
     return undefined;
@@ -81,11 +82,20 @@ export function createAuthApiV1(options: AuthApiOptionsV1 = {}): AuthApiV1 {
       const raw = await request(fetcher, `${baseUrl}/v1/auth/register`, payload);
       const parsed = parseV4Contract(REGISTRATION_ACCEPTED_SCHEMA, raw);
       return parsed.accepted
-        ? Object.freeze({ accepted: true as const, value: (parsed.value as IamRegistrationAccepted).value })
+        ? Object.freeze({
+            accepted: true as const,
+            value: (parsed.value as IamRegistrationAccepted).value,
+          })
         : failure();
     },
-    async verifyEmailRegistration(input: Omit<IamEmailVerificationCommand, 'schemaVersion' | 'clientPlatform'>) {
-      const payload: IamEmailVerificationCommand = { schemaVersion: 4, clientPlatform: 'web', ...input };
+    async verifyEmailRegistration(
+      input: Omit<IamEmailVerificationCommand, 'schemaVersion' | 'clientPlatform'>,
+    ) {
+      const payload: IamEmailVerificationCommand = {
+        schemaVersion: 4,
+        clientPlatform: 'web',
+        ...input,
+      };
       const raw = await request(fetcher, `${baseUrl}/v1/auth/email-verification/verify`, payload);
       const parsed = parseV4Contract(AUTH_SESSION_SCHEMA, raw);
       return parsed.accepted
@@ -93,7 +103,11 @@ export function createAuthApiV1(options: AuthApiOptionsV1 = {}): AuthApiV1 {
         : failure();
     },
     async signInWithPassword(input: { readonly email: string; readonly password: string }) {
-      const payload: IamPasswordSignInCommand = { schemaVersion: 4, clientPlatform: 'web', ...input };
+      const payload: IamPasswordSignInCommand = {
+        schemaVersion: 4,
+        clientPlatform: 'web',
+        ...input,
+      };
       const raw = await request(fetcher, `${baseUrl}/v1/auth/sign-in`, payload);
       const parsed = parseV4Contract(AUTH_SESSION_SCHEMA, raw);
       return parsed.accepted
@@ -118,8 +132,12 @@ export function createAuthApiV1(options: AuthApiOptionsV1 = {}): AuthApiV1 {
           credentials: 'include',
           headers: { accept: 'application/json' },
         });
-        if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return failure();
-        const parsed = parseV4Contract<IamBootstrapResponse>(BOOTSTRAP_RESPONSE_SCHEMA, await response.json());
+        if (!response.ok || !response.headers.get('content-type')?.includes('application/json'))
+          return failure();
+        const parsed = parseV4Contract<IamBootstrapResponse>(
+          BOOTSTRAP_RESPONSE_SCHEMA,
+          await response.json(),
+        );
         if (!parsed.accepted || parsed.value.outcome !== 'ACCEPTED') return failure();
         return Object.freeze({ accepted: true as const, value: parsed.value.value });
       } catch {

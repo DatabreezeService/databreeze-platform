@@ -339,10 +339,7 @@ void test('rejects unauthenticated, revoked, cross-scope, and superseded workers
     identity: undefined,
     counter,
   });
-  await assert.rejects(
-    boundary.claim({}, claimInput()),
-    /WORKER_AUTHENTICATION_FAILED/,
-  );
+  await assert.rejects(boundary.claim({}, claimInput()), /WORKER_AUTHENTICATION_FAILED/);
 
   const crossScope = boundaryFor(seeded, {
     identity: identityValue({
@@ -354,10 +351,7 @@ void test('rejects unauthenticated, revoked, cross-scope, and superseded workers
     }),
     counter,
   });
-  await assert.rejects(
-    crossScope.claim({}, claimInput()),
-    /WORKER_ATTEMPT_REJECTED/,
-  );
+  await assert.rejects(crossScope.claim({}, claimInput()), /WORKER_ATTEMPT_REJECTED/);
 
   const superseded = boundaryFor(seeded, {
     authority: authorityFor(seeded, {
@@ -365,10 +359,7 @@ void test('rejects unauthenticated, revoked, cross-scope, and superseded workers
     }),
     counter,
   });
-  await assert.rejects(
-    superseded.claim({}, claimInput()),
-    /WORKER_ATTEMPT_REJECTED/,
-  );
+  await assert.rejects(superseded.claim({}, claimInput()), /WORKER_ATTEMPT_REJECTED/);
   assert.equal(counter.issue, 0);
 });
 
@@ -379,10 +370,7 @@ void test('rejects a revoked worker epoch and a stale revision before issuing a 
     authority: authorityFor(seeded, { workerSecurityEpoch: 5 }),
     counter,
   });
-  await assert.rejects(
-    revoked.claim({}, claimInput()),
-    /WORKER_ATTEMPT_REJECTED/,
-  );
+  await assert.rejects(revoked.claim({}, claimInput()), /WORKER_ATTEMPT_REJECTED/);
 
   const stale = boundaryFor(seeded, { counter });
   await assert.rejects(
@@ -425,10 +413,7 @@ void test('rejects cancel-requested and terminal jobs before granting or renewin
   assert.equal(transitioned.accepted, true);
   const counter = { issue: 0, accept: 0 };
   const boundary = boundaryFor(seeded, { counter });
-  await assert.rejects(
-    boundary.claim({}, claimInput()),
-    /WORKER_ATTEMPT_REJECTED/,
-  );
+  await assert.rejects(boundary.claim({}, claimInput()), /WORKER_ATTEMPT_REJECTED/);
   assert.equal(counter.issue, 0);
 });
 
@@ -565,10 +550,7 @@ void test('fails closed on malformed grant shapes and missing durable completion
       baseGrants.acceptResultReferences(identity, job, attempt, references),
   };
   await assert.rejects(
-    boundaryFor(seeded, { grants: wrongEpochGrants }).claim(
-      {},
-      claimInput(),
-    ),
+    boundaryFor(seeded, { grants: wrongEpochGrants }).claim({}, claimInput()),
     /WORKER_OBJECT_GRANT_REJECTED/,
   );
 
@@ -579,10 +561,7 @@ void test('fails closed on malformed grant shapes and missing durable completion
   };
   const malformedSeed = await seed();
   await assert.rejects(
-    boundaryFor(malformedSeed, { grants: malformedGrants }).claim(
-      {},
-      claimInput(),
-    ),
+    boundaryFor(malformedSeed, { grants: malformedGrants }).claim({}, claimInput()),
     /WORKER_OBJECT_GRANT_REJECTED/,
   );
 

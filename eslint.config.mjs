@@ -12,6 +12,7 @@ export default tseslint.config(
       'packages/contracts/generated/**',
       'tools/repo-cli/test/fixtures/**',
       '.worktrees/**',
+      'prototypes/**',
     ],
   },
   eslint.configs.recommended,
@@ -26,12 +27,36 @@ export default tseslint.config(
     },
   },
   {
+    files: ['**/*.test.{ts,tsx}', '**/test/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/require-await': 'off',
+      '@typescript-eslint/unbound-method': 'off',
+    },
+  },
+  {
     files: ['**/*.{cjs,js,mjs}'],
     languageOptions: {
       globals: {
+        AbortSignal: 'readonly',
+        clearInterval: 'readonly',
+        clearTimeout: 'readonly',
         console: 'readonly',
+        fetch: 'readonly',
+        performance: 'readonly',
         process: 'readonly',
+        setInterval: 'readonly',
+        setTimeout: 'readonly',
+        URL: 'readonly',
       },
+    },
+    rules: {
+      'no-regex-spaces': 'off',
     },
   },
 );

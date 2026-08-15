@@ -1,4 +1,15 @@
-import { Body, Controller, Get, HttpCode, Inject, Param, Post, Put, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Inject,
+  Param,
+  Post,
+  Put,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { RouteConfig } from '@nestjs/platform-fastify';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
@@ -141,7 +152,8 @@ export class WorkerObjectTransferController {
       contentLength,
     });
     if (!result.accepted) {
-      const status = result.code === 'OBJECT_UNAVAILABLE' ? 503 : result.code === 'TRANSFER_REPLAY' ? 409 : 400;
+      const status =
+        result.code === 'OBJECT_UNAVAILABLE' ? 503 : result.code === 'TRANSFER_REPLAY' ? 409 : 400;
       return this.problem(reply, status, result.code, authorized.correlationId);
     }
     reply.code(200).type('application/json').send({
@@ -187,7 +199,12 @@ export class WorkerObjectTransferController {
       mediaType: body['mediaType'] as never,
     });
     if (!result.accepted) {
-      const status = result.code === 'PERSISTENCE_UNAVAILABLE' ? 503 : result.code === 'IDEMPOTENCY_CONFLICT' ? 409 : 403;
+      const status =
+        result.code === 'PERSISTENCE_UNAVAILABLE'
+          ? 503
+          : result.code === 'IDEMPOTENCY_CONFLICT'
+            ? 409
+            : 403;
       return this.problem(reply, status, result.code, authorized.correlationId);
     }
     reply.code(200).type('application/json').send({

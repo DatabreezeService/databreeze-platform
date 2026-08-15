@@ -262,9 +262,9 @@ void test('[JRA-031] OpenAPI publishes exact generated-v4 accepted result schema
       app,
       new DocumentBuilder().setTitle('worker-test').setVersion('4').build(),
     );
-    const prepare = document.paths['/internal/worker/results/prepare']?.post?.responses?.[
-      '200'
-    ] as { content?: Record<string, { schema?: { $ref?: string } }> } | undefined;
+    const prepare = document.paths['/internal/worker/results/prepare']?.post?.responses?.['200'] as
+      | { content?: Record<string, { schema?: { $ref?: string } }> }
+      | undefined;
     const finalize = document.paths['/internal/worker/results/finalize']?.post?.responses?.[
       '200'
     ] as { content?: Record<string, { schema?: { $ref?: string } }> } | undefined;
@@ -281,7 +281,10 @@ void test('[JRA-031] OpenAPI publishes exact generated-v4 accepted result schema
       required?: readonly string[];
     };
     assert.equal(outputSchema.required?.includes('capabilityId'), true);
-    assert.equal(Object.hasOwn(outputSchema.properties ?? {}, 'resultUsageSettlementBindingId'), false);
+    assert.equal(
+      Object.hasOwn(outputSchema.properties ?? {}, 'resultUsageSettlementBindingId'),
+      false,
+    );
     assert.equal(Object.hasOwn(outputSchema.properties ?? {}, 'sourceArtifactVersionIds'), false);
   });
 });

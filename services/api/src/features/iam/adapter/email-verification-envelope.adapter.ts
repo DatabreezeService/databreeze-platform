@@ -8,15 +8,12 @@ const MAX_PLAINTEXT_BYTES_V1 = 32 * 1024;
 function keyBytes(input: string | Uint8Array): Buffer {
   const candidate =
     typeof input === 'string' ? Buffer.from(input, 'base64url') : Buffer.from(input);
-  if (candidate.byteLength !== 32)
-    throw new Error('IAM_EMAIL_VERIFICATION_ENVELOPE_KEY_REQUIRED');
+  if (candidate.byteLength !== 32) throw new Error('IAM_EMAIL_VERIFICATION_ENVELOPE_KEY_REQUIRED');
   return candidate;
 }
 
 /** IAM-022: authenticated encryption for pending credentials and idempotent session replay. */
-export class Aes256GcmEmailVerificationEnvelopeAdapter
-  implements EmailVerificationEnvelopePortV1
-{
+export class Aes256GcmEmailVerificationEnvelopeAdapter implements EmailVerificationEnvelopePortV1 {
   private readonly key: Buffer;
 
   public constructor(key: string | Uint8Array) {
@@ -31,7 +28,12 @@ export class Aes256GcmEmailVerificationEnvelopeAdapter
     const cipher = createCipheriv('aes-256-gcm', this.key, iv);
     cipher.setAAD(ENVELOPE_CONTEXT_V1);
     const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-    return ['v1', iv.toString('base64url'), ciphertext.toString('base64url'), cipher.getAuthTag().toString('base64url')].join('.');
+    return [
+      'v1',
+      iv.toString('base64url'),
+      ciphertext.toString('base64url'),
+      cipher.getAuthTag().toString('base64url'),
+    ].join('.');
   }
 
   public open(envelope: string): Readonly<Record<string, unknown>> | undefined {
@@ -39,11 +41,17 @@ export class Aes256GcmEmailVerificationEnvelopeAdapter
       if (typeof envelope !== 'string' || envelope.length > MAX_PLAINTEXT_BYTES_V1 * 2)
         return undefined;
       const [version, ivEncoded, ciphertextEncoded, tagEncoded, extra] = envelope.split('.');
-      if (version !== 'v1' || !ivEncoded || !ciphertextEncoded || !tagEncoded || extra) return undefined;
+      if (version !== 'v1' || !ivEncoded || !ciphertextEncoded || !tagEncoded || extra)
+        return undefined;
       const iv = Buffer.from(ivEncoded, 'base64url');
       const ciphertext = Buffer.from(ciphertextEncoded, 'base64url');
       const tag = Buffer.from(tagEncoded, 'base64url');
-      if (iv.byteLength !== 12 || tag.byteLength !== 16 || ciphertext.byteLength === 0 || ciphertext.byteLength > MAX_PLAINTEXT_BYTES_V1)
+      if (
+        iv.byteLength !== 12 ||
+        tag.byteLength !== 16 ||
+        ciphertext.byteLength === 0 ||
+        ciphertext.byteLength > MAX_PLAINTEXT_BYTES_V1
+      )
         return undefined;
       const decipher = createDecipheriv('aes-256-gcm', this.key, iv);
       decipher.setAAD(ENVELOPE_CONTEXT_V1);

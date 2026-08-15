@@ -112,9 +112,7 @@ export class PrismaWorkspaceDataModePolicyAuthorityAdapter
   }
 }
 
-export class PrismaDataModePolicyVersionLookupAdapter
-  implements DataModePolicyVersionLookupPortV1
-{
+export class PrismaDataModePolicyVersionLookupAdapter implements DataModePolicyVersionLookupPortV1 {
   public constructor(private readonly database: WorkspaceDataModePolicyAuthorityDatabaseClientV1) {}
 
   public async findExact(
