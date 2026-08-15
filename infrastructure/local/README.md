@@ -44,7 +44,7 @@ corepack pnpm dev:api
 corepack pnpm dev:web
 ```
 
-The Web URL is <http://127.0.0.1:5173/vi-VN/sign-in>; it uses Vite HMR and
+The Web URL is <http://127.0.0.1:5173/vi-VN>; it uses Vite HMR and
 proxies API paths to the watched host API at <http://127.0.0.1:3000>. The
 `dev:api` watcher uses the database-backed local composition, runs Prisma
 generation/migrations, and talks to the Docker PostgreSQL, Redis, and Mailpit

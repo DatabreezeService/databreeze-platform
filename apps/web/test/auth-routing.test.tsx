@@ -10,6 +10,29 @@ import {
 afterEach(clearAuthSessionV1);
 
 describe('live authentication routing [IAM-023, WEB-002, WEB-004]', () => {
+  it('shows the teammate landing page for signed-out visitors at / and /vi-VN [WEB-013]', async () => {
+    for (const initialEntry of ['/', '/vi-VN']) {
+      const router = createAppRouter({
+        authenticationState: 'signed-out',
+        initialEntries: [initialEntry],
+      });
+
+      const view = render(<ApplicationBoundary router={router} />);
+
+      await waitFor(() => expect(router.state.location.pathname).toBe('/vi-VN'));
+      expect(
+        await screen.findByRole('heading', { name: /Dữ liệu biết cất lời/u }),
+      ).toBeTruthy();
+      expect(screen.queryByRole('heading', { name: 'Đăng nhập' })).toBeNull();
+      expect(screen.getByRole('link', { name: 'Đăng nhập' }).getAttribute('href')).toBe(
+        '/vi-VN/sign-in',
+      );
+      expect(document.querySelector('header.workspace-topbar')).toBeNull();
+
+      view.unmount();
+    }
+  });
+
   it('redirects a signed-out in-app navigation to the localized sign-in route', async () => {
     const router = createAppRouter({
       authenticationState: 'signed-out',

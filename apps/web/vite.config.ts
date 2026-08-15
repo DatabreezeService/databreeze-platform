@@ -1,8 +1,13 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, searchForWorkspaceRoot } from 'vite';
 
 import { WEB_SECURITY_HEADERS } from './security-headers.ts';
+import { teammateLandingPrototypePlugin } from './vite-landing-prototype.ts';
+
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 const DEFAULT_LOCAL_API_TARGET = 'http://127.0.0.1:3000';
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1']);
@@ -46,7 +51,7 @@ export function createLocalDevProxy(
 }
 
 export default defineConfig(({ command }) => ({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), teammateLandingPrototypePlugin()],
   ...(command === 'serve'
     ? {
         server: {
@@ -54,6 +59,7 @@ export default defineConfig(({ command }) => ({
           port: 5173,
           strictPort: true,
           proxy: createLocalDevProxy(),
+          fs: { allow: [searchForWorkspaceRoot(process.cwd()), REPO_ROOT] },
         },
       }
     : {}),

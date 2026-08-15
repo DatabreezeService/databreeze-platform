@@ -41,7 +41,7 @@ in-memory mock.
 Open the HMR application at:
 
 ```text
-http://127.0.0.1:5173/vi-VN/sign-in
+http://127.0.0.1:5173/vi-VN
 ```
 
 The loopback HMR profile is the only place where HTTP development cookies are

@@ -137,7 +137,7 @@ Terminal B — watched API process:
 
 Terminal C — Vite HMR frontend:
   corepack pnpm dev:web
-  Open http://127.0.0.1:5173/vi-VN/sign-in
+  Open http://127.0.0.1:5173/vi-VN
   Edit apps/web/src/* and Vite HMR updates the browser without a rebuild.
 
 The watched API uses the database-backed local composition against the Docker services,
