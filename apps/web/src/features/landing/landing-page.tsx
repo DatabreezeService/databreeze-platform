@@ -6,6 +6,9 @@ import teammateLandingHtml from '../../../../../prototypes/databreeze-landing/in
 import { prepareTeammateLandingMarkup } from './landing-markup.ts';
 import './landing-host.css';
 
+const TEAMMATE_LANDING_STYLESHEET = '/landing/styles.css';
+const TEAMMATE_LANDING_SCRIPT = '/landing/script.js';
+
 export function LandingPage({ locale }: { readonly locale: 'en' | 'vi-VN' }) {
   const markup = useMemo(
     () =>
@@ -20,20 +23,21 @@ export function LandingPage({ locale }: { readonly locale: 'en' | 'vi-VN' }) {
     if (import.meta.env.MODE === 'test') return undefined;
 
     document.documentElement.classList.add('js');
-    const stylesheet = document.createElement('link');
-    stylesheet.rel = 'stylesheet';
-    stylesheet.href = '/landing/styles.css';
-    document.head.appendChild(stylesheet);
     const script = document.createElement('script');
-    script.src = '/landing/script.js';
+    script.src = TEAMMATE_LANDING_SCRIPT;
     document.body.appendChild(script);
     return () => {
-      stylesheet.remove();
+      document.documentElement.classList.remove('js');
       script.remove();
     };
   }, []);
 
-  return <div className="teammate-landing-root" dangerouslySetInnerHTML={{ __html: markup }} />;
+  return (
+    <>
+      <link href={TEAMMATE_LANDING_STYLESHEET} rel="stylesheet" />
+      <div className="teammate-landing-root" dangerouslySetInnerHTML={{ __html: markup }} />
+    </>
+  );
 }
 
 export function LandingRoutePage() {
