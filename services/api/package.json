@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
+    "dev": "node ../../tools/repo-cli/src/api-dev.mjs",
     "lint": "eslint .",
     "openapi:check": "tsc --project tsconfig.build.json && node scripts/generate-openapi.mjs --check && pnpm openapi:validate",
     "openapi:generate": "tsc --project tsconfig.build.json && node scripts/generate-openapi.mjs",

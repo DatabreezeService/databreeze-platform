@@ -32,6 +32,21 @@ browser session deliberately retains `HttpOnly`, `Secure`, and `SameSite=Lax`
 cookies. The local CA and synthetic keys are development material only and
 must never be copied into a deployment.
 
+For normal product development, keep this Docker stack running and use host
+watchers for the application processes:
+
+```text
+corepack pnpm dev:infra
+corepack pnpm dev:api
+corepack pnpm dev:web
+```
+
+The Web URL is <http://127.0.0.1:5173/vi-VN/workspace>; it uses Vite HMR and
+proxies API paths to <http://127.0.0.1:3000>. The current API composition is
+database-free, so these services are infrastructure available to local
+adapters rather than an assertion that every API feature is PostgreSQL-backed.
+The pilot/production Caddy URL is for built-image validation, not HMR.
+
 The stack is defined in [`compose.yml`](compose.yml). All state is held in
 named volumes prefixed by the Compose project name; no repository directory is
 mounted for database, object, or mail data. The volumes are disposable and are

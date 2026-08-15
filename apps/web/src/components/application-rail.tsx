@@ -1,4 +1,5 @@
 import wordmarkUrl from '@databreeze/design-tokens/brand/generated/web/navigation-wordmark-blue-204x50.png';
+import brandMarkUrl from '@databreeze/design-tokens/brand/generated/web/install-icon-192.png';
 import { formatMessageV1 } from '@databreeze/i18n/v1';
 import { useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
@@ -126,7 +127,20 @@ export function ApplicationRail({
           to={`/${locale}/dashboards`}
         >
           <span className="application-rail__brand-mark" aria-hidden="true">
-            <img alt="" height="50" src={wordmarkUrl} width="204" />
+            <img
+              alt=""
+              className="application-rail__brand-wordmark"
+              height="50"
+              src={wordmarkUrl}
+              width="204"
+            />
+            <img
+              alt=""
+              className="application-rail__brand-icon"
+              height="192"
+              src={brandMarkUrl}
+              width="192"
+            />
           </span>
         </Link>
         {!isMobile ? (

@@ -237,6 +237,10 @@
   filter: none;
 }
 
+.application-rail__brand-icon {
+  display: none !important;
+}
+
 .application-rail[data-collapsed='true'] .application-rail__header {
   display: grid;
   justify-items: center;
@@ -251,12 +255,23 @@
 .application-rail[data-collapsed='true'] .application-rail__brand-mark {
   width: 36px;
   height: 36px;
+  display: grid;
+  place-items: center;
   padding: 4px;
+  overflow: visible;
 }
 
-.application-rail[data-collapsed='true'] .application-rail__brand img {
-  width: 146px;
+.application-rail[data-collapsed='true'] .application-rail__brand-wordmark {
+  display: none;
+}
+
+.application-rail[data-collapsed='true'] .application-rail__brand-icon {
+  display: block !important;
+  width: 28px;
+  height: 28px;
   max-width: none;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
 }
 
 .application-rail__collapse {

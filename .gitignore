@@ -62,6 +62,7 @@ runtime/
 uploads/
 artifacts/
 reports/
+/marketing-materials/
 *.db
 *.sqlite
 *.sqlite3
