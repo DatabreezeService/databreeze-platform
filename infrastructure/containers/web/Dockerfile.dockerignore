@@ -7,6 +7,9 @@
 !apps/
 !apps/web/
 !apps/web/**
+!prototypes/
+!prototypes/databreeze-landing/
+!prototypes/databreeze-landing/**
 !packages/
 !packages/contracts/
 !packages/contracts/**

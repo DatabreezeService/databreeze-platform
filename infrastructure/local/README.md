@@ -22,11 +22,28 @@ To run the usable local application instead of dependencies alone, run:
 pnpm local:services app-start
 ```
 
-This one command starts the dependencies, builds the local images, applies the
+This command starts the dependencies, builds the local images, applies the
 complete Prisma migration inventory in a one-shot container, and waits for the
 API and Web gateway to become healthy. Open <https://localhost:8443>; API calls
 remain on that same HTTPS origin and the API container has no published host
 port. Verification mail is captured at <http://localhost:8025>.
+
+After the application is healthy, seed the comprehensive synthetic fixture:
+
+```powershell
+pnpm local:seed
+```
+
+The seed is idempotent, creates tenant-scoped records, and uploads fixture bytes
+to local MinIO. It prints three local sign-in accounts and a generated password;
+set `DATABREEZE_LOCAL_SEED_PASSWORD` in the ignored
+`infrastructure/local/.env` first if you need a stable password.
+
+The full seed expects MinIO to be healthy. If you intentionally want metadata
+only, generate the client once and run
+`corepack pnpm --filter @databreeze/api seed:local -- --skip-objects`; those
+placements are marked unavailable so the UI does not claim that source bytes
+exist.
 
 Caddy creates a local-only certificate authority in the named
 `web-caddy-data` volume. A browser may require one explicit trust/continue step
@@ -86,6 +103,7 @@ Run these from the repository root:
 | `pnpm local:services status` | Print container/health state without changing it. |
 | `pnpm local:services logs --tail=100` | Print bounded, read-only logs for known local services. |
 | `pnpm local:services app-start` | Build, migrate, start, and wait for the same-origin HTTPS API and Web profile. |
+| `pnpm local:seed` | Generate the Prisma client and idempotently seed the comprehensive synthetic local fixture. |
 | `pnpm local:services app-status` | Print dependency, migration, API, and Web health without changing state. |
 | `pnpm local:services app-logs --tail=100` | Print bounded migration, API, and Web logs. |
 | `pnpm local:services app-stop` | Stop API and Web while preserving dependencies, containers, and named volumes. |
