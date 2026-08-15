@@ -1,5 +1,8 @@
 # Local Infrastructure
 
+For the relationship between the HMR watcher profile, built local gateway,
+and Lightsail deployment, see [Local development and Lightsail pilot](../../docs/architecture/local-and-pilot-development.md).
+
 This directory contains the disposable services used by the DataBreeze control
 plane during development. It is deliberately provider-neutral: application
 code talks to PostgreSQL, Redis, S3-compatible object storage, SMTP, and OTLP
@@ -31,6 +34,30 @@ the first time it opens the site. Do not disable HTTPS: the production-shaped
 browser session deliberately retains `HttpOnly`, `Secure`, and `SameSite=Lax`
 cookies. The local CA and synthetic keys are development material only and
 must never be copied into a deployment.
+
+For normal product development, keep this Docker stack running and use host
+watchers for the application processes:
+
+```text
+corepack pnpm dev:infra
+corepack pnpm dev:api
+corepack pnpm dev:web
+```
+
+The Web URL is <http://127.0.0.1:5173/vi-VN/sign-in>; it uses Vite HMR and
+proxies API paths to the watched host API at <http://127.0.0.1:3000>. The
+`dev:api` watcher uses the database-backed local composition, runs Prisma
+generation/migrations, and talks to the Docker PostgreSQL, Redis, and Mailpit
+services. Registration, OTP, sign-in, refresh, logout, and durable data
+changes therefore exercise the real local backend while Web source changes
+update without a rebuild. The pilot/production Caddy URL is for built-image
+validation, not HMR.
+
+For this HMR profile, use the loopback HTTP URL above. The built gateway is a
+separate HTTPS endpoint at <https://localhost:8443>; opening it as
+`http://localhost:8443` produces “Client sent an HTTP request to an HTTPS
+server”. It serves the built Web image and intentionally keeps Secure cookies;
+it is not the hot-reload endpoint.
 
 The stack is defined in [`compose.yml`](compose.yml). All state is held in
 named volumes prefixed by the Compose project name; no repository directory is

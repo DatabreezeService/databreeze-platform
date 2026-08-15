@@ -1,18 +1,26 @@
 import wordmarkUrl from '@databreeze/design-tokens/brand/generated/web/navigation-wordmark-blue-204x50.png';
+import brandMarkUrl from '@databreeze/design-tokens/brand/generated/web/install-icon-192.png';
+import { formatMessageV1 } from '@databreeze/i18n/v1';
 import { useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
+import { getFeatureRegistration } from '../app/feature-registry.ts';
 import { appMessage } from '../app/messages.ts';
+import type { NavigationItem } from '../app/navigation.ts';
 import {
   udwPrimaryNavLabelV1,
   type UdwPrimaryNavItemV1,
 } from '../app/unified-primary-navigation.ts';
+import { BellIcon, MenuIcon, SearchIcon, XIcon } from './icons.tsx';
 
 export interface ApplicationRailProperties {
+  readonly collapsed?: boolean;
   readonly isMobile?: boolean;
   readonly items: readonly UdwPrimaryNavItemV1[];
   readonly locale: 'en' | 'vi-VN';
   readonly mobileOpen: boolean;
+  readonly onCollapsedChange?: (collapsed: boolean) => void;
   readonly onMobileOpenChange: (open: boolean) => void;
+  readonly secondaryItems?: readonly NavigationItem[];
 }
 
 function RailIcon({ itemKey }: { readonly itemKey: UdwPrimaryNavItemV1['key'] }) {
@@ -56,31 +64,29 @@ function RailIcon({ itemKey }: { readonly itemKey: UdwPrimaryNavItemV1['key'] })
   );
 }
 
-function CloseIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      fill="none"
-      height="20"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="1.8"
-      viewBox="0 0 24 24"
-      width="20"
-    >
-      <path d="m6 6 12 12M18 6 6 18" />
-    </svg>
-  );
+function SecondaryIcon({ itemKey }: { readonly itemKey: NavigationItem['key'] }) {
+  if (itemKey === 'inbox') return <BellIcon />;
+  if (itemKey === 'reviews') return <SearchIcon />;
+  return <MenuIcon />;
+}
+
+function secondaryLabel(locale: 'en' | 'vi-VN', item: NavigationItem): string {
+  const registration = getFeatureRegistration(item.key);
+  return registration.messageKey === undefined
+    ? item.key
+    : formatMessageV1(locale, registration.messageKey);
 }
 
 /** WEB-002/013/014/022: compact, build-time registered primary navigation. */
 export function ApplicationRail({
+  collapsed = false,
   isMobile = false,
   items,
   locale,
   mobileOpen,
+  onCollapsedChange = () => undefined,
   onMobileOpenChange,
+  secondaryItems = [],
 }: ApplicationRailProperties) {
   useEffect(() => {
     if (!isMobile || !mobileOpen) return undefined;
@@ -92,24 +98,64 @@ export function ApplicationRail({
     return () => globalThis.removeEventListener('keydown', closeOnEscape);
   }, [isMobile, mobileOpen, onMobileOpenChange]);
 
+  const effectivelyCollapsed = isMobile ? false : collapsed;
+  const collapseLabel =
+    locale === 'vi-VN'
+      ? effectivelyCollapsed
+        ? 'Mở rộng thanh bên'
+        : 'Thu gọn thanh bên'
+      : effectivelyCollapsed
+        ? 'Expand sidebar'
+        : 'Collapse sidebar';
+  const workspaceLabel = locale === 'vi-VN' ? 'Không gian làm việc' : 'Workspace';
+  const toolsLabel = locale === 'vi-VN' ? 'Công cụ' : 'Tools';
+
   return (
     <nav
       aria-label={appMessage(locale, 'nav.label')}
       className={`application-rail${isMobile ? ' application-rail--mobile' : ''}${
         mobileOpen ? ' is-mobile-open' : ''
       }`}
+      data-collapsed={effectivelyCollapsed}
       hidden={isMobile && !mobileOpen}
       id="primary-navigation"
     >
-      <Link
-        aria-label="DataBreeze"
-        className="application-rail__brand"
-        to={`/${locale}/dashboards`}
-      >
-        <span className="application-rail__brand-mark" aria-hidden="true">
-          <img alt="" height="50" src={wordmarkUrl} width="204" />
-        </span>
-      </Link>
+      <div className="application-rail__header">
+        <Link
+          aria-label="DataBreeze"
+          className="application-rail__brand"
+          to={`/${locale}/dashboards`}
+        >
+          <span className="application-rail__brand-mark" aria-hidden="true">
+            <img
+              alt=""
+              className="application-rail__brand-wordmark"
+              height="50"
+              src={wordmarkUrl}
+              width="204"
+            />
+            <img
+              alt=""
+              className="application-rail__brand-icon"
+              height="192"
+              src={brandMarkUrl}
+              width="192"
+            />
+          </span>
+        </Link>
+        {!isMobile ? (
+          <button
+            aria-expanded={!effectivelyCollapsed}
+            aria-label={collapseLabel}
+            className="application-rail__collapse"
+            onClick={() => onCollapsedChange(!effectivelyCollapsed)}
+            title={collapseLabel}
+            type="button"
+          >
+            <MenuIcon />
+          </button>
+        ) : null}
+      </div>
       {isMobile ? (
         <button
           aria-label={appMessage(locale, 'nav.close')}
@@ -117,10 +163,14 @@ export function ApplicationRail({
           onClick={() => onMobileOpenChange(false)}
           type="button"
         >
-          <CloseIcon />
+          <XIcon />
         </button>
       ) : null}
-      <ul className="application-rail__items">
+      <p className="application-rail__group-label">{workspaceLabel}</p>
+      <ul
+        aria-label={workspaceLabel}
+        className="application-rail__items application-rail__items--primary"
+      >
         {items.map((item) => {
           const label = udwPrimaryNavLabelV1(locale, item.key);
           return (
@@ -130,6 +180,9 @@ export function ApplicationRail({
                   isActive ? 'application-rail__link is-active' : 'application-rail__link'
                 }
                 end
+                onClick={() => {
+                  if (isMobile) onMobileOpenChange(false);
+                }}
                 title={label}
                 to={`/${locale}/${item.path}`}
               >
@@ -140,6 +193,36 @@ export function ApplicationRail({
           );
         })}
       </ul>
+      {secondaryItems.length > 0 ? (
+        <div className="application-rail__secondary">
+          <p className="application-rail__group-label">{toolsLabel}</p>
+          <ul
+            aria-label={toolsLabel}
+            className="application-rail__items application-rail__items--secondary"
+          >
+            {secondaryItems.map((item) => {
+              const label = secondaryLabel(locale, item);
+              return (
+                <li key={item.key}>
+                  <NavLink
+                    className={({ isActive }) =>
+                      isActive ? 'application-rail__link is-active' : 'application-rail__link'
+                    }
+                    onClick={() => {
+                      if (isMobile) onMobileOpenChange(false);
+                    }}
+                    title={label}
+                    to={`/${locale}/${item.path}`}
+                  >
+                    <SecondaryIcon itemKey={item.key} />
+                    <span className="application-rail__label">{label}</span>
+                  </NavLink>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
     </nav>
   );
 }

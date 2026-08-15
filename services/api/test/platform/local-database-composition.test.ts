@@ -39,6 +39,12 @@ const environment = {
   DATABREEZE_SERVICE_ACCOUNT_SECRET_ENVELOPE_KEY: key(4),
 } as const;
 
+const hmrEnvironment = {
+  ...environment,
+  DATABREEZE_LOCAL_HMR_HTTP: 'true',
+  DATABREEZE_LOCAL_HMR_ORIGIN: 'http://127.0.0.1:5173',
+} as const;
+
 const pilotEnvironment = {
   ...environment,
   DATABREEZE_RUNTIME_PROFILE: PILOT_RUNTIME_PROFILE,
@@ -125,6 +131,26 @@ void test('[FND-003, IAM-005, IAM-022, IAM-023] local profile composes durable P
     'database-disconnect',
     'redis-disconnect',
   ]);
+});
+
+void test('[FND-003, WEB-004] local HMR profile allows only the explicit loopback browser origin', async () => {
+  const composition = await createLocalDatabaseComposition(hmrEnvironment, {
+    createClient: () => databaseClient([]),
+    createRedisClient: () => ({
+      connect: async () => undefined,
+      disconnect: async () => undefined,
+      eval: async () => 1,
+    }),
+    createSmtpSender: () => ({ send: async () => undefined }),
+  });
+
+  try {
+    assert.deepEqual(composition.options.requestContext?.csrf?.allowedOrigins, [
+      hmrEnvironment.DATABREEZE_LOCAL_HMR_ORIGIN,
+    ]);
+  } finally {
+    await composition.disconnect();
+  }
 });
 
 void test('[IAM-022] explicit local Gmail provider composes TLS SMTP delivery without changing the default Mailpit path', async () => {

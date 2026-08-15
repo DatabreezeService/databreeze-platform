@@ -16,4 +16,58 @@ describe('workspace agent store [WEB-024, DDA-031]', () => {
     expect(workspaceAgentStore.getActiveConversation()).toEqual(conversation);
     workspaceAgentStore.setActiveConversation(undefined);
   });
+
+  it('switches only among supplied authorized conversation summaries', () => {
+    const conversations = [
+      {
+        conversationId: 'conversation-sales',
+        title: 'Revenue review',
+        datasetLabel: 'Sales',
+        datasetVersionLabel: 'version 8',
+      },
+      {
+        conversationId: 'conversation-orders',
+        title: 'Order anomalies',
+        datasetLabel: 'Orders',
+        datasetVersionLabel: 'version 3',
+      },
+    ];
+
+    workspaceAgentStore.setConversations(conversations);
+    workspaceAgentStore.selectConversation('conversation-orders');
+    expect(workspaceAgentStore.getActiveConversation()?.conversationId).toBe('conversation-orders');
+
+    workspaceAgentStore.selectConversation('conversation-hidden');
+    expect(workspaceAgentStore.getActiveConversation()?.conversationId).toBe('conversation-orders');
+    workspaceAgentStore.setActiveConversation(undefined);
+  });
+
+  it('keeps loaded messages when a later summary-only replacement omits them', () => {
+    const loaded = {
+      conversationId: 'conversation-sales',
+      title: 'Revenue review',
+      datasetLabel: 'Sales',
+      datasetVersionLabel: 'version 8',
+      messages: [
+        {
+          messageId: 'message-1',
+          role: 'USER' as const,
+          text: 'Show regional revenue',
+        },
+      ],
+    };
+
+    workspaceAgentStore.setConversations([loaded]);
+    workspaceAgentStore.setConversations([
+      {
+        conversationId: 'conversation-sales',
+        title: 'Revenue review',
+        datasetLabel: 'Sales',
+        datasetVersionLabel: 'version 8',
+      },
+    ]);
+
+    expect(workspaceAgentStore.getActiveConversation()?.messages).toEqual(loaded.messages);
+    workspaceAgentStore.setActiveConversation(undefined);
+  });
 });

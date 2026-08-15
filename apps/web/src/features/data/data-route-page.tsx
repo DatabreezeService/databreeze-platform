@@ -134,13 +134,19 @@ const DEMO_DATASETS: readonly DatasetCardV1[] = Object.freeze([
 function copy(locale: 'en' | 'vi-VN') {
   return locale === 'vi-VN'
     ? {
+        description:
+          'Quản lý bộ dữ liệu, tệp nguồn, phiên bản và các mục cần xem xét trong phạm vi được cấp quyền.',
         loading: 'Đang tải dữ liệu được cấp quyền...',
         error: 'Không thể tải dữ liệu được cấp quyền.',
+        heading: 'Dữ liệu',
         retry: 'Thử lại',
       }
     : {
+        description:
+          'Manage datasets, source files, versions, and review items within your authorized scope.',
         loading: 'Loading authorized data...',
         error: 'Authorized data could not be loaded.',
+        heading: 'Data',
         retry: 'Try again',
       };
 }
@@ -189,12 +195,24 @@ export function DataRoutePage() {
   return (
     <div className="data-route-page">
       {state.status === 'loading' ? (
-        <section aria-label={locale === 'vi-VN' ? 'Dữ liệu' : 'Data'}>
-          <p role="status">{text.loading}</p>
+        <section aria-labelledby="data-route-heading" className="data-route-state">
+          <header className="data-route-state__heading">
+            <h1 id="data-route-heading">{text.heading}</h1>
+            <p>{text.description}</p>
+          </header>
+          <p className="data-route-state__notice" role="status">
+            {text.loading}
+          </p>
         </section>
       ) : state.status === 'error' ? (
-        <section aria-label={locale === 'vi-VN' ? 'Dữ liệu' : 'Data'}>
-          <p role="alert">{text.error}</p>
+        <section aria-labelledby="data-route-heading" className="data-route-state">
+          <header className="data-route-state__heading">
+            <h1 id="data-route-heading">{text.heading}</h1>
+            <p>{text.description}</p>
+          </header>
+          <p className="data-route-state__notice data-route-state__notice--error" role="alert">
+            {text.error}
+          </p>
           <button onClick={() => setRetryKey((current) => current + 1)} type="button">
             {text.retry}
           </button>

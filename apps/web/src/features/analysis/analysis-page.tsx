@@ -67,6 +67,7 @@ export interface AnalysisPageProps {
   readonly historyState?: AnalysisLoadStateV1;
   readonly locale: 'en' | 'vi-VN';
   readonly onSelectConversation?: (conversationId: string) => void;
+  readonly onCreateConversation?: () => void;
   readonly onSendMessage?: (message: string, conversationId?: string) => unknown;
   readonly store?: AgentStoreV1;
   readonly threadState?: AnalysisLoadStateV1;
@@ -81,6 +82,7 @@ export function AnalysisPage({
   historyState = 'ready',
   locale,
   onSelectConversation,
+  onCreateConversation,
   onSendMessage,
   store,
   threadState = 'ready',
@@ -167,6 +169,7 @@ export function AnalysisPage({
           {...(active?.conversationId === undefined
             ? {}
             : { activeConversationId: active.conversationId })}
+          {...(onCreateConversation === undefined ? {} : { onCreate: onCreateConversation })}
         />
         <div className="analysis-page__thread-stage">
           {threadState === 'loading' ? (

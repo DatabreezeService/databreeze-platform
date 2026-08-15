@@ -39,6 +39,21 @@ corepack pnpm web:browser:install:ci
 corepack pnpm web:test:e2e:ci
 ```
 
+For the everyday edit-refresh loop, run the split local stack from the
+repository root:
+
+```text
+corepack pnpm dev:infra   # Docker: PostgreSQL, Redis, MinIO, Mailpit, OTEL
+corepack pnpm dev:api     # watched API on http://127.0.0.1:3000
+corepack pnpm dev:web     # Vite + React Refresh on http://127.0.0.1:5173
+```
+
+Open `http://127.0.0.1:5173/vi-VN/workspace`. Vite proxies `/v1`, `/v3`, and
+`/health` to the API, so editing `apps/web/src/*` updates the browser without
+rebuilding a container. Do not use the pilot/production Caddy URL for this
+loop; it serves a built bundle and has no HMR. `dev:stack` prints the same
+three-terminal instructions without leaving background processes behind.
+
 The root `web:test:e2e` command builds public workspace dependencies first, runs the production
 preview desktop/mobile suite, and then starts the Vite development server for its browser
 regression. `web:test:e2e:preview` and `web:test:e2e:dev` expose those lanes independently. Local

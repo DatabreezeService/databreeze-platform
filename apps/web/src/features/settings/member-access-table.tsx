@@ -69,7 +69,7 @@ export function MemberAccessTable({
 }: MemberAccessTableProperties) {
   const label = locale === 'vi-VN' ? 'Bảng quyền thành viên' : 'Member access table';
   return (
-    <table aria-label={label}>
+    <table aria-label={label} className="member-access-table">
       <thead>
         <tr>
           <th>{locale === 'vi-VN' ? 'Thành viên' : 'Member'}</th>
@@ -86,7 +86,12 @@ export function MemberAccessTable({
               : `Agent access for ${row.displayName}`;
           return (
             <tr key={row.memberId}>
-              <td>{row.displayName}</td>
+              <td>
+                <span className="member-access-table__avatar" aria-hidden="true">
+                  {row.displayName.trim().slice(0, 1).toLocaleUpperCase(locale)}
+                </span>
+                <strong>{row.displayName}</strong>
+              </td>
               <td>{PRESET_LABELS[locale][preset]}</td>
               <td>
                 {AGENT_GRANT_LABELS[locale][row.agentGrant ?? 'NONE']}

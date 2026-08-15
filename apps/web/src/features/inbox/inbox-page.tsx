@@ -43,8 +43,8 @@ export function InboxPage() {
 
   if (query.isPending) {
     return (
-      <section aria-labelledby="inbox-heading" className="feature-surface">
-        <div className="work-surface__heading">
+      <section aria-labelledby="inbox-heading" className="feature-surface inbox-page">
+        <div className="work-surface__heading inbox-page__hero">
           <div>
             <h1 id="inbox-heading">{appMessage(locale, 'inbox.heading')}</h1>
             <p>{appMessage(locale, 'inbox.caption')}</p>
@@ -57,8 +57,8 @@ export function InboxPage() {
 
   if (query.isError) {
     return (
-      <section aria-labelledby="inbox-heading" className="feature-surface">
-        <div className="work-surface__heading">
+      <section aria-labelledby="inbox-heading" className="feature-surface inbox-page">
+        <div className="work-surface__heading inbox-page__hero">
           <div>
             <h1 id="inbox-heading">{appMessage(locale, 'inbox.heading')}</h1>
             <p>{appMessage(locale, 'inbox.caption')}</p>
@@ -74,8 +74,8 @@ export function InboxPage() {
 
   const items = query.data;
   return (
-    <section aria-labelledby="inbox-heading" className="feature-surface">
-      <div className="work-surface__heading">
+    <section aria-labelledby="inbox-heading" className="feature-surface inbox-page">
+      <div className="work-surface__heading inbox-page__hero">
         <div>
           <h1 id="inbox-heading">{appMessage(locale, 'inbox.heading')}</h1>
           <p>{appMessage(locale, 'inbox.caption')}</p>
