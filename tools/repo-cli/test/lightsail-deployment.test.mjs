@@ -51,6 +51,8 @@ test('Lightsail deployment scripts migrate first, health-check, and retain rollb
   assert.match(deploy, /healthcheck\.sh/u);
   assert.match(deploy, /current-release\.env/u);
   assert.match(deploy, /down --remove-orphans/u);
+  assert.match(deploy, /docker inspect --format/u);
+  assert.match(deploy, /logs --no-color --tail 200 api/u);
   assert.match(healthcheck, /--max-time 10/u);
   assert.match(healthcheck, /content_type/u);
   assert.match(healthcheck, /application\/json/u);
