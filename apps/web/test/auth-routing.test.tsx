@@ -20,9 +20,7 @@ describe('live authentication routing [IAM-023, WEB-002, WEB-004]', () => {
       const view = render(<ApplicationBoundary router={router} />);
 
       await waitFor(() => expect(router.state.location.pathname).toBe('/vi-VN'));
-      expect(
-        await screen.findByRole('heading', { name: /Dữ liệu biết cất lời/u }),
-      ).toBeTruthy();
+      expect(await screen.findByRole('heading', { name: /Dữ liệu biết cất lời/u })).toBeTruthy();
       expect(screen.queryByRole('heading', { name: 'Đăng nhập' })).toBeNull();
       expect(screen.getByRole('link', { name: 'Đăng nhập' }).getAttribute('href')).toBe(
         '/vi-VN/sign-in',

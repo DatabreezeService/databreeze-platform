@@ -29,7 +29,11 @@ import { LandingRoutePage } from '../features/landing/landing-page.tsx';
 import { PRODUCT_MODULE_REGISTRY } from '../features/product-modules/product-module-registry.ts';
 import { normalizeRouteLocale } from './locale-context.tsx';
 import { WEB_FEATURE_REGISTRY } from './feature-registry.ts';
-import { DEFAULT_ACCESS_CONTEXT, EMPTY_ACCESS_CONTEXT, type WebAccessContext } from './navigation.ts';
+import {
+  DEFAULT_ACCESS_CONTEXT,
+  EMPTY_ACCESS_CONTEXT,
+  type WebAccessContext,
+} from './navigation.ts';
 import {
   currentWebAuthenticationStateV1,
   initializeWebAuthenticationStateV1,
@@ -94,11 +98,7 @@ function WorkspaceSettingsRoute() {
   return <WorkspaceSettingsRoutePage locale={locale === 'en' ? 'en' : 'vi-VN'} />;
 }
 
-function AuthenticationGate({
-  publicRoute,
-}: {
-  readonly publicRoute: boolean;
-}) {
+function AuthenticationGate({ publicRoute }: { readonly publicRoute: boolean }) {
   const authenticationState = useSyncExternalStore(
     subscribeWebAuthenticationStateV1,
     currentWebAuthenticationStateV1,
@@ -144,24 +144,34 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
                 { path: 'workspace', element: <Navigate replace to="../dashboards" /> },
                 { path: 'analysis', element: <AnalysisRoutePage /> },
                 { path: 'data', element: <DataRoutePage /> },
-                ...WEB_FEATURE_REGISTRY.filter((feature) => feature.key !== 'workspace').map((feature) => ({
-                  path: feature.path,
-                  element:
-                    feature.key === 'inbox' ? (
-                      <Suspended><InboxPage /></Suspended>
-                    ) : feature.key === 'reviews' ? (
-                      <Suspended><DataPipelinePage /></Suspended>
-                    ) : feature.key === 'dashboards' ? (
-                      <DashboardPage />
-                    ) : feature.key === 'administration' ? (
-                      <WorkspaceSettingsRoute />
-                    ) : (
-                      <UnavailableFeature featureKey={feature.key} />
-                    ),
-                })),
+                ...WEB_FEATURE_REGISTRY.filter((feature) => feature.key !== 'workspace').map(
+                  (feature) => ({
+                    path: feature.path,
+                    element:
+                      feature.key === 'inbox' ? (
+                        <Suspended>
+                          <InboxPage />
+                        </Suspended>
+                      ) : feature.key === 'reviews' ? (
+                        <Suspended>
+                          <DataPipelinePage />
+                        </Suspended>
+                      ) : feature.key === 'dashboards' ? (
+                        <DashboardPage />
+                      ) : feature.key === 'administration' ? (
+                        <WorkspaceSettingsRoute />
+                      ) : (
+                        <UnavailableFeature featureKey={feature.key} />
+                      ),
+                  }),
+                ),
                 ...PRODUCT_MODULE_REGISTRY.map((module) => ({
                   path: `modules/${module.slug}`,
-                  element: <Suspended><ProductModuleWorkbench module={module} /></Suspended>,
+                  element: (
+                    <Suspended>
+                      <ProductModuleWorkbench module={module} />
+                    </Suspended>
+                  ),
                 })),
                 { path: 'debug/route-error', element: <RouteFailure /> },
                 { path: '*', element: <NotFoundPage /> },

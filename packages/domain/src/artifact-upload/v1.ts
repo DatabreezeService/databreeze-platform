@@ -9,12 +9,7 @@ import {
 
 /** IAE-014: resumable multipart upload state is bounded, revisioned, and content-addressed. */
 export const ARTIFACT_UPLOAD_SCHEMA_VERSION_V1 = 1 as const;
-export type ArtifactUploadStateV1 =
-  | 'OPEN'
-  | 'FINALIZING'
-  | 'COMPLETED'
-  | 'ABORTED'
-  | 'EXPIRED';
+export type ArtifactUploadStateV1 = 'OPEN' | 'FINALIZING' | 'COMPLETED' | 'ABORTED' | 'EXPIRED';
 
 export interface ArtifactUploadVerifiedObjectV1 {
   /** Opaque application locator, never a bucket, key, path, or reusable URL. */

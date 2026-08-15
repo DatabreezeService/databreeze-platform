@@ -6,7 +6,10 @@ import { describe, expect, it } from 'vitest';
 import { prepareTeammateLandingMarkup } from '../src/features/landing/landing-markup.ts';
 
 const teammateLandingHtml = readFileSync(
-  path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../prototypes/databreeze-landing/index.html'),
+  path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '../../../prototypes/databreeze-landing/index.html',
+  ),
   'utf8',
 );
 

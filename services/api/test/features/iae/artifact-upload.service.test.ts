@@ -90,9 +90,7 @@ const allowingAdmission: ArtifactUploadAdmissionPortV1 = {
 
 function service(
   repository: ArtifactUploadRepositoryPortV1,
-  storage = new InMemoryArtifactUploadStorageAdapter(
-    () => new Date('2026-08-02T00:00:00.000Z'),
-  ),
+  storage = new InMemoryArtifactUploadStorageAdapter(() => new Date('2026-08-02T00:00:00.000Z')),
 ) {
   return new ArtifactUploadService(repository, storage, allowingAdmission, {
     clock: () => new Date('2026-08-02T00:00:00.000Z'),
@@ -189,14 +187,17 @@ void test('IAE-014 transfer issuance revalidates the session before returning a 
   if (!expired.accepted) return;
 
   const uploadService = service(new RevalidatingUploadRepository(created.value, expired.value));
-  assert.deepEqual(await uploadService.issuePartTransfer(context, created.value.sessionId, {
-    partNumber: 1,
-    contentSha256: 'b'.repeat(64),
-    byteSize: 4,
-  }), {
-    accepted: false,
-    code: 'UPLOAD_SESSION_EXPIRED',
-  });
+  assert.deepEqual(
+    await uploadService.issuePartTransfer(context, created.value.sessionId, {
+      partNumber: 1,
+      contentSha256: 'b'.repeat(64),
+      byteSize: 4,
+    }),
+    {
+      accepted: false,
+      code: 'UPLOAD_SESSION_EXPIRED',
+    },
+  );
 });
 
 void test('[IAE-022] create ignores client authority and uses server-owned identity and lifetime', async () => {

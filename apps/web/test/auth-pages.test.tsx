@@ -36,7 +36,14 @@ describe('auth product surfaces', () => {
   it('does not submit registration until password confirmation matches', async () => {
     const user = userEvent.setup();
     const submitted: unknown[] = [];
-    render(<RegisterPage locale="en" onRegistered={(value) => { submitted.push(value); }} />);
+    render(
+      <RegisterPage
+        locale="en"
+        onRegistered={(value) => {
+          submitted.push(value);
+        }}
+      />,
+    );
     await user.type(screen.getByLabelText('Email'), 'owner@example.com');
     await user.type(screen.getByLabelText('Password'), 'correct horse battery staple');
     await user.type(screen.getByLabelText('Confirm password'), 'different password value');
@@ -49,20 +56,36 @@ describe('auth product surfaces', () => {
   it('submits registration values and opens OTP only after a challenge is accepted', async () => {
     const user = userEvent.setup();
     const submitted: unknown[] = [];
-    render(<RegisterPage locale="vi-VN" onRegistered={(value) => { submitted.push(value); }} />);
+    render(
+      <RegisterPage
+        locale="vi-VN"
+        onRegistered={(value) => {
+          submitted.push(value);
+        }}
+      />,
+    );
     await user.type(screen.getByLabelText('Email'), 'owner@example.com');
     await user.type(screen.getByLabelText('Mật khẩu'), 'correct horse battery staple');
     await user.type(screen.getByLabelText('Xác nhận mật khẩu'), 'correct horse battery staple');
     await user.click(screen.getByRole('button', { name: 'Tiếp tục' }));
-    expect(submitted).toEqual([{ email: 'owner@example.com', password: 'correct horse battery staple', locale: 'vi-VN' }]);
+    expect(submitted).toEqual([
+      { email: 'owner@example.com', password: 'correct horse battery staple', locale: 'vi-VN' },
+    ]);
   });
 
   it('shows OTP countdown and generic auth errors', async () => {
     const user = userEvent.setup();
-    render(<VerifyEmailPage locale="vi-VN" email="user@example.com" initialSeconds={30} onVerified={async (value) => {
-      expect(value).toEqual({ code: '123456' });
-      return { accepted: false as const };
-    }} />);
+    render(
+      <VerifyEmailPage
+        locale="vi-VN"
+        email="user@example.com"
+        initialSeconds={30}
+        onVerified={async (value) => {
+          expect(value).toEqual({ code: '123456' });
+          return { accepted: false as const };
+        }}
+      />,
+    );
     expect(screen.getByText(/còn 30 giây/i)).toBeTruthy();
     await user.type(screen.getByLabelText('OTP'), '123456');
     await user.click(screen.getByRole('button', { name: 'Xác minh' }));

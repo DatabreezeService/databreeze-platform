@@ -17,10 +17,8 @@ export interface BrowserParseRejected {
 
 export type BrowserParseResult<TValue> = BrowserParseAccepted<TValue> | BrowserParseRejected;
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
-const UTC_TIMESTAMP_PATTERN =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/u;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+const UTC_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/u;
 
 export function parseStableIdentifierBrowser(input: unknown): BrowserParseResult<string> {
   return typeof input === 'string' && UUID_PATTERN.test(input)
@@ -33,9 +31,7 @@ export function parseStrictUtcTimestampBrowser(input: unknown): BrowserParseResu
     return { accepted: false };
   }
   const milliseconds = Date.parse(input);
-  return Number.isFinite(milliseconds)
-    ? { accepted: true, value: input }
-    : { accepted: false };
+  return Number.isFinite(milliseconds) ? { accepted: true, value: input } : { accepted: false };
 }
 
 export function isRecordBrowser(value: unknown): value is Record<string, unknown> {

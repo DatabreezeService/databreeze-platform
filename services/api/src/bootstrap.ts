@@ -58,11 +58,13 @@ export async function createApiApplication(
   options: ApiApplicationOptions = {},
 ): Promise<ApiApplication> {
   const adapter = new FastifyAdapter({ bodyLimit: 65_536, logger: false });
-  adapter.getInstance().addContentTypeParser(
-    'application/octet-stream',
-    { parseAs: 'buffer', bodyLimit: 64 * 1024 * 1024 },
-    (_request, body, done) => done(null, body),
-  );
+  adapter
+    .getInstance()
+    .addContentTypeParser(
+      'application/octet-stream',
+      { parseAs: 'buffer', bodyLimit: 64 * 1024 * 1024 },
+      (_request, body, done) => done(null, body),
+    );
   installRequestContext(adapter.getInstance(), options.requestContext);
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule.register(options),

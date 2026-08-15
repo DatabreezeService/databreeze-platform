@@ -63,10 +63,7 @@ function parseIso(value: unknown): string | null {
   return text !== null && Number.isFinite(Date.parse(text)) ? text : null;
 }
 
-function parseSignInSession(
-  value: unknown,
-  accountLabel: string,
-): ProtectedDesktopSession | null {
+function parseSignInSession(value: unknown, accountLabel: string): ProtectedDesktopSession | null {
   const record = plainRecord(value);
   if (record === null) return null;
   const sessionId = boundedString(record['sessionId'], 128);
@@ -210,7 +207,10 @@ export function createApiWorkbenchPort(input: ApiWorkbenchPortInput): WorkbenchM
       try {
         response = await fetchImpl(`${baseUrl}/v1/auth/refresh`, {
           method: 'POST',
-          headers: Object.freeze({ accept: 'application/json', 'content-type': 'application/json' }),
+          headers: Object.freeze({
+            accept: 'application/json',
+            'content-type': 'application/json',
+          }),
           body: JSON.stringify({ clientPlatform: 'desktop', refreshToken: session.refreshToken }),
         });
       } catch {
@@ -300,7 +300,10 @@ export function createApiWorkbenchPort(input: ApiWorkbenchPortInput): WorkbenchM
       try {
         response = await fetchImpl(`${baseUrl}/v1/auth/sign-in`, {
           method: 'POST',
-          headers: Object.freeze({ accept: 'application/json', 'content-type': 'application/json' }),
+          headers: Object.freeze({
+            accept: 'application/json',
+            'content-type': 'application/json',
+          }),
           body: JSON.stringify({ ...request, clientPlatform: 'desktop' }),
         });
       } catch {

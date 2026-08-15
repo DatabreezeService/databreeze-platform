@@ -22,6 +22,8 @@ describe('landing page stylesheet [WEB-013]', () => {
       </MemoryRouter>,
     );
 
-    expect(document.querySelector('link[href="/landing/styles.css"][rel="stylesheet"]')).not.toBeNull();
+    expect(
+      document.querySelector('link[href="/landing/styles.css"][rel="stylesheet"]'),
+    ).not.toBeNull();
   });
 });

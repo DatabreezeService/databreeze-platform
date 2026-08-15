@@ -19,8 +19,9 @@ export function prepareTeammateLandingMarkup(
   }
 
   const signInLink = `<a class="header-cta" href="${escapeHtml(input.signInHref)}"><span>${escapeHtml(input.signInLabel)}</span><span aria-hidden="true">↗</span></a>`;
-  return withAssets.replace(HEADER_CTA_PATTERN, (originalCta) =>
-    `<div class="header-actions">${signInLink}${originalCta}</div>`,
+  return withAssets.replace(
+    HEADER_CTA_PATTERN,
+    (originalCta) => `<div class="header-actions">${signInLink}${originalCta}</div>`,
   );
 }
 

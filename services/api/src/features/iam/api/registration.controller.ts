@@ -106,7 +106,10 @@ export class RegistrationController {
       if (!admitted) throw new RegistrationProblemError('REGISTRATION_REQUEST_REJECTED');
     }
 
-    const result = await this.registration.requestEmailVerification({ ...input, clientPlatform: 'web' });
+    const result = await this.registration.requestEmailVerification({
+      ...input,
+      clientPlatform: 'web',
+    });
     if (!result.accepted) {
       throw new RegistrationProblemError(
         result.code === 'VERIFICATION_UNAVAILABLE'

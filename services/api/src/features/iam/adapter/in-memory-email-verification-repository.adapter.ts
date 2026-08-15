@@ -16,7 +16,10 @@ export class InMemoryEmailVerificationRepositoryAdapter
   public async findActiveByAdmission(admissionDigest: string, purpose: string) {
     await Promise.resolve();
     return [...this.challenges.values()].find(
-      (challenge) => challenge.admissionDigest === admissionDigest && challenge.purpose === purpose && challenge.status === 'ACTIVE',
+      (challenge) =>
+        challenge.admissionDigest === admissionDigest &&
+        challenge.purpose === purpose &&
+        challenge.status === 'ACTIVE',
     );
   }
 
@@ -38,8 +41,15 @@ export class InMemoryEmailVerificationRepositoryAdapter
   public async revokeActive(admissionDigest: string, purpose: string): Promise<void> {
     await Promise.resolve();
     for (const [id, challenge] of this.challenges.entries()) {
-      if (challenge.admissionDigest === admissionDigest && challenge.purpose === purpose && challenge.status === 'ACTIVE') {
-        this.challenges.set(id, Object.freeze({ ...challenge, status: 'REVOKED', revision: challenge.revision + 1 }));
+      if (
+        challenge.admissionDigest === admissionDigest &&
+        challenge.purpose === purpose &&
+        challenge.status === 'ACTIVE'
+      ) {
+        this.challenges.set(
+          id,
+          Object.freeze({ ...challenge, status: 'REVOKED', revision: challenge.revision + 1 }),
+        );
       }
     }
   }
@@ -51,17 +61,25 @@ export class InMemoryEmailVerificationRepositoryAdapter
     const activationOwner = this.activationKeys.get(input.idempotencyKey);
     if (activationOwner !== undefined) return false;
     const challenge = this.challenges.get(input.challengeId);
-    if (!challenge || challenge.revision !== input.expectedRevision || challenge.status !== 'ACTIVE') return false;
-    this.challenges.set(input.challengeId, Object.freeze({
-      ...challenge,
-      status: 'CONSUMED',
-      consumedAt: input.consumedAt,
-      activationIdempotencyKey: input.idempotencyKey,
-      activationRequestHash: input.requestHash,
-      activationResultEnvelope: input.activationResultEnvelope,
-      activatedSessionId: input.activation.session.sessionId,
-      revision: challenge.revision + 1,
-    }));
+    if (
+      !challenge ||
+      challenge.revision !== input.expectedRevision ||
+      challenge.status !== 'ACTIVE'
+    )
+      return false;
+    this.challenges.set(
+      input.challengeId,
+      Object.freeze({
+        ...challenge,
+        status: 'CONSUMED',
+        consumedAt: input.consumedAt,
+        activationIdempotencyKey: input.idempotencyKey,
+        activationRequestHash: input.requestHash,
+        activationResultEnvelope: input.activationResultEnvelope,
+        activatedSessionId: input.activation.session.sessionId,
+        revision: challenge.revision + 1,
+      }),
+    );
     this.activationKeys.set(input.idempotencyKey, input.challengeId);
     return true;
   }
@@ -73,7 +91,10 @@ export class InMemoryEmailVerificationRepositoryAdapter
 
 export class HmacSha256EmailVerificationDigestAdapter implements EmailVerificationDigestPortV1 {
   public constructor(private readonly key: string | Uint8Array) {
-    if ((typeof key === 'string' && key.length < 16) || (key instanceof Uint8Array && key.byteLength < 16))
+    if (
+      (typeof key === 'string' && key.length < 16) ||
+      (key instanceof Uint8Array && key.byteLength < 16)
+    )
       throw new Error('IAM_EMAIL_VERIFICATION_DIGEST_KEY_REQUIRED');
   }
 

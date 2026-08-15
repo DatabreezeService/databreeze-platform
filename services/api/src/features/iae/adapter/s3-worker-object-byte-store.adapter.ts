@@ -46,12 +46,16 @@ function sha256(bytes: Uint8Array): string {
 }
 
 async function readBounded(body: unknown, maximum: number): Promise<Uint8Array | undefined> {
-  if (!(typeof body === 'object' && body !== null && Symbol.asyncIterator in body)) return undefined;
+  if (!(typeof body === 'object' && body !== null && Symbol.asyncIterator in body))
+    return undefined;
   const chunks: Buffer[] = [];
   let length = 0;
   for await (const chunk of body as AsyncIterable<unknown>) {
-    const bytes =
-      Buffer.isBuffer(chunk) ? chunk : chunk instanceof Uint8Array ? Buffer.from(chunk) : undefined;
+    const bytes = Buffer.isBuffer(chunk)
+      ? chunk
+      : chunk instanceof Uint8Array
+        ? Buffer.from(chunk)
+        : undefined;
     if (bytes === undefined) return undefined;
     length += bytes.byteLength;
     if (length > maximum) return undefined;
@@ -112,16 +116,14 @@ export class S3WorkerObjectByteStoreAdapter implements IaeWorkerObjectByteStoreP
           Key: key(this.prefix, input.tenantScope, input.objectId),
         }),
       );
-      if (
-        response.ContentLength !== undefined &&
-        response.ContentLength > input.maximumByteLength
-      )
+      if (response.ContentLength !== undefined && response.ContentLength > input.maximumByteLength)
         return rejected('OBJECT_OVERSIZE');
       const bytes = await readBounded(response.Body, input.maximumByteLength);
       if (bytes === undefined) return rejected('OBJECT_OVERSIZE');
       const contentSha256 = sha256(bytes);
       const declared = response.Metadata?.['content-sha256'];
-      if (declared !== undefined && declared !== contentSha256) return rejected('STORE_UNAVAILABLE');
+      if (declared !== undefined && declared !== contentSha256)
+        return rejected('STORE_UNAVAILABLE');
       const value: IaeWorkerStoredObjectV1 = Object.freeze({
         objectId: input.objectId,
         bytes,

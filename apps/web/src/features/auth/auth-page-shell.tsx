@@ -19,7 +19,8 @@ export function AuthPageShell({
 }) {
   const isVi = locale === 'vi-VN';
   const otherLocale = isVi ? 'en' : 'vi-VN';
-  const currentPath = typeof window !== 'undefined' ? window.location.pathname : `/${locale}/sign-in`;
+  const currentPath =
+    typeof window !== 'undefined' ? window.location.pathname : `/${locale}/sign-in`;
   const alternateHref = currentPath.replace(`/${locale}`, `/${otherLocale}`);
 
   return (
@@ -36,7 +37,13 @@ export function AuthPageShell({
               <div className="auth-page__brand-badge">
                 <img className="auth-page__mark" src={markUrl} alt="" width={36} height={36} />
               </div>
-              <img className="auth-page__wordmark" src={wordmarkUrl} alt="DataBreeze" width={168} height={42} />
+              <img
+                className="auth-page__wordmark"
+                src={wordmarkUrl}
+                alt="DataBreeze"
+                width={168}
+                height={42}
+              />
             </a>
           </header>
 
@@ -48,11 +55,13 @@ export function AuthPageShell({
             <h2>
               {isVi ? (
                 <>
-                  Từ dữ liệu đến <span className="auth-page__hero-highlight">quyết định</span> rõ ràng hơn.
+                  Từ dữ liệu đến <span className="auth-page__hero-highlight">quyết định</span> rõ
+                  ràng hơn.
                 </>
               ) : (
                 <>
-                  From data to <span className="auth-page__hero-highlight">decisions</span>, with clarity.
+                  From data to <span className="auth-page__hero-highlight">decisions</span>, with
+                  clarity.
                 </>
               )}
             </h2>
@@ -66,7 +75,9 @@ export function AuthPageShell({
               <div className="auth-page__pipeline-header">
                 <div className="auth-page__pipeline-status">
                   <span className="auth-page__pipeline-indicator" />
-                  <span>{isVi ? 'Dữ liệu được kiểm toán trực tiếp' : 'Live Governed Pipeline'}</span>
+                  <span>
+                    {isVi ? 'Dữ liệu được kiểm toán trực tiếp' : 'Live Governed Pipeline'}
+                  </span>
                 </div>
                 <span className="auth-page__pipeline-tag">v2.4 active</span>
               </div>

@@ -61,9 +61,15 @@ const attemptBindingHash = workerAttemptDescriptorBindingHashV1({
   securityEpoch: 4,
   leaseExpiresAt,
 });
-const declaration = { kind: 'JSON_RESULT' as const, outputName: 'primary', schemaId: 'output.v1',
-  mediaType: 'application/json', contentSha256: '7'.repeat(64), byteLength: 512,
-  sourceLineageHash: '8'.repeat(64) };
+const declaration = {
+  kind: 'JSON_RESULT' as const,
+  outputName: 'primary',
+  schemaId: 'output.v1',
+  mediaType: 'application/json',
+  contentSha256: '7'.repeat(64),
+  byteLength: 512,
+  sourceLineageHash: '8'.repeat(64),
+};
 const identity = {
   workerId: ids.worker,
   tenantScope: scope,
@@ -145,10 +151,18 @@ function boundary(options: { current?: boolean } = {}) {
         outputPolicyHash: 'f'.repeat(64),
         outputSchemaId: 'output.v1',
         subjectBindings: { locale: 'vi-VN' },
-        outputs: [{ ...declaration, objectId: '00000000-0000-4000-8000-000000000010',
-          maxBytes: 1024, allowedMediaTypes: ['application/json'],
-          sourceArtifactVersionIds: [ids.sourceArtifactVersion], processorVersion: 'engine-1.0.0',
-          dataMode: 'Cloud', payloadClass: 'RECONSTRUCTABLE_DERIVED_CONTENT' }],
+        outputs: [
+          {
+            ...declaration,
+            objectId: '00000000-0000-4000-8000-000000000010',
+            maxBytes: 1024,
+            allowedMediaTypes: ['application/json'],
+            sourceArtifactVersionIds: [ids.sourceArtifactVersion],
+            processorVersion: 'engine-1.0.0',
+            dataMode: 'Cloud',
+            payloadClass: 'RECONSTRUCTABLE_DERIVED_CONTENT',
+          },
+        ],
       },
     }),
   };
@@ -175,13 +189,16 @@ function boundary(options: { current?: boolean } = {}) {
 }
 
 void test('[JRA-007/JRA-023/JRA-031] preparation returns only descriptor-owned bounded capabilities and does not complete work', async () => {
-  const result = await boundary().prepareResult({}, {
-    attemptId: ids.attempt,
-    leaseToken: 'worker-lease',
-    expectedRevision: 1,
-    idempotencyKey: 'stable-submission-key',
-    outputs: [declaration],
-  });
+  const result = await boundary().prepareResult(
+    {},
+    {
+      attemptId: ids.attempt,
+      leaseToken: 'worker-lease',
+      expectedRevision: 1,
+      idempotencyKey: 'stable-submission-key',
+      outputs: [declaration],
+    },
+  );
 
   assert.deepEqual(result, {
     schemaVersion: 4,
@@ -190,14 +207,16 @@ void test('[JRA-007/JRA-023/JRA-031] preparation returns only descriptor-owned b
     attemptId: ids.attempt,
     descriptorBindingHash: attemptBindingHash,
     expiresAt: leaseExpiresAt,
-    outputs: [{
-      outputName: 'primary',
-      capabilityId: ids.capability,
-      objectId: '00000000-0000-4000-8000-000000000010',
-      maxBytes: 1024,
-      allowedMediaTypes: ['application/json'],
-      writeCapability: 'opaque-signed-capability',
-    }],
+    outputs: [
+      {
+        outputName: 'primary',
+        capabilityId: ids.capability,
+        objectId: '00000000-0000-4000-8000-000000000010',
+        maxBytes: 1024,
+        allowedMediaTypes: ['application/json'],
+        writeCapability: 'opaque-signed-capability',
+      },
+    ],
   });
   assert.equal(attempt.state, 'RUNNING');
   assert.equal(job.state, 'RUNNING');
@@ -207,27 +226,33 @@ void test('[JRA-007/JRA-023/JRA-031] preparation returns only descriptor-owned b
 
 void test('[JRA-007/JRA-031] superseded or stale work receives no result capability', async () => {
   await assert.rejects(
-    boundary({ current: false }).prepareResult({}, {
-      attemptId: ids.attempt,
-      leaseToken: 'worker-lease',
-      expectedRevision: 1,
-      idempotencyKey: 'stable-submission-key',
-      outputs: [declaration],
-    }),
+    boundary({ current: false }).prepareResult(
+      {},
+      {
+        attemptId: ids.attempt,
+        leaseToken: 'worker-lease',
+        expectedRevision: 1,
+        idempotencyKey: 'stable-submission-key',
+        outputs: [declaration],
+      },
+    ),
     /WORKER_ATTEMPT_REJECTED/,
   );
 });
 
 void test('[JRA-031] legacy complete fails closed for successful result-bearing work', async () => {
   await assert.rejects(
-    boundary().complete({}, {
-      attemptId: ids.attempt,
-      leaseToken: 'worker-lease',
-      expectedRevision: 1,
-      outcome: 'SUCCEEDED',
-      resultManifestHash: 'f'.repeat(64),
-      resultReferences: ['output-object-one'],
-    }),
+    boundary().complete(
+      {},
+      {
+        attemptId: ids.attempt,
+        leaseToken: 'worker-lease',
+        expectedRevision: 1,
+        outcome: 'SUCCEEDED',
+        resultManifestHash: 'f'.repeat(64),
+        resultReferences: ['output-object-one'],
+      },
+    ),
     /WORKER_RESULT_PROTOCOL_REQUIRED/,
   );
 });

@@ -49,13 +49,15 @@ function policy(mode: 'LOCAL' | 'HYBRID' | 'CLOUD' = 'HYBRID') {
   return parsed.value;
 }
 
-function fixture(overrides: {
-  readonly dsoWorkspaceId?: StableIdentifierV1;
-  readonly iamVersionId?: StableIdentifierV1;
-  readonly iamEpoch?: number;
-  readonly iamMode?: 'LOCAL' | 'HYBRID' | 'CLOUD';
-  readonly version?: ReturnType<typeof policy> | undefined;
-} = {}) {
+function fixture(
+  overrides: {
+    readonly dsoWorkspaceId?: StableIdentifierV1;
+    readonly iamVersionId?: StableIdentifierV1;
+    readonly iamEpoch?: number;
+    readonly iamMode?: 'LOCAL' | 'HYBRID' | 'CLOUD';
+    readonly version?: ReturnType<typeof policy> | undefined;
+  } = {},
+) {
   const current = policy();
   return new DsoWorkspacePolicyAuthorityAdapter(
     {
@@ -69,8 +71,7 @@ function fixture(overrides: {
       }),
     },
     {
-      findExact: async () =>
-        Object.hasOwn(overrides, 'version') ? overrides.version : current,
+      findExact: async () => (Object.hasOwn(overrides, 'version') ? overrides.version : current),
     },
     {
       resolveExact: async () => ({

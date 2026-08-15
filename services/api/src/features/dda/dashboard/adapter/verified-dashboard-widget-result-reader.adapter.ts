@@ -42,17 +42,12 @@ function sameScope(left: TenantScopeV1, right: TenantScopeV1): boolean {
     }
   }
   if ('projectId' in left || 'projectId' in right) {
-    return (
-      'projectId' in left && 'projectId' in right && left.projectId === right.projectId
-    );
+    return 'projectId' in left && 'projectId' in right && left.projectId === right.projectId;
   }
   return true;
 }
 
-function exactRecord(
-  actual: object,
-  expected: Readonly<Record<string, string>>,
-): boolean {
+function exactRecord(actual: object, expected: Readonly<Record<string, string>>): boolean {
   const actualRecord = actual as Readonly<Record<string, unknown>>;
   const actualKeys = Object.keys(actualRecord).sort();
   const expectedKeys = Object.keys(expected).sort();
