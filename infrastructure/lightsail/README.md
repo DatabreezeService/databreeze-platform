@@ -70,6 +70,9 @@ path for this profile:
 - A push to `main` builds three immutable images (API runtime, API migration,
   and Web), pushes them to GHCR, then deploys their `sha256` digests to the
   protected GitHub `pilot` environment.
+- Before invoking the server deploy script, the workflow uploads the current
+  Caddy, Compose, healthcheck, rollback, and deploy scripts. It never replaces
+  `/opt/databreeze/.env`.
 - The server runs the migration before API/Web, checks `/health/ready`, and
   keeps the previous release file for rollback.
 

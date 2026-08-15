@@ -87,6 +87,10 @@ test('Lightsail pilot workflow passes immutable image digests between jobs', asy
   assert.match(workflow, /WEB_IMAGE:\s*\$\{\{\s*needs\.publish\.outputs\.web_image\s*\}\}/u);
   assert.match(workflow, /docker image inspect/u);
   assert.doesNotMatch(deployJob, /docker image inspect/u);
+  assert.match(deployJob, /Upload deployment files/u);
+  assert.match(deployJob, /infrastructure\/lightsail\/deploy\.sh/u);
+  assert.match(deployJob, /install -m 0750 \/tmp\/databreeze-\$\{GITHUB_SHA\}\/deploy\.sh/u);
+  assert.match(deployJob, /Remove temporary deployment files/u);
   assert.doesNotMatch(workflow, /:latest\b/u);
   assert.doesNotMatch(workflow, /tofu[^\n]*\bapply\b/u);
 });
