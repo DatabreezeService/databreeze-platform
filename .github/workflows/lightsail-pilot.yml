@@ -148,6 +148,9 @@ jobs:
     needs: publish
     runs-on: ubuntu-24.04
     environment: pilot
+    permissions:
+      contents: read
+      packages: read
     timeout-minutes: 15
     steps:
       - name: Configure SSH trust
@@ -194,8 +197,8 @@ jobs:
         env:
           LIGHTSAIL_HOST: ${{ secrets.LIGHTSAIL_HOST }}
           LIGHTSAIL_DEPLOY_USER: ${{ secrets.LIGHTSAIL_DEPLOY_USER }}
-          LIGHTSAIL_GHCR_USERNAME: ${{ secrets.LIGHTSAIL_GHCR_USERNAME }}
-          LIGHTSAIL_GHCR_TOKEN: ${{ secrets.LIGHTSAIL_GHCR_TOKEN }}
+          LIGHTSAIL_GHCR_USERNAME: ${{ github.actor }}
+          LIGHTSAIL_GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           test -n "$LIGHTSAIL_HOST"

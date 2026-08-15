@@ -64,11 +64,11 @@ test('Lightsail pilot workflow passes immutable image digests between jobs', asy
   assert.doesNotThrow(() => parse(workflow));
   assert.match(workflow, /packages:\s*write/u);
   assert.match(workflow, /environment:\s*pilot/u);
-  assert.match(
-    workflow,
-    /LIGHTSAIL_GHCR_USERNAME:\s*\$\{\{\s*secrets\.LIGHTSAIL_GHCR_USERNAME\s*\}\}/u,
-  );
-  assert.match(workflow, /LIGHTSAIL_GHCR_TOKEN:\s*\$\{\{\s*secrets\.LIGHTSAIL_GHCR_TOKEN\s*\}\}/u);
+  const deployJob = workflow.split('\n  deploy:\n', 2)[1] ?? '';
+  assert.match(deployJob, /permissions:[\s\S]*packages:\s*read/u);
+  assert.match(deployJob, /LIGHTSAIL_GHCR_USERNAME:\s*\$\{\{\s*github\.actor\s*\}\}/u);
+  assert.match(deployJob, /LIGHTSAIL_GHCR_TOKEN:\s*\$\{\{\s*secrets\.GITHUB_TOKEN\s*\}\}/u);
+  assert.doesNotMatch(deployJob, /secrets\.LIGHTSAIL_GHCR_/u);
   assert.match(workflow, /docker login [^\n]*--password-stdin/u);
   assert.match(workflow, /docker logout/u);
   assert.match(workflow, /api_image:\s*\$\{\{\s*steps\.manifest\.outputs\.api_image\s*\}\}/u);
@@ -84,7 +84,6 @@ test('Lightsail pilot workflow passes immutable image digests between jobs', asy
   );
   assert.match(workflow, /WEB_IMAGE:\s*\$\{\{\s*needs\.publish\.outputs\.web_image\s*\}\}/u);
   assert.match(workflow, /docker image inspect/u);
-  const deployJob = workflow.split('\n  deploy:\n', 2)[1] ?? '';
   assert.doesNotMatch(deployJob, /docker image inspect/u);
   assert.doesNotMatch(workflow, /:latest\b/u);
   assert.doesNotMatch(workflow, /tofu[^\n]*\bapply\b/u);
