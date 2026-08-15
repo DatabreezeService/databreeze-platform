@@ -90,6 +90,22 @@ export function createBillingApi(options: BillingApiOptions = {}) {
       if (!Number.isSafeInteger(orderCode) || orderCode < 1) throw new BillingApiError('BILLING_ORDER_INVALID');
       return parseOrThrow<BuaPayosPaymentStatus>(PAYMENT_STATUS_SCHEMA, await request(`/v1/billing/payos/sessions/${encodeURIComponent(String(orderCode))}`));
     },
+    /** Local-only QA action. The amount is read from the server status, never from the UI. */
+    async simulateMockWebhook(orderCode: number, status: 'PAID' | 'CANCELLED' | 'FAILED'): Promise<BuaPayosPaymentStatus> {
+      if (import.meta.env['VITE_DATABREEZE_DEMO_MODE'] !== 'true') throw new BillingApiError('MOCK_PAYOS_DISABLED');
+      if (!Number.isSafeInteger(orderCode) || orderCode < 1) throw new BillingApiError('BILLING_ORDER_INVALID');
+      const current = await this.getStatus(orderCode);
+      return parseOrThrow<BuaPayosPaymentStatus>(PAYMENT_STATUS_SCHEMA, await request('/v1/billing/payos/webhook', {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'content-type': 'application/json' },
+        body: JSON.stringify({
+          eventId: globalThis.crypto?.randomUUID?.() ?? `mock-payos-${Date.now()}`,
+          orderCode,
+          amountVnd: current.amountVnd,
+          status,
+        }),
+      }));
+    },
   });
 }
 

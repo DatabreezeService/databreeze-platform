@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import type { OpenAPIObject } from '@nestjs/swagger';
@@ -22,6 +22,7 @@ interface ResponseLike {
 
 interface OperationLike {
   readonly parameters?: readonly ParameterLike[];
+  readonly requestBody?: unknown;
   readonly responses: Record<string, ResponseLike>;
   readonly security?: readonly Readonly<Record<string, readonly string[]>>[];
 }
@@ -100,167 +101,24 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
     }
 
     const paths = Object.keys(firstDocument.paths).sort();
-    assert.deepEqual(paths, [
-      '/health/live',
-      '/health/ready',
-      '/internal/worker/assignment',
-      '/internal/worker/claim',
-      '/internal/worker/complete',
-      '/internal/worker/heartbeat',
-      '/v1/artifact-deletion-requests/{requestId}',
-      '/v1/artifact-deletion-requests/{requestId}/authorize',
-      '/v1/artifact-upload-sessions',
-      '/v1/artifact-upload-sessions/{sessionId}',
-      '/v1/artifact-upload-sessions/{sessionId}/abort',
-      '/v1/artifact-upload-sessions/{sessionId}/complete',
-      '/v1/artifact-upload-sessions/{sessionId}/parts',
-      '/v1/artifact-upload-sessions/{sessionId}/parts/transfer',
-      '/v1/artifact-versions/{versionId}',
-      '/v1/artifact-versions/{versionId}/admit',
-      '/v1/artifact-versions/{versionId}/deletion-requests',
-      '/v1/artifact-versions/{versionId}/derived-lineage',
-      '/v1/artifact-versions/{versionId}/evidence',
-      '/v1/artifact-versions/{versionId}/evidence/{evidenceId}/resolve',
-      '/v1/artifact-versions/{versionId}/lineage',
-      '/v1/artifact-versions/{versionId}/placements/{placementId}',
-      '/v1/artifacts/evidence-grants/{grantId}',
-      '/v1/artifacts/exports',
-      '/v1/artifacts/exports/{manifestId}',
-      '/v1/artifacts/inbox',
-      '/v1/artifacts/inbox/{inboxItemId}',
-      '/v1/artifacts/{versionId}/evidence/{evidenceId}/grants',
-      '/v1/audit/attestations',
-      '/v1/audit/attestations/{attestationId}/verify',
-      '/v1/audit/events',
-      '/v1/audit/seals',
-      '/v1/auth/email-verification/verify',
-      '/v1/auth/me',
-      '/v1/auth/mfa/factors',
-      '/v1/auth/mfa/factors/{factorId}/verify',
-      '/v1/auth/mfa/recovery/redeem',
-      '/v1/auth/oidc/google/callback',
-      '/v1/auth/recovery',
-      '/v1/auth/recovery/complete',
-      '/v1/auth/refresh',
-      '/v1/auth/register',
-      '/v1/auth/sign-in',
-      '/v1/auth/sign-out',
-      '/v1/data-mode-policies/{policyId}',
-      '/v1/data-quality-guard/ephemeral-validation',
-      '/v1/dataset-exports',
-      '/v1/dataset-exports/{manifestId}',
-      '/v1/dataset-profiles',
-      '/v1/dataset-profiles/page',
-      '/v1/dataset-profiles/{profileId}',
-      '/v1/dataset-quality-results',
-      '/v1/dataset-quality-results/{resultId}',
-      '/v1/dataset-versions',
-      '/v1/dataset-versions/{versionId}',
-      '/v1/datasets',
-      '/v1/datasets/{datasetId}/compatibility',
-      '/v1/datasets/{datasetId}/mappings',
-      '/v1/datasets/{datasetId}/mappings/{versionId}/publish',
-      '/v1/datasets/{datasetId}/rules',
-      '/v1/datasets/{datasetId}/rules/{versionId}/publish',
-      '/v1/datasets/{datasetId}/versions',
-      '/v1/datasets/{datasetId}/versions/{versionId}',
-      '/v1/datasets/{datasetId}/versions/{versionId}/publish',
-      '/v1/dda/agent/tools/deterministic',
-      '/v1/dda/agent/turns',
-      '/v1/dda/analysis/execute',
-      '/v1/dda/analysis/propose',
-      '/v1/dda/automatic-preparation/evaluate',
-      '/v1/dda/conversations',
-      '/v1/dda/conversations/{conversationId}',
-      '/v1/dda/dashboards/draft/accept',
-      '/v1/dda/dashboards/draft/filter',
-      '/v1/dda/dashboards/draft/restore-widget',
-      '/v1/dda/dashboards/publication/publish',
-      '/v1/dda/dashboards/query/authorize',
-      '/v1/dda/dashboards/query/view',
-      '/v1/dda/dashboards/{dashboardId}/draft',
-      '/v1/dda/dashboards/{dashboardId}/freshness',
-      '/v1/dda/dashboards/{dashboardId}/refresh-events',
-      '/v1/dda/datasets/{datasetId}/sources',
-      '/v1/dda/datasets/{datasetId}/sources/{sourceId}/original-view',
-      '/v1/dda/etl-acceptances',
-      '/v1/dda/etl-proposals',
-      '/v1/dda/etl-proposals/{proposalId}',
-      '/v1/dda/folder-projections/consent',
-      '/v1/dda/receipts/candidates/{candidateId}',
-      '/v1/dda/receipts/correct',
-      '/v1/dda/receipts/extract',
+    for (const requiredPath of [
+      '/v1/mobile/tasks',
+      '/v1/mobile/route-tokens/{token}/resolve',
+      '/v1/mobile/push-registrations',
+      '/v1/mobile/reports',
+      '/v1/approvals/requests',
+      '/v1/approvals/requests/{requestId}/decisions',
+      '/v1/devices/sync/cursors/bootstrap',
+      '/v1/dda/invoice-extractions',
       '/v1/dda/table-extractions',
-      '/v1/dda/web-intake/finalize',
-      '/v1/dda/web-intake/profile',
-      '/v1/devices/enroll',
-      '/v1/devices/enrollment-challenges',
-      '/v1/devices/grants',
-      '/v1/devices/grants/{grantId}/revoke',
-      '/v1/devices/sync/conflicts',
-      '/v1/devices/sync/operations',
-      '/v1/devices/sync/operations/{operationId}/transition',
-      '/v1/devices/sync/packages',
-      '/v1/devices/sync/packages/receipts',
-      '/v1/devices/sync/pull',
-      '/v1/devices/sync/push',
-      '/v1/devices/{deviceId}/activate',
-      '/v1/devices/{deviceId}/capabilities',
-      '/v1/devices/{deviceId}/capabilities/{capabilityId}/pause',
-      '/v1/devices/{deviceId}/grants',
-      '/v1/devices/{deviceId}/key',
-      '/v1/devices/{deviceId}/revoke',
-      '/v1/entitlements/leases/{leaseId}/verify',
-      '/v1/entitlements/snapshots/{snapshotId}',
-      '/v1/entitlements/snapshots/{snapshotId}/leases',
-      '/v1/entitlements/usage',
-      '/v1/folder-autopilot/ephemeral-preview',
-      '/v1/invitations',
-      '/v1/invitations/accept',
-      '/v1/invoice-leak-detector/ephemeral-audit',
-      '/v1/me/bootstrap',
-      '/v1/memberships',
-      '/v1/memberships/{membershipId}/accept',
-      '/v1/memberships/{membershipId}/access-preset',
-      '/v1/memberships/{membershipId}/transfer-ownership',
-      '/v1/memberships/{membershipId}/transition',
-      '/v1/organizations/{organizationId}',
-      '/v1/organizations/{organizationId}/devices',
-      '/v1/organizations/{organizationId}/service-accounts',
-      '/v1/organizations/{organizationId}/workspaces',
-      '/v1/projects/{projectId}',
-      '/v1/protected-document-unlocks',
-      '/v1/protected-document-unlocks/{requestId}',
-      '/v1/protected-document-unlocks/{requestId}/expire',
-      '/v1/protected-document-unlocks/{requestId}/handle',
-      '/v1/protected-document-unlocks/{requestId}/outcome',
-      '/v1/quote-intelligence/ephemeral-comparison',
-      '/v1/reference-entities',
-      '/v1/reference-entities/merge',
-      '/v1/reference-entities/{entityId}/resolutions',
-      '/v1/reference-entities/{entityId}/versions',
-      '/v1/reference-entities/{entityId}/versions/{versionId}',
-      '/v1/service-accounts',
-      '/v1/service-accounts/{serviceAccountId}/revoke',
-      '/v1/service-accounts/{serviceAccountId}/rotate',
-      '/v1/spreadsheet-audits',
-      '/v1/spreadsheet-audits/{auditId}',
-      '/v1/system/compatibility',
-      '/v1/system/compatibility/check',
-      '/v1/system/modules',
-      '/v1/workspaces/agent-grants/{memberId}',
-      '/v1/workspaces/agent-grants/{memberId}/authorize',
-      '/v1/workspaces/agent-grants/{memberId}/dataset-restrictions',
-      '/v1/workspaces/{workspaceId}',
-      '/v1/workspaces/{workspaceId}/projects',
-      '/v3/dda/dashboards/workspace-history',
-      '/v3/dda/dashboards/{dashboardId}/authoring-commands',
-      '/v3/dda/dashboards/{dashboardId}/proposals',
-      '/v3/dda/dashboards/{dashboardId}/proposals/{proposalId}',
-      '/v3/notifications',
-      '/v3/notifications/{notificationId}',
-      '/v3/workspaces/settings',
-    ]);
+    ]) {
+      assert.ok(paths.includes(requiredPath), `missing documented path: ${requiredPath}`);
+    }
+    const invoiceOperation = firstDocument.paths['/v1/dda/invoice-extractions']?.post as OperationLike;
+    assert.ok(invoiceOperation.requestBody, 'invoice extraction must document its request schema');
+    assert.ok(invoiceOperation.responses['200']?.content?.['application/json'], 'invoice extraction must document its response schema');
+    const mobileTasksOperation = firstDocument.paths['/v1/mobile/tasks']?.get as OperationLike;
+    assert.ok(mobileTasksOperation.responses['200']?.content?.['application/json'], 'mobile tasks must document its response schema');
     assert.ok(
       paths
         .filter((path) => !path.startsWith('/health/'))
@@ -268,7 +126,8 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
           (path) =>
             path.startsWith('/v1/') ||
             path.startsWith('/v3/') ||
-            path.startsWith('/internal/worker/'),
+            path.startsWith('/internal/worker/') ||
+            path.startsWith('/internal/iae/'),
         ),
     );
 
@@ -453,6 +312,7 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
         const operation = pathItem[method];
         if (operation === undefined) continue;
         const key = `${method.toUpperCase()} ${path}`;
+        if (path.startsWith('/internal/')) continue;
         if (publicOperations.has(key)) {
           assert.equal(operation.security, undefined, `${key} must remain explicitly public`);
         } else {

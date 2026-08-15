@@ -33,6 +33,9 @@ interface ReceiptStagingStore {
 
     fun clearScope(scope: AccountWorkspaceScope)
 
+    /** Ciphertext-only usage for the diagnostics/retention surface. */
+    fun usageBytes(scope: AccountWorkspaceScope): Long = 0L
+
     /** Test/debug only: must never expose plaintext from production adapters. */
     fun plaintextLookup(scope: AccountWorkspaceScope, artifactSessionId: String): ByteArray?
 }
@@ -95,6 +98,11 @@ class InMemoryReceiptStagingStore(
         val doomed = entries.filterValues { it.scopeKey == scope.stableKey }.keys
         doomed.forEach { entries.remove(it) }
     }
+
+    override fun usageBytes(scope: AccountWorkspaceScope): Long = entries
+        .filterValues { it.scopeKey == scope.stableKey }
+        .values
+        .sumOf { it.payload.ciphertext.size.toLong() + it.payload.iv.size }
 
     override fun plaintextLookup(scope: AccountWorkspaceScope, artifactSessionId: String): ByteArray? = null
 

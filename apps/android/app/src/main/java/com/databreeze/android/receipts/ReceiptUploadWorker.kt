@@ -22,6 +22,8 @@ private const val DESTINATION_KIND = "destination_kind"
 private const val GRANT_ID = "workspace_grant_id"
 private const val UPLOADED = "uploaded_bytes"
 private const val TOTAL = "total_bytes"
+private const val WIFI_ONLY = "wifi_only"
+private const val REQUIRES_CHARGING = "requires_charging"
 
 data class ReceiptUploadWorkInput(
     val request: ReceiptUploadRequest,
@@ -35,6 +37,8 @@ data class ReceiptUploadWorkInput(
         .putString(GRANT_ID, grantId(request.destination))
         .putLong(UPLOADED, request.uploadedBytes)
         .putLong(TOTAL, request.totalBytes)
+        .putBoolean(WIFI_ONLY, request.policy.wifiOnly)
+        .putBoolean(REQUIRES_CHARGING, request.policy.requiresCharging)
         .build()
 
     companion object {
@@ -55,6 +59,10 @@ data class ReceiptUploadWorkInput(
                     destination = destination,
                     uploadedBytes = data.getLong(UPLOADED, 0L),
                     totalBytes = data.getLong(TOTAL, 0L),
+                    policy = ReceiptTransferPolicy(
+                        wifiOnly = data.getBoolean(WIFI_ONLY, false),
+                        requiresCharging = data.getBoolean(REQUIRES_CHARGING, false),
+                    ),
                 ),
             )
         }
@@ -107,7 +115,8 @@ class WorkManagerReceiptUploadScheduler(
             .setInputData(ReceiptUploadWorkInput(request).toData())
             .setConstraints(
                 Constraints.Builder()
-                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .setRequiredNetworkType(if (request.policy.wifiOnly) NetworkType.UNMETERED else NetworkType.CONNECTED)
+                    .setRequiresCharging(request.policy.requiresCharging)
                     .build(),
             )
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30L, TimeUnit.SECONDS)

@@ -1,14 +1,12 @@
 package com.databreeze.android.receipts
 
 import android.Manifest
-import android.graphics.ImageFormat
-import android.graphics.Rect
-import android.graphics.YuvImage
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageProxy
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -18,6 +16,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -40,7 +41,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.databreeze.android.R
-import java.io.ByteArrayOutputStream
+import java.io.File
 
 /** Active, permission-gated CameraX capture. The original stays in memory until encrypted staging. */
 @Composable
@@ -56,6 +57,7 @@ fun ReceiptCaptureScreen(
     val previewView = remember { PreviewView(context) }
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
+    var qualityWarning by remember { mutableStateOf<String?>(null) }
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -82,6 +84,10 @@ fun ReceiptCaptureScreen(
                     val capture = ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                         .build()
+                    val analysis = ImageAnalysis.Builder()
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .build()
+                        .also { it.setAnalyzer(executor, CaptureQualityAnalyzer { qualityWarning = it.warning }) }
                     runCatching {
                         provider.unbindAll()
                         provider.bindToLifecycle(
@@ -89,6 +95,7 @@ fun ReceiptCaptureScreen(
                             CameraSelector.DEFAULT_BACK_CAMERA,
                             preview,
                             capture,
+                            analysis,
                         )
                     }.onSuccess {
                         imageCapture = capture
@@ -117,6 +124,9 @@ fun ReceiptCaptureScreen(
             text = stringResource(R.string.receipt_capture_body),
             style = MaterialTheme.typography.bodyLarge,
         )
+        if (state.pageCount > 0) {
+            Text(stringResource(R.string.receipt_capture_page_count, state.pageCount))
+        }
         if (state.cameraPermissionGranted) {
             Box(
                 modifier = Modifier
@@ -130,6 +140,7 @@ fun ReceiptCaptureScreen(
                 )
             }
         }
+        qualityWarning?.let { Text("capture_hint_$it", color = MaterialTheme.colorScheme.error) }
         state.denyReason?.let { reason ->
             Text(
                 text = denyMessage(reason),
@@ -137,24 +148,51 @@ fun ReceiptCaptureScreen(
                 modifier = Modifier.testTag("receipt-capture-deny"),
             )
         }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(
+                checked = state.transferPolicy.wifiOnly,
+                onCheckedChange = { enabled -> viewModel.setTransferPolicy(state.transferPolicy.copy(wifiOnly = enabled)) },
+            )
+            Text(stringResource(R.string.receipt_capture_wifi_only))
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(
+                checked = state.transferPolicy.requiresCharging,
+                onCheckedChange = { enabled -> viewModel.setTransferPolicy(state.transferPolicy.copy(requiresCharging = enabled)) },
+            )
+            Text(stringResource(R.string.receipt_capture_requires_charging))
+        }
         val shutterDescription = stringResource(R.string.receipt_capture_shutter_description)
         Button(
             onClick = {
                 if (!state.cameraPermissionGranted) {
                     cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                 } else {
-                    imageCapture?.takePicture(
-                        executor,
-                        object : ImageCapture.OnImageCapturedCallback() {
-                            override fun onCaptureSuccess(image: ImageProxy) {
-                                try {
-                                    image.toJpegBytes()?.let(viewModel::onPreviewFrameCaptured)
-                                } finally {
-                                    image.close()
+                    // Use CameraX's native JPEG output. Converting ImageProxy YUV planes in the
+                    // app would be a lossy replacement of the immutable original (AND-004).
+                    val outputFile = runCatching {
+                        File.createTempFile("capture-", ".jpg", context.cacheDir)
+                    }.getOrNull()
+                    if (outputFile != null) {
+                        val output = ImageCapture.OutputFileOptions.Builder(outputFile).build()
+                        imageCapture?.takePicture(
+                            output,
+                            executor,
+                            object : ImageCapture.OnImageSavedCallback {
+                                override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
+                                    runCatching { outputFile.readBytes() }
+                                        .getOrNull()
+                                        ?.takeIf { it.isNotEmpty() }
+                                        ?.let(viewModel::onPreviewFrameCaptured)
+                                    outputFile.delete()
                                 }
-                            }
-                        },
-                    )
+
+                                override fun onError(exception: ImageCaptureException) {
+                                    outputFile.delete()
+                                }
+                            },
+                        )
+                    }
                 }
             },
             modifier = Modifier
@@ -173,6 +211,12 @@ fun ReceiptCaptureScreen(
                 Text(stringResource(R.string.receipt_capture_retake))
             }
             Button(
+                onClick = { viewModel.addPage() },
+                modifier = Modifier.testTag("receipt-capture-add-page"),
+            ) {
+                Text(stringResource(R.string.receipt_capture_add_page))
+            }
+            Button(
                 onClick = {
                     viewModel.confirmAndUpload()?.let(onOpenReview)
                 },
@@ -189,63 +233,6 @@ fun ReceiptCaptureScreen(
         }
         Button(onClick = onBack, modifier = Modifier.testTag("receipt-capture-back")) {
             Text(stringResource(R.string.back_action))
-        }
-    }
-}
-
-private fun ImageProxy.toJpegBytes(): ByteArray? {
-    if (format != ImageFormat.YUV_420_888 || planes.size != 3) return null
-    val nv21 = ByteArray(width * height * 3 / 2)
-    copyPlane(planes[0], width, height, nv21, 0)
-    copyChromaPlanes(
-        vPlane = planes[2],
-        uPlane = planes[1],
-        width = width / 2,
-        height = height / 2,
-        output = nv21,
-        outputOffset = width * height,
-    )
-    return ByteArrayOutputStream().use { output ->
-        val encoded = YuvImage(nv21, ImageFormat.NV21, width, height, null)
-            .compressToJpeg(Rect(0, 0, width, height), 100, output)
-        output.toByteArray().takeIf { encoded }
-    }
-}
-
-private fun copyChromaPlanes(
-    vPlane: ImageProxy.PlaneProxy,
-    uPlane: ImageProxy.PlaneProxy,
-    width: Int,
-    height: Int,
-    output: ByteArray,
-    outputOffset: Int,
-) {
-    val vBuffer = vPlane.buffer
-    val uBuffer = uPlane.buffer
-    var offset = outputOffset
-    for (row in 0 until height) {
-        val vRowStart = row * vPlane.rowStride
-        val uRowStart = row * uPlane.rowStride
-        for (column in 0 until width) {
-            output[offset++] = vBuffer.get(vRowStart + column * vPlane.pixelStride)
-            output[offset++] = uBuffer.get(uRowStart + column * uPlane.pixelStride)
-        }
-    }
-}
-
-private fun copyPlane(
-    plane: ImageProxy.PlaneProxy,
-    width: Int,
-    height: Int,
-    output: ByteArray,
-    outputOffset: Int,
-) {
-    val buffer = plane.buffer
-    var offset = outputOffset
-    for (row in 0 until height) {
-        val rowStart = row * plane.rowStride
-        for (column in 0 until width) {
-            output[offset++] = buffer.get(rowStart + column * plane.pixelStride)
         }
     }
 }

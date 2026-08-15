@@ -125,9 +125,19 @@ export class PayosPaymentLinkAdapter implements PayosPaymentProviderPortV1 {
 
 /** Deterministic local adapter. It has no provider credentials and is opt-in for tests only. */
 export class MockPayosPaymentLinkAdapter implements PayosPaymentProviderPortV1 {
+  private readonly checkoutBaseUrl: string;
+
+  public constructor(options: { readonly checkoutBaseUrl?: string } = {}) {
+    const configured = options.checkoutBaseUrl ?? 'https://localhost:8443';
+    const parsed = new URL(configured);
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.pathname !== '/' || parsed.search || parsed.hash)
+      throw new Error('PAYOS_MOCK_CHECKOUT_ORIGIN_INVALID');
+    this.checkoutBaseUrl = configured.replace(/\/$/u, '');
+  }
+
   async create(_plan: PayosPlanV1, orderCode: number): Promise<PayosCheckoutLinkV1> {
     return Object.freeze({
-      checkoutUrl: `https://payos.local/mock-checkout/${orderCode}`,
+      checkoutUrl: `${this.checkoutBaseUrl}/vi-VN/billing/mock-checkout/${orderCode}`,
       orderCode,
     });
   }

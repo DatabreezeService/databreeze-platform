@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -15,13 +17,12 @@ fun DashboardScreen(
     localeTag: String = "vi-VN",
     viewModel: DashboardViewModel,
 ) {
-    val state = viewModel.state
+    val state by viewModel.stateFlow.collectAsState()
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-                .testTag("dashboard-screen"),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .testTag("dashboard-screen"),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(state.title)

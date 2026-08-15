@@ -18,6 +18,7 @@ import type { QiModuleOptions } from './features/qi/qi.module.js';
 import type { IldModuleOptions } from './features/ild/ild.module.js';
 import type { DdaModuleOptions } from './features/dda/dda.module.js';
 import type { JraModuleOptions } from './features/jra/jra.module.js';
+import type { MobileModuleOptions } from './features/mobile/mobile.module.js';
 import type { JraWorkerModuleOptions } from './features/jra/worker/worker.module.js';
 import type { ClientCompatibilityPort } from './features/system/application/client-compatibility.port.js';
 import type { ReadinessPort } from './features/system/application/readiness.port.js';
@@ -48,6 +49,7 @@ export interface ApiApplicationOptions
     IldModuleOptions,
     DdaModuleOptions,
     JraModuleOptions,
+    MobileModuleOptions,
     JraWorkerModuleOptions {
   readonly compatibilityPort?: ClientCompatibilityPort;
   readonly readinessPort?: ReadinessPort;

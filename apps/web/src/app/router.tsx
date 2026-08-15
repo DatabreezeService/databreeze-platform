@@ -21,6 +21,7 @@ import { DashboardPage } from '../features/dashboards/dashboard-page.tsx';
 import { AnalysisRoutePage } from '../features/analysis/analysis-route-page.tsx';
 import { DataRoutePage } from '../features/data/data-route-page.tsx';
 import { BillingPage, BillingReturnPage } from '../features/billing/billing-page.tsx';
+import { BillingMockCheckoutPage } from '../features/billing/billing-mock-checkout-page.tsx';
 import { UsagePage } from '../features/usage/usage-page.tsx';
 import {
   SignInRoutePage,
@@ -146,6 +147,10 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
                 { path: 'analysis', element: <AnalysisRoutePage /> },
                 { path: 'data', element: <DataRoutePage /> },
                 { path: 'billing', element: <BillingPage /> },
+                {
+                  path: 'billing/mock-checkout/:orderCode',
+                  element: import.meta.env['VITE_DATABREEZE_DEMO_MODE'] === 'true' ? <BillingMockCheckoutPage /> : <NotFoundPage />,
+                },
                 { path: 'billing/success', element: <BillingReturnPage /> },
                 { path: 'billing/failed', element: <BillingReturnPage /> },
                 ...WEB_FEATURE_REGISTRY.filter((feature) => feature.key !== 'workspace').map((feature) => ({

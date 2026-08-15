@@ -1,5 +1,14 @@
 package com.databreeze.android.dashboard
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.databreeze.android.network.AuthenticatedDashboardApiClient
+import com.databreeze.android.network.DashboardApiResult
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
 data class DashboardWidget(
     val id: String,
     val kind: String,
@@ -23,14 +32,15 @@ data class DashboardUiState(
     val allowsCanvasMutation: Boolean = false,
 )
 
-class DashboardViewModel {
+class DashboardViewModel : ViewModel() {
     private var lastGood: DashboardSnapshot? = null
-    var state: DashboardUiState = DashboardUiState()
-        private set
+    private val _state = MutableStateFlow(DashboardUiState())
+    val stateFlow: StateFlow<DashboardUiState> = _state.asStateFlow()
+    val state: DashboardUiState get() = _state.value
 
     fun load(snapshot: DashboardSnapshot) {
         lastGood = snapshot
-        state =
+        _state.value =
             DashboardUiState(
                 dashboardId = snapshot.dashboardId,
                 title = snapshot.title,
@@ -43,7 +53,7 @@ class DashboardViewModel {
 
     fun markOffline() {
         val snapshot = lastGood ?: return
-        state =
+        _state.value =
             state.copy(
                 title = snapshot.title,
                 widgets = snapshot.widgets,
@@ -53,4 +63,14 @@ class DashboardViewModel {
     }
 
     fun drillDownEvidence(): List<String> = state.evidenceImageIds
+
+    fun loadFromServer(client: AuthenticatedDashboardApiClient, snapshotId: String) {
+        viewModelScope.launch {
+            when (val result = client.view(snapshotId)) {
+                is DashboardApiResult.Ready -> load(result.snapshot)
+                is DashboardApiResult.Rejected -> _state.value = _state.value.copy(title = result.code, usingLastGood = true)
+                DashboardApiResult.Retryable -> markOffline()
+            }
+        }
+    }
 }

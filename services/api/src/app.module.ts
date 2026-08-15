@@ -22,6 +22,7 @@ import { QiModule, type QiModuleOptions } from './features/qi/qi.module.js';
 import { IldModule, type IldModuleOptions } from './features/ild/ild.module.js';
 import { DdaModule, type DdaModuleOptions } from './features/dda/dda.module.js';
 import { JraModule, type JraModuleOptions } from './features/jra/jra.module.js';
+import { MobileModule, type MobileModuleOptions } from './features/mobile/mobile.module.js';
 import { PrismaApprovalRepositoryAdapter } from './features/jra/adapter/prisma-approval-repository.adapter.js';
 import { ApprovalService } from './features/jra/application/approval.service.js';
 import { JraDashboardPublicationApprovalAdapter } from './features/dda/dashboard/adapter/jra-dashboard-publication-approval.adapter.js';
@@ -121,6 +122,7 @@ export type AppModuleOptions = SystemModuleOptions &
   IldModuleOptions &
   DdaModuleOptions &
   JraModuleOptions &
+  MobileModuleOptions &
   JraWorkerModuleOptions & {
     /** AUD/BUA participant that writes through the exact JRA serializable transaction. */
     readonly workerResultFinalizationEffects?: WorkerResultFinalizationEffectsPortV1;
@@ -633,6 +635,10 @@ export class AppModule {
         JraModule.register({
           ...composedOptions,
           runtimeMode,
+          allowInMemoryAdapters: options.allowInMemoryAdapters ?? runtimeMode !== 'production',
+        }),
+        MobileModule.register({
+          ...composedOptions,
           allowInMemoryAdapters: options.allowInMemoryAdapters ?? runtimeMode !== 'production',
         }),
         JraWorkerModule.register(composedOptions as JraWorkerModuleOptions),

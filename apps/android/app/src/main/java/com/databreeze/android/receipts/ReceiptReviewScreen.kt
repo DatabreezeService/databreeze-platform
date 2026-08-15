@@ -52,8 +52,21 @@ fun ReceiptReviewScreen(
                 modifier = Modifier.testTag("receipt-review-ocr-unavailable"),
             )
         }
+        state.extractionErrorCode?.takeIf { it != "server_ocr_unavailable" }?.let { code ->
+            Text(
+                text = code,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.testTag("receipt-review-error"),
+            )
+        }
         state.fields.forEach { field ->
             val low = field.field in state.lowConfidenceFields
+            field.evidenceCropId?.takeIf { it.isNotBlank() }?.let { evidenceId ->
+                Text(
+                    stringResource(R.string.receipt_review_evidence_reference, evidenceId),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             OutlinedTextField(
                 value = drafts[field.field] ?: field.value,
                 onValueChange = { drafts[field.field] = it },
@@ -71,17 +84,26 @@ fun ReceiptReviewScreen(
         }
         Button(
             onClick = {
-                drafts.forEach { (field, value) ->
-                    if (state.fields.firstOrNull { it.field == field }?.value != value) {
-                        viewModel.editFieldWithoutTranslatingSource(field, value)
-                    }
-                }
-                onAccept()
+                viewModel.saveCorrections(drafts.toMap())
             },
             modifier = Modifier.testTag("receipt-review-save"),
-            enabled = state.fields.isNotEmpty() && state.extractionErrorCode == null,
+            enabled = state.fields.isNotEmpty() && state.extractionErrorCode == null && !state.correctionPending,
         ) {
             Text(stringResource(R.string.receipt_review_save))
+        }
+        state.acceptanceStatus?.let { status ->
+            Text(
+                text = status,
+                color = if (status.matches(Regex("^[0-9a-fA-F-]{36}$"))) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                modifier = Modifier.testTag("receipt-review-acceptance-status"),
+            )
+        }
+        Button(
+            onClick = onAccept,
+            enabled = state.fields.isNotEmpty() && state.extractionErrorCode == null && state.acceptanceStatus == null && !state.correctionPending,
+            modifier = Modifier.testTag("receipt-review-accept"),
+        ) {
+            Text(stringResource(R.string.receipt_review_accept))
         }
         Button(onClick = onBack, modifier = Modifier.testTag("receipt-review-back")) {
             Text(stringResource(R.string.back_action))

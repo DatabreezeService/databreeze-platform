@@ -45,6 +45,7 @@ data class ReceiptUploadRequest(
     val destination: ReceiptDestination?,
     val uploadedBytes: Long,
     val totalBytes: Long,
+    val policy: ReceiptTransferPolicy = ReceiptTransferPolicy(),
 ) {
     init {
         require(artifactSessionId.matches(SAFE_ID)) { "artifactSessionId must be opaque" }
@@ -59,6 +60,12 @@ data class ReceiptUploadRequest(
         private val SHA256_DIGEST = Regex("sha256:[0-9a-fA-F]{64}")
     }
 }
+
+/** Explicit transfer policy, persisted with WorkManager input and never inferred from network. */
+data class ReceiptTransferPolicy(
+    val wifiOnly: Boolean = false,
+    val requiresCharging: Boolean = false,
+)
 
 data class ReceiptUploadScheduleResult(
     val accepted: Boolean,

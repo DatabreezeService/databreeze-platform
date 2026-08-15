@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import test from 'node:test';
 
-import { PayosPaymentLinkAdapter } from '../../../src/features/bua/adapter/payos-payment-link.adapter.js';
+import { MockPayosPaymentLinkAdapter, PayosPaymentLinkAdapter } from '../../../src/features/bua/adapter/payos-payment-link.adapter.js';
 import { findPayosPlan } from '../../../src/features/bua/application/payos-plan-catalog.js';
 
 void test('[BUA-001, BUA-002] production PayOS adapter sends only the server catalog amount', async () => {
@@ -36,4 +36,14 @@ void test('[BUA-007] production PayOS webhook verifies canonical signature and r
   const verified = adapter.verifyWebhook({ code: '00', success: true, signature, data });
   assert.deepEqual(verified, { providerEventId: 'provider-event-1', orderCode: 123456, amountVnd: 149_000, status: 'PAID' });
   assert.throws(() => adapter.verifyWebhook({ code: '00', success: true, signature, data: { ...data, amount: 1 } }), /PAYOS_SIGNATURE_INVALID/);
+});
+
+void test('[BUA-002] local mock checkout stays on the configured web origin', async () => {
+  const adapter = new MockPayosPaymentLinkAdapter({ checkoutBaseUrl: 'https://localhost:8443' });
+  const result = await adapter.create(findPayosPlan('team-annual')!, 987654);
+  assert.equal(result.checkoutUrl, 'https://localhost:8443/vi-VN/billing/mock-checkout/987654');
+  assert.throws(
+    () => new MockPayosPaymentLinkAdapter({ checkoutBaseUrl: 'https://localhost:8443/web' }),
+    /PAYOS_MOCK_CHECKOUT_ORIGIN_INVALID/,
+  );
 });

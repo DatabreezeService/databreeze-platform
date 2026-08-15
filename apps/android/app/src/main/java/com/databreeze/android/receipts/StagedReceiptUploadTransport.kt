@@ -12,6 +12,11 @@ import java.security.MessageDigest
  */
 interface ReceiptUploadApiClient {
     suspend fun upload(command: ReceiptArtifactUploadCommand): ReceiptUploadApiResult
+
+    companion object {
+        /** Matches the server-owned mobile intake profile; callers must stay below this bound. */
+        const val MAX_INTAKE_BYTES: Int = 512_000
+    }
 }
 
 data class ReceiptArtifactUploadCommand(
@@ -22,10 +27,13 @@ data class ReceiptArtifactUploadCommand(
     val originalBytes: ByteArray,
     val totalBytes: Long,
     val idempotencyKey: String,
+    val fileName: String = "receipt.jpg",
+    val mediaType: String = "image/jpeg",
 )
 
 sealed interface ReceiptUploadApiResult {
     data object Accepted : ReceiptUploadApiResult
+    data class AcceptedArtifact(val artifactVersionId: String, val sessionId: String? = null) : ReceiptUploadApiResult
     data object Retryable : ReceiptUploadApiResult
     data class Rejected(val code: String) : ReceiptUploadApiResult
 }
@@ -67,6 +75,8 @@ class StagedReceiptUploadTransport(
                 originalBytes = original,
                 totalBytes = request.totalBytes,
                 idempotencyKey = idempotencyKey(request),
+                fileName = "receipt-${request.artifactSessionId}.jpg",
+                mediaType = "image/jpeg",
             ),
         ).toTransportResult()
     }
@@ -92,6 +102,7 @@ private fun ReceiptDestination?.workspaceGrantIdOrNull(): String? = when (this) 
 
 private fun ReceiptUploadApiResult.toTransportResult(): ReceiptUploadTransportResult = when (this) {
     ReceiptUploadApiResult.Accepted -> ReceiptUploadTransportResult.Accepted
+    is ReceiptUploadApiResult.AcceptedArtifact -> ReceiptUploadTransportResult.Accepted
     ReceiptUploadApiResult.Retryable -> ReceiptUploadTransportResult.Retryable
     is ReceiptUploadApiResult.Rejected -> ReceiptUploadTransportResult.Rejected(code)
 }

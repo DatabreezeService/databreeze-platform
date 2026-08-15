@@ -23,6 +23,20 @@ data class ReceiptCandidateCorrection(
     val correlationId: String? = null,
 )
 
+data class ReceiptProfile(val profileVersionId: String, val profileKind: String)
+
+sealed interface ReceiptProfileResult {
+    data class Ready(val profile: ReceiptProfile) : ReceiptProfileResult
+    data class Rejected(val code: String) : ReceiptProfileResult
+    data object Retryable : ReceiptProfileResult
+}
+
+sealed interface ReceiptAcceptanceApiResult {
+    data class Accepted(val datasetVersionId: String) : ReceiptAcceptanceApiResult
+    data class Rejected(val code: String) : ReceiptAcceptanceApiResult
+    data object Retryable : ReceiptAcceptanceApiResult
+}
+
 sealed interface ReceiptExtractionApiResult {
     data class Accepted(val candidateId: String) : ReceiptExtractionApiResult
     data class Unavailable(val code: String) : ReceiptExtractionApiResult
@@ -70,6 +84,27 @@ class ReceiptExtractionApiClient(
 
     private val mapper = jacksonObjectMapper()
     private val candidateContexts = mutableMapOf<String, CandidateContext>()
+
+    suspend fun fetchProfile(): ReceiptProfileResult = when (
+        val response = transport.execute(
+            AuthenticatedHttpRequest(method = "GET", path = "/v1/dda/receipts/profile"),
+        )
+    ) {
+        is AuthenticatedHttpResult.Success -> {
+            val root = readTree(response.body)
+            val profileVersionId = root?.text("profileVersionId")
+            val profileKind = root?.text("profileKind")
+            if (profileVersionId == null || profileKind == null || !isUuid(profileVersionId) || profileKind != "receipt") {
+                ReceiptProfileResult.Rejected("receipt_profile_invalid")
+            } else {
+                ReceiptProfileResult.Ready(ReceiptProfile(profileVersionId, profileKind))
+            }
+        }
+        is AuthenticatedHttpResult.TerminalAuthFailure -> ReceiptProfileResult.Rejected("receipt_profile_auth_denied")
+        is AuthenticatedHttpResult.RetryableFailure,
+        is AuthenticatedHttpResult.NetworkFailure,
+        -> ReceiptProfileResult.Retryable
+    }
 
     suspend fun requestExtraction(request: ReceiptExtractionRequest): ReceiptExtractionApiResult {
         val body =
@@ -226,6 +261,66 @@ class ReceiptExtractionApiClient(
             is AuthenticatedHttpResult.RetryableFailure,
             is AuthenticatedHttpResult.NetworkFailure,
             -> ReceiptExtractionApiResult.Retryable
+        }
+    }
+
+    suspend fun acceptCandidate(
+        candidateId: String,
+        artifactContentHash: String,
+        expectedRevision: Long,
+        correlationId: String,
+        idempotencyKey: String,
+    ): ReceiptAcceptanceApiResult {
+        val context = candidateContexts[candidateId]
+            ?: return ReceiptAcceptanceApiResult.Rejected("receipt_candidate_context_missing")
+        if (!isUuid(candidateId) || !isUuid(context.artifactVersionId) ||
+            !SHA256_PATTERN.matches(artifactContentHash) || expectedRevision < 1 || !isUuid(correlationId)
+        ) return ReceiptAcceptanceApiResult.Rejected("receipt_accept_request_invalid")
+        val byField = context.fields.associateBy { it.field }
+        val required = listOf("merchant", "transactionDateTime", "currency", "subtotal", "tax", "total")
+        if (required.any { byField[it]?.value.isNullOrBlank() }) {
+            return ReceiptAcceptanceApiResult.Rejected("receipt_required_field_missing")
+        }
+        val record = linkedMapOf<String, Any>(
+            "merchant" to byField.getValue("merchant").value,
+            "transactionDateTime" to byField.getValue("transactionDateTime").value,
+            "currency" to byField.getValue("currency").value,
+            "subtotal" to byField.getValue("subtotal").value,
+            "tax" to byField.getValue("tax").value,
+            "total" to byField.getValue("total").value,
+            "fieldConfidence" to context.fields.associate { it.field to it.confidence },
+        )
+        val body = mapper.writeValueAsString(
+            linkedMapOf(
+                "candidateId" to candidateId,
+                "artifactVersionId" to context.artifactVersionId,
+                "artifactContentHash" to artifactContentHash,
+                "expectedRevision" to expectedRevision,
+                "correlationId" to correlationId,
+                "idempotencyKey" to idempotencyKey,
+                "record" to record,
+            ),
+        )
+        return when (
+            val response = transport.execute(
+                AuthenticatedHttpRequest(
+                    method = "POST",
+                    path = "/v1/dda/receipts/accept",
+                    jsonBody = body,
+                    idempotencyKey = idempotencyKey,
+                ),
+            )
+        ) {
+            is AuthenticatedHttpResult.Success -> {
+                val root = readTree(response.body)
+                val datasetVersionId = root?.get("value")?.text("datasetVersionId")
+                if (datasetVersionId == null || !isUuid(datasetVersionId)) ReceiptAcceptanceApiResult.Rejected("receipt_accept_response_invalid")
+                else ReceiptAcceptanceApiResult.Accepted(datasetVersionId)
+            }
+            is AuthenticatedHttpResult.TerminalAuthFailure -> ReceiptAcceptanceApiResult.Rejected("receipt_accept_auth_denied")
+            is AuthenticatedHttpResult.RetryableFailure,
+            is AuthenticatedHttpResult.NetworkFailure,
+            -> ReceiptAcceptanceApiResult.Retryable
         }
     }
 

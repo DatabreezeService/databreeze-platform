@@ -132,6 +132,7 @@ interface LocalStorePort {
     suspend fun deleteBatch(scope: AccountWorkspaceScope, mutationIds: List<String>): Int
     suspend fun markCompleted(scope: AccountWorkspaceScope, mutationId: String): Boolean
     suspend fun clear(scope: AccountWorkspaceScope)
+    fun close() = Unit
 }
 
 class RoomLocalStore private constructor(private val database: DataBreezeDatabase) : LocalStorePort {
@@ -160,7 +161,7 @@ class RoomLocalStore private constructor(private val database: DataBreezeDatabas
         dao.clear(scope.accountId, scope.workspaceId)
     }
 
-    fun close() = database.close()
+    override fun close() = database.close()
 
     companion object {
         fun create(context: Context): RoomLocalStore =

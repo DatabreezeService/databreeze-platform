@@ -92,7 +92,13 @@ export class BuaModule {
         return new PayosPaymentService(options.paymentDatabase, options.payosPaymentProvider, options.billingAuthorization);
       const providerMode = process.env['PAYOS_PROVIDER'] ?? (process.env['PAYOS_LOCAL_TEST_MODE'] === 'true' ? 'mock' : 'payos');
       if (providerMode === 'mock')
-        return new PayosPaymentService(options.paymentDatabase, new MockPayosPaymentLinkAdapter(), options.billingAuthorization);
+        return new PayosPaymentService(
+          options.paymentDatabase,
+          new MockPayosPaymentLinkAdapter({
+            checkoutBaseUrl: process.env['DATABREEZE_WEB_PUBLIC_URL'] ?? 'https://localhost:8443',
+          }),
+          options.billingAuthorization,
+        );
       if (providerMode !== 'payos') return undefined;
       const clientId = process.env['PAYOS_CLIENT_ID'];
       const apiKey = process.env['PAYOS_API_KEY'];

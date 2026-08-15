@@ -65,6 +65,12 @@ class FileBackedReceiptStagingStore(
         dir.delete()
     }
 
+    override fun usageBytes(scope: AccountWorkspaceScope): Long = scopeDirectory(scope)
+        .listFiles()
+        ?.filter { it.isFile }
+        ?.sumOf { it.length() }
+        ?: 0L
+
     override fun plaintextLookup(scope: AccountWorkspaceScope, artifactSessionId: String): ByteArray? = null
 
     private fun scopeDirectory(scope: AccountWorkspaceScope): File =
