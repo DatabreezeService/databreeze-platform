@@ -194,8 +194,8 @@
   align-items: stretch;
   overflow: visible;
   color: #f7f7ff;
-  background: #102a63;
-  border-inline-end: 1px solid rgb(219 223 255 / 14%);
+  background: #07091d;
+  border-inline-end: 1px solid rgba(219, 223, 255, 0.12);
   transition: width var(--workspace-transition) cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -267,17 +267,24 @@
   display: grid;
   place-items: center;
   padding: 0;
-  border: 1px solid rgb(16 42 99 / 18%);
+  border: 1px solid rgba(219, 223, 255, 0.2);
   border-radius: 50%;
-  color: #102a63;
-  background: #ffffff;
+  color: #f7f7ff;
+  background: #0c1030;
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
   transform: translate(50%, -50%);
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
 }
 
 .application-rail__collapse:hover,
 .application-rail__collapse:focus-visible {
-  background: #f4f7fc;
+  background: #121844;
+  border-color: rgba(61, 80, 255, 0.5);
+  color: #ffffff;
 }
 
 .application-rail__collapse-arrow {
@@ -294,15 +301,17 @@
 
 .application-rail__group-label {
   margin: 16px 16px 8px;
-  color: rgb(247 247 255 / 62%);
+  color: rgba(219, 223, 255, 0.45);
   font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .application-rail__items {
   width: 100%;
   display: grid;
-  gap: 8px;
+  gap: 6px;
   margin: 0;
   padding: 0 12px;
   list-style: none;
@@ -310,34 +319,41 @@
 
 .application-rail__link {
   min-width: 0;
-  min-height: 44px;
+  min-height: 42px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 12px;
-  padding: 0 13px;
+  padding: 0 12px;
   border: 1px solid transparent;
-  border-radius: var(--workspace-radius);
-  color: rgb(247 247 255 / 86%);
+  border-radius: 8px;
+  color: #c4c9ea;
   text-decoration: none;
+  font-weight: 500;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease;
 }
 
 .application-rail__link:hover {
   color: #ffffff;
-  background: rgb(255 255 255 / 10%);
+  background: rgba(219, 223, 255, 0.08);
 }
 
 .application-rail__link.is-active {
-  border-color: transparent;
+  border-color: rgba(61, 80, 255, 0.4);
   color: #ffffff;
-  background: #075de8;
+  background: #3d50ff;
+  box-shadow: 0 2px 10px rgba(61, 80, 255, 0.35);
+  font-weight: 600;
 }
 
 .application-rail__label {
   min-width: 0;
   overflow: hidden;
   font-size: 13px;
-  font-weight: 600;
+  letter-spacing: -0.01em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
