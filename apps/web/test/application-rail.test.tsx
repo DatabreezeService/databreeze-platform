@@ -1,7 +1,21 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApplicationBoundary, createAppRouter } from '../src/app/app.tsx';
+
+const workspaceShellCss = readFileSync(
+  path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../src/styles/workspace-shell.css'),
+  'utf8',
+);
+
+function cssBlock(selector: string): string {
+  const escaped = selector.replaceAll(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+  const match = workspaceShellCss.match(new RegExp(`${escaped}[^{]*\\{([^}]*)\\}`, 'u'));
+  return match?.[1] ?? '';
+}
 
 function renderDashboard(pathname = '/vi-VN/dashboards') {
   const router = createAppRouter({ initialEntries: [pathname] });
@@ -58,6 +72,22 @@ describe('application rail', () => {
     expect(handle.querySelector('.application-rail__collapse-arrow')?.getAttribute('data-point')).toBe(
       'left',
     );
+
+    const brandIcon = cssBlock('.application-rail__brand-icon');
+    expect(brandIcon).not.toMatch(/invert/u);
+    expect(brandIcon).not.toMatch(/brightness/u);
+    expect(cssBlock('.application-rail__brand')).not.toMatch(/background:\s*#fff/u);
+
+    const collapse = cssBlock('.application-rail__collapse');
+    expect(cssBlock('.application-rail__header')).toMatch(/position:\s*relative/u);
+    expect(collapse).toMatch(/top:\s*50%/u);
+    expect(collapse).toMatch(/translate\(50%,\s*-50%\)/u);
+    expect(collapse).not.toMatch(/transition:/u);
+
+    const collapseHover = cssBlock('.application-rail__collapse:hover');
+    expect(collapseHover).not.toMatch(/transform:/u);
+    expect(collapseHover).not.toMatch(/transition:/u);
+    expect(workspaceShellCss).not.toContain('translateX(calc(50% + 3px))');
   });
 
   it('starts expanded, collapses to icon-only navigation, and remembers the preference', async () => {

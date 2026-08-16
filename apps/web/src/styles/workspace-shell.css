@@ -189,24 +189,22 @@
 }
 
 .application-rail__header {
+  position: relative;
   min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px 12px 8px;
+  padding: 0 12px;
 }
 
 .application-rail__brand {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--workspace-radius);
 }
 
 .application-rail__brand:hover,
 .application-rail__brand:focus-visible {
-  background: rgb(255 255 255 / 10%);
+  opacity: 0.82;
 }
 
 .application-rail__brand-icon {
@@ -217,7 +215,7 @@
 
 .application-rail__collapse {
   position: absolute;
-  top: 22px;
+  top: 50%;
   right: 0;
   z-index: 50;
   width: 28px;
@@ -230,33 +228,24 @@
   color: #102a63;
   background: #ffffff;
   cursor: pointer;
-  transform: translateX(50%);
-  transition:
-    transform var(--workspace-transition) cubic-bezier(0.2, 0.8, 0.2, 1),
-    background-color 150ms ease,
-    border-color 150ms ease;
+  transform: translate(50%, -50%);
 }
 
 .application-rail__collapse:hover,
 .application-rail__collapse:focus-visible {
   background: #f4f7fc;
-  border-color: #075de8;
-  transform: translateX(calc(50% + 3px));
 }
 
 .application-rail__collapse-arrow {
   display: grid;
   place-items: center;
+  line-height: 0;
 }
 
 .application-rail__collapse-arrow svg {
+  display: block;
   width: 14px;
   height: 14px;
-}
-
-.application-rail[data-collapsed='true'] .application-rail__collapse:hover,
-.application-rail[data-collapsed='true'] .application-rail__collapse:focus-visible {
-  transform: translateX(calc(50% + 3px));
 }
 
 .application-rail__group-label {
@@ -612,7 +601,7 @@
   }
 
   .application-rail__brand {
-    width: 36px;
+    width: auto;
   }
 
   .application-rail__mobile-close {
@@ -998,8 +987,8 @@
   display: grid;
   place-items: center;
   padding: 0;
-  border: 1px solid #075de8;
-  border-radius: var(--workspace-radius);
+  border: 0;
+  border-radius: 50%;
   color: #ffffff;
   background: #075de8;
   cursor: pointer;
@@ -1017,24 +1006,61 @@
 .floating-agent-button:hover,
 .floating-agent-button:focus-visible {
   background: #0643bd;
-  border-color: #0643bd;
+}
+
+.floating-agent-button[aria-expanded='true'] {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .floating-agent-panel {
   position: fixed;
   z-index: 31;
   right: max(20px, env(safe-area-inset-right));
-  bottom: max(84px, calc(env(safe-area-inset-bottom) + 72px));
+  bottom: max(20px, env(safe-area-inset-bottom));
   width: min(380px, calc(100vw - 40px));
-  max-height: min(36rem, calc(100dvh - 6rem));
+  max-height: min(36rem, calc(100dvh - 2.5rem));
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
   padding: 0;
   border: 1px solid #dce5f2;
-  border-radius: var(--workspace-radius);
+  border-radius: 4px;
   color: #102a63;
   background: #ffffff;
+  transform-origin: 100% 100%;
+}
+
+.floating-agent-panel[data-open-motion='from-bubble'] {
+  animation: floating-agent-from-bubble 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.floating-agent-panel[data-open-motion='fade'] {
+  animation: floating-agent-fade 140ms ease both;
+}
+
+@keyframes floating-agent-from-bubble {
+  from {
+    opacity: 0.78;
+    border-radius: 50%;
+    transform: scale(0.14);
+  }
+
+  to {
+    opacity: 1;
+    border-radius: 4px;
+    transform: none;
+  }
+}
+
+@keyframes floating-agent-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .floating-agent-panel__header {
@@ -1121,7 +1147,12 @@
 
 @media (prefers-reduced-motion: reduce) {
   .app-shell,
-  .application-rail {
+  .application-rail,
+  .floating-agent-button {
     transition: none;
+  }
+
+  .floating-agent-panel[data-open-motion='from-bubble'] {
+    animation: floating-agent-fade 140ms ease both;
   }
 }
