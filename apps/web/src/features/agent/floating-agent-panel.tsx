@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react';
 import { DATABREEZE_MARK_SRC } from '../../app/brand-assets.ts';
 import { XIcon } from '../../components/icons.tsx';
 import { AgentChatShell } from './agent-chat-shell.tsx';
+import { resolveAgentOpenMotion } from './agent-open-motion.ts';
 import type { AgentStoreV1 } from './agent-store.ts';
 
 export function FloatingAgentPanel({
@@ -50,7 +51,11 @@ export function FloatingAgentPanel({
           title: 'DataBreeze Agent',
         };
   return (
-    <aside aria-label={locale === 'vi-VN' ? 'Trợ lý' : 'Agent'} className="floating-agent-panel">
+    <aside
+      aria-label={locale === 'vi-VN' ? 'Trợ lý' : 'Agent'}
+      className="floating-agent-panel"
+      data-open-motion={resolveAgentOpenMotion()}
+    >
       <header className="floating-agent-panel__header">
         <span className="floating-agent-panel__mark">
           <img alt="" aria-hidden="true" src={DATABREEZE_MARK_SRC} />

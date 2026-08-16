@@ -17,6 +17,7 @@ export function FloatingAgentButton({
       aria-expanded={snapshot.open}
       aria-label={label}
       className="floating-agent-button"
+      data-shape="circle"
       type="button"
       onClick={() => store.setOpen(!snapshot.open)}
     >

@@ -78,6 +78,7 @@ export function AnalystPanel({
       <AnalysisPlanReview locale={locale} preview={preview} />
       <ResultEvidenceDrawer locale={locale} cells={cells} open={evidenceOpen} />
       <AgentInvitation
+        expanded={agentOpen}
         locale={locale}
         visible={invitationVisible}
         onOpen={() => {
