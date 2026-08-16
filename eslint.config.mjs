@@ -3,6 +3,9 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
+    linterOptions: {
+      reportUnusedDisableDirectives: 'off',
+    },
     ignores: [
       '**/build/**',
       '**/coverage/**',
@@ -47,7 +50,6 @@ export default tseslint.config(
         clearInterval: 'readonly',
         clearTimeout: 'readonly',
         console: 'readonly',
-        fetch: 'readonly',
         performance: 'readonly',
         process: 'readonly',
         setInterval: 'readonly',
@@ -56,6 +58,7 @@ export default tseslint.config(
       },
     },
     rules: {
+      'no-redeclare': 'off',
       'no-regex-spaces': 'off',
     },
   },
