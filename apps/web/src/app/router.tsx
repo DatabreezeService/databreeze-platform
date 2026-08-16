@@ -20,6 +20,7 @@ import {
 import { DashboardPage } from '../features/dashboards/dashboard-page.tsx';
 import { AnalysisRoutePage } from '../features/analysis/analysis-route-page.tsx';
 import { DataRoutePage } from '../features/data/data-route-page.tsx';
+import { DownloadsRoutePage } from '../features/downloads/downloads-page.tsx';
 import {
   SignInRoutePage,
   RegisterRoutePage,
@@ -69,6 +70,7 @@ const logicalRoots = new Set([
   'sign-in',
   'register',
   'verify-email',
+  'downloads',
 ]);
 
 function canonicalPathname(pathname: string): string | undefined {
@@ -125,6 +127,10 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
       errorElement: <RouteErrorPage />,
       hydrateFallbackElement: <div aria-hidden="true" />,
       children: [
+        {
+          path: 'downloads',
+          element: <DownloadsRoutePage />,
+        },
         {
           element: <AuthenticationGate publicRoute />,
           children: [

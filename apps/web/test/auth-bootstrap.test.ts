@@ -116,6 +116,16 @@ describe('Web authentication bootstrap [IAM-023, WEB-002, WEB-004]', () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
+  it('does not redirect a signed-out user away from the public downloads route', async () => {
+    const replace = vi.fn();
+    await recoverSessionBeforeAppStartV1({
+      api: { recoverWebSession: vi.fn(async () => Promise.reject(new Error('offline'))), loadBootstrap: vi.fn() },
+      pathname: '/en/downloads',
+      replace,
+    });
+    expect(replace).not.toHaveBeenCalled();
+  });
+
   it('does not mount application routes until session recovery settles', async () => {
     let settle: ((value: { readonly accepted: true }) => void) | undefined;
     const recovery = new Promise<{ readonly accepted: true }>((resolve) => {

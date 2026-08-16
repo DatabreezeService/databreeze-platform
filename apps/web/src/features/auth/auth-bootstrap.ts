@@ -1,7 +1,7 @@
 import type { AuthApiV1 } from './auth-api.ts';
 import { clearAuthSessionV1, rememberAuthBootstrapV1, type WebAuthenticationStateV1 } from './auth-session.ts';
 
-const PUBLIC_AUTH_ROUTES_V1 = new Set(['sign-in', 'register', 'verify-email']);
+const PUBLIC_ROUTES_V1 = new Set(['sign-in', 'register', 'verify-email', 'downloads']);
 
 export interface RecoverSessionBeforeAppStartInputV1 {
   readonly api: Pick<AuthApiV1, 'recoverWebSession' | 'loadBootstrap'>;
@@ -41,7 +41,7 @@ export async function recoverSessionBeforeAppStartV1(
 
   clearAuthSessionV1();
   const route = routeV1(input.pathname);
-  if (route.section === undefined || !PUBLIC_AUTH_ROUTES_V1.has(route.section)) {
+  if (route.section === undefined || !PUBLIC_ROUTES_V1.has(route.section)) {
     input.replace(`/${route.locale}/sign-in`);
   }
   return 'signed-out';
