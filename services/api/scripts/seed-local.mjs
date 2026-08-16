@@ -1770,7 +1770,7 @@ async function main() {
             organizationId: ID.organization,
             workspaceId: null,
             projectId: null,
-            roleId: 'admin',
+            roleId: 'owner',
             status: 'ACTIVE',
             startsAt: minutesBefore(13_395),
             expiresAt: null,
@@ -2824,7 +2824,7 @@ async function main() {
   console.log('');
   console.log('Synthetic sign-in accounts (all use the same generated password):');
   console.log('  owner@databreeze.local   OWNER / APPLY_CONFIRMED_CHANGES');
-  console.log('  admin@databreeze.local   ADMIN / workspace administration');
+  console.log('  admin@databreeze.local   OWNER org / ADMIN workspace + project');
   console.log('  analyst@databreeze.local ANALYST / PROPOSE_CHANGES');
   console.log('  viewer@databreeze.local  VIEWER / NONE + restricted dataset denied');
   console.log(`Password: ${password}`);
