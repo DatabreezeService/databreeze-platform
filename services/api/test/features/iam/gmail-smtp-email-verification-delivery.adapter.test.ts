@@ -48,6 +48,8 @@ void test('[IAM-022] Gmail delivery uses the authenticated Gmail identity as the
   assert.deepEqual(messages[0]?.toAddresses, ['owner@example.com']);
   assert.equal(messages[0]?.subject, 'Your DataBreeze verification code');
   assert.match(messages[0]?.textBody ?? '', /042917/u);
+  assert.match(messages[0]?.htmlBody ?? '', /042917/u);
+  assert.match(messages[0]?.htmlBody ?? '', /Verify your email/u);
 });
 
 void test('[IAM-022] Gmail delivery hides SMTP provider details', async () => {

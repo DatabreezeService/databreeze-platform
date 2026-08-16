@@ -1,6 +1,10 @@
 import { createConnection, type Socket } from 'node:net';
 
 import type { EmailVerificationDeliveryPortV1 } from '../application/email-verification-repository.port.js';
+import {
+  createEmailVerificationMessageContentV1,
+  type EmailVerificationMessageContentV1,
+} from './email-verification-message-content.js';
 
 const EMAIL_ADDRESS_PATTERN_V1 = /^[^\s@]{1,64}@[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$/u;
 const MAX_SMTP_MESSAGE_BYTES_V1 = 16 * 1024;
@@ -10,6 +14,7 @@ export interface SmtpMessageV1 {
   readonly toAddresses: readonly [string];
   readonly subject: string;
   readonly textBody: string;
+  readonly htmlBody: string;
 }
 
 export interface SmtpSenderPortV1 {
@@ -35,23 +40,10 @@ export function validSmtpAddressV1(value: string): boolean {
   );
 }
 
-function content(
-  locale: string,
-  code: string,
-): Pick<SmtpMessageV1, 'subject' | 'textBody'> | undefined {
-  if (locale === 'vi-VN') {
-    return Object.freeze({
-      subject: 'Mã xác minh DataBreeze',
-      textBody: `Mã xác minh DataBreeze của bạn là ${code}. Mã này hết hạn sau 10 phút. Nếu bạn không yêu cầu mã này, hãy bỏ qua email.`,
-    });
-  }
-  if (locale === 'en') {
-    return Object.freeze({
-      subject: 'Your DataBreeze verification code',
-      textBody: `Your DataBreeze verification code is ${code}. It expires in 10 minutes. If you did not request this code, ignore this email.`,
-    });
-  }
-  return undefined;
+const SMTP_BODY_LIMIT_BYTES_V1 = 12 * 1024;
+
+function normalizeSmtpBody(value: string): string {
+  return value.replace(/\r?\n/gu, '\r\n').replace(/^\./gmu, '..');
 }
 
 export function renderSmtpMessageV1(message: SmtpMessageV1): string {
@@ -65,21 +57,33 @@ export function renderSmtpMessageV1(message: SmtpMessageV1): string {
     message.subject.includes('\r') ||
     message.subject.includes('\n') ||
     message.textBody.length < 1 ||
-    message.textBody.length > 4_096
+    message.textBody.length > 4_096 ||
+    message.htmlBody.length < 1 ||
+    message.htmlBody.length > SMTP_BODY_LIMIT_BYTES_V1
   ) {
     throw new Error('IAM_LOCAL_SMTP_MESSAGE_INVALID');
   }
   const subject = Buffer.from(message.subject, 'utf8').toString('base64');
-  const normalizedBody = message.textBody.replace(/\r?\n/gu, '\r\n').replace(/^\./gmu, '..');
+  const boundary = '=_DataBreeze_Email_Verification_v1';
   const payload = [
     `From: <${message.fromAddress}>`,
     `To: <${message.toAddresses[0]}>`,
     `Subject: =?UTF-8?B?${subject}?=`,
     'MIME-Version: 1.0',
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    '',
+    `--${boundary}`,
     'Content-Type: text/plain; charset=UTF-8',
     'Content-Transfer-Encoding: 8bit',
     '',
-    normalizedBody,
+    normalizeSmtpBody(message.textBody),
+    `--${boundary}`,
+    'Content-Type: text/html; charset=UTF-8',
+    'Content-Transfer-Encoding: 8bit',
+    '',
+    normalizeSmtpBody(message.htmlBody),
+    `--${boundary}--`,
+    '',
   ].join('\r\n');
   if (Buffer.byteLength(payload, 'utf8') > MAX_SMTP_MESSAGE_BYTES_V1) {
     throw new Error('IAM_LOCAL_SMTP_MESSAGE_INVALID');
@@ -202,7 +206,8 @@ export class MailpitSmtpEmailVerificationDeliveryAdapter
     readonly locale: string;
     readonly correlationId?: string;
   }): Promise<void> {
-    const messageContent = content(input.locale, input.code);
+    const messageContent: EmailVerificationMessageContentV1 | undefined =
+      createEmailVerificationMessageContentV1(input.locale, input.code);
     if (!validSmtpAddressV1(input.email) || !/^\d{6}$/u.test(input.code) || !messageContent) {
       throw new Error('IAM_LOCAL_EMAIL_INPUT_INVALID');
     }
