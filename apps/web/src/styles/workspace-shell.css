@@ -1121,9 +1121,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .app-shell,
-  .application-rail,
-  .application-rail__collapse,
-  .application-rail__collapse-arrow {
+  .application-rail {
     transition: none;
   }
 }
