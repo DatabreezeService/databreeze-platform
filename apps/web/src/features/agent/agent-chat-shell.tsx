@@ -147,9 +147,7 @@ export function AgentChatShell({
     }
   }
 
-  const activeConversation = conversations.find(
-    (c) => c.conversationId === activeConversationId,
-  );
+  const activeConversation = conversations.find((c) => c.conversationId === activeConversationId);
   const currentTitle = activeConversation?.title ?? text.newAiChat;
 
   return (
@@ -187,7 +185,16 @@ export function AgentChatShell({
               title={text.newAiChat}
               type="button"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M12 5v14M5 12h14" />
               </svg>
             </button>
@@ -255,9 +262,7 @@ export function AgentChatShell({
                 ) : null}
                 <div className="notion-ai-message__content">
                   <p>{message.text}</p>
-                  {message.createdLabel !== undefined ? (
-                    <time>{message.createdLabel}</time>
-                  ) : null}
+                  {message.createdLabel !== undefined ? <time>{message.createdLabel}</time> : null}
                 </div>
               </article>
             ))}
