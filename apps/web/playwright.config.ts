@@ -5,8 +5,8 @@ const browserChannel = process.env['PLAYWRIGHT_BROWSER_CHANNEL'];
 const browser = browserChannel === 'chrome' ? { channel: 'chrome' as const } : {};
 const previewCommand =
   process.env['PLAYWRIGHT_SKIP_BUILD'] === 'true'
-    ? `corepack pnpm preview --host 127.0.0.1 --port ${previewPort} --strictPort`
-    : `corepack pnpm build && corepack pnpm preview --host 127.0.0.1 --port ${previewPort} --strictPort`;
+    ? `pnpm preview --host 127.0.0.1 --port ${previewPort} --strictPort`
+    : `pnpm build && pnpm preview --host 127.0.0.1 --port ${previewPort} --strictPort`;
 
 export default defineConfig({
   timeout: 30_000,

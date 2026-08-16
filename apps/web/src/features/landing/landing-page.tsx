@@ -28,6 +28,10 @@ export function LandingPage({
       }),
     [locale],
   );
+  // Keep the innerHTML prop stable while only the route hash changes. The
+  // landing script progressively adds reveal state and interaction layers to
+  // this DOM; replacing it on every navbar jump would discard that state.
+  const markupProperty = useMemo(() => ({ __html: markup }), [markup]);
 
   useEffect(() => {
     if (import.meta.env.MODE === 'test') return undefined;
@@ -79,10 +83,12 @@ export function LandingPage({
 
   useEffect(() => {
     const root = document.querySelector<HTMLElement>('.teammate-landing-root');
-    const pricingSection = root?.querySelector<HTMLElement>('[data-pricing-section]');
-    if (root === null || pricingSection === null) return;
+    if (root === null) return;
 
-    const pricingLocale = pricingSection.dataset.pricingLocale === 'en' ? 'en-US' : 'vi-VN';
+    const pricingSection = root.querySelector<HTMLElement>('[data-pricing-section]');
+    if (pricingSection === null) return;
+
+    const pricingLocale = pricingSection.dataset['pricingLocale'] === 'en' ? 'en-US' : 'vi-VN';
     const formatPricingAmount = (value: number) =>
       `${new Intl.NumberFormat(pricingLocale).format(value)} ₫`;
 
@@ -92,7 +98,7 @@ export function LandingPage({
       const button = target.closest<HTMLButtonElement>('[data-pricing-cycle]');
       if (button === null || !root.contains(button)) return;
 
-      const cycle = button.dataset.pricingCycle;
+      const cycle = button.dataset['pricingCycle'];
       if (cycle !== 'monthly' && cycle !== 'annual') return;
 
       root.querySelectorAll<HTMLButtonElement>('[data-pricing-cycle]').forEach((item) => {
@@ -129,7 +135,7 @@ export function LandingPage({
   return (
     <>
       <link data-teammate-landing-stylesheet href={TEAMMATE_LANDING_STYLESHEET} rel="stylesheet" />
-      <div className="teammate-landing-root" dangerouslySetInnerHTML={{ __html: markup }} />
+      <div className="teammate-landing-root" dangerouslySetInnerHTML={markupProperty} />
     </>
   );
 }

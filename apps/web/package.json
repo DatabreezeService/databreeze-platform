@@ -6,11 +6,11 @@
   "scripts": {
     "browser:install:ci": "playwright install --with-deps chromium",
     "budget": "node scripts/check-bundle-budget.mjs",
-    "build": "tsc --build && vite build && corepack pnpm budget",
+    "build": "tsc --build && vite build && pnpm budget",
     "dev": "vite",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:e2e": "corepack pnpm test:e2e:preview && corepack pnpm test:e2e:dev",
+    "test:e2e": "pnpm test:e2e:preview && pnpm test:e2e:dev",
     "test:e2e:dev": "playwright test --config playwright.dev.config.ts",
     "test:e2e:preview": "playwright test",
     "test:watch": "vitest",

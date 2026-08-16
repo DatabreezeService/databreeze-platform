@@ -108,6 +108,36 @@ describe('landing page stylesheet [WEB-013]', () => {
     },
   );
 
+  it('preserves previously revealed sections across consecutive navbar hash navigation', async () => {
+    const router = createAppRouter({
+      authenticationState: 'signed-out',
+      initialEntries: ['/vi-VN'],
+    });
+
+    render(<ApplicationBoundary router={router} />);
+    await screen.findByRole('heading', { name: /DataBreeze Dữ liệu biết cất lời\./u });
+
+    await router.navigate('/vi-VN#flow');
+    const flowHeading = await waitFor(() => {
+      const heading = document.querySelector<HTMLElement>('#flow [data-reveal]');
+      expect(heading?.classList.contains('is-visible')).toBe(true);
+      return heading;
+    });
+
+    await router.navigate('/vi-VN#intelligence');
+    await waitFor(() => {
+      expect(
+        document
+          .querySelector<HTMLElement>('#intelligence [data-reveal]')
+          ?.classList.contains('is-visible'),
+      ).toBe(true);
+    });
+
+    const preservedFlowHeading = document.querySelector<HTMLElement>('#flow [data-reveal]');
+    expect(preservedFlowHeading).toBe(flowHeading);
+    expect(preservedFlowHeading?.classList.contains('is-visible')).toBe(true);
+  });
+
   it('removes the landing stylesheet when navbar routing leaves the page', async () => {
     const router = createAppRouter({
       authenticationState: 'signed-out',
