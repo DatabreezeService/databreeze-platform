@@ -76,12 +76,28 @@ run_stack() {
   "${ROOT_DIR}/healthcheck.sh"
 }
 
+print_failure_diagnostics() {
+  echo 'Pilot deployment diagnostics:' >&2
+  "${COMPOSE[@]}" ps >&2 || true
+
+  local api_container
+  api_container="$("${COMPOSE[@]}" ps -q api 2>/dev/null || true)"
+  if [[ -n "${api_container}" ]]; then
+    echo 'API health state:' >&2
+    docker inspect --format '{{json .State.Health}}' "${api_container}" >&2 || true
+  fi
+
+  echo 'API logs:' >&2
+  "${COMPOSE[@]}" logs --no-color --tail 200 api >&2 || true
+}
+
 previous_release=''
 if [[ -L "${CURRENT_RELEASE}" ]]; then
   previous_release="$(realpath -- "${CURRENT_RELEASE}")"
 fi
 
 if ! run_stack; then
+  print_failure_diagnostics
   echo 'New pilot release failed. Restoring the previous release if one exists.' >&2
   if [[ -n "${previous_release}" && -r "${previous_release}" ]]; then
     load_release "${previous_release}"

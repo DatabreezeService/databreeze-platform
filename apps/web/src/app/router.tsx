@@ -20,9 +20,12 @@ import {
 import { DashboardPage } from '../features/dashboards/dashboard-page.tsx';
 import { AnalysisRoutePage } from '../features/analysis/analysis-route-page.tsx';
 import { DataRoutePage } from '../features/data/data-route-page.tsx';
+import { DownloadsRoutePage } from '../features/downloads/downloads-page.tsx';
 import {
+  ForgotPasswordRoutePage,
   SignInRoutePage,
   RegisterRoutePage,
+  ResetPasswordRoutePage,
   VerifyEmailRoutePage,
 } from '../features/auth/auth-route-pages.tsx';
 import { LandingRoutePage } from '../features/landing/landing-page.tsx';
@@ -74,6 +77,9 @@ const logicalRoots = new Set([
   'sign-in',
   'register',
   'verify-email',
+  'downloads',
+  'forgot-password',
+  'reset-password',
 ]);
 
 function canonicalPathname(pathname: string): string | undefined {
@@ -127,12 +133,18 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
       hydrateFallbackElement: <div aria-hidden="true" />,
       children: [
         {
+          path: 'downloads',
+          element: <DownloadsRoutePage />,
+        },
+        {
           element: <AuthenticationGate publicRoute />,
           children: [
             { index: true, element: <LandingRoutePage /> },
             { path: 'sign-in', element: <SignInRoutePage /> },
             { path: 'register', element: <RegisterRoutePage /> },
             { path: 'verify-email', element: <VerifyEmailRoutePage /> },
+            { path: 'forgot-password', element: <ForgotPasswordRoutePage /> },
+            { path: 'reset-password', element: <ResetPasswordRoutePage /> },
           ],
         },
         {

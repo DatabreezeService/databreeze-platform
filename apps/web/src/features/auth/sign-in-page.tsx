@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { AuthPageShell } from './auth-page-shell.tsx';
 
+type SignInActionResultV1 = { readonly accepted: boolean };
+
 export function SignInPage({
   locale,
   onSignedIn,
@@ -9,7 +11,7 @@ export function SignInPage({
   readonly onSignedIn: (input: {
     readonly email: string;
     readonly password: string;
-  }) => Promise<unknown> | unknown;
+  }) => Promise<SignInActionResultV1> | SignInActionResultV1 | undefined;
 }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,14 +25,7 @@ export function SignInPage({
     setError(false);
     try {
       const result = await onSignedIn({ email, password });
-      if (
-        typeof result === 'object' &&
-        result !== null &&
-        'accepted' in result &&
-        result.accepted === false
-      ) {
-        setError(true);
-      }
+      if (result?.accepted === false) setError(true);
     } catch {
       setError(true);
     } finally {
@@ -69,18 +64,24 @@ export function SignInPage({
             onChange={(event) => setEmail(event.currentTarget.value)}
           />
         </label>
-        <label>
-          <span className="auth-form__label-text">{isVi ? 'Mật khẩu' : 'Password'}</span>
-          <input
-            autoComplete="current-password"
-            name="password"
-            type="password"
-            placeholder="••••••••••••"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.currentTarget.value)}
-          />
-        </label>
+        <div className="auth-form__password-field">
+          <label>
+            <span className="auth-form__label-text">{isVi ? 'Mật khẩu' : 'Password'}</span>
+            <input
+              aria-label={isVi ? 'Mật khẩu' : 'Password'}
+              autoComplete="current-password"
+              name="password"
+              type="password"
+              placeholder="••••••••••••"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.currentTarget.value)}
+            />
+          </label>
+          <a href={`/${locale}/forgot-password`} className="auth-form__forgot-link">
+            {isVi ? 'Quên mật khẩu?' : 'Forgot password?'}
+          </a>
+        </div>
         <button className="auth-form__submit" disabled={pending} type="submit">
           {pending ? (
             <span className="auth-form__button-content">

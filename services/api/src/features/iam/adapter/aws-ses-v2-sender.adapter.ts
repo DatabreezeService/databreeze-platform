@@ -21,7 +21,10 @@ export class AwsSesV2SenderAdapter implements SesEmailSenderPortV1 {
         Content: {
           Simple: {
             Subject: { Data: message.subject, Charset: 'UTF-8' },
-            Body: { Text: { Data: message.textBody, Charset: 'UTF-8' } },
+            Body: {
+              Text: { Data: message.textBody, Charset: 'UTF-8' },
+              Html: { Data: message.htmlBody, Charset: 'UTF-8' },
+            },
           },
         },
       }),

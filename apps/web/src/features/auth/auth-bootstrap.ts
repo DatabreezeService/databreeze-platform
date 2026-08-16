@@ -5,7 +5,7 @@ import {
   type WebAuthenticationStateV1,
 } from './auth-session.ts';
 
-const PUBLIC_AUTH_ROUTES_V1 = new Set(['sign-in', 'register', 'verify-email']);
+const PUBLIC_AUTH_ROUTES_V1 = new Set(['sign-in', 'register', 'verify-email', 'downloads']);
 const PUBLIC_LOCALES_V1 = new Set(['en', 'vi-VN']);
 
 function isPublicPathV1(pathname: string): boolean {

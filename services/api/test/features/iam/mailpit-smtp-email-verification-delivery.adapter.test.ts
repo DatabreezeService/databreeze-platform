@@ -6,6 +6,7 @@ import test from 'node:test';
 import {
   MailpitSmtpEmailVerificationDeliveryAdapter,
   NodeLoopbackSmtpSenderAdapter,
+  renderSmtpMessageV1,
   type SmtpMessageV1,
 } from '../../../src/features/iam/adapter/mailpit-smtp-email-verification-delivery.adapter.js';
 
@@ -29,7 +30,27 @@ void test('[IAM-022] Mailpit delivery emits one bounded localized SMTP message w
   assert.equal(messages[0]?.subject, 'Mã xác minh DataBreeze');
   assert.match(messages[0]?.textBody ?? '', /042917/u);
   assert.match(messages[0]?.textBody ?? '', /10 phút/u);
+  assert.match(messages[0]?.htmlBody ?? '', /042917/u);
+  assert.match(messages[0]?.htmlBody ?? '', /XÁC MINH EMAIL/u);
   assert.equal(JSON.stringify(messages).includes('must-not-enter-email'), false);
+});
+
+void test('[IAM-022] SMTP rendering keeps the text fallback and branded HTML alternative', async () => {
+  const message: SmtpMessageV1 = {
+    fromAddress: 'verify@databreeze.local',
+    toAddresses: ['owner@example.com'],
+    subject: 'Your DataBreeze verification code',
+    textBody: 'Your DataBreeze verification code is 042917.',
+    htmlBody: '<!doctype html>\n<p>042917</p>',
+  };
+
+  const payload = renderSmtpMessageV1(message);
+
+  assert.match(payload, /multipart\/alternative/u);
+  assert.match(payload, /Content-Type: text\/plain; charset=UTF-8/u);
+  assert.match(payload, /Content-Type: text\/html; charset=UTF-8/u);
+  assert.match(payload, /Your DataBreeze verification code is 042917\./u);
+  assert.match(payload, /<!doctype html>/u);
 });
 
 void test('[IAM-022] Mailpit delivery rejects header injection and hides provider details', async () => {

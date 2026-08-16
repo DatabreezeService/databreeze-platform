@@ -30,7 +30,7 @@ function credentials() {
 void test('[IAM-015] recovery HTTP keeps known and unknown requests generic and consumes a link once', async () => {
   const repository = new InMemoryRecoveryRepositoryAdapter();
   repository.seed({ email: 'user@example.com', userId, activeSessionFamilies: ['family-1'] });
-  const delivered: Array<{ readonly rawToken: string }> = [];
+  const delivered: Array<{ readonly rawToken: string; readonly locale: string }> = [];
   const { app } = await createApiApplication({
     recoveryRepository: repository,
     passwordCredentials: credentials(),
@@ -38,9 +38,9 @@ void test('[IAM-015] recovery HTTP keeps known and unknown requests generic and 
       'test-recovery-key-v1-012345678901234567',
     ),
     recoveryDelivery: {
-      deliver: async ({ rawToken: deliveredToken }) => {
+      deliver: async ({ rawToken: deliveredToken, locale }) => {
         await Promise.resolve();
-        delivered.push({ rawToken: deliveredToken });
+        delivered.push({ rawToken: deliveredToken, locale });
       },
     },
     recoveryIdGenerator: { next: () => challengeId },
@@ -51,7 +51,7 @@ void test('[IAM-015] recovery HTTP keeps known and unknown requests generic and 
     const known = await app.inject({
       method: 'POST',
       url: '/v1/auth/recovery',
-      payload: { email: 'User@example.com' },
+      payload: { email: 'User@example.com', locale: 'en' },
     });
     const unknown = await app.inject({
       method: 'POST',
@@ -63,6 +63,7 @@ void test('[IAM-015] recovery HTTP keeps known and unknown requests generic and 
     assert.equal(unknown.statusCode, 202);
     assert.deepEqual(unknown.json(), { requested: true });
     assert.equal(delivered.length, 1);
+    assert.deepEqual(delivered[0], { rawToken, locale: 'en' });
 
     const completed = await app.inject({
       method: 'POST',

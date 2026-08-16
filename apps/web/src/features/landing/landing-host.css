@@ -10,3 +10,9 @@
   align-items: center;
   gap: 10px;
 }
+
+@media (max-width: 440px) {
+  .teammate-landing-root .header-actions > .header-cta:last-child {
+    display: none;
+  }
+}

@@ -32,6 +32,7 @@
     "lint": "eslint . && node tools/repo-cli/src/check-dependency-boundaries.mjs",
     "local:smoke": "node tools/repo-cli/src/local-services-smoke.mjs",
     "local:services": "node tools/repo-cli/src/local-services.mjs",
+    "local:seed": "corepack pnpm --filter @databreeze/api prisma:generate && corepack pnpm --filter @databreeze/api seed:local",
     "infra:check": "node tools/repo-cli/src/check-aws-infrastructure.mjs",
     "infra:validate": "node tools/repo-cli/src/validate-aws-opentofu.mjs",
     "orchestration:check": "node tools/repo-cli/src/check-execution-orchestration.mjs && node tools/repo-cli/src/check-data-to-dashboard-orchestration.mjs",

@@ -5,6 +5,8 @@ import { authSquareWaveLevel } from '../src/features/auth/auth-matrix-field.tsx'
 import { SignInPage } from '../src/features/auth/sign-in-page.tsx';
 import { RegisterPage } from '../src/features/auth/register-page.tsx';
 import { VerifyEmailPage } from '../src/features/auth/verify-email-page.tsx';
+import { ForgotPasswordPage } from '../src/features/auth/forgot-password-page.tsx';
+import { ResetPasswordPage } from '../src/features/auth/reset-password-page.tsx';
 
 const WAVE = { periodMs: 8000, span: 30, band: 4, tail: 6 };
 
@@ -19,6 +21,12 @@ describe('auth product surfaces', () => {
     expect(screen.getByRole('heading', { name: 'Đăng nhập' })).toBeTruthy();
     expect(screen.getByLabelText('Mật khẩu')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Đăng nhập' })).toBeTruthy();
+    const passwordInput = screen.getByLabelText('Mật khẩu');
+    const forgotPasswordLink = screen.getByRole('link', { name: 'Quên mật khẩu?' });
+    expect(forgotPasswordLink).toBeTruthy();
+    expect(passwordInput.closest('.auth-form__password-field')?.lastElementChild).toBe(
+      forgotPasswordLink,
+    );
   });
 
   it('fills the left half with brand story proofs beside a square form panel', () => {
@@ -137,6 +145,72 @@ describe('auth product surfaces', () => {
     expect(screen.getByLabelText('Password')).toBeTruthy();
     expect(screen.getByLabelText('Confirm password')).toBeTruthy();
     expect(screen.queryByLabelText(/display name/i)).toBeNull();
+  });
+
+  it('requests a password reset with generic confirmation copy', async () => {
+    const user = userEvent.setup();
+    const requested: unknown[] = [];
+    render(
+      <ForgotPasswordPage
+        locale="en"
+        onRequested={(input) => {
+          requested.push(input);
+          return { accepted: true as const };
+        }}
+      />,
+    );
+
+    await user.type(screen.getByLabelText('Email'), 'owner@example.com');
+    await user.click(screen.getByRole('button', { name: 'Send reset link' }));
+
+    expect(requested).toEqual([{ email: 'owner@example.com', locale: 'en' }]);
+    expect(screen.getByRole('status').textContent).toContain('Check your inbox');
+    expect(screen.getByRole('status').textContent).toContain('If this email belongs to DataBreeze');
+  });
+
+  it('validates and completes a password reset without exposing the bearer token', async () => {
+    const user = userEvent.setup();
+    const completed: unknown[] = [];
+    const token = 'r'.repeat(43);
+    render(
+      <ResetPasswordPage
+        locale="vi-VN"
+        token={token}
+        onReset={(input) => {
+          completed.push(input);
+          return { accepted: true as const };
+        }}
+      />,
+    );
+
+    await user.type(screen.getByLabelText('Mật khẩu mới'), 'new correct horse battery staple');
+    await user.type(
+      screen.getByLabelText('Xác nhận mật khẩu mới'),
+      'new correct horse battery staple',
+    );
+    await user.click(screen.getByRole('button', { name: 'Cập nhật mật khẩu' }));
+
+    expect(completed).toEqual([{ token, newPassword: 'new correct horse battery staple' }]);
+    expect(screen.getByRole('status').textContent).toContain('Mật khẩu đã được cập nhật');
+    expect(screen.getByRole('status').textContent).not.toContain(token);
+  });
+
+  it('shows a safe invalid-link state and blocks reset submission when the token is missing', async () => {
+    const submitted: unknown[] = [];
+    render(
+      <ResetPasswordPage
+        locale="en"
+        token=""
+        onReset={(input) => {
+          submitted.push(input);
+          return { accepted: true as const };
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('alert').textContent).toContain('invalid or has expired');
+    expect(screen.queryByRole('button', { name: 'Update password' })).toBeNull();
+    expect(submitted).toEqual([]);
   });
 
   it('does not submit registration until password confirmation matches', async () => {

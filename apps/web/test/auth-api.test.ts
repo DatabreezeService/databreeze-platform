@@ -11,6 +11,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+function jsonBody(init?: RequestInit): unknown {
+  return typeof init?.body === 'string' ? JSON.parse(init.body) : undefined;
+}
+
 describe('generated-contract auth transport [IAM-022, IAM-023, WEB-004]', () => {
   const session = {
     schemaVersion: 4 as const,
@@ -28,7 +32,7 @@ describe('generated-contract auth transport [IAM-022, IAM-023, WEB-004]', () => 
   it('registers with email/password and returns only the opaque OTP challenge', async () => {
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
       expect(init?.credentials).toBe('include');
-      expect(JSON.parse(String(init?.body))).toEqual({
+      expect(jsonBody(init)).toEqual({
         schemaVersion: 4,
         email: 'owner@example.com',
         password: 'correct horse battery staple',
@@ -119,12 +123,73 @@ describe('generated-contract auth transport [IAM-022, IAM-023, WEB-004]', () => 
     });
   });
 
+  it('requests and completes password recovery only for the closed recovery response shapes', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      const body = jsonBody(init);
+      if (url.endsWith('/v1/auth/recovery')) {
+        expect(body).toEqual({ email: 'owner@example.com', locale: 'en' });
+        return new Response(JSON.stringify({ requested: true }), {
+          status: 202,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      expect(url).toMatch(/\/v1\/auth\/recovery\/complete$/u);
+      expect(body).toEqual({
+        token: 'r'.repeat(43),
+        newPassword: 'new correct horse battery staple',
+      });
+      return new Response(
+        JSON.stringify({
+          userId: '00000000-0000-4000-8000-000000000402',
+          mfaReenrollmentRequired: true,
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+    });
+    const api = createAuthApiV1({
+      baseUrl: 'https://api.example.test',
+      fetcher: fetchMock as never,
+    });
+
+    await expect(
+      api.requestPasswordReset({ email: 'owner@example.com', locale: 'en' }),
+    ).resolves.toEqual({ accepted: true });
+    await expect(
+      api.completePasswordReset({
+        token: 'r'.repeat(43),
+        newPassword: 'new correct horse battery staple',
+      }),
+    ).resolves.toEqual({
+      accepted: true,
+      value: {
+        userId: '00000000-0000-4000-8000-000000000402',
+        mfaReenrollmentRequired: true,
+      },
+    });
+  });
+
+  it('fails closed when a recovery endpoint returns a malformed completion payload', async () => {
+    const malformed = createAuthApiV1({
+      baseUrl: 'https://api.example.test',
+      fetcher: vi.fn(
+        async () =>
+          new Response(JSON.stringify({ userId: 'user', mfaReenrollmentRequired: false }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          }),
+      ) as never,
+    });
+    await expect(
+      malformed.completePasswordReset({ token: 'r'.repeat(43), newPassword: 'password' }),
+    ).resolves.toEqual({ accepted: false, code: 'AUTH_FAILED' });
+  });
+
   it('recovers a reload through the HttpOnly-cookie refresh endpoint and remembers only the v4 access session', async () => {
     globalThis.document.cookie = `databreeze_csrf=${'c'.repeat(43)}; Path=/`;
     const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
       expect(init?.credentials).toBe('include');
       expect(new Headers(init?.headers).get('x-csrf-token')).toBe('c'.repeat(43));
-      expect(JSON.parse(String(init?.body))).toEqual({ clientPlatform: 'web' });
+      expect(jsonBody(init)).toEqual({ clientPlatform: 'web' });
       return new Response(
         JSON.stringify({
           schemaVersion: 4,
@@ -322,7 +387,7 @@ describe('generated-contract auth transport [IAM-022, IAM-023, WEB-004]', () => 
       expect(headers.get('authorization')).toBe(`Bearer ${session.accessToken}`);
       expect(headers.get('x-csrf-token')).toBe('c'.repeat(43));
       expect(headers.get('idempotency-key')).toBe(session.sessionId);
-      expect(JSON.parse(String(init?.body))).toEqual({
+      expect(jsonBody(init)).toEqual({
         clientPlatform: 'web',
         sessionId: session.sessionId,
       });

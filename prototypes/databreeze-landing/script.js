@@ -68,6 +68,25 @@
 
   revealItems.forEach((item) => revealObserver.observe(item));
 
+  // Hash navigation can move an entire section into the viewport in one
+  // frame. Make that destination readable immediately instead of waiting for
+  // an intersection update that some browsers skip after a smooth jump.
+  const revealHashTarget = (hash) => {
+    if (!hash || hash === '#') return;
+    const target = document.getElementById(hash.slice(1));
+    target?.querySelectorAll('[data-reveal]').forEach((item) => {
+      item.classList.add('is-visible');
+    });
+  };
+
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    const anchor = event.target.closest('a[href^="#"]');
+    revealHashTarget(anchor?.getAttribute('href'));
+  });
+  window.addEventListener('hashchange', () => revealHashTarget(window.location.hash));
+  revealHashTarget(window.location.hash);
+
   const counterObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
@@ -182,6 +201,7 @@
 
       if (
         section.classList.contains('evidence-section') ||
+        section.classList.contains('pricing-section') ||
         section.classList.contains('feedback-section') ||
         section.classList.contains('transition-iris')
       ) {
@@ -210,7 +230,7 @@
     });
 
     const interactiveSurfaces = document.querySelectorAll(
-      '.metric-card, .chart-panel, .agent-panel, .flow-visual, .reasoning-node, .lineage-node, .mode-visual, .feedback-form',
+      '.metric-card, .chart-panel, .agent-panel, .flow-visual, .reasoning-node, .lineage-node, .mode-visual, .pricing-card, .feedback-form',
     );
 
     interactiveSurfaces.forEach((surface) => {
@@ -376,6 +396,48 @@
       if (modeDescription) modeDescription.textContent = content.description;
       if (modeStat) modeStat.textContent = content.stat;
       if (modeProjection) modeProjection.textContent = content.projection;
+    });
+  });
+
+  const pricingSection = document.querySelector('[data-pricing-section]');
+  const pricingCycleControl = document.querySelector('[data-pricing-cycle-control]');
+  const pricingCycleButtons = [...document.querySelectorAll('[data-pricing-cycle]')];
+  const pricingStatus = document.querySelector('[data-pricing-status]');
+  const pricingLocale = pricingSection?.dataset.pricingLocale === 'en' ? 'en-US' : 'vi-VN';
+
+  const formatPricingAmount = (value) => `${new Intl.NumberFormat(pricingLocale).format(value)} ₫`;
+
+  pricingCycleButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const cycle = button.dataset.pricingCycle;
+      if (cycle !== 'monthly' && cycle !== 'annual') return;
+
+      pricingCycleButtons.forEach((item) => {
+        const active = item === button;
+        item.classList.toggle('active', active);
+        item.setAttribute('aria-pressed', String(active));
+      });
+
+      pricingCycleControl?.style.setProperty(
+        '--pricing-cycle-index',
+        cycle === 'annual' ? '1' : '0',
+      );
+      document.querySelectorAll('[data-pricing-amount]').forEach((amount) => {
+        const value = Number(amount.dataset[cycle]);
+        if (Number.isFinite(value)) amount.textContent = formatPricingAmount(value);
+      });
+      document.querySelectorAll('[data-pricing-suffix]').forEach((suffix) => {
+        suffix.textContent = suffix.dataset[`${cycle}Suffix`] ?? '';
+      });
+      document.querySelectorAll('[data-pricing-detail]').forEach((detail) => {
+        detail.textContent = detail.dataset[`${cycle}Detail`] ?? '';
+      });
+      if (pricingStatus) {
+        pricingStatus.textContent =
+          pricingLocale === 'en-US'
+            ? `Showing ${cycle === 'annual' ? 'annual' : 'monthly'} prices.`
+            : `Đang hiển thị giá theo ${cycle === 'annual' ? 'năm' : 'tháng'}.`;
+      }
     });
   });
 

@@ -18,6 +18,7 @@ import type {
   RecoveryDeliveryPortV1,
   RecoveryDigestPortV1,
   RecoveryFailureCodeV1,
+  RecoveryLocaleV1,
   RecoveryRepositoryPortV1,
   RecoveryRequestResultV1,
 } from './recovery-repository.port.js';
@@ -55,8 +56,14 @@ function stable(input: unknown): StableIdentifierV1 | undefined {
 
 function rawToken(input: unknown): string | undefined {
   if (typeof input !== 'string' || input.length < 32 || input.length > 512) return undefined;
+  if (!/^[A-Za-z0-9_-]+$/u.test(input)) return undefined;
   if (/\p{Cc}/u.test(input)) return undefined;
   return input;
+}
+
+function recoveryLocale(input: unknown): RecoveryLocaleV1 | undefined {
+  if (input === undefined) return 'vi-VN';
+  return input === 'en' || input === 'vi-VN' ? input : undefined;
 }
 
 function timestamp(clock: RecoveryClockV1 | undefined): string | undefined {
@@ -87,9 +94,14 @@ export class RecoveryService {
 
   public constructor(private readonly ports: RecoveryServicePortsV1) {}
 
-  public async request(emailInput: unknown): Promise<RecoveryRequestResultV1> {
+  public async request(
+    emailInput: unknown,
+    localeInput: unknown = 'vi-VN',
+  ): Promise<RecoveryRequestResultV1> {
     const normalized = normalizeEmailAddressV1(emailInput);
     if (!normalized.accepted) return inputRejected('INVALID_INPUT');
+    const locale = recoveryLocale(localeInput);
+    if (!locale) return inputRejected('INVALID_INPUT');
     const issuedAt = timestamp(this.ports.clock);
     if (!issuedAt) return unavailable();
     let challengeId: string;
@@ -157,6 +169,7 @@ export class RecoveryService {
         recipientEmail: normalized.value,
         rawToken: raw,
         expiresAt: issued.expiresAt,
+        locale,
       });
     } catch {
       try {

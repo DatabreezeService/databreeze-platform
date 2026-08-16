@@ -22,11 +22,28 @@ To run the usable local application instead of dependencies alone, run:
 pnpm local:services app-start
 ```
 
-This one command starts the dependencies, builds the local images, applies the
+This command starts the dependencies, builds the local images, applies the
 complete Prisma migration inventory in a one-shot container, and waits for the
 API and Web gateway to become healthy. Open <https://localhost:8443>; API calls
 remain on that same HTTPS origin and the API container has no published host
 port. Verification mail is captured at <http://localhost:8025>.
+
+After the application is healthy, seed the comprehensive synthetic fixture:
+
+```powershell
+pnpm local:seed
+```
+
+The seed is idempotent, creates tenant-scoped records, and uploads fixture bytes
+to local MinIO. It prints three local sign-in accounts and a generated password;
+set `DATABREEZE_LOCAL_SEED_PASSWORD` in the ignored
+`infrastructure/local/.env` first if you need a stable password.
+
+The full seed expects MinIO to be healthy. If you intentionally want metadata
+only, generate the client once and run
+`corepack pnpm --filter @databreeze/api seed:local -- --skip-objects`; those
+placements are marked unavailable so the UI does not claim that source bytes
+exist.
 
 Caddy creates a local-only certificate authority in the named
 `web-caddy-data` volume. A browser may require one explicit trust/continue step
@@ -48,7 +65,7 @@ The Web URL is <http://127.0.0.1:5173/vi-VN>; it uses Vite HMR and
 proxies API paths to the watched host API at <http://127.0.0.1:3000>. The
 `dev:api` watcher uses the database-backed local composition, runs Prisma
 generation/migrations, and talks to the Docker PostgreSQL, Redis, and Mailpit
-services. Registration, OTP, sign-in, refresh, logout, and durable data
+services. Registration, OTP, password reset, sign-in, refresh, logout, and durable data
 changes therefore exercise the real local backend while Web source changes
 update without a rebuild. The pilot/production Caddy URL is for built-image
 validation, not HMR.
@@ -86,6 +103,7 @@ Run these from the repository root:
 | `pnpm local:services status` | Print container/health state without changing it. |
 | `pnpm local:services logs --tail=100` | Print bounded, read-only logs for known local services. |
 | `pnpm local:services app-start` | Build, migrate, start, and wait for the same-origin HTTPS API and Web profile. |
+| `pnpm local:seed` | Generate the Prisma client and idempotently seed the comprehensive synthetic local fixture. |
 | `pnpm local:services app-status` | Print dependency, migration, API, and Web health without changing state. |
 | `pnpm local:services app-logs --tail=100` | Print bounded migration, API, and Web logs. |
 | `pnpm local:services app-stop` | Stop API and Web while preserving dependencies, containers, and named volumes. |
@@ -120,8 +138,8 @@ composition while retaining `NODE_ENV=production`. PostgreSQL and Redis remain
 durable authorities, Mailpit is the local email provider, and all application
 ports stay on the isolated Compose network except the loopback HTTPS gateway.
 
-Mailpit is the default OTP provider and captures messages at
-<http://localhost:8025>. To deliver OTPs to a real Gmail inbox during local
+Mailpit is the default OTP and password-recovery provider and captures messages at
+<http://localhost:8025>. To deliver OTP and password-recovery messages to a real Gmail inbox during local
 testing, set `DATABREEZE_LOCAL_EMAIL_PROVIDER=gmail` in the ignored
 `infrastructure/local/.env`, set the SMTP host to `smtp.gmail.com`, port `465`,
 the Gmail account as both SMTP username and sender, and provide a Google App
