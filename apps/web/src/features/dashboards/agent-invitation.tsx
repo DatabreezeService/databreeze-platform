@@ -6,6 +6,7 @@ import '../../styles/dashboard-agent.css';
 export interface AgentInvitationProps {
   readonly locale: SupportedLocaleV1;
   readonly visible: boolean;
+  readonly expanded?: boolean;
   readonly onOpen: () => void;
   readonly onDismiss: () => void;
 }
@@ -15,7 +16,13 @@ function label(locale: SupportedLocaleV1, vi: string, en: string): string {
 }
 
 /** DDA-015/DDA-024: a dismissible first-use invitation with a persistent dashboard-local entry point. */
-export function AgentInvitation({ locale, visible, onOpen, onDismiss }: AgentInvitationProps) {
+export function AgentInvitation({
+  locale,
+  visible,
+  expanded = false,
+  onOpen,
+  onDismiss,
+}: AgentInvitationProps) {
   return (
     <aside
       className="dda-agent-invitation"
@@ -47,7 +54,9 @@ export function AgentInvitation({ locale, visible, onOpen, onDismiss }: AgentInv
       <button
         type="button"
         className="dda-agent-invitation__button"
+        aria-expanded={expanded}
         aria-label={label(locale, 'Mở trợ lý biểu đồ', 'Open chart assistant')}
+        data-shape="circle"
         onClick={onOpen}
       >
         <img alt="" aria-hidden="true" src={DATABREEZE_MARK_SRC} />

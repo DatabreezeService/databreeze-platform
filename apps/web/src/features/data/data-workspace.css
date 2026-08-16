@@ -825,7 +825,8 @@
     flex-direction: column;
   }
 
-  .data-route-page .floating-agent-button {
+  .data-route-page .floating-agent-button,
+  .data-route-page .floating-agent-panel {
     right: max(12px, env(safe-area-inset-right));
     bottom: max(12px, env(safe-area-inset-bottom));
   }

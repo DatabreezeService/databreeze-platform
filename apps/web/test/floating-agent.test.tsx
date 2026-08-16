@@ -14,6 +14,7 @@ describe('floating agent surfaces', () => {
     const router = createAppRouter({ initialEntries: ['/vi-VN/dashboards'] });
     render(<ApplicationBoundary router={router} />);
     const opener = await screen.findByRole('button', { name: 'Mở trợ lý biểu đồ' });
+    expect(opener.getAttribute('data-shape')).toBe('circle');
     expect(opener.querySelector('img')?.getAttribute('src')).toBe(
       '/landing/assets/databreeze-mark.png',
     );
@@ -69,6 +70,7 @@ describe('floating agent surfaces', () => {
       </MemoryRouter>,
     );
     const opener = screen.getByRole('button', { name: 'Mở trợ lý' });
+    expect(opener.getAttribute('data-shape')).toBe('circle');
     expect(opener.querySelector('img')?.getAttribute('src')).toBe(
       '/landing/assets/databreeze-mark.png',
     );
@@ -90,9 +92,13 @@ describe('floating agent surfaces', () => {
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Mở trợ lý' }));
+    const opener = screen.getByRole('button', { name: 'Mở trợ lý' });
+    expect(opener.getAttribute('data-shape')).toBe('circle');
+    await user.click(opener);
 
     const panel = screen.getByRole('complementary', { name: 'Trợ lý' });
+    expect(panel.getAttribute('data-open-motion')).toBe('from-bubble');
+    expect(opener.getAttribute('aria-expanded')).toBe('true');
     expect(screen.getByRole('heading', { name: 'Trợ lý DataBreeze' })).toBeTruthy();
     expect(panel.querySelector('img')?.getAttribute('src')).toBe(
       '/landing/assets/databreeze-mark.png',
@@ -144,6 +150,40 @@ describe('floating agent surfaces', () => {
     expect(screen.getByRole('link', { name: 'Hội thoại mới' }).getAttribute('href')).toBe(
       '/vi-VN/analysis?new=1',
     );
+  });
+
+  it('fades the chat open when the user prefers reduced motion', async () => {
+    const originalMatchMedia = globalThis.matchMedia;
+    globalThis.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query === '(prefers-reduced-motion: reduce)',
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+    const user = userEvent.setup();
+    const store = createAgentStore();
+    render(
+      <MemoryRouter initialEntries={['/en/data']}>
+        <FloatingAgentButton store={store} locale="en" />
+        <FloatingAgentPanel store={store} locale="en" surface="data" />
+      </MemoryRouter>,
+    );
+
+    try {
+      await user.click(screen.getByRole('button', { name: 'Open agent' }));
+
+      expect(
+        screen.getByRole('complementary', { name: 'Agent' }).getAttribute('data-open-motion'),
+      ).toBe('fade');
+      expect(screen.getByRole('heading', { name: 'DataBreeze Agent' })).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Close agent' })).toBeTruthy();
+    } finally {
+      globalThis.matchMedia = originalMatchMedia;
+    }
   });
 
   it('does not render a second floating agent on analysis', async () => {

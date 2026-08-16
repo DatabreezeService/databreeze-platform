@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode 
 
 import { DATABREEZE_MARK_SRC } from '../../app/brand-assets.ts';
 import { XIcon } from '../../components/icons.tsx';
+import { resolveAgentOpenMotion } from '../agent/agent-open-motion.ts';
 import { AgentChatShell } from '../agent/agent-chat-shell.tsx';
 import type {
   AgentConversationSummaryV1,
@@ -223,6 +224,7 @@ export function DashboardAgentPanel({
       aria-labelledby={titleId}
       aria-modal="true"
       className="dda-dashboard-agent-panel"
+      data-open-motion={resolveAgentOpenMotion()}
       onKeyDown={onKeyDown}
       ref={dialogRef}
       role="dialog"

@@ -935,6 +935,7 @@ export function DashboardPage() {
           : {})}
       />
       <AgentInvitation
+        expanded={agentOpen}
         locale={locale}
         visible={invitationVisible}
         onOpen={() => {
