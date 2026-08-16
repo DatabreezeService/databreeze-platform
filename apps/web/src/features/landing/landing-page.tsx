@@ -77,6 +77,55 @@ export function LandingPage({
     };
   }, [routeHash, markup]);
 
+  useEffect(() => {
+    const root = document.querySelector<HTMLElement>('.teammate-landing-root');
+    const pricingSection = root?.querySelector<HTMLElement>('[data-pricing-section]');
+    if (root === null || pricingSection === null) return;
+
+    const pricingLocale = pricingSection.dataset.pricingLocale === 'en' ? 'en-US' : 'vi-VN';
+    const formatPricingAmount = (value: number) =>
+      `${new Intl.NumberFormat(pricingLocale).format(value)} ₫`;
+
+    const handlePricingCycleClick = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const button = target.closest<HTMLButtonElement>('[data-pricing-cycle]');
+      if (button === null || !root.contains(button)) return;
+
+      const cycle = button.dataset.pricingCycle;
+      if (cycle !== 'monthly' && cycle !== 'annual') return;
+
+      root.querySelectorAll<HTMLButtonElement>('[data-pricing-cycle]').forEach((item) => {
+        const active = item === button;
+        item.classList.toggle('active', active);
+        item.setAttribute('aria-pressed', String(active));
+      });
+      root
+        .querySelector<HTMLElement>('[data-pricing-cycle-control]')
+        ?.style.setProperty('--pricing-cycle-index', cycle === 'annual' ? '1' : '0');
+      root.querySelectorAll<HTMLElement>('[data-pricing-amount]').forEach((amount) => {
+        const value = Number(amount.dataset[cycle]);
+        if (Number.isFinite(value)) amount.textContent = formatPricingAmount(value);
+      });
+      root.querySelectorAll<HTMLElement>('[data-pricing-suffix]').forEach((suffix) => {
+        suffix.textContent = suffix.dataset[`${cycle}Suffix`] ?? '';
+      });
+      root.querySelectorAll<HTMLElement>('[data-pricing-detail]').forEach((detail) => {
+        detail.textContent = detail.dataset[`${cycle}Detail`] ?? '';
+      });
+      const status = root.querySelector<HTMLElement>('[data-pricing-status]');
+      if (status !== null) {
+        status.textContent =
+          pricingLocale === 'en-US'
+            ? `Showing ${cycle === 'annual' ? 'annual' : 'monthly'} prices.`
+            : `Đang hiển thị giá theo ${cycle === 'annual' ? 'năm' : 'tháng'}.`;
+      }
+    };
+
+    root.addEventListener('click', handlePricingCycleClick);
+    return () => root.removeEventListener('click', handlePricingCycleClick);
+  }, [locale, markup]);
+
   return (
     <>
       <link data-teammate-landing-stylesheet href={TEAMMATE_LANDING_STYLESHEET} rel="stylesheet" />

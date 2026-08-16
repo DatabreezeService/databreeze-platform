@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { StrictMode } from 'react';
 import { describe, expect, it } from 'vitest';
@@ -41,6 +42,21 @@ describe('landing page stylesheet [WEB-013]', () => {
     render(<LandingPage locale="en" />);
 
     expect(screen.getByRole('link', { name: 'Apps' }).getAttribute('href')).toBe('/en/downloads');
+  });
+
+  it('switches pricing cards to annual billing when selected', async () => {
+    const user = userEvent.setup();
+    render(<LandingPage locale="vi-VN" />);
+
+    await user.click(screen.getByRole('button', { name: /Theo năm/u }));
+
+    expect(screen.getByText('1.490.000 ₫')).toBeTruthy();
+    expect(screen.getByText('3.990.000 ₫')).toBeTruthy();
+    expect(screen.getByText('9.990.000 ₫')).toBeTruthy();
+    expect(screen.getAllByText('/năm')).toHaveLength(3);
+    expect(screen.getByRole('button', { name: /Theo năm/u }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
   });
 
   it('restores an inbound hash destination after the landing markup mounts', async () => {
