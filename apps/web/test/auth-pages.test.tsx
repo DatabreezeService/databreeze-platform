@@ -21,7 +21,12 @@ describe('auth product surfaces', () => {
     expect(screen.getByRole('heading', { name: 'Đăng nhập' })).toBeTruthy();
     expect(screen.getByLabelText('Mật khẩu')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Đăng nhập' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Quên mật khẩu?' })).toBeTruthy();
+    const passwordInput = screen.getByLabelText('Mật khẩu');
+    const forgotPasswordLink = screen.getByRole('link', { name: 'Quên mật khẩu?' });
+    expect(forgotPasswordLink).toBeTruthy();
+    expect(passwordInput.closest('.auth-form__password-field')?.lastElementChild).toBe(
+      forgotPasswordLink,
+    );
   });
 
   it('fills the left half with brand story proofs beside a square form panel', () => {

@@ -18,10 +18,15 @@ describe('teammate landing markup [WEB-013]', () => {
     const markup = prepareTeammateLandingMarkup(teammateLandingHtml, {
       signInHref: '/vi-VN/sign-in',
       signInLabel: 'Đăng nhập',
+      downloadsHref: '/vi-VN/downloads',
+      downloadsLabel: 'Ứng dụng',
     });
 
     expect(markup).toContain('Dữ liệu biết cất lời.');
     expect(markup).toContain('href="/vi-VN/sign-in"');
+    expect(markup).toContain('href="/vi-VN/downloads"');
+    expect(markup).toContain('>Ứng dụng</a>');
+    expect(markup).not.toContain('data-downloads-nav');
     expect(markup).toContain('/landing/assets/databreeze-mark.png');
     expect(markup).not.toContain('<script');
   });

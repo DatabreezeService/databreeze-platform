@@ -1065,17 +1065,13 @@ td:first-child {
   display: inline-block;
 }
 
-.auth-form__label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  color: #dbe0ff;
-  font-size: 0.78rem;
-  font-weight: 600;
+.auth-form__password-field {
+  display: grid;
+  gap: 8px;
 }
 
 .auth-form__forgot-link {
+  justify-self: end;
   color: #8d9bff;
   font-size: 0.74rem;
   font-weight: 600;

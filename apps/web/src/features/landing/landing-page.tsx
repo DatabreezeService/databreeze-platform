@@ -15,6 +15,8 @@ export function LandingPage({ locale }: { readonly locale: 'en' | 'vi-VN' }) {
       prepareTeammateLandingMarkup(teammateLandingHtml, {
         signInHref: `/${locale}/sign-in`,
         signInLabel: locale === 'vi-VN' ? 'Đăng nhập' : 'Sign in',
+        downloadsHref: `/${locale}/downloads`,
+        downloadsLabel: locale === 'vi-VN' ? 'Ứng dụng' : 'Apps',
       }),
     [locale],
   );

@@ -64,24 +64,24 @@ export function SignInPage({
             onChange={(event) => setEmail(event.currentTarget.value)}
           />
         </label>
-        <div className="auth-form__label-row">
-          <span className="auth-form__label-text">{isVi ? 'Mật khẩu' : 'Password'}</span>
+        <div className="auth-form__password-field">
+          <label>
+            <span className="auth-form__label-text">{isVi ? 'Mật khẩu' : 'Password'}</span>
+            <input
+              aria-label={isVi ? 'Mật khẩu' : 'Password'}
+              autoComplete="current-password"
+              name="password"
+              type="password"
+              placeholder="••••••••••••"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.currentTarget.value)}
+            />
+          </label>
           <a href={`/${locale}/forgot-password`} className="auth-form__forgot-link">
             {isVi ? 'Quên mật khẩu?' : 'Forgot password?'}
           </a>
         </div>
-        <label>
-          <input
-            aria-label={isVi ? 'Mật khẩu' : 'Password'}
-            autoComplete="current-password"
-            name="password"
-            type="password"
-            placeholder="••••••••••••"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.currentTarget.value)}
-          />
-        </label>
         <button className="auth-form__submit" disabled={pending} type="submit">
           {pending ? (
             <span className="auth-form__button-content">
