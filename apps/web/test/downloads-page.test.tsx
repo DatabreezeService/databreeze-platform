@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
@@ -9,12 +9,8 @@ describe('public downloads surface [WEB-002, WEB-003, DSK-208, DSK-271]', () => 
   it('renders complete Vietnamese release guidance without inventing an installer URL', () => {
     render(<DownloadsPage locale="vi-VN" />);
 
-    expect(
-      screen.getByRole('heading', { name: 'DataBreeze, trên đúng thiết bị của bạn.' }),
-    ).toBeTruthy();
-    expect(
-      screen.getByRole('heading', { name: 'Bản phát hành, có dấu vết rõ ràng.' }),
-    ).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'DataBreeze trên mọi thiết bị.' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Bản phát hành theo thiết bị.' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: /Desktop/u }).getAttribute('aria-selected')).toBe(
       'true',
     );
@@ -24,10 +20,16 @@ describe('public downloads surface [WEB-002, WEB-003, DSK-208, DSK-271]', () => 
     );
     expect(screen.queryByRole('link', { name: 'Tải bản cài đặt' })).toBeNull();
     expect(
-      within(screen.getByRole('navigation'))
-        .getByRole('link', { name: 'Đăng nhập' })
-        .getAttribute('href'),
-    ).toBe('/vi-VN/sign-in');
+      screen
+        .getAllByRole('link', { name: 'Đăng nhập' })
+        .every((link) => link.getAttribute('href') === '/vi-VN/sign-in'),
+    ).toBe(true);
+    expect(
+      screen.getByRole('link', { name: 'DataBreeze, về trang chủ' }).getAttribute('href'),
+    ).toBe('/vi-VN');
+    expect(screen.getByRole('link', { name: 'Ứng dụng' }).getAttribute('href')).toBe(
+      '/vi-VN/downloads',
+    );
   });
 
   it('changes the release panel when Android is selected', async () => {

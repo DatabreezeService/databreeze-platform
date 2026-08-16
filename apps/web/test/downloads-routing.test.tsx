@@ -16,9 +16,9 @@ describe('public downloads routing [WEB-002, WEB-003]', () => {
     render(<ApplicationBoundary router={router} />);
 
     expect(
-      await screen.findByRole('heading', { name: 'DataBreeze, trên đúng thiết bị của bạn.' }),
+      await screen.findByRole('heading', { name: 'DataBreeze trên mọi thiết bị.' }),
     ).toBeTruthy();
-    expect(screen.queryByRole('navigation', { name: 'Điều hướng chính' })).toBeNull();
+    expect(screen.getByRole('navigation', { name: 'Điều hướng chính' })).toBeTruthy();
   });
 
   it('keeps signed-in users on the public downloads route', async () => {
@@ -30,10 +30,10 @@ describe('public downloads routing [WEB-002, WEB-003]', () => {
     render(<ApplicationBoundary router={router} />);
 
     expect(
-      await screen.findByRole('heading', { name: 'DataBreeze, wherever your data moves.' }),
+      await screen.findByRole('heading', { name: 'DataBreeze on every device.' }),
     ).toBeTruthy();
     await waitFor(() => expect(router.state.location.pathname).toBe('/en/downloads'));
-    expect(screen.queryByRole('navigation', { name: 'Primary navigation' })).toBeNull();
+    expect(screen.getByRole('navigation', { name: 'Primary navigation' })).toBeTruthy();
   });
 
   it('canonicalizes the non-localized downloads path to the default Vietnamese route', async () => {
@@ -46,7 +46,7 @@ describe('public downloads routing [WEB-002, WEB-003]', () => {
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/vi-VN/downloads'));
     expect(
-      await screen.findByRole('heading', { name: 'DataBreeze, trên đúng thiết bị của bạn.' }),
+      await screen.findByRole('heading', { name: 'DataBreeze trên mọi thiết bị.' }),
     ).toBeTruthy();
   });
 });
