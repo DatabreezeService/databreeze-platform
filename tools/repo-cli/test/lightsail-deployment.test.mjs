@@ -16,6 +16,17 @@ test('Lightsail pilot Compose keeps data services private and gates API on migra
   assert.match(compose, /WEB_IMAGE:\?WEB_IMAGE/u);
   assert.match(compose, /- '80:80'/u);
   assert.match(compose, /- '443:443'/u);
+  assert.match(
+    compose,
+    /DATABREEZE_LOCAL_EMAIL_PROVIDER: \$\{DATABREEZE_LOCAL_EMAIL_PROVIDER:-mailpit\}/u,
+  );
+  assert.match(compose, /DATABREEZE_IAM_SMTP_HOST: \$\{DATABREEZE_IAM_SMTP_HOST:-mailpit\}/u);
+  assert.match(compose, /DATABREEZE_IAM_SMTP_PORT: \$\{DATABREEZE_IAM_SMTP_PORT:-1025\}/u);
+  assert.match(compose, /DATABREEZE_IAM_SMTP_USERNAME: \$\{DATABREEZE_IAM_SMTP_USERNAME:-\}/u);
+  assert.match(
+    compose,
+    /DATABREEZE_IAM_SMTP_APP_PASSWORD: \$\{DATABREEZE_IAM_SMTP_APP_PASSWORD:-\}/u,
+  );
   assert.match(compose, /postgres:17\.5-alpine@sha256:[0-9a-f]{64}/u);
   assert.match(compose, /redis:7\.4\.5-alpine@sha256:[0-9a-f]{64}/u);
   const postgresService = compose.match(/\n  postgres:\n([\s\S]*?)(?=\n  [a-z-]+:\n)/u)?.[1] ?? '';
@@ -38,6 +49,9 @@ test('Lightsail environment example keeps secrets and mutable tags out of source
   const env = await read('infrastructure/lightsail/.env.example');
   assert.match(env, /CHANGE_ME/u);
   assert.match(env, /VITE_DATABREEZE_DEMO_MODE=true/u);
+  assert.match(env, /DATABREEZE_LOCAL_EMAIL_PROVIDER=mailpit/u);
+  assert.match(env, /DATABREEZE_IAM_SMTP_HOST=mailpit/u);
+  assert.match(env, /DATABREEZE_IAM_SMTP_PORT=1025/u);
   assert.doesNotMatch(env, /OPENAI_API_KEY=/u);
   assert.doesNotMatch(env, /:latest\b/u);
 });
