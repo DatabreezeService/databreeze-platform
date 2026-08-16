@@ -51,7 +51,7 @@ describe('product module workbench navigation', () => {
     expect(
       await screen.findByRole('heading', { name: 'Data Quality Guard', level: 1 }),
     ).toBeTruthy();
-    await user.click(screen.getByRole('link', { name: 'Tiếng Việt' }));
+    await user.click(screen.getByRole('link', { name: /English|Tiếng Việt/i }));
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/vi-VN/modules/data-quality-guard');

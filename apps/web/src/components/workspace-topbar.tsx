@@ -198,11 +198,6 @@ export function WorkspaceTopbar({
           </Button>
         ) : null}
         <Link
-          aria-label={
-            locale === 'vi-VN'
-              ? 'Chuyển sang tiếng Anh (Switch to English)'
-              : 'Chuyển sang tiếng Việt'
-          }
           className="workspace-topbar__locale"
           to={alternatePath}
         >
