@@ -104,19 +104,6 @@ export function FloatingAgentPanel({
       className="floating-agent-panel"
       data-open-motion={resolveAgentOpenMotion()}
     >
-      <header className="floating-agent-panel__header">
-        <span className="floating-agent-panel__mark">
-          <img alt="" aria-hidden="true" src={DATABREEZE_MARK_SRC} />
-        </span>
-        <div>
-          <h2>{text.title}</h2>
-          <p>{text.context}</p>
-        </div>
-        <button aria-label={text.close} type="button" onClick={() => store.setOpen(false)}>
-          <XIcon />
-        </button>
-      </header>
-      {active === undefined ? <p className="floating-agent-panel__empty">{text.empty}</p> : null}
       <AgentChatShell
         {...(active === undefined
           ? {}
@@ -126,9 +113,11 @@ export function FloatingAgentPanel({
             })}
         analysisHref={`/${locale}/analysis${active === undefined ? '' : `?conversation=${encodeURIComponent(active.conversationId)}`}`}
         conversations={snapshot.conversations}
+        headingTitle={text.title}
         locale={locale}
         messages={active?.messages ?? []}
         newConversationHref={`/${locale}/analysis?new=1`}
+        onClose={() => store.setOpen(false)}
         onCreateConversation={handleCreateConversation}
         onSelectConversation={(conversationId) => store.selectConversation(conversationId)}
         onSubmitMessage={handleSubmitMessage}

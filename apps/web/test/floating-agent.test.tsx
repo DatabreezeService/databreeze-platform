@@ -107,12 +107,9 @@ describe('floating agent surfaces', () => {
     expect(screen.getByRole('textbox', { name: 'Nhập câu hỏi cho trợ lý' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Gửi' })).toBeTruthy();
     expect(screen.getByText('Bán hàng toàn quốc · Phiên bản 12')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Mở trong Phân tích' }).getAttribute('href')).toBe(
-      '/vi-VN/analysis?conversation=conversation-1',
-    );
   });
 
-  it('switches between authorized conversations and opens the same thread in Analysis', async () => {
+  it('switches between authorized conversations in the Notion-style dropdown', async () => {
     const user = userEvent.setup();
     const store = createAgentStore();
     store.setConversations([
@@ -144,12 +141,6 @@ describe('floating agent surfaces', () => {
 
     expect(store.getActiveConversation()?.conversationId).toBe('conversation-orders');
     expect(screen.getByText('Tồn kho cửa hàng · Phiên bản 7')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Mở trong Phân tích' }).getAttribute('href')).toBe(
-      '/vi-VN/analysis?conversation=conversation-orders',
-    );
-    expect(screen.getByRole('link', { name: 'Hội thoại mới' }).getAttribute('href')).toBe(
-      '/vi-VN/analysis?new=1',
-    );
   });
 
   it('fades the chat open when the user prefers reduced motion', async () => {

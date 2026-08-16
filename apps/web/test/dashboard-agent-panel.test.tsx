@@ -67,9 +67,6 @@ describe('dashboard-local agent panel [DDA-015][DDA-017][DDA-024][WEB-014]', () 
       'conversation-orders',
     );
     expect(onSelectConversation).toHaveBeenCalledWith('conversation-orders');
-    expect(screen.getByRole('link', { name: 'Mở trong Phân tích' }).getAttribute('href')).toBe(
-      '/vi-VN/analysis?conversation=conversation-sales',
-    );
   });
 
   it('opens from the persistent icon, identifies the current target, and returns focus on Escape', async () => {

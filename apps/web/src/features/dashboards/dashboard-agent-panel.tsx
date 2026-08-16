@@ -221,7 +221,7 @@ export function DashboardAgentPanel({
 
   return (
     <aside
-      aria-labelledby={titleId}
+      aria-label={label(locale, 'Trợ lý biểu đồ', 'Chart assistant')}
       aria-modal="true"
       className="dda-dashboard-agent-panel"
       data-open-motion={resolveAgentOpenMotion()}
@@ -229,23 +229,6 @@ export function DashboardAgentPanel({
       ref={dialogRef}
       role="dialog"
     >
-      <header className="dda-dashboard-agent-panel__header">
-        <span className="dda-dashboard-agent-panel__mark">
-          <img alt="" aria-hidden="true" src={DATABREEZE_MARK_SRC} />
-        </span>
-        <div>
-          <h2 id={titleId}>{label(locale, 'Trợ lý biểu đồ', 'Chart assistant')}</h2>
-          <p>{label(locale, 'Đang dùng ngữ cảnh được cấp quyền', 'Using authorized context')}</p>
-        </div>
-        <button
-          aria-label={label(locale, 'Đóng trợ lý biểu đồ', 'Close chart assistant')}
-          onClick={onClose}
-          type="button"
-        >
-          <XIcon />
-        </button>
-      </header>
-
       <AgentChatShell
         {...(currentStateMessage === undefined ? {} : { stateMessage: currentStateMessage })}
         {...(activeConversationId === undefined ? {} : { activeConversationId })}
@@ -258,9 +241,11 @@ export function DashboardAgentPanel({
         )}
         context={`${label(locale, 'Mục tiêu', 'Target')}: ${targetText}`}
         conversations={conversations}
+        headingTitle={label(locale, 'Trợ lý biểu đồ', 'Chart assistant')}
         locale={locale}
         messages={messages}
         newConversationHref={`/${locale}/analysis?new=1`}
+        onClose={onClose}
         onSelectConversation={onSelectConversation}
         onSubmitMessage={submitQuestion}
         stateTone={nonAnswer ? 'alert' : 'status'}
