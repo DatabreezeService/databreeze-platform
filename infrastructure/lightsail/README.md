@@ -41,8 +41,22 @@ Redis, and MinIO API ports are never published publicly.
 
 - `VITE_DATABREEZE_DEMO_MODE=true` is allowed only for this pilot and is visibly
   labeled in the Web UI; its numbers are synthetic.
-- Mailpit is suitable for owner testing. Use SES separately when external
-  users must receive email.
+- Mailpit is the default OTP provider and is suitable for owner testing. To
+  send OTPs to real inboxes during this pilot, set the following values in the
+  protected `/opt/databreeze/.env` on the server:
+
+  ```dotenv
+  DATABREEZE_LOCAL_EMAIL_PROVIDER=gmail
+  DATABREEZE_IAM_SMTP_HOST=smtp.gmail.com
+  DATABREEZE_IAM_SMTP_PORT=465
+  DATABREEZE_IAM_SMTP_USERNAME=support.databreeze@gmail.com
+  DATABREEZE_IAM_SMTP_APP_PASSWORD=<Google-App-Password>
+  DATABREEZE_IAM_EMAIL_FROM_ADDRESS=support.databreeze@gmail.com
+  ```
+
+  Gmail requires 2-Step Verification and an App Password; never use a normal
+  account password. The sender address must match the SMTP username. Use SES
+  separately for a wider production rollout.
 - OpenAI is disabled by default. Never copy an API key into this file through
   source control or a CI log; place it only in the server’s protected secret
   mechanism after rotating the exposed key.
@@ -96,7 +110,7 @@ credentials in an always-run cleanup step. No additional GHCR secret is
 required. Keep SSH restricted to the owner/admin IP. The workflow never sends
 the server `.env` or application secrets to GitHub.
 
-The workflow intentionally leaves OpenAI, worker execution, and external
-email disabled for this budget pilot. Turn those on only in a separate,
-reviewed production deployment after rotating any key that was pasted into a
-chat or terminal.
+The workflow intentionally leaves OpenAI and worker execution disabled for
+this budget pilot. Mailpit remains the default email provider; enable Gmail
+SMTP only on the protected server after rotating any key that was pasted into
+a chat or terminal.
