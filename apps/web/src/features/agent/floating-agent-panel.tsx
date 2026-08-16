@@ -1,6 +1,6 @@
-import brandMarkUrl from '@databreeze/design-tokens/brand/generated/web/favicon-32.png';
 import { useSyncExternalStore } from 'react';
 
+import { DATABREEZE_MARK_SRC } from '../../app/brand-assets.ts';
 import { XIcon } from '../../components/icons.tsx';
 import { AgentChatShell } from './agent-chat-shell.tsx';
 import type { AgentStoreV1 } from './agent-store.ts';
@@ -53,7 +53,7 @@ export function FloatingAgentPanel({
     <aside aria-label={locale === 'vi-VN' ? 'Trợ lý' : 'Agent'} className="floating-agent-panel">
       <header className="floating-agent-panel__header">
         <span className="floating-agent-panel__mark">
-          <img alt="" aria-hidden="true" src={brandMarkUrl} />
+          <img alt="" aria-hidden="true" src={DATABREEZE_MARK_SRC} />
         </span>
         <div>
           <h2>{text.title}</h2>

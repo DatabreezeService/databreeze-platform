@@ -1,5 +1,6 @@
 import type { SupportedLocaleV1 } from '@databreeze/i18n/v1';
 
+import { DATABREEZE_MARK_SRC } from '../../app/brand-assets.ts';
 import '../../styles/dashboard-agent.css';
 
 export interface AgentInvitationProps {
@@ -49,15 +50,7 @@ export function AgentInvitation({ locale, visible, onOpen, onDismiss }: AgentInv
         aria-label={label(locale, 'Mở trợ lý biểu đồ', 'Open chart assistant')}
         onClick={onOpen}
       >
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M5 5.75A2.75 2.75 0 0 1 7.75 3h8.5A2.75 2.75 0 0 1 19 5.75v7.5A2.75 2.75 0 0 1 16.25 16H12l-3.6 3.05A.75.75 0 0 1 7.17 18.5V16h-.42A2.75 2.75 0 0 1 4 13.25v-7.5C4 4.23 4.67 3 5 3Zm2.75-1.25A1.25 1.25 0 0 0 6.5 5.75v7.5c0 .69.56 1.25 1.25 1.25h.92v2.38L11.5 14.5h4.75c.69 0 1.25-.56 1.25-1.25v-7.5c0-.69-.56-1.25-1.25-1.25h-8.5Z" />
-          <path
-            d="M8.5 8.5h7M8.5 11.5h4.5"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-        </svg>
+        <img alt="" aria-hidden="true" src={DATABREEZE_MARK_SRC} />
       </button>
     </aside>
   );

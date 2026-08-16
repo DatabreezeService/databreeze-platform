@@ -1,6 +1,7 @@
 import type { SupportedLocaleV1 } from '@databreeze/i18n/v1';
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 
+import { DATABREEZE_MARK_SRC } from '../../app/brand-assets.ts';
 import { XIcon } from '../../components/icons.tsx';
 import { AgentChatShell } from '../agent/agent-chat-shell.tsx';
 import type {
@@ -227,9 +228,12 @@ export function DashboardAgentPanel({
       role="dialog"
     >
       <header className="dda-dashboard-agent-panel__header">
+        <span className="dda-dashboard-agent-panel__mark">
+          <img alt="" aria-hidden="true" src={DATABREEZE_MARK_SRC} />
+        </span>
         <div>
-          <p className="dda-dashboard-agent-panel__eyebrow">DataBreeze Agent</p>
           <h2 id={titleId}>{label(locale, 'Trợ lý biểu đồ', 'Chart assistant')}</h2>
+          <p>{label(locale, 'Đang dùng ngữ cảnh được cấp quyền', 'Using authorized context')}</p>
         </div>
         <button
           aria-label={label(locale, 'Đóng trợ lý biểu đồ', 'Close chart assistant')}

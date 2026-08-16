@@ -61,7 +61,12 @@ describe('build-time governed navigation', () => {
       expect(navigation.querySelector('.application-rail__brand-icon')).toBeTruthy();
       expect(
         navigation.querySelector('.application-rail__brand-icon')?.getAttribute('src'),
-      ).toContain('databreeze-mark');
+      ).toBe('/landing/assets/databreeze-mark.png');
+      const expandHandle = screen.getByRole('button', { name: 'Expand sidebar' });
+      expect(expandHandle.querySelector('.application-rail__collapse-dots')).toBeNull();
+      expect(
+        expandHandle.querySelector('.application-rail__collapse-arrow')?.getAttribute('data-point'),
+      ).toBe('right');
     } finally {
       globalThis.matchMedia = originalMatchMedia;
     }

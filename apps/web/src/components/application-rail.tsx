@@ -8,7 +8,15 @@ import {
   udwPrimaryNavLabelV1,
   type UdwPrimaryNavItemV1,
 } from '../app/unified-primary-navigation.ts';
-import { BellIcon, DotsVerticalIcon, MenuIcon, SearchIcon, XIcon } from './icons.tsx';
+import { DATABREEZE_MARK_SRC } from '../app/brand-assets.ts';
+import {
+  BellIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  MenuIcon,
+  SearchIcon,
+  XIcon,
+} from './icons.tsx';
 
 export interface ApplicationRailProperties {
   readonly collapsed?: boolean;
@@ -128,7 +136,7 @@ export function ApplicationRail({
             alt=""
             className="application-rail__brand-icon"
             height="32"
-            src="/landing/assets/databreeze-mark.png"
+            src={DATABREEZE_MARK_SRC}
             width="32"
           />
         </Link>
@@ -141,8 +149,12 @@ export function ApplicationRail({
             title={collapseLabel}
             type="button"
           >
-            <span className="application-rail__collapse-dots" aria-hidden="true">
-              <DotsVerticalIcon />
+            <span
+              aria-hidden="true"
+              className="application-rail__collapse-arrow"
+              data-point={effectivelyCollapsed ? 'right' : 'left'}
+            >
+              {effectivelyCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
             </span>
           </button>
         ) : null}

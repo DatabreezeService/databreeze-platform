@@ -31,12 +31,18 @@ export function MenuIcon(properties: IconProperties) {
   );
 }
 
-export function DotsVerticalIcon(properties: IconProperties) {
+export function ChevronLeftIcon(properties: IconProperties) {
   return (
     <svg {...baseProperties} {...properties}>
-      <circle cx="12" cy="5" fill="currentColor" r="1.7" stroke="none" />
-      <circle cx="12" cy="12" fill="currentColor" r="1.7" stroke="none" />
-      <circle cx="12" cy="19" fill="currentColor" r="1.7" stroke="none" />
+      <path d="m15 6-6 6 6 6" />
+    </svg>
+  );
+}
+
+export function ChevronRightIcon(properties: IconProperties) {
+  return (
+    <svg {...baseProperties} {...properties}>
+      <path d="m9 6 6 6-6 6" />
     </svg>
   );
 }

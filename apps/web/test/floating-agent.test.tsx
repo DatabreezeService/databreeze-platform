@@ -13,7 +13,10 @@ describe('floating agent surfaces', () => {
   it('shows the floating agent on the composed dashboard route', async () => {
     const router = createAppRouter({ initialEntries: ['/vi-VN/dashboards'] });
     render(<ApplicationBoundary router={router} />);
-    expect(await screen.findByRole('button', { name: 'Mở trợ lý biểu đồ' })).toBeTruthy();
+    const opener = await screen.findByRole('button', { name: 'Mở trợ lý biểu đồ' });
+    expect(opener.querySelector('img')?.getAttribute('src')).toBe(
+      '/landing/assets/databreeze-mark.png',
+    );
   });
 
   it('adds compatible demo charts only after the explicit canvas confirmation', async () => {
@@ -65,7 +68,10 @@ describe('floating agent surfaces', () => {
         </Routes>
       </MemoryRouter>,
     );
-    expect(screen.getByRole('button', { name: 'Mở trợ lý' })).toBeTruthy();
+    const opener = screen.getByRole('button', { name: 'Mở trợ lý' });
+    expect(opener.querySelector('img')?.getAttribute('src')).toBe(
+      '/landing/assets/databreeze-mark.png',
+    );
   });
 
   it('opens a contextual DataBreeze assistant card instead of an empty panel', async () => {
@@ -86,7 +92,14 @@ describe('floating agent surfaces', () => {
 
     await user.click(screen.getByRole('button', { name: 'Mở trợ lý' }));
 
+    const panel = screen.getByRole('complementary', { name: 'Trợ lý' });
     expect(screen.getByRole('heading', { name: 'Trợ lý DataBreeze' })).toBeTruthy();
+    expect(panel.querySelector('img')?.getAttribute('src')).toBe(
+      '/landing/assets/databreeze-mark.png',
+    );
+    expect(screen.getByRole('combobox', { name: 'Chuyển hội thoại' })).toBeTruthy();
+    expect(screen.getByRole('textbox', { name: 'Nhập câu hỏi cho trợ lý' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Gửi' })).toBeTruthy();
     expect(screen.getByText('Bán hàng toàn quốc · Phiên bản 12')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Mở trong Phân tích' }).getAttribute('href')).toBe(
       '/vi-VN/analysis?conversation=conversation-1',

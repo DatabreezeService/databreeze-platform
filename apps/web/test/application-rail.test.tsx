@@ -42,17 +42,22 @@ describe('application rail', () => {
     expect(screen.getByText('Bức tranh kinh doanh')).toBeTruthy();
   });
 
-  it('shows only the brand mark and a divider-centered three-dot collapse handle', async () => {
+  it('shows only the landing brand mark and a logo-aligned circular arrow collapse handle', async () => {
     renderDashboard();
 
     const navigation = await screen.findByRole('navigation', { name: 'Điều hướng chính' });
     expect(navigation.querySelector('.application-rail__brand-wordmark')).toBeNull();
-    expect(navigation.querySelector('.application-rail__brand-icon')).toBeTruthy();
+    expect(navigation.querySelector('.application-rail__brand-icon')?.getAttribute('src')).toBe(
+      '/landing/assets/databreeze-mark.png',
+    );
     expect(screen.queryByText('DataBreeze', { selector: '.application-rail__brand' })).toBeNull();
 
     const handle = screen.getByRole('button', { name: 'Thu gọn thanh bên' });
     expect(handle.classList.contains('application-rail__collapse')).toBe(true);
-    expect(handle.querySelector('.application-rail__collapse-dots')).toBeTruthy();
+    expect(handle.querySelector('.application-rail__collapse-dots')).toBeNull();
+    expect(handle.querySelector('.application-rail__collapse-arrow')?.getAttribute('data-point')).toBe(
+      'left',
+    );
   });
 
   it('starts expanded, collapses to icon-only navigation, and remembers the preference', async () => {
@@ -71,6 +76,10 @@ describe('application rail', () => {
     expect(globalThis.localStorage.getItem('databreeze.sidebar.compact.v1')).toBe('true');
     expect(screen.getByRole('link', { name: 'Bảng điều khiển' }).getAttribute('title')).toBe(
       'Bảng điều khiển',
+    );
+    const expandHandle = screen.getByRole('button', { name: 'Mở rộng thanh bên' });
+    expect(expandHandle.querySelector('.application-rail__collapse-arrow')?.getAttribute('data-point')).toBe(
+      'right',
     );
   });
 

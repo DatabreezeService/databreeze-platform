@@ -217,20 +217,20 @@
 
 .application-rail__collapse {
   position: absolute;
-  top: 50%;
+  top: 22px;
   right: 0;
   z-index: 50;
-  width: 22px;
-  height: 48px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
   padding: 0;
   border: 1px solid rgb(16 42 99 / 18%);
-  border-radius: var(--workspace-radius);
+  border-radius: 50%;
   color: #102a63;
   background: #ffffff;
   cursor: pointer;
-  transform: translate(50%, -50%);
+  transform: translateX(50%);
   transition:
     transform var(--workspace-transition) cubic-bezier(0.2, 0.8, 0.2, 1),
     background-color 150ms ease,
@@ -241,22 +241,22 @@
 .application-rail__collapse:focus-visible {
   background: #f4f7fc;
   border-color: #075de8;
-  transform: translate(calc(50% + 3px), -50%);
+  transform: translateX(calc(50% + 3px));
 }
 
-.application-rail__collapse-dots {
+.application-rail__collapse-arrow {
   display: grid;
-  transition: transform var(--workspace-transition) cubic-bezier(0.2, 0.8, 0.2, 1);
+  place-items: center;
 }
 
-.application-rail__collapse:hover .application-rail__collapse-dots,
-.application-rail__collapse:focus-visible .application-rail__collapse-dots {
-  transform: translateY(3px);
+.application-rail__collapse-arrow svg {
+  width: 14px;
+  height: 14px;
 }
 
 .application-rail[data-collapsed='true'] .application-rail__collapse:hover,
 .application-rail[data-collapsed='true'] .application-rail__collapse:focus-visible {
-  transform: translate(calc(50% + 3px), -50%);
+  transform: translateX(calc(50% + 3px));
 }
 
 .application-rail__group-label {
@@ -756,7 +756,6 @@
 .agent-chat-shell__context {
   margin: 0;
   padding: 9px 11px;
-  border-inline-start: 3px solid #075de8;
   color: #52617b;
   background: #f4f7fc;
   font-size: 12px;
@@ -989,11 +988,142 @@
   }
 }
 
+.floating-agent-button {
+  position: fixed;
+  z-index: 30;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #075de8;
+  border-radius: var(--workspace-radius);
+  color: #ffffff;
+  background: #075de8;
+  cursor: pointer;
+}
+
+.floating-agent-button img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  padding: 2px;
+  border-radius: 3px;
+  background: #ffffff;
+}
+
+.floating-agent-button:hover,
+.floating-agent-button:focus-visible {
+  background: #0643bd;
+  border-color: #0643bd;
+}
+
+.floating-agent-panel {
+  position: fixed;
+  z-index: 31;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(84px, calc(env(safe-area-inset-bottom) + 72px));
+  width: min(380px, calc(100vw - 40px));
+  max-height: min(36rem, calc(100dvh - 6rem));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid #dce5f2;
+  border-radius: var(--workspace-radius);
+  color: #102a63;
+  background: #ffffff;
+}
+
+.floating-agent-panel__header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e1e8f3;
+  background: #f4f7fc;
+}
+
+.floating-agent-panel__mark {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--workspace-radius);
+  background: #102a63;
+}
+
+.floating-agent-panel__mark img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.floating-agent-panel__header h2,
+.floating-agent-panel__header p {
+  margin: 0;
+}
+
+.floating-agent-panel__header h2 {
+  color: #102a63;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.floating-agent-panel__header p {
+  margin-top: 2px;
+  color: #68778d;
+  font-size: 11px;
+}
+
+.floating-agent-panel__header button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #dce5f2;
+  border-radius: var(--workspace-radius);
+  color: #102a63;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.floating-agent-panel__header button:hover,
+.floating-agent-panel__header button:focus-visible {
+  background: #edf2ff;
+}
+
+.floating-agent-panel__empty {
+  margin: 14px;
+  padding: 12px;
+  border: 1px solid #e1e8f3;
+  border-radius: var(--workspace-radius);
+  color: #68778d;
+  background: #f4f7fc;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.floating-agent-panel .agent-chat-shell {
+  min-height: 0;
+  padding: 12px 14px 14px;
+}
+
+.floating-agent-button:focus-visible,
+.floating-agent-panel__header button:focus-visible {
+  outline: 3px solid #9cbcff;
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app-shell,
   .application-rail,
   .application-rail__collapse,
-  .application-rail__collapse-dots {
+  .application-rail__collapse-arrow {
     transition: none;
   }
 }
