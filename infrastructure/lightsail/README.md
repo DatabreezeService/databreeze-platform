@@ -72,9 +72,24 @@ Redis, and MinIO API ports are never published publicly.
   ```
 
   Use SES separately for a wider production rollout.
-- OpenAI is disabled by default. Never copy an API key into this file through
-  source control or a CI log; place it only in the server’s protected secret
-  mechanism after rotating the exposed key.
+- OpenAI agent support is disabled by default. To enable the server-only agent
+  for this pilot, add the following to the protected `/opt/databreeze/.env` on
+  the server after creating a dedicated OpenAI project key with appropriate
+  spend and rate limits:
+
+  ```dotenv
+  OPENAI_API_KEY=<OpenAI-project-api-key>
+  DATABREEZE_OPENAI_AGENT_ENABLED=true
+  DATABREEZE_OPENAI_AGENT_MODEL=gpt-4o-mini-2024-07-18
+  DATABREEZE_OPENAI_AGENT_TIMEOUT_MS=30000
+  DATABREEZE_OPENAI_AGENT_MAX_OUTPUT_TOKENS=2048
+  ```
+
+  Never put the key in `.env.example`, source control, GitHub Actions, a CI
+  log, or any client environment. The Compose file passes it only to the API
+  container. Keep the flag `false` until the provider evaluation and rollout
+  approval are complete; a missing or malformed key with the flag enabled
+  intentionally prevents the API from starting.
 - The worker and advanced result-transfer path remain fail-closed until their
   typed workload and transfer gates pass.
 - Back up the named PostgreSQL and MinIO volumes before changing the host.
@@ -125,7 +140,8 @@ credentials in an always-run cleanup step. No additional GHCR secret is
 required. Keep SSH restricted to the owner/admin IP. The workflow never sends
 the server `.env` or application secrets to GitHub.
 
-The workflow intentionally leaves OpenAI and worker execution disabled for
-this budget pilot. Mailpit remains the default email provider; enable Gmail
-SMTP only on the protected server after rotating any key that was pasted into
-a chat or terminal.
+The workflow leaves OpenAI and worker execution disabled by default for this
+budget pilot. The workflow never sends `/opt/databreeze/.env` or the OpenAI key
+to GitHub; it only deploys the Compose mapping. Mailpit remains the default
+email provider; enable Gmail SMTP only on the protected server after rotating
+any key that was pasted into a chat or terminal.

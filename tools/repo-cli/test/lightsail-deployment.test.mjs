@@ -27,6 +27,26 @@ test('Lightsail pilot Compose keeps data services private and gates API on migra
     compose,
     /DATABREEZE_IAM_SMTP_APP_PASSWORD: \$\{DATABREEZE_IAM_SMTP_APP_PASSWORD:-\}/u,
   );
+  assert.match(compose, /OPENAI_API_KEY: \$\{OPENAI_API_KEY:-\}/u);
+  assert.match(
+    compose,
+    /DATABREEZE_OPENAI_AGENT_ENABLED: \$\{DATABREEZE_OPENAI_AGENT_ENABLED:-false\}/u,
+  );
+  assert.match(
+    compose,
+    /DATABREEZE_OPENAI_AGENT_MODEL: \$\{DATABREEZE_OPENAI_AGENT_MODEL:-gpt-4o-mini-2024-07-18\}/u,
+  );
+  assert.match(
+    compose,
+    /DATABREEZE_OPENAI_AGENT_TIMEOUT_MS: \$\{DATABREEZE_OPENAI_AGENT_TIMEOUT_MS:-30000\}/u,
+  );
+  assert.match(
+    compose,
+    /DATABREEZE_OPENAI_AGENT_MAX_OUTPUT_TOKENS: \$\{DATABREEZE_OPENAI_AGENT_MAX_OUTPUT_TOKENS:-2048\}/u,
+  );
+  const apiService = compose.match(/\n  api:\n([\s\S]*?)(?=\n  [a-z-]+:\n)/u)?.[1] ?? '';
+  assert.match(apiService, /OPENAI_API_KEY:/u);
+  assert.doesNotMatch(compose.slice(compose.indexOf('\n  web:\n')), /OPENAI_API_KEY:/u);
   assert.match(compose, /postgres:17\.5-alpine@sha256:[0-9a-f]{64}/u);
   assert.match(compose, /redis:7\.4\.5-alpine@sha256:[0-9a-f]{64}/u);
   const postgresService = compose.match(/\n  postgres:\n([\s\S]*?)(?=\n  [a-z-]+:\n)/u)?.[1] ?? '';
@@ -52,6 +72,8 @@ test('Lightsail environment example keeps secrets and mutable tags out of source
   assert.match(env, /DATABREEZE_LOCAL_EMAIL_PROVIDER=mailpit/u);
   assert.match(env, /DATABREEZE_IAM_SMTP_HOST=mailpit/u);
   assert.match(env, /DATABREEZE_IAM_SMTP_PORT=1025/u);
+  assert.match(env, /DATABREEZE_OPENAI_AGENT_ENABLED=false/u);
+  assert.match(env, /DATABREEZE_OPENAI_AGENT_MODEL=gpt-4o-mini-2024-07-18/u);
   assert.doesNotMatch(env, /OPENAI_API_KEY=/u);
   assert.doesNotMatch(env, /:latest\b/u);
 });
