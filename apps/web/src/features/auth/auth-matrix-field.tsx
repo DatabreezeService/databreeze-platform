@@ -108,9 +108,7 @@ function paintSquareWave(
 
   for (let row = 0; row < rows; row += 1) {
     for (let col = 0; col < cols; col += 1) {
-      const level = animate
-        ? authSquareWaveLevel(col * colScale, row * rowScale, timeMs, WAVE)
-        : 0;
+      const level = animate ? authSquareWaveLevel(col * colScale, row * rowScale, timeMs, WAVE) : 0;
       writeCell(data, width, height, col, row, level);
     }
   }
@@ -164,11 +162,6 @@ export function AuthMatrixField() {
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="auth-matrix"
-      data-field="square-wave"
-      aria-hidden="true"
-    />
+    <canvas ref={canvasRef} className="auth-matrix" data-field="square-wave" aria-hidden="true" />
   );
 }

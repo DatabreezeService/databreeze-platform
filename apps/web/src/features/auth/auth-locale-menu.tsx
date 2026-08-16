@@ -38,7 +38,13 @@ function LocaleFlag({ locale }: { readonly locale: AuthLocale }) {
   }
 
   return (
-    <svg className="auth-locale__flag" viewBox="0 0 18 12" width="18" height="12" aria-hidden="true">
+    <svg
+      className="auth-locale__flag"
+      viewBox="0 0 18 12"
+      width="18"
+      height="12"
+      aria-hidden="true"
+    >
       <rect width="18" height="12" fill="#b22234" />
       <rect y="1" width="18" height="1" fill="#fff" />
       <rect y="3" width="18" height="1" fill="#fff" />

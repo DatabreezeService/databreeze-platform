@@ -826,7 +826,6 @@ td:first-child {
   object-fit: contain;
 }
 
-
 .auth-story__title {
   margin: 0;
   color: #f7f7ff;
@@ -892,8 +891,7 @@ td:first-child {
   position: relative;
   overflow: visible;
   background:
-    radial-gradient(ellipse 70% 55% at 82% 12%, rgba(61, 80, 255, 0.16), transparent 62%),
-    #07091d;
+    radial-gradient(ellipse 70% 55% at 82% 12%, rgba(61, 80, 255, 0.16), transparent 62%), #07091d;
 }
 
 .auth-page__panel::before {

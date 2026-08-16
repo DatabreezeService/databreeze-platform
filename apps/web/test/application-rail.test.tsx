@@ -69,9 +69,9 @@ describe('application rail', () => {
     const handle = screen.getByRole('button', { name: 'Thu gọn thanh bên' });
     expect(handle.classList.contains('application-rail__collapse')).toBe(true);
     expect(handle.querySelector('.application-rail__collapse-dots')).toBeNull();
-    expect(handle.querySelector('.application-rail__collapse-arrow')?.getAttribute('data-point')).toBe(
-      'left',
-    );
+    expect(
+      handle.querySelector('.application-rail__collapse-arrow')?.getAttribute('data-point'),
+    ).toBe('left');
 
     const brandIcon = cssBlock('.application-rail__brand-icon');
     expect(brandIcon).not.toMatch(/invert/u);
@@ -108,9 +108,9 @@ describe('application rail', () => {
       'Bảng điều khiển',
     );
     const expandHandle = screen.getByRole('button', { name: 'Mở rộng thanh bên' });
-    expect(expandHandle.querySelector('.application-rail__collapse-arrow')?.getAttribute('data-point')).toBe(
-      'right',
-    );
+    expect(
+      expandHandle.querySelector('.application-rail__collapse-arrow')?.getAttribute('data-point'),
+    ).toBe('right');
   });
 
   it('renders authorized Inbox, Reviews, and Settings as quieter workspace tools', async () => {

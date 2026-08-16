@@ -59,9 +59,9 @@ describe('build-time governed navigation', () => {
       expect(navigation.getAttribute('data-collapsed')).toBe('true');
       expect(navigation.querySelector('.application-rail__brand-wordmark')).toBeNull();
       expect(navigation.querySelector('.application-rail__brand-icon')).toBeTruthy();
-      expect(
-        navigation.querySelector('.application-rail__brand-icon')?.getAttribute('src'),
-      ).toBe('/landing/assets/databreeze-mark.png');
+      expect(navigation.querySelector('.application-rail__brand-icon')?.getAttribute('src')).toBe(
+        '/landing/assets/databreeze-mark.png',
+      );
       const expandHandle = screen.getByRole('button', { name: 'Expand sidebar' });
       expect(expandHandle.querySelector('.application-rail__collapse-dots')).toBeNull();
       expect(
