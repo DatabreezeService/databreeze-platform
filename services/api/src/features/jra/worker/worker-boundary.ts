@@ -136,7 +136,9 @@ function resultBindingEcho(input: unknown): WorkerResultBindingEchoV1 {
   });
 }
 
-function declaredOutputs(input: unknown): readonly import('./worker-result-preparation.port.js').WorkerDeclaredOutputV1[] {
+function declaredOutputs(
+  input: unknown,
+): readonly import('./worker-result-preparation.port.js').WorkerDeclaredOutputV1[] {
   if (!Array.isArray(input) || input.length === 0 || input.length > 32)
     throw new WorkerProblemError('WORKER_INVALID_PAYLOAD', 400);
   const names = new Set<string>();
@@ -146,7 +148,15 @@ function declaredOutputs(input: unknown): readonly import('./worker-result-prepa
         throw new WorkerProblemError('WORKER_INVALID_PAYLOAD', 400);
       const value = candidate as Record<string, unknown>;
       if (
-        !exactKeys(value, ['kind', 'outputName', 'schemaId', 'mediaType', 'contentSha256', 'byteLength', 'sourceLineageHash']) ||
+        !exactKeys(value, [
+          'kind',
+          'outputName',
+          'schemaId',
+          'mediaType',
+          'contentSha256',
+          'byteLength',
+          'sourceLineageHash',
+        ]) ||
         !['JSON_RESULT', 'BINARY_RESULT'].includes(value['kind'] as string) ||
         typeof value['outputName'] !== 'string' ||
         !SAFE_NAME.test(value['outputName']) ||
@@ -191,7 +201,10 @@ function attestationReferences(input: unknown): readonly WorkerResultAttestation
       )
         throw new WorkerProblemError('WORKER_INVALID_PAYLOAD', 400);
       names.add(value['outputName']);
-      return Object.freeze({ outputName: value['outputName'], attestationId: requestId(value['attestationId']) });
+      return Object.freeze({
+        outputName: value['outputName'],
+        attestationId: requestId(value['attestationId']),
+      });
     }),
   );
 }
@@ -846,8 +859,7 @@ export class WorkerBoundary implements WorkerBoundaryPortV1 {
     const attemptScope = exactTenantScope(attempt.tenantScope);
     const jobScope = exactTenantScope(job.tenantScope);
     const leaseExpiresAt = strictTimestamp(attempt.leaseExpiresAt);
-    if (leaseExpiresAt === undefined)
-      throw new WorkerProblemError('WORKER_ATTEMPT_REJECTED', 409);
+    if (leaseExpiresAt === undefined) throw new WorkerProblemError('WORKER_ATTEMPT_REJECTED', 409);
     if (
       attempt.attemptId !== attemptId ||
       attempt.executorId !== identity.workerId ||
@@ -1090,8 +1102,7 @@ export class WorkerBoundary implements WorkerBoundaryPortV1 {
     if (!result.accepted) {
       if (result.code === 'CONFLICT')
         throw new WorkerProblemError('WORKER_IDEMPOTENCY_CONFLICT', 409);
-      if (result.code === 'STALE_ATTEMPT')
-        throw new WorkerProblemError('WORKER_STALE_LEASE', 409);
+      if (result.code === 'STALE_ATTEMPT') throw new WorkerProblemError('WORKER_STALE_LEASE', 409);
       throw new WorkerProblemError('WORKER_RESULT_PREPARATION_UNAVAILABLE', 503);
     }
     const prepared = result.preparation;
@@ -1132,7 +1143,8 @@ export class WorkerBoundary implements WorkerBoundaryPortV1 {
           capability.processorVersion !== policy.processorVersion ||
           capability.dataMode !== policy.dataMode ||
           capability.payloadClass !== policy.payloadClass ||
-          JSON.stringify(capability.allowedMediaTypes) !== JSON.stringify(policy.allowedMediaTypes) ||
+          JSON.stringify(capability.allowedMediaTypes) !==
+            JSON.stringify(policy.allowedMediaTypes) ||
           !stableIdentifier(capability.capabilityId) ||
           !strictTimestamp(capability.issuedAt) ||
           !strictTimestamp(capability.expiresAt) ||
@@ -1215,10 +1227,16 @@ export class WorkerBoundary implements WorkerBoundaryPortV1 {
       fingerprint,
     });
     if (replay)
-      return Object.freeze({ schemaVersion: 4, accepted: true, submissionId: replay.submissionId,
-        attemptId: replay.attemptId, resultManifestId: replay.resultManifestId,
-        resultManifestHash: replay.resultManifestHash, outcome: replay.outcome,
-        revision: replay.attemptRevision });
+      return Object.freeze({
+        schemaVersion: 4,
+        accepted: true,
+        submissionId: replay.submissionId,
+        attemptId: replay.attemptId,
+        resultManifestId: replay.resultManifestId,
+        resultManifestHash: replay.resultManifestHash,
+        outcome: replay.outcome,
+        revision: replay.attemptRevision,
+      });
     const authorized = await this.authorize(
       identity,
       'FINALIZE_RESULT',
@@ -1271,17 +1289,21 @@ export class WorkerBoundary implements WorkerBoundaryPortV1 {
     if (!result.accepted) {
       if (result.code === 'CONFLICT')
         throw new WorkerProblemError('WORKER_IDEMPOTENCY_CONFLICT', 409);
-      if (result.code === 'STALE_ATTEMPT')
-        throw new WorkerProblemError('WORKER_STALE_LEASE', 409);
+      if (result.code === 'STALE_ATTEMPT') throw new WorkerProblemError('WORKER_STALE_LEASE', 409);
       if (result.code === 'ATTESTATION_REJECTED')
         throw new WorkerProblemError('WORKER_RESULT_ATTESTATION_REJECTED', 409);
       throw new WorkerProblemError('WORKER_RESULT_FINALIZATION_UNAVAILABLE', 503);
     }
-    return Object.freeze({ schemaVersion: 4, accepted: true,
-      submissionId: result.completion.submissionId, attemptId: result.completion.attemptId,
+    return Object.freeze({
+      schemaVersion: 4,
+      accepted: true,
+      submissionId: result.completion.submissionId,
+      attemptId: result.completion.attemptId,
       resultManifestId: result.completion.resultManifestId,
       resultManifestHash: result.completion.resultManifestHash,
-      outcome: result.completion.outcome, revision: result.completion.attemptRevision });
+      outcome: result.completion.outcome,
+      revision: result.completion.attemptRevision,
+    });
   }
 
   public async complete(

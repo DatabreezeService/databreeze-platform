@@ -1,7 +1,20 @@
 import type { AuthApiV1 } from './auth-api.ts';
-import { clearAuthSessionV1, rememberAuthBootstrapV1, type WebAuthenticationStateV1 } from './auth-session.ts';
+import {
+  clearAuthSessionV1,
+  rememberAuthBootstrapV1,
+  type WebAuthenticationStateV1,
+} from './auth-session.ts';
 
-const PUBLIC_ROUTES_V1 = new Set(['sign-in', 'register', 'verify-email', 'downloads']);
+const PUBLIC_AUTH_ROUTES_V1 = new Set(['sign-in', 'register', 'verify-email', 'downloads']);
+const PUBLIC_LOCALES_V1 = new Set(['en', 'vi-VN']);
+
+function isPublicPathV1(pathname: string): boolean {
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments.length === 0) return true;
+  const locale = segments[0];
+  if (locale === undefined || !PUBLIC_LOCALES_V1.has(locale)) return false;
+  return segments.length === 1 || PUBLIC_AUTH_ROUTES_V1.has(segments[1] ?? '');
+}
 
 export interface RecoverSessionBeforeAppStartInputV1 {
   readonly api: Pick<AuthApiV1, 'recoverWebSession' | 'loadBootstrap'>;
@@ -40,8 +53,8 @@ export async function recoverSessionBeforeAppStartV1(
   }
 
   clearAuthSessionV1();
-  const route = routeV1(input.pathname);
-  if (route.section === undefined || !PUBLIC_ROUTES_V1.has(route.section)) {
+  if (!isPublicPathV1(input.pathname)) {
+    const route = routeV1(input.pathname);
     input.replace(`/${route.locale}/sign-in`);
   }
   return 'signed-out';

@@ -1,1 +1,12 @@
-{"schemaVersion":4,"sessionId":"00000000-0000-4000-8000-000000000401","userId":"00000000-0000-4000-8000-000000000402","organizationId":"00000000-0000-4000-8000-000000000403","workspaceId":"00000000-0000-4000-8000-000000000404","accessToken":"00000000-0000-4000-8000-000000000405.abcdefghijklmnopqrstuvwxyzABCDEFGH123456789","accessExpiresAt":"2026-08-13T00:15:00.000Z","securityEpoch":1,"mfaRequired":false,"mfaReenrollmentRequired":false}
+{
+  "schemaVersion": 4,
+  "sessionId": "00000000-0000-4000-8000-000000000401",
+  "userId": "00000000-0000-4000-8000-000000000402",
+  "organizationId": "00000000-0000-4000-8000-000000000403",
+  "workspaceId": "00000000-0000-4000-8000-000000000404",
+  "accessToken": "00000000-0000-4000-8000-000000000405.abcdefghijklmnopqrstuvwxyzABCDEFGH123456789",
+  "accessExpiresAt": "2026-08-13T00:15:00.000Z",
+  "securityEpoch": 1,
+  "mfaRequired": false,
+  "mfaReenrollmentRequired": false
+}

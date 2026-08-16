@@ -1,14 +1,15 @@
 locals {
   common_tags = merge(var.tags, { Component = "compute" })
-  api_base_secrets = [
+  api_base_secrets = concat([
     { name = "DATABASE_URL", valueFrom = var.database_url_secret_arn },
     { name = "DATABREEZE_CSRF_ALLOWED_ORIGINS", valueFrom = var.csrf_allowed_origins_secret_arn },
     { name = "DATABREEZE_SERVICE_ACCOUNT_SECRET_ENVELOPE_KEY", valueFrom = var.service_account_secret_envelope_key_secret_arn },
     { name = "DATABREEZE_IAM_EMAIL_VERIFICATION_DIGEST_KEY", valueFrom = var.email_verification_digest_key_secret_arn },
+  ], trimspace(var.recovery_digest_key_secret_arn) == "" ? [] : [{ name = "DATABREEZE_IAM_RECOVERY_DIGEST_KEY", valueFrom = var.recovery_digest_key_secret_arn }], [
     { name = "DATABREEZE_IAM_EMAIL_VERIFICATION_ENVELOPE_KEY", valueFrom = var.email_verification_envelope_key_secret_arn },
     { name = "DATABREEZE_IAM_REGISTRATION_ADMISSION_KEY", valueFrom = var.registration_admission_key_secret_arn },
     { name = "DATABREEZE_IAE_WORKER_CAPABILITY_SIGNING_KEY", valueFrom = var.iae_worker_capability_signing_key_secret_arn }
-  ]
+  ])
   api_openai_secret                              = [{ name = "OPENAI_API_KEY", valueFrom = var.openai_api_key_secret_arn }]
   api_runtime_secrets                            = var.openai_agent_enabled || var.openai_receipt_enabled || var.openai_dashboard_enabled ? concat(local.api_base_secrets, local.api_openai_secret) : local.api_base_secrets
   api_runtime_secret_arns                        = [for secret in local.api_runtime_secrets : secret.valueFrom]
@@ -16,6 +17,7 @@ locals {
   current_csrf_secret_arn                        = "arn:${data.aws_partition.current.partition}:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:databreeze/${var.name}/csrf-allowed-origins-"
   current_service_account_secret_arn             = "arn:${data.aws_partition.current.partition}:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:databreeze/${var.name}/iam/service-account-envelope-key-"
   current_email_verification_digest_secret_arn   = "arn:${data.aws_partition.current.partition}:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:databreeze/${var.name}/iam/email-verification-digest-key-"
+  current_recovery_digest_secret_arn             = "arn:${data.aws_partition.current.partition}:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:databreeze/${var.name}/iam/recovery-digest-key-"
   current_email_verification_envelope_secret_arn = "arn:${data.aws_partition.current.partition}:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:databreeze/${var.name}/iam/email-verification-envelope-key-"
   current_registration_admission_secret_arn      = "arn:${data.aws_partition.current.partition}:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:databreeze/${var.name}/iam/registration-admission-key-"
   current_iae_worker_signing_secret_arn          = "arn:${data.aws_partition.current.partition}:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:databreeze/${var.name}/iae/worker-capability-signing-key-"
@@ -292,6 +294,7 @@ resource "aws_ecs_task_definition" "api" {
         can(regex("^${local.current_csrf_secret_arn}[A-Za-z0-9]{6}$", trimspace(var.csrf_allowed_origins_secret_arn))) &&
         can(regex("^${local.current_service_account_secret_arn}[A-Za-z0-9]{6}$", trimspace(var.service_account_secret_envelope_key_secret_arn))) &&
         can(regex("^${local.current_email_verification_digest_secret_arn}[A-Za-z0-9]{6}$", trimspace(var.email_verification_digest_key_secret_arn))) &&
+        (trimspace(var.recovery_digest_key_secret_arn) == "" || can(regex("^${local.current_recovery_digest_secret_arn}[A-Za-z0-9]{6}$", trimspace(var.recovery_digest_key_secret_arn)))) &&
         can(regex("^${local.current_email_verification_envelope_secret_arn}[A-Za-z0-9]{6}$", trimspace(var.email_verification_envelope_key_secret_arn))) &&
         can(regex("^${local.current_registration_admission_secret_arn}[A-Za-z0-9]{6}$", trimspace(var.registration_admission_key_secret_arn))) &&
         can(regex("^${local.current_iae_worker_signing_secret_arn}[A-Za-z0-9]{6}$", trimspace(var.iae_worker_capability_signing_key_secret_arn)))

@@ -119,10 +119,13 @@ void test('[IAE-009][IAE-022] upload admission rejects metadata, size-policy, an
     mediaType: version.mediaType,
     requestedPartSize: 8 * 1024 * 1024,
   } as const;
-  assert.deepEqual(await adapter.admitCreate(context, { ...base, expectedSha256: 'f'.repeat(64) }), {
-    accepted: false,
-    code: 'UPLOAD_ARTIFACT_MISMATCH',
-  });
+  assert.deepEqual(
+    await adapter.admitCreate(context, { ...base, expectedSha256: 'f'.repeat(64) }),
+    {
+      accepted: false,
+      code: 'UPLOAD_ARTIFACT_MISMATCH',
+    },
+  );
   assert.deepEqual(await adapter.admitCreate(context, { ...base, requestedPartSize: 1024 }), {
     accepted: false,
     code: 'UPLOAD_SIZE_POLICY_DENIED',

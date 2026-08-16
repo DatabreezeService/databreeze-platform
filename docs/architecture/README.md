@@ -14,5 +14,6 @@
 | [Extensibility](extensibility.md) | Contracts for modules, processors, rules, connectors, imports, and exports |
 | [Performance and reliability](performance-and-reliability.md) | Reference profiles, budgets, failure domains, recovery, and capacity |
 | [Testing and delivery](testing-and-delivery.md) | Contract, cross-platform, security, performance, and release verification |
+| [Local development and Lightsail pilot](local-and-pilot-development.md) | Database-backed HMR, built local validation, low-cost deployment, and CI/CD flow |
 
 Architecture documents define system-wide constraints. When a feature needs a stricter rule, its normative specification may tighten the constraint but may not silently weaken or bypass it.

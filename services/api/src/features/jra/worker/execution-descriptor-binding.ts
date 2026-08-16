@@ -26,4 +26,3 @@ export function workerAttemptDescriptorBindingHashV1(
   });
   return createHash('sha256').update(canonical, 'utf8').digest('hex');
 }
-

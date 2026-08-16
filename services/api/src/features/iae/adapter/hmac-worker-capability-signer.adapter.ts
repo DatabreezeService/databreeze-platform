@@ -84,9 +84,7 @@ export class HmacWorkerCapabilitySignerAdapter
     return expected.length === candidate.length && timingSafeEqual(expected, candidate);
   }
 
-  public resolveCapabilityId(
-    signedCapability: string,
-  ): Promise<StableIdentifierV1 | undefined> {
+  public resolveCapabilityId(signedCapability: string): Promise<StableIdentifierV1 | undefined> {
     if (typeof signedCapability !== 'string' || signedCapability.length > 4096)
       return Promise.resolve(undefined);
     const parts = signedCapability.split('.');

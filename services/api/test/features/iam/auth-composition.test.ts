@@ -49,7 +49,10 @@ void test('[IAM-001, IAM-005, IAM-006] configured credentials and sessions issue
     assert.notEqual(body.accessToken, body.refreshToken);
     const cookies = response.headers['set-cookie'];
     assert.ok(Array.isArray(cookies));
-    assert.match(cookies[0] ?? '', new RegExp(`Path=${REFRESH_COOKIE_PATH_V1.replaceAll('/', '\\/')};`, 'u'));
+    assert.match(
+      cookies[0] ?? '',
+      new RegExp(`Path=${REFRESH_COOKIE_PATH_V1.replaceAll('/', '\\/')};`, 'u'),
+    );
   } finally {
     await app.close();
   }

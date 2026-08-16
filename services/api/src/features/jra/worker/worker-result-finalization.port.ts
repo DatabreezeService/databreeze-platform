@@ -8,10 +8,7 @@ import type {
   IaeWorkerResultFinalizationAttestationV1,
 } from '../../iae/application/worker-result-finalization.port.js';
 
-import type {
-  WorkerAttemptAuthorizationV1,
-  WorkerIdentityV1,
-} from './worker-ports.js';
+import type { WorkerAttemptAuthorizationV1, WorkerIdentityV1 } from './worker-ports.js';
 
 export type WorkerResolvedResultAttestationV1 = IaeWorkerResultFinalizationAttestationV1;
 export type WorkerResultAttestationResolverPortV1 = IaeWorkerResultAttestationResolverPortV1;
@@ -94,7 +91,9 @@ export type WorkerResultFinalizationResultV1 =
 
 export const WORKER_RESULT_FINALIZATION_PORT = Symbol('WORKER_RESULT_FINALIZATION_PORT');
 export interface WorkerResultFinalizationPortV1 {
-  findResultReplay(input: WorkerResultFinalizationReplayInputV1): Promise<WorkerResultCompletionV1 | undefined>;
+  findResultReplay(
+    input: WorkerResultFinalizationReplayInputV1,
+  ): Promise<WorkerResultCompletionV1 | undefined>;
   finalize(input: WorkerResultFinalizationInputV1): Promise<WorkerResultFinalizationResultV1>;
 }
 

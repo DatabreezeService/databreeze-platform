@@ -36,26 +36,27 @@ export class IamBootstrapController {
     if (!result.accepted)
       return Object.freeze({ schemaVersion: 4, outcome: 'REJECTED', code: result.code });
     const value = result.value;
-    const session = context.tenantScope.scopeType === 'organization'
-      ? Object.freeze({
-          scopeType: 'organization' as const,
-          organizationId: context.tenantScope.organizationId,
-          authorizationEpoch: context.authorizationEpoch,
-        })
-      : context.tenantScope.scopeType === 'workspace'
+    const session =
+      context.tenantScope.scopeType === 'organization'
         ? Object.freeze({
-            scopeType: 'workspace' as const,
+            scopeType: 'organization' as const,
             organizationId: context.tenantScope.organizationId,
-            workspaceId: context.tenantScope.workspaceId,
             authorizationEpoch: context.authorizationEpoch,
           })
-        : Object.freeze({
-            scopeType: 'project' as const,
-            organizationId: context.tenantScope.organizationId,
-            workspaceId: context.tenantScope.workspaceId,
-            projectId: context.tenantScope.projectId,
-            authorizationEpoch: context.authorizationEpoch,
-          });
+        : context.tenantScope.scopeType === 'workspace'
+          ? Object.freeze({
+              scopeType: 'workspace' as const,
+              organizationId: context.tenantScope.organizationId,
+              workspaceId: context.tenantScope.workspaceId,
+              authorizationEpoch: context.authorizationEpoch,
+            })
+          : Object.freeze({
+              scopeType: 'project' as const,
+              organizationId: context.tenantScope.organizationId,
+              workspaceId: context.tenantScope.workspaceId,
+              projectId: context.tenantScope.projectId,
+              authorizationEpoch: context.authorizationEpoch,
+            });
     return Object.freeze({
       schemaVersion: 4 as const,
       outcome: 'ACCEPTED' as const,

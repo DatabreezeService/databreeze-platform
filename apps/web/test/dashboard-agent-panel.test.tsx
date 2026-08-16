@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { AnalystPanel } from '../src/features/dashboards/analyst-panel.tsx';
 import { DashboardAgentPanel } from '../src/features/dashboards/dashboard-agent-panel.tsx';
@@ -21,6 +21,57 @@ const preview = {
 };
 
 describe('dashboard-local agent panel [DDA-015][DDA-017][DDA-024][WEB-014]', () => {
+  it('looks and behaves like a contextual chat with conversation switching', async () => {
+    const user = userEvent.setup();
+    const onSelectConversation = vi.fn();
+    render(
+      <DashboardAgentPanel
+        activeConversationId="conversation-sales"
+        conversations={[
+          {
+            conversationId: 'conversation-sales',
+            title: 'Bức tranh kinh doanh',
+            datasetLabel: 'Bán hàng toàn quốc',
+            datasetVersionLabel: 'Phiên bản 12',
+          },
+          {
+            conversationId: 'conversation-orders',
+            title: 'Đơn hàng bất thường',
+            datasetLabel: 'Tồn kho cửa hàng',
+            datasetVersionLabel: 'Phiên bản 7',
+          },
+        ]}
+        locale="vi-VN"
+        messages={[
+          {
+            messageId: 'message-1',
+            role: 'USER',
+            text: 'Cho tôi xem doanh thu theo khu vực',
+          },
+          {
+            messageId: 'message-2',
+            role: 'ASSISTANT',
+            text: 'Tôi đã chuẩn bị các biểu đồ tương thích để bạn chọn.',
+          },
+        ]}
+        onClose={() => undefined}
+        onSelectConversation={onSelectConversation}
+        open
+        target={{ pageId: 'page-1', pageTitle: { vi: 'Tổng quan', en: 'Overview' } }}
+      />,
+    );
+
+    expect(screen.getByText('Cho tôi xem doanh thu theo khu vực')).toBeTruthy();
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Chuyển hội thoại' }),
+      'conversation-orders',
+    );
+    expect(onSelectConversation).toHaveBeenCalledWith('conversation-orders');
+    expect(screen.getByRole('link', { name: 'Mở trong Phân tích' }).getAttribute('href')).toBe(
+      '/vi-VN/analysis?conversation=conversation-sales',
+    );
+  });
+
   it('opens from the persistent icon, identifies the current target, and returns focus on Escape', async () => {
     const user = userEvent.setup();
     render(<AnalystPanel locale="vi-VN" preview={preview} />);
@@ -55,7 +106,7 @@ describe('dashboard-local agent panel [DDA-015][DDA-017][DDA-024][WEB-014]', () 
       screen.getByRole('textbox', { name: 'Câu hỏi cho trợ lý biểu đồ' }),
       'Doanh thu theo khu vực',
     );
-    await user.click(screen.getByRole('button', { name: 'Tạo đề xuất biểu đồ' }));
+    await user.click(screen.getByRole('button', { name: 'Gửi' }));
 
     expect(screen.getByRole('alert').textContent).toBe(
       'Trợ lý AI hiện không khả dụng. Bạn vẫn có thể tạo kế hoạch phân tích có kiểm soát thủ công.',

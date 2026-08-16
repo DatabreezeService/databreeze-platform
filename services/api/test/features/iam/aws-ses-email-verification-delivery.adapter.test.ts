@@ -23,15 +23,16 @@ void test('[IAM-022] SES delivery emits one bounded localized transactional mess
     correlationId: 'internal-correlation-id',
   });
 
-  assert.deepEqual(messages, [
-    {
-      fromAddress: 'verify@databreeze.example',
-      toAddress: 'customer@example.com',
-      subject: 'Mã xác minh DataBreeze',
-      textBody:
-        'Mã xác minh DataBreeze của bạn là 042917. Mã này hết hạn sau 10 phút. Nếu bạn không yêu cầu mã này, hãy bỏ qua email.',
-    },
-  ]);
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0]?.fromAddress, 'verify@databreeze.example');
+  assert.equal(messages[0]?.toAddress, 'customer@example.com');
+  assert.equal(messages[0]?.subject, 'Mã xác minh DataBreeze');
+  assert.equal(
+    messages[0]?.textBody,
+    'Mã xác minh DataBreeze của bạn là 042917. Mã này hết hạn sau 10 phút. Nếu bạn không yêu cầu mã này, hãy bỏ qua email.',
+  );
+  assert.match(messages[0]?.htmlBody ?? '', /042917/u);
+  assert.match(messages[0]?.htmlBody ?? '', /Xác minh email của bạn/u);
   assert.equal(JSON.stringify(messages).includes('internal-correlation-id'), false);
 });
 
@@ -49,6 +50,8 @@ void test('[IAM-022] SES delivery supports the complete English locale', async (
     messages[0]?.textBody,
     'Your DataBreeze verification code is 123456. It expires in 10 minutes. If you did not request this code, ignore this email.',
   );
+  assert.match(messages[0]?.htmlBody ?? '', /123456/u);
+  assert.match(messages[0]?.htmlBody ?? '', /Verify your email/u);
 });
 
 void test('[IAM-022] SES delivery fails closed with stable content-safe errors', async () => {
@@ -99,6 +102,7 @@ void test('[IAM-022] AWS SES v2 sender maps only the bounded simple-message fiel
     toAddress: 'customer@example.com',
     subject: 'Your DataBreeze verification code',
     textBody: 'Your DataBreeze verification code is 123456.',
+    htmlBody: '<!doctype html><p>Your DataBreeze verification code is 123456.</p>',
   });
 
   assert.equal(commands.length, 1);
@@ -112,6 +116,10 @@ void test('[IAM-022] AWS SES v2 sender maps only the bounded simple-message fiel
         Body: {
           Text: {
             Data: 'Your DataBreeze verification code is 123456.',
+            Charset: 'UTF-8',
+          },
+          Html: {
+            Data: '<!doctype html><p>Your DataBreeze verification code is 123456.</p>',
             Charset: 'UTF-8',
           },
         },

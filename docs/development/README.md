@@ -22,6 +22,27 @@ Android companion, API, and Python engine.
 The local stack uses synthetic data only. PostgreSQL, Redis, MinIO, Mailpit,
 and OpenTelemetry volumes are disposable and must never be treated as a backup.
 
+## Fast Web development (Vite HMR)
+
+Use the normal split workflow when iterating on the frontend. Docker owns the
+disposable infrastructure; the watched API and Vite Web server stay on the
+host so source edits are reflected immediately:
+
+```text
+Terminal A: corepack pnpm dev:infra
+Terminal B: corepack pnpm dev:api
+Terminal C: corepack pnpm dev:web
+Browser:    http://127.0.0.1:5173/vi-VN/workspace
+Mailpit:    http://127.0.0.1:8025
+```
+
+Vite proxies `/v1`, `/v3`, and `/health` to
+`http://127.0.0.1:3000`. The watched API uses Docker PostgreSQL through
+`DATABASE_URL`, with Prisma migrations applied on start; Redis, MinIO, and
+Mailpit remain available for adapters and local verification. The
+pilot/production `https://localhost:8443` URL serves a built bundle and is
+intentionally not a hot-reload development URL.
+
 ## Change workflow
 
 - Read `docs/README.md`, the applicable specification, child plan, and ADR

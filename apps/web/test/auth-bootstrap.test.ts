@@ -29,16 +29,41 @@ describe('Web authentication bootstrap [IAM-023, WEB-002, WEB-004]', () => {
     mfaReenrollmentRequired: false,
   };
   const bootstrap = {
-    user: { id: session.userId, displayName: 'Mai Quynh', locale: 'vi-VN' as const, mfaState: 'NOT_CONFIGURED' as const },
-    organizations: [{
-      id: session.organizationId,
-      name: 'DataBreeze',
-      personal: true,
-      status: 'ACTIVE' as const,
-      workspaces: [{ id: session.workspaceId, name: 'Không gian chính', status: 'ACTIVE' as const, projects: [] }],
-    }],
-    recentScopes: [{ scopeType: 'workspace' as const, organizationId: session.organizationId, workspaceId: session.workspaceId }],
-    session: { scopeType: 'workspace' as const, organizationId: session.organizationId, workspaceId: session.workspaceId, authorizationEpoch: 1 },
+    user: {
+      id: session.userId,
+      displayName: 'Mai Quynh',
+      locale: 'vi-VN' as const,
+      mfaState: 'NOT_CONFIGURED' as const,
+    },
+    organizations: [
+      {
+        id: session.organizationId,
+        name: 'DataBreeze',
+        personal: true,
+        status: 'ACTIVE' as const,
+        workspaces: [
+          {
+            id: session.workspaceId,
+            name: 'Không gian chính',
+            status: 'ACTIVE' as const,
+            projects: [],
+          },
+        ],
+      },
+    ],
+    recentScopes: [
+      {
+        scopeType: 'workspace' as const,
+        organizationId: session.organizationId,
+        workspaceId: session.workspaceId,
+      },
+    ],
+    session: {
+      scopeType: 'workspace' as const,
+      organizationId: session.organizationId,
+      workspaceId: session.workspaceId,
+      authorizationEpoch: 1,
+    },
     platform: { apiVersion: 'v1' as const },
   };
 
@@ -81,7 +106,10 @@ describe('Web authentication bootstrap [IAM-023, WEB-002, WEB-004]', () => {
     await expect(
       recoverSessionBeforeAppStartV1({
         api: {
-          recoverWebSession: vi.fn(async () => { rememberAuthSessionV1(session); return { accepted: true as const }; }),
+          recoverWebSession: vi.fn(async () => {
+            rememberAuthSessionV1(session);
+            return { accepted: true as const };
+          }),
           loadBootstrap: vi.fn(async () => ({ accepted: true as const, value: bootstrap })),
         },
         pathname: '/vi-VN/dashboards',
@@ -96,7 +124,10 @@ describe('Web authentication bootstrap [IAM-023, WEB-002, WEB-004]', () => {
     await expect(
       recoverSessionBeforeAppStartV1({
         api: {
-          recoverWebSession: vi.fn(async () => ({ accepted: false as const, code: 'AUTH_FAILED' as const })),
+          recoverWebSession: vi.fn(async () => ({
+            accepted: false as const,
+            code: 'AUTH_FAILED' as const,
+          })),
           loadBootstrap: vi.fn(),
         },
         pathname: '/en/data',
@@ -109,7 +140,10 @@ describe('Web authentication bootstrap [IAM-023, WEB-002, WEB-004]', () => {
   it('does not redirect a signed-out user away from public registration routes', async () => {
     const replace = vi.fn();
     await recoverSessionBeforeAppStartV1({
-      api: { recoverWebSession: vi.fn(async () => Promise.reject(new Error('offline'))), loadBootstrap: vi.fn() },
+      api: {
+        recoverWebSession: vi.fn(async () => Promise.reject(new Error('offline'))),
+        loadBootstrap: vi.fn(),
+      },
       pathname: '/vi-VN/register',
       replace,
     });
@@ -119,11 +153,32 @@ describe('Web authentication bootstrap [IAM-023, WEB-002, WEB-004]', () => {
   it('does not redirect a signed-out user away from the public downloads route', async () => {
     const replace = vi.fn();
     await recoverSessionBeforeAppStartV1({
-      api: { recoverWebSession: vi.fn(async () => Promise.reject(new Error('offline'))), loadBootstrap: vi.fn() },
+      api: {
+        recoverWebSession: vi.fn(async () => Promise.reject(new Error('offline'))),
+        loadBootstrap: vi.fn(),
+      },
       pathname: '/en/downloads',
       replace,
     });
     expect(replace).not.toHaveBeenCalled();
+  });
+
+  it('does not redirect a signed-out user away from the locale landing page', async () => {
+    for (const pathname of ['/', '/vi-VN', '/en']) {
+      const replace = vi.fn();
+      await recoverSessionBeforeAppStartV1({
+        api: {
+          recoverWebSession: vi.fn(async () => ({
+            accepted: false as const,
+            code: 'AUTH_FAILED' as const,
+          })),
+          loadBootstrap: vi.fn(),
+        },
+        pathname,
+        replace,
+      });
+      expect(replace).not.toHaveBeenCalled();
+    }
   });
 
   it('does not mount application routes until session recovery settles', async () => {
@@ -134,7 +189,11 @@ describe('Web authentication bootstrap [IAM-023, WEB-002, WEB-004]', () => {
     const mount = vi.fn();
     const starting = startWebApplicationV1({
       api: {
-        recoverWebSession: vi.fn(async () => { const result = await recovery; rememberAuthSessionV1(session); return result; }),
+        recoverWebSession: vi.fn(async () => {
+          const result = await recovery;
+          rememberAuthSessionV1(session);
+          return result;
+        }),
         loadBootstrap: vi.fn(async () => ({ accepted: true as const, value: bootstrap })),
       },
       mount,
@@ -151,17 +210,28 @@ describe('Web authentication bootstrap [IAM-023, WEB-002, WEB-004]', () => {
   it('fails closed before mount when authenticated bootstrap is unavailable or mismatched', async () => {
     for (const result of [
       { accepted: false as const, code: 'AUTH_FAILED' as const },
-      { accepted: true as const, value: { ...bootstrap, user: { ...bootstrap.user, id: '00000000-0000-4000-8000-000000000999' } } },
+      {
+        accepted: true as const,
+        value: {
+          ...bootstrap,
+          user: { ...bootstrap.user, id: '00000000-0000-4000-8000-000000000999' },
+        },
+      },
     ]) {
       const replace = vi.fn();
-      await expect(recoverSessionBeforeAppStartV1({
-        api: {
-          recoverWebSession: vi.fn(async () => { rememberAuthSessionV1(session); return { accepted: true as const }; }),
-          loadBootstrap: vi.fn(async () => result),
-        },
-        pathname: '/en/data',
-        replace,
-      })).resolves.toBe('signed-out');
+      await expect(
+        recoverSessionBeforeAppStartV1({
+          api: {
+            recoverWebSession: vi.fn(async () => {
+              rememberAuthSessionV1(session);
+              return { accepted: true as const };
+            }),
+            loadBootstrap: vi.fn(async () => result),
+          },
+          pathname: '/en/data',
+          replace,
+        }),
+      ).resolves.toBe('signed-out');
       expect(replace).toHaveBeenCalledWith('/en/sign-in');
     }
   });

@@ -1,5 +1,7 @@
 # DataBreeze Lightsail pilot
 
+The complete local-to-pilot topology is documented in [Local development and Lightsail pilot](../../docs/architecture/local-and-pilot-development.md).
+
 This is the low-cost single-server pilot profile. It is intended for a small
 two-month validation period, not high-availability customer production. One
 Lightsail Linux instance runs Caddy, Web, API, PostgreSQL, Redis, and MinIO.
@@ -39,8 +41,37 @@ Redis, and MinIO API ports are never published publicly.
 
 - `VITE_DATABREEZE_DEMO_MODE=true` is allowed only for this pilot and is visibly
   labeled in the Web UI; its numbers are synthetic.
-- Mailpit is suitable for owner testing. Use SES separately when external
-  users must receive email.
+- Mailpit is the default OTP provider and is suitable for owner testing. To
+  send OTPs to real inboxes during this pilot, set the following values in the
+  protected `/opt/databreeze/.env` on the server:
+
+  ```dotenv
+  DATABREEZE_LOCAL_EMAIL_PROVIDER=gmail
+  DATABREEZE_IAM_SMTP_HOST=smtp.gmail.com
+  DATABREEZE_IAM_SMTP_PORT=465
+  DATABREEZE_IAM_SMTP_USERNAME=support.databreeze@gmail.com
+  DATABREEZE_IAM_SMTP_APP_PASSWORD=<Google-App-Password>
+  DATABREEZE_IAM_EMAIL_FROM_ADDRESS=support.databreeze@gmail.com
+  ```
+
+  Gmail requires 2-Step Verification and an App Password; never use a normal
+  account password. The sender address must match the SMTP username. The same
+  transport sends OTP verification and password-recovery messages. Password
+  recovery also requires a separate `DATABREEZE_IAM_RECOVERY_DIGEST_KEY` in
+  `/opt/databreeze/.env`; generate it on the server with the command below and
+  never commit or paste the value:
+
+  ```bash
+  value="$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')"
+  if sudo grep -q '^DATABREEZE_IAM_RECOVERY_DIGEST_KEY=' /opt/databreeze/.env; then
+    sudo sed -i "s|^DATABREEZE_IAM_RECOVERY_DIGEST_KEY=.*|DATABREEZE_IAM_RECOVERY_DIGEST_KEY=${value}|" /opt/databreeze/.env
+  else
+    echo "DATABREEZE_IAM_RECOVERY_DIGEST_KEY=${value}" | sudo tee -a /opt/databreeze/.env >/dev/null
+  fi
+  unset value
+  ```
+
+  Use SES separately for a wider production rollout.
 - OpenAI is disabled by default. Never copy an API key into this file through
   source control or a CI log; place it only in the server’s protected secret
   mechanism after rotating the exposed key.
@@ -68,6 +99,9 @@ path for this profile:
 - A push to `main` builds three immutable images (API runtime, API migration,
   and Web), pushes them to GHCR, then deploys their `sha256` digests to the
   protected GitHub `pilot` environment.
+- Before invoking the server deploy script, the workflow uploads the current
+  Caddy, Compose, healthcheck, rollback, and deploy scripts. It never replaces
+  `/opt/databreeze/.env`.
 - The server runs the migration before API/Web, checks `/health/ready`, and
   keeps the previous release file for rollback.
 
@@ -84,12 +118,14 @@ least-privilege deployment account can be added before a wider rollout.
 | `LIGHTSAIL_KNOWN_HOSTS` | Pinned `known_hosts` line for the instance |
 
 On the server, install the pilot files with `bootstrap.sh` and create and
-review `/opt/databreeze/.env`. The workflow invokes the pilot scripts through
-`sudo`; keep SSH restricted to the owner/admin IP. If the GHCR packages are private,
-log in to GHCR on the server once with a read-only package token; the workflow
-never sends the server `.env` or application secrets to GitHub.
+review `/opt/databreeze/.env`. The workflow logs the server's root Docker
+client into GHCR with the job-scoped `GITHUB_TOKEN` (granted `packages: read`)
+immediately before pulling the immutable images, then removes those
+credentials in an always-run cleanup step. No additional GHCR secret is
+required. Keep SSH restricted to the owner/admin IP. The workflow never sends
+the server `.env` or application secrets to GitHub.
 
-The workflow intentionally leaves OpenAI, worker execution, and external
-email disabled for this budget pilot. Turn those on only in a separate,
-reviewed production deployment after rotating any key that was pasted into a
-chat or terminal.
+The workflow intentionally leaves OpenAI and worker execution disabled for
+this budget pilot. Mailpit remains the default email provider; enable Gmail
+SMTP only on the protected server after rotating any key that was pasted into
+a chat or terminal.

@@ -485,8 +485,7 @@ export async function fetchDashboardWorkspaceHistory(
   if (!response.ok) throw await apiErrorFor(response);
 
   const payload: unknown = await response.json();
-  if (!isWorkspaceHistory(payload))
-    throw new DashboardAuthoringApiErrorV1('INVALID_RESPONSE');
+  if (!isWorkspaceHistory(payload)) throw new DashboardAuthoringApiErrorV1('INVALID_RESPONSE');
   return Object.freeze(payload as DashboardWorkspaceHistoryV1);
 }
 

@@ -28,6 +28,32 @@ void test('serializes bounded session cookies with explicit browser security att
   );
 });
 
+void test('[WEB-004] local HMR uses non-secure cookies only for the explicit loopback profile', () => {
+  const previousProfile = process.env['DATABREEZE_RUNTIME_PROFILE'];
+  const previousHmr = process.env['DATABREEZE_LOCAL_HMR_HTTP'];
+  const previousNodeEnv = process.env['NODE_ENV'];
+  process.env['NODE_ENV'] = 'production';
+  process.env['DATABREEZE_RUNTIME_PROFILE'] = 'local';
+  process.env['DATABREEZE_LOCAL_HMR_HTTP'] = 'true';
+  try {
+    assert.doesNotMatch(
+      serializeCookieV1(REFRESH_COOKIE_NAME_V1, refreshToken, {
+        httpOnly: true,
+        maxAgeSeconds: 2_592_000,
+      }),
+      /Secure/u,
+    );
+    assert.doesNotMatch(clearCookieV1(REFRESH_COOKIE_NAME_V1, { httpOnly: true }), /Secure/u);
+  } finally {
+    if (previousProfile === undefined) delete process.env['DATABREEZE_RUNTIME_PROFILE'];
+    else process.env['DATABREEZE_RUNTIME_PROFILE'] = previousProfile;
+    if (previousHmr === undefined) delete process.env['DATABREEZE_LOCAL_HMR_HTTP'];
+    else process.env['DATABREEZE_LOCAL_HMR_HTTP'] = previousHmr;
+    if (previousNodeEnv === undefined) delete process.env['NODE_ENV'];
+    else process.env['NODE_ENV'] = previousNodeEnv;
+  }
+});
+
 void test('reads one exact cookie value and fails closed for ambiguity or malformed input', () => {
   assert.equal(
     readCookieValueV1(`${REFRESH_COOKIE_NAME_V1}=${refreshToken}`, REFRESH_COOKIE_NAME_V1),

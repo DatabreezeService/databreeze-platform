@@ -24,7 +24,10 @@ export function createWindowsPackagePlan(input) {
   ) {
     throw new Error('ELECTRON_RUNTIME_UNAVAILABLE');
   }
-  if (typeof input.version !== 'string' || !/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/u.test(input.version)) {
+  if (
+    typeof input.version !== 'string' ||
+    !/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/u.test(input.version)
+  ) {
     throw new Error('PACKAGE_VERSION_INVALID');
   }
   const releaseDirectory = path.resolve(input.desktopDirectory, 'release');
@@ -117,7 +120,11 @@ SourceFiles0=${source}
 function defaultInputs(desktopDirectory) {
   const packageJson = JSON.parse(readFileSync(path.join(desktopDirectory, 'package.json'), 'utf8'));
   const electronPackageDirectory = path.dirname(require.resolve('electron/package.json'));
-  const iexpressPath = path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'iexpress.exe');
+  const iexpressPath = path.join(
+    process.env.SystemRoot ?? 'C:\\Windows',
+    'System32',
+    'iexpress.exe',
+  );
   return {
     desktopDirectory,
     electronRuntimeDirectory: path.join(electronPackageDirectory, 'dist'),
@@ -129,7 +136,8 @@ function defaultInputs(desktopDirectory) {
 function buildUnsignedInstaller(plan, desktopDirectory) {
   const distDirectory = path.join(desktopDirectory, 'dist');
   for (const requiredPath of ['main/index.js', 'preload/index.cjs', 'renderer/index.html']) {
-    if (!existsSync(path.join(distDirectory, requiredPath))) throw new Error(`BUILD_OUTPUT_MISSING:${requiredPath}`);
+    if (!existsSync(path.join(distDirectory, requiredPath)))
+      throw new Error(`BUILD_OUTPUT_MISSING:${requiredPath}`);
   }
   if (!existsSync(path.join(plan.electronRuntimeDirectory, 'electron.exe'))) {
     throw new Error('ELECTRON_RUNTIME_UNAVAILABLE');
@@ -171,7 +179,11 @@ function buildUnsignedInstaller(plan, desktopDirectory) {
   );
   writeFileSync(path.join(installerInput, 'install.ps1'), installerScript(), 'utf8');
   const sedPath = path.join(installerInput, 'package.sed');
-  writeFileSync(sedPath, iexpressSed({ sourceDirectory: installerInput, installerPath: plan.installerPath }), 'utf8');
+  writeFileSync(
+    sedPath,
+    iexpressSed({ sourceDirectory: installerInput, installerPath: plan.installerPath }),
+    'utf8',
+  );
   rmSync(plan.installerPath, { force: true });
   execFileSync(plan.iexpressPath, ['/N', '/Q', sedPath], { stdio: 'inherit' });
   if (!existsSync(plan.installerPath)) throw new Error('INSTALLER_BUILD_FAILED');

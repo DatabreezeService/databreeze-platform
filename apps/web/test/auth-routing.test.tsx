@@ -10,6 +10,27 @@ import {
 afterEach(clearAuthSessionV1);
 
 describe('live authentication routing [IAM-023, WEB-002, WEB-004]', () => {
+  it('shows the teammate landing page for signed-out visitors at / and /vi-VN [WEB-013]', async () => {
+    for (const initialEntry of ['/', '/vi-VN']) {
+      const router = createAppRouter({
+        authenticationState: 'signed-out',
+        initialEntries: [initialEntry],
+      });
+
+      const view = render(<ApplicationBoundary router={router} />);
+
+      await waitFor(() => expect(router.state.location.pathname).toBe('/vi-VN'));
+      expect(await screen.findByRole('heading', { name: /Dữ liệu biết cất lời/u })).toBeTruthy();
+      expect(screen.queryByRole('heading', { name: 'Đăng nhập' })).toBeNull();
+      expect(screen.getByRole('link', { name: 'Đăng nhập' }).getAttribute('href')).toBe(
+        '/vi-VN/sign-in',
+      );
+      expect(document.querySelector('header.workspace-topbar')).toBeNull();
+
+      view.unmount();
+    }
+  });
+
   it('redirects a signed-out in-app navigation to the localized sign-in route', async () => {
     const router = createAppRouter({
       authenticationState: 'signed-out',
@@ -32,6 +53,18 @@ describe('live authentication routing [IAM-023, WEB-002, WEB-004]', () => {
 
     expect(await screen.findByRole('heading', { name: 'Tạo tài khoản' })).toBeTruthy();
     expect(screen.queryByRole('navigation', { name: 'Điều hướng chính' })).toBeNull();
+  });
+
+  it('renders localized password recovery routes without the protected workspace shell', async () => {
+    const router = createAppRouter({
+      authenticationState: 'signed-out',
+      initialEntries: ['/en/forgot-password'],
+    });
+
+    render(<ApplicationBoundary router={router} />);
+
+    expect(await screen.findByRole('heading', { name: 'Forgot your password?' })).toBeTruthy();
+    expect(screen.queryByRole('navigation', { name: 'Primary navigation' })).toBeNull();
   });
 
   it('keeps signed-in users out of public authentication routes', async () => {

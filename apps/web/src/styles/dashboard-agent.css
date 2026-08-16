@@ -104,12 +104,13 @@
   right: max(1rem, env(safe-area-inset-right));
   bottom: max(1rem, env(safe-area-inset-bottom));
   display: grid;
-  align-content: start;
-  gap: 1rem;
-  width: min(32.5rem, calc(100vw - 2rem));
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
+  gap: 0.875rem;
+  width: min(26.25rem, calc(100vw - 2rem));
   max-height: min(46rem, calc(100dvh - 2rem));
-  overflow: auto;
-  padding: 1.25rem;
+  overflow: hidden;
+  padding: 1rem;
   border: 1px solid #d9e3f1;
   border-radius: 1.1rem;
   background: #ffffff;
@@ -130,9 +131,19 @@
   margin: 0;
 }
 
+.dda-dashboard-agent-panel__header h2 {
+  color: #102a63;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
 .dda-dashboard-agent-panel__eyebrow {
-  color: #71809a;
-  font-size: 0.8125rem;
+  margin-bottom: 0.15rem !important;
+  color: #075de8;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .dda-dashboard-agent-panel__header button {
@@ -144,6 +155,20 @@
   color: #71809a;
   cursor: pointer;
   font-size: 1.375rem;
+}
+
+.dda-dashboard-agent-panel__header button svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.dda-dashboard-agent-panel .agent-chat-shell {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.dda-dashboard-agent-panel .agent-chat-shell__messages {
+  max-height: none;
 }
 
 .dda-dashboard-agent-panel__header button:hover {
@@ -412,7 +437,7 @@
     top: 0;
     right: 0;
     bottom: 0;
-    width: min(32.5rem, 78vw);
+    width: min(26.25rem, 78vw);
     max-height: none;
     border-radius: 1rem 0 0 1rem;
   }

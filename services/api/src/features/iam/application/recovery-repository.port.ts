@@ -36,6 +36,8 @@ export interface RecoveryDigestPortV1 {
   digestEmail(normalizedEmail: string): string;
 }
 
+export type RecoveryLocaleV1 = 'en' | 'vi-VN';
+
 /** Optional abuse-control boundary; callers must not use it to reveal account existence. */
 export interface RecoveryAdmissionPortV1 {
   allow(keyDigest: string, issuedAt: string): Promise<boolean>;
@@ -47,6 +49,7 @@ export interface RecoveryDeliveryPortV1 {
     readonly recipientEmail: string;
     readonly rawToken: string;
     readonly expiresAt: string;
+    readonly locale: RecoveryLocaleV1;
   }): Promise<void>;
 }
 

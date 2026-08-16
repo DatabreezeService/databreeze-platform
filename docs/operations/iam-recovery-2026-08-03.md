@@ -15,6 +15,9 @@ It does not claim that IAM-015 or the IAM plan is complete.
 - Completion attempts use a separate admission port and, when Redis is configured, a distinct `databreeze:iam:recovery:completion:v1:` namespace so email-request and token-brute-force limits cannot collide.
 - Keep the public completion response free of bearer material; no session is automatically created.
 - Select the Prisma recovery adapter only when persistence is configured, and fail closed when the delivery, digest, or password boundary is missing.
+- Render a localized, origin-bound reset-link message for the local SMTP/Gmail and production AWS SES providers. The reset link expires after 60 minutes and the raw bearer is never persisted or logged.
+- Expose signed-out Web routes for `/vi-VN/forgot-password`, `/en/forgot-password`, and their `/reset-password` counterparts. The request response remains generic, and successful completion requires a new sign-in and may require MFA re-enrollment.
+- Keep the recovery digest key separate from email-verification keys as `DATABREEZE_IAM_RECOVERY_DIGEST_KEY`; the key is required in local, pilot, and production compositions.
 
 ## Evidence
 
@@ -25,9 +28,12 @@ It does not claim that IAM-015 or the IAM plan is complete.
 - MFA re-enrollment transaction tests: `services/api/test/features/iam/mfa.service.test.ts` and `services/api/test/features/iam/prisma-mfa-repository.test.ts`.
 - Live principal/context propagation tests: `services/api/test/features/iam/prisma-credential-lookup.test.ts`, `services/api/test/features/iam/prisma-session-lifecycle.test.ts`, and `services/api/test/platform/http/session-tenant-context.test.ts`.
 - Composition/controller/HTTP tests: `services/api/test/features/iam/recovery-composition.test.ts`, `recovery-controller.test.ts`, and `recovery-http.test.ts`.
+- Recovery delivery tests: `services/api/test/features/iam/password-recovery-delivery.adapter.test.ts`.
+- Recovery composition tests: `services/api/test/platform/local-database-composition.test.ts` and `production-database-composition.test.ts`.
+- Web recovery tests: `apps/web/test/auth-api.test.ts`, `auth-pages.test.tsx`, and `auth-routing.test.tsx`.
 - Public routes: `services/api/openapi/v1.json` (`POST /v1/auth/recovery` and `POST /v1/auth/recovery/complete`).
 - Bilingual problem copy: `packages/i18n/src/catalogs-v1.ts` and `packages/i18n/test/catalogs-v1.test.mjs`.
 
 ## Verification
 
-The scoped API TypeScript build, recovery tests, i18n tests, OpenAPI generation/check, and Prisma validation passed on 2026-08-03. The requirement remains `partial` and `not-verified` until authenticated MFA re-enrollment enforcement, audit events, rate limits, abuse monitoring, restoration drills, and the complete IAM release gates are delivered.
+The focused API/Web TypeScript builds, recovery delivery and HTTP tests, Web route tests, i18n tests, OpenAPI generation/check, and Prisma validation passed for this slice. The requirement remains `partial` and `not-verified` until authenticated MFA re-enrollment enforcement, audit events, rate limits, abuse monitoring, restoration drills, and the complete IAM release gates are delivered.

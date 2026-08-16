@@ -8,7 +8,8 @@ import test from 'node:test';
 // compilation, where Prisma migrations are intentionally not copied.
 const currentDirectory = process.cwd();
 const apiDirectory =
-  path.basename(currentDirectory) === 'api' && path.basename(path.dirname(currentDirectory)) === 'services'
+  path.basename(currentDirectory) === 'api' &&
+  path.basename(path.dirname(currentDirectory)) === 'services'
     ? currentDirectory
     : path.join(currentDirectory, 'services', 'api');
 

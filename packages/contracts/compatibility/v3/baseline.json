@@ -83,7 +83,7 @@
     },
     {
       "path": "generated/typescript/v3/validation.mjs",
-      "sha256": "9e056c035d4ad21980173b724d39d941596a1a767bc682c226dfeb18619c4e84"
+      "sha256": "6452e4681a5232ac33beb1ec6a51c95528bc9f12b2cff39322743d9b0787611b"
     }
   ],
   "publicPackageSurfaces": [

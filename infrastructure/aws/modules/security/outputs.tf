@@ -18,6 +18,10 @@ output "email_verification_digest_key_secret_arn" {
   value = aws_secretsmanager_secret.email_verification_digest_key.arn
 }
 
+output "recovery_digest_key_secret_arn" {
+  value = aws_secretsmanager_secret.recovery_digest_key.arn
+}
+
 output "email_verification_envelope_key_secret_arn" {
   value = aws_secretsmanager_secret.email_verification_envelope_key.arn
 }

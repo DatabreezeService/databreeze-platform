@@ -1,6 +1,6 @@
 import { PERMISSIONS_V1 } from '@databreeze/domain/permissions/v1';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ApplicationBoundary, createAppRouter, filterNavigationItems } from '../src/app/app.tsx';
 import { UDW_PRIMARY_NAV_ITEMS_V1 } from '../src/app/unified-primary-navigation.ts';
 
@@ -35,7 +35,36 @@ describe('build-time governed navigation', () => {
     expect(screen.getByRole('link', { name: 'Data' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'Jobs' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Devices' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Reviews' })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: 'Settings' })).toBeNull();
     expect(UDW_PRIMARY_NAV_ITEMS_V1).toHaveLength(3);
+  });
+
+  it('keeps the standalone brand mark available when the rail is compact', async () => {
+    const originalMatchMedia = globalThis.matchMedia;
+    globalThis.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      addEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+      matches: query === '(min-width: 768px) and (max-width: 1023px)',
+      media: query,
+      onchange: null,
+      removeEventListener: vi.fn(),
+    }));
+
+    try {
+      const router = createAppRouter({ initialEntries: ['/en/dashboards'] });
+      render(<ApplicationBoundary router={router} />);
+
+      const navigation = await screen.findByRole('navigation', { name: 'Primary navigation' });
+      expect(navigation.getAttribute('data-collapsed')).toBe('true');
+      expect(navigation.querySelector('.application-rail__brand-wordmark')).toBeTruthy();
+      expect(navigation.querySelector('.application-rail__brand-icon')).toBeTruthy();
+      expect(
+        navigation.querySelector('.application-rail__brand-icon')?.getAttribute('src'),
+      ).toContain('install-icon-192');
+    } finally {
+      globalThis.matchMedia = originalMatchMedia;
+    }
   });
 
   it('presents the dashboard breadcrumb as semantic content instead of inert controls', async () => {

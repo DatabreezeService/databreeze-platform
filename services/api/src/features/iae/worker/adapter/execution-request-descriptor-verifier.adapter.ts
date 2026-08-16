@@ -1,9 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import {
-  tenantScopesEqualV1,
-  type TenantScopeV1,
-} from '@databreeze/domain/tenant-scope/v1';
+import { tenantScopesEqualV1, type TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type {
   ExecutionRequestDescriptorVerifierPortV1,
@@ -45,9 +42,7 @@ interface ManifestBindingV1 {
   readonly contentLength: number;
 }
 
-function manifestBinding(
-  value: IaeExecutionRequestObjectMetadataV1,
-): ManifestBindingV1 {
+function manifestBinding(value: IaeExecutionRequestObjectMetadataV1): ManifestBindingV1 {
   return {
     objectId: value.objectId,
     dataMode: value.dataMode,

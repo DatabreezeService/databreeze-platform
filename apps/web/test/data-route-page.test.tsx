@@ -23,6 +23,7 @@ describe('[WEB-020][WEB-021][WEB-024] data route loading states', () => {
 
     render(<DataRoutePage />);
 
+    expect(screen.getByRole('heading', { name: 'Dữ liệu' })).toBeTruthy();
     expect(screen.getByRole('status').textContent).toContain('Đang tải dữ liệu');
   });
 
@@ -35,6 +36,7 @@ describe('[WEB-020][WEB-021][WEB-024] data route loading states', () => {
     render(<DataRoutePage />);
 
     await waitFor(() => expect(screen.getByRole('alert')).toBeTruthy());
+    expect(screen.getByRole('heading', { name: 'Dữ liệu' })).toBeTruthy();
     expect(screen.getByRole('alert').textContent).toContain('Không thể tải dữ liệu');
     expect(screen.queryByText('Doanh thu TP.HCM')).toBeNull();
   });

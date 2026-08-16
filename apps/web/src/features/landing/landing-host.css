@@ -1,0 +1,12 @@
+.teammate-landing-root {
+  min-height: 100vh;
+  background: #03040f;
+  color: #f7f7ff;
+}
+
+.teammate-landing-root .header-actions {
+  display: flex;
+  justify-self: end;
+  align-items: center;
+  gap: 10px;
+}

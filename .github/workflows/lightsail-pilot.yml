@@ -8,6 +8,7 @@ on:
       - 'infrastructure/containers/api/**'
       - 'infrastructure/containers/web/**'
       - 'infrastructure/lightsail/**'
+      - 'prototypes/**'
       - 'packages/**'
       - 'services/api/**'
       - 'pnpm-lock.yaml'
@@ -21,6 +22,7 @@ on:
       - 'infrastructure/containers/api/**'
       - 'infrastructure/containers/web/**'
       - 'infrastructure/lightsail/**'
+      - 'prototypes/**'
       - 'packages/**'
       - 'services/api/**'
       - 'pnpm-lock.yaml'
@@ -37,7 +39,9 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+  # GHCR repository names must be lowercase; github.repository preserves the
+  # organization casing used on GitHub.
+  IMAGE_PREFIX: ghcr.io/databreezeservice/databreeze-platform
 
 jobs:
   validate:
@@ -50,9 +54,14 @@ jobs:
         with:
           persist-credentials: false
       - name: Set up Node.js
-        uses: actions/setup-node@49933ea528caeca8642d1e84bdaf3f7d6820020
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version-file: .node-version
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff
+        with:
+          version: 0.11.32
+          enable-cache: false
       - name: Enable pinned pnpm
         run: corepack enable && corepack prepare pnpm@11.18.0 --activate
       - name: Install dependencies
@@ -62,7 +71,7 @@ jobs:
           pnpm contracts:check
           pnpm --filter @databreeze/api typecheck
           pnpm --filter @databreeze/web typecheck
-          pnpm --filter @databreeze/web build
+          pnpm --filter @databreeze/web... build
       - name: Validate pilot Compose and scripts
         run: |
           docker compose --env-file infrastructure/lightsail/.env.example \
@@ -139,8 +148,15 @@ jobs:
     needs: publish
     runs-on: ubuntu-24.04
     environment: pilot
+    permissions:
+      contents: read
+      packages: read
     timeout-minutes: 15
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
       - name: Configure SSH trust
         shell: bash
         env:
@@ -180,6 +196,44 @@ jobs:
             > "$RUNNER_TEMP/databreeze-release.env"
           scp -i "$RUNNER_TEMP/lightsail-key" "$RUNNER_TEMP/databreeze-release.env" \
             "${LIGHTSAIL_DEPLOY_USER}@${LIGHTSAIL_HOST}:/tmp/databreeze-${GITHUB_SHA}.env"
+      - name: Upload deployment files
+        shell: bash
+        env:
+          LIGHTSAIL_HOST: ${{ secrets.LIGHTSAIL_HOST }}
+          LIGHTSAIL_DEPLOY_USER: ${{ secrets.LIGHTSAIL_DEPLOY_USER }}
+        run: |
+          set -euo pipefail
+          test -n "$LIGHTSAIL_HOST"
+          test -n "$LIGHTSAIL_DEPLOY_USER"
+          ssh -i "$RUNNER_TEMP/lightsail-key" "${LIGHTSAIL_DEPLOY_USER}@${LIGHTSAIL_HOST}" \
+            "install -d -m 0700 /tmp/databreeze-${GITHUB_SHA}"
+          scp -i "$RUNNER_TEMP/lightsail-key" \
+            infrastructure/lightsail/Caddyfile \
+            infrastructure/lightsail/compose.pilot.yml \
+            infrastructure/lightsail/deploy.sh \
+            infrastructure/lightsail/healthcheck.sh \
+            infrastructure/lightsail/rollback.sh \
+            "${LIGHTSAIL_DEPLOY_USER}@${LIGHTSAIL_HOST}:/tmp/databreeze-${GITHUB_SHA}/"
+      - name: Authenticate Lightsail to GHCR
+        shell: bash
+        env:
+          LIGHTSAIL_HOST: ${{ secrets.LIGHTSAIL_HOST }}
+          LIGHTSAIL_DEPLOY_USER: ${{ secrets.LIGHTSAIL_DEPLOY_USER }}
+          LIGHTSAIL_GHCR_USERNAME: ${{ github.actor }}
+          LIGHTSAIL_GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$LIGHTSAIL_HOST"
+          test -n "$LIGHTSAIL_DEPLOY_USER"
+          test -n "$LIGHTSAIL_GHCR_USERNAME"
+          test -n "$LIGHTSAIL_GHCR_TOKEN"
+          if [[ ! "$LIGHTSAIL_GHCR_USERNAME" =~ ^[A-Za-z0-9-]+$ ]]; then
+            echo 'LIGHTSAIL_GHCR_USERNAME contains unsupported characters.' >&2
+            exit 2
+          fi
+          printf '%s\n' "$LIGHTSAIL_GHCR_TOKEN" |
+            ssh -i "$RUNNER_TEMP/lightsail-key" "${LIGHTSAIL_DEPLOY_USER}@${LIGHTSAIL_HOST}" \
+              "sudo docker login \"$REGISTRY\" --username \"$LIGHTSAIL_GHCR_USERNAME\" --password-stdin"
       - name: Deploy and verify
         shell: bash
         env:
@@ -188,4 +242,35 @@ jobs:
         run: |
           set -euo pipefail
           ssh -i "$RUNNER_TEMP/lightsail-key" "${LIGHTSAIL_DEPLOY_USER}@${LIGHTSAIL_HOST}" \
-            "sudo install -m 0640 /tmp/databreeze-${GITHUB_SHA}.env /opt/databreeze/releases/${GITHUB_SHA}.env && sudo /opt/databreeze/deploy.sh /opt/databreeze/releases/${GITHUB_SHA}.env && rm -f /tmp/databreeze-${GITHUB_SHA}.env"
+            "set -e
+            sudo install -m 0644 /tmp/databreeze-${GITHUB_SHA}/Caddyfile /opt/databreeze/Caddyfile
+            sudo install -m 0640 /tmp/databreeze-${GITHUB_SHA}/compose.pilot.yml /opt/databreeze/compose.pilot.yml
+            sudo install -m 0750 /tmp/databreeze-${GITHUB_SHA}/deploy.sh /opt/databreeze/deploy.sh
+            sudo install -m 0750 /tmp/databreeze-${GITHUB_SHA}/healthcheck.sh /opt/databreeze/healthcheck.sh
+            sudo install -m 0750 /tmp/databreeze-${GITHUB_SHA}/rollback.sh /opt/databreeze/rollback.sh
+            sudo install -m 0640 /tmp/databreeze-${GITHUB_SHA}.env /opt/databreeze/releases/${GITHUB_SHA}.env
+            sudo /opt/databreeze/deploy.sh /opt/databreeze/releases/${GITHUB_SHA}.env"
+      - name: Remove temporary deployment files
+        if: always()
+        shell: bash
+        env:
+          LIGHTSAIL_HOST: ${{ secrets.LIGHTSAIL_HOST }}
+          LIGHTSAIL_DEPLOY_USER: ${{ secrets.LIGHTSAIL_DEPLOY_USER }}
+        run: |
+          set -euo pipefail
+          test -n "$LIGHTSAIL_HOST"
+          test -n "$LIGHTSAIL_DEPLOY_USER"
+          ssh -i "$RUNNER_TEMP/lightsail-key" "${LIGHTSAIL_DEPLOY_USER}@${LIGHTSAIL_HOST}" \
+            "sudo rm -rf /tmp/databreeze-${GITHUB_SHA} /tmp/databreeze-${GITHUB_SHA}.env"
+      - name: Remove Lightsail GHCR credentials
+        if: always()
+        shell: bash
+        env:
+          LIGHTSAIL_HOST: ${{ secrets.LIGHTSAIL_HOST }}
+          LIGHTSAIL_DEPLOY_USER: ${{ secrets.LIGHTSAIL_DEPLOY_USER }}
+        run: |
+          set -euo pipefail
+          test -n "$LIGHTSAIL_HOST"
+          test -n "$LIGHTSAIL_DEPLOY_USER"
+          ssh -i "$RUNNER_TEMP/lightsail-key" "${LIGHTSAIL_DEPLOY_USER}@${LIGHTSAIL_HOST}" \
+            "sudo docker logout \"$REGISTRY\" >/dev/null 2>&1 || true"

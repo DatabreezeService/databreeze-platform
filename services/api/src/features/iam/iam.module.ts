@@ -510,7 +510,8 @@ export class IamModule {
       (options.emailVerificationDatabase === undefined && options.registrationDatabase === undefined
         ? undefined
         : new PrismaEmailVerificationRepositoryAdapter(
-            (options.emailVerificationDatabase ?? options.registrationDatabase) as EmailVerificationDatabaseClientV1,
+            (options.emailVerificationDatabase ??
+              options.registrationDatabase) as EmailVerificationDatabaseClientV1,
             options.identityBootstrapPolicyProvisionerFactory,
           ));
     const emailVerificationDigest =

@@ -30,6 +30,7 @@ COPY packages/domain ./packages/domain
 COPY packages/i18n ./packages/i18n
 COPY packages/telemetry ./packages/telemetry
 COPY packages/ui ./packages/ui
+COPY prototypes ./prototypes
 
 # The browser uses the same origin as the gateway. No provider URL, key, or
 # credential is embedded in the Web bundle.

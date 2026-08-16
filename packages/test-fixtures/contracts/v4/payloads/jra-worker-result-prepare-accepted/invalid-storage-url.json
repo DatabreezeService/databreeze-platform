@@ -5,13 +5,15 @@
   "attemptId": "10000000-0000-4000-8000-000000000001",
   "descriptorBindingHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
   "expiresAt": "2026-08-14T12:00:00.000Z",
-  "outputs": [{
-    "outputName": "primary",
-    "objectId": "20000000-0000-4000-8000-000000000002",
-    "capabilityId": "20000000-0000-4000-8000-000000000003",
-    "maxBytes": 1048576,
-    "allowedMediaTypes": ["application/json"],
-    "writeCapability": "signed_capability_1234",
-    "uploadUrl": "https://storage.example/private"
-  }]
+  "outputs": [
+    {
+      "outputName": "primary",
+      "objectId": "20000000-0000-4000-8000-000000000002",
+      "capabilityId": "20000000-0000-4000-8000-000000000003",
+      "maxBytes": 1048576,
+      "allowedMediaTypes": ["application/json"],
+      "writeCapability": "signed_capability_1234",
+      "uploadUrl": "https://storage.example/private"
+    }
+  ]
 }

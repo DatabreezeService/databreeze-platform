@@ -113,19 +113,16 @@ async function openDesktopWindow(): Promise<void> {
   let getWorkbenchAccessToken: () => Promise<string | null> = () => Promise.resolve(null);
   if (apiConfiguration !== null) {
     const configuredWorkbench = createApiWorkbenchPort({
-          baseUrl: apiConfiguration.baseUrl,
-          sessionStore: new ElectronProtectedSessionStore({
-            filePath: path.join(app.getPath('userData'), 'protected-session-v1.bin'),
-            encryption: safeStorage,
-          }),
-        });
+      baseUrl: apiConfiguration.baseUrl,
+      sessionStore: new ElectronProtectedSessionStore({
+        filePath: path.join(app.getPath('userData'), 'protected-session-v1.bin'),
+        encryption: safeStorage,
+      }),
+    });
     workbench = configuredWorkbench;
     getWorkbenchAccessToken = () => configuredWorkbench.getAccessToken();
   }
-  const dso = createDsoClient(
-    apiConfiguration?.baseUrl,
-    getWorkbenchAccessToken,
-  );
+  const dso = createDsoClient(apiConfiguration?.baseUrl, getWorkbenchAccessToken);
   if (dso !== null) {
     try {
       await dso.refresh();

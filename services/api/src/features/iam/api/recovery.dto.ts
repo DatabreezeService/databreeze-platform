@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEmail, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class RecoveryRequestDto {
   @ApiProperty({ format: 'email', maxLength: 254 })
@@ -8,6 +8,11 @@ export class RecoveryRequestDto {
   @MinLength(3)
   @MaxLength(254)
   email!: string;
+
+  @ApiPropertyOptional({ enum: ['vi-VN', 'en'], default: 'vi-VN' })
+  @IsOptional()
+  @IsIn(['vi-VN', 'en'])
+  locale?: 'vi-VN' | 'en';
 }
 
 export class RecoveryCompleteDto {

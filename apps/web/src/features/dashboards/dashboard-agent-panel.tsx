@@ -1,14 +1,12 @@
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type FormEvent,
-  type KeyboardEvent,
-  type ReactNode,
-} from 'react';
 import type { SupportedLocaleV1 } from '@databreeze/i18n/v1';
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 
+import { XIcon } from '../../components/icons.tsx';
+import { AgentChatShell } from '../agent/agent-chat-shell.tsx';
+import type {
+  AgentConversationSummaryV1,
+  AgentMessagePresentationV1,
+} from '../agent/agent-store.ts';
 import {
   ChartProposalPicker,
   type DashboardChartProposalOptionV1,
@@ -38,20 +36,25 @@ export type DashboardAgentResponseV1 =
   | { readonly kind: 'error'; readonly message?: DashboardAgentLocalizedTextV1 };
 
 export interface DashboardAgentPanelProps {
+  readonly activeConversationId?: string;
+  readonly confirmingProposal?: boolean;
+  readonly conversations?: readonly AgentConversationSummaryV1[];
   readonly locale: SupportedLocaleV1;
-  readonly open: boolean;
-  readonly target: DashboardAgentTargetV1;
+  readonly manualFallback?: ReactNode;
+  readonly messages?: readonly AgentMessagePresentationV1[];
   readonly onClose: () => void;
+  readonly onConfirmProposal?: (selectedOptionIds: readonly string[]) => void | Promise<void>;
+  readonly onCreateConversation?: () => void;
+  readonly onSelectConversation?: (conversationId: string) => void;
   readonly onSubmitQuestion?: (
     question: string,
     target: DashboardAgentTargetV1,
   ) => DashboardAgentResponseV1 | void | Promise<DashboardAgentResponseV1 | void>;
-  readonly response?: DashboardAgentResponseV1;
-  readonly proposalOptions?: readonly DashboardChartProposalOptionV1[];
-  readonly onConfirmProposal?: (selectedOptionIds: readonly string[]) => void | Promise<void>;
-  readonly manualFallback?: ReactNode;
   readonly onUseManualPlan?: () => void;
-  readonly confirmingProposal?: boolean;
+  readonly open: boolean;
+  readonly proposalOptions?: readonly DashboardChartProposalOptionV1[];
+  readonly response?: DashboardAgentResponseV1;
+  readonly target: DashboardAgentTargetV1;
 }
 
 function label(locale: SupportedLocaleV1, vi: string, en: string): string {
@@ -61,26 +64,30 @@ function label(locale: SupportedLocaleV1, vi: string, en: string): string {
 function focusableElements(container: HTMLElement): HTMLElement[] {
   return Array.from(
     container.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), textarea:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      'a[href], button:not([disabled]), select:not([disabled]), textarea:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
     ),
   ).filter((element) => !element.hasAttribute('hidden'));
 }
 
-/** DDA-015/DDA-017/DDA-024: focus-managed dashboard-local question panel. */
+/** DDA-015/DDA-017/DDA-024: focus-managed agent chat with explicit governed proposals. */
 export function DashboardAgentPanel({
-  locale,
-  open,
-  target,
-  onClose,
-  onSubmitQuestion,
-  response: responseFromParent,
-  proposalOptions,
-  onConfirmProposal,
-  manualFallback,
-  onUseManualPlan,
+  activeConversationId,
   confirmingProposal,
+  conversations = [],
+  locale,
+  manualFallback,
+  messages = [],
+  onClose,
+  onConfirmProposal,
+  onCreateConversation,
+  onSelectConversation = () => undefined,
+  onSubmitQuestion,
+  onUseManualPlan,
+  open,
+  proposalOptions,
+  response: responseFromParent,
+  target,
 }: DashboardAgentPanelProps) {
-  const [question, setQuestion] = useState('');
   const [response, setResponse] = useState<DashboardAgentResponseV1 | undefined>();
   const [submitting, setSubmitting] = useState(false);
   const dialogRef = useRef<HTMLElement>(null);
@@ -95,76 +102,30 @@ export function DashboardAgentPanel({
       priorFocusRef.current = active instanceof HTMLElement ? active : null;
       questionRef.current?.focus();
     }
-    if (!open && wasOpenRef.current) {
-      priorFocusRef.current?.focus();
-    }
+    if (!open && wasOpenRef.current) priorFocusRef.current?.focus();
     wasOpenRef.current = open;
   }, [open]);
 
   if (!open) return null;
 
+  const localizedKey = locale === 'vi-VN' ? 'vi' : 'en';
   const targetText = target.widgetTitle
-    ? `${target.pageTitle[locale === 'vi-VN' ? 'vi' : 'en']} · ${target.widgetTitle[locale === 'vi-VN' ? 'vi' : 'en']}`
-    : target.pageTitle[locale === 'vi-VN' ? 'vi' : 'en'];
-
-  function onKeyDown(event: KeyboardEvent<HTMLElement>) {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      onClose();
-      return;
-    }
-    if (event.key !== 'Tab') return;
-
-    const container = dialogRef.current;
-    if (!container) return;
-    const elements = focusableElements(container);
-    if (elements.length === 0) return;
-    const first = elements[0]!;
-    const last = elements[elements.length - 1]!;
-    if (event.shiftKey && globalThis.document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && globalThis.document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  }
-
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const normalized = question.trim();
-    if (normalized === '' || submitting) return;
-    if (onSubmitQuestion === undefined) {
-      setResponse({ kind: 'provider-disabled' });
-      return;
-    }
-    setSubmitting(true);
-    setResponse(undefined);
-    try {
-      const nextResponse = await onSubmitQuestion(normalized, target);
-      if (nextResponse === undefined) setResponse(undefined);
-      else setResponse(nextResponse);
-    } catch {
-      setResponse({ kind: 'error' });
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
+    ? `${target.pageTitle[localizedKey]} · ${target.widgetTitle[localizedKey]}`
+    : target.pageTitle[localizedKey];
   const activeResponse = responseFromParent ?? response;
   const activeOptions =
     proposalOptions ?? (activeResponse?.kind === 'proposals' ? activeResponse.options : undefined);
   const activeMessage =
     activeResponse !== undefined && activeResponse.kind !== 'proposals'
-      ? activeResponse.message?.[locale === 'vi-VN' ? 'vi' : 'en']
+      ? activeResponse.message?.[localizedKey]
       : undefined;
 
   function stateMessage(): string | undefined {
     if (submitting) {
       return label(
         locale,
-        'Đang chuẩn bị đề xuất biểu đồ tương thích…',
-        'Preparing compatible chart proposals…',
+        'Đang phân tích ngữ cảnh và chuẩn bị biểu đồ tương thích…',
+        'Analyzing context and preparing compatible charts…',
       );
     }
     if (activeResponse?.kind === 'clarification') {
@@ -214,90 +175,119 @@ export function DashboardAgentPanel({
     activeResponse?.kind === 'provider-disabled' ||
     activeResponse?.kind === 'error' ||
     activeResponse?.kind === 'conflict';
+  const currentStateMessage = stateMessage();
+
+  function onKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      onClose();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const container = dialogRef.current;
+    if (container === null) return;
+    const elements = focusableElements(container);
+    if (elements.length === 0) return;
+    const first = elements[0]!;
+    const last = elements[elements.length - 1]!;
+    if (event.shiftKey && globalThis.document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && globalThis.document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  async function submitQuestion(question: string) {
+    if (submitting) return;
+    if (onSubmitQuestion === undefined) {
+      setResponse({ kind: 'provider-disabled' });
+      return;
+    }
+    setSubmitting(true);
+    setResponse(undefined);
+    try {
+      const nextResponse = await onSubmitQuestion(question, target);
+      setResponse(nextResponse === undefined ? undefined : nextResponse);
+    } catch {
+      setResponse({ kind: 'error' });
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <aside
-      ref={dialogRef}
-      className="dda-dashboard-agent-panel"
-      role="dialog"
-      aria-modal="true"
       aria-labelledby={titleId}
+      aria-modal="true"
+      className="dda-dashboard-agent-panel"
       onKeyDown={onKeyDown}
+      ref={dialogRef}
+      role="dialog"
     >
       <header className="dda-dashboard-agent-panel__header">
         <div>
-          <p className="dda-dashboard-agent-panel__eyebrow">
-            {label(locale, 'Trợ lý biểu đồ', 'Chart assistant')}
-          </p>
+          <p className="dda-dashboard-agent-panel__eyebrow">DataBreeze Agent</p>
           <h2 id={titleId}>{label(locale, 'Trợ lý biểu đồ', 'Chart assistant')}</h2>
         </div>
         <button
-          type="button"
-          onClick={onClose}
           aria-label={label(locale, 'Đóng trợ lý biểu đồ', 'Close chart assistant')}
+          onClick={onClose}
+          type="button"
         >
-          <span aria-hidden="true">×</span>
+          <XIcon />
         </button>
       </header>
-      <p className="dda-dashboard-agent-panel__target">
-        {label(locale, 'Mục tiêu', 'Target')}: {targetText}
-      </p>
-      <form
-        className="dda-dashboard-agent-panel__question"
-        onSubmit={(event) => void submit(event)}
+
+      <AgentChatShell
+        {...(currentStateMessage === undefined ? {} : { stateMessage: currentStateMessage })}
+        {...(activeConversationId === undefined ? {} : { activeConversationId })}
+        {...(onCreateConversation === undefined ? {} : { onCreateConversation })}
+        analysisHref={`/${locale}/analysis${activeConversationId === undefined ? '' : `?conversation=${encodeURIComponent(activeConversationId)}`}`}
+        composerLabel={label(
+          locale,
+          'Câu hỏi cho trợ lý biểu đồ',
+          'Question for the chart assistant',
+        )}
+        context={`${label(locale, 'Mục tiêu', 'Target')}: ${targetText}`}
+        conversations={conversations}
+        locale={locale}
+        messages={messages}
+        newConversationHref={`/${locale}/analysis?new=1`}
+        onSelectConversation={onSelectConversation}
+        onSubmitMessage={submitQuestion}
+        stateTone={nonAnswer ? 'alert' : 'status'}
+        submitting={submitting}
+        textareaRef={questionRef}
       >
-        <label htmlFor={`${titleId}-question`}>
-          {label(locale, 'Câu hỏi cho trợ lý biểu đồ', 'Question for the chart assistant')}
-        </label>
-        <textarea
-          ref={questionRef}
-          id={`${titleId}-question`}
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          placeholder={label(
-            locale,
-            'Ví dụ: Doanh thu theo sản phẩm và khu vực',
-            'For example: Revenue by product and region',
-          )}
-          rows={3}
-        />
-        <button type="submit" disabled={question.trim() === '' || submitting}>
-          {submitting
-            ? label(locale, 'Đang tạo đề xuất…', 'Creating proposals…')
-            : label(locale, 'Tạo đề xuất biểu đồ', 'Create chart proposals')}
-        </button>
-      </form>
-      {stateMessage() !== undefined ? (
-        <p className="dda-dashboard-agent-panel__state" role={nonAnswer ? 'alert' : 'status'}>
-          {stateMessage()}
-        </p>
-      ) : null}
-      {nonAnswer ? (
-        <section
-          className="dda-dashboard-agent-panel__manual"
-          aria-label={label(locale, 'Phương án thủ công', 'Manual alternative')}
-        >
-          {onUseManualPlan !== undefined ? (
-            <button type="button" onClick={onUseManualPlan}>
-              {label(locale, 'Xem kế hoạch phân tích thủ công', 'View manual analysis plan')}
-            </button>
-          ) : null}
-          {manualFallback}
-        </section>
-      ) : null}
-      {activeOptions !== undefined && onConfirmProposal !== undefined ? (
-        <ChartProposalPicker
-          key={
-            activeResponse?.kind === 'proposals'
-              ? activeResponse.proposalId
-              : activeOptions.map((option) => option.optionId).join('|')
-          }
-          locale={locale}
-          options={activeOptions}
-          onConfirm={onConfirmProposal}
-          {...(confirmingProposal === undefined ? {} : { confirming: confirmingProposal })}
-        />
-      ) : null}
+        {nonAnswer ? (
+          <section
+            aria-label={label(locale, 'Phương án thủ công', 'Manual alternative')}
+            className="dda-dashboard-agent-panel__manual"
+          >
+            {onUseManualPlan === undefined ? null : (
+              <button onClick={onUseManualPlan} type="button">
+                {label(locale, 'Xem kế hoạch phân tích thủ công', 'View manual analysis plan')}
+              </button>
+            )}
+            {manualFallback}
+          </section>
+        ) : null}
+        {activeOptions !== undefined && onConfirmProposal !== undefined ? (
+          <ChartProposalPicker
+            key={
+              activeResponse?.kind === 'proposals'
+                ? activeResponse.proposalId
+                : activeOptions.map((option) => option.optionId).join('|')
+            }
+            {...(confirmingProposal === undefined ? {} : { confirming: confirmingProposal })}
+            locale={locale}
+            onConfirm={onConfirmProposal}
+            options={activeOptions}
+          />
+        ) : null}
+      </AgentChatShell>
     </aside>
   );
 }

@@ -283,13 +283,16 @@
           });
 
           if (index === reasoningNodes.length - 1) {
-            window.setTimeout(() => {
-              if (currentRun !== promptRunId) return;
-              node.classList.remove('active');
-              node.classList.add('complete');
-              promptExperience?.classList.remove('running');
-              if (processTime) processTime.textContent = '1,84 giây';
-            }, reducedMotion ? 1 : 700);
+            window.setTimeout(
+              () => {
+                if (currentRun !== promptRunId) return;
+                node.classList.remove('active');
+                node.classList.add('complete');
+                promptExperience?.classList.remove('running');
+                if (processTime) processTime.textContent = '1,84 giây';
+              },
+              reducedMotion ? 1 : 700,
+            );
           }
         },
         reducedMotion ? index : index * 720,
@@ -315,7 +318,8 @@
     local: {
       label: 'LOCAL · RIÊNG TƯ TỐI ĐA',
       title: 'Giữ mọi thứ trên thiết bị tin cậy.',
-      description: 'Original và xử lý ở lại Desktop. Cloud chỉ nhận metadata an toàn theo chính sách.',
+      description:
+        'Original và xử lý ở lại Desktop. Cloud chỉ nhận metadata an toàn theo chính sách.',
       stat: '0 B',
       projection: '0 B',
       accent: '#6075ff',
@@ -324,7 +328,8 @@
     hybrid: {
       label: 'HYBRID · MẶC ĐỊNH',
       title: 'Dữ liệu gốc ở lại. Insight đi cùng bạn.',
-      description: 'Xử lý file nhạy cảm trên Desktop, chỉ đồng bộ projection đã xem trước lên Web và Android.',
+      description:
+        'Xử lý file nhạy cảm trên Desktop, chỉ đồng bộ projection đã xem trước lên Web và Android.',
       stat: '0 B',
       projection: '2,4 MB',
       accent: '#8d9bff',
@@ -333,7 +338,8 @@
     cloud: {
       label: 'CLOUD · CỘNG TÁC TOÀN DIỆN',
       title: 'Một workspace luôn sẵn sàng ở mọi nơi.',
-      description: 'Thu nhận, chuẩn hóa, phân tích và xuất bản trong cloud với quyền truy cập được kiểm soát.',
+      description:
+        'Thu nhận, chuẩn hóa, phân tích và xuất bản trong cloud với quyền truy cập được kiểm soát.',
       stat: 'Đã duyệt',
       projection: 'Toàn bộ workspace',
       accent: '#7138ff',
@@ -405,15 +411,18 @@
     if (feedbackSubmit) feedbackSubmit.disabled = true;
     if (feedbackStatus) feedbackStatus.textContent = 'Đang kiểm tra nội dung…';
 
-    window.setTimeout(() => {
-      if (feedbackSubmit) feedbackSubmit.disabled = false;
-      if (feedbackStatus) {
-        feedbackStatus.textContent =
-          'Nội dung hợp lệ. Đây là bản prototype nên góp ý chưa được gửi hoặc lưu ra máy chủ.';
-        feedbackStatus.classList.add('success');
-      }
-      if (formStatusMark) formStatusMark.innerHTML = '<i></i>Đã kiểm tra';
-    }, reducedMotion ? 1 : 520);
+    window.setTimeout(
+      () => {
+        if (feedbackSubmit) feedbackSubmit.disabled = false;
+        if (feedbackStatus) {
+          feedbackStatus.textContent =
+            'Nội dung hợp lệ. Đây là bản prototype nên góp ý chưa được gửi hoặc lưu ra máy chủ.';
+          feedbackStatus.classList.add('success');
+        }
+        if (formStatusMark) formStatusMark.innerHTML = '<i></i>Đã kiểm tra';
+      },
+      reducedMotion ? 1 : 520,
+    );
   });
 
   class ParticleField {

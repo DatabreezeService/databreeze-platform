@@ -113,6 +113,20 @@ variable "email_verification_digest_key_secret_arn" {
   }
 }
 
+variable "recovery_digest_key_secret_arn" {
+  type        = string
+  description = "Dedicated whole Secrets Manager ARN containing the base64url-encoded 32-byte account-recovery HMAC key."
+  default     = ""
+
+  validation {
+    condition = trimspace(var.recovery_digest_key_secret_arn) == "" || can(regex(
+      "^arn:[^:]+:secretsmanager:${var.region}:[0-9]{12}:secret:databreeze/${var.name}/iam/recovery-digest-key-[A-Za-z0-9]{6}$",
+      trimspace(var.recovery_digest_key_secret_arn),
+    ))
+    error_message = "recovery_digest_key_secret_arn must be empty for legacy module consumers or a whole DataBreeze recovery digest-key secret ARN in var.region."
+  }
+}
+
 variable "email_verification_envelope_key_secret_arn" {
   type        = string
   description = "Dedicated whole Secrets Manager ARN containing the base64url-encoded 32-byte email-verification envelope key."

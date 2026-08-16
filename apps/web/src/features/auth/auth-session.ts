@@ -55,18 +55,24 @@ export function rememberAuthBootstrapV1(bootstrap: IamBootstrapValue): boolean {
     scope.organizationId !== session.organizationId ||
     scope.authorizationEpoch !== session.securityEpoch ||
     (scope.scopeType !== 'organization' && scope.workspaceId !== session.workspaceId)
-  ) return false;
+  )
+    return false;
   const organization = bootstrap.organizations.find((entry) => entry.id === scope.organizationId);
-  const workspace = scope.scopeType === 'organization'
-    ? undefined
-    : organization?.workspaces.find((entry) => entry.id === scope.workspaceId);
-  const projectExists = scope.scopeType !== 'project' || workspace?.projects.some((entry) => entry.id === scope.projectId);
+  const workspace =
+    scope.scopeType === 'organization'
+      ? undefined
+      : organization?.workspaces.find((entry) => entry.id === scope.workspaceId);
+  const projectExists =
+    scope.scopeType !== 'project' ||
+    workspace?.projects.some((entry) => entry.id === scope.projectId);
   if (
     organization === undefined ||
     organization.status !== 'ACTIVE' ||
-    (scope.scopeType !== 'organization' && (workspace === undefined || workspace.status !== 'ACTIVE')) ||
+    (scope.scopeType !== 'organization' &&
+      (workspace === undefined || workspace.status !== 'ACTIVE')) ||
     !projectExists
-  ) return false;
+  )
+    return false;
   activeBootstrap = Object.freeze(bootstrap);
   initializeWebAuthenticationStateV1('signed-in');
   return true;
@@ -122,7 +128,12 @@ export function currentCsrfTokenV1(): string | undefined {
 
 function apiBoundaryV1(apiBaseUrl: string, applicationOrigin: string): URL {
   const boundary = new URL(apiBaseUrl === '' ? '/' : apiBaseUrl, applicationOrigin);
-  if (boundary.username !== '' || boundary.password !== '' || boundary.search !== '' || boundary.hash !== '') {
+  if (
+    boundary.username !== '' ||
+    boundary.password !== '' ||
+    boundary.search !== '' ||
+    boundary.hash !== ''
+  ) {
     throw new Error('WEB_API_BOUNDARY_INVALID');
   }
   return boundary;
@@ -153,8 +164,7 @@ export function createSessionAwareFetchV1(options: SessionAwareFetchOptionsV1): 
   return async (input: RequestInfo | URL, init?: RequestInit) => {
     const target = requestUrlV1(input, applicationOrigin);
     const approved =
-      target.origin === boundary.origin &&
-      pathWithinBoundaryV1(target.pathname, boundary.pathname);
+      target.origin === boundary.origin && pathWithinBoundaryV1(target.pathname, boundary.pathname);
     const headers = new Headers(input instanceof Request ? input.headers : undefined);
     if (init?.headers !== undefined) {
       for (const [name, value] of new Headers(init.headers)) headers.set(name, value);
