@@ -101,6 +101,10 @@ html {
   scroll-behavior: smooth;
 }
 
+:where(#flow, #intelligence, #modes, #experience) {
+  scroll-margin-top: calc(var(--header-height) + 24px);
+}
+
 body {
   margin: 0;
   min-width: 320px;

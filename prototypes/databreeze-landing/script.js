@@ -68,6 +68,25 @@
 
   revealItems.forEach((item) => revealObserver.observe(item));
 
+  // Hash navigation can move an entire section into the viewport in one
+  // frame. Make that destination readable immediately instead of waiting for
+  // an intersection update that some browsers skip after a smooth jump.
+  const revealHashTarget = (hash) => {
+    if (!hash || hash === '#') return;
+    const target = document.getElementById(hash.slice(1));
+    target?.querySelectorAll('[data-reveal]').forEach((item) => {
+      item.classList.add('is-visible');
+    });
+  };
+
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    const anchor = event.target.closest('a[href^="#"]');
+    revealHashTarget(anchor?.getAttribute('href'));
+  });
+  window.addEventListener('hashchange', () => revealHashTarget(window.location.hash));
+  revealHashTarget(window.location.hash);
+
   const counterObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
