@@ -13,6 +13,8 @@ export function LandingPage({ locale }: { readonly locale: 'en' | 'vi-VN' }) {
   const markup = useMemo(
     () =>
       prepareTeammateLandingMarkup(teammateLandingHtml, {
+        locale,
+        registerHref: `/${locale}/register`,
         signInHref: `/${locale}/sign-in`,
         signInLabel: locale === 'vi-VN' ? 'Đăng nhập' : 'Sign in',
         downloadsHref: `/${locale}/downloads`,
