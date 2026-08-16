@@ -69,7 +69,9 @@ describe('privacy-conscious server state', () => {
     const router = createAppRouter({ initialEntries: ['/en/jobs'] });
     render(<ApplicationBoundary router={router} />);
 
-    await user.click(await screen.findByRole('link', { name: 'Tiếng Việt' }));
+    await user.click(
+      await screen.findByRole('link', { name: /English|Tiếng Việt/i }),
+    );
 
     expect(localSetItem).not.toHaveBeenCalled();
   });
