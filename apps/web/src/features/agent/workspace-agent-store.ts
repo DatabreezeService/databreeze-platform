@@ -83,4 +83,3 @@ export const workspaceAgentStore = createAgentStore(
   SEEDED_AGENT_CONVERSATIONS[0],
   SEEDED_AGENT_CONVERSATIONS,
 );
-
