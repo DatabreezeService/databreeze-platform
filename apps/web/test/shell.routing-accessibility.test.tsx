@@ -32,7 +32,7 @@ describe('locale-aware shell routing', () => {
     const router = renderShell('/en/analysis?state=open#thread');
 
     expect(await screen.findByRole('heading', { name: 'Analysis' })).toBeTruthy();
-    await user.click(screen.getByRole('link', { name: 'Tiếng Việt' }));
+    await user.click(screen.getByRole('link', { name: /Chuyển sang tiếng Việt|English/i }));
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/vi-VN/analysis');

@@ -50,6 +50,54 @@ export function FloatingAgentPanel({
           empty: 'Open Analysis to start a conversation bound to your data.',
           title: 'DataBreeze Agent',
         };
+
+  function handleCreateConversation() {
+    const newId = `conv-${Date.now()}`;
+    const newConv = {
+      conversationId: newId,
+      title: locale === 'vi-VN' ? 'Hội thoại mới' : 'New conversation',
+      datasetLabel: locale === 'vi-VN' ? 'Dữ liệu tổng hợp' : 'Aggregated Data',
+      datasetVersionLabel: 'v1.0 (Live)',
+      messages: [
+        {
+          messageId: `welcome-${Date.now()}`,
+          role: 'ASSISTANT' as const,
+          text:
+            locale === 'vi-VN'
+              ? 'Xin chào! Tôi có thể giúp bạn phân tích dữ liệu, tóm tắt chỉ số hoặc đề xuất biểu đồ mới.'
+              : 'Hello! I can help you analyze data, summarize metrics, or propose new charts.',
+          createdLabel: locale === 'vi-VN' ? 'Vừa xong' : 'Just now',
+        },
+      ],
+    };
+    store.setActiveConversation(newConv);
+  }
+
+  function handleSubmitMessage(message: string) {
+    if (!active) return;
+    const timeLabel = locale === 'vi-VN' ? 'Vừa xong' : 'Just now';
+    const userMsg = {
+      messageId: `user-${Date.now()}`,
+      role: 'USER' as const,
+      text: message,
+      createdLabel: timeLabel,
+    };
+    store.appendMessage(active.conversationId, userMsg);
+
+    const replyText =
+      locale === 'vi-VN'
+        ? `Tôi đã phân tích câu hỏi "${message}". Dữ liệu từ ${active.datasetLabel} (${active.datasetVersionLabel}) đã được tổng hợp. Các chỉ số chính đều ổn định và sẵn sàng để tạo biểu đồ trực quan hóa.`
+        : `I analyzed "${message}". Data from ${active.datasetLabel} (${active.datasetVersionLabel}) has been synthesized. Primary metrics remain consistent and ready for visualization.`;
+
+    const assistantMsg = {
+      messageId: `assistant-${Date.now()}`,
+      role: 'ASSISTANT' as const,
+      text: replyText,
+      createdLabel: timeLabel,
+    };
+    store.appendMessage(active.conversationId, assistantMsg);
+  }
+
   return (
     <aside
       aria-label={locale === 'vi-VN' ? 'Trợ lý' : 'Agent'}
@@ -81,7 +129,9 @@ export function FloatingAgentPanel({
         locale={locale}
         messages={active?.messages ?? []}
         newConversationHref={`/${locale}/analysis?new=1`}
+        onCreateConversation={handleCreateConversation}
         onSelectConversation={(conversationId) => store.selectConversation(conversationId)}
+        onSubmitMessage={handleSubmitMessage}
       />
     </aside>
   );

@@ -64,7 +64,9 @@ describe('application rail', () => {
     expect(navigation.querySelector('.application-rail__brand-icon')?.getAttribute('src')).toBe(
       '/landing/assets/databreeze-mark.png',
     );
-    expect(screen.queryByText('DataBreeze', { selector: '.application-rail__brand' })).toBeNull();
+    expect(
+      screen.getByText('DataBreeze', { selector: '.application-rail__brand-name' }),
+    ).toBeTruthy();
 
     const handle = screen.getByRole('button', { name: 'Thu gọn thanh bên' });
     expect(handle.classList.contains('application-rail__collapse')).toBe(true);

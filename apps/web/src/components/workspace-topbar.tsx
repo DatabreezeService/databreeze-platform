@@ -46,9 +46,6 @@ export function WorkspaceTopbar({
 }: WorkspaceTopbarProperties) {
   const location = useLocation();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [dashboardPresentation, setDashboardPresentation] = useState<
-    'auto' | 'horizontal' | 'vertical'
-  >('auto');
   const notificationTriggerRef = useRef<HTMLButtonElement>(null);
   const notificationPanelRef = useRef<HTMLDivElement>(null);
   const wasNotificationsOpenRef = useRef(false);
@@ -151,10 +148,7 @@ export function WorkspaceTopbar({
   }, [closeNotifications, notificationsOpen]);
 
   return (
-    <header
-      className={`workspace-topbar${dashboardMode ? ' workspace-topbar--dashboard' : ''}`}
-      data-dashboard-presentation={dashboardMode ? dashboardPresentation : undefined}
-    >
+    <header className={`workspace-topbar${dashboardMode ? ' workspace-topbar--dashboard' : ''}`}>
       <div className="workspace-topbar__scope" aria-label={appMessage(locale, 'workspace.context')}>
         {dashboardMode ? (
           <nav
@@ -191,30 +185,6 @@ export function WorkspaceTopbar({
         ) : null}
       </div>
       <div className="workspace-topbar__actions">
-        {dashboardMode && !isMobile ? (
-          <div
-            aria-label={locale === 'vi-VN' ? 'Bố cục bảng điều khiển' : 'Dashboard layout'}
-            className="workspace-topbar__presentation"
-            role="group"
-          >
-            {(
-              [
-                ['auto', locale === 'vi-VN' ? 'Tự động' : 'Auto'],
-                ['horizontal', locale === 'vi-VN' ? 'Ngang' : 'Horizontal'],
-                ['vertical', locale === 'vi-VN' ? 'Dọc' : 'Vertical'],
-              ] as const
-            ).map(([value, presentationLabel]) => (
-              <button
-                aria-pressed={dashboardPresentation === value}
-                key={value}
-                onClick={() => setDashboardPresentation(value)}
-                type="button"
-              >
-                {presentationLabel}
-              </button>
-            ))}
-          </div>
-        ) : null}
         {isMobile ? (
           <Button
             aria-controls="primary-navigation"
@@ -227,8 +197,19 @@ export function WorkspaceTopbar({
             {mobileNavigationOpen ? <XIcon /> : <MenuIcon />}
           </Button>
         ) : null}
-        <Link className="workspace-topbar__locale" to={alternatePath}>
-          {appMessage(locale, alternateLocale === 'vi-VN' ? 'locale.vietnamese' : 'locale.english')}
+        <Link
+          aria-label={
+            locale === 'vi-VN'
+              ? 'Chuyển sang tiếng Anh (Switch to English)'
+              : 'Chuyển sang tiếng Việt'
+          }
+          className="workspace-topbar__locale"
+          to={alternatePath}
+        >
+          <span aria-hidden="true" className="workspace-topbar__locale-flag">
+            {locale === 'vi-VN' ? '🇻🇳' : '🇬🇧'}
+          </span>
+          <span>{locale === 'vi-VN' ? 'Tiếng Việt' : 'English'}</span>
         </Link>
         {onSignOut === undefined ? null : (
           <Button

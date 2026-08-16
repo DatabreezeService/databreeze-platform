@@ -135,10 +135,11 @@ export function ApplicationRail({
           <img
             alt=""
             className="application-rail__brand-icon"
-            height="32"
+            height="28"
             src={DATABREEZE_MARK_SRC}
-            width="32"
+            width="28"
           />
+          <span className="application-rail__brand-name">DataBreeze</span>
         </Link>
         {!isMobile ? (
           <button

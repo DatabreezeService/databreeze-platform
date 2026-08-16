@@ -23,8 +23,7 @@ function renderTopbar(
 }
 
 describe('workspace topbar notifications', () => {
-  it('renders the approved dashboard breadcrumb and working presentation controls', async () => {
-    const user = userEvent.setup();
+  it('renders the approved dashboard breadcrumb and active locale controls', () => {
     render(
       <MemoryRouter initialEntries={['/vi-VN/dashboards']}>
         <WorkspaceTopbar
@@ -72,15 +71,7 @@ describe('workspace topbar notifications', () => {
       'Bright Cloud',
     );
     expect(screen.getByText('Bức tranh kinh doanh')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Tự động' }).getAttribute('aria-pressed')).toBe(
-      'true',
-    );
-
-    await user.click(screen.getByRole('button', { name: 'Dọc' }));
-    expect(screen.getByRole('button', { name: 'Dọc' }).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByRole('button', { name: 'Tự động' }).getAttribute('aria-pressed')).toBe(
-      'false',
-    );
+    expect(screen.getByRole('link', { name: /Tiếng Việt/i })).toBeTruthy();
   });
 
   it('displays only the organization/workspace/project names derived from authenticated bootstrap', () => {
