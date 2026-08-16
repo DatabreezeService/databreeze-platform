@@ -23,6 +23,7 @@ const COPY = {
     verifiedAi: 'AI có kiểm chứng',
     dataModes: 'Chế độ dữ liệu',
     apps: 'Ứng dụng',
+    pricing: 'Bảng giá',
     signIn: 'Đăng nhập',
     explore: 'Khám phá',
     language: 'English',
@@ -94,6 +95,7 @@ const COPY = {
     verifiedAi: 'Verified AI',
     dataModes: 'Data modes',
     apps: 'Apps',
+    pricing: 'Pricing',
     signIn: 'Sign in',
     explore: 'Explore',
     language: 'Tiếng Việt',
@@ -323,6 +325,7 @@ export function DownloadsPage({
           <a href={localizedDownloadsPathV1(locale)} aria-current="page">
             {copy.apps}
           </a>
+          <a href={`/${locale}#pricing`}>{copy.pricing}</a>
         </nav>
 
         <div className="downloads-site-actions">

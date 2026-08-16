@@ -30,11 +30,16 @@ describe('public downloads surface [WEB-002, WEB-003, DSK-208, DSK-271]', () => 
     expect(screen.getByRole('link', { name: 'Ứng dụng' }).getAttribute('href')).toBe(
       '/vi-VN/downloads',
     );
+    expect(screen.getByRole('link', { name: 'Bảng giá' }).getAttribute('href')).toBe(
+      '/vi-VN#pricing',
+    );
   });
 
   it('changes the release panel when Android is selected', async () => {
     const user = userEvent.setup();
     render(<DownloadsPage locale="en" />);
+
+    expect(screen.getByRole('link', { name: 'Pricing' }).getAttribute('href')).toBe('/en#pricing');
 
     await user.click(screen.getByRole('tab', { name: /Android/u }));
 

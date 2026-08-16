@@ -1159,6 +1159,7 @@ button {
 .evidence-section,
 .modes-section,
 .pricing-section {
+  scroll-margin-top: 88px;
   position: relative;
   padding: 150px 0;
 }
@@ -2645,7 +2646,6 @@ button {
 }
 
 .pricing-section {
-  scroll-margin-top: 88px;
   overflow: hidden;
   background: linear-gradient(180deg, rgba(61, 80, 255, 0.04), transparent 24%), #f0f1ff;
   color: #0b0d26;
@@ -4023,6 +4023,10 @@ button {
     --content: min(920px, calc(100vw - 40px));
   }
 
+  .desktop-nav {
+    gap: 20px;
+  }
+
   .hero {
     min-height: 1110px;
   }
@@ -4080,12 +4084,7 @@ button {
   }
 }
 
-@media (max-width: 780px) {
-  :root {
-    --content: calc(100vw - 32px);
-    --header-height: 64px;
-  }
-
+@media (max-width: 920px) {
   .desktop-nav {
     position: absolute;
     top: calc(var(--header-height) + 8px);
@@ -4110,6 +4109,14 @@ button {
   .site-header {
     grid-template-columns: 1fr auto;
   }
+}
+
+@media (max-width: 780px) {
+  :root {
+    --content: calc(100vw - 32px);
+    --header-height: 64px;
+  }
+
   .header-cta {
     min-height: 34px;
   }
