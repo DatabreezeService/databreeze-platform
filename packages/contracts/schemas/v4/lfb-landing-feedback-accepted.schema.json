@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-accepted",
+  "$comment": "WEB-026: closed minimal acceptance receipt. Confirms server persistence without echoing submitted content.",
+  "title": "Landing Feedback Accepted",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "receivedAt", "referenceId"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "receivedAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" },
+    "referenceId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" }
+  }
+}

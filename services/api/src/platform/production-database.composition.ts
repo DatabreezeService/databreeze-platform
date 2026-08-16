@@ -141,7 +141,8 @@ type DatabaseOptionKey =
   | 'approvalDatabase'
   | 'mobileDatabase'
   | 'jraWorkerDatabase'
-  | 'ddaDatabase';
+  | 'ddaDatabase'
+  | 'landingFeedbackDatabase';
 
 export type ProductionDatabaseOptions = {
   readonly [TKey in DatabaseOptionKey]: NonNullable<ApiApplicationOptions[TKey]>;
@@ -168,6 +169,12 @@ export type ProductionDatabaseOptions = {
       ApiApplicationOptions['emailVerificationDelivery']
     >;
     readonly recoveryDelivery: NonNullable<ApiApplicationOptions['recoveryDelivery']>;
+    readonly landingFeedbackIpAdmission: NonNullable<
+      ApiApplicationOptions['landingFeedbackIpAdmission']
+    >;
+    readonly landingFeedbackAdmissionDigest: NonNullable<
+      ApiApplicationOptions['landingFeedbackAdmissionDigest']
+    >;
     readonly mfaFactorProofVerifier: NonNullable<ApiApplicationOptions['mfaFactorProofVerifier']>;
     readonly deviceEnrollmentProofVerifier: NonNullable<
       ApiApplicationOptions['deviceEnrollmentProofVerifier']
@@ -638,6 +645,12 @@ function optionsFor(
       ApiApplicationOptions['emailVerificationDelivery']
     >;
     readonly recoveryDelivery: NonNullable<ApiApplicationOptions['recoveryDelivery']>;
+    readonly landingFeedbackIpAdmission: NonNullable<
+      ApiApplicationOptions['landingFeedbackIpAdmission']
+    >;
+    readonly landingFeedbackAdmissionDigest: NonNullable<
+      ApiApplicationOptions['landingFeedbackAdmissionDigest']
+    >;
   },
 ): ProductionDatabaseOptions {
   return {
@@ -704,6 +717,7 @@ function optionsFor(
     mobileDatabase: asDatabasePort<'mobileDatabase'>(client),
     jraWorkerDatabase: asDatabasePort<'jraWorkerDatabase'>(client),
     ddaDatabase: asDatabasePort<'ddaDatabase'>(client),
+    landingFeedbackDatabase: asDatabasePort<'landingFeedbackDatabase'>(client),
   };
 }
 
@@ -814,7 +828,15 @@ export async function createProductionDatabaseComposition(
       maxAttempts: 5,
       windowSeconds: 15 * 60,
     }),
+    landingFeedbackIpAdmission: new RedisRecoveryAdmissionAdapter(redisCounter, {
+      keyPrefix: 'databreeze:lfb:landing-feedback:ip:v1:',
+      maxAttempts: 5,
+      windowSeconds: 3600,
+    }),
     registrationAdmissionDigest: new HmacSha256IamRegistrationAdmissionDigestAdapter(
+      registrationAdmissionKey,
+    ),
+    landingFeedbackAdmissionDigest: new HmacSha256IamRegistrationAdmissionDigestAdapter(
       registrationAdmissionKey,
     ),
     recoveryDigest: new HmacSha256IamRecoveryDigestAdapter(recoveryDigestKey),

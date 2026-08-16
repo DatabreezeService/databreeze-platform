@@ -3,7 +3,7 @@
 | Metadata | Value |
 |---|---|
 | Status | Product specification |
-| Version | 1.2 |
+| Version | 1.3 |
 | Requirement prefix | `IAM` |
 | Dependencies | Platform architecture baseline; all other specifications depend on this specification |
 
@@ -55,6 +55,8 @@ Define the identity, tenant hierarchy, membership, session, device identity, and
 | Viewer | Read approved artifacts, reports, and dashboards within assigned scope |
 
 Roles are permission bundles, not authorization decisions. Every request also requires an active membership, matching organization/workspace/project scope, resource visibility, data-mode compatibility, and applicable policy conditions.
+
+Internal platform operations use a separate persisted `PlatformOperator` assignment with the initial roles `PLATFORM_OWNER` and `PLATFORM_SUPPORT`. A platform assignment is not an organization, workspace, or project membership, never grants implicit access to tenant source content, and is resolved from current IAM state for every protected platform request. Platform operators still authenticate through normal short-lived sessions, require MFA for privileged or account-affecting actions, and all platform reads and mutations are attributable and auditable. Revoking or suspending the assignment removes platform access without changing the user's tenant memberships.
 
 The normal customer UI exposes Owner, Editor, and Viewer access presets. Those presets map to the six canonical server roles and versioned permission constants. Preset mapping is explicit, versioned, and deny-by-default. Presets are presentation metadata; the six server roles remain the policy-enforcement vocabulary.
 
@@ -176,6 +178,7 @@ The evaluated tenant identifiers come from trusted server-side resource lookup; 
 | IAM-023 | P0 | Access tokens shall remain at most 15 minutes; rotating refresh families shall expire after 30 days of Web inactivity and 180 days absolute, or 90 days of Desktop/Android inactivity and 365 days absolute; reuse, recovery, suspension, logout-all, device revocation, or compromise shall revoke the family; browser credentials shall remain `HttpOnly`, `Secure`, and `SameSite=Lax`. |
 | IAM-024 | P0 | Agent authority shall be an independent workspace-member grant with `NONE`, `ANALYZE`, `PROPOSE_CHANGES`, or `APPLY_CONFIRMED_CHANGES`; Viewer shall default to `NONE`; grants shall never expand dataset or action permission. |
 | IAM-025 | P0 | The normal UI shall expose Owner, Editor, and Viewer access presets while the six canonical server roles and versioned permission constants remain available to policy enforcement; preset mapping shall be explicit, versioned, and deny-by-default. |
+| IAM-026 | P0 | Internal platform administration shall use a persisted, deny-by-default `PlatformOperator` assignment distinct from tenant memberships; every platform request shall resolve its current active role from IAM, grant no implicit tenant source-content access, require recent MFA for account-affecting actions, produce attributable audit evidence, and reflect suspension or revocation within 60 seconds. |
 
 ## Domain and data contracts
 

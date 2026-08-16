@@ -114,11 +114,18 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
     ]) {
       assert.ok(paths.includes(requiredPath), `missing documented path: ${requiredPath}`);
     }
-    const invoiceOperation = firstDocument.paths['/v1/dda/invoice-extractions']?.post as OperationLike;
+    const invoiceOperation = firstDocument.paths['/v1/dda/invoice-extractions']
+      ?.post as OperationLike;
     assert.ok(invoiceOperation.requestBody, 'invoice extraction must document its request schema');
-    assert.ok(invoiceOperation.responses['200']?.content?.['application/json'], 'invoice extraction must document its response schema');
+    assert.ok(
+      invoiceOperation.responses['200']?.content?.['application/json'],
+      'invoice extraction must document its response schema',
+    );
     const mobileTasksOperation = firstDocument.paths['/v1/mobile/tasks']?.get as OperationLike;
-    assert.ok(mobileTasksOperation.responses['200']?.content?.['application/json'], 'mobile tasks must document its response schema');
+    assert.ok(
+      mobileTasksOperation.responses['200']?.content?.['application/json'],
+      'mobile tasks must document its response schema',
+    );
     assert.ok(
       paths
         .filter((path) => !path.startsWith('/health/'))
@@ -304,6 +311,8 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
       'POST /v1/auth/recovery',
       'POST /v1/auth/recovery/complete',
       'POST /v1/auth/refresh',
+      // WEB-026: anonymous landing feedback intake; admission-throttled and closed-contract.
+      'POST /v1/landing/feedbacks',
     ]);
     for (const [path, pathItem] of Object.entries(firstDocument.paths) as Array<
       [string, PathItemLike]

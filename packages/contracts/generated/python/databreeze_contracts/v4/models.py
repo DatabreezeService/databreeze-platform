@@ -45,6 +45,14 @@ ConversationListOpaqueCursor: TypeAlias = Annotated[StrictStr, StringConstraints
 
 ConversationLoadOpaqueCursor: TypeAlias = Annotated[StrictStr, StringConstraints(min_length=16, max_length=512, pattern=r"^[A-Za-z0-9_-]+$")]
 
+FeedbackCategory: TypeAlias = Literal["product", "feature", "data-trust", "design", "performance", "other"]
+
+FeedbackCount: TypeAlias = Annotated[int, Field(strict=True, ge=0, le=9007199254740991)]
+
+FeedbackExperience: TypeAlias = Literal["exploring", "trial", "active"]
+
+FeedbackRole: TypeAlias = Literal["owner", "analyst", "accounting", "operations", "technology", "other"]
+
 FinalizeIdempotencyKey: TypeAlias = Annotated[StrictStr, StringConstraints(min_length=8, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$")]
 
 FinalizeOpaqueToken: TypeAlias = Annotated[StrictStr, StringConstraints(min_length=16, max_length=512, pattern=r"^[A-Za-z0-9][A-Za-z0-9._~-]{15,511}$")]
@@ -53,7 +61,13 @@ FinalizeSafeName: TypeAlias = Annotated[StrictStr, StringConstraints(min_length=
 
 FinalizeSha256: TypeAlias = Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
 
+GroupKey: TypeAlias = Annotated[StrictStr, StringConstraints(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9._-]+$")]
+
 Identifier: TypeAlias = Annotated[StrictStr, AfterValidator(validate_uuid)]
+
+Month: TypeAlias = Annotated[StrictStr, StringConstraints(pattern=r"^[0-9]{4}-(0[1-9]|1[0-2])$")]
+
+NonNegativeInteger: TypeAlias = Annotated[int, Field(strict=True, ge=0, le=9007199254740991)]
 
 PrepareIdempotencyKey: TypeAlias = Annotated[StrictStr, StringConstraints(min_length=8, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$")]
 
@@ -188,6 +202,14 @@ class ContextEvent(ClosedModel):
     kind: Literal["CONTEXT_RESTORED", "DATASET_VERSION_ADVANCED", "DATASET_ATTACHED", "DATASET_DETACHED", "DASHBOARD_VERSION_ADVANCED", "FILTER_CONTEXT_CHANGED"]
     occurredAt: UtcTimestamp
     sequence: Annotated[int, Field(strict=True, ge=1)]
+
+class CountGroup(ClosedModel):
+    count: NonNegativeInteger
+    key: GroupKey
+
+class CountPoint(ClosedModel):
+    count: NonNegativeInteger
+    month: Month
 
 class DashboardApplyConfirmedResult(ClosedModel):
     name: Literal["dashboard.applyConfirmed"]
@@ -328,6 +350,19 @@ class EvidenceResolveValue(ClosedModel):
     evidenceId: Identifier
     kind: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
     reference: EvidenceReference
+
+class Feedback(ClosedModel):
+    category: FeedbackCategory
+    contactPermission: StrictBool
+    createdAt: UtcTimestamp
+    email: Annotated[StrictStr, StringConstraints(min_length=3, max_length=160, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")]
+    experience: FeedbackExperience
+    id: Identifier
+    message: Annotated[StrictStr, StringConstraints(min_length=10, max_length=1200)]
+    name: Annotated[StrictStr, StringConstraints(min_length=1, max_length=80)] | None = None
+    organization: Annotated[StrictStr, StringConstraints(min_length=1, max_length=120)] | None = None
+    rating: Annotated[int, Field(strict=True, ge=1, le=5)]
+    role: FeedbackRole
 
 class Freshness(ClosedModel):
     dashboardVersionId: Identifier
@@ -501,6 +536,63 @@ class JraWorkerResultPrepareCommand(ClosedModel):
     outputs: Annotated[list[WorkerOutputDeclaration], Field(min_length=1, max_length=32)]
     schemaVersion: Literal[4]
 
+class LfbLandingFeedbackAccepted(ClosedModel):
+    receivedAt: UtcTimestamp
+    referenceId: Identifier
+    schemaVersion: Literal[4]
+
+class LfbLandingFeedbackCommand(ClosedModel):
+    category: Literal["product", "feature", "data-trust", "design", "performance", "other"]
+    contactPermission: StrictBool
+    email: Annotated[StrictStr, StringConstraints(min_length=3, max_length=160, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")]
+    experience: Literal["exploring", "trial", "active"]
+    message: Annotated[StrictStr, StringConstraints(min_length=10, max_length=1200, pattern=r"^[^\u0000]+$")]
+    name: Annotated[StrictStr, StringConstraints(min_length=1, max_length=80)] | None = None
+    organization: Annotated[StrictStr, StringConstraints(min_length=1, max_length=120)] | None = None
+    rating: Annotated[int, Field(strict=True, ge=1, le=5)]
+    role: Literal["owner", "analyst", "accounting", "operations", "technology", "other"]
+    schemaVersion: Literal[4]
+
+class PlatformAdminFeedbacks(ClosedModel):
+    feedbacks: Annotated[list[Feedback], Field(max_length=200)]
+    generatedAt: UtcTimestamp
+    schemaVersion: Literal[4]
+    total: FeedbackCount
+
+class PlatformAdminOverview(ClosedModel):
+    generatedAt: UtcTimestamp
+    operator: PlatformAdminOverviewOperator
+    recentPayments: Annotated[list[RecentPayment], Field(max_length=20)]
+    recentSubscriptions: Annotated[list[RecentSubscription], Field(max_length=20)]
+    recentUsers: Annotated[list[RecentUser], Field(max_length=20)]
+    registrationSeries: Annotated[list[CountPoint], Field(max_length=12)]
+    revenueSeries: Annotated[list[RevenuePoint], Field(max_length=12)]
+    schemaVersion: Literal[4]
+    subscriptionPlans: Annotated[list[CountGroup], Field(max_length=32)]
+    subscriptionStatuses: Annotated[list[CountGroup], Field(max_length=16)]
+    totals: PlatformAdminOverviewTotals
+    window: PlatformAdminOverviewWindow
+
+class PlatformAdminOverviewOperator(ClosedModel):
+    role: Literal["PLATFORM_OWNER", "PLATFORM_SUPPORT"]
+
+class PlatformAdminOverviewTotals(ClosedModel):
+    activeSessions: NonNegativeInteger
+    activeSubscriptions: NonNegativeInteger
+    activeUsers: NonNegativeInteger
+    organizations: NonNegativeInteger
+    paidOrders: NonNegativeInteger
+    settledRevenueVnd: NonNegativeInteger
+    subscriberUsers: NonNegativeInteger
+    subscriptions: NonNegativeInteger
+    users: NonNegativeInteger
+    workspaces: NonNegativeInteger
+
+class PlatformAdminOverviewWindow(ClosedModel):
+    days: Annotated[int, Field(strict=True, ge=7, le=365)]
+    endsAt: UtcTimestamp
+    startsAt: UtcTimestamp
+
 class PreparedOutput(ClosedModel):
     allowedMediaTypes: Annotated[list[PreparedMediaType], Field(min_length=1, max_length=16)]
     capabilityId: Identifier
@@ -525,6 +617,36 @@ class PublicMessage(ClosedModel):
     sequence: Annotated[int, Field(strict=True, ge=1)]
     text: Annotated[StrictStr, StringConstraints(min_length=1, max_length=8000)]
 
+class RecentPayment(ClosedModel):
+    amountVnd: NonNegativeInteger
+    createdAt: UtcTimestamp
+    currency: Literal["VND"]
+    organizationId: Identifier
+    organizationName: Annotated[StrictStr, StringConstraints(min_length=1, max_length=200)]
+    paidAt: UtcTimestamp | None = None
+    paymentOrderId: Identifier
+    planId: GroupKey
+    status: GroupKey
+
+class RecentSubscription(ClosedModel):
+    endsAt: UtcTimestamp | None = None
+    organizationId: Identifier
+    organizationName: Annotated[StrictStr, StringConstraints(min_length=1, max_length=200)]
+    planId: GroupKey
+    source: GroupKey
+    startsAt: UtcTimestamp
+    status: GroupKey
+    subscriptionId: Identifier
+    updatedAt: UtcTimestamp
+    workspaceId: Identifier | None = None
+
+class RecentUser(ClosedModel):
+    createdAt: UtcTimestamp
+    displayName: Annotated[StrictStr, StringConstraints(min_length=1, max_length=200)]
+    email: Annotated[StrictStr, StringConstraints(min_length=3, max_length=254, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")]
+    status: GroupKey
+    userId: Identifier
+
 class ResultAttestation(ClosedModel):
     attestationId: Identifier
     outputName: FinalizeSafeName
@@ -540,6 +662,11 @@ class ResultRow(ClosedModel):
     numericValue: StrictFloat
     provenance: Provenance
     unit: Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]
+
+class RevenuePoint(ClosedModel):
+    month: Month
+    paidOrders: NonNegativeInteger
+    revenueVnd: NonNegativeInteger
 
 class SchemaField(ClosedModel):
     field: Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]
@@ -631,6 +758,8 @@ BuaPayosPlanCatalogPlansItem.model_rebuild()
 BuaPayosWebhookEvent.model_rebuild()
 BuaPayosWebhookEventData.model_rebuild()
 ContextEvent.model_rebuild()
+CountGroup.model_rebuild()
+CountPoint.model_rebuild()
 DashboardApplyConfirmedResult.model_rebuild()
 DashboardApplyConfirmedValue.model_rebuild()
 DashboardExplainValue.model_rebuild()
@@ -655,6 +784,7 @@ EvidenceRef.model_rebuild()
 EvidenceReference.model_rebuild()
 EvidenceResolveResult.model_rebuild()
 EvidenceResolveValue.model_rebuild()
+Feedback.model_rebuild()
 Freshness.model_rebuild()
 IamAuthSession.model_rebuild()
 IamBootstrapOrganization.model_rebuild()
@@ -681,12 +811,23 @@ JraWorkerResultFinalizeAccepted.model_rebuild()
 JraWorkerResultFinalizeCommand.model_rebuild()
 JraWorkerResultPrepareAccepted.model_rebuild()
 JraWorkerResultPrepareCommand.model_rebuild()
+LfbLandingFeedbackAccepted.model_rebuild()
+LfbLandingFeedbackCommand.model_rebuild()
+PlatformAdminFeedbacks.model_rebuild()
+PlatformAdminOverview.model_rebuild()
+PlatformAdminOverviewOperator.model_rebuild()
+PlatformAdminOverviewTotals.model_rebuild()
+PlatformAdminOverviewWindow.model_rebuild()
 PreparedOutput.model_rebuild()
 Provenance.model_rebuild()
 PublicMessage.model_rebuild()
+RecentPayment.model_rebuild()
+RecentSubscription.model_rebuild()
+RecentUser.model_rebuild()
 ResultAttestation.model_rebuild()
 ResultProvenance.model_rebuild()
 ResultRow.model_rebuild()
+RevenuePoint.model_rebuild()
 SchemaField.model_rebuild()
 SourceOpenResult.model_rebuild()
 SourceOpenValue.model_rebuild()

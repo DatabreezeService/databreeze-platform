@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 4,
+  "email": "nguyen.van.an@example.vn",
+  "name": "Nguyễn Văn An",
+  "organization": "Công ty TNHH GiácData",
+  "role": "owner",
+  "experience": "trial",
+  "category": "product",
+  "rating": 5,
+  "message": "Giao diện rõ ràng, tôi đã nhập liệu và xuất báo cáo trong buổi thử đầu tiên.",
+  "contactPermission": true
+}

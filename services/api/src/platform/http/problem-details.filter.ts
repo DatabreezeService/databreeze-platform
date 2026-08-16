@@ -18,6 +18,8 @@ import { RegistrationProblemError } from '../../features/iam/application/registr
 import { RecoveryProblemError } from '../../features/iam/application/recovery-problem.error.js';
 import { AuditProblemError } from '../../features/aud/application/audit-problem.error.js';
 import { ArtifactExportProblemError } from '../../features/iae/application/artifact-export-problem.error.js';
+import { PlatformAdminProblemError } from '../../features/platform-admin/application/platform-admin.service.js';
+import { LandingFeedbackProblemError } from '../../features/lfb/application/landing-feedback.service.js';
 import { RequestTenantContextProblemError } from './request-tenant-context.port.js';
 import { NotReadyError } from '../../features/system/application/not-ready.error.js';
 import { InputValidationException } from './input-validation.exception.js';
@@ -216,6 +218,37 @@ function describe(error: unknown, correlationId: string): ProblemInput {
         : 'api.error.artifact_export_invalid',
       retryable: false,
       status: notFound ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST,
+    };
+  }
+  if (error instanceof PlatformAdminProblemError) {
+    const unavailable = error.code === 'PLATFORM_ADMIN_UNAVAILABLE';
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: unavailable
+        ? 'api.error.platform_admin_unavailable'
+        : 'api.error.platform_admin_forbidden',
+      retryable: unavailable,
+      status: unavailable ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.FORBIDDEN,
+    };
+  }
+  if (error instanceof LandingFeedbackProblemError) {
+    const unavailable = error.code === 'LANDING_FEEDBACK_UNAVAILABLE';
+    const rateLimited = error.code === 'LANDING_FEEDBACK_RATE_LIMITED';
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: unavailable
+        ? 'api.error.landing_feedback_unavailable'
+        : rateLimited
+          ? 'api.error.landing_feedback_rate_limited'
+          : 'api.error.landing_feedback_command_invalid',
+      retryable: unavailable,
+      status: unavailable
+        ? HttpStatus.SERVICE_UNAVAILABLE
+        : rateLimited
+          ? HttpStatus.TOO_MANY_REQUESTS
+          : HttpStatus.BAD_REQUEST,
     };
   }
   if (error instanceof RequestTenantContextProblemError) {

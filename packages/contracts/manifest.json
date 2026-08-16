@@ -208,6 +208,26 @@
       "path": "schemas/v4/jra-worker-result-prepare-command.schema.json"
     },
     {
+      "name": "lfb-landing-feedback-accepted",
+      "id": "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-accepted",
+      "path": "schemas/v4/lfb-landing-feedback-accepted.schema.json"
+    },
+    {
+      "name": "lfb-landing-feedback-command",
+      "id": "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-command",
+      "path": "schemas/v4/lfb-landing-feedback-command.schema.json"
+    },
+    {
+      "name": "platform-admin-feedbacks",
+      "id": "https://schemas.databreeze.dev/contracts/v4/platform-admin-feedbacks",
+      "path": "schemas/v4/platform-admin-feedbacks.schema.json"
+    },
+    {
+      "name": "platform-admin-overview",
+      "id": "https://schemas.databreeze.dev/contracts/v4/platform-admin-overview",
+      "path": "schemas/v4/platform-admin-overview.schema.json"
+    },
+    {
       "name": "dda-refresh-event",
       "id": "https://schemas.databreeze.dev/contracts/v1/dda-refresh-event",
       "path": "schemas/v1/dda-refresh-event.schema.json"

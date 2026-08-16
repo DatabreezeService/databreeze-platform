@@ -35,8 +35,11 @@ pnpm local:seed
 ```
 
 The seed is idempotent, creates tenant-scoped records, and uploads fixture bytes
-to local MinIO. It prints four local sign-in accounts, including an `admin`
-account with organization ownership plus workspace/project administration memberships, and a generated password;
+to local MinIO. It prints five local sign-in accounts, including an `admin`
+account with organization ownership plus workspace/project administration memberships and a separate
+`platform-owner@databreeze.local` account for the internal product overview. It also creates synthetic
+organizations, users, subscriptions, PayOS payment outcomes, invoices, and monthly revenue history. All
+accounts use the generated password;
 set `DATABREEZE_LOCAL_SEED_PASSWORD` in the ignored
 `infrastructure/local/.env` first if you need a stable password.
 

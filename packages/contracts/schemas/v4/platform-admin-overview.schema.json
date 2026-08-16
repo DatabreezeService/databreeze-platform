@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/platform-admin-overview",
+  "$comment": "IAM-026, BUA-024, WEB-025: content-minimized authoritative internal product overview.",
+  "title": "Platform Admin Overview",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "generatedAt",
+    "operator",
+    "window",
+    "totals",
+    "subscriptionStatuses",
+    "subscriptionPlans",
+    "registrationSeries",
+    "revenueSeries",
+    "recentUsers",
+    "recentSubscriptions",
+    "recentPayments"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "generatedAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" },
+    "operator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role"],
+      "properties": {
+        "role": { "enum": ["PLATFORM_OWNER", "PLATFORM_SUPPORT"] }
+      }
+    },
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["days", "startsAt", "endsAt"],
+      "properties": {
+        "days": { "type": "integer", "minimum": 7, "maximum": 365 },
+        "startsAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" },
+        "endsAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "users",
+        "activeUsers",
+        "organizations",
+        "workspaces",
+        "activeSessions",
+        "subscriptions",
+        "activeSubscriptions",
+        "subscriberUsers",
+        "settledRevenueVnd",
+        "paidOrders"
+      ],
+      "properties": {
+        "users": { "$ref": "#/$defs/nonNegativeInteger" },
+        "activeUsers": { "$ref": "#/$defs/nonNegativeInteger" },
+        "organizations": { "$ref": "#/$defs/nonNegativeInteger" },
+        "workspaces": { "$ref": "#/$defs/nonNegativeInteger" },
+        "activeSessions": { "$ref": "#/$defs/nonNegativeInteger" },
+        "subscriptions": { "$ref": "#/$defs/nonNegativeInteger" },
+        "activeSubscriptions": { "$ref": "#/$defs/nonNegativeInteger" },
+        "subscriberUsers": { "$ref": "#/$defs/nonNegativeInteger" },
+        "settledRevenueVnd": { "$ref": "#/$defs/nonNegativeInteger" },
+        "paidOrders": { "$ref": "#/$defs/nonNegativeInteger" }
+      }
+    },
+    "subscriptionStatuses": {
+      "type": "array",
+      "maxItems": 16,
+      "items": { "$ref": "#/$defs/countGroup" }
+    },
+    "subscriptionPlans": {
+      "type": "array",
+      "maxItems": 32,
+      "items": { "$ref": "#/$defs/countGroup" }
+    },
+    "registrationSeries": {
+      "type": "array",
+      "maxItems": 12,
+      "items": { "$ref": "#/$defs/countPoint" }
+    },
+    "revenueSeries": {
+      "type": "array",
+      "maxItems": 12,
+      "items": { "$ref": "#/$defs/revenuePoint" }
+    },
+    "recentUsers": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "$ref": "#/$defs/recentUser" }
+    },
+    "recentSubscriptions": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "$ref": "#/$defs/recentSubscription" }
+    },
+    "recentPayments": {
+      "type": "array",
+      "maxItems": 20,
+      "items": { "$ref": "#/$defs/recentPayment" }
+    }
+  },
+  "$defs": {
+    "nonNegativeInteger": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "groupKey": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z0-9._-]+$" },
+    "month": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$" },
+    "countGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "count"],
+      "properties": {
+        "key": { "$ref": "#/$defs/groupKey" },
+        "count": { "$ref": "#/$defs/nonNegativeInteger" }
+      }
+    },
+    "countPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["month", "count"],
+      "properties": {
+        "month": { "$ref": "#/$defs/month" },
+        "count": { "$ref": "#/$defs/nonNegativeInteger" }
+      }
+    },
+    "revenuePoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["month", "revenueVnd", "paidOrders"],
+      "properties": {
+        "month": { "$ref": "#/$defs/month" },
+        "revenueVnd": { "$ref": "#/$defs/nonNegativeInteger" },
+        "paidOrders": { "$ref": "#/$defs/nonNegativeInteger" }
+      }
+    },
+    "recentUser": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["userId", "email", "displayName", "status", "createdAt"],
+      "properties": {
+        "userId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "email": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 254,
+          "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+        },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "status": { "$ref": "#/$defs/groupKey" },
+        "createdAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" }
+      }
+    },
+    "recentSubscription": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subscriptionId", "organizationId", "organizationName", "planId", "source", "status", "startsAt", "updatedAt"],
+      "properties": {
+        "subscriptionId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "organizationId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "organizationName": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "workspaceId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "planId": { "$ref": "#/$defs/groupKey" },
+        "source": { "$ref": "#/$defs/groupKey" },
+        "status": { "$ref": "#/$defs/groupKey" },
+        "startsAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" },
+        "endsAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" },
+        "updatedAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" }
+      }
+    },
+    "recentPayment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paymentOrderId", "organizationId", "organizationName", "planId", "amountVnd", "currency", "status", "createdAt"],
+      "properties": {
+        "paymentOrderId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "organizationId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "organizationName": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "planId": { "$ref": "#/$defs/groupKey" },
+        "amountVnd": { "$ref": "#/$defs/nonNegativeInteger" },
+        "currency": { "const": "VND" },
+        "status": { "$ref": "#/$defs/groupKey" },
+        "paidAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" },
+        "createdAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" }
+      }
+    }
+  }
+}

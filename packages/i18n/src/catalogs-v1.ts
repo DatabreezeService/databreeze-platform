@@ -145,6 +145,13 @@ const vietnameseCatalogV1 = {
   'retry.afterSeconds.other': entry('Thử lại sau {seconds} giây.', { seconds: 'number' }),
   'api.error.registration_request_rejected': entry('Yêu cầu đăng ký không được chấp nhận.'),
   'api.error.registration_unavailable': entry('Dịch vụ đăng ký hiện không khả dụng.'),
+  'api.error.landing_feedback_command_invalid': entry('Nội dung góp ý chưa hợp lệ.'),
+  'api.error.landing_feedback_rate_limited': entry(
+    'Bạn đã gửi quá nhiều góp ý trong thời gian ngắn. Vui lòng thử lại sau.',
+  ),
+  'api.error.landing_feedback_unavailable': entry(
+    'Hiện chưa nhận được góp ý. Vui lòng thử lại sau.',
+  ),
   'api.error.recovery_request_rejected': entry('Yêu cầu khôi phục không hợp lệ.'),
   'api.error.recovery_token_invalid': entry('Liên kết khôi phục không hợp lệ hoặc đã hết hạn.'),
   'api.error.recovery_unavailable': entry('Dịch vụ khôi phục hiện không khả dụng.'),
@@ -306,6 +313,13 @@ const englishCatalogV1: MessageCatalogV1 = {
   'api.error.registration_request_rejected': entry('The registration request was rejected.'),
   'api.error.registration_unavailable': entry(
     'The registration service is temporarily unavailable.',
+  ),
+  'api.error.landing_feedback_command_invalid': entry('The feedback content is not valid.'),
+  'api.error.landing_feedback_rate_limited': entry(
+    'Too many feedback submissions were sent. Please try again later.',
+  ),
+  'api.error.landing_feedback_unavailable': entry(
+    'Feedback cannot be received right now. Please try again later.',
   ),
   'api.error.recovery_request_rejected': entry('The recovery request was rejected.'),
   'api.error.recovery_token_invalid': entry('The recovery link is invalid or has expired.'),

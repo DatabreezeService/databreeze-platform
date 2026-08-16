@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 4,
+  "generatedAt": "2026-08-16T12:00:00.000Z",
+  "operator": { "role": "PLATFORM_OWNER" },
+  "window": {
+    "days": 180,
+    "startsAt": "2026-02-17T12:00:00.000Z",
+    "endsAt": "2026-08-16T12:00:00.000Z"
+  },
+  "totals": {
+    "users": 84,
+    "activeUsers": 79,
+    "organizations": 18,
+    "workspaces": 29,
+    "activeSessions": 21,
+    "subscriptions": 14,
+    "activeSubscriptions": 12,
+    "subscriberUsers": 11,
+    "settledRevenueVnd": 9876000,
+    "paidOrders": 27
+  },
+  "subscriptionStatuses": [
+    { "key": "ACTIVE", "count": 12 },
+    { "key": "CANCELLED", "count": 2 }
+  ],
+  "subscriptionPlans": [
+    { "key": "professional-monthly", "count": 8 },
+    { "key": "team-monthly", "count": 4 }
+  ],
+  "registrationSeries": [
+    { "month": "2026-07", "count": 12 },
+    { "month": "2026-08", "count": 9 }
+  ],
+  "revenueSeries": [
+    { "month": "2026-07", "revenueVnd": 3990000, "paidOrders": 10 },
+    { "month": "2026-08", "revenueVnd": 5886000, "paidOrders": 17 }
+  ],
+  "recentUsers": [
+    {
+      "userId": "00000000-0000-4000-8000-000000000010",
+      "email": "owner@example.test",
+      "displayName": "Synthetic Owner",
+      "status": "ACTIVE",
+      "createdAt": "2026-08-15T12:00:00.000Z"
+    }
+  ],
+  "recentSubscriptions": [
+    {
+      "subscriptionId": "00000000-0000-4000-8000-000000000020",
+      "organizationId": "00000000-0000-4000-8000-000000000021",
+      "organizationName": "Synthetic Retail",
+      "workspaceId": "00000000-0000-4000-8000-000000000022",
+      "planId": "professional-monthly",
+      "source": "PAYOS",
+      "status": "ACTIVE",
+      "startsAt": "2026-08-01T00:00:00.000Z",
+      "updatedAt": "2026-08-15T12:00:00.000Z"
+    }
+  ],
+  "recentPayments": [
+    {
+      "paymentOrderId": "00000000-0000-4000-8000-000000000030",
+      "organizationId": "00000000-0000-4000-8000-000000000021",
+      "organizationName": "Synthetic Retail",
+      "planId": "professional-monthly",
+      "amountVnd": 399000,
+      "currency": "VND",
+      "status": "PAID",
+      "paidAt": "2026-08-15T12:00:00.000Z",
+      "createdAt": "2026-08-15T11:58:00.000Z"
+    }
+  ]
+}

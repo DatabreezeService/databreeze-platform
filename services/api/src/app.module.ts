@@ -23,6 +23,26 @@ import { IldModule, type IldModuleOptions } from './features/ild/ild.module.js';
 import { DdaModule, type DdaModuleOptions } from './features/dda/dda.module.js';
 import { JraModule, type JraModuleOptions } from './features/jra/jra.module.js';
 import { MobileModule, type MobileModuleOptions } from './features/mobile/mobile.module.js';
+import {
+  PlatformAdminModule,
+  type PlatformAdminModuleOptions,
+} from './features/platform-admin/platform-admin.module.js';
+import {
+  PrismaPlatformOperatorAuthorityAdapter,
+  type PlatformOperatorDatabaseClientV1,
+} from './features/iam/adapter/prisma-platform-operator-authority.adapter.js';
+import {
+  PrismaPlatformIdentityAnalyticsAdapter,
+  type PlatformIdentityAnalyticsDatabaseClientV1,
+} from './features/iam/adapter/prisma-platform-identity-analytics.adapter.js';
+import {
+  PrismaPlatformBillingAnalyticsAdapter,
+  type PlatformBillingAnalyticsDatabaseClientV1,
+} from './features/bua/adapter/prisma-platform-billing-analytics.adapter.js';
+import { PrismaLandingFeedbackAdapter } from './features/lfb/adapter/prisma-landing-feedback.adapter.js';
+import { InMemoryLandingFeedbackAdmissionAdapter } from './features/lfb/adapter/in-memory-landing-feedback-admission.adapter.js';
+import { Sha256LandingFeedbackAdmissionDigestAdapter } from './features/lfb/adapter/sha256-landing-feedback-admission-digest.adapter.js';
+import { LfbModule, type LfbModuleOptions } from './features/lfb/lfb.module.js';
 import { PrismaApprovalRepositoryAdapter } from './features/jra/adapter/prisma-approval-repository.adapter.js';
 import { ApprovalService } from './features/jra/application/approval.service.js';
 import { JraDashboardPublicationApprovalAdapter } from './features/dda/dashboard/adapter/jra-dashboard-publication-approval.adapter.js';
@@ -51,10 +71,7 @@ import { IamReceiptMutationAuthorizationAdapter } from './features/dda/receipt/a
 import { IamGovernedDatasetAuthorizationAdapter } from './features/dsm/adapter/iam-governed-dataset-authorization.adapter.js';
 import { IamSourceCatalogAuthorizationAdapter } from './features/dda/source-catalog/adapter/iam-source-catalog-authorization.adapter.js';
 import { roleHasPermissionV1 } from '@databreeze/domain/permissions/v1';
-import {
-  tenantScopeContainsV1,
-  tenantScopesEqualV1,
-} from '@databreeze/domain/tenant-scope/v1';
+import { tenantScopeContainsV1, tenantScopesEqualV1 } from '@databreeze/domain/tenant-scope/v1';
 import {
   JraWorkerModule,
   type JraWorkerModuleOptions,
@@ -123,6 +140,8 @@ export type AppModuleOptions = SystemModuleOptions &
   DdaModuleOptions &
   JraModuleOptions &
   MobileModuleOptions &
+  PlatformAdminModuleOptions &
+  LfbModuleOptions &
   JraWorkerModuleOptions & {
     /** AUD/BUA participant that writes through the exact JRA serializable transaction. */
     readonly workerResultFinalizationEffects?: WorkerResultFinalizationEffectsPortV1;
@@ -264,6 +283,33 @@ export class AppModule {
             workspaceEpochResolver,
           )
         : undefined);
+    const platformOperatorAuthority =
+      options.platformOperatorAuthority ??
+      (options.iamDatabase === undefined
+        ? undefined
+        : new PrismaPlatformOperatorAuthorityAdapter(
+            options.iamDatabase as unknown as PlatformOperatorDatabaseClientV1,
+          ));
+    const platformIdentityAnalytics =
+      options.platformIdentityAnalytics ??
+      (options.iamDatabase === undefined
+        ? undefined
+        : new PrismaPlatformIdentityAnalyticsAdapter(
+            options.iamDatabase as unknown as PlatformIdentityAnalyticsDatabaseClientV1,
+          ));
+    const platformBillingAnalytics =
+      options.platformBillingAnalytics ??
+      (options.paymentDatabase === undefined
+        ? undefined
+        : new PrismaPlatformBillingAnalyticsAdapter(
+            options.paymentDatabase as unknown as PlatformBillingAnalyticsDatabaseClientV1,
+          ));
+    const landingFeedbackPersistence =
+      options.landingFeedbackDatabase === undefined
+        ? undefined
+        : new PrismaLandingFeedbackAdapter(options.landingFeedbackDatabase);
+    const landingFeedbackIntake = options.landingFeedbackIntake ?? landingFeedbackPersistence;
+    const platformFeedbacks = options.platformFeedbacks ?? landingFeedbackPersistence;
     const agentAuthority =
       options.agentAuthority ??
       (agentGrantService === undefined
@@ -345,15 +391,26 @@ export class AppModule {
             // Billing is organization-owned. A workspace session is therefore
             // authorized by an active organization/workspace ancestor membership,
             // while unrelated tenants still fail closed.
-            authorize: async ({ context, permission }: { readonly context: import('./features/iam/application/tenant-context.js').IamTenantContextV1; readonly permission: import('@databreeze/domain/permissions/v1').PermissionV1 }) =>
+            authorize: async ({
+              context,
+              permission,
+            }: {
+              readonly context: import('./features/iam/application/tenant-context.js').IamTenantContextV1;
+              readonly permission: import('@databreeze/domain/permissions/v1').PermissionV1;
+            }) =>
               iamRepository === undefined
                 ? { allowed: false }
                 : {
                     allowed: await (async () => {
-                      const membership = await iamRepository.findMembership(context, context.actorId);
-                      return membership?.status === 'ACTIVE' &&
+                      const membership = await iamRepository.findMembership(
+                        context,
+                        context.actorId,
+                      );
+                      return (
+                        membership?.status === 'ACTIVE' &&
                         tenantScopeContainsV1(membership.scope, context.tenantScope) &&
-                        roleHasPermissionV1(membership.roleId, permission);
+                        roleHasPermissionV1(membership.roleId, permission)
+                      );
                     })(),
                   },
           });
@@ -531,6 +588,16 @@ export class AppModule {
     const runtimeMode =
       options.runtimeMode ??
       (process.env['NODE_ENV'] === 'production' ? 'production' : 'development');
+    // WEB-026: anonymous intake stays admitted everywhere. Production compositions pass
+    // shared bounded adapters explicitly; local/dev defaults stay in-memory.
+    const landingFeedbackIpAdmission =
+      options.landingFeedbackIpAdmission ??
+      (runtimeMode === 'production' ? undefined : new InMemoryLandingFeedbackAdmissionAdapter());
+    const landingFeedbackAdmissionDigest =
+      options.landingFeedbackAdmissionDigest ??
+      (runtimeMode === 'production'
+        ? undefined
+        : new Sha256LandingFeedbackAdmissionDigestAdapter());
     const composedOptions = {
       ...options,
       ...(sessions === undefined ? {} : { sessions }),
@@ -544,6 +611,13 @@ export class AppModule {
       ...(auditRepository === undefined ? {} : { auditRepository }),
       ...(auditLedgerService === undefined ? {} : { auditLedgerService }),
       ...(requestTenantContext === undefined ? {} : { requestTenantContext }),
+      ...(platformOperatorAuthority === undefined ? {} : { platformOperatorAuthority }),
+      ...(platformIdentityAnalytics === undefined ? {} : { platformIdentityAnalytics }),
+      ...(platformBillingAnalytics === undefined ? {} : { platformBillingAnalytics }),
+      ...(platformFeedbacks === undefined ? {} : { platformFeedbacks }),
+      ...(landingFeedbackIntake === undefined ? {} : { landingFeedbackIntake }),
+      ...(landingFeedbackIpAdmission === undefined ? {} : { landingFeedbackIpAdmission }),
+      ...(landingFeedbackAdmissionDigest === undefined ? {} : { landingFeedbackAdmissionDigest }),
       ...(iamRepository === undefined ? {} : { iamRepository }),
       ...(iaeAuthorization === undefined ? {} : { iaeAuthorization }),
       ...(iaeOriginalViewPort === undefined ? {} : { iaeOriginalViewPort }),
@@ -626,6 +700,8 @@ export class AppModule {
         DsoModule.register(composedOptions),
         AudModule.register(composedOptions),
         BuaModule.register(composedOptions),
+        PlatformAdminModule.register(composedOptions),
+        LfbModule.register(composedOptions),
         SaModule.register(composedOptions),
         FaModule.register(composedOptions),
         DqgModule.register(composedOptions),

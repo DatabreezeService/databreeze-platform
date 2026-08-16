@@ -260,6 +260,62 @@
       "expectedAcceptance": false,
       "source": "payloads/jra-worker-dashboard-widget-result-output/invalid-object-authority.json",
       "covers": ["jra.no-object-authority"]
+    },
+    {
+      "id": "v4.platform-admin-overview.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/platform-admin-overview",
+      "expectedAcceptance": true,
+      "source": "payloads/platform-admin-overview/valid.json",
+      "covers": ["iam.platform-operator", "bua.platform-overview"]
+    },
+    {
+      "id": "v4.platform-admin-overview.invalid-source-content",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/platform-admin-overview",
+      "expectedAcceptance": false,
+      "source": "payloads/platform-admin-overview/invalid-source-content.json",
+      "covers": ["bua.no-source-content"]
+    },
+    {
+      "id": "v4.lfb-landing-feedback-command.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-command",
+      "expectedAcceptance": true,
+      "source": "payloads/lfb-landing-feedback-command/valid.json",
+      "covers": ["lfb.landing-feedback"]
+    },
+    {
+      "id": "v4.lfb-landing-feedback-command.invalid-extra-field",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-command",
+      "expectedAcceptance": false,
+      "source": "payloads/lfb-landing-feedback-command/invalid-extra-field.json",
+      "covers": ["lfb.closed-command"]
+    },
+    {
+      "id": "v4.lfb-landing-feedback-accepted.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-accepted",
+      "expectedAcceptance": true,
+      "source": "payloads/lfb-landing-feedback-accepted/valid.json",
+      "covers": ["lfb.landing-feedback"]
+    },
+    {
+      "id": "v4.lfb-landing-feedback-accepted.invalid-echoed-content",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-accepted",
+      "expectedAcceptance": false,
+      "source": "payloads/lfb-landing-feedback-accepted/invalid-echoed-content.json",
+      "covers": ["lfb.minimal-receipt"]
+    },
+    {
+      "id": "v4.platform-admin-feedbacks.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/platform-admin-feedbacks",
+      "expectedAcceptance": true,
+      "source": "payloads/platform-admin-feedbacks/valid.json",
+      "covers": ["lfb.landing-feedback", "platform-admin.feedbacks"]
+    },
+    {
+      "id": "v4.platform-admin-feedbacks.invalid-network-identifier",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/platform-admin-feedbacks",
+      "expectedAcceptance": false,
+      "source": "payloads/platform-admin-feedbacks/invalid-network-identifier.json",
+      "covers": ["lfb.no-network-identifiers"]
     }
   ]
 }

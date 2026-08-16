@@ -67,6 +67,10 @@ const WorkspaceSettingsRoutePage = lazy(async () => {
   const module = await import('../features/settings/workspace-settings-page.tsx');
   return { default: module.WorkspaceSettingsRoutePage };
 });
+const PlatformAdminRoutePage = lazy(async () => {
+  const module = await import('../features/platform-admin/platform-admin-page.tsx');
+  return { default: module.PlatformAdminRoutePage };
+});
 
 function Suspended({ children }: { readonly children: ReactElement }) {
   return <Suspense fallback={<div aria-hidden="true" />}>{children}</Suspense>;
@@ -83,6 +87,7 @@ const logicalRoots = new Set([
   'downloads',
   'forgot-password',
   'reset-password',
+  'platform-admin',
 ]);
 
 function canonicalPathname(pathname: string): string | undefined {
@@ -153,6 +158,14 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
         {
           element: <AuthenticationGate publicRoute={false} />,
           children: [
+            {
+              path: 'platform-admin',
+              element: (
+                <Suspended>
+                  <PlatformAdminRoutePage />
+                </Suspended>
+              ),
+            },
             {
               element: <ShellLayout accessContext={accessContext} />,
               children: [

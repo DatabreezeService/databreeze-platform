@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 4,
+  "generatedAt": "2026-08-17T09:30:00.000Z",
+  "total": 1,
+  "feedbacks": [
+    {
+      "id": "c9bf9e57-1685-4c89-bafb-ff5af830be8a",
+      "createdAt": "2026-08-14T04:10:00.000Z",
+      "email": "le.thi.mai@example.vn",
+      "role": "analyst",
+      "experience": "active",
+      "category": "data-trust",
+      "rating": 5,
+      "message": "Truy vết bằng chứng tới từng ô dữ liệu giúp tôi tự tin trình bày với ban giám đốc.",
+      "contactPermission": true,
+      "sourceIpHash": "b6d9a12f4e0c8d7a5b3c2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1"
+    }
+  ]
+}
