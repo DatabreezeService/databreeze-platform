@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="DataBreeze biến dữ liệu rời rạc thành dashboard được kiểm tra, có bằng chứng và luôn cập nhật."
+    />
+    <meta name="theme-color" content="#07091d" />
+    <title>DataBreeze — Dữ liệu của bạn, được thấu hiểu</title>
+    <script>
+      document.documentElement.classList.add('js');
+    </script>
+    <link rel="icon" type="image/png" href="./assets/databreeze-mark.png" />
+    <link
+      rel="preload"
+      href="./assets/fonts/geist-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="./assets/fonts/geist-vietnamese.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="./assets/fonts/geist-mono-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="./assets/fonts/geist-mono-vietnamese.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Đi tới nội dung</a>
+
+    <div class="page-noise" aria-hidden="true"></div>
+    <div class="cursor-aura" aria-hidden="true"></div>
+
+    <header class="site-header" data-header>
+      <a class="wordmark" href="#top" aria-label="DataBreeze, về đầu trang">
+        <img class="wordmark-logo" src="./assets/databreeze-mark.png" alt="" />
+        <span>DataBreeze</span>
+      </a>
+
+      <nav class="desktop-nav" aria-label="Điều hướng chính">
+        <a href="#flow">Sản phẩm</a>
+        <a href="#intelligence">AI có kiểm chứng</a>
+        <a href="#modes">Chế độ dữ liệu</a>
+        <a class="downloads-nav-link" data-downloads-nav href="/vi-VN/downloads">Ứng dụng</a>
+        <a data-pricing-nav href="#pricing">Bảng giá</a>
+      </nav>
+
+      <a class="header-cta" href="#experience">
+        <span>Khám phá</span>
+        <span aria-hidden="true">↗</span>
+      </a>
+    </header>
+
+    <main id="main-content">
+      <section class="hero" id="top" aria-labelledby="hero-title">
+        <canvas class="hero-canvas" data-data-canvas aria-hidden="true"></canvas>
+        <div class="hero-grid" aria-hidden="true"></div>
+        <div class="hero-beam hero-beam-one" aria-hidden="true"></div>
+        <div class="hero-beam hero-beam-two" aria-hidden="true"></div>
+
+        <div class="hero-copy">
+          <p class="eyebrow reveal" data-reveal>
+            <span class="live-dot" aria-hidden="true"></span>
+            Không gian dữ liệu hợp nhất · AI có kiểm chứng
+          </p>
+          <h1 id="hero-title" class="hero-title reveal" data-reveal>
+            <span>DataBreeze</span>
+            <span class="hero-title-secondary">Dữ liệu biết cất lời.</span>
+          </h1>
+          <p class="hero-description reveal" data-reveal>
+            Từ spreadsheet, thư mục và hóa đơn đến một dashboard sống, có nguồn gốc rõ ràng và luôn
+            tươi mới khi dữ liệu thay đổi.
+          </p>
+          <div class="hero-actions reveal" data-reveal>
+            <a class="button button-primary magnetic" href="#experience">
+              <span>Đi vào luồng dữ liệu</span>
+              <span class="button-icon" aria-hidden="true">↓</span>
+            </a>
+            <a class="button button-ghost magnetic" href="#intelligence">
+              <span>Xem AI hoạt động</span>
+              <span class="button-icon" aria-hidden="true">↗</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="hero-product" id="experience" data-product-scene>
+          <div class="product-halo" aria-hidden="true"></div>
+          <div class="workspace-frame" data-tilt>
+            <div class="workspace-topbar">
+              <div class="workspace-brand">
+                <img class="workspace-brand-mark" src="./assets/databreeze-mark.png" alt="" />
+                <span>Không gian bán hàng</span>
+              </div>
+              <div class="workspace-status">
+                <span class="status-dot" aria-hidden="true"></span>
+                Vừa đồng bộ
+              </div>
+              <div class="workspace-avatar" aria-label="Tài khoản TN">TN</div>
+            </div>
+
+            <div class="workspace-body">
+              <aside class="workspace-sidebar" aria-hidden="true">
+                <span class="sidebar-control active">
+                  <span class="sidebar-icon icon-grid" aria-hidden="true"></span>
+                </span>
+                <span class="sidebar-control">
+                  <span class="sidebar-icon icon-wave" aria-hidden="true"></span>
+                </span>
+                <span class="sidebar-control">
+                  <span class="sidebar-icon icon-stack" aria-hidden="true"></span>
+                </span>
+              </aside>
+
+              <div class="dashboard-shell">
+                <div class="dashboard-heading-row">
+                  <div>
+                    <p class="workspace-kicker">Tổng quan kinh doanh</p>
+                    <h2>Nhịp tăng trưởng</h2>
+                  </div>
+                  <div class="date-chip">01–31 tháng 8</div>
+                </div>
+
+                <div class="metrics-grid">
+                  <article class="metric-card">
+                    <p>Doanh thu thuần</p>
+                    <strong data-counter="2486000000">0</strong>
+                    <span class="metric-trend positive">↑ 18,4%</span>
+                  </article>
+                  <article class="metric-card">
+                    <p>Đơn hàng</p>
+                    <strong data-counter="12847">0</strong>
+                    <span class="metric-trend positive">↑ 9,7%</span>
+                  </article>
+                  <article class="metric-card metric-card-accent">
+                    <p>Biên lợi nhuận</p>
+                    <strong data-counter="36.8" data-suffix="%">0</strong>
+                    <span class="metric-trend">Đã kiểm tra</span>
+                  </article>
+                </div>
+
+                <div class="dashboard-main-grid">
+                  <article class="chart-panel">
+                    <div class="panel-heading">
+                      <div>
+                        <p>Doanh thu theo ngày</p>
+                        <span>So với kỳ trước</span>
+                      </div>
+                      <span class="evidence-badge">Có bằng chứng</span>
+                    </div>
+                    <div class="chart-legend" aria-hidden="true">
+                      <span class="legend-current"><i></i>Tháng này</span>
+                      <span class="legend-previous"><i></i>Kỳ trước</span>
+                      <span class="legend-forecast"><i></i>Dự báo</span>
+                    </div>
+                    <div class="chart-area" aria-label="Biểu đồ doanh thu minh họa">
+                      <svg viewBox="0 0 680 210" role="img" aria-labelledby="chart-title">
+                        <title id="chart-title">Doanh thu tăng trong tháng 8</title>
+                        <defs>
+                          <linearGradient id="areaFill" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0" stop-color="#6075ff" stop-opacity="0.38" />
+                            <stop offset="0.5" stop-color="#8d9bff" stop-opacity="0.2" />
+                            <stop offset="1" stop-color="#7138ff" stop-opacity="0" />
+                          </linearGradient>
+                          <linearGradient
+                            id="revenueStroke"
+                            x1="0"
+                            y1="0"
+                            x2="680"
+                            y2="0"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop offset="0" stop-color="#6075ff" />
+                            <stop offset="0.55" stop-color="#55d6ff" />
+                            <stop offset="1" stop-color="#8d9bff" />
+                          </linearGradient>
+                          <linearGradient
+                            id="comparisonStroke"
+                            x1="0"
+                            y1="0"
+                            x2="680"
+                            y2="0"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop offset="0" stop-color="#7138ff" />
+                            <stop offset="1" stop-color="#d45cff" />
+                          </linearGradient>
+                          <linearGradient
+                            id="forecastStroke"
+                            x1="556"
+                            y1="0"
+                            x2="680"
+                            y2="0"
+                            gradientUnits="userSpaceOnUse"
+                          >
+                            <stop offset="0" stop-color="#d45cff" />
+                            <stop offset="1" stop-color="#ffcf5a" />
+                          </linearGradient>
+                        </defs>
+                        <g class="chart-guides" aria-hidden="true">
+                          <path d="M0 35H680M0 87H680M0 139H680M0 191H680" />
+                        </g>
+                        <path
+                          class="chart-area-fill"
+                          d="M0 174C32 168 46 151 73 157C103 164 119 127 151 134C184 141 199 112 228 116C260 120 282 95 310 103C343 112 360 70 392 79C422 88 443 56 474 68C503 80 523 36 556 47C587 57 611 27 640 35C655 38 668 28 680 18V210H0Z"
+                        />
+                        <path
+                          class="chart-line chart-line-comparison"
+                          d="M0 190C41 184 58 169 91 175C126 181 139 151 174 156C211 162 231 135 266 141C304 147 326 119 362 126C399 134 423 101 458 111C495 121 519 87 554 96C592 106 621 72 650 80C663 83 674 70 680 64"
+                        />
+                        <path
+                          class="chart-line chart-line-primary"
+                          d="M0 174C32 168 46 151 73 157C103 164 119 127 151 134C184 141 199 112 228 116C260 120 282 95 310 103C343 112 360 70 392 79C422 88 443 56 474 68C503 80 523 36 556 47"
+                        />
+                        <path
+                          class="chart-line chart-line-forecast"
+                          d="M556 47C587 57 611 27 640 35C655 38 668 18 680 10"
+                        />
+                        <g class="chart-points chart-points-primary" aria-hidden="true">
+                          <circle cx="151" cy="134" r="4" />
+                          <circle cx="310" cy="103" r="4" />
+                          <circle cx="474" cy="68" r="4" />
+                          <circle cx="556" cy="47" r="5" />
+                        </g>
+                        <g class="chart-points chart-points-comparison" aria-hidden="true">
+                          <circle cx="174" cy="156" r="3" />
+                          <circle cx="362" cy="126" r="3" />
+                          <circle cx="554" cy="96" r="3" />
+                        </g>
+                        <g class="chart-points chart-points-forecast" aria-hidden="true">
+                          <circle cx="680" cy="10" r="5" />
+                        </g>
+                      </svg>
+                      <div class="chart-tooltip" aria-hidden="true">
+                        <span>29 tháng 8</span>
+                        <strong>126,4 tr ₫</strong>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article class="agent-panel">
+                    <div class="agent-heading">
+                      <span class="agent-glyph" aria-hidden="true">✦</span>
+                      <div>
+                        <p>DataBreeze Agent</p>
+                        <span>Đang phân tích</span>
+                      </div>
+                    </div>
+                    <p class="agent-question">“Điều gì tạo ra tăng trưởng tháng này?”</p>
+                    <div class="agent-thinking" aria-label="AI đang xử lý">
+                      <span></span><span></span><span></span>
+                    </div>
+                    <div class="agent-answer">
+                      <p>
+                        Miền Bắc đóng góp <strong>42%</strong> mức tăng, chủ yếu từ nhóm đồ uống.
+                      </p>
+                      <span class="agent-evidence-link"
+                        >Mở bằng chứng <span aria-hidden="true">↗</span></span
+                      >
+                    </div>
+                  </article>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <a class="scroll-cue" href="#flow" aria-label="Cuộn xuống xem luồng dữ liệu">
+          <span>Khám phá</span>
+          <span class="scroll-line" aria-hidden="true"></span>
+        </a>
+      </section>
+
+      <section class="signal-band" aria-label="Các khả năng chính">
+        <div class="signal-track" aria-hidden="true">
+          <span>DỮ LIỆU CÓ NGUỒN GỐC</span><i></i> <span>DASHBOARD LUÔN TƯƠI MỚI</span><i></i>
+          <span>AI KHÔNG BỊA SỐ</span><i></i> <span>LOCAL · HYBRID · CLOUD</span><i></i>
+          <span>DỮ LIỆU CÓ NGUỒN GỐC</span><i></i> <span>DASHBOARD LUÔN TƯƠI MỚI</span><i></i>
+          <span>AI KHÔNG BỊA SỐ</span><i></i> <span>LOCAL · HYBRID · CLOUD</span><i></i>
+        </div>
+      </section>
+
+      <section class="flow-section" id="flow" aria-labelledby="flow-title">
+        <div class="section-heading reveal" data-reveal>
+          <p class="section-index">01 / DÒNG DỮ LIỆU</p>
+          <h2 id="flow-title">
+            <span class="heading-clause">Từ hỗn độn đến rõ ràng.</span>
+            <span class="heading-clause">Trong một dòng chảy.</span>
+          </h2>
+          <p>
+            DataBreeze giữ nguyên nguồn gốc, chuẩn hóa có kiểm soát và chỉ đưa những con số đã được
+            xử lý xác định lên dashboard.
+          </p>
+        </div>
+
+        <div class="flow-stage" data-flow-stage>
+          <div class="flow-line" aria-hidden="true"><span></span></div>
+
+          <article class="flow-step reveal" data-reveal>
+            <div class="flow-step-meta">
+              <span>01</span>
+              <p>Thu nhận</p>
+            </div>
+            <div class="flow-visual source-visual" aria-hidden="true">
+              <div class="source-sheet sheet-back"></div>
+              <div class="source-sheet sheet-mid"></div>
+              <div class="source-sheet sheet-front">
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+              </div>
+              <div class="file-orbit file-orbit-one">CSV</div>
+              <div class="file-orbit file-orbit-two">XLSX</div>
+              <div class="file-orbit file-orbit-three">OCR</div>
+            </div>
+            <div class="flow-step-copy">
+              <h3>Mọi nguồn, một nơi</h3>
+              <p>Spreadsheet, thư mục được phê duyệt và chứng từ di động đi vào cùng một luồng.</p>
+            </div>
+          </article>
+
+          <article class="flow-step reveal" data-reveal>
+            <div class="flow-step-meta">
+              <span>02</span>
+              <p>Kiểm tra</p>
+            </div>
+            <div class="flow-visual transform-visual" aria-hidden="true">
+              <div class="scan-line"></div>
+              <div class="transform-column raw-column">
+                <i></i><i></i><i class="bad"></i><i></i><i></i><i class="bad"></i><i></i>
+              </div>
+              <div class="transform-core"><span>✓</span></div>
+              <div class="transform-column clean-column">
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              </div>
+            </div>
+            <div class="flow-step-copy">
+              <h3>Thay đổi nào cũng nhìn thấy</h3>
+              <p>
+                Kiểu dữ liệu, mapping, hàng lỗi và chất lượng đều được trình bày trước khi chấp
+                nhận.
+              </p>
+            </div>
+          </article>
+
+          <article class="flow-step reveal" data-reveal>
+            <div class="flow-step-meta">
+              <span>03</span>
+              <p>Hiển thị</p>
+            </div>
+            <div class="flow-visual insight-visual" aria-hidden="true">
+              <div class="mini-kpi"><span>+18,4%</span><i></i></div>
+              <div class="mini-bars"><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="mini-donut"><span>76</span></div>
+              <div class="fresh-pulse"><i></i>Fresh</div>
+            </div>
+            <div class="flow-step-copy">
+              <h3>Dashboard sống cùng dữ liệu</h3>
+              <p>
+                Chỉ phần bị ảnh hưởng được tính lại; snapshot hoàn chỉnh mới được xuất bản nguyên
+                tử.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <div
+        class="section-transition transition-aperture"
+        data-section-transition="aperture"
+        aria-hidden="true"
+      >
+        <div class="aperture-grid"></div>
+        <span class="aperture-ring aperture-ring-outer"></span>
+        <span class="aperture-ring aperture-ring-mid"></span>
+        <span class="aperture-ring aperture-ring-inner"></span>
+        <div class="aperture-axis aperture-axis-horizontal"></div>
+        <div class="aperture-axis aperture-axis-vertical"></div>
+        <div class="aperture-core">
+          <span>DATA</span>
+          <i></i>
+          <span>INTENT</span>
+        </div>
+        <p>Từ dữ liệu đã kiểm tra đến câu hỏi đúng</p>
+      </div>
+
+      <section class="intelligence-section" id="intelligence" aria-labelledby="intelligence-title">
+        <div class="intelligence-backdrop" aria-hidden="true">
+          <span class="orbit orbit-one"></span>
+          <span class="orbit orbit-two"></span>
+          <span class="orbit orbit-three"></span>
+        </div>
+
+        <div class="section-heading centered reveal" data-reveal>
+          <p class="section-index">02 / AI CÓ KIỂM CHỨNG</p>
+          <h2 id="intelligence-title">
+            <span class="heading-clause">Hỏi bằng ngôn ngữ của bạn.</span>
+            <span class="heading-clause">Nhận câu trả lời có căn cứ.</span>
+          </h2>
+        </div>
+
+        <div class="prompt-experience reveal" data-reveal data-prompt-experience>
+          <div class="prompt-input-row">
+            <span class="prompt-mark" aria-hidden="true">✦</span>
+            <p data-prompt-text>
+              So sánh doanh thu tháng này với cùng kỳ và giải thích nguyên nhân.
+            </p>
+            <button type="button" aria-label="Chạy câu hỏi minh họa" data-run-prompt>↑</button>
+          </div>
+
+          <div class="reasoning-path" aria-live="polite">
+            <div class="reasoning-node" data-reasoning-node>
+              <span>01</span>
+              <div>
+                <strong>Hiểu câu hỏi</strong>
+                <p>Doanh thu · So sánh kỳ · Theo vùng</p>
+              </div>
+            </div>
+            <div class="reasoning-connector" aria-hidden="true"><i></i></div>
+            <div class="reasoning-node" data-reasoning-node>
+              <span>02</span>
+              <div>
+                <strong>Kiểm tra quyền & phiên bản</strong>
+                <p>2 dataset · 1 metric đã duyệt</p>
+              </div>
+            </div>
+            <div class="reasoning-connector" aria-hidden="true"><i></i></div>
+            <div class="reasoning-node" data-reasoning-node>
+              <span>03</span>
+              <div>
+                <strong>Tính toán xác định</strong>
+                <p>12.847 dòng · 0 hàng bị ẩn</p>
+              </div>
+            </div>
+            <div class="reasoning-connector" aria-hidden="true"><i></i></div>
+            <div class="reasoning-node result-node" data-reasoning-node>
+              <span>04</span>
+              <div>
+                <strong>Trả lời kèm bằng chứng</strong>
+                <p>18,4% · 4 nguồn tham chiếu</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="prompt-footnote">
+            <span
+              ><i class="verified-icon" aria-hidden="true">✓</i> Không có số liệu do AI tự tạo</span
+            >
+            <span>Thời gian xử lý <strong data-process-time>1,84 giây</strong></span>
+          </div>
+        </div>
+      </section>
+
+      <div
+        class="section-transition transition-proof"
+        data-section-transition="proof"
+        aria-hidden="true"
+      >
+        <div class="proof-light-field"></div>
+        <div class="proof-rails"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="proof-word" data-word="EVIDENCE">EVIDENCE</div>
+        <div class="proof-caption">
+          <span>AI đề xuất</span>
+          <i></i>
+          <span>Hệ thống tính toán</span>
+          <i></i>
+          <span>Bằng chứng xác nhận</span>
+        </div>
+      </div>
+
+      <section class="evidence-section" aria-labelledby="evidence-title">
+        <div class="evidence-layout">
+          <div class="evidence-copy reveal" data-reveal>
+            <p class="section-index">03 / NIỀM TIN</p>
+            <h2 id="evidence-title">
+              <span class="heading-clause">Đẹp là chưa đủ.</span>
+              <span class="heading-clause">Mỗi con số phải kể được hành trình của nó.</span>
+            </h2>
+            <p>
+              Từ ô dữ liệu gốc đến phiên bản dataset, phép tính, bộ lọc và widget cuối cùng — mọi
+              mắt xích đều có thể kiểm tra.
+            </p>
+            <a class="text-link" href="#modes"
+              >Xem cách dữ liệu được bảo vệ <span aria-hidden="true">→</span></a
+            >
+          </div>
+
+          <div class="lineage-map reveal" data-reveal aria-label="Sơ đồ dòng dõi dữ liệu minh họa">
+            <svg
+              class="lineage-lines"
+              viewBox="0 0 760 600"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <path d="M88 96C208 96 197 218 312 218S412 121 522 121S592 274 684 274" />
+              <path d="M88 298C196 298 212 218 312 218" />
+              <path d="M88 492C219 492 199 389 312 389S420 477 522 477S595 274 684 274" />
+            </svg>
+            <div class="lineage-node node-source node-a">
+              <span>CSV</span><strong>Bán hàng T8</strong><small>Bản gốc · v1</small>
+            </div>
+            <div class="lineage-node node-source node-b">
+              <span>XLSX</span><strong>Danh mục SKU</strong><small>Bản gốc · v4</small>
+            </div>
+            <div class="lineage-node node-source node-c">
+              <span>OCR</span><strong>Hóa đơn</strong><small>128 tài liệu</small>
+            </div>
+            <div class="lineage-node node-dataset node-d">
+              <span>DS</span><strong>Doanh thu sạch</strong><small>12.847 dòng</small>
+            </div>
+            <div class="lineage-node node-dataset node-e">
+              <span>DS</span><strong>Chi phí chuẩn hóa</strong><small>6 bước đã duyệt</small>
+            </div>
+            <div class="lineage-node node-metric node-f">
+              <span>ƒ</span><strong>Doanh thu thuần</strong><small>Metric · v3</small>
+            </div>
+            <div class="lineage-node node-metric node-g">
+              <span>ƒ</span><strong>Biên lợi nhuận</strong><small>Metric · v2</small>
+            </div>
+            <div class="lineage-node node-output node-h">
+              <span>↗</span><strong>Dashboard</strong><small>Snapshot #182</small>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div
+        class="section-transition transition-iris"
+        data-section-transition="iris"
+        aria-hidden="true"
+      >
+        <div class="iris-dark-field">
+          <span class="iris-orbit iris-orbit-outer"></span>
+          <span class="iris-orbit iris-orbit-inner"></span>
+          <div class="iris-label iris-label-local">LOCAL</div>
+          <div class="iris-label iris-label-hybrid">HYBRID</div>
+          <div class="iris-label iris-label-cloud">CLOUD</div>
+          <div class="iris-core">
+            <span>YOU</span>
+            <strong>CONTROL</strong>
+          </div>
+        </div>
+        <p>Quyền kiểm soát luôn ở trung tâm</p>
+      </div>
+
+      <section class="modes-section" id="modes" aria-labelledby="modes-title">
+        <div class="section-heading reveal" data-reveal>
+          <p class="section-index">04 / QUYỀN KIỂM SOÁT</p>
+          <h2 id="modes-title">
+            <span class="heading-clause">Dữ liệu ở đâu,</span>
+            <span class="heading-clause">bạn là người quyết định.</span>
+          </h2>
+        </div>
+
+        <div class="mode-switcher reveal" data-reveal data-mode-switcher>
+          <div class="segmented-control" role="tablist" aria-label="Chọn chế độ dữ liệu">
+            <button type="button" role="tab" aria-selected="false" data-mode="local">Local</button>
+            <button class="active" type="button" role="tab" aria-selected="true" data-mode="hybrid">
+              Hybrid
+            </button>
+            <button type="button" role="tab" aria-selected="false" data-mode="cloud">Cloud</button>
+            <span class="segment-indicator" aria-hidden="true"></span>
+          </div>
+
+          <div class="mode-stage" data-mode-stage="hybrid">
+            <div class="mode-copy">
+              <p class="mode-label" data-mode-label>HYBRID · MẶC ĐỊNH</p>
+              <h3 data-mode-title>Dữ liệu gốc ở lại. Insight đi cùng bạn.</h3>
+              <p data-mode-description>
+                Xử lý file nhạy cảm trên Desktop, chỉ đồng bộ projection đã xem trước lên Web và
+                Android.
+              </p>
+              <div class="mode-stat-row">
+                <span><strong data-mode-stat>0 B</strong> dữ liệu gốc tải lên</span>
+                <span><strong data-mode-projection>2,4 MB</strong> projection đã duyệt</span>
+              </div>
+            </div>
+
+            <div class="mode-visual" aria-hidden="true">
+              <div class="device device-local">
+                <span class="device-screen"><i></i><i></i><i></i></span>
+                <strong>Desktop</strong>
+              </div>
+              <div class="transfer-path path-one"><i></i><i></i><i></i></div>
+              <div class="data-vault"><span class="vault-core"></span><strong>DATA</strong></div>
+              <div class="transfer-path path-two"><i></i><i></i><i></i></div>
+              <div class="device device-cloud">
+                <span class="cloud-shape"></span><strong>Workspace</strong>
+              </div>
+              <div class="projection-packet">Projection</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div data-pricing-slot></div>
+
+      <section class="closing-section" aria-labelledby="closing-title">
+        <canvas class="closing-canvas" data-closing-canvas aria-hidden="true"></canvas>
+        <div class="closing-grid" aria-hidden="true"></div>
+        <div class="closing-copy reveal" data-reveal>
+          <img class="closing-brand-mark" src="./assets/databreeze-mark.png" alt="" />
+          <p class="section-index">DATA → CLARITY → ACTION</p>
+          <h2 id="closing-title">
+            <span class="heading-clause">Biến dữ liệu bạn đã có</span>
+            <span class="heading-clause">thành điều bạn có thể tin.</span>
+          </h2>
+          <p>DataBreeze. Dữ liệu của bạn, được thấu hiểu và luôn cập nhật.</p>
+          <a class="button button-primary magnetic" href="#feedback">
+            <span>Góp ý cho DataBreeze</span>
+            <span class="button-icon" aria-hidden="true">↓</span>
+          </a>
+        </div>
+      </section>
+
+      <section class="feedback-section" id="feedback" aria-labelledby="feedback-title">
+        <div class="feedback-layout">
+          <div class="feedback-intro reveal" data-reveal>
+            <div class="feedback-brand" aria-hidden="true">
+              <img src="./assets/databreeze-mark.png" alt="" />
+              <span>DataBreeze</span>
+            </div>
+            <p class="section-index">06 / FEEDBACK LOOP</p>
+            <h2 id="feedback-title">
+              <span class="heading-clause">Giúp DataBreeze</span>
+              <span class="heading-clause">hiểu bạn tốt hơn.</span>
+            </h2>
+            <p>
+              Một trải nghiệm dữ liệu đáng tin bắt đầu từ những điều người dùng thực sự cần. Hãy
+              chia sẻ điều đang hiệu quả, điều còn vướng và ý tưởng bạn muốn thấy tiếp theo.
+            </p>
+            <div class="feedback-promise">
+              <span>01</span>
+              <p>Nội dung tự do, không giới hạn chủ đề góp ý.</p>
+              <span>02</span>
+              <p>Thông tin liên hệ lại hoàn toàn do bạn lựa chọn.</p>
+            </div>
+          </div>
+
+          <form class="feedback-form reveal" data-reveal data-feedback-form novalidate>
+            <div class="form-heading">
+              <div>
+                <p>Đóng góp ý kiến</p>
+                <span>Các trường có dấu * là bắt buộc</span>
+              </div>
+              <span class="form-status-mark"><i></i>Sẵn sàng</span>
+            </div>
+
+            <div class="form-grid">
+              <label class="form-field">
+                <span>Tên của bạn</span>
+                <input
+                  type="text"
+                  name="name"
+                  autocomplete="name"
+                  maxlength="80"
+                  placeholder="Nguyễn Minh Anh"
+                />
+              </label>
+
+              <label class="form-field">
+                <span>Email *</span>
+                <input
+                  type="email"
+                  name="email"
+                  autocomplete="email"
+                  maxlength="160"
+                  placeholder="ban@congty.vn"
+                  required
+                />
+              </label>
+
+              <label class="form-field">
+                <span>Tổ chức</span>
+                <input
+                  type="text"
+                  name="organization"
+                  autocomplete="organization"
+                  maxlength="120"
+                  placeholder="Tên công ty hoặc nhóm"
+                />
+              </label>
+
+              <label class="form-field">
+                <span>Vai trò *</span>
+                <select name="role" required>
+                  <option value="" selected disabled>Chọn vai trò</option>
+                  <option value="owner">Chủ doanh nghiệp</option>
+                  <option value="analyst">Phân tích dữ liệu</option>
+                  <option value="accounting">Kế toán · Tài chính</option>
+                  <option value="operations">Vận hành</option>
+                  <option value="technology">Công nghệ</option>
+                  <option value="other">Khác</option>
+                </select>
+              </label>
+            </div>
+
+            <fieldset class="form-fieldset experience-fieldset">
+              <legend>Bạn đang ở đâu với DataBreeze? *</legend>
+              <div class="choice-grid">
+                <label>
+                  <input type="radio" name="experience" value="exploring" required />
+                  <span>Mới tìm hiểu</span>
+                </label>
+                <label>
+                  <input type="radio" name="experience" value="trial" />
+                  <span>Đã dùng thử</span>
+                </label>
+                <label>
+                  <input type="radio" name="experience" value="active" />
+                  <span>Đang sử dụng</span>
+                </label>
+              </div>
+            </fieldset>
+
+            <div class="form-grid form-grid-feedback">
+              <label class="form-field">
+                <span>Loại góp ý *</span>
+                <select name="category" required>
+                  <option value="" selected disabled>Chọn nội dung</option>
+                  <option value="product">Trải nghiệm sản phẩm</option>
+                  <option value="feature">Đề xuất tính năng</option>
+                  <option value="data-trust">Độ tin cậy dữ liệu</option>
+                  <option value="design">Thiết kế · Dễ sử dụng</option>
+                  <option value="performance">Hiệu năng</option>
+                  <option value="other">Khác</option>
+                </select>
+              </label>
+
+              <fieldset class="form-fieldset rating-fieldset">
+                <legend>Đánh giá tổng thể *</legend>
+                <div class="rating-options" aria-label="Điểm đánh giá từ 1 đến 5">
+                  <label
+                    ><input type="radio" name="rating" value="1" required /><span>1</span></label
+                  >
+                  <label><input type="radio" name="rating" value="2" /><span>2</span></label>
+                  <label><input type="radio" name="rating" value="3" /><span>3</span></label>
+                  <label><input type="radio" name="rating" value="4" /><span>4</span></label>
+                  <label><input type="radio" name="rating" value="5" /><span>5</span></label>
+                </div>
+              </fieldset>
+            </div>
+
+            <label class="form-field message-field">
+              <span>Ý kiến của bạn *</span>
+              <textarea
+                name="message"
+                rows="7"
+                minlength="10"
+                maxlength="1200"
+                placeholder="Hãy chia sẻ tự do: vấn đề bạn gặp, điều bạn thích hoặc ý tưởng bạn muốn DataBreeze thử nghiệm…"
+                required
+                data-feedback-message
+              ></textarea>
+              <span class="character-count"><strong data-character-count>0</strong> / 1200</span>
+            </label>
+
+            <label class="contact-consent">
+              <input type="checkbox" name="contactPermission" value="yes" />
+              <span>DataBreeze có thể liên hệ lại với tôi để hiểu rõ hơn về góp ý này.</span>
+            </label>
+
+            <div class="form-footer">
+              <p>Bản prototype chưa gửi hoặc lưu nội dung ra máy chủ.</p>
+              <button class="button button-primary magnetic" type="submit" data-feedback-submit>
+                <span>Gửi góp ý</span>
+                <span class="button-icon" aria-hidden="true">↗</span>
+              </button>
+            </div>
+
+            <p class="feedback-form-status" aria-live="polite" data-feedback-status></p>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-main">
+        <div class="footer-wordmark">
+          <img src="./assets/databreeze-mark.png" alt="" />
+          <span>DataBreeze</span>
+        </div>
+        <div class="footer-contact" aria-label="Liên hệ DataBreeze">
+          <a href="mailto:databreeze.team@gmail.com">databreeze.team@gmail.com</a>
+          <a
+            href="https://www.facebook.com/profile.php?id=61590273099291"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Facebook <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+        <a class="footer-top-link" href="#top">Lên đầu trang <span aria-hidden="true">↑</span></a>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 DataBreeze</p>
+        <p>Dữ liệu của bạn. Được thấu hiểu. Luôn cập nhật.</p>
+      </div>
+    </footer>
+
+    <script src="./script.js"></script>
+  </body>
+</html>

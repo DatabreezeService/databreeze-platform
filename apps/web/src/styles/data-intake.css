@@ -334,7 +334,7 @@
   position: sticky;
   top: 20px;
   padding: 22px;
-  background: linear-gradient(155deg, #102c61 0%, #173f8d 65%, #0f5fe7 150%);
+  background: #123b84;
   color: #e8f2f5;
   box-shadow: 0 18px 48px rgb(13 27 47 / 16%);
 }

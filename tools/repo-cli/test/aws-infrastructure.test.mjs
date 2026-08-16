@@ -200,7 +200,10 @@ test('AWS hosted API uses a public HTTPS ALB and only ALB-to-API ingress', () =>
 
   assert.match(network, /aws_security_group"\s+"api_load_balancer"/u);
   assert.match(network, /aws_vpc_security_group_ingress_rule"\s+"api_from_load_balancer"/u);
-  assert.match(network, /referenced_security_group_id\s*=\s*aws_security_group\.api_load_balancer/u);
+  assert.match(
+    network,
+    /referenced_security_group_id\s*=\s*aws_security_group\.api_load_balancer/u,
+  );
   assert.match(compute, /aws_lb"\s+"api"/u);
   assert.match(compute, /aws_lb_target_group"\s+"api"/u);
   assert.match(compute, /aws_lb_listener"\s+"api_https"/u);
@@ -237,10 +240,7 @@ test('AWS Web CSP receives only reviewed exact HTTPS API origins', () => {
 
   assert.match(production, /connect_src_origins\s*=\s*var\.web_connect_src_origins/u);
   assert.match(variables, /variable "web_connect_src_origins"[\s\S]*type\s*=\s*list\(string\)/u);
-  assert.match(
-    productionShape,
-    /web_connect_src_origins\s*=\s*\["https:\/\/api\.[a-z0-9.-]+"\]/u,
-  );
+  assert.match(productionShape, /web_connect_src_origins\s*=\s*\["https:\/\/api\.[a-z0-9.-]+"\]/u);
   assert.doesNotMatch(productionShape, /web_connect_src_origins[^\n]*\*/u);
 });
 

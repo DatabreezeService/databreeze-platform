@@ -10,10 +10,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import {
-  parseV4Contract,
-  type DdaDashboardWidgetResultsAccepted,
-} from '@databreeze/contracts/v4';
+import { parseV4Contract, type DdaDashboardWidgetResultsAccepted } from '@databreeze/contracts/v4';
 import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import {

@@ -18,6 +18,12 @@ test('[JRA-032/BUA-023] migration rejects legacy descriptors before requiring op
 
   assert.ok(preflight >= 0, 'migration must name the governed repair requirement');
   assert.ok(alteration > preflight, 'preflight must execute before the NOT NULL alteration');
-  assert.match(migration, /IF EXISTS\s*\(\s*SELECT 1\s+FROM "jra"\."execution_request_descriptors"/u);
-  assert.doesNotMatch(migration, /gen_random_uuid|uuid_generate|UPDATE\s+"jra"\."execution_request_descriptors"/iu);
+  assert.match(
+    migration,
+    /IF EXISTS\s*\(\s*SELECT 1\s+FROM "jra"\."execution_request_descriptors"/u,
+  );
+  assert.doesNotMatch(
+    migration,
+    /gen_random_uuid|uuid_generate|UPDATE\s+"jra"\."execution_request_descriptors"/iu,
+  );
 });

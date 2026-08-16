@@ -11,12 +11,16 @@ function copy(locale: 'en' | 'vi-VN') {
   return locale === 'vi-VN'
     ? {
         datasets: 'Bộ dữ liệu',
+        description:
+          'Quản lý bộ dữ liệu, tệp nguồn, phiên bản và các mục cần xem xét trong phạm vi được cấp quyền.',
         heading: 'Dữ liệu',
         review: 'Cần xem xét',
         sources: 'Tệp nguồn',
       }
     : {
         datasets: 'Datasets',
+        description:
+          'Manage datasets, source files, versions, and review items within your authorized scope.',
         heading: 'Data',
         review: 'Needs review',
         sources: 'Source files',
@@ -90,7 +94,10 @@ export function DataWorkspacePage({
   return (
     <main className="data-workspace-page">
       <header className="data-workspace-page__heading">
-        <h1>{text.heading}</h1>
+        <div>
+          <h1>{text.heading}</h1>
+          <p>{text.description}</p>
+        </div>
       </header>
       <nav
         aria-label={locale === 'vi-VN' ? 'Chế độ xem dữ liệu' : 'Data views'}

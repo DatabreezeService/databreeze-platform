@@ -538,8 +538,7 @@ export class S3ArtifactUploadStorageAdapter implements ArtifactUploadStoragePort
       );
       parts.push(...(listed.Parts ?? []));
       if (!listed.IsTruncated) break;
-      if (listed.NextPartNumberMarker === undefined)
-        throw new Error('IAE_S3_PARTS_CURSOR_MISSING');
+      if (listed.NextPartNumberMarker === undefined) throw new Error('IAE_S3_PARTS_CURSOR_MISSING');
       marker = String(listed.NextPartNumberMarker);
     } while (parts.length <= 10_000);
     if (parts.length > 10_000) throw new Error('IAE_S3_PARTS_LIMIT_EXCEEDED');

@@ -6,6 +6,16 @@
   "expectedRevision": 4,
   "descriptorBindingHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
   "idempotencyKey": "result-finalize-10000000",
-  "attestations": [{"outputName": "primary", "attestationId": "30000000-0000-4000-8000-000000000001", "objectPath": "s3://bucket/key"}],
-  "resultBinding": {"kind": "OUTPUT_SET", "outputSchemaId": "dda.materialize-query-result.v1", "outputNames": ["primary"]}
+  "attestations": [
+    {
+      "outputName": "primary",
+      "attestationId": "30000000-0000-4000-8000-000000000001",
+      "objectPath": "s3://bucket/key"
+    }
+  ],
+  "resultBinding": {
+    "kind": "OUTPUT_SET",
+    "outputSchemaId": "dda.materialize-query-result.v1",
+    "outputNames": ["primary"]
+  }
 }

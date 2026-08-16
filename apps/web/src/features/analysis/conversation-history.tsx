@@ -10,6 +10,7 @@ function copy(locale: 'en' | 'vi-VN') {
         empty: 'Chưa có hội thoại được cấp quyền trong không gian làm việc này.',
         expand: 'Mở rộng lịch sử hội thoại',
         heading: 'Lịch sử hội thoại',
+        create: 'Phân tích mới',
         search: 'Tìm lịch sử hội thoại',
         searchPlaceholder: 'Tìm theo tiêu đề hội thoại',
       }
@@ -19,6 +20,7 @@ function copy(locale: 'en' | 'vi-VN') {
         empty: 'No authorized conversations are available in this workspace.',
         expand: 'Expand conversation history',
         heading: 'Conversation history',
+        create: 'New analysis',
         search: 'Search conversation history',
         searchPlaceholder: 'Search conversation titles',
       };
@@ -36,6 +38,7 @@ export interface ConversationHistoryProps {
   readonly items: readonly AnalysisConversationV1[];
   readonly locale: 'en' | 'vi-VN';
   readonly onCollapsedChange?: (collapsed: boolean) => void;
+  readonly onCreate?: () => void;
   readonly onSelectConversation?: (conversationId: string) => void;
 }
 
@@ -46,6 +49,7 @@ export function ConversationHistory({
   items,
   locale,
   onCollapsedChange,
+  onCreate,
   onSelectConversation,
 }: ConversationHistoryProps) {
   const [query, setQuery] = useState('');
@@ -79,6 +83,15 @@ export function ConversationHistory({
       </div>
       {collapsed ? null : (
         <>
+          {onCreate === undefined ? null : (
+            <button
+              className="analysis-conversation-history__create"
+              onClick={() => onCreate()}
+              type="button"
+            >
+              {text.create}
+            </button>
+          )}
           <label
             className="analysis-conversation-history__search-label"
             htmlFor="analysis-history-search"

@@ -12,6 +12,7 @@ import { Argon2PasswordHasherAdapter } from '../features/iam/adapter/argon2-pass
 import { Aes256GcmEmailVerificationEnvelopeAdapter } from '../features/iam/adapter/email-verification-envelope.adapter.js';
 import { HmacSha256EmailVerificationDigestAdapter } from '../features/iam/adapter/in-memory-email-verification-repository.adapter.js';
 import { HmacSha256IamRegistrationAdmissionDigestAdapter } from '../features/iam/adapter/iam-registration-crypto.adapter.js';
+import { HmacSha256IamRecoveryDigestAdapter } from '../features/iam/adapter/iam-recovery-crypto.adapter.js';
 import {
   GmailSmtpEmailVerificationDeliveryAdapter,
   GmailSmtpSenderAdapter,
@@ -23,6 +24,7 @@ import {
   type NodeLoopbackSmtpOptionsV1,
   type SmtpSenderPortV1,
 } from '../features/iam/adapter/mailpit-smtp-email-verification-delivery.adapter.js';
+import { SmtpPasswordRecoveryDeliveryAdapter } from '../features/iam/adapter/smtp-password-recovery-delivery.adapter.js';
 import {
   NodeRedisEvalClientAdapter,
   type NodeRedisEvalPortV1,
@@ -253,22 +255,26 @@ function localRedisUrl(environment: RuntimeEnvironment): string {
   }
 }
 
-function localHttpsOrigin(
+function localBrowserOrigin(
   environment: RuntimeEnvironment,
   profile: typeof LOCAL_RUNTIME_PROFILE | typeof PILOT_RUNTIME_PROFILE,
 ): string {
-  const candidate =
-    environment[
-      profile === PILOT_RUNTIME_PROFILE
-        ? 'DATABREEZE_PILOT_HTTPS_ORIGIN'
-        : 'DATABREEZE_LOCAL_HTTPS_ORIGIN'
-    ]?.trim();
+  const hmrHttp =
+    profile === LOCAL_RUNTIME_PROFILE && environment['DATABREEZE_LOCAL_HMR_HTTP'] === 'true';
+  const hmrCandidate = environment['DATABREEZE_LOCAL_HMR_ORIGIN']?.trim();
+  const candidate = hmrHttp
+    ? hmrCandidate
+    : environment[
+        profile === PILOT_RUNTIME_PROFILE
+          ? 'DATABREEZE_PILOT_HTTPS_ORIGIN'
+          : 'DATABREEZE_LOCAL_HTTPS_ORIGIN'
+      ]?.trim();
   if (!candidate) throw new Error(LOCAL_HTTPS_ORIGIN_ERROR);
   try {
     const parsed = new URL(candidate);
     if (
-      parsed.protocol !== 'https:' ||
-      (profile === LOCAL_RUNTIME_PROFILE
+      (hmrHttp ? parsed.protocol !== 'http:' : parsed.protocol !== 'https:') ||
+      (hmrHttp || profile === LOCAL_RUNTIME_PROFILE
         ? !isLoopback(parsed.hostname)
         : isLoopback(parsed.hostname)) ||
       parsed.username !== '' ||
@@ -402,7 +408,7 @@ async function createComposeDatabaseComposition(
   }
   const connectionString = localDatabaseUrl(environment);
   const redisUrl = localRedisUrl(environment);
-  const httpsOrigin = localHttpsOrigin(environment, profile);
+  const httpsOrigin = localBrowserOrigin(environment, profile);
   const emailProvider = localEmailProvider(environment);
   const smtpOptions = emailProvider === 'mailpit' ? localSmtpOptions(environment) : undefined;
   const gmailSmtpOptions =
@@ -428,6 +434,7 @@ async function createComposeDatabaseComposition(
     environment,
     'DATABREEZE_IAM_REGISTRATION_ADMISSION_KEY',
   );
+  const recoveryDigestKey = localManagedKey(environment, 'DATABREEZE_IAM_RECOVERY_DIGEST_KEY');
   localManagedKey(environment, 'DATABREEZE_SERVICE_ACCOUNT_SECRET_ENVELOPE_KEY');
   const serviceAccountKey = environment['DATABREEZE_SERVICE_ACCOUNT_SECRET_ENVELOPE_KEY']?.trim();
   if (!serviceAccountKey) throw new Error(LOCAL_IAM_KEY_ERROR);
@@ -501,10 +508,17 @@ async function createComposeDatabaseComposition(
       ),
       emailVerificationDigest: new HmacSha256EmailVerificationDigestAdapter(emailDigestKey),
       emailVerificationEnvelope: new Aes256GcmEmailVerificationEnvelopeAdapter(emailEnvelopeKey),
+      recoveryDigest: new HmacSha256IamRecoveryDigestAdapter(recoveryDigestKey),
       emailVerificationDelivery:
         emailProvider === 'gmail'
           ? new GmailSmtpEmailVerificationDeliveryAdapter(smtpSender, fromAddress)
           : new MailpitSmtpEmailVerificationDeliveryAdapter(smtpSender, fromAddress),
+      recoveryDelivery: new SmtpPasswordRecoveryDeliveryAdapter(
+        smtpSender,
+        fromAddress,
+        httpsOrigin,
+        profile === LOCAL_RUNTIME_PROFILE && environment['DATABREEZE_LOCAL_HMR_HTTP'] === 'true',
+      ),
       identityBootstrapPolicyProvisionerFactory: (transaction: unknown) =>
         new PrismaInitialWorkspacePolicyProvisionerAdapter(
           transaction as InitialWorkspacePolicyDatabaseClientV1,

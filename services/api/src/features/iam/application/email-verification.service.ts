@@ -87,7 +87,10 @@ function activationRequestHash(
   platform: SessionClientPlatformV1,
 ): string {
   return createHash('sha256')
-    .update(`databreeze:iam:registration-activation:v1\u0000${challengeId}\u0000${idempotencyKey}\u0000${platform}`, 'utf8')
+    .update(
+      `databreeze:iam:registration-activation:v1\u0000${challengeId}\u0000${idempotencyKey}\u0000${platform}`,
+      'utf8',
+    )
     .digest('hex');
 }
 
@@ -102,7 +105,11 @@ function token(tokenId: string): string {
 function isPasswordCredential(input: unknown): input is PasswordCredentialV1 {
   if (typeof input !== 'object' || input === null) return false;
   const value = input as Record<string, unknown>;
-  return value['schemaVersion'] === 1 && value['algorithm'] === 'argon2id' && typeof value['encodedHash'] === 'string';
+  return (
+    value['schemaVersion'] === 1 &&
+    value['algorithm'] === 'argon2id' &&
+    typeof value['encodedHash'] === 'string'
+  );
 }
 
 function pendingFromEnvelope(
@@ -115,7 +122,13 @@ function pendingFromEnvelope(
   const credentialId = stableId(value['credentialId']);
   const credential = value['credential'];
   const bootstrap = value['bootstrap'];
-  if (!email.accepted || !credentialId || !isPasswordCredential(credential) || typeof bootstrap !== 'object' || bootstrap === null)
+  if (
+    !email.accepted ||
+    !credentialId ||
+    !isPasswordCredential(credential) ||
+    typeof bootstrap !== 'object' ||
+    bootstrap === null
+  )
     return undefined;
   const candidate = bootstrap as PersonalOrganizationBootstrapV1;
   if (
@@ -127,7 +140,8 @@ function pendingFromEnvelope(
     candidate.user.id !== candidate.membership.principalId ||
     candidate.organization.id !== candidate.workspace.organizationId ||
     candidate.workspace.id !== candidate.project.workspaceId
-  ) return undefined;
+  )
+    return undefined;
   return Object.freeze({ email: email.value, credentialId, credential, bootstrap: candidate });
 }
 
@@ -136,7 +150,13 @@ function activationFromEnvelope(
   sealed: string,
 ): EmailRegistrationActivationV1 | undefined {
   const value = envelope.open(sealed);
-  if (!value || typeof value['principal'] !== 'object' || value['principal'] === null || typeof value['session'] !== 'object' || value['session'] === null)
+  if (
+    !value ||
+    typeof value['principal'] !== 'object' ||
+    value['principal'] === null ||
+    typeof value['session'] !== 'object' ||
+    value['session'] === null
+  )
     return undefined;
   const principal = value['principal'] as Record<string, unknown>;
   const session = value['session'] as Record<string, unknown>;
@@ -148,10 +168,13 @@ function activationFromEnvelope(
     typeof principal['mfaRequired'] !== 'boolean' ||
     typeof principal['mfaReenrollmentRequired'] !== 'boolean' ||
     !stableId(session['sessionId']) ||
-    typeof session['accessToken'] !== 'string' || session['accessToken'].length < 80 ||
-    typeof session['refreshToken'] !== 'string' || session['refreshToken'].length < 80 ||
+    typeof session['accessToken'] !== 'string' ||
+    session['accessToken'].length < 80 ||
+    typeof session['refreshToken'] !== 'string' ||
+    session['refreshToken'].length < 80 ||
     typeof session['accessExpiresAt'] !== 'string'
-  ) return undefined;
+  )
+    return undefined;
   return value as unknown as EmailRegistrationActivationV1;
 }
 
@@ -166,7 +189,10 @@ function makeActivation(
   pending: PendingEmailRegistrationV1,
   platform: SessionClientPlatformV1,
   now: Date,
-): { readonly value: EmailRegistrationActivationV1; readonly persistence: EmailRegistrationSessionPersistenceV1 } {
+): {
+  readonly value: EmailRegistrationActivationV1;
+  readonly persistence: EmailRegistrationSessionPersistenceV1;
+} {
   const policy = sessionPolicyForPlatformV1(platform);
   const sessionId = nextActivationId(ports);
   const familyId = nextActivationId(ports);
@@ -186,7 +212,13 @@ function makeActivation(
     mfaRequired: false,
     mfaReenrollmentRequired: false,
   });
-  const session = Object.freeze({ sessionId, accessToken, refreshToken, accessExpiresAt, refreshExpiresAt: absoluteExpiresAt });
+  const session = Object.freeze({
+    sessionId,
+    accessToken,
+    refreshToken,
+    accessExpiresAt,
+    refreshExpiresAt: absoluteExpiresAt,
+  });
   return Object.freeze({
     value: Object.freeze({ principal, session }),
     persistence: Object.freeze({
@@ -201,8 +233,21 @@ function makeActivation(
         inactivityExpiresAt,
         absoluteExpiresAt,
       }),
-      refreshToken: Object.freeze({ id: refreshTokenId, sessionId, familyId, tokenDigest: tokenDigest(refreshToken), issuedAt, expiresAt: absoluteExpiresAt }),
-      accessToken: Object.freeze({ id: accessTokenId, sessionId, tokenDigest: tokenDigest(accessToken), issuedAt, expiresAt: accessExpiresAt }),
+      refreshToken: Object.freeze({
+        id: refreshTokenId,
+        sessionId,
+        familyId,
+        tokenDigest: tokenDigest(refreshToken),
+        issuedAt,
+        expiresAt: absoluteExpiresAt,
+      }),
+      accessToken: Object.freeze({
+        id: accessTokenId,
+        sessionId,
+        tokenDigest: tokenDigest(accessToken),
+        issuedAt,
+        expiresAt: accessExpiresAt,
+      }),
     }),
   });
 }
@@ -220,19 +265,32 @@ export class EmailVerificationService {
   }): Promise<EmailVerificationRequestResultV1> {
     const email = normalizeEmailAddressV1(input.email);
     const locale = selectedLocale(input.locale);
-    if (!email.accepted || !locale || (input.clientPlatform !== undefined && !clientPlatform(input.clientPlatform)))
+    if (
+      !email.accepted ||
+      !locale ||
+      (input.clientPlatform !== undefined && !clientPlatform(input.clientPlatform))
+    )
       return rejected('INVALID_INPUT');
     const credential = await this.ports.passwordCredentials.create(input.password);
     if (!credential.accepted)
-      return rejected(credential.code === 'INVALID_PASSWORD' ? 'INVALID_INPUT' : 'VERIFICATION_UNAVAILABLE');
+      return rejected(
+        credential.code === 'INVALID_PASSWORD' ? 'INVALID_INPUT' : 'VERIFICATION_UNAVAILABLE',
+      );
     const now = this.ports.clock?.now() ?? new Date();
-    if (!(now instanceof Date) || !Number.isFinite(now.getTime())) return rejected('VERIFICATION_UNAVAILABLE');
+    if (!(now instanceof Date) || !Number.isFinite(now.getTime()))
+      return rejected('VERIFICATION_UNAVAILABLE');
     let admissionDigest: string;
     try {
       admissionDigest = this.ports.digest.digestAdmission(email.value);
-      const existing = await this.ports.repository.findActiveByAdmission(admissionDigest, EMAIL_VERIFICATION_PURPOSE_REGISTRATION_V1);
+      const existing = await this.ports.repository.findActiveByAdmission(
+        admissionDigest,
+        EMAIL_VERIFICATION_PURPOSE_REGISTRATION_V1,
+      );
       if (existing && Date.parse(existing.resendAvailableAt) > now.getTime())
-        return Object.freeze({ accepted: true as const, value: { requested: true as const, challengeId: existing.id } });
+        return Object.freeze({
+          accepted: true as const,
+          value: { requested: true as const, challengeId: existing.id },
+        });
     } catch {
       return rejected('VERIFICATION_UNAVAILABLE');
     }
@@ -241,7 +299,12 @@ export class EmailVerificationService {
     if (!code || !stableId(challengeId)) return rejected('VERIFICATION_UNAVAILABLE');
     const createdAt = now.toISOString();
     const bootstrap = bootstrapPersonalOrganizationV1({
-      user: { id: nextActivationId(this.ports), displayName: locale === 'vi-VN' ? 'Người dùng DataBreeze' : 'DataBreeze user', locale, createdAt },
+      user: {
+        id: nextActivationId(this.ports),
+        displayName: locale === 'vi-VN' ? 'Người dùng DataBreeze' : 'DataBreeze user',
+        locale,
+        createdAt,
+      },
       organizationId: nextActivationId(this.ports),
       workspaceId: nextActivationId(this.ports),
       projectId: nextActivationId(this.ports),
@@ -259,7 +322,10 @@ export class EmailVerificationService {
         credential: credential.value,
         bootstrap: bootstrap.value,
       });
-      await this.ports.repository.revokeActive(admissionDigest, EMAIL_VERIFICATION_PURPOSE_REGISTRATION_V1);
+      await this.ports.repository.revokeActive(
+        admissionDigest,
+        EMAIL_VERIFICATION_PURPOSE_REGISTRATION_V1,
+      );
       const challenge: EmailVerificationChallengeRecordV1 = Object.freeze({
         id: challengeId,
         purpose: EMAIL_VERIFICATION_PURPOSE_REGISTRATION_V1,
@@ -286,10 +352,20 @@ export class EmailVerificationService {
         ...(typeof input.correlationId === 'string' ? { correlationId: input.correlationId } : {}),
       });
     } catch {
-      try { await this.ports.repository.revokeActive(admissionDigest, EMAIL_VERIFICATION_PURPOSE_REGISTRATION_V1); } catch { /* fail closed */ }
+      try {
+        await this.ports.repository.revokeActive(
+          admissionDigest,
+          EMAIL_VERIFICATION_PURPOSE_REGISTRATION_V1,
+        );
+      } catch {
+        /* fail closed */
+      }
       return rejected('VERIFICATION_UNAVAILABLE');
     }
-    return Object.freeze({ accepted: true as const, value: { requested: true as const, challengeId } });
+    return Object.freeze({
+      accepted: true as const,
+      value: { requested: true as const, challengeId },
+    });
   }
 
   public async verifyEmailRegistration(input: {
@@ -299,32 +375,65 @@ export class EmailVerificationService {
     readonly clientPlatform: unknown;
   }): Promise<EmailVerificationVerifyResultV1> {
     const challengeId = stableId(input.challengeId);
-    const code = typeof input.code === 'string' && /^\d{6}$/u.test(input.code) ? input.code : undefined;
-    const idempotencyKey = typeof input.idempotencyKey === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:-]{7,199}$/u.test(input.idempotencyKey) ? input.idempotencyKey : undefined;
+    const code =
+      typeof input.code === 'string' && /^\d{6}$/u.test(input.code) ? input.code : undefined;
+    const idempotencyKey =
+      typeof input.idempotencyKey === 'string' &&
+      /^[A-Za-z0-9][A-Za-z0-9._:-]{7,199}$/u.test(input.idempotencyKey)
+        ? input.idempotencyKey
+        : undefined;
     const platform = clientPlatform(input.clientPlatform);
     if (!challengeId || !code || !idempotencyKey || !platform) return rejected('INVALID_INPUT');
     const requestHash = activationRequestHash(challengeId, idempotencyKey, platform);
     let challenge: EmailVerificationChallengeRecordV1 | undefined;
-    try { challenge = await this.ports.repository.findById(challengeId); } catch { return rejected('VERIFICATION_UNAVAILABLE'); }
+    try {
+      challenge = await this.ports.repository.findById(challengeId);
+    } catch {
+      return rejected('VERIFICATION_UNAVAILABLE');
+    }
     if (!challenge) return rejected('INVALID_CODE');
     if (challenge.status === 'LOCKED') return rejected('LOCKED');
     if (challenge.status === 'CONSUMED') {
-      if (challenge.activationIdempotencyKey !== idempotencyKey || challenge.activationRequestHash !== requestHash || !challenge.activationResultEnvelope)
+      if (
+        challenge.activationIdempotencyKey !== idempotencyKey ||
+        challenge.activationRequestHash !== requestHash ||
+        !challenge.activationResultEnvelope
+      )
         return rejected('INVALID_CODE');
-      const activation = activationFromEnvelope(this.ports.envelope, challenge.activationResultEnvelope);
+      const activation = activationFromEnvelope(
+        this.ports.envelope,
+        challenge.activationResultEnvelope,
+      );
       return activation
-        ? Object.freeze({ accepted: true as const, value: Object.freeze({ ...activation, alreadyCompleted: true }) })
+        ? Object.freeze({
+            accepted: true as const,
+            value: Object.freeze({ ...activation, alreadyCompleted: true }),
+          })
         : rejected('VERIFICATION_UNAVAILABLE');
     }
     const now = this.ports.clock?.now() ?? new Date();
     if (challenge.status !== 'ACTIVE') return rejected('INVALID_CODE');
     if (Date.parse(challenge.expiresAt) <= now.getTime()) return rejected('EXPIRED');
     let codeDigest: string;
-    try { codeDigest = this.ports.digest.digestCode(challengeId, code); } catch { return rejected('VERIFICATION_UNAVAILABLE'); }
+    try {
+      codeDigest = this.ports.digest.digestCode(challengeId, code);
+    } catch {
+      return rejected('VERIFICATION_UNAVAILABLE');
+    }
     if (challenge.codeDigest !== codeDigest) {
       const nextAttempts = challenge.attemptCount + 1;
-      const nextStatus = nextAttempts >= EMAIL_VERIFICATION_MAX_ATTEMPTS_V1 ? 'LOCKED' : challenge.status;
-      try { await this.ports.repository.save({ ...challenge, attemptCount: nextAttempts, status: nextStatus, revision: challenge.revision + 1 }); } catch { return rejected('VERIFICATION_UNAVAILABLE'); }
+      const nextStatus =
+        nextAttempts >= EMAIL_VERIFICATION_MAX_ATTEMPTS_V1 ? 'LOCKED' : challenge.status;
+      try {
+        await this.ports.repository.save({
+          ...challenge,
+          attemptCount: nextAttempts,
+          status: nextStatus,
+          revision: challenge.revision + 1,
+        });
+      } catch {
+        return rejected('VERIFICATION_UNAVAILABLE');
+      }
       return rejected(nextStatus === 'LOCKED' ? 'LOCKED' : 'INVALID_CODE');
     }
     const pending = pendingFromEnvelope(this.ports.envelope, challenge.pendingRegistrationEnvelope);
@@ -333,7 +442,9 @@ export class EmailVerificationService {
     let activationResultEnvelope: string;
     try {
       generated = makeActivation(this.ports, pending, platform, now);
-      activationResultEnvelope = this.ports.envelope.seal(generated.value as unknown as Readonly<Record<string, unknown>>);
+      activationResultEnvelope = this.ports.envelope.seal(
+        generated.value as unknown as Readonly<Record<string, unknown>>,
+      );
     } catch {
       return rejected('VERIFICATION_UNAVAILABLE');
     }
@@ -351,7 +462,10 @@ export class EmailVerificationService {
         consumedAt: now.toISOString(),
       });
       return consumed
-        ? Object.freeze({ accepted: true as const, value: Object.freeze({ ...generated.value, alreadyCompleted: false }) })
+        ? Object.freeze({
+            accepted: true as const,
+            value: Object.freeze({ ...generated.value, alreadyCompleted: false }),
+          })
         : rejected('INVALID_CODE');
     } catch {
       return rejected('VERIFICATION_UNAVAILABLE');

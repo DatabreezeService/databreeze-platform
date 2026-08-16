@@ -18,9 +18,7 @@ export interface DashboardWidgetResultReaderPortV1 {
   }): Promise<DashboardWidgetResultReadV1>;
 }
 
-export class UnavailableDashboardWidgetResultReaderV1
-  implements DashboardWidgetResultReaderPortV1
-{
+export class UnavailableDashboardWidgetResultReaderV1 implements DashboardWidgetResultReaderPortV1 {
   public read(): Promise<DashboardWidgetResultReadV1> {
     return Promise.resolve(Object.freeze({ accepted: false, code: 'UNAVAILABLE' }));
   }

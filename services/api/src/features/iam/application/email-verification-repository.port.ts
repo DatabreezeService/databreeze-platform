@@ -1,10 +1,7 @@
 import type { PersonalOrganizationBootstrapV1 } from '@databreeze/domain/identity/v1';
 
 import type { PasswordCredentialV1 } from '../domain/password-credential.js';
-import type {
-  AuthenticationSessionV1,
-  AuthenticatedPrincipalV1,
-} from './authentication.port.js';
+import type { AuthenticationSessionV1, AuthenticatedPrincipalV1 } from './authentication.port.js';
 import type { SessionClientPlatformV1 } from './session-policy.v1.js';
 
 export const EMAIL_VERIFICATION_EXPIRY_SECONDS_V1 = 10 * 60;

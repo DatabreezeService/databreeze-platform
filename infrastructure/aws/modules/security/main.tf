@@ -138,6 +138,14 @@ resource "aws_secretsmanager_secret" "email_verification_digest_key" {
   tags                    = merge(local.common_tags, { Name = "${var.name}-email-verification-digest-key" })
 }
 
+resource "aws_secretsmanager_secret" "recovery_digest_key" {
+  name                    = "databreeze/${var.name}/iam/recovery-digest-key"
+  description             = "Owner-populated base64url-encoded 32-byte account-recovery HMAC key; value is injected out of band and never stored in Terraform."
+  kms_key_id              = aws_kms_key.platform.arn
+  recovery_window_in_days = 30
+  tags                    = merge(local.common_tags, { Name = "${var.name}-recovery-digest-key" })
+}
+
 resource "aws_secretsmanager_secret" "email_verification_envelope_key" {
   name                    = "databreeze/${var.name}/iam/email-verification-envelope-key"
   description             = "Owner-populated base64url-encoded 32-byte email-verification envelope key; value is injected out of band and never stored in Terraform."

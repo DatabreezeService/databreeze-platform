@@ -106,14 +106,20 @@ test('publishes the complete deterministic registry and compiles every real sche
     ['dda-conversation-list-accepted', `${schemaBaseV4}/dda-conversation-list-accepted`],
     ['dda-conversation-load-accepted', `${schemaBaseV4}/dda-conversation-load-accepted`],
     ['dda-conversation-summary', `${schemaBaseV4}/dda-conversation-summary`],
-    ['dda-dashboard-widget-results-accepted', `${schemaBaseV4}/dda-dashboard-widget-results-accepted`],
+    [
+      'dda-dashboard-widget-results-accepted',
+      `${schemaBaseV4}/dda-dashboard-widget-results-accepted`,
+    ],
     ['iam-auth-session', `${schemaBaseV4}/iam-auth-session`],
     ['iam-bootstrap-response', `${schemaBaseV4}/iam-bootstrap-response`],
     ['iam-email-verification-command', `${schemaBaseV4}/iam-email-verification-command`],
     ['iam-password-sign-in-command', `${schemaBaseV4}/iam-password-sign-in-command`],
     ['iam-registration-accepted', `${schemaBaseV4}/iam-registration-accepted`],
     ['iam-registration-command', `${schemaBaseV4}/iam-registration-command`],
-    ['jra-worker-dashboard-widget-result-output', `${schemaBaseV4}/jra-worker-dashboard-widget-result-output`],
+    [
+      'jra-worker-dashboard-widget-result-output',
+      `${schemaBaseV4}/jra-worker-dashboard-widget-result-output`,
+    ],
     ['jra-worker-result-finalize-accepted', `${schemaBaseV4}/jra-worker-result-finalize-accepted`],
     ['jra-worker-result-finalize-command', `${schemaBaseV4}/jra-worker-result-finalize-command`],
     ['jra-worker-result-prepare-accepted', `${schemaBaseV4}/jra-worker-result-prepare-accepted`],
@@ -128,6 +134,11 @@ test('publishes the complete deterministic registry and compiles every real sche
     ['revision', `${schemaBase}/revision`],
     ['tenant-scope', `${schemaBase}/tenant-scope`],
     ['utc-timestamp', `${schemaBase}/utc-timestamp`],
+    ['bua-payos-plan-catalog', `${schemaBaseV4}/bua-payos-plan-catalog`],
+    ['bua-payos-checkout-command', `${schemaBaseV4}/bua-payos-checkout-command`],
+    ['bua-payos-checkout-session', `${schemaBaseV4}/bua-payos-checkout-session`],
+    ['bua-payos-payment-status', `${schemaBaseV4}/bua-payos-payment-status`],
+    ['bua-payos-webhook-event', `${schemaBaseV4}/bua-payos-webhook-event`],
   ];
 
   assert.equal(manifest.draft, 'https://json-schema.org/draft/2020-12/schema');
@@ -206,6 +217,11 @@ test('exports only declared registry schema and generated TypeScript entry point
     './v4/jra-worker-result-finalize-command',
     './v4/jra-worker-result-prepare-accepted',
     './v4/jra-worker-result-prepare-command',
+    './v4/bua-payos-plan-catalog',
+    './v4/bua-payos-checkout-command',
+    './v4/bua-payos-checkout-session',
+    './v4/bua-payos-payment-status',
+    './v4/bua-payos-webhook-event',
   ]);
   for (const target of Object.values(packageJson.exports)) {
     const paths = typeof target === 'string' ? [target] : Object.values(target);
@@ -231,25 +247,37 @@ test('[Plan 408 / IAM-001 / IAM-009 / WEB-003] Web bootstrap is closed and serve
         locale: 'vi-VN',
         mfaState: 'ENABLED',
       },
-      organizations: [{
-        id: organizationId,
-        name: 'Nguyen An DataBreeze',
-        personal: true,
-        status: 'ACTIVE',
-        workspaces: [{
-          id: workspaceId,
-          name: 'Personal workspace',
+      organizations: [
+        {
+          id: organizationId,
+          name: 'Nguyen An DataBreeze',
+          personal: true,
           status: 'ACTIVE',
-          projects: [{
-            id: projectId,
-            name: 'Personal project',
-            kind: 'INTERNAL',
-            status: 'ACTIVE',
-          }],
-        }],
-      }],
+          workspaces: [
+            {
+              id: workspaceId,
+              name: 'Personal workspace',
+              status: 'ACTIVE',
+              projects: [
+                {
+                  id: projectId,
+                  name: 'Personal project',
+                  kind: 'INTERNAL',
+                  status: 'ACTIVE',
+                },
+              ],
+            },
+          ],
+        },
+      ],
       recentScopes: [{ scopeType: 'project', organizationId, workspaceId, projectId }],
-      session: { scopeType: 'project', organizationId, workspaceId, projectId, authorizationEpoch: 1 },
+      session: {
+        scopeType: 'project',
+        organizationId,
+        workspaceId,
+        projectId,
+        authorizationEpoch: 1,
+      },
       platform: { apiVersion: 'v1' },
     },
   };

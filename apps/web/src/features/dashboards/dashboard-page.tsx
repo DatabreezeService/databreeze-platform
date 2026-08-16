@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'react-router-dom';
 
 import { useLocale } from '../../app/locale-context.tsx';
 import { workspaceAgentStore } from '../agent/workspace-agent-store.ts';
+import type { AgentMessagePresentationV1 } from '../agent/agent-store.ts';
 import { AgentInvitation } from './agent-invitation.tsx';
 import { analysisLiveConfiguration, proposeAnalysisPlan } from './analysis-api.ts';
 import type { AnalysisPlanPreviewV1 } from './analysis-plan-review.tsx';
@@ -295,10 +296,16 @@ export function DashboardPage() {
     retry: false,
   });
   const [agentOpen, setAgentOpen] = useState(false);
+  const agentSnapshot = useSyncExternalStore(
+    workspaceAgentStore.subscribe,
+    workspaceAgentStore.getSnapshot,
+    workspaceAgentStore.getSnapshot,
+  );
   const [invitationVisible, setInvitationVisible] = useState(true);
   const [agentResponse, setAgentResponse] = useState<DashboardAgentResponseV1>();
   const [canonicalProposal, setCanonicalProposal] = useState<DdaDashboardChartProposal>();
   const [acceptedWidgets, setAcceptedWidgets] = useState<readonly DashboardWidgetV1[]>([]);
+  const [pendingWidgetFocusId, setPendingWidgetFocusId] = useState<string>();
   const [autosave, setAutosave] = useState<'SAVED' | 'SAVING' | 'FAILED'>('SAVED');
   const [conflictNoticeVisible, setConflictNoticeVisible] = useState(false);
   const [canvasResetToken, setCanvasResetToken] = useState(0);
@@ -308,6 +315,17 @@ export function DashboardPage() {
     () => ({ ...sourceDraft, widgets: [...sourceDraft.widgets, ...acceptedWidgets] }),
     [acceptedWidgets, sourceDraft],
   );
+  useEffect(() => {
+    if (pendingWidgetFocusId === undefined) return;
+    const frame = globalThis.requestAnimationFrame(() => {
+      const widget = globalThis.document.querySelector<HTMLElement>(
+        `[data-testid="widget-${pendingWidgetFocusId}"]`,
+      );
+      widget?.focus();
+      setPendingWidgetFocusId(undefined);
+    });
+    return () => globalThis.cancelAnimationFrame(frame);
+  }, [acceptedWidgets, pendingWidgetFocusId]);
   const [authoringState, dispatchAuthoring] = useReducer(dashboardAuthoringReducer, draft, () =>
     createDashboardAuthoringState(authoringView(draft)),
   );
@@ -536,13 +554,64 @@ export function DashboardPage() {
     void commandQueue.enqueue({ kind, widgetId }).catch(() => undefined);
   }
 
-  async function askForChart(question: string): Promise<DashboardAgentResponseV1> {
-    setAgentResponse(undefined);
+  function appendAgentMessage(conversationId: string, message: AgentMessagePresentationV1): void {
+    const conversations = workspaceAgentStore.getConversations();
+    workspaceAgentStore.setConversations(
+      conversations.map((conversation) =>
+        conversation.conversationId === conversationId
+          ? {
+              ...conversation,
+              messages: [...(conversation.messages ?? []), message],
+            }
+          : conversation,
+      ),
+    );
+  }
+
+  function ensureDashboardConversation(question: string): string {
+    const active = workspaceAgentStore.getActiveConversation();
+    if (active !== undefined) return active.conversationId;
+    const conversationId = crypto.randomUUID();
     workspaceAgentStore.setActiveConversation({
-      conversationId: crypto.randomUUID(),
+      conversationId,
       title: question,
       datasetLabel: locale === 'vi-VN' ? 'Tất cả dữ liệu đã chọn' : 'All selected data',
       datasetVersionLabel: draft.versionId,
+      messages: [],
+    });
+    return conversationId;
+  }
+
+  function recordAgentResponse(
+    conversationId: string,
+    response: DashboardAgentResponseV1,
+  ): DashboardAgentResponseV1 {
+    const message =
+      response.kind === 'proposals'
+        ? locale === 'vi-VN'
+          ? `Tôi đã chuẩn bị ${response.options.length} biểu đồ tương thích. Hãy chọn phương án phù hợp trước khi thêm vào canvas.`
+          : `I prepared ${response.options.length} compatible charts. Choose the right options before adding them to the canvas.`
+        : (response.message?.[locale === 'vi-VN' ? 'vi' : 'en'] ??
+          (locale === 'vi-VN'
+            ? 'Tôi chưa thể hoàn tất yêu cầu này. Không có thay đổi nào được gửi.'
+            : 'I could not complete this request. No changes were sent.'));
+    appendAgentMessage(conversationId, {
+      messageId: crypto.randomUUID(),
+      role: 'ASSISTANT',
+      text: message,
+      createdLabel: locale === 'vi-VN' ? 'Bây giờ' : 'Now',
+    });
+    return response;
+  }
+
+  async function askForChart(question: string): Promise<DashboardAgentResponseV1> {
+    setAgentResponse(undefined);
+    const conversationId = ensureDashboardConversation(question);
+    appendAgentMessage(conversationId, {
+      messageId: crypto.randomUUID(),
+      role: 'USER',
+      text: question,
+      createdLabel: locale === 'vi-VN' ? 'Bây giờ' : 'Now',
     });
     if (!demoMode && (analysisConfiguration === undefined || configuration === undefined)) {
       const response: DashboardAgentResponseV1 = {
@@ -553,7 +622,7 @@ export function DashboardPage() {
         },
       };
       setAgentResponse(response);
-      return response;
+      return recordAgentResponse(conversationId, response);
     }
 
     try {
@@ -604,7 +673,7 @@ export function DashboardPage() {
           options: canonicalChartOptions(proposal, preview, question),
         };
         setAgentResponse(response);
-        return response;
+        return recordAgentResponse(conversationId, response);
       }
       const response: DashboardAgentResponseV1 = {
         kind: 'proposals',
@@ -612,11 +681,11 @@ export function DashboardPage() {
         options: chartOptions(preview, page.pageId, question),
       };
       setAgentResponse(response);
-      return response;
+      return recordAgentResponse(conversationId, response);
     } catch {
       const response: DashboardAgentResponseV1 = { kind: 'error' };
       setAgentResponse(response);
-      return response;
+      return recordAgentResponse(conversationId, response);
     }
   }
 
@@ -655,9 +724,21 @@ export function DashboardPage() {
       values: [],
     }));
     setAcceptedWidgets((current) => [...current, ...nextWidgets]);
+    setPendingWidgetFocusId(nextWidgets[0]?.widgetId);
     setAgentResponse(undefined);
     setAutosave('SAVED');
-    setAgentOpen(false);
+    const activeConversationId = workspaceAgentStore.getActiveConversation()?.conversationId;
+    if (activeConversationId !== undefined) {
+      appendAgentMessage(activeConversationId, {
+        messageId: crypto.randomUUID(),
+        role: 'ASSISTANT',
+        text:
+          locale === 'vi-VN'
+            ? `Đã thêm ${nextWidgets.length} biểu đồ vào canvas.`
+            : `Added ${nextWidgets.length} ${nextWidgets.length === 1 ? 'chart' : 'charts'} to the canvas.`,
+        createdLabel: locale === 'vi-VN' ? 'Bây giờ' : 'Now',
+      });
+    }
   }
 
   return (
@@ -863,11 +944,39 @@ export function DashboardPage() {
         onDismiss={() => setInvitationVisible(false)}
       />
       <DashboardAgentPanel
+        {...(agentSnapshot.activeConversation === undefined
+          ? {}
+          : {
+              activeConversationId: agentSnapshot.activeConversation.conversationId,
+              messages: agentSnapshot.activeConversation.messages ?? [],
+            })}
+        conversations={agentSnapshot.conversations}
         locale={locale}
         open={agentOpen}
         target={target}
         onClose={() => setAgentOpen(false)}
+        {...(demoMode
+          ? {
+              onCreateConversation: () => {
+                workspaceAgentStore.setActiveConversation({
+                  conversationId: crypto.randomUUID(),
+                  title:
+                    locale === 'vi-VN'
+                      ? 'Hội thoại bảng điều khiển mới'
+                      : 'New dashboard conversation',
+                  datasetLabel: locale === 'vi-VN' ? 'Tất cả dữ liệu đã chọn' : 'All selected data',
+                  datasetVersionLabel: draft.versionId,
+                  messages: [],
+                });
+                setAgentResponse(undefined);
+              },
+            }
+          : {})}
         onSubmitQuestion={askForChart}
+        onSelectConversation={(conversationId) => {
+          workspaceAgentStore.selectConversation(conversationId);
+          setAgentResponse(undefined);
+        }}
         onConfirmProposal={acceptCharts}
         confirmingProposal={autosave === 'SAVING' && agentResponse?.kind === 'proposals'}
         {...(agentResponse === undefined ? {} : { response: agentResponse })}

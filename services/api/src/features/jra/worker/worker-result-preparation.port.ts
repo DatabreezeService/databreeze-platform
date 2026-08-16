@@ -1,9 +1,6 @@
 import type { StableIdentifierV1, TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
-import type {
-  WorkerAttemptAuthorizationV1,
-  WorkerIdentityV1,
-} from './worker-ports.js';
+import type { WorkerAttemptAuthorizationV1, WorkerIdentityV1 } from './worker-ports.js';
 
 export interface WorkerDeclaredOutputV1 {
   readonly kind: 'JSON_RESULT' | 'BINARY_RESULT';
@@ -22,9 +19,7 @@ export interface WorkerPreparedOutputPolicyV1 extends WorkerDeclaredOutputV1 {
   readonly sourceArtifactVersionIds: readonly StableIdentifierV1[];
   readonly processorVersion: string;
   readonly dataMode: 'Hybrid' | 'Cloud';
-  readonly payloadClass:
-    | 'RECONSTRUCTABLE_DERIVED_CONTENT'
-    | 'APPROVED_DERIVED_RESULT';
+  readonly payloadClass: 'RECONSTRUCTABLE_DERIVED_CONTENT' | 'APPROVED_DERIVED_RESULT';
 }
 
 export interface WorkerPreparedResultV1 {

@@ -1,4 +1,8 @@
 import type { EmailVerificationDeliveryPortV1 } from '../application/email-verification-repository.port.js';
+import {
+  createEmailVerificationMessageContentV1,
+  type EmailVerificationMessageContentV1,
+} from './email-verification-message-content.js';
 
 const EMAIL_ADDRESS_PATTERN_V1 = /^[^\s@]{1,64}@[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$/u;
 
@@ -7,6 +11,7 @@ export interface SesEmailMessageV1 {
   readonly toAddress: string;
   readonly subject: string;
   readonly textBody: string;
+  readonly htmlBody: string;
 }
 
 /** Provider-neutral transactional email boundary implemented by the AWS SES runtime adapter. */
@@ -25,26 +30,7 @@ function validAddress(value: string): boolean {
   );
 }
 
-function content(
-  locale: string,
-  code: string,
-): Pick<SesEmailMessageV1, 'subject' | 'textBody'> | undefined {
-  if (locale === 'vi-VN') {
-    return Object.freeze({
-      subject: 'Mã xác minh DataBreeze',
-      textBody: `Mã xác minh DataBreeze của bạn là ${code}. Mã này hết hạn sau 10 phút. Nếu bạn không yêu cầu mã này, hãy bỏ qua email.`,
-    });
-  }
-  if (locale === 'en') {
-    return Object.freeze({
-      subject: 'Your DataBreeze verification code',
-      textBody: `Your DataBreeze verification code is ${code}. It expires in 10 minutes. If you did not request this code, ignore this email.`,
-    });
-  }
-  return undefined;
-}
-
-/** IAM-022: minimal localized OTP delivery with no account or correlation metadata. */
+/** IAM-022: localized OTP delivery with no account or correlation metadata. */
 export class AwsSesEmailVerificationDeliveryAdapter implements EmailVerificationDeliveryPortV1 {
   public constructor(
     private readonly sender: SesEmailSenderPortV1,
@@ -61,7 +47,8 @@ export class AwsSesEmailVerificationDeliveryAdapter implements EmailVerification
     readonly locale: string;
     readonly correlationId?: string;
   }): Promise<void> {
-    const messageContent = content(input.locale, input.code);
+    const messageContent: EmailVerificationMessageContentV1 | undefined =
+      createEmailVerificationMessageContentV1(input.locale, input.code);
     if (!validAddress(input.email) || !/^\d{6}$/u.test(input.code) || !messageContent) {
       throw new Error('IAM_EMAIL_DELIVERY_INPUT_INVALID');
     }

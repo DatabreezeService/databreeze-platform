@@ -32,6 +32,17 @@ function cookiePathV1(path: string | undefined): string {
   throw new Error('Cookie path is invalid');
 }
 
+function secureCookieV1(): boolean {
+  // The only exception is the explicitly selected loopback HMR profile. It
+  // never applies to pilot/production and is accepted only alongside the
+  // local composition's exact loopback origin validation.
+  return !(
+    process.env['NODE_ENV'] === 'production' &&
+    process.env['DATABREEZE_RUNTIME_PROFILE'] === 'local' &&
+    process.env['DATABREEZE_LOCAL_HMR_HTTP'] === 'true'
+  );
+}
+
 export function serializeCookieV1(name: string, value: string, options: CookieOptionsV1): string {
   if (!validCookieNameV1(name) || !validCookieValueV1(value)) {
     throw new Error('Cookie name or value is invalid');
@@ -44,7 +55,7 @@ export function serializeCookieV1(name: string, value: string, options: CookieOp
     `Max-Age=${options.maxAgeSeconds}`,
     `Path=${cookiePathV1(options.path)}`,
     options.httpOnly ? 'HttpOnly' : undefined,
-    'Secure',
+    secureCookieV1() ? 'Secure' : undefined,
     'SameSite=Lax',
   ]
     .filter((part): part is string => part !== undefined)
@@ -61,7 +72,7 @@ export function clearCookieV1(
     'Max-Age=0',
     `Path=${cookiePathV1(options.path)}`,
     options.httpOnly ? 'HttpOnly' : undefined,
-    'Secure',
+    secureCookieV1() ? 'Secure' : undefined,
     'SameSite=Lax',
   ]
     .filter((part): part is string => part !== undefined)

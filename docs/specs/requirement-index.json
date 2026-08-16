@@ -2246,7 +2246,7 @@
       "priority": "P0",
       "requirement": "DSO shall use the IAM DeviceIdentity ID as its only Device identity key and shall not store a second public key, organization/user ownership record, enrollment state, activation state, or authoritative revocation status.",
       "source": {
-        "line": 136,
+        "line": 138,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2255,7 +2255,7 @@
       "priority": "P0",
       "requirement": "DSO capabilities and grants shall require an `ACTIVE` IAM DeviceIdentity with a matching organization and current security epoch; IAM alone shall own the enrollment challenge, proof-of-possession registration, explicit activation, and identity limits.",
       "source": {
-        "line": 137,
+        "line": 139,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2264,7 +2264,7 @@
       "priority": "P0",
       "requirement": "IAM revocation or security-epoch change shall make DSO block new sync, blob, stream, route, transfer, and job-dispatch operations immediately and terminate connected-client grants within 60 seconds; cached offline grants shall expire within 24 hours and fail closed on reconnect, without claiming remote wipe.",
       "source": {
-        "line": 138,
+        "line": 140,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2273,7 +2273,7 @@
       "priority": "P0",
       "requirement": "Synchronization shall use an append-only workspace change log and opaque cursor; it shall not rely on timestamp polling, client clocks, or Redis history.",
       "source": {
-        "line": 139,
+        "line": 141,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2282,7 +2282,7 @@
       "priority": "P0",
       "requirement": "Pull batches and offline pushes shall be idempotent and safely repeatable after timeout, crash, lost acknowledgement, or cursor replay.",
       "source": {
-        "line": 140,
+        "line": 142,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2291,7 +2291,7 @@
       "priority": "P0",
       "requirement": "All synchronized commands shall be re-authorized server-side for principal, device, workspace, project, resource, action, data mode, and entitlement.",
       "source": {
-        "line": 141,
+        "line": 143,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2300,16 +2300,16 @@
       "priority": "P0",
       "requirement": "`LOCAL` mode shall technically prevent upload of original bytes and reconstructable derived content, including chunks, previews, OCR/transcripts, thumbnails, row/cell values, and source snippets, regardless of client request; only a separately confirmed approved derived result may synchronize.",
       "source": {
-        "line": 142,
+        "line": 144,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
     {
       "id": "DSO-008",
       "priority": "P0",
-      "requirement": "Hybrid mode shall be the default and shall synchronize only the explicit data classifications and synchronization payload classes enabled by the workspace policy manifest.",
+      "requirement": "Hybrid mode shall be the default. IAM-022 personal-workspace activation shall create its server-owned immutable revision-1 HYBRID policy and exact current pointer in the same transaction, without client policy authority; exact replay shall return the same binding. Hybrid mode shall synchronize only the explicit data classifications and synchronization payload classes enabled by the workspace policy manifest.",
       "source": {
-        "line": 143,
+        "line": 145,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2318,7 +2318,7 @@
       "priority": "P0",
       "requirement": "Blob transfer shall be resumable, chunk-hashed, content-hash verified, encrypted in transit and at rest, and published only after complete verification.",
       "source": {
-        "line": 144,
+        "line": 146,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2327,7 +2327,7 @@
       "priority": "P0",
       "requirement": "Offline queues shall be encrypted, append-only until acknowledged, dependency-aware, and keyed by stable operation IDs generated before first execution.",
       "source": {
-        "line": 145,
+        "line": 147,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2336,7 +2336,7 @@
       "priority": "P0",
       "requirement": "Conflict handling shall follow the explicit per-entity rules in this specification and shall never silently use last-write-wins for assignments, workflow state, approvals, security, billing, or overlapping corrections.",
       "source": {
-        "line": 146,
+        "line": 148,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2345,7 +2345,7 @@
       "priority": "P0",
       "requirement": "A sync cursor shall advance on a client only after the entire corresponding local transaction commits; partial application shall replay the same batch.",
       "source": {
-        "line": 147,
+        "line": 149,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2354,7 +2354,7 @@
       "priority": "P0",
       "requirement": "Folder capabilities shall be created only through a local OS picker, represented to the cloud by opaque IDs and policy metadata, and limited to approved typed actions.",
       "source": {
-        "line": 148,
+        "line": 150,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2363,7 +2363,7 @@
       "priority": "P1",
       "requirement": "The server shall retain tombstones for at least 90 days and longer than the maximum supported offline interval, with administrative export before a stale device is forced to resnapshot.",
       "source": {
-        "line": 149,
+        "line": 151,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2372,7 +2372,7 @@
       "priority": "P1",
       "requirement": "Initial sync shall use a bounded consistent snapshot plus change-log watermark so concurrent mutations are neither missed nor duplicated.",
       "source": {
-        "line": 150,
+        "line": 152,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2381,7 +2381,7 @@
       "priority": "P1",
       "requirement": "Clients shall support schema-version negotiation and preserve unknown forward-compatible fields; an unsupported breaking version shall require upgrade without corrupting the queue.",
       "source": {
-        "line": 151,
+        "line": 153,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2390,7 +2390,7 @@
       "priority": "P1",
       "requirement": "A device shall report capability versions, local engine version, last sync, queue depth, and coarse health without sending local paths, file names, or source values.",
       "source": {
-        "line": 152,
+        "line": 154,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2399,7 +2399,7 @@
       "priority": "P1",
       "requirement": "Data-mode transitions shall be audited, require Admin authority and recent MFA, and use explicit migration or verified purge workflows for existing replicas.",
       "source": {
-        "line": 153,
+        "line": 155,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2408,7 +2408,7 @@
       "priority": "P1",
       "requirement": "Offline operations rejected after authorization or policy change shall be quarantined with a stable reason and export option; the client shall not repeatedly resubmit them.",
       "source": {
-        "line": 154,
+        "line": 156,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2417,7 +2417,7 @@
       "priority": "P1",
       "requirement": "The system shall expose whether each artifact version is `LOCAL_ONLY`, `CLOUD_ONLY`, or `REPLICATED` and identify available devices without revealing filesystem paths.",
       "source": {
-        "line": 155,
+        "line": 157,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2426,7 +2426,7 @@
       "priority": "P0",
       "requirement": "Every sync cursor shall be bound to principal, device, workspace, effective authorization scope, authorization epoch, data-mode policy, audience, and schema version; any scope change shall invalidate it, force an authorized resnapshot, backfill newly visible history, and lock then purge managed cache that is no longer authorized.",
       "source": {
-        "line": 156,
+        "line": 158,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2435,7 +2435,7 @@
       "priority": "P0",
       "requirement": "Synchronizing an `APPROVED_DERIVED_RESULT` from Local mode shall require an immutable confirmation bound to resource/version, content hash, schema, data classification, policy revision, actor, source Device, destination, and time; a changed subject or policy shall require a new confirmation.",
       "source": {
-        "line": 157,
+        "line": 159,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2444,7 +2444,7 @@
       "priority": "P0",
       "requirement": "DSO shall never reactivate an IAM-revoked DeviceIdentity; recovery shall reference a newly enrolled IAM identity and use an authorized import/reconciliation workflow for preserved local records.",
       "source": {
-        "line": 158,
+        "line": 160,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2453,7 +2453,7 @@
       "priority": "P0",
       "requirement": "An execution route decision shall bind workspace, input placement/version hashes, action type/version, required capabilities, selected target/device when local, data-mode policy revision, authorization epoch, decision subject hash, and expiry; JRA creation shall reject a stale or mismatched decision, and DSO shall not create Jobs directly.",
       "source": {
-        "line": 159,
+        "line": 161,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2462,7 +2462,7 @@
       "priority": "P0",
       "requirement": "A Local `ORIGINAL_CONTENT` item may leave its source Device only through an explicit user-mediated offline package whose manifest binds workspace, source/destination Devices or approved passphrase mode, exact content IDs/hashes/sizes/classifications, purpose, policy and authorization revisions, expiry, encryption/key-envelope profile, source signature, and package hash; import shall verify every binding, create IAE placement/lineage plus an auditable receipt, and shall never use cloud storage, a live relay, background peer transfer, or an unregistered destination.",
       "source": {
-        "line": 160,
+        "line": 162,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2471,7 +2471,7 @@
       "priority": "P0",
       "requirement": "Workspace DataMode shall be the maximum authority; project, resource, module, recipe, and job constraints may only narrow it, and every placement, route, execution, transfer, resume, or sync admission shall enforce the intersection with current Workspace policy and fail closed when a cached effective-policy reference is stale.",
       "source": {
-        "line": 161,
+        "line": 163,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -2480,7 +2480,7 @@
       "priority": "P0",
       "requirement": "DSO shall own immutable WorkspaceDataModePolicyVersions and signed DataModePolicyManifests binding workspace, mode, classification-by-payload matrix, allowed placements/executors/destinations, confirmation/offline-package rules, canonical hash, authorization epoch, audience/Device, schema version, issue/expiry no later than the associated IAM offline snapshot or 24 hours, and signer/key version; clients shall reject tampered, stale, wrong-audience, or unsupported manifests, and cache encryption shall not replace signature verification.",
       "source": {
-        "line": 162,
+        "line": 164,
         "path": "docs/specs/foundation/devices-sync-offline.md"
       }
     },
@@ -3261,7 +3261,7 @@
     {
       "id": "IAE-024",
       "priority": "P0",
-      "requirement": "A worker result shall remain non-authoritative until IAE verifies an attempt-bound `JOB_OUTPUT` transfer receipt against the current signed capability, exact TenantScope, worker security epoch, attempt, execution descriptor, declared output object/media/byte policy, SHA-256, byte length, source lineage, and expiry. Before capability issuance, an IAE-owned authority shall derive the exact output ArtifactVersion, placement, authoritative source ArtifactVersion IDs, processor version, data mode, payload class and policy/lineage hashes from immutable server records plus the current authorized execution route; none of those bindings may be supplied or widened by worker output, request bodies or storage metadata. Successful verification shall idempotently finalize one immutable `DERIVED` or `APPROVED_DERIVED_RESULT` ArtifactVersion plus typed lineage and return a content-free attestation reference. Reuse of the same submission with identical bytes and bindings shall replay the exact attestation; changed reuse, an expired or superseded attempt, missing receipt, or any binding mismatch shall fail closed. Prepared or transferred objects without a finalized attestation are non-authoritative and shall be quarantined and cleaned up under JRA-021.",
+      "requirement": "A worker result shall remain non-authoritative until IAE verifies an attempt-bound `JOB_OUTPUT` transfer receipt against the current signed capability, exact TenantScope, worker security epoch, attempt, execution descriptor, declared output object/media/byte policy, SHA-256, byte length, source lineage, and expiry. Before capability issuance, an IAE-owned authority shall derive the exact output Artifact, ArtifactVersion, placement and lineage IDs from server-owned prepared-result authority, including authoritative source ArtifactVersion IDs, processor version, data mode, payload class and policy/lineage hashes; none of those bindings may be supplied or widened by worker output, request bodies or storage metadata. The internal transfer/finalization boundary shall derive worker identity, TenantScope and security epoch from the service-account bearer and may resolve only a MAC-authenticated opaque capability reference, never a worker-supplied capability ID. Successful verification shall idempotently finalize one immutable `DERIVED` or `APPROVED_DERIVED_RESULT` ArtifactVersion plus typed lineage and return a content-free attestation reference. Reuse of the same submission with identical bytes and bindings shall replay the exact attestation; changed reuse, an expired or superseded attempt, missing receipt, or any binding mismatch shall fail closed. Prepared or transferred objects without a finalized attestation are non-authoritative and shall be quarantined and cleaned up under JRA-021.",
       "source": {
         "line": 115,
         "path": "docs/specs/foundation/inbox-artifacts-evidence.md"
@@ -3459,7 +3459,7 @@
     {
       "id": "IAM-022",
       "priority": "P0",
-      "requirement": "Email/password registration shall use a six-digit OTP that expires in 10 minutes, permits five failed attempts, permits resend after 60 seconds, stores only protected challenge material, avoids account enumeration, and atomically activates the user, personal organization, personal workspace, Owner membership, and session after verification.",
+      "requirement": "Email/password registration shall use a six-digit OTP that expires in 10 minutes, permits five failed attempts, permits resend after 60 seconds, stores only protected challenge material, avoids account enumeration, and atomically activates the user, personal organization, personal workspace, server-owned initial HYBRID DSO policy/current reference, Owner membership, and session after verification. The client shall supply none of the initial policy authority fields and exact replay shall not create a second binding.",
       "source": {
         "line": 175,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"

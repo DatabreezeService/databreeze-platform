@@ -21,6 +21,10 @@ const requestContexts = new WeakMap<FastifyRequest, RequestContext>();
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const traceparentPattern = /^([0-9a-f]{2})-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/i;
 
+function isLoopbackHost(hostname: string): boolean {
+  return hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '::1';
+}
+
 export type CorrelationHeaderResult =
   | { readonly accepted: true; readonly correlationId: string }
   | { readonly accepted: false };
@@ -46,11 +50,23 @@ export function validateRequestContextOptionsV1(
   if (environment !== 'production') return;
   const origins = options.csrf?.allowedOrigins;
   if (!origins || origins.length === 0) throw new Error('CSRF_ALLOWED_ORIGINS_REQUIRED');
+  const localHmrHttp =
+    environment === 'production' &&
+    process.env['DATABREEZE_RUNTIME_PROFILE'] === 'local' &&
+    process.env['DATABREEZE_LOCAL_HMR_HTTP'] === 'true';
   if (
     origins.some((origin) => {
       try {
         const parsed = new URL(origin);
-        return parsed.protocol !== 'https:' || parsed.username !== '' || parsed.password !== '';
+        const httpsOrigin = parsed.protocol === 'https:';
+        const loopbackHmrOrigin =
+          localHmrHttp &&
+          parsed.protocol === 'http:' &&
+          isLoopbackHost(parsed.hostname) &&
+          origin === parsed.origin;
+        return (
+          (!httpsOrigin && !loopbackHmrOrigin) || parsed.username !== '' || parsed.password !== ''
+        );
       } catch {
         return true;
       }

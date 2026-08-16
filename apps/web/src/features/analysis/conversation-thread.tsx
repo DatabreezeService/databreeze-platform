@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
+import brandMarkUrl from '@databreeze/design-tokens/brand/generated/web/favicon-32.png';
 
 import type { AnalysisConversationV1 } from './analysis-model.ts';
 
@@ -7,8 +8,15 @@ function copy(locale: 'en' | 'vi-VN') {
     ? {
         composer: 'Nhập câu hỏi phân tích',
         context: 'Ngữ cảnh dữ liệu',
-        empty: 'Chưa có tin nhắn được cấp quyền trong hội thoại này.',
+        empty: 'Bắt đầu bằng một câu hỏi về dữ liệu của bạn.',
+        identity: 'Trợ lý DataBreeze',
+        protected: 'Chỉ dùng dữ liệu và công cụ bạn được cấp quyền',
         placeholder: 'Hỏi về dữ liệu đã chọn…',
+        prompts: [
+          ['Tóm tắt xu hướng chính', 'Tóm tắt các xu hướng chính trong dữ liệu này'],
+          ['Tìm điểm bất thường', 'Tìm điểm bất thường trong dữ liệu này'],
+          ['So sánh với kỳ trước', 'So sánh kết quả hiện tại với kỳ trước'],
+        ] as const,
         send: 'Gửi câu hỏi',
         unavailable: 'Chưa có lệnh gửi được ủy quyền cho hội thoại này.',
       }
@@ -16,7 +24,14 @@ function copy(locale: 'en' | 'vi-VN') {
         composer: 'Enter an analysis question',
         context: 'Dataset context',
         empty: 'No authorized messages are available in this conversation.',
+        identity: 'DataBreeze Agent',
+        protected: 'Uses only data and tools you are authorized to access',
         placeholder: 'Ask about the selected data…',
+        prompts: [
+          ['Summarize key trends', 'Summarize the key trends in this data'],
+          ['Find anomalies', 'Find anomalies in this data'],
+          ['Compare with prior period', 'Compare the current result with the prior period'],
+        ] as const,
         send: 'Send question',
         unavailable: 'No authorized send command is available for this conversation.',
       };
@@ -43,6 +58,7 @@ export function ConversationThread({
 }: ConversationThreadProps) {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const text = copy(locale);
   const canSend = onSendMessage !== undefined;
 
@@ -68,8 +84,17 @@ export function ConversationThread({
       className="analysis-conversation-thread"
     >
       <header className="analysis-conversation-thread__header">
+        <div className="analysis-conversation-thread__identity">
+          <span className="analysis-conversation-thread__avatar">
+            <img alt="" aria-hidden="true" src={brandMarkUrl} />
+          </span>
+          <div>
+            <h2>{text.identity}</h2>
+            <p>{text.protected}</p>
+          </div>
+        </div>
         <div>
-          <h2>{conversation.title}</h2>
+          <h3>{conversation.title}</h3>
           {conversation.datasetContext.length === 0 ? null : (
             <dl aria-label={text.context} className="analysis-conversation-thread__context">
               {conversation.datasetContext.map((context) => (
@@ -83,7 +108,23 @@ export function ConversationThread({
         </div>
       </header>
       {conversation.messages.length === 0 ? (
-        <p className="analysis-conversation-thread__empty">{text.empty}</p>
+        <section className="analysis-conversation-thread__empty">
+          <p>{text.empty}</p>
+          <div className="analysis-conversation-thread__prompts">
+            {text.prompts.map(([label, prompt]) => (
+              <button
+                key={label}
+                onClick={() => {
+                  setDraft(prompt);
+                  composerRef.current?.focus();
+                }}
+                type="button"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </section>
       ) : (
         <ol className="analysis-conversation-thread__messages">
           {conversation.messages.map((message) => (
@@ -104,12 +145,15 @@ export function ConversationThread({
         className="analysis-conversation-thread__composer"
         onSubmit={(event) => void submit(event)}
       >
-        <label htmlFor={`analysis-composer-${conversation.conversationId}`}>{text.composer}</label>
+        <label className="sr-only" htmlFor={`analysis-composer-${conversation.conversationId}`}>
+          {text.composer}
+        </label>
         <textarea
           disabled={!canSend || sending}
           id={`analysis-composer-${conversation.conversationId}`}
           onChange={(event) => setDraft(event.target.value)}
           placeholder={text.placeholder}
+          ref={composerRef}
           rows={3}
           value={draft}
         />

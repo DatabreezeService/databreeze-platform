@@ -17375,7 +17375,10 @@
       },
       "RecoveryRequestDto": {
         "type": "object",
-        "properties": { "email": { "type": "string", "format": "email", "maxLength": 254 } },
+        "properties": {
+          "email": { "type": "string", "format": "email", "maxLength": 254 },
+          "locale": { "type": "string", "enum": ["vi-VN", "en"], "default": "vi-VN" }
+        },
         "required": ["email"]
       },
       "RecoveryRequestResponseDto": {

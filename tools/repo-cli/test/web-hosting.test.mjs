@@ -26,7 +26,10 @@ test('CloudFront hosts the Web SPA with bounded caching and secure custom-domain
   assert.match(main, /strict_transport_security[\s\S]*access_control_max_age_sec\s*=\s*31536000/u);
   assert.match(main, /content_type_options/u);
   assert.match(main, /frame_options[\s\S]*frame_option\s*=\s*"DENY"/u);
-  assert.match(main, /content_security_policy[\s\S]*content_security_policy\s*=\s*local\.web_content_security_policy/u);
+  assert.match(
+    main,
+    /content_security_policy[\s\S]*content_security_policy\s*=\s*local\.web_content_security_policy/u,
+  );
   assert.match(main, /connect-src 'self'/u);
   assert.match(main, /var\.connect_src_origins/u);
   assert.match(main, /aliases\s*=\s*var\.aliases/u);

@@ -1,7 +1,9 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 import { ApplicationBoundary, createAppRouter } from '../src/app/app.tsx';
+import { DataPipelinePage } from '../src/features/data-intake/data-pipeline-page.tsx';
 
 describe('data pipeline route composition [DDA-002][DDA-006]', () => {
   it('composes intake upload and ETL review on the reviews route without demo mode', async () => {
@@ -36,5 +38,31 @@ describe('data pipeline route composition [DDA-002][DDA-006]', () => {
     expect(
       screen.getByRole('button', { name: 'Accept ETL proposal' }).hasAttribute('disabled'),
     ).toBe(true);
+  });
+
+  it('keeps local demo intake selectable and testable without inventing tenant authority', async () => {
+    const user = userEvent.setup();
+    render(
+      <ApplicationBoundary>
+        <DataPipelinePage demoMode />
+      </ApplicationBoundary>,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Tải tệp CSV/XLSX' })).toBeTruthy();
+    expect(screen.getByLabelText('Chọn tệp')).toBeTruthy();
+    expect(
+      screen.queryByText(
+        'Cần ngữ cảnh tenant trước khi tải lên hoặc chấp nhận ETL. Không có thay đổi nào được gửi.',
+      ),
+    ).toBeNull();
+    await user.upload(
+      screen.getByLabelText('Chọn tệp'),
+      new File(['date,revenue\n2026-08-14,4200000\n'], 'doanh-thu.csv', {
+        type: 'text/csv',
+      }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Tải lên' }));
+    expect(await screen.findByText(/Đã gửi tệp vào Inbox/u)).toBeTruthy();
+    expect(screen.queryByText(/4200000/u)).toBeNull();
   });
 });

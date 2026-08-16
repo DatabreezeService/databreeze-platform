@@ -21,10 +21,7 @@ const scope = Object.freeze({
 const bytes = new TextEncoder().encode('{"total":125000}');
 const digest = createHash('sha256').update(bytes).digest('hex');
 
-async function application(
-  authenticated = true,
-  finalization?: IaeWorkerResultFinalizationPortV1,
-) {
+async function application(authenticated = true, finalization?: IaeWorkerResultFinalizationPortV1) {
   const repository = new InMemoryWorkerObjectCapabilityRepositoryAdapter();
   const signer = new HmacWorkerCapabilitySignerAdapter('worker-controller-secret-00000000000001');
   const identity = Object.freeze({

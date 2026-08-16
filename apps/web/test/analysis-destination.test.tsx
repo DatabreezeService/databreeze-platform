@@ -95,6 +95,63 @@ describe('[DDA-055][DDA-056] Analysis destination', () => {
     expect(submitted).toEqual(['So sánh với tháng trước']);
   });
 
+  it('starts from useful analysis prompts without sending until the user confirms', async () => {
+    const user = userEvent.setup();
+    const submitted: string[] = [];
+    render(
+      <AnalysisPage
+        locale="vi-VN"
+        activeConversationId="conversation-july"
+        conversations={[
+          {
+            conversationId: 'conversation-july',
+            title: 'Bức tranh kinh doanh',
+            datasetContext: [
+              {
+                datasetLabel: 'Bán hàng toàn quốc',
+                datasetVersionLabel: 'phiên bản 12',
+              },
+            ],
+            messages: [],
+          },
+        ]}
+        onSendMessage={(message) => submitted.push(message)}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Trợ lý DataBreeze' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Tìm điểm bất thường' }));
+
+    expect(
+      (screen.getByRole('textbox', { name: 'Nhập câu hỏi phân tích' }) as HTMLTextAreaElement)
+        .value,
+    ).toBe('Tìm điểm bất thường trong dữ liệu này');
+    expect(document.activeElement).toBe(
+      screen.getByRole('textbox', { name: 'Nhập câu hỏi phân tích' }),
+    );
+    expect(submitted).toEqual([]);
+
+    await user.click(screen.getByRole('button', { name: 'Gửi câu hỏi' }));
+    expect(submitted).toEqual(['Tìm điểm bất thường trong dữ liệu này']);
+  });
+
+  it('creates a new analysis only through the explicit history action', async () => {
+    const user = userEvent.setup();
+    let created = 0;
+    render(
+      <AnalysisPage
+        locale="vi-VN"
+        conversations={[]}
+        onCreateConversation={() => {
+          created += 1;
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Phân tích mới' }));
+    expect(created).toBe(1);
+  });
+
   it('collapses history without removing the active thread', async () => {
     const user = userEvent.setup();
     render(

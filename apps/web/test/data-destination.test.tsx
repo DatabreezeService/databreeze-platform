@@ -78,6 +78,11 @@ describe('[DDA-009][DDA-052][DDA-053] Data destination', () => {
     );
 
     expect(screen.getByRole('heading', { name: 'Dữ liệu' })).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Quản lý bộ dữ liệu, tệp nguồn, phiên bản và các mục cần xem xét trong phạm vi được cấp quyền.',
+      ),
+    ).toBeTruthy();
     expect(screen.getByRole('button', { name: /Doanh thu TP.HCM/u })).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: /Doanh thu TP.HCM/u }));

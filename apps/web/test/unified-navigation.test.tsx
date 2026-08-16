@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ApplicationBoundary, createAppRouter } from '../src/app/app.tsx';
 import {
@@ -24,14 +24,16 @@ describe('unified primary navigation', () => {
     expect([...vi, ...en].every((label) => !label.includes('—'))).toBe(true);
   });
 
-  it('renders only the three primary links in the signed-in shell', async () => {
+  it('renders three primary destinations separately from authorized workspace tools', async () => {
     const router = createAppRouter({ initialEntries: ['/vi-VN/dashboards'] });
     render(<ApplicationBoundary router={router} />);
 
-    expect(await screen.findByRole('link', { name: 'Bảng điều khiển' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Phân tích' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Dữ liệu' })).toBeTruthy();
-    expect(screen.queryByRole('link', { name: 'Hộp thư đến' })).toBeNull();
+    const primary = await screen.findByRole('list', { name: 'Không gian làm việc' });
+    expect(within(primary).getAllByRole('link')).toHaveLength(3);
+    expect(within(primary).getByRole('link', { name: 'Bảng điều khiển' })).toBeTruthy();
+    expect(within(primary).getByRole('link', { name: 'Phân tích' })).toBeTruthy();
+    expect(within(primary).getByRole('link', { name: 'Dữ liệu' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Hộp thư đến' })).toBeTruthy();
     expect(screen.queryByRole('link', { name: 'Jobs' })).toBeNull();
   });
 });

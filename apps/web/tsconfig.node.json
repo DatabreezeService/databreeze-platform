@@ -16,6 +16,7 @@
     "playwright.config.ts",
     "playwright.dev.config.ts",
     "security-headers.ts",
+    "vite-landing-prototype.ts",
     "vite.config.ts",
     "vitest.config.ts"
   ]
