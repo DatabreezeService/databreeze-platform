@@ -124,8 +124,7 @@
   border: 1px solid rgba(219, 223, 255, 0.14);
   border-radius: 18px;
   background:
-    radial-gradient(ellipse 100% 60% at 50% 0%, rgba(61, 80, 255, 0.16), transparent 70%),
-    #07091d;
+    radial-gradient(ellipse 100% 60% at 50% 0%, rgba(61, 80, 255, 0.16), transparent 70%), #07091d;
   color: #f7f7ff;
   font-family:
     'Geist',
