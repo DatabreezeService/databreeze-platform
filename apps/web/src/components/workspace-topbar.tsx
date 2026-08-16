@@ -197,10 +197,7 @@ export function WorkspaceTopbar({
             {mobileNavigationOpen ? <XIcon /> : <MenuIcon />}
           </Button>
         ) : null}
-        <Link
-          className="workspace-topbar__locale"
-          to={alternatePath}
-        >
+        <Link className="workspace-topbar__locale" to={alternatePath}>
           <span aria-hidden="true" className="workspace-topbar__locale-flag">
             {locale === 'vi-VN' ? '🇻🇳' : '🇬🇧'}
           </span>
