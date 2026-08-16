@@ -1,12 +1,16 @@
 export const TEAMMATE_LANDING_ASSET_BASE = '/landing/';
 
 const HEADER_CTA_PATTERN = /<a class="header-cta" href="#experience">[\s\S]*?<\/a>/u;
+const DOWNLOADS_NAV_PATTERN =
+  /<a class="downloads-nav-link" data-downloads-nav href="[^"]*">[\s\S]*?<\/a>/u;
 
 export function prepareTeammateLandingMarkup(
   html: string,
   input: {
     readonly signInHref: string;
     readonly signInLabel: string;
+    readonly downloadsHref: string;
+    readonly downloadsLabel: string;
     readonly assetBase?: string;
   },
 ): string {
@@ -17,9 +21,14 @@ export function prepareTeammateLandingMarkup(
   if (!HEADER_CTA_PATTERN.test(withAssets)) {
     throw new Error('Teammate landing markup is missing the header CTA.');
   }
+  if (!DOWNLOADS_NAV_PATTERN.test(withAssets)) {
+    throw new Error('Teammate landing markup is missing the downloads navigation link.');
+  }
 
   const signInLink = `<a class="header-cta" href="${escapeHtml(input.signInHref)}"><span>${escapeHtml(input.signInLabel)}</span><span aria-hidden="true">↗</span></a>`;
-  return withAssets.replace(
+  const downloadsLink = `<a class="downloads-nav-link" href="${escapeHtml(input.downloadsHref)}">${escapeHtml(input.downloadsLabel)}</a>`;
+  const withDownloadsNav = withAssets.replace(DOWNLOADS_NAV_PATTERN, downloadsLink);
+  return withDownloadsNav.replace(
     HEADER_CTA_PATTERN,
     (originalCta) => `<div class="header-actions">${signInLink}${originalCta}</div>`,
   );

@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
@@ -25,5 +25,19 @@ describe('landing page stylesheet [WEB-013]', () => {
     expect(
       document.querySelector('link[href="/landing/styles.css"][rel="stylesheet"]'),
     ).not.toBeNull();
+  });
+
+  it('links the Vietnamese landing navigation to the public downloads page', () => {
+    render(<LandingPage locale="vi-VN" />);
+
+    expect(screen.getByRole('link', { name: 'Ứng dụng' }).getAttribute('href')).toBe(
+      '/vi-VN/downloads',
+    );
+  });
+
+  it('uses the English downloads label on the English landing route', () => {
+    render(<LandingPage locale="en" />);
+
+    expect(screen.getByRole('link', { name: 'Apps' }).getAttribute('href')).toBe('/en/downloads');
   });
 });
