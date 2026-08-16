@@ -150,6 +150,19 @@ describe('Web authentication bootstrap [IAM-023, WEB-002, WEB-004]', () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
+  it('does not redirect a signed-out user away from the public downloads route', async () => {
+    const replace = vi.fn();
+    await recoverSessionBeforeAppStartV1({
+      api: {
+        recoverWebSession: vi.fn(async () => Promise.reject(new Error('offline'))),
+        loadBootstrap: vi.fn(),
+      },
+      pathname: '/en/downloads',
+      replace,
+    });
+    expect(replace).not.toHaveBeenCalled();
+  });
+
   it('does not redirect a signed-out user away from the locale landing page', async () => {
     for (const pathname of ['/', '/vi-VN', '/en']) {
       const replace = vi.fn();

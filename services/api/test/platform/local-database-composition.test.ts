@@ -7,6 +7,7 @@ import { PasswordCredentialService } from '../../src/features/iam/application/pa
 import { RedisRecoveryAdmissionAdapter } from '../../src/features/iam/adapter/redis-recovery-admission.adapter.js';
 import { MailpitSmtpEmailVerificationDeliveryAdapter } from '../../src/features/iam/adapter/mailpit-smtp-email-verification-delivery.adapter.js';
 import { GmailSmtpEmailVerificationDeliveryAdapter } from '../../src/features/iam/adapter/gmail-smtp-email-verification-delivery.adapter.js';
+import { SmtpPasswordRecoveryDeliveryAdapter } from '../../src/features/iam/adapter/smtp-password-recovery-delivery.adapter.js';
 import {
   createLocalDatabaseComposition,
   LOCAL_DATABASE_URL_ERROR,
@@ -36,6 +37,7 @@ const environment = {
   DATABREEZE_IAM_EMAIL_VERIFICATION_DIGEST_KEY: key(1),
   DATABREEZE_IAM_EMAIL_VERIFICATION_ENVELOPE_KEY: key(2),
   DATABREEZE_IAM_REGISTRATION_ADMISSION_KEY: key(3),
+  DATABREEZE_IAM_RECOVERY_DIGEST_KEY: key(5),
   DATABREEZE_SERVICE_ACCOUNT_SECRET_ENVELOPE_KEY: key(4),
 } as const;
 
@@ -108,6 +110,7 @@ void test('[FND-003, IAM-005, IAM-022, IAM-023] local profile composes durable P
       composition.options.emailVerificationDelivery instanceof
         MailpitSmtpEmailVerificationDeliveryAdapter,
     );
+    assert.ok(composition.options.recoveryDelivery instanceof SmtpPasswordRecoveryDeliveryAdapter);
     for (const option of [
       'credentialDatabase',
       'sessionDatabase',
@@ -179,6 +182,7 @@ void test('[IAM-022] explicit local Gmail provider composes TLS SMTP delivery wi
       composition.options.emailVerificationDelivery instanceof
         GmailSmtpEmailVerificationDeliveryAdapter,
     );
+    assert.ok(composition.options.recoveryDelivery instanceof SmtpPasswordRecoveryDeliveryAdapter);
   } finally {
     await composition.disconnect();
   }

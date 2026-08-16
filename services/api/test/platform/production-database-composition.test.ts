@@ -68,6 +68,8 @@ import type { SourceCatalogDatabaseClientV1 } from '../../src/features/dda/sourc
 import type { ServiceAccountDatabaseClientV1 } from '../../src/features/iam/adapter/prisma-service-account-repository.adapter.js';
 import { IAM_EMAIL_VERIFICATION_SERVICE } from '../../src/features/iam/application/email-verification.service.js';
 import { RedisRecoveryAdmissionAdapter } from '../../src/features/iam/adapter/redis-recovery-admission.adapter.js';
+import { AwsSesPasswordRecoveryDeliveryAdapter } from '../../src/features/iam/adapter/aws-ses-password-recovery-delivery.adapter.js';
+import { RecoveryService } from '../../src/features/iam/application/recovery.service.js';
 
 const databaseOptionKeys = [
   'credentialDatabase',
@@ -126,6 +128,7 @@ const environment = {
   DATABREEZE_IAM_EMAIL_VERIFICATION_DIGEST_KEY: Buffer.alloc(32, 8).toString('base64url'),
   DATABREEZE_IAM_EMAIL_VERIFICATION_ENVELOPE_KEY: Buffer.alloc(32, 9).toString('base64url'),
   DATABREEZE_IAM_REGISTRATION_ADMISSION_KEY: Buffer.alloc(32, 10).toString('base64url'),
+  DATABREEZE_IAM_RECOVERY_DIGEST_KEY: Buffer.alloc(32, 11).toString('base64url'),
   DATABREEZE_REDIS_URL: 'rediss://redis.internal:6379',
   DATABREEZE_IAM_EMAIL_FROM_ADDRESS: 'verify@databreeze.example',
   DATABREEZE_IAM_EMAIL_SES_REGION: 'ap-southeast-1',
@@ -287,7 +290,7 @@ void test('[DDA-036, IAM-022, IAM-023, IAE-003, DSM-001, DDA-003, DDA-004, DDA-0
     assert.ok(providerValue(iam, IAM_PRINCIPAL_EMAIL_LOOKUP_PORT));
     assert.ok(providerValue(iam, IAM_RECOVERY_REPOSITORY_PORT));
     assert.equal(providerValue(iam, IAM_INVITATION_SERVICE), undefined);
-    assert.equal(providerValue(iam, IAM_RECOVERY_SERVICE), undefined);
+    assert.ok(providerValue(iam, IAM_RECOVERY_SERVICE) instanceof RecoveryService);
 
     const application = AppModule.register(composition.options);
     const dda = application.imports?.find(
@@ -377,6 +380,9 @@ void test('[IAM-022] production composes durable OTP delivery and two shared Red
     assert.ok(composition.options.registrationIpAdmission instanceof RedisRecoveryAdmissionAdapter);
     assert.ok(
       composition.options.registrationEmailAdmission instanceof RedisRecoveryAdmissionAdapter,
+    );
+    assert.ok(
+      composition.options.recoveryDelivery instanceof AwsSesPasswordRecoveryDeliveryAdapter,
     );
     const iam = iamDynamicModuleFor(composition.options);
     assert.ok(providerValue(iam, IAM_EMAIL_VERIFICATION_SERVICE));

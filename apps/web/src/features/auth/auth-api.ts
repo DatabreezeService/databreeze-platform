@@ -29,6 +29,14 @@ export interface AuthApiOptionsV1 {
 
 export type AuthFailureV1 = { readonly accepted: false; readonly code: 'AUTH_FAILED' };
 
+export type PasswordResetRequestResultV1 = { readonly accepted: true } | AuthFailureV1;
+export type PasswordResetCompleteResultV1 =
+  | {
+      readonly accepted: true;
+      readonly value: { readonly userId: string; readonly mfaReenrollmentRequired: true };
+    }
+  | AuthFailureV1;
+
 export interface AuthApiV1 {
   readonly register: (
     input: Omit<IamRegistrationCommand, 'schemaVersion'>,
@@ -42,6 +50,14 @@ export interface AuthApiV1 {
     readonly email: string;
     readonly password: string;
   }) => Promise<{ readonly accepted: true; readonly value: IamAuthSession } | AuthFailureV1>;
+  readonly requestPasswordReset: (input: {
+    readonly email: string;
+    readonly locale: 'en' | 'vi-VN';
+  }) => Promise<PasswordResetRequestResultV1>;
+  readonly completePasswordReset: (input: {
+    readonly token: string;
+    readonly newPassword: string;
+  }) => Promise<PasswordResetCompleteResultV1>;
   readonly recoverWebSession: () => Promise<{ readonly accepted: true } | AuthFailureV1>;
   readonly loadBootstrap: () => Promise<
     { readonly accepted: true; readonly value: IamBootstrapValue } | AuthFailureV1
@@ -51,6 +67,25 @@ export interface AuthApiV1 {
 
 function failure(): AuthFailureV1 {
   return Object.freeze({ accepted: false, code: 'AUTH_FAILED' });
+}
+
+function passwordResetRequested(raw: unknown): raw is { readonly requested: true } {
+  return typeof raw === 'object' && raw !== null && 'requested' in raw && raw.requested === true;
+}
+
+function passwordResetCompleted(
+  raw: unknown,
+): raw is { readonly userId: string; readonly mfaReenrollmentRequired: true } {
+  return (
+    typeof raw === 'object' &&
+    raw !== null &&
+    'userId' in raw &&
+    typeof raw.userId === 'string' &&
+    raw.userId.length > 0 &&
+    raw.userId.length <= 128 &&
+    'mfaReenrollmentRequired' in raw &&
+    raw.mfaReenrollmentRequired === true
+  );
 }
 
 async function request(fetcher: typeof fetch, url: string, body: unknown): Promise<unknown> {
@@ -112,6 +147,16 @@ export function createAuthApiV1(options: AuthApiOptionsV1 = {}): AuthApiV1 {
       const parsed = parseV4Contract(AUTH_SESSION_SCHEMA, raw);
       return parsed.accepted
         ? Object.freeze({ accepted: true as const, value: parsed.value as IamAuthSession })
+        : failure();
+    },
+    async requestPasswordReset(input: { readonly email: string; readonly locale: 'en' | 'vi-VN' }) {
+      const raw = await request(fetcher, `${baseUrl}/v1/auth/recovery`, input);
+      return passwordResetRequested(raw) ? Object.freeze({ accepted: true as const }) : failure();
+    },
+    async completePasswordReset(input: { readonly token: string; readonly newPassword: string }) {
+      const raw = await request(fetcher, `${baseUrl}/v1/auth/recovery/complete`, input);
+      return passwordResetCompleted(raw)
+        ? Object.freeze({ accepted: true as const, value: raw })
         : failure();
     },
     async recoverWebSession() {

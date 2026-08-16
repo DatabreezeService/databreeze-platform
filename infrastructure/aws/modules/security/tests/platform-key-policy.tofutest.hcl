@@ -118,6 +118,25 @@ run "creates_dedicated_whole_service_account_envelope_key_secret" {
   }
 }
 
+run "creates_dedicated_whole_recovery_digest_key_secret" {
+  command = plan
+
+  variables {
+    name   = "production"
+    region = "ap-southeast-1"
+  }
+
+  assert {
+    condition = (
+      aws_secretsmanager_secret.recovery_digest_key.name == "databreeze/production/iam/recovery-digest-key" &&
+      strcontains(aws_secretsmanager_secret.recovery_digest_key.description, "base64url-encoded 32-byte") &&
+      aws_secretsmanager_secret.recovery_digest_key.recovery_window_in_days == 30 &&
+      output.recovery_digest_key_secret_arn == aws_secretsmanager_secret.recovery_digest_key.arn
+    )
+    error_message = "The security module must create and publish a dedicated recoverable whole secret for the account-recovery HMAC key without storing its value in Terraform."
+  }
+}
+
 run "creates_separate_api_signing_and_worker_bearer_secrets" {
   command = plan
 

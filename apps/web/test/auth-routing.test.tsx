@@ -55,6 +55,18 @@ describe('live authentication routing [IAM-023, WEB-002, WEB-004]', () => {
     expect(screen.queryByRole('navigation', { name: 'Điều hướng chính' })).toBeNull();
   });
 
+  it('renders localized password recovery routes without the protected workspace shell', async () => {
+    const router = createAppRouter({
+      authenticationState: 'signed-out',
+      initialEntries: ['/en/forgot-password'],
+    });
+
+    render(<ApplicationBoundary router={router} />);
+
+    expect(await screen.findByRole('heading', { name: 'Forgot your password?' })).toBeTruthy();
+    expect(screen.queryByRole('navigation', { name: 'Primary navigation' })).toBeNull();
+  });
+
   it('keeps signed-in users out of public authentication routes', async () => {
     const router = createAppRouter({
       authenticationState: 'signed-in',

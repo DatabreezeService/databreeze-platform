@@ -15,6 +15,7 @@ import { UnavailableMfaFactorProofVerifier } from '../features/iam/application/m
 import { HmacSha256EmailVerificationDigestAdapter } from '../features/iam/adapter/in-memory-email-verification-repository.adapter.js';
 import { Aes256GcmEmailVerificationEnvelopeAdapter } from '../features/iam/adapter/email-verification-envelope.adapter.js';
 import { HmacSha256IamRegistrationAdmissionDigestAdapter } from '../features/iam/adapter/iam-registration-crypto.adapter.js';
+import { HmacSha256IamRecoveryDigestAdapter } from '../features/iam/adapter/iam-recovery-crypto.adapter.js';
 import {
   RedisEvalRecoveryAdmissionCounterAdapter,
   RedisRecoveryAdmissionAdapter,
@@ -24,6 +25,7 @@ import {
   type NodeRedisEvalPortV1,
 } from '../features/iam/adapter/node-redis-admission-counter.adapter.js';
 import { AwsSesEmailVerificationDeliveryAdapter } from '../features/iam/adapter/aws-ses-email-verification-delivery.adapter.js';
+import { AwsSesPasswordRecoveryDeliveryAdapter } from '../features/iam/adapter/aws-ses-password-recovery-delivery.adapter.js';
 import {
   AwsSesV2SenderAdapter,
   type AwsSesV2SendClientPortV1,
@@ -50,6 +52,7 @@ export const PRODUCTION_IAM_EMAIL_VERIFICATION_SECRET_ERROR =
   'PRODUCTION_IAM_EMAIL_VERIFICATION_SECRET_INVALID';
 export const PRODUCTION_IAM_REGISTRATION_ADMISSION_SECRET_ERROR =
   'PRODUCTION_IAM_REGISTRATION_ADMISSION_SECRET_INVALID';
+export const PRODUCTION_IAM_RECOVERY_SECRET_ERROR = 'PRODUCTION_IAM_RECOVERY_SECRET_INVALID';
 export const PRODUCTION_IAM_REDIS_URL_ERROR = 'PRODUCTION_IAM_REDIS_URL_INVALID';
 export const PRODUCTION_IAM_EMAIL_DELIVERY_CONFIGURATION_ERROR =
   'PRODUCTION_IAM_EMAIL_DELIVERY_CONFIGURATION_INVALID';
@@ -78,6 +81,7 @@ const PRODUCTION_SERVICE_ACCOUNT_SECRET_KEY_PATTERN = /^[A-Za-z0-9_-]{43}$/u;
 const PRODUCTION_IAM_EMAIL_DIGEST_KEY_ENV = 'DATABREEZE_IAM_EMAIL_VERIFICATION_DIGEST_KEY';
 const PRODUCTION_IAM_EMAIL_ENVELOPE_KEY_ENV = 'DATABREEZE_IAM_EMAIL_VERIFICATION_ENVELOPE_KEY';
 const PRODUCTION_IAM_REGISTRATION_ADMISSION_KEY_ENV = 'DATABREEZE_IAM_REGISTRATION_ADMISSION_KEY';
+const PRODUCTION_IAM_RECOVERY_DIGEST_KEY_ENV = 'DATABREEZE_IAM_RECOVERY_DIGEST_KEY';
 const PRODUCTION_IAM_REDIS_URL_ENV = 'DATABREEZE_REDIS_URL';
 const PRODUCTION_IAM_EMAIL_FROM_ADDRESS_ENV = 'DATABREEZE_IAM_EMAIL_FROM_ADDRESS';
 const PRODUCTION_IAM_EMAIL_SES_REGION_ENV = 'DATABREEZE_IAM_EMAIL_SES_REGION';
@@ -153,6 +157,7 @@ export type ProductionDatabaseOptions = {
     readonly registrationAdmissionDigest: NonNullable<
       ApiApplicationOptions['registrationAdmissionDigest']
     >;
+    readonly recoveryDigest: NonNullable<ApiApplicationOptions['recoveryDigest']>;
     readonly emailVerificationDigest: NonNullable<ApiApplicationOptions['emailVerificationDigest']>;
     readonly emailVerificationEnvelope: NonNullable<
       ApiApplicationOptions['emailVerificationEnvelope']
@@ -160,6 +165,7 @@ export type ProductionDatabaseOptions = {
     readonly emailVerificationDelivery: NonNullable<
       ApiApplicationOptions['emailVerificationDelivery']
     >;
+    readonly recoveryDelivery: NonNullable<ApiApplicationOptions['recoveryDelivery']>;
     readonly mfaFactorProofVerifier: NonNullable<ApiApplicationOptions['mfaFactorProofVerifier']>;
     readonly deviceEnrollmentProofVerifier: NonNullable<
       ApiApplicationOptions['deviceEnrollmentProofVerifier']
@@ -621,6 +627,7 @@ function optionsFor(
     readonly registrationAdmissionDigest: NonNullable<
       ApiApplicationOptions['registrationAdmissionDigest']
     >;
+    readonly recoveryDigest: NonNullable<ApiApplicationOptions['recoveryDigest']>;
     readonly emailVerificationDigest: NonNullable<ApiApplicationOptions['emailVerificationDigest']>;
     readonly emailVerificationEnvelope: NonNullable<
       ApiApplicationOptions['emailVerificationEnvelope']
@@ -628,6 +635,7 @@ function optionsFor(
     readonly emailVerificationDelivery: NonNullable<
       ApiApplicationOptions['emailVerificationDelivery']
     >;
+    readonly recoveryDelivery: NonNullable<ApiApplicationOptions['recoveryDelivery']>;
   },
 ): ProductionDatabaseOptions {
   return {
@@ -726,6 +734,11 @@ export async function createProductionDatabaseComposition(
     PRODUCTION_IAM_REGISTRATION_ADMISSION_KEY_ENV,
     PRODUCTION_IAM_REGISTRATION_ADMISSION_SECRET_ERROR,
   );
+  const recoveryDigestKey = productionManaged32ByteKey(
+    environment,
+    PRODUCTION_IAM_RECOVERY_DIGEST_KEY_ENV,
+    PRODUCTION_IAM_RECOVERY_SECRET_ERROR,
+  );
   const redisUrl = productionIamRedisUrl(environment);
   const emailDeliveryConfiguration = productionIamEmailDeliveryConfiguration(environment);
   const artifactStorageConfiguration = productionIaeArtifactStorageConfiguration(environment);
@@ -753,6 +766,7 @@ export async function createProductionDatabaseComposition(
   };
 
   let emailVerificationDelivery: AwsSesEmailVerificationDeliveryAdapter;
+  let recoveryDelivery: AwsSesPasswordRecoveryDeliveryAdapter;
   try {
     redisClient = dependencies.createRedisClient
       ? dependencies.createRedisClient(redisUrl)
@@ -760,9 +774,17 @@ export async function createProductionDatabaseComposition(
     const sesClient = dependencies.createSesClient
       ? dependencies.createSesClient(emailDeliveryConfiguration.region)
       : new SESv2Client({ region: emailDeliveryConfiguration.region });
+    const sesSender = new AwsSesV2SenderAdapter(sesClient);
+    const browserOrigin = requestContext.csrf?.allowedOrigins?.[0];
+    if (!browserOrigin) throw new Error(PRODUCTION_IAM_EMAIL_DELIVERY_CONFIGURATION_ERROR);
     emailVerificationDelivery = new AwsSesEmailVerificationDeliveryAdapter(
-      new AwsSesV2SenderAdapter(sesClient),
+      sesSender,
       emailDeliveryConfiguration.fromAddress,
+    );
+    recoveryDelivery = new AwsSesPasswordRecoveryDeliveryAdapter(
+      sesSender,
+      emailDeliveryConfiguration.fromAddress,
+      browserOrigin,
     );
     await redisClient.connect();
   } catch {
@@ -791,6 +813,7 @@ export async function createProductionDatabaseComposition(
     registrationAdmissionDigest: new HmacSha256IamRegistrationAdmissionDigestAdapter(
       registrationAdmissionKey,
     ),
+    recoveryDigest: new HmacSha256IamRecoveryDigestAdapter(recoveryDigestKey),
     emailVerificationDigest: new HmacSha256EmailVerificationDigestAdapter(
       emailVerificationDigestKey,
     ),
@@ -798,6 +821,7 @@ export async function createProductionDatabaseComposition(
       emailVerificationEnvelopeKey,
     ),
     emailVerificationDelivery,
+    recoveryDelivery,
   });
 
   try {
