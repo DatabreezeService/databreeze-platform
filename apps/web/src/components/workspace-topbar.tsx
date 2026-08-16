@@ -14,6 +14,7 @@ import {
 import { useNotificationStoreResource } from '../features/notifications/notification-store.ts';
 import { WorkspaceSwitcher } from '../features/workspace/workspace-switcher.tsx';
 import { BellIcon, MenuIcon, XIcon } from './icons.tsx';
+import { WorkspaceLocaleMenu } from './workspace-locale-menu.tsx';
 
 export interface WorkspaceTopbarProperties {
   readonly bootstrap?: IamBootstrapValue;
@@ -197,12 +198,7 @@ export function WorkspaceTopbar({
             {mobileNavigationOpen ? <XIcon /> : <MenuIcon />}
           </Button>
         ) : null}
-        <Link className="workspace-topbar__locale" to={alternatePath}>
-          <span aria-hidden="true" className="workspace-topbar__locale-flag">
-            {locale === 'vi-VN' ? '🇻🇳' : '🇬🇧'}
-          </span>
-          <span>{locale === 'vi-VN' ? 'Tiếng Việt' : 'English'}</span>
-        </Link>
+        <WorkspaceLocaleMenu locale={locale} />
         {onSignOut === undefined ? null : (
           <Button
             aria-label={locale === 'vi-VN' ? 'Đăng xuất' : 'Sign out'}

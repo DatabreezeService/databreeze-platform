@@ -301,75 +301,15 @@ export function AgentChatShell({
             value={draft}
           />
           <div className="notion-ai-composer__footer">
-            <div className="notion-ai-composer__left-tools">
-              <button
-                aria-label="Thêm ngữ cảnh"
-                className="notion-ai-composer__tool-btn"
-                title="Thêm ngữ cảnh"
-                type="button"
-              >
-                <span aria-hidden="true">+</span>
-              </button>
-              <button
-                aria-label="Tùy chỉnh"
-                className="notion-ai-composer__tool-btn"
-                title="Tùy chỉnh"
-                type="button"
-              >
-                <svg
-                  fill="none"
-                  height="14"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                  width="14"
-                >
-                  <line x1="4" x2="4" y1="21" y2="14" />
-                  <line x1="4" x2="4" y1="10" y2="3" />
-                  <line x1="12" x2="12" y1="21" y2="12" />
-                  <line x1="12" x2="12" y1="8" y2="3" />
-                  <line x1="20" x2="20" y1="21" y2="16" />
-                  <line x1="20" x2="20" y1="12" y2="3" />
-                  <line x1="1" x2="7" y1="14" y2="14" />
-                  <line x1="9" x2="15" y1="8" y2="8" />
-                  <line x1="17" x2="23" y1="16" y2="16" />
-                </svg>
-              </button>
-            </div>
-            <div className="notion-ai-composer__right-tools">
-              <span className="notion-ai-composer__model-badge">Auto</span>
-              <button
-                aria-label="Ghi âm"
-                className="notion-ai-composer__tool-btn"
-                title="Ghi âm"
-                type="button"
-              >
-                <svg
-                  fill="none"
-                  height="14"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                  width="14"
-                >
-                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                  <line x1="12" x2="12" y1="19" y2="22" />
-                </svg>
-              </button>
-              <button
-                aria-label={text.send}
-                className="notion-ai-composer__send-btn"
-                disabled={draft.trim() === '' || submitting || onSubmitMessage === undefined}
-                type="submit"
-              >
-                <span aria-hidden="true">↑</span>
-              </button>
-            </div>
+            <div className="notion-ai-composer__spacer" />
+            <button
+              aria-label={text.send}
+              className="notion-ai-composer__send-btn"
+              disabled={draft.trim() === '' || submitting || onSubmitMessage === undefined}
+              type="submit"
+            >
+              <span aria-hidden="true">↑</span>
+            </button>
           </div>
         </div>
       </form>
