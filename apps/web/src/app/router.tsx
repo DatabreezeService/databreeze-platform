@@ -21,8 +21,10 @@ import { DashboardPage } from '../features/dashboards/dashboard-page.tsx';
 import { AnalysisRoutePage } from '../features/analysis/analysis-route-page.tsx';
 import { DataRoutePage } from '../features/data/data-route-page.tsx';
 import {
+  ForgotPasswordRoutePage,
   SignInRoutePage,
   RegisterRoutePage,
+  ResetPasswordRoutePage,
   VerifyEmailRoutePage,
 } from '../features/auth/auth-route-pages.tsx';
 import { LandingRoutePage } from '../features/landing/landing-page.tsx';
@@ -74,6 +76,8 @@ const logicalRoots = new Set([
   'sign-in',
   'register',
   'verify-email',
+  'forgot-password',
+  'reset-password',
 ]);
 
 function canonicalPathname(pathname: string): string | undefined {
@@ -133,6 +137,8 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
             { path: 'sign-in', element: <SignInRoutePage /> },
             { path: 'register', element: <RegisterRoutePage /> },
             { path: 'verify-email', element: <VerifyEmailRoutePage /> },
+            { path: 'forgot-password', element: <ForgotPasswordRoutePage /> },
+            { path: 'reset-password', element: <ResetPasswordRoutePage /> },
           ],
         },
         {

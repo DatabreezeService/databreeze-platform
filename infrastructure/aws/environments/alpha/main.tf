@@ -76,6 +76,7 @@ module "compute" {
   csrf_allowed_origins_secret_arn                = module.security.csrf_allowed_origins_secret_arn
   service_account_secret_envelope_key_secret_arn = module.security.service_account_secret_envelope_key_secret_arn
   email_verification_digest_key_secret_arn       = module.security.email_verification_digest_key_secret_arn
+  recovery_digest_key_secret_arn                 = module.security.recovery_digest_key_secret_arn
   email_verification_envelope_key_secret_arn     = module.security.email_verification_envelope_key_secret_arn
   registration_admission_key_secret_arn          = module.security.registration_admission_key_secret_arn
   iae_worker_capability_signing_key_secret_arn   = module.security.iae_worker_capability_signing_key_secret_arn

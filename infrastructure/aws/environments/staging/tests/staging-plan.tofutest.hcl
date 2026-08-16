@@ -57,6 +57,13 @@ override_resource {
 }
 
 override_resource {
+  target = module.security.aws_secretsmanager_secret.recovery_digest_key
+  values = {
+    arn = "arn:aws:secretsmanager:ap-southeast-1:123456789012:secret:databreeze/staging/iam/recovery-digest-key-AbCdEf"
+  }
+}
+
+override_resource {
   target = module.security.aws_secretsmanager_secret.email_verification_envelope_key
   values = {
     arn = "arn:aws:secretsmanager:ap-southeast-1:123456789012:secret:databreeze/staging/iam/email-verification-envelope-key-AbCdEf"
@@ -146,6 +153,10 @@ run "api_runtime_secret_contract" {
         valueFrom = module.security.email_verification_digest_key_secret_arn
       },
       {
+        name      = "DATABREEZE_IAM_RECOVERY_DIGEST_KEY"
+        valueFrom = module.security.recovery_digest_key_secret_arn
+      },
+      {
         name      = "DATABREEZE_IAM_EMAIL_VERIFICATION_ENVELOPE_KEY"
         valueFrom = module.security.email_verification_envelope_key_secret_arn
       },
@@ -169,6 +180,7 @@ run "api_runtime_secret_contract" {
         module.security.csrf_allowed_origins_secret_arn,
         module.security.service_account_secret_envelope_key_secret_arn,
         module.security.email_verification_digest_key_secret_arn,
+        module.security.recovery_digest_key_secret_arn,
         module.security.email_verification_envelope_key_secret_arn,
         module.security.registration_admission_key_secret_arn,
         module.security.iae_worker_capability_signing_key_secret_arn,
@@ -186,6 +198,7 @@ run "api_runtime_secret_contract" {
         module.security.csrf_allowed_origins_secret_arn,
         module.security.service_account_secret_envelope_key_secret_arn,
         module.security.email_verification_digest_key_secret_arn,
+        module.security.recovery_digest_key_secret_arn,
         module.security.email_verification_envelope_key_secret_arn,
         module.security.registration_admission_key_secret_arn,
         module.security.iae_worker_capability_signing_key_secret_arn,
@@ -234,7 +247,7 @@ run "openai_feature_contract" {
 
   assert {
     condition = (
-      jsondecode(module.compute.api_task_definition_container_definitions)[0].secrets[7] == {
+      jsondecode(module.compute.api_task_definition_container_definitions)[0].secrets[8] == {
         name      = "OPENAI_API_KEY"
         valueFrom = module.security.openai_api_key_secret_arn
       } &&
@@ -243,6 +256,7 @@ run "openai_feature_contract" {
         module.security.csrf_allowed_origins_secret_arn,
         module.security.service_account_secret_envelope_key_secret_arn,
         module.security.email_verification_digest_key_secret_arn,
+        module.security.recovery_digest_key_secret_arn,
         module.security.email_verification_envelope_key_secret_arn,
         module.security.registration_admission_key_secret_arn,
         module.security.iae_worker_capability_signing_key_secret_arn,

@@ -9,11 +9,18 @@ import {
   rememberAuthSessionV1,
 } from './auth-session.ts';
 import { RegisterPage } from './register-page.tsx';
+import { ForgotPasswordPage } from './forgot-password-page.tsx';
+import { ResetPasswordPage } from './reset-password-page.tsx';
 import { SignInPage } from './sign-in-page.tsx';
 import { VerifyEmailPage } from './verify-email-page.tsx';
 
 function authApi() {
-  return createAuthApiV1({ baseUrl: import.meta.env['VITE_DATABREEZE_API_BASE_URL'] ?? '' });
+  const configuredBaseUrl = (import.meta.env as Record<string, unknown>)[
+    'VITE_DATABREEZE_API_BASE_URL'
+  ];
+  return createAuthApiV1({
+    baseUrl: typeof configuredBaseUrl === 'string' ? configuredBaseUrl : '',
+  });
 }
 
 async function establishProductSession(
@@ -41,7 +48,7 @@ export function SignInRoutePage() {
         if (result.accepted) {
           const established = await establishProductSession(api, result.value);
           if (!established.accepted) return established;
-          navigate(`/${locale}/data`, { replace: true });
+          void navigate(`/${locale}/data`, { replace: true });
         }
         return result;
       }}
@@ -60,7 +67,7 @@ export function RegisterRoutePage() {
       onRegistered={async (input) => {
         const result = await api.register(input);
         if (result.accepted)
-          navigate(`/${locale}/verify-email`, {
+          void navigate(`/${locale}/verify-email`, {
             state: { challengeId: result.value.challengeId, email: input.email },
           });
         return result;
@@ -105,10 +112,34 @@ export function VerifyEmailRoutePage() {
         if (result.accepted) {
           const established = await establishProductSession(api, result.value);
           if (!established.accepted) return established;
-          navigate(`/${locale}/data`, { replace: true });
+          void navigate(`/${locale}/data`, { replace: true });
         }
         return result;
       }}
+    />
+  );
+}
+
+export function ForgotPasswordRoutePage() {
+  const { locale: routeLocale } = useParams();
+  const locale = normalizeRouteLocale(routeLocale);
+  const api = useMemo(authApi, []);
+  return (
+    <ForgotPasswordPage locale={locale} onRequested={(input) => api.requestPasswordReset(input)} />
+  );
+}
+
+export function ResetPasswordRoutePage() {
+  const { locale: routeLocale } = useParams();
+  const locale = normalizeRouteLocale(routeLocale);
+  const location = useLocation();
+  const api = useMemo(authApi, []);
+  const token = new URLSearchParams(location.search).get('token') ?? '';
+  return (
+    <ResetPasswordPage
+      locale={locale}
+      token={token}
+      onReset={(input) => api.completePasswordReset(input)}
     />
   );
 }

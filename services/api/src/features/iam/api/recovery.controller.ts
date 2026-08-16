@@ -40,7 +40,7 @@ export class RecoveryController {
   @ApiServiceUnavailableResponse({ description: 'Recovery delivery is unavailable.' })
   async request(@Body() input: RecoveryRequestDto): Promise<RecoveryRequestResponseDto> {
     if (this.recovery === undefined) throw new RecoveryProblemError('RECOVERY_UNAVAILABLE');
-    const result = await this.recovery.request(input.email);
+    const result = await this.recovery.request(input.email, input.locale);
     if (!result.accepted) {
       throw new RecoveryProblemError(
         result.code === 'RECOVERY_UNAVAILABLE'

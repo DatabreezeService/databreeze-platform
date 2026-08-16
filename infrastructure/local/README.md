@@ -65,7 +65,7 @@ The Web URL is <http://127.0.0.1:5173/vi-VN>; it uses Vite HMR and
 proxies API paths to the watched host API at <http://127.0.0.1:3000>. The
 `dev:api` watcher uses the database-backed local composition, runs Prisma
 generation/migrations, and talks to the Docker PostgreSQL, Redis, and Mailpit
-services. Registration, OTP, sign-in, refresh, logout, and durable data
+services. Registration, OTP, password reset, sign-in, refresh, logout, and durable data
 changes therefore exercise the real local backend while Web source changes
 update without a rebuild. The pilot/production Caddy URL is for built-image
 validation, not HMR.
@@ -138,8 +138,8 @@ composition while retaining `NODE_ENV=production`. PostgreSQL and Redis remain
 durable authorities, Mailpit is the local email provider, and all application
 ports stay on the isolated Compose network except the loopback HTTPS gateway.
 
-Mailpit is the default OTP provider and captures messages at
-<http://localhost:8025>. To deliver OTPs to a real Gmail inbox during local
+Mailpit is the default OTP and password-recovery provider and captures messages at
+<http://localhost:8025>. To deliver OTP and password-recovery messages to a real Gmail inbox during local
 testing, set `DATABREEZE_LOCAL_EMAIL_PROVIDER=gmail` in the ignored
 `infrastructure/local/.env`, set the SMTP host to `smtp.gmail.com`, port `465`,
 the Gmail account as both SMTP username and sender, and provide a Google App

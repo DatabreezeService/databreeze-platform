@@ -55,8 +55,23 @@ Redis, and MinIO API ports are never published publicly.
   ```
 
   Gmail requires 2-Step Verification and an App Password; never use a normal
-  account password. The sender address must match the SMTP username. Use SES
-  separately for a wider production rollout.
+  account password. The sender address must match the SMTP username. The same
+  transport sends OTP verification and password-recovery messages. Password
+  recovery also requires a separate `DATABREEZE_IAM_RECOVERY_DIGEST_KEY` in
+  `/opt/databreeze/.env`; generate it on the server with the command below and
+  never commit or paste the value:
+
+  ```bash
+  value="$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')"
+  if sudo grep -q '^DATABREEZE_IAM_RECOVERY_DIGEST_KEY=' /opt/databreeze/.env; then
+    sudo sed -i "s|^DATABREEZE_IAM_RECOVERY_DIGEST_KEY=.*|DATABREEZE_IAM_RECOVERY_DIGEST_KEY=${value}|" /opt/databreeze/.env
+  else
+    echo "DATABREEZE_IAM_RECOVERY_DIGEST_KEY=${value}" | sudo tee -a /opt/databreeze/.env >/dev/null
+  fi
+  unset value
+  ```
+
+  Use SES separately for a wider production rollout.
 - OpenAI is disabled by default. Never copy an API key into this file through
   source control or a CI log; place it only in the server’s protected secret
   mechanism after rotating the exposed key.
