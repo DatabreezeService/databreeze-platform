@@ -36,6 +36,7 @@ const ID = Object.freeze({
   owner: ids(10),
   analyst: ids(11),
   viewer: ids(12),
+  admin: ids(16),
   ownerOrganizationMembership: ids(20),
   ownerWorkspaceMembership: ids(21),
   ownerProjectMembership: ids(22),
@@ -43,6 +44,9 @@ const ID = Object.freeze({
   analystProjectMembership: ids(24),
   viewerWorkspaceMembership: ids(25),
   viewerProjectMembership: ids(26),
+  adminOrganizationMembership: ids(27),
+  adminWorkspaceMembership: ids(28),
+  adminProjectMembership: ids(29),
   policy: ids(30),
   policyVersion: ids(31),
   policyActivation: ids(32),
@@ -1581,6 +1585,17 @@ async function main() {
             updatedAt: minutesBefore(13_400),
           },
           {
+            id: ID.admin,
+            email: 'admin@databreeze.local',
+            displayName: 'DataBreeze Local Admin',
+            locale: 'vi-VN',
+            status: 'ACTIVE',
+            securityEpoch: 1,
+            mfaReenrollmentRequired: false,
+            createdAt: minutesBefore(13_395),
+            updatedAt: minutesBefore(13_395),
+          },
+          {
             id: ID.analyst,
             email: 'analyst@databreeze.local',
             displayName: 'Trần An',
@@ -1606,8 +1621,13 @@ async function main() {
         await upsertRows(
           transaction,
           'passwordCredential',
-          [ID.owner, ID.analyst, ID.viewer].map((userId, index) => ({
-            id: ids(13 + index),
+          [
+            { id: ids(13), userId: ID.owner },
+            { id: ids(14), userId: ID.analyst },
+            { id: ids(15), userId: ID.viewer },
+            { id: ids(17), userId: ID.admin },
+          ].map(({ id, userId }) => ({
+            id,
             userId,
             algorithm: 'argon2id',
             encodedHash: encodedPassword,
@@ -1741,6 +1761,54 @@ async function main() {
             revision: 1,
             createdAt: minutesBefore(13_400),
             updatedAt: minutesBefore(13_400),
+          },
+          {
+            id: ID.adminOrganizationMembership,
+            principalType: 'USER',
+            principalId: ID.admin,
+            scopeType: 'ORGANIZATION',
+            organizationId: ID.organization,
+            workspaceId: null,
+            projectId: null,
+            roleId: 'admin',
+            status: 'ACTIVE',
+            startsAt: minutesBefore(13_395),
+            expiresAt: null,
+            revision: 1,
+            createdAt: minutesBefore(13_395),
+            updatedAt: minutesBefore(13_395),
+          },
+          {
+            id: ID.adminWorkspaceMembership,
+            principalType: 'USER',
+            principalId: ID.admin,
+            scopeType: 'WORKSPACE',
+            organizationId: ID.organization,
+            workspaceId: ID.workspace,
+            projectId: null,
+            roleId: 'admin',
+            status: 'ACTIVE',
+            startsAt: minutesBefore(13_395),
+            expiresAt: null,
+            revision: 1,
+            createdAt: minutesBefore(13_395),
+            updatedAt: minutesBefore(13_395),
+          },
+          {
+            id: ID.adminProjectMembership,
+            principalType: 'USER',
+            principalId: ID.admin,
+            scopeType: 'PROJECT',
+            organizationId: ID.organization,
+            workspaceId: ID.workspace,
+            projectId: ID.project,
+            roleId: 'admin',
+            status: 'ACTIVE',
+            startsAt: minutesBefore(13_395),
+            expiresAt: null,
+            revision: 1,
+            createdAt: minutesBefore(13_395),
+            updatedAt: minutesBefore(13_395),
           },
           {
             id: ID.analystWorkspaceMembership,
@@ -2756,6 +2824,7 @@ async function main() {
   console.log('');
   console.log('Synthetic sign-in accounts (all use the same generated password):');
   console.log('  owner@databreeze.local   OWNER / APPLY_CONFIRMED_CHANGES');
+  console.log('  admin@databreeze.local   ADMIN / workspace administration');
   console.log('  analyst@databreeze.local ANALYST / PROPOSE_CHANGES');
   console.log('  viewer@databreeze.local  VIEWER / NONE + restricted dataset denied');
   console.log(`Password: ${password}`);
