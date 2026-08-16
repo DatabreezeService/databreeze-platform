@@ -46,6 +46,7 @@ test('Lightsail deployment scripts migrate first, health-check, and retain rollb
   const deploy = await read('infrastructure/lightsail/deploy.sh');
   const healthcheck = await read('infrastructure/lightsail/healthcheck.sh');
   const rollback = await read('infrastructure/lightsail/rollback.sh');
+  const bootstrap = await read('infrastructure/lightsail/bootstrap.sh');
   for (const script of [deploy, healthcheck, rollback]) assert.match(script, /set -Eeuo pipefail/u);
   assert.match(deploy, /run --rm api-migrate/u);
   assert.match(deploy, /healthcheck\.sh/u);
@@ -58,6 +59,7 @@ test('Lightsail deployment scripts migrate first, health-check, and retain rollb
   assert.match(healthcheck, /application\/json/u);
   assert.match(healthcheck, /MAX_ATTEMPTS/u);
   assert.match(rollback, /exec .*deploy\.sh/u);
+  assert.match(bootstrap, /install -m 0644 .*Caddyfile/u);
   assert.doesNotMatch(deploy, /curl[^\n]*\|[^\n]*sh/u);
 });
 
@@ -90,6 +92,7 @@ test('Lightsail pilot workflow passes immutable image digests between jobs', asy
   assert.doesNotMatch(deployJob, /docker image inspect/u);
   assert.match(deployJob, /Upload deployment files/u);
   assert.match(deployJob, /infrastructure\/lightsail\/deploy\.sh/u);
+  assert.match(deployJob, /install -m 0644 \/tmp\/databreeze-\$\{GITHUB_SHA\}\/Caddyfile/u);
   assert.match(deployJob, /install -m 0750 \/tmp\/databreeze-\$\{GITHUB_SHA\}\/deploy\.sh/u);
   assert.match(deployJob, /Remove temporary deployment files/u);
   assert.doesNotMatch(workflow, /:latest\b/u);

@@ -243,7 +243,7 @@ jobs:
           set -euo pipefail
           ssh -i "$RUNNER_TEMP/lightsail-key" "${LIGHTSAIL_DEPLOY_USER}@${LIGHTSAIL_HOST}" \
             "set -e
-            sudo install -m 0640 /tmp/databreeze-${GITHUB_SHA}/Caddyfile /opt/databreeze/Caddyfile
+            sudo install -m 0644 /tmp/databreeze-${GITHUB_SHA}/Caddyfile /opt/databreeze/Caddyfile
             sudo install -m 0640 /tmp/databreeze-${GITHUB_SHA}/compose.pilot.yml /opt/databreeze/compose.pilot.yml
             sudo install -m 0750 /tmp/databreeze-${GITHUB_SHA}/deploy.sh /opt/databreeze/deploy.sh
             sudo install -m 0750 /tmp/databreeze-${GITHUB_SHA}/healthcheck.sh /opt/databreeze/healthcheck.sh
