@@ -16,7 +16,7 @@ fi
 
 install -d -m 0750 "${ROOT_DIR}" "${ROOT_DIR}/releases" "${ROOT_DIR}/backups"
 install -m 0640 "${SCRIPT_DIR}/compose.pilot.yml" "${ROOT_DIR}/compose.pilot.yml"
-install -m 0640 "${SCRIPT_DIR}/Caddyfile" "${ROOT_DIR}/Caddyfile"
+install -m 0644 "${SCRIPT_DIR}/Caddyfile" "${ROOT_DIR}/Caddyfile"
 install -m 0750 "${SCRIPT_DIR}/deploy.sh" "${ROOT_DIR}/deploy.sh"
 install -m 0750 "${SCRIPT_DIR}/rollback.sh" "${ROOT_DIR}/rollback.sh"
 install -m 0750 "${SCRIPT_DIR}/healthcheck.sh" "${ROOT_DIR}/healthcheck.sh"
