@@ -31,6 +31,16 @@ export function MenuIcon(properties: IconProperties) {
   );
 }
 
+export function DotsVerticalIcon(properties: IconProperties) {
+  return (
+    <svg {...baseProperties} {...properties}>
+      <circle cx="12" cy="5" fill="currentColor" r="1.7" stroke="none" />
+      <circle cx="12" cy="12" fill="currentColor" r="1.7" stroke="none" />
+      <circle cx="12" cy="19" fill="currentColor" r="1.7" stroke="none" />
+    </svg>
+  );
+}
+
 export function SearchIcon(properties: IconProperties) {
   return (
     <svg {...baseProperties} {...properties}>

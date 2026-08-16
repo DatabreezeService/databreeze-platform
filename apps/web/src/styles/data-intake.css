@@ -52,7 +52,7 @@
   flex: 0 0 auto;
   padding: 9px 13px;
   border: 1px solid #bfe8dc;
-  border-radius: 999px;
+  border-radius: 4px;
   color: var(--intake-blue-dark);
   background: #effbf7;
   font-size: 12px;
@@ -76,7 +76,7 @@
   margin: 0;
   padding: 14px 16px;
   border: 1px solid #f0d6a9;
-  border-radius: 14px;
+  border-radius: 4px;
   color: #765016;
   background: #fff9ec;
   font-size: 13px;
@@ -89,7 +89,7 @@
 .quality-card,
 .data-pipeline-page__action-card {
   border: 1px solid var(--intake-border);
-  border-radius: 18px;
+  border-radius: 4px;
   background: var(--intake-surface);
   box-shadow: 0 12px 36px rgb(13 27 47 / 5%);
 }
@@ -116,7 +116,7 @@
   margin-top: 16px;
   padding: 15px 17px;
   border: 1px dashed #a9bacb;
-  border-radius: 14px;
+  border-radius: 4px;
   color: var(--intake-muted);
   background: var(--intake-soft);
   font-size: 13px;
@@ -141,7 +141,7 @@
   min-height: 42px;
   padding: 0 17px;
   border: 1px solid var(--intake-blue);
-  border-radius: 11px;
+  border-radius: 4px;
   color: #fff;
   background: var(--intake-blue);
   cursor: pointer;
@@ -178,7 +178,7 @@
 .upload-panel__failure {
   margin: 14px 0 0;
   padding: 11px 13px;
-  border-radius: 11px;
+  border-radius: 4px;
   font-size: 13px;
 }
 
@@ -204,7 +204,7 @@
   display: inline-flex;
   margin: 0 0 18px;
   padding: 6px 10px;
-  border-radius: 999px;
+  border-radius: 4px;
   color: var(--intake-indigo);
   background: #f0f2ff;
   font-size: 12px;
@@ -224,7 +224,7 @@
   margin: 0;
   padding: 13px;
   overflow-wrap: anywhere;
-  border-radius: 12px;
+  border-radius: 4px;
   color: var(--intake-muted);
   background: var(--intake-soft);
   font-size: 12px;
@@ -257,7 +257,7 @@
 .etl-review-card__assumptions li {
   padding: 7px 10px;
   border: 1px solid #dfe6ef;
-  border-radius: 999px;
+  border-radius: 4px;
   color: var(--intake-ink);
   background: #fbfcfe;
   font-size: 12px;
@@ -320,7 +320,7 @@
   grid-template-columns: minmax(110px, 0.6fr) minmax(0, 1fr);
   gap: 3px 12px;
   padding: 11px 12px;
-  border-radius: 12px;
+  border-radius: 4px;
   background: var(--intake-soft);
 }
 

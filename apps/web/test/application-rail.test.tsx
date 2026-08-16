@@ -42,6 +42,19 @@ describe('application rail', () => {
     expect(screen.getByText('Bức tranh kinh doanh')).toBeTruthy();
   });
 
+  it('shows only the brand mark and a divider-centered three-dot collapse handle', async () => {
+    renderDashboard();
+
+    const navigation = await screen.findByRole('navigation', { name: 'Điều hướng chính' });
+    expect(navigation.querySelector('.application-rail__brand-wordmark')).toBeNull();
+    expect(navigation.querySelector('.application-rail__brand-icon')).toBeTruthy();
+    expect(screen.queryByText('DataBreeze', { selector: '.application-rail__brand' })).toBeNull();
+
+    const handle = screen.getByRole('button', { name: 'Thu gọn thanh bên' });
+    expect(handle.classList.contains('application-rail__collapse')).toBe(true);
+    expect(handle.querySelector('.application-rail__collapse-dots')).toBeTruthy();
+  });
+
   it('starts expanded, collapses to icon-only navigation, and remembers the preference', async () => {
     const user = userEvent.setup();
     renderDashboard();

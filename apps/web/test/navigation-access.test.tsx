@@ -57,11 +57,11 @@ describe('build-time governed navigation', () => {
 
       const navigation = await screen.findByRole('navigation', { name: 'Primary navigation' });
       expect(navigation.getAttribute('data-collapsed')).toBe('true');
-      expect(navigation.querySelector('.application-rail__brand-wordmark')).toBeTruthy();
+      expect(navigation.querySelector('.application-rail__brand-wordmark')).toBeNull();
       expect(navigation.querySelector('.application-rail__brand-icon')).toBeTruthy();
       expect(
         navigation.querySelector('.application-rail__brand-icon')?.getAttribute('src'),
-      ).toContain('install-icon-192');
+      ).toContain('databreeze-mark');
     } finally {
       globalThis.matchMedia = originalMatchMedia;
     }
