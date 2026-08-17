@@ -1,4 +1,5 @@
 import { normalizedDatasetHealth, type DatasetCardV1 } from './data-model.ts';
+import { SourceUploadPanel } from './source-upload-panel.tsx';
 
 export type { DatasetCardV1 } from './data-model.ts';
 
@@ -21,6 +22,7 @@ export interface DatasetIndexPageProps {
   readonly heading?: boolean;
   readonly locale: 'en' | 'vi-VN';
   readonly onSelectDataset?: (datasetId: string) => void;
+  readonly onSelectFiles?: (files: FileList) => void;
   readonly selectedDatasetId?: string;
 }
 
@@ -30,6 +32,7 @@ export function DatasetIndexPage({
   heading = true,
   locale,
   onSelectDataset,
+  onSelectFiles,
   selectedDatasetId,
 }: DatasetIndexPageProps) {
   const text = copy(locale);
@@ -41,38 +44,47 @@ export function DatasetIndexPage({
           <p className="dataset-index-page__empty" role="status">
             {text.empty}
           </p>
-          <p className="dataset-index-page__empty">
-            {locale === 'vi-VN'
-              ? 'Tải tệp an toàn chưa khả dụng trong bản chạy này.'
-              : 'Secure file upload is not yet available in this build.'}
-          </p>
+          {onSelectFiles === undefined ? (
+            <p className="dataset-index-page__empty">
+              {locale === 'vi-VN'
+                ? 'Tải tệp an toàn chưa khả dụng trong bản chạy này.'
+                : 'Secure file upload is not yet available in this build.'}
+            </p>
+          ) : (
+            <SourceUploadPanel locale={locale} onSelectFiles={onSelectFiles} />
+          )}
         </>
       ) : (
-        <ul className="dataset-index-page__list">
-          {datasets.map((dataset) => {
-            const health = normalizedDatasetHealth(dataset.health, locale);
-            const selected = dataset.datasetId === selectedDatasetId;
-            return (
-              <li key={dataset.datasetId}>
-                <button
-                  aria-current={selected ? 'page' : undefined}
-                  aria-label={`${text.open}: ${dataset.label}`}
-                  className={`dataset-index-page__card${selected ? ' is-selected' : ''}`}
-                  onClick={() => onSelectDataset?.(dataset.datasetId)}
-                  type="button"
-                >
-                  <span className="dataset-index-page__card-main">
-                    <strong>{dataset.label}</strong>
-                    <span>{dataset.versionLabel}</span>
-                  </span>
-                  <span className={`dataset-index-page__health is-${health.tone.toLowerCase()}`}>
-                    {health.label}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        <>
+          <ul className="dataset-index-page__list">
+            {datasets.map((dataset) => {
+              const health = normalizedDatasetHealth(dataset.health, locale);
+              const selected = dataset.datasetId === selectedDatasetId;
+              return (
+                <li key={dataset.datasetId}>
+                  <button
+                    aria-current={selected ? 'page' : undefined}
+                    aria-label={`${text.open}: ${dataset.label}`}
+                    className={`dataset-index-page__card${selected ? ' is-selected' : ''}`}
+                    onClick={() => onSelectDataset?.(dataset.datasetId)}
+                    type="button"
+                  >
+                    <span className="dataset-index-page__card-main">
+                      <strong>{dataset.label}</strong>
+                      <span>{dataset.versionLabel}</span>
+                    </span>
+                    <span className={`dataset-index-page__health is-${health.tone.toLowerCase()}`}>
+                      {health.label}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+          {onSelectFiles === undefined ? null : (
+            <SourceUploadPanel locale={locale} onSelectFiles={onSelectFiles} />
+          )}
+        </>
       )}
     </section>
   );

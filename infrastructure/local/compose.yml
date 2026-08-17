@@ -194,6 +194,7 @@ services:
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-databreeze}:${POSTGRES_PASSWORD:-databreeze-local-change-me}@postgres:5432/${POSTGRES_DB:-databreeze}?schema=public
       DATABREEZE_RUNTIME_PROFILE: local
+      DATABREEZE_LOCAL_PROJECT_ID: ${DATABREEZE_LOCAL_PROJECT_ID:-}
       DATABREEZE_LOCAL_HTTPS_ORIGIN: https://localhost:${WEB_HTTPS_PORT:-8443}
       DATABREEZE_REDIS_URL: redis://redis:6379
       DATABREEZE_LOCAL_EMAIL_PROVIDER: ${DATABREEZE_LOCAL_EMAIL_PROVIDER:-mailpit}

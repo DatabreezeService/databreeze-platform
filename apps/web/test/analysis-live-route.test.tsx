@@ -153,4 +153,87 @@ describe('[WEB-024][DDA-055][DDA-056] live Analysis route', () => {
     ).toBeTruthy();
     await waitFor(() => expect(composer).toHaveProperty('value', 'So sánh với tháng trước'));
   });
+
+  it('creates the first conversation from authorized datasets when none exists yet', async () => {
+    const user = userEvent.setup();
+    const CREATED_CONVERSATION_ID = '00000000-0000-4000-8000-000000000210';
+    const createdSummary = Object.freeze({
+      ...summary,
+      conversationId: CREATED_CONVERSATION_ID,
+      title: 'Phân tích mới',
+    });
+    let conversationCreated = false;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('/v1/datasets')) {
+        return jsonResponse({
+          accepted: true,
+          value: {
+            datasets: [
+              {
+                datasetId: DATASET_ID,
+                versionId: DATASET_VERSION_ID,
+                label: 'Chi phí vận hành',
+                status: 'PUBLISHED',
+                versionLabel: '2026-08-13T00:00:00.000Z',
+                publishedAt: '2026-08-13T00:00:00.000Z',
+                fieldCount: 3,
+                fieldTypes: ['DATE', 'DECIMAL', 'TEXT'],
+                health: 'UNKNOWN',
+                readiness: 'READY',
+              },
+            ],
+            page: { limit: 25 },
+          },
+        });
+      }
+      if (url.endsWith('/v1/dda/conversations') && init?.method === 'POST') {
+        const body = JSON.parse(String(init.body)) as {
+          readonly datasetIds: readonly string[];
+          readonly datasetVersionIds: Readonly<Record<string, string>>;
+        };
+        expect(body.datasetIds).toEqual([DATASET_ID]);
+        expect(body.datasetVersionIds).toEqual({ [DATASET_ID]: DATASET_VERSION_ID });
+        conversationCreated = true;
+        return jsonResponse({
+          accepted: true,
+          conversationId: CREATED_CONVERSATION_ID,
+          title: 'Phân tích mới',
+          activeDatasetIds: [DATASET_ID],
+        });
+      }
+      if (url.endsWith('/v1/dda/conversations?limit=20')) {
+        return jsonResponse({
+          schemaVersion: 4,
+          accepted: true,
+          items: conversationCreated ? [createdSummary] : [],
+        });
+      }
+      if (url.includes(`/v1/dda/conversations/${CREATED_CONVERSATION_ID}?limit=50`)) {
+        return jsonResponse({
+          schemaVersion: 4,
+          accepted: true,
+          conversation: createdSummary,
+          messages: [],
+          contextEvents: [],
+        });
+      }
+      return new Response('', { status: 404 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderRoute('/vi-VN/analysis');
+
+    expect(
+      await screen.findByText('Chưa có hội thoại được cấp quyền trong không gian làm việc này.'),
+    ).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Phân tích mới' }));
+
+    await waitFor(() => expect(conversationCreated).toBe(true));
+    await waitFor(() =>
+      expect(workspaceAgentStore.getActiveConversation()?.conversationId).toBe(
+        CREATED_CONVERSATION_ID,
+      ),
+    );
+  });
 });

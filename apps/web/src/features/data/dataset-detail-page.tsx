@@ -1,3 +1,4 @@
+import { DatasetPreviewTable } from './dataset-preview-table.tsx';
 import { ExtractionReview } from './extraction-review.tsx';
 import { OriginalViewer } from './original-viewer.tsx';
 import { PreparationSummary } from './preparation-summary.tsx';
@@ -58,6 +59,20 @@ export function DatasetDetailPage({
           {health.label}
         </span>
       </header>
+      <div className="dataset-detail-page__quick-actions">
+        <a
+          className="db-button db-button--primary"
+          href={`/${locale}/analysis?dataset=${encodeURIComponent(dataset.datasetId)}`}
+        >
+          {locale === 'vi-VN' ? '💬 Hỏi Trợ lý AI về dữ liệu này' : '💬 Ask AI Agent about this data'}
+        </a>
+        <a
+          className="db-button db-button--secondary"
+          href={`/${locale}/dashboards`}
+        >
+          {locale === 'vi-VN' ? '📊 Xem trên Bảng điều khiển' : '📊 View on Dashboards'}
+        </a>
+      </div>
       <div className="dataset-detail-page__facts">
         {dataset.refresh === undefined ? null : (
           <section aria-label={text.refresh}>
@@ -93,6 +108,7 @@ export function DatasetDetailPage({
       {dataset.preparation === undefined ? null : (
         <PreparationSummary locale={locale} summary={dataset.preparation} />
       )}
+      <DatasetPreviewTable dataset={dataset} locale={locale} />
       <div className="dataset-detail-page__content">
         <div>
           <SourceFileList

@@ -62,10 +62,8 @@ describe('dashboard-local agent panel [DDA-015][DDA-017][DDA-024][WEB-014]', () 
     );
 
     expect(screen.getByText('Cho tôi xem doanh thu theo khu vực')).toBeTruthy();
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Chuyển hội thoại' }),
-      'conversation-orders',
-    );
+    await user.click(screen.getByRole('button', { name: 'Lịch sử hội thoại' }));
+    await user.click(screen.getByRole('option', { name: 'Đơn hàng bất thường' }));
     expect(onSelectConversation).toHaveBeenCalledWith('conversation-orders');
   });
 
@@ -80,7 +78,7 @@ describe('dashboard-local agent panel [DDA-015][DDA-017][DDA-024][WEB-014]', () 
     expect(
       within(dialog).getByRole('textbox', { name: 'Câu hỏi cho trợ lý biểu đồ' }),
     ).toBeTruthy();
-    expect(within(dialog).getByText('Mục tiêu: Trang hiện tại')).toBeTruthy();
+    expect(within(dialog).queryByText('Mục tiêu: Trang hiện tại')).toBeNull();
 
     await user.keyboard('{Escape}');
 

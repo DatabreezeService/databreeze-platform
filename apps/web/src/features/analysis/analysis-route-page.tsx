@@ -4,15 +4,18 @@ import type {
   DdaConversationSummary,
 } from '@databreeze/contracts/v4';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 
 import { normalizeRouteLocale } from '../../app/locale-context.tsx';
 import { workspaceAgentStore } from '../agent/workspace-agent-store.ts';
+import { dataApiBaseConfiguration, fetchAuthorizedDataIndex } from '../data/data-api.ts';
+import { localDataStore } from '../data/local-data-store.ts';
 import { dashboardDemoMode } from '../dashboards/dashboard-api.ts';
 import {
   AnalysisConversationApiError,
   analysisConversationApiConfiguration,
+  createAuthorizedConversation,
   fetchAuthorizedConversation,
   fetchAuthorizedConversationHistory,
   runAuthorizedAgentTurn,
@@ -24,41 +27,55 @@ import type {
   AnalysisTurnErrorV1,
 } from './analysis-model.ts';
 import { AnalysisPage } from './analysis-page.tsx';
+import {
+  executeAnalysisWithAgent,
+  executeLocalAnalysis,
+  type LocalAnalysisChartProposal,
+} from './local-analysis-engine.ts';
 
 const AUTHORIZED_WORKSPACE_CACHE_SCOPE = 'authorized-current-workspace';
 
-const DEMO_CONVERSATIONS: readonly AnalysisConversationV1[] = Object.freeze([
+const INITIAL_DEMO_CONVERSATIONS: readonly AnalysisConversationV1[] = Object.freeze([
   Object.freeze({
     conversationId: 'demo-revenue-analysis',
-    title: 'Doanh thu theo khu vực',
+    title: 'Doanh thu theo quốc gia',
     updatedLabel: 'Hôm nay, 10:24',
+    datasetId: '00000000-0000-4000-8000-000000000051',
     datasetContext: Object.freeze([
-      Object.freeze({ datasetLabel: 'Bán hàng toàn quốc', datasetVersionLabel: 'Phiên bản 12' }),
-      Object.freeze({ datasetLabel: 'Mục tiêu doanh thu', datasetVersionLabel: 'Phiên bản 4' }),
+      Object.freeze({
+        datasetLabel: 'Bán lẻ Trực tuyến (data.csv)',
+        datasetVersionLabel: 'Phiên bản 1',
+        datasetId: '00000000-0000-4000-8000-000000000051',
+      }),
     ]),
     messages: Object.freeze([
       Object.freeze({
         messageId: 'demo-message-1',
         role: 'USER' as const,
-        text: 'Khu vực nào đang tăng trưởng tốt nhất trong quý này?',
+        text: 'Thị trường nào đang đóng góp doanh thu lớn nhất?',
         createdLabel: '10:22',
       }),
       Object.freeze({
         messageId: 'demo-message-2',
         role: 'AGENT' as const,
-        text: 'Miền Nam tăng 18,4% so với quý trước và dẫn đầu về doanh thu. Tôi đã dùng phiên bản mới nhất của hai bộ dữ liệu được chọn.',
+        text: 'Dựa trên dữ liệu **Bán lẻ Trực tuyến (data.csv)** (541.910 dòng):\n\n- **United Kingdom** dẫn đầu với **$9.03M** (chiếm 84.6% tổng doanh thu).\n- **Netherlands**: $285K\n- **EIRE**: $283K\n- **Germany**: $229K\n- **France**: $210K\n\nTổng doanh thu toàn cầu đạt **$10.67M**. Tôi đã tạo biểu đồ cột tương ứng, bạn có thể ghim vào Bảng điều khiển.',
         createdLabel: '10:24',
+        chartProposal: {
+          optionId: 'proposal-demo-1',
+          type: 'BAR' as const,
+          title: 'Doanh thu theo Quốc gia',
+          summary: 'So sánh doanh thu giữa các thị trường trọng điểm',
+          dataPoints: [
+            { label: 'UK', value: 9025222, formatted: '$9.03M' },
+            { label: 'Netherlands', value: 285446, formatted: '$285K' },
+            { label: 'EIRE', value: 283454, formatted: '$283K' },
+            { label: 'Germany', value: 228867, formatted: '$229K' },
+            { label: 'France', value: 209715, formatted: '$210K' },
+          ],
+          aggregateValue: '$10.67M',
+        },
       }),
     ]),
-  }),
-  Object.freeze({
-    conversationId: 'demo-orders-analysis',
-    title: 'Đơn hàng bất thường',
-    updatedLabel: 'Hôm qua',
-    datasetContext: Object.freeze([
-      Object.freeze({ datasetLabel: 'Bán hàng toàn quốc', datasetVersionLabel: 'Phiên bản 12' }),
-    ]),
-    messages: Object.freeze([]),
   }),
 ]);
 
@@ -72,6 +89,7 @@ function datasetContext(
 ): readonly AnalysisDatasetContextV1[] {
   return summary.datasets.map((binding) =>
     Object.freeze({
+      datasetId: binding.datasetId,
       datasetLabel:
         locale === 'vi-VN'
           ? `Bộ dữ liệu ${shortOpaqueId(binding.datasetId)}`
@@ -169,10 +187,51 @@ function turnError(error: unknown): AnalysisTurnErrorV1 {
 }
 
 function DemoAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) {
-  const [demoConversations, setDemoConversations] = useState(DEMO_CONVERSATIONS);
-  const [activeConversationId, setActiveConversationId] = useState(
-    DEMO_CONVERSATIONS[0]?.conversationId,
+  const [searchParameters, setSearchParameters] = useSearchParams();
+  const requestedDatasetId = searchParameters.get('dataset');
+  const availableDatasets = useSyncExternalStore(
+    localDataStore.subscribe,
+    () => localDataStore.getDatasets(),
+    () => localDataStore.getDatasets(),
   );
+
+  const [demoConversations, setDemoConversations] = useState<readonly AnalysisConversationV1[]>(
+    INITIAL_DEMO_CONVERSATIONS,
+  );
+  const [activeConversationId, setActiveConversationId] = useState<string | undefined>(
+    INITIAL_DEMO_CONVERSATIONS[0]?.conversationId,
+  );
+
+  // If a dataset parameter was passed in url, create or focus conversation on it
+  useEffect(() => {
+    if (!requestedDatasetId) return;
+    const targetDataset = localDataStore.getDataset(requestedDatasetId);
+    if (!targetDataset) return;
+
+    const existing = demoConversations.find((c) => c.datasetId === requestedDatasetId);
+    if (existing) {
+      setActiveConversationId(existing.conversationId);
+      return;
+    }
+
+    const newId = crypto.randomUUID();
+    const newConv: AnalysisConversationV1 = {
+      conversationId: newId,
+      title: `${locale === 'vi-VN' ? 'Phân tích' : 'Analysis'}: ${targetDataset.label}`,
+      updatedLabel: locale === 'vi-VN' ? 'Vừa xong' : 'Just now',
+      datasetId: targetDataset.datasetId,
+      datasetContext: [
+        {
+          datasetLabel: targetDataset.label,
+          datasetVersionLabel: targetDataset.versionLabel,
+          datasetId: targetDataset.datasetId,
+        },
+      ],
+      messages: [],
+    };
+    setDemoConversations((current) => [newConv, ...current]);
+    setActiveConversationId(newId);
+  }, [demoConversations, locale, requestedDatasetId]);
 
   useEffect(() => {
     workspaceAgentStore.setConversations(
@@ -200,53 +259,73 @@ function DemoAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) 
     }
   }, [activeConversationId, demoConversations, locale]);
 
+  function handleCreateConversation() {
+    const defaultDataset = availableDatasets[0];
+    const conversationId = crypto.randomUUID();
+    const newConv: AnalysisConversationV1 = {
+      conversationId,
+      title: locale === 'vi-VN' ? 'Phân tích mới' : 'New analysis',
+      updatedLabel: locale === 'vi-VN' ? 'Bây giờ' : 'Now',
+      ...(defaultDataset?.datasetId !== undefined ? { datasetId: defaultDataset.datasetId } : {}),
+      datasetContext: [
+        {
+          datasetLabel:
+            defaultDataset?.label ?? (locale === 'vi-VN' ? 'Bán hàng toàn quốc' : 'National sales'),
+          datasetVersionLabel:
+            defaultDataset?.versionLabel ?? (locale === 'vi-VN' ? 'Phiên bản 1' : 'Version 1'),
+          ...(defaultDataset?.datasetId !== undefined
+            ? { datasetId: defaultDataset.datasetId }
+            : {}),
+        },
+      ],
+      messages: [],
+    };
+    setDemoConversations((current) => [newConv, ...current]);
+    setActiveConversationId(conversationId);
+  }
+
+  function handleSendMessage(message: string, conversationId?: string) {
+    if (conversationId === undefined) return;
+    const activeConv = demoConversations.find((c) => c.conversationId === conversationId);
+    const targetDatasetId = activeConv?.datasetId ?? activeConv?.datasetContext[0]?.datasetId;
+    const localResult = executeLocalAnalysis(message, targetDatasetId, locale);
+
+    setDemoConversations((current) =>
+      current.map((conversation) => {
+        if (conversation.conversationId !== conversationId) return conversation;
+        const userMsg = {
+          messageId: crypto.randomUUID(),
+          role: 'USER' as const,
+          text: message,
+          createdLabel: locale === 'vi-VN' ? 'Bây giờ' : 'Now',
+        };
+        const agentMsg = {
+          messageId: crypto.randomUUID(),
+          role: 'AGENT' as const,
+          text: localResult.answerText,
+          createdLabel: locale === 'vi-VN' ? 'Bây giờ' : 'Now',
+          ...(localResult.chartProposal !== undefined
+            ? { chartProposal: localResult.chartProposal }
+            : {}),
+        };
+        return {
+          ...conversation,
+          title: conversation.messages.length === 0 ? message.slice(0, 32) : conversation.title,
+          messages: [...conversation.messages, userMsg, agentMsg],
+        };
+      }),
+    );
+  }
+
   return (
     <AnalysisPage
       {...(activeConversationId === undefined ? {} : { activeConversationId })}
       locale={locale}
       store={workspaceAgentStore}
       conversations={demoConversations}
-      onCreateConversation={() => {
-        const conversationId = crypto.randomUUID();
-        setDemoConversations((current) => [
-          {
-            conversationId,
-            title: locale === 'vi-VN' ? 'Phân tích mới' : 'New analysis',
-            updatedLabel: locale === 'vi-VN' ? 'Bây giờ' : 'Now',
-            datasetContext: [
-              {
-                datasetLabel: locale === 'vi-VN' ? 'Bán hàng toàn quốc' : 'National sales',
-                datasetVersionLabel: locale === 'vi-VN' ? 'Phiên bản 12' : 'Version 12',
-              },
-            ],
-            messages: [],
-          },
-          ...current,
-        ]);
-        setActiveConversationId(conversationId);
-      }}
+      onCreateConversation={handleCreateConversation}
       onSelectConversation={setActiveConversationId}
-      onSendMessage={(message: string, conversationId?: string) => {
-        if (conversationId === undefined) return;
-        setDemoConversations((current) =>
-          current.map((conversation) =>
-            conversation.conversationId !== conversationId
-              ? conversation
-              : {
-                  ...conversation,
-                  messages: [
-                    ...conversation.messages,
-                    {
-                      messageId: crypto.randomUUID(),
-                      role: 'USER' as const,
-                      text: message,
-                      createdLabel: locale === 'vi-VN' ? 'Bây giờ' : 'Now',
-                    },
-                  ],
-                },
-          ),
-        );
-      }}
+      onSendMessage={handleSendMessage}
     />
   );
 }
@@ -254,8 +333,21 @@ function DemoAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) 
 function LiveAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) {
   const [searchParameters, setSearchParameters] = useSearchParams();
   const [sendError, setSendError] = useState<AnalysisTurnErrorV1 | undefined>();
+  const [createError, setCreateError] = useState<'NO_DATASETS' | 'FAILED' | undefined>();
+  const [creatingConversation, setCreatingConversation] = useState(false);
+  const [selectedDatasetIds, setSelectedDatasetIds] = useState<readonly string[]>([]);
+  const [localFallbackMessages, setLocalFallbackMessages] = useState<
+    readonly {
+      readonly conversationId: string;
+      readonly messageId: string;
+      readonly role: 'USER' | 'AGENT';
+      readonly text: string;
+      readonly chartProposal?: LocalAnalysisChartProposal;
+    }[]
+  >([]);
   const queryClient = useQueryClient();
   const { baseUrl } = analysisConversationApiConfiguration();
+  const dataBaseUrl = dataApiBaseConfiguration().baseUrl;
   const historyKey = [
     'dda-analysis',
     AUTHORIZED_WORKSPACE_CACHE_SCOPE,
@@ -267,6 +359,28 @@ function LiveAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) 
     queryFn: ({ signal }) => fetchAuthorizedConversationHistory({ baseUrl, limit: 20, signal }),
     retry: false,
   });
+  const datasetsKey = [
+    'dda-analysis',
+    AUTHORIZED_WORKSPACE_CACHE_SCOPE,
+    dataBaseUrl,
+    'datasets',
+  ] as const;
+  const datasetsQuery = useQuery({
+    queryKey: datasetsKey,
+    queryFn: ({ signal }) => fetchAuthorizedDataIndex({ baseUrl: dataBaseUrl, locale, signal }),
+    retry: false,
+  });
+  const datasets = datasetsQuery.data ?? [];
+
+  useEffect(() => {
+    const requested = searchParameters.get('dataset');
+    if (selectedDatasetIds.length > 0) return;
+    const requestedDataset =
+      requested !== null && datasets.some((dataset) => dataset.datasetId === requested)
+        ? requested
+        : datasets[0]?.datasetId;
+    if (requestedDataset !== undefined) setSelectedDatasetIds([requestedDataset]);
+  }, [datasets, searchParameters, selectedDatasetIds.length]);
 
   const authorizedSummaries = historyQuery.data?.items ?? [];
   const requestedConversationId = searchParameters.get('conversation') ?? undefined;
@@ -354,10 +468,25 @@ function LiveAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) 
   }, [activeSummary, loadedConversation, locale]);
   const conversations = useMemo(
     () =>
-      historyConversations.map((item) =>
-        item.conversationId === loadedConversation?.conversationId ? loadedConversation : item,
-      ),
-    [historyConversations, loadedConversation],
+      historyConversations.map((item) => {
+        const base =
+          item.conversationId === loadedConversation?.conversationId ? loadedConversation : item;
+        const extra = localFallbackMessages.filter((m) => m.conversationId === base.conversationId);
+        if (extra.length === 0) return base;
+        return {
+          ...base,
+          messages: [
+            ...base.messages,
+            ...extra.map((m) => ({
+              messageId: m.messageId,
+              role: m.role,
+              text: m.text,
+              ...(m.chartProposal ? { chartProposal: m.chartProposal } : {}),
+            })),
+          ],
+        };
+      }),
+    [historyConversations, loadedConversation, localFallbackMessages],
   );
   const contextEvents = useMemo(
     () =>
@@ -387,10 +516,99 @@ function LiveAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) 
       await turnMutation.mutateAsync({ conversationId, text: message });
       await queryClient.invalidateQueries({ queryKey: conversationKey, exact: true });
     } catch (error) {
-      setSendError(turnError(error));
-      throw error;
+      if (
+        error instanceof AnalysisConversationApiError &&
+        (error.code === 'AGENT_TURN_FORBIDDEN' ||
+          error.code === 'CONVERSATION_FORBIDDEN' ||
+          error.code === 'AGENT_TURN_USAGE_DENIED' ||
+          error.code === 'AGENT_TURN_STALE_CONTEXT')
+      ) {
+        setSendError(turnError(error));
+        throw error;
+      }
+      // In local dev when API is unavailable, run local/OpenAI analysis engine
+      try {
+        const targetDataset =
+          datasets.find((d) => selectedDatasetIds.includes(d.datasetId)) ?? datasets[0];
+        const res = await executeAnalysisWithAgent(
+          message,
+          targetDataset?.datasetId,
+          locale,
+        );
+
+        setLocalFallbackMessages((prev) => [
+          ...prev,
+          {
+            conversationId,
+            messageId: crypto.randomUUID(),
+            role: 'USER',
+            text: message,
+          },
+          {
+            conversationId,
+            messageId: crypto.randomUUID(),
+            role: 'AGENT',
+            text: res.answerText,
+            ...(res.chartProposal !== undefined ? { chartProposal: res.chartProposal } : {}),
+          },
+        ]);
+        return;
+      } catch {
+        setSendError(turnError(error));
+        throw error;
+      }
     }
   }
+
+  async function createConversation(): Promise<void> {
+    if (creatingConversation) return;
+    setCreateError(undefined);
+    const anchorableDatasets = datasets.filter(
+      (dataset): dataset is typeof dataset & { readonly versionId: string } =>
+        dataset.versionId !== undefined && selectedDatasetIds.includes(dataset.datasetId),
+    );
+    if (anchorableDatasets.length === 0) {
+      setCreateError('NO_DATASETS');
+      return;
+    }
+    setCreatingConversation(true);
+    try {
+      const created = await createAuthorizedConversation({
+        baseUrl,
+        title: locale === 'vi-VN' ? 'Phân tích mới' : 'New analysis',
+        datasetIds: anchorableDatasets.map((dataset) => dataset.datasetId),
+        datasetVersionIds: Object.fromEntries(
+          anchorableDatasets.map((dataset) => [dataset.datasetId, dataset.versionId as string]),
+        ),
+        idempotencyKey: `conversation-${crypto.randomUUID()}`,
+      });
+      await queryClient.invalidateQueries({ queryKey: historyKey });
+      const next = new URLSearchParams(searchParameters);
+      next.set('conversation', created.conversationId);
+      setSearchParameters(next);
+    } catch {
+      setCreateError('FAILED');
+    } finally {
+      setCreatingConversation(false);
+    }
+  }
+
+  const noDataNotice =
+    locale === 'vi-VN'
+      ? 'Chưa có bộ dữ liệu nào. Hãy thêm dữ liệu trong Dữ liệu trước, sau đó quay lại đây để hỏi trợ lý.'
+      : 'No datasets exist yet. Add data in Data first, then come back to ask the agent.';
+  const createFailedNotice =
+    locale === 'vi-VN'
+      ? 'Không thể tạo hội thoại mới. Dữ liệu hiện tại vẫn an toàn.'
+      : 'The new conversation could not be created. Your data is unchanged.';
+  const emptyNotice =
+    createError === 'NO_DATASETS'
+      ? noDataNotice
+      : createError === 'FAILED'
+        ? createFailedNotice
+        : historyQuery.isSuccess && authorizedSummaries.length === 0 && datasets.length === 0
+          ? noDataNotice
+          : undefined;
 
   const historyState = historyQuery.isPending
     ? 'loading'
@@ -412,16 +630,22 @@ function LiveAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) 
       conversations={conversations}
       historyState={historyState}
       locale={locale}
+      onCreateConversation={() => void createConversation()}
+      onDatasetSelectionChange={setSelectedDatasetIds}
       onSelectConversation={(conversationId) => {
         setSendError(undefined);
+        setCreateError(undefined);
         const next = new URLSearchParams(searchParameters);
         next.set('conversation', conversationId);
         setSearchParameters(next);
       }}
       store={workspaceAgentStore}
       threadState={threadState}
+      availableDatasets={datasets}
+      selectedDatasetIds={selectedDatasetIds}
       {...(activeConversationId === undefined ? {} : { activeConversationId })}
       {...(conversationQuery.isSuccess ? { onSendMessage: sendMessage } : {})}
+      {...(emptyNotice === undefined ? {} : { emptyNotice })}
       {...(sendError === undefined ? {} : { turnError: sendError })}
     />
   );

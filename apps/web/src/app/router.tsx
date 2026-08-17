@@ -19,7 +19,6 @@ import {
 } from '../pages/shell-states.tsx';
 import { DashboardPage } from '../features/dashboards/dashboard-page.tsx';
 import { AnalysisRoutePage } from '../features/analysis/analysis-route-page.tsx';
-import { DataRoutePage } from '../features/data/data-route-page.tsx';
 import { DownloadsRoutePage } from '../features/downloads/downloads-page.tsx';
 import {
   ForgotPasswordRoutePage,
@@ -52,6 +51,14 @@ const DataPipelinePage = lazy(async () => {
   const module = await import('../features/data-intake/data-pipeline-page.tsx');
   return { default: module.DataPipelinePage };
 });
+/**
+ * The data workspace (tree, agent dock, cleaning engine, parsers) is a heavy
+ * route-level chunk so the initial JavaScript budget stays intact.
+ */
+const DataRoutePage = lazy(async () => {
+  const module = await import('../features/data/data-route-page.tsx');
+  return { default: module.DataRoutePage };
+});
 const InboxPage = lazy(async () => {
   const module = await import('../features/inbox/inbox-page.tsx');
   return { default: module.InboxPage };
@@ -74,6 +81,7 @@ const logicalRoots = new Set([
   'modules',
   'analysis',
   'data',
+  'settings',
   'sign-in',
   'register',
   'verify-email',
@@ -154,8 +162,9 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
               element: <ShellLayout accessContext={accessContext} />,
               children: [
                 { path: 'workspace', element: <Navigate replace to="../dashboards" /> },
+                { path: 'settings', element: <WorkspaceSettingsRoute /> },
                 { path: 'analysis', element: <AnalysisRoutePage /> },
-                { path: 'data', element: <DataRoutePage /> },
+                { path: 'data', element: <Suspended><DataRoutePage /></Suspended> },
                 ...WEB_FEATURE_REGISTRY.filter((feature) => feature.key !== 'workspace').map(
                   (feature) => ({
                     path: feature.path,

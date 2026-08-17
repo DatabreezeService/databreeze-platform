@@ -72,3 +72,5 @@ reports/
 
 # Local mentor-demo state (087)
 .demo-state/
+.impeccable/
+.zcode/

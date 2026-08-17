@@ -1,19 +1,19 @@
-const ACCEPTED = '.csv,.xlsx,.png,.jpg,.jpeg,.pdf';
+const ACCEPTED = '.csv,.xlsx';
 
 function copy(locale: 'en' | 'vi-VN') {
   return locale === 'vi-VN'
     ? {
         connect: 'Kết nối nguồn',
         description:
-          'Tải CSV, XLSX, ảnh hoặc PDF sau khi máy chủ xác nhận ngữ cảnh và giới hạn áp dụng.',
-        heading: 'Thêm nguồn',
+          'Thêm CSV hoặc XLSX. Trợ lý sẽ lập hồ sơ an toàn để bạn kiểm tra trước khi duyệt.',
+        heading: 'Thêm dữ liệu',
         upload: 'Chọn tệp để tải lên',
       }
     : {
         connect: 'Connect source',
         description:
-          'Upload CSV, XLSX, images, or PDFs only after the server confirms applicable context and limits.',
-        heading: 'Add source',
+          'Add CSV or XLSX files. The assistant prepares a review for you before approval.',
+        heading: 'Add data',
         upload: 'Choose files to upload',
       };
 }
@@ -41,6 +41,7 @@ export function SourceUploadPanel({
         <label className="source-upload-panel__upload">
           <span>{text.upload}</span>
           <input
+            aria-label={locale === 'vi-VN' ? 'Chọn tệp để tải lên' : 'Choose files to upload'}
             accept={ACCEPTED}
             disabled={onSelectFiles === undefined}
             multiple

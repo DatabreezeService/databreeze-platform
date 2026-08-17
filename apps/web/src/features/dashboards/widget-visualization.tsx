@@ -33,7 +33,8 @@ export interface WidgetVisualizationProps {
   readonly resultState?: WidgetVisualizationStateV1;
 }
 
-const CHART_COLORS = ['#0f5fe7', '#20b873', '#8b4cf6', '#ff8a16', '#6884d8'] as const;
+const CHART_COLORS = ['#1261e8', '#1fbb78', '#7c45f5', '#ff8a17', '#6f93d8'] as const;
+const BAR_COLORS = ['#b8d2fb', '#8db7f7', '#5d98f2', '#337bea', '#0f5fe7'] as const;
 
 function label(locale: SupportedLocaleV1, vi: string, en: string): string {
   return locale === 'vi-VN' ? vi : en;
@@ -105,8 +106,12 @@ function renderCartesianChart(
   locale: SupportedLocaleV1,
 ) {
   const max = Math.max(...rows.map((row) => row.numericValue ?? 0), 1);
+  const barWidth = Math.min(58, 430 / Math.max(rows.length, 1));
   const points = rows.map((row, index) => {
-    const x = 32 + (index * 536) / Math.max(rows.length - 1, 1);
+    const x =
+      type === 'BAR'
+        ? 32 + ((index + 0.5) * 536) / Math.max(rows.length, 1)
+        : 32 + (index * 536) / Math.max(rows.length - 1, 1);
     const y = 188 - ((row.numericValue ?? 0) / max) * 150;
     return { x, y };
   });
@@ -115,23 +120,40 @@ function renderCartesianChart(
   return (
     <svg className="dda-native-chart" viewBox="0 0 600 220" role="presentation">
       {[38, 88, 138, 188].map((y) => (
-        <line key={y} x1="32" y1={y} x2="568" y2={y} stroke="#e8eef7" strokeWidth="1" />
+        <line
+          key={y}
+          x1="32"
+          y1={y}
+          x2="568"
+          y2={y}
+          stroke="#e7eef8"
+          strokeWidth="1"
+          strokeDasharray={y === 188 ? undefined : '4 5'}
+        />
       ))}
       {type === 'BAR'
         ? rows.map((row, index) => {
-            const width = Math.min(64, 480 / Math.max(rows.length, 1));
-            const x = 48 + (index * 504) / Math.max(rows.length, 1);
             const height = ((row.numericValue ?? 0) / max) * 150;
+            const point = points[index] ?? { x: 32, y: 188 };
             return (
-              <rect
-                key={row.rowId}
-                x={x}
-                y={188 - height}
-                width={width}
-                height={height}
-                rx="4"
-                fill={CHART_COLORS[0]}
-              />
+              <g key={row.rowId} className="dda-chart-bar">
+                <rect
+                  x={point.x - barWidth / 2}
+                  y={188 - height}
+                  width={barWidth}
+                  height={height}
+                  rx="8"
+                  fill={BAR_COLORS[Math.min(index, BAR_COLORS.length - 1)] ?? CHART_COLORS[0]}
+                />
+                <text
+                  className="dda-chart-value-label"
+                  x={point.x}
+                  y={Math.max(22, point.y - 9)}
+                  textAnchor="middle"
+                >
+                  {formatter.format(row.numericValue ?? 0)}
+                </text>
+              </g>
             );
           })
         : null}
@@ -139,7 +161,7 @@ function renderCartesianChart(
         <polygon
           points={`32,188 ${linePoints} 568,188`}
           fill={CHART_COLORS[0]}
-          opacity={type === 'AREA' ? '0.24' : '0.08'}
+          opacity={type === 'AREA' ? '0.18' : '0.11'}
         />
       ) : null}
       {type === 'LINE' || type === 'AREA' ? (
@@ -148,7 +170,7 @@ function renderCartesianChart(
             points={linePoints}
             fill="none"
             stroke={CHART_COLORS[0]}
-            strokeWidth="4"
+            strokeWidth="3.5"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
@@ -157,12 +179,22 @@ function renderCartesianChart(
               key={rows[index]?.rowId}
               cx={point.x}
               cy={point.y}
-              r="4"
+              r="3.5"
               fill="#ffffff"
               stroke={CHART_COLORS[0]}
               strokeWidth="3"
             />
           ))}
+          {points.length > 1 ? (
+            <text
+              className="dda-chart-end-value"
+              x={(points.at(-1)?.x ?? 568) - 8}
+              y={Math.max(20, (points.at(-1)?.y ?? 38) - 13)}
+              textAnchor="end"
+            >
+              {formatter.format(rows.at(-1)?.numericValue ?? 0)}
+            </text>
+          ) : null}
         </>
       ) : null}
       {rows.map((row, index) => (
@@ -187,6 +219,7 @@ function renderCircularChart(
   locale: SupportedLocaleV1,
 ) {
   const total = rows.reduce((sum, row) => sum + (row.numericValue ?? 0), 0) || 1;
+  const circumference = 2 * Math.PI * 72;
   let offset = 0;
   const segments = rows.map((row, index) => {
     const start = offset;
@@ -195,12 +228,38 @@ function renderCircularChart(
       row,
       start,
       end: offset,
+      share: (row.numericValue ?? 0) / total,
       color: CHART_COLORS[index % CHART_COLORS.length] ?? CHART_COLORS[0],
     };
   });
   return (
     <svg className="dda-native-chart" viewBox="0 0 600 220" role="presentation">
-      {segments.map(({ row, start, end, color }) => {
+      {type === 'DONUT' ? (
+        <circle cx="110" cy="110" r="72" fill="none" stroke="#edf3fc" strokeWidth="25" />
+      ) : null}
+      {segments.map(({ row, start, end, share, color }) => {
+        if (type === 'DONUT') {
+          const dash = Math.max(0, share * circumference - 4);
+          const startOffset = (start / (Math.PI * 2)) * circumference;
+          return (
+            <circle
+              key={row.rowId}
+              className="dda-chart-donut-segment"
+              cx="110"
+              cy="110"
+              r="72"
+              fill="none"
+              stroke={color}
+              strokeWidth="25"
+              strokeLinecap="round"
+              strokeDasharray={`${dash} ${circumference - dash}`}
+              strokeDashoffset={-startOffset}
+              transform="rotate(-90 110 110)"
+            >
+              <title>{`${row.label}: ${row.displayValue}`}</title>
+            </circle>
+          );
+        }
         const startX = 110 + 78 * Math.cos(start - Math.PI / 2);
         const startY = 110 + 78 * Math.sin(start - Math.PI / 2);
         const endX = 110 + 78 * Math.cos(end - Math.PI / 2);
@@ -211,10 +270,13 @@ function renderCircularChart(
             key={row.rowId}
             d={`M110 110 L${startX} ${startY} A78 78 0 ${largeArc} 1 ${endX} ${endY} Z`}
             fill={color}
-          />
+            stroke="#ffffff"
+            strokeWidth="3"
+          >
+            <title>{`${row.label}: ${row.displayValue}`}</title>
+          </path>
         );
       })}
-      {type === 'DONUT' ? <circle cx="110" cy="110" r="54" fill="white" /> : null}
       {type === 'DONUT' ? (
         <>
           <text className="dda-chart-donut-total" x="110" y="107" textAnchor="middle">
@@ -230,7 +292,7 @@ function renderCircularChart(
           <g
             key={row.rowId}
             className="dda-chart-legend__item"
-            transform={`translate(238 ${58 + index * 34})`}
+            transform={`translate(238 ${42 + index * (segments.length > 5 ? 28 : 34)})`}
           >
             <circle cx="6" cy="-4" r="6" fill={color} />
             <text className="dda-chart-legend__label" x="24" y="0">

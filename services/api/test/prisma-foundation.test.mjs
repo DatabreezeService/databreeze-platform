@@ -91,6 +91,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "dda"\."dashboard_snapshots"/);
   assert.match(diff.stdout, /CREATE TABLE "dda"\."dashboard_refresh_state"/);
   assert.match(diff.stdout, /CREATE TABLE "dda"\."notification_intents"/);
+  assert.match(diff.stdout, /CREATE TABLE "dda"\."data_imports"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."authorization_snapshots"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."mfa_recovery_codes"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."invitation_tokens"/);
@@ -184,6 +185,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260814100000_iae_artifact_upload_finalization',
     '20260814110000_iae_worker_result_finalization',
     '20260814110100_jra_worker_result_finalization',
+    '20260814120000_dda_data_imports',
     'migration_lock.toml',
   ]);
   const migration = await readFile(

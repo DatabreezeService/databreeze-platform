@@ -81,6 +81,7 @@ import { IaeWorkerResultFinalizationService } from './features/iae/application/w
 import {
   composeAgentAuditPortFromLedger,
   DsmConversationContextVersionAuthorityAdapter,
+  GovernedDatasetConversationContextVersionAuthorityAdapter,
 } from './platform/agent-production.composition.js';
 import {
   composeDdaBuaPortFromAdmissionService,
@@ -121,6 +122,8 @@ export type AppModuleOptions = SystemModuleOptions &
   JraWorkerModuleOptions & {
     /** AUD/BUA participant that writes through the exact JRA serializable transaction. */
     readonly workerResultFinalizationEffects?: WorkerResultFinalizationEffectsPortV1;
+    /** Local-only server-owned project projection for dashboard routes. */
+    readonly dashboardProjectId?: string;
   };
 
 @Module({})
@@ -257,6 +260,9 @@ export class AppModule {
               findPrincipalByAccessToken: sessions.findPrincipalByAccessToken.bind(sessions),
             },
             workspaceEpochResolver,
+            options.dashboardProjectId === undefined
+              ? {}
+              : { dashboardProjectId: options.dashboardProjectId },
           )
         : undefined);
     const agentAuthority =
@@ -275,12 +281,19 @@ export class AppModule {
           ));
     const conversationContextVersionAuthority =
       options.conversationContextVersionAuthority ??
-      (governedDatasetAuthorization === undefined || datasetVersionRepository === undefined
+      (governedDatasetAuthorization === undefined
         ? undefined
-        : new DsmConversationContextVersionAuthorityAdapter(
-            governedDatasetAuthorization,
-            datasetVersionRepository,
-          ));
+        : governedDatasetRepository !== undefined
+          ? new GovernedDatasetConversationContextVersionAuthorityAdapter(
+              governedDatasetAuthorization,
+              governedDatasetRepository,
+            )
+          : datasetVersionRepository === undefined
+            ? undefined
+            : new DsmConversationContextVersionAuthorityAdapter(
+                governedDatasetAuthorization,
+                datasetVersionRepository,
+              ));
     const iaePort =
       options.iaePort ??
       (artifactRepository === undefined

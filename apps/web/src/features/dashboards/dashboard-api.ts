@@ -32,6 +32,22 @@ export interface DashboardApiBaseConfigurationV1 {
   readonly baseUrl: string;
 }
 
+export interface DashboardFreshnessViewV1 {
+  readonly dashboardId: string;
+  readonly freshnessPolicy: string;
+  readonly freshnessState: 'CURRENT' | 'PENDING' | 'STALE' | 'BLOCKED' | 'SOURCE_UNAVAILABLE';
+  readonly lastSuccessfulRefreshAt?: string;
+  readonly lastGoodSnapshotId?: string;
+  readonly dashboardVersionId?: string;
+  readonly resultCompleteness: 'COMPLETE' | 'SAMPLED' | 'TRUNCATED' | 'UNKNOWN';
+}
+
+export interface DashboardQueryViewV1 {
+  readonly rows: readonly Record<string, string>[];
+  readonly permissionExpansion: Readonly<Record<string, false>>;
+  readonly deniedFieldsExposed: false;
+}
+
 type DashboardEnvironment = Readonly<Record<string, unknown>>;
 
 function configuredString(environment: DashboardEnvironment, key: string): string | undefined {
@@ -40,7 +56,11 @@ function configuredString(environment: DashboardEnvironment, key: string): strin
   return value.trim();
 }
 
-/** DDA-020: only load live dashboard data with an explicit governed target. */
+/**
+ * DDA-020: only load live dashboard data with an explicit governed target. The dashboard
+ * identifier is the governed target; an absent API base URL means the deployment serves
+ * the API from the same origin (dev proxy and Caddy fronts both do this).
+ */
 export function dashboardLiveConfiguration(
   environment: DashboardEnvironment = import.meta.env,
   dashboardIdOverride?: string,
@@ -48,9 +68,9 @@ export function dashboardLiveConfiguration(
   const apiBaseUrl = configuredString(environment, 'VITE_DATABREEZE_API_BASE_URL');
   const dashboardId =
     dashboardIdOverride ?? configuredString(environment, 'VITE_DATABREEZE_DASHBOARD_ID');
-  if (apiBaseUrl === undefined || dashboardId === undefined) return undefined;
+  if (dashboardId === undefined) return undefined;
   return Object.freeze({
-    baseUrl: apiBaseUrl.replace(/\/$/u, ''),
+    baseUrl: (apiBaseUrl ?? '').replace(/\/$/u, ''),
     dashboardId,
   });
 }
@@ -148,6 +168,90 @@ export async function fetchDashboardDraft(
   const payload: unknown = await response.json();
   if (!isDashboardDraft(payload)) throw new Error('DASHBOARD_DRAFT_INVALID');
   return Object.freeze(payload);
+}
+
+function isFreshnessView(value: unknown): value is DashboardFreshnessViewV1 {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value['dashboardId'] === 'string' &&
+    typeof value['freshnessPolicy'] === 'string' &&
+    typeof value['freshnessState'] === 'string' &&
+    ['CURRENT', 'PENDING', 'STALE', 'BLOCKED', 'SOURCE_UNAVAILABLE'].includes(
+      value['freshnessState'],
+    ) &&
+    typeof value['resultCompleteness'] === 'string' &&
+    ['COMPLETE', 'SAMPLED', 'TRUNCATED', 'UNKNOWN'].includes(value['resultCompleteness']) &&
+    (value['lastGoodSnapshotId'] === undefined || typeof value['lastGoodSnapshotId'] === 'string')
+  );
+}
+
+/** Reads the server-owned last-good snapshot pointer before requesting rows. */
+export async function fetchDashboardFreshness(
+  configuration: DashboardLiveConfigurationV1,
+  signal?: AbortSignal,
+): Promise<DashboardFreshnessViewV1> {
+  const init: RequestInit = {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+    credentials: 'include',
+  };
+  if (signal !== undefined) init.signal = signal;
+  const response = await globalThis.fetch(
+    `${configuration.baseUrl}/v1/dda/dashboards/${encodeURIComponent(configuration.dashboardId)}/freshness`,
+    init,
+  );
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('DASHBOARD_FRESHNESS_UNAUTHORIZED');
+  }
+  if (response.status === 404) throw new Error('DASHBOARD_FRESHNESS_NOT_FOUND');
+  if (!response.ok) throw new Error('DASHBOARD_FRESHNESS_UNAVAILABLE');
+  const payload: unknown = await response.json();
+  const value =
+    isRecord(payload) && payload['accepted'] === true ? payload['value'] : payload;
+  if (!isFreshnessView(value)) throw new Error('DASHBOARD_FRESHNESS_INVALID');
+  return Object.freeze(value);
+}
+
+function isDashboardQueryView(value: unknown): value is DashboardQueryViewV1 {
+  if (!isRecord(value) || !Array.isArray(value['rows'])) return false;
+  return (
+    value['rows'].every(
+      (row) =>
+        isRecord(row) && Object.values(row).every((entry) => typeof entry === 'string'),
+    ) &&
+    isRecord(value['permissionExpansion']) &&
+    Object.values(value['permissionExpansion']).every((entry) => entry === false) &&
+    value['deniedFieldsExposed'] === false
+  );
+}
+
+/** Reads server-authorized materialized rows for an exact last-good snapshot. */
+export async function fetchDashboardQueryView(
+  configuration: DashboardLiveConfigurationV1,
+  snapshotId: string,
+  signal?: AbortSignal,
+): Promise<DashboardQueryViewV1> {
+  const init: RequestInit = {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'content-type': 'application/json',
+      'idempotency-key': globalThis.crypto.randomUUID(),
+    },
+    credentials: 'include',
+    body: JSON.stringify({ snapshotId }),
+  };
+  if (signal !== undefined) init.signal = signal;
+  const response = await globalThis.fetch(`${configuration.baseUrl}/v1/dda/dashboards/query/view`, init);
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('DASHBOARD_RESULT_UNAUTHORIZED');
+  }
+  if (!response.ok) throw new Error('DASHBOARD_RESULT_UNAVAILABLE');
+  const payload: unknown = await response.json();
+  if (!isRecord(payload) || payload['accepted'] !== true || !isDashboardQueryView(payload['value'])) {
+    throw new Error('DASHBOARD_RESULT_INVALID');
+  }
+  return Object.freeze(payload['value']);
 }
 
 /** Accept creates a draft only; publication remains a separate authorized action (DDA-024). */

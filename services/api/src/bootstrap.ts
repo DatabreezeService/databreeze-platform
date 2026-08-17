@@ -52,6 +52,8 @@ export interface ApiApplicationOptions
   readonly compatibilityPort?: ClientCompatibilityPort;
   readonly readinessPort?: ReadinessPort;
   readonly requestContext?: RequestContextOptions;
+  /** Local-only server-owned project projection for dashboard routes. */
+  readonly dashboardProjectId?: string;
 }
 
 export async function createApiApplication(

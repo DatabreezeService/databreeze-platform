@@ -16,6 +16,9 @@ const AGENT_TURN_SCHEMA =
 
 export type AnalysisConversationApiErrorCodeV1 =
   | 'CONVERSATION_ABORTED'
+  | 'CONVERSATION_CREATE_FORBIDDEN'
+  | 'CONVERSATION_CREATE_RESPONSE_INVALID'
+  | 'CONVERSATION_CREATE_UNAVAILABLE'
   | 'CONVERSATION_FORBIDDEN'
   | 'CONVERSATION_NOT_FOUND'
   | 'CONVERSATION_RESPONSE_INVALID'
@@ -26,6 +29,12 @@ export type AnalysisConversationApiErrorCodeV1 =
   | 'AGENT_TURN_USAGE_DENIED'
   | 'AGENT_TURN_RESPONSE_INVALID'
   | 'AGENT_TURN_UNAVAILABLE';
+
+export interface CreatedAuthorizedConversationV1 {
+  readonly conversationId: string;
+  readonly title: string;
+  readonly activeDatasetIds: readonly string[];
+}
 
 export class AnalysisConversationApiError extends Error {
   public constructor(readonly code: AnalysisConversationApiErrorCodeV1) {
@@ -60,6 +69,13 @@ export interface RunAuthorizedAgentTurnInputV1 extends ConversationApiBaseInputV
   readonly expectedContextRevision?: number;
 }
 
+export interface CreateAuthorizedConversationInputV1 extends ConversationApiBaseInputV1 {
+  readonly title: string;
+  readonly datasetIds: readonly string[];
+  readonly datasetVersionIds: Readonly<Record<string, string>>;
+  readonly idempotencyKey: string;
+}
+
 function configuredBaseUrl(
   environment: Readonly<Record<string, unknown>> = import.meta.env,
 ): string {
@@ -90,13 +106,22 @@ function isAbort(error: unknown): boolean {
   );
 }
 
-function requestInit(method: 'GET' | 'POST', signal: AbortSignal | undefined, body?: unknown) {
+function requestInit(
+  method: 'GET' | 'POST',
+  signal: AbortSignal | undefined,
+  body?: unknown,
+  idempotencyKey?: string,
+) {
   return {
     method,
     credentials: 'include' as const,
     headers:
       method === 'POST'
-        ? { Accept: 'application/json', 'content-type': 'application/json' }
+        ? {
+            Accept: 'application/json',
+            'content-type': 'application/json',
+            ...(idempotencyKey === undefined ? {} : { 'Idempotency-Key': idempotencyKey }),
+          }
         : { Accept: 'application/json' },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     ...(signal === undefined ? {} : { signal }),
@@ -172,6 +197,57 @@ export async function fetchAuthorizedConversationHistory(
   return parsed.value;
 }
 
+function isCreatedConversation(value: unknown): value is CreatedAuthorizedConversationV1 {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    (value as Record<string, unknown>)['accepted'] === true &&
+    typeof (value as Record<string, unknown>)['conversationId'] === 'string' &&
+    typeof (value as Record<string, unknown>)['title'] === 'string' &&
+    Array.isArray((value as Record<string, unknown>)['activeDatasetIds'])
+  );
+}
+
+/**
+ * DDA-055: create one authorized conversation bound to explicit governed dataset versions.
+ * Tenant scope comes from the authenticated server context, never from this payload.
+ */
+export async function createAuthorizedConversation(
+  input: CreateAuthorizedConversationInputV1,
+): Promise<CreatedAuthorizedConversationV1> {
+  let response: Response;
+  try {
+    response = await globalThis.fetch(
+      endpoint(input.baseUrl, '/v1/dda/conversations'),
+      requestInit(
+        'POST',
+        input.signal,
+        {
+          title: input.title,
+          datasetIds: input.datasetIds,
+          datasetVersionIds: input.datasetVersionIds,
+          idempotencyKey: input.idempotencyKey,
+        },
+        input.idempotencyKey,
+      ),
+    );
+  } catch (error) {
+    throw new AnalysisConversationApiError(
+      isAbort(error) ? 'CONVERSATION_ABORTED' : 'CONVERSATION_CREATE_UNAVAILABLE',
+    );
+  }
+  if (response.status === 401 || response.status === 403) {
+    throw new AnalysisConversationApiError('CONVERSATION_CREATE_FORBIDDEN');
+  }
+  if (!response.ok) throw new AnalysisConversationApiError('CONVERSATION_CREATE_UNAVAILABLE');
+  const payload: unknown = await responseJson(response, 'CONVERSATION_CREATE_RESPONSE_INVALID');
+  if (!isCreatedConversation(payload)) {
+    throw new AnalysisConversationApiError('CONVERSATION_CREATE_RESPONSE_INVALID');
+  }
+  return Object.freeze({ ...payload });
+}
+
 /** DDA-055/DDA-056: load one bounded, reauthorized message and context-event page. */
 export async function fetchAuthorizedConversation(
   input: FetchAuthorizedConversationInputV1,
@@ -223,7 +299,7 @@ export async function runAuthorizedAgentTurn(
   try {
     response = await globalThis.fetch(
       endpoint(input.baseUrl, '/v1/dda/agent/turns'),
-      requestInit('POST', input.signal, command),
+      requestInit('POST', input.signal, command, input.idempotencyKey),
     );
   } catch (error) {
     throw new AnalysisConversationApiError(

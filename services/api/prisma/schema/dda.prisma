@@ -254,6 +254,35 @@ model EtlProposalRecord {
   @@schema("dda")
 }
 
+/// DDA-053/WEB-021: durable multi-source import review and approval metadata.
+/// Source bytes remain owned by IAE; this row stores only bounded, content-safe
+/// profile/review metadata and opaque references to the uploaded artifacts.
+model DataImportRecord {
+  id                    String   @id @db.Uuid
+  scopeType             String   @map("scope_type") @db.VarChar(24)
+  organizationId        String   @map("organization_id") @db.Uuid
+  workspaceId           String?  @map("workspace_id") @db.Uuid
+  projectId             String?  @map("project_id") @db.Uuid
+  revision              Int
+  state                 String   @db.VarChar(32)
+  destination           String   @db.VarChar(32)
+  datasetId             String?  @map("dataset_id") @db.Uuid
+  datasetName           String   @map("dataset_name") @db.VarChar(200)
+  idempotencyKey        String   @map("idempotency_key") @db.VarChar(200)
+  payloadFingerprint    String   @map("payload_fingerprint") @db.Char(64)
+  sourceDocument        Json     @map("source_document")
+  reviewDocument        Json     @map("review_document")
+  acceptedDocument      Json?    @map("accepted_document")
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, projectId, idempotencyKey], map: "data_imports_scope_idempotency_key")
+  @@index([organizationId, workspaceId, projectId, createdAt], map: "data_imports_scope_created_idx")
+  @@index([organizationId, workspaceId, projectId, state], map: "data_imports_scope_state_idx")
+  @@map("data_imports")
+  @@schema("dda")
+}
+
 /// DDA-053: one durable acceptance owner per exact proposal revision and tenant.
 model EtlAcceptanceCommandRecord {
   id                 String    @id @db.Uuid

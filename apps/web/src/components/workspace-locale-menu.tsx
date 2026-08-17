@@ -10,13 +10,18 @@ const LABELS: Record<WorkspaceLocale, string> = {
   'vi-VN': 'Tiếng Việt',
 };
 
-export function workspaceLocaleHref(nextLocale: WorkspaceLocale, pathname: string): string {
+export function workspaceLocaleHref(
+  nextLocale: WorkspaceLocale,
+  pathname: string,
+  search = '',
+  hash = '',
+): string {
   const segments = pathname.split('/').filter(Boolean);
   const first = segments[0];
   if (first === 'en' || first === 'vi-VN') {
-    return `/${[nextLocale, ...segments.slice(1)].join('/')}`;
+    return `/${[nextLocale, ...segments.slice(1)].join('/')}${search}${hash}`;
   }
-  return `/${nextLocale}/dashboards`;
+  return `/${nextLocale}/dashboards${search}${hash}`;
 }
 
 export function WorkspaceLocaleMenu({ locale }: { readonly locale: WorkspaceLocale }) {
@@ -43,7 +48,12 @@ export function WorkspaceLocaleMenu({ locale }: { readonly locale: WorkspaceLoca
   }, [open]);
 
   const alternateLocale = locale === 'vi-VN' ? 'en' : 'vi-VN';
-  const alternatePath = workspaceLocaleHref(alternateLocale, pathname);
+  const alternatePath = workspaceLocaleHref(
+    alternateLocale,
+    pathname,
+    location.search,
+    location.hash,
+  );
 
   return (
     <div className="workspace-topbar__locale-menu" ref={rootRef}>
@@ -75,11 +85,10 @@ export function WorkspaceLocaleMenu({ locale }: { readonly locale: WorkspaceLoca
         </svg>
       </button>
 
-      {/* Primary direct link for tests and direct navigation */}
+      {/* Primary direct link for tests and screen readers */}
       <Link
-        aria-hidden="true"
+        aria-label={locale === 'vi-VN' ? 'Tiếng Việt' : 'Chuyển sang tiếng Việt'}
         className="workspace-topbar__locale-hidden-link dda-sr-only"
-        tabIndex={-1}
         to={alternatePath}
       >
         {LABELS[locale]}
@@ -94,7 +103,7 @@ export function WorkspaceLocaleMenu({ locale }: { readonly locale: WorkspaceLoca
                 className={`workspace-topbar__locale-option ${option === locale ? 'is-selected' : ''}`}
                 onClick={() => setOpen(false)}
                 role="option"
-                to={workspaceLocaleHref(option, pathname)}
+                to={workspaceLocaleHref(option, pathname, location.search, location.hash)}
               >
                 <LocaleFlag className="workspace-topbar__locale-flag" locale={option} />
                 <span>{LABELS[option]}</span>

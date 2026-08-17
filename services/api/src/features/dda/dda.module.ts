@@ -143,7 +143,13 @@ import {
   type DashboardProposalPolicyStoreV1,
 } from './dashboard/application/dashboard-proposal.service.js';
 import { InMemoryEtlProposalRepositoryAdapter } from './etl/adapter/in-memory-etl-proposal-repository.adapter.js';
+import { InMemoryDataImportRepositoryAdapter } from './etl/adapter/in-memory-data-import-repository.adapter.js';
+import {
+  PrismaDataImportRepositoryAdapter,
+  type DataImportDatabaseClientV1,
+} from './etl/adapter/prisma-data-import-repository.adapter.js';
 import { AutomaticPreparationController } from './etl/api/automatic-preparation.controller.js';
+import { DataImportController } from './etl/api/data-import.controller.js';
 import { EtlAcceptanceController } from './etl/api/etl-acceptance.controller.js';
 import { EtlProposalController } from './etl/api/etl-proposal.controller.js';
 import { AutomaticPreparationEnqueueService } from './etl/application/automatic-preparation-enqueue.service.js';
@@ -169,6 +175,11 @@ import type {
 } from './etl/application/etl-foundation-ports.js';
 import type { EtlProposalRepositoryPortV1 } from './etl/application/etl-proposal-repository.port.js';
 import { EtlProposalServiceV1 } from './etl/application/etl-proposal.service.js';
+import {
+  DATA_IMPORT_REPOSITORY_PORT,
+  type DataImportRepositoryPortV1,
+} from './etl/application/data-import-repository.port.js';
+import { DataImportServiceV1 } from './etl/application/data-import.service.js';
 import type { EtlProposalResourceResolverPortV1 } from './etl/application/etl-proposal-authority.port.js';
 import { WebIntakeController } from './intake/api/web-intake.controller.js';
 import type {
@@ -272,6 +283,7 @@ import {
   SOURCE_CATALOG_REPOSITORY_PORT,
   type SourceCatalogRepositoryPortV1,
 } from './source-catalog/application/source-catalog-repository.port.js';
+import type { SourceCatalogRegistrationPortV1 } from './source-catalog/application/source-catalog-registration.port.js';
 import {
   SOURCE_CATALOG_AUTHORIZATION_PORT,
   UnavailableSourceCatalogAuthorizationAdapter,
@@ -330,6 +342,9 @@ import { IamNotificationRecipientResolverAdapter } from './notification/iam-noti
 import type { IamRepositoryPortV1 } from '../iam/application/iam-repository.port.js';
 import type { AccessPresetService } from '../iam/application/access-preset.service.js';
 import type { DatasetVersionRepositoryPortV1 } from '../dsm/application/dataset-version-repository.port.js';
+import type { GovernedDatasetRepositoryPortV1 } from '../dsm/application/governed-dataset-repository.port.js';
+import type { ArtifactRepositoryPortV1 } from '../iae/application/artifact-repository.port.js';
+import type { ArtifactIntakeRepositoryPortV1 } from '../iae/application/artifact-intake-repository.port.js';
 import type { GovernedDatasetAuthorizationPortV1 } from '../dsm/application/governed-dataset-authorization.port.js';
 import type { ResultManifestRepositoryPortV1 } from '../jra/application/result-manifest-repository.port.js';
 import type { WorkerVerifiedResultManifestPortV1 } from '../jra/worker/worker-result-finalization.port.js';
@@ -361,6 +376,8 @@ export interface DdaModuleOptions {
   readonly analysisPlanRepository?: AnalysisPlanRepositoryPortV1;
   readonly refreshRepository?: RefreshRepositoryPortV1;
   readonly etlProposalRepository?: EtlProposalRepositoryPortV1;
+  /** Durable server-owned upload/review/approval state. */
+  readonly dataImportRepository?: DataImportRepositoryPortV1;
   readonly dashboardDraftRepository?: DashboardDraftRepositoryPortV1;
   readonly dashboardWorkspaceHistory?: DashboardWorkspaceHistoryPortV1;
   readonly dashboardProposalRepository?: DashboardProposalRepositoryPortV1;
@@ -403,6 +420,9 @@ export interface DdaModuleOptions {
   readonly accessPresetService?: AccessPresetService;
   readonly governedDatasetAuthorization?: GovernedDatasetAuthorizationPortV1;
   readonly datasetVersionRepository?: DatasetVersionRepositoryPortV1;
+  readonly governedDatasetRepository?: GovernedDatasetRepositoryPortV1;
+  readonly artifactRepository?: ArtifactRepositoryPortV1;
+  readonly artifactIntakeRepository?: ArtifactIntakeRepositoryPortV1;
   readonly resultManifestRepository?: ResultManifestRepositoryPortV1;
   readonly analysisCatalogSource?: AnalysisCatalogMetadataSourcePortV1;
   readonly analysisEngine?: DeterministicAnalysisEnginePortV1;
@@ -414,6 +434,8 @@ export interface DdaModuleOptions {
   readonly refreshUsage?: RefreshUsagePortV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
   readonly sourceCatalogRepository?: SourceCatalogRepositoryPortV1;
+  /** Server-owned registration used by approved imports to populate DDA-052. */
+  readonly sourceCatalogRegistration?: SourceCatalogRegistrationPortV1;
   readonly sourceCatalogAuthorization?: SourceCatalogAuthorizationPortV1;
   readonly originalViewResolver?: OriginalViewResolverPortV1;
   /** IAE public original-view authority; omitted composition remains fail closed for cloud views. */
@@ -644,6 +666,45 @@ export class DdaModule {
       })();
     const intakeIae = options.intakeIae ?? createFailClosedIntakeIaeV1();
     const webIntakeService = new WebIntakeServiceV1(intakeIae, options.intakeUpload);
+    const sourceCatalogRepository =
+      options.sourceCatalogRepository ??
+      (options.ddaDatabase === undefined
+        ? new InMemorySourceCatalogRepositoryAdapter()
+        : new PrismaSourceCatalogRepositoryAdapter(
+            options.ddaDatabase as unknown as ConstructorParameters<
+              typeof PrismaSourceCatalogRepositoryAdapter
+            >[0],
+          ));
+    const sourceCatalogRegistration =
+      options.sourceCatalogRegistration ??
+      (sourceCatalogRepository instanceof InMemorySourceCatalogRepositoryAdapter ||
+      sourceCatalogRepository instanceof PrismaSourceCatalogRepositoryAdapter
+        ? sourceCatalogRepository
+        : undefined);
+    const dataImportRepository =
+      options.dataImportRepository ??
+      (options.ddaDatabase === undefined
+        ? new InMemoryDataImportRepositoryAdapter()
+        : new PrismaDataImportRepositoryAdapter(
+            options.ddaDatabase as unknown as DataImportDatabaseClientV1,
+          ));
+    const dataImportService = new DataImportServiceV1({
+      imports: dataImportRepository,
+      webIntake: webIntakeService,
+      ...(options.governedDatasetRepository === undefined
+        ? {}
+        : { governedDatasets: options.governedDatasetRepository }),
+      ...(options.datasetVersionRepository === undefined
+        ? {}
+        : { datasetVersions: options.datasetVersionRepository }),
+      ...(options.artifactRepository === undefined
+        ? {}
+        : { artifacts: options.artifactRepository }),
+      ...(options.artifactIntakeRepository === undefined
+        ? {}
+        : { artifactIntake: options.artifactIntakeRepository }),
+      ...(sourceCatalogRegistration === undefined ? {} : { sourceCatalogRegistration }),
+    });
     const etlProposalService = new EtlProposalServiceV1(etlProposals);
     const etlAcceptanceAuthorization =
       options.etlAcceptanceAuthorization ?? new UnavailableEtlAcceptanceAuthorizationAdapter();
@@ -799,15 +860,6 @@ export class DdaModule {
       aud,
       options.receiptRecords ?? createFailClosedReceiptRecordsV1(),
     );
-    const sourceCatalogRepository =
-      options.sourceCatalogRepository ??
-      (options.ddaDatabase === undefined
-        ? new InMemorySourceCatalogRepositoryAdapter()
-        : new PrismaSourceCatalogRepositoryAdapter(
-            options.ddaDatabase as unknown as ConstructorParameters<
-              typeof PrismaSourceCatalogRepositoryAdapter
-            >[0],
-          ));
     const notificationRepository =
       options.notificationRepository ??
       (options.ddaDatabase === undefined
@@ -905,9 +957,11 @@ export class DdaModule {
       (options.ddaDatabase === undefined
         ? new FailClosedAgentConsequentialCommandAdapter()
         : new PrismaAgentConsequentialCommandAdapter(options.ddaDatabase));
+    // Local development may honor the same owner-enabled provider gate; the factory
+    // itself fails closed to Disabled when the server-held key is absent or invalid.
     const agentProvider: AgentProviderPortV1 =
       options.agentProvider ??
-      (runtimeMode === 'production'
+      (runtimeMode === 'production' || process.env['DATABREEZE_OPENAI_AGENT_ENABLED'] === 'true'
         ? createProductionAgentProvider()
         : new DisabledAgentProviderAdapter());
     const agentAuthority = options.agentAuthority ?? new FailClosedAgentAuthorityAdapter();
@@ -956,6 +1010,7 @@ export class DdaModule {
       module: DdaModule,
       controllers: [
         WebIntakeController,
+        DataImportController,
         EtlProposalController,
         EtlAcceptanceController,
         AutomaticPreparationController,
@@ -1007,6 +1062,8 @@ export class DdaModule {
           inject: [DDA_AUDIT_PORT, DDA_IAE_PORT],
         },
         { provide: WebIntakeServiceV1, useValue: webIntakeService },
+        { provide: DATA_IMPORT_REPOSITORY_PORT, useValue: dataImportRepository },
+        { provide: DataImportServiceV1, useValue: dataImportService },
         { provide: EtlProposalServiceV1, useValue: etlProposalService },
         { provide: EtlAcceptanceServiceV1, useValue: etlAcceptanceService },
         { provide: ETL_ACCEPTANCE_AUTHORIZATION_PORT, useValue: etlAcceptanceAuthorization },

@@ -8,7 +8,7 @@ import {
 } from '../src/features/dashboards/dashboard-api.ts';
 
 describe('dashboard live API configuration [DDA-020]', () => {
-  it('requires both an API base URL and dashboard identity before requesting live data', () => {
+  it('requires a governed dashboard identity; a missing base URL means same-origin', () => {
     expect(dashboardLiveConfiguration({})).toBeUndefined();
     expect(
       dashboardLiveConfiguration({
@@ -24,6 +24,9 @@ describe('dashboard live API configuration [DDA-020]', () => {
       baseUrl: 'https://api.example.test',
       dashboardId: 'dashboard-123',
     });
+    expect(
+      dashboardLiveConfiguration({ VITE_DATABREEZE_DASHBOARD_ID: 'dashboard-123' }),
+    ).toEqual({ baseUrl: '', dashboardId: 'dashboard-123' });
     expect(
       dashboardApiBaseConfiguration({ VITE_DATABREEZE_API_BASE_URL: 'https://api.example.test/' }),
     ).toEqual({ baseUrl: 'https://api.example.test' });

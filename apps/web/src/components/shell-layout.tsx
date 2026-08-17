@@ -5,12 +5,13 @@ import { appMessage } from '../app/messages.ts';
 import { filterNavigationItems, type WebAccessContext } from '../app/navigation.ts';
 import { UDW_PRIMARY_NAV_ITEMS_V1 } from '../app/unified-primary-navigation.ts';
 import { createAuthApiV1 } from '../features/auth/auth-api.ts';
-import { currentAuthBootstrapV1 } from '../features/auth/auth-session.ts';
+import { clearAuthSessionV1, currentAuthBootstrapV1 } from '../features/auth/auth-session.ts';
 import { ApplicationRail } from './application-rail.tsx';
 import {
   readSidebarCompactPreference,
   writeSidebarCompactPreference,
 } from './sidebar-preference.ts';
+import { WorkspaceFlowGuide } from './workspace-flow-guide.tsx';
 import { WorkspaceTopbar } from './workspace-topbar.tsx';
 import '../styles/workspace-shell.css';
 
@@ -77,10 +78,14 @@ export function ShellLayout({ accessContext }: { readonly accessContext: WebAcce
           mobileNavigationOpen={navigationOpen}
           onMobileNavigationOpenChange={setNavigationOpen}
           onSignOut={async () => {
-            const result = await createAuthApiV1({
-              baseUrl: import.meta.env['VITE_DATABREEZE_API_BASE_URL'] ?? '',
-            }).signOut();
-            if (result.accepted) navigate(`/${locale}/sign-in`, { replace: true });
+            try {
+              await createAuthApiV1({
+                baseUrl: (import.meta.env as Record<string, unknown>)['VITE_DATABREEZE_API_BASE_URL'] as string ?? '',
+              }).signOut();
+            } finally {
+              clearAuthSessionV1();
+              void navigate(`/${locale}/sign-in`, { replace: true });
+            }
           }}
         />
         <ApplicationRail
@@ -101,6 +106,7 @@ export function ShellLayout({ accessContext }: { readonly accessContext: WebAcce
           id="main-content"
           tabIndex={-1}
         >
+          <WorkspaceFlowGuide locale={locale} />
           <Outlet />
         </main>
       </div>

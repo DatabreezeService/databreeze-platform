@@ -103,7 +103,8 @@ describe('floating agent surfaces', () => {
     expect(panel.querySelector('img')?.getAttribute('src')).toBe(
       '/landing/assets/databreeze-mark.png',
     );
-    expect(screen.getByRole('combobox', { name: 'Chuyển hội thoại' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Lịch sử hội thoại' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Cuộc trò chuyện mới' })).toBeNull();
     expect(screen.getByRole('textbox', { name: 'Nhập câu hỏi cho trợ lý' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Gửi' })).toBeTruthy();
     expect(screen.getByText('Bán hàng toàn quốc · Phiên bản 12')).toBeTruthy();
@@ -134,10 +135,8 @@ describe('floating agent surfaces', () => {
     );
 
     await user.click(screen.getByRole('button', { name: 'Mở trợ lý' }));
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Chuyển hội thoại' }),
-      'conversation-orders',
-    );
+    await user.click(screen.getByRole('button', { name: 'Lịch sử hội thoại' }));
+    await user.click(screen.getByRole('option', { name: 'Đơn hàng bất thường' }));
 
     expect(store.getActiveConversation()?.conversationId).toBe('conversation-orders');
     expect(screen.getByText('Tồn kho cửa hàng · Phiên bản 7')).toBeTruthy();

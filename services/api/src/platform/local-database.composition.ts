@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { S3Client } from '@aws-sdk/client-s3';
 import { createClient as createRedisClient } from 'redis';
+import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { ApiApplicationOptions } from '../bootstrap.js';
 import { Argon2PasswordHasherAdapter } from '../features/iam/adapter/argon2-password-hasher.adapter.js';
@@ -41,8 +42,15 @@ import {
 import { UnavailableDeviceEnrollmentProofVerifier } from '../features/iam/application/device-identity.service.js';
 import { UnavailableMfaFactorProofVerifier } from '../features/iam/application/mfa.service.js';
 import { DatabaseReadinessAdapter } from '../features/system/adapter/database-readiness.adapter.js';
+import { PrismaArtifactRepositoryAdapter } from '../features/iae/adapter/prisma-artifact-repository.adapter.js';
+import type { ArtifactDatabaseClientV1 } from '../features/iae/adapter/prisma-artifact-repository.adapter.js';
+import { LocalMinioArtifactProcessingContentReader } from '../features/iae/adapter/local-minio-artifact-processing-content.adapter.js';
 import { LocalMinioWebIntakeObjectStoreAdapter } from '../features/iae/adapter/local-minio-web-intake-object-store.adapter.js';
+import { ObjectStorageArtifactProcessingContentAdapter } from '../features/iae/adapter/object-storage-artifact-processing-content.adapter.js';
 import type { LocalWebIntakeDatabaseV1 } from '../features/iae/adapter/local-web-intake.adapter.js';
+import { LocalAnalysisCatalogMetadataSourceAdapterV1 } from '../features/dda/adapter/local-analysis-catalog-metadata-source.adapter.js';
+import { LocalDsmPortAdapterV1 } from '../features/dda/adapter/local-dsm-port.adapter.js';
+import { PrismaResultManifestRepositoryAdapter } from '../features/jra/adapter/prisma-result-manifest-repository.adapter.js';
 
 export const LOCAL_RUNTIME_PROFILE = 'local';
 export const PILOT_RUNTIME_PROFILE = 'pilot';
@@ -337,6 +345,14 @@ function localFromAddress(environment: RuntimeEnvironment): string {
   return candidate;
 }
 
+function localDashboardProjectId(environment: RuntimeEnvironment): string | undefined {
+  const candidate = environment['DATABREEZE_LOCAL_PROJECT_ID']?.trim();
+  if (!candidate) return undefined;
+  const parsed = parseStableIdentifierV1(candidate);
+  if (!parsed.accepted) throw new Error(LOCAL_IAM_KEY_ERROR);
+  return parsed.value;
+}
+
 function generatedClientPath(): string {
   const candidates = [
     resolve(process.cwd(), 'build/prisma-client'),
@@ -412,6 +428,7 @@ async function createComposeDatabaseComposition(
   const gmailSmtpOptions =
     emailProvider === 'gmail' ? localGmailSmtpOptions(environment) : undefined;
   const fromAddress = localFromAddress(environment);
+  const dashboardProjectId = localDashboardProjectId(environment);
   if (
     emailProvider === 'gmail' &&
     gmailSmtpOptions &&
@@ -482,6 +499,24 @@ async function createComposeDatabaseComposition(
         ? dependencies.createSmtpSender(smtpOptions)
         : new NodeLoopbackSmtpSenderAdapter(smtpOptions);
     })();
+    const localMinioClient =
+      minio === undefined
+        ? undefined
+        : new S3Client({
+            endpoint: minio.endpoint,
+            forcePathStyle: true,
+            region: 'us-east-1',
+            credentials: {
+              accessKeyId: minio.accessKeyId,
+              secretAccessKey: minio.secretAccessKey,
+            },
+          });
+    const localArtifactRepository =
+      localMinioClient === undefined
+        ? undefined
+        : new PrismaArtifactRepositoryAdapter(
+            constructedClient as unknown as ArtifactDatabaseClientV1,
+          );
     const options = Object.freeze({
       runtimeMode: 'production' as const,
       allowInMemoryAdapters: false,
@@ -524,22 +559,35 @@ async function createComposeDatabaseComposition(
       mfaFactorProofVerifier: new UnavailableMfaFactorProofVerifier(),
       deviceEnrollmentProofVerifier: new UnavailableDeviceEnrollmentProofVerifier(),
       serviceAccountSecretEnvelopeKey: serviceAccountKey,
-      ...(minio === undefined
+            ...(dashboardProjectId === undefined ? {} : { dashboardProjectId }),
+            dsmPort: new LocalDsmPortAdapterV1(
+              constructedClient as unknown as ConstructorParameters<typeof LocalDsmPortAdapterV1>[0],
+            ),
+            analysisCatalogSource: new LocalAnalysisCatalogMetadataSourceAdapterV1(
+              constructedClient as unknown as ConstructorParameters<
+                typeof LocalAnalysisCatalogMetadataSourceAdapterV1
+              >[0],
+            ),
+            resultManifestRepository: new PrismaResultManifestRepositoryAdapter(
+              constructedClient as unknown as ConstructorParameters<
+                typeof PrismaResultManifestRepositoryAdapter
+              >[0],
+            ),
+            ...(minio === undefined
         ? {}
         : {
             localWebIntakeDatabase: constructedClient as unknown as LocalWebIntakeDatabaseV1,
             localWebIntakeObjectStore: new LocalMinioWebIntakeObjectStoreAdapter({
-              client: new S3Client({
-                endpoint: minio.endpoint,
-                forcePathStyle: true,
-                region: 'us-east-1',
-                credentials: {
-                  accessKeyId: minio.accessKeyId,
-                  secretAccessKey: minio.secretAccessKey,
-                },
-              }),
+              client: localMinioClient!,
               bucket: minio.bucket,
             }),
+            artifactProcessingContent: new ObjectStorageArtifactProcessingContentAdapter(
+              new LocalMinioArtifactProcessingContentReader({
+                artifacts: localArtifactRepository!,
+                client: localMinioClient!,
+                bucket: minio.bucket,
+              }),
+            ),
           }),
       ...databaseOptions(constructedClient),
     }) as unknown as ApiApplicationOptions;

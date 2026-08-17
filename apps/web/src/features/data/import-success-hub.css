@@ -1,0 +1,111 @@
+.import-success-hub {
+  background: var(--dw-surface, #0c1030);
+  border: 1px solid var(--dw-line, rgba(219, 223, 255, 0.12));
+  border-radius: 16px;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  animation: scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  color: var(--dw-ink, #f7f7ff);
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.import-success-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: rgba(61, 80, 255, 0.15);
+  color: #55d6ff;
+  border: 1px solid rgba(61, 80, 255, 0.35);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.import-success-icon {
+  font-size: 0.875rem;
+}
+
+.import-success-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 750;
+  color: var(--dw-ink, #f7f7ff);
+  letter-spacing: -0.02em;
+}
+
+.import-success-subtitle {
+  max-width: 58ch;
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--dw-muted, #a9aed2);
+  line-height: 1.5;
+}
+
+.import-success-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  width: 100%;
+  max-width: 600px;
+  margin-top: 8px;
+}
+
+.import-success-card {
+  padding: 16px;
+  background: var(--dw-surface-2, #121844);
+  border: 1px solid var(--dw-line, rgba(219, 223, 255, 0.12));
+  border-radius: 12px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.import-success-card.is-highlight {
+  background: rgba(61, 80, 255, 0.15);
+  border-color: rgba(61, 80, 255, 0.4);
+}
+
+.import-success-card-tag {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--dw-muted, #a9aed2);
+}
+
+.import-success-card.is-highlight .import-success-card-tag {
+  color: #55d6ff;
+}
+
+.import-success-card h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--dw-ink, #f7f7ff);
+}
+
+.import-success-card p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--dw-muted, #a9aed2);
+}
+
+.import-success-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 12px;
+}

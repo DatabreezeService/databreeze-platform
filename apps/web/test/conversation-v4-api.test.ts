@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  createAuthorizedConversation,
   fetchAuthorizedConversation,
   fetchAuthorizedConversationHistory,
   runAuthorizedAgentTurn,
@@ -133,6 +134,9 @@ describe('[DDA-055][DDA-056][DDA-060] v4 Analysis transport', () => {
     const request = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(request[0]).toBe('https://api.example.test/v1/dda/agent/turns');
     expect(request[1]).toEqual(expect.objectContaining({ method: 'POST', credentials: 'include' }));
+    expect(new Headers(request[1].headers).get('idempotency-key')).toBe(
+      'turn:00000000-0000-4000-8000-000000000107',
+    );
     expect(JSON.parse(String(request[1].body))).toEqual({
       schemaVersion: 4,
       conversationId: CONVERSATION_ID,
@@ -141,6 +145,32 @@ describe('[DDA-055][DDA-056][DDA-060] v4 Analysis transport', () => {
       idempotencyKey: 'turn:00000000-0000-4000-8000-000000000107',
       locale: 'vi-VN',
     });
+  });
+
+  it('binds conversation creation to the same idempotency header used by the API request context', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        accepted: true,
+        conversationId: CONVERSATION_ID,
+        title: 'Phân tích mới',
+        activeDatasetIds: [DATASET_ID],
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await createAuthorizedConversation({
+      baseUrl: 'https://api.example.test',
+      title: 'Phân tích mới',
+      datasetIds: [DATASET_ID],
+      datasetVersionIds: { [DATASET_ID]: DATASET_VERSION_ID },
+      idempotencyKey: 'conversation:00000000-0000-4000-8000-000000000109',
+    });
+
+    expect(result.conversationId).toBe(CONVERSATION_ID);
+    const request = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(new Headers(request[1].headers).get('idempotency-key')).toBe(
+      'conversation:00000000-0000-4000-8000-000000000109',
+    );
   });
 
   it('fails closed on a malformed response and distinguishes permission denial', async () => {

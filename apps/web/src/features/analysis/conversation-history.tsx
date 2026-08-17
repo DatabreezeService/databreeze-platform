@@ -107,9 +107,7 @@ export function ConversationHistory({
             value={query}
           />
           {matchingItems.length === 0 ? (
-            <p className="analysis-conversation-history__empty" role="status">
-              {text.empty}
-            </p>
+            <p className="analysis-conversation-history__empty">{text.empty}</p>
           ) : (
             <ul
               aria-label={

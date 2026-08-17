@@ -44,13 +44,20 @@ export function SignInRoutePage() {
     <SignInPage
       locale={locale}
       onSignedIn={async (input) => {
-        const result = await api.signInWithPassword(input);
-        if (result.accepted) {
-          const established = await establishProductSession(api, result.value);
-          if (!established.accepted) return established;
-          void navigate(`/${locale}/data`, { replace: true });
+        try {
+          const result = await api.signInWithPassword(input);
+          if (result.accepted) {
+            const established = await establishProductSession(api, result.value);
+            if (established.accepted) {
+              void navigate(`/${locale}/data`, { replace: true });
+              return { accepted: true };
+            }
+          }
+        } catch {
+          clearAuthSessionV1();
         }
-        return result;
+
+        return { accepted: false };
       }}
     />
   );

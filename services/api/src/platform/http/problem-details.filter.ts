@@ -29,6 +29,14 @@ function frameworkStatus(error: unknown): number | undefined {
   return undefined;
 }
 
+function explicitHttpCode(error: unknown): string | undefined {
+  if (!(error instanceof HttpException)) return undefined;
+  const response = error.getResponse();
+  if (typeof response !== 'object' || response === null || Array.isArray(response)) return undefined;
+  const code = (response as Record<string, unknown>)['code'];
+  return typeof code === 'string' && /^DDA_[A-Z0-9_]{2,80}$/u.test(code) ? code : undefined;
+}
+
 function describe(error: unknown, correlationId: string): ProblemInput {
   if (error instanceof AuthenticationProblemError) {
     const unavailable = error.code === 'AUTHENTICATION_UNAVAILABLE';
@@ -242,6 +250,7 @@ function describe(error: unknown, correlationId: string): ProblemInput {
   }
 
   const status = error instanceof HttpException ? error.getStatus() : frameworkStatus(error);
+  const explicitCode = explicitHttpCode(error);
   if (status === HttpStatus.NOT_FOUND) {
     return {
       code: 'ROUTE_NOT_FOUND',
@@ -260,9 +269,18 @@ function describe(error: unknown, correlationId: string): ProblemInput {
       status,
     };
   }
+  if (status === HttpStatus.SERVICE_UNAVAILABLE) {
+    return {
+      code: explicitCode ?? 'SERVICE_UNAVAILABLE',
+      correlationId,
+      messageKey: 'api.error.service_unavailable',
+      retryable: true,
+      status,
+    };
+  }
   if (status !== undefined && status >= 400 && status < 500) {
     return {
-      code: 'BAD_REQUEST',
+      code: explicitCode ?? 'BAD_REQUEST',
       correlationId,
       messageKey: 'api.error.bad_request',
       retryable: false,

@@ -9,6 +9,7 @@ import type {
   SourceCatalogRecordV1,
   SourceCatalogRepositoryPortV1,
 } from '../application/source-catalog-repository.port.js';
+import type { SourceCatalogRegistrationPortV1 } from '../application/source-catalog-registration.port.js';
 
 function clone(record: SourceCatalogRecordV1): SourceCatalogRecordV1 {
   return Object.freeze({
@@ -66,7 +67,9 @@ function authorized(context: IamTenantContextV1, record: SourceCatalogRecordV1):
 }
 
 /** Deterministic local adapter for DDA-052 source catalog records. */
-export class InMemorySourceCatalogRepositoryAdapter implements SourceCatalogRepositoryPortV1 {
+export class InMemorySourceCatalogRepositoryAdapter
+  implements SourceCatalogRepositoryPortV1, SourceCatalogRegistrationPortV1
+{
   private records: SourceCatalogRecordV1[] = [];
   private assignments: SourceCatalogAssignmentRecordV1[] = [];
 
@@ -85,6 +88,48 @@ export class InMemorySourceCatalogRepositoryAdapter implements SourceCatalogRepo
 
   public seedAssignments(assignments: readonly SourceCatalogAssignmentRecordV1[]): void {
     this.assignments = assignments.map((assignment) => Object.freeze({ ...assignment }));
+  }
+
+  public async register(
+    context: IamTenantContextV1,
+    record: SourceCatalogRecordV1,
+  ): Promise<void> {
+    if (
+      record.organizationId !== context.tenantScope.organizationId ||
+      context.tenantScope.scopeType === 'organization' ||
+      record.workspaceId !== context.tenantScope.workspaceId
+    ) {
+      throw new Error('SOURCE_CATALOG_SCOPE_CONFLICT');
+    }
+    const existing = this.records.find((candidate) => candidate.id === record.id);
+    if (
+      existing !== undefined &&
+      (existing.organizationId !== record.organizationId ||
+        existing.workspaceId !== record.workspaceId ||
+        existing.dsmDatasetId !== record.dsmDatasetId ||
+        existing.iaeArtifactVersionId !== record.iaeArtifactVersionId)
+    ) {
+      throw new Error('SOURCE_CATALOG_ID_CONFLICT');
+    }
+    if (existing === undefined) this.records.push(clone(record));
+    const assignment = {
+      id: record.id,
+      organizationId: record.organizationId,
+      workspaceId: record.workspaceId,
+      ...(record.projectId === undefined ? {} : { projectId: record.projectId }),
+      sourceId: record.id,
+      dsmDatasetId: record.dsmDatasetId,
+      status: 'ACTIVE',
+    } satisfies SourceCatalogAssignmentRecordV1;
+    const assignmentIndex = this.assignments.findIndex(
+      (candidate) =>
+        candidate.organizationId === assignment.organizationId &&
+        candidate.workspaceId === assignment.workspaceId &&
+        candidate.sourceId === assignment.sourceId &&
+        candidate.dsmDatasetId === assignment.dsmDatasetId,
+    );
+    if (assignmentIndex < 0) this.assignments.push(Object.freeze(assignment));
+    else this.assignments[assignmentIndex] = Object.freeze(assignment);
   }
 
   private hasCanonicalActiveAssignment(record: SourceCatalogRecordV1): boolean {

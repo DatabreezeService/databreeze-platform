@@ -11,6 +11,7 @@ import type {
   AnalysisTurnErrorV1,
 } from './analysis-model.ts';
 import './analysis-page.css';
+import type { DatasetCardV1 } from '../data/data-model.ts';
 
 function legacyConversation(store: AgentStoreV1 | undefined): AnalysisConversationV1 | undefined {
   const active = store?.getActiveConversation();
@@ -60,14 +61,77 @@ function copy(locale: 'en' | 'vi-VN') {
       };
 }
 
+function DatasetContextPicker({
+  datasets,
+  locale,
+  onChange,
+  selectedDatasetIds,
+}: {
+  readonly datasets: readonly DatasetCardV1[];
+  readonly locale: 'en' | 'vi-VN';
+  readonly onChange: (datasetIds: readonly string[]) => void;
+  readonly selectedDatasetIds: readonly string[];
+}) {
+  const selected = new Set(selectedDatasetIds);
+  return (
+    <section
+      aria-label={locale === 'vi-VN' ? 'Chọn dữ liệu phân tích' : 'Choose analysis data'}
+      className="analysis-context-picker"
+    >
+      <div>
+        <span className="analysis-context-picker__eyebrow">
+          {locale === 'vi-VN' ? 'Ngữ cảnh phân tích' : 'Analysis context'}
+        </span>
+        <strong>
+          {locale === 'vi-VN' ? 'Chọn một hoặc nhiều bộ dữ liệu' : 'Choose one or more datasets'}
+        </strong>
+        <small>
+          {locale === 'vi-VN'
+            ? 'Tối đa 8 bộ dữ liệu cho một hội thoại mới.'
+            : 'Up to 8 datasets can be attached to a new conversation.'}
+        </small>
+      </div>
+      <div className="analysis-context-picker__options">
+        {datasets.map((dataset) => {
+          const checked = selected.has(dataset.datasetId);
+          const disabled = !checked && selected.size >= 8;
+          return (
+            <label className={checked ? 'is-selected' : undefined} key={dataset.datasetId}>
+              <input
+                checked={checked}
+                disabled={disabled}
+                onChange={() => {
+                  const next = checked
+                    ? selectedDatasetIds.filter((id) => id !== dataset.datasetId)
+                    : [...selectedDatasetIds, dataset.datasetId];
+                  onChange(next.slice(0, 8));
+                }}
+                type="checkbox"
+              />
+              <span>
+                <strong>{dataset.label}</strong>
+                <small>{dataset.versionLabel}</small>
+              </span>
+            </label>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export interface AnalysisPageProps {
   readonly activeConversationId?: string;
+  readonly availableDatasets?: readonly DatasetCardV1[];
   readonly contextEvents?: readonly AnalysisContextChangeEventV1[];
   readonly conversations?: readonly AnalysisConversationV1[];
+  readonly emptyNotice?: string;
   readonly historyState?: AnalysisLoadStateV1;
   readonly locale: 'en' | 'vi-VN';
   readonly onSelectConversation?: (conversationId: string) => void;
   readonly onCreateConversation?: () => void;
+  readonly onDatasetSelectionChange?: (datasetIds: readonly string[]) => void;
+  readonly selectedDatasetIds?: readonly string[];
   readonly onSendMessage?: (message: string, conversationId?: string) => unknown;
   readonly store?: AgentStoreV1;
   readonly threadState?: AnalysisLoadStateV1;
@@ -77,12 +141,16 @@ export interface AnalysisPageProps {
 /** WEB-024/DDA-055/056: the full agent destination; it never renders a second floating agent. */
 export function AnalysisPage({
   activeConversationId,
+  availableDatasets = [],
   contextEvents = [],
   conversations,
+  emptyNotice,
   historyState = 'ready',
   locale,
   onSelectConversation,
   onCreateConversation,
+  onDatasetSelectionChange,
+  selectedDatasetIds = [],
   onSendMessage,
   store,
   threadState = 'ready',
@@ -141,9 +209,30 @@ export function AnalysisPage({
             <p>{text.supporting}</p>
           </div>
         </header>
-        <section className="analysis-page__empty" role="status">
-          <p>{statusText}</p>
-        </section>
+        {availableDatasets.length === 0 || onDatasetSelectionChange === undefined ? null : (
+          <DatasetContextPicker
+            datasets={availableDatasets}
+            locale={locale}
+            onChange={onDatasetSelectionChange}
+            selectedDatasetIds={selectedDatasetIds}
+          />
+        )}
+        <div className="analysis-page__layout">
+          <ConversationHistory
+            collapsed={historyCollapsed}
+            items={authorizedConversations}
+            locale={locale}
+            onCollapsedChange={setHistoryCollapsed}
+            onSelectConversation={(conversationId) => {
+              setSelectedConversationId(conversationId);
+              onSelectConversation?.(conversationId);
+            }}
+            {...(onCreateConversation === undefined ? {} : { onCreate: onCreateConversation })}
+          />
+          <section className="analysis-page__empty" role="status">
+            <p>{statusText}</p>
+          </section>
+        </div>
       </main>
     );
   }
@@ -156,6 +245,14 @@ export function AnalysisPage({
           <p>{text.supporting}</p>
         </div>
       </header>
+      {availableDatasets.length === 0 || onDatasetSelectionChange === undefined ? null : (
+        <DatasetContextPicker
+          datasets={availableDatasets}
+          locale={locale}
+          onChange={onDatasetSelectionChange}
+          selectedDatasetIds={selectedDatasetIds}
+        />
+      )}
       <div className="analysis-page__layout">
         <ConversationHistory
           collapsed={historyCollapsed}
@@ -182,7 +279,7 @@ export function AnalysisPage({
             </section>
           ) : active === undefined ? (
             <section className="analysis-page__empty" role="status">
-              <p>{text.empty}</p>
+              <p>{emptyNotice ?? text.empty}</p>
             </section>
           ) : (
             <>

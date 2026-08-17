@@ -72,7 +72,7 @@ void test('[IAE-009, IAE-010, IAM-009] admission moves clean content to routed a
   assert.equal(created.accepted, true);
   if (!created.accepted) return;
   const admitted = await service.admit(
-    context(workspaceId, 'admit-2', created.value.revision),
+    context(workspaceId, 'admit-2'),
     created.value.inboxItemId,
     artifact,
     {

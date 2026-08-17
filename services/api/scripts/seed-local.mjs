@@ -149,6 +149,12 @@ const ID = Object.freeze({
   publishedKpiWidget: ids(351),
   publishedBarWidget: ids(352),
   dashboardFilter: ids(353),
+  dashboardKpiResultArtifact: ids(250),
+  dashboardKpiResultVersion: ids(251),
+  dashboardKpiResultPlacement: ids(252),
+  dashboardBarResultArtifact: ids(253),
+  dashboardBarResultVersion: ids(254),
+  dashboardBarResultPlacement: ids(255),
   typedAction: ids(400),
   job: ids(401),
   jobTransitionCreated: ids(402),
@@ -159,6 +165,10 @@ const ID = Object.freeze({
   executionAttempt: ids(406),
   resultManifest: ids(407),
   executionDescriptor: ids(408),
+  kpiResultManifest: ids(410),
+  barResultManifest: ids(411),
+  kpiResultAttempt: ids(412),
+  barResultAttempt: ids(413),
   reservation: ids(500),
   settlementBinding: ids(501),
   usageEntry: ids(502),
@@ -1023,6 +1033,83 @@ function buildDatasetRows(metadata) {
   return Object.freeze({ definitions, mappings, rules, versions, quality, profiles, exports });
 }
 
+function sha256Bytes(bytes) {
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
+function stableCanonicalHash(parts) {
+  const input = JSON.stringify(parts, Object.keys(parts).sort());
+  let hashValue = 2166136261;
+  for (let index = 0; index < input.length; index += 1) {
+    hashValue ^= input.charCodeAt(index);
+    hashValue = Math.imul(hashValue, 16777619);
+  }
+  return (hashValue >>> 0).toString(16).padStart(8, '0').repeat(8);
+}
+
+function canonicalJson(value) {
+  if (value === null || typeof value === 'boolean' || typeof value === 'string') {
+    return JSON.stringify(value);
+  }
+  if (typeof value === 'number') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map((item) => canonicalJson(item)).join(',')}]`;
+  return `{${Object.entries(value)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, child]) => `${JSON.stringify(key)}:${canonicalJson(child)}`)
+    .join(',')}}`;
+}
+
+function materializationCacheHash(input) {
+  return digest(
+    JSON.stringify({
+      adapterVersion: input.adapterVersion,
+      analysisPlanVersionId: input.analysisPlanVersionId,
+      dashboardVersionId: input.dashboardVersionId,
+      datasetVersionId: input.datasetVersionId,
+      effectivePolicyVersionId: input.effectivePolicyVersionId,
+      engineVersion: input.engineVersion,
+      locale: input.locale,
+      metricVersionId: input.metricVersionId,
+      parameterHash: input.parameterHash,
+      permissionProjectionVersionId: input.permissionProjectionVersionId,
+      semanticVersionId: input.semanticVersionId,
+      tenantScope: 'project|00000000-0000-4000-8000-000000000001|00000000-0000-4000-8000-000000000002|00000000-0000-4000-8000-000000000003',
+      timezone: input.timezone,
+      widgetId: input.widgetId,
+    }),
+  );
+}
+
+function snapshotInputSelectorHash(versionId, materializationIds) {
+  return digest(JSON.stringify({ versionId, mats: [...new Set(materializationIds)].sort() }));
+}
+
+function snapshotBaseHash(snapshot) {
+  return stableCanonicalHash({
+    snapshotId: snapshot.id,
+    tenantScope: 'project|00000000-0000-4000-8000-000000000001|00000000-0000-4000-8000-000000000002|00000000-0000-4000-8000-000000000003',
+    dashboardVersionId: snapshot.dashboardVersionId,
+    materializationIds: [...snapshot.materializationIds].sort(),
+    inputSelectorHash: snapshot.inputSelectorHash,
+    permissionProjectionVersionId: snapshot.permissionProjectionVersionId,
+    audience: snapshot.audience,
+    freshnessState: snapshot.freshnessState,
+    evidenceState: snapshot.evidenceState,
+    createdAt: snapshot.createdAt,
+  });
+}
+
+function publicationCanonicalHash(snapshot, bindingProof) {
+  return digest(
+    canonicalJson({
+      baseHash: snapshotBaseHash(snapshot),
+      bindingProof: [...bindingProof].sort((left, right) =>
+        left.materializationId.localeCompare(right.materializationId),
+      ),
+    }),
+  );
+}
+
 function buildDashboardRows(metadata) {
   const planHash = digest('analysis-plan-expense-v2');
   const dashboardHash = digest('dashboard-published-expense-v2');
@@ -1120,8 +1207,8 @@ function buildDashboardRows(metadata) {
     },
     timeGrain: 'MONTH',
     joins: [],
-    units: [{ field: 'so_tien', unit: 'VND' }],
-    parameters: [],
+    units: { so_tien: 'VND' },
+    parameters: {},
     output: { form: 'TABLE', maxRows: 100 },
     assumptions: ['Synthetic local fixture; values are deterministic.'],
     estimate: { cpuMs: 100, memoryMb: 64 },
@@ -1186,50 +1273,235 @@ function buildDashboardRows(metadata) {
       createdAt: minutesBefore(9_900),
     }),
   ];
-  const materializationRows = [
-    scopedRow(projectScope, {
-      id: ID.kpiMaterialization,
-      dashboardVersionId: ID.publishedDashboardVersion,
-      widgetId: ID.publishedKpiWidget,
-      analysisPlanVersionId: ID.analysisPlanVersion,
-      resultManifestId: ID.resultManifest,
-      cacheIdentityHash: digest('kpi-cache-expense-v2'),
-      dependencyEntries,
-      createdAt: minutesBefore(9_700),
-    }),
-    scopedRow(projectScope, {
-      id: ID.barMaterialization,
-      dashboardVersionId: ID.publishedDashboardVersion,
-      widgetId: ID.publishedBarWidget,
-      analysisPlanVersionId: ID.analysisPlanVersion,
-      resultManifestId: ID.resultManifest,
-      cacheIdentityHash: digest('bar-cache-expense-v2'),
-      dependencyEntries,
-      createdAt: minutesBefore(9_700),
-    }),
+  const dashboardOutputRows = [
+    { ngay: '2026-01-05', so_tien: '1250000', danh_muc: 'Văn phòng' },
+    { ngay: '2026-01-12', so_tien: '780000', danh_muc: 'Di chuyển' },
+    { ngay: '2026-02-02', so_tien: '2140000', danh_muc: 'Văn phòng' },
+    { ngay: '2026-02-18', so_tien: '920000', danh_muc: 'Ăn uống' },
   ];
+  const outputMetadata = [
+    {
+      key: 'dashboardKpiResult',
+      fileName: 'local-dashboard-kpi-result.json',
+      artifactId: ID.dashboardKpiResultArtifact,
+      versionId: ID.dashboardKpiResultVersion,
+      placementId: ID.dashboardKpiResultPlacement,
+      bytes: Buffer.from(JSON.stringify({ rows: dashboardOutputRows }), 'utf8'),
+    },
+    {
+      key: 'dashboardBarResult',
+      fileName: 'local-dashboard-bar-result.json',
+      artifactId: ID.dashboardBarResultArtifact,
+      versionId: ID.dashboardBarResultVersion,
+      placementId: ID.dashboardBarResultPlacement,
+      bytes: Buffer.from(JSON.stringify({ rows: dashboardOutputRows }), 'utf8'),
+    },
+  ].map((output) => ({
+    ...output,
+    contentSha256: sha256Bytes(output.bytes),
+    byteSize: output.bytes.byteLength,
+    mediaType: 'application/json',
+  }));
+  const materializationInputs = [
+    {
+      id: ID.kpiMaterialization,
+      widgetId: ID.publishedKpiWidget,
+      resultManifestId: ID.kpiResultManifest,
+      parameterHash: digest('local-dashboard-kpi-parameters-v1'),
+      createdAt: minutesBefore(9_700),
+    },
+    {
+      id: ID.barMaterialization,
+      widgetId: ID.publishedBarWidget,
+      resultManifestId: ID.barResultManifest,
+      parameterHash: digest('local-dashboard-bar-parameters-v1'),
+      createdAt: minutesBefore(9_700),
+    },
+  ];
+  const materializationRows = materializationInputs.map((input) => {
+    const cacheIdentityHash = materializationCacheHash({
+      dashboardVersionId: ID.publishedDashboardVersion,
+      widgetId: input.widgetId,
+      analysisPlanVersionId: ID.analysisPlanVersion,
+      datasetVersionId: ID.expenseVersionTwo,
+      semanticVersionId: ID.semanticVersion,
+      metricVersionId: ID.metricVersion,
+      permissionProjectionVersionId: ID.permissionProjection,
+      parameterHash: input.parameterHash,
+      locale: 'vi-VN',
+      timezone: 'Asia/Ho_Chi_Minh',
+      engineVersion: 'databreeze-engine-local-seed-1',
+      adapterVersion: 'local-seed-v1',
+      effectivePolicyVersionId: ID.policyVersion,
+    });
+    return scopedRow(projectScope, {
+      id: input.id,
+      dashboardVersionId: ID.publishedDashboardVersion,
+      widgetId: input.widgetId,
+      analysisPlanVersionId: ID.analysisPlanVersion,
+      resultManifestId: input.resultManifestId,
+      cacheIdentityHash,
+      dependencyEntries,
+      createdAt: input.createdAt,
+    });
+  });
+  const inputSelectorHash = snapshotInputSelectorHash(ID.publishedDashboardVersion, [
+    ID.kpiMaterialization,
+    ID.barMaterialization,
+  ]);
+  const bindingProof = materializationInputs.map((input) => ({
+    schemaVersion: 1,
+    materializationId: input.id,
+    tenantScope: projectScope,
+    dashboardVersionId: ID.publishedDashboardVersion,
+    widgetId: input.widgetId,
+    analysisPlanVersionId: ID.analysisPlanVersion,
+    datasetVersionId: ID.expenseVersionTwo,
+    semanticVersionId: ID.semanticVersion,
+    metricVersionId: ID.metricVersion,
+    materializationDefinitionId: input.id,
+    resultManifestId: input.resultManifestId,
+    permissionProjectionVersionId: ID.permissionProjection,
+    parameterHash: input.parameterHash,
+    locale: 'vi-VN',
+    timezone: 'Asia/Ho_Chi_Minh',
+    engineVersion: 'databreeze-engine-local-seed-1',
+    adapterVersion: 'local-seed-v1',
+    effectivePolicyVersionId: ID.policyVersion,
+    cacheIdentityHash: materializationRows.find((row) => row.id === input.id).cacheIdentityHash,
+    materializationCreatedAt: input.createdAt.toISOString(),
+  }));
+  const snapshot = {
+    id: ID.dashboardSnapshot,
+    dashboardVersionId: ID.publishedDashboardVersion,
+    materializationIds: [ID.kpiMaterialization, ID.barMaterialization],
+    inputSelectorHash,
+    permissionProjectionVersionId: ID.permissionProjection,
+    audience: 'WORKSPACE_VIEWERS',
+    freshnessState: 'FRESH',
+    evidenceState: 'AVAILABLE',
+    createdAt: minutesBefore(9_600).toISOString(),
+  };
+  const canonicalHash = publicationCanonicalHash(snapshot, bindingProof);
   const snapshotRows = [
     scopedRow(projectScope, {
-      id: ID.dashboardSnapshot,
-      dashboardVersionId: ID.publishedDashboardVersion,
-      materializationIds: [ID.kpiMaterialization, ID.barMaterialization],
-      bindingProof: {
-        version: 1,
-        dashboardVersionId: ID.publishedDashboardVersion,
-        materializationIds: [ID.kpiMaterialization, ID.barMaterialization],
-        inputSelectorHash: digest('dashboard-input-selector'),
+      id: snapshot.id,
+      dashboardVersionId: snapshot.dashboardVersionId,
+      materializationIds: {
+        ids: snapshot.materializationIds,
+        bindingProofVersion: 1,
+        bindingProof,
+        inputSelectorHash,
       },
+      bindingProof,
       bindingProofVersion: 1,
-      inputSelectorHash: digest('dashboard-input-selector'),
-      permissionProjectionVersionId: ID.permissionProjection,
-      audience: 'WORKSPACE_VIEWERS',
-      freshnessState: 'FRESH',
-      evidenceState: 'AVAILABLE',
+      inputSelectorHash,
+      permissionProjectionVersionId: snapshot.permissionProjectionVersionId,
+      audience: snapshot.audience,
+      freshnessState: snapshot.freshnessState,
+      evidenceState: snapshot.evidenceState,
       evidenceReferenceId: ID.expenseEvidence,
-      canonicalHash: digest('dashboard-snapshot-expense-v2'),
-      createdAt: minutesBefore(9_600),
+      canonicalHash,
+      createdAt: new Date(snapshot.createdAt),
     }),
   ];
+  const resultAttemptRows = [
+    scopedRow(projectScope, {
+      id: ID.kpiResultAttempt,
+      jobId: ID.job,
+      attemptNumber: 2,
+      executorType: 'CLOUD_WORKER',
+      executorId: ID.device,
+      leaseTokenHash: digest('local-seed-kpi-result-lease'),
+      leaseExpiresAt: minutesAfter(42_000),
+      state: 'SUCCEEDED',
+      createdAt: minutesBefore(9_595),
+      heartbeatAt: minutesBefore(9_592),
+      startedAt: minutesBefore(9_594),
+      finishedAt: minutesBefore(9_590),
+      resultManifestHash: digest('local-seed-kpi-result-manifest-v1'),
+      revision: 2,
+    }),
+    scopedRow(projectScope, {
+      id: ID.barResultAttempt,
+      jobId: ID.job,
+      attemptNumber: 3,
+      executorType: 'CLOUD_WORKER',
+      executorId: ID.device,
+      leaseTokenHash: digest('local-seed-bar-result-lease'),
+      leaseExpiresAt: minutesAfter(42_000),
+      state: 'SUCCEEDED',
+      createdAt: minutesBefore(9_595),
+      heartbeatAt: minutesBefore(9_592),
+      startedAt: minutesBefore(9_594),
+      finishedAt: minutesBefore(9_590),
+      resultManifestHash: digest('local-seed-bar-result-manifest-v1'),
+      revision: 2,
+    }),
+  ];
+  const resultManifestRows = [
+    scopedRow(projectScope, {
+      id: ID.kpiResultManifest,
+      jobId: ID.job,
+      attemptId: ID.kpiResultAttempt,
+      sourceArtifactVersionIds: [ID.expenseArtifactVersion],
+      outputIds: [ID.dashboardKpiResultVersion],
+      outputHashes: [outputMetadata[0].contentSha256],
+      evidenceCoverage: 'COMPLETE',
+      handlerDigest: digest('local-seed-dashboard-handler-v1'),
+      engineVersion: 'databreeze-engine-local-seed-1',
+      attemptNumber: 2,
+      reviewerId: null,
+      approvalState: 'NOT_REQUIRED',
+      manifestHash: digest('local-seed-kpi-result-manifest-v1'),
+      generatedAt: minutesBefore(9_590),
+    }),
+    scopedRow(projectScope, {
+      id: ID.barResultManifest,
+      jobId: ID.job,
+      attemptId: ID.barResultAttempt,
+      sourceArtifactVersionIds: [ID.expenseArtifactVersion],
+      outputIds: [ID.dashboardBarResultVersion],
+      outputHashes: [outputMetadata[1].contentSha256],
+      evidenceCoverage: 'COMPLETE',
+      handlerDigest: digest('local-seed-dashboard-handler-v1'),
+      engineVersion: 'databreeze-engine-local-seed-1',
+      attemptNumber: 3,
+      reviewerId: null,
+      approvalState: 'NOT_REQUIRED',
+      manifestHash: digest('local-seed-bar-result-manifest-v1'),
+      generatedAt: minutesBefore(9_590),
+    }),
+  ];
+  const dashboardOutputArtifactRows = outputMetadata.flatMap((output) => [
+    scopedRow(projectScope, {
+      id: output.versionId,
+      artifactId: output.artifactId,
+      sourceKind: 'GENERATED',
+      dataMode: 'Hybrid',
+      contentSha256: output.contentSha256,
+      byteSize: BigInt(output.byteSize),
+      mediaType: output.mediaType,
+      displayName: output.fileName,
+      createdAt: minutesBefore(9_580),
+      status: 'ACTIVE',
+      scanState: 'CLEAN',
+    }),
+  ]);
+  const dashboardOutputPlacementRows = outputMetadata.map((output) =>
+    scopedRow(projectScope, {
+      id: output.placementId,
+      artifactVersionId: output.versionId,
+      kind: 'CLOUD',
+      opaqueReference: `local-${output.versionId}`,
+      contentSha256: output.contentSha256,
+      payloadClass: 'APPROVED_DERIVED_RESULT',
+      available: true,
+      revision: 1,
+      createdAt: minutesBefore(9_580),
+      updatedAt: minutesBefore(9_580),
+    }),
+  );
   const refreshStateRows = [
     scopedRow(projectScope, {
       id: ID.refreshState,
@@ -1250,7 +1522,7 @@ function buildDashboardRows(metadata) {
       permissionProjectionVersionId: ID.permissionProjection,
       datasetVersionId: ID.expenseVersionTwo,
       definitionIds: [ID.kpiMaterialization, ID.barMaterialization],
-      inputSelectorHash: digest('dashboard-input-selector'),
+      inputSelectorHash,
       sourceEventIds: [ID.refreshEvent],
       clientRequestIds: ['local-seed-refresh-request'],
       folderReplayKeys: [],
@@ -1296,6 +1568,11 @@ function buildDashboardRows(metadata) {
     planRows,
     materializationRows,
     snapshotRows,
+    dashboardOutputArtifactRows,
+    dashboardOutputPlacementRows,
+    dashboardOutputMetadata: outputMetadata,
+    resultAttemptRows,
+    resultManifestRows,
     refreshStateRows,
     refreshExecutionRows,
     refreshEventRows,
@@ -1515,11 +1792,6 @@ async function main() {
     ? fixtures.placements.map((placement) => ({ ...placement, available: false }))
     : fixtures.placements;
 
-  if (!skipObjects) {
-    console.log('Uploading synthetic fixture bytes to local MinIO...');
-    await uploadFixtures(environment, [...metadata.values()]);
-  }
-
   const password =
     environment.DATABREEZE_LOCAL_SEED_PASSWORD?.trim() ||
     `DataBreeze-${randomBytes(18).toString('base64url')}`;
@@ -1527,6 +1799,10 @@ async function main() {
   const encodedPassword = await hash(password, PASSWORD_HASH_OPTIONS);
   const datasets = buildDatasetRows(metadata);
   const dashboard = buildDashboardRows(metadata);
+  if (!skipObjects) {
+    console.log('Uploading synthetic fixture bytes to local MinIO...');
+    await uploadFixtures(environment, [...metadata.values(), ...dashboard.dashboardOutputMetadata]);
+  }
   const conversations = buildConversationAndNotifications();
   const policyCanonicalInput = {
     schemaVersion: 1,
@@ -1900,8 +2176,14 @@ async function main() {
             revision: 1,
           },
         ]);
-        await upsertRows(transaction, 'artifactVersion', fixtures.artifacts);
-        await upsertRows(transaction, 'contentPlacement', placements);
+        await upsertRows(transaction, 'artifactVersion', [
+          ...fixtures.artifacts,
+          ...dashboard.dashboardOutputArtifactRows,
+        ]);
+        await upsertRows(transaction, 'contentPlacement', [
+          ...placements,
+          ...dashboard.dashboardOutputPlacementRows,
+        ]);
         await upsertRows(transaction, 'inboxItem', fixtures.inbox);
         await upsertRows(transaction, 'evidenceReference', [
           scopedRow(workspaceScope, {
@@ -2278,6 +2560,7 @@ async function main() {
             revision: 2,
           },
         ]);
+        await upsertRows(transaction, 'executionAttemptRecord', dashboard.resultAttemptRows);
         await upsertRows(transaction, 'resultManifestRecord', [
           {
             id: ID.resultManifest,
@@ -2300,6 +2583,7 @@ async function main() {
             generatedAt: minutesBefore(11_970),
           },
         ]);
+        await upsertRows(transaction, 'resultManifestRecord', dashboard.resultManifestRows);
         await createRows(transaction, 'executionRequestDescriptorRecord', [
           {
             id: ID.executionDescriptor,

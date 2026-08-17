@@ -3,8 +3,20 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ApplicationBoundary, createAppRouter } from '../src/app/app.tsx';
 
+const DISCOVERED_DASHBOARD_ID = '00000000-0000-4000-8000-000000000300';
+
+function jsonResponse(value: unknown, status = 200): Response {
+  return new Response(JSON.stringify(value), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  });
+}
+
 describe('dashboard route composition [DDA-020]', () => {
-  afterEach(() => vi.unstubAllEnvs());
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
 
   it('renders the approved four-KPI business overview and primary charts in demo mode', async () => {
     vi.stubEnv('VITE_DATABREEZE_DEMO_MODE', 'true');
@@ -41,5 +53,63 @@ describe('dashboard route composition [DDA-020]', () => {
     expect(screen.queryByRole('search', { name: 'Search this workspace' })).toBeNull();
     expect(screen.getByText('Want a new chart or a change to this one? Talk to me.')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Open chart assistant' })).toBeTruthy();
+  });
+
+  it('discovers the authorized workspace dashboard through history when none is pinned', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/v3/dda/dashboards/workspace-history')) {
+          return jsonResponse({
+            schemaVersion: 3,
+            items: [
+              {
+                kind: 'ANALYSIS',
+                subjectId: '00000000-0000-4000-8000-000000000310',
+                title: { vi: 'Phân tích chi phí', en: 'Expense analysis' },
+                updatedAt: '2026-08-14T00:00:00.000Z',
+              },
+              {
+                kind: 'DASHBOARD',
+                subjectId: DISCOVERED_DASHBOARD_ID,
+                title: { vi: 'Tổng quan chi phí', en: 'Expense overview' },
+                updatedAt: '2026-08-14T00:00:00.000Z',
+              },
+            ],
+          });
+        }
+        if (url.includes(`/v1/dda/dashboards/${DISCOVERED_DASHBOARD_ID}/draft`)) {
+          return jsonResponse({
+            dashboardId: DISCOVERED_DASHBOARD_ID,
+            versionId: '00000000-0000-4000-8000-000000000301',
+            pages: [
+              {
+                pageId: '00000000-0000-4000-8000-000000000302',
+                title: { vi: 'Tổng quan', en: 'Overview' },
+              },
+            ],
+            widgets: [
+              {
+                widgetId: '00000000-0000-4000-8000-000000000303',
+                type: 'KPI',
+                pageId: '00000000-0000-4000-8000-000000000302',
+                title: { vi: 'Doanh thu đã khám phá', en: 'Discovered revenue' },
+                values: [{ label: 'Doanh thu', value: '₫120 triệu' }],
+              },
+            ],
+            filters: [],
+            freshness: 'Freshness: discovered',
+            warning: 'Evidence remains visible.',
+          });
+        }
+        return new Response('', { status: 404 });
+      }),
+    );
+    const router = createAppRouter({ initialEntries: ['/vi-VN/dashboards'] });
+    render(<ApplicationBoundary router={router} />);
+
+    expect(await screen.findByText('Doanh thu đã khám phá')).toBeTruthy();
+    expect(screen.queryByText('Dashboard data is not available. No changes were sent.')).toBeNull();
   });
 });

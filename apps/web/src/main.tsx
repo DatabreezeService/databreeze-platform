@@ -20,6 +20,7 @@ import './styles.css';
 import './styles/dashboard-canvas.css';
 import './styles/dashboard-agent.css';
 import './styles/data-intake.css';
+import './styles/agent-chat.css';
 
 const rootElement = globalThis.document.querySelector('#root');
 if (!(rootElement instanceof HTMLElement)) throw new Error('WEB_ROOT_MISSING');

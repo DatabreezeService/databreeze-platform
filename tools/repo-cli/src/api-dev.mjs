@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { databaseBackedDevelopmentEnvironment } from './dev-stack.mjs';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const pnpmExecutable = 'corepack';
@@ -9,7 +10,7 @@ const apiDirectory = path.join(repositoryRoot, 'services', 'api');
 function runPnpm(args) {
   const result = spawnSync(pnpmExecutable, ['pnpm', ...args], {
     cwd: repositoryRoot,
-    env: { ...process.env },
+    env: { ...databaseBackedDevelopmentEnvironment(), ...process.env },
     shell: process.platform === 'win32',
     stdio: 'inherit',
     windowsHide: false,
@@ -22,6 +23,7 @@ function start(command, args) {
   return spawn(command, args, {
     cwd: repositoryRoot,
     env: {
+      ...databaseBackedDevelopmentEnvironment(),
       ...process.env,
       NODE_ENV: process.env.NODE_ENV ?? 'development',
       HOST: '127.0.0.1',

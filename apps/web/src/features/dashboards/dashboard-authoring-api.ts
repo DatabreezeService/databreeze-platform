@@ -463,9 +463,16 @@ async function apiErrorFor(response: Response): Promise<DashboardAuthoringApiErr
 }
 
 function workspaceHistoryUrl(configuration: DashboardWorkspaceHistoryConfigurationV1): string {
-  const url = new URL('/v3/dda/dashboards/workspace-history', configuration.baseUrl);
-  if (configuration.cursor !== undefined) url.searchParams.set('cursor', configuration.cursor);
-  if (configuration.limit !== undefined) url.searchParams.set('limit', String(configuration.limit));
+  const path = '/v3/dda/dashboards/workspace-history';
+  const parameters = new URLSearchParams();
+  if (configuration.cursor !== undefined) parameters.set('cursor', configuration.cursor);
+  if (configuration.limit !== undefined) parameters.set('limit', String(configuration.limit));
+  const query = parameters.toString();
+  // An empty base URL targets the same origin (dev proxy / Caddy front) and must
+  // stay a relative URL; `new URL` would reject it as an invalid base.
+  if (configuration.baseUrl === '') return query === '' ? path : `${path}?${query}`;
+  const url = new URL(path, configuration.baseUrl);
+  if (query !== '') url.search = query;
   return url.toString();
 }
 

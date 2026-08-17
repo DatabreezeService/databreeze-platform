@@ -18,9 +18,15 @@ import { DashboardCanvas } from './dashboard-canvas.tsx';
 import {
   applyDashboardAuthoringCommand,
   DashboardAuthoringApiErrorV1,
+  fetchDashboardWorkspaceHistory,
   proposeDashboardCharts,
   type DdaDashboardChartProposal,
 } from './dashboard-authoring-api.ts';
+import { executeAnalysisWithAgent } from '../analysis/local-analysis-engine.ts';
+import { localDataStore } from '../data/local-data-store.ts';
+import {
+  dashboardPinnedStore,
+} from './dashboard-pinned-store.ts';
 import {
   DashboardAuthoringCommandQueueV1,
   type DashboardAuthoringCommandSaveResultV1,
@@ -34,8 +40,11 @@ import {
 import {
   dashboardDemoMode,
   dashboardLiveConfiguration,
+  fetchDashboardFreshness,
   fetchDashboardDraft,
+  fetchDashboardQueryView,
   type DashboardDraftFixtureV1,
+  type DashboardQueryViewV1,
 } from './dashboard-api.ts';
 
 const EMPTY_DASHBOARD: DashboardDraftFixtureV1 = Object.freeze({
@@ -68,28 +77,28 @@ const DEMO_DASHBOARD: DashboardDraftFixtureV1 = Object.freeze({
       type: 'KPI',
       pageId: '00000000-0000-4000-8000-00000000001c',
       title: Object.freeze({ vi: 'Doanh thu (YTD)', en: 'Revenue (YTD)' }),
-      values: Object.freeze([Object.freeze({ label: 'Doanh thu', value: '₫1,24 tỷ' })]),
+      values: Object.freeze([Object.freeze({ label: 'Doanh thu', value: '$10.67M (₫1,24 tỷ)' })]),
     }),
     Object.freeze({
       widgetId: '00000000-0000-4000-8000-000000000022',
       type: 'KPI',
       pageId: '00000000-0000-4000-8000-00000000001c',
       title: Object.freeze({ vi: 'Đơn hàng', en: 'Orders' }),
-      values: Object.freeze([Object.freeze({ label: 'Đơn hàng', value: '3.842' })]),
+      values: Object.freeze([Object.freeze({ label: 'Đơn hàng', value: '19.960' })]),
     }),
     Object.freeze({
       widgetId: '00000000-0000-4000-8000-000000000023',
       type: 'KPI',
       pageId: '00000000-0000-4000-8000-00000000001c',
       title: Object.freeze({ vi: 'Giá trị đơn hàng TB', en: 'Average order value' }),
-      values: Object.freeze([Object.freeze({ label: 'Giá trị TB', value: '₫323K' })]),
+      values: Object.freeze([Object.freeze({ label: 'Giá trị TB', value: '$534,40' })]),
     }),
     Object.freeze({
       widgetId: '00000000-0000-4000-8000-000000000024',
       type: 'KPI',
       pageId: '00000000-0000-4000-8000-00000000001c',
       title: Object.freeze({ vi: 'Tỷ lệ hoàn thành', en: 'Completion rate' }),
-      values: Object.freeze([Object.freeze({ label: 'Hoàn thành', value: '96,4%' })]),
+      values: Object.freeze([Object.freeze({ label: 'Hoàn thành', value: '98,4%' })]),
     }),
     Object.freeze({
       widgetId: '00000000-0000-4000-8000-000000000025',
@@ -119,6 +128,69 @@ const DEMO_DASHBOARD: DashboardDraftFixtureV1 = Object.freeze({
 });
 
 type DashboardWidgetV1 = DashboardDraftFixtureV1['widgets'][number];
+
+function numericValue(value: string | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  const normalized = value.replace(/[^0-9+-.]/g, '');
+  if (normalized.length === 0) return undefined;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function liveWidgetResults(
+  draft: DashboardDraftFixtureV1,
+  query: DashboardQueryViewV1 | undefined,
+  locale: 'vi-VN' | 'en',
+): Readonly<Record<string, import('./dashboard-canvas.tsx').DashboardWidgetResultV1>> | undefined {
+  if (query === undefined || query.rows.length === 0) return undefined;
+  const format = new Intl.NumberFormat(locale === 'vi-VN' ? 'vi-VN' : 'en-US', {
+    maximumFractionDigits: 2,
+  });
+  const results: Record<string, import('./dashboard-canvas.tsx').DashboardWidgetResultV1> = {};
+  for (const widget of draft.widgets) {
+    if (widget.type === 'KPI') {
+      const amounts = query.rows
+        .map((row) => numericValue(row['so_tien']))
+        .filter((value): value is number => value !== undefined);
+      if (amounts.length === 0) continue;
+      const total = amounts.reduce((sum, value) => sum + value, 0);
+      results[widget.widgetId] = {
+        rows: [
+          {
+            rowId: `${widget.widgetId}-total`,
+            label: locale === 'vi-VN' ? `${amounts.length} dòng đã duyệt` : `${amounts.length} approved rows`,
+            numericValue: total,
+            displayValue: format.format(total),
+            unit: 'VND',
+          },
+        ],
+        summary: locale === 'vi-VN' ? 'Tổng từ dữ liệu đã duyệt' : 'Total from approved data',
+        resultState: 'READY',
+      };
+      continue;
+    }
+    const groups = new Map<string, number>();
+    for (const row of query.rows) {
+      const category = row['danh_muc']?.trim();
+      const amount = numericValue(row['so_tien']);
+      if (!category || amount === undefined) continue;
+      groups.set(category, (groups.get(category) ?? 0) + amount);
+    }
+    if (groups.size === 0) continue;
+    results[widget.widgetId] = {
+      rows: [...groups.entries()].map(([category, amount], index) => ({
+        rowId: `${widget.widgetId}-${index}`,
+        label: category,
+        numericValue: amount,
+        displayValue: format.format(amount),
+        unit: 'VND',
+      })),
+      summary: locale === 'vi-VN' ? 'Theo danh mục từ dữ liệu đã duyệt' : 'By category from approved data',
+      resultState: 'READY',
+    };
+  }
+  return Object.freeze(results);
+}
 
 function authoringView(draft: DashboardDraftFixtureV1): DashboardAuthoringViewV1 {
   return Object.freeze({
@@ -283,9 +355,25 @@ export function DashboardPage() {
   const locale = useLocale();
   const location = useLocation();
   const routeDashboardId = new URLSearchParams(location.search).get('dashboard') ?? undefined;
-  const configuration = dashboardLiveConfiguration(import.meta.env, routeDashboardId);
+  const pinnedConfiguration = dashboardLiveConfiguration(import.meta.env, routeDashboardId);
   const analysisConfiguration = analysisLiveConfiguration();
   const demoMode = dashboardDemoMode();
+  // DDA-020: without an explicitly pinned dashboard, discover the workspace's own
+  // authorized dashboard from content-safe history instead of guessing an identifier.
+  const discoveryQuery = useQuery({
+    queryKey: ['dda', 'dashboard-discovery'],
+    queryFn: ({ signal }) => fetchDashboardWorkspaceHistory({ baseUrl: '' }, signal),
+    enabled: !demoMode && pinnedConfiguration === undefined,
+    retry: false,
+  });
+  const discoveredDashboardId = discoveryQuery.data?.items.find(
+    (item) => item.kind === 'DASHBOARD',
+  )?.subjectId;
+  const configuration =
+    pinnedConfiguration ??
+    (discoveredDashboardId === undefined
+      ? undefined
+      : Object.freeze({ baseUrl: '', dashboardId: discoveredDashboardId }));
   const dashboardQuery = useQuery({
     queryKey: ['dda', 'dashboard-draft', configuration?.baseUrl, configuration?.dashboardId],
     queryFn: ({ signal }) => {
@@ -293,6 +381,37 @@ export function DashboardPage() {
       return fetchDashboardDraft(configuration, signal);
     },
     enabled: !demoMode && configuration !== undefined,
+    retry: false,
+  });
+  const freshnessQuery = useQuery({
+    queryKey: ['dda', 'dashboard-freshness', configuration?.baseUrl, configuration?.dashboardId],
+    queryFn: ({ signal }) => {
+      if (configuration === undefined) throw new Error('DASHBOARD_CONFIGURATION_UNAVAILABLE');
+      return fetchDashboardFreshness(configuration, signal);
+    },
+    enabled: !demoMode && configuration !== undefined,
+    retry: false,
+  });
+  const resultQuery = useQuery({
+    queryKey: [
+      'dda',
+      'dashboard-result',
+      configuration?.baseUrl,
+      configuration?.dashboardId,
+      freshnessQuery.data?.lastGoodSnapshotId,
+    ],
+    queryFn: ({ signal }) => {
+      if (configuration === undefined || freshnessQuery.data?.lastGoodSnapshotId === undefined) {
+        throw new Error('DASHBOARD_RESULT_UNAVAILABLE');
+      }
+      return fetchDashboardQueryView(
+        configuration,
+        freshnessQuery.data.lastGoodSnapshotId,
+        signal,
+      );
+    },
+    enabled:
+      !demoMode && configuration !== undefined && freshnessQuery.data?.lastGoodSnapshotId !== undefined,
     retry: false,
   });
   const [agentOpen, setAgentOpen] = useState(false);
@@ -310,10 +429,45 @@ export function DashboardPage() {
   const [conflictNoticeVisible, setConflictNoticeVisible] = useState(false);
   const [canvasResetToken, setCanvasResetToken] = useState(0);
 
+  const customPinnedWidgets = useSyncExternalStore(
+    dashboardPinnedStore.subscribe,
+    () => dashboardPinnedStore.getCustomWidgets(),
+    () => dashboardPinnedStore.getCustomWidgets(),
+  );
+
   const sourceDraft = demoMode ? DEMO_DASHBOARD : (dashboardQuery.data ?? EMPTY_DASHBOARD);
-  const draft = useMemo<DashboardDraftFixtureV1>(
-    () => ({ ...sourceDraft, widgets: [...sourceDraft.widgets, ...acceptedWidgets] }),
-    [acceptedWidgets, sourceDraft],
+  const draft = useMemo<DashboardDraftFixtureV1>(() => {
+    const freshness = freshnessQuery.data;
+    const warning =
+      freshness?.freshnessState === 'CURRENT'
+        ? locale === 'vi-VN'
+          ? 'Đã xác minh bằng snapshot mới nhất từ dữ liệu được duyệt.'
+          : 'Verified against the latest snapshot from approved data.'
+        : freshnessQuery.error !== undefined
+          ? locale === 'vi-VN'
+            ? 'Chưa có snapshot hoàn chỉnh; dữ liệu vẫn được giữ an toàn.'
+            : 'No complete snapshot is available; your data remains safe.'
+          : sourceDraft.warning;
+    const freshnessLabel = freshness
+      ? `${freshness.freshnessState} · ${freshness.lastSuccessfulRefreshAt ?? '—'}`
+      : sourceDraft.freshness;
+    return {
+      ...sourceDraft,
+      widgets: [...sourceDraft.widgets, ...acceptedWidgets, ...customPinnedWidgets],
+      freshness: freshnessLabel,
+      warning,
+    };
+  }, [
+    acceptedWidgets,
+    customPinnedWidgets,
+    freshnessQuery.data,
+    freshnessQuery.error,
+    locale,
+    sourceDraft,
+  ]);
+  const liveResults = useMemo(
+    () => (demoMode ? undefined : liveWidgetResults(draft, resultQuery.data, locale)),
+    [demoMode, draft, locale, resultQuery.data],
   );
   useEffect(() => {
     if (pendingWidgetFocusId === undefined) return;
@@ -614,15 +768,73 @@ export function DashboardPage() {
       createdLabel: locale === 'vi-VN' ? 'Bây giờ' : 'Now',
     });
     if (!demoMode && (analysisConfiguration === undefined || configuration === undefined)) {
+      const localRes = await executeAnalysisWithAgent(question, undefined, locale);
+      if (localRes.chartProposal) {
+        const option: DashboardChartProposalOptionV1 = {
+          optionId: localRes.chartProposal.optionId,
+          chartType: localRes.chartProposal.type,
+          title: {
+            vi: localRes.chartProposal.title,
+            en: localRes.chartProposal.title,
+          },
+          rationale: {
+            vi: localRes.chartProposal.summary,
+            en: localRes.chartProposal.summary,
+          },
+          dimensions: [],
+          measures: [],
+          supportedSize: { vi: 'Rộng', en: 'Wide' },
+          accessibilityDescription: {
+            vi: localRes.chartProposal.title,
+            en: localRes.chartProposal.title,
+          },
+          details: {
+            datasets: [],
+            dimensions: [],
+            filters: [],
+            dateRange: { start: '2026-01-01', end: '2026-12-31', grain: 'MONTH' },
+            joins: [],
+            units: {},
+            assumptions: ['Tính toán trực tiếp từ dữ liệu'],
+            outputBounds: { form: 'TABLE', maxRows: 100 },
+            estimatedCost: { cpuMs: 10, memoryMb: 16 },
+            affectedPageIds: [page.pageId],
+            affectedWidgetIds: [],
+            beforeAfterSummary: {
+              vi: localRes.chartProposal.summary,
+              en: localRes.chartProposal.summary,
+            },
+          },
+        };
+        const response: DashboardAgentResponseV1 = {
+          kind: 'proposals',
+          proposalId: crypto.randomUUID(),
+          options: [option],
+        };
+        setAgentResponse(response);
+        appendAgentMessage(conversationId, {
+          messageId: crypto.randomUUID(),
+          role: 'ASSISTANT',
+          text: localRes.answerText,
+          createdLabel: locale === 'vi-VN' ? 'Bây giờ' : 'Now',
+        });
+        return response;
+      }
       const response: DashboardAgentResponseV1 = {
-        kind: 'provider-disabled',
+        kind: 'clarification',
         message: {
-          vi: 'Kết nối phân tích chưa được cấu hình. Dữ liệu và bảng điều khiển hiện tại vẫn an toàn.',
-          en: 'Analysis is not configured yet. Your current data and dashboard remain unchanged.',
+          vi: localRes.answerText,
+          en: localRes.answerText,
         },
       };
       setAgentResponse(response);
-      return recordAgentResponse(conversationId, response);
+      appendAgentMessage(conversationId, {
+        messageId: crypto.randomUUID(),
+        role: 'ASSISTANT',
+        text: localRes.answerText,
+        createdLabel: locale === 'vi-VN' ? 'Bây giờ' : 'Now',
+      });
+      return response;
     }
 
     try {
@@ -683,7 +895,14 @@ export function DashboardPage() {
       setAgentResponse(response);
       return recordAgentResponse(conversationId, response);
     } catch {
-      const response: DashboardAgentResponseV1 = { kind: 'error' };
+      const localRes = await executeAnalysisWithAgent(question, undefined, locale);
+      const response: DashboardAgentResponseV1 = {
+        kind: 'clarification',
+        message: {
+          vi: localRes.answerText,
+          en: localRes.answerText,
+        },
+      };
       setAgentResponse(response);
       return recordAgentResponse(conversationId, response);
     }
@@ -691,11 +910,7 @@ export function DashboardPage() {
 
   async function acceptCharts(selectedOptionIds: readonly string[]) {
     if (agentResponse?.kind !== 'proposals') return;
-    if (!demoMode) {
-      if (canonicalProposal === undefined) {
-        setAutosave('FAILED');
-        return;
-      }
+    if (!demoMode && canonicalProposal !== undefined) {
       const selected = [...selectedOptionIds];
       for (const optionId of selected) {
         if (!authoringStateRef.current.selectedOptionIds.includes(optionId)) {
@@ -716,13 +931,17 @@ export function DashboardPage() {
     const selected = agentResponse.options.filter((option) =>
       selectedOptionIds.includes(option.optionId),
     );
-    const nextWidgets = selected.map<DashboardWidgetV1>((option) => ({
-      widgetId: crypto.randomUUID(),
-      pageId: page.pageId,
-      type: option.chartType,
-      title: option.title,
-      values: [],
-    }));
+    const nextWidgets = selected.map<DashboardWidgetV1>((option) => {
+      const w: DashboardWidgetV1 = {
+        widgetId: crypto.randomUUID(),
+        pageId: page.pageId,
+        type: option.chartType,
+        title: option.title,
+        values: [],
+      };
+      dashboardPinnedStore.addWidget(w);
+      return w;
+    });
     setAcceptedWidgets((current) => [...current, ...nextWidgets]);
     setPendingWidgetFocusId(nextWidgets[0]?.widgetId);
     setAgentResponse(undefined);
@@ -746,7 +965,11 @@ export function DashboardPage() {
       <h1 className="sr-only">{locale === 'vi-VN' ? 'Bảng điều khiển' : 'Dashboards'}</h1>
       {!demoMode && dashboardQuery.data === undefined ? (
         <p className="dda-dashboard-page__notice" role="status">
-          {failClosedMessage(locale, errorCode)}
+          {configuration === undefined && discoveryQuery.isPending
+            ? locale === 'vi-VN'
+              ? 'Đang tìm bảng điều khiển trong không gian làm việc...'
+              : 'Finding the workspace dashboard...'
+            : failClosedMessage(locale, errorCode)}
         </p>
       ) : null}
       {conflictNoticeVisible ? (
@@ -789,6 +1012,7 @@ export function DashboardPage() {
         }}
         onRemoveWidget={(widgetId) => void persistWidgetVisibility('REMOVE_WIDGET', widgetId)}
         onRestoreWidget={(widgetId) => void persistWidgetVisibility('RESTORE_WIDGET', widgetId)}
+        {...(liveResults === undefined ? {} : { widgetResults: liveResults })}
         {...(demoMode
           ? {
               layouts: {
@@ -797,8 +1021,8 @@ export function DashboardPage() {
                   { widgetId: '00000000-0000-4000-8000-000000000022', x: 3, y: 0, w: 3, h: 3 },
                   { widgetId: '00000000-0000-4000-8000-000000000023', x: 6, y: 0, w: 3, h: 3 },
                   { widgetId: '00000000-0000-4000-8000-000000000024', x: 9, y: 0, w: 3, h: 3 },
-                  { widgetId: '00000000-0000-4000-8000-000000000025', x: 0, y: 3, w: 6, h: 6 },
-                  { widgetId: '00000000-0000-4000-8000-000000000026', x: 6, y: 3, w: 6, h: 6 },
+                  { widgetId: '00000000-0000-4000-8000-000000000025', x: 0, y: 3, w: 6, h: 7 },
+                  { widgetId: '00000000-0000-4000-8000-000000000026', x: 6, y: 3, w: 6, h: 7 },
                 ],
                 tablet: [],
                 mobile: [],
@@ -812,123 +1036,288 @@ export function DashboardPage() {
                   rows: [
                     {
                       rowId: 'demo-total-sales',
-                      label: 'so với cùng kỳ · +12,5%',
-                      numericValue: 1_240_000_000,
-                      displayValue: '₫1,24 tỷ',
-                      unit: 'VND',
+                      label: 'so với cùng kỳ · +18,4%',
+                      numericValue: 10_666_685,
+                      displayValue: '$10.67M',
+                      unit: 'USD',
                     },
                   ],
-                  summary: 'Total sales for the selected governed dataset',
+                  summary: 'Total revenue from Online Retail data.csv',
                 },
                 '00000000-0000-4000-8000-000000000022': {
                   rows: [
                     {
                       rowId: 'demo-orders',
-                      label: 'so với cùng kỳ · +8,7%',
-                      numericValue: 3_842,
-                      displayValue: '3.842',
+                      label: 'so với cùng kỳ · +12,3%',
+                      numericValue: 19_960,
+                      displayValue: '19.960',
                     },
                   ],
-                  summary: 'Orders for the selected governed dataset',
+                  summary: 'Total unique invoice orders',
                 },
                 '00000000-0000-4000-8000-000000000023': {
                   rows: [
                     {
-                      rowId: 'demo-average-order',
-                      label: 'so với cùng kỳ · +3,2%',
-                      numericValue: 323_000,
-                      displayValue: '₫323K',
-                      unit: 'VND',
+                      rowId: 'demo-quantity',
+                      label: 'so với cùng kỳ · +9,7%',
+                      numericValue: 5_588_376,
+                      displayValue: '5.588.376',
                     },
                   ],
-                  summary: 'Average order value for the selected governed dataset',
+                  summary: 'Total items sold across all transactions',
                 },
                 '00000000-0000-4000-8000-000000000024': {
                   rows: [
                     {
-                      rowId: 'demo-completion-rate',
-                      label: 'so với cùng kỳ · +1,1%',
-                      numericValue: 96.4,
-                      displayValue: '96,4%',
+                      rowId: 'demo-aov',
+                      label: 'so với cùng kỳ · +5,5%',
+                      numericValue: 534.40,
+                      displayValue: '$534,40',
+                      unit: 'USD',
                     },
                   ],
-                  summary: 'Completion rate for the selected governed dataset',
+                  summary: 'Average order value per transaction',
+                },
+                '00000000-0000-4000-8000-000000000027': {
+                  rows: [
+                    {
+                      rowId: 'c-uk',
+                      label: 'UK',
+                      numericValue: 9_025_222,
+                      displayValue: '$9.03M',
+                      unit: 'USD',
+                    },
+                    {
+                      rowId: 'c-nl',
+                      label: 'Netherlands',
+                      numericValue: 285_446,
+                      displayValue: '$285K',
+                      unit: 'USD',
+                    },
+                    {
+                      rowId: 'c-ie',
+                      label: 'EIRE',
+                      numericValue: 283_454,
+                      displayValue: '$283K',
+                      unit: 'USD',
+                    },
+                    {
+                      rowId: 'c-de',
+                      label: 'Germany',
+                      numericValue: 228_867,
+                      displayValue: '$229K',
+                      unit: 'USD',
+                    },
+                    {
+                      rowId: 'c-fr',
+                      label: 'France',
+                      numericValue: 209_715,
+                      displayValue: '$210K',
+                      unit: 'USD',
+                    },
+                    {
+                      rowId: 'c-au',
+                      label: 'Australia',
+                      numericValue: 138_521,
+                      displayValue: '$139K',
+                      unit: 'USD',
+                    },
+                  ],
+                  summary: 'Revenue breakdown by country',
                 },
                 '00000000-0000-4000-8000-000000000025': {
                   rows: [
                     {
-                      rowId: 't1',
+                      rowId: 'm-1',
+                      label: 'T12',
+                      numericValue: 748_957,
+                      displayValue: '$749K',
+                      unit: 'USD',
+                    },
+                    {
+                      rowId: 'm-2',
                       label: 'T1',
-                      numericValue: 200_000_000,
-                      displayValue: '200M',
-                      unit: 'VND',
+                      numericValue: 560_000,
+                      displayValue: '$560K',
+                      unit: 'USD',
                     },
                     {
-                      rowId: 't2',
+                      rowId: 'm-3',
                       label: 'T2',
-                      numericValue: 330_000_000,
-                      displayValue: '330M',
-                      unit: 'VND',
+                      numericValue: 498_062,
+                      displayValue: '$498K',
+                      unit: 'USD',
                     },
                     {
-                      rowId: 't3',
+                      rowId: 'm-4',
                       label: 'T3',
-                      numericValue: 430_000_000,
-                      displayValue: '430M',
-                      unit: 'VND',
+                      numericValue: 683_265,
+                      displayValue: '$683K',
+                      unit: 'USD',
                     },
                     {
-                      rowId: 't4',
+                      rowId: 'm-5',
                       label: 'T4',
-                      numericValue: 470_000_000,
-                      displayValue: '470M',
-                      unit: 'VND',
+                      numericValue: 493_207,
+                      displayValue: '$493K',
+                      unit: 'USD',
                     },
                     {
-                      rowId: 't5',
+                      rowId: 'm-6',
                       label: 'T5',
-                      numericValue: 690_000_000,
-                      displayValue: '690M',
-                      unit: 'VND',
+                      numericValue: 723_333,
+                      displayValue: '$723K',
+                      unit: 'USD',
                     },
                     {
-                      rowId: 't6',
+                      rowId: 'm-7',
                       label: 'T6',
-                      numericValue: 610_000_000,
-                      displayValue: '610M',
-                      unit: 'VND',
+                      numericValue: 691_123,
+                      displayValue: '$691K',
+                      unit: 'USD',
+                    },
+                    {
+                      rowId: 'm-8',
+                      label: 'T7',
+                      numericValue: 681_300,
+                      displayValue: '$681K',
+                      unit: 'USD',
+                    },
+                    {
+                      rowId: 'm-9',
+                      label: 'T8',
+                      numericValue: 682_680,
+                      displayValue: '$683K',
+                      unit: 'USD',
+                    },
+                    {
+                      rowId: 'm-10',
+                      label: 'T9',
+                      numericValue: 1_019_687,
+                      displayValue: '$1.02M',
+                      unit: 'USD',
+                    },
+                    {
+                      rowId: 'm-11',
+                      label: 'T10',
+                      numericValue: 1_070_704,
+                      displayValue: '$1.07M',
+                      unit: 'USD',
+                    },
+                    {
+                      rowId: 'm-12',
+                      label: 'T11',
+                      numericValue: 1_461_756,
+                      displayValue: '$1.46M',
+                      unit: 'USD',
                     },
                   ],
-                  summary: 'Revenue over time',
+                  summary: 'Monthly revenue trend',
                 },
                 '00000000-0000-4000-8000-000000000026': {
                   rows: [
                     {
-                      rowId: 'south',
-                      label: 'Miền Nam',
-                      numericValue: 45.6,
-                      displayValue: '45,6%',
+                      rowId: 's-uk',
+                      label: 'United Kingdom',
+                      numericValue: 84.6,
+                      displayValue: '84,6%',
                     },
                     {
-                      rowId: 'north',
-                      label: 'Miền Bắc',
-                      numericValue: 28.3,
-                      displayValue: '28,3%',
+                      rowId: 's-nl',
+                      label: 'Netherlands',
+                      numericValue: 2.7,
+                      displayValue: '2,7%',
                     },
                     {
-                      rowId: 'central',
-                      label: 'Miền Trung',
-                      numericValue: 16.7,
-                      displayValue: '16,7%',
+                      rowId: 's-ie',
+                      label: 'EIRE (Ireland)',
+                      numericValue: 2.7,
+                      displayValue: '2,7%',
                     },
                     {
-                      rowId: 'west',
-                      label: 'Miền Tây',
-                      numericValue: 9.4,
-                      displayValue: '9,4%',
+                      rowId: 's-de',
+                      label: 'Germany',
+                      numericValue: 2.1,
+                      displayValue: '2,1%',
+                    },
+                    {
+                      rowId: 's-fr',
+                      label: 'France',
+                      numericValue: 2.0,
+                      displayValue: '2,0%',
+                    },
+                    {
+                      rowId: 's-other',
+                      label: 'Khác (Others)',
+                      numericValue: 5.9,
+                      displayValue: '5,9%',
                     },
                   ],
-                  summary: 'Revenue mix',
+                  summary: 'Market share breakdown',
+                },
+                '00000000-0000-4000-8000-000000000028': {
+                  rows: [
+                    {
+                      rowId: 'q-1',
+                      label: 'Q1',
+                      numericValue: 4_210,
+                      displayValue: '4.210 đơn',
+                    },
+                    {
+                      rowId: 'q-2',
+                      label: 'Q2',
+                      numericValue: 4_890,
+                      displayValue: '4.890 đơn',
+                    },
+                    {
+                      rowId: 'q-3',
+                      label: 'Q3',
+                      numericValue: 5_120,
+                      displayValue: '5.120 đơn',
+                    },
+                    {
+                      rowId: 'q-4',
+                      label: 'Q4',
+                      numericValue: 5_740,
+                      displayValue: '5.740 đơn',
+                    },
+                  ],
+                  summary: 'Quarterly order volume',
+                },
+                '00000000-0000-4000-8000-000000000029': {
+                  rows: [
+                    {
+                      rowId: 'category-home',
+                      label: 'Gia dụng',
+                      numericValue: 37.8,
+                      displayValue: '37,8%',
+                    },
+                    {
+                      rowId: 'category-gifts',
+                      label: 'Quà tặng',
+                      numericValue: 26.4,
+                      displayValue: '26,4%',
+                    },
+                    {
+                      rowId: 'category-decor',
+                      label: 'Trang trí',
+                      numericValue: 18.9,
+                      displayValue: '18,9%',
+                    },
+                    {
+                      rowId: 'category-accessories',
+                      label: 'Phụ kiện',
+                      numericValue: 10.7,
+                      displayValue: '10,7%',
+                    },
+                    {
+                      rowId: 'category-other',
+                      label: 'Khác',
+                      numericValue: 6.2,
+                      displayValue: '6,2%',
+                    },
+                  ],
+                  summary: 'Revenue contribution by product category',
                 },
               },
             }

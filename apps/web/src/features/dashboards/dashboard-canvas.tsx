@@ -56,12 +56,16 @@ function legacyRows(
   widgetId: string,
   values: readonly { readonly label: string; readonly value: string }[],
 ): readonly AuthorizedWidgetResultRowV1[] {
-  return values.map((value, index) => ({
-    rowId: widgetId + '-' + index,
-    label: value.label,
-    numericValue: null,
-    displayValue: value.value,
-  }));
+  return values.map((value, index) => {
+    const rawClean = value.value.replace(/[^0-9.-]/g, '');
+    const num = rawClean.length > 0 ? parseFloat(rawClean) : null;
+    return {
+      rowId: widgetId + '-' + index,
+      label: value.label,
+      numericValue: num !== null && !isNaN(num) ? num : null,
+      displayValue: value.value,
+    };
+  });
 }
 
 function fallbackRows(
@@ -175,10 +179,28 @@ export function DashboardCanvas({
         />
       ) : null}
       <div className="dda-dashboard-canvas__utility">
-        <p role="alert">{visibleWarning}</p>
-        <button type="button" disabled={removed.length === 0} onClick={restoreWidget}>
-          {label(locale, 'Khôi phục tiện ích', 'Restore widget')}
-        </button>
+        <p role="status" className="dda-dashboard-canvas__trust-note">
+          <span aria-hidden="true" />
+          {visibleWarning}
+        </p>
+        <div className="dda-dashboard-canvas__actions">
+          <a className="dda-dashboard-canvas__action-link" href={`/${locale}/analysis`}>
+            {locale === 'vi-VN' ? 'Hỏi trợ lý AI' : 'Ask AI agent'}
+          </a>
+          <a className="dda-dashboard-canvas__action-link" href={`/${locale}/data`}>
+            {locale === 'vi-VN' ? 'Xem dữ liệu' : 'View data'}
+          </a>
+          {removed.length > 0 ? (
+            <button
+              className="dda-dashboard-canvas__restore"
+              type="button"
+              aria-label={label(locale, 'Khôi phục tiện ích', 'Restore widget')}
+              onClick={restoreWidget}
+            >
+              {label(locale, 'Khôi phục', 'Restore')}
+            </button>
+          ) : null}
+        </div>
       </div>
       <ResponsiveWidgetGrid
         locale={locale}

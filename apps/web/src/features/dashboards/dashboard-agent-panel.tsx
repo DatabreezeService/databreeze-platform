@@ -111,9 +111,6 @@ export function DashboardAgentPanel({
   if (!open) return null;
 
   const localizedKey = locale === 'vi-VN' ? 'vi' : 'en';
-  const targetText = target.widgetTitle
-    ? `${target.pageTitle[localizedKey]} · ${target.widgetTitle[localizedKey]}`
-    : target.pageTitle[localizedKey];
   const activeResponse = responseFromParent ?? response;
   const activeOptions =
     proposalOptions ?? (activeResponse?.kind === 'proposals' ? activeResponse.options : undefined);
@@ -239,7 +236,6 @@ export function DashboardAgentPanel({
           'Câu hỏi cho trợ lý biểu đồ',
           'Question for the chart assistant',
         )}
-        context={`${label(locale, 'Mục tiêu', 'Target')}: ${targetText}`}
         conversations={conversations}
         headingTitle={label(locale, 'Trợ lý biểu đồ', 'Chart assistant')}
         locale={locale}

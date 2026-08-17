@@ -15,6 +15,14 @@ describe('workspace settings route [WEB-019]', () => {
     expect(await screen.findByText('Workspace settings could not load.')).toBeTruthy();
   });
 
+  it('also serves the user-facing settings alias', async () => {
+    const router = createAppRouter({ initialEntries: ['/en/settings'] });
+    render(<ApplicationBoundary router={router} />);
+
+    expect(await screen.findByRole('heading', { name: 'Workspace settings' })).toBeTruthy();
+    expect(await screen.findByText('Workspace settings could not load.')).toBeTruthy();
+  });
+
   it('shows a complete owner settings workspace in explicit local demo mode', async () => {
     const user = userEvent.setup();
     render(<WorkspaceSettingsRoutePage locale="vi-VN" demoMode />);

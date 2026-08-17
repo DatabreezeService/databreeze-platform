@@ -1,4 +1,13 @@
-import { useId, useState, type FormEvent, type ReactNode, type Ref } from 'react';
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+  type ReactNode,
+  type Ref,
+} from 'react';
 
 import { DATABREEZE_MARK_SRC } from '../../app/brand-assets.ts';
 import { XIcon } from '../../components/icons.tsx';
@@ -45,83 +54,64 @@ export function AgentChatShell({
   textareaRef,
 }: AgentChatShellProperties) {
   const [draft, setDraft] = useState('');
+  const [conversationMenuOpen, setConversationMenuOpen] = useState(false);
   const composerId = useId();
+  const conversationMenuId = useId();
+  const conversationSelectorRef = useRef<HTMLDivElement>(null);
+  const conversationTriggerRef = useRef<HTMLButtonElement>(null);
+  const conversationMenuRef = useRef<HTMLDivElement>(null);
 
   const text =
     locale === 'vi-VN'
       ? {
           close: 'Đóng trợ lý',
           composer: composerLabel ?? 'Nhập câu hỏi cho trợ lý',
+          composerHint: 'Enter để gửi · Shift+Enter để xuống dòng',
           emptyGreeting: 'Tôi có thể giúp gì cho bạn hôm nay?',
+          emptyHint: 'Chọn một hội thoại hoặc bắt đầu bằng câu hỏi bên dưới.',
           inputPlaceholder: 'Hỏi bất kỳ điều gì với AI…',
-          newAiChat: 'Cuộc trò chuyện mới',
+          newConversation: 'Cuộc trò chuyện mới',
           noConversation: 'Chưa có hội thoại được cấp quyền',
           send: submitting ? 'Đang gửi…' : 'Gửi',
-          switchConversation: 'Chuyển hội thoại',
+          switchConversation: 'Lịch sử hội thoại',
           suggestions: [
             {
-              icon: '🐥',
-              label: 'Cá nhân hóa trợ lý DataBreeze AI',
-              prompt: 'Tùy chỉnh phong cách phân tích dữ liệu cho trợ lý AI',
+              label: 'Tóm tắt các chỉ số đang hiển thị',
+              prompt: 'Tóm tắt các chỉ số và điểm đáng chú ý đang hiển thị',
             },
             {
-              icon: '📊',
-              label: 'Tạo biểu đồ trực quan hóa dữ liệu',
-              prompt: 'Tạo biểu đồ trực quan hóa từ các chỉ số kinh doanh chính',
-              badge: 'Mới',
+              label: 'Phân tích xu hướng doanh thu',
+              prompt: 'Phân tích xu hướng doanh thu và các yếu tố đang ảnh hưởng',
             },
             {
-              icon: '📈',
-              label: 'Phân tích doanh thu & xu hướng tăng trưởng',
-              prompt: 'Phân tích tổng quan doanh thu Q2 và dự báo xu hướng tiếp theo',
-            },
-            {
-              icon: '🔍',
-              label: 'Kiểm tra chất lượng & tính toàn vẹn dữ liệu',
-              prompt: 'Kiểm tra tính hợp lệ và cảnh báo bất thường trong dữ liệu',
-            },
-            {
-              icon: '📄',
-              label: 'Tóm tắt thông tin trên màn hình này',
-              prompt: 'Tóm tắt nhanh các chỉ số và dữ liệu đang hiển thị',
+              label: 'Kiểm tra chất lượng dữ liệu',
+              prompt: 'Kiểm tra chất lượng dữ liệu và nêu các điểm cần xem lại',
             },
           ],
         }
       : {
           close: 'Close agent',
           composer: composerLabel ?? 'Ask the agent',
+          composerHint: 'Enter to send · Shift+Enter for a new line',
           emptyGreeting: 'How can I help you today?',
+          emptyHint: 'Choose a conversation or start with a question below.',
           inputPlaceholder: 'Do anything with AI…',
-          newAiChat: 'New AI chat',
+          newConversation: 'New conversation',
           noConversation: 'No authorized conversations are available',
           send: submitting ? 'Sending…' : 'Send',
-          switchConversation: 'Switch conversation',
+          switchConversation: 'Conversation history',
           suggestions: [
             {
-              icon: '🐥',
-              label: 'Personalize your DataBreeze AI',
-              prompt: 'Personalize the analysis style and focus metrics for AI',
+              label: 'Summarize the metrics on screen',
+              prompt: 'Summarize the metrics and notable changes on screen',
             },
             {
-              icon: '📊',
-              label: 'Create a diagram based on data',
-              prompt: 'Generate an interactive visualization for primary metrics',
-              badge: 'New',
+              label: 'Analyze revenue trends',
+              prompt: 'Analyze revenue trends and the factors driving them',
             },
             {
-              icon: '📈',
-              label: 'Analyze revenue & growth trends',
-              prompt: 'Summarize Q2 revenue KPIs and identify key trend drivers',
-            },
-            {
-              icon: '🔍',
-              label: 'Verify data quality & pipelines',
-              prompt: 'Audit dataset freshness and detect schema anomalies',
-            },
-            {
-              icon: '📄',
-              label: 'Summarize this page',
-              prompt: 'Provide a concise executive summary of this view',
+              label: 'Check data quality',
+              prompt: 'Check data quality and call out anything that needs review',
             },
           ],
         };
@@ -139,66 +129,158 @@ export function AgentChatShell({
   }
 
   function handleSelectChange(val: string) {
+    setConversationMenuOpen(false);
     if (val === '') {
       if (onCreateConversation) onCreateConversation();
       else onSelectConversation('');
     } else {
       onSelectConversation(val);
     }
+    conversationTriggerRef.current?.focus();
   }
 
+  function openConversationMenu() {
+    setConversationMenuOpen(true);
+  }
+
+  function handleConversationTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openConversationMenu();
+      return;
+    }
+    if (event.key === 'Escape') setConversationMenuOpen(false);
+  }
+
+  function handleConversationMenuKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setConversationMenuOpen(false);
+      conversationTriggerRef.current?.focus();
+      return;
+    }
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    event.preventDefault();
+    const options = Array.from(
+      conversationMenuRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? [],
+    );
+    const currentIndex = options.indexOf(event.target as HTMLButtonElement);
+    const nextIndex =
+      event.key === 'ArrowDown'
+        ? Math.min(currentIndex + 1, options.length - 1)
+        : Math.max(currentIndex - 1, 0);
+    options[nextIndex]?.focus();
+  }
+
+  useEffect(() => {
+    if (!conversationMenuOpen) return undefined;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!conversationSelectorRef.current?.contains(event.target as Node)) {
+        setConversationMenuOpen(false);
+      }
+    };
+    globalThis.document.addEventListener('pointerdown', handlePointerDown);
+    return () => globalThis.document.removeEventListener('pointerdown', handlePointerDown);
+  }, [conversationMenuOpen]);
+
+  useEffect(() => {
+    if (!conversationMenuOpen) return;
+    conversationMenuRef.current?.querySelector<HTMLButtonElement>('[role="option"]')?.focus();
+  }, [conversationMenuOpen]);
+
   const activeConversation = conversations.find((c) => c.conversationId === activeConversationId);
-  const currentTitle = activeConversation?.title ?? text.newAiChat;
+  const currentTitle = activeConversation?.title ?? text.newConversation;
 
   return (
     <div className="notion-ai-chat">
       {/* Accessible heading for screen readers */}
       <h2 className="dda-sr-only">{headingTitle ?? 'Trợ lý DataBreeze'}</h2>
 
-      {/* Notion-style Top Bar */}
+      {/* History-first header: the only navigation control is the conversation history. */}
       <header className="notion-ai-header">
-        <div className="notion-ai-header__selector">
-          <select
+        <div className="notion-ai-header__selector" ref={conversationSelectorRef}>
+          <button
+            aria-controls={conversationMenuId}
+            aria-expanded={conversationMenuOpen}
+            aria-haspopup="listbox"
             aria-label={text.switchConversation}
-            className="notion-ai-header__select"
-            onChange={(event) => handleSelectChange(event.target.value)}
-            value={activeConversationId ?? ''}
+            className="notion-ai-header__trigger"
+            onClick={() => setConversationMenuOpen((open) => !open)}
+            onKeyDown={handleConversationTriggerKeyDown}
+            ref={conversationTriggerRef}
+            type="button"
           >
-            <option value="">{text.newAiChat}</option>
-            {conversations.map((conv) => (
-              <option key={conv.conversationId} value={conv.conversationId}>
-                {conv.title}
-              </option>
-            ))}
-          </select>
-          <span className="notion-ai-header__display-title" aria-hidden="true">
-            {currentTitle} <span className="notion-ai-header__chevron">▾</span>
-          </span>
+            <span className="notion-ai-header__display-title">
+              <span className="notion-ai-header__current-title">{currentTitle}</span>
+              <svg
+                aria-hidden="true"
+                className="notion-ai-header__chevron"
+                fill="none"
+                height="14"
+                viewBox="0 0 24 24"
+                width="14"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                />
+              </svg>
+            </span>
+          </button>
+          {conversationMenuOpen ? (
+            <div
+              aria-label={text.switchConversation}
+              className="notion-ai-header__menu"
+              id={conversationMenuId}
+              onKeyDown={handleConversationMenuKeyDown}
+              ref={conversationMenuRef}
+              role="listbox"
+            >
+              <button
+                aria-selected={activeConversationId === undefined}
+                className="notion-ai-header__option"
+                onClick={() => handleSelectChange('')}
+                role="option"
+                type="button"
+              >
+                <span>{text.newConversation}</span>
+                {activeConversationId === undefined ? (
+                  <span aria-hidden="true" className="notion-ai-header__option-check">
+                    ✓
+                  </span>
+                ) : null}
+              </button>
+              {conversations.map((conv) => {
+                const selected = conv.conversationId === activeConversationId;
+                return (
+                  <button
+                    aria-selected={selected}
+                    className="notion-ai-header__option"
+                    key={conv.conversationId}
+                    onClick={() => handleSelectChange(conv.conversationId)}
+                    role="option"
+                    type="button"
+                  >
+                    <span className="notion-ai-header__option-title">{conv.title}</span>
+                    {selected ? (
+                      <span aria-hidden="true" className="notion-ai-header__option-check">
+                        ✓
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+              {conversations.length === 0 ? (
+                <p className="notion-ai-header__menu-empty">{text.noConversation}</p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <div className="notion-ai-header__actions">
-          {onCreateConversation !== undefined && (
-            <button
-              aria-label={text.newAiChat}
-              className="notion-ai-header__icon-btn"
-              onClick={onCreateConversation}
-              title={text.newAiChat}
-              type="button"
-            >
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-            </button>
-          )}
           {onClose !== undefined && (
             <button
               aria-label={text.close}
@@ -214,7 +296,7 @@ export function AgentChatShell({
       </header>
 
       {/* Context Badge if attached */}
-      {context !== undefined && activeConversationId !== undefined ? (
+      {context !== undefined ? (
         <div className="notion-ai-context">
           <span>{context}</span>
         </div>
@@ -228,22 +310,22 @@ export function AgentChatShell({
               <img alt="DataBreeze AI" src={DATABREEZE_MARK_SRC} />
             </div>
             <h3 className="notion-ai-empty__greeting">{text.emptyGreeting}</h3>
+            <p className="notion-ai-empty__hint">{text.emptyHint}</p>
             <div className="notion-ai-empty__suggestions">
-              {text.suggestions.map((item, idx) => (
+              {text.suggestions.map((item) => (
                 <button
                   className="notion-ai-empty__suggestion-item"
-                  key={idx}
+                  key={item.prompt}
                   onClick={() => {
                     if (onSubmitMessage) void onSubmitMessage(item.prompt);
                     else setDraft(item.prompt);
                   }}
                   type="button"
                 >
-                  <span className="notion-ai-empty__suggestion-icon">{item.icon}</span>
                   <span className="notion-ai-empty__suggestion-label">{item.label}</span>
-                  {item.badge ? (
-                    <span className="notion-ai-empty__suggestion-badge">{item.badge}</span>
-                  ) : null}
+                  <span aria-hidden="true" className="notion-ai-empty__suggestion-arrow">
+                    →
+                  </span>
                 </button>
               ))}
             </div>
@@ -301,7 +383,7 @@ export function AgentChatShell({
             value={draft}
           />
           <div className="notion-ai-composer__footer">
-            <div className="notion-ai-composer__spacer" />
+            <span className="notion-ai-composer__hint">{text.composerHint}</span>
             <button
               aria-label={text.send}
               className="notion-ai-composer__send-btn"

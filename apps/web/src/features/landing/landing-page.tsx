@@ -79,10 +79,11 @@ export function LandingPage({
 
   useEffect(() => {
     const root = document.querySelector<HTMLElement>('.teammate-landing-root');
-    const pricingSection = root?.querySelector<HTMLElement>('[data-pricing-section]');
-    if (root === null || pricingSection === null) return;
+    if (root === null) return;
+    const pricingSection = root.querySelector<HTMLElement>('[data-pricing-section]');
+    if (pricingSection === null) return;
 
-    const pricingLocale = pricingSection.dataset.pricingLocale === 'en' ? 'en-US' : 'vi-VN';
+    const pricingLocale = pricingSection.dataset['pricingLocale'] === 'en' ? 'en-US' : 'vi-VN';
     const formatPricingAmount = (value: number) =>
       `${new Intl.NumberFormat(pricingLocale).format(value)} ₫`;
 
@@ -92,7 +93,7 @@ export function LandingPage({
       const button = target.closest<HTMLButtonElement>('[data-pricing-cycle]');
       if (button === null || !root.contains(button)) return;
 
-      const cycle = button.dataset.pricingCycle;
+      const cycle = button.dataset['pricingCycle'];
       if (cycle !== 'monthly' && cycle !== 'annual') return;
 
       root.querySelectorAll<HTMLButtonElement>('[data-pricing-cycle]').forEach((item) => {
