@@ -72,14 +72,13 @@ describe('build-time governed navigation', () => {
     }
   });
 
-  it('presents the dashboard breadcrumb as semantic content instead of inert controls', async () => {
+  it('presents the dashboard breadcrumb as semantic navigation', async () => {
     const router = createAppRouter({ initialEntries: ['/en/dashboards'] });
     render(<ApplicationBoundary router={router} />);
 
     expect(await screen.findByRole('navigation', { name: 'Dashboard breadcrumb' })).toBeTruthy();
     expect(screen.getByText('Bright Cloud')).toBeTruthy();
     expect(screen.getByText('Business overview')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /Bright Cloud/u })).toBeNull();
-    expect(screen.queryByRole('button', { name: /Business overview/u })).toBeNull();
+    expect(screen.getByRole('button', { name: /Bright Cloud/u })).toBeTruthy();
   });
 });

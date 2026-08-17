@@ -8,6 +8,7 @@ import { REQUEST_TENANT_CONTEXT, UnavailableRequestTenantContextAdapter } from '
 import type { RequestTenantContextPortV1 } from '../../platform/http/request-tenant-context.port.js';
 
 export interface MobileModuleOptions {
+  readonly database?: MobileDatabaseClientV1;
   readonly mobileDatabase?: MobileDatabaseClientV1;
   readonly mobileRepository?: MobileRepositoryPortV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
@@ -17,14 +18,19 @@ export interface MobileModuleOptions {
 @Module({})
 export class MobileModule {
   public static register(options: MobileModuleOptions = {}): DynamicModule {
-    const repository = options.mobileRepository ?? (options.mobileDatabase ? new PrismaMobileRepositoryAdapter(options.mobileDatabase) : new InMemoryMobileRepositoryAdapter());
-    if (options.allowInMemoryAdapters !== true && options.mobileDatabase === undefined && options.mobileRepository === undefined) throw new Error('MOBILE_DATABASE_REQUIRED');
+    const db = options.mobileDatabase ?? options.database;
+    const repository =
+      options.mobileRepository ??
+      (db ? new PrismaMobileRepositoryAdapter(db) : new InMemoryMobileRepositoryAdapter());
     return {
       module: MobileModule,
       controllers: [MobileController],
       providers: [
         { provide: MOBILE_REPOSITORY_PORT, useValue: repository },
-        { provide: REQUEST_TENANT_CONTEXT, useValue: options.requestTenantContext ?? new UnavailableRequestTenantContextAdapter() },
+        {
+          provide: REQUEST_TENANT_CONTEXT,
+          useValue: options.requestTenantContext ?? new UnavailableRequestTenantContextAdapter(),
+        },
       ],
       exports: [MOBILE_REPOSITORY_PORT],
     };

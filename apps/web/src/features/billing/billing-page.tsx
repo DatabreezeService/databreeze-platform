@@ -190,7 +190,7 @@ export function BillingReturnPage() {
   return (
     <section aria-live="polite" className={`billing-return${paid ? ' billing-return--success' : ''}`}>
       <div className="billing-return__icon" aria-hidden="true">{paid ? '✓' : failed ? '!' : '…'}</div>
-      <p className="billing-page__eyebrow">{paid ? (english ? 'PAYOS CONFIRMED' : 'PAYOS ĐÃ XÁC NHẬN') : (english ? 'PAYOS STATUS CHECK' : 'PAYOS ĐANG ĐƯỢC KIỂM TRA')}</p>
+      <p className="billing-page__eyebrow">{paid ? (english ? 'PAYOS CONFIRMED' : 'PayOS Đã xác nhận') : (english ? 'PAYOS STATUS CHECK' : 'PayOS Đang kiểm tra')}</p>
       <h1>{heading}</h1>
       <p>{detail}</p>
       <div className="billing-return__actions">

@@ -20,9 +20,6 @@ import {
 } from '../pages/shell-states.tsx';
 import { DashboardPage } from '../features/dashboards/dashboard-page.tsx';
 import { AnalysisRoutePage } from '../features/analysis/analysis-route-page.tsx';
-import { BillingPage, BillingReturnPage } from '../features/billing/billing-page.tsx';
-import { BillingMockCheckoutPage } from '../features/billing/billing-mock-checkout-page.tsx';
-import { UsagePage } from '../features/usage/usage-page.tsx';
 import { DownloadsRoutePage } from '../features/downloads/downloads-page.tsx';
 import {
   ForgotPasswordRoutePage,
@@ -75,6 +72,22 @@ const ProductModuleWorkbench = lazy(async () => {
 const WorkspaceSettingsRoutePage = lazy(async () => {
   const module = await import('../features/settings/workspace-settings-page.tsx');
   return { default: module.WorkspaceSettingsRoutePage };
+});
+const BillingPage = lazy(async () => {
+  const module = await import('../features/billing/billing-page.tsx');
+  return { default: module.BillingPage };
+});
+const BillingReturnPage = lazy(async () => {
+  const module = await import('../features/billing/billing-page.tsx');
+  return { default: module.BillingReturnPage };
+});
+const BillingMockCheckoutPage = lazy(async () => {
+  const module = await import('../features/billing/billing-mock-checkout-page.tsx');
+  return { default: module.BillingMockCheckoutPage };
+});
+const UsagePage = lazy(async () => {
+  const module = await import('../features/usage/usage-page.tsx');
+  return { default: module.UsagePage };
 });
 const PlatformAdminRoutePage = lazy(async () => {
   const module = await import('../features/platform-admin/platform-admin-page.tsx');
@@ -192,18 +205,18 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
                 { path: 'settings', element: <WorkspaceSettingsRoute /> },
                 { path: 'analysis', element: <AnalysisRoutePage /> },
                 { path: 'data', element: <Suspended><DataRoutePage /></Suspended> },
-                { path: 'billing', element: <BillingPage /> },
+                { path: 'billing', element: <Suspended><BillingPage /></Suspended> },
                 {
                   path: 'billing/mock-checkout/:orderCode',
                   element:
                     import.meta.env['VITE_DATABREEZE_DEMO_MODE'] === 'true' ? (
-                      <BillingMockCheckoutPage />
+                      <Suspended><BillingMockCheckoutPage /></Suspended>
                     ) : (
                       <NotFoundPage />
                     ),
                 },
-                { path: 'billing/success', element: <BillingReturnPage /> },
-                { path: 'billing/failed', element: <BillingReturnPage /> },
+                { path: 'billing/success', element: <Suspended><BillingReturnPage /></Suspended> },
+                { path: 'billing/failed', element: <Suspended><BillingReturnPage /></Suspended> },
                 ...WEB_FEATURE_REGISTRY.filter((feature) => feature.key !== 'workspace').map(
                   (feature) => ({
                     path: feature.path,
@@ -219,7 +232,7 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
                       ) : feature.key === 'dashboards' ? (
                         <DashboardPage />
                       ) : feature.key === 'usage' ? (
-                        <UsagePage />
+                        <Suspended><UsagePage /></Suspended>
                       ) : feature.key === 'administration' ? (
                         <WorkspaceSettingsRoute />
                       ) : (
