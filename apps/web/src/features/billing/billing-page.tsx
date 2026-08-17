@@ -29,7 +29,9 @@ function allowanceLabel(plan: BillingPlan, english: boolean): readonly string[] 
 export function BillingPage() {
   const api = useMemo(() => createBillingApi(), []);
   const { locale = 'vi-VN' } = useParams();
+  const { search } = useLocation();
   const english = locale === 'en';
+  const requestedPlanId = new URLSearchParams(search).get('planId');
   const [plans, setPlans] = useState<readonly BillingPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<string>();
@@ -104,9 +106,11 @@ export function BillingPage() {
             const tagline = english ? plan.taglineEn : plan.taglineVi;
             const benefits = english ? plan.benefitsEn : plan.benefitsVi;
             const featured = plan.family === 'professional' && cycle === 'monthly';
+            const selected = plan.id === requestedPlanId;
             return (
-              <article className={`billing-plan-card${featured ? ' billing-plan-card--featured' : ''}`} key={plan.id}>
+              <article className={`billing-plan-card${featured ? ' billing-plan-card--featured' : ''}${selected ? ' billing-plan-card--selected' : ''}`} data-plan-id={plan.id} key={plan.id}>
                 {featured ? <div className="billing-plan-card__ribbon">{english ? 'Recommended' : 'Đề xuất'}</div> : null}
+                {selected ? <div className="billing-plan-card__selected" role="status">{english ? 'Selected from pricing' : 'Gói đã chọn từ bảng giá'}</div> : null}
                 <div className="billing-plan-card__topline"><span className="billing-plan-card__name">{name}</span><span className="billing-plan-card__cycle">{cycleLabel(cycle, english)}</span></div>
                 <p className="billing-plan-card__highlight">{tagline}</p>
                 <div className="billing-plan-card__price"><strong>{money(plan.amountVnd)}</strong><span>{cycleSuffix(cycle, english)}</span></div>
@@ -114,7 +118,7 @@ export function BillingPage() {
                 <ul className="billing-plan-card__benefits">{benefits.map((benefit) => <li key={benefit}><span aria-hidden="true">✓</span>{benefit}</li>)}</ul>
                 <ul className="billing-plan-card__allowances" aria-label={english ? 'Plan allowances' : 'Giới hạn gói'}>{allowanceLabel(plan, english).map((allowance) => <li key={allowance}>{allowance}</li>)}</ul>
                 <button className="billing-plan-card__button" disabled={pendingPlanId !== undefined} onClick={() => void checkout(plan.id)} type="button">
-                  {pendingPlanId === plan.id ? (english ? 'Creating checkout…' : 'Đang tạo liên kết…') : (english ? 'Choose this plan' : 'Chọn gói này')}
+                  {pendingPlanId === plan.id ? (english ? 'Creating checkout…' : 'Đang tạo liên kết…') : selected ? (english ? 'Continue with this plan' : 'Tiếp tục với gói này') : (english ? 'Choose this plan' : 'Chọn gói này')}
                 </button>
               </article>
             );
@@ -132,6 +136,7 @@ export function BillingReturnPage() {
   const { search } = useLocation();
   const { locale = 'vi-VN' } = useParams();
   const api = useMemo(() => createBillingApi(), []);
+  const english = locale === 'en';
   const [state, setState] = useState<ReturnState>('loading');
   const [orderCode, setOrderCode] = useState<number>();
 
@@ -164,22 +169,33 @@ export function BillingReturnPage() {
 
   const paid = state === 'paid';
   const failed = state === 'failed' || state === 'cancelled' || state === 'error';
-  const heading = paid ? 'Thanh toán thành công' : state === 'pending' || state === 'loading' ? 'Đang xác nhận thanh toán' : 'Thanh toán chưa hoàn tất';
+  const waiting = state === 'pending' || state === 'loading';
+  const heading = paid
+    ? english ? 'Payment successful' : 'Thanh toán thành công'
+    : waiting
+      ? english ? 'Confirming your payment' : 'Đang xác nhận thanh toán'
+      : english ? 'Payment was not completed' : 'Thanh toán chưa hoàn tất';
   const detail = paid
-    ? `Đơn ${orderCode ?? ''} đã được server xác nhận và quyền sử dụng đã cập nhật.`
-    : state === 'pending' || state === 'loading'
-      ? 'Đang chờ webhook PayOS. Trang sẽ tự cập nhật khi có kết quả.'
-      : 'Giao dịch bị hủy, thất bại hoặc không còn thuộc phiên đăng nhập hiện tại.';
+    ? english
+      ? `Order ${orderCode ?? ''} was confirmed by the server and your entitlements were updated.`
+      : `Đơn ${orderCode ?? ''} đã được server xác nhận và quyền sử dụng đã cập nhật.`
+    : waiting
+      ? english
+        ? 'We are waiting for the PayOS webhook. This page will update when the server receives the result.'
+        : 'Đang chờ webhook PayOS. Trang sẽ tự cập nhật khi có kết quả.'
+      : english
+        ? 'The transaction was cancelled, failed, or is no longer available in this signed-in session.'
+        : 'Giao dịch bị hủy, thất bại hoặc không còn thuộc phiên đăng nhập hiện tại.';
 
   return (
     <section aria-live="polite" className={`billing-return${paid ? ' billing-return--success' : ''}`}>
       <div className="billing-return__icon" aria-hidden="true">{paid ? '✓' : failed ? '!' : '…'}</div>
-      <p className="billing-page__eyebrow">{paid ? 'PAYOS Đ\u00c3 XÁC NHẬN' : 'PAYOS ĐANG ĐƯỢC KIỂM TRA'}</p>
+      <p className="billing-page__eyebrow">{paid ? (english ? 'PAYOS CONFIRMED' : 'PAYOS ĐÃ XÁC NHẬN') : (english ? 'PAYOS STATUS CHECK' : 'PAYOS ĐANG ĐƯỢC KIỂM TRA')}</p>
       <h1>{heading}</h1>
       <p>{detail}</p>
       <div className="billing-return__actions">
-        <Link className="billing-return__primary" to={`/${locale}/billing`}>Quay lại chọn gói</Link>
-        <Link className="billing-return__secondary" to={`/${locale}/dashboards`}>Về dashboard</Link>
+        <Link className="billing-return__primary" to={`/${locale}/billing`}>{english ? 'Back to plans' : 'Quay lại chọn gói'}</Link>
+        <Link className="billing-return__secondary" to={`/${locale}/dashboards`}>{english ? 'Go to dashboard' : 'Về dashboard'}</Link>
       </div>
     </section>
   );

@@ -279,6 +279,9 @@ export class AppModule {
         ? new SessionRequestTenantContextAdapter(
             {
               findPrincipalByAccessToken: sessions.findPrincipalByAccessToken.bind(sessions),
+              ...(typeof sessions.findSessionByAccessToken === 'function'
+                ? { findSessionByAccessToken: sessions.findSessionByAccessToken.bind(sessions) }
+                : {}),
             },
             workspaceEpochResolver,
           )

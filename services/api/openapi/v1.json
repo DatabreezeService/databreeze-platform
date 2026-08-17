@@ -745,6 +745,122 @@
         "tags": ["auth"]
       }
     },
+    "/v1/auth/scope": {
+      "post": {
+        "operationId": "AuthenticationController.switchScope",
+        "parameters": [
+          {
+            "name": "X-Correlation-Id",
+            "in": "header",
+            "required": false,
+            "description": "Optional single bounded UUID; invalid or repeated values fail closed.",
+            "schema": { "format": "uuid", "maxLength": 128, "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/ScopeSwitchDto" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/AuthSessionDto" } }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "400": {
+            "description": "The request was malformed or failed closed validation.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "401": {
+            "description": "The current session or target scope is invalid.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor is not a member of the target workspace.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "404": {
+            "description": "The target workspace is not active or visible.",
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          },
+          "500": {
+            "description": "An unexpected failure was safely mapped.",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/ProblemDetails" }
+              }
+            },
+            "headers": {
+              "X-Correlation-Id": {
+                "description": "Stable UUID that correlates related requests and errors.",
+                "schema": { "format": "uuid", "type": "string" }
+              },
+              "X-Request-Id": {
+                "description": "Unique UUID generated for this HTTP request.",
+                "schema": { "format": "uuid", "type": "string" }
+              }
+            }
+          }
+        },
+        "security": [{ "bearer": [] }],
+        "summary": "Switch the authenticated Web session to a member-visible workspace",
+        "tags": ["auth"]
+      }
+    },
     "/v1/auth/sign-out": {
       "post": {
         "operationId": "AuthenticationController.signOut",
@@ -1870,6 +1986,11 @@
         "responses": {
           "200": {
             "description": "",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CreateWorkspaceAcceptedDto" }
+              }
+            },
             "headers": {
               "X-Correlation-Id": {
                 "description": "Stable UUID that correlates related requests and errors.",
@@ -17454,6 +17575,14 @@
         },
         "required": ["clientPlatform"]
       },
+      "ScopeSwitchDto": {
+        "type": "object",
+        "properties": {
+          "schemaVersion": { "type": "number", "enum": [4] },
+          "workspaceId": { "type": "string", "format": "uuid" }
+        },
+        "required": ["schemaVersion", "workspaceId"]
+      },
       "SessionSignOutDto": {
         "type": "object",
         "properties": {
@@ -17546,8 +17675,20 @@
       },
       "CreateWorkspaceDto": {
         "type": "object",
-        "properties": { "name": { "type": "string", "minLength": 1, "maxLength": 200 } },
-        "required": ["name"]
+        "properties": {
+          "schemaVersion": { "type": "number", "enum": [4] },
+          "name": { "type": "string", "minLength": 1, "maxLength": 200 }
+        },
+        "required": ["schemaVersion", "name"]
+      },
+      "CreateWorkspaceAcceptedDto": {
+        "type": "object",
+        "properties": {
+          "schemaVersion": { "type": "number", "enum": [4] },
+          "workspace": { "type": "object" },
+          "defaultProject": { "type": "object" }
+        },
+        "required": ["schemaVersion", "workspace", "defaultProject"]
       },
       "CreateProjectDto": {
         "type": "object",

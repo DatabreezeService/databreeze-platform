@@ -27,6 +27,9 @@ const ids = {
   conversationLoadAccepted: `${schemaBaseV4}/dda-conversation-load-accepted`,
   conversationSummary: `${schemaBaseV4}/dda-conversation-summary`,
   iamBootstrapResponse: `${schemaBaseV4}/iam-bootstrap-response`,
+  iamScopeSwitchCommand: `${schemaBaseV4}/iam-scope-switch-command`,
+  iamWorkspaceCreateAccepted: `${schemaBaseV4}/iam-workspace-create-accepted`,
+  iamWorkspaceCreateCommand: `${schemaBaseV4}/iam-workspace-create-command`,
   lfbLandingFeedbackAccepted: `${schemaBaseV4}/lfb-landing-feedback-accepted`,
   lfbLandingFeedbackCommand: `${schemaBaseV4}/lfb-landing-feedback-command`,
   platformAdminFeedbacks: `${schemaBaseV4}/platform-admin-feedbacks`,
@@ -120,6 +123,9 @@ test('publishes the complete deterministic registry and compiles every real sche
     ['iam-password-sign-in-command', `${schemaBaseV4}/iam-password-sign-in-command`],
     ['iam-registration-accepted', `${schemaBaseV4}/iam-registration-accepted`],
     ['iam-registration-command', `${schemaBaseV4}/iam-registration-command`],
+    ['iam-scope-switch-command', `${schemaBaseV4}/iam-scope-switch-command`],
+    ['iam-workspace-create-accepted', `${schemaBaseV4}/iam-workspace-create-accepted`],
+    ['iam-workspace-create-command', `${schemaBaseV4}/iam-workspace-create-command`],
     [
       'jra-worker-dashboard-widget-result-output',
       `${schemaBaseV4}/jra-worker-dashboard-widget-result-output`,
@@ -220,6 +226,9 @@ test('exports only declared registry schema and generated TypeScript entry point
     './v4/iam-password-sign-in-command',
     './v4/iam-registration-accepted',
     './v4/iam-registration-command',
+    './v4/iam-scope-switch-command',
+    './v4/iam-workspace-create-accepted',
+    './v4/iam-workspace-create-command',
     './v4/jra-worker-dashboard-widget-result-output',
     './v4/jra-worker-result-finalize-accepted',
     './v4/jra-worker-result-finalize-command',
@@ -312,6 +321,54 @@ test('[IAM-026 / BUA-024 / WEB-025] platform overview is closed and content-mini
   );
   assert.equal(validate(overview), true, JSON.stringify(validate.errors));
   assert.equal(validate({ ...overview, providerSecret: 'must-not-leak' }), false);
+});
+
+test('[IAM-027 / IAM-028] workspace creation and scope switching commands stay closed', () => {
+  const command = validatorFor(ids.iamWorkspaceCreateCommand);
+  const validCommand = JSON.parse(
+    readFileSync(
+      resolve(
+        packageRoot,
+        '../test-fixtures/contracts/v4/payloads/iam-workspace-create-command/valid.json',
+      ),
+      'utf8',
+    ),
+  );
+  assert.equal(command(validCommand), true, JSON.stringify(command.errors));
+  assert.equal(command({ ...validCommand, dataMode: 'CLOUD' }), false);
+
+  const accepted = validatorFor(ids.iamWorkspaceCreateAccepted);
+  const validAccepted = JSON.parse(
+    readFileSync(
+      resolve(
+        packageRoot,
+        '../test-fixtures/contracts/v4/payloads/iam-workspace-create-accepted/valid.json',
+      ),
+      'utf8',
+    ),
+  );
+  assert.equal(accepted(validAccepted), true, JSON.stringify(accepted.errors));
+  assert.equal(
+    accepted({
+      ...validAccepted,
+      workspace: { ...validAccepted.workspace, dataModePolicyId: 'must-not-leak' },
+    }),
+    false,
+  );
+
+  const switchCommand = validatorFor(ids.iamScopeSwitchCommand);
+  assert.equal(
+    switchCommand({ schemaVersion: 4, workspaceId: '3f2d9a41-7f55-4c1e-9a30-5b8e2d6f1a74' }),
+    true,
+  );
+  assert.equal(
+    switchCommand({
+      schemaVersion: 4,
+      workspaceId: '3f2d9a41-7f55-4c1e-9a30-5b8e2d6f1a74',
+      actorId: '00000000-0000-4000-8000-000000000010',
+    }),
+    false,
+  );
 });
 
 test('[WEB-026] landing feedback command is closed and bounded', () => {

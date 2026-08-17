@@ -492,6 +492,32 @@ class IamRegistrationCommand(ClosedModel):
     password: Annotated[StrictStr, StringConstraints(min_length=12, max_length=128, pattern=r"^[^\u0000\r\n]+$")]
     schemaVersion: Literal[4]
 
+class IamScopeSwitchCommand(ClosedModel):
+    schemaVersion: Literal[4]
+    workspaceId: Identifier
+
+class IamWorkspaceCreateAccepted(ClosedModel):
+    defaultProject: IamWorkspaceCreateAcceptedDefaultProject
+    schemaVersion: Literal[4]
+    workspace: IamWorkspaceCreateAcceptedWorkspace
+
+class IamWorkspaceCreateAcceptedDefaultProject(ClosedModel):
+    id: Identifier
+    kind: Literal["INTERNAL"]
+    name: Annotated[StrictStr, StringConstraints(min_length=1, max_length=200)]
+
+class IamWorkspaceCreateAcceptedWorkspace(ClosedModel):
+    createdAt: UtcTimestamp
+    dataMode: Literal["LOCAL", "HYBRID", "CLOUD"]
+    id: Identifier
+    name: Annotated[StrictStr, StringConstraints(min_length=1, max_length=200)]
+    organizationId: Identifier
+    status: Literal["ACTIVE"]
+
+class IamWorkspaceCreateCommand(ClosedModel):
+    name: Annotated[StrictStr, StringConstraints(min_length=1, max_length=200)]
+    schemaVersion: Literal[4]
+
 class JraWorkerDashboardWidgetResultOutput(ClosedModel):
     kind: Literal["DASHBOARD_WIDGET_RESULT"]
     schemaVersion: Literal[4]
@@ -806,6 +832,11 @@ IamPasswordSignInCommand.model_rebuild()
 IamRegistrationAccepted.model_rebuild()
 IamRegistrationAcceptedValue.model_rebuild()
 IamRegistrationCommand.model_rebuild()
+IamScopeSwitchCommand.model_rebuild()
+IamWorkspaceCreateAccepted.model_rebuild()
+IamWorkspaceCreateAcceptedDefaultProject.model_rebuild()
+IamWorkspaceCreateAcceptedWorkspace.model_rebuild()
+IamWorkspaceCreateCommand.model_rebuild()
 JraWorkerDashboardWidgetResultOutput.model_rebuild()
 JraWorkerResultFinalizeAccepted.model_rebuild()
 JraWorkerResultFinalizeCommand.model_rebuild()

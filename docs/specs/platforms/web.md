@@ -59,7 +59,7 @@ Define the DataBreeze Web application as the complete organizational and cloud c
 
 1. The user signs in and completes required MFA.
 2. Web loads a `/me/bootstrap` response containing safe profile, organizations, membership summaries, and server-derived permissions.
-3. An Owner creates a workspace, selects `HYBRID` by default, reviews storage implications, and creates or accepts the default project.
+3. An Owner creates a workspace through a closed name-only command; the server provisions the initial `HYBRID` policy and the default private project, and selecting another mode happens through the DSO workspace-policy authority.
 4. Web displays next actions for Inbox intake, Desktop enrollment, Android install, members, and recipes according to permission.
 
 ### Cloud or hybrid intake
@@ -119,6 +119,7 @@ Owners/Admins manage members, devices, data mode, policy, retention, API access,
 | WEB-025 | P0 | Web shall expose the internal product analytics console only after server-confirmed `IAM-026` platform authorization, keep it visually and navigationally distinct from tenant administration, validate its generated read contract at runtime, provide complete Vietnamese and English states, and render authoritative `BUA-024` aggregates without exposing tenant source content or provider secrets. |
 | WEB-026 | P0 | The public landing feedback form shall submit only a closed generated command contract to a throttled anonymous intake endpoint, persist content-minimized records without tenant scope or raw network identifiers, and never render synthetic submit success when the server has not accepted the submission. |
 | WEB-027 | P0 | The internal console feedback review surface shall render only server-authoritative bounded feedback records after `IAM-026` platform authorization, validate its generated read contract at runtime, expose no network identifiers or admission digests, and keep complete Vietnamese and English states. |
+| WEB-028 | P0 | The signed-in shell shall render the current workspace name as an explicit control with a visible arrow that opens a keyboard-operable chooser of member-visible workspaces plus workspace creation; switching shall re-establish the server-issued session scope, reset incompatible client state, keep Vietnamese complete with English fallback, and never render synthetic workspace data. |
 
 ## Domain and data contracts
 

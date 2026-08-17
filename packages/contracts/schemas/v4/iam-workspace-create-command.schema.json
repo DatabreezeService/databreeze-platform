@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/iam-workspace-create-command",
+  "$comment": "IAM-027: closed name-only workspace creation command. Data-mode policy authority is server-owned.",
+  "title": "IAM Workspace Create Command",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "name"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 200 }
+  }
+}

@@ -550,6 +550,37 @@ public data class IamRegistrationCommand(
     public val schemaVersion: Long,
 )
 
+public data class IamScopeSwitchCommand(
+    public val schemaVersion: Long,
+    public val workspaceId: Identifier,
+)
+
+public data class IamWorkspaceCreateAccepted(
+    public val defaultProject: IamWorkspaceCreateAcceptedDefaultProject,
+    public val schemaVersion: Long,
+    public val workspace: IamWorkspaceCreateAcceptedWorkspace,
+)
+
+public data class IamWorkspaceCreateAcceptedDefaultProject(
+    public val id: Identifier,
+    public val kind: String,
+    public val name: String,
+)
+
+public data class IamWorkspaceCreateAcceptedWorkspace(
+    public val createdAt: UtcTimestamp,
+    public val dataMode: String,
+    public val id: Identifier,
+    public val name: String,
+    public val organizationId: Identifier,
+    public val status: String,
+)
+
+public data class IamWorkspaceCreateCommand(
+    public val name: String,
+    public val schemaVersion: Long,
+)
+
 public data class JraWorkerDashboardWidgetResultOutput(
     public val kind: String,
     public val schemaVersion: Long,

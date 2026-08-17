@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { normalizeRouteLocale } from '../../app/locale-context.tsx';
 import { createAuthApiV1 } from './auth-api.ts';
+import { readAuthReturnTarget } from './auth-redirect.ts';
 import {
   clearAuthSessionV1,
   rememberAuthBootstrapV1,
@@ -41,6 +42,7 @@ async function establishProductSession(
 export function SignInRoutePage() {
   const { locale: routeLocale } = useParams();
   const locale = normalizeRouteLocale(routeLocale);
+  const location = useLocation();
   const navigate = useNavigate();
   const api = useMemo(authApi, []);
   return (
@@ -51,9 +53,13 @@ export function SignInRoutePage() {
         if (result.accepted) {
           const established = await establishProductSession(api, result.value);
           if (!established.accepted) return established;
-          void navigate(`/${locale}/${established.platformAdmin ? 'platform-admin' : 'data'}`, {
-            replace: true,
-          });
+          const returnTarget = readAuthReturnTarget(location.search);
+          void navigate(
+            returnTarget ?? `/${locale}/${established.platformAdmin ? 'platform-admin' : 'data'}`,
+            {
+              replace: true,
+            },
+          );
         }
         return result;
       }}

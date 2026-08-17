@@ -8,6 +8,7 @@ import {
   redirect,
   type LoaderFunctionArgs,
   type RouteObject,
+  useLocation,
   useParams,
 } from 'react-router-dom';
 import { ShellLayout } from '../components/shell-layout.tsx';
@@ -46,6 +47,7 @@ import {
   subscribeWebAuthenticationStateV1,
   type WebAuthenticationStateV1,
 } from '../features/auth/auth-session.ts';
+import { createSignInRedirect } from '../features/auth/auth-redirect.ts';
 
 /**
  * Keep Ajv-backed contract validators out of the UDW shell chunk so preview CSP
@@ -119,11 +121,20 @@ function AuthenticationGate({ publicRoute }: { readonly publicRoute: boolean }) 
     currentWebAuthenticationStateV1,
   );
   const { locale: routeLocale } = useParams();
+  const location = useLocation();
   const locale = normalizeRouteLocale(routeLocale);
   if (publicRoute && authenticationState === 'signed-in')
     return <Navigate replace to={`/${locale}/data`} />;
   if (!publicRoute && authenticationState === 'signed-out')
-    return <Navigate replace to={`/${locale}/sign-in`} />;
+    return (
+      <Navigate
+        replace
+        to={createSignInRedirect({
+          locale,
+          returnTo: `${location.pathname}${location.search}${location.hash}`,
+        })}
+      />
+    );
   return <Outlet />;
 }
 

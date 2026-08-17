@@ -7,6 +7,8 @@ import {
 
 /** Public foundation context contract shared by IAM and feature modules. */
 export interface IamTenantContextV1 {
+  /** The live server session that authenticated this request, when available. */
+  readonly sessionId?: StableIdentifierV1;
   readonly tenantScope: TenantScopeV1;
   readonly actorId: StableIdentifierV1;
   readonly correlationId: StableIdentifierV1;
@@ -34,6 +36,7 @@ function rejected(code: IamContextErrorCodeV1): IamContextResultV1<never> {
 }
 
 export function createIamTenantContextV1(input: {
+  readonly sessionId?: unknown;
   readonly tenantScope: unknown;
   readonly actorId: unknown;
   readonly correlationId: unknown;
@@ -45,10 +48,17 @@ export function createIamTenantContextV1(input: {
   readonly expectedRevision?: unknown;
 }): IamContextResultV1<IamTenantContextV1> {
   const tenantScope = parseTenantScopeV1(input.tenantScope);
+  const sessionId =
+    input.sessionId === undefined ? undefined : parseStableIdentifierV1(input.sessionId);
   const actorId = parseStableIdentifierV1(input.actorId);
   const correlationId = parseStableIdentifierV1(input.correlationId);
   if (!tenantScope.accepted) return rejected('INVALID_SCOPE');
-  if (!actorId.accepted || !correlationId.accepted) return rejected('INVALID_IDENTIFIER');
+  if (
+    !actorId.accepted ||
+    !correlationId.accepted ||
+    (sessionId !== undefined && !sessionId.accepted)
+  )
+    return rejected('INVALID_IDENTIFIER');
   if (
     typeof input.idempotencyKey !== 'string' ||
     input.idempotencyKey.length === 0 ||
@@ -86,6 +96,7 @@ export function createIamTenantContextV1(input: {
   return Object.freeze({
     accepted: true,
     value: Object.freeze({
+      ...(sessionId === undefined ? {} : { sessionId: sessionId.value }),
       tenantScope: tenantScope.value,
       actorId: actorId.value,
       correlationId: correlationId.value,

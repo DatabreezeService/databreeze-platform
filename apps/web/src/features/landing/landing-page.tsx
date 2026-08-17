@@ -78,7 +78,7 @@ export function LandingPage({
     () =>
       prepareTeammateLandingMarkup(teammateLandingHtml, {
         locale,
-        registerHref: `/${locale}/register`,
+        billingHref: `/${locale}/billing`,
         signInHref: `/${locale}/sign-in`,
         signInLabel: locale === 'vi-VN' ? 'Đăng nhập' : 'Sign in',
         downloadsHref: `/${locale}/downloads`,
@@ -171,6 +171,10 @@ export function LandingPage({
       });
       root.querySelectorAll<HTMLElement>('[data-pricing-detail]').forEach((detail) => {
         detail.textContent = detail.dataset[`${cycle}Detail`] ?? '';
+      });
+      root.querySelectorAll<HTMLAnchorElement>('[data-pricing-cta]').forEach((cta) => {
+        const href = cta.dataset[`${cycle}Href`];
+        if (href !== undefined) cta.setAttribute('href', href);
       });
       const status = root.querySelector<HTMLElement>('[data-pricing-status]');
       if (status !== null) {

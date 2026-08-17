@@ -1,10 +1,24 @@
 import { randomBytes } from 'node:crypto';
 
-import { Body, Controller, Get, HttpCode, Inject, Optional, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Optional,
+  Post,
+  Req,
+  Res,
+} from '@nestjs/common';
 import {
   ApiBody,
   ApiBearerAuth,
+  ApiForbiddenResponse,
   ApiOkResponse,
+  ApiNotFoundResponse,
   ApiOperation,
   ApiServiceUnavailableResponse,
   ApiTags,
@@ -20,6 +34,10 @@ import {
   SESSION_LIFECYCLE_PORT,
   type SessionLifecyclePortV1,
 } from '../application/session-lifecycle.port.js';
+import {
+  IAM_SCOPE_SWITCH_SERVICE,
+  type IamScopeSwitchService,
+} from '../application/scope-switch.service.js';
 import { SessionProblemError } from '../application/session-problem.error.js';
 import {
   CSRF_COOKIE_NAME_V1,
@@ -34,6 +52,8 @@ import { SignInDto } from './sign-in.dto.js';
 import { SessionRefreshDto } from './session-refresh.dto.js';
 import { SessionSignOutDto } from './session-sign-out.dto.js';
 import { CurrentSessionDto } from './current-session.dto.js';
+import { ScopeSwitchDto } from './scope-switch.dto.js';
+import { parseV4Contract, type IamScopeSwitchCommand } from '@databreeze/contracts/v4';
 import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
@@ -51,6 +71,9 @@ export class AuthenticationController {
     private readonly sessions?: SessionLifecyclePortV1,
     @Inject(REQUEST_TENANT_CONTEXT)
     private readonly requestContext?: RequestTenantContextPortV1,
+    @Optional()
+    @Inject(IAM_SCOPE_SWITCH_SERVICE)
+    private readonly scopeSwitch?: IamScopeSwitchService,
   ) {}
 
   @Get('me')
@@ -186,6 +209,67 @@ export class AuthenticationController {
       securityEpoch: principal.securityEpoch,
       mfaRequired: principal.mfaRequired,
       mfaReenrollmentRequired: principal.mfaReenrollmentRequired,
+    };
+  }
+
+  @Post('scope')
+  @HttpCode(200)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Switch the authenticated Web session to a member-visible workspace' })
+  @ApiBody({ type: ScopeSwitchDto })
+  @ApiOkResponse({ type: AuthSessionDto })
+  @ApiUnauthorizedResponse({ description: 'The current session or target scope is invalid.' })
+  @ApiForbiddenResponse({ description: 'The actor is not a member of the target workspace.' })
+  @ApiNotFoundResponse({ description: 'The target workspace is not active or visible.' })
+  async switchScope(
+    @Body() input: ScopeSwitchDto,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<AuthSessionDto> {
+    if (this.scopeSwitch === undefined || this.requestContext === undefined)
+      throw new SessionProblemError('SESSION_UNAVAILABLE');
+    const parsed = parseV4Contract<IamScopeSwitchCommand>(
+      'https://schemas.databreeze.dev/contracts/v4/iam-scope-switch-command',
+      input,
+    );
+    if (!parsed.accepted) throw new SessionProblemError('SESSION_INVALID');
+    const context = await this.requestContext.resolve(request);
+    const result = await this.scopeSwitch.switchWorkspace(context, parsed.value.workspaceId, 'web');
+    if (!result.accepted) {
+      if (result.code === 'SCOPE_DENIED')
+        throw new HttpException({ code: 'IAM_SCOPE_DENIED' }, HttpStatus.FORBIDDEN);
+      if (result.code === 'NOT_FOUND')
+        throw new HttpException({ code: 'IAM_SCOPE_NOT_FOUND' }, HttpStatus.NOT_FOUND);
+      if (result.code === 'INVALID_IDENTIFIER')
+        throw new HttpException({ code: 'IAM_SCOPE_INVALID' }, HttpStatus.BAD_REQUEST);
+      throw new SessionProblemError(
+        result.code === 'SESSION_INVALID' ? 'SESSION_INVALID' : 'SESSION_UNAVAILABLE',
+      );
+    }
+    const session = result.value.session;
+    const csrfToken = randomBytes(32).toString('base64url');
+    reply.header('Set-Cookie', [
+      serializeCookieV1(REFRESH_COOKIE_NAME_V1, session.refreshToken, {
+        httpOnly: true,
+        maxAgeSeconds: 2_592_000,
+        path: REFRESH_COOKIE_PATH_V1,
+      }),
+      serializeCookieV1(CSRF_COOKIE_NAME_V1, csrfToken, {
+        httpOnly: false,
+        maxAgeSeconds: 2_592_000,
+      }),
+    ]);
+    return {
+      schemaVersion: 4,
+      sessionId: session.sessionId,
+      userId: context.actorId,
+      organizationId: context.tenantScope.organizationId,
+      workspaceId: parsed.value.workspaceId,
+      accessToken: session.accessToken,
+      accessExpiresAt: session.accessExpiresAt,
+      securityEpoch: context.authorizationEpoch,
+      mfaRequired: context.mfaRequired ?? false,
+      mfaReenrollmentRequired: context.mfaReenrollmentRequired,
     };
   }
 

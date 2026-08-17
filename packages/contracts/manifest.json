@@ -183,6 +183,21 @@
       "path": "schemas/v4/iam-registration-command.schema.json"
     },
     {
+      "name": "iam-scope-switch-command",
+      "id": "https://schemas.databreeze.dev/contracts/v4/iam-scope-switch-command",
+      "path": "schemas/v4/iam-scope-switch-command.schema.json"
+    },
+    {
+      "name": "iam-workspace-create-accepted",
+      "id": "https://schemas.databreeze.dev/contracts/v4/iam-workspace-create-accepted",
+      "path": "schemas/v4/iam-workspace-create-accepted.schema.json"
+    },
+    {
+      "name": "iam-workspace-create-command",
+      "id": "https://schemas.databreeze.dev/contracts/v4/iam-workspace-create-command",
+      "path": "schemas/v4/iam-workspace-create-command.schema.json"
+    },
+    {
       "name": "jra-worker-dashboard-widget-result-output",
       "id": "https://schemas.databreeze.dev/contracts/v4/jra-worker-dashboard-widget-result-output",
       "path": "schemas/v4/jra-worker-dashboard-widget-result-output.schema.json"

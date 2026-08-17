@@ -10,6 +10,10 @@ import { IamMembershipController } from './api/membership.controller.js';
 import { IamBootstrapController } from './api/bootstrap.controller.js';
 import { AuthenticationService } from './application/authentication.service.js';
 import {
+  IAM_SCOPE_SWITCH_SERVICE,
+  IamScopeSwitchService,
+} from './application/scope-switch.service.js';
+import {
   AUTHENTICATION_USE_CASE,
   CREDENTIAL_LOOKUP_PORT,
   type CredentialLookupPortV1,
@@ -245,6 +249,7 @@ export interface IamModuleOptions {
   readonly credentialDatabase?: CredentialLookupDatabaseClientV1;
   readonly passwordCredentials?: PasswordCredentialService;
   readonly sessions?: SessionLifecyclePortV1;
+  readonly scopeSwitchService?: IamScopeSwitchService;
   readonly sessionDatabase?: SessionLifecycleDatabaseClientV1;
   readonly identityBootstrapRepository?: IdentityBootstrapRepositoryPortV1;
   readonly identityBootstrapDatabase?: IdentityBootstrapDatabaseClientV1;
@@ -408,7 +413,16 @@ export class IamModule {
       options.hierarchyRepository ??
       (options.hierarchyDatabase === undefined
         ? new InMemoryIamHierarchyRepositoryAdapter()
-        : new PrismaIamHierarchyRepositoryAdapter(options.hierarchyDatabase));
+        : new PrismaIamHierarchyRepositoryAdapter(
+            options.hierarchyDatabase,
+            {},
+            options.identityBootstrapPolicyProvisionerFactory === undefined
+              ? undefined
+              : (transaction: unknown) =>
+                  options.identityBootstrapPolicyProvisionerFactory!(
+                    transaction as IdentityBootstrapDatabaseClientV1,
+                  ),
+          ));
     const hierarchyService =
       options.hierarchyService ??
       new IamHierarchyService(hierarchyRepository, undefined, undefined, iamRepository);
@@ -596,6 +610,11 @@ export class IamModule {
       (credentials && sessions
         ? composeAuthenticationUseCase({ ...options, credentials, sessions })
         : composeAuthenticationUseCase(options));
+    const scopeSwitchService =
+      options.scopeSwitchService ??
+      (sessions && iamRepository
+        ? new IamScopeSwitchService(sessions, iamRepository, hierarchyRepository)
+        : undefined);
     const deviceIdentityRepository =
       options.deviceIdentityRepository ??
       (options.deviceIdentityDatabase === undefined
@@ -644,6 +663,7 @@ export class IamModule {
     ];
     if (credentials) exports.unshift(CREDENTIAL_LOOKUP_PORT);
     if (sessions) exports.unshift(SESSION_LIFECYCLE_PORT);
+    if (scopeSwitchService) exports.unshift(IAM_SCOPE_SWITCH_SERVICE);
     if (identityBootstrapRepository) exports.unshift(IDENTITY_BOOTSTRAP_REPOSITORY_PORT);
     if (identityBootstrapService) exports.unshift(IDENTITY_BOOTSTRAP_SERVICE);
     if (mfaRepository) exports.unshift(MFA_REPOSITORY_PORT);
@@ -700,6 +720,14 @@ export class IamModule {
               {
                 provide: SESSION_LIFECYCLE_PORT,
                 useValue: sessions,
+              },
+            ]
+          : []),
+        ...(scopeSwitchService
+          ? [
+              {
+                provide: IAM_SCOPE_SWITCH_SERVICE,
+                useValue: scopeSwitchService,
               },
             ]
           : []),

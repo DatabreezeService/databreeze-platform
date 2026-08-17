@@ -21,6 +21,7 @@ import type {
   SessionLifecyclePortV1,
   SessionRefreshFailureCodeV1,
   SessionRefreshResultV1,
+  SessionScopeSwitchResultV1,
 } from '../application/session-lifecycle.port.js';
 import { sessionPolicyForPlatformV1 } from '../application/session-policy.v1.js';
 
@@ -528,6 +529,105 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
     });
   }
 
+  public async switchScope(
+    currentSessionIdInput: unknown,
+    principal: AuthenticatedPrincipalV1,
+    clientPlatform: 'android' | 'desktop' | 'web',
+  ): Promise<SessionScopeSwitchResultV1> {
+    const currentSessionId = parseStableIdentifierV1(currentSessionIdInput);
+    const userId = parseStableIdentifierV1(principal.userId);
+    const organizationId = parseStableIdentifierV1(principal.organizationId);
+    const workspaceId = parseStableIdentifierV1(principal.workspaceId);
+    if (!currentSessionId.accepted || !userId.accepted || !organizationId.accepted || !workspaceId.accepted)
+      return { accepted: false, code: 'INVALID_SESSION' };
+    const policy = sessionPolicyForPlatformV1(clientPlatform);
+    const now = this.clock();
+    try {
+      return await this.client.$transaction(async (transaction) => {
+        const currentRow = await transaction.sessionRecord.findUnique({
+          where: { id: currentSessionId.value },
+        });
+        if (
+          !currentRow ||
+          currentRow.status !== 'ACTIVE' ||
+          currentRow.userId !== userId.value ||
+          currentRow.organizationId !== organizationId.value
+        )
+          return { accepted: false, code: 'INVALID_SESSION' };
+
+        await this.revokeSession(transaction, currentRow, now);
+        const familyId = stableIdentifier(randomUUID());
+        const refreshTokenId = stableIdentifier(randomUUID());
+        const accessTokenId = stableIdentifier(randomUUID());
+        const created = createSessionRecordV1({
+          sessionId: stableIdentifier(randomUUID()),
+          userId: userId.value,
+          organizationId: organizationId.value,
+          workspaceId: workspaceId.value,
+          familyId,
+          issuedAt: now.toISOString(),
+          accessExpiresAt: addSeconds(now, policy.accessTokenSeconds),
+          inactivityExpiresAt: addSeconds(now, policy.inactivitySeconds),
+          absoluteExpiresAt: addSeconds(now, policy.absoluteSeconds),
+        });
+        if (!created.accepted) return { accepted: false, code: 'UNAVAILABLE' };
+        const refreshToken = tokenFor(refreshTokenId);
+        const accessToken = tokenFor(accessTokenId);
+        const record = created.value;
+        await transaction.sessionRecord.create({
+          data: {
+            id: record.sessionId,
+            userId: record.userId,
+            organizationId: record.organizationId,
+            workspaceId: record.workspaceId,
+            familyId: record.familyId,
+            issuedAt: new Date(record.issuedAt),
+            accessExpiresAt: new Date(record.accessExpiresAt),
+            inactivityExpiresAt: new Date(record.inactivityExpiresAt),
+            absoluteExpiresAt: new Date(record.absoluteExpiresAt),
+            status: 'ACTIVE',
+            revokedAt: null,
+          },
+        });
+        await transaction.refreshTokenRecord.create({
+          data: {
+            id: refreshTokenId,
+            sessionId: record.sessionId,
+            familyId: record.familyId,
+            tokenDigest: digestToken(refreshToken),
+            status: 'ACTIVE',
+            issuedAt: new Date(record.issuedAt),
+            expiresAt: new Date(record.absoluteExpiresAt),
+            usedAt: null,
+          },
+        });
+        await transaction.accessTokenRecord.create({
+          data: {
+            id: accessTokenId,
+            sessionId: record.sessionId,
+            tokenDigest: digestToken(accessToken),
+            issuedAt: new Date(record.issuedAt),
+            expiresAt: new Date(record.accessExpiresAt),
+            status: 'ACTIVE',
+            revokedAt: null,
+          },
+        });
+        return Object.freeze({
+          accepted: true as const,
+          value: Object.freeze({
+            sessionId: record.sessionId,
+            accessToken,
+            refreshToken,
+            accessExpiresAt: record.accessExpiresAt,
+            refreshExpiresAt: record.absoluteExpiresAt,
+          }),
+        });
+      });
+    } catch {
+      return { accepted: false, code: 'UNAVAILABLE' };
+    }
+  }
+
   public async revokeAllForUser(userIdInput: unknown): Promise<number> {
     if (typeof userIdInput !== 'string') return 0;
     const userId = parseStableIdentifierV1(userIdInput);
@@ -554,6 +654,21 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
     if (!row || row.status !== 'ACTIVE' || row.expiresAt.getTime() <= this.clock().getTime())
       return undefined;
     return this.findPrincipal(row.sessionId);
+  }
+
+  public async findSessionByAccessToken(
+    accessTokenInput: unknown,
+  ): Promise<{ readonly sessionId: string; readonly principal: AuthenticatedPrincipalV1 } | undefined> {
+    if (typeof accessTokenInput !== 'string' || accessTokenInput.length < 80) return undefined;
+    const row = await this.client.accessTokenRecord.findUnique({
+      where: { tokenDigest: digestToken(accessTokenInput) },
+    });
+    if (!row || row.status !== 'ACTIVE' || row.expiresAt.getTime() <= this.clock().getTime())
+      return undefined;
+    const principal = await this.findPrincipal(row.sessionId);
+    return principal === undefined
+      ? undefined
+      : Object.freeze({ sessionId: row.sessionId, principal });
   }
 
   public async findPrincipal(

@@ -3,6 +3,8 @@ type LandingLocale = 'en' | 'vi-VN';
 interface LandingPricingPlan {
   readonly annualAmountVnd: number;
   readonly family: 'personal' | 'professional' | 'team';
+  readonly monthlyPlanId: string;
+  readonly annualPlanId: string;
   readonly monthlyAmountVnd: number;
   readonly copy: Readonly<
     Record<
@@ -24,6 +26,8 @@ interface LandingPricingPlan {
 const LANDING_PRICING_PLANS = Object.freeze([
   Object.freeze({
     family: 'personal',
+    monthlyPlanId: 'personal-monthly',
+    annualPlanId: 'personal-annual',
     monthlyAmountVnd: 149_000,
     annualAmountVnd: 1_490_000,
     copy: Object.freeze({
@@ -53,6 +57,8 @@ const LANDING_PRICING_PLANS = Object.freeze([
   }),
   Object.freeze({
     family: 'professional',
+    monthlyPlanId: 'professional-monthly',
+    annualPlanId: 'professional-annual',
     monthlyAmountVnd: 399_000,
     annualAmountVnd: 3_990_000,
     copy: Object.freeze({
@@ -82,6 +88,8 @@ const LANDING_PRICING_PLANS = Object.freeze([
   }),
   Object.freeze({
     family: 'team',
+    monthlyPlanId: 'team-monthly',
+    annualPlanId: 'team-annual',
     monthlyAmountVnd: 999_000,
     annualAmountVnd: 9_990_000,
     copy: Object.freeze({
@@ -123,7 +131,12 @@ function formatVnd(value: number, locale: LandingLocale): string {
   return `${new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'vi-VN').format(value)} ₫`;
 }
 
-function renderPlan(plan: LandingPricingPlan, locale: LandingLocale, registerHref: string): string {
+function planBillingHref(billingHref: string, planId: string): string {
+  const separator = billingHref.includes('?') ? '&' : '?';
+  return `${billingHref}${separator}planId=${encodeURIComponent(planId)}`;
+}
+
+function renderPlan(plan: LandingPricingPlan, locale: LandingLocale, billingHref: string): string {
   const copy = plan.copy[locale];
   const featured = plan.family === 'professional';
   const monthlyDetail =
@@ -133,6 +146,8 @@ function renderPlan(plan: LandingPricingPlan, locale: LandingLocale, registerHre
     locale === 'en'
       ? `Equivalent to ${formatVnd(annualMonthlyEquivalent, locale)}/month.`
       : `Tương đương ${formatVnd(annualMonthlyEquivalent, locale)}/tháng.`;
+  const monthlyBillingHref = planBillingHref(billingHref, plan.monthlyPlanId);
+  const annualBillingHref = planBillingHref(billingHref, plan.annualPlanId);
 
   return `<article class="pricing-card${featured ? ' pricing-card-featured' : ''}">
     <div class="pricing-card-topline">
@@ -151,7 +166,7 @@ function renderPlan(plan: LandingPricingPlan, locale: LandingLocale, registerHre
       <li><span aria-hidden="true">✓</span>${locale === 'en' ? 'Unlimited approved Windows folders' : 'Thư mục Windows đã duyệt không giới hạn'}</li>
       ${copy.features.map((feature) => `<li><span aria-hidden="true">✓</span>${escapeHtml(feature)}</li>`).join('')}
     </ul>
-    <a class="pricing-card-cta${featured ? ' pricing-card-cta-primary' : ''}" href="${escapeHtml(registerHref)}">
+    <a class="pricing-card-cta${featured ? ' pricing-card-cta-primary' : ''}" data-pricing-cta data-monthly-href="${escapeHtml(monthlyBillingHref)}" data-annual-href="${escapeHtml(annualBillingHref)}" href="${escapeHtml(monthlyBillingHref)}">
       <span>${escapeHtml(copy.cta)}</span><span aria-hidden="true">↗</span>
     </a>
     <small>${locale === 'en' ? 'Web, Desktop and Android included' : 'Bao gồm Web, Desktop và Android'}</small>
@@ -160,7 +175,7 @@ function renderPlan(plan: LandingPricingPlan, locale: LandingLocale, registerHre
 
 export function renderLandingPricingSection(input: {
   readonly locale: LandingLocale;
-  readonly registerHref: string;
+  readonly billingHref: string;
 }): string {
   const { locale } = input;
   return `<section class="pricing-section" id="pricing" aria-labelledby="pricing-title" data-pricing-section data-pricing-locale="${locale}">
@@ -187,10 +202,10 @@ export function renderLandingPricingSection(input: {
       </div>
 
       <div class="pricing-grid" id="pricing-plans">
-        ${LANDING_PRICING_PLANS.map((plan) => renderPlan(plan, locale, input.registerHref)).join('')}
+        ${LANDING_PRICING_PLANS.map((plan) => renderPlan(plan, locale, input.billingHref)).join('')}
       </div>
 
-      <p class="pricing-footnote">${locale === 'en' ? 'Create your account first and choose the final plan later. No payment is taken on this page.' : 'Bạn sẽ tạo tài khoản trước và xác nhận gói sau. Trang này chưa thực hiện thanh toán.'}</p>
+      <p class="pricing-footnote">${locale === 'en' ? 'Choose a plan to open your billing page. Sign in is required before checkout.' : 'Chọn gói để mở trang thanh toán. Bạn cần đăng nhập trước khi tiếp tục.'}</p>
     </div>
   </section>`;
 }

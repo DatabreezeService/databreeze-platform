@@ -1,7 +1,26 @@
-import type { PersonalOrganizationBootstrapV1 } from '@databreeze/domain/identity/v1';
+import type {
+  OrganizationIdentityV1,
+  PersonalOrganizationBootstrapV1,
+  ProjectIdentityV1,
+  UserIdentityV1,
+  WorkspaceIdentityV1,
+} from '@databreeze/domain/identity/v1';
 import type { StableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
 export const IDENTITY_BOOTSTRAP_REPOSITORY_PORT = Symbol('IDENTITY_BOOTSTRAP_REPOSITORY_PORT');
+
+export type IdentityBootstrapVisibleWorkspaceV1 = WorkspaceIdentityV1 & {
+  readonly projects: readonly ProjectIdentityV1[];
+};
+
+export type IdentityBootstrapVisibleOrganizationV1 = OrganizationIdentityV1 & {
+  readonly workspaces: readonly IdentityBootstrapVisibleWorkspaceV1[];
+};
+
+export interface IdentityBootstrapVisibleTreeV1 {
+  readonly user: UserIdentityV1;
+  readonly organizations: readonly IdentityBootstrapVisibleOrganizationV1[];
+}
 
 export interface IdentityBootstrapTransactionPortV1 {
   findByUserId(userId: StableIdentifierV1): Promise<PersonalOrganizationBootstrapV1 | undefined>;
@@ -9,6 +28,10 @@ export interface IdentityBootstrapTransactionPortV1 {
 }
 
 export interface IdentityBootstrapRepositoryPortV1 extends IdentityBootstrapTransactionPortV1 {
+  /** Content-safe member-visible organization/workspace/project tree for Web bootstrap. */
+  listVisibleByUserId?(
+    userId: StableIdentifierV1,
+  ): Promise<IdentityBootstrapVisibleTreeV1 | undefined>;
   withTransaction<TValue>(
     work: (transaction: IdentityBootstrapTransactionPortV1) => Promise<TValue>,
   ): Promise<TValue>;

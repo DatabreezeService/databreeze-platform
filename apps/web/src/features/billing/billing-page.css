@@ -123,6 +123,8 @@
 
 .billing-plan-card:hover { transform: translateY(-3px); border-color: #9ebcf4; box-shadow: 0 14px 28px rgb(29 61 112 / 11%); }
 .billing-plan-card--featured { border: 2px solid var(--workspace-cobalt); box-shadow: 0 14px 30px rgb(15 95 231 / 14%); }
+.billing-plan-card--selected { outline: 3px solid rgb(15 95 231 / 18%); outline-offset: 3px; }
+.billing-plan-card__selected { margin: -4px 0 12px; color: var(--workspace-cobalt-deep); font-size: 11px; font-weight: 800; }
 .billing-plan-card__ribbon { position: absolute; inset-block-start: -12px; inset-inline-end: 18px; padding: 5px 10px; border-radius: 999px; color: #ffffff; background: var(--workspace-cobalt); font-size: 11px; font-weight: 800; }
 
 .billing-plan-card__topline { display: flex; align-items: center; justify-content: space-between; gap: 10px; }

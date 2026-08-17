@@ -1,9 +1,10 @@
 import { formatMessageV1, type SupportedLocaleV1 } from '@databreeze/i18n/v1';
 import type { IamBootstrapValue } from '@databreeze/contracts/v4';
 import { Button } from '@databreeze/ui/v1';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { appMessage } from '../app/messages.ts';
+import { createAuthApiV1 } from '../features/auth/auth-api.ts';
 import {
   DEFAULT_NOTIFICATION_STATE,
   getUnreadNotificationCount,
@@ -12,7 +13,11 @@ import {
   type NotificationCenterState,
 } from '../features/notifications/notification-center.tsx';
 import { useNotificationStoreResource } from '../features/notifications/notification-store.ts';
-import { WorkspaceSwitcher } from '../features/workspace/workspace-switcher.tsx';
+import { WorkspaceApiError, createWorkspaceApi } from '../features/workspace/workspace-api.ts';
+import {
+  WorkspaceSwitcher,
+  type WorkspaceActionResult,
+} from '../features/workspace/workspace-switcher.tsx';
 import { BellIcon, MenuIcon, XIcon } from './icons.tsx';
 
 export interface WorkspaceTopbarProperties {
@@ -45,6 +50,7 @@ export function WorkspaceTopbar({
   onSignOut,
 }: WorkspaceTopbarProperties) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [dashboardPresentation, setDashboardPresentation] = useState<
     'auto' | 'horizontal' | 'vertical'
@@ -71,6 +77,70 @@ export function WorkspaceTopbar({
       .filter((entry) => entry.status === 'ACTIVE')
       .map((entry) => ({ id: entry.id, name: entry.name })) ?? [];
   const dashboardWorkspaceLabel = workspace?.name ?? organization?.name ?? 'Bright Cloud';
+  const authApi = useMemo(
+    () =>
+      createAuthApiV1({
+        baseUrl: import.meta.env['VITE_DATABREEZE_API_BASE_URL'] ?? '',
+      }),
+    [],
+  );
+  const workspaceApi = useMemo(
+    () =>
+      createWorkspaceApi({
+        baseUrl: import.meta.env['VITE_DATABREEZE_API_BASE_URL'] ?? '',
+      }),
+    [],
+  );
+  const workspaceActionError = useCallback(
+    (error: unknown): WorkspaceActionResult => ({
+      accepted: false,
+      message:
+        error instanceof WorkspaceApiError && error.status === 403
+          ? locale === 'vi-VN'
+            ? 'Bạn không có quyền tạo không gian làm việc trong tổ chức này.'
+            : 'You do not have permission to create a workspace in this organization.'
+          : locale === 'vi-VN'
+            ? 'Không thể cập nhật không gian làm việc. Vui lòng thử lại.'
+            : 'Could not update the workspace. Please try again.',
+    }),
+    [locale],
+  );
+  const switchWorkspace = useCallback(
+    async (workspaceId: string): Promise<WorkspaceActionResult> => {
+      const result = await authApi.switchWorkspace({ workspaceId });
+      if (!result.accepted)
+        return {
+          accepted: false,
+          message:
+            locale === 'vi-VN'
+              ? 'Không thể chuyển không gian làm việc. Vui lòng thử lại.'
+              : 'Could not switch workspace. Please try again.',
+        };
+      setNotificationsOpen(false);
+      navigate(`/${locale}/dashboards`, { replace: true });
+      return { accepted: true };
+    },
+    [authApi, locale, navigate],
+  );
+  const createWorkspace = useCallback(
+    async (name: string): Promise<WorkspaceActionResult> => {
+      if (organization === undefined)
+        return {
+          accepted: false,
+          message:
+            locale === 'vi-VN'
+              ? 'Chưa xác định được tổ chức hiện tại.'
+              : 'The current organization could not be identified.',
+        };
+      try {
+        const created = await workspaceApi.createWorkspace(organization.id, name);
+        return switchWorkspace(created.workspace.id);
+      } catch (error) {
+        return workspaceActionError(error);
+      }
+    },
+    [locale, organization, switchWorkspace, workspaceActionError, workspaceApi],
+  );
   const notificationControlled = notificationState !== undefined || notifications !== undefined;
   const notificationResource = useNotificationStoreResource(
     locale,
@@ -161,7 +231,16 @@ export function WorkspaceTopbar({
             aria-label={locale === 'vi-VN' ? 'Đường dẫn bảng điều khiển' : 'Dashboard breadcrumb'}
             className="workspace-topbar__dashboard-breadcrumb"
           >
-            <span>{dashboardWorkspaceLabel}</span>
+            <WorkspaceSwitcher
+              {...(scope !== undefined && scope.scopeType !== 'organization'
+                ? { currentWorkspaceId: scope.workspaceId }
+                : {})}
+              currentWorkspaceName={dashboardWorkspaceLabel}
+              locale={locale}
+              onCreate={createWorkspace}
+              onSwitch={switchWorkspace}
+              workspaces={workspaceOptions}
+            />
             <span aria-hidden="true">›</span>
             <strong>{locale === 'vi-VN' ? 'Bức tranh kinh doanh' : 'Business overview'}</strong>
           </nav>
@@ -173,15 +252,20 @@ export function WorkspaceTopbar({
                 <dd>{organization?.name ?? appMessage(locale, 'context.organization')}</dd>
               </div>
               <div>
-                <dt>{formatMessageV1(locale, 'scope.workspace')}</dt>
-                <dd>{workspace?.name ?? appMessage(locale, 'context.workspace')}</dd>
-              </div>
-              <div>
                 <dt>{formatMessageV1(locale, 'scope.project')}</dt>
                 <dd>{project?.name ?? appMessage(locale, 'context.project')}</dd>
               </div>
             </dl>
-            <WorkspaceSwitcher locale={locale} workspaces={workspaceOptions} />
+            <WorkspaceSwitcher
+              {...(scope !== undefined && scope.scopeType !== 'organization'
+                ? { currentWorkspaceId: scope.workspaceId }
+                : {})}
+              currentWorkspaceName={workspace?.name ?? appMessage(locale, 'context.workspace')}
+              locale={locale}
+              onCreate={createWorkspace}
+              onSwitch={switchWorkspace}
+              workspaces={workspaceOptions}
+            />
           </>
         )}
         {localDemoMode ? (

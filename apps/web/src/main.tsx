@@ -38,6 +38,8 @@ installSessionAwareFetchV1({ apiBaseUrl, fetcher: browserFetch });
 await startWebApplicationV1({
   api: createAuthApiV1({ baseUrl: apiBaseUrl, fetcher: browserFetch }),
   pathname: globalThis.location.pathname,
+  search: globalThis.location.search,
+  hash: globalThis.location.hash,
   replace: (pathname) => globalThis.location.replace(pathname),
   mount: () => {
     createRoot(rootElement).render(

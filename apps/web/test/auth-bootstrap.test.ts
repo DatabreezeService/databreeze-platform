@@ -134,7 +134,26 @@ describe('Web authentication bootstrap [IAM-023, WEB-002, WEB-004]', () => {
         replace,
       }),
     ).resolves.toBe('signed-out');
-    expect(replace).toHaveBeenCalledWith('/en/sign-in');
+    expect(replace).toHaveBeenCalledWith('/en/sign-in?returnTo=%2Fen%2Fdata');
+  });
+
+  it('preserves a protected route query when bootstrapping into sign-in', async () => {
+    const replace = vi.fn();
+    await recoverSessionBeforeAppStartV1({
+      api: {
+        recoverWebSession: vi.fn(async () => ({
+          accepted: false as const,
+          code: 'AUTH_FAILED' as const,
+        })),
+        loadBootstrap: vi.fn(),
+      },
+      pathname: '/en/billing',
+      search: '?planId=team-annual',
+      replace,
+    });
+    expect(replace).toHaveBeenCalledWith(
+      '/en/sign-in?returnTo=%2Fen%2Fbilling%3FplanId%3Dteam-annual',
+    );
   });
 
   it('does not redirect a signed-out user away from public registration routes', async () => {
@@ -232,7 +251,7 @@ describe('Web authentication bootstrap [IAM-023, WEB-002, WEB-004]', () => {
           replace,
         }),
       ).resolves.toBe('signed-out');
-      expect(replace).toHaveBeenCalledWith('/en/sign-in');
+      expect(replace).toHaveBeenCalledWith('/en/sign-in?returnTo=%2Fen%2Fdata');
     }
   });
 });

@@ -7,12 +7,14 @@ import {
   type IamPasswordSignInCommand,
   type IamRegistrationAccepted,
   type IamRegistrationCommand,
+  type IamScopeSwitchCommand,
 } from '@databreeze/contracts/v4';
 import {
   clearAuthSessionV1,
   createSessionAwareFetchV1,
   currentCsrfTokenV1,
   currentSessionIdV1,
+  rememberAuthBootstrapV1,
   rememberAuthSessionV1,
 } from './auth-session.ts';
 
@@ -63,6 +65,9 @@ export interface AuthApiV1 {
     { readonly accepted: true; readonly value: IamBootstrapValue } | AuthFailureV1
   >;
   readonly signOut: () => Promise<{ readonly accepted: true } | AuthFailureV1>;
+  readonly switchWorkspace: (input: {
+    readonly workspaceId: string;
+  }) => Promise<{ readonly accepted: true } | AuthFailureV1>;
 }
 
 function failure(): AuthFailureV1 {
@@ -88,12 +93,21 @@ function passwordResetCompleted(
   );
 }
 
-async function request(fetcher: typeof fetch, url: string, body: unknown): Promise<unknown> {
+async function request(
+  fetcher: typeof fetch,
+  url: string,
+  body: unknown,
+  extraHeaders: HeadersInit = {},
+): Promise<unknown> {
   try {
     const response = await fetcher(url, {
       method: 'POST',
       credentials: 'include',
-      headers: { 'content-type': 'application/json', accept: 'application/json' },
+      headers: {
+        'content-type': 'application/json',
+        accept: 'application/json',
+        ...extraHeaders,
+      },
       body: JSON.stringify(body),
     });
     if (!response.ok || !response.headers.get('content-type')?.includes('application/json'))
@@ -111,6 +125,25 @@ export function createAuthApiV1(options: AuthApiOptionsV1 = {}): AuthApiV1 {
     apiBaseUrl: baseUrl,
     fetcher: options.fetcher ?? globalThis.fetch.bind(globalThis),
   });
+  const loadBootstrap = async () => {
+    try {
+      const response = await fetcher(`${baseUrl}/v1/me/bootstrap`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: { accept: 'application/json' },
+      });
+      if (!response.ok || !response.headers.get('content-type')?.includes('application/json'))
+        return failure();
+      const parsed = parseV4Contract<IamBootstrapResponse>(
+        BOOTSTRAP_RESPONSE_SCHEMA,
+        await response.json(),
+      );
+      if (!parsed.accepted || parsed.value.outcome !== 'ACCEPTED') return failure();
+      return Object.freeze({ accepted: true as const, value: parsed.value.value });
+    } catch {
+      return failure();
+    }
+  };
   return Object.freeze({
     async register(input: Omit<IamRegistrationCommand, 'schemaVersion'>) {
       const payload: IamRegistrationCommand = { schemaVersion: 4, ...input };
@@ -171,23 +204,7 @@ export function createAuthApiV1(options: AuthApiOptionsV1 = {}): AuthApiV1 {
       return Object.freeze({ accepted: true as const });
     },
     async loadBootstrap() {
-      try {
-        const response = await fetcher(`${baseUrl}/v1/me/bootstrap`, {
-          method: 'GET',
-          credentials: 'include',
-          headers: { accept: 'application/json' },
-        });
-        if (!response.ok || !response.headers.get('content-type')?.includes('application/json'))
-          return failure();
-        const parsed = parseV4Contract<IamBootstrapResponse>(
-          BOOTSTRAP_RESPONSE_SCHEMA,
-          await response.json(),
-        );
-        if (!parsed.accepted || parsed.value.outcome !== 'ACCEPTED') return failure();
-        return Object.freeze({ accepted: true as const, value: parsed.value.value });
-      } catch {
-        return failure();
-      }
+      return loadBootstrap();
     },
     async signOut() {
       const sessionId = currentSessionIdV1();
@@ -212,6 +229,22 @@ export function createAuthApiV1(options: AuthApiOptionsV1 = {}): AuthApiV1 {
       } catch {
         return failure();
       }
+    },
+    async switchWorkspace(input: { readonly workspaceId: string }) {
+      const payload: IamScopeSwitchCommand = { schemaVersion: 4, workspaceId: input.workspaceId };
+      const raw = await request(fetcher, `${baseUrl}/v1/auth/scope`, payload, {
+        'idempotency-key':
+          currentSessionIdV1() ?? globalThis.crypto?.randomUUID?.() ?? `scope-${Date.now()}`,
+      });
+      const parsed = parseV4Contract<IamAuthSession>(AUTH_SESSION_SCHEMA, raw);
+      if (!parsed.accepted) return failure();
+      rememberAuthSessionV1(parsed.value);
+      const bootstrap = await loadBootstrap();
+      if (!bootstrap.accepted || !rememberAuthBootstrapV1(bootstrap.value)) {
+        clearAuthSessionV1();
+        return failure();
+      }
+      return Object.freeze({ accepted: true as const });
     },
   });
 }

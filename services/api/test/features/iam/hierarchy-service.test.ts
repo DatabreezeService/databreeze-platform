@@ -22,6 +22,8 @@ const ids = {
   organization: '00000000-0000-4000-8000-000000000133',
   workspace: '00000000-0000-4000-8000-000000000134',
   project: '00000000-0000-4000-8000-000000000135',
+  defaultProject: '00000000-0000-4000-8000-000000000136',
+  clientProject: '00000000-0000-4000-8000-000000000137',
 };
 const createdAt = new Date('2026-01-02T00:00:00.000Z');
 
@@ -87,7 +89,7 @@ void test('[IAM-001, IAM-003] service creates server-identified workspaces and p
   await repository.seed({ organizations: [organization()], workspaces: [], projects: [] });
   const service = new IamHierarchyService(
     repository,
-    deterministicIds(ids.workspace, ids.project),
+    deterministicIds(ids.workspace, ids.defaultProject, ids.clientProject),
     clock,
     authority(),
   );
@@ -103,8 +105,11 @@ void test('[IAM-001, IAM-003] service creates server-identified workspaces and p
   );
   assert.equal(workspace.accepted, true);
   if (!workspace.accepted) return;
-  assert.equal(workspace.value.id, stable(ids.workspace));
-  assert.equal(workspace.value.organizationId, stable(ids.organization));
+  assert.equal(workspace.value.workspace.id, stable(ids.workspace));
+  assert.equal(workspace.value.workspace.organizationId, stable(ids.organization));
+  assert.equal(workspace.value.defaultProject.id, stable(ids.defaultProject));
+  assert.equal(workspace.value.defaultProject.workspaceId, stable(ids.workspace));
+  assert.equal(workspace.value.dataMode, 'HYBRID');
 
   const project = await service.createProject(
     organizationContext,
@@ -114,7 +119,7 @@ void test('[IAM-001, IAM-003] service creates server-identified workspaces and p
   );
   assert.equal(project.accepted, true);
   if (!project.accepted) return;
-  assert.equal(project.value.id, stable(ids.project));
+  assert.equal(project.value.id, stable(ids.clientProject));
   assert.equal(project.value.workspaceId, stable(ids.workspace));
 });
 

@@ -3511,6 +3511,24 @@
       }
     },
     {
+      "id": "IAM-027",
+      "priority": "P0",
+      "requirement": "Workspace creation shall accept only a closed generated name command from an actor whose active organization membership holds `ORGANIZATION_SETTINGS_MANAGE`; the creation transaction shall provision the server-owned initial `HYBRID` DSO policy and a default private project without client policy fields, sample data, or additional memberships, and return a closed accepted contract.",
+      "source": {
+        "line": 182,
+        "path": "docs/specs/foundation/identity-workspaces-permissions.md"
+      }
+    },
+    {
+      "id": "IAM-028",
+      "priority": "P0",
+      "requirement": "Switching the active workspace shall issue a new scope-bound session only after server-side verification of an active membership covering the target workspace and an active organization/workspace; the transaction shall expire the superseded session, its refresh token, and its access tokens, reject foreign, inactive, or cross-organization targets without changing the current session, and never trust client-supplied scope claims.",
+      "source": {
+        "line": 183,
+        "path": "docs/specs/foundation/identity-workspaces-permissions.md"
+      }
+    },
+    {
       "id": "ILD-001",
       "priority": "P0",
       "requirement": "The system shall create each invoice record from an immutable `IAE` artifact version, retain its content hash, and bind every asynchronous audit to `jraJobId` and a pinned `resultManifestId`.",
@@ -6234,6 +6252,15 @@
       "requirement": "The internal console feedback review surface shall render only server-authoritative bounded feedback records after `IAM-026` platform authorization, validate its generated read contract at runtime, expose no network identifiers or admission digests, and keep complete Vietnamese and English states.",
       "source": {
         "line": 121,
+        "path": "docs/specs/platforms/web.md"
+      }
+    },
+    {
+      "id": "WEB-028",
+      "priority": "P0",
+      "requirement": "The signed-in shell shall render the current workspace name as an explicit control with a visible arrow that opens a keyboard-operable chooser of member-visible workspaces plus workspace creation; switching shall re-establish the server-issued session scope, reset incompatible client state, keep Vietnamese complete with English fallback, and never render synthetic workspace data.",
+      "source": {
+        "line": 122,
         "path": "docs/specs/platforms/web.md"
       }
     }

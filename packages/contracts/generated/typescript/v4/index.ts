@@ -497,6 +497,37 @@ export interface IamRegistrationCommand {
   readonly schemaVersion: 4;
 }
 
+export interface IamScopeSwitchCommand {
+  readonly schemaVersion: 4;
+  readonly workspaceId: Identifier;
+}
+
+export interface IamWorkspaceCreateAccepted {
+  readonly defaultProject: IamWorkspaceCreateAcceptedDefaultProject;
+  readonly schemaVersion: 4;
+  readonly workspace: IamWorkspaceCreateAcceptedWorkspace;
+}
+
+export interface IamWorkspaceCreateAcceptedDefaultProject {
+  readonly id: Identifier;
+  readonly kind: "INTERNAL";
+  readonly name: string;
+}
+
+export interface IamWorkspaceCreateAcceptedWorkspace {
+  readonly createdAt: UtcTimestamp;
+  readonly dataMode: "LOCAL" | "HYBRID" | "CLOUD";
+  readonly id: Identifier;
+  readonly name: string;
+  readonly organizationId: Identifier;
+  readonly status: "ACTIVE";
+}
+
+export interface IamWorkspaceCreateCommand {
+  readonly name: string;
+  readonly schemaVersion: 4;
+}
+
 export type Identifier = string;
 
 export interface JraWorkerDashboardWidgetResultOutput {
@@ -801,7 +832,7 @@ export interface WorkerResultBinding {
   readonly outputSchemaId: FinalizeSafeName;
 }
 
-export type ContractV4SchemaId = "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-command" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-session" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-payment-status" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-plan-catalog" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-webhook-event" | "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-command" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-list-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-load-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-summary" | "https://schemas.databreeze.dev/contracts/v4/dda-dashboard-widget-results-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-auth-session" | "https://schemas.databreeze.dev/contracts/v4/iam-bootstrap-response" | "https://schemas.databreeze.dev/contracts/v4/iam-email-verification-command" | "https://schemas.databreeze.dev/contracts/v4/iam-password-sign-in-command" | "https://schemas.databreeze.dev/contracts/v4/iam-registration-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-registration-command" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-dashboard-widget-result-output" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-finalize-accepted" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-finalize-command" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-prepare-accepted" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-prepare-command" | "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-accepted" | "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-command" | "https://schemas.databreeze.dev/contracts/v4/platform-admin-feedbacks" | "https://schemas.databreeze.dev/contracts/v4/platform-admin-overview";
+export type ContractV4SchemaId = "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-command" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-session" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-payment-status" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-plan-catalog" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-webhook-event" | "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-command" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-list-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-load-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-summary" | "https://schemas.databreeze.dev/contracts/v4/dda-dashboard-widget-results-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-auth-session" | "https://schemas.databreeze.dev/contracts/v4/iam-bootstrap-response" | "https://schemas.databreeze.dev/contracts/v4/iam-email-verification-command" | "https://schemas.databreeze.dev/contracts/v4/iam-password-sign-in-command" | "https://schemas.databreeze.dev/contracts/v4/iam-registration-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-registration-command" | "https://schemas.databreeze.dev/contracts/v4/iam-scope-switch-command" | "https://schemas.databreeze.dev/contracts/v4/iam-workspace-create-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-workspace-create-command" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-dashboard-widget-result-output" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-finalize-accepted" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-finalize-command" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-prepare-accepted" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-prepare-command" | "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-accepted" | "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-command" | "https://schemas.databreeze.dev/contracts/v4/platform-admin-feedbacks" | "https://schemas.databreeze.dev/contracts/v4/platform-admin-overview";
 
 export type ContractV4ParseResult<TValue = unknown> =
   | { readonly accepted: true; readonly value: TValue }
