@@ -661,7 +661,7 @@ export class DataImportServiceV1 {
             actualByteSize: source.byteSize,
             detectedMediaType: source.mediaType,
             scanState: 'CLEAN',
-            maxByteSize: 512_000,
+            maxByteSize: 100 * 1024 * 1024,
           },
         );
         if (!admitted.accepted) return rejected('DDA_IMPORT_ARTIFACT_UNAVAILABLE');

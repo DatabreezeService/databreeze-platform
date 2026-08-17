@@ -65,7 +65,7 @@ function base64(value: unknown): value is string {
   return (
     typeof value === 'string' &&
     value.length > 0 &&
-    value.length <= 700_000 &&
+    value.length <= 150_000_000 &&
     value.length % 4 === 0 &&
     /^[A-Za-z0-9+/]*={0,2}$/u.test(value)
   );
@@ -146,7 +146,7 @@ export class DataImportController {
       )
         throw new BadRequestException();
       const bytes = decode(candidate['contentBase64']);
-      if (bytes.length < 1 || bytes.length > 512_000) throw new BadRequestException();
+      if (bytes.length < 1 || bytes.length > 100 * 1024 * 1024) throw new BadRequestException();
       return {
         fileName: candidate['fileName'],
         claimedMediaType: candidate['claimedMediaType'],

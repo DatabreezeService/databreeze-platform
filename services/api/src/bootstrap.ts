@@ -65,7 +65,7 @@ export interface ApiApplicationOptions
 export async function createApiApplication(
   options: ApiApplicationOptions = {},
 ): Promise<ApiApplication> {
-  const adapter = new FastifyAdapter({ bodyLimit: 65_536, logger: false });
+  const adapter = new FastifyAdapter({ bodyLimit: 128 * 1024 * 1024, logger: false });
   adapter
     .getInstance()
     .addContentTypeParser(
