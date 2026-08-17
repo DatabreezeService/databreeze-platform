@@ -37,7 +37,15 @@ import type {
   ReceiptCandidateReadQueryDto,
   ReceiptCorrectionRequestDto,
   ReceiptExtractionRequestDto,
+  ReceiptIntakeRequestDto,
+  ReceiptAcceptanceRequestDto,
 } from './receipt-extraction.dto.js';
+import {
+  INTAKE_IAE_UPLOAD_PORT,
+  type IntakeIaeUploadPortV1,
+} from '../../intake/application/intake-profile.port.js';
+import { ReceiptAcceptanceService } from '../application/receipt-acceptance.service.js';
+import type { ReceiptValidationInput } from '../application/receipt-validation.service.js';
 import {
   REQUEST_TENANT_CONTEXT,
   RequestTenantContextProblemError,
@@ -132,6 +140,7 @@ export class ReceiptExtractionController {
   private readonly requestContext: RequestTenantContextPortV1;
   private readonly commands: ReceiptExtractionCommandRepositoryPortV1;
   private readonly mutationAuthorization: ReceiptMutationAuthorizationPortV1;
+  private readonly intakeUpload: IntakeIaeUploadPortV1 | undefined;
 
   public constructor(
     private readonly service: ReceiptExtractionService,
@@ -144,11 +153,125 @@ export class ReceiptExtractionController {
     @Optional()
     @Inject(RECEIPT_MUTATION_AUTHORIZATION_PORT)
     mutationAuthorization?: ReceiptMutationAuthorizationPortV1,
+    @Optional()
+    @Inject(INTAKE_IAE_UPLOAD_PORT)
+    intakeUpload?: IntakeIaeUploadPortV1,
+    @Optional()
+    private readonly acceptance?: ReceiptAcceptanceService,
   ) {
     this.requestContext = requestContext ?? new UnavailableRequestTenantContextAdapter();
     this.commands = commands ?? new UnavailableReceiptExtractionCommandRepositoryAdapter();
     this.mutationAuthorization =
       mutationAuthorization ?? new UnavailableReceiptMutationAuthorizationAdapter();
+    this.intakeUpload = intakeUpload;
+  }
+
+  @Post('accept')
+  @HttpCode(HttpStatus.OK)
+  public async accept(
+    @Req() request: unknown,
+    @Body() body: ReceiptAcceptanceRequestDto,
+  ): Promise<Record<string, unknown>> {
+    this.rejectClientAuthority(body, request);
+    if (
+      this.acceptance === undefined ||
+      !isRecord(body) ||
+      !isStableIdentifier(body.candidateId) ||
+      !isStableIdentifier(body.artifactVersionId) ||
+      !/^[a-f0-9]{64}$/u.test(body.artifactContentHash) ||
+      !Number.isInteger(body.expectedRevision) ||
+      body.expectedRevision < 1 ||
+      !isStableIdentifier(body.correlationId) ||
+      (body.idempotencyKey !== undefined && !isNonEmptyText(body.idempotencyKey)) ||
+      !isRecord(body.record)
+    ) {
+      throw new BadRequestException();
+    }
+    const record = body.record as unknown as ReceiptValidationInput;
+    if (!this.isValidationRecord(record)) throw new BadRequestException();
+    const context = await this.resolveContext(request);
+    let result;
+    try {
+      result = await this.acceptance.accept({
+        tenantScope: context.tenantScope,
+        candidateId: body.candidateId,
+        artifactVersionId: body.artifactVersionId,
+        artifactContentHash: body.artifactContentHash,
+        expectedRevision: body.expectedRevision,
+        correlationId: body.correlationId,
+        ...(body.idempotencyKey ? { idempotencyKey: body.idempotencyKey } : {}),
+        record,
+      });
+    } catch {
+      throw new ServiceUnavailableException();
+    }
+    if (!result.accepted) {
+      if (result.code === 'EXPECTED_REVISION_CONFLICT') throw new HttpException(SAFE_RECEIPT_ERROR, HttpStatus.CONFLICT);
+      if (result.code === 'DSM_FAILURE' || result.code === 'IAE_FAILURE') throw new ServiceUnavailableException();
+      throw new BadRequestException({ error: 'DDA_RECEIPT_REVIEW_REQUIRED' });
+    }
+    return Object.freeze({ accepted: true, value: result.value });
+  }
+
+  /** Mobile-friendly bounded intake. IAE remains authoritative for IDs, scope and placement. */
+  @Post('intake')
+  @HttpCode(HttpStatus.OK)
+  public async intake(
+    @Req() request: unknown,
+    @Body() body: ReceiptIntakeRequestDto,
+  ): Promise<Record<string, unknown>> {
+    this.rejectClientAuthority(body, request);
+    if (
+      !isRecord(body) ||
+      !isNonEmptyText(body.fileName) ||
+      body.fileName.length > 255 ||
+      body.fileName.includes('/') ||
+      body.fileName.includes('\\') ||
+      !['image/jpeg', 'image/png', 'image/webp'].includes(body.mediaType) ||
+      !/^[a-f0-9]{64}$/u.test(body.expectedSha256) ||
+      !isNonEmptyText(body.contentBase64) ||
+      body.contentBase64.length > 700_000 ||
+      !isNonEmptyText(body.idempotencyKey)
+    ) {
+      throw new BadRequestException();
+    }
+    if (this.intakeUpload === undefined) throw new ServiceUnavailableException();
+    const context = await this.resolveContext(request);
+    let bytes: Buffer;
+    try {
+      if (!/^[A-Za-z0-9+/]*={0,2}$/u.test(body.contentBase64)) throw new Error('invalid_base64');
+      bytes = Buffer.from(body.contentBase64, 'base64');
+      if (bytes.byteLength < 1 || bytes.byteLength > 512_000) throw new Error('invalid_size');
+    } catch {
+      throw new BadRequestException();
+    }
+    const result = await this.intakeUpload.upload(context, {
+      tenantScope: context.tenantScope,
+      fileName: body.fileName,
+      mediaType: body.mediaType,
+      expectedSha256: body.expectedSha256,
+      bytes,
+      idempotencyKey: body.idempotencyKey,
+    });
+    if (!result.accepted) {
+      if (result.code === 'LOCAL_INTAKE_SCOPE_DENIED' || result.code === 'LOCAL_INTAKE_PERMISSION_DENIED') {
+        throw new HttpException(SAFE_RECEIPT_ERROR, HttpStatus.FORBIDDEN);
+      }
+      if (result.code === 'LOCAL_INTAKE_INVALID_INPUT' || result.code === 'LOCAL_INTAKE_IDEMPOTENCY_CONFLICT') {
+        throw new BadRequestException();
+      }
+      throw new ServiceUnavailableException();
+    }
+    return Object.freeze({ accepted: true, value: Object.freeze(result.value) });
+  }
+
+  /** Profile identity is server configuration, never an APK constant. */
+  @Get('profile')
+  @HttpCode(HttpStatus.OK)
+  public profile(): Record<string, string> {
+    const profileVersionId = process.env['DATABREEZE_RECEIPT_PROFILE_VERSION_ID'];
+    if (!isStableIdentifier(profileVersionId)) throw new ServiceUnavailableException();
+    return Object.freeze({ profileVersionId, profileKind: 'receipt' });
   }
 
   @Post('extract')
@@ -287,6 +410,26 @@ export class ReceiptExtractionController {
     ) {
       throw new BadRequestException();
     }
+  }
+
+  private isValidationRecord(value: ReceiptValidationInput): boolean {
+    if (!isNonEmptyText(value.merchant) || !isNonEmptyText(value.transactionDateTime) ||
+      !isNonEmptyText(value.currency) || !isNonEmptyText(value.subtotal) ||
+      !isNonEmptyText(value.tax) || !isNonEmptyText(value.total) || !isRecord(value.fieldConfidence)) return false;
+    if (Object.keys(value.fieldConfidence).length > 64 ||
+      Object.values(value.fieldConfidence).some((confidence) => !Number.isInteger(confidence) || confidence < 0 || confidence > 100)) return false;
+    if (
+      value.lineItems !== undefined &&
+      (!Array.isArray(value.lineItems) ||
+        value.lineItems.length > 256 ||
+        value.lineItems.some(
+          (item) =>
+            !isRecord(item) ||
+            !isNonEmptyText(item['description']) ||
+            !isNonEmptyText(item['amount']),
+        ))
+    ) return false;
+    return true;
   }
 
   private async resolveContext(request: unknown) {

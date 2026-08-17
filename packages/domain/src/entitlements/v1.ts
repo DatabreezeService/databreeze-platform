@@ -11,7 +11,17 @@ import {
 export const ENTITLEMENT_SCHEMA_VERSION_V1 = 1 as const;
 export const OFFLINE_LEASE_MAX_SECONDS_V1 = 24 * 60 * 60;
 
-export type PlanCodeV1 = 'free' | 'development' | 'admin_granted';
+/** Provider-independent plans plus immutable commercial catalog versions. */
+export type PlanCodeV1 =
+  | 'free'
+  | 'development'
+  | 'admin_granted'
+  | 'personal-monthly'
+  | 'personal-annual'
+  | 'professional-monthly'
+  | 'professional-annual'
+  | 'team-monthly'
+  | 'team-annual';
 export type EntitlementStatusV1 = 'ACTIVE' | 'SUSPENDED' | 'EXPIRED';
 export type UsageMetricV1 =
   | 'artifact_bytes'
@@ -122,7 +132,17 @@ export type EntitlementResultV1<TValue> =
   | { readonly accepted: true; readonly value: TValue }
   | { readonly accepted: false; readonly code: EntitlementErrorCodeV1 };
 
-const plans = new Set<PlanCodeV1>(['free', 'development', 'admin_granted']);
+const plans = new Set<PlanCodeV1>([
+  'free',
+  'development',
+  'admin_granted',
+  'personal-monthly',
+  'personal-annual',
+  'professional-monthly',
+  'professional-annual',
+  'team-monthly',
+  'team-annual',
+]);
 const metrics = new Set<UsageMetricV1>([
   'artifact_bytes',
   'processing_seconds',

@@ -20,6 +20,7 @@ import type {
 import type {
   SessionLifecyclePortV1,
   SessionRefreshResultV1,
+  SessionScopeSwitchResultV1,
 } from '../application/session-lifecycle.port.js';
 import { sessionPolicyForPlatformV1 } from '../application/session-policy.v1.js';
 
@@ -211,6 +212,32 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
     return true;
   }
 
+  public async switchScope(
+    currentSessionIdInput: unknown,
+    principal: AuthenticatedPrincipalV1,
+    clientPlatform: 'android' | 'desktop' | 'web',
+  ): Promise<SessionScopeSwitchResultV1> {
+    await Promise.resolve();
+    if (typeof currentSessionIdInput !== 'string')
+      return { accepted: false, code: 'INVALID_SESSION' };
+    const current = this.sessions.get(currentSessionIdInput);
+    if (
+      !current ||
+      current.familyStatus !== 'ACTIVE' ||
+      current.principal.userId !== principal.userId ||
+      current.principal.organizationId !== principal.organizationId
+    )
+      return { accepted: false, code: 'INVALID_SESSION' };
+    try {
+      const next = await this.issue(principal, clientPlatform);
+      if (!(await this.revoke(currentSessionIdInput)))
+        return { accepted: false, code: 'INVALID_SESSION' };
+      return Object.freeze({ accepted: true, value: Object.freeze(next) });
+    } catch {
+      return { accepted: false, code: 'UNAVAILABLE' };
+    }
+  }
+
   public async revokeAllForUser(userIdInput: unknown): Promise<number> {
     await Promise.resolve();
     if (typeof userIdInput !== 'string') return 0;
@@ -246,6 +273,21 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
       return undefined;
     }
     return this.findPrincipal(sessionId);
+  }
+
+  public async findSessionByAccessToken(
+    accessTokenInput: unknown,
+  ): Promise<{ readonly sessionId: string; readonly principal: AuthenticatedPrincipalV1 } | undefined> {
+    if (typeof accessTokenInput !== 'string' || accessTokenInput.length < 80) return undefined;
+    const sessionId = this.accessTokens.get(digestToken(accessTokenInput));
+    if (sessionId === undefined) return undefined;
+    const session = this.sessions.get(sessionId);
+    if (!session || Date.parse(session.record.accessExpiresAt) <= this.clock().getTime()) {
+      this.accessTokens.delete(digestToken(accessTokenInput));
+      return undefined;
+    }
+    const principal = await this.findPrincipal(sessionId);
+    return principal === undefined ? undefined : Object.freeze({ sessionId, principal });
   }
 
   private revokeFamily(familyId: StableIdentifierV1): void {

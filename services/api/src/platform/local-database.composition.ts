@@ -39,7 +39,7 @@ import {
   PrismaInitialWorkspacePolicyProvisionerAdapter,
   type InitialWorkspacePolicyDatabaseClientV1,
 } from '../features/dso/adapter/prisma-initial-workspace-policy-provisioner.adapter.js';
-import { UnavailableDeviceEnrollmentProofVerifier } from '../features/iam/application/device-identity.service.js';
+import { Ed25519DeviceEnrollmentProofVerifierAdapter } from '../features/iam/adapter/ed25519-device-enrollment-proof-verifier.adapter.js';
 import { UnavailableMfaFactorProofVerifier } from '../features/iam/application/mfa.service.js';
 import { DatabaseReadinessAdapter } from '../features/system/adapter/database-readiness.adapter.js';
 import { PrismaArtifactRepositoryAdapter } from '../features/iae/adapter/prisma-artifact-repository.adapter.js';
@@ -136,10 +136,12 @@ const DATABASE_OPTION_KEYS = [
   'auditDatabase',
   'auditAttestationDatabase',
   'entitlementDatabase',
+  'paymentDatabase',
   'resultUsageSettlementBindingDatabase',
   'entitlementLeaseDatabase',
   'spreadsheetAuditDatabase',
   'approvalDatabase',
+  'mobileDatabase',
   'jraWorkerDatabase',
   'ddaDatabase',
 ] as const;
@@ -557,7 +559,10 @@ async function createComposeDatabaseComposition(
           transaction as InitialWorkspacePolicyDatabaseClientV1,
         ),
       mfaFactorProofVerifier: new UnavailableMfaFactorProofVerifier(),
-      deviceEnrollmentProofVerifier: new UnavailableDeviceEnrollmentProofVerifier(),
+      // Local Android integration tests use the same cryptographic proof verifier as
+      // production. Provider credentials are still local-only; enrollment must never
+      // fall back to an invented device identity.
+      deviceEnrollmentProofVerifier: new Ed25519DeviceEnrollmentProofVerifierAdapter(),
       serviceAccountSecretEnvelopeKey: serviceAccountKey,
             ...(dashboardProjectId === undefined ? {} : { dashboardProjectId }),
             dsmPort: new LocalDsmPortAdapterV1(

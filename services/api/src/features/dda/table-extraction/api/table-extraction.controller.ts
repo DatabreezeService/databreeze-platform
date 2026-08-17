@@ -13,7 +13,7 @@ import {
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
 import {
   TABLE_EXTRACTION_AUTHORIZATION_PORT,
@@ -112,9 +112,22 @@ function throwTableExtractionProblem(code: TableExtractionProblemCodeV1): never 
   throw new HttpException(SAFE_TABLE_EXTRACTION_ERROR, tableExtractionProblemStatus(code));
 }
 
+const TABLE_EXTRACTION_REQUEST_SCHEMA = Object.freeze({
+  type: 'object',
+  required: ['mimeType', 'bytesBase64', 'widthPx', 'heightPx', 'pageCount'],
+  properties: {
+    mimeType: { type: 'string', maxLength: 512 },
+    bytesBase64: { type: 'string', maxLength: 64 * 1024 * 1024 },
+    widthPx: { type: 'integer', minimum: 1 },
+    heightPx: { type: 'integer', minimum: 1 },
+    pageCount: { type: 'integer', minimum: 1 },
+    decompressionRatio: { type: 'number', minimum: 1 },
+  },
+});
+
 @ApiTags('dda')
 @ApiBearerAuth()
-@Controller('v1/dda/table-extractions')
+@Controller('v1/dda')
 export class TableExtractionController {
   private readonly requestContext: RequestTenantContextPortV1;
   private readonly authorization: TableExtractionAuthorizationPortV1;
@@ -132,9 +145,25 @@ export class TableExtractionController {
     this.authorization = authorization ?? new UnavailableTableExtractionAuthorizationAdapter();
   }
 
-  @Post()
+  @Post('table-extractions')
   @HttpCode(HttpStatus.OK)
+  @ApiBody({ schema: TABLE_EXTRACTION_REQUEST_SCHEMA })
+  @ApiOkResponse({ schema: { type: 'object', additionalProperties: true } })
   public async extract(@Req() request: unknown, @Body() dto: TableExtractionRequestDtoV1) {
+    return this.extractInternal(request, dto);
+  }
+
+  /** Invoice capture is a distinct public contract path, while sharing the bounded table
+   * extraction authority and result schema until the invoice-specific profile is published. */
+  @Post('invoice-extractions')
+  @HttpCode(HttpStatus.OK)
+  @ApiBody({ schema: TABLE_EXTRACTION_REQUEST_SCHEMA })
+  @ApiOkResponse({ schema: { type: 'object', additionalProperties: true } })
+  public async extractInvoice(@Req() request: unknown, @Body() dto: TableExtractionRequestDtoV1) {
+    return this.extractInternal(request, dto);
+  }
+
+  private async extractInternal(request: unknown, dto: TableExtractionRequestDtoV1) {
     this.rejectClientAuthority(dto, request);
     if (
       !isRecord(dto) ||

@@ -4,6 +4,8 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URI
 import java.nio.charset.StandardCharsets
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /** Content-safe authenticated HTTP transport for control-plane JSON only. */
 fun interface AccessTokenProvider {
@@ -36,39 +38,40 @@ class HttpUrlConnectionAuthenticatedApiTransport(
     private val connectTimeoutMs: Int = 10_000,
     private val readTimeoutMs: Int = 30_000,
 ) : AuthenticatedApiTransport {
-    override suspend fun execute(request: AuthenticatedHttpRequest): AuthenticatedHttpResult {
-        val token = tokenProvider.bearerToken()
-            ?: return AuthenticatedHttpResult.TerminalAuthFailure(401)
-        return try {
-            val uri = URI.create(baseUrl.trimEnd('/') + "/" + request.path.trimStart('/'))
-            val connection = (uri.toURL().openConnection() as HttpURLConnection).apply {
-                requestMethod = request.method
-                connectTimeout = connectTimeoutMs
-                readTimeout = readTimeoutMs
-                doInput = true
-                setRequestProperty("Authorization", "Bearer $token")
-                setRequestProperty("Accept", "application/json")
-                request.idempotencyKey?.let { setRequestProperty("Idempotency-Key", it) }
-                val payload = request.binaryBody ?: request.jsonBody?.toByteArray(StandardCharsets.UTF_8)
-                if (payload != null) {
-                    doOutput = true
-                    setRequestProperty("Content-Type", request.contentType)
-                    setRequestProperty("Content-Length", payload.size.toString())
-                    outputStream.use { it.write(payload) }
+    override suspend fun execute(request: AuthenticatedHttpRequest): AuthenticatedHttpResult =
+        withContext(Dispatchers.IO) {
+            val token = tokenProvider.bearerToken()
+                ?: return@withContext AuthenticatedHttpResult.TerminalAuthFailure(401)
+            try {
+                val uri = URI.create(baseUrl.trimEnd('/') + "/" + request.path.trimStart('/'))
+                val connection = (uri.toURL().openConnection() as HttpURLConnection).apply {
+                    requestMethod = request.method
+                    connectTimeout = connectTimeoutMs
+                    readTimeout = readTimeoutMs
+                    doInput = true
+                    setRequestProperty("Authorization", "Bearer $token")
+                    setRequestProperty("Accept", "application/json")
+                    request.idempotencyKey?.let { setRequestProperty("Idempotency-Key", it) }
+                    val payload = request.binaryBody ?: request.jsonBody?.toByteArray(StandardCharsets.UTF_8)
+                    if (payload != null) {
+                        doOutput = true
+                        setRequestProperty("Content-Type", request.contentType)
+                        setRequestProperty("Content-Length", payload.size.toString())
+                        outputStream.use { it.write(payload) }
+                    }
                 }
+                val status = connection.responseCode
+                val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+                val body = stream?.bufferedReader(StandardCharsets.UTF_8)?.use { it.readText() }.orEmpty()
+                when (status) {
+                    401, 403 -> AuthenticatedHttpResult.TerminalAuthFailure(status)
+                    in 200..299 -> AuthenticatedHttpResult.Success(status, body)
+                    408, 429 -> AuthenticatedHttpResult.RetryableFailure(status)
+                    in 500..599 -> AuthenticatedHttpResult.RetryableFailure(status)
+                    else -> AuthenticatedHttpResult.TerminalAuthFailure(status)
+                }
+            } catch (_: IOException) {
+                AuthenticatedHttpResult.NetworkFailure("network_unavailable")
             }
-            val status = connection.responseCode
-            val stream = if (status in 200..299) connection.inputStream else connection.errorStream
-            val body = stream?.bufferedReader(StandardCharsets.UTF_8)?.use { it.readText() }.orEmpty()
-            when (status) {
-                401, 403 -> AuthenticatedHttpResult.TerminalAuthFailure(status)
-                in 200..299 -> AuthenticatedHttpResult.Success(status, body)
-                408, 429 -> AuthenticatedHttpResult.RetryableFailure(status)
-                in 500..599 -> AuthenticatedHttpResult.RetryableFailure(status)
-                else -> AuthenticatedHttpResult.TerminalAuthFailure(status)
-            }
-        } catch (_: IOException) {
-            AuthenticatedHttpResult.NetworkFailure("network_unavailable")
         }
-    }
 }

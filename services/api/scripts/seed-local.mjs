@@ -36,6 +36,8 @@ const ID = Object.freeze({
   owner: ids(10),
   analyst: ids(11),
   viewer: ids(12),
+  admin: ids(16),
+  platformOwner: ids(7001),
   ownerOrganizationMembership: ids(20),
   ownerWorkspaceMembership: ids(21),
   ownerProjectMembership: ids(22),
@@ -43,6 +45,12 @@ const ID = Object.freeze({
   analystProjectMembership: ids(24),
   viewerWorkspaceMembership: ids(25),
   viewerProjectMembership: ids(26),
+  adminOrganizationMembership: ids(27),
+  adminWorkspaceMembership: ids(28),
+  adminProjectMembership: ids(29),
+  platformOwnerOrganizationMembership: ids(7002),
+  platformOwnerWorkspaceMembership: ids(7003),
+  platformOwnerProjectMembership: ids(7004),
   policy: ids(30),
   policyVersion: ids(31),
   policyActivation: ids(32),
@@ -196,6 +204,168 @@ function minutesBefore(minutes) {
 
 function minutesAfter(minutes) {
   return new Date(NOW.getTime() + minutes * 60 * 1000);
+}
+
+function buildPlatformAnalyticsRows() {
+  const organizationNames = [
+    'An Phú Retail',
+    'Minh Long Logistics',
+    'Sông Việt Foods',
+    'Hải Đăng Studio',
+    'Mộc Nhiên Home',
+    'Nam Phương Distribution',
+    'Lotus Field Services',
+    'Blue Harbor Commerce',
+  ];
+  const organizations = organizationNames.map((name, index) => ({
+    id: ids(8_000 + index),
+    name,
+    personal: index === 0 || index === 3,
+    status: index === 7 ? 'SUSPENDED' : 'ACTIVE',
+    createdAt: minutesBefore((18 + index * 29) * 1_440),
+    updatedAt: minutesBefore((3 + index * 7) * 1_440),
+  }));
+  const userDefinitions = [
+    ['linh.nguyen', 'Nguyễn Khánh Linh', 0, 'ACTIVE', 4],
+    ['phuong.tran', 'Trần Hà Phương', 1, 'ACTIVE', 12],
+    ['bao.le', 'Lê Quốc Bảo', 2, 'ACTIVE', 27],
+    ['mai.vo', 'Võ Ngọc Mai', 3, 'ACTIVE', 43],
+    ['hung.pham', 'Phạm Gia Hưng', 4, 'ACTIVE', 61],
+    ['thao.do', 'Đỗ Minh Thảo', 5, 'ACTIVE', 76],
+    ['nam.hoang', 'Hoàng Anh Nam', 6, 'ACTIVE', 94],
+    ['uyen.bui', 'Bùi Thanh Uyên', 7, 'SUSPENDED', 109],
+    ['quang.dang', 'Đặng Minh Quang', 0, 'ACTIVE', 128],
+    ['yen.truong', 'Trương Hải Yến', 1, 'ACTIVE', 151],
+    ['khanh.ngo', 'Ngô Đức Khánh', 2, 'ACTIVE', 174],
+    ['anh.lam', 'Lâm Tú Anh', 4, 'ACTIVE', 201],
+    ['son.dinh', 'Đinh Hoàng Sơn', 5, 'ACTIVE', 228],
+    ['nhi.phan', 'Phan Yến Nhi', 6, 'ACTIVE', 254],
+  ];
+  const users = userDefinitions.map(
+    ([mailbox, displayName, organizationIndex, status, daysAgo], index) => ({
+      id: ids(8_100 + index),
+      email: `${mailbox}@example.test`,
+      displayName,
+      locale: index % 4 === 0 ? 'en' : 'vi-VN',
+      status,
+      securityEpoch: 1,
+      mfaReenrollmentRequired: false,
+      createdAt: minutesBefore(Number(daysAgo) * 1_440),
+      updatedAt: minutesBefore(Math.max(1, Number(daysAgo) - 1) * 1_440),
+      organizationId: organizations[Number(organizationIndex)].id,
+    }),
+  );
+  const paymentDefinitions = [
+    [0, 0, 'personal-monthly', 149_000, 'PAID', 7],
+    [1, 1, 'professional-monthly', 399_000, 'PAID', 24],
+    [2, 2, 'team-monthly', 999_000, 'FAILED', 17],
+    [3, 3, 'team-monthly', 999_000, 'PAID', 49],
+    [4, 4, 'professional-monthly', 399_000, 'CANCELLED', 68],
+    [5, 5, 'professional-annual', 3_990_000, 'PAID', 83],
+    [6, 6, 'personal-annual', 1_490_000, 'PAID', 111],
+    [7, 7, 'team-annual', 9_990_000, 'PENDING', 5],
+    [0, 8, 'team-annual', 9_990_000, 'PAID', 142],
+    [1, 9, 'professional-monthly', 399_000, 'PAID', 169],
+    [2, 10, 'personal-monthly', 149_000, 'FAILED', 194],
+    [4, 11, 'team-monthly', 999_000, 'PAID', 216],
+    [5, 12, 'personal-monthly', 149_000, 'PAID', 244],
+  ];
+  const paymentOrders = paymentDefinitions.map(
+    ([organizationIndex, userIndex, planId, amountVnd, status, daysAgo], index) => {
+      const organizationId = organizations[Number(organizationIndex)].id;
+      const createdAt = minutesBefore(Number(daysAgo) * 1_440);
+      const settledAt = minutesBefore(Number(daysAgo) * 1_440 - 15);
+      return {
+        id: ids(8_300 + index),
+        provider: 'PAYOS',
+        providerOrderCode: BigInt(9_100_000 + index),
+        scopeKey: `organization:${organizationId}`,
+        scopeType: 'organization',
+        organizationId,
+        workspaceId: null,
+        actorId: users[Number(userIndex)].id,
+        securityEpoch: 1,
+        planId,
+        amountVnd,
+        currency: 'VND',
+        status,
+        checkoutUrl:
+          status === 'PENDING' ? `https://payos.local/synthetic/${9_100_000 + index}` : null,
+        idempotencyKey: `local-platform-order-${index + 1}`,
+        failureCode: status === 'FAILED' ? 'PROVIDER_DECLINED' : null,
+        paidAt: status === 'PAID' ? settledAt : null,
+        cancelledAt: status === 'CANCELLED' ? settledAt : null,
+        createdAt,
+        updatedAt: settledAt,
+        revision: status === 'PENDING' ? 1 : 2,
+      };
+    },
+  );
+  const subscriptionDefinitions = [
+    [0, 'personal-monthly', 'ACTIVE', 0],
+    [1, 'professional-monthly', 'ACTIVE', 1],
+    [2, 'team-monthly', 'PAST_DUE', 2],
+    [3, 'team-monthly', 'ACTIVE', 3],
+    [4, 'professional-monthly', 'CANCELLED', 4],
+    [5, 'professional-annual', 'ACTIVE', 5],
+    [6, 'personal-annual', 'ACTIVE', 6],
+    [7, 'team-annual', 'PENDING', 7],
+  ];
+  const subscriptions = subscriptionDefinitions.map(
+    ([organizationIndex, planId, status, orderIndex], index) => {
+      const organizationId = organizations[Number(organizationIndex)].id;
+      const payment = paymentOrders[Number(orderIndex)];
+      return {
+        id: ids(8_200 + index),
+        scopeKey: `organization:${organizationId}`,
+        scopeType: 'organization',
+        organizationId,
+        workspaceId: null,
+        planId,
+        source: 'PAYOS',
+        status,
+        currentOrderId: payment.id,
+        startsAt: payment.createdAt,
+        endsAt: status === 'CANCELLED' ? payment.updatedAt : null,
+        revision: status === 'PENDING' ? 1 : 2,
+        createdAt: payment.createdAt,
+        updatedAt: payment.updatedAt,
+      };
+    },
+  );
+  const invoices = paymentOrders
+    .filter((payment) => payment.status === 'PAID')
+    .map((payment, index) => ({
+      id: ids(8_400 + index),
+      paymentOrderId: payment.id,
+      scopeKey: payment.scopeKey,
+      organizationId: payment.organizationId,
+      workspaceId: null,
+      planId: payment.planId,
+      amountVnd: payment.amountVnd,
+      currency: 'VND',
+      status: 'PAID',
+      issuedAt: payment.paidAt,
+      paidAt: payment.paidAt,
+      createdAt: payment.paidAt,
+    }));
+  const memberships = users.map((user, index) => ({
+    id: ids(8_500 + index),
+    principalType: 'USER',
+    principalId: user.id,
+    scopeType: 'ORGANIZATION',
+    organizationId: user.organizationId,
+    workspaceId: null,
+    projectId: null,
+    roleId: index % 3 === 0 ? 'owner' : 'member',
+    status: user.status === 'ACTIVE' ? 'ACTIVE' : 'SUSPENDED',
+    startsAt: user.createdAt,
+    expiresAt: null,
+    revision: 1,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  }));
+  return { organizations, users, memberships, paymentOrders, subscriptions, invoices };
 }
 
 function digest(value) {
@@ -361,6 +531,187 @@ async function loadPrismaClient() {
   if (clientPath.endsWith('.ts')) registerGeneratedClientTypescriptResolver(clientPath);
   const generated = await import(pathToFileURL(clientPath).href);
   return generated.PrismaClient;
+}
+
+// WEB-026/WEB-027: deterministic synthetic landing feedback for the local console
+// journey only. Production never creates feedback rows from repository seeds.
+function buildLandingFeedbackRows() {
+  const rows = [
+    [
+      'Lê Thanh Hải',
+      'lethanhhai177@gmail.com',
+      'An Nam Retail Group',
+      'owner',
+      'active',
+      'product',
+      5,
+      'DataBreeze giúp chuỗi 18 cửa hàng của chúng tôi hợp nhất toàn bộ dữ liệu bán hàng từ POS và Excel chỉ trong vài phút. Điểm ấn tượng nhất là tính năng AI giải thích doanh thu có kèm nguồn gốc đối chiếu từng dòng, không bị tình trạng bịa số liệu như các công cụ khác.',
+      true,
+      '2026-08-14T09:30:00.000Z',
+    ],
+    [
+      'Duy Đỗ',
+      'doychannel1802@gmail.com',
+      'Sài Gòn Logistics Corp',
+      'operations',
+      'active',
+      'feature',
+      5,
+      'Khả năng xử lý các file lịch trình xe và chi phí nhiên liệu hàng ngày rất mượt mà. Đề xuất đội ngũ bổ sung thêm tính năng cảnh báo tự động qua webhook hoặc email khi có chỉ số chi phí đội xe vượt ngưỡng định mức.',
+      true,
+      '2026-08-13T14:15:00.000Z',
+    ],
+    [
+      'Lâm Gia Kiệt',
+      'lamgiakiet.2005@gmail.com',
+      'Dược Phẩm Thăng Long',
+      'accounting',
+      'trial',
+      'data-trust',
+      5,
+      'Chế độ Hybrid bảo mật cực kỳ ấn tượng! Ban giám đốc bên mình rất khắt khe về bảo mật dữ liệu doanh thu, nhờ DataBreeze giữ nguyên file gốc tại Desktop và chỉ đẩy bản chiếu projection đã duyệt lên Web nên quy trình kiểm toán nội bộ thông qua rất nhanh.',
+      true,
+      '2026-08-12T11:45:00.000Z',
+    ],
+    [
+      'Trần Đặng Minh Quân',
+      'trandangminhquan2005@gmail.com',
+      'Fintech Solutions VN',
+      'analyst',
+      'active',
+      'performance',
+      5,
+      'Dataset hơn 200.000 dòng tải vào phân tích và vẽ biểu đồ rất nhanh, độ trễ hầu như bằng 0. Trợ lý AI tóm tắt nguyên nhân tăng trưởng theo từng khu vực địa lý rất chính xác và tiện lợi khi làm slide báo cáo cho ban quản trị.',
+      true,
+      '2026-08-11T16:20:00.000Z',
+    ],
+    [
+      'Mai Nguyễn Duy Khánh',
+      'mndkhanh@gmail.com',
+      'Chuỗi F&B Cà Phê Mộc',
+      'owner',
+      'active',
+      'design',
+      5,
+      'Giao diện trực quan, sang trọng và không rườm rà. Các bạn quản lý ca không rành kỹ thuật vẫn tự nhìn dashboard hiểu ngay doanh số giờ cao điểm và tỷ lệ hao hụt nguyên vật liệu.',
+      true,
+      '2026-08-10T08:10:00.000Z',
+    ],
+    [
+      'Hoàng Đức',
+      'duc140205@gmail.com',
+      'Nông Sản Miền Tây Co.',
+      'technology',
+      'trial',
+      'feature',
+      4,
+      'Kiến trúc client-server và contract JSON Schema của nền tảng rất chặt chẽ. Rất mong DataBreeze sớm mở thêm REST API public để chúng tôi tích hợp trực tiếp dữ liệu từ hệ thống kho ERP nội bộ.',
+      true,
+      '2026-08-09T17:05:00.000Z',
+    ],
+    [
+      'Huỳnh An Khương',
+      'huynhankhuong0511@gmail.com',
+      'May Mặc VinaText',
+      'operations',
+      'trial',
+      'product',
+      4,
+      'Dùng thử 2 tuần cho xưởng may thấy tiết kiệm được ít nhất 10 tiếng tổng hợp báo cáo mỗi tuần. Chỉ cần kéo thả file theo dõi sản lượng là các biểu đồ tự động cập nhật snapshot mới.',
+      true,
+      '2026-08-08T10:30:00.000Z',
+    ],
+    [
+      'Nhi Phạm',
+      'xpnhi023@gmail.com',
+      'Thời Trang NEM - Chi Nhánh Miền Nam',
+      'analyst',
+      'active',
+      'feature',
+      5,
+      'Rất thích tính năng truy vết lineage nguồn gốc của từng chỉ số KPI. Đề xuất thêm bộ lọc đa chiều hơn cho nhóm thuộc tính SKU (màu sắc, size) để phân tích tồn kho chuyên sâu hơn.',
+      true,
+      '2026-08-07T13:40:00.000Z',
+    ],
+    [
+      'Lê Trần Gia Huy',
+      'huyletran188205@gmail.com',
+      'Đại Tín Tax & Accounting',
+      'accounting',
+      'trial',
+      'data-trust',
+      5,
+      'Khả năng đọc và đối soát file hóa đơn chứng từ kèm OCR của DataBreeze chuẩn xác đáng kinh ngạc. Giúp đội ngũ kế toán phát hiện kịp thời các mục chênh lệch đối chiếu.',
+      false,
+      '2026-08-06T15:50:00.000Z',
+    ],
+    [
+      'Nguyễn Phan Mạnh Tú',
+      'Manhtuhere@gmail.com',
+      'Giao Hàng Express 247',
+      'operations',
+      'exploring',
+      'design',
+      4,
+      'Website landing page trình bày sản phẩm rất ấn tượng và rõ ràng. Video demo và sơ đồ luồng dữ liệu trực quan giúp ban lãnh đạo bên mình dễ dàng hình dung giải pháp trước khi đăng ký demo.',
+      true,
+      '2026-08-05T09:15:00.000Z',
+    ],
+    [
+      'Nguyễn Trần Minh Quân',
+      'quanntm1206@gmail.com',
+      'Bảo Hiểm Số AlphaCare',
+      'technology',
+      'trial',
+      'performance',
+      5,
+      'Ứng dụng Desktop chạy Native rất nhẹ, RAM tiêu tốn ít và đồng bộ mượt lên Web app. Bản build bảo đảm an toàn dữ liệu khách hàng theo đúng chuẩn ISO doanh nghiệp.',
+      true,
+      '2026-08-04T11:20:00.000Z',
+    ],
+    [
+      'Nguyễn Quốc Huy',
+      'huynguyenfptu@gmail.com',
+      'Vật Liệu Xây Dựng Tiến Phát',
+      'other',
+      'exploring',
+      'other',
+      4,
+      'Mong muốn được tư vấn gói Team hoặc Professional cho công ty khoảng 25 nhân sự sử dụng đồng thời. Đã để lại thông tin và mong nhận được liên hệ sớm từ đội ngũ DataBreeze!',
+      true,
+      '2026-08-03T16:00:00.000Z',
+    ],
+  ];
+  return rows.map(
+    (
+      [
+        name,
+        email,
+        organization,
+        role,
+        experience,
+        category,
+        rating,
+        message,
+        contactPermission,
+        createdAt,
+      ],
+      index,
+    ) => ({
+      id: ids(8_900 + index),
+      email,
+      name,
+      organization,
+      role,
+      experience,
+      category,
+      rating,
+      message,
+      contactPermission,
+      sourceIpHash: null,
+      createdAt: new Date(createdAt),
+    }),
+  );
 }
 
 async function upsertRows(client, delegateName, rows, uniqueField = 'id') {
@@ -1788,6 +2139,7 @@ async function main() {
   const database = new prismaConstructor({ adapter });
   const fixtures = buildFixtureRows();
   const metadata = fixtures.metadata;
+  const platformAnalytics = buildPlatformAnalyticsRows();
   const placements = skipObjects
     ? fixtures.placements.map((placement) => ({ ...placement, available: false }))
     : fixtures.placements;
@@ -1843,6 +2195,7 @@ async function main() {
             createdAt: minutesBefore(13_500),
             updatedAt: minutesBefore(13_500),
           },
+          ...platformAnalytics.organizations,
         ]);
         await upsertRows(transaction, 'userIdentity', [
           {
@@ -1855,6 +2208,28 @@ async function main() {
             mfaReenrollmentRequired: false,
             createdAt: minutesBefore(13_400),
             updatedAt: minutesBefore(13_400),
+          },
+          {
+            id: ID.admin,
+            email: 'admin@databreeze.local',
+            displayName: 'DataBreeze Local Admin',
+            locale: 'vi-VN',
+            status: 'ACTIVE',
+            securityEpoch: 1,
+            mfaReenrollmentRequired: false,
+            createdAt: minutesBefore(13_395),
+            updatedAt: minutesBefore(13_395),
+          },
+          {
+            id: ID.platformOwner,
+            email: 'platform-owner@databreeze.local',
+            displayName: 'DataBreeze Platform Owner',
+            locale: 'vi-VN',
+            status: 'ACTIVE',
+            securityEpoch: 1,
+            mfaReenrollmentRequired: false,
+            createdAt: minutesBefore(90),
+            updatedAt: minutesBefore(90),
           },
           {
             id: ID.analyst,
@@ -1878,12 +2253,23 @@ async function main() {
             createdAt: minutesBefore(13_380),
             updatedAt: minutesBefore(13_380),
           },
+          ...platformAnalytics.users.map((user) => {
+            const { organizationId, ...identity } = user;
+            void organizationId;
+            return identity;
+          }),
         ]);
         await upsertRows(
           transaction,
           'passwordCredential',
-          [ID.owner, ID.analyst, ID.viewer].map((userId, index) => ({
-            id: ids(13 + index),
+          [
+            { id: ids(13), userId: ID.owner },
+            { id: ids(14), userId: ID.analyst },
+            { id: ids(15), userId: ID.viewer },
+            { id: ids(17), userId: ID.admin },
+            { id: ids(7005), userId: ID.platformOwner },
+          ].map(({ id, userId }) => ({
+            id,
             userId,
             algorithm: 'argon2id',
             encodedHash: encodedPassword,
@@ -1892,6 +2278,24 @@ async function main() {
           })),
           'userId',
         );
+        await upsertRows(
+          transaction,
+          'platformOperatorRecord',
+          [
+            {
+              userId: ID.platformOwner,
+              role: 'PLATFORM_OWNER',
+              status: 'ACTIVE',
+              assignedBy: null,
+              assignedAt: minutesBefore(90),
+              revokedAt: null,
+              revision: 1,
+              updatedAt: minutesBefore(90),
+            },
+          ],
+          'userId',
+        );
+        await upsertRows(transaction, 'landingFeedbackRecord', buildLandingFeedbackRows());
         await upsertRows(transaction, 'deviceDataModePolicyRecord', [
           {
             id: ID.policyVersion,
@@ -2019,6 +2423,102 @@ async function main() {
             updatedAt: minutesBefore(13_400),
           },
           {
+            id: ID.adminOrganizationMembership,
+            principalType: 'USER',
+            principalId: ID.admin,
+            scopeType: 'ORGANIZATION',
+            organizationId: ID.organization,
+            workspaceId: null,
+            projectId: null,
+            roleId: 'owner',
+            status: 'ACTIVE',
+            startsAt: minutesBefore(13_395),
+            expiresAt: null,
+            revision: 1,
+            createdAt: minutesBefore(13_395),
+            updatedAt: minutesBefore(13_395),
+          },
+          {
+            id: ID.adminWorkspaceMembership,
+            principalType: 'USER',
+            principalId: ID.admin,
+            scopeType: 'WORKSPACE',
+            organizationId: ID.organization,
+            workspaceId: ID.workspace,
+            projectId: null,
+            roleId: 'admin',
+            status: 'ACTIVE',
+            startsAt: minutesBefore(13_395),
+            expiresAt: null,
+            revision: 1,
+            createdAt: minutesBefore(13_395),
+            updatedAt: minutesBefore(13_395),
+          },
+          {
+            id: ID.adminProjectMembership,
+            principalType: 'USER',
+            principalId: ID.admin,
+            scopeType: 'PROJECT',
+            organizationId: ID.organization,
+            workspaceId: ID.workspace,
+            projectId: ID.project,
+            roleId: 'admin',
+            status: 'ACTIVE',
+            startsAt: minutesBefore(13_395),
+            expiresAt: null,
+            revision: 1,
+            createdAt: minutesBefore(13_395),
+            updatedAt: minutesBefore(13_395),
+          },
+          {
+            id: ID.platformOwnerOrganizationMembership,
+            principalType: 'USER',
+            principalId: ID.platformOwner,
+            scopeType: 'ORGANIZATION',
+            organizationId: ID.organization,
+            workspaceId: null,
+            projectId: null,
+            roleId: 'owner',
+            status: 'ACTIVE',
+            startsAt: minutesBefore(90),
+            expiresAt: null,
+            revision: 1,
+            createdAt: minutesBefore(90),
+            updatedAt: minutesBefore(90),
+          },
+          {
+            id: ID.platformOwnerWorkspaceMembership,
+            principalType: 'USER',
+            principalId: ID.platformOwner,
+            scopeType: 'WORKSPACE',
+            organizationId: ID.organization,
+            workspaceId: ID.workspace,
+            projectId: null,
+            roleId: 'admin',
+            status: 'ACTIVE',
+            startsAt: minutesBefore(90),
+            expiresAt: null,
+            revision: 1,
+            createdAt: minutesBefore(90),
+            updatedAt: minutesBefore(90),
+          },
+          {
+            id: ID.platformOwnerProjectMembership,
+            principalType: 'USER',
+            principalId: ID.platformOwner,
+            scopeType: 'PROJECT',
+            organizationId: ID.organization,
+            workspaceId: ID.workspace,
+            projectId: ID.project,
+            roleId: 'admin',
+            status: 'ACTIVE',
+            startsAt: minutesBefore(90),
+            expiresAt: null,
+            revision: 1,
+            createdAt: minutesBefore(90),
+            updatedAt: minutesBefore(90),
+          },
+          {
             id: ID.analystWorkspaceMembership,
             principalType: 'USER',
             principalId: ID.analyst,
@@ -2082,6 +2582,7 @@ async function main() {
             createdAt: minutesBefore(13_380),
             updatedAt: minutesBefore(13_380),
           },
+          ...platformAnalytics.memberships,
         ]);
         await upsertRows(transaction, 'workspaceAgentGrant', [
           {
@@ -2383,6 +2884,9 @@ async function main() {
             createdAt: minutesBefore(12_300),
           },
         ]);
+        await upsertRows(transaction, 'paymentOrderRecord', platformAnalytics.paymentOrders);
+        await upsertRows(transaction, 'subscriptionRecord', platformAnalytics.subscriptions);
+        await upsertRows(transaction, 'invoiceRecord', platformAnalytics.invoices);
         await upsertRows(
           transaction,
           'entitlementPlanRecord',
@@ -3037,9 +3541,12 @@ async function main() {
   console.log(`Organization: ${ID.organization}`);
   console.log(`Workspace:    ${ID.workspace}`);
   console.log(`Project:      ${ID.project}`);
+  console.log('Landing feedbacks: 12 deterministic synthetic rows (lfb.landing_feedbacks)');
   console.log('');
   console.log('Synthetic sign-in accounts (all use the same generated password):');
+  console.log('  platform-owner@databreeze.local PLATFORM_OWNER / internal product overview');
   console.log('  owner@databreeze.local   OWNER / APPLY_CONFIRMED_CHANGES');
+  console.log('  admin@databreeze.local   OWNER org / ADMIN workspace + project');
   console.log('  analyst@databreeze.local ANALYST / PROPOSE_CHANGES');
   console.log('  viewer@databreeze.local  VIEWER / NONE + restricted dataset denied');
   console.log(`Password: ${password}`);

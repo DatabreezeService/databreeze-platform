@@ -10,7 +10,7 @@ import { createClient as createRedisClient } from 'redis';
 import type { ApiApplicationOptions } from '../bootstrap.js';
 import { Argon2PasswordHasherAdapter } from '../features/iam/adapter/argon2-password-hasher.adapter.js';
 import { PasswordCredentialService } from '../features/iam/application/password-credential.service.js';
-import { UnavailableDeviceEnrollmentProofVerifier } from '../features/iam/application/device-identity.service.js';
+import { Ed25519DeviceEnrollmentProofVerifierAdapter } from '../features/iam/adapter/ed25519-device-enrollment-proof-verifier.adapter.js';
 import { UnavailableMfaFactorProofVerifier } from '../features/iam/application/mfa.service.js';
 import { HmacSha256EmailVerificationDigestAdapter } from '../features/iam/adapter/in-memory-email-verification-repository.adapter.js';
 import { Aes256GcmEmailVerificationEnvelopeAdapter } from '../features/iam/adapter/email-verification-envelope.adapter.js';
@@ -134,12 +134,15 @@ type DatabaseOptionKey =
   | 'auditDatabase'
   | 'auditAttestationDatabase'
   | 'entitlementDatabase'
+  | 'paymentDatabase'
   | 'resultUsageSettlementBindingDatabase'
   | 'entitlementLeaseDatabase'
   | 'spreadsheetAuditDatabase'
   | 'approvalDatabase'
+  | 'mobileDatabase'
   | 'jraWorkerDatabase'
-  | 'ddaDatabase';
+  | 'ddaDatabase'
+  | 'landingFeedbackDatabase';
 
 export type ProductionDatabaseOptions = {
   readonly [TKey in DatabaseOptionKey]: NonNullable<ApiApplicationOptions[TKey]>;
@@ -166,6 +169,12 @@ export type ProductionDatabaseOptions = {
       ApiApplicationOptions['emailVerificationDelivery']
     >;
     readonly recoveryDelivery: NonNullable<ApiApplicationOptions['recoveryDelivery']>;
+    readonly landingFeedbackIpAdmission: NonNullable<
+      ApiApplicationOptions['landingFeedbackIpAdmission']
+    >;
+    readonly landingFeedbackAdmissionDigest: NonNullable<
+      ApiApplicationOptions['landingFeedbackAdmissionDigest']
+    >;
     readonly mfaFactorProofVerifier: NonNullable<ApiApplicationOptions['mfaFactorProofVerifier']>;
     readonly deviceEnrollmentProofVerifier: NonNullable<
       ApiApplicationOptions['deviceEnrollmentProofVerifier']
@@ -636,6 +645,12 @@ function optionsFor(
       ApiApplicationOptions['emailVerificationDelivery']
     >;
     readonly recoveryDelivery: NonNullable<ApiApplicationOptions['recoveryDelivery']>;
+    readonly landingFeedbackIpAdmission: NonNullable<
+      ApiApplicationOptions['landingFeedbackIpAdmission']
+    >;
+    readonly landingFeedbackAdmissionDigest: NonNullable<
+      ApiApplicationOptions['landingFeedbackAdmissionDigest']
+    >;
   },
 ): ProductionDatabaseOptions {
   return {
@@ -649,7 +664,7 @@ function optionsFor(
     passwordCredentials: new PasswordCredentialService(new Argon2PasswordHasherAdapter()),
     ...iamProviders,
     mfaFactorProofVerifier: new UnavailableMfaFactorProofVerifier(),
-    deviceEnrollmentProofVerifier: new UnavailableDeviceEnrollmentProofVerifier(),
+    deviceEnrollmentProofVerifier: new Ed25519DeviceEnrollmentProofVerifierAdapter(),
     serviceAccountSecretEnvelopeKey,
     ...(workerCapabilitySigningSecret === undefined ? {} : { workerCapabilitySigningSecret }),
     artifactUploadStorage,
@@ -693,13 +708,16 @@ function optionsFor(
     auditDatabase: asDatabasePort<'auditDatabase'>(client),
     auditAttestationDatabase: asDatabasePort<'auditAttestationDatabase'>(client),
     entitlementDatabase: asDatabasePort<'entitlementDatabase'>(client),
+    paymentDatabase: asDatabasePort<'paymentDatabase'>(client),
     resultUsageSettlementBindingDatabase:
       asDatabasePort<'resultUsageSettlementBindingDatabase'>(client),
     entitlementLeaseDatabase: asDatabasePort<'entitlementLeaseDatabase'>(client),
     spreadsheetAuditDatabase: asDatabasePort<'spreadsheetAuditDatabase'>(client),
     approvalDatabase: asDatabasePort<'approvalDatabase'>(client),
+    mobileDatabase: asDatabasePort<'mobileDatabase'>(client),
     jraWorkerDatabase: asDatabasePort<'jraWorkerDatabase'>(client),
     ddaDatabase: asDatabasePort<'ddaDatabase'>(client),
+    landingFeedbackDatabase: asDatabasePort<'landingFeedbackDatabase'>(client),
   };
 }
 
@@ -810,7 +828,15 @@ export async function createProductionDatabaseComposition(
       maxAttempts: 5,
       windowSeconds: 15 * 60,
     }),
+    landingFeedbackIpAdmission: new RedisRecoveryAdmissionAdapter(redisCounter, {
+      keyPrefix: 'databreeze:lfb:landing-feedback:ip:v1:',
+      maxAttempts: 5,
+      windowSeconds: 3600,
+    }),
     registrationAdmissionDigest: new HmacSha256IamRegistrationAdmissionDigestAdapter(
+      registrationAdmissionKey,
+    ),
+    landingFeedbackAdmissionDigest: new HmacSha256IamRegistrationAdmissionDigestAdapter(
       registrationAdmissionKey,
     ),
     recoveryDigest: new HmacSha256IamRecoveryDigestAdapter(recoveryDigestKey),

@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { normalizeRouteLocale } from '../../app/locale-context.tsx';
 import { createAuthApiV1 } from './auth-api.ts';
+import { readAuthReturnTarget } from './auth-redirect.ts';
 import {
   clearAuthSessionV1,
   rememberAuthBootstrapV1,
@@ -29,8 +30,11 @@ async function establishProductSession(
 ) {
   rememberAuthSessionV1(session);
   const bootstrap = await api.loadBootstrap();
-  if (bootstrap.accepted && rememberAuthBootstrapV1(bootstrap.value))
-    return { accepted: true as const };
+  if (bootstrap.accepted) {
+    const { createPlatformAdminApi } = await import('../platform-admin/platform-admin-api.ts');
+    const platformAdmin = await createPlatformAdminApi().canAccess();
+    if (rememberAuthBootstrapV1(bootstrap.value)) return { accepted: true as const, platformAdmin };
+  }
   clearAuthSessionV1();
   return { accepted: false as const, code: 'AUTH_FAILED' as const };
 }
@@ -38,6 +42,7 @@ async function establishProductSession(
 export function SignInRoutePage() {
   const { locale: routeLocale } = useParams();
   const locale = normalizeRouteLocale(routeLocale);
+  const location = useLocation();
   const navigate = useNavigate();
   const api = useMemo(authApi, []);
   return (
@@ -48,10 +53,15 @@ export function SignInRoutePage() {
           const result = await api.signInWithPassword(input);
           if (result.accepted) {
             const established = await establishProductSession(api, result.value);
-            if (established.accepted) {
-              void navigate(`/${locale}/data`, { replace: true });
-              return { accepted: true };
-            }
+            if (!established.accepted) return established;
+            const returnTarget = readAuthReturnTarget(location.search);
+            void navigate(
+              returnTarget ?? `/${locale}/${established.platformAdmin ? 'platform-admin' : 'data'}`,
+              {
+                replace: true,
+              },
+            );
+            return { accepted: true };
           }
         } catch {
           clearAuthSessionV1();

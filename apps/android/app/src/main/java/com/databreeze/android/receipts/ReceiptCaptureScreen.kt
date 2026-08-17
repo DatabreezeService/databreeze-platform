@@ -1,14 +1,12 @@
 package com.databreeze.android.receipts
 
 import android.Manifest
-import android.graphics.ImageFormat
-import android.graphics.Rect
-import android.graphics.YuvImage
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageProxy
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -16,8 +14,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,6 +34,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -40,12 +45,18 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.databreeze.android.R
-import java.io.ByteArrayOutputStream
+import com.databreeze.android.ui.AppCard
+import com.databreeze.android.ui.AppSectionHeader
+import com.databreeze.android.ui.AppStatusBanner
+import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
-/** Active, permission-gated CameraX capture. The original stays in memory until encrypted staging. */
+/** Active, permission-gated CameraX capture. Each shutter result is staged before it is shown as a page. */
 @Composable
 fun ReceiptCaptureScreen(
     viewModel: ReceiptCaptureViewModel,
+    workspaceGrantId: String = "",
     onBack: () -> Unit,
     onOpenReview: (String) -> Unit = {},
 ) {
@@ -53,9 +64,11 @@ fun ReceiptCaptureScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val executor = remember(context) { ContextCompat.getMainExecutor(context) }
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
     val previewView = remember { PreviewView(context) }
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
+    var qualityWarning by remember { mutableStateOf<String?>(null) }
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -82,6 +95,10 @@ fun ReceiptCaptureScreen(
                     val capture = ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                         .build()
+                    val analysis = ImageAnalysis.Builder()
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .build()
+                        .also { it.setAnalyzer(executor, CaptureQualityAnalyzer { qualityWarning = it.warning }) }
                     runCatching {
                         provider.unbindAll()
                         provider.bindToLifecycle(
@@ -89,6 +106,7 @@ fun ReceiptCaptureScreen(
                             CameraSelector.DEFAULT_BACK_CAMERA,
                             preview,
                             capture,
+                            analysis,
                         )
                     }.onSuccess {
                         imageCapture = capture
@@ -105,23 +123,46 @@ fun ReceiptCaptureScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp)
+            .padding(horizontal = 20.dp, vertical = 18.dp)
             .testTag("receipt-capture-screen"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(
-            text = stringResource(R.string.receipt_capture_title),
-            style = MaterialTheme.typography.headlineSmall,
+        AppSectionHeader(
+            eyebrow = stringResource(R.string.receipt_capture_action),
+            title = stringResource(R.string.receipt_capture_title),
+            description = stringResource(R.string.receipt_capture_body),
         )
-        Text(
-            text = stringResource(R.string.receipt_capture_body),
-            style = MaterialTheme.typography.bodyLarge,
-        )
+        if (state.pageCount > 0) {
+            AppStatusBanner(stringResource(R.string.receipt_capture_page_count, state.pageCount))
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                itemsIndexed(state.pageOrder) { index, pageNumber ->
+                    AppCard {
+                        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(stringResource(R.string.receipt_capture_page, pageNumber), style = MaterialTheme.typography.labelLarge)
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                androidx.compose.material3.OutlinedButton(
+                                    onClick = { viewModel.movePage(index, index - 1) },
+                                    enabled = index > 0,
+                                ) { Text("↑") }
+                                androidx.compose.material3.OutlinedButton(
+                                    onClick = { viewModel.movePage(index, index + 1) },
+                                    enabled = index < state.pageOrder.lastIndex,
+                                ) { Text("↓") }
+                                androidx.compose.material3.OutlinedButton(onClick = { viewModel.removePage(index) }) {
+                                    Text(stringResource(R.string.receipt_capture_remove_page))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         if (state.cameraPermissionGranted) {
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .height(320.dp)
+                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(20.dp))
                     .testTag("receipt-capture-preview"),
             ) {
                 AndroidView(
@@ -130,12 +171,49 @@ fun ReceiptCaptureScreen(
                 )
             }
         }
+        qualityWarning?.let { warning ->
+            val text = when (warning) {
+                "blur_likely" -> stringResource(R.string.receipt_capture_hint_blur)
+                "glare_likely" -> stringResource(R.string.receipt_capture_hint_glare)
+                "focus_likely" -> stringResource(R.string.receipt_capture_hint_focus)
+                else -> stringResource(R.string.receipt_capture_hint_generic)
+            }
+            AppStatusBanner(text, error = true)
+        }
         state.denyReason?.let { reason ->
-            Text(
-                text = denyMessage(reason),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.testTag("receipt-capture-deny"),
-            )
+            AppStatusBanner(denyMessage(reason), error = true, modifier = Modifier.testTag("receipt-capture-deny"))
+        }
+        AppCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.receipt_capture_data_mode), style = MaterialTheme.typography.labelLarge)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = { viewModel.setDestination(ReceiptDestination.Hybrid(workspaceGrantId)) },
+                        enabled = workspaceGrantId.isNotBlank(),
+                    ) { Text(stringResource(R.string.receipt_capture_hybrid)) }
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = { viewModel.setDestination(ReceiptDestination.StrictLocal) },
+                    ) { Text(stringResource(R.string.receipt_capture_local)) }
+                }
+            }
+        }
+        AppCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(
+                        checked = state.transferPolicy.wifiOnly,
+                        onCheckedChange = { enabled -> viewModel.setTransferPolicy(state.transferPolicy.copy(wifiOnly = enabled)) },
+                    )
+                    Text(stringResource(R.string.receipt_capture_wifi_only))
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(
+                        checked = state.transferPolicy.requiresCharging,
+                        onCheckedChange = { enabled -> viewModel.setTransferPolicy(state.transferPolicy.copy(requiresCharging = enabled)) },
+                    )
+                    Text(stringResource(R.string.receipt_capture_requires_charging))
+                }
+            }
         }
         val shutterDescription = stringResource(R.string.receipt_capture_shutter_description)
         Button(
@@ -143,18 +221,36 @@ fun ReceiptCaptureScreen(
                 if (!state.cameraPermissionGranted) {
                     cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                 } else {
-                    imageCapture?.takePicture(
-                        executor,
-                        object : ImageCapture.OnImageCapturedCallback() {
-                            override fun onCaptureSuccess(image: ImageProxy) {
-                                try {
-                                    image.toJpegBytes()?.let(viewModel::onPreviewFrameCaptured)
-                                } finally {
-                                    image.close()
+                    // Use CameraX's native JPEG output. Converting ImageProxy YUV planes in the
+                    // app would be a lossy replacement of the immutable original (AND-004).
+                    val outputFile = runCatching {
+                        File.createTempFile("capture-", ".jpg", context.cacheDir)
+                    }.getOrNull()
+                    if (outputFile != null) {
+                        val output = ImageCapture.OutputFileOptions.Builder(outputFile).build()
+                        imageCapture?.takePicture(
+                            output,
+                            executor,
+                            object : ImageCapture.OnImageSavedCallback {
+                                override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
+                                    coroutineScope.launch(Dispatchers.IO) {
+                                        try {
+                                            runCatching { outputFile.readBytes() }
+                                                .getOrNull()
+                                                ?.takeIf { it.isNotEmpty() }
+                                                ?.let(viewModel::onPreviewFrameCaptured)
+                                        } finally {
+                                            outputFile.delete()
+                                        }
+                                    }
                                 }
-                            }
-                        },
-                    )
+
+                                override fun onError(exception: ImageCaptureException) {
+                                    outputFile.delete()
+                                }
+                            },
+                        )
+                    }
                 }
             },
             modifier = Modifier
@@ -173,6 +269,12 @@ fun ReceiptCaptureScreen(
                 Text(stringResource(R.string.receipt_capture_retake))
             }
             Button(
+                onClick = { viewModel.addPage() },
+                modifier = Modifier.testTag("receipt-capture-add-page"),
+            ) {
+                Text(stringResource(R.string.receipt_capture_add_page))
+            }
+            Button(
                 onClick = {
                     viewModel.confirmAndUpload()?.let(onOpenReview)
                 },
@@ -187,65 +289,11 @@ fun ReceiptCaptureScreen(
                 modifier = Modifier.testTag("receipt-capture-queued"),
             )
         }
+        if (state.statusMessageKey == "receipt_capture_local_ready") {
+            AppStatusBanner(stringResource(R.string.receipt_capture_local_ready))
+        }
         Button(onClick = onBack, modifier = Modifier.testTag("receipt-capture-back")) {
             Text(stringResource(R.string.back_action))
-        }
-    }
-}
-
-private fun ImageProxy.toJpegBytes(): ByteArray? {
-    if (format != ImageFormat.YUV_420_888 || planes.size != 3) return null
-    val nv21 = ByteArray(width * height * 3 / 2)
-    copyPlane(planes[0], width, height, nv21, 0)
-    copyChromaPlanes(
-        vPlane = planes[2],
-        uPlane = planes[1],
-        width = width / 2,
-        height = height / 2,
-        output = nv21,
-        outputOffset = width * height,
-    )
-    return ByteArrayOutputStream().use { output ->
-        val encoded = YuvImage(nv21, ImageFormat.NV21, width, height, null)
-            .compressToJpeg(Rect(0, 0, width, height), 100, output)
-        output.toByteArray().takeIf { encoded }
-    }
-}
-
-private fun copyChromaPlanes(
-    vPlane: ImageProxy.PlaneProxy,
-    uPlane: ImageProxy.PlaneProxy,
-    width: Int,
-    height: Int,
-    output: ByteArray,
-    outputOffset: Int,
-) {
-    val vBuffer = vPlane.buffer
-    val uBuffer = uPlane.buffer
-    var offset = outputOffset
-    for (row in 0 until height) {
-        val vRowStart = row * vPlane.rowStride
-        val uRowStart = row * uPlane.rowStride
-        for (column in 0 until width) {
-            output[offset++] = vBuffer.get(vRowStart + column * vPlane.pixelStride)
-            output[offset++] = uBuffer.get(uRowStart + column * uPlane.pixelStride)
-        }
-    }
-}
-
-private fun copyPlane(
-    plane: ImageProxy.PlaneProxy,
-    width: Int,
-    height: Int,
-    output: ByteArray,
-    outputOffset: Int,
-) {
-    val buffer = plane.buffer
-    var offset = outputOffset
-    for (row in 0 until height) {
-        val rowStart = row * plane.rowStride
-        for (column in 0 until width) {
-            output[offset++] = buffer.get(rowStart + column * plane.pixelStride)
         }
     }
 }

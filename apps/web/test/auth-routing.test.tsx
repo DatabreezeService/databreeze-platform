@@ -40,7 +40,33 @@ describe('live authentication routing [IAM-023, WEB-002, WEB-004]', () => {
     render(<ApplicationBoundary router={router} />);
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/en/sign-in'));
+    expect(router.state.location.search).toBe('?returnTo=%2Fen%2Fdata');
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy();
+  });
+
+  it('preserves the selected pricing plan while sending a signed-out visitor to sign-in', async () => {
+    const router = createAppRouter({
+      authenticationState: 'signed-out',
+      initialEntries: ['/en/billing?planId=team-annual'],
+    });
+
+    render(<ApplicationBoundary router={router} />);
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/en/sign-in'));
+    expect(router.state.location.search).toBe('?returnTo=%2Fen%2Fbilling%3FplanId%3Dteam-annual');
+  });
+
+  it('protects the separate platform administration route [IAM-026, WEB-025]', async () => {
+    const router = createAppRouter({
+      authenticationState: 'signed-out',
+      initialEntries: ['/vi-VN/platform-admin'],
+    });
+
+    render(<ApplicationBoundary router={router} />);
+
+    await waitFor(() => expect(router.state.location.pathname).toBe('/vi-VN/sign-in'));
+    expect(await screen.findByRole('heading', { name: 'Đăng nhập' })).toBeTruthy();
+    expect(screen.queryByRole('navigation', { name: 'Platform navigation' })).toBeNull();
   });
 
   it('renders public authentication routes without the protected workspace shell', async () => {

@@ -11,12 +11,15 @@ import { AuthenticationProblemError } from '../../features/iam/application/authe
 import { SessionProblemError } from '../../features/iam/application/session-problem.error.js';
 import { MfaProblemError } from '../../features/iam/application/mfa-problem.error.js';
 import { EntitlementProblemError } from '../../features/bua/application/entitlement-problem.error.js';
+import { PayosPaymentProblemError } from '../../features/bua/application/payos-payment.service.js';
 import { DeviceIdentityProblemError } from '../../features/iam/application/device-identity-problem.error.js';
 import { InvitationProblemError } from '../../features/iam/application/invitation-problem.error.js';
 import { RegistrationProblemError } from '../../features/iam/application/registration-problem.error.js';
 import { RecoveryProblemError } from '../../features/iam/application/recovery-problem.error.js';
 import { AuditProblemError } from '../../features/aud/application/audit-problem.error.js';
 import { ArtifactExportProblemError } from '../../features/iae/application/artifact-export-problem.error.js';
+import { PlatformAdminProblemError } from '../../features/platform-admin/application/platform-admin.service.js';
+import { LandingFeedbackProblemError } from '../../features/lfb/application/landing-feedback.service.js';
 import { RequestTenantContextProblemError } from './request-tenant-context.port.js';
 import { NotReadyError } from '../../features/system/application/not-ready.error.js';
 import { InputValidationException } from './input-validation.exception.js';
@@ -96,6 +99,25 @@ function describe(error: unknown, correlationId: string): ProblemInput {
         : notFound
           ? HttpStatus.NOT_FOUND
           : HttpStatus.BAD_REQUEST,
+    };
+  }
+  if (error instanceof PayosPaymentProblemError) {
+    const status =
+      error.code === 'PAYOS_UNAUTHORIZED'
+        ? HttpStatus.FORBIDDEN
+        : error.code === 'PAYOS_ORDER_NOT_FOUND' || error.code === 'PAYOS_SCOPE_MISMATCH'
+          ? HttpStatus.NOT_FOUND
+          : error.code === 'PAYOS_IDEMPOTENCY_CONFLICT'
+            ? HttpStatus.CONFLICT
+            : error.code === 'PAYOS_CHECKOUT_UNAVAILABLE' || error.code === 'PAYOS_UNAVAILABLE'
+              ? HttpStatus.SERVICE_UNAVAILABLE
+              : HttpStatus.BAD_REQUEST;
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: `api.error.${error.code.toLowerCase()}`,
+      retryable: status === HttpStatus.SERVICE_UNAVAILABLE,
+      status,
     };
   }
   if (error instanceof DeviceIdentityProblemError) {
@@ -204,6 +226,37 @@ function describe(error: unknown, correlationId: string): ProblemInput {
         : 'api.error.artifact_export_invalid',
       retryable: false,
       status: notFound ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST,
+    };
+  }
+  if (error instanceof PlatformAdminProblemError) {
+    const unavailable = error.code === 'PLATFORM_ADMIN_UNAVAILABLE';
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: unavailable
+        ? 'api.error.platform_admin_unavailable'
+        : 'api.error.platform_admin_forbidden',
+      retryable: unavailable,
+      status: unavailable ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.FORBIDDEN,
+    };
+  }
+  if (error instanceof LandingFeedbackProblemError) {
+    const unavailable = error.code === 'LANDING_FEEDBACK_UNAVAILABLE';
+    const rateLimited = error.code === 'LANDING_FEEDBACK_RATE_LIMITED';
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: unavailable
+        ? 'api.error.landing_feedback_unavailable'
+        : rateLimited
+          ? 'api.error.landing_feedback_rate_limited'
+          : 'api.error.landing_feedback_command_invalid',
+      retryable: unavailable,
+      status: unavailable
+        ? HttpStatus.SERVICE_UNAVAILABLE
+        : rateLimited
+          ? HttpStatus.TOO_MANY_REQUESTS
+          : HttpStatus.BAD_REQUEST,
     };
   }
   if (error instanceof RequestTenantContextProblemError) {

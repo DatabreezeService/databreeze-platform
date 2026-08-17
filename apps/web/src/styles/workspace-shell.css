@@ -114,6 +114,281 @@
   white-space: nowrap;
 }
 
+.workspace-switcher {
+  position: relative;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.workspace-switcher__trigger {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  color: var(--workspace-ink);
+  background: transparent;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.workspace-switcher__trigger:hover,
+.workspace-switcher__trigger[aria-expanded='true'] {
+  border-color: #dbe5f4;
+  background: #f5f8ff;
+}
+
+.workspace-switcher__trigger-copy {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.workspace-switcher__trigger-copy strong {
+  max-width: min(260px, 28vw);
+  overflow: hidden;
+  color: var(--workspace-ink);
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-switcher__label {
+  color: var(--workspace-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.workspace-switcher__arrow {
+  color: var(--workspace-cobalt-deep);
+  font-size: 17px;
+  line-height: 1;
+  transform: translateY(-2px);
+  transition: transform 160ms ease;
+}
+
+.workspace-switcher__arrow.is-open {
+  transform: rotate(180deg) translateY(2px);
+}
+
+.workspace-switcher__menu {
+  position: absolute;
+  z-index: 70;
+  inset-block-start: calc(100% + 10px);
+  inset-inline-start: 0;
+  width: min(306px, calc(100vw - 24px));
+  display: grid;
+  gap: 4px;
+  padding: 9px;
+  border: 1px solid #dbe5f4;
+  border-radius: 15px;
+  background: #ffffff;
+  box-shadow: 0 18px 42px rgb(21 54 116 / 17%);
+  animation: workspace-switcher-menu-in 140ms ease-out;
+}
+
+.workspace-switcher__menu-heading {
+  padding: 5px 9px 7px;
+  color: var(--workspace-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.workspace-switcher__option,
+.workspace-switcher__create {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--workspace-ink);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  text-align: start;
+  cursor: pointer;
+}
+
+.workspace-switcher__option:hover,
+.workspace-switcher__option:focus-visible,
+.workspace-switcher__create:hover,
+.workspace-switcher__create:focus-visible {
+  background: #f1f6ff;
+  outline: none;
+}
+
+.workspace-switcher__option.is-current {
+  color: var(--workspace-cobalt-deep);
+  background: #edf4ff;
+  font-weight: 700;
+}
+
+.workspace-switcher__option:disabled,
+.workspace-switcher__create:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.workspace-switcher__option-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-switcher__option-state {
+  flex: 0 0 auto;
+  color: var(--workspace-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.workspace-switcher__divider {
+  height: 1px;
+  margin: 4px 2px;
+  background: #e8eef7;
+}
+
+.workspace-switcher__create {
+  justify-content: flex-start;
+  color: var(--workspace-cobalt-deep);
+  font-weight: 700;
+}
+
+.workspace-switcher__error {
+  margin: 5px 9px 2px;
+  color: #a43d3d;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.workspace-switcher__dialog-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(14 34 74 / 28%);
+  animation: workspace-switcher-menu-in 140ms ease-out;
+}
+
+.workspace-switcher__dialog {
+  width: min(430px, 100%);
+  display: grid;
+  gap: 10px;
+  padding: 24px;
+  border: 1px solid #dbe5f4;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgb(16 42 99 / 22%);
+}
+
+.workspace-switcher__dialog-kicker {
+  margin: 0;
+  color: var(--workspace-cobalt-deep);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.workspace-switcher__dialog h2 {
+  margin: 0;
+  color: var(--workspace-ink);
+  font-size: 22px;
+  letter-spacing: -0.03em;
+}
+
+.workspace-switcher__dialog-hint {
+  margin: 0 0 4px;
+  color: var(--workspace-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.workspace-switcher__dialog label {
+  color: var(--workspace-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.workspace-switcher__dialog input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #cfdced;
+  border-radius: 10px;
+  color: var(--workspace-ink);
+  background: #fbfdff;
+  font: inherit;
+  font-size: 13px;
+}
+
+.workspace-switcher__dialog input:focus-visible {
+  border-color: var(--workspace-cobalt);
+  outline: 3px solid rgb(7 93 232 / 16%);
+  outline-offset: 1px;
+}
+
+.workspace-switcher__dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.workspace-switcher__dialog-cancel,
+.workspace-switcher__dialog-submit {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.workspace-switcher__dialog-cancel {
+  border: 1px solid #dbe5f4;
+  color: var(--workspace-ink);
+  background: #ffffff;
+}
+
+.workspace-switcher__dialog-submit {
+  border: 1px solid var(--workspace-cobalt);
+  color: #ffffff;
+  background: var(--workspace-cobalt);
+}
+
+.workspace-switcher__dialog-submit:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+@keyframes workspace-switcher-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .workspace-topbar__actions {
   flex: 0 0 auto;
   justify-content: flex-end;
@@ -804,7 +1079,15 @@
 
   .workspace-topbar__scope {
     flex: 1 1 auto;
-    overflow: hidden;
+    overflow: visible;
+  }
+
+  .workspace-switcher__trigger-copy strong {
+    max-width: min(180px, 42vw);
+  }
+
+  .workspace-switcher__menu {
+    inset-inline-start: -4px;
   }
 
   .workspace-topbar__scope dl {

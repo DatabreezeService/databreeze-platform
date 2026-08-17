@@ -32,7 +32,17 @@ import {
   validUsageReservationTransitionV1,
 } from '../application/entitlement-equality.js';
 
-const planCodes = new Set(['free', 'development', 'admin_granted']);
+const planCodes = new Set([
+  'free',
+  'development',
+  'admin_granted',
+  'personal-monthly',
+  'personal-annual',
+  'professional-monthly',
+  'professional-annual',
+  'team-monthly',
+  'team-annual',
+]);
 const statuses = new Set(['ACTIVE', 'SUSPENDED', 'EXPIRED']);
 const metrics = new Set([
   'artifact_bytes',

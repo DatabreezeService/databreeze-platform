@@ -5,11 +5,16 @@ import { URL, fileURLToPath } from 'node:url';
 import { format, resolveConfig } from 'prettier';
 
 import { createApiApplication } from '../dist/bootstrap.js';
+import { UnavailablePayosPaymentService } from '../dist/features/bua/application/payos-payment.service.js';
 
 const artifactUrl = new URL('../openapi/v1.json', import.meta.url);
 const artifactPath = fileURLToPath(artifactUrl);
 const check = process.argv.includes('--check');
-const { app, openApi } = await createApiApplication();
+const { app, openApi } = await createApiApplication({
+  // Keep billing routes and response schemas in the published contract even when
+  // this generator runs without a database or PayOS credentials.
+  payosPaymentService: new UnavailablePayosPaymentService(),
+});
 
 try {
   const prettierConfig = (await resolveConfig(artifactPath)) ?? {};

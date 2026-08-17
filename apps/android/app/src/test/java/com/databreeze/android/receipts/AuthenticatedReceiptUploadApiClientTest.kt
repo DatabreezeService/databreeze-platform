@@ -28,6 +28,7 @@ class AuthenticatedReceiptUploadApiClientTest {
                 organizationId = "00000000-0000-4000-8000-000000000001",
                 workspaceId = "00000000-0000-4000-8000-000000000002",
                 nowIso = { "2026-08-11T00:00:00.000Z" },
+                presignedUploader = PresignedPartUploader { _, _, _ -> PresignedUploadResult.Accepted },
             )
 
         val result =
@@ -46,10 +47,9 @@ class AuthenticatedReceiptUploadApiClientTest {
         assertEquals(ReceiptUploadApiResult.Accepted, result)
         assertTrue(transport.paths.contains("/v1/artifact-upload-sessions"))
         assertTrue(transport.paths.any { it.contains("/parts/transfer") })
-        assertTrue(transport.paths.any { it.contains("/artifact-upload-transfers/") })
         assertTrue(transport.paths.any { it.endsWith("/complete") })
-        assertTrue(transport.loggedBodies.any { it.contains("\"schemaVersion\":2") })
-        assertTrue(transport.loggedBodies.any { it.contains("\"operation\":\"CREATE_SESSION\"") })
+        assertTrue(transport.loggedBodies.any { it.contains("\"intakeId\"") })
+        assertTrue(transport.loggedBodies.any { it.contains("\"expectedSha256\"") })
         assertFalse(transport.loggedBodies.any { it.contains("synthetic-receipt") })
         assertFalse(transport.loggedBodies.any { it.contains("C:\\\\") })
     }
@@ -115,7 +115,7 @@ class AuthenticatedReceiptUploadApiClientTest {
 
     private class FakeTransport(
         private val createResult: AuthenticatedHttpResult =
-            AuthenticatedHttpResult.Success(200, """{"accepted":true,"revision":1}"""),
+            AuthenticatedHttpResult.Success(200, """{"accepted":true,"value":{"sessionId":"00000000-0000-4000-8000-0000000000b3","revision":1,"partSize":8388608}}"""),
     ) : AuthenticatedApiTransport {
         val paths = mutableListOf<String>()
         val loggedBodies = mutableListOf<String>()
@@ -129,14 +129,14 @@ class AuthenticatedReceiptUploadApiClientTest {
                 request.path.endsWith("/parts/transfer") ->
                     AuthenticatedHttpResult.Success(
                         200,
-                        """{"transferId":"00000000-0000-4000-8000-0000000000t1"}""",
+                        """{"accepted":true,"value":{"transferId":"00000000-0000-4000-8000-0000000000b1","url":"https://upload.example.test/part","requiredHeaders":{}}}""",
                     )
                 request.path.contains("/artifact-upload-transfers/") ->
                     AuthenticatedHttpResult.Success(200, """{"accepted":true}""")
                 request.path.endsWith("/parts") ->
                     AuthenticatedHttpResult.Success(200, """{"accepted":true,"revision":2}""")
                 request.path.endsWith("/complete") ->
-                    AuthenticatedHttpResult.Success(200, """{"accepted":true,"revision":3}""")
+                    AuthenticatedHttpResult.Success(200, """{"accepted":true,"value":{"state":"COMPLETED"}}""")
                 else -> AuthenticatedHttpResult.RetryableFailure(500)
             }
         }

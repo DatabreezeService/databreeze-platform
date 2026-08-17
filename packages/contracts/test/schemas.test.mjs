@@ -27,6 +27,13 @@ const ids = {
   conversationLoadAccepted: `${schemaBaseV4}/dda-conversation-load-accepted`,
   conversationSummary: `${schemaBaseV4}/dda-conversation-summary`,
   iamBootstrapResponse: `${schemaBaseV4}/iam-bootstrap-response`,
+  iamScopeSwitchCommand: `${schemaBaseV4}/iam-scope-switch-command`,
+  iamWorkspaceCreateAccepted: `${schemaBaseV4}/iam-workspace-create-accepted`,
+  iamWorkspaceCreateCommand: `${schemaBaseV4}/iam-workspace-create-command`,
+  lfbLandingFeedbackAccepted: `${schemaBaseV4}/lfb-landing-feedback-accepted`,
+  lfbLandingFeedbackCommand: `${schemaBaseV4}/lfb-landing-feedback-command`,
+  platformAdminFeedbacks: `${schemaBaseV4}/platform-admin-feedbacks`,
+  platformAdminOverview: `${schemaBaseV4}/platform-admin-overview`,
   notification: `${schemaBaseV3}/dda-notification`,
   notificationPage: `${schemaBaseV3}/dda-notification-page`,
   notificationStateCommand: `${schemaBaseV3}/dda-notification-state-command`,
@@ -116,6 +123,9 @@ test('publishes the complete deterministic registry and compiles every real sche
     ['iam-password-sign-in-command', `${schemaBaseV4}/iam-password-sign-in-command`],
     ['iam-registration-accepted', `${schemaBaseV4}/iam-registration-accepted`],
     ['iam-registration-command', `${schemaBaseV4}/iam-registration-command`],
+    ['iam-scope-switch-command', `${schemaBaseV4}/iam-scope-switch-command`],
+    ['iam-workspace-create-accepted', `${schemaBaseV4}/iam-workspace-create-accepted`],
+    ['iam-workspace-create-command', `${schemaBaseV4}/iam-workspace-create-command`],
     [
       'jra-worker-dashboard-widget-result-output',
       `${schemaBaseV4}/jra-worker-dashboard-widget-result-output`,
@@ -124,6 +134,10 @@ test('publishes the complete deterministic registry and compiles every real sche
     ['jra-worker-result-finalize-command', `${schemaBaseV4}/jra-worker-result-finalize-command`],
     ['jra-worker-result-prepare-accepted', `${schemaBaseV4}/jra-worker-result-prepare-accepted`],
     ['jra-worker-result-prepare-command', `${schemaBaseV4}/jra-worker-result-prepare-command`],
+    ['lfb-landing-feedback-accepted', `${schemaBaseV4}/lfb-landing-feedback-accepted`],
+    ['lfb-landing-feedback-command', `${schemaBaseV4}/lfb-landing-feedback-command`],
+    ['platform-admin-feedbacks', `${schemaBaseV4}/platform-admin-feedbacks`],
+    ['platform-admin-overview', `${schemaBaseV4}/platform-admin-overview`],
     ['dda-refresh-event', `${schemaBase}/dda-refresh-event`],
     ['dda-source-catalog', `${schemaBase}/dda-source-catalog`],
     ['dda-starter-dashboard-event', `${schemaBase}/dda-starter-dashboard-event`],
@@ -134,6 +148,11 @@ test('publishes the complete deterministic registry and compiles every real sche
     ['revision', `${schemaBase}/revision`],
     ['tenant-scope', `${schemaBase}/tenant-scope`],
     ['utc-timestamp', `${schemaBase}/utc-timestamp`],
+    ['bua-payos-plan-catalog', `${schemaBaseV4}/bua-payos-plan-catalog`],
+    ['bua-payos-checkout-command', `${schemaBaseV4}/bua-payos-checkout-command`],
+    ['bua-payos-checkout-session', `${schemaBaseV4}/bua-payos-checkout-session`],
+    ['bua-payos-payment-status', `${schemaBaseV4}/bua-payos-payment-status`],
+    ['bua-payos-webhook-event', `${schemaBaseV4}/bua-payos-webhook-event`],
   ];
 
   assert.equal(manifest.draft, 'https://json-schema.org/draft/2020-12/schema');
@@ -207,11 +226,23 @@ test('exports only declared registry schema and generated TypeScript entry point
     './v4/iam-password-sign-in-command',
     './v4/iam-registration-accepted',
     './v4/iam-registration-command',
+    './v4/iam-scope-switch-command',
+    './v4/iam-workspace-create-accepted',
+    './v4/iam-workspace-create-command',
     './v4/jra-worker-dashboard-widget-result-output',
     './v4/jra-worker-result-finalize-accepted',
     './v4/jra-worker-result-finalize-command',
     './v4/jra-worker-result-prepare-accepted',
     './v4/jra-worker-result-prepare-command',
+    './v4/lfb-landing-feedback-accepted',
+    './v4/lfb-landing-feedback-command',
+    './v4/platform-admin-feedbacks',
+    './v4/platform-admin-overview',
+    './v4/bua-payos-plan-catalog',
+    './v4/bua-payos-checkout-command',
+    './v4/bua-payos-checkout-session',
+    './v4/bua-payos-payment-status',
+    './v4/bua-payos-webhook-event',
   ]);
   for (const target of Object.values(packageJson.exports)) {
     const paths = typeof target === 'string' ? [target] : Object.values(target);
@@ -275,6 +306,120 @@ test('[Plan 408 / IAM-001 / IAM-009 / WEB-003] Web bootstrap is closed and serve
   assert.equal(validate(response), true, JSON.stringify(validate.errors));
   assert.equal(validate({ ...response, clientRole: 'owner' }), false);
   assert.equal(validate({ schemaVersion: 4, outcome: 'REJECTED', code: 'UNAVAILABLE' }), true);
+});
+
+test('[IAM-026 / BUA-024 / WEB-025] platform overview is closed and content-minimized', () => {
+  const validate = validatorFor(ids.platformAdminOverview);
+  const overview = JSON.parse(
+    readFileSync(
+      resolve(
+        packageRoot,
+        '../test-fixtures/contracts/v4/payloads/platform-admin-overview/valid.json',
+      ),
+      'utf8',
+    ),
+  );
+  assert.equal(validate(overview), true, JSON.stringify(validate.errors));
+  assert.equal(validate({ ...overview, providerSecret: 'must-not-leak' }), false);
+});
+
+test('[IAM-027 / IAM-028] workspace creation and scope switching commands stay closed', () => {
+  const command = validatorFor(ids.iamWorkspaceCreateCommand);
+  const validCommand = JSON.parse(
+    readFileSync(
+      resolve(
+        packageRoot,
+        '../test-fixtures/contracts/v4/payloads/iam-workspace-create-command/valid.json',
+      ),
+      'utf8',
+    ),
+  );
+  assert.equal(command(validCommand), true, JSON.stringify(command.errors));
+  assert.equal(command({ ...validCommand, dataMode: 'CLOUD' }), false);
+
+  const accepted = validatorFor(ids.iamWorkspaceCreateAccepted);
+  const validAccepted = JSON.parse(
+    readFileSync(
+      resolve(
+        packageRoot,
+        '../test-fixtures/contracts/v4/payloads/iam-workspace-create-accepted/valid.json',
+      ),
+      'utf8',
+    ),
+  );
+  assert.equal(accepted(validAccepted), true, JSON.stringify(accepted.errors));
+  assert.equal(
+    accepted({
+      ...validAccepted,
+      workspace: { ...validAccepted.workspace, dataModePolicyId: 'must-not-leak' },
+    }),
+    false,
+  );
+
+  const switchCommand = validatorFor(ids.iamScopeSwitchCommand);
+  assert.equal(
+    switchCommand({ schemaVersion: 4, workspaceId: '3f2d9a41-7f55-4c1e-9a30-5b8e2d6f1a74' }),
+    true,
+  );
+  assert.equal(
+    switchCommand({
+      schemaVersion: 4,
+      workspaceId: '3f2d9a41-7f55-4c1e-9a30-5b8e2d6f1a74',
+      actorId: '00000000-0000-4000-8000-000000000010',
+    }),
+    false,
+  );
+});
+
+test('[WEB-026] landing feedback command is closed and bounded', () => {
+  const validate = validatorFor(ids.lfbLandingFeedbackCommand);
+  const command = JSON.parse(
+    readFileSync(
+      resolve(
+        packageRoot,
+        '../test-fixtures/contracts/v4/payloads/lfb-landing-feedback-command/valid.json',
+      ),
+      'utf8',
+    ),
+  );
+  assert.equal(validate(command), true, JSON.stringify(validate.errors));
+  assert.equal(validate({ ...command, sourceIp: '203.0.113.7' }), false);
+  assert.equal(validate({ ...command, rating: 6 }), false);
+  assert.equal(validate({ ...command, message: 'ngắn' }), false);
+  const accepted = validatorFor(ids.lfbLandingFeedbackAccepted);
+  const receipt = JSON.parse(
+    readFileSync(
+      resolve(
+        packageRoot,
+        '../test-fixtures/contracts/v4/payloads/lfb-landing-feedback-accepted/valid.json',
+      ),
+      'utf8',
+    ),
+  );
+  assert.equal(accepted(receipt), true, JSON.stringify(accepted.errors));
+  assert.equal(accepted({ ...receipt, message: command.message }), false);
+});
+
+test('[IAM-026 / WEB-027] platform admin feedbacks read is closed and omits network identifiers', () => {
+  const validate = validatorFor(ids.platformAdminFeedbacks);
+  const feedbacks = JSON.parse(
+    readFileSync(
+      resolve(
+        packageRoot,
+        '../test-fixtures/contracts/v4/payloads/platform-admin-feedbacks/valid.json',
+      ),
+      'utf8',
+    ),
+  );
+  assert.equal(validate(feedbacks), true, JSON.stringify(validate.errors));
+  assert.equal(
+    validate({ ...feedbacks, feedbacks: [{ ...feedbacks.feedbacks[0], sourceIpHash: 'a'.repeat(64) }] }),
+    false,
+  );
+  assert.equal(
+    validate({ ...feedbacks, feedbacks: [{ ...feedbacks.feedbacks[0], rating: 0 }] }),
+    false,
+  );
 });
 
 test('[DDA-055][DDA-056] conversation transports are closed, bounded, and omit client authority', () => {

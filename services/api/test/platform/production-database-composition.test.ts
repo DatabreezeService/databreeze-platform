@@ -23,8 +23,8 @@ import { AUTHENTICATION_USE_CASE } from '../../src/features/iam/application/auth
 import {
   DEVICE_IDENTITY_SERVICE,
   DeviceIdentityService,
-  UnavailableDeviceEnrollmentProofVerifier,
 } from '../../src/features/iam/application/device-identity.service.js';
+import { Ed25519DeviceEnrollmentProofVerifierAdapter } from '../../src/features/iam/adapter/ed25519-device-enrollment-proof-verifier.adapter.js';
 import {
   IAM_INVITATION_SERVICE,
   IAM_PRINCIPAL_EMAIL_LOOKUP_PORT,
@@ -259,7 +259,7 @@ void test('[DDA-036, IAM-022, IAM-023, IAE-003, DSM-001, DDA-003, DDA-004, DDA-0
     );
     assert.ok(
       composition.options.deviceEnrollmentProofVerifier instanceof
-        UnavailableDeviceEnrollmentProofVerifier,
+        Ed25519DeviceEnrollmentProofVerifierAdapter,
     );
     const createdCredential = await composition.options.passwordCredentials.create(
       'production-test-password-123!',

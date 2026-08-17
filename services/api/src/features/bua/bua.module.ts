@@ -38,6 +38,18 @@ import {
   type ResultUsageSettlementBindingDatabaseClientV1,
 } from './adapter/prisma-result-usage-settlement-binding-repository.adapter.js';
 import { EntitlementController } from './api/entitlement.controller.js';
+import { PayosController } from './api/payos.controller.js';
+import { PayosPaymentService } from './application/payos-payment.service.js';
+import {
+  MockPayosPaymentLinkAdapter,
+  PayosPaymentLinkAdapter,
+  type PayosPaymentProviderPortV1,
+} from './adapter/payos-payment-link.adapter.js';
+import {
+  PAYOS_PAYMENT_SERVICE,
+  type BillingAuthorizationPortV1,
+  type PaymentDatabaseClientV1,
+} from './application/payos-payment.service.js';
 import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
@@ -47,6 +59,10 @@ import {
 export const ENTITLEMENT_ADMISSION_SERVICE = Symbol('ENTITLEMENT_ADMISSION_SERVICE');
 
 export interface BuaModuleOptions {
+  readonly payosPaymentService?: PayosPaymentService;
+  readonly payosPaymentProvider?: PayosPaymentProviderPortV1;
+  readonly paymentDatabase?: PaymentDatabaseClientV1;
+  readonly billingAuthorization?: BillingAuthorizationPortV1;
   readonly entitlementRepository?: EntitlementRepositoryPortV1;
   /** Root composition may share the canonical service with DDA agent admission. */
   readonly entitlementAdmissionService?: EntitlementAdmissionService;
@@ -70,6 +86,37 @@ export interface BuaModuleOptions {
 @Module({})
 export class BuaModule {
   public static register(options: BuaModuleOptions = {}): DynamicModule {
+    const payos = options.payosPaymentService ?? (() => {
+      if (options.paymentDatabase === undefined || options.billingAuthorization === undefined) return undefined;
+      if (options.payosPaymentProvider !== undefined)
+        return new PayosPaymentService(options.paymentDatabase, options.payosPaymentProvider, options.billingAuthorization);
+      const providerMode = process.env['PAYOS_PROVIDER'] ?? (process.env['PAYOS_LOCAL_TEST_MODE'] === 'true' ? 'mock' : 'payos');
+      if (providerMode === 'mock')
+        return new PayosPaymentService(
+          options.paymentDatabase,
+          new MockPayosPaymentLinkAdapter({
+            checkoutBaseUrl: process.env['DATABREEZE_WEB_PUBLIC_URL'] ?? 'https://localhost:8443',
+          }),
+          options.billingAuthorization,
+        );
+      if (providerMode !== 'payos') return undefined;
+      const clientId = process.env['PAYOS_CLIENT_ID'];
+      const apiKey = process.env['PAYOS_API_KEY'];
+      const checksumKey = process.env['PAYOS_CHECKSUM_KEY'];
+      const webUrl = process.env['DATABREEZE_WEB_PUBLIC_URL'];
+      if (!clientId || !apiKey || !checksumKey || !webUrl) return undefined;
+      return new PayosPaymentService(
+        options.paymentDatabase,
+        new PayosPaymentLinkAdapter({
+          clientId,
+          apiKey,
+          checksumKey,
+          successUrl: process.env['DATABREEZE_PAYOS_SUCCESS_URL'] ?? `${webUrl}/vi-VN/billing/success`,
+          failedUrl: process.env['DATABREEZE_PAYOS_FAILED_URL'] ?? `${webUrl}/vi-VN/billing/failed`,
+        }),
+        options.billingAuthorization,
+      );
+    })();
     const repository =
       options.entitlementRepository ??
       (options.entitlementDatabase === undefined
@@ -107,7 +154,7 @@ export class BuaModule {
           ));
     return {
       module: BuaModule,
-      controllers: [EntitlementController],
+      controllers: [EntitlementController, ...(payos === undefined ? [] : [PayosController])],
       providers: [
         { provide: ENTITLEMENT_REPOSITORY_PORT, useValue: repository },
         { provide: ENTITLEMENT_ADMISSION_SERVICE, useValue: service },
@@ -117,6 +164,7 @@ export class BuaModule {
         },
         { provide: ENTITLEMENT_LEASE_REPOSITORY_PORT, useValue: leaseRepository },
         { provide: ENTITLEMENT_LEASE_SERVICE, useValue: leaseService },
+        ...(payos === undefined ? [] : [{ provide: PAYOS_PAYMENT_SERVICE, useValue: payos }, { provide: PayosPaymentService, useValue: payos }]),
         {
           provide: REQUEST_TENANT_CONTEXT,
           useValue: options.requestTenantContext ?? new UnavailableRequestTenantContextAdapter(),

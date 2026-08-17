@@ -57,6 +57,9 @@ describe('landing page stylesheet [WEB-013]', () => {
     expect(screen.getByRole('button', { name: /Theo năm/u }).getAttribute('aria-pressed')).toBe(
       'true',
     );
+    expect(screen.getByRole('link', { name: /Bắt đầu với Cá nhân/u }).getAttribute('href')).toBe(
+      '/vi-VN/billing?planId=personal-annual',
+    );
   });
 
   it('restores an inbound hash destination after the landing markup mounts', async () => {

@@ -186,6 +186,7 @@ import type {
   IntakeIaeFinalizationPortV1,
   IntakeIaeUploadPortV1,
 } from './intake/application/intake-profile.port.js';
+import { INTAKE_IAE_UPLOAD_PORT } from './intake/application/intake-profile.port.js';
 import { WebIntakeServiceV1 } from './intake/application/web-intake.service.js';
 import { ReceiptExtractionController } from './receipt/api/receipt-extraction.controller.js';
 import {
@@ -859,6 +860,7 @@ export class DdaModule {
       iae,
       aud,
       options.receiptRecords ?? createFailClosedReceiptRecordsV1(),
+      options.etlPorts?.dsm,
     );
     const notificationRepository =
       options.notificationRepository ??
@@ -1064,6 +1066,9 @@ export class DdaModule {
         { provide: WebIntakeServiceV1, useValue: webIntakeService },
         { provide: DATA_IMPORT_REPOSITORY_PORT, useValue: dataImportRepository },
         { provide: DataImportServiceV1, useValue: dataImportService },
+        ...(options.intakeUpload === undefined
+          ? []
+          : [{ provide: INTAKE_IAE_UPLOAD_PORT, useValue: options.intakeUpload }]),
         { provide: EtlProposalServiceV1, useValue: etlProposalService },
         { provide: EtlAcceptanceServiceV1, useValue: etlAcceptanceService },
         { provide: ETL_ACCEPTANCE_AUTHORIZATION_PORT, useValue: etlAcceptanceAuthorization },

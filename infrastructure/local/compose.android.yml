@@ -1,0 +1,7 @@
+# Local-only override for Android integration testing.
+# This file is intentionally used only with an explicit -f flag; the normal
+# local-services commands keep the API private behind the Web gateway.
+services:
+  api:
+    ports:
+      - '127.0.0.1:3000:3000'

@@ -4,10 +4,68 @@ import { useLocation, useParams } from 'react-router-dom';
 import { normalizeRouteLocale } from '../../app/locale-context.tsx';
 import teammateLandingHtml from '../../../../../prototypes/databreeze-landing/index.html?raw';
 import { prepareTeammateLandingMarkup } from './landing-markup.ts';
+import {
+  createLandingFeedbackApi,
+  type LandingFeedbackCategory,
+  type LandingFeedbackExperience,
+  type LandingFeedbackRole,
+  type LandingFeedbackSubmission,
+} from './landing-feedback-api.ts';
 import './landing-host.css';
 
 const TEAMMATE_LANDING_STYLESHEET = '/landing/styles.css';
 const TEAMMATE_LANDING_SCRIPT = '/landing/script.js';
+
+const FEEDBACK_COPY = {
+  'vi-VN': {
+    sending: 'Đang gửi góp ý…',
+    sent: 'Cảm ơn bạn! Góp ý đã được ghi nhận trên máy chủ.',
+    sentMark: 'Đã gửi',
+    rateLimited: 'Bạn đã gửi quá nhiều góp ý trong thời gian ngắn. Vui lòng thử lại sau.',
+    invalid: 'Nội dung góp ý chưa hợp lệ. Vui lòng kiểm tra lại các trường bắt buộc.',
+    failed: 'Chưa gửi được góp ý. Vui lòng thử lại.',
+  },
+  en: {
+    sending: 'Sending feedback…',
+    sent: 'Thank you! Your feedback has been recorded on the server.',
+    sentMark: 'Sent',
+    rateLimited: 'Too many feedback submissions were sent. Please try again later.',
+    invalid: 'The feedback content is not valid. Please review the required fields.',
+    failed: 'Feedback could not be sent. Please try again.',
+  },
+} as const;
+
+function readFeedbackSubmission(form: HTMLFormElement): LandingFeedbackSubmission | undefined {
+  const data = new FormData(form);
+  const email = typeof data.get('email') === 'string' ? (data.get('email') as string).trim() : '';
+  const role = data.get('role');
+  const experience = data.get('experience');
+  const category = data.get('category');
+  const rating = Number(data.get('rating'));
+  const message = typeof data.get('message') === 'string' ? (data.get('message') as string) : '';
+  const name = typeof data.get('name') === 'string' ? (data.get('name') as string).trim() : '';
+  const organization =
+    typeof data.get('organization') === 'string' ? (data.get('organization') as string).trim() : '';
+  if (
+    email.length === 0 ||
+    typeof role !== 'string' ||
+    typeof experience !== 'string' ||
+    typeof category !== 'string' ||
+    !Number.isInteger(rating)
+  )
+    return undefined;
+  return {
+    email,
+    ...(name.length === 0 ? {} : { name }),
+    ...(organization.length === 0 ? {} : { organization }),
+    role: role as LandingFeedbackRole,
+    experience: experience as LandingFeedbackExperience,
+    category: category as LandingFeedbackCategory,
+    rating,
+    message,
+    contactPermission: data.get('contactPermission') !== null,
+  };
+}
 
 export function LandingPage({
   locale,
@@ -20,7 +78,7 @@ export function LandingPage({
     () =>
       prepareTeammateLandingMarkup(teammateLandingHtml, {
         locale,
-        registerHref: `/${locale}/register`,
+        billingHref: `/${locale}/billing`,
         signInHref: `/${locale}/sign-in`,
         signInLabel: locale === 'vi-VN' ? 'Đăng nhập' : 'Sign in',
         downloadsHref: `/${locale}/downloads`,
@@ -28,6 +86,7 @@ export function LandingPage({
       }),
     [locale],
   );
+  const feedbackApi = useMemo(() => createLandingFeedbackApi(), []);
 
   useEffect(() => {
     if (import.meta.env.MODE === 'test') return undefined;
@@ -114,6 +173,10 @@ export function LandingPage({
       root.querySelectorAll<HTMLElement>('[data-pricing-detail]').forEach((detail) => {
         detail.textContent = detail.dataset[`${cycle}Detail`] ?? '';
       });
+      root.querySelectorAll<HTMLAnchorElement>('[data-pricing-cta]').forEach((cta) => {
+        const href = cta.dataset[`${cycle}Href`];
+        if (href !== undefined) cta.setAttribute('href', href);
+      });
       const status = root.querySelector<HTMLElement>('[data-pricing-status]');
       if (status !== null) {
         status.textContent =
@@ -126,6 +189,65 @@ export function LandingPage({
     root.addEventListener('click', handlePricingCycleClick);
     return () => root.removeEventListener('click', handlePricingCycleClick);
   }, [locale, markup]);
+
+  useEffect(() => {
+    const root = document.querySelector<HTMLElement>('.teammate-landing-root');
+    if (root === null) return undefined;
+
+    // WEB-026: the public feedback form submits only through the closed v4 command
+    // contract; a server acceptance is required before any success is announced.
+    const handleSubmit = async (event: SubmitEvent) => {
+      event.preventDefault();
+      const form = event.target;
+      if (!(form instanceof HTMLFormElement) || !form.matches('[data-feedback-form]')) return;
+      const copy = FEEDBACK_COPY[locale];
+      const status = form.querySelector<HTMLElement>('[data-feedback-status]');
+      const statusMark = form.querySelector<HTMLElement>('.form-status-mark');
+      const submitButton = form.querySelector<HTMLButtonElement>('[data-feedback-submit]');
+
+      if (!form.checkValidity()) {
+        status?.classList.remove('success');
+        status?.classList.add('error');
+        if (status !== null) status.textContent = copy.invalid;
+        return;
+      }
+      const submission = readFeedbackSubmission(form);
+      if (submission === undefined) {
+        status?.classList.remove('success');
+        status?.classList.add('error');
+        if (status !== null) status.textContent = copy.invalid;
+        return;
+      }
+
+      if (submitButton !== null) submitButton.disabled = true;
+      status?.classList.remove('error', 'success');
+      if (status !== null) status.textContent = copy.sending;
+      const result = await feedbackApi.submit(submission);
+      if (submitButton !== null) submitButton.disabled = false;
+      if (result.accepted) {
+        form.classList.remove('was-validated');
+        form.reset();
+        form
+          .querySelectorAll('[data-character-count]')
+          .forEach((counter) => (counter.textContent = '0'));
+        status?.classList.add('success');
+        if (status !== null) status.textContent = copy.sent;
+        if (statusMark !== null) statusMark.innerHTML = `<i></i>${copy.sentMark}`;
+        return;
+      }
+      status?.classList.add('error');
+      if (status !== null)
+        status.textContent =
+          result.code === 'LANDING_FEEDBACK_RATE_LIMITED'
+            ? copy.rateLimited
+            : result.code === 'LANDING_FEEDBACK_COMMAND_INVALID'
+              ? copy.invalid
+              : copy.failed;
+    };
+
+    root.addEventListener('submit', handleSubmit);
+    return () => root.removeEventListener('submit', handleSubmit);
+  }, [locale, markup, feedbackApi]);
 
   return (
     <>

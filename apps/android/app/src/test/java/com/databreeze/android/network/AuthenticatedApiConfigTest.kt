@@ -102,6 +102,23 @@ class AuthenticatedApiConfigTest {
         }
     }
 
+    @Test
+    fun `native auth session may be read-only before a device grant is issued`() {
+        val session = ProtectedAuthenticatedApiSession(
+            accountId = "account-1",
+            organizationId = "organization-1",
+            workspaceId = "workspace-1",
+            accessToken = "access-secret",
+            sessionId = "session-1",
+            refreshToken = "refresh-secret",
+            accessExpiresAt = "2026-08-15T00:00:00Z",
+            securityEpoch = 1,
+        )
+
+        assertEquals("", session.receiptWorkspaceGrantId)
+        assertNull(session.toString().takeIf { it.contains("refresh-secret") })
+    }
+
     private fun validSession() =
         ProtectedAuthenticatedApiSession(
             accountId = "account-1",

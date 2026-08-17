@@ -437,7 +437,7 @@
       "priority": "P0",
       "requirement": "The control plane shall enforce effective entitlements and limits server-side before every billable upload, processing job, paid-module action, seat addition, export class, and API operation.",
       "source": {
-        "line": 115,
+        "line": 117,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -446,7 +446,7 @@
       "priority": "P0",
       "requirement": "Client entitlement displays and offline caches shall be advisory; a modified Web, Desktop, or Android client shall not bypass server admission control.",
       "source": {
-        "line": 116,
+        "line": 118,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -455,7 +455,7 @@
       "priority": "P0",
       "requirement": "Plan versions and optional commercial price mappings shall be immutable, effective-dated, and referenced by subscriptions and entitlement snapshots.",
       "source": {
-        "line": 117,
+        "line": 119,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -464,7 +464,7 @@
       "priority": "P0",
       "requirement": "Usage shall be recorded in an append-only PostgreSQL ledger with stable idempotency keys; corrections shall be new adjustment records, never updates or deletes.",
       "source": {
-        "line": 118,
+        "line": 120,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -473,7 +473,7 @@
       "priority": "P0",
       "requirement": "Redis, analytics stores, provider dashboards, and client counters shall not be authoritative for subscription state, entitlements, or usage.",
       "source": {
-        "line": 119,
+        "line": 121,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -482,7 +482,7 @@
       "priority": "P1",
       "requirement": "When a commercial billing provider is enabled, its webhooks shall be signature-verified, stored idempotently, ordered per provider object, and reconciled with provider APIs before ambiguous state changes.",
       "source": {
-        "line": 120,
+        "line": 122,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -491,7 +491,7 @@
       "priority": "P0",
       "requirement": "The `ExecutionAdmissionCoordinator` shall persist a BUA quota reservation and JRA job/admission creation in one modular-monolith transaction so concurrent requests cannot oversubscribe a hard limit; BUA and JRA shall expose contracts to the coordinator and shall not import each other's services or persistence.",
       "source": {
-        "line": 121,
+        "line": 123,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -500,7 +500,7 @@
       "priority": "P0",
       "requirement": "Infrastructure retries and failed attempts that produce no customer result shall not create duplicate or unjustified billable usage.",
       "source": {
-        "line": 122,
+        "line": 124,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -509,7 +509,7 @@
       "priority": "P0",
       "requirement": "`PAST_DUE`, `SUSPENDED`, cancellation, downgrade, or quota excess shall never delete or overwrite artifacts, versions, evidence, results, comments, audit history, or local data.",
       "source": {
-        "line": 123,
+        "line": 125,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -518,7 +518,7 @@
       "priority": "P0",
       "requirement": "Suspended and cancelled organizations shall retain authenticated read, authorized download/export, billing remediation, and explicit deletion-request access while data remains under retention policy.",
       "source": {
-        "line": 124,
+        "line": 126,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -527,7 +527,7 @@
       "priority": "P0",
       "requirement": "Billing changes, provider-link changes, organization deletion, and manual credits/debits shall require Owner authority, recent MFA where sensitive, idempotency, and immutable audit records.",
       "source": {
-        "line": 125,
+        "line": 127,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -536,7 +536,7 @@
       "priority": "P0",
       "requirement": "`LOCAL` original bytes shall not count toward cloud storage usage and shall never upload for metering; only verified synchronized classes may contribute to cloud usage.",
       "source": {
-        "line": 126,
+        "line": 128,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -545,7 +545,7 @@
       "priority": "P1",
       "requirement": "A 14-day grace period shall follow verified payment failure before suspension, unless fraud, abuse, or legal restrictions require a separately audited immediate safety suspension.",
       "source": {
-        "line": 127,
+        "line": 129,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -554,7 +554,7 @@
       "priority": "P1",
       "requirement": "Downgrades shall normally take effect at period end; over-limit dimensions shall block new growth while preserving read, export, and user-directed cleanup.",
       "source": {
-        "line": 128,
+        "line": 130,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -563,7 +563,7 @@
       "priority": "P1",
       "requirement": "Entitlement responses shall include stable reason codes, effective/expiry timestamps, limit, used, reserved, and reset time without exposing provider secrets.",
       "source": {
-        "line": 129,
+        "line": 131,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -572,7 +572,7 @@
       "priority": "P1",
       "requirement": "Usage aggregation shall reconcile ledger totals, object-storage inventory, successful job results, membership counts, and provider-reported quantities on a scheduled basis.",
       "source": {
-        "line": 130,
+        "line": 132,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -581,7 +581,7 @@
       "priority": "P1",
       "requirement": "Manual adjustments shall require a reason, actor, related organization, unit, quantity, effective period, and optional prior usage-event reference.",
       "source": {
-        "line": 131,
+        "line": 133,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -590,7 +590,7 @@
       "priority": "P1",
       "requirement": "Billing communications shall follow `NCO`, use content-minimized templates, and never include source names, values, or payment credentials.",
       "source": {
-        "line": 132,
+        "line": 134,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -599,7 +599,7 @@
       "priority": "P1",
       "requirement": "Reactivation shall rebuild entitlements and re-authorize eligible nonterminal jobs whose dispatch was blocked by entitlement policy; it shall not automatically execute stale, destructive, external, or approval-gated work.",
       "source": {
-        "line": 133,
+        "line": 135,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -608,7 +608,7 @@
       "priority": "P1",
       "requirement": "The platform shall provide machine-readable usage export and invoice metadata in organization currency while preserving raw quantities in canonical units.",
       "source": {
-        "line": 134,
+        "line": 136,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -617,7 +617,7 @@
       "priority": "P0",
       "requirement": "The foundation shall issue signed, Device- and workspace-bound offline entitlement leases that expire within 24 hours, bind plan/entitlement and authorization revisions plus allowed action limits, cannot authorize cloud or external effects, and fail closed after expiry or revocation is observed.",
       "source": {
-        "line": 135,
+        "line": 137,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -626,7 +626,7 @@
       "priority": "P0",
       "requirement": "Every deployment shall support provider-independent `BUILT_IN_FREE`, `DEVELOPMENT`, or `ADMIN_GRANTED` subscription sources; provider absence or outage shall not block creating or enforcing one of those sources, and all sources shall use the same immutable PlanVersion, EntitlementSnapshot, reservation, usage, and authorization contracts.",
       "source": {
-        "line": 136,
+        "line": 138,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -635,7 +635,16 @@
       "priority": "P0",
       "requirement": "Job admission shall create a BUA-owned immutable `ResultUsageSettlementBinding` in the same transaction as its quota reservation and JRA admission. The binding shall be exact to TenantScope, Job, reservation, meter, server-owned settlement formula, maximum admitted units, entitlement decision subject and idempotency identity; JRA shall persist and return only its opaque stable ID. Successful result finalization shall pass that ID plus verified result facts to a BUA transaction participant, which shall resolve the binding, compute the authoritative quantity, consume or release the exact reservation and append idempotent usage in the same transaction as terminal JRA result commit. A missing, mismatched, expired, already-conflicted or unavailable binding shall roll back finalization. Completion code shall never invent a reservation, meter, formula or billable quantity from worker assertions.",
       "source": {
-        "line": 137,
+        "line": 139,
+        "path": "docs/specs/foundation/billing-usage-administration.md"
+      }
+    },
+    {
+      "id": "BUA-024",
+      "priority": "P0",
+      "requirement": "The platform shall provide a read-only, content-minimized internal product overview for currently authorized IAM platform operators, derived from authoritative IAM and BUA records and bounded to aggregate identity, organization, workspace, session, subscription, invoice, and payment metadata; it shall not trust provider dashboards or client counters, expose tenant source content or payment/provider secrets, or allow a platform assignment to substitute for tenant authorization.",
+      "source": {
+        "line": 140,
         "path": "docs/specs/foundation/billing-usage-administration.md"
       }
     },
@@ -3272,7 +3281,7 @@
       "priority": "P0",
       "requirement": "Every user, organization, workspace, project, membership, service account, session, and device shall use a non-guessable stable UUID and store timestamps in UTC.",
       "source": {
-        "line": 154,
+        "line": 156,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3281,7 +3290,7 @@
       "priority": "P0",
       "requirement": "The server shall enforce organization, workspace, project, resource, action, and channel authorization on every request, stream subscription, job execution, sync mutation, download, export, and shared-link access.",
       "source": {
-        "line": 155,
+        "line": 157,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3290,7 +3299,7 @@
       "priority": "P0",
       "requirement": "Authorization shall deny by default and shall not trust role, tenant, or resource claims supplied outside a verified credential and server-side lookup.",
       "source": {
-        "line": 156,
+        "line": 158,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3299,7 +3308,7 @@
       "priority": "P0",
       "requirement": "The initial roles shall be Owner, Admin, Analyst, Operator, Approver, and Viewer; permission constants shall be versioned independently so bundles can expand without renaming roles.",
       "source": {
-        "line": 157,
+        "line": 159,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3308,7 +3317,7 @@
       "priority": "P0",
       "requirement": "Access tokens shall expire within 15 minutes; refresh tokens shall be rotating and single-use, and detected reuse shall revoke the token family.",
       "source": {
-        "line": 158,
+        "line": 160,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3317,7 +3326,7 @@
       "priority": "P0",
       "requirement": "Organization policy shall support required MFA for all members, privileged roles, or privileged actions, with WebAuthn or TOTP and one-time recovery codes.",
       "source": {
-        "line": 159,
+        "line": 161,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3326,7 +3335,7 @@
       "priority": "P0",
       "requirement": "Each organization enrollment on a Desktop or Android installation shall create a distinct asymmetric Device-identity key pair; private keys shall remain in the OS credential store and server records shall be independently and permanently revocable.",
       "source": {
-        "line": 160,
+        "line": 162,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3335,7 +3344,7 @@
       "priority": "P0",
       "requirement": "Membership removal, device revocation, account suspension, and ownership changes shall invalidate server-side and connected-client authorization within 60 seconds and reject newly authenticated operations immediately; an offline device receives no remote-wipe guarantee and its narrowly allowed cached authorization shall expire within 24 hours.",
       "source": {
-        "line": 161,
+        "line": 163,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3344,7 +3353,7 @@
       "priority": "P0",
       "requirement": "Resource lookup shall prove that the resource belongs to the evaluated workspace before a handler reads metadata or object bytes, preventing identifier-based tenant probing.",
       "source": {
-        "line": 162,
+        "line": 164,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3353,7 +3362,7 @@
       "priority": "P0",
       "requirement": "Invitations shall be single-use, hashed at rest, email-bound, scope-bound, role-bound, and expire in no more than seven days.",
       "source": {
-        "line": 163,
+        "line": 165,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3362,7 +3371,7 @@
       "priority": "P0",
       "requirement": "An organization shall always have at least one active Owner; the last Owner cannot leave or be removed without a completed transfer or organization deletion workflow.",
       "source": {
-        "line": 164,
+        "line": 166,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3371,7 +3380,7 @@
       "priority": "P0",
       "requirement": "Privileged actions shall require a step-up MFA assertion no older than 10 minutes and an immutable audit event containing actor, target, before/after summary, IP class, device, and correlation ID.",
       "source": {
-        "line": 165,
+        "line": 167,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3380,7 +3389,7 @@
       "priority": "P0",
       "requirement": "Service accounts shall be organization-owned, workspace-scoped, action-scoped, non-interactive, and authenticated with hashed rotating secrets or signed keys that show their last-use time.",
       "source": {
-        "line": 166,
+        "line": 168,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3389,7 +3398,7 @@
       "priority": "P1",
       "requirement": "Project membership may only narrow workspace access unless an explicit project guest policy grants access to that project alone; it shall never imply access to sibling projects.",
       "source": {
-        "line": 167,
+        "line": 169,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3398,7 +3407,7 @@
       "priority": "P1",
       "requirement": "Account recovery shall revoke all refresh-token families and require MFA re-enrollment confirmation before privileged actions resume.",
       "source": {
-        "line": 168,
+        "line": 170,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3407,7 +3416,7 @@
       "priority": "P1",
       "requirement": "User locale shall default to Vietnamese (`vi-VN`) while allowing English (`en`) per user without changing stored business values or audit semantics.",
       "source": {
-        "line": 169,
+        "line": 171,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3416,7 +3425,7 @@
       "priority": "P1",
       "requirement": "Client applications may use permission hints to hide controls, but all authoritative enforcement shall remain server-side.",
       "source": {
-        "line": 170,
+        "line": 172,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3425,7 +3434,7 @@
       "priority": "P1",
       "requirement": "Bulk membership and policy changes shall use idempotency keys, return per-item outcomes, and never partially apply an ownership transfer.",
       "source": {
-        "line": 171,
+        "line": 173,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3434,7 +3443,7 @@
       "priority": "P0",
       "requirement": "Every tenant-owned record and repository operation shall declare either organization or workspace scope, validate the complete tenant ancestry for nested resources, and reject optional, missing, or mismatched tenant filters before data access.",
       "source": {
-        "line": 172,
+        "line": 174,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3443,7 +3452,7 @@
       "priority": "P0",
       "requirement": "IAM shall issue versioned signed OfflineAuthorizationSnapshots bound to organization/workspace/project, principal, Device, security and authorization epochs, allowed action/resource scopes, policy revisions, issue time, expiry no later than 24 hours, and signer/key version; a snapshot shall not authorize approval, membership, security/data-mode/retention/billing policy change, deletion, cloud/external effects, or access broader than the last online decision, and every reconnect shall re-authorize current state.",
       "source": {
-        "line": 173,
+        "line": 175,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3452,7 +3461,7 @@
       "priority": "P0",
       "requirement": "IAM shall be the sole authority for DeviceIdentity ID, organization/user ownership, public key, enrollment challenge, activation status, security epoch, and permanent revocation; a revoked identity shall never reactivate, recovery shall create a new identity, and DSO shall reference the IAM identity without maintaining a second identity, key, or authoritative status.",
       "source": {
-        "line": 174,
+        "line": 176,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3461,7 +3470,7 @@
       "priority": "P0",
       "requirement": "Email/password registration shall use a six-digit OTP that expires in 10 minutes, permits five failed attempts, permits resend after 60 seconds, stores only protected challenge material, avoids account enumeration, and atomically activates the user, personal organization, personal workspace, server-owned initial HYBRID DSO policy/current reference, Owner membership, and session after verification. The client shall supply none of the initial policy authority fields and exact replay shall not create a second binding.",
       "source": {
-        "line": 175,
+        "line": 177,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3470,7 +3479,7 @@
       "priority": "P0",
       "requirement": "Access tokens shall remain at most 15 minutes; rotating refresh families shall expire after 30 days of Web inactivity and 180 days absolute, or 90 days of Desktop/Android inactivity and 365 days absolute; reuse, recovery, suspension, logout-all, device revocation, or compromise shall revoke the family; browser credentials shall remain `HttpOnly`, `Secure`, and `SameSite=Lax`.",
       "source": {
-        "line": 176,
+        "line": 178,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3479,7 +3488,7 @@
       "priority": "P0",
       "requirement": "Agent authority shall be an independent workspace-member grant with `NONE`, `ANALYZE`, `PROPOSE_CHANGES`, or `APPLY_CONFIRMED_CHANGES`; Viewer shall default to `NONE`; grants shall never expand dataset or action permission.",
       "source": {
-        "line": 177,
+        "line": 179,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -3488,7 +3497,34 @@
       "priority": "P0",
       "requirement": "The normal UI shall expose Owner, Editor, and Viewer access presets while the six canonical server roles and versioned permission constants remain available to policy enforcement; preset mapping shall be explicit, versioned, and deny-by-default.",
       "source": {
-        "line": 178,
+        "line": 180,
+        "path": "docs/specs/foundation/identity-workspaces-permissions.md"
+      }
+    },
+    {
+      "id": "IAM-026",
+      "priority": "P0",
+      "requirement": "Internal platform administration shall use a persisted, deny-by-default `PlatformOperator` assignment distinct from tenant memberships; every platform request shall resolve its current active role from IAM, grant no implicit tenant source-content access, require recent MFA for account-affecting actions, produce attributable audit evidence, and reflect suspension or revocation within 60 seconds.",
+      "source": {
+        "line": 181,
+        "path": "docs/specs/foundation/identity-workspaces-permissions.md"
+      }
+    },
+    {
+      "id": "IAM-027",
+      "priority": "P0",
+      "requirement": "Workspace creation shall accept only a closed generated name command from an actor whose active organization membership holds `ORGANIZATION_SETTINGS_MANAGE`; the creation transaction shall provision the server-owned initial `HYBRID` DSO policy and a default private project without client policy fields, sample data, or additional memberships, and return a closed accepted contract.",
+      "source": {
+        "line": 182,
+        "path": "docs/specs/foundation/identity-workspaces-permissions.md"
+      }
+    },
+    {
+      "id": "IAM-028",
+      "priority": "P0",
+      "requirement": "Switching the active workspace shall issue a new scope-bound session only after server-side verification of an active membership covering the target workspace and an active organization/workspace; the transaction shall expire the superseded session, its refresh token, and its access tokens, reject foreign, inactive, or cross-organization targets without changing the current session, and never trust client-supplied scope claims.",
+      "source": {
+        "line": 183,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
       }
     },
@@ -5981,7 +6017,7 @@
       "priority": "P0",
       "requirement": "Web shall provide the complete management surface for organizations, workspaces, projects/clients, members, roles, policies, devices, billing, usage, and audit history.",
       "source": {
-        "line": 94,
+        "line": 95,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -5990,7 +6026,7 @@
       "priority": "P0",
       "requirement": "Every route, query, mutation, download, SSE subscription, and action shall rely on server-side `IAM` authorization; client permission hints shall affect presentation only.",
       "source": {
-        "line": 95,
+        "line": 96,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -5999,7 +6035,7 @@
       "priority": "P0",
       "requirement": "The application shall use generated OpenAPI types plus runtime validation and shall reject an incompatible control-plane contract before mutating state.",
       "source": {
-        "line": 96,
+        "line": 97,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6008,7 +6044,7 @@
       "priority": "P0",
       "requirement": "Browser refresh credentials shall remain in `HttpOnly`, `Secure`, `SameSite` cookies; long-lived bearer tokens, device secrets, and provider secrets shall not be stored in localStorage or JavaScript-readable persistence.",
       "source": {
-        "line": 97,
+        "line": 98,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6017,7 +6053,7 @@
       "priority": "P0",
       "requirement": "Original upload controls shall follow the server data-mode decision; a `LOCAL` workspace shall never send original bytes or reconstructable derived content such as previews, OCR/transcripts, row/cell values, thumbnails, source snippets, or chunks from Web.",
       "source": {
-        "line": 98,
+        "line": 99,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6026,7 +6062,7 @@
       "priority": "P0",
       "requirement": "Artifact originals shall be presented as immutable versions; corrections, transformations, redactions, and publications shall create explicit new versions.",
       "source": {
-        "line": 99,
+        "line": 100,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6035,7 +6071,7 @@
       "priority": "P0",
       "requirement": "Every material extraction, finding, and report value shall expose its evidence state and navigate to an exact authorized `IAE` EvidenceReference or an explicit resolution error.",
       "source": {
-        "line": 100,
+        "line": 101,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6044,7 +6080,7 @@
       "priority": "P0",
       "requirement": "Job and recipe controls shall create only registered typed actions through `JRA`; Web shall expose no arbitrary script, shell, filesystem, or remote-control input.",
       "source": {
-        "line": 101,
+        "line": 102,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6053,7 +6089,7 @@
       "priority": "P0",
       "requirement": "Approval decisions shall display the bound input/effect hash summary, policy, expiry, and evidence, and shall be re-authorized with MFA when required at submission time.",
       "source": {
-        "line": 102,
+        "line": 103,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6062,7 +6098,7 @@
       "priority": "P0",
       "requirement": "Live progress and notifications shall be derived from committed events, tolerate duplicate/out-of-order delivery, and reconcile from REST after reconnect or event-ID gap.",
       "source": {
-        "line": 103,
+        "line": 104,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6071,7 +6107,7 @@
       "priority": "P0",
       "requirement": "Billing entitlements, limits, grace, and suspension shall be enforced by the control plane; Web shall render stable denial/remediation states and preserve read/export/delete-request access.",
       "source": {
-        "line": 104,
+        "line": 105,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6080,7 +6116,7 @@
       "priority": "P0",
       "requirement": "Destructive actions shall show the exact scope and consequences, require explicit confirmation and recent MFA where specified, and never conflate billing cancellation with data deletion.",
       "source": {
-        "line": 105,
+        "line": 106,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6089,7 +6125,7 @@
       "priority": "P1",
       "requirement": "Vietnamese shall be the default complete locale, including dates, numbers, pluralization, validation, notification templates, and accessible names; English shall be a complete fallback.",
       "source": {
-        "line": 106,
+        "line": 107,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6098,7 +6134,7 @@
       "priority": "P1",
       "requirement": "Core workflows shall meet WCAG 2.2 AA, support keyboard-only use and screen readers, preserve focus across dialogs/routes, and not rely on color, pointer hover, sound, or motion alone.",
       "source": {
-        "line": 107,
+        "line": 108,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6107,7 +6143,7 @@
       "priority": "P1",
       "requirement": "All list and activity views shall use cursor pagination, stable filters encoded in the URL where safe, explicit empty/error states, and virtualized rendering for large result sets.",
       "source": {
-        "line": 108,
+        "line": 109,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6116,7 +6152,7 @@
       "priority": "P1",
       "requirement": "Mutations shall use idempotency keys and revision preconditions, show pending state, prevent accidental duplicate submit, and reconcile ambiguous network outcomes.",
       "source": {
-        "line": 109,
+        "line": 110,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6125,7 +6161,7 @@
       "priority": "P1",
       "requirement": "The recipe builder shall validate schemas, graph structure, capabilities, data mode, approval requirements, and entitlements before allowing publication.",
       "source": {
-        "line": 110,
+        "line": 111,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6134,7 +6170,7 @@
       "priority": "P1",
       "requirement": "Device management shall expose opaque capabilities, status, grants, revocation, conflicts, and data-mode migrations without revealing local paths or enabling filesystem browsing.",
       "source": {
-        "line": 111,
+        "line": 112,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6143,7 +6179,7 @@
       "priority": "P1",
       "requirement": "External notifications and shared links shall remain content-minimized; protected details shall load only after authenticated authorization.",
       "source": {
-        "line": 112,
+        "line": 113,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6152,7 +6188,7 @@
       "priority": "P1",
       "requirement": "The browser shall retain only content-minimized cached server state by default; source previews and original bytes shall not be available offline unless an explicit encrypted download/export completes.",
       "source": {
-        "line": 113,
+        "line": 114,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6161,7 +6197,7 @@
       "priority": "P1",
       "requirement": "Every error shall map to a stable problem code with a Vietnamese user message, correlation ID, safe retry guidance, and no stack trace, tenant existence leak, or source content.",
       "source": {
-        "line": 114,
+        "line": 115,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6170,7 +6206,7 @@
       "priority": "P1",
       "requirement": "Feature modules shall register routes, navigation, permissions, message keys, schemas, and telemetry at build time; arbitrary runtime third-party code shall not execute in the application origin.",
       "source": {
-        "line": 115,
+        "line": 116,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6179,7 +6215,7 @@
       "priority": "P0",
       "requirement": "For `LOCAL` evidence, Web shall show an open-on-source-device action and explicit device availability; it shall not request or display a live source-derived relay unless the user first publishes a governed Hybrid/Cloud derivative.",
       "source": {
-        "line": 116,
+        "line": 117,
         "path": "docs/specs/platforms/web.md"
       }
     },
@@ -6188,7 +6224,43 @@
       "priority": "P0",
       "requirement": "The signed-in product shall expose exactly three primary destinations (`Bảng điều khiển`, `Phân tích`, and `Dữ liệu`) and use one shared workspace-agent store, with the compact agent on Dashboard/Data and the full thread/history surface in Analysis.",
       "source": {
-        "line": 117,
+        "line": 118,
+        "path": "docs/specs/platforms/web.md"
+      }
+    },
+    {
+      "id": "WEB-025",
+      "priority": "P0",
+      "requirement": "Web shall expose the internal product analytics console only after server-confirmed `IAM-026` platform authorization, keep it visually and navigationally distinct from tenant administration, validate its generated read contract at runtime, provide complete Vietnamese and English states, and render authoritative `BUA-024` aggregates without exposing tenant source content or provider secrets.",
+      "source": {
+        "line": 119,
+        "path": "docs/specs/platforms/web.md"
+      }
+    },
+    {
+      "id": "WEB-026",
+      "priority": "P0",
+      "requirement": "The public landing feedback form shall submit only a closed generated command contract to a throttled anonymous intake endpoint, persist content-minimized records without tenant scope or raw network identifiers, and never render synthetic submit success when the server has not accepted the submission.",
+      "source": {
+        "line": 120,
+        "path": "docs/specs/platforms/web.md"
+      }
+    },
+    {
+      "id": "WEB-027",
+      "priority": "P0",
+      "requirement": "The internal console feedback review surface shall render only server-authoritative bounded feedback records after `IAM-026` platform authorization, validate its generated read contract at runtime, expose no network identifiers or admission digests, and keep complete Vietnamese and English states.",
+      "source": {
+        "line": 121,
+        "path": "docs/specs/platforms/web.md"
+      }
+    },
+    {
+      "id": "WEB-028",
+      "priority": "P0",
+      "requirement": "The signed-in shell shall render the current workspace name as an explicit control with a visible arrow that opens a keyboard-operable chooser of member-visible workspaces plus workspace creation; switching shall re-establish the server-issued session scope, reset incompatible client state, keep Vietnamese complete with English fallback, and never render synthetic workspace data.",
+      "source": {
+        "line": 122,
         "path": "docs/specs/platforms/web.md"
       }
     }

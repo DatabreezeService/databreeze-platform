@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/bua-payos-payment-status",
+  "$comment": "BUA-007..010: status is read from the durable server order and never inferred from redirect query parameters.",
+  "title": "BUA PayOS Payment Status",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "paymentOrderId", "orderCode", "planId", "amountVnd", "currency", "status"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "paymentOrderId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "orderCode": { "type": "integer", "minimum": 1 },
+    "planId": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "amountVnd": { "type": "integer", "minimum": 1 },
+    "currency": { "const": "VND" },
+    "status": { "enum": ["PENDING", "PAID", "CANCELLED", "FAILED"] },
+    "checkoutUrl": { "type": "string", "pattern": "^https://" }
+  }
+}

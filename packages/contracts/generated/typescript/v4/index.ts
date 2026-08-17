@@ -35,6 +35,92 @@ export interface AvailablePreview {
   readonly available: true;
 }
 
+export interface BuaPayosCheckoutCommand {
+  readonly planId: "personal-monthly" | "personal-annual" | "professional-monthly" | "professional-annual" | "team-monthly" | "team-annual";
+  readonly schemaVersion: 4;
+}
+
+export interface BuaPayosCheckoutSession {
+  readonly amountVnd: number;
+  readonly checkoutUrl?: string;
+  readonly currency: "VND";
+  readonly orderCode: number;
+  readonly paymentOrderId: Identifier;
+  readonly planId: string;
+  readonly schemaVersion: 4;
+  readonly status: "PENDING" | "PAID" | "CANCELLED" | "FAILED";
+}
+
+export interface BuaPayosPaymentStatus {
+  readonly amountVnd: number;
+  readonly checkoutUrl?: string;
+  readonly currency: "VND";
+  readonly orderCode: number;
+  readonly paymentOrderId: Identifier;
+  readonly planId: string;
+  readonly schemaVersion: 4;
+  readonly status: "PENDING" | "PAID" | "CANCELLED" | "FAILED";
+}
+
+export interface BuaPayosPlanCatalog {
+  readonly plans: readonly BuaPayosPlanCatalogPlansItem[];
+  readonly schemaVersion: 4;
+}
+
+export interface BuaPayosPlanCatalogAllowances {
+  readonly agentCreditsPerMonth: number;
+  readonly agentEnabledMembers: number;
+  readonly connectedFolders: "unlimited";
+  readonly etlRowsPerMonth: number;
+  readonly governedStorageGb: number;
+  readonly logicalDatasets: number;
+  readonly ocrPagesPerMonth: number;
+  readonly refreshMinutes: number;
+  readonly viewerMembers: number;
+  readonly workspaces: number;
+}
+
+export interface BuaPayosPlanCatalogPlansItem {
+  readonly allowances: BuaPayosPlanCatalogAllowances;
+  readonly amountVnd: number;
+  readonly benefitsEn: readonly string[];
+  readonly benefitsVi: readonly string[];
+  readonly billingCycle: "monthly" | "annual";
+  readonly description: string;
+  readonly displayNameEn: string;
+  readonly displayNameVi: string;
+  readonly family: "personal" | "professional" | "team";
+  readonly id: "personal-monthly" | "personal-annual" | "professional-monthly" | "professional-annual" | "team-monthly" | "team-annual";
+  readonly taglineEn: string;
+  readonly taglineVi: string;
+}
+
+export interface BuaPayosWebhookEvent {
+  readonly code: string;
+  readonly data: BuaPayosWebhookEventData;
+  readonly desc: string;
+  readonly signature: string;
+  readonly success: boolean;
+}
+
+export interface BuaPayosWebhookEventData {
+  readonly accountNumber?: string;
+  readonly amount: number;
+  readonly canceledAt?: string;
+  readonly code: string;
+  readonly counterAccountBankId?: string;
+  readonly counterAccountNumber?: string;
+  readonly currency?: string;
+  readonly desc?: string;
+  readonly description?: string;
+  readonly orderCode: number;
+  readonly paymentLinkId?: string;
+  readonly reference?: string;
+  readonly transactionDateTime?: string;
+  readonly virtualAccountName?: string;
+  readonly virtualAccountNumber?: string;
+}
+
 export interface ContextEvent {
   readonly afterVersionId?: Identifier;
   readonly beforeVersionId?: Identifier;
@@ -49,6 +135,16 @@ export interface ContextEvent {
 export type ConversationListOpaqueCursor = string;
 
 export type ConversationLoadOpaqueCursor = string;
+
+export interface CountGroup {
+  readonly count: NonNegativeInteger;
+  readonly key: GroupKey;
+}
+
+export interface CountPoint {
+  readonly count: NonNegativeInteger;
+  readonly month: Month;
+}
 
 export interface DashboardApplyConfirmedResult {
   readonly name: "dashboard.applyConfirmed";
@@ -214,6 +310,28 @@ export interface EvidenceResolveValue {
   readonly reference: EvidenceReference;
 }
 
+export interface Feedback {
+  readonly category: FeedbackCategory;
+  readonly contactPermission: boolean;
+  readonly createdAt: UtcTimestamp;
+  readonly email: string;
+  readonly experience: FeedbackExperience;
+  readonly id: Identifier;
+  readonly message: string;
+  readonly name?: string;
+  readonly organization?: string;
+  readonly rating: number;
+  readonly role: FeedbackRole;
+}
+
+export type FeedbackCategory = "product" | "feature" | "data-trust" | "design" | "performance" | "other";
+
+export type FeedbackCount = number;
+
+export type FeedbackExperience = "exploring" | "trial" | "active";
+
+export type FeedbackRole = "owner" | "analyst" | "accounting" | "operations" | "technology" | "other";
+
 export type FinalizeIdempotencyKey = string;
 
 export type FinalizeOpaqueToken = string;
@@ -231,6 +349,8 @@ export interface Freshness {
   readonly reasonCode?: string;
   readonly state: "CURRENT" | "PENDING" | "STALE" | "BLOCKED" | "SOURCE_UNAVAILABLE";
 }
+
+export type GroupKey = string;
 
 export interface IamAuthSession {
   readonly accessExpiresAt: UtcTimestamp;
@@ -377,6 +497,37 @@ export interface IamRegistrationCommand {
   readonly schemaVersion: 4;
 }
 
+export interface IamScopeSwitchCommand {
+  readonly schemaVersion: 4;
+  readonly workspaceId: Identifier;
+}
+
+export interface IamWorkspaceCreateAccepted {
+  readonly defaultProject: IamWorkspaceCreateAcceptedDefaultProject;
+  readonly schemaVersion: 4;
+  readonly workspace: IamWorkspaceCreateAcceptedWorkspace;
+}
+
+export interface IamWorkspaceCreateAcceptedDefaultProject {
+  readonly id: Identifier;
+  readonly kind: "INTERNAL";
+  readonly name: string;
+}
+
+export interface IamWorkspaceCreateAcceptedWorkspace {
+  readonly createdAt: UtcTimestamp;
+  readonly dataMode: "LOCAL" | "HYBRID" | "CLOUD";
+  readonly id: Identifier;
+  readonly name: string;
+  readonly organizationId: Identifier;
+  readonly status: "ACTIVE";
+}
+
+export interface IamWorkspaceCreateCommand {
+  readonly name: string;
+  readonly schemaVersion: 4;
+}
+
 export type Identifier = string;
 
 export interface JraWorkerDashboardWidgetResultOutput {
@@ -428,6 +579,74 @@ export interface JraWorkerResultPrepareCommand {
   readonly schemaVersion: 4;
 }
 
+export interface LfbLandingFeedbackAccepted {
+  readonly receivedAt: UtcTimestamp;
+  readonly referenceId: Identifier;
+  readonly schemaVersion: 4;
+}
+
+export interface LfbLandingFeedbackCommand {
+  readonly category: "product" | "feature" | "data-trust" | "design" | "performance" | "other";
+  readonly contactPermission: boolean;
+  readonly email: string;
+  readonly experience: "exploring" | "trial" | "active";
+  readonly message: string;
+  readonly name?: string;
+  readonly organization?: string;
+  readonly rating: number;
+  readonly role: "owner" | "analyst" | "accounting" | "operations" | "technology" | "other";
+  readonly schemaVersion: 4;
+}
+
+export type Month = string;
+
+export type NonNegativeInteger = number;
+
+export interface PlatformAdminFeedbacks {
+  readonly feedbacks: readonly Feedback[];
+  readonly generatedAt: UtcTimestamp;
+  readonly schemaVersion: 4;
+  readonly total: FeedbackCount;
+}
+
+export interface PlatformAdminOverview {
+  readonly generatedAt: UtcTimestamp;
+  readonly operator: PlatformAdminOverviewOperator;
+  readonly recentPayments: readonly RecentPayment[];
+  readonly recentSubscriptions: readonly RecentSubscription[];
+  readonly recentUsers: readonly RecentUser[];
+  readonly registrationSeries: readonly CountPoint[];
+  readonly revenueSeries: readonly RevenuePoint[];
+  readonly schemaVersion: 4;
+  readonly subscriptionPlans: readonly CountGroup[];
+  readonly subscriptionStatuses: readonly CountGroup[];
+  readonly totals: PlatformAdminOverviewTotals;
+  readonly window: PlatformAdminOverviewWindow;
+}
+
+export interface PlatformAdminOverviewOperator {
+  readonly role: "PLATFORM_OWNER" | "PLATFORM_SUPPORT";
+}
+
+export interface PlatformAdminOverviewTotals {
+  readonly activeSessions: NonNegativeInteger;
+  readonly activeSubscriptions: NonNegativeInteger;
+  readonly activeUsers: NonNegativeInteger;
+  readonly organizations: NonNegativeInteger;
+  readonly paidOrders: NonNegativeInteger;
+  readonly settledRevenueVnd: NonNegativeInteger;
+  readonly subscriberUsers: NonNegativeInteger;
+  readonly subscriptions: NonNegativeInteger;
+  readonly users: NonNegativeInteger;
+  readonly workspaces: NonNegativeInteger;
+}
+
+export interface PlatformAdminOverviewWindow {
+  readonly days: number;
+  readonly endsAt: UtcTimestamp;
+  readonly startsAt: UtcTimestamp;
+}
+
 export type PrepareIdempotencyKey = string;
 
 export type PrepareOpaqueToken = string;
@@ -469,6 +688,39 @@ export interface PublicMessage {
   readonly text: string;
 }
 
+export interface RecentPayment {
+  readonly amountVnd: NonNegativeInteger;
+  readonly createdAt: UtcTimestamp;
+  readonly currency: "VND";
+  readonly organizationId: Identifier;
+  readonly organizationName: string;
+  readonly paidAt?: UtcTimestamp;
+  readonly paymentOrderId: Identifier;
+  readonly planId: GroupKey;
+  readonly status: GroupKey;
+}
+
+export interface RecentSubscription {
+  readonly endsAt?: UtcTimestamp;
+  readonly organizationId: Identifier;
+  readonly organizationName: string;
+  readonly planId: GroupKey;
+  readonly source: GroupKey;
+  readonly startsAt: UtcTimestamp;
+  readonly status: GroupKey;
+  readonly subscriptionId: Identifier;
+  readonly updatedAt: UtcTimestamp;
+  readonly workspaceId?: Identifier;
+}
+
+export interface RecentUser {
+  readonly createdAt: UtcTimestamp;
+  readonly displayName: string;
+  readonly email: string;
+  readonly status: GroupKey;
+  readonly userId: Identifier;
+}
+
 export interface ResultAttestation {
   readonly attestationId: Identifier;
   readonly outputName: FinalizeSafeName;
@@ -486,6 +738,12 @@ export interface ResultRow {
   readonly numericValue: number;
   readonly provenance: Provenance;
   readonly unit: string;
+}
+
+export interface RevenuePoint {
+  readonly month: Month;
+  readonly paidOrders: NonNegativeInteger;
+  readonly revenueVnd: NonNegativeInteger;
 }
 
 export type Revision = number;
@@ -574,7 +832,7 @@ export interface WorkerResultBinding {
   readonly outputSchemaId: FinalizeSafeName;
 }
 
-export type ContractV4SchemaId = "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-command" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-list-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-load-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-summary" | "https://schemas.databreeze.dev/contracts/v4/dda-dashboard-widget-results-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-auth-session" | "https://schemas.databreeze.dev/contracts/v4/iam-bootstrap-response" | "https://schemas.databreeze.dev/contracts/v4/iam-email-verification-command" | "https://schemas.databreeze.dev/contracts/v4/iam-password-sign-in-command" | "https://schemas.databreeze.dev/contracts/v4/iam-registration-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-registration-command" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-dashboard-widget-result-output" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-finalize-accepted" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-finalize-command" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-prepare-accepted" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-prepare-command";
+export type ContractV4SchemaId = "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-command" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-session" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-payment-status" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-plan-catalog" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-webhook-event" | "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-command" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-list-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-load-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-summary" | "https://schemas.databreeze.dev/contracts/v4/dda-dashboard-widget-results-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-auth-session" | "https://schemas.databreeze.dev/contracts/v4/iam-bootstrap-response" | "https://schemas.databreeze.dev/contracts/v4/iam-email-verification-command" | "https://schemas.databreeze.dev/contracts/v4/iam-password-sign-in-command" | "https://schemas.databreeze.dev/contracts/v4/iam-registration-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-registration-command" | "https://schemas.databreeze.dev/contracts/v4/iam-scope-switch-command" | "https://schemas.databreeze.dev/contracts/v4/iam-workspace-create-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-workspace-create-command" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-dashboard-widget-result-output" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-finalize-accepted" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-finalize-command" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-prepare-accepted" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-prepare-command" | "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-accepted" | "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-command" | "https://schemas.databreeze.dev/contracts/v4/platform-admin-feedbacks" | "https://schemas.databreeze.dev/contracts/v4/platform-admin-overview";
 
 export type ContractV4ParseResult<TValue = unknown> =
   | { readonly accepted: true; readonly value: TValue }

@@ -1,4 +1,5 @@
 import type { AuthApiV1 } from './auth-api.ts';
+import { createSignInRedirect } from './auth-redirect.ts';
 import {
   clearAuthSessionV1,
   rememberAuthBootstrapV1,
@@ -19,6 +20,8 @@ function isPublicPathV1(pathname: string): boolean {
 export interface RecoverSessionBeforeAppStartInputV1 {
   readonly api: Pick<AuthApiV1, 'recoverWebSession' | 'loadBootstrap'>;
   readonly pathname: string;
+  readonly search?: string;
+  readonly hash?: string;
   readonly replace: (pathname: string) => void;
 }
 
@@ -55,7 +58,12 @@ export async function recoverSessionBeforeAppStartV1(
   clearAuthSessionV1();
   if (!isPublicPathV1(input.pathname)) {
     const route = routeV1(input.pathname);
-    input.replace(`/${route.locale}/sign-in`);
+    input.replace(
+      createSignInRedirect({
+        locale: route.locale,
+        returnTo: `${input.pathname}${input.search ?? ''}${input.hash ?? ''}`,
+      }),
+    );
   }
   return 'signed-out';
 }

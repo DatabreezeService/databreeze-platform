@@ -1,0 +1,51 @@
+/// Mobile control-plane records. Tokens are stored only as SHA-256 digests.
+model MobileRouteTokenRecord {
+  id             String   @id @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  tokenDigest    String   @unique(map: "mobile_route_tokens_digest_key") @map("token_digest") @db.Char(64)
+  route          String   @db.VarChar(256)
+  actorId        String?  @map("actor_id") @db.Uuid
+  expiresAt      DateTime @map("expires_at") @db.Timestamptz(6)
+  consumedAt     DateTime? @map("consumed_at") @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([organizationId, workspaceId, expiresAt], map: "mobile_route_tokens_scope_expiry_idx")
+  @@map("route_tokens")
+  @@schema("mobile")
+}
+
+model MobilePushRegistrationRecord {
+  id                 String   @id @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  workspaceId        String   @map("workspace_id") @db.Uuid
+  actorId            String   @map("actor_id") @db.Uuid
+  platform           String   @db.VarChar(16)
+  providerTokenDigest String  @map("provider_token_digest") @db.Char(64)
+  installationIdHash String   @map("installation_id_hash") @db.Char(64)
+  status             String   @default("ACTIVE") @db.VarChar(16)
+  lastSeenAt         DateTime @map("last_seen_at") @db.Timestamptz(6)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, actorId, installationIdHash], map: "mobile_push_registration_identity_key")
+  @@index([organizationId, workspaceId, actorId, status], map: "mobile_push_registration_actor_idx")
+  @@map("push_registrations")
+  @@schema("mobile")
+}
+
+model MobileReportRecord {
+  id             String   @id @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  actorId        String   @map("actor_id") @db.Uuid
+  reportType     String   @map("report_type") @db.VarChar(64)
+  subjectId      String?  @map("subject_id") @db.Uuid
+  payloadDigest  String   @map("payload_digest") @db.Char(64)
+  status         String   @default("RECEIVED") @db.VarChar(24)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([organizationId, workspaceId, actorId, createdAt], map: "mobile_reports_scope_created_idx")
+  @@map("reports")
+  @@schema("mobile")
+}

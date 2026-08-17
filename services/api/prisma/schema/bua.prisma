@@ -133,3 +133,120 @@ model ResultUsageSettlementBindingRecord {
   @@map("result_usage_settlement_bindings")
   @@schema("bua")
 }
+
+/// BUA-001..BUA-006: durable provider-backed subscription payment order. Amount and scope are
+/// server-owned; the browser submits only the immutable catalog plan id and idempotency key.
+model PaymentOrderRecord {
+  id                String    @id @db.Uuid
+  provider          String    @db.VarChar(32)
+  providerOrderCode BigInt    @map("provider_order_code")
+  scopeKey          String    @map("scope_key") @db.VarChar(200)
+  scopeType         String    @map("scope_type") @db.VarChar(24)
+  organizationId    String    @map("organization_id") @db.Uuid
+  workspaceId       String?   @map("workspace_id") @db.Uuid
+  actorId           String    @map("actor_id") @db.Uuid
+  securityEpoch     Int       @map("security_epoch")
+  planId            String    @map("plan_id") @db.VarChar(64)
+  amountVnd         Int       @map("amount_vnd")
+  currency          String    @default("VND") @db.VarChar(3)
+  status            String    @db.VarChar(24)
+  checkoutUrl       String?   @map("checkout_url") @db.Text
+  idempotencyKey    String    @map("idempotency_key") @db.VarChar(200)
+  failureCode       String?   @map("failure_code") @db.VarChar(80)
+  paidAt            DateTime? @map("paid_at") @db.Timestamptz(6)
+  cancelledAt       DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  revision          Int       @default(1)
+
+  @@unique([provider, providerOrderCode], map: "payment_orders_provider_order_key")
+  @@unique([scopeKey, idempotencyKey], map: "payment_orders_scope_idempotency_key")
+  @@index([organizationId, workspaceId, status, createdAt], map: "payment_orders_scope_status_idx")
+  @@index([scopeKey, providerOrderCode], map: "payment_orders_scope_order_idx")
+  @@map("payment_orders")
+  @@schema("bua")
+}
+
+/// BUA-007: provider webhook inbox is append-only/idempotent and stores the verified payload.
+model PaymentWebhookInboxRecord {
+  id                String    @id @db.Uuid
+  provider          String    @db.VarChar(32)
+  providerEventId   String    @map("provider_event_id") @db.VarChar(256)
+  providerOrderCode BigInt?   @map("provider_order_code")
+  amountVnd         Int?      @map("amount_vnd")
+  statusFromProvider String?  @map("status_from_provider") @db.VarChar(32)
+  signature         String    @db.VarChar(512)
+  payload           Json
+  state             String    @db.VarChar(24)
+  attemptCount      Int       @default(0) @map("attempt_count")
+  lastError         String?   @map("last_error") @db.VarChar(160)
+  receivedAt        DateTime  @default(now()) @map("received_at") @db.Timestamptz(6)
+  processedAt       DateTime? @map("processed_at") @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([provider, providerEventId], map: "payment_webhook_inbox_provider_event_key")
+  @@index([provider, providerOrderCode, state], map: "payment_webhook_inbox_order_state_idx")
+  @@index([state, receivedAt], map: "payment_webhook_inbox_state_idx")
+  @@map("payment_webhook_inbox")
+  @@schema("bua")
+}
+
+/// BUA-008: one current subscription projection per scope, rebuilt from durable orders.
+model SubscriptionRecord {
+  id                String    @id @db.Uuid
+  scopeKey          String    @unique(map: "subscriptions_scope_key") @map("scope_key") @db.VarChar(200)
+  scopeType         String    @map("scope_type") @db.VarChar(24)
+  organizationId    String    @map("organization_id") @db.Uuid
+  workspaceId       String?   @map("workspace_id") @db.Uuid
+  planId            String    @map("plan_id") @db.VarChar(64)
+  source            String    @db.VarChar(32)
+  status            String    @db.VarChar(24)
+  currentOrderId    String?   @map("current_order_id") @db.Uuid
+  startsAt          DateTime  @map("starts_at") @db.Timestamptz(6)
+  endsAt            DateTime? @map("ends_at") @db.Timestamptz(6)
+  revision          Int       @default(1)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([organizationId, workspaceId, status], map: "subscriptions_scope_status_idx")
+  @@map("subscriptions")
+  @@schema("bua")
+}
+
+/// BUA-009: immutable invoice projection for each settled payment order.
+model InvoiceRecord {
+  id             String    @id @db.Uuid
+  paymentOrderId String    @unique(map: "invoices_payment_order_key") @map("payment_order_id") @db.Uuid
+  scopeKey       String    @map("scope_key") @db.VarChar(200)
+  organizationId String    @map("organization_id") @db.Uuid
+  workspaceId    String?   @map("workspace_id") @db.Uuid
+  planId         String    @map("plan_id") @db.VarChar(64)
+  amountVnd      Int       @map("amount_vnd")
+  currency       String    @default("VND") @db.VarChar(3)
+  status         String    @db.VarChar(24)
+  issuedAt       DateTime  @map("issued_at") @db.Timestamptz(6)
+  paidAt         DateTime? @map("paid_at") @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([organizationId, workspaceId, issuedAt], map: "invoices_scope_issued_idx")
+  @@map("invoices")
+  @@schema("bua")
+}
+
+/// BUA-010: payment audit records are append-only and written in the settlement transaction.
+model PaymentAuditEventRecord {
+  id             String   @id @db.Uuid
+  paymentOrderId String   @map("payment_order_id") @db.Uuid
+  scopeKey       String   @map("scope_key") @db.VarChar(200)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String?  @map("workspace_id") @db.Uuid
+  actorId        String   @map("actor_id") @db.Uuid
+  action         String   @db.VarChar(80)
+  payload        Json
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([paymentOrderId, action], map: "payment_audit_order_action_key")
+  @@index([organizationId, workspaceId, createdAt], map: "payment_audit_scope_created_idx")
+  @@map("payment_audit_events")
+  @@schema("bua")
+}

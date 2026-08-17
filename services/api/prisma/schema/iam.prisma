@@ -15,6 +15,22 @@ model UserIdentity {
   @@schema("iam")
 }
 
+/// IAM-026: internal platform authority is independent from every tenant membership.
+model PlatformOperatorRecord {
+  userId     String    @id @map("user_id") @db.Uuid
+  role       String    @db.VarChar(32)
+  status     String    @default("ACTIVE") @db.VarChar(24)
+  assignedBy String?   @map("assigned_by") @db.Uuid
+  assignedAt DateTime  @default(now()) @map("assigned_at") @db.Timestamptz(6)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revision   Int       @default(1)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, role], map: "platform_operators_status_role_idx")
+  @@map("platform_operators")
+  @@schema("iam")
+}
+
 model PasswordCredential {
   id          String    @id @db.Uuid
   userId      String    @unique(map: "password_credentials_user_id_key") @map("user_id") @db.Uuid

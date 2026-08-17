@@ -212,6 +212,15 @@ services:
       DATABREEZE_LOCAL_MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-databreeze}
       DATABREEZE_LOCAL_MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-databreeze-local-change-me}
       DATABREEZE_LOCAL_MINIO_BUCKET: ${MINIO_BUCKET_ARTIFACTS:-databreeze-artifacts}
+      # Local uses the deterministic adapter unless PAYOS_PROVIDER=payos is explicitly selected.
+      PAYOS_PROVIDER: ${PAYOS_PROVIDER:-mock}
+      PAYOS_LOCAL_TEST_MODE: ${PAYOS_LOCAL_TEST_MODE:-false}
+      PAYOS_CLIENT_ID: ${PAYOS_CLIENT_ID:-}
+      PAYOS_API_KEY: ${PAYOS_API_KEY:-}
+      PAYOS_CHECKSUM_KEY: ${PAYOS_CHECKSUM_KEY:-}
+      DATABREEZE_WEB_PUBLIC_URL: ${DATABREEZE_WEB_PUBLIC_URL:-https://localhost:8443}
+      DATABREEZE_PAYOS_SUCCESS_URL: ${DATABREEZE_PAYOS_SUCCESS_URL:-https://localhost:8443/vi-VN/billing/success}
+      DATABREEZE_PAYOS_FAILED_URL: ${DATABREEZE_PAYOS_FAILED_URL:-https://localhost:8443/vi-VN/billing/failed}
     expose:
       - '3000'
     networks: [local]

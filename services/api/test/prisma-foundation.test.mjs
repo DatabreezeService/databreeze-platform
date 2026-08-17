@@ -53,6 +53,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "dso"/);
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "sa"/);
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "dda"/);
+  assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "lfb"/);
   assert.match(diff.stdout, /CREATE TABLE "platform"\."schema_registry"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."users"/);
   assert.match(diff.stdout, /CREATE TABLE "iae"\."artifact_versions"/);
@@ -103,9 +104,16 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "iam"\."recovery_compensation_failures"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."invitation_delivery_failures"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."workspace_dataset_restrictions"/);
+  assert.match(diff.stdout, /CREATE TABLE "iam"\."platform_operators"/);
   assert.match(diff.stdout, /CREATE TABLE "bua"\."entitlement_leases"/);
   assert.match(diff.stdout, /CREATE TABLE "bua"\."result_usage_settlement_bindings"/);
+  assert.match(diff.stdout, /CREATE TABLE "bua"\."payment_orders"/);
+  assert.match(diff.stdout, /CREATE TABLE "bua"\."payment_webhook_inbox"/);
+  assert.match(diff.stdout, /CREATE TABLE "bua"\."subscriptions"/);
+  assert.match(diff.stdout, /CREATE TABLE "bua"\."invoices"/);
+  assert.match(diff.stdout, /CREATE TABLE "bua"\."payment_audit_events"/);
   assert.match(diff.stdout, /CREATE TABLE "aud"\."audit_seal_attestations"/);
+  assert.match(diff.stdout, /CREATE TABLE "lfb"\."landing_feedbacks"/);
 
   const migrationsDirectory = path.join(apiDirectory, 'prisma', 'migrations');
   const inventory = (await readdir(migrationsDirectory)).sort();
@@ -185,7 +193,11 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260814100000_iae_artifact_upload_finalization',
     '20260814110000_iae_worker_result_finalization',
     '20260814110100_jra_worker_result_finalization',
+    '20260814120000_bua_payments',
     '20260814120000_dda_data_imports',
+    '20260815010000_mobile_control_plane',
+    '20260816010000_iam_platform_operators',
+    '20260817010000_lfb_landing_feedbacks',
     'migration_lock.toml',
   ]);
   const migration = await readFile(

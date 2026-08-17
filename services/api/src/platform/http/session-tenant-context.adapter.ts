@@ -21,6 +21,11 @@ interface RequestLikeV1 {
 
 export interface SessionPrincipalLookupV1 {
   findPrincipalByAccessToken(accessToken: unknown): Promise<AuthenticatedPrincipalV1 | undefined>;
+  findSessionByAccessToken?(
+    accessToken: unknown,
+  ): Promise<
+    { readonly sessionId: string; readonly principal: AuthenticatedPrincipalV1 } | undefined
+  >;
 }
 
 export class UnavailableWorkspaceAuthorizationEpochResolverAdapter
@@ -101,8 +106,15 @@ export class SessionRequestTenantContextAdapter implements RequestTenantContextP
       throw new RequestTenantContextProblemError('AUTHENTICATION_FAILED');
     }
     let principal: AuthenticatedPrincipalV1 | undefined;
+    let sessionId: string | undefined;
     try {
-      principal = await this.sessions.findPrincipalByAccessToken(token);
+      if (this.sessions.findSessionByAccessToken !== undefined) {
+        const binding = await this.sessions.findSessionByAccessToken(token);
+        principal = binding?.principal;
+        sessionId = binding?.sessionId;
+      } else {
+        principal = await this.sessions.findPrincipalByAccessToken(token);
+      }
     } catch {
       throw new RequestTenantContextProblemError('AUTHENTICATION_UNAVAILABLE');
     }
@@ -111,6 +123,7 @@ export class SessionRequestTenantContextAdapter implements RequestTenantContextP
     if (typeof principal.mfaReenrollmentRequired !== 'boolean')
       throw new RequestTenantContextProblemError('CONTEXT_INVALID');
     const context = createIamTenantContextV1({
+      ...(sessionId === undefined ? {} : { sessionId }),
       tenantScope: {
         scopeType: 'workspace',
         organizationId: principal.organizationId,

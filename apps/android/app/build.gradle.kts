@@ -1,4 +1,5 @@
 import org.gradle.api.tasks.Sync
+import java.net.URI
 
 fun String.asBuildConfigString(): String =
     "\"" + replace("\\", "\\\\").replace("\"", "\\\"") + "\""
@@ -16,6 +17,22 @@ val allowInsecureDebugLoopback =
         "databreeze.allowInsecureDebugLoopback",
         "DATABREEZE_ANDROID_ALLOW_INSECURE_LOOPBACK",
     ).orElse("false")
+val webBaseUrl =
+    protectedSetting("databreeze.webBaseUrl", "DATABREEZE_ANDROID_WEB_BASE_URL")
+        .orElse("")
+val webHost = webBaseUrl.map { raw ->
+    runCatching { URI(raw).host?.takeIf { it.isNotBlank() } }.getOrNull() ?: "invalid.local"
+}.orElse("invalid.local")
+val enforceProductionConfig =
+    protectedSetting("databreeze.enforceProductionConfig", "DATABREEZE_ANDROID_ENFORCE_PRODUCTION_CONFIG")
+        .map { it.equals("true", ignoreCase = true) }
+    .orElse(false)
+val runtimeEnvironment =
+    protectedSetting("databreeze.environment", "DATABREEZE_ANDROID_ENVIRONMENT")
+        .orElse("LOCAL")
+val releaseTaskRequested = gradle.startParameter.taskNames.any { taskName ->
+    taskName.contains("Release", ignoreCase = true)
+}
 
 val releaseStoreFile =
     protectedSetting("databreeze.release.storeFile", "DATABREEZE_ANDROID_KEYSTORE_PATH")
@@ -49,11 +66,15 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
         buildConfigField("String", "DATABREEZE_API_BASE_URL", apiBaseUrl.get().asBuildConfigString())
+        buildConfigField("String", "DATABREEZE_WEB_BASE_URL", webBaseUrl.get().asBuildConfigString())
+        buildConfigField("String", "DATABREEZE_WEB_HOST", webHost.get().asBuildConfigString())
         buildConfigField(
             "boolean",
             "DATABREEZE_ALLOW_INSECURE_LOOPBACK",
             (allowInsecureDebugLoopback.get().toBooleanStrictOrNull() ?: false).toString(),
         )
+        buildConfigField("String", "DATABREEZE_ENVIRONMENT", runtimeEnvironment.get().uppercase().asBuildConfigString())
+        manifestPlaceholders["databreezeWebHost"] = webHost.get()
     }
 
     signingConfigs {
@@ -70,6 +91,16 @@ android {
     buildTypes {
         getByName("release") {
             signingConfig = signingConfigs.findByName("protectedRelease")
+            buildConfigField("boolean", "DATABREEZE_DEMO_MODE", "false")
+        }
+        getByName("debug") {
+            buildConfigField("boolean", "DATABREEZE_DEMO_MODE", "false")
+        }
+        create("demo") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".demo"
+            versionNameSuffix = "-demo"
+            buildConfigField("boolean", "DATABREEZE_DEMO_MODE", "true")
         }
     }
 
@@ -121,9 +152,36 @@ val validateReleaseSigningConfiguration by tasks.registering {
     }
 }
 
+val validateProductionRuntimeConfiguration by tasks.registering {
+    group = "verification"
+    description = "Validates that a production APK points to configured HTTPS AWS origins when enforced."
+    doLast {
+        if (!enforceProductionConfig.get() && !releaseTaskRequested) {
+            logger.lifecycle("Android production runtime config: NOT ENFORCED for non-release build")
+            return@doLast
+        }
+        val api = apiBaseUrl.get()
+        val web = webBaseUrl.get()
+        val apiUri = runCatching { URI(api) }.getOrNull()
+        val webUri = runCatching { URI(web) }.getOrNull()
+        if (apiUri?.scheme?.lowercase() != "https" || apiUri.host.isNullOrBlank()) {
+            throw GradleException("ANDROID_API_BASE_URL_MUST_BE_HTTPS")
+        }
+        if (webUri?.scheme?.lowercase() != "https" || webUri.host.isNullOrBlank()) {
+            throw GradleException("ANDROID_WEB_BASE_URL_MUST_BE_HTTPS")
+        }
+        if (webHost.get() == "invalid.local") throw GradleException("ANDROID_WEB_HOST_INVALID")
+        if (runtimeEnvironment.get().uppercase() !in setOf("STAGING", "PRODUCTION")) {
+            throw GradleException("ANDROID_RELEASE_ENVIRONMENT_INVALID")
+        }
+        logger.lifecycle("Android production runtime config: VALIDATED")
+    }
+}
+
 tasks.configureEach {
     if (name.matches(Regex("^(assemble|bundle|package|sign).*Release.*"))) {
         dependsOn(validateReleaseSigningConfiguration)
+        dependsOn(validateProductionRuntimeConfiguration)
     }
 }
 
@@ -132,6 +190,7 @@ val stageGeneratedContracts by tasks.registering(Sync::class) {
     from("../../../packages/contracts/generated/kotlin/src/main/kotlin") {
         include("com/databreeze/contracts/v1/Models.kt")
         include("com/databreeze/contracts/v2/Models.kt")
+        include("com/databreeze/contracts/v4/Models.kt")
     }
     into(generatedContractsDir)
 }

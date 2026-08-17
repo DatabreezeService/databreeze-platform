@@ -4,6 +4,7 @@ import type { StableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 import type {
   IdentityBootstrapRepositoryPortV1,
   IdentityBootstrapTransactionPortV1,
+  IdentityBootstrapVisibleTreeV1,
 } from '../application/identity-bootstrap-repository.port.js';
 
 function cloneBootstrap(value: PersonalOrganizationBootstrapV1): PersonalOrganizationBootstrapV1 {
@@ -32,6 +33,24 @@ export class InMemoryIdentityBootstrapRepositoryAdapter
     await Promise.resolve();
     const value = this.records.get(userId);
     return value ? cloneBootstrap(value) : undefined;
+  }
+
+  public async listVisibleByUserId(
+    userId: StableIdentifierV1,
+  ): Promise<IdentityBootstrapVisibleTreeV1 | undefined> {
+    const personal = await this.findByUserId(userId);
+    if (personal === undefined) return undefined;
+    return Object.freeze({
+      user: Object.freeze({ ...personal.user }),
+      organizations: Object.freeze([
+        Object.freeze({
+          ...personal.organization,
+          workspaces: Object.freeze([
+            Object.freeze({ ...personal.workspace, projects: Object.freeze([personal.project]) }),
+          ]),
+        }),
+      ]),
+    });
   }
 
   public async save(bootstrap: PersonalOrganizationBootstrapV1): Promise<void> {

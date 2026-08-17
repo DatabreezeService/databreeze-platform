@@ -8,6 +8,7 @@ import {
   redirect,
   type LoaderFunctionArgs,
   type RouteObject,
+  useLocation,
   useParams,
 } from 'react-router-dom';
 import { ShellLayout } from '../components/shell-layout.tsx';
@@ -19,6 +20,9 @@ import {
 } from '../pages/shell-states.tsx';
 import { DashboardPage } from '../features/dashboards/dashboard-page.tsx';
 import { AnalysisRoutePage } from '../features/analysis/analysis-route-page.tsx';
+import { BillingPage, BillingReturnPage } from '../features/billing/billing-page.tsx';
+import { BillingMockCheckoutPage } from '../features/billing/billing-mock-checkout-page.tsx';
+import { UsagePage } from '../features/usage/usage-page.tsx';
 import { DownloadsRoutePage } from '../features/downloads/downloads-page.tsx';
 import {
   ForgotPasswordRoutePage,
@@ -42,6 +46,7 @@ import {
   subscribeWebAuthenticationStateV1,
   type WebAuthenticationStateV1,
 } from '../features/auth/auth-session.ts';
+import { createSignInRedirect } from '../features/auth/auth-redirect.ts';
 
 /**
  * Keep Ajv-backed contract validators out of the UDW shell chunk so preview CSP
@@ -71,6 +76,10 @@ const WorkspaceSettingsRoutePage = lazy(async () => {
   const module = await import('../features/settings/workspace-settings-page.tsx');
   return { default: module.WorkspaceSettingsRoutePage };
 });
+const PlatformAdminRoutePage = lazy(async () => {
+  const module = await import('../features/platform-admin/platform-admin-page.tsx');
+  return { default: module.PlatformAdminRoutePage };
+});
 
 function Suspended({ children }: { readonly children: ReactElement }) {
   return <Suspense fallback={<div aria-hidden="true" />}>{children}</Suspense>;
@@ -88,6 +97,7 @@ const logicalRoots = new Set([
   'downloads',
   'forgot-password',
   'reset-password',
+  'platform-admin',
 ]);
 
 function canonicalPathname(pathname: string): string | undefined {
@@ -119,11 +129,20 @@ function AuthenticationGate({ publicRoute }: { readonly publicRoute: boolean }) 
     currentWebAuthenticationStateV1,
   );
   const { locale: routeLocale } = useParams();
+  const location = useLocation();
   const locale = normalizeRouteLocale(routeLocale);
   if (publicRoute && authenticationState === 'signed-in')
     return <Navigate replace to={`/${locale}/data`} />;
   if (!publicRoute && authenticationState === 'signed-out')
-    return <Navigate replace to={`/${locale}/sign-in`} />;
+    return (
+      <Navigate
+        replace
+        to={createSignInRedirect({
+          locale,
+          returnTo: `${location.pathname}${location.search}${location.hash}`,
+        })}
+      />
+    );
   return <Outlet />;
 }
 
@@ -159,12 +178,32 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
           element: <AuthenticationGate publicRoute={false} />,
           children: [
             {
+              path: 'platform-admin',
+              element: (
+                <Suspended>
+                  <PlatformAdminRoutePage />
+                </Suspended>
+              ),
+            },
+            {
               element: <ShellLayout accessContext={accessContext} />,
               children: [
                 { path: 'workspace', element: <Navigate replace to="../dashboards" /> },
                 { path: 'settings', element: <WorkspaceSettingsRoute /> },
                 { path: 'analysis', element: <AnalysisRoutePage /> },
                 { path: 'data', element: <Suspended><DataRoutePage /></Suspended> },
+                { path: 'billing', element: <BillingPage /> },
+                {
+                  path: 'billing/mock-checkout/:orderCode',
+                  element:
+                    import.meta.env['VITE_DATABREEZE_DEMO_MODE'] === 'true' ? (
+                      <BillingMockCheckoutPage />
+                    ) : (
+                      <NotFoundPage />
+                    ),
+                },
+                { path: 'billing/success', element: <BillingReturnPage /> },
+                { path: 'billing/failed', element: <BillingReturnPage /> },
                 ...WEB_FEATURE_REGISTRY.filter((feature) => feature.key !== 'workspace').map(
                   (feature) => ({
                     path: feature.path,
@@ -179,6 +218,8 @@ function createRoutes(accessContext: WebAccessContext): RouteObject[] {
                         </Suspended>
                       ) : feature.key === 'dashboards' ? (
                         <DashboardPage />
+                      ) : feature.key === 'usage' ? (
+                        <UsagePage />
                       ) : feature.key === 'administration' ? (
                         <WorkspaceSettingsRoute />
                       ) : (

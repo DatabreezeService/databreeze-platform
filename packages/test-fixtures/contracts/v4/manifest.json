@@ -160,6 +160,48 @@
       "covers": ["iam.no-display-name"]
     },
     {
+      "id": "v4.iam-scope-switch-command.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/iam-scope-switch-command",
+      "expectedAcceptance": true,
+      "source": "payloads/iam-scope-switch-command/valid.json",
+      "covers": ["iam.scope-switch"]
+    },
+    {
+      "id": "v4.iam-scope-switch-command.invalid-client-authority",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/iam-scope-switch-command",
+      "expectedAcceptance": false,
+      "source": "payloads/iam-scope-switch-command/invalid-client-authority.json",
+      "covers": ["iam.no-client-authority"]
+    },
+    {
+      "id": "v4.iam-workspace-create-command.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/iam-workspace-create-command",
+      "expectedAcceptance": true,
+      "source": "payloads/iam-workspace-create-command/valid.json",
+      "covers": ["iam.workspace-create"]
+    },
+    {
+      "id": "v4.iam-workspace-create-command.invalid-policy-field",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/iam-workspace-create-command",
+      "expectedAcceptance": false,
+      "source": "payloads/iam-workspace-create-command/invalid-policy-field.json",
+      "covers": ["iam.no-client-policy-fields"]
+    },
+    {
+      "id": "v4.iam-workspace-create-accepted.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/iam-workspace-create-accepted",
+      "expectedAcceptance": true,
+      "source": "payloads/iam-workspace-create-accepted/valid.json",
+      "covers": ["iam.workspace-create"]
+    },
+    {
+      "id": "v4.iam-workspace-create-accepted.invalid-policy-id",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/iam-workspace-create-accepted",
+      "expectedAcceptance": false,
+      "source": "payloads/iam-workspace-create-accepted/invalid-policy-id.json",
+      "covers": ["iam.policy-ids-stay-server-side"]
+    },
+    {
       "id": "v4.dda-dashboard-widget-results-accepted.valid",
       "schemaId": "https://schemas.databreeze.dev/contracts/v4/dda-dashboard-widget-results-accepted",
       "expectedAcceptance": true,
@@ -260,6 +302,62 @@
       "expectedAcceptance": false,
       "source": "payloads/jra-worker-dashboard-widget-result-output/invalid-object-authority.json",
       "covers": ["jra.no-object-authority"]
+    },
+    {
+      "id": "v4.platform-admin-overview.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/platform-admin-overview",
+      "expectedAcceptance": true,
+      "source": "payloads/platform-admin-overview/valid.json",
+      "covers": ["iam.platform-operator", "bua.platform-overview"]
+    },
+    {
+      "id": "v4.platform-admin-overview.invalid-source-content",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/platform-admin-overview",
+      "expectedAcceptance": false,
+      "source": "payloads/platform-admin-overview/invalid-source-content.json",
+      "covers": ["bua.no-source-content"]
+    },
+    {
+      "id": "v4.lfb-landing-feedback-command.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-command",
+      "expectedAcceptance": true,
+      "source": "payloads/lfb-landing-feedback-command/valid.json",
+      "covers": ["lfb.landing-feedback"]
+    },
+    {
+      "id": "v4.lfb-landing-feedback-command.invalid-extra-field",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-command",
+      "expectedAcceptance": false,
+      "source": "payloads/lfb-landing-feedback-command/invalid-extra-field.json",
+      "covers": ["lfb.closed-command"]
+    },
+    {
+      "id": "v4.lfb-landing-feedback-accepted.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-accepted",
+      "expectedAcceptance": true,
+      "source": "payloads/lfb-landing-feedback-accepted/valid.json",
+      "covers": ["lfb.landing-feedback"]
+    },
+    {
+      "id": "v4.lfb-landing-feedback-accepted.invalid-echoed-content",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-accepted",
+      "expectedAcceptance": false,
+      "source": "payloads/lfb-landing-feedback-accepted/invalid-echoed-content.json",
+      "covers": ["lfb.minimal-receipt"]
+    },
+    {
+      "id": "v4.platform-admin-feedbacks.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/platform-admin-feedbacks",
+      "expectedAcceptance": true,
+      "source": "payloads/platform-admin-feedbacks/valid.json",
+      "covers": ["lfb.landing-feedback", "platform-admin.feedbacks"]
+    },
+    {
+      "id": "v4.platform-admin-feedbacks.invalid-network-identifier",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/platform-admin-feedbacks",
+      "expectedAcceptance": false,
+      "source": "payloads/platform-admin-feedbacks/invalid-network-identifier.json",
+      "covers": ["lfb.no-network-identifiers"]
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "priorityTotals": {
-    "P0": 516,
+    "P0": 521,
     "P1": 158,
     "P2": 14
   },
@@ -1977,6 +1977,33 @@
       "coverage": "planned",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "BUA-024",
+      "priority": "P0",
+      "primaryPlan": "410-platform-owner-console.md",
+      "primaryTask": "Task 4: Compose the protected overview endpoint",
+      "supportingTasks": [
+        "410-platform-owner-console.md - Task 3: Add the BUA commercial aggregate adapter"
+      ],
+      "codePaths": [
+        "services/api/src/features/bua/adapter/prisma-platform-billing-analytics.adapter.ts",
+        "services/api/src/features/bua/application/platform-billing-analytics.port.ts"
+      ],
+      "testPaths": [
+        "services/api/test/features/platform-admin/platform-admin.controller.test.ts",
+        "services/api/test/features/platform-admin/platform-admin.service.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/platform-admin/platform-admin.service.test.ts"
+      ],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -11930,6 +11957,34 @@
       "releaseStatus": "p0-release-gate"
     },
     {
+      "requirementId": "IAM-026",
+      "priority": "P0",
+      "primaryPlan": "410-platform-owner-console.md",
+      "primaryTask": "Task 2: Add IAM platform-operator persistence and aggregates",
+      "supportingTasks": [
+        "410-platform-owner-console.md - Task 4: Compose the protected overview endpoint"
+      ],
+      "codePaths": [
+        "services/api/src/features/iam/adapter/prisma-platform-operator-authority.adapter.ts",
+        "services/api/prisma/schema/iam.prisma",
+        "services/api/prisma/migrations/20260816010000_iam_platform_operators/"
+      ],
+      "testPaths": [
+        "services/api/test/features/platform-admin/",
+        "services/api/test/prisma-foundation.test.mjs"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/platform-admin/platform-admin.service.test.ts"
+      ],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
       "requirementId": "ILD-001",
       "priority": "P0",
       "primaryPlan": "200-invoice-leak-detector.md",
@@ -21196,6 +21251,92 @@
       "verifiedPaths": [
         "apps/web/e2e/unified-workspace.spec.ts",
         "apps/web/src/app/unified-primary-navigation.ts"
+      ],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "WEB-025",
+      "priority": "P0",
+      "primaryPlan": "410-platform-owner-console.md",
+      "primaryTask": "Task 6: Add the localized platform-admin Web console",
+      "supportingTasks": [
+        "410-platform-owner-console.md - Task 4: Compose the protected overview endpoint"
+      ],
+      "codePaths": [
+        "apps/web/src/features/platform-admin/"
+      ],
+      "testPaths": [
+        "apps/web/test/platform-admin-api.test.ts",
+        "apps/web/test/platform-admin-feedbacks.test.tsx",
+        "apps/web/test/auth-routing.test.tsx"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "apps/web/test/platform-admin-api.test.ts",
+        "apps/web/test/platform-admin-feedbacks.test.tsx"
+      ],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "WEB-026",
+      "priority": "P0",
+      "primaryPlan": "411-landing-feedback-intake.md",
+      "primaryTask": "Task 3: Compose the public throttled intake endpoint",
+      "supportingTasks": [
+        "411-landing-feedback-intake.md - Task 5: Replace the prototype fake submit with real anonymous submission"
+      ],
+      "codePaths": [
+        "services/api/src/features/lfb/",
+        "apps/web/src/features/landing/landing-feedback-api.ts",
+        "apps/web/src/features/landing/landing-page.tsx"
+      ],
+      "testPaths": [
+        "services/api/test/features/lfb/landing-feedback.controller.test.ts",
+        "apps/web/test/landing-feedback-form.test.tsx",
+        "packages/contracts/test/schemas.test.mjs"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/lfb/landing-feedback.controller.test.ts",
+        "apps/web/test/landing-feedback-form.test.tsx"
+      ],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "WEB-027",
+      "priority": "P0",
+      "primaryPlan": "411-landing-feedback-intake.md",
+      "primaryTask": "Task 6: Make the console Feedbacks tab server-authoritative",
+      "supportingTasks": [
+        "411-landing-feedback-intake.md - Task 4: Extend platform administration with the protected feedbacks read"
+      ],
+      "codePaths": [
+        "apps/web/src/features/platform-admin/",
+        "services/api/src/features/platform-admin/"
+      ],
+      "testPaths": [
+        "apps/web/test/platform-admin-feedbacks.test.tsx",
+        "services/api/test/features/platform-admin/platform-admin.controller.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "apps/web/test/platform-admin-feedbacks.test.tsx",
+        "services/api/test/features/platform-admin/platform-admin.controller.test.ts"
       ],
       "releaseStatus": "p0-release-gate"
     }

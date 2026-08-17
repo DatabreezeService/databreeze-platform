@@ -2,12 +2,25 @@ package com.databreeze.android
 
 import android.content.Context
 import com.databreeze.android.network.AuthenticatedApiConfig
+import com.databreeze.android.network.AuthenticatedBillingApiClient
+import com.databreeze.android.network.AuthenticatedDatasetApiClient
+import com.databreeze.android.network.AuthenticatedDashboardApiClient
+import com.databreeze.android.network.AuthenticatedConversationApiClient
+import com.databreeze.android.network.AuthenticatedOperationsApiClient
+import com.databreeze.android.network.AuthenticatedNotificationsApiClient
+import com.databreeze.android.network.AuthenticatedMobileApiClient
+import com.databreeze.android.network.AuthenticatedArtifactApiClient
+import com.databreeze.android.network.AuthenticatedApprovalApiClient
+import com.databreeze.android.network.AuthenticatedInvoiceApiClient
 import com.databreeze.android.network.HttpUrlConnectionAuthenticatedApiTransport
 import com.databreeze.android.receipts.AuthenticatedReceiptUploadApiClient
 import com.databreeze.android.receipts.FailClosedReceiptUploadApiClient
 import com.databreeze.android.receipts.FileBackedReceiptStagingStore
 import com.databreeze.android.receipts.ReceiptExtractionApiClient
 import com.databreeze.android.receipts.ReceiptStagingStore
+import com.databreeze.android.receipts.ReceiptArtifactReferenceStore
+import com.databreeze.android.receipts.SharedPreferencesReceiptArtifactReferenceStore
+import com.databreeze.android.receipts.InMemoryReceiptArtifactReferenceStore
 import com.databreeze.android.receipts.ReceiptUploadApiClient
 import com.databreeze.android.receipts.ReceiptUploadScheduler
 import com.databreeze.android.receipts.ReceiptUploadTransport
@@ -15,6 +28,7 @@ import com.databreeze.android.receipts.RecordingReceiptUploadScheduler
 import com.databreeze.android.receipts.StagedReceiptUploadTransport
 import com.databreeze.android.receipts.UnconfiguredReceiptUploadTransport
 import com.databreeze.android.receipts.WorkManagerReceiptUploadScheduler
+import com.databreeze.android.capture.EncryptedVoiceArtifactStore
 import com.databreeze.android.security.AndroidDeviceKeyStore
 import com.databreeze.android.security.DeviceKeyHandle
 import com.databreeze.android.security.DeviceKeyStore
@@ -28,6 +42,8 @@ import com.databreeze.android.sync.SyncRevocationGuard
 import com.databreeze.android.sync.SyncScheduler
 import com.databreeze.android.sync.SyncTransport
 import com.databreeze.android.sync.UnconfiguredSyncTransport
+import com.databreeze.android.sync.AuthenticatedDeviceSyncTransport
+import com.databreeze.android.sync.StrictLocalPackageExporter
 import com.databreeze.android.sync.WorkManagerSyncScheduler
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -46,7 +62,20 @@ class AndroidRuntime internal constructor(
     val receiptUploadScheduler: ReceiptUploadScheduler,
     val receiptUploadTransport: ReceiptUploadTransport,
     val receiptUploadApiClient: ReceiptUploadApiClient,
+    val receiptArtifactReferenceStore: ReceiptArtifactReferenceStore = InMemoryReceiptArtifactReferenceStore(),
+    val voiceArtifactStore: EncryptedVoiceArtifactStore? = null,
     val receiptExtractionApiClient: ReceiptExtractionApiClient?,
+    val billingApiClient: AuthenticatedBillingApiClient? = null,
+    val datasetApiClient: AuthenticatedDatasetApiClient? = null,
+    val dashboardApiClient: AuthenticatedDashboardApiClient? = null,
+    val conversationApiClient: AuthenticatedConversationApiClient? = null,
+    val operationsApiClient: AuthenticatedOperationsApiClient? = null,
+    val notificationsApiClient: AuthenticatedNotificationsApiClient? = null,
+    val mobileApiClient: AuthenticatedMobileApiClient? = null,
+    val artifactApiClient: AuthenticatedArtifactApiClient? = null,
+    val approvalApiClient: AuthenticatedApprovalApiClient? = null,
+    val invoiceApiClient: AuthenticatedInvoiceApiClient? = null,
+    val strictLocalPackageExporter: StrictLocalPackageExporter? = null,
     val receiptKeyHandle: DeviceKeyHandle,
 ) {
     private val lifecycleMutexes = ConcurrentHashMap<String, Mutex>()
@@ -68,7 +97,10 @@ class AndroidRuntime internal constructor(
             syncRevocationGuard.revoke(scope)
             syncScheduler.cancel(scope)
             receiptStagingStore.clearScope(scope)
+            voiceArtifactStore?.clear(scope)
+            receiptArtifactReferenceStore.clear()
             localStore.clear(scope)
+            localStore.close()
             deviceKeyStore.delete(keyAlias)
         }
 
@@ -81,16 +113,18 @@ class AndroidRuntime internal constructor(
             apiConfig: AuthenticatedApiConfig? = null,
         ): AndroidRuntime {
             val localStore = RoomLocalStore.create(context.applicationContext)
-            val transport = UnconfiguredSyncTransport()
             val revocationGuard = SharedPreferencesSyncRevocationGuard(
                 context.applicationContext.getSharedPreferences("databreeze-sync", Context.MODE_PRIVATE),
             )
             val deviceKeyStore = AndroidDeviceKeyStore()
             val receiptKeyHandle = deviceKeyStore.getOrCreate("receipt-staging")
             val receiptCipher = DevicePayloadCipher(deviceKeyStore)
+            val voiceArtifactStore = EncryptedVoiceArtifactStore(context.applicationContext, deviceKeyStore, receiptKeyHandle)
             val receiptStagingRoot = File(context.applicationContext.filesDir, "receipt-staging")
             val receiptStaging =
                 FileBackedReceiptStagingStore(receiptStagingRoot, receiptCipher, deviceKeyStore)
+            val receiptArtifactReferences =
+                SharedPreferencesReceiptArtifactReferenceStore(context.applicationContext)
             val apiTransport =
                 apiConfig?.let {
                     HttpUrlConnectionAuthenticatedApiTransport(
@@ -98,13 +132,31 @@ class AndroidRuntime internal constructor(
                         tokenProvider = it.tokenProvider,
                     )
                 }
+            val transport: SyncTransport =
+                if (
+                    apiConfig != null && apiTransport != null &&
+                    apiConfig.deviceId.isNotBlank() && apiConfig.workspaceGrantId.isNotBlank()
+                ) {
+                    AuthenticatedDeviceSyncTransport(
+                        transport = apiTransport,
+                        deviceId = apiConfig.deviceId,
+                        grantId = apiConfig.workspaceGrantId,
+                        organizationId = apiConfig.organizationId,
+                    )
+                } else {
+                    UnconfiguredSyncTransport()
+                }
             val receiptUploadApiClient: ReceiptUploadApiClient =
                 if (apiConfig != null && apiTransport != null) {
+                    // Production always uses the IAE resumable control plane. The bounded
+                    // /dda/receipts/intake adapter remains available for compatibility tests,
+                    // but must never be selected by the production composition because it sends
+                    // the complete original as one Base64 request.
                     AuthenticatedReceiptUploadApiClient(
                         transport = apiTransport,
                         organizationId = apiConfig.organizationId,
                         workspaceId = apiConfig.workspaceId,
-                        nowIso = { java.time.Instant.now().toString() },
+                        references = receiptArtifactReferences,
                     )
                 } else {
                     FailClosedReceiptUploadApiClient()
@@ -120,6 +172,33 @@ class AndroidRuntime internal constructor(
                 } else {
                     null
                 }
+            val billingApiClient =
+                if (apiConfig != null && apiTransport != null) {
+                    AuthenticatedBillingApiClient(
+                        transport = apiTransport,
+                        idempotencyKey = { "android-billing-${java.util.UUID.randomUUID()}" },
+                    )
+                } else {
+                    null
+                }
+            val datasetApiClient = apiTransport?.let { AuthenticatedDatasetApiClient(it) }
+            val dashboardApiClient = apiTransport?.let { AuthenticatedDashboardApiClient(it) }
+            val conversationApiClient = apiTransport?.let { AuthenticatedConversationApiClient(it) }
+            val operationsApiClient = apiTransport?.let { AuthenticatedOperationsApiClient(it) }
+            val notificationsApiClient = apiTransport?.let { AuthenticatedNotificationsApiClient(it) }
+            val mobileApiClient = apiTransport?.let { AuthenticatedMobileApiClient(it) }
+            val artifactApiClient = apiTransport?.let { AuthenticatedArtifactApiClient(it) }
+            val approvalApiClient = apiTransport?.let { AuthenticatedApprovalApiClient(it) }
+            val invoiceApiClient = apiTransport?.let { AuthenticatedInvoiceApiClient(it) }
+            val strictLocalPackageExporter =
+                if (apiConfig != null && apiTransport != null && apiConfig.deviceId.isNotBlank()) {
+                    StrictLocalPackageExporter(
+                        transport = apiTransport,
+                        organizationId = apiConfig.organizationId,
+                        workspaceId = apiConfig.workspaceId,
+                        deviceId = apiConfig.deviceId,
+                    )
+                } else null
             val receiptTransport = StagedReceiptUploadTransport(
                 stagingStore = receiptStaging,
                 keyHandle = receiptKeyHandle,
@@ -141,7 +220,20 @@ class AndroidRuntime internal constructor(
                 receiptUploadScheduler = WorkManagerReceiptUploadScheduler(context.applicationContext),
                 receiptUploadTransport = receiptTransport,
                 receiptUploadApiClient = receiptUploadApiClient,
+                receiptArtifactReferenceStore = receiptArtifactReferences,
+                voiceArtifactStore = voiceArtifactStore,
                 receiptExtractionApiClient = receiptExtractionApiClient,
+                billingApiClient = billingApiClient,
+                datasetApiClient = datasetApiClient,
+                dashboardApiClient = dashboardApiClient,
+                conversationApiClient = conversationApiClient,
+                operationsApiClient = operationsApiClient,
+                notificationsApiClient = notificationsApiClient,
+                mobileApiClient = mobileApiClient,
+                artifactApiClient = artifactApiClient,
+                approvalApiClient = approvalApiClient,
+                invoiceApiClient = invoiceApiClient,
+                strictLocalPackageExporter = strictLocalPackageExporter,
                 receiptKeyHandle = receiptKeyHandle,
             )
         }
@@ -157,7 +249,18 @@ class AndroidRuntime internal constructor(
             receiptUploadScheduler: ReceiptUploadScheduler = RecordingReceiptUploadScheduler(),
             receiptUploadTransport: ReceiptUploadTransport = UnconfiguredReceiptUploadTransport(),
             receiptUploadApiClient: ReceiptUploadApiClient = FailClosedReceiptUploadApiClient(),
+            receiptArtifactReferenceStore: ReceiptArtifactReferenceStore = InMemoryReceiptArtifactReferenceStore(),
+            voiceArtifactStore: EncryptedVoiceArtifactStore? = null,
             receiptExtractionApiClient: ReceiptExtractionApiClient? = null,
+            billingApiClient: AuthenticatedBillingApiClient? = null,
+            datasetApiClient: AuthenticatedDatasetApiClient? = null,
+            dashboardApiClient: AuthenticatedDashboardApiClient? = null,
+            conversationApiClient: AuthenticatedConversationApiClient? = null,
+            operationsApiClient: AuthenticatedOperationsApiClient? = null,
+            notificationsApiClient: AuthenticatedNotificationsApiClient? = null,
+            mobileApiClient: AuthenticatedMobileApiClient? = null,
+            artifactApiClient: AuthenticatedArtifactApiClient? = null,
+            strictLocalPackageExporter: StrictLocalPackageExporter? = null,
             receiptKeyHandle: DeviceKeyHandle,
         ): AndroidRuntime = AndroidRuntime(
             localStore = localStore,
@@ -175,7 +278,18 @@ class AndroidRuntime internal constructor(
             receiptUploadScheduler = receiptUploadScheduler,
             receiptUploadTransport = receiptUploadTransport,
             receiptUploadApiClient = receiptUploadApiClient,
+            receiptArtifactReferenceStore = receiptArtifactReferenceStore,
+            voiceArtifactStore = voiceArtifactStore,
             receiptExtractionApiClient = receiptExtractionApiClient,
+            billingApiClient = billingApiClient,
+            datasetApiClient = datasetApiClient,
+            dashboardApiClient = dashboardApiClient,
+            conversationApiClient = conversationApiClient,
+            operationsApiClient = operationsApiClient,
+            notificationsApiClient = notificationsApiClient,
+            mobileApiClient = mobileApiClient,
+            artifactApiClient = artifactApiClient,
+            strictLocalPackageExporter = strictLocalPackageExporter,
             receiptKeyHandle = receiptKeyHandle,
         )
     }

@@ -17,7 +17,7 @@ describe('teammate landing markup [WEB-013]', () => {
   it('keeps HuuThanh1610 hero copy and adds a locale sign-in CTA', () => {
     const markup = prepareTeammateLandingMarkup(teammateLandingHtml, {
       locale: 'vi-VN',
-      registerHref: '/vi-VN/register',
+      billingHref: '/vi-VN/billing',
       signInHref: '/vi-VN/sign-in',
       signInLabel: 'Đăng nhập',
       downloadsHref: '/vi-VN/downloads',
@@ -36,7 +36,7 @@ describe('teammate landing markup [WEB-013]', () => {
   it('renders the exact repository catalog prices with an in-page pricing destination [BUA-003, WEB-014]', () => {
     const markup = prepareTeammateLandingMarkup(teammateLandingHtml, {
       locale: 'vi-VN',
-      registerHref: '/vi-VN/register',
+      billingHref: '/vi-VN/billing',
       signInHref: '/vi-VN/sign-in',
       signInLabel: 'Đăng nhập',
       downloadsHref: '/vi-VN/downloads',
@@ -54,10 +54,10 @@ describe('teammate landing markup [WEB-013]', () => {
     expect(markup).toContain('Được chọn nhiều nhất');
   });
 
-  it('keeps pricing bilingual and registration-only before checkout is implemented [BUA-002, WEB-013]', () => {
+  it('keeps pricing bilingual and routes plan CTAs to billing [BUA-002, WEB-013]', () => {
     const markup = prepareTeammateLandingMarkup(teammateLandingHtml, {
       locale: 'en',
-      registerHref: '/en/register',
+      billingHref: '/en/billing',
       signInHref: '/en/sign-in',
       signInLabel: 'Sign in',
       downloadsHref: '/en/downloads',
@@ -67,9 +67,8 @@ describe('teammate landing markup [WEB-013]', () => {
     expect(markup).toContain('href="#pricing">Pricing</a>');
     expect(markup).toContain('Plans that grow with your data.');
     expect(markup).toContain('Most popular');
-    expect(markup).toContain('href="/en/register"');
-    expect(markup).toContain('No payment is taken on this page.');
-    expect(markup).not.toContain('checkout');
+    expect(markup).toContain('href="/en/billing?planId=personal-monthly"');
+    expect(markup).toContain('data-annual-href="/en/billing?planId=personal-annual"');
     expect(markup).not.toContain('payos');
   });
 });

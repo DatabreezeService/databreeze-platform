@@ -1,0 +1,81 @@
+import { type DynamicModule, Module } from '@nestjs/common';
+
+import type {
+  PlatformIdentityAnalyticsPortV1,
+  PlatformOperatorAuthorityPortV1,
+  PlatformOperatorGrantV1,
+} from '../iam/application/platform-administration.port.js';
+import type { PlatformBillingAnalyticsPortV1 } from '../bua/application/platform-billing-analytics.port.js';
+import type { LandingFeedbackListPortV1 } from '../lfb/application/landing-feedback-intake.port.js';
+import {
+  REQUEST_TENANT_CONTEXT,
+  type RequestTenantContextPortV1,
+  UnavailableRequestTenantContextAdapter,
+} from '../../platform/http/request-tenant-context.port.js';
+import {
+  PLATFORM_ADMIN_SERVICE,
+  PlatformAdminService,
+} from './application/platform-admin.service.js';
+import { PlatformAdminController } from './api/platform-admin.controller.js';
+
+class UnavailablePlatformOperatorAuthority implements PlatformOperatorAuthorityPortV1 {
+  public async resolve(userId: string): Promise<PlatformOperatorGrantV1 | undefined> {
+    void userId;
+    await Promise.resolve();
+    throw new Error('PLATFORM_OPERATOR_AUTHORITY_UNAVAILABLE');
+  }
+}
+
+class UnavailablePlatformIdentityAnalytics implements PlatformIdentityAnalyticsPortV1 {
+  public async read(): Promise<never> {
+    await Promise.resolve();
+    throw new Error('PLATFORM_IDENTITY_ANALYTICS_UNAVAILABLE');
+  }
+}
+
+class UnavailablePlatformBillingAnalytics implements PlatformBillingAnalyticsPortV1 {
+  public async read(): Promise<never> {
+    await Promise.resolve();
+    throw new Error('PLATFORM_BILLING_ANALYTICS_UNAVAILABLE');
+  }
+}
+
+class UnavailableLandingFeedbackList implements LandingFeedbackListPortV1 {
+  public async readRecent(): Promise<never> {
+    await Promise.resolve();
+    throw new Error('PLATFORM_LANDING_FEEDBACKS_UNAVAILABLE');
+  }
+}
+
+export interface PlatformAdminModuleOptions {
+  readonly platformOperatorAuthority?: PlatformOperatorAuthorityPortV1;
+  readonly platformIdentityAnalytics?: PlatformIdentityAnalyticsPortV1;
+  readonly platformBillingAnalytics?: PlatformBillingAnalyticsPortV1;
+  readonly platformFeedbacks?: LandingFeedbackListPortV1;
+  readonly platformAdminClock?: () => Date;
+  readonly requestTenantContext?: RequestTenantContextPortV1;
+}
+
+@Module({})
+export class PlatformAdminModule {
+  public static register(options: PlatformAdminModuleOptions = {}): DynamicModule {
+    const service = new PlatformAdminService({
+      authority: options.platformOperatorAuthority ?? new UnavailablePlatformOperatorAuthority(),
+      identities: options.platformIdentityAnalytics ?? new UnavailablePlatformIdentityAnalytics(),
+      billing: options.platformBillingAnalytics ?? new UnavailablePlatformBillingAnalytics(),
+      feedbacks: options.platformFeedbacks ?? new UnavailableLandingFeedbackList(),
+      ...(options.platformAdminClock === undefined ? {} : { now: options.platformAdminClock }),
+    });
+    return {
+      module: PlatformAdminModule,
+      controllers: [PlatformAdminController],
+      providers: [
+        { provide: PLATFORM_ADMIN_SERVICE, useValue: service },
+        {
+          provide: REQUEST_TENANT_CONTEXT,
+          useValue: options.requestTenantContext ?? new UnavailableRequestTenantContextAdapter(),
+        },
+      ],
+    };
+  }
+}
