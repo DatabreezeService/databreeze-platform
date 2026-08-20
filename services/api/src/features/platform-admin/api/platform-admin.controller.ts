@@ -14,9 +14,9 @@ import {
   type PlatformAdminService,
 } from '../application/platform-admin.service.js';
 import {
-  REQUEST_TENANT_CONTEXT,
-  type RequestTenantContextPortV1,
-} from '../../../platform/http/request-tenant-context.port.js';
+  REQUEST_AUTHENTICATED_ACTOR,
+  type RequestAuthenticatedActorPortV1,
+} from '../../../platform/http/request-authenticated-actor.port.js';
 
 const ALLOWED_WINDOWS = new Set([30, 90, 180, 365]);
 
@@ -33,7 +33,8 @@ function windowDays(input: string | undefined): number {
 export class PlatformAdminController {
   public constructor(
     @Inject(PLATFORM_ADMIN_SERVICE) private readonly service: PlatformAdminService,
-    @Inject(REQUEST_TENANT_CONTEXT) private readonly requestContext: RequestTenantContextPortV1,
+    @Inject(REQUEST_AUTHENTICATED_ACTOR)
+    private readonly requestActor: RequestAuthenticatedActorPortV1,
   ) {}
 
   @Get('overview')
@@ -79,8 +80,8 @@ export class PlatformAdminController {
     description: 'Authoritative platform analytics are unavailable.',
   })
   public async overview(@Req() request: unknown, @Query('days') daysInput?: string) {
-    const context = await this.requestContext.resolve(request);
-    return this.service.overview(context.actorId, windowDays(daysInput));
+    const actor = await this.requestActor.resolve(request);
+    return this.service.overview(actor.actorId, windowDays(daysInput));
   }
 
   @Get('feedbacks')
@@ -105,7 +106,7 @@ export class PlatformAdminController {
     description: 'Authoritative landing feedback reads are unavailable.',
   })
   public async feedbacks(@Req() request: unknown) {
-    const context = await this.requestContext.resolve(request);
-    return this.service.feedbacks(context.actorId, 200);
+    const actor = await this.requestActor.resolve(request);
+    return this.service.feedbacks(actor.actorId, 200);
   }
 }

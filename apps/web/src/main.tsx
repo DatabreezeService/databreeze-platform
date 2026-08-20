@@ -16,6 +16,7 @@ import { ApplicationBoundary, createBrowserAppRouter } from './app/app.tsx';
 import { createAuthApiV1 } from './features/auth/auth-api.ts';
 import { startWebApplicationV1 } from './features/auth/auth-bootstrap.ts';
 import { installSessionAwareFetchV1 } from './features/auth/auth-session.ts';
+import { createPlatformAdminApi } from './features/platform-admin/platform-admin-api.ts';
 import './styles.css';
 import './styles/dashboard-canvas.css';
 import './styles/dashboard-agent.css';
@@ -41,6 +42,8 @@ await startWebApplicationV1({
   pathname: globalThis.location.pathname,
   search: globalThis.location.search,
   hash: globalThis.location.hash,
+  confirmPlatformAccess: () =>
+    createPlatformAdminApi({ baseUrl: apiBaseUrl, fetcher: browserFetch }).canAccess(),
   replace: (pathname) => globalThis.location.replace(pathname),
   mount: () => {
     createRoot(rootElement).render(

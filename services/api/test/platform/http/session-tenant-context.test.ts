@@ -296,3 +296,37 @@ void test('[IAM-024] resolves the live workspace authorization epoch on every se
   const second = await adapter.resolve(request);
   assert.equal(second.workspaceAuthorizationEpoch, 12);
 });
+
+void test('[IAM-026] platform-only sessions cannot cross the tenant request-context boundary', async () => {
+  let workspaceEpochReads = 0;
+  const adapter = new SessionRequestTenantContextAdapter(
+    {
+      findPrincipalByAccessToken: () =>
+        Promise.resolve({
+          scopeType: 'PLATFORM',
+          userId: principal.userId,
+          securityEpoch: principal.securityEpoch,
+          mfaRequired: false,
+          mfaReenrollmentRequired: false,
+        } as never),
+    },
+    {
+      resolveWorkspaceAuthorizationEpoch: () => {
+        workspaceEpochReads += 1;
+        return Promise.resolve(1);
+      },
+    },
+  );
+
+  await assert.rejects(
+    adapter.resolve({
+      method: 'GET',
+      headers: { authorization: 'Bearer opaque-access-token-123456789' },
+    }),
+    (error: unknown) => {
+      assert.equal((error as { code?: unknown }).code, 'AUTHENTICATION_FAILED');
+      return true;
+    },
+  );
+  assert.equal(workspaceEpochReads, 0);
+});

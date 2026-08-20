@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto';
 
-import { type AuthenticatedPrincipalV1 } from '../../features/iam/application/authentication.port.js';
+import {
+  isPlatformPrincipalV1,
+  type SessionPrincipalV1,
+} from '../../features/iam/application/authentication.port.js';
 import type { WorkspaceAuthorizationEpochResolverPortV1 } from '../../features/iam/application/agent-grant-repository.port.js';
 import { createIamTenantContextV1 } from '../../features/iam/application/tenant-context.js';
 import {
@@ -21,12 +24,10 @@ interface RequestLikeV1 {
 }
 
 export interface SessionPrincipalLookupV1 {
-  findPrincipalByAccessToken(accessToken: unknown): Promise<AuthenticatedPrincipalV1 | undefined>;
+  findPrincipalByAccessToken(accessToken: unknown): Promise<SessionPrincipalV1 | undefined>;
   findSessionByAccessToken?(
     accessToken: unknown,
-  ): Promise<
-    { readonly sessionId: string; readonly principal: AuthenticatedPrincipalV1 } | undefined
-  >;
+  ): Promise<{ readonly sessionId: string; readonly principal: SessionPrincipalV1 } | undefined>;
 }
 
 export class UnavailableWorkspaceAuthorizationEpochResolverAdapter
@@ -108,7 +109,7 @@ export class SessionRequestTenantContextAdapter implements RequestTenantContextP
     if (input === undefined || token === undefined) {
       throw new RequestTenantContextProblemError('AUTHENTICATION_FAILED');
     }
-    let principal: AuthenticatedPrincipalV1 | undefined;
+    let principal: SessionPrincipalV1 | undefined;
     let sessionId: string | undefined;
     try {
       if (this.sessions.findSessionByAccessToken !== undefined) {
@@ -122,6 +123,8 @@ export class SessionRequestTenantContextAdapter implements RequestTenantContextP
       throw new RequestTenantContextProblemError('AUTHENTICATION_UNAVAILABLE');
     }
     if (principal === undefined)
+      throw new RequestTenantContextProblemError('AUTHENTICATION_FAILED');
+    if (isPlatformPrincipalV1(principal))
       throw new RequestTenantContextProblemError('AUTHENTICATION_FAILED');
     if (typeof principal.mfaReenrollmentRequired !== 'boolean')
       throw new RequestTenantContextProblemError('CONTEXT_INVALID');

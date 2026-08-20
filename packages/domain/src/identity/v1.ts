@@ -95,8 +95,9 @@ export interface SessionRecordV1 {
   readonly schemaVersion: typeof IDENTITY_SCHEMA_VERSION_V1;
   readonly sessionId: StableIdentifierV1;
   readonly userId: StableIdentifierV1;
-  readonly organizationId: StableIdentifierV1;
-  readonly workspaceId: StableIdentifierV1;
+  readonly principalKind: 'TENANT' | 'PLATFORM';
+  readonly organizationId?: StableIdentifierV1;
+  readonly workspaceId?: StableIdentifierV1;
   readonly familyId: StableIdentifierV1;
   readonly issuedAt: StrictUtcTimestampV1;
   readonly accessExpiresAt: StrictUtcTimestampV1;
@@ -540,28 +541,36 @@ export function checkOwnerRemovalV1(
 export function createSessionRecordV1(input: {
   readonly sessionId: unknown;
   readonly userId: unknown;
-  readonly organizationId: unknown;
-  readonly workspaceId: unknown;
+  readonly principalKind?: unknown;
+  readonly organizationId?: unknown;
+  readonly workspaceId?: unknown;
   readonly familyId: unknown;
   readonly issuedAt: unknown;
   readonly accessExpiresAt: unknown;
   readonly inactivityExpiresAt: unknown;
   readonly absoluteExpiresAt: unknown;
 }): IdentityResultV1<SessionRecordV1> {
-  const ids = [
-    stableId(input.sessionId),
-    stableId(input.userId),
-    stableId(input.organizationId),
-    stableId(input.workspaceId),
-    stableId(input.familyId),
-  ];
+  const sessionId = stableId(input.sessionId);
+  const userId = stableId(input.userId);
+  const familyId = stableId(input.familyId);
+  const principalKind = input.principalKind ?? 'TENANT';
+  const organizationId =
+    input.organizationId === undefined ? undefined : stableId(input.organizationId);
+  const workspaceId = input.workspaceId === undefined ? undefined : stableId(input.workspaceId);
   const times = [
     timestamp(input.issuedAt),
     timestamp(input.accessExpiresAt),
     timestamp(input.inactivityExpiresAt),
     timestamp(input.absoluteExpiresAt),
   ];
-  if (ids.some((value) => !value)) return rejected('INVALID_IDENTIFIER');
+  if (!sessionId || !userId || !familyId) return rejected('INVALID_IDENTIFIER');
+  if (principalKind !== 'TENANT' && principalKind !== 'PLATFORM') return rejected('INVALID_KIND');
+  if (
+    (principalKind === 'TENANT' && (!organizationId || !workspaceId)) ||
+    (principalKind === 'PLATFORM' &&
+      (input.organizationId !== undefined || input.workspaceId !== undefined))
+  )
+    return rejected('INVALID_SCOPE');
   if (times.some((value) => !value)) return rejected('INVALID_TIMESTAMP');
   const issuedAt = times[0] as StrictUtcTimestampV1;
   const accessExpiresAt = times[1] as StrictUtcTimestampV1;
@@ -578,11 +587,12 @@ export function createSessionRecordV1(input: {
   return accepted(
     Object.freeze({
       schemaVersion: 1,
-      sessionId: ids[0] as StableIdentifierV1,
-      userId: ids[1] as StableIdentifierV1,
-      organizationId: ids[2] as StableIdentifierV1,
-      workspaceId: ids[3] as StableIdentifierV1,
-      familyId: ids[4] as StableIdentifierV1,
+      sessionId,
+      userId,
+      principalKind,
+      ...(organizationId === undefined ? {} : { organizationId }),
+      ...(workspaceId === undefined ? {} : { workspaceId }),
+      familyId,
       issuedAt,
       accessExpiresAt,
       inactivityExpiresAt,

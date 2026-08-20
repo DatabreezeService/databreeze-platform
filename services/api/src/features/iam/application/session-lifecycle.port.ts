@@ -1,6 +1,7 @@
 import type {
   AuthenticationSessionV1,
   AuthenticatedPrincipalV1,
+  SessionPrincipalV1,
   SessionIssuerPortV1,
 } from './authentication.port.js';
 
@@ -41,16 +42,14 @@ export interface SessionLifecyclePortV1 extends SessionIssuerPortV1 {
   revoke(sessionId: unknown): Promise<boolean>;
   /** Revokes every active refresh family for the user. Returns revoked session count. */
   revokeAllForUser?(userId: unknown): Promise<number>;
-  findPrincipal(sessionId: unknown): Promise<AuthenticatedPrincipalV1 | undefined>;
+  findPrincipal(sessionId: unknown): Promise<SessionPrincipalV1 | undefined>;
   findSessionByAccessToken?(
     accessToken: unknown,
-  ): Promise<
-    { readonly sessionId: string; readonly principal: AuthenticatedPrincipalV1 } | undefined
-  >;
+  ): Promise<{ readonly sessionId: string; readonly principal: SessionPrincipalV1 } | undefined>;
   /** Optional until a host enables authenticated request-context resolution. */
-  findPrincipalByAccessToken?(accessToken: unknown): Promise<AuthenticatedPrincipalV1 | undefined>;
+  findPrincipalByAccessToken?(accessToken: unknown): Promise<SessionPrincipalV1 | undefined>;
 }
 
 export interface SessionAccessTokenLookupPortV1 {
-  findPrincipalByAccessToken(accessToken: unknown): Promise<AuthenticatedPrincipalV1 | undefined>;
+  findPrincipalByAccessToken(accessToken: unknown): Promise<SessionPrincipalV1 | undefined>;
 }

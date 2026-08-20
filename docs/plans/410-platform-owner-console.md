@@ -18,7 +18,7 @@ Deliver a separate, read-only DataBreeze internal console where an explicitly as
 
 - IAM owns the new persisted `PlatformOperator` assignment and current-role lookup. `PLATFORM_OWNER` and `PLATFORM_SUPPORT` are not tenant memberships.
 - A new platform-administration composition consumes IAM-owned identity aggregates and BUA-owned commercial aggregates through public ports. No feature reads another feature's persistence.
-- Every API request first resolves the current short-lived session, then checks the current platform assignment by actor ID. Client claims never authorize platform access.
+- Every API request first resolves the current short-lived session, then checks the current platform assignment by actor ID. A platform-only session carries no organization/workspace scope and is accepted only by the platform actor boundary; tenant request-context resolution remains fail-closed. Client claims never authorize platform access.
 - This slice is read-only. Account mutation, impersonation, plan overrides, refunds, subscription changes, and provider administration are deferred and require recent MFA plus dedicated audited commands.
 - Responses are closed, generated contracts. They expose bounded identity/contact metadata necessary for support but no artifacts, dataset/source values, payment credentials, tax data, webhook payloads, or provider secrets.
 - Local seed data is synthetic, deterministic, idempotent, and clearly labeled. Production platform assignments are never created from repository seed defaults.
@@ -70,7 +70,7 @@ Verify Prisma schema/migration, generated contracts, API tests/OpenAPI, Web unit
 ## Acceptance
 
 - A normal workspace Owner/Admin receives `403` and no aggregate body from the platform endpoint.
-- An active seeded platform owner signs in normally, opens the separate console, and sees values computed from the database rather than the customer dashboard demo fixture.
+- An active seeded platform owner with no tenant membership signs in normally, opens the separate console, and sees values computed from the database rather than the customer dashboard demo fixture; the same session is rejected by tenant-scoped endpoints.
 - Suspending the platform assignment removes access without modifying organization/workspace memberships.
 - The overview is bounded and content-minimized; no response contains source paths, artifact/dataset content, credentials, provider secrets, webhook payloads, or client-supplied counters.
 - Vietnamese is the default complete locale; English is complete; keyboard, focus, table semantics, non-color status, reduced motion, and narrow layouts are tested.

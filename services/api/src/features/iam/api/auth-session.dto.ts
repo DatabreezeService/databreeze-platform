@@ -16,6 +16,10 @@ export class AuthSessionDto {
   @Equals(4)
   schemaVersion!: 4;
 
+  @ApiProperty({ enum: ['TENANT', 'PLATFORM'] })
+  @IsString()
+  scopeType!: 'TENANT' | 'PLATFORM';
+
   @ApiProperty({ format: 'uuid' })
   @IsUUID()
   sessionId!: string;
@@ -24,13 +28,15 @@ export class AuthSessionDto {
   @IsUUID()
   userId!: string;
 
-  @ApiProperty({ format: 'uuid' })
+  @ApiProperty({ format: 'uuid', required: false })
+  @IsOptional()
   @IsUUID()
-  organizationId!: string;
+  organizationId?: string;
 
-  @ApiProperty({ format: 'uuid' })
+  @ApiProperty({ format: 'uuid', required: false })
+  @IsOptional()
   @IsUUID()
-  workspaceId!: string;
+  workspaceId?: string;
 
   @ApiProperty({ minLength: 1, maxLength: 4096 })
   @IsString()

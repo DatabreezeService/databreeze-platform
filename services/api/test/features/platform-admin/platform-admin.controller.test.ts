@@ -77,6 +77,32 @@ void test('[IAM-026][BUA-024] protected overview returns the closed v4 response'
   }
 });
 
+void test('[IAM-026] platform overview accepts a platform-only authenticated actor', async () => {
+  const { app } = await createApiApplication({
+    requestAuthenticatedActor: {
+      resolve: async () => ({
+        sessionId: '00000000-0000-4000-8000-000000000011',
+        actorId,
+        scopeType: 'PLATFORM' as const,
+        securityEpoch: 1,
+        mfaRequired: false,
+        mfaReenrollmentRequired: false,
+      }),
+    },
+    platformOperatorAuthority: {
+      resolve: async () => ({ role: 'PLATFORM_OWNER' as const, revision: 1 }),
+    },
+    platformIdentityAnalytics: identities,
+    platformBillingAnalytics: billing,
+  } as Parameters<typeof createApiApplication>[0]);
+  try {
+    const response = await app.inject({ method: 'GET', url: '/v1/platform-admin/overview' });
+    assert.equal(response.statusCode, 200);
+  } finally {
+    await app.close();
+  }
+});
+
 void test('[IAM-026] tenant Owner/Admin receives 403 from platform administration', async () => {
   const { app } = await createApiApplication({
     requestTenantContext: { resolve: async () => context() },

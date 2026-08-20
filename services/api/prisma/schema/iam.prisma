@@ -198,8 +198,9 @@ model RecoveryCompensationFailureRecord {
 model SessionRecord {
   id                  String    @id @db.Uuid
   userId              String    @map("user_id") @db.Uuid
-  organizationId      String    @map("organization_id") @db.Uuid
-  workspaceId         String    @map("workspace_id") @db.Uuid
+  principalKind       String    @default("TENANT") @map("principal_kind") @db.VarChar(16)
+  organizationId      String?   @map("organization_id") @db.Uuid
+  workspaceId         String?   @map("workspace_id") @db.Uuid
   familyId            String    @map("family_id") @db.Uuid
   issuedAt            DateTime  @map("issued_at") @db.Timestamptz(6)
   accessExpiresAt     DateTime  @map("access_expires_at") @db.Timestamptz(6)

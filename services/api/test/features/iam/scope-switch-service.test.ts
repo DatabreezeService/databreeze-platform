@@ -148,7 +148,10 @@ void test('[IAM-028] switches only to an active workspace covered by the actor m
   assert.equal(result.accepted, true);
   if (!result.accepted) return;
   const switched = await sessions.findPrincipal(result.value.session.sessionId);
-  assert.equal(switched?.workspaceId, ids.targetWorkspace);
+  assert.equal(
+    switched !== undefined && 'workspaceId' in switched ? switched.workspaceId : undefined,
+    ids.targetWorkspace,
+  );
   assert.equal(await sessions.findPrincipal(current.sessionId), undefined);
 });
 

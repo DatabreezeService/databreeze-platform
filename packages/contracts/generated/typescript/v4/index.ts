@@ -535,19 +535,7 @@ export interface Group {
 
 export type GroupKey = string;
 
-export interface IamAuthSession {
-  readonly accessExpiresAt: UtcTimestamp;
-  readonly accessToken: string;
-  readonly mfaReenrollmentRequired: boolean;
-  readonly mfaRequired: boolean;
-  readonly organizationId: Identifier;
-  readonly refreshToken?: string;
-  readonly schemaVersion: 4;
-  readonly securityEpoch: number;
-  readonly sessionId: Identifier;
-  readonly userId: Identifier;
-  readonly workspaceId: Identifier;
-}
+export type IamAuthSession = TenantSession | PlatformSession;
 
 export interface IamBootstrapOrganization {
   readonly id: Identifier;
@@ -888,6 +876,19 @@ export interface PlatformAdminOverviewWindow {
   readonly startsAt: UtcTimestamp;
 }
 
+export interface PlatformSession {
+  readonly accessExpiresAt: UtcTimestamp;
+  readonly accessToken: string;
+  readonly mfaReenrollmentRequired: boolean;
+  readonly mfaRequired: boolean;
+  readonly refreshToken?: string;
+  readonly schemaVersion: 4;
+  readonly scopeType: "PLATFORM";
+  readonly securityEpoch: number;
+  readonly sessionId: Identifier;
+  readonly userId: Identifier;
+}
+
 export type PrepareIdempotencyKey = string;
 
 export type PrepareOpaqueToken = string;
@@ -1035,6 +1036,21 @@ export interface SourceOpenValue {
   readonly iaeContentReferenceId?: Identifier;
   readonly kind: string;
   readonly sourceId: Identifier;
+}
+
+export interface TenantSession {
+  readonly accessExpiresAt: UtcTimestamp;
+  readonly accessToken: string;
+  readonly mfaReenrollmentRequired: boolean;
+  readonly mfaRequired: boolean;
+  readonly organizationId: Identifier;
+  readonly refreshToken?: string;
+  readonly schemaVersion: 4;
+  readonly scopeType: "TENANT";
+  readonly securityEpoch: number;
+  readonly sessionId: Identifier;
+  readonly userId: Identifier;
+  readonly workspaceId: Identifier;
 }
 
 export type ToolCallId = string;

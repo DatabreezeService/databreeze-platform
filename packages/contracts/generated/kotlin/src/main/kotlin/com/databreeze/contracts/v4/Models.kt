@@ -54,6 +54,10 @@ public typealias ToolCallId = String
 
 public typealias UtcTimestamp = String
 
+public sealed interface IamAuthSession {
+    public val scopeType: String
+}
+
 public sealed interface IamBootstrapResponse {
     public val outcome: String
 }
@@ -588,20 +592,6 @@ public data class Group(
     public val total: Double? = null,
 )
 
-public data class IamAuthSession(
-    public val accessExpiresAt: UtcTimestamp,
-    public val accessToken: String,
-    public val mfaReenrollmentRequired: Boolean,
-    public val mfaRequired: Boolean,
-    public val organizationId: Identifier,
-    public val refreshToken: String? = null,
-    public val schemaVersion: Long,
-    public val securityEpoch: Long,
-    public val sessionId: Identifier,
-    public val userId: Identifier,
-    public val workspaceId: Identifier,
-)
-
 public data class IamBootstrapOrganization(
     public val id: Identifier,
     public val name: String,
@@ -935,6 +925,20 @@ public data class PlatformAdminOverviewWindow(
     public val startsAt: UtcTimestamp,
 )
 
+public data class PlatformSession(
+    public val accessExpiresAt: UtcTimestamp,
+    public val accessToken: String,
+    public val mfaReenrollmentRequired: Boolean,
+    public val mfaRequired: Boolean,
+    public val refreshToken: String? = null,
+    public val schemaVersion: Long,
+    public val securityEpoch: Long,
+    public val sessionId: Identifier,
+    public val userId: Identifier,
+) : IamAuthSession {
+    public override val scopeType: String = "PLATFORM"
+}
+
 public data class PreparedOutput(
     public val allowedMediaTypes: List<PreparedMediaType>,
     public val capabilityId: Identifier,
@@ -1068,6 +1072,22 @@ public data class SourceOpenValue(
     public val kind: String,
     public val sourceId: Identifier,
 )
+
+public data class TenantSession(
+    public val accessExpiresAt: UtcTimestamp,
+    public val accessToken: String,
+    public val mfaReenrollmentRequired: Boolean,
+    public val mfaRequired: Boolean,
+    public val organizationId: Identifier,
+    public val refreshToken: String? = null,
+    public val schemaVersion: Long,
+    public val securityEpoch: Long,
+    public val sessionId: Identifier,
+    public val userId: Identifier,
+    public val workspaceId: Identifier,
+) : IamAuthSession {
+    public override val scopeType: String = "TENANT"
+}
 
 public data class Value(
     public val columns: List<Column>,

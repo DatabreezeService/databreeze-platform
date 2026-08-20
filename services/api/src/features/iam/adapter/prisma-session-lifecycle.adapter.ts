@@ -12,10 +12,12 @@ import {
   type StrictUtcTimestampV1,
 } from '@databreeze/domain/tenant-scope/v1';
 
-import type {
-  AuthenticationSessionV1,
-  AuthenticatedPrincipalV1,
-  SessionIssuerPortV1,
+import {
+  isPlatformPrincipalV1,
+  type AuthenticationSessionV1,
+  type AuthenticatedPrincipalV1,
+  type SessionPrincipalV1,
+  type SessionIssuerPortV1,
 } from '../application/authentication.port.js';
 import type {
   SessionLifecyclePortV1,
@@ -28,8 +30,9 @@ import { sessionPolicyForPlatformV1 } from '../application/session-policy.v1.js'
 export interface SessionRecordDatabaseRowV1 {
   readonly id: string;
   readonly userId: string;
-  readonly organizationId: string;
-  readonly workspaceId: string;
+  readonly principalKind: string;
+  readonly organizationId: string | null;
+  readonly workspaceId: string | null;
   readonly familyId: string;
   readonly issuedAt: Date;
   readonly accessExpiresAt: Date;
@@ -92,6 +95,12 @@ export interface SessionMfaFactorDatabaseRowV1 {
   readonly id: string;
 }
 
+export interface SessionPlatformOperatorDatabaseRowV1 {
+  readonly userId: string;
+  readonly role: string;
+  readonly status: string;
+}
+
 interface SessionDelegateV1 {
   create(input: { readonly data: SessionRecordDatabaseRowV1 }): Promise<SessionRecordDatabaseRowV1>;
   findUnique(input: {
@@ -149,6 +158,7 @@ export interface SessionLifecycleDatabaseClientV1 {
   readonly workspaceIdentity: UniqueDelegateV1<SessionWorkspaceDatabaseRowV1>;
   readonly organizationIdentity: UniqueDelegateV1<SessionOrganizationDatabaseRowV1>;
   readonly mfaFactor: ListDelegateV1<SessionMfaFactorDatabaseRowV1>;
+  readonly platformOperatorRecord?: UniqueDelegateV1<SessionPlatformOperatorDatabaseRowV1>;
   $transaction<TValue>(
     work: (transaction: SessionLifecycleDatabaseClientV1) => Promise<TValue>,
   ): Promise<TValue>;
@@ -187,8 +197,6 @@ function tokenFor(tokenId: string): string {
 function sessionFromRow(row: SessionRecordDatabaseRowV1): SessionRecordV1 {
   const sessionId = stableIdentifier(row.id);
   const userId = stableIdentifier(row.userId);
-  const organizationId = stableIdentifier(row.organizationId);
-  const workspaceId = stableIdentifier(row.workspaceId);
   const familyId = stableIdentifier(row.familyId);
   const issuedAt = timestamp(row.issuedAt);
   const accessExpiresAt = timestamp(row.accessExpiresAt);
@@ -218,12 +226,24 @@ function sessionFromRow(row: SessionRecordDatabaseRowV1): SessionRecordV1 {
   ) {
     throw new Error('IAM_PERSISTED_SESSION_INVALID');
   }
+  if (row.principalKind !== 'TENANT' && row.principalKind !== 'PLATFORM')
+    throw new Error('IAM_PERSISTED_SESSION_INVALID');
+  const principalKind: SessionRecordV1['principalKind'] = row.principalKind;
+  const organizationId =
+    row.organizationId === null ? undefined : stableIdentifier(row.organizationId);
+  const workspaceId = row.workspaceId === null ? undefined : stableIdentifier(row.workspaceId);
+  if (
+    (principalKind === 'TENANT' && (!organizationId || !workspaceId)) ||
+    (principalKind === 'PLATFORM' && (organizationId !== undefined || workspaceId !== undefined))
+  )
+    throw new Error('IAM_PERSISTED_SESSION_INVALID');
   const created = {
     schemaVersion: 1 as const,
     sessionId,
     userId,
-    organizationId,
-    workspaceId,
+    principalKind,
+    ...(organizationId === undefined ? {} : { organizationId }),
+    ...(workspaceId === undefined ? {} : { workspaceId }),
     familyId,
     issuedAt,
     accessExpiresAt,
@@ -321,7 +341,7 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
   }
 
   public async issue(
-    principal: AuthenticatedPrincipalV1,
+    principal: SessionPrincipalV1,
     clientPlatform: 'android' | 'desktop' | 'web',
   ): Promise<AuthenticationSessionV1> {
     const policy = sessionPolicyForPlatformV1(clientPlatform);
@@ -332,8 +352,10 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
     const created = createSessionRecordV1({
       sessionId,
       userId: principal.userId,
-      organizationId: principal.organizationId,
-      workspaceId: principal.workspaceId,
+      principalKind: isPlatformPrincipalV1(principal) ? 'PLATFORM' : 'TENANT',
+      ...(isPlatformPrincipalV1(principal)
+        ? {}
+        : { organizationId: principal.organizationId, workspaceId: principal.workspaceId }),
       familyId,
       issuedAt: now.toISOString(),
       accessExpiresAt: addSeconds(now, policy.accessTokenSeconds),
@@ -350,8 +372,9 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
         data: {
           id: record.sessionId,
           userId: record.userId,
-          organizationId: record.organizationId,
-          workspaceId: record.workspaceId,
+          principalKind: record.principalKind,
+          organizationId: record.organizationId ?? null,
+          workspaceId: record.workspaceId ?? null,
           familyId: record.familyId,
           issuedAt: new Date(record.issuedAt),
           accessExpiresAt: new Date(record.accessExpiresAt),
@@ -583,8 +606,9 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
           data: {
             id: record.sessionId,
             userId: record.userId,
-            organizationId: record.organizationId,
-            workspaceId: record.workspaceId,
+            principalKind: record.principalKind,
+            organizationId: record.organizationId ?? null,
+            workspaceId: record.workspaceId ?? null,
             familyId: record.familyId,
             issuedAt: new Date(record.issuedAt),
             accessExpiresAt: new Date(record.accessExpiresAt),
@@ -651,7 +675,7 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
 
   public async findPrincipalByAccessToken(
     accessTokenInput: unknown,
-  ): Promise<AuthenticatedPrincipalV1 | undefined> {
+  ): Promise<SessionPrincipalV1 | undefined> {
     if (typeof accessTokenInput !== 'string' || accessTokenInput.length < 80) return undefined;
     const row = await this.client.accessTokenRecord.findUnique({
       where: { tokenDigest: digestToken(accessTokenInput) },
@@ -663,9 +687,7 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
 
   public async findSessionByAccessToken(
     accessTokenInput: unknown,
-  ): Promise<
-    { readonly sessionId: string; readonly principal: AuthenticatedPrincipalV1 } | undefined
-  > {
+  ): Promise<{ readonly sessionId: string; readonly principal: SessionPrincipalV1 } | undefined> {
     if (typeof accessTokenInput !== 'string' || accessTokenInput.length < 80) return undefined;
     const row = await this.client.accessTokenRecord.findUnique({
       where: { tokenDigest: digestToken(accessTokenInput) },
@@ -678,9 +700,7 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
       : Object.freeze({ sessionId: row.sessionId, principal });
   }
 
-  public async findPrincipal(
-    sessionIdInput: unknown,
-  ): Promise<AuthenticatedPrincipalV1 | undefined> {
+  public async findPrincipal(sessionIdInput: unknown): Promise<SessionPrincipalV1 | undefined> {
     if (typeof sessionIdInput !== 'string') return undefined;
     const parsed = parseStableIdentifierV1(sessionIdInput);
     if (!parsed.accepted) return undefined;
@@ -698,7 +718,34 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
       return undefined;
     const user = await this.client.userIdentity.findUnique({ where: { id: session.userId } });
     if (!user || user.status !== 'ACTIVE' || user.id !== session.userId) return undefined;
-    if (!Number.isSafeInteger(user.securityEpoch) || user.securityEpoch < 1) return undefined;
+    if (
+      !Number.isSafeInteger(user.securityEpoch) ||
+      user.securityEpoch < 1 ||
+      typeof user.mfaReenrollmentRequired !== 'boolean'
+    )
+      return undefined;
+    const factors = await this.client.mfaFactor.findMany({
+      where: { userId: session.userId, status: 'ACTIVE' },
+    });
+    if (session.principalKind === 'PLATFORM') {
+      const operator = await this.client.platformOperatorRecord?.findUnique({
+        where: { userId: session.userId },
+      });
+      if (
+        operator?.userId !== session.userId ||
+        operator.status !== 'ACTIVE' ||
+        (operator.role !== 'PLATFORM_OWNER' && operator.role !== 'PLATFORM_SUPPORT')
+      )
+        return undefined;
+      return Object.freeze({
+        scopeType: 'PLATFORM' as const,
+        userId: session.userId,
+        securityEpoch: user.securityEpoch,
+        mfaRequired: factors.length > 0,
+        mfaReenrollmentRequired: user.mfaReenrollmentRequired,
+      });
+    }
+    if (session.organizationId === undefined || session.workspaceId === undefined) return undefined;
     const memberships = await this.client.membershipIdentity.findMany({
       where: {
         principalId: session.userId,
@@ -718,10 +765,9 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
     const organizationId = parseStableIdentifierV1(session.organizationId);
     const workspaceId = parseStableIdentifierV1(session.workspaceId);
     if (!organizationId.accepted || !workspaceId.accepted) return undefined;
-    const [organization, workspace, factors] = await Promise.all([
+    const [organization, workspace] = await Promise.all([
       this.client.organizationIdentity.findUnique({ where: { id: organizationId.value } }),
       this.client.workspaceIdentity.findUnique({ where: { id: workspaceId.value } }),
-      this.client.mfaFactor.findMany({ where: { userId: session.userId, status: 'ACTIVE' } }),
     ]);
     if (
       !organization ||

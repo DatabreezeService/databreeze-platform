@@ -13,6 +13,7 @@ describe('memory-only Web session [WEB-004]', () => {
   it('retains only the current access credential and clears it explicitly', () => {
     rememberAuthSessionV1({
       schemaVersion: 4,
+      scopeType: 'TENANT',
       sessionId: '00000000-0000-4000-8000-000000000401',
       userId: '00000000-0000-4000-8000-000000000402',
       organizationId: '00000000-0000-4000-8000-000000000403',
@@ -33,6 +34,7 @@ describe('memory-only Web session [WEB-004]', () => {
     globalThis.document.cookie = `databreeze_csrf=${'c'.repeat(43)}; Path=/`;
     rememberAuthSessionV1({
       schemaVersion: 4,
+      scopeType: 'TENANT',
       sessionId: '00000000-0000-4000-8000-000000000401',
       userId: '00000000-0000-4000-8000-000000000402',
       organizationId: '00000000-0000-4000-8000-000000000403',
@@ -71,6 +73,7 @@ describe('memory-only Web session [WEB-004]', () => {
   it('does not authorize a same-origin path outside an explicitly configured API prefix', async () => {
     rememberAuthSessionV1({
       schemaVersion: 4,
+      scopeType: 'TENANT',
       sessionId: '00000000-0000-4000-8000-000000000401',
       userId: '00000000-0000-4000-8000-000000000402',
       organizationId: '00000000-0000-4000-8000-000000000403',

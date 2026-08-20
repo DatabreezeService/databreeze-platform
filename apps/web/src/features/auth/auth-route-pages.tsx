@@ -6,6 +6,8 @@ import { createAuthApiV1 } from './auth-api.ts';
 import { readAuthReturnTarget } from './auth-redirect.ts';
 import {
   clearAuthSessionV1,
+  confirmPlatformAuthSessionV1,
+  currentAuthSessionScopeV1,
   rememberAuthBootstrapV1,
   rememberAuthSessionV1,
 } from './auth-session.ts';
@@ -29,11 +31,20 @@ async function establishProductSession(
   session: Parameters<typeof rememberAuthSessionV1>[0],
 ) {
   rememberAuthSessionV1(session);
+  if (currentAuthSessionScopeV1() === 'PLATFORM') {
+    const { createPlatformAdminApi } = await import('../platform-admin/platform-admin-api.ts');
+    const platformAdmin = await createPlatformAdminApi().canAccess();
+    if (platformAdmin && confirmPlatformAuthSessionV1())
+      return { accepted: true as const, platformAdmin: true, platformOnly: true };
+    clearAuthSessionV1();
+    return { accepted: false as const, code: 'AUTH_FAILED' as const };
+  }
   const bootstrap = await api.loadBootstrap();
   if (bootstrap.accepted) {
     const { createPlatformAdminApi } = await import('../platform-admin/platform-admin-api.ts');
     const platformAdmin = await createPlatformAdminApi().canAccess();
-    if (rememberAuthBootstrapV1(bootstrap.value)) return { accepted: true as const, platformAdmin };
+    if (rememberAuthBootstrapV1(bootstrap.value))
+      return { accepted: true as const, platformAdmin, platformOnly: false };
   }
   clearAuthSessionV1();
   return { accepted: false as const, code: 'AUTH_FAILED' as const };
@@ -56,7 +67,10 @@ export function SignInRoutePage() {
             if (!established.accepted) return established;
             const returnTarget = readAuthReturnTarget(location.search);
             void navigate(
-              returnTarget ?? `/${locale}/${established.platformAdmin ? 'platform-admin' : 'data'}`,
+              established.platformOnly
+                ? `/${locale}/platform-admin`
+                : (returnTarget ??
+                    `/${locale}/${established.platformAdmin ? 'platform-admin' : 'data'}`),
               {
                 replace: true,
               },

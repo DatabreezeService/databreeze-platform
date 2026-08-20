@@ -12,10 +12,12 @@ import {
   type StrictUtcTimestampV1,
 } from '@databreeze/domain/tenant-scope/v1';
 
-import type {
-  AuthenticationSessionV1,
-  AuthenticatedPrincipalV1,
-  SessionIssuerPortV1,
+import {
+  isPlatformPrincipalV1,
+  type AuthenticationSessionV1,
+  type AuthenticatedPrincipalV1,
+  type SessionPrincipalV1,
+  type SessionIssuerPortV1,
 } from '../application/authentication.port.js';
 import type {
   SessionLifecyclePortV1,
@@ -26,7 +28,7 @@ import { sessionPolicyForPlatformV1 } from '../application/session-policy.v1.js'
 
 interface SessionEntryV1 {
   record: SessionRecordV1;
-  readonly principal: AuthenticatedPrincipalV1;
+  readonly principal: SessionPrincipalV1;
   activeTokenId: StableIdentifierV1;
   familyStatus: 'ACTIVE' | 'REVOKED';
 }
@@ -78,7 +80,7 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
   }
 
   public issue(
-    principal: AuthenticatedPrincipalV1,
+    principal: SessionPrincipalV1,
     clientPlatform: 'android' | 'desktop' | 'web',
   ): Promise<AuthenticationSessionV1> {
     const policy = sessionPolicyForPlatformV1(clientPlatform);
@@ -92,8 +94,10 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
     const created = createSessionRecordV1({
       sessionId: sessionIdentifier,
       userId: principal.userId,
-      organizationId: principal.organizationId,
-      workspaceId: principal.workspaceId,
+      principalKind: isPlatformPrincipalV1(principal) ? 'PLATFORM' : 'TENANT',
+      ...(isPlatformPrincipalV1(principal)
+        ? {}
+        : { organizationId: principal.organizationId, workspaceId: principal.workspaceId }),
       familyId: familyIdentifier,
       issuedAt: now.toISOString(),
       accessExpiresAt: addSeconds(now, policy.accessTokenSeconds),
@@ -224,6 +228,7 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
     if (
       !current ||
       current.familyStatus !== 'ACTIVE' ||
+      isPlatformPrincipalV1(current.principal) ||
       current.principal.userId !== principal.userId ||
       current.principal.organizationId !== principal.organizationId
     )
@@ -250,9 +255,7 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
     return revoked;
   }
 
-  public async findPrincipal(
-    sessionIdInput: unknown,
-  ): Promise<AuthenticatedPrincipalV1 | undefined> {
+  public async findPrincipal(sessionIdInput: unknown): Promise<SessionPrincipalV1 | undefined> {
     await Promise.resolve();
     if (typeof sessionIdInput !== 'string') return undefined;
     const session = this.sessions.get(sessionIdInput);
@@ -262,7 +265,7 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
 
   public async findPrincipalByAccessToken(
     accessTokenInput: unknown,
-  ): Promise<AuthenticatedPrincipalV1 | undefined> {
+  ): Promise<SessionPrincipalV1 | undefined> {
     await Promise.resolve();
     if (typeof accessTokenInput !== 'string' || accessTokenInput.length < 80) return undefined;
     const sessionId = this.accessTokens.get(digestToken(accessTokenInput));
@@ -277,9 +280,7 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
 
   public async findSessionByAccessToken(
     accessTokenInput: unknown,
-  ): Promise<
-    { readonly sessionId: string; readonly principal: AuthenticatedPrincipalV1 } | undefined
-  > {
+  ): Promise<{ readonly sessionId: string; readonly principal: SessionPrincipalV1 } | undefined> {
     if (typeof accessTokenInput !== 'string' || accessTokenInput.length < 80) return undefined;
     const sessionId = this.accessTokens.get(digestToken(accessTokenInput));
     if (sessionId === undefined) return undefined;

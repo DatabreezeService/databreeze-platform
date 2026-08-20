@@ -18,10 +18,20 @@ import { LOCAL_FEEDBACK_EMAILS } from '../scripts/local-feedback-seed.mjs';
 const apiDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const seedScriptPath = path.join(apiDirectory, 'scripts', 'seed-local.mjs');
 const pilotSeedModulePath = new URL('../scripts/seed-pilot.mjs', import.meta.url).href;
+const pilotRotationModulePath = new URL(
+  '../scripts/rotate-pilot-operator-password.mjs',
+  import.meta.url,
+).href;
 
 async function loadPilotSeedModule() {
   const module = await import(pilotSeedModulePath).catch(() => undefined);
   assert.ok(module, 'pilot seed module must exist');
+  return module;
+}
+
+async function loadPilotRotationModule() {
+  const module = await import(pilotRotationModulePath).catch(() => undefined);
+  assert.ok(module, 'pilot operator rotation module must exist');
   return module;
 }
 
@@ -470,6 +480,58 @@ test('[IAM-026] pilot operator replay preserves an existing credential and activ
   assert.equal(assignments.get(first.userId).role, 'PLATFORM_OWNER');
   assert.equal(assignments.get(first.userId).status, 'ACTIVE');
   assert.equal(assignments.get(first.userId).revokedAt, null);
+});
+
+test('[IAM-005][IAM-026] explicit operator rotation replaces the credential and revokes sessions', async () => {
+  const { rotatePilotOperatorPassword } = await loadPilotRotationModule();
+  const sessions = [
+    { id: 'session-1', familyId: 'family-1', status: 'ACTIVE', revokedAt: null },
+    { id: 'session-2', familyId: 'family-2', status: 'REVOKED', revokedAt: new Date(0) },
+  ];
+  const credential = { userId: 'user-1', encodedHash: 'old-hash', rotatedAt: null };
+  const user = { id: 'user-1', email: 'owner@example.com', status: 'ACTIVE', securityEpoch: 4 };
+  const transaction = {
+    userIdentity: {
+      findUnique: async () => user,
+      update: async ({ data }) => {
+        user.securityEpoch += data.securityEpoch.increment;
+        return user;
+      },
+    },
+    platformOperatorRecord: {
+      findUnique: async () => ({ userId: user.id, role: 'PLATFORM_OWNER', status: 'ACTIVE' }),
+    },
+    passwordCredential: {
+      findUnique: async () => credential,
+      update: async ({ data }) => Object.assign(credential, data),
+    },
+    sessionRecord: {
+      findMany: async () => sessions.filter((row) => row.status === 'ACTIVE'),
+      updateMany: async ({ data }) => {
+        for (const row of sessions) {
+          if (row.status === 'ACTIVE') Object.assign(row, data);
+        }
+        return { count: 1 };
+      },
+    },
+    refreshTokenRecord: { updateMany: async () => ({ count: 1 }) },
+    accessTokenRecord: { updateMany: async () => ({ count: 1 }) },
+  };
+  const database = { $transaction: async (operation) => operation(transaction) };
+
+  const result = await rotatePilotOperatorPassword(
+    database,
+    { operatorEmail: user.email, operatorPassword: 'same-protected-password' },
+    {
+      hashPassword: async () => 'new-argon2id-hash',
+      now: () => new Date('2026-08-21T00:00:00.000Z'),
+    },
+  );
+
+  assert.equal(credential.encodedHash, 'new-argon2id-hash');
+  assert.equal(user.securityEpoch, 5);
+  assert.equal(sessions[0].status, 'REVOKED');
+  assert.deepEqual(result, { userId: user.id, securityEpoch: 5, revokedSessions: 1 });
 });
 
 test('[DDA-055] seeded conversation binds each dataset to its active version', () => {

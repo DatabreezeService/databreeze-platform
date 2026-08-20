@@ -18,6 +18,7 @@ function jsonBody(init?: RequestInit): unknown {
 describe('generated-contract auth transport [IAM-022, IAM-023, WEB-004]', () => {
   const session = {
     schemaVersion: 4 as const,
+    scopeType: 'TENANT' as const,
     sessionId: '00000000-0000-4000-8000-000000000401',
     userId: '00000000-0000-4000-8000-000000000402',
     organizationId: '00000000-0000-4000-8000-000000000403',
@@ -77,6 +78,7 @@ describe('generated-contract auth transport [IAM-022, IAM-023, WEB-004]', () => 
           new Response(
             JSON.stringify({
               schemaVersion: 4,
+              scopeType: 'TENANT',
               sessionId: '00000000-0000-4000-8000-000000000401',
               userId: '00000000-0000-4000-8000-000000000402',
               organizationId: '00000000-0000-4000-8000-000000000403',
@@ -193,6 +195,7 @@ describe('generated-contract auth transport [IAM-022, IAM-023, WEB-004]', () => 
       return new Response(
         JSON.stringify({
           schemaVersion: 4,
+          scopeType: 'TENANT',
           sessionId: '00000000-0000-4000-8000-000000000401',
           userId: '00000000-0000-4000-8000-000000000402',
           organizationId: '00000000-0000-4000-8000-000000000403',

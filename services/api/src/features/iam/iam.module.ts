@@ -252,6 +252,11 @@ import {
   type RequestTenantContextPortV1,
   UnavailableRequestTenantContextAdapter,
 } from '../../platform/http/request-tenant-context.port.js';
+import {
+  REQUEST_AUTHENTICATED_ACTOR,
+  type RequestAuthenticatedActorPortV1,
+  UnavailableRequestAuthenticatedActorAdapter,
+} from '../../platform/http/request-authenticated-actor.port.js';
 
 export interface IamModuleOptions {
   readonly authentication?: AuthenticationUseCaseV1;
@@ -349,6 +354,7 @@ export interface IamModuleOptions {
   readonly serviceAccountClock?: ServiceAccountClockV1;
   readonly serviceAccountIdGenerator?: ServiceAccountIdGeneratorV1;
   readonly requestTenantContext?: RequestTenantContextPortV1;
+  readonly requestAuthenticatedActor?: RequestAuthenticatedActorPortV1;
 }
 
 /** Compare already-normalized recovery-code digests without data-dependent byte comparisons. */
@@ -937,6 +943,11 @@ export class IamModule {
         {
           provide: REQUEST_TENANT_CONTEXT,
           useValue: options.requestTenantContext ?? new UnavailableRequestTenantContextAdapter(),
+        },
+        {
+          provide: REQUEST_AUTHENTICATED_ACTOR,
+          useValue:
+            options.requestAuthenticatedActor ?? new UnavailableRequestAuthenticatedActorAdapter(),
         },
       ],
       exports,
