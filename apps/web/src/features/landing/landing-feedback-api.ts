@@ -6,8 +6,6 @@ import {
 
 import { createSessionAwareFetchV1 } from '../auth/auth-session.ts';
 
-const LANDING_FEEDBACK_COMMAND_SCHEMA =
-  'https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-command' as const;
 const LANDING_FEEDBACK_ACCEPTED_SCHEMA =
   'https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-accepted' as const;
 

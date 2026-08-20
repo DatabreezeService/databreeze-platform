@@ -8,6 +8,11 @@ import {
 } from '../../../src/features/bua/adapter/payos-payment-link.adapter.js';
 import { findPayosPlan } from '../../../src/features/bua/application/payos-plan-catalog.js';
 
+function bodyText(body: unknown): string {
+  if (typeof body !== 'string') throw new Error('expected a JSON request body');
+  return body;
+}
+
 void test('[BUA-001, BUA-002] production PayOS adapter sends only the server catalog amount', async () => {
   const plan = findPayosPlan('personal-monthly');
   assert.ok(plan);
@@ -19,7 +24,7 @@ void test('[BUA-001, BUA-002] production PayOS adapter sends only the server cat
     successUrl: 'https://web.example/vi-VN/billing/success',
     failedUrl: 'https://web.example/vi-VN/billing/failed',
     fetch: async (_input, init) => {
-      requestBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      requestBody = JSON.parse(bodyText(init?.body)) as Record<string, unknown>;
       return new Response(
         JSON.stringify({ code: '00', data: { checkoutUrl: 'https://payos.example/checkout/1' } }),
         { status: 200, headers: { 'content-type': 'application/json' } },

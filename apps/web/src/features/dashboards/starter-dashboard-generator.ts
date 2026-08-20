@@ -21,7 +21,6 @@ export function generateStarterDashboard(
   const textCols = columns.filter((c) => c.type === 'TEXT' || c.type === 'DATE');
 
   const primaryMeasure = numericCols[0]?.name;
-  const secondaryMeasure = numericCols[1]?.name;
   const primaryDim = textCols[0]?.name;
 
   const dashboardId = `starter-${dataset.datasetId}`;
@@ -109,7 +108,8 @@ export function generateStarterDashboard(
     const aggMap = new Map<string, number>();
     for (const r of rows) {
       const dimVal = String(r[primaryDim] ?? (locale === 'vi-VN' ? 'Khác' : 'Other'));
-      const numVal = typeof r[primaryMeasure] === 'number' ? (r[primaryMeasure] as number) : 0;
+      const measure = r[primaryMeasure];
+      const numVal = typeof measure === 'number' ? measure : 0;
       aggMap.set(dimVal, (aggMap.get(dimVal) ?? 0) + numVal);
     }
     const sorted = Array.from(aggMap.entries())

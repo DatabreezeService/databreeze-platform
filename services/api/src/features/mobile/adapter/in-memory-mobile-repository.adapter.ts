@@ -10,10 +10,10 @@ export class InMemoryMobileRepositoryAdapter implements MobileRepositoryPortV1 {
     { route: string; actorId?: string; expiresAt: number }
   >();
   private readonly tasks: MobileTaskViewV1[] = [];
-  public async listTasks(): Promise<readonly MobileTaskViewV1[]> {
-    return this.tasks;
+  public listTasks(): Promise<readonly MobileTaskViewV1[]> {
+    return Promise.resolve(this.tasks);
   }
-  public async resolveRouteToken(
+  public resolveRouteToken(
     context: IamTenantContextV1,
     tokenDigest: string,
   ): Promise<string | undefined> {
@@ -26,11 +26,11 @@ export class InMemoryMobileRepositoryAdapter implements MobileRepositoryPortV1 {
         ? undefined
         : this.routes.get(`${context.tenantScope.scopeType}:${workspaceId}:${tokenDigest}`);
     if (!row || row.expiresAt <= Date.now() || (row.actorId && row.actorId !== context.actorId))
-      return undefined;
+      return Promise.resolve(undefined);
     this.routes.delete(`${context.tenantScope.scopeType}:${workspaceId}:${tokenDigest}`);
-    return row.route;
+    return Promise.resolve(row.route);
   }
-  public async issueRouteToken(
+  public issueRouteToken(
     context: IamTenantContextV1,
     input: { id: string; tokenDigest: string; route: string; expiresAt: Date },
   ): Promise<void> {
@@ -39,16 +39,17 @@ export class InMemoryMobileRepositoryAdapter implements MobileRepositoryPortV1 {
         `${context.tenantScope.scopeType}:${context.tenantScope.workspaceId}:${input.tokenDigest}`,
         { route: input.route, actorId: context.actorId, expiresAt: input.expiresAt.getTime() },
       );
+    return Promise.resolve();
   }
-  public async registerPush(): Promise<void> {
-    return;
+  public registerPush(): Promise<void> {
+    return Promise.resolve();
   }
-  public async createReport(): Promise<void> {
-    return;
+  public createReport(): Promise<void> {
+    return Promise.resolve();
   }
-  public async listReports(): Promise<
+  public listReports(): Promise<
     readonly { reportId: string; reportType: string; status: string; createdAt: string }[]
   > {
-    return [];
+    return Promise.resolve([]);
   }
 }

@@ -10,7 +10,7 @@ export function VerifyEmailPage({
   readonly locale: 'en' | 'vi-VN';
   readonly email: string;
   readonly initialSeconds: number;
-  readonly onVerified: (input: { readonly code: string }) => Promise<unknown> | unknown;
+  readonly onVerified: (input: { readonly code: string }) => unknown;
 }) {
   const [code, setCode] = useState('');
   const [error, setError] = useState(false);

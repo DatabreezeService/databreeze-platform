@@ -122,7 +122,7 @@ class FakeDatabase {
     });
   }
 
-  private find(kind: keyof FakeDatabase, where: Row): Row | null {
+  private find(kind: keyof FakeDatabase, where: Row): Row {
     return [...this.map(kind).values()].find((row) => this.matches(row, where)) ?? null;
   }
 }

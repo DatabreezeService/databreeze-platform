@@ -98,7 +98,8 @@ export function AddWidgetModal({ isOpen, locale, onClose, pageId }: AddWidgetMod
     const map = new Map<string, number>();
     for (const row of tabular.rows) {
       const dim = String(row[selectedDimension] ?? 'Other');
-      const num = typeof row[selectedMeasure] === 'number' ? (row[selectedMeasure] as number) : 0;
+      const measure = row[selectedMeasure];
+      const num = typeof measure === 'number' ? measure : 0;
       map.set(dim, (map.get(dim) ?? 0) + num);
     }
     previewValues = Array.from(map.entries())

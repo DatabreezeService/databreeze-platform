@@ -5,7 +5,7 @@ import test from 'node:test';
 import { Ed25519DeviceEnrollmentProofVerifierAdapter } from '../../../src/features/iam/adapter/ed25519-device-enrollment-proof-verifier.adapter.js';
 import type { DeviceEnrollmentProofVerifierV1 } from '../../../src/features/iam/application/device-identity.service.js';
 
-test('verifies the Android Ed25519 proof over the server challenge digest', () => {
+void test('verifies the Android Ed25519 proof over the server challenge digest', () => {
   const { publicKey, privateKey } = generateKeyPairSync('ed25519');
   const digest = 'a'.repeat(64);
   const proof = sign(null, Buffer.from(digest, 'utf8'), privateKey).toString('base64');

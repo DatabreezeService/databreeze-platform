@@ -6,7 +6,7 @@ import {
   listPayosPlans,
 } from '../../../src/features/bua/application/payos-plan-catalog.js';
 
-test('[BUA-001/002] marketing catalog prices remain server-owned and complete', () => {
+void test('[BUA-001/002] marketing catalog prices remain server-owned and complete', () => {
   const plans = listPayosPlans();
   assert.deepEqual(
     plans.map((plan) => [plan.id, plan.amountVnd]),
