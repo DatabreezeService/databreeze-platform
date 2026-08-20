@@ -42,6 +42,8 @@ test('Lightsail pilot Compose keeps data services private and gates API on migra
     'DATABREEZE_OPENAI_AGENT_ENABLED',
     'DATABREEZE_OPENAI_ANALYSIS_ENABLED',
     'DATABREEZE_OPENAI_DASHBOARD_ENABLED',
+    'DATABREEZE_IAM_INVITATION_DIGEST_KEY',
+    'DATABREEZE_IAE_WORKER_CAPABILITY_SIGNING_KEY',
     'PAYOS_PROVIDER',
     'PAYOS_CLIENT_ID',
     'PAYOS_API_KEY',
@@ -74,6 +76,11 @@ test('Lightsail environment example keeps secrets and mutable tags out of source
   assert.match(env, /DATABREEZE_LOCAL_EMAIL_PROVIDER=mailpit/u);
   assert.match(env, /DATABREEZE_IAM_SMTP_HOST=mailpit/u);
   assert.match(env, /DATABREEZE_IAM_SMTP_PORT=1025/u);
+  assert.match(env, /^DATABREEZE_IAM_INVITATION_DIGEST_KEY=CHANGE_ME_43_CHAR_BASE64URL_KEY$/mu);
+  assert.match(
+    env,
+    /^DATABREEZE_IAE_WORKER_CAPABILITY_SIGNING_KEY=CHANGE_ME_43_CHAR_BASE64URL_KEY$/mu,
+  );
   assert.doesNotMatch(env, /OPENAI_API_KEY=/u);
   assert.doesNotMatch(env, /:latest\b/u);
 });
