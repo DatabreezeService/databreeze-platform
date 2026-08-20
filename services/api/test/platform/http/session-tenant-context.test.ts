@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
+
 import { SessionRequestTenantContextAdapter } from '../../../src/platform/http/session-tenant-context.adapter.js';
 
 const principal = {
@@ -12,6 +14,10 @@ const principal = {
   mfaReenrollmentRequired: false,
 };
 const correlationId = '00000000-0000-4000-8000-000000000010';
+const parsedDashboardProjectId = parseStableIdentifierV1('00000000-0000-4000-8000-000000000004');
+assert.equal(parsedDashboardProjectId.accepted, true);
+if (!parsedDashboardProjectId.accepted) throw new Error('invalid dashboard project fixture');
+const dashboardProjectId = parsedDashboardProjectId.value;
 
 function workspaceEpoch(value = principal.securityEpoch) {
   return {
@@ -90,6 +96,73 @@ void test('derives the configured local project only for dashboard routes', asyn
     organizationId: principal.organizationId,
     workspaceId: principal.workspaceId,
   });
+});
+
+void test('[IAM-002, DDA-013] resolves the authenticated workspace project only for dashboard routes', async () => {
+  const resolvedScopes: unknown[] = [];
+  const adapter = new SessionRequestTenantContextAdapter(
+    { findPrincipalByAccessToken: () => Promise.resolve(principal) },
+    workspaceEpoch(),
+    {
+      dashboardProjectResolver: {
+        resolveDashboardProject: (context) => {
+          resolvedScopes.push(context.tenantScope);
+          return Promise.resolve(dashboardProjectId);
+        },
+      },
+    },
+  );
+
+  const dashboard = await adapter.resolve({
+    method: 'GET',
+    url: '/v3/dda/dashboards/workspace-history',
+    headers: { authorization: 'Bearer opaque-access-token-123456789' },
+  });
+  assert.deepEqual(dashboard.tenantScope, {
+    scopeType: 'project',
+    organizationId: principal.organizationId,
+    workspaceId: principal.workspaceId,
+    projectId: '00000000-0000-4000-8000-000000000004',
+  });
+  assert.deepEqual(resolvedScopes, [
+    {
+      scopeType: 'workspace',
+      organizationId: principal.organizationId,
+      workspaceId: principal.workspaceId,
+    },
+  ]);
+
+  const data = await adapter.resolve({
+    method: 'GET',
+    url: '/v1/datasets',
+    headers: { authorization: 'Bearer opaque-access-token-123456789' },
+  });
+  assert.equal(data.tenantScope.scopeType, 'workspace');
+  assert.equal(resolvedScopes.length, 1);
+});
+
+void test('[IAM-002] fails closed when dashboard project resolution is unavailable', async () => {
+  const adapter = new SessionRequestTenantContextAdapter(
+    { findPrincipalByAccessToken: () => Promise.resolve(principal) },
+    workspaceEpoch(),
+    {
+      dashboardProjectResolver: {
+        resolveDashboardProject: () => Promise.reject(new Error('database unavailable')),
+      },
+    },
+  );
+
+  await assert.rejects(
+    adapter.resolve({
+      method: 'GET',
+      url: '/v3/dda/dashboards/workspace-history',
+      headers: { authorization: 'Bearer opaque-access-token-123456789' },
+    }),
+    (error: unknown) => {
+      assert.equal((error as { code?: unknown }).code, 'AUTHENTICATION_UNAVAILABLE');
+      return true;
+    },
+  );
 });
 
 void test('rejects missing, ambiguous, malformed, and unknown bearer credentials', async () => {

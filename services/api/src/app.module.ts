@@ -53,8 +53,11 @@ import {
   SessionRequestTenantContextAdapter,
   UnavailableWorkspaceAuthorizationEpochResolverAdapter,
 } from './platform/http/session-tenant-context.adapter.js';
+import { IamHierarchyDashboardProjectResolverAdapter } from './platform/http/iam-hierarchy-dashboard-project-resolver.adapter.js';
 import { PrismaSessionLifecycleAdapter } from './features/iam/adapter/prisma-session-lifecycle.adapter.js';
 import { PrismaIamRepositoryAdapter } from './features/iam/adapter/prisma-iam-repository.adapter.js';
+import { PrismaIamHierarchyRepositoryAdapter } from './features/iam/adapter/prisma-iam-hierarchy-repository.adapter.js';
+import type { IdentityBootstrapDatabaseClientV1 } from './features/iam/adapter/prisma-identity-bootstrap-repository.adapter.js';
 import { PrismaAgentGrantRepositoryAdapter } from './features/iam/adapter/prisma-agent-grant-repository.adapter.js';
 import { InMemoryAgentGrantRepositoryAdapter } from './features/iam/adapter/in-memory-agent-grant-repository.adapter.js';
 import { PrismaServiceAccountRepositoryAdapter } from './features/iam/adapter/prisma-service-account-repository.adapter.js';
@@ -206,6 +209,24 @@ export class AppModule {
       (options.iamDatabase === undefined
         ? undefined
         : new PrismaIamRepositoryAdapter(options.iamDatabase));
+    const hierarchyRepository =
+      options.hierarchyRepository ??
+      (options.hierarchyDatabase === undefined
+        ? undefined
+        : new PrismaIamHierarchyRepositoryAdapter(
+            options.hierarchyDatabase,
+            {},
+            options.identityBootstrapPolicyProvisionerFactory === undefined
+              ? undefined
+              : (transaction: unknown) =>
+                  options.identityBootstrapPolicyProvisionerFactory!(
+                    transaction as IdentityBootstrapDatabaseClientV1,
+                  ),
+          ));
+    const dashboardProjectResolver =
+      hierarchyRepository === undefined
+        ? undefined
+        : new IamHierarchyDashboardProjectResolverAdapter(hierarchyRepository);
     const iaeAuthorization =
       options.iaeAuthorization ??
       (iamRepository === undefined
@@ -293,9 +314,12 @@ export class AppModule {
                 : {}),
             },
             workspaceEpochResolver,
-            options.dashboardProjectId === undefined
-              ? {}
-              : { dashboardProjectId: options.dashboardProjectId },
+            {
+              ...(options.dashboardProjectId === undefined
+                ? {}
+                : { dashboardProjectId: options.dashboardProjectId }),
+              ...(dashboardProjectResolver === undefined ? {} : { dashboardProjectResolver }),
+            },
           )
         : undefined);
     const platformOperatorAuthority =
@@ -667,6 +691,7 @@ export class AppModule {
       ...(landingFeedbackIpAdmission === undefined ? {} : { landingFeedbackIpAdmission }),
       ...(landingFeedbackAdmissionDigest === undefined ? {} : { landingFeedbackAdmissionDigest }),
       ...(iamRepository === undefined ? {} : { iamRepository }),
+      ...(hierarchyRepository === undefined ? {} : { hierarchyRepository }),
       ...(iaeAuthorization === undefined ? {} : { iaeAuthorization }),
       ...(iaeOriginalViewPort === undefined ? {} : { iaeOriginalViewPort }),
       accessPresetService,
