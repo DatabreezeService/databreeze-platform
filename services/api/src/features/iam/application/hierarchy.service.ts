@@ -192,36 +192,39 @@ export class IamHierarchyService {
     });
     if (!organizationContext.accepted) return rejected('UNAVAILABLE');
     try {
-      return await this.repository.withTransaction(organizationContext.value, async (transaction) => {
-        const parent = await transaction.findOrganization(
-          organizationContext.value,
-          organizationId.value,
-        );
-        if (!parent) return rejected('NOT_FOUND');
-        const candidate = createWorkspaceIdentityV1({
-          id: this.idGenerator(),
-          organizationId: parent.id,
-          name: nameInput,
-          createdAt,
-        });
-        if (!candidate.accepted) return rejected(identityCode(candidate.code));
-        await transaction.saveWorkspace(organizationContext.value, candidate.value);
-        const project = createProjectIdentityV1({
-          id: this.idGenerator(),
-          organizationId: parent.id,
-          workspaceId: candidate.value.id,
-          kind: 'INTERNAL',
-          name: 'Private project',
-          createdAt,
-        });
-        if (!project.accepted) return rejected(identityCode(project.code));
-        await transaction.saveProject(organizationContext.value, project.value);
-        return accepted({
-          workspace: candidate.value,
-          defaultProject: project.value,
-          dataMode: 'HYBRID',
-        });
-      });
+      return await this.repository.withTransaction(
+        organizationContext.value,
+        async (transaction) => {
+          const parent = await transaction.findOrganization(
+            organizationContext.value,
+            organizationId.value,
+          );
+          if (!parent) return rejected('NOT_FOUND');
+          const candidate = createWorkspaceIdentityV1({
+            id: this.idGenerator(),
+            organizationId: parent.id,
+            name: nameInput,
+            createdAt,
+          });
+          if (!candidate.accepted) return rejected(identityCode(candidate.code));
+          await transaction.saveWorkspace(organizationContext.value, candidate.value);
+          const project = createProjectIdentityV1({
+            id: this.idGenerator(),
+            organizationId: parent.id,
+            workspaceId: candidate.value.id,
+            kind: 'INTERNAL',
+            name: 'Private project',
+            createdAt,
+          });
+          if (!project.accepted) return rejected(identityCode(project.code));
+          await transaction.saveProject(organizationContext.value, project.value);
+          return accepted({
+            workspace: candidate.value,
+            defaultProject: project.value,
+            dataMode: 'HYBRID',
+          });
+        },
+      );
     } catch (error) {
       return rejected(applicationError(error));
     }

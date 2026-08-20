@@ -7,13 +7,21 @@ import { RequestTenantContextProblemError } from '../../../src/platform/http/req
 
 void test('[BUA-004] PayOS protected catalog returns canonical authentication failure without leaking a 500', async () => {
   const { app } = await createApiApplication({
-    payosPaymentService: new UnavailablePayosPaymentService() as unknown as import('../../../src/features/bua/application/payos-payment.service.js').PayosPaymentService,
-    requestTenantContext: { resolve: async () => { throw new RequestTenantContextProblemError('AUTHENTICATION_FAILED'); } },
+    payosPaymentService:
+      new UnavailablePayosPaymentService() as unknown as import('../../../src/features/bua/application/payos-payment.service.js').PayosPaymentService,
+    requestTenantContext: {
+      resolve: async () => {
+        throw new RequestTenantContextProblemError('AUTHENTICATION_FAILED');
+      },
+    },
   });
   try {
     const response = await app.inject({ method: 'GET', url: '/v1/billing/payos/plans' });
     assert.equal(response.statusCode, 401);
-    assert.equal((JSON.parse(response.body) as { readonly code?: string }).code, 'AUTHENTICATION_FAILED');
+    assert.equal(
+      (JSON.parse(response.body) as { readonly code?: string }).code,
+      'AUTHENTICATION_FAILED',
+    );
   } finally {
     await app.close();
   }
@@ -21,7 +29,8 @@ void test('[BUA-004] PayOS protected catalog returns canonical authentication fa
 
 void test('[BUA-001, BUA-002] PayOS checkout rejects client payloads that omit the versioned plan command', async () => {
   const { app } = await createApiApplication({
-    payosPaymentService: new UnavailablePayosPaymentService() as unknown as import('../../../src/features/bua/application/payos-payment.service.js').PayosPaymentService,
+    payosPaymentService:
+      new UnavailablePayosPaymentService() as unknown as import('../../../src/features/bua/application/payos-payment.service.js').PayosPaymentService,
   });
   try {
     const response = await app.inject({

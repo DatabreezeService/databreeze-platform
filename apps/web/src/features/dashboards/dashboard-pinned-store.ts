@@ -15,7 +15,8 @@ export class DashboardPinnedStore {
 
   private load(): void {
     try {
-      const stored = typeof window !== 'undefined' ? window.localStorage.getItem(PINNED_STORAGE_KEY) : null;
+      const stored =
+        typeof window !== 'undefined' ? window.localStorage.getItem(PINNED_STORAGE_KEY) : null;
       if (stored) {
         this.customWidgets = JSON.parse(stored);
       }
@@ -55,7 +56,10 @@ export class DashboardPinnedStore {
     this.persist();
   }
 
-  public addFromAnalysisProposal(proposal: LocalAnalysisChartProposal, pageId = 'overview'): DashboardWidgetV1 {
+  public addFromAnalysisProposal(
+    proposal: LocalAnalysisChartProposal,
+    pageId = 'overview',
+  ): DashboardWidgetV1 {
     const widget: DashboardWidgetV1 = {
       widgetId: crypto.randomUUID(),
       pageId,
@@ -64,12 +68,13 @@ export class DashboardPinnedStore {
         vi: proposal.title,
         en: proposal.title,
       },
-      values: proposal.type === 'KPI'
-        ? [{ label: proposal.title, value: proposal.aggregateValue ?? '0' }]
-        : proposal.dataPoints.map((dp) => ({
-            label: dp.label,
-            value: dp.formatted,
-          })),
+      values:
+        proposal.type === 'KPI'
+          ? [{ label: proposal.title, value: proposal.aggregateValue ?? '0' }]
+          : proposal.dataPoints.map((dp) => ({
+              label: dp.label,
+              value: dp.formatted,
+            })),
     };
 
     this.addWidget(widget);

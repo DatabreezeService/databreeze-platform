@@ -98,9 +98,9 @@ def test_loop_retries_only_retryable_control_plane_errors_with_bounded_backoff()
         sleeps.append(seconds)
         stopped.set()
 
-    WorkerLoop(
-        config(), client=retryable, workload_resolver=NoopResolver(), sleep=sleep
-    ).serve(stopped)
+    WorkerLoop(config(), client=retryable, workload_resolver=NoopResolver(), sleep=sleep).serve(
+        stopped
+    )
     assert retryable.calls == 1
     assert sleeps == [1.0]
 

@@ -58,21 +58,13 @@
         ],
         "primaryKey": {
           "autoGenerate": false,
-          "columnNames": [
-            "accountId",
-            "workspaceId",
-            "mutationId"
-          ]
+          "columnNames": ["accountId", "workspaceId", "mutationId"]
         },
         "indices": [
           {
             "name": "index_sync_queue_accountId_workspaceId_state",
             "unique": false,
-            "columnNames": [
-              "accountId",
-              "workspaceId",
-              "state"
-            ],
+            "columnNames": ["accountId", "workspaceId", "state"],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_sync_queue_accountId_workspaceId_state` ON `${TABLE_NAME}` (`accountId`, `workspaceId`, `state`)"
           }
@@ -144,21 +136,13 @@
         ],
         "primaryKey": {
           "autoGenerate": false,
-          "columnNames": [
-            "accountId",
-            "workspaceId",
-            "bundleId"
-          ]
+          "columnNames": ["accountId", "workspaceId", "bundleId"]
         },
         "indices": [
           {
             "name": "index_capture_bundles_accountId_workspaceId_state",
             "unique": false,
-            "columnNames": [
-              "accountId",
-              "workspaceId",
-              "state"
-            ],
+            "columnNames": ["accountId", "workspaceId", "state"],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_capture_bundles_accountId_workspaceId_state` ON `${TABLE_NAME}` (`accountId`, `workspaceId`, `state`)"
           }
@@ -259,22 +243,13 @@
         ],
         "primaryKey": {
           "autoGenerate": false,
-          "columnNames": [
-            "accountId",
-            "workspaceId",
-            "itemId"
-          ]
+          "columnNames": ["accountId", "workspaceId", "itemId"]
         },
         "indices": [
           {
             "name": "index_capture_items_accountId_workspaceId_bundleId_ordinal",
             "unique": false,
-            "columnNames": [
-              "accountId",
-              "workspaceId",
-              "bundleId",
-              "ordinal"
-            ],
+            "columnNames": ["accountId", "workspaceId", "bundleId", "ordinal"],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_capture_items_accountId_workspaceId_bundleId_ordinal` ON `${TABLE_NAME}` (`accountId`, `workspaceId`, `bundleId`, `ordinal`)"
           }
@@ -347,21 +322,13 @@
         ],
         "primaryKey": {
           "autoGenerate": false,
-          "columnNames": [
-            "accountId",
-            "workspaceId",
-            "draftId"
-          ]
+          "columnNames": ["accountId", "workspaceId", "draftId"]
         },
         "indices": [
           {
             "name": "index_review_drafts_accountId_workspaceId_reviewId",
             "unique": false,
-            "columnNames": [
-              "accountId",
-              "workspaceId",
-              "reviewId"
-            ],
+            "columnNames": ["accountId", "workspaceId", "reviewId"],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_review_drafts_accountId_workspaceId_reviewId` ON `${TABLE_NAME}` (`accountId`, `workspaceId`, `reviewId`)"
           }
@@ -404,10 +371,7 @@
         ],
         "primaryKey": {
           "autoGenerate": false,
-          "columnNames": [
-            "accountId",
-            "workspaceId"
-          ]
+          "columnNames": ["accountId", "workspaceId"]
         }
       }
     ],

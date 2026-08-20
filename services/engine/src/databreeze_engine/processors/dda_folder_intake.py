@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
@@ -44,7 +45,7 @@ class FolderIntakeResult(BaseModel):
     decisionHash: StrictStr = Field(pattern=r"^[0-9a-f]{64}$")
 
 
-def _decision_hash(payload: dict[str, object]) -> str:
+def _decision_hash(payload: Mapping[str, object]) -> str:
     encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 

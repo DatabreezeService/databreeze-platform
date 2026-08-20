@@ -60,10 +60,7 @@ export type ParseOutcomeV1 =
   | { readonly kind: 'clarification'; readonly suggestions: readonly string[] };
 
 /** Map free-text instructions (vi/en) onto typed cleaning intents. */
-export function parseCleaningInstruction(
-  text: string,
-  tabular: ParsedTabularData,
-): ParseOutcomeV1 {
+export function parseCleaningInstruction(text: string, tabular: ParsedTabularData): ParseOutcomeV1 {
   const normalized = stripDiacritics(text);
   const suggestions: string[] = [];
 
@@ -73,12 +70,16 @@ export function parseCleaningInstruction(
   }
 
   // Change column type
-  if (/(doi|chuyen|change|convert|cast|ep kieu).*(cot|column|kieu|type)/u.test(normalized) || /(so nguyen|integer|so thap phan|decimal|kieu ngay|as date|as text)/u.test(normalized)) {
+  if (
+    /(doi|chuyen|change|convert|cast|ep kieu).*(cot|column|kieu|type)/u.test(normalized) ||
+    /(so nguyen|integer|so thap phan|decimal|kieu ngay|as date|as text)/u.test(normalized)
+  ) {
     const column = findColumn(text, tabular.headers);
     if (column !== undefined) {
       let targetType: 'INTEGER' | 'DECIMAL' | 'DATE' | 'TEXT' | undefined;
       if (/so nguyen|integer|\bint\b/u.test(normalized)) targetType = 'INTEGER';
-      else if (/so thap phan|decimal|float|so tien|number/u.test(normalized)) targetType = 'DECIMAL';
+      else if (/so thap phan|decimal|float|so tien|number/u.test(normalized))
+        targetType = 'DECIMAL';
       else if (/ngay|date/u.test(normalized)) targetType = 'DATE';
       else if (/van ban|text|string|chuoi/u.test(normalized)) targetType = 'TEXT';
       if (targetType !== undefined) {
@@ -95,9 +96,14 @@ export function parseCleaningInstruction(
     const column = findColumn(text, tabular.headers);
     const newName = /\[(.+)\]|"(.+)"|'(.+)'|thanh\s+(\S+)|to\s+(\S+)/u.exec(text);
     if (column !== undefined && newName !== null) {
-      const captured = newName.slice(1).find((group) => group !== undefined && group.trim().length > 0);
+      const captured = newName
+        .slice(1)
+        .find((group) => group !== undefined && group.trim().length > 0);
       if (captured !== undefined) {
-        return { kind: 'intents', intents: [{ kind: 'RENAME_COLUMN', column, newName: captured.trim() }] };
+        return {
+          kind: 'intents',
+          intents: [{ kind: 'RENAME_COLUMN', column, newName: captured.trim() }],
+        };
       }
     }
     suggestions.push('Đổi tên cột "Ngày" thành "Ngày giao dịch"');
@@ -105,7 +111,11 @@ export function parseCleaningInstruction(
   }
 
   // Normalize values
-  if (/(chuan hoa|normalize|trim|khoang trang|viet thuong|lowercase).*(gia tri|values?|cot|column)?/u.test(normalized)) {
+  if (
+    /(chuan hoa|normalize|trim|khoang trang|viet thuong|lowercase).*(gia tri|values?|cot|column)?/u.test(
+      normalized,
+    )
+  ) {
     const column = findColumn(text, tabular.headers);
     if (column !== undefined) {
       return {
@@ -149,10 +159,10 @@ export function parseCleaningInstruction(
   const derived = deriveSafeIntents(tabular).slice(0, 3);
   return {
     kind: 'clarification',
-    suggestions: [
-      ...derived.map((intent) => suggestionFor(intent)),
-      'Bỏ các dòng trùng lặp',
-    ].slice(0, 3),
+    suggestions: [...derived.map((intent) => suggestionFor(intent)), 'Bỏ các dòng trùng lặp'].slice(
+      0,
+      3,
+    ),
   };
 }
 
@@ -221,7 +231,10 @@ export class CleaningAgentStore {
     return fresh;
   }
 
-  private update(datasetId: string, mutate: (thread: CleaningThreadV1) => CleaningThreadV1): CleaningThreadV1 {
+  private update(
+    datasetId: string,
+    mutate: (thread: CleaningThreadV1) => CleaningThreadV1,
+  ): CleaningThreadV1 {
     const thread = this.getThread(datasetId);
     const next = mutate(thread);
     this.threads.set(datasetId, next);
@@ -361,9 +374,7 @@ export class CleaningAgentStore {
       (candidate) => candidate.proposalId === proposalId && candidate.status === 'pending',
     );
     if (message === undefined || message.plan === undefined) return;
-    const intents = message.plan.intents
-      .filter((item) => item.valid)
-      .map((item) => item.intent);
+    const intents = message.plan.intents.filter((item) => item.valid).map((item) => item.intent);
     this.markProposal(datasetId, proposalId, 'applied');
     this.applyIntentsToDataset(datasetId, intents, message.plan, locale);
     this.runAutopilot(datasetId, locale);
@@ -392,7 +403,12 @@ export class CleaningAgentStore {
     const tabular = localDataStore.getTabularData(datasetId);
     if (tabular === undefined) return;
     const next = applyIntents(tabular, intents, mergeContext());
-    const revision = buildCleaningRevision(intents, plan.anyLossy, tabular.totalRows, next.totalRows);
+    const revision = buildCleaningRevision(
+      intents,
+      plan.anyLossy,
+      tabular.totalRows,
+      next.totalRows,
+    );
     localDataStore.applyCleaning(datasetId, revision, next);
     const vi = locale === 'vi-VN';
     const summary = plan.intents[0]?.descriptionVi ?? revision.summaryVi;

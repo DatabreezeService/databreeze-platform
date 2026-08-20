@@ -230,7 +230,13 @@ export class DeviceSyncService {
    * unusable with an unsigned empty cursor; this bootstrap keeps that invariant explicit. */
   public async bootstrapCursor(
     context: IamTenantContextV1,
-    input: { readonly deviceId: unknown; readonly grantId?: unknown; readonly now: string; readonly dataMode?: unknown; readonly protocolVersion?: unknown },
+    input: {
+      readonly deviceId: unknown;
+      readonly grantId?: unknown;
+      readonly now: string;
+      readonly dataMode?: unknown;
+      readonly protocolVersion?: unknown;
+    },
     signer: DeviceSyncCursorSignerV1,
   ): Promise<DeviceSyncServiceResultV1<DeviceSyncCursorV1>> {
     const authorized = await this.authorizeDevice(context, {
@@ -241,12 +247,20 @@ export class DeviceSyncService {
       now: input.now,
     });
     if (!authorized.accepted) return authorized;
-    return createDeviceSyncCursorV1({
-      cursorId: randomUUID(), deviceId: input.deviceId, tenantScope: context.tenantScope,
-      authorizationEpoch: context.workspaceAuthorizationEpoch ?? context.authorizationEpoch,
-      changeRevision: 0, dataMode: input.dataMode ?? 'Hybrid', protocolVersion: input.protocolVersion ?? 'android-v1',
-      issuedAt: input.now, expiresAt: new Date(Date.parse(input.now) + 15 * 60_000).toISOString(),
-    }, signer);
+    return createDeviceSyncCursorV1(
+      {
+        cursorId: randomUUID(),
+        deviceId: input.deviceId,
+        tenantScope: context.tenantScope,
+        authorizationEpoch: context.workspaceAuthorizationEpoch ?? context.authorizationEpoch,
+        changeRevision: 0,
+        dataMode: input.dataMode ?? 'Hybrid',
+        protocolVersion: input.protocolVersion ?? 'android-v1',
+        issuedAt: input.now,
+        expiresAt: new Date(Date.parse(input.now) + 15 * 60_000).toISOString(),
+      },
+      signer,
+    );
   }
 
   public async pull(

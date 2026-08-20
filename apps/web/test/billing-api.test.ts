@@ -11,16 +11,39 @@ describe('billing API transport', () => {
       baseUrl: 'http://localhost',
       fetcher: async (input, init) => {
         calls.push({ url: String(input), init });
-        return new Response(JSON.stringify({
-          schemaVersion: 4,
-          plans: [{
-            id: 'personal-monthly', family: 'personal', billingCycle: 'monthly', amountVnd: 149000,
-            description: 'DataBreeze Ca nhan thang', displayNameVi: 'Cá nhân', displayNameEn: 'Personal',
-            taglineVi: 'Cho người vận hành độc lập', taglineEn: 'For individual operators',
-            benefitsVi: ['Thư mục không giới hạn'], benefitsEn: ['Unlimited approved folders'],
-            allowances: { connectedFolders: 'unlimited', ocrPagesPerMonth: 200, agentCreditsPerMonth: 1000, etlRowsPerMonth: 5000000, logicalDatasets: 20, governedStorageGb: 10, agentEnabledMembers: 1, viewerMembers: 2, workspaces: 1, refreshMinutes: 60 },
-          }],
-        }), { status: 200, headers: { 'content-type': 'application/json' } });
+        return new Response(
+          JSON.stringify({
+            schemaVersion: 4,
+            plans: [
+              {
+                id: 'personal-monthly',
+                family: 'personal',
+                billingCycle: 'monthly',
+                amountVnd: 149000,
+                description: 'DataBreeze Ca nhan thang',
+                displayNameVi: 'Cá nhân',
+                displayNameEn: 'Personal',
+                taglineVi: 'Cho người vận hành độc lập',
+                taglineEn: 'For individual operators',
+                benefitsVi: ['Thư mục không giới hạn'],
+                benefitsEn: ['Unlimited approved folders'],
+                allowances: {
+                  connectedFolders: 'unlimited',
+                  ocrPagesPerMonth: 200,
+                  agentCreditsPerMonth: 1000,
+                  etlRowsPerMonth: 5000000,
+                  logicalDatasets: 20,
+                  governedStorageGb: 10,
+                  agentEnabledMembers: 1,
+                  viewerMembers: 2,
+                  workspaces: 1,
+                  refreshMinutes: 60,
+                },
+              },
+            ],
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
       },
     });
     const plans = await api.listPlans();
@@ -36,9 +59,32 @@ describe('billing API transport', () => {
         calls.push({ url: String(input), init });
         const body = String(init?.body ?? '');
         if (body.includes('planId')) {
-          return new Response(JSON.stringify({ schemaVersion: 4, paymentOrderId: orderId, orderCode: 123, planId: 'personal-monthly', amountVnd: 149000, currency: 'VND', status: 'PENDING', checkoutUrl: 'https://payos.local/mock-checkout/123' }), { status: 201, headers: { 'content-type': 'application/json' } });
+          return new Response(
+            JSON.stringify({
+              schemaVersion: 4,
+              paymentOrderId: orderId,
+              orderCode: 123,
+              planId: 'personal-monthly',
+              amountVnd: 149000,
+              currency: 'VND',
+              status: 'PENDING',
+              checkoutUrl: 'https://payos.local/mock-checkout/123',
+            }),
+            { status: 201, headers: { 'content-type': 'application/json' } },
+          );
         }
-        return new Response(JSON.stringify({ schemaVersion: 4, paymentOrderId: orderId, orderCode: 123, planId: 'personal-monthly', amountVnd: 149000, currency: 'VND', status: 'PAID' }), { status: 200, headers: { 'content-type': 'application/json' } });
+        return new Response(
+          JSON.stringify({
+            schemaVersion: 4,
+            paymentOrderId: orderId,
+            orderCode: 123,
+            planId: 'personal-monthly',
+            amountVnd: 149000,
+            currency: 'VND',
+            status: 'PAID',
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
       },
     });
     const checkout = await api.createCheckout('personal-monthly');
@@ -48,6 +94,9 @@ describe('billing API transport', () => {
     expect(calls[0]?.init?.headers).toBeDefined();
     const headers = new Headers(calls[0]?.init?.headers);
     expect(headers.get('idempotency-key')).toBeTruthy();
-    expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({ schemaVersion: 4, planId: 'personal-monthly' });
+    expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({
+      schemaVersion: 4,
+      planId: 'personal-monthly',
+    });
   });
 });

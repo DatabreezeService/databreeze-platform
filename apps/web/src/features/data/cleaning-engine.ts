@@ -38,14 +38,25 @@ const DATE_OR_DATETIME =
   /^(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{4})([ T]\d{1,2}:\d{2}(:\d{2})?)?$/u;
 
 function typeLabelVi(type: GovernedFieldTypeV1): string {
-  return { TEXT: 'văn bản', INTEGER: 'số nguyên', DECIMAL: 'số thập phân', BOOLEAN: 'đúng/sai', DATE: 'ngày' }[type];
+  return {
+    TEXT: 'văn bản',
+    INTEGER: 'số nguyên',
+    DECIMAL: 'số thập phân',
+    BOOLEAN: 'đúng/sai',
+    DATE: 'ngày',
+  }[type];
 }
 
 function typeLabelEn(type: GovernedFieldTypeV1): string {
-  return { TEXT: 'text', INTEGER: 'integer', DECIMAL: 'decimal', BOOLEAN: 'boolean', DATE: 'date' }[type];
+  return { TEXT: 'text', INTEGER: 'integer', DECIMAL: 'decimal', BOOLEAN: 'boolean', DATE: 'date' }[
+    type
+  ];
 }
 
-function coerceCell(value: CellValueV1, targetType: GovernedFieldTypeV1): { value: CellValueV1; ok: boolean } {
+function coerceCell(
+  value: CellValueV1,
+  targetType: GovernedFieldTypeV1,
+): { value: CellValueV1; ok: boolean } {
   if (value === null) return { value: null, ok: true };
   if (targetType === 'TEXT') return { value: String(value), ok: true };
   if (targetType === 'BOOLEAN') {
@@ -54,14 +65,22 @@ function coerceCell(value: CellValueV1, targetType: GovernedFieldTypeV1): { valu
     if (lower === 'false' || lower === '0' || lower === 'sai') return { value: false, ok: true };
     return { value: null, ok: false };
   }
-  const raw = String(value).trim().replace(/[₫$\s]/gu, '');
+  const raw = String(value)
+    .trim()
+    .replace(/[₫$\s]/gu, '');
   if (targetType === 'INTEGER') {
-    const normalized = raw.includes(',') && !raw.includes('.') ? raw.replace(/,/gu, '') : raw.replace(/\./gu, '').replace(/,/gu, '');
+    const normalized =
+      raw.includes(',') && !raw.includes('.')
+        ? raw.replace(/,/gu, '')
+        : raw.replace(/\./gu, '').replace(/,/gu, '');
     if (/^[+-]?\d+$/u.test(normalized)) return { value: Number.parseInt(normalized, 10), ok: true };
     return { value: null, ok: false };
   }
   if (targetType === 'DECIMAL') {
-    const normalized = raw.includes(',') && !raw.includes('.') ? raw.replace(/\./gu, '').replace(/,/gu, '.') : raw.replace(/,/gu, '');
+    const normalized =
+      raw.includes(',') && !raw.includes('.')
+        ? raw.replace(/\./gu, '').replace(/,/gu, '.')
+        : raw.replace(/,/gu, '');
     if (NUMERIC_LOOK.test(normalized)) return { value: Number.parseFloat(normalized), ok: true };
     return { value: null, ok: false };
   }
@@ -111,7 +130,11 @@ function countDuplicates(rows: readonly Record<string, CellValueV1>[]): number {
   const seen = new Set<string>();
   let duplicates = 0;
   for (const row of rows) {
-    const key = JSON.stringify(Object.keys(row).sort().map((column) => row[column] ?? null));
+    const key = JSON.stringify(
+      Object.keys(row)
+        .sort()
+        .map((column) => row[column] ?? null),
+    );
     if (seen.has(key)) duplicates++;
     else seen.add(key);
   }
@@ -128,10 +151,7 @@ export interface CleaningContextV1 {
   readonly getMergeSource?: (datasetId: string) => MergeSourceV1 | undefined;
 }
 
-function describe(
-  intent: CleaningIntentV1,
-  locale: 'vi-VN' | 'en',
-): string {
+function describe(intent: CleaningIntentV1, locale: 'vi-VN' | 'en'): string {
   const vi = locale === 'vi-VN';
   switch (intent.kind) {
     case 'CHANGE_COLUMN_TYPE':
@@ -139,7 +159,9 @@ function describe(
         ? `Đổi kiểu cột "${intent.column}" sang ${typeLabelVi(intent.targetType)}`
         : `Change column "${intent.column}" to ${typeLabelEn(intent.targetType)}`;
     case 'RENAME_COLUMN':
-      return vi ? `Đổi tên cột "${intent.column}" thành "${intent.newName}"` : `Rename column "${intent.column}" to "${intent.newName}"`;
+      return vi
+        ? `Đổi tên cột "${intent.column}" thành "${intent.newName}"`
+        : `Rename column "${intent.column}" to "${intent.newName}"`;
     case 'DEDUPLICATE_ROWS':
       return vi ? 'Loại bỏ các dòng trùng lặp hoàn toàn' : 'Remove fully duplicated rows';
     case 'NORMALIZE_VALUES':
@@ -151,9 +173,13 @@ function describe(
         ? `Lọc dòng theo cột "${intent.column}" ${intent.operator === 'EMPTY' ? 'trống' : intent.operator === 'NOT_EMPTY' ? 'không trống' : `${intent.operator} "${intent.value ?? ''}"`}`
         : `Filter rows on "${intent.column}" ${intent.operator}`;
     case 'FIX_DATE_FORMAT':
-      return vi ? `Chuẩn hóa định dạng ngày của cột "${intent.column}"` : `Normalize date format in "${intent.column}"`;
+      return vi
+        ? `Chuẩn hóa định dạng ngày của cột "${intent.column}"`
+        : `Normalize date format in "${intent.column}"`;
     case 'MERGE_ON_KEY':
-      return vi ? `Ghép cột từ bộ dữ liệu khác theo khóa "${intent.keyColumn}"` : `Merge columns from another dataset on key "${intent.keyColumn}"`;
+      return vi
+        ? `Ghép cột từ bộ dữ liệu khác theo khóa "${intent.keyColumn}"`
+        : `Merge columns from another dataset on key "${intent.keyColumn}"`;
   }
 }
 
@@ -173,7 +199,13 @@ export function planIntents(
     if (intent.kind === 'CHANGE_COLUMN_TYPE') {
       const column = parsed.columns.find((candidate) => candidate.name === intent.column);
       if (column === undefined) {
-        return { ...base, valid: false, invalidReason: 'unknown column', lossy: false, affectedCount: 0 };
+        return {
+          ...base,
+          valid: false,
+          invalidReason: 'unknown column',
+          lossy: false,
+          affectedCount: 0,
+        };
       }
       const values = columnValues(parsed.rows, intent.column);
       let failures = 0;
@@ -187,7 +219,11 @@ export function planIntents(
             exampleBefore = String(value);
             exampleAfter = 'null';
           }
-        } else if (exampleBefore === undefined && value !== null && String(result.value) !== String(value)) {
+        } else if (
+          exampleBefore === undefined &&
+          value !== null &&
+          String(result.value) !== String(value)
+        ) {
           exampleBefore = String(value);
           exampleAfter = String(result.value);
         }
@@ -197,7 +233,9 @@ export function planIntents(
         valid: true,
         lossy: failures > 0,
         affectedCount: values.filter((value) => value !== null).length,
-        ...(exampleBefore !== undefined && exampleAfter !== undefined ? { exampleBefore, exampleAfter } : {}),
+        ...(exampleBefore !== undefined && exampleAfter !== undefined
+          ? { exampleBefore, exampleAfter }
+          : {}),
       };
     }
 
@@ -205,7 +243,13 @@ export function planIntents(
       const exists = parsed.headers.includes(intent.column);
       const taken = parsed.headers.includes(intent.newName);
       if (!exists || taken || intent.newName.trim().length === 0) {
-        return { ...base, valid: false, invalidReason: !exists ? 'unknown column' : 'invalid name', lossy: false, affectedCount: 0 };
+        return {
+          ...base,
+          valid: false,
+          invalidReason: !exists ? 'unknown column' : 'invalid name',
+          lossy: false,
+          affectedCount: 0,
+        };
       }
       return { ...base, valid: true, lossy: false, affectedCount: parsed.rows.length };
     }
@@ -218,22 +262,41 @@ export function planIntents(
     if (intent.kind === 'NORMALIZE_VALUES') {
       const column = parsed.columns.find((candidate) => candidate.name === intent.column);
       if (column === undefined) {
-        return { ...base, valid: false, invalidReason: 'unknown column', lossy: false, affectedCount: 0 };
+        return {
+          ...base,
+          valid: false,
+          invalidReason: 'unknown column',
+          lossy: false,
+          affectedCount: 0,
+        };
       }
       let affected = 0;
       for (const row of parsed.rows) {
         const value = row[intent.column];
         if (typeof value !== 'string') continue;
-        const normalized = (intent.trim ? value.trim() : value)[intent.lowercase ? 'toLowerCase' : 'toString']();
+        const normalized = (intent.trim ? value.trim() : value)[
+          intent.lowercase ? 'toLowerCase' : 'toString'
+        ]();
         if (normalized !== value) affected++;
       }
-      return { ...base, valid: true, lossy: intent.lowercase && affected > 0, affectedCount: affected };
+      return {
+        ...base,
+        valid: true,
+        lossy: intent.lowercase && affected > 0,
+        affectedCount: affected,
+      };
     }
 
     if (intent.kind === 'FILTER_ROWS') {
       const column = parsed.columns.find((candidate) => candidate.name === intent.column);
       if (column === undefined) {
-        return { ...base, valid: false, invalidReason: 'unknown column', lossy: false, affectedCount: 0 };
+        return {
+          ...base,
+          valid: false,
+          invalidReason: 'unknown column',
+          lossy: false,
+          affectedCount: 0,
+        };
       }
       const matched = parsed.rows.filter((row) => {
         const value = row[intent.column];
@@ -248,7 +311,13 @@ export function planIntents(
     if (intent.kind === 'FIX_DATE_FORMAT') {
       const column = parsed.columns.find((candidate) => candidate.name === intent.column);
       if (column === undefined) {
-        return { ...base, valid: false, invalidReason: 'unknown column', lossy: false, affectedCount: 0 };
+        return {
+          ...base,
+          valid: false,
+          invalidReason: 'unknown column',
+          lossy: false,
+          affectedCount: 0,
+        };
       }
       let affected = 0;
       let exampleBefore: string | undefined;
@@ -270,17 +339,34 @@ export function planIntents(
         valid: true,
         lossy: false,
         affectedCount: affected,
-        ...(exampleBefore !== undefined && exampleAfter !== undefined ? { exampleBefore, exampleAfter } : {}),
+        ...(exampleBefore !== undefined && exampleAfter !== undefined
+          ? { exampleBefore, exampleAfter }
+          : {}),
       };
     }
 
     // MERGE_ON_KEY
     const source = context.getMergeSource?.(intent.sourceDatasetId);
     if (source === undefined) {
-      return { ...base, valid: false, invalidReason: 'source dataset unavailable', lossy: false, affectedCount: 0 };
+      return {
+        ...base,
+        valid: false,
+        invalidReason: 'source dataset unavailable',
+        lossy: false,
+        affectedCount: 0,
+      };
     }
-    if (!source.tabular.headers.includes(intent.keyColumn) || !parsed.headers.includes(intent.keyColumn)) {
-      return { ...base, valid: false, invalidReason: 'key column missing', lossy: false, affectedCount: 0 };
+    if (
+      !source.tabular.headers.includes(intent.keyColumn) ||
+      !parsed.headers.includes(intent.keyColumn)
+    ) {
+      return {
+        ...base,
+        valid: false,
+        invalidReason: 'key column missing',
+        lossy: false,
+        affectedCount: 0,
+      };
     }
     const incoming = source.tabular.headers.filter((header) => !parsed.headers.includes(header));
     return {
@@ -467,7 +553,9 @@ export function deriveSafeIntents(parsed: ParsedTabularData): CleaningIntentV1[]
     const threshold = values.length * 0.85;
 
     if (numeric.length >= threshold) {
-      const allIntegers = numeric.every((value) => /^[+-]?\d+$/u.test(String(value).replace(/[.,\s₫$]/gu, '')));
+      const allIntegers = numeric.every((value) =>
+        /^[+-]?\d+$/u.test(String(value).replace(/[.,\s₫$]/gu, '')),
+      );
       intents.push({
         kind: 'CHANGE_COLUMN_TYPE',
         column: column.name,
@@ -501,7 +589,15 @@ export function coherenceCheck(
 ): CoherenceReportV1 {
   const findings: CoherenceFindingV1[] = [];
   if (members.length < 2) {
-    return { findings: [{ severity: 'info', textVi: 'Thêm dữ liệu vào dự án để kiểm tra tính nhất quán.', textEn: 'Add datasets to the project to check coherence.' }] };
+    return {
+      findings: [
+        {
+          severity: 'info',
+          textVi: 'Thêm dữ liệu vào dự án để kiểm tra tính nhất quán.',
+          textEn: 'Add datasets to the project to check coherence.',
+        },
+      ],
+    };
   }
 
   for (let i = 0; i < members.length; i++) {
@@ -510,14 +606,17 @@ export function coherenceCheck(
       const b = members[j]!;
       const shared = a.tabular.headers.filter((header) => b.tabular.headers.includes(header));
       if (shared.length > 0) {
-        const keyColumn = shared.find((header) =>
-          /(^|_)(id|mã|ma|code|key)($|_)/iu.test(header) || /id|mã|code|key/iu.test(header),
+        const keyColumn = shared.find(
+          (header) =>
+            /(^|_)(id|mã|ma|code|key)($|_)/iu.test(header) || /id|mã|code|key/iu.test(header),
         );
         if (keyColumn !== undefined) {
           const keysA = new Set(
             a.tabular.rows.map((row) => String(row[keyColumn] ?? '')).filter((key) => key !== ''),
           );
-          const overlap = b.tabular.rows.filter((row) => keysA.has(String(row[keyColumn] ?? ''))).length;
+          const overlap = b.tabular.rows.filter((row) =>
+            keysA.has(String(row[keyColumn] ?? '')),
+          ).length;
           if (overlap > 0) {
             findings.push({
               severity: 'warning',
@@ -545,7 +644,8 @@ export function coherenceCheck(
   if (findings.length === 0) {
     findings.push({
       severity: 'info',
-      textVi: 'Các bộ dữ liệu trong dự án không có cột chung — hãy đặt tên cột nhất quán để có thể ghép.',
+      textVi:
+        'Các bộ dữ liệu trong dự án không có cột chung — hãy đặt tên cột nhất quán để có thể ghép.',
       textEn: 'Datasets in this project share no columns — align column names to enable merging.',
     });
   }

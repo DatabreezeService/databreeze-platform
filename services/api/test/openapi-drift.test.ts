@@ -15,7 +15,8 @@ void test('the checked-in v1 OpenAPI artifact matches a fresh application genera
   assert.ok(actual, 'openapi/v1.json must be checked in');
 
   const { app, openApi: rawOpenApi } = await createApiApplication({
-    payosPaymentService: new UnavailablePayosPaymentService() as unknown as import('../src/features/bua/application/payos-payment.service.js').PayosPaymentService,
+    payosPaymentService:
+      new UnavailablePayosPaymentService() as unknown as import('../src/features/bua/application/payos-payment.service.js').PayosPaymentService,
   });
   try {
     const openApi = rawOpenApi as OpenAPIObject;

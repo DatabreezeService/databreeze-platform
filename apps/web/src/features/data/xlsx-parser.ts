@@ -17,19 +17,18 @@ function readU32(view: DataView, offset: number): number {
   return view.getUint32(offset, true);
 }
 
-type RawInflateStreamCtor = new (
-  format: 'deflate-raw',
-) => TransformStream<Uint8Array, Uint8Array>;
+type RawInflateStreamCtor = new (format: 'deflate-raw') => TransformStream<Uint8Array, Uint8Array>;
 
 async function inflateRaw(bytes: Uint8Array): Promise<Uint8Array> {
-  const DecompressionStreamCtor =
-    globalThis.DecompressionStream as RawInflateStreamCtor | undefined;
+  const DecompressionStreamCtor = globalThis.DecompressionStream as
+    | RawInflateStreamCtor
+    | undefined;
   if (DecompressionStreamCtor === undefined) {
     throw new XlsxError('NOT_XLSX', 'DecompressionStream is unavailable in this runtime');
   }
-  const stream = new Blob([bytes as unknown as BlobPart]).stream().pipeThrough(
-    new DecompressionStreamCtor('deflate-raw'),
-  );
+  const stream = new Blob([bytes as unknown as BlobPart])
+    .stream()
+    .pipeThrough(new DecompressionStreamCtor('deflate-raw'));
   const buffer = await new Response(stream).arrayBuffer();
   return new Uint8Array(buffer);
 }
@@ -98,10 +97,12 @@ function firstSheetPath(entries: Map<string, Uint8Array>): string {
   const sheet = workbook.getElementsByTagName('sheet')[0];
   const relsBytes = entries.get('xl/_rels/workbook.xml.rels');
   if (sheet && relsBytes) {
-    const relId = sheet.getAttribute('r:id') ?? sheet.getAttributeNS(
-      'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
-      'id',
-    );
+    const relId =
+      sheet.getAttribute('r:id') ??
+      sheet.getAttributeNS(
+        'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
+        'id',
+      );
     if (relId) {
       const rels = xmlText(relsBytes);
       for (const rel of Array.from(rels.getElementsByTagName('Relationship'))) {
@@ -179,10 +180,7 @@ function excelSerialToDateString(serial: number): string {
  * Parse an XLSX workbook into its raw first-sheet string grid (header row first).
  * Number/date conventions are intentionally left to the shared inference pass.
  */
-export async function parseXlsxContent(
-  fileName: string,
-  bytes: ArrayBuffer,
-): Promise<string[][]> {
+export async function parseXlsxContent(fileName: string, bytes: ArrayBuffer): Promise<string[][]> {
   const entries = await readZip(new Uint8Array(bytes));
   const sheetPath = firstSheetPath(entries);
   const sheet = xmlText(entries.get(sheetPath)!);

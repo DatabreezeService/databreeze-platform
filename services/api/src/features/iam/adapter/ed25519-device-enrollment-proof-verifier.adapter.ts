@@ -1,8 +1,6 @@
 import { createPublicKey, verify } from 'node:crypto';
 
-import type {
-  DeviceEnrollmentProofVerifierV1,
-} from '../application/device-identity.service.js';
+import type { DeviceEnrollmentProofVerifierV1 } from '../application/device-identity.service.js';
 
 /**
  * Production proof-of-possession verifier for Android/Windows DeviceIdentity enrollment.

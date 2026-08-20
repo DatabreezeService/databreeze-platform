@@ -96,8 +96,16 @@ const plans: readonly PayosPlanV1[] = Object.freeze([
     displayNameEn: 'Personal',
     taglineVi: 'Cho cửa hàng nhỏ và người vận hành độc lập',
     taglineEn: 'For individual operators and small stores',
-    benefitsVi: ['Thư mục Windows không giới hạn', '20 tập dữ liệu và 10 GB lưu trữ', 'Đầy đủ Web, Desktop và Android'],
-    benefitsEn: ['Unlimited approved Windows folders', '20 datasets and 10 GB storage', 'Web, Desktop and Android included'],
+    benefitsVi: [
+      'Thư mục Windows không giới hạn',
+      '20 tập dữ liệu và 10 GB lưu trữ',
+      'Đầy đủ Web, Desktop và Android',
+    ],
+    benefitsEn: [
+      'Unlimited approved Windows folders',
+      '20 datasets and 10 GB storage',
+      'Web, Desktop and Android included',
+    ],
     allowances: personalAllowances,
   },
   {
@@ -110,8 +118,16 @@ const plans: readonly PayosPlanV1[] = Object.freeze([
     displayNameEn: 'Personal',
     taglineVi: 'Tiết kiệm khi thanh toán theo năm',
     taglineEn: 'Save with annual billing',
-    benefitsVi: ['Thư mục Windows không giới hạn', '20 tập dữ liệu và 10 GB lưu trữ', 'Đầy đủ Web, Desktop và Android'],
-    benefitsEn: ['Unlimited approved Windows folders', '20 datasets and 10 GB storage', 'Web, Desktop and Android included'],
+    benefitsVi: [
+      'Thư mục Windows không giới hạn',
+      '20 tập dữ liệu và 10 GB lưu trữ',
+      'Đầy đủ Web, Desktop và Android',
+    ],
+    benefitsEn: [
+      'Unlimited approved Windows folders',
+      '20 datasets and 10 GB storage',
+      'Web, Desktop and Android included',
+    ],
     allowances: personalAllowances,
   },
   {
@@ -124,8 +140,16 @@ const plans: readonly PayosPlanV1[] = Object.freeze([
     displayNameEn: 'Professional',
     taglineVi: 'Cho nhóm vận hành cần kiểm soát dữ liệu',
     taglineEn: 'For small operating teams',
-    benefitsVi: ['Thư mục Windows không giới hạn', '100 tập dữ liệu và 50 GB lưu trữ', '3 workspace và 10 thành viên Viewer'],
-    benefitsEn: ['Unlimited approved Windows folders', '100 datasets and 50 GB storage', '3 workspaces and 10 Viewer members'],
+    benefitsVi: [
+      'Thư mục Windows không giới hạn',
+      '100 tập dữ liệu và 50 GB lưu trữ',
+      '3 workspace và 10 thành viên Viewer',
+    ],
+    benefitsEn: [
+      'Unlimited approved Windows folders',
+      '100 datasets and 50 GB storage',
+      '3 workspaces and 10 Viewer members',
+    ],
     allowances: professionalAllowances,
   },
   {
@@ -138,8 +162,16 @@ const plans: readonly PayosPlanV1[] = Object.freeze([
     displayNameEn: 'Professional',
     taglineVi: 'Tiết kiệm khi thanh toán theo năm',
     taglineEn: 'Save with annual billing',
-    benefitsVi: ['Thư mục Windows không giới hạn', '100 tập dữ liệu và 50 GB lưu trữ', '3 workspace và 10 thành viên Viewer'],
-    benefitsEn: ['Unlimited approved Windows folders', '100 datasets and 50 GB storage', '3 workspaces and 10 Viewer members'],
+    benefitsVi: [
+      'Thư mục Windows không giới hạn',
+      '100 tập dữ liệu và 50 GB lưu trữ',
+      '3 workspace và 10 thành viên Viewer',
+    ],
+    benefitsEn: [
+      'Unlimited approved Windows folders',
+      '100 datasets and 50 GB storage',
+      '3 workspaces and 10 Viewer members',
+    ],
     allowances: professionalAllowances,
   },
   {
@@ -152,8 +184,16 @@ const plans: readonly PayosPlanV1[] = Object.freeze([
     displayNameEn: 'Team',
     taglineVi: 'Cho tổ chức đang phát triển',
     taglineEn: 'For growing organizations',
-    benefitsVi: ['Thư mục Windows không giới hạn', '500 tập dữ liệu và 250 GB lưu trữ', '10 workspace và 50 thành viên Viewer'],
-    benefitsEn: ['Unlimited approved Windows folders', '500 datasets and 250 GB storage', '10 workspaces and 50 Viewer members'],
+    benefitsVi: [
+      'Thư mục Windows không giới hạn',
+      '500 tập dữ liệu và 250 GB lưu trữ',
+      '10 workspace và 50 thành viên Viewer',
+    ],
+    benefitsEn: [
+      'Unlimited approved Windows folders',
+      '500 datasets and 250 GB storage',
+      '10 workspaces and 50 Viewer members',
+    ],
     allowances: teamAllowances,
   },
   {
@@ -166,8 +206,16 @@ const plans: readonly PayosPlanV1[] = Object.freeze([
     displayNameEn: 'Team',
     taglineVi: 'Tiết kiệm khi thanh toán theo năm',
     taglineEn: 'Save with annual billing',
-    benefitsVi: ['Thư mục Windows không giới hạn', '500 tập dữ liệu và 250 GB lưu trữ', '10 workspace và 50 thành viên Viewer'],
-    benefitsEn: ['Unlimited approved Windows folders', '500 datasets and 250 GB storage', '10 workspaces and 50 Viewer members'],
+    benefitsVi: [
+      'Thư mục Windows không giới hạn',
+      '500 tập dữ liệu và 250 GB lưu trữ',
+      '10 workspace và 50 thành viên Viewer',
+    ],
+    benefitsEn: [
+      'Unlimited approved Windows folders',
+      '500 datasets and 250 GB storage',
+      '10 workspaces and 50 Viewer members',
+    ],
     allowances: teamAllowances,
   },
 ]);

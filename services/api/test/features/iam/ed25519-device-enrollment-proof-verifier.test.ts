@@ -24,7 +24,18 @@ test('verifies the Android Ed25519 proof over the server challenge digest', () =
     expiresAt: '2026-01-01T00:05:00.000Z',
     revision: 1,
   } as unknown as Parameters<DeviceEnrollmentProofVerifierV1['verify']>[0]['challenge'];
-  assert.equal(verifier.verify({ challenge, publicKey: encodedPublicKey, proof, now: challenge.issuedAt }), true);
+  assert.equal(
+    verifier.verify({ challenge, publicKey: encodedPublicKey, proof, now: challenge.issuedAt }),
+    true,
+  );
   const tampered = `${proof[0] === 'A' ? 'B' : 'A'}${proof.slice(1)}`;
-  assert.equal(verifier.verify({ challenge, publicKey: encodedPublicKey, proof: tampered, now: challenge.issuedAt }), false);
+  assert.equal(
+    verifier.verify({
+      challenge,
+      publicKey: encodedPublicKey,
+      proof: tampered,
+      now: challenge.issuedAt,
+    }),
+    false,
+  );
 });

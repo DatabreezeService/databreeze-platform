@@ -65,7 +65,9 @@ export function AddWidgetModal({ isOpen, locale, onClose, pageId }: AddWidgetMod
   if (!isOpen) return null;
 
   const currentDataset = localDataStore.getDataset(selectedDatasetId) ?? datasets[0];
-  const tabular = currentDataset ? localDataStore.getTabularData(currentDataset.datasetId) : undefined;
+  const tabular = currentDataset
+    ? localDataStore.getTabularData(currentDataset.datasetId)
+    : undefined;
   const columns = tabular?.columns ?? [];
   const numericCols = columns.filter((c) => c.type === 'INTEGER' || c.type === 'DECIMAL');
   const textCols = columns.filter((c) => c.type === 'TEXT' || c.type === 'DATE');
@@ -73,9 +75,11 @@ export function AddWidgetModal({ isOpen, locale, onClose, pageId }: AddWidgetMod
   const [selectedMeasure, setSelectedMeasure] = useState<string>(numericCols[0]?.name ?? '');
   const [selectedDimension, setSelectedDimension] = useState<string>(textCols[0]?.name ?? '');
 
-  const finalTitle = title.trim() || (selectedType === 'KPI'
-    ? (selectedMeasure || (locale === 'vi-VN' ? 'Chỉ số mới' : 'New KPI'))
-    : `${selectedMeasure || 'Số liệu'} theo ${selectedDimension || 'Nhóm'}`);
+  const finalTitle =
+    title.trim() ||
+    (selectedType === 'KPI'
+      ? selectedMeasure || (locale === 'vi-VN' ? 'Chỉ số mới' : 'New KPI')
+      : `${selectedMeasure || 'Số liệu'} theo ${selectedDimension || 'Nhóm'}`);
 
   // Compute live values
   let previewValues: { label: string; value: string; num: number }[] = [];
@@ -97,11 +101,13 @@ export function AddWidgetModal({ isOpen, locale, onClose, pageId }: AddWidgetMod
       const num = typeof row[selectedMeasure] === 'number' ? (row[selectedMeasure] as number) : 0;
       map.set(dim, (map.get(dim) ?? 0) + num);
     }
-    previewValues = Array.from(map.entries()).slice(0, 4).map(([lbl, num]) => ({
-      label: lbl,
-      value: num.toLocaleString(locale === 'vi-VN' ? 'vi-VN' : 'en-US'),
-      num,
-    }));
+    previewValues = Array.from(map.entries())
+      .slice(0, 4)
+      .map(([lbl, num]) => ({
+        label: lbl,
+        value: num.toLocaleString(locale === 'vi-VN' ? 'vi-VN' : 'en-US'),
+        num,
+      }));
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -144,7 +150,12 @@ export function AddWidgetModal({ isOpen, locale, onClose, pageId }: AddWidgetMod
             <h3>{text.title}</h3>
             <p>{text.subtitle}</p>
           </div>
-          <button className="add-widget-modal-close" onClick={onClose} type="button" aria-label="Close">
+          <button
+            className="add-widget-modal-close"
+            onClick={onClose}
+            type="button"
+            aria-label="Close"
+          >
             ✕
           </button>
         </header>
@@ -191,7 +202,9 @@ export function AddWidgetModal({ isOpen, locale, onClose, pageId }: AddWidgetMod
             <input
               id="widget-title-input"
               className="add-widget-input"
-              placeholder={locale === 'vi-VN' ? 'Ví dụ: Doanh thu theo tháng' : 'e.g. Revenue by month'}
+              placeholder={
+                locale === 'vi-VN' ? 'Ví dụ: Doanh thu theo tháng' : 'e.g. Revenue by month'
+              }
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
@@ -217,7 +230,11 @@ export function AddWidgetModal({ isOpen, locale, onClose, pageId }: AddWidgetMod
                 <label className="add-widget-label">{text.kpiValueLabel}</label>
                 <input
                   className="add-widget-input"
-                  placeholder={locale === 'vi-VN' ? 'Tự động tính hoặc nhập ví dụ: ₫1,5 tỷ' : 'Auto or e.g. $1.5M'}
+                  placeholder={
+                    locale === 'vi-VN'
+                      ? 'Tự động tính hoặc nhập ví dụ: ₫1,5 tỷ'
+                      : 'Auto or e.g. $1.5M'
+                  }
                   value={kpiValue}
                   onChange={(e) => setKpiValue(e.target.value)}
                 />
@@ -283,7 +300,9 @@ export function AddWidgetModal({ isOpen, locale, onClose, pageId }: AddWidgetMod
                 </div>
               ) : (
                 <p className="add-widget-preview-note">
-                  {locale === 'vi-VN' ? 'Sẽ tạo hiển thị tương ứng trên Canvas' : 'Will render on Canvas'}
+                  {locale === 'vi-VN'
+                    ? 'Sẽ tạo hiển thị tương ứng trên Canvas'
+                    : 'Will render on Canvas'}
                 </p>
               )}
             </div>

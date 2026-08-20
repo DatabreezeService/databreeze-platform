@@ -413,7 +413,10 @@ test('[IAM-026 / WEB-027] platform admin feedbacks read is closed and omits netw
   );
   assert.equal(validate(feedbacks), true, JSON.stringify(validate.errors));
   assert.equal(
-    validate({ ...feedbacks, feedbacks: [{ ...feedbacks.feedbacks[0], sourceIpHash: 'a'.repeat(64) }] }),
+    validate({
+      ...feedbacks,
+      feedbacks: [{ ...feedbacks.feedbacks[0], sourceIpHash: 'a'.repeat(64) }],
+    }),
     false,
   );
   assert.equal(

@@ -41,7 +41,9 @@ Miền Bắc,80000`;
     expect(dataset.label).toBe('Doanh thu');
     expect(dataset.status).toBe('PUBLISHED');
     expect(dataset.fieldCount).toBe(2);
-    expect(typeof dataset.health === 'object' && dataset.health !== null ? dataset.health.tone : '').toBe('HEALTHY');
+    expect(
+      typeof dataset.health === 'object' && dataset.health !== null ? dataset.health.tone : '',
+    ).toBe('HEALTHY');
     expect(dataset.sources?.[0]?.label).toBe('doanh-thu.csv');
     expect(dataset.preparation?.counts.output).toBe(2);
   });

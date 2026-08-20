@@ -23,7 +23,9 @@ export interface DeviceSyncUseCaseV1 {
     context: IamTenantContextV1,
     input: Parameters<DeviceSyncService['bootstrapCursor']>[1],
     signer: Parameters<DeviceSyncService['bootstrapCursor']>[2],
-  ): Promise<DeviceSyncServiceResultV1<import('@databreeze/domain/device-sync/v1').DeviceSyncCursorV1>>;
+  ): Promise<
+    DeviceSyncServiceResultV1<import('@databreeze/domain/device-sync/v1').DeviceSyncCursorV1>
+  >;
   pull(
     context: IamTenantContextV1,
     input: Parameters<DeviceSyncService['pull']>[1],

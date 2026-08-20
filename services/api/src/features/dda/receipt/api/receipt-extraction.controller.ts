@@ -206,8 +206,10 @@ export class ReceiptExtractionController {
       throw new ServiceUnavailableException();
     }
     if (!result.accepted) {
-      if (result.code === 'EXPECTED_REVISION_CONFLICT') throw new HttpException(SAFE_RECEIPT_ERROR, HttpStatus.CONFLICT);
-      if (result.code === 'DSM_FAILURE' || result.code === 'IAE_FAILURE') throw new ServiceUnavailableException();
+      if (result.code === 'EXPECTED_REVISION_CONFLICT')
+        throw new HttpException(SAFE_RECEIPT_ERROR, HttpStatus.CONFLICT);
+      if (result.code === 'DSM_FAILURE' || result.code === 'IAE_FAILURE')
+        throw new ServiceUnavailableException();
       throw new BadRequestException({ error: 'DDA_RECEIPT_REVIEW_REQUIRED' });
     }
     return Object.freeze({ accepted: true, value: result.value });
@@ -254,10 +256,16 @@ export class ReceiptExtractionController {
       idempotencyKey: body.idempotencyKey,
     });
     if (!result.accepted) {
-      if (result.code === 'LOCAL_INTAKE_SCOPE_DENIED' || result.code === 'LOCAL_INTAKE_PERMISSION_DENIED') {
+      if (
+        result.code === 'LOCAL_INTAKE_SCOPE_DENIED' ||
+        result.code === 'LOCAL_INTAKE_PERMISSION_DENIED'
+      ) {
         throw new HttpException(SAFE_RECEIPT_ERROR, HttpStatus.FORBIDDEN);
       }
-      if (result.code === 'LOCAL_INTAKE_INVALID_INPUT' || result.code === 'LOCAL_INTAKE_IDEMPOTENCY_CONFLICT') {
+      if (
+        result.code === 'LOCAL_INTAKE_INVALID_INPUT' ||
+        result.code === 'LOCAL_INTAKE_IDEMPOTENCY_CONFLICT'
+      ) {
         throw new BadRequestException();
       }
       throw new ServiceUnavailableException();
@@ -413,11 +421,23 @@ export class ReceiptExtractionController {
   }
 
   private isValidationRecord(value: ReceiptValidationInput): boolean {
-    if (!isNonEmptyText(value.merchant) || !isNonEmptyText(value.transactionDateTime) ||
-      !isNonEmptyText(value.currency) || !isNonEmptyText(value.subtotal) ||
-      !isNonEmptyText(value.tax) || !isNonEmptyText(value.total) || !isRecord(value.fieldConfidence)) return false;
-    if (Object.keys(value.fieldConfidence).length > 64 ||
-      Object.values(value.fieldConfidence).some((confidence) => !Number.isInteger(confidence) || confidence < 0 || confidence > 100)) return false;
+    if (
+      !isNonEmptyText(value.merchant) ||
+      !isNonEmptyText(value.transactionDateTime) ||
+      !isNonEmptyText(value.currency) ||
+      !isNonEmptyText(value.subtotal) ||
+      !isNonEmptyText(value.tax) ||
+      !isNonEmptyText(value.total) ||
+      !isRecord(value.fieldConfidence)
+    )
+      return false;
+    if (
+      Object.keys(value.fieldConfidence).length > 64 ||
+      Object.values(value.fieldConfidence).some(
+        (confidence) => !Number.isInteger(confidence) || confidence < 0 || confidence > 100,
+      )
+    )
+      return false;
     if (
       value.lineItems !== undefined &&
       (!Array.isArray(value.lineItems) ||
@@ -428,7 +448,8 @@ export class ReceiptExtractionController {
             !isNonEmptyText(item['description']) ||
             !isNonEmptyText(item['amount']),
         ))
-    ) return false;
+    )
+      return false;
     return true;
   }
 

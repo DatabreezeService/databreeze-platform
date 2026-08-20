@@ -4,7 +4,9 @@ import type { DdaDsmPortV1 } from '../application/foundation-ports.js';
 
 interface LocalDsmDatabaseClientV1 {
   readonly datasetVersionRecord: {
-    findFirst(input: { readonly where: Record<string, unknown> }): Promise<{ readonly id: string } | null>;
+    findFirst(input: {
+      readonly where: Record<string, unknown>;
+    }): Promise<{ readonly id: string } | null>;
   };
   readonly analysisPlanRecord: {
     findFirst(input: { readonly where: Record<string, unknown> }): Promise<{

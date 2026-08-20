@@ -112,7 +112,8 @@ export class ReceiptAcceptanceService {
         contentHash: input.artifactContentHash,
         lineageParentIds: [input.artifactVersionId],
       });
-      if (!registered.accepted) return Object.freeze({ accepted: false, code: 'DSM_FAILURE' as const });
+      if (!registered.accepted)
+        return Object.freeze({ accepted: false, code: 'DSM_FAILURE' as const });
       datasetVersionId = registered.datasetVersionId;
     } else {
       datasetVersionId = randomUUID();

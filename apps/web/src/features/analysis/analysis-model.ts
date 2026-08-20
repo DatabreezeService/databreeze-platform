@@ -11,7 +11,11 @@ export interface AnalysisChartProposalV1 {
   readonly type: 'BAR' | 'LINE' | 'DONUT' | 'KPI' | 'TABLE';
   readonly title: string;
   readonly summary: string;
-  readonly dataPoints: readonly { readonly label: string; readonly value: number; readonly formatted: string }[];
+  readonly dataPoints: readonly {
+    readonly label: string;
+    readonly value: number;
+    readonly formatted: string;
+  }[];
   readonly aggregateValue?: string;
 }
 

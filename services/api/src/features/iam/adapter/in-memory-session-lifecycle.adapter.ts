@@ -277,7 +277,9 @@ export class InMemorySessionLifecycleAdapter implements SessionLifecyclePortV1 {
 
   public async findSessionByAccessToken(
     accessTokenInput: unknown,
-  ): Promise<{ readonly sessionId: string; readonly principal: AuthenticatedPrincipalV1 } | undefined> {
+  ): Promise<
+    { readonly sessionId: string; readonly principal: AuthenticatedPrincipalV1 } | undefined
+  > {
     if (typeof accessTokenInput !== 'string' || accessTokenInput.length < 80) return undefined;
     const sessionId = this.accessTokens.get(digestToken(accessTokenInput));
     if (sessionId === undefined) return undefined;
