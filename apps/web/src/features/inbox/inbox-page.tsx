@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { appMessage } from '../../app/messages.ts';
 import { useLocale } from '../../app/locale-context.tsx';
 import { listInbox } from './inbox-api.ts';
+import './inbox-page.css';
 
 function stateMessageKey(
   state: string,
@@ -43,89 +44,107 @@ export function InboxPage() {
 
   if (query.isPending) {
     return (
-      <section aria-labelledby="inbox-heading" className="feature-surface inbox-page">
+      <section
+        aria-busy="true"
+        aria-labelledby="inbox-heading"
+        className="feature-surface inbox-page inbox-page--loading"
+      >
         <div className="work-surface__heading inbox-page__hero">
           <div>
             <h1 id="inbox-heading">{appMessage(locale, 'inbox.heading')}</h1>
             <p>{appMessage(locale, 'inbox.caption')}</p>
           </div>
         </div>
-        <Status kind="info">{appMessage(locale, 'inbox.loading')}</Status>
+        <div className="inbox-page__state inbox-page__state--loading">
+          <Status kind="info">{appMessage(locale, 'inbox.loading')}</Status>
+        </div>
       </section>
     );
   }
 
   if (query.isError) {
     return (
-      <section aria-labelledby="inbox-heading" className="feature-surface inbox-page">
+      <section
+        aria-labelledby="inbox-heading"
+        className="feature-surface inbox-page inbox-page--error"
+      >
         <div className="work-surface__heading inbox-page__hero">
           <div>
             <h1 id="inbox-heading">{appMessage(locale, 'inbox.heading')}</h1>
             <p>{appMessage(locale, 'inbox.caption')}</p>
           </div>
         </div>
-        <Status kind="danger">{appMessage(locale, 'inbox.error')}</Status>
-        <Button className="inbox-retry" onClick={() => void query.refetch()} variant="secondary">
-          {appMessage(locale, 'inbox.retry')}
-        </Button>
+        <div className="inbox-page__state inbox-page__state--error">
+          <Status kind="danger">{appMessage(locale, 'inbox.error')}</Status>
+          <Button onClick={() => void query.refetch()} variant="secondary">
+            {appMessage(locale, 'inbox.retry')}
+          </Button>
+        </div>
       </section>
     );
   }
 
   const items = query.data;
   return (
-    <section aria-labelledby="inbox-heading" className="feature-surface inbox-page">
+    <section
+      aria-labelledby="inbox-heading"
+      className="feature-surface inbox-page inbox-page--ready"
+    >
       <div className="work-surface__heading inbox-page__hero">
         <div>
           <h1 id="inbox-heading">{appMessage(locale, 'inbox.heading')}</h1>
           <p>{appMessage(locale, 'inbox.caption')}</p>
         </div>
-        <Status kind="info">
-          {items.length === 0 ? appMessage(locale, 'inbox.empty') : `${items.length}`}
-        </Status>
+        <Status kind="info">{items.length}</Status>
       </div>
       {items.length === 0 ? (
-        <p className="inbox-empty">{appMessage(locale, 'inbox.empty')}</p>
+        <div className="inbox-page__empty" role="status">
+          <p>{appMessage(locale, 'inbox.empty')}</p>
+        </div>
       ) : (
-        <div className="table-scroll" tabIndex={0}>
-          <table aria-label={appMessage(locale, 'inbox.heading')}>
-            <thead>
-              <tr>
-                <th scope="col">{appMessage(locale, 'inbox.column.item')}</th>
-                <th scope="col">{appMessage(locale, 'inbox.column.state')}</th>
-                <th scope="col">{appMessage(locale, 'inbox.column.created')}</th>
-                <th scope="col">{appMessage(locale, 'inbox.column.version')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.inboxItemId}>
-                  <td>
-                    <code>{item.inboxItemId}</code>
-                  </td>
-                  <td>
-                    <Status kind={stateKind(item.state)}>
-                      {appMessage(locale, stateMessageKey(item.state))}
-                    </Status>
-                  </td>
-                  <td>
-                    <time dateTime={item.createdAt}>
-                      {new Intl.DateTimeFormat(locale, {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      }).format(new Date(item.createdAt))}
-                    </time>
-                  </td>
-                  <td>
-                    <code>{item.artifactVersionId}</code>
-                  </td>
+        <div className="inbox-page__table-shell">
+          <div className="inbox-page__table-scroll table-scroll" tabIndex={0}>
+            <table aria-label={appMessage(locale, 'inbox.heading')}>
+              <thead>
+                <tr>
+                  <th scope="col">{appMessage(locale, 'inbox.column.item')}</th>
+                  <th scope="col">{appMessage(locale, 'inbox.column.state')}</th>
+                  <th scope="col">{appMessage(locale, 'inbox.column.created')}</th>
+                  <th scope="col">{appMessage(locale, 'inbox.column.version')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {items.map((item) => (
+                  <tr key={item.inboxItemId}>
+                    <td>
+                      <code>{item.inboxItemId}</code>
+                    </td>
+                    <td>
+                      <Status kind={stateKind(item.state)}>
+                        {appMessage(locale, stateMessageKey(item.state))}
+                      </Status>
+                    </td>
+                    <td>
+                      <time dateTime={item.createdAt}>
+                        {new Intl.DateTimeFormat(locale, {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        }).format(new Date(item.createdAt))}
+                      </time>
+                    </td>
+                    <td>
+                      <code>{item.artifactVersionId}</code>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
-      <p className="authority-note">{appMessage(locale, 'access.clientHint')}</p>
+      <p className="authority-note inbox-page__authority-note">
+        {appMessage(locale, 'access.clientHint')}
+      </p>
     </section>
   );
 }

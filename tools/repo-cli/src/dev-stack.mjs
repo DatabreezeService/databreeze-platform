@@ -31,14 +31,25 @@ const LOCAL_ENV_EXAMPLE_FILE = path.join(
   '.env.example',
 );
 
-function readLocalEnvironmentFile() {
-  const filename = existsSync(LOCAL_ENV_FILE) ? LOCAL_ENV_FILE : LOCAL_ENV_EXAMPLE_FILE;
+function parseEnvironmentFile(filename) {
   const values = {};
   for (const line of readFileSync(filename, 'utf8').split(/\r?\n/u)) {
     const match = /^\s*([A-Z][A-Z0-9_]*)\s*=\s*(.*?)\s*$/u.exec(line);
     if (match) values[match[1]] = match[2].replace(/^(['"])(.*)\1$/u, '$2');
   }
   return values;
+}
+
+/**
+ * Keep the checked-in defaults as a compatibility floor for ignored local
+ * env files. New required keys are added to `.env.example` over time, while
+ * an existing developer's `.env` can legitimately predate those additions.
+ * Local values still win, including deliberate empty values.
+ */
+export function readLocalEnvironmentFile() {
+  const defaults = parseEnvironmentFile(LOCAL_ENV_EXAMPLE_FILE);
+  if (!existsSync(LOCAL_ENV_FILE)) return defaults;
+  return { ...defaults, ...parseEnvironmentFile(LOCAL_ENV_FILE) };
 }
 
 function localPort(values, name, fallback) {
@@ -94,19 +105,58 @@ export function databaseBackedDevelopmentEnvironment(overrides = {}) {
       values.DATABREEZE_IAM_EMAIL_VERIFICATION_DIGEST_KEY,
     DATABREEZE_IAM_EMAIL_VERIFICATION_ENVELOPE_KEY:
       values.DATABREEZE_IAM_EMAIL_VERIFICATION_ENVELOPE_KEY,
+    DATABREEZE_IAM_INVITATION_DIGEST_KEY: values.DATABREEZE_IAM_INVITATION_DIGEST_KEY,
     DATABREEZE_IAM_REGISTRATION_ADMISSION_KEY: values.DATABREEZE_IAM_REGISTRATION_ADMISSION_KEY,
     DATABREEZE_IAM_RECOVERY_DIGEST_KEY: values.DATABREEZE_IAM_RECOVERY_DIGEST_KEY,
     DATABREEZE_SERVICE_ACCOUNT_SECRET_ENVELOPE_KEY:
       values.DATABREEZE_SERVICE_ACCOUNT_SECRET_ENVELOPE_KEY,
+    DATABREEZE_IAE_WORKER_CAPABILITY_SIGNING_KEY:
+      values.DATABREEZE_IAE_WORKER_CAPABILITY_SIGNING_KEY,
     DATABREEZE_LOCAL_PROJECT_ID: values.DATABREEZE_LOCAL_PROJECT_ID,
     DATABREEZE_LOCAL_SEED_PASSWORD: values.DATABREEZE_LOCAL_SEED_PASSWORD,
     OPENAI_API_KEY: values.OPENAI_API_KEY,
+    // Keep every owner-controlled provider gate from the local env file when
+    // launching the host API. Without these flags the API receives the key but
+    // silently disables the corresponding provider, making local feature tests
+    // look like backend failures.
+    DATABREEZE_OPENAI_AGENT_ENABLED: values.DATABREEZE_OPENAI_AGENT_ENABLED,
+    DATABREEZE_OPENAI_AGENT_MODEL: values.DATABREEZE_OPENAI_AGENT_MODEL,
+    DATABREEZE_OPENAI_AGENT_TIMEOUT_MS: values.DATABREEZE_OPENAI_AGENT_TIMEOUT_MS,
+    DATABREEZE_OPENAI_AGENT_MAX_OUTPUT_TOKENS: values.DATABREEZE_OPENAI_AGENT_MAX_OUTPUT_TOKENS,
+    DATABREEZE_OPENAI_RECEIPT_ENABLED: values.DATABREEZE_OPENAI_RECEIPT_ENABLED,
+    DATABREEZE_OPENAI_RECEIPT_MODEL: values.DATABREEZE_OPENAI_RECEIPT_MODEL,
+    DATABREEZE_OPENAI_DASHBOARD_ENABLED: values.DATABREEZE_OPENAI_DASHBOARD_ENABLED,
+    DATABREEZE_OPENAI_DASHBOARD_MODEL: values.DATABREEZE_OPENAI_DASHBOARD_MODEL,
+    DATABREEZE_OPENAI_IMAGE_DETAIL: values.DATABREEZE_OPENAI_IMAGE_DETAIL,
+    DATABREEZE_OPENAI_TIMEOUT_MS: values.DATABREEZE_OPENAI_TIMEOUT_MS,
+    DATABREEZE_OPENAI_MAX_OUTPUT_TOKENS: values.DATABREEZE_OPENAI_MAX_OUTPUT_TOKENS,
+    DATABREEZE_OPENAI_ANALYSIS_ENABLED: values.DATABREEZE_OPENAI_ANALYSIS_ENABLED,
+    DATABREEZE_OPENAI_ANALYSIS_MODEL: values.DATABREEZE_OPENAI_ANALYSIS_MODEL,
+    DATABREEZE_OPENAI_NARRATIVE_ENABLED: values.DATABREEZE_OPENAI_NARRATIVE_ENABLED,
+    DATABREEZE_OPENAI_NARRATIVE_MODEL: values.DATABREEZE_OPENAI_NARRATIVE_MODEL,
+    DATABREEZE_OPENAI_MAPPING_ENABLED: values.DATABREEZE_OPENAI_MAPPING_ENABLED,
+    DATABREEZE_OPENAI_MAPPING_MODEL: values.DATABREEZE_OPENAI_MAPPING_MODEL,
+    DATABREEZE_OPENAI_MAPPING_ALLOW_SAMPLES: values.DATABREEZE_OPENAI_MAPPING_ALLOW_SAMPLES,
     DATABREEZE_LOCAL_MINIO_ENDPOINT: `http://127.0.0.1:${minioPort}`,
     DATABREEZE_LOCAL_MINIO_ACCESS_KEY: values.MINIO_ROOT_USER ?? 'databreeze',
     DATABREEZE_LOCAL_MINIO_SECRET_KEY: values.MINIO_ROOT_PASSWORD ?? 'databreeze-local-change-me',
     DATABREEZE_LOCAL_MINIO_BUCKET: values.MINIO_BUCKET_ARTIFACTS ?? 'databreeze-artifacts',
     VITE_DATABREEZE_API_BASE_URL: '',
     VITE_DATABREEZE_DEMO_MODE: 'false',
+    // Keep the server-backed local PayOS checkout testable in HMR. This is
+    // separate from demo mode: the amount/status still come from the API and
+    // the webhook still settles the real local entitlement transaction.
+    PAYOS_PROVIDER: values.PAYOS_PROVIDER ?? 'mock',
+    PAYOS_LOCAL_TEST_MODE: values.PAYOS_LOCAL_TEST_MODE ?? 'false',
+    PAYOS_CLIENT_ID: values.PAYOS_CLIENT_ID ?? '',
+    PAYOS_API_KEY: values.PAYOS_API_KEY ?? '',
+    PAYOS_CHECKSUM_KEY: values.PAYOS_CHECKSUM_KEY ?? '',
+    DATABREEZE_WEB_PUBLIC_URL: values.DATABREEZE_WEB_PUBLIC_URL ?? 'https://localhost:8443',
+    DATABREEZE_PAYOS_SUCCESS_URL: values.DATABREEZE_PAYOS_SUCCESS_URL ?? '',
+    DATABREEZE_PAYOS_FAILED_URL: values.DATABREEZE_PAYOS_FAILED_URL ?? '',
+    VITE_DATABREEZE_LOCAL_PAYMENT_MODE:
+      values.VITE_DATABREEZE_LOCAL_PAYMENT_MODE ?? values.PAYOS_PROVIDER ?? 'mock',
+    VITE_DATABREEZE_LOCAL_NAVIGATION_HINTS: 'true',
   };
 }
 

@@ -31,6 +31,7 @@ export interface UserIdentityDatabaseRowV1 {
   readonly locale: string;
   readonly status: string;
   readonly securityEpoch: number;
+  readonly profileRevision?: number;
   readonly createdAt: Date;
 }
 
@@ -393,7 +394,12 @@ export class PrismaIdentityBootstrapTransactionAdapter
   ): Promise<IdentityBootstrapVisibleTreeV1 | undefined> {
     const userRow = await this.client.userIdentity.findUnique({ where: { id: userId } });
     if (!userRow) return undefined;
-    const user = userFromRow(userRow);
+    const profileRevisionCandidate = userRow.profileRevision;
+    const profileRevision =
+      Number.isSafeInteger(profileRevisionCandidate) && (profileRevisionCandidate ?? 0) >= 1
+        ? (profileRevisionCandidate ?? 1)
+        : 1;
+    const user = Object.freeze({ ...userFromRow(userRow), email: userRow.email, profileRevision });
     const memberships = await this.client.membershipIdentity.findMany({
       where: { principalId: user.id, status: 'ACTIVE' },
     });
@@ -415,8 +421,7 @@ export class PrismaIdentityBootstrapTransactionAdapter
     ]);
     const activeMemberships = memberships.filter(
       (membership) =>
-        membership.status === 'ACTIVE' &&
-        stableId(membership.organizationId) !== undefined,
+        membership.status === 'ACTIVE' && stableId(membership.organizationId) !== undefined,
     );
     const organizations = [...organizationRows]
       .sort(compareCreatedIdentity)
@@ -470,7 +475,9 @@ export class PrismaIdentityBootstrapTransactionAdapter
                 (projectRow) =>
                   projectRow.organizationId === organization.id &&
                   projectRow.workspaceId === workspace.id &&
-                  (organizationMember || workspaceMember || projectMembershipIds.has(projectRow.id)),
+                  (organizationMember ||
+                    workspaceMember ||
+                    projectMembershipIds.has(projectRow.id)),
               )
               .sort(compareCreatedIdentity)
               .map((projectRow) => projectFromRow(projectRow));

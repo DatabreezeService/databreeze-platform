@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 4,
+  "accepted": true,
+  "tenantScope": {
+    "scopeType": "workspace",
+    "organizationId": "00000000-0000-4000-8000-000000000410",
+    "workspaceId": "00000000-0000-4000-8000-000000000411"
+  },
+  "value": {
+    "importId": "00000000-0000-4000-8000-000000000401",
+    "datasetId": "00000000-0000-4000-8000-000000000402",
+    "datasetVersionId": "00000000-0000-4000-8000-000000000403",
+    "datasetName": "Bán hàng tháng",
+    "sourceCount": 1,
+    "rowCount": 1,
+    "truncated": false,
+    "sourceHashes": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+    "columns": [{ "name": "revenue", "type": "DECIMAL", "nullable": false }],
+    "sampleRows": [{ "cells": [{ "field": "revenue", "value": "1", "kind": "NUMBER" }] }],
+    "generatedAt": "2026-08-18T00:00:00.000Z"
+  }
+}

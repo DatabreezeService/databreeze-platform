@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/jra-job-history-entry",
+  "title": "JRA Job History Entry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "jobId", "actionType", "actionVersion", "state", "revision", "createdAt", "resultAvailable", "approvalState"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "jobId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "actionType": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "actionVersion": { "type": "integer", "minimum": 1 },
+    "state": { "enum": ["CREATED", "QUEUED", "WAITING_FOR_DEVICE", "DISPATCHED", "RUNNING", "NEEDS_REVIEW", "AWAITING_APPROVAL", "SUCCEEDED", "PARTIALLY_SUCCEEDED", "FAILED", "CANCEL_REQUESTED", "CANCELLED", "EXPIRED"] },
+    "revision": { "type": "integer", "minimum": 1 },
+    "createdAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" },
+    "startedAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" },
+    "finishedAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" },
+    "resultAvailable": { "type": "boolean" },
+    "approvalState": { "enum": ["NOT_APPLICABLE", "PENDING", "APPROVED", "REJECTED"] }
+  }
+}

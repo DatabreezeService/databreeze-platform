@@ -6,13 +6,18 @@ import { pathToFileURL } from 'node:url';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { S3Client } from '@aws-sdk/client-s3';
 import { createClient as createRedisClient } from 'redis';
-import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
+import {
+  createDdaAiEgressPolicyV1,
+  type DdaAiEgressPolicyV1,
+} from '@databreeze/domain/data-to-dashboard/policy-v1';
+import { parseStableIdentifierV1, type TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { ApiApplicationOptions } from '../bootstrap.js';
 import { Argon2PasswordHasherAdapter } from '../features/iam/adapter/argon2-password-hasher.adapter.js';
 import { Aes256GcmEmailVerificationEnvelopeAdapter } from '../features/iam/adapter/email-verification-envelope.adapter.js';
 import { HmacSha256EmailVerificationDigestAdapter } from '../features/iam/adapter/in-memory-email-verification-repository.adapter.js';
 import { HmacSha256IamRegistrationAdmissionDigestAdapter } from '../features/iam/adapter/iam-registration-crypto.adapter.js';
+import { HmacSha256IamInvitationDigestAdapter } from '../features/iam/adapter/iam-invitation-crypto.adapter.js';
 import { HmacSha256IamRecoveryDigestAdapter } from '../features/iam/adapter/iam-recovery-crypto.adapter.js';
 import {
   GmailSmtpEmailVerificationDeliveryAdapter,
@@ -25,6 +30,7 @@ import {
   type NodeLoopbackSmtpOptionsV1,
   type SmtpSenderPortV1,
 } from '../features/iam/adapter/mailpit-smtp-email-verification-delivery.adapter.js';
+import { MailpitSmtpInvitationDeliveryAdapter } from '../features/iam/adapter/mailpit-smtp-invitation-delivery.adapter.js';
 import { SmtpPasswordRecoveryDeliveryAdapter } from '../features/iam/adapter/smtp-password-recovery-delivery.adapter.js';
 import {
   NodeRedisEvalClientAdapter,
@@ -46,11 +52,28 @@ import { PrismaArtifactRepositoryAdapter } from '../features/iae/adapter/prisma-
 import type { ArtifactDatabaseClientV1 } from '../features/iae/adapter/prisma-artifact-repository.adapter.js';
 import { LocalMinioArtifactProcessingContentReader } from '../features/iae/adapter/local-minio-artifact-processing-content.adapter.js';
 import { LocalMinioWebIntakeObjectStoreAdapter } from '../features/iae/adapter/local-minio-web-intake-object-store.adapter.js';
+import { LocalWorkerInputObjectResolverAdapter } from '../features/iae/adapter/local-worker-input-object-resolver.adapter.js';
+import { createLocalMinioWorkerObjectByteStoreAdapterV1 } from '../features/iae/adapter/local-minio-worker-object-byte-store.adapter.js';
+import { LocalWorkerObjectByteStoreAdapter } from '../features/iae/adapter/local-worker-object-byte-store.adapter.js';
 import { ObjectStorageArtifactProcessingContentAdapter } from '../features/iae/adapter/object-storage-artifact-processing-content.adapter.js';
+import { UnavailableIaeWorkerOutputObjectResolverAdapter } from '../features/iae/application/worker-object-capability.port.js';
 import type { LocalWebIntakeDatabaseV1 } from '../features/iae/adapter/local-web-intake.adapter.js';
 import { LocalAnalysisCatalogMetadataSourceAdapterV1 } from '../features/dda/adapter/local-analysis-catalog-metadata-source.adapter.js';
 import { LocalDsmPortAdapterV1 } from '../features/dda/adapter/local-dsm-port.adapter.js';
 import { PrismaResultManifestRepositoryAdapter } from '../features/jra/adapter/prisma-result-manifest-repository.adapter.js';
+import { LocalAgentUsageAdmissionResolverAdapter } from '../features/dda/agent/adapter/local-agent-usage-admission-resolver.adapter.js';
+import type { MappingAssistancePolicyStoreV1 } from '../features/dda/etl/application/mapping-assistance.service.js';
+import {
+  PrismaDataModePolicyVersionLookupAdapter,
+  PrismaWorkspaceDataModePolicyAuthorityAdapter,
+  type WorkspaceDataModePolicyAuthorityDatabaseClientV1,
+} from '../features/dso/adapter/prisma-workspace-data-mode-policy-authority.adapter.js';
+import {
+  PrismaWorkspaceExecutionPolicyReferenceAuthorityAdapter,
+  type WorkspaceExecutionPolicyReferenceDatabaseClientV1,
+} from '../features/iam/adapter/prisma-workspace-execution-policy-reference.adapter.js';
+import { DsoWorkspacePolicyAuthorityAdapter } from './dso-workspace-policy.composition.js';
+import { createProductionAgentProvider } from './agent-production.composition.js';
 
 export const LOCAL_RUNTIME_PROFILE = 'local';
 export const PILOT_RUNTIME_PROFILE = 'pilot';
@@ -99,6 +122,7 @@ const DATABASE_OPTION_KEYS = [
   'credentialDatabase',
   'sessionDatabase',
   'identityBootstrapDatabase',
+  'profileMutationDatabase',
   'mfaDatabase',
   'iamDatabase',
   'hierarchyDatabase',
@@ -141,9 +165,12 @@ const DATABASE_OPTION_KEYS = [
   'entitlementLeaseDatabase',
   'spreadsheetAuditDatabase',
   'approvalDatabase',
+  'jobHistoryDatabase',
+  'reportDatabase',
   'mobileDatabase',
   'jraWorkerDatabase',
   'ddaDatabase',
+  'landingFeedbackDatabase',
 ] as const;
 
 function isLoopback(hostname: string): boolean {
@@ -181,13 +208,16 @@ function localMinioOptions(environment: RuntimeEnvironment):
       readonly accessKeyId: string;
       readonly secretAccessKey: string;
       readonly bucket: string;
+      readonly resultsBucket: string;
     }
   | undefined {
   const rawEndpoint = environment['DATABREEZE_LOCAL_MINIO_ENDPOINT']?.trim();
   const rawAccessKey = environment['DATABREEZE_LOCAL_MINIO_ACCESS_KEY']?.trim();
   const rawSecretKey = environment['DATABREEZE_LOCAL_MINIO_SECRET_KEY']?.trim();
   const rawBucket = environment['DATABREEZE_LOCAL_MINIO_BUCKET']?.trim();
-  if (!rawEndpoint && !rawAccessKey && !rawSecretKey && !rawBucket) return undefined;
+  const rawResultsBucket = environment['DATABREEZE_LOCAL_MINIO_RESULTS_BUCKET']?.trim();
+  if (!rawEndpoint && !rawAccessKey && !rawSecretKey && !rawBucket && !rawResultsBucket)
+    return undefined;
   if (!rawEndpoint || !rawAccessKey || !rawSecretKey || !rawBucket)
     throw new Error(LOCAL_MINIO_CONFIGURATION_ERROR);
   let parsed: URL;
@@ -208,11 +238,48 @@ function localMinioOptions(environment: RuntimeEnvironment):
     throw new Error(LOCAL_MINIO_CONFIGURATION_ERROR);
   if (!/^[a-z0-9][a-z0-9.-]{2,62}$/u.test(rawBucket))
     throw new Error(LOCAL_MINIO_CONFIGURATION_ERROR);
+  const resultsBucket = rawResultsBucket || 'databreeze-results';
+  if (!/^[a-z0-9][a-z0-9.-]{2,62}$/u.test(resultsBucket))
+    throw new Error(LOCAL_MINIO_CONFIGURATION_ERROR);
   return Object.freeze({
     endpoint: parsed.toString().replace(/\/$/u, ''),
     accessKeyId: rawAccessKey,
     secretAccessKey: rawSecretKey,
     bucket: rawBucket,
+    resultsBucket,
+  });
+}
+
+/**
+ * Local-only opt-in for advisory mapping suggestions. Production composition
+ * does not use this policy; the owner must explicitly enable both the provider
+ * and sample consent in the ignored local .env file.
+ */
+function localMappingAssistancePolicyStore(
+  environment: RuntimeEnvironment,
+): MappingAssistancePolicyStoreV1 {
+  const enabled = environment['DATABREEZE_OPENAI_MAPPING_ENABLED'] === 'true';
+  const allowSamples = environment['DATABREEZE_OPENAI_MAPPING_ALLOW_SAMPLES'] === 'true';
+  return Object.freeze({
+    isTenantRevoked: () => false,
+    getPolicy: (tenantScope: TenantScopeV1): DdaAiEgressPolicyV1 | undefined => {
+      if (!enabled || !allowSamples) return undefined;
+      const created = createDdaAiEgressPolicyV1({
+        policyId: '00000000-0000-4000-8000-0000000000ab',
+        tenantScope,
+        enabled: true,
+        locality: 'CLOUD',
+        purposeAllowlist: ['MAPPING_SUGGESTION'],
+        adapterAllowlist: ['openai-responses'],
+        allowMetadata: true,
+        allowSamples: true,
+        allowResultRows: false,
+        allowEvidence: false,
+        retentionDays: 1,
+        maximumPayloadBytes: 32_768,
+      });
+      return created.accepted ? created.value : undefined;
+    },
   });
 }
 
@@ -439,6 +506,12 @@ async function createComposeDatabaseComposition(
     throw new Error(LOCAL_SMTP_CONFIGURATION_ERROR);
   }
   const minio = localMinioOptions(environment);
+  const workerCapabilitySigningSecret =
+    minio === undefined
+      ? undefined
+      : Buffer.from(
+          localManagedKey(environment, 'DATABREEZE_IAE_WORKER_CAPABILITY_SIGNING_KEY'),
+        ).toString('base64url');
   const emailDigestKey = localManagedKey(
     environment,
     'DATABREEZE_IAM_EMAIL_VERIFICATION_DIGEST_KEY',
@@ -447,6 +520,7 @@ async function createComposeDatabaseComposition(
     environment,
     'DATABREEZE_IAM_EMAIL_VERIFICATION_ENVELOPE_KEY',
   );
+  const invitationDigestKey = localManagedKey(environment, 'DATABREEZE_IAM_INVITATION_DIGEST_KEY');
   const registrationAdmissionKey = localManagedKey(
     environment,
     'DATABREEZE_IAM_REGISTRATION_ADMISSION_KEY',
@@ -519,9 +593,36 @@ async function createComposeDatabaseComposition(
         : new PrismaArtifactRepositoryAdapter(
             constructedClient as unknown as ArtifactDatabaseClientV1,
           );
+    const localPolicyDatabase =
+      constructedClient as unknown as WorkspaceDataModePolicyAuthorityDatabaseClientV1 &
+        WorkspaceExecutionPolicyReferenceDatabaseClientV1;
+    const localExecutionRouteWorkspacePolicyAuthority = new DsoWorkspacePolicyAuthorityAdapter(
+      new PrismaWorkspaceDataModePolicyAuthorityAdapter(localPolicyDatabase),
+      new PrismaDataModePolicyVersionLookupAdapter(localPolicyDatabase),
+      new PrismaWorkspaceExecutionPolicyReferenceAuthorityAdapter(localPolicyDatabase),
+    );
+    const localWorkerInputResolver =
+      localArtifactRepository === undefined
+        ? undefined
+        : new LocalWorkerInputObjectResolverAdapter({
+            artifacts: localArtifactRepository,
+            policies: localExecutionRouteWorkspacePolicyAuthority,
+          });
+    const localArtifactProcessingReader =
+      localArtifactRepository === undefined || localMinioClient === undefined
+        ? undefined
+        : new LocalMinioArtifactProcessingContentReader({
+            artifacts: localArtifactRepository,
+            client: localMinioClient,
+            bucket: minio!.bucket,
+          });
     const options = Object.freeze({
       runtimeMode: 'production' as const,
       allowInMemoryAdapters: false,
+      // The local composition receives an explicit environment object. Bind the
+      // server-only provider to that same object rather than relying on the
+      // parent process environment, which can omit an owner-enabled local flag.
+      agentProvider: createProductionAgentProvider(environment),
       notificationOutboxWorker: Object.freeze({ workerId: 'dda-notification-outbox-worker' }),
       requestContext: Object.freeze({
         csrf: Object.freeze({ allowedOrigins: Object.freeze([httpsOrigin]) }),
@@ -543,6 +644,13 @@ async function createComposeDatabaseComposition(
       ),
       emailVerificationDigest: new HmacSha256EmailVerificationDigestAdapter(emailDigestKey),
       emailVerificationEnvelope: new Aes256GcmEmailVerificationEnvelopeAdapter(emailEnvelopeKey),
+      invitationDigest: new HmacSha256IamInvitationDigestAdapter(invitationDigestKey),
+      invitationDelivery: new MailpitSmtpInvitationDeliveryAdapter(
+        smtpSender,
+        fromAddress,
+        httpsOrigin,
+        profile === LOCAL_RUNTIME_PROFILE && environment['DATABREEZE_LOCAL_HMR_HTTP'] === 'true',
+      ),
       recoveryDigest: new HmacSha256IamRecoveryDigestAdapter(recoveryDigestKey),
       emailVerificationDelivery:
         emailProvider === 'gmail'
@@ -564,21 +672,34 @@ async function createComposeDatabaseComposition(
       // fall back to an invented device identity.
       deviceEnrollmentProofVerifier: new Ed25519DeviceEnrollmentProofVerifierAdapter(),
       serviceAccountSecretEnvelopeKey: serviceAccountKey,
-            ...(dashboardProjectId === undefined ? {} : { dashboardProjectId }),
-            dsmPort: new LocalDsmPortAdapterV1(
-              constructedClient as unknown as ConstructorParameters<typeof LocalDsmPortAdapterV1>[0],
-            ),
-            analysisCatalogSource: new LocalAnalysisCatalogMetadataSourceAdapterV1(
-              constructedClient as unknown as ConstructorParameters<
-                typeof LocalAnalysisCatalogMetadataSourceAdapterV1
-              >[0],
-            ),
-            resultManifestRepository: new PrismaResultManifestRepositoryAdapter(
-              constructedClient as unknown as ConstructorParameters<
-                typeof PrismaResultManifestRepositoryAdapter
-              >[0],
-            ),
-            ...(minio === undefined
+      agentUsageAdmissionResolver: new LocalAgentUsageAdmissionResolverAdapter(),
+      ...(profile === LOCAL_RUNTIME_PROFILE
+        ? { mappingAssistancePolicyStore: localMappingAssistancePolicyStore(environment) }
+        : {}),
+      ...(dashboardProjectId === undefined ? {} : { dashboardProjectId }),
+      dsmPort: new LocalDsmPortAdapterV1(
+        constructedClient as unknown as ConstructorParameters<typeof LocalDsmPortAdapterV1>[0],
+      ),
+      analysisCatalogSource: new LocalAnalysisCatalogMetadataSourceAdapterV1(
+        constructedClient as unknown as ConstructorParameters<
+          typeof LocalAnalysisCatalogMetadataSourceAdapterV1
+        >[0],
+      ),
+      resultManifestRepository: new PrismaResultManifestRepositoryAdapter(
+        constructedClient as unknown as ConstructorParameters<
+          typeof PrismaResultManifestRepositoryAdapter
+        >[0],
+      ),
+      executionRouteWorkspacePolicyAuthority: localExecutionRouteWorkspacePolicyAuthority,
+      ...(localWorkerInputResolver === undefined
+        ? {}
+        : {
+            workerInputObjectResolver: localWorkerInputResolver,
+            // The new prepare/finalize result path owns output policy through JRA/IAE.
+            // Legacy post-completion output references stay explicitly unavailable.
+            workerOutputObjectResolver: new UnavailableIaeWorkerOutputObjectResolverAdapter(),
+          }),
+      ...(minio === undefined
         ? {}
         : {
             localWebIntakeDatabase: constructedClient as unknown as LocalWebIntakeDatabaseV1,
@@ -587,12 +708,18 @@ async function createComposeDatabaseComposition(
               bucket: minio.bucket,
             }),
             artifactProcessingContent: new ObjectStorageArtifactProcessingContentAdapter(
-              new LocalMinioArtifactProcessingContentReader({
-                artifacts: localArtifactRepository!,
-                client: localMinioClient!,
-                bucket: minio.bucket,
-              }),
+              localArtifactProcessingReader,
             ),
+            workerCapabilitySigningSecret,
+            workerObjectByteStore: new LocalWorkerObjectByteStoreAdapter({
+              input: localArtifactProcessingReader!,
+              output: createLocalMinioWorkerObjectByteStoreAdapterV1({
+                endpoint: minio.endpoint,
+                accessKeyId: minio.accessKeyId,
+                secretAccessKey: minio.secretAccessKey,
+                bucket: minio.resultsBucket,
+              }),
+            }),
           }),
       ...databaseOptions(constructedClient),
     }) as unknown as ApiApplicationOptions;

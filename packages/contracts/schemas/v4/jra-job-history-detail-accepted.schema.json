@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/jra-job-history-detail-accepted",
+  "$comment": "JRA-001/JRA-012/JRA-013/JRA-014/JRA-029: exact-scope metadata-only job detail.",
+  "title": "JRA Job History Detail Accepted",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "accepted", "job"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "accepted": { "const": true },
+    "job": { "$ref": "https://schemas.databreeze.dev/contracts/v4/jra-job-history-entry" }
+  }
+}

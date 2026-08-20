@@ -31,6 +31,14 @@ export function SourceUploadPanel({
   onSelectFiles,
 }: SourceUploadPanelProps) {
   const text = copy(locale);
+  const canUpload = onSelectFiles !== undefined;
+  const canConnect = onConnectSource !== undefined;
+
+  // Do not render a dead-looking panel when the current authorized route has
+  // no intake command. An unavailable action is represented by the parent
+  // page's honest status copy, never by a disabled premium-looking button.
+  if (!canUpload && !canConnect) return null;
+
   return (
     <section aria-label={text.heading} className="source-upload-panel">
       <div>
@@ -38,22 +46,25 @@ export function SourceUploadPanel({
         <p>{text.description}</p>
       </div>
       <div className="source-upload-panel__actions">
-        <label className="source-upload-panel__upload">
-          <span>{text.upload}</span>
-          <input
-            aria-label={locale === 'vi-VN' ? 'Chọn tệp để tải lên' : 'Choose files to upload'}
-            accept={ACCEPTED}
-            disabled={onSelectFiles === undefined}
-            multiple
-            onChange={(event) => {
-              if (event.target.files !== null) onSelectFiles?.(event.target.files);
-            }}
-            type="file"
-          />
-        </label>
-        <button disabled={onConnectSource === undefined} onClick={onConnectSource} type="button">
-          {text.connect}
-        </button>
+        {canUpload ? (
+          <label className="source-upload-panel__upload">
+            <span>{text.upload}</span>
+            <input
+              aria-label={locale === 'vi-VN' ? 'Chọn tệp để tải lên' : 'Choose files to upload'}
+              accept={ACCEPTED}
+              multiple
+              onChange={(event) => {
+                if (event.target.files !== null) onSelectFiles?.(event.target.files);
+              }}
+              type="file"
+            />
+          </label>
+        ) : null}
+        {canConnect ? (
+          <button onClick={onConnectSource} type="button">
+            {text.connect}
+          </button>
+        ) : null}
       </div>
     </section>
   );

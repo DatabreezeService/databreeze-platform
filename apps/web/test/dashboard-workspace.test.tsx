@@ -69,4 +69,13 @@ describe('dashboard workspace history activation [DDA-055, DDA-056, WEB-024]', (
       datasetVersionLabel: 'Authorized history subject',
     });
   });
+
+  it('opens the governed new-analysis flow instead of silently changing a status message', async () => {
+    const user = userEvent.setup();
+    renderWorkspace();
+
+    await user.click(screen.getByRole('button', { name: 'New analysis' }));
+
+    expect(screen.getByTestId('destination').textContent).toContain('/en/analysis?new=1');
+  });
 });

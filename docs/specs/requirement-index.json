@@ -1441,6 +1441,15 @@
       }
     },
     {
+      "id": "DDA-061",
+      "priority": "P0",
+      "requirement": "Dashboard materialization admission shall create a server-owned `ExecutionWorkloadEnvelope` for every required typed processor, binding the exact dashboard/version/widget/plan/metric/dataset/projection/policy subject, authorized input handles, bounded parameters, output policy, deadline, locale/timezone, engine/handler versions, and canonical hash. Local and cloud executors shall resolve the same envelope through authenticated scoped APIs; no client or worker assertion may become a dashboard value, and a missing, stale, revoked, or hash-mismatched envelope shall preserve the last good snapshot.",
+      "source": {
+        "line": 194,
+        "path": "docs/specs/features/data-to-dashboard-agent.md"
+      }
+    },
+    {
       "id": "DQG-001",
       "priority": "P0",
       "requirement": "The system shall create a quality-dataset binding to an existing `DSM` `Dataset` and exact immutable `DatasetVersion` records, then record module-specific criticality, intended use, cadence, locale, `dataModeConstraint`, `effectiveDataModePolicyRef`, `retentionConstraint`, and `effectiveRetentionPolicyRef` without registering a parallel dataset identity or broadening workspace policy.",
@@ -3414,7 +3423,7 @@
     {
       "id": "IAM-016",
       "priority": "P1",
-      "requirement": "User locale shall default to Vietnamese (`vi-VN`) while allowing English (`en`) per user without changing stored business values or audit semantics.",
+      "requirement": "User locale shall default to Vietnamese (`vi-VN`) while allowing English (`en`) per user without changing stored business values or audit semantics. Display-name and locale preference updates shall be authenticated, revision-guarded, idempotent, and server-owned.",
       "source": {
         "line": 171,
         "path": "docs/specs/foundation/identity-workspaces-permissions.md"
@@ -4281,6 +4290,15 @@
       "requirement": "An admitted Job that can produce metered customer results shall carry exactly one opaque BUA `ResultUsageSettlementBinding` ID supplied by the server-owned `ExecutionAdmissionCoordinator`; the worker and browser shall never supply or alter it. JRA result preparation and immutable descriptors may carry that opaque ID but shall not copy or infer BUA reservation, meter, formula or quantity authority. `FINALIZE_RESULT` shall provide the stored ID and verified result facts to the injected BUA transaction participant and shall roll back ResultManifest, Attempt, Job, replay, AUD and outbox writes if settlement is missing, mismatched, unavailable or rejected.",
       "source": {
         "line": 128,
+        "path": "docs/specs/foundation/jobs-recipes-approvals.md"
+      }
+    },
+    {
+      "id": "JRA-033",
+      "priority": "P0",
+      "requirement": "Every executable typed Job shall carry one immutable server-authored `ExecutionWorkloadEnvelope` bound to the exact action/version/handler digest, input ArtifactVersion handles (ID, schema, byte length, SHA-256), bounded server-derived parameters, output policy, deadline, locale, TenantScope, attempt and canonical hash. Admission shall create it transactionally with the Job and any BUA reservation; claim and execution shall re-authorize the envelope and current lease before any input transfer. Workers shall receive only the opaque envelope reference/hash and authenticated resolver responses, never caller-supplied parameters, storage paths, URLs, credentials, or workspace enumeration authority.",
+      "source": {
+        "line": 129,
         "path": "docs/specs/foundation/jobs-recipes-approvals.md"
       }
     },

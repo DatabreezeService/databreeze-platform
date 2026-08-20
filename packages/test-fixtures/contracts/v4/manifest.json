@@ -6,6 +6,90 @@
   "schemaManifest": "../../../contracts/manifest.json",
   "cases": [
     {
+      "id": "v4.bua-payos-plan-catalog.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/bua-payos-plan-catalog",
+      "expectedAcceptance": true,
+      "source": "payloads/bua-payos-plan-catalog/valid.json",
+      "covers": ["bua.plan-catalog"]
+    },
+    {
+      "id": "v4.bua-payos-plan-catalog.invalid-amount",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/bua-payos-plan-catalog",
+      "expectedAcceptance": false,
+      "source": "payloads/bua-payos-plan-catalog/invalid-amount.json",
+      "covers": ["bua.server-owned-pricing"]
+    },
+    {
+      "id": "v4.bua-payos-checkout-command.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-command",
+      "expectedAcceptance": true,
+      "source": "payloads/bua-payos-checkout-command/valid.json",
+      "covers": ["bua.checkout-command"]
+    },
+    {
+      "id": "v4.bua-payos-checkout-command.invalid-amount",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-command",
+      "expectedAcceptance": false,
+      "source": "payloads/bua-payos-checkout-command/invalid-amount.json",
+      "covers": ["bua.no-client-amount"]
+    },
+    {
+      "id": "v4.bua-payos-checkout-session.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-session",
+      "expectedAcceptance": true,
+      "source": "payloads/bua-payos-checkout-session/valid.json",
+      "covers": ["bua.checkout-session"]
+    },
+    {
+      "id": "v4.bua-payos-checkout-session.invalid-authority",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-session",
+      "expectedAcceptance": false,
+      "source": "payloads/bua-payos-checkout-session/invalid-authority.json",
+      "covers": ["bua.no-client-tenant"]
+    },
+    {
+      "id": "v4.bua-payos-payment-status.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/bua-payos-payment-status",
+      "expectedAcceptance": true,
+      "source": "payloads/bua-payos-payment-status/valid.json",
+      "covers": ["bua.payment-status"]
+    },
+    {
+      "id": "v4.bua-payos-payment-status.invalid-authority",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/bua-payos-payment-status",
+      "expectedAcceptance": false,
+      "source": "payloads/bua-payos-payment-status/invalid-authority.json",
+      "covers": ["bua.no-client-tenant"]
+    },
+    {
+      "id": "v4.bua-payos-webhook-event.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/bua-payos-webhook-event",
+      "expectedAcceptance": true,
+      "source": "payloads/bua-payos-webhook-event/valid.json",
+      "covers": ["bua.webhook-signature"]
+    },
+    {
+      "id": "v4.bua-payos-webhook-event.invalid-signature",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/bua-payos-webhook-event",
+      "expectedAcceptance": false,
+      "source": "payloads/bua-payos-webhook-event/invalid-signature.json",
+      "covers": ["bua.webhook-signature"]
+    },
+    {
+      "id": "v4.bua-entitlement-summary.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/bua-entitlement-summary",
+      "expectedAcceptance": true,
+      "source": "payloads/bua-entitlement-summary/valid.json",
+      "covers": ["bua.server-authoritative-credits", "web.workspace-usage"]
+    },
+    {
+      "id": "v4.bua-entitlement-summary.invalid-authority",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/bua-entitlement-summary",
+      "expectedAcceptance": false,
+      "source": "payloads/bua-entitlement-summary/invalid-authority.json",
+      "covers": ["bua.no-client-authority"]
+    },
+    {
       "id": "v4.dda-agent-turn-accepted.valid",
       "schemaId": "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-accepted",
       "expectedAcceptance": true,
@@ -102,6 +186,48 @@
       "expectedAcceptance": false,
       "source": "payloads/iam-bootstrap-response/invalid-client-authority.json",
       "covers": ["iam.no-client-authority"]
+    },
+    {
+      "id": "v4.iam-profile-update-command.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/iam-profile-update-command",
+      "expectedAcceptance": true,
+      "source": "payloads/iam-profile-update-command/valid.json",
+      "covers": ["iam.profile-preferences", "iam.revision-guard"]
+    },
+    {
+      "id": "v4.iam-profile-update-command.invalid-authority",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/iam-profile-update-command",
+      "expectedAcceptance": false,
+      "source": "payloads/iam-profile-update-command/invalid-authority.json",
+      "covers": ["iam.no-client-authority"]
+    },
+    {
+      "id": "v4.iam-profile-update-accepted.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/iam-profile-update-accepted",
+      "expectedAcceptance": true,
+      "source": "payloads/iam-profile-update-accepted/valid.json",
+      "covers": ["iam.profile-preferences"]
+    },
+    {
+      "id": "v4.dda-notification-preferences-command.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/dda-notification-preferences-command",
+      "expectedAcceptance": true,
+      "source": "payloads/dda-notification-preferences-command/valid.json",
+      "covers": ["nco.preference-command", "nco.revision-guard"]
+    },
+    {
+      "id": "v4.dda-notification-preferences-command.invalid-authority",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/dda-notification-preferences-command",
+      "expectedAcceptance": false,
+      "source": "payloads/dda-notification-preferences-command/invalid-authority.json",
+      "covers": ["nco.no-client-authority"]
+    },
+    {
+      "id": "v4.dda-notification-preferences-accepted.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/dda-notification-preferences-accepted",
+      "expectedAcceptance": true,
+      "source": "payloads/dda-notification-preferences-accepted/valid.json",
+      "covers": ["nco.preference-snapshot"]
     },
     {
       "id": "v4.iam-email-verification-command.valid",
@@ -225,6 +351,20 @@
       "expectedAcceptance": false,
       "source": "payloads/dda-dashboard-widget-results-accepted/invalid-numeric-value.json",
       "covers": ["dda.typed-numeric-result"]
+    },
+    {
+      "id": "v4.dda-data-import-dashboard-preview.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/dda-data-import-dashboard-preview",
+      "expectedAcceptance": true,
+      "source": "payloads/dda-data-import-dashboard-preview/valid.json",
+      "covers": ["dda.approved-data-dashboard-preview"]
+    },
+    {
+      "id": "v4.dda-data-import-dashboard-preview.invalid-authority",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/dda-data-import-dashboard-preview",
+      "expectedAcceptance": false,
+      "source": "payloads/dda-data-import-dashboard-preview/invalid-authority.json",
+      "covers": ["dda.no-client-authority"]
     },
     {
       "id": "v4.jra-worker-result-prepare-command.valid",
@@ -358,6 +498,132 @@
       "expectedAcceptance": false,
       "source": "payloads/platform-admin-feedbacks/invalid-network-identifier.json",
       "covers": ["lfb.no-network-identifiers"]
+    },
+    {
+      "id": "v4.jra-job-history-entry.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/jra-job-history-entry",
+      "expectedAcceptance": true,
+      "source": "payloads/jra-job-history-entry/valid.json",
+      "covers": ["jra.metadata-only-history"]
+    },
+    {
+      "id": "v4.jra-job-history-entry.invalid-hash-leak",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/jra-job-history-entry",
+      "expectedAcceptance": false,
+      "source": "payloads/jra-job-history-entry/invalid-hash-leak.json",
+      "covers": ["jra.no-internal-hashes"]
+    },
+    {
+      "id": "v4.jra-job-history-list-accepted.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/jra-job-history-list-accepted",
+      "expectedAcceptance": true,
+      "source": "payloads/jra-job-history-list-accepted/valid.json",
+      "covers": ["jra.job-history"]
+    },
+    {
+      "id": "v4.jra-job-history-list-accepted.invalid-authority",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/jra-job-history-list-accepted",
+      "expectedAcceptance": false,
+      "source": "payloads/jra-job-history-list-accepted/invalid-authority.json",
+      "covers": ["jra.no-client-authority"]
+    },
+    {
+      "id": "v4.jra-job-history-detail-accepted.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/jra-job-history-detail-accepted",
+      "expectedAcceptance": true,
+      "source": "payloads/jra-job-history-detail-accepted/valid.json",
+      "covers": ["jra.job-history-detail"]
+    },
+    {
+      "id": "v4.jra-job-history-detail-accepted.invalid-authority",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/jra-job-history-detail-accepted",
+      "expectedAcceptance": false,
+      "source": "payloads/jra-job-history-detail-accepted/invalid-authority.json",
+      "covers": ["jra.no-client-authority"]
+    },
+    {
+      "id": "v4.crf-report-summary.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/crf-report-summary",
+      "expectedAcceptance": true,
+      "source": "payloads/crf-report-summary/valid.json",
+      "covers": ["crf.report-summary"]
+    },
+    {
+      "id": "v4.crf-report-summary.invalid-authority",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/crf-report-summary",
+      "expectedAcceptance": false,
+      "source": "payloads/crf-report-summary/invalid-authority.json",
+      "covers": ["crf.no-client-authority"]
+    },
+    {
+      "id": "v4.crf-report-list-accepted.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/crf-report-list-accepted",
+      "expectedAcceptance": true,
+      "source": "payloads/crf-report-list-accepted/valid.json",
+      "covers": ["crf.report-list"]
+    },
+    {
+      "id": "v4.crf-report-list-accepted.invalid-authority",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/crf-report-list-accepted",
+      "expectedAcceptance": false,
+      "source": "payloads/crf-report-list-accepted/invalid-authority.json",
+      "covers": ["crf.no-client-authority"]
+    },
+    {
+      "id": "v4.crf-report-detail-accepted.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/crf-report-detail-accepted",
+      "expectedAcceptance": true,
+      "source": "payloads/crf-report-detail-accepted/valid.json",
+      "covers": ["crf.report-detail"]
+    },
+    {
+      "id": "v4.crf-report-detail-accepted.invalid-authority",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/crf-report-detail-accepted",
+      "expectedAcceptance": false,
+      "source": "payloads/crf-report-detail-accepted/invalid-authority.json",
+      "covers": ["crf.no-storage-paths"]
+    },
+    {
+      "id": "v4.crf-report-run-detail-accepted.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/crf-report-run-detail-accepted",
+      "expectedAcceptance": true,
+      "source": "payloads/crf-report-run-detail-accepted/valid.json",
+      "covers": ["crf.run-detail"]
+    },
+    {
+      "id": "v4.crf-report-run-detail-accepted.invalid-authority",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/crf-report-run-detail-accepted",
+      "expectedAcceptance": false,
+      "source": "payloads/crf-report-run-detail-accepted/invalid-authority.json",
+      "covers": ["crf.no-client-authority"]
+    },
+    {
+      "id": "v4.crf-report-create-command.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/crf-report-create-command",
+      "expectedAcceptance": true,
+      "source": "payloads/crf-report-create-command/valid.json",
+      "covers": ["crf.create-command"]
+    },
+    {
+      "id": "v4.crf-report-create-command.invalid-authority",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/crf-report-create-command",
+      "expectedAcceptance": false,
+      "source": "payloads/crf-report-create-command/invalid-authority.json",
+      "covers": ["crf.no-client-authority"]
+    },
+    {
+      "id": "v4.crf-report-create-accepted.valid",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/crf-report-create-accepted",
+      "expectedAcceptance": true,
+      "source": "payloads/crf-report-create-accepted/valid.json",
+      "covers": ["crf.create-accepted"]
+    },
+    {
+      "id": "v4.crf-report-create-accepted.invalid-authority",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/crf-report-create-accepted",
+      "expectedAcceptance": false,
+      "source": "payloads/crf-report-create-accepted/invalid-authority.json",
+      "covers": ["crf.no-client-authority"]
     }
   ]
 }

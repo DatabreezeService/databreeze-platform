@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import {
   checkOwnerRemovalV1,
   INVITATION_MAX_SECONDS_V1,
+  normalizeEmailAddressV1,
   validateMembershipV1,
   type MembershipIdentityV1,
 } from '@databreeze/domain/identity/v1';
@@ -28,6 +29,7 @@ import type {
 } from './iam-repository.port.js';
 import { membershipAccessPresetV1 } from './membership-authority.js';
 import type { IamTenantContextV1 } from './tenant-context.js';
+import type { IamPrincipalEmailLookupPortV1 } from './invitation.service.js';
 
 export const IAM_MEMBERSHIP_SERVICE = Symbol('IAM_MEMBERSHIP_SERVICE');
 
@@ -48,9 +50,10 @@ export type IamMembershipApplicationResultV1<TValue> =
   | { readonly accepted: false; readonly code: IamMembershipApplicationCodeV1 };
 
 export interface IamMembershipInviteInputV1 {
-  readonly principalId: unknown;
-  readonly scope: unknown;
-  readonly roleId: unknown;
+  readonly principalId?: unknown;
+  readonly recipientEmail?: unknown;
+  readonly scope?: unknown;
+  readonly roleId?: unknown;
   readonly accessPreset?: unknown;
 }
 
@@ -130,6 +133,7 @@ export class IamMembershipService {
     private readonly repository: IamRepositoryPortV1,
     private readonly idGenerator: IamMembershipIdGeneratorV1 = () => randomUUID(),
     private readonly clock: IamMembershipClockV1 = () => new Date(),
+    private readonly principalEmails?: IamPrincipalEmailLookupPortV1,
   ) {}
 
   private async authorize(
@@ -166,9 +170,25 @@ export class IamMembershipService {
     context: IamTenantContextV1,
     input: IamMembershipInviteInputV1,
   ): Promise<IamMembershipApplicationResultV1<IamMembershipRecordV1>> {
-    const principalId = parseId(input.principalId);
+    let principalId = parseId(input.principalId);
+    if (!principalId.accepted && input.principalId === undefined) {
+      const email = normalizeEmailAddressV1(input.recipientEmail);
+      if (!email.accepted) return rejected('INVALID_IDENTIFIER');
+      if (this.principalEmails?.findPrincipalIdByEmail === undefined)
+        return rejected('UNAVAILABLE');
+      try {
+        const resolved = await this.principalEmails.findPrincipalIdByEmail(email.value);
+        if (resolved === undefined) return rejected('NOT_FOUND');
+        principalId = parseId(resolved);
+      } catch {
+        return rejected('UNAVAILABLE');
+      }
+    }
     if (!principalId.accepted) return rejected(principalId.code);
-    const scope = parseScope(input.scope);
+    // The authenticated request scope is authoritative. A legacy body scope
+    // may be accepted for compatibility, but it is still checked against the
+    // server context below and never expands the caller's authority.
+    const scope = parseScope(input.scope ?? context.tenantScope);
     if (!scope.accepted) return rejected(scope.code);
     let roleId = input.roleId;
     if (input.accessPreset !== undefined) {
@@ -448,6 +468,13 @@ export class IamMembershipService {
         if (current.revision !== expectedRevisionInput) return rejected('CONFLICT');
         if (mappedRoleId === 'owner' && current.scope.scopeType !== 'organization') {
           return rejected('INVALID_STATE');
+        }
+        if (current.roleId === 'owner' && mappedRoleId !== 'owner') {
+          const ownerDecision = checkOwnerRemovalV1(
+            (await transaction.listMemberships(context)).map(identityFromRecord),
+            current.id,
+          );
+          if (ownerDecision === 'LAST_OWNER') return rejected('LAST_OWNER');
         }
         const next: IamMembershipRecordV1 = Object.freeze({
           ...current,

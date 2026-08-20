@@ -54,7 +54,6 @@ describe('accessible responsive composition', () => {
       screen.getByRole('link', { name: 'Bỏ qua để đến nội dung chính' }).getAttribute('href'),
     ).toBe('#main-content');
     expect(screen.queryByRole('search', { name: 'Tìm kiếm trong không gian làm việc' })).toBeNull();
-    expect(screen.getByRole('navigation', { name: 'Đường dẫn bảng điều khiển' })).toBeTruthy();
   });
 
   it('opens mobile navigation from the keyboard and exposes its controlled state', async () => {

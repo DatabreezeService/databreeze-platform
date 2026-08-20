@@ -9,6 +9,7 @@ const read = (relativePath) => readFile(path.join(root, relativePath), 'utf8');
 
 test('Lightsail pilot Compose keeps data services private and gates API on migration', async () => {
   const compose = await read('infrastructure/lightsail/compose.pilot.yml');
+  const configuration = parse(compose);
   assert.match(compose, /api-migrate:/u);
   assert.match(compose, /condition: service_completed_successfully/u);
   assert.match(compose, /API_MIGRATION_IMAGE:\?API_MIGRATION_IMAGE/u);
@@ -34,6 +35,27 @@ test('Lightsail pilot Compose keeps data services private and gates API on migra
   assert.doesNotMatch(postgresService, /\n    ports:/u);
   assert.doesNotMatch(redisService, /\n    ports:/u);
   assert.doesNotMatch(compose, /latest/u);
+
+  const apiEnvironment = configuration.services.api.environment;
+  for (const variable of [
+    'OPENAI_API_KEY',
+    'DATABREEZE_OPENAI_AGENT_ENABLED',
+    'DATABREEZE_OPENAI_ANALYSIS_ENABLED',
+    'DATABREEZE_OPENAI_DASHBOARD_ENABLED',
+    'PAYOS_PROVIDER',
+    'PAYOS_CLIENT_ID',
+    'PAYOS_API_KEY',
+    'PAYOS_CHECKSUM_KEY',
+    'DATABREEZE_WEB_PUBLIC_URL',
+  ]) {
+    assert.ok(variable in apiEnvironment, `pilot API is missing ${variable}`);
+  }
+  assert.ok(configuration.services['api-seed'], 'pilot Compose must expose an api-seed job');
+  assert.equal(configuration.services['api-seed'].restart, 'no');
+  assert.equal(
+    configuration.services['api-seed'].environment.DATABREEZE_PILOT_SEED_ENABLED,
+    '${DATABREEZE_PILOT_SEED_ENABLED:-false}',
+  );
 });
 
 test('Lightsail Caddy uses the configured public domain and API-before-SPA routing', async () => {
@@ -48,7 +70,7 @@ test('Lightsail Caddy uses the configured public domain and API-before-SPA routi
 test('Lightsail environment example keeps secrets and mutable tags out of source control', async () => {
   const env = await read('infrastructure/lightsail/.env.example');
   assert.match(env, /CHANGE_ME/u);
-  assert.match(env, /VITE_DATABREEZE_DEMO_MODE=true/u);
+  assert.match(env, /VITE_DATABREEZE_DEMO_MODE=false/u);
   assert.match(env, /DATABREEZE_LOCAL_EMAIL_PROVIDER=mailpit/u);
   assert.match(env, /DATABREEZE_IAM_SMTP_HOST=mailpit/u);
   assert.match(env, /DATABREEZE_IAM_SMTP_PORT=1025/u);
@@ -58,11 +80,23 @@ test('Lightsail environment example keeps secrets and mutable tags out of source
 
 test('Lightsail deployment scripts migrate first, health-check, and retain rollback support', async () => {
   const deploy = await read('infrastructure/lightsail/deploy.sh');
+  const backup = await read('infrastructure/lightsail/backup.sh').catch(() => '');
   const healthcheck = await read('infrastructure/lightsail/healthcheck.sh');
   const rollback = await read('infrastructure/lightsail/rollback.sh');
   const bootstrap = await read('infrastructure/lightsail/bootstrap.sh');
   for (const script of [deploy, healthcheck, rollback]) assert.match(script, /set -Eeuo pipefail/u);
   assert.match(deploy, /run --rm api-migrate/u);
+  assert.match(backup, /pg_dump/u);
+  assert.match(backup, /mc mirror/u);
+  assert.match(backup, /sha256sum/u);
+  assert.match(backup, /mktemp/u);
+  const backupIndex = deploy.indexOf('backup.sh');
+  const migrationIndex = deploy.indexOf('run --rm api-migrate');
+  const seedIndex = deploy.indexOf('run --rm api-seed');
+  assert.ok(backupIndex >= 0 && backupIndex < migrationIndex, 'backup must precede migration');
+  assert.ok(seedIndex > migrationIndex, 'pilot seed must follow migration');
+  assert.match(deploy, /if ! run_stack true;/u);
+  assert.match(deploy, /run_stack false \|\| true/u);
   assert.match(deploy, /healthcheck\.sh/u);
   assert.match(deploy, /current-release\.env/u);
   assert.match(deploy, /down --remove-orphans/u);
@@ -79,7 +113,8 @@ test('Lightsail deployment scripts migrate first, health-check, and retain rollb
 
 test('Lightsail pilot workflow passes immutable image digests between jobs', async () => {
   const workflow = await read('.github/workflows/lightsail-pilot.yml');
-  assert.doesNotThrow(() => parse(workflow));
+  const configuration = parse(workflow);
+  assert.ok(configuration.jobs);
   assert.match(workflow, /packages:\s*write/u);
   assert.match(workflow, /environment:\s*pilot/u);
   const deployJob = workflow.split('\n  deploy:\n', 2)[1] ?? '';
@@ -106,9 +141,15 @@ test('Lightsail pilot workflow passes immutable image digests between jobs', asy
   assert.doesNotMatch(deployJob, /docker image inspect/u);
   assert.match(deployJob, /Upload deployment files/u);
   assert.match(deployJob, /infrastructure\/lightsail\/deploy\.sh/u);
+  assert.match(deployJob, /infrastructure\/lightsail\/backup\.sh/u);
   assert.match(deployJob, /install -m 0644 \/tmp\/databreeze-\$\{GITHUB_SHA\}\/Caddyfile/u);
   assert.match(deployJob, /install -m 0750 \/tmp\/databreeze-\$\{GITHUB_SHA\}\/deploy\.sh/u);
   assert.match(deployJob, /Remove temporary deployment files/u);
   assert.doesNotMatch(workflow, /:latest\b/u);
   assert.doesNotMatch(workflow, /tofu[^\n]*\bapply\b/u);
+  const webBuildStep = configuration.jobs.publish.steps.find(
+    (step) => step.name === 'Build and publish Web image',
+  );
+  assert.ok(webBuildStep);
+  assert.match(webBuildStep.run, /VITE_DATABREEZE_DEMO_MODE=false/u);
 });

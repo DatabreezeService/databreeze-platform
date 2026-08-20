@@ -7,11 +7,11 @@
 	}
 }
 
-https://localhost:8443 {
+https://localhost:8443 https://web:8443 {
 	tls internal
 	encode zstd gzip
 
-	@api path /v1/* /v3/* /health/*
+	@api path /v1/* /v3/* /v4/* /health/* /internal/worker/* /internal/iae/worker/*
 	handle @api {
 		reverse_proxy api:3000
 	}

@@ -11,6 +11,7 @@ import {
 } from '@nestjs/swagger';
 import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 import type { EntitlementSnapshotV1, UsageLedgerStateV1 } from '@databreeze/domain/entitlements/v1';
+import { parseV4Contract, type BuaEntitlementSummary } from '@databreeze/contracts/v4';
 
 import {
   ENTITLEMENT_REPOSITORY_PORT,
@@ -42,6 +43,30 @@ const USAGE_LEDGER_RESPONSE_SCHEMA = {
   },
   additionalProperties: false,
 };
+
+const ENTITLEMENT_SUMMARY_RESPONSE_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['schemaVersion', 'snapshot', 'aiCredits'],
+  properties: {
+    schemaVersion: { type: 'integer', enum: [4] },
+    snapshot: { type: 'object', additionalProperties: true },
+    aiCredits: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['metric', 'limit', 'used', 'reserved', 'remaining'],
+      properties: {
+        metric: { type: 'string', enum: ['job_count'] },
+        limit: { type: 'integer', minimum: 0 },
+        used: { type: 'integer', minimum: 0 },
+        reserved: { type: 'integer', minimum: 0 },
+        remaining: { type: 'integer', minimum: 0 },
+      },
+    },
+  },
+};
+const ENTITLEMENT_SUMMARY_SCHEMA_ID =
+  'https://schemas.databreeze.dev/contracts/v4/bua-entitlement-summary' as const;
 
 @ApiTags('entitlements')
 @ApiBearerAuth()
@@ -107,6 +132,53 @@ export class EntitlementController {
     try {
       return await this.repository.listUsageState(context);
     } catch {
+      throw new EntitlementProblemError('ENTITLEMENT_UNAVAILABLE');
+    }
+  }
+
+  @Get('summary')
+  @ApiOperation({ summary: 'Read the current plan and authoritative AI credit allowance' })
+  @ApiOkResponse({ schema: ENTITLEMENT_SUMMARY_RESPONSE_SCHEMA })
+  @ApiNotFoundResponse({ description: 'No current entitlement snapshot is visible.' })
+  @ApiServiceUnavailableResponse({ description: 'Entitlement persistence is unavailable.' })
+  async summary(@Req() request: unknown): Promise<BuaEntitlementSummary> {
+    const context = await this.requestContext.resolve(request);
+    try {
+      const [snapshot, usage] = await Promise.all([
+        this.repository.findCurrentSnapshot(context),
+        this.repository.listUsageState(context),
+      ]);
+      if (!snapshot) throw new EntitlementProblemError('ENTITLEMENT_NOT_FOUND');
+      const limit = snapshot.quotas.find((quota) => quota.metric === 'job_count')?.limit ?? 0;
+      const used = usage.entries
+        .filter((entry) => entry.metric === 'job_count' && entry.bucket === 'COMMITTED')
+        .reduce((total, entry) => total + entry.deltaUnits, 0);
+      const reserved = usage.reservations
+        .filter(
+          (reservation) => reservation.metric === 'job_count' && reservation.status === 'ACTIVE',
+        )
+        .reduce((total, reservation) => total + reservation.reservedUnits, 0);
+      const safeUsed = Math.max(0, Number.isSafeInteger(used) ? used : 0);
+      const safeReserved = Math.max(0, Number.isSafeInteger(reserved) ? reserved : 0);
+      const candidate = Object.freeze({
+        schemaVersion: 4 as const,
+        snapshot,
+        aiCredits: Object.freeze({
+          metric: 'job_count' as const,
+          limit,
+          used: safeUsed,
+          reserved: safeReserved,
+          remaining: Math.max(0, limit - safeUsed - safeReserved),
+        }),
+      });
+      const parsed = parseV4Contract<BuaEntitlementSummary>(
+        ENTITLEMENT_SUMMARY_SCHEMA_ID,
+        candidate,
+      );
+      if (!parsed.accepted) throw new EntitlementProblemError('ENTITLEMENT_UNAVAILABLE');
+      return parsed.value;
+    } catch (error) {
+      if (error instanceof EntitlementProblemError) throw error;
       throw new EntitlementProblemError('ENTITLEMENT_UNAVAILABLE');
     }
   }

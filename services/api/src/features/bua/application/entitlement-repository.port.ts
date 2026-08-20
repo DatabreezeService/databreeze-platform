@@ -16,6 +16,7 @@ export interface EntitlementTransactionPortV1 {
     context: IamTenantContextV1,
     snapshotId: EntitlementSnapshotV1['snapshotId'],
   ): Promise<EntitlementSnapshotV1 | undefined>;
+  findCurrentSnapshot(context: IamTenantContextV1): Promise<EntitlementSnapshotV1 | undefined>;
   listUsageState(context: IamTenantContextV1): Promise<UsageLedgerStateV1>;
   persistUsageState(context: IamTenantContextV1, state: UsageLedgerStateV1): Promise<void>;
 }

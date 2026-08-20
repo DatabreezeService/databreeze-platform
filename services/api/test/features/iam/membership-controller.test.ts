@@ -37,7 +37,6 @@ void test('[IAM-004] membership controller forwards invitation and transition fi
       {},
       {
         principalId: 'principal',
-        scope: { scopeType: 'organization', organizationId: 'org' },
         roleId: 'viewer',
       },
     ),
@@ -98,7 +97,6 @@ void test('[IAM-004] membership controller maps rejected results to HTTP status 
     {},
     {
       principalId: 'principal',
-      scope: { scopeType: 'organization', organizationId: 'org' },
       roleId: 'viewer',
     },
     reply as never,

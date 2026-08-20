@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { DatasetCardV1 } from './data-model.ts';
 import { localDataStore } from './local-data-store.ts';
 import './dataset-preview-table.css';
@@ -48,8 +49,14 @@ export function DatasetPreviewTable({ dataset, locale }: DatasetPreviewTableProp
   const [currentPage, setCurrentPage] = useState(1);
 
   const tabularData = localDataStore.getTabularData(dataset.datasetId);
-  const columns = tabularData?.columns ?? [];
-  const allRows = tabularData?.rows ?? [];
+  const columns =
+    tabularData?.columns.map((column) => ({ ...column, nullable: column.nullCount > 0 })) ??
+    (dataset.fieldNames ?? []).map((name, index) => ({
+      name,
+      type: dataset.fieldTypes?.[index] ?? 'TEXT',
+      nullable: true,
+    }));
+  const allRows = tabularData?.rows ?? dataset.previewRows ?? [];
 
   const filteredRows = useMemo(() => {
     if (!searchTerm.trim()) return allRows;
@@ -62,10 +69,6 @@ export function DatasetPreviewTable({ dataset, locale }: DatasetPreviewTableProp
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
   const paginatedRows = filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  if (!tabularData || columns.length === 0) {
-    return null;
-  }
-
   return (
     <section aria-label={text.heading} className="dataset-preview-table-card">
       <div className="dataset-preview-table-card__header">
@@ -74,28 +77,30 @@ export function DatasetPreviewTable({ dataset, locale }: DatasetPreviewTableProp
           <p>{text.description}</p>
         </div>
         <div className="dataset-preview-table-card__actions">
-          <a
+          <Link
             className="db-button db-button--primary"
-            href={`/${locale}/analysis?dataset=${encodeURIComponent(dataset.datasetId)}`}
+            to={`/${locale}/analysis?dataset=${encodeURIComponent(dataset.datasetId)}`}
           >
             {text.actionAskAgent}
-          </a>
-          <a
-            className="db-button db-button--secondary"
-            href={`/${locale}/dashboards`}
-          >
+          </Link>
+          <Link className="db-button db-button--secondary" to={`/${locale}/dashboards`}>
             {text.actionDashboard}
-          </a>
+          </Link>
         </div>
       </div>
 
       <div className="dataset-preview-table-card__toolbar">
         <div className="dataset-preview-table-card__meta">
           <span className="dataset-preview-meta-item">
-            <strong>{allRows.length.toLocaleString(locale === 'vi-VN' ? 'vi-VN' : 'en-US')}</strong> {text.rowsLabel}
+            <strong>
+              {(dataset.rowCount ?? allRows.length).toLocaleString(
+                locale === 'vi-VN' ? 'vi-VN' : 'en-US',
+              )}
+            </strong>{' '}
+            {text.rowsLabel}
           </span>
           <span className="dataset-preview-meta-item">
-            <strong>{columns.length}</strong> {text.colsLabel}
+            <strong>{dataset.fieldCount ?? columns.length}</strong> {text.colsLabel}
           </span>
         </div>
         <input

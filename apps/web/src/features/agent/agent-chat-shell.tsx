@@ -37,6 +37,7 @@ export interface AgentChatShellProperties {
 /** WEB-024/DDA-055: Notion-style seamless AI chat presentation. */
 export function AgentChatShell({
   activeConversationId,
+  analysisHref,
   children,
   composerLabel,
   context,
@@ -44,6 +45,7 @@ export function AgentChatShell({
   headingTitle,
   locale,
   messages = [],
+  newConversationHref,
   onClose,
   onCreateConversation,
   onSelectConversation,
@@ -70,10 +72,11 @@ export function AgentChatShell({
           emptyGreeting: 'Tôi có thể giúp gì cho bạn hôm nay?',
           emptyHint: 'Chọn một hội thoại hoặc bắt đầu bằng câu hỏi bên dưới.',
           inputPlaceholder: 'Hỏi bất kỳ điều gì với AI…',
+          openAnalysis: 'Mở Phân tích',
           newConversation: 'Cuộc trò chuyện mới',
           noConversation: 'Chưa có hội thoại được cấp quyền',
           send: submitting ? 'Đang gửi…' : 'Gửi',
-          switchConversation: 'Lịch sử hội thoại',
+          chooseConversation: 'Chọn cuộc trò chuyện',
           suggestions: [
             {
               label: 'Tóm tắt các chỉ số đang hiển thị',
@@ -96,10 +99,11 @@ export function AgentChatShell({
           emptyGreeting: 'How can I help you today?',
           emptyHint: 'Choose a conversation or start with a question below.',
           inputPlaceholder: 'Do anything with AI…',
+          openAnalysis: 'Open Analysis',
           newConversation: 'New conversation',
           noConversation: 'No authorized conversations are available',
           send: submitting ? 'Sending…' : 'Send',
-          switchConversation: 'Conversation history',
+          chooseConversation: 'Choose conversation',
           suggestions: [
             {
               label: 'Summarize the metrics on screen',
@@ -132,6 +136,7 @@ export function AgentChatShell({
     setConversationMenuOpen(false);
     if (val === '') {
       if (onCreateConversation) onCreateConversation();
+      else if (newConversationHref !== undefined) globalThis.location.assign(newConversationHref);
       else onSelectConversation('');
     } else {
       onSelectConversation(val);
@@ -190,20 +195,21 @@ export function AgentChatShell({
 
   const activeConversation = conversations.find((c) => c.conversationId === activeConversationId);
   const currentTitle = activeConversation?.title ?? text.newConversation;
+  const conversationTriggerLabel = `${text.chooseConversation}: ${currentTitle}`;
 
   return (
     <div className="notion-ai-chat">
       {/* Accessible heading for screen readers */}
       <h2 className="dda-sr-only">{headingTitle ?? 'Trợ lý DataBreeze'}</h2>
 
-      {/* History-first header: the only navigation control is the conversation history. */}
+      {/* Chat-first header: the title is the only conversation navigation affordance. */}
       <header className="notion-ai-header">
         <div className="notion-ai-header__selector" ref={conversationSelectorRef}>
           <button
             aria-controls={conversationMenuId}
             aria-expanded={conversationMenuOpen}
             aria-haspopup="listbox"
-            aria-label={text.switchConversation}
+            aria-label={conversationTriggerLabel}
             className="notion-ai-header__trigger"
             onClick={() => setConversationMenuOpen((open) => !open)}
             onKeyDown={handleConversationTriggerKeyDown}
@@ -232,7 +238,7 @@ export function AgentChatShell({
           </button>
           {conversationMenuOpen ? (
             <div
-              aria-label={text.switchConversation}
+              aria-label={text.chooseConversation}
               className="notion-ai-header__menu"
               id={conversationMenuId}
               onKeyDown={handleConversationMenuKeyDown}
@@ -329,6 +335,11 @@ export function AgentChatShell({
                 </button>
               ))}
             </div>
+            {analysisHref !== undefined ? (
+              <a className="notion-ai-empty__analysis-link" href={analysisHref}>
+                {text.openAnalysis}
+              </a>
+            ) : null}
           </div>
         ) : (
           <div aria-live="polite" className="notion-ai-messages" role="log">

@@ -90,10 +90,8 @@ export class InMemorySourceCatalogRepositoryAdapter
     this.assignments = assignments.map((assignment) => Object.freeze({ ...assignment }));
   }
 
-  public async register(
-    context: IamTenantContextV1,
-    record: SourceCatalogRecordV1,
-  ): Promise<void> {
+  public async register(context: IamTenantContextV1, record: SourceCatalogRecordV1): Promise<void> {
+    await Promise.resolve();
     if (
       record.organizationId !== context.tenantScope.organizationId ||
       context.tenantScope.scopeType === 'organization' ||

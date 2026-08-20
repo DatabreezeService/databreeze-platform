@@ -51,6 +51,8 @@ export class JraAdmissionService {
       readonly dispatch: Omit<Parameters<typeof createJobDispatchRecordV1>[0], 'jobId'> & {
         readonly jobId: Parameters<typeof createJobV1>[0]['jobId'];
       };
+      /** Server-authored only. Browser/API request DTOs must never pass this value through. */
+      readonly entitlementAdmission?: unknown;
     },
   ): Promise<JraAdmissionResultV1> {
     const action = createTypedActionDefinitionV1(input.job.action);
@@ -102,6 +104,21 @@ export class JraAdmissionService {
             },
           });
         return rejected('JRA_ADMISSION_IDEMPOTENCY_CONFLICT');
+      }
+      if (input.entitlementAdmission !== undefined) {
+        if (transaction.admitEntitlement === undefined)
+          return rejected('JRA_ENTITLEMENT_ADMISSION_UNAVAILABLE');
+        let entitlementResult;
+        try {
+          entitlementResult = await transaction.admitEntitlement(
+            context,
+            input.entitlementAdmission,
+          );
+        } catch {
+          return rejected('JRA_ENTITLEMENT_ADMISSION_UNAVAILABLE');
+        }
+        if (!entitlementResult.accepted)
+          return rejected(`JRA_ENTITLEMENT_${entitlementResult.code}`);
       }
       await transaction.saveJob(context, job.value);
       await transaction.saveExecutionRequest(context, executionRequest.value);

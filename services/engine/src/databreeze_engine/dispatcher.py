@@ -17,7 +17,6 @@ from .models import (
     EngineError,
     EngineExecutionRequest,
     EngineResult,
-    FoundationDigestResult,
     JsonRpcErrorResponse,
     JsonRpcRequest,
     JsonRpcSuccessResponse,
@@ -73,6 +72,7 @@ def serialize_dashboard_widget_output(
     widget_result: DdaWidgetMaterializationResult,
     *,
     subject_bindings: DashboardWidgetSubjectBindings,
+    source_lineage_hash: str | None = None,
 ) -> JsonWorkerOutput:
     """Serialize one widget and its exact snapshot-proof bindings into one closed artifact."""
     if widget_result.widgetId != subject_bindings.widgetId:
@@ -97,7 +97,7 @@ def serialize_dashboard_widget_output(
         kind="JSON_RESULT",
         outputName="widget-result",
         schemaId=DASHBOARD_WIDGET_OUTPUT_SCHEMA_ID,
-        sourceLineageHash=subject_bindings.inputSelectorHash,
+        sourceLineageHash=source_lineage_hash or subject_bindings.inputSelectorHash,
         content=encode_json(artifact.model_dump(mode="json")),
     )
 
@@ -149,9 +149,18 @@ def dispatch_execution(
     started = read_monotonic_clock()
     try:
         output = definition.handler(context, request.parameters)
-        if not isinstance(output, FoundationDigestResult):
-            raise EngineDispatchError("INTERNAL_ERROR")
-        result = EngineResult(attemptId=request.attemptId, status="SUCCEEDED", output=output)
+        # EngineResult is the final closed allowlist.  Validation here prevents a
+        # newly registered handler from widening the transport to arbitrary JSON.
+        try:
+            result = EngineResult.model_validate(
+                {
+                    "attemptId": request.attemptId,
+                    "status": "SUCCEEDED",
+                    "output": output.model_dump(mode="python"),
+                }
+            )
+        except ValidationError:
+            raise EngineDispatchError("INTERNAL_ERROR") from None
     except EngineDispatchError:
         raise
     except Exception:

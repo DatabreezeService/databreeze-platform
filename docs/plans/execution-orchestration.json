@@ -8,9 +8,9 @@
     "deliveryBatches": "docs/plans/004-luna-max-execution-plan.md"
   },
   "requirementTotals": {
-    "total": 622,
+    "total": 633,
     "byPriority": {
-      "P0": 455,
+      "P0": 466,
       "P1": 154,
       "P2": 13
     }
@@ -352,7 +352,7 @@
     {
       "planId": "030",
       "file": "030-artifacts-datasets-evidence.md",
-      "requirementCount": 47,
+      "requirementCount": 49,
       "dependencies": ["020"],
       "status": "partial-needs-reconciliation",
       "taskIds": ["IAE-001", "IAE-002", "IAE-003", "IAE-004", "IAE-005", "DSM-001", "DSM-002", "DSM-003", "IAE-006", "IAE-007"]

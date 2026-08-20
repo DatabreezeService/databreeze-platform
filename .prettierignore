@@ -1,5 +1,8 @@
 .github/workflows/README.md
 .superpowers/
+.pnpm-store/
+.worktrees/
+**/.pytest_cache/
 AGENTS.md
 README.md
 docs/

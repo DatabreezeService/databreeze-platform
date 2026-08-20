@@ -35,7 +35,7 @@ void test('[DDA-002] intake controller returns IDs and status only', async () =>
         csv: { encodings: ['utf-8'], dialects: ['excel'] },
         xlsx: { macrosAllowed: false, externalLinksAllowed: false },
         limits: {
-          maxBytes: 512_000,
+          maxBytes: 100 * 1024 * 1024,
           maxRows: 20_000,
           maxColumns: 256,
           maxSheets: 8,
@@ -84,7 +84,7 @@ void test('[DDA-002] intake controller maps rejections to stable Problem codes',
         csv: { encodings: ['utf-8'], dialects: ['excel'] },
         xlsx: { macrosAllowed: false, externalLinksAllowed: false },
         limits: {
-          maxBytes: 512_000,
+          maxBytes: 100 * 1024 * 1024,
           maxRows: 20_000,
           maxColumns: 256,
           maxSheets: 8,

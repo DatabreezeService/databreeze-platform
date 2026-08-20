@@ -1,5 +1,6 @@
 import type {
   ContextEvent,
+  DdaConversationListAccepted,
   DdaConversationLoadAccepted,
   DdaConversationSummary,
 } from '@databreeze/contracts/v4';
@@ -10,6 +11,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { normalizeRouteLocale } from '../../app/locale-context.tsx';
 import { workspaceAgentStore } from '../agent/workspace-agent-store.ts';
 import { dataApiBaseConfiguration, fetchAuthorizedDataIndex } from '../data/data-api.ts';
+import { dataImportApi, type DataImportRecordV1 } from '../data/data-import-api.ts';
 import { localDataStore } from '../data/local-data-store.ts';
 import { dashboardDemoMode } from '../dashboards/dashboard-api.ts';
 import {
@@ -23,15 +25,13 @@ import {
 import type {
   AnalysisContextChangeEventV1,
   AnalysisConversationV1,
+  AnalysisConversationMessageV1,
   AnalysisDatasetContextV1,
   AnalysisTurnErrorV1,
 } from './analysis-model.ts';
 import { AnalysisPage } from './analysis-page.tsx';
-import {
-  executeAnalysisWithAgent,
-  executeLocalAnalysis,
-  type LocalAnalysisChartProposal,
-} from './local-analysis-engine.ts';
+import { executeApprovedPreviewAnalysis } from './approved-preview-analysis.ts';
+import { executeLocalAnalysis } from './local-analysis-engine.ts';
 
 const AUTHORIZED_WORKSPACE_CACHE_SCOPE = 'authorized-current-workspace';
 
@@ -177,6 +177,26 @@ function contextEventPresentation(
   });
 }
 
+type LocalPreviewMessagesByConversationV1 = Readonly<
+  Record<string, readonly AnalysisConversationMessageV1[]>
+>;
+
+function mergeLocalPreviewMessages(
+  conversation: AnalysisConversationV1,
+  localMessages: LocalPreviewMessagesByConversationV1,
+): AnalysisConversationV1 {
+  const extras = localMessages[conversation.conversationId] ?? [];
+  if (extras.length === 0) return conversation;
+  const existingIds = new Set(conversation.messages.map((message) => message.messageId));
+  return Object.freeze({
+    ...conversation,
+    messages: Object.freeze([
+      ...conversation.messages,
+      ...extras.filter((message) => !existingIds.has(message.messageId)),
+    ]),
+  });
+}
+
 function turnError(error: unknown): AnalysisTurnErrorV1 {
   if (error instanceof AnalysisConversationApiError) {
     if (error.code === 'AGENT_TURN_FORBIDDEN') return 'FORBIDDEN';
@@ -187,7 +207,7 @@ function turnError(error: unknown): AnalysisTurnErrorV1 {
 }
 
 function DemoAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) {
-  const [searchParameters, setSearchParameters] = useSearchParams();
+  const [searchParameters] = useSearchParams();
   const requestedDatasetId = searchParameters.get('dataset');
   const availableDatasets = useSyncExternalStore(
     localDataStore.subscribe,
@@ -336,15 +356,8 @@ function LiveAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) 
   const [createError, setCreateError] = useState<'NO_DATASETS' | 'FAILED' | undefined>();
   const [creatingConversation, setCreatingConversation] = useState(false);
   const [selectedDatasetIds, setSelectedDatasetIds] = useState<readonly string[]>([]);
-  const [localFallbackMessages, setLocalFallbackMessages] = useState<
-    readonly {
-      readonly conversationId: string;
-      readonly messageId: string;
-      readonly role: 'USER' | 'AGENT';
-      readonly text: string;
-      readonly chartProposal?: LocalAnalysisChartProposal;
-    }[]
-  >([]);
+  const [localPreviewMessages, setLocalPreviewMessages] =
+    useState<LocalPreviewMessagesByConversationV1>({});
   const queryClient = useQueryClient();
   const { baseUrl } = analysisConversationApiConfiguration();
   const dataBaseUrl = dataApiBaseConfiguration().baseUrl;
@@ -371,6 +384,12 @@ function LiveAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) 
     retry: false,
   });
   const datasets = datasetsQuery.data ?? [];
+  const approvedImportsQuery = useQuery({
+    queryKey: [...datasetsKey, 'approved-imports'] as const,
+    queryFn: () => dataImportApi.list(50, dataBaseUrl),
+    enabled: datasets.length > 0,
+    retry: false,
+  });
 
   useEffect(() => {
     const requested = searchParameters.get('dataset');
@@ -383,14 +402,16 @@ function LiveAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) 
   }, [datasets, searchParameters, selectedDatasetIds.length]);
 
   const authorizedSummaries = historyQuery.data?.items ?? [];
+  const newConversationRequested = searchParameters.get('new') === '1';
   const requestedConversationId = searchParameters.get('conversation') ?? undefined;
   const storedConversationId = workspaceAgentStore.getActiveConversation()?.conversationId;
-  const activeConversationId =
-    authorizedSummaries.find((item) => item.conversationId === requestedConversationId)
-      ?.conversationId ??
-    authorizedSummaries.find((item) => item.conversationId === storedConversationId)
-      ?.conversationId ??
-    authorizedSummaries[0]?.conversationId;
+  const activeConversationId = newConversationRequested
+    ? undefined
+    : (authorizedSummaries.find((item) => item.conversationId === requestedConversationId)
+        ?.conversationId ??
+      authorizedSummaries.find((item) => item.conversationId === storedConversationId)
+        ?.conversationId ??
+      authorizedSummaries[0]?.conversationId);
   const activeSummary = authorizedSummaries.find(
     (item) => item.conversationId === activeConversationId,
   );
@@ -471,22 +492,9 @@ function LiveAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) 
       historyConversations.map((item) => {
         const base =
           item.conversationId === loadedConversation?.conversationId ? loadedConversation : item;
-        const extra = localFallbackMessages.filter((m) => m.conversationId === base.conversationId);
-        if (extra.length === 0) return base;
-        return {
-          ...base,
-          messages: [
-            ...base.messages,
-            ...extra.map((m) => ({
-              messageId: m.messageId,
-              role: m.role,
-              text: m.text,
-              ...(m.chartProposal ? { chartProposal: m.chartProposal } : {}),
-            })),
-          ],
-        };
+        return mergeLocalPreviewMessages(base, localPreviewMessages);
       }),
-    [historyConversations, loadedConversation, localFallbackMessages],
+    [historyConversations, loadedConversation, localPreviewMessages],
   );
   const contextEvents = useMemo(
     () =>
@@ -496,26 +504,105 @@ function LiveAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) 
     [conversationQuery.data, locale],
   );
   const turnMutation = useMutation({
-    mutationFn: (input: { readonly conversationId: string; readonly text: string }) => {
-      const messageId = crypto.randomUUID();
+    mutationFn: (input: {
+      readonly conversationId: string;
+      readonly messageId: string;
+      readonly text: string;
+    }) => {
       return runAuthorizedAgentTurn({
         baseUrl,
         conversationId: input.conversationId,
-        messageId,
+        messageId: input.messageId,
         text: input.text,
-        idempotencyKey: `turn:${messageId}`,
+        // Keep the browser key within the conservative token grammar shared by
+        // the HTTP context, DTO, and durable conversation adapters.
+        idempotencyKey: `turn-${input.messageId}`,
         locale,
       });
     },
   });
 
+  async function localPreviewForConversation(
+    conversationId: string,
+    messageId: string,
+    question: string,
+  ): Promise<boolean> {
+    const summary = authorizedSummaries.find((item) => item.conversationId === conversationId);
+    if (summary === undefined || summary.datasets.length === 0) return false;
+
+    let imports = approvedImportsQuery.data;
+    if (imports === undefined && approvedImportsQuery.isPending) {
+      const refreshed = await approvedImportsQuery.refetch();
+      imports = refreshed.data;
+    }
+    if (imports === undefined) return false;
+
+    const previews = await Promise.all(
+      summary.datasets.slice(0, 8).map(async (binding) => {
+        const candidate = imports?.find(
+          (record: DataImportRecordV1) =>
+            record.state === 'READY' && record.accepted?.datasetId === binding.datasetId,
+        );
+        if (candidate === undefined) return undefined;
+        try {
+          return await dataImportApi.dashboardPreview(candidate.importId, dataBaseUrl);
+        } catch {
+          return undefined;
+        }
+      }),
+    );
+    const usable = previews.filter(
+      (preview): preview is NonNullable<typeof preview> => preview !== undefined,
+    );
+    if (usable.length === 0) return false;
+
+    const results = usable.map((preview) =>
+      executeApprovedPreviewAnalysis(question, preview, locale),
+    );
+    const first = results[0];
+    if (first === undefined) return false;
+    const assistantMessage: AnalysisConversationMessageV1 = Object.freeze({
+      messageId: `local-preview-${messageId}`,
+      role: 'AGENT',
+      text: results.map((result) => result.answerText).join('\n\n'),
+      createdLabel: locale === 'vi-VN' ? 'Vừa xong' : 'Just now',
+      ...(first.chartProposal === undefined ? {} : { chartProposal: first.chartProposal }),
+    });
+    const userMessage: AnalysisConversationMessageV1 = Object.freeze({
+      messageId,
+      role: 'USER',
+      text: question,
+      createdLabel: locale === 'vi-VN' ? 'Vừa xong' : 'Just now',
+    });
+    setLocalPreviewMessages((current) => ({
+      ...current,
+      [conversationId]: Object.freeze([userMessage, assistantMessage]),
+    }));
+    await queryClient.invalidateQueries({ queryKey: conversationKey, exact: true });
+    return true;
+  }
+
   async function sendMessage(message: string, conversationId?: string) {
     if (conversationId === undefined || conversationId !== activeConversationId) return;
     setSendError(undefined);
+    const messageId = crypto.randomUUID();
     try {
-      await turnMutation.mutateAsync({ conversationId, text: message });
+      await turnMutation.mutateAsync({ conversationId, messageId, text: message });
+      setLocalPreviewMessages((current) => {
+        if (!(conversationId in current)) return current;
+        const next = { ...current };
+        delete next[conversationId];
+        return next;
+      });
       await queryClient.invalidateQueries({ queryKey: conversationKey, exact: true });
     } catch (error) {
+      if (
+        error instanceof AnalysisConversationApiError &&
+        error.code === 'AGENT_TURN_UNAVAILABLE' &&
+        (await localPreviewForConversation(conversationId, messageId, message))
+      ) {
+        return;
+      }
       if (
         error instanceof AnalysisConversationApiError &&
         (error.code === 'AGENT_TURN_FORBIDDEN' ||
@@ -526,37 +613,11 @@ function LiveAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) 
         setSendError(turnError(error));
         throw error;
       }
-      // In local dev when API is unavailable, run local/OpenAI analysis engine
-      try {
-        const targetDataset =
-          datasets.find((d) => selectedDatasetIds.includes(d.datasetId)) ?? datasets[0];
-        const res = await executeAnalysisWithAgent(
-          message,
-          targetDataset?.datasetId,
-          locale,
-        );
-
-        setLocalFallbackMessages((prev) => [
-          ...prev,
-          {
-            conversationId,
-            messageId: crypto.randomUUID(),
-            role: 'USER',
-            text: message,
-          },
-          {
-            conversationId,
-            messageId: crypto.randomUUID(),
-            role: 'AGENT',
-            text: res.answerText,
-            ...(res.chartProposal !== undefined ? { chartProposal: res.chartProposal } : {}),
-          },
-        ]);
-        return;
-      } catch {
-        setSendError(turnError(error));
-        throw error;
-      }
+      // The live route must never fabricate an answer when the API/provider is
+      // unavailable. Demo analysis is an explicit route mode; authenticated
+      // analysis reports the real backend state so the user can retry safely.
+      setSendError(turnError(error));
+      throw error;
     }
   }
 
@@ -578,12 +639,37 @@ function LiveAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) 
         title: locale === 'vi-VN' ? 'Phân tích mới' : 'New analysis',
         datasetIds: anchorableDatasets.map((dataset) => dataset.datasetId),
         datasetVersionIds: Object.fromEntries(
-          anchorableDatasets.map((dataset) => [dataset.datasetId, dataset.versionId as string]),
+          anchorableDatasets.map((dataset) => [dataset.datasetId, dataset.versionId]),
         ),
         idempotencyKey: `conversation-${crypto.randomUUID()}`,
       });
       await queryClient.invalidateQueries({ queryKey: historyKey });
+      // The create response is intentionally bounded and does not contain the
+      // full authorized summary required by the history list. Load that
+      // server-owned summary before changing the route so a stale history
+      // projection cannot hide a successfully created session.
+      const createdPage = await fetchAuthorizedConversation({
+        baseUrl,
+        conversationId: created.conversationId,
+        limit: 50,
+      });
+      queryClient.setQueryData<DdaConversationListAccepted>(historyKey, (current) => ({
+        accepted: true,
+        schemaVersion: 4,
+        items: [
+          createdPage.conversation,
+          ...(current?.items ?? []).filter(
+            (item) => item.conversationId !== createdPage.conversation.conversationId,
+          ),
+        ],
+        ...(current?.nextCursor === undefined ? {} : { nextCursor: current.nextCursor }),
+      }));
+      queryClient.setQueryData(
+        [...historyKey, 'conversation', created.conversationId],
+        createdPage,
+      );
       const next = new URLSearchParams(searchParameters);
+      next.delete('new');
       next.set('conversation', created.conversationId);
       setSearchParameters(next);
     } catch {
@@ -592,6 +678,24 @@ function LiveAnalysisRoutePage({ locale }: { readonly locale: 'en' | 'vi-VN' }) 
       setCreatingConversation(false);
     }
   }
+
+  useEffect(() => {
+    // Dashboard history links land here with `new=1`. Wait for the authorized
+    // dataset index before creating the server-owned conversation so a cold
+    // page load cannot race the data query and incorrectly report no datasets.
+    if (
+      !newConversationRequested ||
+      creatingConversation ||
+      datasetsQuery.isPending ||
+      datasets.length === 0
+    ) {
+      return;
+    }
+    void createConversation();
+    // createConversation is intentionally scoped to this route's current
+    // workspace query; the URL is replaced with the created conversation on
+    // success, which removes `new=1` and prevents a second creation.
+  }, [newConversationRequested, creatingConversation, datasetsQuery.isPending, datasets.length]);
 
   const noDataNotice =
     locale === 'vi-VN'

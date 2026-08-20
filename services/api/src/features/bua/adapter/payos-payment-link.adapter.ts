@@ -1,6 +1,11 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 
 import type { PayosPlanV1 } from '../application/payos-plan-catalog.js';
+import type {
+  PayosCheckoutLinkV1,
+  PayosPaymentProviderPortV1,
+  PayosWebhookVerificationV1,
+} from '../application/payos-payment-provider.port.js';
 
 export interface PayosPaymentLinkAdapterOptions {
   readonly clientId: string;
@@ -12,21 +17,11 @@ export interface PayosPaymentLinkAdapterOptions {
   readonly fetch?: typeof globalThis.fetch;
 }
 
-export interface PayosCheckoutLinkV1 {
-  readonly checkoutUrl: string;
-  readonly orderCode: number;
-}
-
-export interface PayosWebhookVerificationV1 {
-  readonly providerEventId: string;
-  readonly orderCode: number;
-  readonly amountVnd: number;
-  readonly status: 'PAID' | 'CANCELLED' | 'FAILED';
-}
-
-export interface PayosPaymentProviderPortV1 {
-  create(plan: PayosPlanV1, orderCode: number): Promise<PayosCheckoutLinkV1>;
-  verifyWebhook(payload: unknown): PayosWebhookVerificationV1;
+function canonicalPayosValue(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')
+    return String(value);
+  return JSON.stringify(value);
 }
 
 /** Production PayOS v2 adapter. It never trusts a client amount or a redirect query string. */
@@ -93,7 +88,7 @@ export class PayosPaymentLinkAdapter implements PayosPaymentProviderPortV1 {
       throw new Error('PAYOS_WEBHOOK_INVALID');
     const canonical = Object.keys(values)
       .sort()
-      .map((key) => `${key}=${values[key] === null || values[key] === undefined ? '' : String(values[key])}`)
+      .map((key) => `${key}=${canonicalPayosValue(values[key])}`)
       .join('&');
     const expected = createHmac('sha256', this.options.checksumKey).update(canonical).digest('hex');
     const actual = Buffer.from(signature, 'hex');
@@ -130,16 +125,25 @@ export class MockPayosPaymentLinkAdapter implements PayosPaymentProviderPortV1 {
   public constructor(options: { readonly checkoutBaseUrl?: string } = {}) {
     const configured = options.checkoutBaseUrl ?? 'https://localhost:8443';
     const parsed = new URL(configured);
-    if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.pathname !== '/' || parsed.search || parsed.hash)
+    if (
+      parsed.protocol !== 'https:' ||
+      parsed.username ||
+      parsed.password ||
+      parsed.pathname !== '/' ||
+      parsed.search ||
+      parsed.hash
+    )
       throw new Error('PAYOS_MOCK_CHECKOUT_ORIGIN_INVALID');
     this.checkoutBaseUrl = configured.replace(/\/$/u, '');
   }
 
-  async create(_plan: PayosPlanV1, orderCode: number): Promise<PayosCheckoutLinkV1> {
-    return Object.freeze({
-      checkoutUrl: `${this.checkoutBaseUrl}/vi-VN/billing/mock-checkout/${orderCode}`,
-      orderCode,
-    });
+  create(_plan: PayosPlanV1, orderCode: number): Promise<PayosCheckoutLinkV1> {
+    return Promise.resolve(
+      Object.freeze({
+        checkoutUrl: `${this.checkoutBaseUrl}/vi-VN/billing/mock-checkout/${orderCode}`,
+        orderCode,
+      }),
+    );
   }
 
   verifyWebhook(payload: unknown): PayosWebhookVerificationV1 {
@@ -155,7 +159,8 @@ export class MockPayosPaymentLinkAdapter implements PayosPaymentProviderPortV1 {
     )
       throw new Error('PAYOS_WEBHOOK_INVALID');
     const eventId = input['eventId'];
-    if (typeof eventId !== 'string' || eventId.length === 0) throw new Error('PAYOS_WEBHOOK_INVALID');
+    if (typeof eventId !== 'string' || eventId.length === 0)
+      throw new Error('PAYOS_WEBHOOK_INVALID');
     return Object.freeze({
       providerEventId: eventId,
       orderCode: input['orderCode'],

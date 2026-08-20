@@ -24,6 +24,8 @@ export interface DataImportSourceV1 {
   readonly artifactVersionId: string;
   readonly fileName: string;
   readonly mediaType: string;
+  /** The accepted CSV decoder, retained so approved immutable bytes replay faithfully. */
+  readonly declaredEncoding?: 'utf-8' | 'utf-8-sig' | 'windows-1258';
   readonly contentSha256: string;
   readonly byteSize: number;
   readonly rowCount: number;

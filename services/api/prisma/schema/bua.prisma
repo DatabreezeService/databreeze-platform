@@ -85,18 +85,18 @@ model UsageLedgerEntryRecord {
 }
 
 model UsageReservationRecord {
-  id             String   @id @db.Uuid
-  scopeKey       String   @map("scope_key") @db.VarChar(200)
-  scopeType      String   @map("scope_type") @db.VarChar(24)
-  organizationId String   @map("organization_id") @db.Uuid
-  workspaceId    String?  @map("workspace_id") @db.Uuid
-  projectId      String?  @map("project_id") @db.Uuid
-  metric         String   @db.VarChar(40)
-  reservedUnits  BigInt   @map("reserved_units")
-  status         String   @db.VarChar(16)
-  createdAt      DateTime @map("created_at") @db.Timestamptz(6)
-  revision       Int
-  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                String                              @id @db.Uuid
+  scopeKey          String                              @map("scope_key") @db.VarChar(200)
+  scopeType         String                              @map("scope_type") @db.VarChar(24)
+  organizationId    String                              @map("organization_id") @db.Uuid
+  workspaceId       String?                             @map("workspace_id") @db.Uuid
+  projectId         String?                             @map("project_id") @db.Uuid
+  metric            String                              @db.VarChar(40)
+  reservedUnits     BigInt                              @map("reserved_units")
+  status            String                              @db.VarChar(16)
+  createdAt         DateTime                            @map("created_at") @db.Timestamptz(6)
+  revision          Int
+  updatedAt         DateTime                            @updatedAt @map("updated_at") @db.Timestamptz(6)
   settlementBinding ResultUsageSettlementBindingRecord?
 
   @@index([organizationId, workspaceId, projectId, status], map: "usage_reservations_scope_idx")
@@ -107,25 +107,25 @@ model UsageReservationRecord {
 
 /// BUA-023: immutable server-admission authority for result usage settlement.
 model ResultUsageSettlementBindingRecord {
-  id                               String   @id @db.Uuid
-  schemaVersion                    Int      @map("schema_version")
-  scopeKey                         String   @map("scope_key") @db.VarChar(200)
-  scopeType                        String   @map("scope_type") @db.VarChar(24)
-  organizationId                   String   @map("organization_id") @db.Uuid
-  workspaceId                      String?  @map("workspace_id") @db.Uuid
-  projectId                        String?  @map("project_id") @db.Uuid
-  jobId                            String   @map("job_id") @db.Uuid
-  reservationId                    String   @unique(map: "result_usage_settlement_bindings_reservation_key") @map("reservation_id") @db.Uuid
-  meter                            String   @db.VarChar(40)
-  settlementFormula                String   @map("settlement_formula") @db.VarChar(40)
-  maximumAdmittedUnits             BigInt   @map("maximum_admitted_units")
-  entitlementDecisionSubjectHash   String   @map("entitlement_decision_subject_hash") @db.Char(64)
-  admissionIdempotencyKey          String   @map("admission_idempotency_key") @db.VarChar(200)
-  state                            String   @db.VarChar(16)
-  createdAt                        DateTime @map("created_at") @db.Timestamptz(6)
-  expiresAt                        DateTime @map("expires_at") @db.Timestamptz(6)
-  revision                         Int
-  reservation                      UsageReservationRecord @relation(fields: [reservationId], references: [id], onDelete: Restrict)
+  id                             String                 @id @db.Uuid
+  schemaVersion                  Int                    @map("schema_version")
+  scopeKey                       String                 @map("scope_key") @db.VarChar(200)
+  scopeType                      String                 @map("scope_type") @db.VarChar(24)
+  organizationId                 String                 @map("organization_id") @db.Uuid
+  workspaceId                    String?                @map("workspace_id") @db.Uuid
+  projectId                      String?                @map("project_id") @db.Uuid
+  jobId                          String                 @map("job_id") @db.Uuid
+  reservationId                  String                 @unique(map: "result_usage_settlement_bindings_reservation_key") @map("reservation_id") @db.Uuid
+  meter                          String                 @db.VarChar(40)
+  settlementFormula              String                 @map("settlement_formula") @db.VarChar(40)
+  maximumAdmittedUnits           BigInt                 @map("maximum_admitted_units")
+  entitlementDecisionSubjectHash String                 @map("entitlement_decision_subject_hash") @db.Char(64)
+  admissionIdempotencyKey        String                 @map("admission_idempotency_key") @db.VarChar(200)
+  state                          String                 @db.VarChar(16)
+  createdAt                      DateTime               @map("created_at") @db.Timestamptz(6)
+  expiresAt                      DateTime               @map("expires_at") @db.Timestamptz(6)
+  revision                       Int
+  reservation                    UsageReservationRecord @relation(fields: [reservationId], references: [id], onDelete: Restrict)
 
   @@unique([scopeKey, jobId], map: "result_usage_settlement_bindings_scope_job_key")
   @@unique([scopeKey, admissionIdempotencyKey], map: "result_usage_settlement_bindings_scope_idempotency_key")
@@ -169,20 +169,20 @@ model PaymentOrderRecord {
 
 /// BUA-007: provider webhook inbox is append-only/idempotent and stores the verified payload.
 model PaymentWebhookInboxRecord {
-  id                String    @id @db.Uuid
-  provider          String    @db.VarChar(32)
-  providerEventId   String    @map("provider_event_id") @db.VarChar(256)
-  providerOrderCode BigInt?   @map("provider_order_code")
-  amountVnd         Int?      @map("amount_vnd")
-  statusFromProvider String?  @map("status_from_provider") @db.VarChar(32)
-  signature         String    @db.VarChar(512)
-  payload           Json
-  state             String    @db.VarChar(24)
-  attemptCount      Int       @default(0) @map("attempt_count")
-  lastError         String?   @map("last_error") @db.VarChar(160)
-  receivedAt        DateTime  @default(now()) @map("received_at") @db.Timestamptz(6)
-  processedAt       DateTime? @map("processed_at") @db.Timestamptz(6)
-  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                 String    @id @db.Uuid
+  provider           String    @db.VarChar(32)
+  providerEventId    String    @map("provider_event_id") @db.VarChar(256)
+  providerOrderCode  BigInt?   @map("provider_order_code")
+  amountVnd          Int?      @map("amount_vnd")
+  statusFromProvider String?   @map("status_from_provider") @db.VarChar(32)
+  signature          String    @db.VarChar(512)
+  payload            Json
+  state              String    @db.VarChar(24)
+  attemptCount       Int       @default(0) @map("attempt_count")
+  lastError          String?   @map("last_error") @db.VarChar(160)
+  receivedAt         DateTime  @default(now()) @map("received_at") @db.Timestamptz(6)
+  processedAt        DateTime? @map("processed_at") @db.Timestamptz(6)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@unique([provider, providerEventId], map: "payment_webhook_inbox_provider_event_key")
   @@index([provider, providerOrderCode, state], map: "payment_webhook_inbox_order_state_idx")
@@ -193,20 +193,20 @@ model PaymentWebhookInboxRecord {
 
 /// BUA-008: one current subscription projection per scope, rebuilt from durable orders.
 model SubscriptionRecord {
-  id                String    @id @db.Uuid
-  scopeKey          String    @unique(map: "subscriptions_scope_key") @map("scope_key") @db.VarChar(200)
-  scopeType         String    @map("scope_type") @db.VarChar(24)
-  organizationId    String    @map("organization_id") @db.Uuid
-  workspaceId       String?   @map("workspace_id") @db.Uuid
-  planId            String    @map("plan_id") @db.VarChar(64)
-  source            String    @db.VarChar(32)
-  status            String    @db.VarChar(24)
-  currentOrderId    String?   @map("current_order_id") @db.Uuid
-  startsAt          DateTime  @map("starts_at") @db.Timestamptz(6)
-  endsAt            DateTime? @map("ends_at") @db.Timestamptz(6)
-  revision          Int       @default(1)
-  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id             String    @id @db.Uuid
+  scopeKey       String    @unique(map: "subscriptions_scope_key") @map("scope_key") @db.VarChar(200)
+  scopeType      String    @map("scope_type") @db.VarChar(24)
+  organizationId String    @map("organization_id") @db.Uuid
+  workspaceId    String?   @map("workspace_id") @db.Uuid
+  planId         String    @map("plan_id") @db.VarChar(64)
+  source         String    @db.VarChar(32)
+  status         String    @db.VarChar(24)
+  currentOrderId String?   @map("current_order_id") @db.Uuid
+  startsAt       DateTime  @map("starts_at") @db.Timestamptz(6)
+  endsAt         DateTime? @map("ends_at") @db.Timestamptz(6)
+  revision       Int       @default(1)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([organizationId, workspaceId, status], map: "subscriptions_scope_status_idx")
   @@map("subscriptions")

@@ -41,7 +41,7 @@ export class InMemoryIdentityBootstrapRepositoryAdapter
     const personal = await this.findByUserId(userId);
     if (personal === undefined) return undefined;
     return Object.freeze({
-      user: Object.freeze({ ...personal.user }),
+      user: Object.freeze({ ...personal.user, profileRevision: 1 }),
       organizations: Object.freeze([
         Object.freeze({
           ...personal.organization,

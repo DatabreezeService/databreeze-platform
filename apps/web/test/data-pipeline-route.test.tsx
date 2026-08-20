@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
 import { ApplicationBoundary, createAppRouter } from '../src/app/app.tsx';
@@ -10,12 +11,13 @@ describe('data pipeline route composition [DDA-002][DDA-006]', () => {
     const router = createAppRouter({ initialEntries: ['/en/reviews'] });
     render(<ApplicationBoundary router={router} />);
     expect(await screen.findByRole('heading', { name: 'Intake and ETL review' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'ETL review' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Continue to dashboards' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Accept ETL proposal' })).toBeTruthy();
     expect(
-      screen.getByRole('button', { name: 'Accept ETL proposal' }).hasAttribute('disabled'),
-    ).toBe(true);
+      screen.getByRole('heading', { name: 'Your review appears after the first real import' }),
+    ).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Continue to dashboards' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Open Data to get started' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Accept ETL proposal' })).toBeNull();
+    expect(screen.queryByText('invoice_id')).toBeNull();
     expect(screen.queryByText('1,250,000 VND')).toBeNull();
   });
 
@@ -23,7 +25,11 @@ describe('data pipeline route composition [DDA-002][DDA-006]', () => {
     const router = createAppRouter({ initialEntries: ['/vi-VN/reviews'] });
     render(<ApplicationBoundary router={router} />);
     expect(await screen.findByRole('heading', { name: 'Tiếp nhận và xem xét ETL' })).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { name: 'Xem xét sẽ xuất hiện sau lần nạp thật đầu tiên' }),
+    ).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Tiếp tục tới bảng điều khiển' })).toBeTruthy();
+    expect(screen.queryByText('invoice_id')).toBeNull();
   });
 
   it('fail-closes upload and accept until live tenant context is configured', async () => {
@@ -35,17 +41,31 @@ describe('data pipeline route composition [DDA-002][DDA-006]', () => {
       ),
     ).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Upload' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Open Data to get started' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Accept ETL proposal' })).toBeNull();
+  });
+
+  it('does not expose the legacy upload control without an authorized ETL proposal', async () => {
+    const router = createAppRouter({ initialEntries: ['/en/reviews'] });
+    render(<ApplicationBoundary router={router} />);
+
     expect(
-      screen.getByRole('button', { name: 'Accept ETL proposal' }).hasAttribute('disabled'),
-    ).toBe(true);
+      await screen.findByRole('heading', {
+        name: 'Your review appears after the first real import',
+      }),
+    ).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Upload CSV/XLSX' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Open Data to get started' })).toBeTruthy();
   });
 
   it('keeps local demo intake selectable and testable without inventing tenant authority', async () => {
     const user = userEvent.setup();
     render(
-      <ApplicationBoundary>
-        <DataPipelinePage demoMode />
-      </ApplicationBoundary>,
+      <MemoryRouter>
+        <ApplicationBoundary>
+          <DataPipelinePage demoMode />
+        </ApplicationBoundary>
+      </MemoryRouter>,
     );
 
     expect(screen.getByRole('heading', { name: 'Tải tệp CSV/XLSX' })).toBeTruthy();

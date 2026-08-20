@@ -55,6 +55,15 @@ function hasClientAuthorityField(value: unknown, depth = 0): boolean {
   );
 }
 
+function contractCommand(body: AgentTurnRequestDtoV1): Readonly<Record<string, unknown>> {
+  const candidate: Record<string, unknown> = { ...body };
+  if (candidate['contextRevision'] === undefined) delete candidate['contextRevision'];
+  if (candidate['expectedContextRevision'] === undefined) {
+    delete candidate['expectedContextRevision'];
+  }
+  return candidate;
+}
+
 const SAFE_AGENT_TURN_ERROR = Object.freeze({ error: 'AGENT_TURN_REJECTED' });
 const AGENT_TURN_COMMAND_SCHEMA_ID =
   'https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-command' as const;
@@ -119,14 +128,11 @@ export class AgentTurnController {
     @Body() body: AgentTurnRequestDtoV1,
     @Res({ passthrough: true }) reply?: FastifyReply,
   ) {
-    console.error('AGENT_TURN_DEBUG_START', {
-      keys: typeof body === 'object' && body !== null ? Object.keys(body as object) : [],
-      requestKeys:
-        typeof request === 'object' && request !== null ? Object.keys(request as object) : [],
-    });
     this.rejectClientAuthority(body, request);
-    const parsedCommand = parseV4Contract<DdaAgentTurnCommand>(AGENT_TURN_COMMAND_SCHEMA_ID, body);
-    console.error('AGENT_TURN_DEBUG_PARSE', parsedCommand.accepted);
+    const parsedCommand = parseV4Contract<DdaAgentTurnCommand>(
+      AGENT_TURN_COMMAND_SCHEMA_ID,
+      contractCommand(body),
+    );
     if (!parsedCommand.accepted) throw new BadRequestException();
     const command = parsedCommand.value;
     const context = await this.resolveContext(request);
@@ -201,15 +207,8 @@ export class AgentTurnController {
 
   private async resolveContext(request: unknown) {
     try {
-      const resolved = await this.requestContext.resolve(request);
-      console.error('AGENT_TURN_DEBUG_CONTEXT', 'accepted');
-      return resolved;
+      return await this.requestContext.resolve(request);
     } catch (error) {
-      console.error(
-        'AGENT_TURN_DEBUG_CONTEXT_ERROR',
-        error instanceof Error ? error.message : String(error),
-        error instanceof RequestTenantContextProblemError ? error.code : undefined,
-      );
       if (error instanceof RequestTenantContextProblemError) {
         if (error.code === 'CONTEXT_INVALID') throw new BadRequestException();
         if (error.code === 'AUTHENTICATION_FAILED') throw new UnauthorizedException();

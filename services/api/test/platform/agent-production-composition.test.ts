@@ -25,6 +25,7 @@ import {
   type AgentUsageAdmissionInputV1,
 } from '../../src/features/dda/agent/application/agent-runtime.port.js';
 import { AgentToolRegistryV1 } from '../../src/features/dda/agent/application/agent-tool-registry.js';
+import { AgentTurnService } from '../../src/features/dda/agent/application/agent-turn.service.js';
 import type { AgentDatasetReaderPortV1 } from '../../src/features/dda/agent/application/typed-agent-tool-executor-dependencies.port.js';
 import type { DdaAudComposePortV1 } from '../../src/features/dda/application/foundation-ports.js';
 import { AGENT_CONSEQUENTIAL_COMMAND_PORT } from '../../src/features/dda/agent/application/agent-consequential-command.port.js';
@@ -232,6 +233,23 @@ void test('[DDA-060] durable production command boundary is bound when DDA has a
     providerValue(module, AGENT_CONSEQUENTIAL_COMMAND_PORT) instanceof
       PrismaAgentConsequentialCommandAdapter,
   );
+});
+
+void test('[IAM-024][DDA-060] composed agent turns use the current IAM action authority', () => {
+  const actionAuthority = {
+    async authorize() {
+      return { allowed: true as const };
+    },
+  };
+  const module = DdaModule.register({
+    runtimeMode: 'test',
+    allowInMemoryAdapters: true,
+    agentIamActionAuthorization: actionAuthority,
+  });
+  const turnService = providerValue(module, AgentTurnService) as {
+    readonly iamActionAuthorization: unknown;
+  };
+  assert.equal(turnService.iamActionAuthorization, actionAuthority);
 });
 
 void test('[DSM-014][DSM-018][DDA-056] conversation context is authorized against exact DSM version and current restriction', async () => {

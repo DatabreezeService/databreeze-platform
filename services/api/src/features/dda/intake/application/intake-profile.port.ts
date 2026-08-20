@@ -91,8 +91,8 @@ export const DDA_WEB_INTAKE_PROFILE_V1: DdaWebIntakeProfileV1 = Object.freeze({
     externalLinksAllowed: false,
   }),
   limits: Object.freeze({
-    maxBytes: 512_000,
-    maxRows: 20_000,
+    maxBytes: 100 * 1024 * 1024,
+    maxRows: 1_000_000,
     maxColumns: 256,
     maxSheets: 8,
     maxFormulas: 500,
@@ -102,7 +102,7 @@ export const DDA_WEB_INTAKE_PROFILE_V1: DdaWebIntakeProfileV1 = Object.freeze({
     maxZipRatio: 40,
     maxXmlNodes: 100_000,
     maxCells: 100_000,
-    maxXmlRows: 20_000,
+    maxXmlRows: 1_000_000,
     maxXmlColumns: 256,
   }),
 });

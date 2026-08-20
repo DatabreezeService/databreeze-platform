@@ -55,7 +55,7 @@ function createDatabase() {
   return { database, rows };
 }
 
-test('PrismaLocalWebIntakeAdapter creates one scoped artifact, placement, and inbox item and replays exact idempotency', async () => {
+void test('PrismaLocalWebIntakeAdapter creates one scoped artifact, placement, and inbox item and replays exact idempotency', async () => {
   const { database, rows } = createDatabase();
   const stored: Array<{ key: string; bytes: Uint8Array }> = [];
   const adapter = new PrismaLocalWebIntakeAdapter({
@@ -78,7 +78,7 @@ test('PrismaLocalWebIntakeAdapter creates one scoped artifact, placement, and in
             CONFIDENTIAL: ['ORIGINAL_CONTENT'],
             RESTRICTED: [],
           },
-          allowedPlacementKinds: ['CLOUD_OBJECT'],
+          allowedPlacementKinds: ['CLOUD'],
           allowedExecutorClasses: [],
           allowedDestinationClasses: [],
           canonicalHash: 'c45c468fcc5fd9e88882b8d475de902f5572df186c88aa0450928881c32d5a67',

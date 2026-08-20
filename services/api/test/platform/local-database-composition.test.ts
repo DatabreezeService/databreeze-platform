@@ -6,8 +6,11 @@ import test from 'node:test';
 import { PasswordCredentialService } from '../../src/features/iam/application/password-credential.service.js';
 import { RedisRecoveryAdmissionAdapter } from '../../src/features/iam/adapter/redis-recovery-admission.adapter.js';
 import { MailpitSmtpEmailVerificationDeliveryAdapter } from '../../src/features/iam/adapter/mailpit-smtp-email-verification-delivery.adapter.js';
+import { MailpitSmtpInvitationDeliveryAdapter } from '../../src/features/iam/adapter/mailpit-smtp-invitation-delivery.adapter.js';
 import { GmailSmtpEmailVerificationDeliveryAdapter } from '../../src/features/iam/adapter/gmail-smtp-email-verification-delivery.adapter.js';
 import { SmtpPasswordRecoveryDeliveryAdapter } from '../../src/features/iam/adapter/smtp-password-recovery-delivery.adapter.js';
+import { LocalWorkerObjectByteStoreAdapter } from '../../src/features/iae/adapter/local-worker-object-byte-store.adapter.js';
+import { OpenAiAgentProviderAdapter } from '../../src/features/dda/agent/adapter/openai-agent-provider.adapter.js';
 import {
   createLocalDatabaseComposition,
   LOCAL_DATABASE_URL_ERROR,
@@ -36,6 +39,7 @@ const environment = {
   DATABREEZE_IAM_EMAIL_FROM_ADDRESS: 'verify@databreeze.local',
   DATABREEZE_IAM_EMAIL_VERIFICATION_DIGEST_KEY: key(1),
   DATABREEZE_IAM_EMAIL_VERIFICATION_ENVELOPE_KEY: key(2),
+  DATABREEZE_IAM_INVITATION_DIGEST_KEY: key(6),
   DATABREEZE_IAM_REGISTRATION_ADMISSION_KEY: key(3),
   DATABREEZE_IAM_RECOVERY_DIGEST_KEY: key(5),
   DATABREEZE_SERVICE_ACCOUNT_SECRET_ENVELOPE_KEY: key(4),
@@ -45,6 +49,16 @@ const hmrEnvironment = {
   ...environment,
   DATABREEZE_LOCAL_HMR_HTTP: 'true',
   DATABREEZE_LOCAL_HMR_ORIGIN: 'http://127.0.0.1:5173',
+} as const;
+
+const minioEnvironment = {
+  ...environment,
+  DATABREEZE_LOCAL_MINIO_ENDPOINT: 'http://127.0.0.1:9000',
+  DATABREEZE_LOCAL_MINIO_ACCESS_KEY: 'databreeze',
+  DATABREEZE_LOCAL_MINIO_SECRET_KEY: 'databreeze-local-change-me',
+  DATABREEZE_LOCAL_MINIO_BUCKET: 'databreeze-artifacts',
+  DATABREEZE_LOCAL_MINIO_RESULTS_BUCKET: 'databreeze-results',
+  DATABREEZE_IAE_WORKER_CAPABILITY_SIGNING_KEY: key(7),
 } as const;
 
 const pilotEnvironment = {
@@ -63,6 +77,12 @@ const gmailEnvironment = {
   DATABREEZE_IAM_EMAIL_FROM_ADDRESS: 'owner@gmail.com',
 } as const;
 
+const openAiAgentEnvironment = {
+  ...environment,
+  OPENAI_API_KEY: 'sk-local-agent-composition-test-key',
+  DATABREEZE_OPENAI_AGENT_ENABLED: 'true',
+} as const;
+
 function databaseClient(events: string[]): LocalDatabaseClient {
   return {
     $connect: async () => void events.push('database-connect'),
@@ -71,7 +91,7 @@ function databaseClient(events: string[]): LocalDatabaseClient {
   } as unknown as LocalDatabaseClient;
 }
 
-void test('[FND-003, IAM-005, IAM-022, IAM-023] local profile composes durable Prisma IAM, Redis admission and Mailpit with production security mode', async () => {
+void test('[FND-003, IAM-005, IAM-022, IAM-023, WEB-026, WEB-027] local profile composes durable Prisma feature databases, Redis admission and Mailpit with production security mode', async () => {
   const events: string[] = [];
   const client = databaseClient(events);
   const composition = await createLocalDatabaseComposition(environment, {
@@ -110,6 +130,9 @@ void test('[FND-003, IAM-005, IAM-022, IAM-023] local profile composes durable P
       composition.options.emailVerificationDelivery instanceof
         MailpitSmtpEmailVerificationDeliveryAdapter,
     );
+    assert.ok(
+      composition.options.invitationDelivery instanceof MailpitSmtpInvitationDeliveryAdapter,
+    );
     assert.ok(composition.options.recoveryDelivery instanceof SmtpPasswordRecoveryDeliveryAdapter);
     for (const option of [
       'credentialDatabase',
@@ -121,6 +144,7 @@ void test('[FND-003, IAM-005, IAM-022, IAM-023] local profile composes durable P
       'emailVerificationDatabase',
       'approvalDatabase',
       'ddaDatabase',
+      'landingFeedbackDatabase',
     ] as const) {
       assert.equal(composition.options[option], client, `${option} must use the shared client`);
     }
@@ -134,6 +158,54 @@ void test('[FND-003, IAM-005, IAM-022, IAM-023] local profile composes durable P
     'database-disconnect',
     'redis-disconnect',
   ]);
+});
+
+void test('[DDA-043][DDA-044][DDA-060] configured local OpenAI agent composition selects the server-only provider', async () => {
+  const composition = await createLocalDatabaseComposition(openAiAgentEnvironment, {
+    createClient: () => databaseClient([]),
+    createRedisClient: () => ({
+      connect: async () => undefined,
+      disconnect: async () => undefined,
+      eval: async () => 1,
+    }),
+    createSmtpSender: () => ({ send: async () => undefined }),
+  });
+
+  try {
+    assert.ok(composition.options.agentProvider instanceof OpenAiAgentProviderAdapter);
+  } finally {
+    await composition.disconnect();
+  }
+});
+
+void test('[DDA-053, WEB-021, IAE-022] local MinIO profile composes the real multi-file intake and processing-content seams', async () => {
+  const client = databaseClient([]);
+  const composition = await createLocalDatabaseComposition(minioEnvironment, {
+    createClient: () => client,
+    createRedisClient: () => ({
+      connect: async () => undefined,
+      disconnect: async () => undefined,
+      eval: async () => 1,
+    }),
+    createSmtpSender: () => ({ send: async () => undefined }),
+  });
+
+  try {
+    assert.equal(composition.options.localWebIntakeDatabase, client);
+    assert.ok(composition.options.localWebIntakeObjectStore);
+    assert.ok(composition.options.artifactProcessingContent);
+    assert.ok(
+      composition.options.workerObjectByteStore instanceof LocalWorkerObjectByteStoreAdapter,
+    );
+    assert.equal(
+      composition.options.workerCapabilitySigningSecret,
+      minioEnvironment.DATABREEZE_IAE_WORKER_CAPABILITY_SIGNING_KEY,
+    );
+    assert.equal(composition.options.runtimeMode, 'production');
+    assert.equal(composition.options.allowInMemoryAdapters, false);
+  } finally {
+    await composition.disconnect();
+  }
 });
 
 void test('[FND-003, WEB-004] local HMR profile allows only the explicit loopback browser origin', async () => {
@@ -151,6 +223,9 @@ void test('[FND-003, WEB-004] local HMR profile allows only the explicit loopbac
     assert.deepEqual(composition.options.requestContext?.csrf?.allowedOrigins, [
       hmrEnvironment.DATABREEZE_LOCAL_HMR_ORIGIN,
     ]);
+    assert.ok(
+      composition.options.invitationDelivery instanceof MailpitSmtpInvitationDeliveryAdapter,
+    );
   } finally {
     await composition.disconnect();
   }

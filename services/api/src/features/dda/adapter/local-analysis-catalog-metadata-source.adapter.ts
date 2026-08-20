@@ -1,6 +1,6 @@
 import type { TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
-import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
+import type { IamTenantContextV1 } from '../../../platform/iam-tenant-context.js';
 import type { AnalysisCatalogMetadataSourcePortV1 } from '../../../platform/dda-dashboard.composition.js';
 
 interface DatasetVersionRowV1 {
@@ -24,10 +24,14 @@ interface DatasetDefinitionRowV1 {
 
 interface LocalAnalysisCatalogDatabaseClientV1 {
   readonly datasetVersionRecord: {
-    findFirst(input: { readonly where: Record<string, unknown> }): Promise<DatasetVersionRowV1 | null>;
+    findFirst(input: {
+      readonly where: Record<string, unknown>;
+    }): Promise<DatasetVersionRowV1 | null>;
   };
   readonly datasetDefinitionRecord: {
-    findFirst(input: { readonly where: Record<string, unknown> }): Promise<DatasetDefinitionRowV1 | null>;
+    findFirst(input: {
+      readonly where: Record<string, unknown>;
+    }): Promise<DatasetDefinitionRowV1 | null>;
   };
 }
 
@@ -61,12 +65,15 @@ function scopeWhere(scope: TenantScopeV1): Record<string, unknown> {
   };
 }
 
-function sameScope(row: {
-  readonly scopeType: string;
-  readonly organizationId: string;
-  readonly workspaceId: string;
-  readonly projectId: string | null;
-}, scope: TenantScopeV1): boolean {
+function sameScope(
+  row: {
+    readonly scopeType: string;
+    readonly organizationId: string;
+    readonly workspaceId: string;
+    readonly projectId: string | null;
+  },
+  scope: TenantScopeV1,
+): boolean {
   const expected = scopeWhere(scope);
   return (
     row.scopeType === expected['scopeType'] &&

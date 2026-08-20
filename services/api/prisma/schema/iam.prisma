@@ -7,11 +7,28 @@ model UserIdentity {
   locale                  String   @default("vi-VN") @db.VarChar(16)
   status                  String   @default("ACTIVE") @db.VarChar(24)
   securityEpoch           Int      @default(1) @map("security_epoch")
+  profileRevision         Int      @default(1) @map("profile_revision")
   mfaReenrollmentRequired Boolean  @default(false) @map("mfa_reenrollment_required")
   createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("users")
+  @@schema("iam")
+}
+
+/// IAM-016/IAM-018: durable replay receipts for authenticated profile preferences.
+model ProfileMutationReceipt {
+  idempotencyKey String   @map("idempotency_key") @db.VarChar(200)
+  userId         String   @map("user_id") @db.Uuid
+  requestHash    String   @map("request_hash") @db.Char(64)
+  displayName    String   @map("display_name") @db.VarChar(200)
+  locale         String   @db.VarChar(16)
+  revision       Int
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([userId, idempotencyKey], map: "profile_mutation_receipts_pkey")
+  @@index([userId, createdAt], map: "profile_mutation_receipts_user_created_idx")
+  @@map("profile_mutation_receipts")
   @@schema("iam")
 }
 

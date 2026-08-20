@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 4,
+  "accepted": true,
+  "run": {
+    "runId": "00000000-0000-4000-8000-000000000807",
+    "reportId": "00000000-0000-4000-8000-000000000801",
+    "reportVersion": 1,
+    "status": "BLOCKED",
+    "createdAt": "2026-08-18T00:00:00.000Z",
+    "frozen": true,
+    "jraBound": false,
+    "outputs": [],
+    "evidence": { "factCount": 0, "referenceCount": 0, "complete": false },
+    "tenantScope": "not allowed"
+  }
+}

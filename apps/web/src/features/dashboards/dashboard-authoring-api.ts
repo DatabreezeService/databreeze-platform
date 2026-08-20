@@ -8,6 +8,7 @@ import type {
   DdaDashboardChartProposal as DdaDashboardChartProposalV3,
   DdaDashboardWorkspaceHistory as DdaDashboardWorkspaceHistoryV3,
 } from '@databreeze/contracts/v3';
+import { createSessionAwareFetchV1 } from '../auth/auth-session.ts';
 
 export type DashboardWorkspaceHistoryEntryV1 = DdaDashboardWorkspaceHistoryV3['items'][number];
 export type DashboardWorkspaceHistoryV1 = DdaDashboardWorkspaceHistoryV3;
@@ -476,6 +477,13 @@ function workspaceHistoryUrl(configuration: DashboardWorkspaceHistoryConfigurati
   return url.toString();
 }
 
+function sessionFetcher(baseUrl: string): typeof fetch {
+  return createSessionAwareFetchV1({
+    apiBaseUrl: baseUrl,
+    fetcher: globalThis.fetch.bind(globalThis),
+  });
+}
+
 /** DDA-026/DDA-043: request only the current-session, content-safe history page. */
 export async function fetchDashboardWorkspaceHistory(
   configuration: DashboardWorkspaceHistoryConfigurationV1,
@@ -488,7 +496,10 @@ export async function fetchDashboardWorkspaceHistory(
   };
   if (signal !== undefined) init.signal = signal;
 
-  const response = await globalThis.fetch(workspaceHistoryUrl(configuration), init);
+  const response = await sessionFetcher(configuration.baseUrl)(
+    workspaceHistoryUrl(configuration),
+    init,
+  );
   if (!response.ok) throw await apiErrorFor(response);
 
   const payload: unknown = await response.json();
@@ -519,7 +530,7 @@ export async function proposeDashboardCharts(
     `/v3/dda/dashboards/${encodeURIComponent(input.dashboardId)}/proposals`,
     input.baseUrl,
   );
-  const response = await globalThis.fetch(url.toString(), init);
+  const response = await sessionFetcher(input.baseUrl)(url.toString(), init);
   if (!response.ok) throw await apiErrorFor(response);
 
   const payload: unknown = await response.json();
@@ -552,7 +563,7 @@ export async function applyDashboardAuthoringCommand(
     `/v3/dda/dashboards/${encodeURIComponent(input.command.dashboardId)}/authoring-commands`,
     input.baseUrl,
   );
-  const response = await globalThis.fetch(url.toString(), init);
+  const response = await sessionFetcher(input.baseUrl)(url.toString(), init);
   if (!response.ok) throw await apiErrorFor(response);
 
   const payload: unknown = await response.json();

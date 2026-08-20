@@ -89,6 +89,44 @@ void test('[IAM-010] invitation controller maps rejected application outcomes to
   );
 });
 
+void test('[IAM-010] invitation controller routes email invitations through the atomic server command', async () => {
+  const calls: unknown[][] = [];
+  const service = {
+    issue: async () => {
+      throw new Error('legacy issue path must not run');
+    },
+    issueForEmail: async (...input: unknown[]) => {
+      calls.push(input);
+      return {
+        accepted: true as const,
+        value: {
+          invitationId: 'invitation-id',
+          membershipId: 'membership-id',
+          expiresAt: '2026-08-10T00:00:00.000Z',
+          deliveryStatus: 'DELIVERED' as const,
+        },
+      };
+    },
+    accept: async () => ({ accepted: false as const, code: 'INVALID_TOKEN' as const }),
+  } as unknown as IamInvitationService;
+  const controller = new IamInvitationController(service, {
+    resolve: async () => ({}) as never,
+  });
+  const result = await controller.issue(
+    {},
+    {
+      recipientEmail: 'new@example.com',
+      accessPreset: 'VIEWER',
+    },
+  );
+  assert.equal((result as { readonly membershipId: string }).membershipId, 'membership-id');
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0]?.[1], {
+    recipientEmail: 'new@example.com',
+    accessPreset: 'VIEWER',
+  });
+});
+
 void test('[IAM-010] invitation controller fails closed when service composition is incomplete', async () => {
   const controller = new IamInvitationController(undefined, {
     resolve: async () => {

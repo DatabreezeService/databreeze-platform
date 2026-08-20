@@ -12,6 +12,8 @@ import {
 import { BootstrapResponseDto } from './bootstrap.dto.js';
 import type { IamBootstrapResponse, IamBootstrapScope } from '@databreeze/contracts/v4';
 
+type UserIdentityWithProfileRevision = { readonly profileRevision?: unknown };
+
 /** IAM-001/IAM-009: bootstrap is derived from the authenticated principal, never request scope. */
 @ApiTags('identity')
 @ApiBearerAuth()
@@ -62,6 +64,18 @@ export class IamBootstrapController {
     if (!result.accepted)
       return Object.freeze({ schemaVersion: 4, outcome: 'REJECTED', code: result.code });
     const value = result.value;
+    const userEmail =
+      'email' in value.user && typeof value.user.email === 'string' ? value.user.email : undefined;
+    const profileRevisionCandidate =
+      'profileRevision' in value.user
+        ? (value.user as UserIdentityWithProfileRevision).profileRevision
+        : undefined;
+    const profileRevision =
+      typeof profileRevisionCandidate === 'number' &&
+      Number.isSafeInteger(profileRevisionCandidate) &&
+      profileRevisionCandidate >= 1
+        ? profileRevisionCandidate
+        : 1;
     const session =
       context.tenantScope.scopeType === 'organization'
         ? Object.freeze({
@@ -109,8 +123,10 @@ export class IamBootstrapController {
       value: Object.freeze({
         user: Object.freeze({
           id: value.user.id,
+          ...(userEmail === undefined ? {} : { email: userEmail }),
           displayName: value.user.displayName,
           locale: value.user.locale,
+          profileRevision,
           mfaState:
             context.mfaRequired === true ? ('ENABLED' as const) : ('NOT_CONFIGURED' as const),
         }),

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 4,
+  "accepted": true,
+  "value": {
+    "importId": "00000000-0000-4000-8000-000000000401",
+    "datasetId": "00000000-0000-4000-8000-000000000402",
+    "datasetVersionId": "00000000-0000-4000-8000-000000000403",
+    "datasetName": "Bán hàng tháng",
+    "sourceCount": 1,
+    "rowCount": 3,
+    "truncated": false,
+    "sourceHashes": ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
+    "columns": [
+      { "name": "region", "type": "TEXT", "nullable": false },
+      { "name": "revenue", "type": "DECIMAL", "nullable": false }
+    ],
+    "measure": { "field": "revenue", "sum": 450, "average": 150, "minimum": 100, "maximum": 200 },
+    "dimension": {
+      "field": "region",
+      "groups": [
+        { "label": "Bắc", "count": 2, "total": 300 },
+        { "label": "Nam", "count": 1, "total": 150 }
+      ]
+    },
+    "sampleRows": [
+      {
+        "cells": [
+          { "field": "region", "value": "Bắc", "kind": "TEXT" },
+          { "field": "revenue", "value": "100", "kind": "NUMBER" }
+        ]
+      },
+      {
+        "cells": [
+          { "field": "region", "value": "Nam", "kind": "TEXT" },
+          { "field": "revenue", "value": "150", "kind": "NUMBER" }
+        ]
+      }
+    ],
+    "generatedAt": "2026-08-18T00:00:00.000Z"
+  }
+}

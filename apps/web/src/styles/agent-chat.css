@@ -49,28 +49,6 @@
   cursor: pointer;
 }
 
-:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-header__history {
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-  gap: 6px;
-  color: #a9aed2;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.035em;
-  text-transform: uppercase;
-}
-
-:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-header__history-icon {
-  color: #3d50ff;
-}
-
-:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-header__select {
-  inset: 0;
-  z-index: 3;
-  cursor: pointer;
-}
-
 :where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-header__display-title {
   display: inline-flex;
   min-width: 0;
@@ -81,6 +59,8 @@
   font-size: 0.84rem;
   font-weight: 650;
   letter-spacing: -0.01em;
+  background: transparent;
+  transition: color 140ms ease;
 }
 
 :where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-header__menu {
@@ -153,6 +133,7 @@
 :where(.floating-agent-panel, .dda-dashboard-agent-panel)
   .notion-ai-header__selector:focus-within
   .notion-ai-header__display-title {
+  background: transparent;
   color: #55d6ff;
 }
 
@@ -292,6 +273,24 @@
   color: #3d50ff;
   font-size: 1rem;
   line-height: 1;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-empty__analysis-link {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 14px;
+  color: #93a0ff;
+  font-size: 0.78rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-empty__analysis-link:hover,
+:where(.floating-agent-panel, .dda-dashboard-agent-panel)
+  .notion-ai-empty__analysis-link:focus-visible {
+  color: #ffffff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 :where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-messages {
@@ -526,10 +525,6 @@
     border-radius: 18px;
   }
 
-  :where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-header__history-label {
-    display: none;
-  }
-
   :where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-header__display-title {
     max-width: min(260px, 62vw);
   }
@@ -540,4 +535,195 @@
   :where(.floating-agent-panel, .dda-dashboard-agent-panel) * {
     transition-duration: 0.01ms;
   }
+}
+
+/* Approved product treatment: a light, blue-led assistant that belongs to the
+ * workspace instead of reading like a separate dark tool. Assistant messages
+ * stay editorial and unboxed; only the user's message and composer carry
+ * surfaces. */
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) {
+  border: 0;
+  background: #ffffff;
+  color: #102a63;
+  box-shadow: 0 12px 32px rgb(31 73 125 / 18%);
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-chat {
+  background: #ffffff;
+  color: #102a63;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-header {
+  border-bottom-color: #e0e9f5;
+  background: #ffffff;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-header__display-title {
+  color: #102a63;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel)
+  .notion-ai-header__selector:hover
+  .notion-ai-header__display-title,
+:where(.floating-agent-panel, .dda-dashboard-agent-panel)
+  .notion-ai-header__selector:focus-within
+  .notion-ai-header__display-title {
+  color: #075de8;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-header__chevron,
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-header__option-check {
+  color: #075de8;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-header__icon-btn {
+  border-color: #dbe6f4;
+  background: #f7faff;
+  color: #53698f;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-header__icon-btn:hover,
+:where(.floating-agent-panel, .dda-dashboard-agent-panel)
+  .notion-ai-header__icon-btn:focus-visible {
+  border-color: #9ebce8;
+  background: #edf4ff;
+  color: #075de8;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-header__menu {
+  border: 1px solid #dbe6f4;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgb(31 73 125 / 14%);
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-header__option {
+  color: #53698f;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-header__option:hover,
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-header__option:focus-visible,
+:where(.floating-agent-panel, .dda-dashboard-agent-panel)
+  .notion-ai-header__option[aria-selected='true'] {
+  background: #edf4ff;
+  color: #102a63;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-header__menu-empty {
+  color: #6a7890;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-context {
+  border-bottom-color: #e0e9f5;
+  background: #fbfdff;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-context span {
+  color: #53698f;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-body {
+  background: #f7faff;
+  scrollbar-color: #b7ccea transparent;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-empty__avatar,
+:where(.floating-agent-panel, .dda-dashboard-agent-panel)
+  .notion-ai-message--assistant
+  .notion-ai-message__avatar {
+  border-color: #c6d9f3;
+  background: #eaf2ff;
+  box-shadow: none;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-empty__greeting,
+:where(.floating-agent-panel, .dda-dashboard-agent-panel)
+  .notion-ai-message--assistant
+  .notion-ai-message__content {
+  color: #102a63;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-empty__hint,
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-message__content time,
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-composer__hint {
+  color: #6a7890;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-empty__suggestion-item {
+  border-color: #dbe6f4;
+  background: #ffffff;
+  color: #102a63;
+  box-shadow: none;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-empty__suggestion-item:hover,
+:where(.floating-agent-panel, .dda-dashboard-agent-panel)
+  .notion-ai-empty__suggestion-item:focus-visible {
+  border-color: #9ebce8;
+  background: #edf4ff;
+  color: #075de8;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-empty__suggestion-arrow,
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-empty__analysis-link {
+  color: #075de8;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel)
+  .notion-ai-message--assistant
+  .notion-ai-message__content {
+  background: transparent;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-state {
+  border-color: #bfd4f4;
+  background: #edf4ff;
+  color: #214d91;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-state[role='alert'] {
+  border-color: #efc5c2;
+  background: #fff5f4;
+  color: #a32920;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-composer {
+  border-top-color: #e0e9f5;
+  background: #ffffff;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-composer__box {
+  border-color: #c4d7f1;
+  background: #f8fbff;
+  box-shadow: none;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-composer__box:focus-within {
+  border-color: #075de8;
+  box-shadow: 0 0 0 3px rgb(7 93 232 / 14%);
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-composer textarea {
+  color: #102a63;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel)
+  .notion-ai-composer
+  textarea::placeholder {
+  color: #6a7890;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-composer__send-btn {
+  background: #075de8;
+  box-shadow: none;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel)
+  .notion-ai-composer__send-btn:not(:disabled):hover {
+  background: #064ec5;
+  box-shadow: none;
+}
+
+:where(.floating-agent-panel, .dda-dashboard-agent-panel) .notion-ai-composer__send-btn:disabled {
+  background: #dce8f8;
+  color: #7994b9;
 }

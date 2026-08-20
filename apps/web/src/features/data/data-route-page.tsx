@@ -8,6 +8,7 @@ import { workspaceAgentStore } from '../agent/workspace-agent-store.ts';
 import { dashboardDemoMode } from '../dashboards/dashboard-api.ts';
 import { DataWorkspacePage } from './data-workspace-page.tsx';
 import { dataApiBaseConfiguration, DataApiError, fetchAuthorizedDataIndex } from './data-api.ts';
+import { DataImportApiError, dataImportApi, type DataImportRecordV1 } from './data-import-api.ts';
 import type { DatasetCardV1 } from './data-model.ts';
 import { localDataStore } from './local-data-store.ts';
 
@@ -35,7 +36,11 @@ function copy(locale: 'en' | 'vi-VN') {
 
 type DataLoadStateV1 =
   | { readonly status: 'loading' }
-  | { readonly status: 'ready'; readonly datasets: readonly DatasetCardV1[] }
+  | {
+      readonly status: 'ready';
+      readonly datasets: readonly DatasetCardV1[];
+      readonly pendingImports: readonly DataImportRecordV1[];
+    }
   | { readonly status: 'error' };
 
 /** WEB-002/020/021/024: production data is loaded from the authorized API; demo is explicit only. */
@@ -56,18 +61,29 @@ export function DataRoutePage() {
   useEffect(() => {
     const controller = new AbortController();
     if (demoMode) {
-      setState({ status: 'ready', datasets: localDatasets });
+      setState({ status: 'ready', datasets: localDatasets, pendingImports: [] });
       return () => controller.abort();
     }
     setState({ status: 'loading' });
-    void fetchAuthorizedDataIndex({
-      baseUrl: dataApiBaseConfiguration().baseUrl,
-      locale,
-      signal: controller.signal,
-    })
-      .then((apiDatasets) => {
+    const baseUrl = dataApiBaseConfiguration().baseUrl;
+    void Promise.all([
+      fetchAuthorizedDataIndex({ baseUrl, locale, signal: controller.signal }),
+      dataImportApi.list(50, baseUrl).catch((error: unknown) => {
+        // The governed dataset index remains useful if review history is
+        // temporarily unavailable. Authentication failures still surface.
+        if (error instanceof DataImportApiError && error.status === 401) throw error;
+        return Object.freeze([]) as readonly DataImportRecordV1[];
+      }),
+    ])
+      .then(([apiDatasets, imports]) => {
         if (!controller.signal.aborted) {
-          setState({ status: 'ready', datasets: apiDatasets });
+          setState({
+            datasets: apiDatasets,
+            pendingImports: imports.filter(
+              (record) => record.state === 'REVIEW_REQUIRED' || record.state === 'REVISING',
+            ),
+            status: 'ready',
+          });
         }
       })
       .catch((error: unknown) => {
@@ -86,11 +102,15 @@ export function DataRoutePage() {
     if (demoMode) return localDatasets;
     return state.datasets;
   }, [demoMode, localDatasets, locale, state]);
+  const pendingImports = state.status === 'ready' ? state.pendingImports : [];
 
   return (
     <div className="data-route-page">
       {state.status === 'loading' ? (
-        <section aria-labelledby="data-route-heading" className="data-route-state">
+        <section
+          aria-labelledby="data-route-heading"
+          className="data-route-state data-route-state--loading"
+        >
           <header className="data-route-state__heading">
             <h1 id="data-route-heading">{text.heading}</h1>
             <p>{text.description}</p>
@@ -100,7 +120,10 @@ export function DataRoutePage() {
           </p>
         </section>
       ) : state.status === 'error' ? (
-        <section aria-labelledby="data-route-heading" className="data-route-state">
+        <section
+          aria-labelledby="data-route-heading"
+          className="data-route-state data-route-state--error"
+        >
           <header className="data-route-state__heading">
             <h1 id="data-route-heading">{text.heading}</h1>
             <p>{text.description}</p>
@@ -115,6 +138,7 @@ export function DataRoutePage() {
       ) : (
         <DataWorkspacePage
           datasets={visibleDatasets}
+          pendingImports={pendingImports}
           locale={locale}
           demoMode={demoMode}
           onDatasetsChanged={() => setRetryKey((current) => current + 1)}

@@ -5,6 +5,8 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
+import { balancedBlocks } from '../src/terraform-safety.mjs';
+
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const read = (relativePath) => readFileSync(path.join(repositoryRoot, relativePath), 'utf8');
 
@@ -115,7 +117,16 @@ test('AWS sources expose encryption, private data, and OIDC boundaries without s
   assert.match(sources, /transit_encryption_enabled\s*=\s*true/u);
   assert.doesNotMatch(sources, /AKIA[0-9A-Z]{16}|BEGIN (RSA|OPENSSH) PRIVATE KEY/);
   assert.doesNotMatch(sources, /ingress[\s\S]*?cidr_blocks\s*=\s*\["0\.0\.0\.0\/0"\]/u);
-  assert.doesNotMatch(sources, /principals[\s\S]*?identifiers\s*=\s*\[[^\]]*"\*"/u);
+  assert.deepEqual(
+    balancedBlocks(sources, 'statement').filter(
+      (statement) =>
+        !/\beffect\s*=\s*"Deny"/u.test(statement) &&
+        balancedBlocks(statement, 'principals').some((principal) =>
+          /identifiers\s*=\s*\[[^\]]*"\*"/u.test(principal),
+        ),
+    ),
+    [],
+  );
   assert.match(sources, /assign_public_ip\s*=\s*false/u);
   assert.match(sources, /token\.actions\.githubusercontent\.com:sub/u);
   assert.match(sources, /repo:\$\{var\.github_repository\}:ref:refs\/heads\/dev/u);
@@ -182,7 +193,7 @@ test('AWS runtime contract separates API and worker task roles and documents who
     workerService,
     /depends_on\s*=\s*\[[\s\S]*aws_iam_role_policy_attachment\.worker_execution/u,
   );
-  assert.match(workerService, /aws_iam_role_policy\.execution_secrets/u);
+  assert.match(workerService, /aws_iam_role_policy\.worker_execution_secret/u);
   assert.match(compute, /healthCheck/u);
   assert.match(compute, /command\s+=\s+\["CMD",\s*"\/nodejs\/bin\/node"/u);
   assert.match(compute, /\/health\/ready/u);

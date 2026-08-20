@@ -40,7 +40,7 @@ export function createLocalDevProxy(
 ) {
   const target = validateLocalApiTarget(rawTarget);
   return Object.fromEntries(
-    ['/v1', '/v3', '/health'].map((pathPrefix) => [
+    ['/v1', '/v3', '/v4', '/health'].map((pathPrefix) => [
       pathPrefix,
       {
         target,

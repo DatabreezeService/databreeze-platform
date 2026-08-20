@@ -72,13 +72,10 @@ describe('build-time governed navigation', () => {
     }
   });
 
-  it('presents the dashboard breadcrumb as semantic navigation', async () => {
+  it('presents the unified topbar with workspace switcher on dashboard route', async () => {
     const router = createAppRouter({ initialEntries: ['/en/dashboards'] });
     render(<ApplicationBoundary router={router} />);
 
-    expect(await screen.findByRole('navigation', { name: 'Dashboard breadcrumb' })).toBeTruthy();
-    expect(screen.getByText('Bright Cloud')).toBeTruthy();
-    expect(screen.getByText('Business overview')).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Bright Cloud/u })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: /Choose workspace/u })).toBeTruthy();
   });
 });

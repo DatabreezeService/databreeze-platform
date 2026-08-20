@@ -2,12 +2,14 @@ import type {
   DatasetCardV1,
   DatasetHealthV1,
   DatasetSourceFileV1,
+  DatasetPreviewRowV1,
   GovernedFieldTypeV1,
 } from './data-model.ts';
 import { dataApiBaseConfiguration } from './data-api-config.ts';
 export { dataApiBaseConfiguration } from './data-api-config.ts';
 export type { DataApiBaseConfigurationV1 } from './data-api-config.ts';
 import { dataImportApi, DataImportApiError, type DataImportRecordV1 } from './data-import-api.ts';
+import { createSessionAwareFetchV1 } from '../auth/auth-session.ts';
 
 type DataApiErrorCodeV1 =
   | 'DATASETS_UNAUTHORIZED'
@@ -160,15 +162,20 @@ function isAbort(error: unknown): boolean {
 
 async function getJson(
   url: string,
+  baseUrl: string,
   signal: AbortSignal | undefined,
   unauthorizedCode: 'DATASETS_UNAUTHORIZED' | 'SOURCES_UNAUTHORIZED',
   unavailableCode: 'DATASETS_UNAVAILABLE' | 'SOURCES_UNAVAILABLE',
   invalidCode: 'DATASETS_INVALID' | 'SOURCES_INVALID',
   abortedCode: 'DATASETS_ABORTED' | 'SOURCES_ABORTED',
 ): Promise<unknown> {
+  const fetcher = createSessionAwareFetchV1({
+    apiBaseUrl: baseUrl,
+    fetcher: globalThis.fetch.bind(globalThis),
+  });
   let response: Response;
   try {
-    response = await globalThis.fetch(url, requestInit(signal));
+    response = await fetcher(url, requestInit(signal));
   } catch (error) {
     if (isAbort(error)) throw new DataApiError(abortedCode);
     throw new DataApiError(unavailableCode);
@@ -386,6 +393,7 @@ async function fetchSourcePage(
 ): Promise<SourceCatalogPageV1> {
   const value = await getJson(
     endpoint(baseUrl, `/v1/dda/datasets/${encodeURIComponent(datasetId)}/sources?limit=5`),
+    baseUrl,
     signal,
     'SOURCES_UNAUTHORIZED',
     'SOURCES_UNAVAILABLE',
@@ -403,6 +411,7 @@ export async function fetchAuthorizedDataIndexPage(
   const baseUrl = input.baseUrl ?? dataApiBaseConfiguration().baseUrl;
   const value = await getJson(
     endpoint(baseUrl, `/v1/datasets?limit=${encodeURIComponent(String(limit))}`),
+    baseUrl,
     input.signal,
     'DATASETS_UNAUTHORIZED',
     'DATASETS_UNAVAILABLE',
@@ -448,18 +457,19 @@ export async function fetchAuthorizedDataIndex(
         // The dataset index is authoritative. A denied or unavailable source page stays empty.
       }
       const approved = approvedImports.get(dataset.datasetId);
-      const importSources = approved?.sources.map((source): DatasetSourceFileV1 => {
-        const isXlsx = source.fileName.toLowerCase().endsWith('.xlsx');
-        return Object.freeze({
-          sourceId: source.artifactVersionId,
-          label: source.fileName,
-          sourceType: isXlsx ? ('XLSX' as const) : ('CSV' as const),
-          statusLabel: input.locale === 'vi-VN' ? 'Đang hoạt động' : 'Active',
-          healthLabel: input.locale === 'vi-VN' ? 'Đã kiểm tra' : 'Verified',
-          originalAction: 'NONE' as const,
-          evidenceAvailable: false,
-        });
-      }) ?? [];
+      const importSources =
+        approved?.sources.map((source): DatasetSourceFileV1 => {
+          const isXlsx = source.fileName.toLowerCase().endsWith('.xlsx');
+          return Object.freeze({
+            sourceId: source.artifactVersionId,
+            label: source.fileName,
+            sourceType: isXlsx ? ('XLSX' as const) : ('CSV' as const),
+            statusLabel: input.locale === 'vi-VN' ? 'Đang hoạt động' : 'Active',
+            healthLabel: input.locale === 'vi-VN' ? 'Đã kiểm tra' : 'Verified',
+            originalAction: 'NONE' as const,
+            evidenceAvailable: false,
+          });
+        }) ?? [];
       const mergedSources = sources.length > 0 ? sources : importSources;
       const sourceFields = approved?.sources.flatMap((source) => source.fields) ?? [];
       return Object.freeze({
@@ -485,6 +495,11 @@ export async function fetchAuthorizedDataIndex(
               rowCount: approved.review.counts.output,
               quality: approved.review.quality,
               fieldNames: Object.freeze(sourceFields.map((field) => field.name)),
+              previewRows: Object.freeze(
+                approved.sources
+                  .flatMap((source) => source.sampleRows)
+                  .slice(0, 100) as readonly DatasetPreviewRowV1[],
+              ),
             }),
         sources: Object.freeze(mergedSources),
       });

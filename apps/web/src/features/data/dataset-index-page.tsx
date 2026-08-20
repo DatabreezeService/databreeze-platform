@@ -1,5 +1,6 @@
 import { normalizedDatasetHealth, type DatasetCardV1 } from './data-model.ts';
 import { SourceUploadPanel } from './source-upload-panel.tsx';
+import { Link } from 'react-router-dom';
 
 export type { DatasetCardV1 } from './data-model.ts';
 
@@ -45,11 +46,16 @@ export function DatasetIndexPage({
             {text.empty}
           </p>
           {onSelectFiles === undefined ? (
-            <p className="dataset-index-page__empty">
-              {locale === 'vi-VN'
-                ? 'Tải tệp an toàn chưa khả dụng trong bản chạy này.'
-                : 'Secure file upload is not yet available in this build.'}
-            </p>
+            <div className="dataset-index-page__empty-action">
+              <p className="dataset-index-page__empty">
+                {locale === 'vi-VN'
+                  ? 'Mở không gian Dữ liệu để tải CSV hoặc XLSX và bắt đầu bản xem xét có thể tải lại.'
+                  : 'Open the Data workspace to upload CSV or XLSX and start a reloadable review.'}
+              </p>
+              <Link className="db-button db-button--primary" to={`/${locale}/data`}>
+                {locale === 'vi-VN' ? 'Mở Dữ liệu' : 'Open Data'}
+              </Link>
+            </div>
           ) : (
             <SourceUploadPanel locale={locale} onSelectFiles={onSelectFiles} />
           )}

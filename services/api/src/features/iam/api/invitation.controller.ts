@@ -66,7 +66,9 @@ export class IamInvitationController {
 
   @Post()
   @HttpCode(200)
-  @ApiOperation({ summary: 'Deliver a single-use invitation token to an existing principal' })
+  @ApiOperation({
+    summary: 'Create or reissue a single-use invitation for an existing principal',
+  })
   @ApiBody({ type: IssueInvitationDto })
   @ApiOkResponse({ description: 'Invitation metadata without bearer material.' })
   @ApiBadRequestResponse({ type: InvitationRejectedResponseDto })
@@ -76,7 +78,18 @@ export class IamInvitationController {
   @ApiServiceUnavailableResponse({ type: InvitationRejectedResponseDto })
   async issue(@Req() request: unknown, @Body() input: IssueInvitationDto): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
-    return invitationError(await this.requireService().issue(context, input));
+    const service = this.requireService();
+    const result =
+      input.membershipId === undefined
+        ? service.issueForEmail(context, {
+            recipientEmail: input.recipientEmail,
+            accessPreset: input.accessPreset,
+          })
+        : service.issue(context, {
+            membershipId: input.membershipId,
+            recipientEmail: input.recipientEmail,
+          });
+    return invitationError(await result);
   }
 
   @Post('accept')

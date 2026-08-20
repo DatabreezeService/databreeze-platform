@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   parseStableIdentifierV1,
   type StableIdentifierV1,
+  type WorkspaceTenantScopeV1,
 } from '@databreeze/domain/tenant-scope/v1';
 
 import { InMemoryAgentGrantRepositoryAdapter } from '../../../src/features/iam/adapter/in-memory-agent-grant-repository.adapter.js';
@@ -20,6 +21,7 @@ import {
 
 const ids = {
   organization: '00000000-0000-4000-8000-000000000701',
+  otherOrganization: '00000000-0000-4000-8000-00000000070d',
   workspace: '00000000-0000-4000-8000-000000000702',
   siblingWorkspace: '00000000-0000-4000-8000-000000000703',
   ownerMember: '00000000-0000-4000-8000-000000000704',
@@ -162,6 +164,105 @@ void test('[IAM-024] Viewer defaults to NONE and Owner/Editor default to ANALYZE
   if (!owner.accepted) return;
   assert.equal(owner.value.effectiveLevel, 'ANALYZE');
   assert.equal(owner.value.allowed, true);
+});
+
+void test('[IAM-024] an organization-scoped Owner receives the default analysis grant in its workspace', async () => {
+  const memberships = new InMemoryIamRepositoryAdapter();
+  memberships.seed([
+    {
+      id: stable(ids.ownerMember),
+      principalId: stable(ids.ownerMember),
+      scope: {
+        scopeType: 'organization',
+        organizationId: stable(ids.organization),
+      },
+      roleId: 'owner',
+      status: 'ACTIVE',
+      revision: 1,
+    },
+  ]);
+  const repository = new InMemoryAgentGrantRepositoryAdapter();
+  const context = workspaceContext(ids.ownerMember, 'organization-owner-default');
+  const workspaceScope: WorkspaceTenantScopeV1 = {
+    scopeType: 'workspace',
+    organizationId: stable(ids.organization),
+    workspaceId: stable(ids.workspace),
+  };
+  await repository.saveGrant(
+    context,
+    {
+      id: stable(ids.grant),
+      tenantScope: workspaceScope,
+      memberId: stable(ids.ownerMember),
+      level: 'NONE',
+      revision: 1,
+      updatedAt: '2026-08-12T00:00:00.000Z' as never,
+    },
+    1,
+  );
+  await repository.saveDatasetRestrictions(
+    context,
+    {
+      memberId: stable(ids.ownerMember),
+      deniedDatasetIds: [stable(ids.dataset)],
+      revision: 1,
+      updatedAt: '2026-08-12T00:00:00.000Z' as never,
+    },
+    1,
+  );
+  const grants = new AgentGrantService(repository, memberships, new AccessPresetService());
+
+  const decision = await grants.authorize({
+    context,
+    memberId: ids.ownerMember,
+    requestedLevel: 'ANALYZE',
+    resourceIds: [ids.dataset],
+  });
+
+  assert.equal(decision.accepted, true);
+  if (!decision.accepted) return;
+  assert.equal(decision.value.effectiveLevel, 'ANALYZE');
+  assert.equal(decision.value.allowed, true);
+});
+
+void test('[IAM-024] inactive and cross-organization memberships remain unauthorized', async () => {
+  const cases = [
+    { status: 'SUSPENDED' as const, organizationId: ids.organization },
+    { status: 'REMOVED' as const, organizationId: ids.organization },
+    { status: 'ACTIVE' as const, organizationId: ids.otherOrganization },
+  ];
+
+  for (const candidate of cases) {
+    const memberships = new InMemoryIamRepositoryAdapter();
+    memberships.seed([
+      {
+        id: stable(ids.ownerMember),
+        principalId: stable(ids.ownerMember),
+        scope: {
+          scopeType: 'organization',
+          organizationId: stable(candidate.organizationId),
+        },
+        roleId: 'owner',
+        status: candidate.status,
+        revision: 1,
+      },
+    ]);
+    const grants = new AgentGrantService(
+      new InMemoryAgentGrantRepositoryAdapter(),
+      memberships,
+      new AccessPresetService(),
+    );
+
+    assert.deepEqual(
+      await grants.authorize({
+        context: workspaceContext(ids.ownerMember, `organization-owner-${candidate.status}`),
+        memberId: ids.ownerMember,
+        requestedLevel: 'ANALYZE',
+        resourceIds: [ids.dataset],
+      }),
+      { accepted: false, code: 'NOT_FOUND' },
+    );
+  }
 });
 
 void test('[IAM-024] Viewer may receive ANALYZE without gaining edit permission', async () => {

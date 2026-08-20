@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { DatasetPreviewTable } from './dataset-preview-table.tsx';
 import { ExtractionReview } from './extraction-review.tsx';
 import { OriginalViewer } from './original-viewer.tsx';
@@ -60,18 +61,17 @@ export function DatasetDetailPage({
         </span>
       </header>
       <div className="dataset-detail-page__quick-actions">
-        <a
+        <Link
           className="db-button db-button--primary"
-          href={`/${locale}/analysis?dataset=${encodeURIComponent(dataset.datasetId)}`}
+          to={`/${locale}/analysis?dataset=${encodeURIComponent(dataset.datasetId)}`}
         >
-          {locale === 'vi-VN' ? '💬 Hỏi Trợ lý AI về dữ liệu này' : '💬 Ask AI Agent about this data'}
-        </a>
-        <a
-          className="db-button db-button--secondary"
-          href={`/${locale}/dashboards`}
-        >
+          {locale === 'vi-VN'
+            ? '💬 Hỏi Trợ lý AI về dữ liệu này'
+            : '💬 Ask AI Agent about this data'}
+        </Link>
+        <Link className="db-button db-button--secondary" to={`/${locale}/dashboards`}>
           {locale === 'vi-VN' ? '📊 Xem trên Bảng điều khiển' : '📊 View on Dashboards'}
-        </a>
+        </Link>
       </div>
       <div className="dataset-detail-page__facts">
         {dataset.refresh === undefined ? null : (

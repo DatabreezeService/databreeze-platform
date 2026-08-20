@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+
+import { DATABREEZE_MARK_SRC } from '../../app/brand-assets.ts';
 import { cleaningAgentStore, type AgentMessageV1 } from './cleaning-agent-store.ts';
 import { localDataStore } from './local-data-store.ts';
 
@@ -26,7 +28,6 @@ function copy(locale: 'en' | 'vi-VN') {
         affected: 'ảnh hưởng',
         rows: 'dòng',
         columns: 'cột',
-        autoApply: 'Tự động áp dụng thay đổi an toàn',
         approveCta: 'Duyệt & khóa phiên bản',
         readyHint: 'Bộ dữ liệu đã sẵn sàng — duyệt để khóa phiên bản bất biến.',
         close: 'Đóng',
@@ -45,7 +46,6 @@ function copy(locale: 'en' | 'vi-VN') {
         affected: 'affects',
         rows: 'rows',
         columns: 'columns',
-        autoApply: 'Auto-apply safe changes',
         approveCta: 'Approve & lock version',
         readyHint: 'The dataset is ready — approve to lock the immutable version.',
         close: 'Close',
@@ -68,7 +68,9 @@ function ProposalCard({
   if (message.plan === undefined) return null;
   const vi = locale === 'vi-VN';
   return (
-    <div className={`agent-proposal${message.status === 'pending' ? ' is-pending' : ` is-${message.status}`}`}>
+    <div
+      className={`agent-proposal${message.status === 'pending' ? ' is-pending' : ` is-${message.status}`}`}
+    >
       <div className="agent-proposal__head">
         <span className={`agent-proposal__badge${message.plan.anyLossy ? ' is-lossy' : ''}`}>
           {message.plan.anyLossy ? `⚠ ${text.lossyBadge}` : `✓ ${text.safeBadge}`}
@@ -82,7 +84,9 @@ function ProposalCard({
       <ul className="agent-proposal__intents">
         {message.plan.intents.map((item, index) => (
           <li key={index}>
-            <span className="agent-proposal__intent-text">{vi ? item.descriptionVi : item.descriptionEn}</span>
+            <span className="agent-proposal__intent-text">
+              {vi ? item.descriptionVi : item.descriptionEn}
+            </span>
             <small className="agent-proposal__intent-meta">
               {text.affected} {item.affectedCount}{' '}
               {item.intent.kind === 'MERGE_ON_KEY' ? text.columns : text.rows}
@@ -110,7 +114,13 @@ function ProposalCard({
   );
 }
 
-export function DataAgentDock({ datasetId, datasetLabel, locale, onApprove, onClose }: DataAgentDockProps) {
+export function DataAgentDock({
+  datasetId,
+  datasetLabel,
+  locale,
+  onApprove,
+  onClose,
+}: DataAgentDockProps) {
   const text = copy(locale);
   const [draft, setDraft] = useState('');
   const thread = useSyncExternalStore(
@@ -126,7 +136,9 @@ export function DataAgentDock({ datasetId, datasetLabel, locale, onApprove, onCl
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    void cleaningAgentStore.loadThread(datasetId).then(() => cleaningAgentStore.greet(datasetId, locale));
+    void cleaningAgentStore
+      .loadThread(datasetId)
+      .then(() => cleaningAgentStore.greet(datasetId, locale));
   }, [datasetId, locale]);
 
   useEffect(() => {
@@ -147,13 +159,20 @@ export function DataAgentDock({ datasetId, datasetLabel, locale, onApprove, onCl
     <aside className="agent-dock" aria-label={text.title}>
       <header className="agent-dock__header">
         <div className="agent-dock__identity">
-          <span className="agent-dock__avatar" aria-hidden="true">✦</span>
+          <span className="agent-dock__avatar" aria-hidden="true">
+            <img alt="" src={DATABREEZE_MARK_SRC} />
+          </span>
           <div>
             <strong>{text.title}</strong>
             <small>{text.subtitle}</small>
           </div>
         </div>
-        <button type="button" className="agent-dock__close" onClick={onClose} aria-label={text.close}>
+        <button
+          type="button"
+          className="agent-dock__close"
+          onClick={onClose}
+          aria-label={text.close}
+        >
           ✕
         </button>
       </header>
@@ -178,8 +197,12 @@ export function DataAgentDock({ datasetId, datasetLabel, locale, onApprove, onCl
                 message={message}
                 locale={locale}
                 text={text}
-                onApply={() => cleaningAgentStore.applyProposal(datasetId, message.proposalId!, locale)}
-                onSkip={() => cleaningAgentStore.skipProposal(datasetId, message.proposalId!, locale)}
+                onApply={() =>
+                  cleaningAgentStore.applyProposal(datasetId, message.proposalId!, locale)
+                }
+                onSkip={() =>
+                  cleaningAgentStore.skipProposal(datasetId, message.proposalId!, locale)
+                }
               />
             );
           }
@@ -224,14 +247,6 @@ export function DataAgentDock({ datasetId, datasetLabel, locale, onApprove, onCl
       ) : null}
 
       <footer className="agent-dock__composer">
-        <label className="agent-dock__auto">
-          <input
-            type="checkbox"
-            checked={thread.autoApplySafe}
-            onChange={(event) => cleaningAgentStore.setAutoApplySafe(datasetId, event.target.checked)}
-          />
-          <span>{text.autoApply}</span>
-        </label>
         <form
           className="agent-dock__input-row"
           onSubmit={(event) => {
@@ -245,7 +260,12 @@ export function DataAgentDock({ datasetId, datasetLabel, locale, onApprove, onCl
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
           />
-          <button type="submit" className="agent-dock__send" disabled={draft.trim().length === 0} aria-label={text.send}>
+          <button
+            type="submit"
+            className="agent-dock__send"
+            disabled={draft.trim().length === 0}
+            aria-label={text.send}
+          >
             ➤
           </button>
         </form>

@@ -58,4 +58,40 @@ describe('workspace chooser [WEB-028]', () => {
     await waitFor(() => expect(onCreate).toHaveBeenCalledWith('Dữ liệu 2026'));
     expect(screen.queryByRole('dialog')).toBeNull();
   });
+
+  it('keeps the chooser stable while workspaces load and surfaces a rejected switch', async () => {
+    const user = userEvent.setup();
+    const onSwitch = vi.fn(async () => {
+      throw new Error('network down');
+    });
+    const view = render(<WorkspaceSwitcher locale="en" onSwitch={onSwitch} workspaces={[]} />);
+
+    expect(screen.queryByRole('button', { name: /Choose workspace/u })).toBeNull();
+    view.rerender(
+      <WorkspaceSwitcher
+        currentWorkspaceId="workspace-a"
+        locale="en"
+        onSwitch={onSwitch}
+        workspaces={workspaces}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: 'Choose workspace: Bright Cloud' }));
+    await user.click(screen.getByRole('menuitemradio', { name: /Client projects/u }));
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Could not update');
+    expect(onSwitch).toHaveBeenCalledWith('workspace-b');
+  });
+
+  it('keeps first-workspace creation available when the organization has no active workspace', async () => {
+    const user = userEvent.setup();
+    const onCreate = vi.fn(async () => ({ accepted: true as const }));
+    render(<WorkspaceSwitcher locale="en" onCreate={onCreate} workspaces={[]} />);
+
+    await user.click(screen.getByRole('button', { name: 'Choose workspace: Choose workspace' }));
+    await user.click(screen.getByRole('menuitem', { name: /Create workspace/u }));
+    await user.type(screen.getByLabelText('Workspace name'), 'First workspace');
+    await user.click(screen.getByRole('button', { name: 'Create workspace' }));
+
+    await waitFor(() => expect(onCreate).toHaveBeenCalledWith('First workspace'));
+  });
 });

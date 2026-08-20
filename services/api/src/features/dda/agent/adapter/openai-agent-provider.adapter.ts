@@ -155,6 +155,26 @@ function boundedString(value: unknown, maximum: number, allowEmpty = false): val
   );
 }
 
+function containsLocalPath(value: string): boolean {
+  const trimmed = value.trim();
+  return (
+    /(?:^|[^\p{L}\p{N}_])[a-z]:[\\/]/iu.test(value) ||
+    /(?:^|[^\p{L}\p{N}_])\\\\[^/\\\s]+[/\\][^/\\\s]+/u.test(value) ||
+    /(?:^|[^\p{L}\p{N}_:])\/\/[^/\\\s]+[/\\][^/\\\s]+/u.test(value) ||
+    (!trimmed.includes('\u0000') && /^\/(?:[^/]+\/)+/u.test(trimmed))
+  );
+}
+
+function hasLocalPathInContext(value: unknown, depth = 0): boolean {
+  if (depth > 8) return true;
+  if (typeof value === 'string') return containsLocalPath(value);
+  if (typeof value !== 'object' || value === null) return false;
+  if (Array.isArray(value)) {
+    return value.some((item) => hasLocalPathInContext(item, depth + 1));
+  }
+  return Object.values(value).some((item) => hasLocalPathInContext(item, depth + 1));
+}
+
 function boundedIdentifier(value: unknown): value is string {
   return boundedString(value, MAX_CONTEXT_ID_LENGTH);
 }
@@ -164,7 +184,7 @@ function contentSafeHistoryText(role: string, value: unknown): value is string {
 }
 
 function boundedContextPackage(value: unknown): value is AgentContextPackageV1 {
-  if (!isRecord(value) || hasForbiddenKey(value)) return false;
+  if (!isRecord(value) || hasForbiddenKey(value) || hasLocalPathInContext(value)) return false;
   if (
     !hasOnlyKeys(value, [
       'systemPolicy',

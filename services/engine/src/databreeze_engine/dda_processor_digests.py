@@ -36,6 +36,7 @@ DDA_ACTION_TYPES: frozenset[str] = frozenset(
         "dda.folder.intake",
         "dda.materialize.query",
         "dda.materialize.snapshot",
+        "dda.materialize.widget-result",
     }
 )
 

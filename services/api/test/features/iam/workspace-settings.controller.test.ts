@@ -24,6 +24,10 @@ const ids = {
   editor: stableIdentifier('00000000-0000-4000-8000-000000000204'),
   viewer: stableIdentifier('00000000-0000-4000-8000-000000000205'),
   correlation: stableIdentifier('00000000-0000-4000-8000-000000000206'),
+  otherWorkspace: stableIdentifier('00000000-0000-4000-8000-000000000207'),
+  project: stableIdentifier('00000000-0000-4000-8000-000000000208'),
+  projectMember: stableIdentifier('00000000-0000-4000-8000-000000000209'),
+  otherWorkspaceMember: stableIdentifier('00000000-0000-4000-8000-000000000210'),
 };
 
 function context(actorId: string) {
@@ -119,6 +123,169 @@ void test('[IAM-024][IAM-025] Owner projection exposes canonical presets and the
     ],
   );
   assert.equal(result.members[2]?.agentGrantRevision, 0);
+});
+
+void test('[IAM-024][IAM-025] an organization Owner inherits settings access into the selected workspace', async () => {
+  const harness = setup();
+  harness.iam.seed([
+    {
+      id: ids.owner,
+      principalId: ids.owner,
+      scope: { scopeType: 'organization', organizationId: ids.organization },
+      roleId: 'owner',
+      status: 'ACTIVE',
+      revision: 1,
+    },
+    {
+      id: ids.editor,
+      principalId: ids.editor,
+      scope: {
+        scopeType: 'workspace',
+        organizationId: ids.organization,
+        workspaceId: ids.workspace,
+      },
+      roleId: 'analyst',
+      status: 'ACTIVE',
+      revision: 1,
+    },
+  ]);
+
+  const result = await harness.controller.getSettings({});
+
+  assert.equal(result.canManage, true);
+  assert.deepEqual(
+    result.members.map((member) => member.memberId),
+    [ids.owner, ids.editor],
+  );
+  assert.deepEqual(result.members[0], {
+    memberId: ids.owner,
+    displayName: ids.owner,
+    accessPreset: 'OWNER',
+    agentGrantLevel: 'ANALYZE',
+    agentGrantRevision: 0,
+    membershipRevision: 1,
+  });
+});
+
+void test('[IAM-025] a narrower workspace Viewer membership overrides an inherited organization Owner', async () => {
+  const harness = setup();
+  harness.iam.seed([
+    {
+      id: ids.owner,
+      principalId: ids.owner,
+      scope: { scopeType: 'organization', organizationId: ids.organization },
+      roleId: 'owner',
+      status: 'ACTIVE',
+      revision: 1,
+    },
+    {
+      id: ids.viewer,
+      principalId: ids.owner,
+      scope: {
+        scopeType: 'workspace',
+        organizationId: ids.organization,
+        workspaceId: ids.workspace,
+      },
+      roleId: 'viewer',
+      status: 'ACTIVE',
+      revision: 1,
+    },
+  ]);
+
+  await assert.rejects(
+    () => harness.controller.getSettings({}),
+    (error: unknown) => error instanceof Error && error.message === 'HTTP_403',
+  );
+});
+
+void test('[IAM-024] project-only memberships are excluded from the workspace settings projection', async () => {
+  const harness = setup();
+  harness.iam.seed([
+    {
+      id: ids.owner,
+      principalId: ids.owner,
+      scope: { scopeType: 'organization', organizationId: ids.organization },
+      roleId: 'owner',
+      status: 'ACTIVE',
+      revision: 1,
+    },
+    {
+      id: ids.projectMember,
+      principalId: ids.projectMember,
+      scope: {
+        scopeType: 'project',
+        organizationId: ids.organization,
+        workspaceId: ids.workspace,
+        projectId: ids.project,
+      },
+      roleId: 'analyst',
+      status: 'ACTIVE',
+      revision: 1,
+    },
+  ]);
+
+  const result = await harness.controller.getSettings({});
+
+  assert.deepEqual(
+    result.members.map((member) => member.memberId),
+    [ids.owner],
+  );
+});
+
+void test('[IAM-024] memberships from another workspace are excluded from the selected workspace projection', async () => {
+  const harness = setup();
+  harness.iam.seed([
+    {
+      id: ids.owner,
+      principalId: ids.owner,
+      scope: { scopeType: 'organization', organizationId: ids.organization },
+      roleId: 'owner',
+      status: 'ACTIVE',
+      revision: 1,
+    },
+    {
+      id: ids.otherWorkspaceMember,
+      principalId: ids.otherWorkspaceMember,
+      scope: {
+        scopeType: 'workspace',
+        organizationId: ids.organization,
+        workspaceId: ids.otherWorkspace,
+      },
+      roleId: 'analyst',
+      status: 'ACTIVE',
+      revision: 1,
+    },
+  ]);
+
+  const result = await harness.controller.getSettings({});
+
+  assert.deepEqual(
+    result.members.map((member) => member.memberId),
+    [ids.owner],
+  );
+});
+
+void test('[IAM-025] an Owner from another workspace cannot open settings for the selected workspace', async () => {
+  const harness = setup(ids.otherWorkspaceMember);
+  harness.iam.seed([
+    {
+      id: ids.otherWorkspaceMember,
+      principalId: ids.otherWorkspaceMember,
+      scope: {
+        scopeType: 'workspace',
+        organizationId: ids.organization,
+        workspaceId: ids.otherWorkspace,
+      },
+      roleId: 'owner',
+      status: 'ACTIVE',
+      revision: 1,
+    },
+  ]);
+
+  await assert.rejects(
+    () => harness.controller.getSettings({}),
+    (error: unknown) => error instanceof Error && error.message === 'HTTP_403',
+  );
 });
 
 void test('[IAM-025] Viewer cannot open workspace member management settings', async () => {

@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import type { SupportedLocaleV1 } from '@databreeze/i18n/v1';
+import { Link } from 'react-router-dom';
 
 import { ChartFallbackTable, type ChartFallbackTableRowV1 } from './chart-fallback-table.tsx';
 import { DashboardHeader, type DashboardAutosaveStateV1 } from './dashboard-header.tsx';
@@ -41,6 +42,7 @@ export interface DashboardCanvasProps {
   readonly layouts?: DashboardWidgetLayoutsV1;
   readonly header?: DashboardCanvasHeaderV1;
   readonly widgetResults?: Readonly<Record<string, DashboardWidgetResultV1 | undefined>>;
+  readonly filterValues?: Readonly<Record<string, string>>;
   readonly onOpenAgent?: () => void;
   readonly onLayoutCommand?: (command: DashboardSetLayoutCommandV1) => void;
   readonly onFilterChange?: (filterId: string, value: string) => void;
@@ -105,6 +107,7 @@ export function DashboardCanvas({
   layouts,
   header,
   widgetResults,
+  filterValues,
   onOpenAgent,
   onLayoutCommand,
   onFilterChange,
@@ -175,7 +178,8 @@ export function DashboardCanvas({
         <FilterBar
           locale={locale}
           filters={draft.filters}
-          onChange={onFilterChange ?? (() => undefined)}
+          {...(onFilterChange === undefined ? {} : { onChange: onFilterChange })}
+          {...(filterValues === undefined ? {} : { values: filterValues })}
         />
       ) : null}
       <div className="dda-dashboard-canvas__utility">
@@ -184,12 +188,12 @@ export function DashboardCanvas({
           {visibleWarning}
         </p>
         <div className="dda-dashboard-canvas__actions">
-          <a className="dda-dashboard-canvas__action-link" href={`/${locale}/analysis`}>
+          <Link className="dda-dashboard-canvas__action-link" to={`/${locale}/analysis`}>
             {locale === 'vi-VN' ? 'Hỏi trợ lý AI' : 'Ask AI agent'}
-          </a>
-          <a className="dda-dashboard-canvas__action-link" href={`/${locale}/data`}>
+          </Link>
+          <Link className="dda-dashboard-canvas__action-link" to={`/${locale}/data`}>
             {locale === 'vi-VN' ? 'Xem dữ liệu' : 'View data'}
-          </a>
+          </Link>
           {removed.length > 0 ? (
             <button
               className="dda-dashboard-canvas__restore"
@@ -202,6 +206,18 @@ export function DashboardCanvas({
           ) : null}
         </div>
       </div>
+      {widgets.length === 0 ? (
+        <div className="dda-dashboard-canvas__empty" data-testid="dashboard-canvas-empty">
+          <p className="dda-dashboard-canvas__empty-text">
+            {locale === 'vi-VN'
+              ? 'Bảng điều khiển của bạn đang trống. Hãy bắt đầu bằng cách thêm dữ liệu.'
+              : 'Your dashboard is empty. Start by adding data.'}
+          </p>
+          <Link className="dda-dashboard-canvas__empty-action" to={`/${locale}/data`}>
+            {locale === 'vi-VN' ? 'Thêm dữ liệu' : 'Add data'}
+          </Link>
+        </div>
+      ) : null}
       <ResponsiveWidgetGrid
         locale={locale}
         widgetIds={widgets.map((widget) => widget.widgetId)}

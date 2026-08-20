@@ -80,6 +80,8 @@ export interface DatasetCardV1 {
   readonly fieldCount?: number;
   readonly fieldTypes?: readonly GovernedFieldTypeV1[];
   readonly fieldNames?: readonly string[];
+  /** Bounded server-authorized sample only; never treated as the full dataset. */
+  readonly previewRows?: readonly DatasetPreviewRowV1[];
   readonly rowCount?: number;
   readonly quality?: DatasetQualityV1;
   readonly readiness?: 'READY';
@@ -91,6 +93,8 @@ export interface DatasetCardV1 {
   readonly preparation?: DatasetPreparationSummaryV1;
   readonly reviewItems?: readonly DatasetReviewItemV1[];
 }
+
+export type DatasetPreviewRowV1 = Readonly<Record<string, string | number | boolean | null>>;
 
 /**
  * Locale-free structural facts about one governed dataset version (DDA-052/DSM):
@@ -120,11 +124,25 @@ export type DatasetSyncStateV1 = 'LOCAL_ONLY' | 'SERVER_MIRRORED';
 export type DatasetCleaningStateV1 = 'RAW' | 'CLEANING' | 'REVIEW' | 'APPROVED';
 
 export type CleaningIntentV1 =
-  | { readonly kind: 'CHANGE_COLUMN_TYPE'; readonly column: string; readonly targetType: GovernedFieldTypeV1 }
+  | {
+      readonly kind: 'CHANGE_COLUMN_TYPE';
+      readonly column: string;
+      readonly targetType: GovernedFieldTypeV1;
+    }
   | { readonly kind: 'RENAME_COLUMN'; readonly column: string; readonly newName: string }
   | { readonly kind: 'DEDUPLICATE_ROWS' }
-  | { readonly kind: 'NORMALIZE_VALUES'; readonly column: string; readonly trim: boolean; readonly lowercase: boolean }
-  | { readonly kind: 'FILTER_ROWS'; readonly column: string; readonly operator: 'EMPTY' | 'NOT_EMPTY' | 'EQ' | 'NEQ'; readonly value?: string }
+  | {
+      readonly kind: 'NORMALIZE_VALUES';
+      readonly column: string;
+      readonly trim: boolean;
+      readonly lowercase: boolean;
+    }
+  | {
+      readonly kind: 'FILTER_ROWS';
+      readonly column: string;
+      readonly operator: 'EMPTY' | 'NOT_EMPTY' | 'EQ' | 'NEQ';
+      readonly value?: string;
+    }
   | { readonly kind: 'FIX_DATE_FORMAT'; readonly column: string }
   | { readonly kind: 'MERGE_ON_KEY'; readonly sourceDatasetId: string; readonly keyColumn: string };
 
@@ -176,10 +194,7 @@ export interface DatasetRecordDisplayV1 {
   readonly lastSuccessfulLabel: string;
 }
 
-export function datasetVersionLabelV1(
-  record: DatasetRecordV1,
-  locale: 'en' | 'vi-VN',
-): string {
+export function datasetVersionLabelV1(record: DatasetRecordV1, locale: 'en' | 'vi-VN'): string {
   const versionNumber = record.versions.length;
   const rowCount = record.currentVersion.rowCount;
   const columnCount = record.currentVersion.schema.length;
@@ -196,7 +211,10 @@ export function datasetHealthFromQualityV1(
     return { label: locale === 'vi-VN' ? 'Chưa đánh giá' : 'Not assessed', tone: 'UNKNOWN' };
   }
   if (quality.completeness >= 0.95 && quality.validity >= 0.95) {
-    return { label: locale === 'vi-VN' ? 'Sẵn sàng phân tích' : 'Ready for analysis', tone: 'HEALTHY' };
+    return {
+      label: locale === 'vi-VN' ? 'Sẵn sàng phân tích' : 'Ready for analysis',
+      tone: 'HEALTHY',
+    };
   }
   if (quality.completeness >= 0.8 && quality.validity >= 0.8) {
     return { label: locale === 'vi-VN' ? 'Cần xem xét' : 'Needs review', tone: 'WARNING' };
@@ -236,8 +254,7 @@ export function toDatasetCardV1(record: DatasetRecordV1, locale: 'en' | 'vi-VN')
     versions: record.versions.map((version, index) =>
       Object.freeze({
         versionId: version.versionId,
-        label:
-          locale === 'vi-VN' ? `Phiên bản ${index + 1}` : `Version ${index + 1}`,
+        label: locale === 'vi-VN' ? `Phiên bản ${index + 1}` : `Version ${index + 1}`,
         stateLabel:
           version.versionId === currentVersionId
             ? locale === 'vi-VN'

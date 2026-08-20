@@ -61,10 +61,19 @@ interface ServiceAccountDelegateV1 {
 }
 
 export interface ServiceAccountDatabaseClientV1 {
-  readonly serviceAccount: ServiceAccountDelegateV1;
+  /** Prisma 7 names the generated delegate after the model (`serviceAccountRecord`). */
+  readonly serviceAccount?: ServiceAccountDelegateV1;
+  /** Legacy test/runtime clients may expose the shortened delegate name. */
+  readonly serviceAccountRecord?: ServiceAccountDelegateV1;
   $transaction<TValue>(
     work: (transaction: ServiceAccountDatabaseClientV1) => Promise<TValue>,
   ): Promise<TValue>;
+}
+
+function serviceAccountDelegate(client: ServiceAccountDatabaseClientV1): ServiceAccountDelegateV1 {
+  const delegate = client.serviceAccount ?? client.serviceAccountRecord;
+  if (delegate === undefined) throw new Error('IAM_SERVICE_ACCOUNT_REPOSITORY_UNAVAILABLE');
+  return delegate;
 }
 
 function accountScope(account: ServiceAccountV1): TenantScopeV1 {
@@ -299,7 +308,7 @@ class PrismaServiceAccountTransactionAdapter implements ServiceAccountTransactio
     context: IamTenantContextV1,
     serviceAccountId: StableIdentifierV1,
   ): Promise<ServiceAccountV1 | undefined> {
-    const row = await this.client.serviceAccount.findFirst({
+    const row = await serviceAccountDelegate(this.client).findFirst({
       where: { id: serviceAccountId, ...scopeWhere(context) },
     });
     return row ? accountFromRow(row) : undefined;
@@ -309,7 +318,7 @@ class PrismaServiceAccountTransactionAdapter implements ServiceAccountTransactio
     context: IamTenantContextV1,
     secretDigest: string,
   ): Promise<ServiceAccountV1 | undefined> {
-    const row = await this.client.serviceAccount.findFirst({
+    const row = await serviceAccountDelegate(this.client).findFirst({
       where: { secretDigest, ...scopeWhere(context) },
     });
     return row ? accountFromRow(row) : undefined;
@@ -318,7 +327,7 @@ class PrismaServiceAccountTransactionAdapter implements ServiceAccountTransactio
   public async listServiceAccounts(
     context: IamTenantContextV1,
   ): Promise<readonly ServiceAccountV1[]> {
-    const rows = await this.client.serviceAccount.findMany({
+    const rows = await serviceAccountDelegate(this.client).findMany({
       where: scopeWhere(context),
       orderBy: { createdAt: 'desc' },
     });
@@ -335,7 +344,7 @@ class PrismaServiceAccountTransactionAdapter implements ServiceAccountTransactio
       (targetScope.scopeType !== 'organization' && targetScope.scopeType !== 'workspace')
     )
       return undefined;
-    const row = await this.client.serviceAccount.findFirst({
+    const row = await serviceAccountDelegate(this.client).findFirst({
       where: {
         organizationId: targetScope.organizationId,
         workspaceId: targetScope.scopeType === 'workspace' ? targetScope.workspaceId : null,
@@ -365,7 +374,7 @@ class PrismaServiceAccountTransactionAdapter implements ServiceAccountTransactio
         JSON.stringify(createIdempotency.accountSnapshot) !== JSON.stringify(account))
     )
       throw new Error('IAM_SERVICE_ACCOUNT_IDEMPOTENCY_INVALID');
-    const existing = await this.client.serviceAccount.findFirst({
+    const existing = await serviceAccountDelegate(this.client).findFirst({
       where: { id: account.id, organizationId: account.organizationId },
     });
     if (existing) {
@@ -374,7 +383,9 @@ class PrismaServiceAccountTransactionAdapter implements ServiceAccountTransactio
       return;
     }
     try {
-      await this.client.serviceAccount.create({ data: accountData(account, createIdempotency) });
+      await serviceAccountDelegate(this.client).create({
+        data: accountData(account, createIdempotency),
+      });
     } catch (error) {
       if (isUniqueConflict(error)) throw new Error('SERVICE_ACCOUNT_CONFLICT');
       throw error;
@@ -393,7 +404,7 @@ class PrismaServiceAccountTransactionAdapter implements ServiceAccountTransactio
     if (current.revision !== expectedRevision) throw new Error('REVISION_CONFLICT');
     if (account.revision !== expectedRevision + 1) throw new Error('INVALID_REVISION');
     try {
-      const updated = await this.client.serviceAccount.updateMany({
+      const updated = await serviceAccountDelegate(this.client).updateMany({
         where: {
           id: account.id,
           organizationId: account.organizationId,
@@ -467,7 +478,7 @@ export class PrismaServiceAccountRepositoryAdapter
   public async findCurrentWorkerCredentialByDigest(
     secretDigest: string,
   ): Promise<ServiceAccountV1 | undefined> {
-    const row = await this.client.serviceAccount.findFirst({ where: { secretDigest } });
+    const row = await serviceAccountDelegate(this.client).findFirst({ where: { secretDigest } });
     return row ? accountFromRow(row) : undefined;
   }
 
@@ -475,7 +486,7 @@ export class PrismaServiceAccountRepositoryAdapter
   public async findCurrentWorkerCredentialById(
     workerId: StableIdentifierV1,
   ): Promise<ServiceAccountV1 | undefined> {
-    const row = await this.client.serviceAccount.findFirst({ where: { id: workerId } });
+    const row = await serviceAccountDelegate(this.client).findFirst({ where: { id: workerId } });
     return row ? accountFromRow(row) : undefined;
   }
 

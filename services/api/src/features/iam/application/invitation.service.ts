@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 
 import {
   consumeInvitationTokenV1,
@@ -6,10 +6,16 @@ import {
   revokeInvitationTokenV1,
   type InvitationTokenV1,
 } from '@databreeze/domain/invitation/v1';
-import { normalizeEmailAddressV1 } from '@databreeze/domain/identity/v1';
-import { roleHasPermissionV1, PERMISSIONS_V1 } from '@databreeze/domain/permissions/v1';
+import { normalizeEmailAddressV1, validateMembershipV1 } from '@databreeze/domain/identity/v1';
+import {
+  ACCESS_PRESET_MAPPINGS_V1,
+  isMembershipAccessPresetV1,
+  roleHasPermissionV1,
+  PERMISSIONS_V1,
+} from '@databreeze/domain/permissions/v1';
 import {
   parseStableIdentifierV1,
+  parseStrictUtcTimestampV1,
   tenantScopeContainsV1,
   tenantScopesEqualV1,
   type StableIdentifierV1,
@@ -29,6 +35,7 @@ export type IamInvitationApplicationCodeV1 =
   | 'INVALID_IDENTIFIER'
   | 'INVALID_TEXT'
   | 'INVALID_EMAIL'
+  | 'INVALID_ROLE'
   | 'INVALID_TOKEN'
   | 'SCOPE_DENIED'
   | 'NOT_FOUND'
@@ -49,10 +56,13 @@ export interface IamInvitationDigestPortV1 {
 
 export type IamInvitationIdGeneratorV1 = () => string;
 export type IamInvitationTokenGeneratorV1 = () => string;
+export type IamInvitationMembershipIdGeneratorV1 = () => string;
 export type IamInvitationClockV1 = () => Date;
 
 export interface IamPrincipalEmailLookupPortV1 {
   findEmail(principalId: StableIdentifierV1): Promise<string | undefined>;
+  /** Resolve an already-registered active principal without exposing credentials. */
+  findPrincipalIdByEmail?(normalizedEmail: string): Promise<StableIdentifierV1 | undefined>;
 }
 
 /** Raw bearer material is deliberately confined to this delivery port. */
@@ -126,6 +136,8 @@ export class IamInvitationService {
     private readonly digest: IamInvitationDigestPortV1,
     private readonly delivery: IamInvitationDeliveryPortV1,
     private readonly clock: IamInvitationClockV1 = () => new Date(),
+    private readonly membershipIdGenerator: IamInvitationMembershipIdGeneratorV1 = () =>
+      randomUUID(),
   ) {}
 
   private now(): string | undefined {
@@ -206,6 +218,193 @@ export class IamInvitationService {
           expiresAt,
         });
         if (!token.accepted) return rejected('UNAVAILABLE');
+        await transaction.saveInvitation(context, token.value);
+        return {
+          pending: {
+            token: token.value,
+            rawToken: raw,
+            recipientEmail: normalizedEmail.value,
+          },
+        } as const;
+      });
+      if (!('pending' in persisted)) return persisted;
+      pendingDelivery = persisted.pending;
+    } catch (error) {
+      return rejected(applicationError(error));
+    }
+
+    try {
+      await this.delivery.deliver({
+        invitationId: pendingDelivery.token.id,
+        membershipId: pendingDelivery.token.membershipId,
+        recipientEmail: pendingDelivery.recipientEmail,
+        rawToken: pendingDelivery.rawToken,
+        expiresAt: pendingDelivery.token.expiresAt,
+      });
+    } catch {
+      try {
+        await this.repository.withTransaction(context, async (transaction) => {
+          const current = await transaction.findInvitationByDigest(
+            context,
+            pendingDelivery.token.tokenDigest,
+          );
+          if (!current || current.status !== 'ACTIVE') return;
+          const revoked = revokeInvitationTokenV1(current, this.now() ?? issuedAt);
+          if (!revoked.accepted) throw new Error('IAM_INVITATION_REVOCATION_INVALID');
+          await transaction.saveInvitation(context, revoked.value);
+        });
+      } catch {
+        try {
+          await this.repository.withTransaction(context, async (transaction) => {
+            if (!transaction.recordDeliveryFailure)
+              throw new Error('IAM_INVITATION_MARKER_UNAVAILABLE');
+            await transaction.recordDeliveryFailure(
+              context,
+              pendingDelivery.token.tokenDigest,
+              this.now() ?? issuedAt,
+            );
+          });
+        } catch {
+          this.deliveryBlocked.add(pendingDelivery.token.tokenDigest);
+        }
+      }
+      return rejected('DELIVERY_UNAVAILABLE');
+    }
+    return accepted({
+      invitationId: pendingDelivery.token.id,
+      membershipId: pendingDelivery.token.membershipId,
+      expiresAt: pendingDelivery.token.expiresAt,
+      deliveryStatus: 'DELIVERED' as const,
+    });
+  }
+
+  /**
+   * IAM-010: create the invited membership and its one-time invitation in the
+   * same transaction. The browser supplies only an email and presentation
+   * preset; scope, principal, role lifetime, IDs, and bearer material remain
+   * server-owned.
+   */
+  public async issueForEmail(
+    context: IamTenantContextV1,
+    input: { readonly recipientEmail: unknown; readonly accessPreset: unknown },
+  ): Promise<IamInvitationApplicationResultV1<IamIssuedInvitationV1>> {
+    if (!isMembershipAccessPresetV1(input.accessPreset)) return rejected('INVALID_ROLE');
+    const normalizedEmail = normalizeEmailAddressV1(input.recipientEmail);
+    if (!normalizedEmail.accepted) return rejected('INVALID_EMAIL');
+    if (this.principalEmails.findPrincipalIdByEmail === undefined) return rejected('UNAVAILABLE');
+    let principalId: StableIdentifierV1;
+    try {
+      const resolved = await this.principalEmails.findPrincipalIdByEmail(normalizedEmail.value);
+      if (resolved === undefined) return rejected('NOT_FOUND');
+      principalId = resolved;
+      const registeredEmail = normalizeEmailAddressV1(
+        await this.principalEmails.findEmail(resolved),
+      );
+      if (!registeredEmail.accepted || registeredEmail.value !== normalizedEmail.value)
+        return rejected('RECIPIENT_MISMATCH');
+    } catch {
+      return rejected('UNAVAILABLE');
+    }
+
+    const issuedAt = this.now();
+    if (!issuedAt) return rejected('UNAVAILABLE');
+    let membershipId: string;
+    let invitationId: string;
+    let raw: string;
+    try {
+      membershipId = this.membershipIdGenerator();
+      invitationId = this.idGenerator();
+      raw = this.tokenGenerator();
+    } catch {
+      return rejected('UNAVAILABLE');
+    }
+    if (!stable(membershipId) || !stable(invitationId) || !rawToken(raw))
+      return rejected('UNAVAILABLE');
+
+    const expiresAt = new Date(Date.parse(issuedAt) + 7 * 24 * 60 * 60 * 1_000).toISOString();
+    const parsedExpiresAt = parseStrictUtcTimestampV1(expiresAt);
+    if (!parsedExpiresAt.accepted) return rejected('UNAVAILABLE');
+    const candidate = validateMembershipV1({
+      id: membershipId,
+      principalType: 'USER',
+      principalId,
+      scope: context.tenantScope,
+      roleId: ACCESS_PRESET_MAPPINGS_V1[input.accessPreset].roleId,
+      status: 'INVITED',
+      startsAt: issuedAt,
+      expiresAt,
+      revision: 1,
+    });
+    if (!candidate.accepted) {
+      if (candidate.code === 'INVALID_IDENTIFIER') return rejected('INVALID_IDENTIFIER');
+      if (candidate.code === 'INVALID_SCOPE') return rejected('INVALID_TEXT');
+      if (candidate.code === 'INVALID_ROLE') return rejected('INVALID_ROLE');
+      return rejected('INVALID_TEXT');
+    }
+    const candidateRecord: IamMembershipRecordV1 = Object.freeze({
+      id: candidate.value.id,
+      principalId: candidate.value.principalId,
+      scope: candidate.value.scope,
+      roleId: candidate.value.roleId,
+      status: candidate.value.status,
+      ...(candidate.value.startsAt === undefined ? {} : { startsAt: candidate.value.startsAt }),
+      ...(candidate.value.expiresAt === undefined ? {} : { expiresAt: candidate.value.expiresAt }),
+      revision: candidate.value.revision,
+    });
+
+    let pendingDelivery: {
+      readonly token: InvitationTokenV1;
+      readonly rawToken: string;
+      readonly recipientEmail: string;
+    };
+    try {
+      const persisted = await this.repository.withTransaction(context, async (transaction) => {
+        if (await transaction.findMembershipForPrincipal(context, principalId))
+          return rejected('CONFLICT');
+        const previousInvite = transaction.findInvitedMembershipForPrincipal
+          ? await transaction.findInvitedMembershipForPrincipal(context, principalId)
+          : undefined;
+        let membershipForInvite = candidateRecord;
+        if (previousInvite !== undefined) {
+          // A delivery failure revokes the token after the membership transaction has
+          // committed. Reuse that exact identity instead of attempting a duplicate
+          // principal/scope row, and extend only its bounded invitation lifetime.
+          if (
+            previousInvite.roleId !== candidateRecord.roleId ||
+            !tenantScopesEqualV1(previousInvite.scope, context.tenantScope)
+          )
+            return rejected('CONFLICT');
+          if (await transaction.findActiveInvitationForMembership(context, previousInvite.id))
+            return rejected('CONFLICT');
+          membershipForInvite = Object.freeze({
+            ...previousInvite,
+            expiresAt: parsedExpiresAt.value,
+            revision: previousInvite.revision + 1,
+          });
+        }
+        const authorization = await this.authorize(context, membershipForInvite, transaction);
+        if (authorization !== 'ALLOWED')
+          return rejected(authorization === 'UNAVAILABLE' ? 'UNAVAILABLE' : 'SCOPE_DENIED');
+        if (membershipForInvite.roleId === 'owner') {
+          if (context.tenantScope.scopeType !== 'organization') return rejected('INVALID_STATE');
+          const actor = await transaction.findMembershipForPrincipal(context, context.actorId);
+          if (!actor || actor.roleId !== 'owner') return rejected('SCOPE_DENIED');
+        }
+        const token = createInvitationTokenV1({
+          id: invitationId,
+          membershipId: membershipForInvite.id,
+          principalId: membershipForInvite.principalId,
+          scope: membershipForInvite.scope,
+          roleId: membershipForInvite.roleId,
+          tokenDigest: this.digest.digestToken(raw),
+          emailDigest: this.digest.digestEmail(normalizedEmail.value),
+          issuedAt,
+          expiresAt,
+        });
+        if (!token.accepted) return rejected('UNAVAILABLE');
+        if (previousInvite !== undefined)
+          await transaction.saveMembership(context, membershipForInvite);
+        else await transaction.saveMembership(context, candidateRecord);
         await transaction.saveInvitation(context, token.value);
         return {
           pending: {

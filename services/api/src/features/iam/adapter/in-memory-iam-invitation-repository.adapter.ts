@@ -70,6 +70,7 @@ export class InMemoryIamInvitationRepositoryAdapter implements IamInvitationRepo
     try {
       return await work({
         findMembershipForPrincipal: this.findMembershipForPrincipal.bind(this),
+        findInvitedMembershipForPrincipal: this.findInvitedMembershipForPrincipal.bind(this),
         findMembershipById: this.findMembershipById.bind(this),
         findInvitationByDigest: this.findInvitationByDigest.bind(this),
         findActiveInvitationForMembership: this.findActiveInvitationForMembership.bind(this),
@@ -103,6 +104,22 @@ export class InMemoryIamInvitationRepositoryAdapter implements IamInvitationRepo
       visible(context.tenantScope, membership.scope),
     );
     return selectAuthoritativeMembership(visibleMemberships, context, principalId);
+  }
+
+  private async findInvitedMembershipForPrincipal(
+    context: IamTenantContextV1,
+    principalId: StableIdentifierV1,
+  ): Promise<IamMembershipRecordV1 | undefined> {
+    await Promise.resolve();
+    const membership = this.memberships
+      .filter(
+        (membership) =>
+          membership.principalId === principalId &&
+          membership.status === 'INVITED' &&
+          visible(context.tenantScope, membership.scope),
+      )
+      .sort((left, right) => left.id.localeCompare(right.id))[0];
+    return membership === undefined ? undefined : cloneMembership(membership);
   }
 
   private async findMembershipById(
@@ -181,7 +198,19 @@ export class InMemoryIamInvitationRepositoryAdapter implements IamInvitationRepo
     if (!tenantScopeContainsV1(context.tenantScope, membership.scope))
       throw new Error('IAM_SCOPE_NARROWING_REQUIRED');
     const index = this.memberships.findIndex((item) => item.id === membership.id);
-    if (index < 0) throw new Error('IAM_REVISION_CONFLICT');
+    if (index < 0) {
+      if (context.expectedRevision !== undefined) throw new Error('IAM_REVISION_CONFLICT');
+      if (
+        this.memberships.some(
+          (item) =>
+            item.principalId === membership.principalId &&
+            tenantScopesEqualV1(item.scope, membership.scope),
+        )
+      )
+        throw new Error('IAM_MEMBERSHIP_CONFLICT');
+      this.memberships.push(cloneMembership(membership));
+      return;
+    }
     const existing = this.memberships[index];
     if (!existing) throw new Error('IAM_REVISION_CONFLICT');
     if (

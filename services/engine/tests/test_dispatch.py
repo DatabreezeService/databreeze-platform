@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 
+from databreeze_engine.dda_processor_digests import DDA_PROCESSOR_DIGESTS
 from databreeze_engine.dispatcher import EngineDispatchError, dispatch_execution, dispatch_rpc
 from databreeze_engine.models import (
     EngineExecutionRequest,
@@ -59,6 +60,58 @@ def test_shared_contract_leap_second_deadline_dispatches_safely(
     payload = execution_payload(deadline="2099-12-31T23:59:60Z")
     response = dispatch_rpc(rpc(payload), wall_clock=lambda: datetime(2026, 1, 1, tzinfo=UTC))
     assert response["result"]["status"] == "SUCCEEDED"
+
+
+def test_typed_dashboard_widget_result_action_dispatches_through_the_closed_registry() -> None:
+    payload: dict[str, Any] = {
+        "protocolVersion": "1.0",
+        "requestId": "00000000-0000-4000-8000-000000000101",
+        "attemptId": "00000000-0000-4000-8000-000000000102",
+        "correlation": {"correlationId": "00000000-0000-4000-8000-000000000103"},
+        "action": {
+            "type": "dda.materialize.widget-result",
+            "version": "1.0.0",
+            "handlerDigest": DDA_PROCESSOR_DIGESTS["dda_materialize_query.py"],
+        },
+        "inputHandles": [
+            {
+                "handleId": "input-101",
+                "byteLength": 128,
+                "sha256": "a" * 64,
+                "schemaId": "dda.dashboard-widget-result-parameters.v1",
+            }
+        ],
+        "outputHandle": {
+            "handleId": "output-101",
+            "byteLength": 4096,
+            "sha256": "b" * 64,
+            "schemaId": "dda.dashboard-widget-result.v4",
+        },
+        "parameters": {
+            "widgetId": "00000000-0000-4000-8000-000000000104",
+            "planVersionId": "00000000-0000-4000-8000-000000000105",
+            "metricVersionId": "00000000-0000-4000-8000-000000000106",
+            "datasetVersionId": "00000000-0000-4000-8000-000000000107",
+            "unit": "VND",
+            "resultState": "READY",
+            "maximumRows": 1,
+            "rows": [
+                {
+                    "resultCellId": "00000000-0000-4000-8000-000000000108",
+                    "label": "Doanh thu",
+                    "numericValue": 42.0,
+                    "evidenceRefs": ["00000000-0000-4000-8000-000000000109"],
+                }
+            ],
+        },
+        "deadline": "2099-01-01T00:00:00Z",
+        "locale": "vi-VN",
+    }
+
+    response = dispatch_rpc(rpc(payload), wall_clock=lambda: datetime(2026, 1, 1, tzinfo=UTC))
+
+    assert response["result"]["status"] == "SUCCEEDED"
+    assert response["result"]["output"]["widgetId"] == "00000000-0000-4000-8000-000000000104"
 
 
 def test_invalid_json_rpc_version_method_id_and_params_are_rejected(

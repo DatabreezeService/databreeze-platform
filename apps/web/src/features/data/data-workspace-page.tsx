@@ -1,38 +1,53 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
-import type { DatasetCardV1, DatasetRecordV1 } from './data-model.ts';
+import {
+  toDatasetCardV1,
+  type DatasetCardV1,
+  type DatasetRecordV1,
+  type DatasetSourceFileV1,
+} from './data-model.ts';
 import { DataImportDrawer, type ImportDrawerStartV1 } from './data-import-drawer.tsx';
 import { ImportReviewWorkspace } from './import-review-workspace.tsx';
 import { ImportSuccessHub } from './import-success-hub.tsx';
 import { ImportSession, type ImportApprovedResultV1 } from './import-session.ts';
-import { localDataStore, datasetRecordFromCard, DEMO_DATASET_ID } from './local-data-store.ts';
+import { localDataStore, datasetRecordFromCard } from './local-data-store.ts';
 import { DataTreeSidebar, type TreeSelectionV1 } from './data-tree-sidebar.tsx';
 import { DataPipelinePanel } from './data-pipeline-panel.tsx';
 import { DataAgentDock } from './data-agent-dock.tsx';
 import { cleaningAgentStore } from './cleaning-agent-store.ts';
 import { coherenceCheck } from './cleaning-engine.ts';
 import { SourceUploadPanel } from './source-upload-panel.tsx';
+import { DatasetPreviewTable } from './dataset-preview-table.tsx';
+import { MAX_SERVER_TABULAR_FILE_BYTES, type DataImportRecordV1 } from './data-import-api.ts';
+import { MAX_TABULAR_FILE_BYTES } from './csv-parser.ts';
 import './data-workspace.css';
 
 export interface DataWorkspacePageProps {
   readonly datasets: readonly DatasetCardV1[];
+  readonly pendingImports?: readonly DataImportRecordV1[];
   readonly locale: 'en' | 'vi-VN';
   /** Demo mode shows the seeded demo dataset; server mode hides it. */
   readonly demoMode?: boolean;
   readonly onDatasetsChanged?: () => void;
 }
 
+type SourceActionStateV1 = {
+  readonly kind: 'ORIGINAL' | 'EVIDENCE';
+  readonly datasetId: string;
+  readonly source: DatasetSourceFileV1;
+};
+
 function copy(locale: 'en' | 'vi-VN') {
   return locale === 'vi-VN'
-      ? {
-        addDataBtn: '+ Thêm dữ liệu',
+    ? {
         heading: 'Dữ liệu',
         description:
           'Quản lý bộ dữ liệu, tệp nguồn, phiên bản và các mục cần xem xét trong phạm vi được cấp quyền.',
         storageFailed:
           'Không thể lưu dữ liệu cục bộ (bộ nhớ đầy?). Dữ liệu hiển thị nhưng có thể mất khi tải lại trang.',
         rootTitle: 'Tất cả dữ liệu',
-        rootSubtitle: 'Tạo một dự án để nhóm các bộ dữ liệu liên quan, hoặc chọn một bộ dữ liệu để bắt đầu chuẩn hóa.',
+        rootSubtitle:
+          'Tạo một dự án để nhóm các bộ dữ liệu liên quan, hoặc chọn một bộ dữ liệu để bắt đầu chuẩn hóa.',
         createProject: 'Tạo dự án',
         openProject: 'Mở dự án',
         members: 'bộ dữ liệu',
@@ -43,14 +58,14 @@ function copy(locale: 'en' | 'vi-VN') {
         approvedCta: 'Đã duyệt phiên bản',
       }
     : {
-        addDataBtn: '+ Add Data',
         heading: 'Data',
         description:
           'Organize projects, clean datasets with the agent, and approve immutable versions — all in one place.',
         storageFailed:
           'Local persistence failed (storage full?). Data is visible but may be lost on reload.',
         rootTitle: 'All data',
-        rootSubtitle: 'Create a project to group related datasets, or pick a dataset to start cleaning.',
+        rootSubtitle:
+          'Create a project to group related datasets, or pick a dataset to start cleaning.',
         createProject: 'Create project',
         openProject: 'Open project',
         members: 'datasets',
@@ -64,6 +79,7 @@ function copy(locale: 'en' | 'vi-VN') {
 
 export function DataWorkspacePage({
   datasets,
+  pendingImports = [],
   locale,
   demoMode = false,
   onDatasetsChanged,
@@ -107,6 +123,24 @@ export function DataWorkspacePage({
   const [drawerProjectId, setDrawerProjectId] = useState<string | undefined>();
   const [session, setSession] = useState<ImportSession | undefined>();
   const [approvedHub, setApprovedHub] = useState<ImportApprovedResultV1 | null>(null);
+  const [sourceAction, setSourceAction] = useState<SourceActionStateV1>();
+  const [queryImportId, setQueryImportId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return new URLSearchParams(window.location.search).get('importId');
+  });
+
+  function setImportQuery(importId: string | undefined, replace = true) {
+    if (typeof window === 'undefined') {
+      setQueryImportId(importId ?? null);
+      return;
+    }
+    const url = new URL(window.location.href);
+    if (importId === undefined) url.searchParams.delete('importId');
+    else url.searchParams.set('importId', importId);
+    const method = replace ? 'replaceState' : 'pushState';
+    window.history[method]({}, '', `${url.pathname}${url.search}${url.hash}`);
+    setQueryImportId(importId ?? null);
+  }
 
   const selectedRecord = useMemo(
     () =>
@@ -121,6 +155,12 @@ export function DataWorkspacePage({
     const stillExists = records.some((record) => record.datasetId === selection.datasetId);
     if (!stillExists) setSelection({ kind: 'root' });
   }, [records, selection]);
+
+  useEffect(() => {
+    if (demoMode || session !== undefined || queryImportId === null) return;
+    const pending = pendingImports.find((record) => record.importId === queryImportId);
+    if (pending !== undefined) setSession(ImportSession.resumeServer(pending, locale));
+  }, [demoMode, locale, pendingImports, queryImportId, session]);
 
   async function handleStartImport(input: ImportDrawerStartV1) {
     setIsImportDrawerOpen(false);
@@ -139,12 +179,14 @@ export function DataWorkspacePage({
       demoMode,
     });
     setSession(next);
+    setImportQuery(undefined);
     setApprovedHub(null);
     await next.start();
   }
 
   function handleApproved(result: ImportApprovedResultV1) {
     setSession(undefined);
+    setImportQuery(undefined);
     setApprovedHub(result);
     if (result.dataset.datasetId !== undefined) {
       if (demoMode && drawerProjectId !== undefined) {
@@ -161,6 +203,24 @@ export function DataWorkspacePage({
       setAgentOpen(true);
     }
     if (result.track === 'SERVER') onDatasetsChanged?.();
+  }
+
+  function resumeImport(record: DataImportRecordV1) {
+    setApprovedHub(null);
+    setImportQuery(record.importId, false);
+    setSession(ImportSession.resumeServer(record, locale));
+  }
+
+  function cancelImport() {
+    setSession(undefined);
+    setImportQuery(undefined);
+  }
+
+  function openSourceAction(kind: SourceActionStateV1['kind'], sourceId: string) {
+    if (selectedRecord === undefined) return;
+    const source = selectedRecord.sources.find((candidate) => candidate.sourceId === sourceId);
+    if (source === undefined) return;
+    setSourceAction({ kind, datasetId: selectedRecord.datasetId, source });
   }
 
   function approveDataset(datasetId: string) {
@@ -191,9 +251,6 @@ export function DataWorkspacePage({
           <h1>{text.heading}</h1>
           <p>{text.description}</p>
         </div>
-        <button type="button" className="db-button db-button--primary" onClick={() => openDrawer()}>
-          {text.addDataBtn}
-        </button>
       </header>
 
       {demoMode && storageStatus === 'PERSIST_FAILED' ? (
@@ -211,6 +268,7 @@ export function DataWorkspacePage({
         projects={projects}
         {...(drawerProjectId === undefined ? {} : { defaultProjectId: drawerProjectId })}
         {...(drawerPrefill === undefined ? {} : { initialFiles: drawerPrefill })}
+        maxFileBytes={demoMode ? MAX_TABULAR_FILE_BYTES : MAX_SERVER_TABULAR_FILE_BYTES}
       />
 
       {session !== undefined ? (
@@ -219,7 +277,7 @@ export function DataWorkspacePage({
             session={session}
             locale={locale}
             onApproved={handleApproved}
-            onCancel={() => setSession(undefined)}
+            onCancel={cancelImport}
           />
         </div>
       ) : approvedHub !== null ? (
@@ -229,6 +287,7 @@ export function DataWorkspacePage({
             locale={locale}
             onDismiss={() => setApprovedHub(null)}
             dashboardStatus={approvedHub.dashboardStatus}
+            {...(approvedHub.importId === undefined ? {} : { importId: approvedHub.importId })}
             {...(approvedHub.starterDashboardId === undefined
               ? {}
               : { starterDashboardId: approvedHub.starterDashboardId })}
@@ -254,9 +313,13 @@ export function DataWorkspacePage({
               <DataPipelinePanel
                 record={selectedRecord}
                 locale={locale}
-                agentOpen={agentOpen && localDataStore.getTabularData(selectedRecord.datasetId) !== undefined}
+                agentOpen={
+                  agentOpen && localDataStore.getTabularData(selectedRecord.datasetId) !== undefined
+                }
                 onOpenAgent={() => setAgentOpen(true)}
                 onApprove={() => approveDataset(selectedRecord.datasetId)}
+                onOpenOriginal={(sourceId) => openSourceAction('ORIGINAL', sourceId)}
+                onViewEvidence={(sourceId) => openSourceAction('EVIDENCE', sourceId)}
                 {...(() => {
                   const serverCard = serverCardsById.get(selectedRecord.datasetId);
                   return serverCard === undefined ? {} : { displayCard: serverCard };
@@ -275,14 +338,18 @@ export function DataWorkspacePage({
                 datasets={datasets}
                 records={records}
                 projects={projects}
+                pendingImports={pendingImports}
                 locale={locale}
                 onCreateProject={() => {
                   if (!demoMode) return;
-                  const label = vi ? `Dự án ${projects.length + 1}` : `Project ${projects.length + 1}`;
+                  const label = vi
+                    ? `Dự án ${projects.length + 1}`
+                    : `Project ${projects.length + 1}`;
                   localDataStore.createProject(label);
                 }}
                 onOpen={(selection_) => setSelection(selection_)}
                 onAddData={() => openDrawer()}
+                onResumeImport={resumeImport}
                 onSelectFiles={(files) => {
                   setDrawerPrefill(Array.from(files));
                   setDrawerProjectId(undefined);
@@ -306,6 +373,102 @@ export function DataWorkspacePage({
           ) : null}
         </div>
       )}
+      {sourceAction !== undefined ? (
+        <SourceActionDialog
+          action={sourceAction}
+          dataset={
+            serverCardsById.get(sourceAction.datasetId) ??
+            (() => {
+              const record = records.find(
+                (candidate) => candidate.datasetId === sourceAction.datasetId,
+              );
+              return record === undefined ? undefined : toDatasetCardV1(record, locale);
+            })()
+          }
+          locale={locale}
+          onClose={() => setSourceAction(undefined)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function SourceActionDialog({
+  action,
+  dataset,
+  locale,
+  onClose,
+}: {
+  readonly action: SourceActionStateV1;
+  readonly dataset: DatasetCardV1 | undefined;
+  readonly locale: 'en' | 'vi-VN';
+  readonly onClose: () => void;
+}) {
+  const vi = locale === 'vi-VN';
+  const original = action.kind === 'ORIGINAL';
+  const safePreview = original && action.source.originalAction === 'VIEW_SAFE';
+  return (
+    <div className="data-source-action-backdrop" role="presentation">
+      <section
+        aria-label={vi ? 'Chi tiết nguồn dữ liệu' : 'Source details'}
+        aria-modal="true"
+        className="data-source-action-dialog"
+        role="dialog"
+      >
+        <header className="data-source-action-dialog__header">
+          <div>
+            <p className="data-source-action-dialog__eyebrow">
+              {original
+                ? vi
+                  ? 'BẢN XEM ĐƯỢC CẤP QUYỀN'
+                  : 'GOVERNED SOURCE VIEW'
+                : vi
+                  ? 'BẰNG CHỨNG NGUỒN'
+                  : 'SOURCE EVIDENCE'}
+            </p>
+            <h2>{action.source.label}</h2>
+            <p>
+              {original
+                ? safePreview
+                  ? vi
+                    ? 'Bản xem này chỉ hiển thị các dòng đã được cấp quyền; không có đường dẫn cục bộ hay nội dung thực thi.'
+                    : 'This view contains only authorized rows; no local path or executable content is exposed.'
+                  : vi
+                    ? 'Nguồn này chỉ có thể mở trên thiết bị nguồn đã được cấp quyền.'
+                    : 'This source can only be opened on its authorized source device.'
+                : vi
+                  ? 'Bằng chứng được giữ trong phạm vi phiên bản và quyền hiện tại.'
+                  : 'Evidence remains bound to the current version and permission scope.'}
+            </p>
+          </div>
+          <button
+            aria-label={vi ? 'Đóng' : 'Close'}
+            className="data-source-action-dialog__close"
+            onClick={onClose}
+            type="button"
+          >
+            ×
+          </button>
+        </header>
+        {safePreview && dataset !== undefined ? (
+          <DatasetPreviewTable dataset={dataset} locale={locale} />
+        ) : (
+          <p className="data-source-action-dialog__status" role="status">
+            {original
+              ? vi
+                ? 'Yêu cầu mở nguồn đã được giữ an toàn. Thiết bị nguồn sẽ thực hiện thao tác này khi được kết nối.'
+                : 'The open-source request is safely scoped. The authorized source device performs it when connected.'
+              : vi
+                ? 'Bản ghi bằng chứng chi tiết chưa được kết nối trong môi trường này; không có dữ liệu giả được hiển thị.'
+                : 'Detailed evidence is not connected in this environment; no fabricated data is shown.'}
+          </p>
+        )}
+        <footer className="data-source-action-dialog__footer">
+          <button className="db-button db-button--secondary" onClick={onClose} type="button">
+            {vi ? 'Đóng' : 'Close'}
+          </button>
+        </footer>
+      </section>
     </div>
   );
 }
@@ -332,12 +495,19 @@ function ProjectOverview({
   const report = useMemo(
     () =>
       coherenceCheck(
-        members.map((record) => ({
-          record,
-          tabular: localDataStore.getTabularData(record.datasetId),
-        })).filter((member): member is { record: DatasetRecordV1; tabular: NonNullable<ReturnType<typeof localDataStore.getTabularData>> } =>
-          member.tabular !== undefined,
-        ),
+        members
+          .map((record) => ({
+            record,
+            tabular: localDataStore.getTabularData(record.datasetId),
+          }))
+          .filter(
+            (
+              member,
+            ): member is {
+              record: DatasetRecordV1;
+              tabular: NonNullable<ReturnType<typeof localDataStore.getTabularData>>;
+            } => member.tabular !== undefined,
+          ),
       ),
     [members],
   );
@@ -390,27 +560,31 @@ function RootOverview({
   datasets,
   records,
   projects,
+  pendingImports,
   locale,
   onCreateProject,
   onOpen,
   onAddData,
+  onResumeImport,
   onSelectFiles,
   allowProjectManagement,
 }: {
   readonly datasets: readonly DatasetCardV1[];
   readonly records: readonly DatasetRecordV1[];
   readonly projects: readonly { readonly projectId: string; readonly label: string }[];
+  readonly pendingImports: readonly DataImportRecordV1[];
   readonly locale: 'en' | 'vi-VN';
   readonly onCreateProject: () => void;
   readonly onOpen: (selection: TreeSelectionV1) => void;
   readonly onAddData: () => void;
+  readonly onResumeImport: (record: DataImportRecordV1) => void;
   readonly onSelectFiles: (files: FileList) => void;
   readonly allowProjectManagement: boolean;
 }) {
   const vi = locale === 'vi-VN';
   const text = copy(locale);
 
-  if (records.length === 0 && datasets.length === 0) {
+  if (records.length === 0 && datasets.length === 0 && pendingImports.length === 0) {
     return (
       <section className="root-overview" aria-labelledby="root-overview-title">
         <header className="root-overview__header">
@@ -446,7 +620,11 @@ function RootOverview({
         </div>
         <div className="root-overview__actions">
           {allowProjectManagement ? (
-            <button type="button" className="db-button db-button--secondary" onClick={onCreateProject}>
+            <button
+              type="button"
+              className="db-button db-button--secondary"
+              onClick={onCreateProject}
+            >
               {vi ? '＋ Tạo dự án' : '＋ Create project'}
             </button>
           ) : null}
@@ -455,6 +633,36 @@ function RootOverview({
           </button>
         </div>
       </header>
+
+      {pendingImports.length > 0 ? (
+        <section className="root-overview__pending" aria-labelledby="pending-imports-title">
+          <div>
+            <h2 id="pending-imports-title">{vi ? 'Cần xem xét' : 'Needs review'}</h2>
+            <p>
+              {vi
+                ? 'Các phiên nạp vẫn được lưu trên máy chủ. Mở lại để tiếp tục sau khi tải lại trang.'
+                : 'These imports are saved on the server. Re-open one to continue after a reload.'}
+            </p>
+          </div>
+          <ul role="list">
+            {pendingImports.map((record) => (
+              <li key={record.importId}>
+                <button type="button" onClick={() => onResumeImport(record)}>
+                  <span>
+                    <strong>{record.datasetName}</strong>
+                    <small>
+                      {record.sources.length} {vi ? 'tệp' : 'files'} ·{' '}
+                      {record.review.counts.input.toLocaleString(vi ? 'vi-VN' : 'en-US')}{' '}
+                      {vi ? 'dòng' : 'rows'}
+                    </small>
+                  </span>
+                  <span aria-hidden="true">→</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <div className="root-overview__stats">
         {allowProjectManagement ? (
@@ -479,12 +687,20 @@ function RootOverview({
           <ul className="root-overview__projects" role="list">
             {projects.map((project) => {
               const members = records.filter((record) => record.projectId === project.projectId);
-              const approved = members.filter((record) => record.cleaningState === 'APPROVED').length;
+              const approved = members.filter(
+                (record) => record.cleaningState === 'APPROVED',
+              ).length;
               const allApproved = members.length > 0 && approved === members.length;
               return (
                 <li key={project.projectId}>
-                  <button type="button" onClick={() => onOpen({ kind: 'project', projectId: project.projectId })}>
-                    <span className={`root-overview__dot${allApproved ? ' is-done' : members.length > 0 ? ' is-active' : ''}`} aria-hidden="true" />
+                  <button
+                    type="button"
+                    onClick={() => onOpen({ kind: 'project', projectId: project.projectId })}
+                  >
+                    <span
+                      className={`root-overview__dot${allApproved ? ' is-done' : members.length > 0 ? ' is-active' : ''}`}
+                      aria-hidden="true"
+                    />
                     <strong>{project.label}</strong>
                     <small>
                       {members.length} {vi ? 'bộ' : 'datasets'} · {approved}/{members.length}{' '}

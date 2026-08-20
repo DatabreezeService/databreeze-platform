@@ -1,4 +1,24 @@
 import type { SupportedLocaleV1 } from '@databreeze/i18n/v1';
+import type { ReactNode } from 'react';
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Label,
+  LabelList,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 import { ChartFallbackTable, type ChartFallbackTableRowV1 } from './chart-fallback-table.tsx';
 import { findWidgetCatalogEntry } from './widget-catalog.ts';
@@ -35,17 +55,33 @@ export interface WidgetVisualizationProps {
 
 const CHART_COLORS = ['#1261e8', '#1fbb78', '#7c45f5', '#ff8a17', '#6f93d8'] as const;
 const BAR_COLORS = ['#b8d2fb', '#8db7f7', '#5d98f2', '#337bea', '#0f5fe7'] as const;
+const CHART_HEIGHT = 220;
+const MAX_TOOLTIP_LABEL_LENGTH = 160;
+const MAX_TOOLTIP_UNIT_LENGTH = 32;
+const MAX_TOOLTIP_VALUE_LENGTH = 256;
+
+interface RechartsDatumV1 {
+  readonly rowId: string;
+  readonly label: string;
+  readonly value: number;
+  readonly tooltipValue: string;
+}
+
+interface GovernedTooltipProps {
+  readonly active?: boolean;
+  readonly payload?: readonly { readonly payload?: unknown }[];
+}
 
 function label(locale: SupportedLocaleV1, vi: string, en: string): string {
   return locale === 'vi-VN' ? vi : en;
 }
 
-function chartLabel(type: string): string {
-  if (type === 'BAR') return 'Bar';
-  if (type === 'LINE') return 'Line';
-  if (type === 'AREA') return 'Area';
-  if (type === 'PIE') return 'Pie';
-  return 'Donut';
+function chartLabel(locale: SupportedLocaleV1, type: string): string {
+  if (type === 'BAR') return label(locale, 'Biểu đồ cột', 'Bar chart');
+  if (type === 'LINE') return label(locale, 'Biểu đồ đường', 'Line chart');
+  if (type === 'AREA') return label(locale, 'Biểu đồ vùng', 'Area chart');
+  if (type === 'PIE') return label(locale, 'Biểu đồ tròn', 'Pie chart');
+  return label(locale, 'Biểu đồ vành khuyên', 'Donut chart');
 }
 
 function resultStateMessage(
@@ -94,10 +130,92 @@ function hasBoundedNumbers(rows: readonly AuthorizedWidgetResultRowV1[]): boolea
   );
 }
 
+function hasValidPartsOfWhole(rows: readonly AuthorizedWidgetResultRowV1[]): boolean {
+  let total = 0;
+  for (const row of rows) {
+    const value = row.numericValue;
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return false;
+    total += value;
+  }
+  return Number.isFinite(total) && total > 0;
+}
+
 function numericFormatter(locale: SupportedLocaleV1): Intl.NumberFormat {
   return new Intl.NumberFormat(locale === 'vi-VN' ? 'vi-VN' : 'en-US', {
     maximumFractionDigits: 2,
   });
+}
+
+function boundedTooltipText(value: string, maxLength: number): string {
+  const normalized = value.trim();
+  if (normalized.length <= maxLength) return normalized;
+  return normalized.slice(0, maxLength - 1) + '…';
+}
+
+function governedTooltipValue(row: AuthorizedWidgetResultRowV1): string {
+  const displayValue = row.displayValue.trim();
+  if (row.unit === undefined) {
+    return boundedTooltipText(displayValue, MAX_TOOLTIP_VALUE_LENGTH);
+  }
+
+  const normalizedUnit = row.unit.trim();
+  const unit = boundedTooltipText(row.unit, MAX_TOOLTIP_UNIT_LENGTH);
+  if (unit.length === 0) {
+    return boundedTooltipText(displayValue, MAX_TOOLTIP_VALUE_LENGTH);
+  }
+
+  const hasUnitSuffix =
+    normalizedUnit.length > 0 && displayValue.toUpperCase().endsWith(normalizedUnit.toUpperCase());
+  const valueWithoutUnit = hasUnitSuffix
+    ? displayValue.slice(0, -normalizedUnit.length).trimEnd()
+    : displayValue;
+  const unitSuffix = ` ${unit}`;
+  const valueBudget = MAX_TOOLTIP_VALUE_LENGTH - unitSuffix.length;
+  const boundedValue = boundedTooltipText(valueWithoutUnit, valueBudget);
+
+  return boundedValue.length === 0 ? unit : boundedValue + unitSuffix;
+}
+
+function toRechartsData(rows: readonly AuthorizedWidgetResultRowV1[]): readonly RechartsDatumV1[] {
+  return rows.map((row) => ({
+    rowId: row.rowId,
+    label: boundedTooltipText(row.label, MAX_TOOLTIP_LABEL_LENGTH),
+    value: row.numericValue ?? 0,
+    tooltipValue: governedTooltipValue(row),
+  }));
+}
+
+function isRechartsDatum(value: unknown): value is RechartsDatumV1 {
+  if (typeof value !== 'object' || value === null) return false;
+  const candidate = value as Partial<RechartsDatumV1>;
+  return typeof candidate.label === 'string' && typeof candidate.tooltipValue === 'string';
+}
+
+function GovernedTooltipContent({ active, payload }: GovernedTooltipProps) {
+  const datum = payload?.[0]?.payload;
+  if (active !== true || !isRechartsDatum(datum)) return null;
+
+  return (
+    <div className="recharts-default-tooltip" role="status" aria-live="polite">
+      <p className="recharts-tooltip-label">{datum.label}</p>
+      <p>{datum.tooltipValue}</p>
+    </div>
+  );
+}
+
+function RechartsFrame({ children }: { readonly children: ReactNode }) {
+  return (
+    <div className="dda-native-chart" data-chart-engine="recharts">
+      <ResponsiveContainer
+        width="100%"
+        height={CHART_HEIGHT}
+        minWidth={0}
+        initialDimension={{ width: 600, height: CHART_HEIGHT }}
+      >
+        {children}
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 function renderCartesianChart(
@@ -105,111 +223,110 @@ function renderCartesianChart(
   rows: readonly AuthorizedWidgetResultRowV1[],
   locale: SupportedLocaleV1,
 ) {
-  const max = Math.max(...rows.map((row) => row.numericValue ?? 0), 1);
-  const barWidth = Math.min(58, 430 / Math.max(rows.length, 1));
-  const points = rows.map((row, index) => {
-    const x =
-      type === 'BAR'
-        ? 32 + ((index + 0.5) * 536) / Math.max(rows.length, 1)
-        : 32 + (index * 536) / Math.max(rows.length - 1, 1);
-    const y = 188 - ((row.numericValue ?? 0) / max) * 150;
-    return { x, y };
-  });
-  const linePoints = points.map((point) => `${point.x},${point.y}`).join(' ');
+  const data = toRechartsData(rows);
   const formatter = numericFormatter(locale);
-  return (
-    <svg className="dda-native-chart" viewBox="0 0 600 220" role="presentation">
-      {[38, 88, 138, 188].map((y) => (
-        <line
-          key={y}
-          x1="32"
-          y1={y}
-          x2="568"
-          y2={y}
-          stroke="#e7eef8"
-          strokeWidth="1"
-          strokeDasharray={y === 188 ? undefined : '4 5'}
-        />
-      ))}
-      {type === 'BAR'
-        ? rows.map((row, index) => {
-            const height = ((row.numericValue ?? 0) / max) * 150;
-            const point = points[index] ?? { x: 32, y: 188 };
-            return (
-              <g key={row.rowId} className="dda-chart-bar">
-                <rect
-                  x={point.x - barWidth / 2}
-                  y={188 - height}
-                  width={barWidth}
-                  height={height}
-                  rx="8"
-                  fill={BAR_COLORS[Math.min(index, BAR_COLORS.length - 1)] ?? CHART_COLORS[0]}
-                />
-                <text
-                  className="dda-chart-value-label"
-                  x={point.x}
-                  y={Math.max(22, point.y - 9)}
-                  textAnchor="middle"
-                >
-                  {formatter.format(row.numericValue ?? 0)}
-                </text>
-              </g>
-            );
-          })
-        : null}
-      {type === 'LINE' || type === 'AREA' ? (
-        <polygon
-          points={`32,188 ${linePoints} 568,188`}
-          fill={CHART_COLORS[0]}
-          opacity={type === 'AREA' ? '0.18' : '0.11'}
-        />
-      ) : null}
-      {type === 'LINE' || type === 'AREA' ? (
-        <>
-          <polyline
-            points={linePoints}
-            fill="none"
+  const tooltip = <Tooltip content={<GovernedTooltipContent />} isAnimationActive={false} />;
+  const axes = (
+    <>
+      <CartesianGrid stroke="#e7eef8" strokeDasharray="4 5" vertical={false} />
+      <XAxis
+        dataKey="label"
+        axisLine={false}
+        interval={0}
+        tick={{ className: 'dda-chart-axis-label' }}
+        tickLine={false}
+      />
+      <YAxis
+        axisLine={false}
+        tickFormatter={(value: number) => formatter.format(value)}
+        tick={{ className: 'dda-chart-axis-label' }}
+        tickLine={false}
+        width={72}
+      />
+    </>
+  );
+
+  if (type === 'BAR') {
+    return (
+      <RechartsFrame>
+        <BarChart<RechartsDatumV1>
+          accessibilityLayer
+          data={data}
+          margin={{ top: 24, right: 16, bottom: 4, left: 0 }}
+        >
+          {axes}
+          {tooltip}
+          <Bar
+            className="dda-chart-bar"
+            dataKey="value"
+            isAnimationActive={false}
+            maxBarSize={58}
+            radius={[8, 8, 0, 0]}
+          >
+            {data.map((datum, index) => (
+              <Cell
+                key={datum.rowId}
+                fill={BAR_COLORS[Math.min(index, BAR_COLORS.length - 1)] ?? CHART_COLORS[0]}
+              />
+            ))}
+            <LabelList
+              className="dda-chart-value-label"
+              dataKey="value"
+              formatter={(value: unknown) => formatter.format(Number(value))}
+              position="top"
+            />
+          </Bar>
+        </BarChart>
+      </RechartsFrame>
+    );
+  }
+
+  if (type === 'LINE') {
+    return (
+      <RechartsFrame>
+        <LineChart<RechartsDatumV1>
+          accessibilityLayer
+          data={data}
+          margin={{ top: 20, right: 18, bottom: 4, left: 0 }}
+        >
+          {axes}
+          {tooltip}
+          <Line
+            dataKey="value"
+            dot={{ fill: '#ffffff', r: 3.5, strokeWidth: 3 }}
+            isAnimationActive={false}
             stroke={CHART_COLORS[0]}
-            strokeWidth="3.5"
             strokeLinecap="round"
             strokeLinejoin="round"
+            strokeWidth={3.5}
+            type="monotone"
           />
-          {points.map((point, index) => (
-            <circle
-              key={rows[index]?.rowId}
-              cx={point.x}
-              cy={point.y}
-              r="3.5"
-              fill="#ffffff"
-              stroke={CHART_COLORS[0]}
-              strokeWidth="3"
-            />
-          ))}
-          {points.length > 1 ? (
-            <text
-              className="dda-chart-end-value"
-              x={(points.at(-1)?.x ?? 568) - 8}
-              y={Math.max(20, (points.at(-1)?.y ?? 38) - 13)}
-              textAnchor="end"
-            >
-              {formatter.format(rows.at(-1)?.numericValue ?? 0)}
-            </text>
-          ) : null}
-        </>
-      ) : null}
-      {rows.map((row, index) => (
-        <text
-          key={row.rowId}
-          className="dda-chart-axis-label"
-          x={points[index]?.x ?? 32}
-          y="211"
-          textAnchor="middle"
-        >
-          {row.label}
-        </text>
-      ))}
-      <title>{formatter.format(max)}</title>
-    </svg>
+        </LineChart>
+      </RechartsFrame>
+    );
+  }
+
+  return (
+    <RechartsFrame>
+      <AreaChart<RechartsDatumV1>
+        accessibilityLayer
+        data={data}
+        margin={{ top: 20, right: 18, bottom: 4, left: 0 }}
+      >
+        {axes}
+        {tooltip}
+        <Area
+          dataKey="value"
+          dot={{ fill: '#ffffff', r: 3.5, strokeWidth: 3 }}
+          fill={CHART_COLORS[0]}
+          fillOpacity={0.18}
+          isAnimationActive={false}
+          stroke={CHART_COLORS[0]}
+          strokeWidth={3.5}
+          type="monotone"
+        />
+      </AreaChart>
+    </RechartsFrame>
   );
 }
 
@@ -218,93 +335,42 @@ function renderCircularChart(
   rows: readonly AuthorizedWidgetResultRowV1[],
   locale: SupportedLocaleV1,
 ) {
-  const total = rows.reduce((sum, row) => sum + (row.numericValue ?? 0), 0) || 1;
-  const circumference = 2 * Math.PI * 72;
-  let offset = 0;
-  const segments = rows.map((row, index) => {
-    const start = offset;
-    offset += ((row.numericValue ?? 0) / total) * Math.PI * 2;
-    return {
-      row,
-      start,
-      end: offset,
-      share: (row.numericValue ?? 0) / total,
-      color: CHART_COLORS[index % CHART_COLORS.length] ?? CHART_COLORS[0],
-    };
-  });
+  const data = toRechartsData(rows);
+  const total = data.reduce((sum, datum) => sum + datum.value, 0);
+  const formatter = numericFormatter(locale);
   return (
-    <svg className="dda-native-chart" viewBox="0 0 600 220" role="presentation">
-      {type === 'DONUT' ? (
-        <circle cx="110" cy="110" r="72" fill="none" stroke="#edf3fc" strokeWidth="25" />
-      ) : null}
-      {segments.map(({ row, start, end, share, color }) => {
-        if (type === 'DONUT') {
-          const dash = Math.max(0, share * circumference - 4);
-          const startOffset = (start / (Math.PI * 2)) * circumference;
-          return (
-            <circle
-              key={row.rowId}
+    <RechartsFrame>
+      <PieChart accessibilityLayer margin={{ top: 8, right: 12, bottom: 8, left: 12 }}>
+        <Tooltip content={<GovernedTooltipContent />} isAnimationActive={false} />
+        <Pie
+          data={data}
+          dataKey="value"
+          innerRadius={type === 'DONUT' ? 48 : 0}
+          isAnimationActive={false}
+          nameKey="label"
+          outerRadius={78}
+          paddingAngle={type === 'DONUT' ? 2 : 0}
+          stroke="#ffffff"
+          strokeWidth={3}
+        >
+          {data.map((datum, index) => (
+            <Cell
+              key={datum.rowId}
               className="dda-chart-donut-segment"
-              cx="110"
-              cy="110"
-              r="72"
-              fill="none"
-              stroke={color}
-              strokeWidth="25"
-              strokeLinecap="round"
-              strokeDasharray={`${dash} ${circumference - dash}`}
-              strokeDashoffset={-startOffset}
-              transform="rotate(-90 110 110)"
-            >
-              <title>{`${row.label}: ${row.displayValue}`}</title>
-            </circle>
-          );
-        }
-        const startX = 110 + 78 * Math.cos(start - Math.PI / 2);
-        const startY = 110 + 78 * Math.sin(start - Math.PI / 2);
-        const endX = 110 + 78 * Math.cos(end - Math.PI / 2);
-        const endY = 110 + 78 * Math.sin(end - Math.PI / 2);
-        const largeArc = end - start > Math.PI ? 1 : 0;
-        return (
-          <path
-            key={row.rowId}
-            d={`M110 110 L${startX} ${startY} A78 78 0 ${largeArc} 1 ${endX} ${endY} Z`}
-            fill={color}
-            stroke="#ffffff"
-            strokeWidth="3"
-          >
-            <title>{`${row.label}: ${row.displayValue}`}</title>
-          </path>
-        );
-      })}
-      {type === 'DONUT' ? (
-        <>
-          <text className="dda-chart-donut-total" x="110" y="107" textAnchor="middle">
-            {numericFormatter(locale).format(total)}
-          </text>
-          <text className="dda-chart-donut-caption" x="110" y="126" textAnchor="middle">
-            {label(locale, 'Tổng', 'Total')}
-          </text>
-        </>
-      ) : null}
-      <g className="dda-chart-legend">
-        {segments.map(({ row, color }, index) => (
-          <g
-            key={row.rowId}
-            className="dda-chart-legend__item"
-            transform={`translate(238 ${42 + index * (segments.length > 5 ? 28 : 34)})`}
-          >
-            <circle cx="6" cy="-4" r="6" fill={color} />
-            <text className="dda-chart-legend__label" x="24" y="0">
-              {row.label}
-            </text>
-            <text className="dda-chart-legend__value" x="328" y="0" textAnchor="end">
-              {row.displayValue}
-            </text>
-          </g>
-        ))}
-      </g>
-    </svg>
+              fill={CHART_COLORS[index % CHART_COLORS.length] ?? CHART_COLORS[0]}
+            />
+          ))}
+          {type === 'DONUT' ? (
+            <Label
+              className="dda-chart-donut-total"
+              position="center"
+              value={formatter.format(total)}
+            />
+          ) : null}
+        </Pie>
+        <Legend align="right" iconType="circle" layout="vertical" verticalAlign="middle" />
+      </PieChart>
+    </RechartsFrame>
   );
 }
 
@@ -319,7 +385,7 @@ function ChartFigure({
   readonly summary: string;
   readonly locale: SupportedLocaleV1;
 }) {
-  const ariaLabel = chartLabel(type) + ' chart: ' + summary;
+  const ariaLabel = chartLabel(locale, type) + ': ' + summary;
   return (
     <figure className="dda-chart-figure" role="img" aria-label={ariaLabel}>
       {type === 'BAR' || type === 'LINE' || type === 'AREA'
@@ -330,7 +396,7 @@ function ChartFigure({
   );
 }
 
-/** DDA-018/DDA-021: only the V1 catalog maps deterministic result rows to bounded SVG components. */
+/** DDA-018/DDA-021: only the V1 catalog maps deterministic result rows to bounded chart components. */
 export function WidgetVisualization({
   locale,
   widgetId,
@@ -393,6 +459,21 @@ export function WidgetVisualization({
             locale,
             'Cần dữ liệu số có cấu trúc trước khi có thể hiển thị biểu đồ này.',
             'Structured numeric data is required before this chart can be shown.',
+          )}
+        </p>
+        <ChartFallbackTable locale={locale} rows={rows} />
+      </div>
+    );
+  }
+
+  if ((type === 'PIE' || type === 'DONUT') && !hasValidPartsOfWhole(rows)) {
+    return (
+      <div className="dda-widget-visualization" data-widget-id={widgetId}>
+        <p role="status">
+          {label(
+            locale,
+            'Biểu đồ thành phần yêu cầu các giá trị không âm và tổng lớn hơn 0.',
+            'Parts-of-whole charts require non-negative values with a total greater than zero.',
           )}
         </p>
         <ChartFallbackTable locale={locale} rows={rows} />

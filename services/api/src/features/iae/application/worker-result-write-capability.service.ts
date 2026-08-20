@@ -49,6 +49,7 @@ export interface IaePreparedWorkerResultAuthorityV1 {
   readonly tenantScope: TenantScopeV1;
   readonly executionDescriptorId: StableIdentifierV1;
   readonly executionDescriptorHash: string;
+  readonly attemptLeaseExpiresAt: string;
   readonly outputPolicyHash: string;
   readonly outputs: readonly IaePreparedWorkerResultOutputAuthorityV1[];
 }
@@ -188,9 +189,15 @@ export class IaeWorkerResultWriteCapabilityService
     if (!tenantScopesEqualV1(identity.tenantScope, preparation.tenantScope))
       return rejected('INVALID_SCOPE');
     const issuedAt = timestamp(this.clock());
-    const expiresAt = issuedAt
-      ? timestamp(new Date(Date.parse(issuedAt) + MAX_GRANT_MS).toISOString())
-      : undefined;
+    const leaseExpiresAt = timestamp(preparation.attemptLeaseExpiresAt);
+    const expiresAt =
+      issuedAt && leaseExpiresAt
+        ? timestamp(
+            new Date(
+              Math.min(Date.parse(leaseExpiresAt), Date.parse(issuedAt) + MAX_GRANT_MS),
+            ).toISOString(),
+          )
+        : undefined;
     if (
       !stable(identity.workerId) ||
       !stable(identity.correlationId) ||
@@ -201,6 +208,7 @@ export class IaeWorkerResultWriteCapabilityService
       !stable(preparation.jobId) ||
       !stable(preparation.executionDescriptorId) ||
       !SHA256.test(preparation.executionDescriptorHash) ||
+      !leaseExpiresAt ||
       !SHA256.test(preparation.outputPolicyHash) ||
       preparation.outputs.length === 0 ||
       preparation.outputs.length > MAX_OUTPUTS ||

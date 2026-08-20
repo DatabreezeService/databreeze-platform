@@ -1,3 +1,9 @@
+import { createSessionAwareFetchV1 } from '../auth/auth-session.ts';
+import { parseV4Contract, type DdaDashboardWidgetResultsAccepted } from '@databreeze/contracts/v4';
+
+const DASHBOARD_WIDGET_RESULTS_SCHEMA_ID =
+  'https://schemas.databreeze.dev/contracts/v4/dda-dashboard-widget-results-accepted';
+
 export interface DashboardDraftFixtureV1 {
   readonly dashboardId: string;
   readonly versionId: string;
@@ -92,6 +98,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function sessionFetcher(baseUrl: string): typeof fetch {
+  return createSessionAwareFetchV1({
+    apiBaseUrl: baseUrl,
+    fetcher: globalThis.fetch.bind(globalThis),
+  });
+}
+
 function isLocalizedTitle(value: unknown): value is { readonly vi: string; readonly en: string } {
   return isRecord(value) && typeof value['vi'] === 'string' && typeof value['en'] === 'string';
 }
@@ -153,13 +166,14 @@ export async function fetchDashboardDraft(
   signal?: AbortSignal,
 ): Promise<DashboardDraftFixtureV1> {
   const url = `${configuration.baseUrl}/v1/dda/dashboards/${encodeURIComponent(configuration.dashboardId)}/draft`;
+  const fetcher = sessionFetcher(configuration.baseUrl);
   const init: RequestInit = {
     method: 'GET',
     headers: { Accept: 'application/json' },
     credentials: 'include',
   };
   if (signal !== undefined) init.signal = signal;
-  const response = await globalThis.fetch(url, init);
+  const response = await fetcher(url, init);
   if (response.status === 401 || response.status === 403) {
     throw new Error('DASHBOARD_DRAFT_UNAUTHORIZED');
   }
@@ -190,13 +204,14 @@ export async function fetchDashboardFreshness(
   configuration: DashboardLiveConfigurationV1,
   signal?: AbortSignal,
 ): Promise<DashboardFreshnessViewV1> {
+  const fetcher = sessionFetcher(configuration.baseUrl);
   const init: RequestInit = {
     method: 'GET',
     headers: { Accept: 'application/json' },
     credentials: 'include',
   };
   if (signal !== undefined) init.signal = signal;
-  const response = await globalThis.fetch(
+  const response = await fetcher(
     `${configuration.baseUrl}/v1/dda/dashboards/${encodeURIComponent(configuration.dashboardId)}/freshness`,
     init,
   );
@@ -206,18 +221,58 @@ export async function fetchDashboardFreshness(
   if (response.status === 404) throw new Error('DASHBOARD_FRESHNESS_NOT_FOUND');
   if (!response.ok) throw new Error('DASHBOARD_FRESHNESS_UNAVAILABLE');
   const payload: unknown = await response.json();
-  const value =
-    isRecord(payload) && payload['accepted'] === true ? payload['value'] : payload;
+  const value = isRecord(payload) && payload['accepted'] === true ? payload['value'] : payload;
   if (!isFreshnessView(value)) throw new Error('DASHBOARD_FRESHNESS_INVALID');
   return Object.freeze(value);
+}
+
+/**
+ * Reads the verified, bounded widget payload for one exact last-good snapshot.
+ * The result is intentionally separate from the legacy row query: dashboard
+ * widgets must render only values that carry server-side result-cell
+ * provenance and an exact snapshot binding.
+ */
+export async function fetchDashboardWidgetResults(
+  configuration: DashboardLiveConfigurationV1,
+  snapshotId: string,
+  signal?: AbortSignal,
+): Promise<DdaDashboardWidgetResultsAccepted> {
+  const fetcher = sessionFetcher(configuration.baseUrl);
+  const init: RequestInit = {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+    credentials: 'include',
+  };
+  if (signal !== undefined) init.signal = signal;
+  const response = await fetcher(
+    `${configuration.baseUrl}/v1/dda/dashboards/${encodeURIComponent(configuration.dashboardId)}/snapshots/${encodeURIComponent(snapshotId)}/widget-results`,
+    init,
+  );
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('DASHBOARD_RESULT_UNAUTHORIZED');
+  }
+  if (response.status === 404) throw new Error('DASHBOARD_RESULT_NOT_FOUND');
+  if (!response.ok) throw new Error('DASHBOARD_RESULT_UNAVAILABLE');
+  const payload: unknown = await response.json();
+  const parsed = parseV4Contract<DdaDashboardWidgetResultsAccepted>(
+    DASHBOARD_WIDGET_RESULTS_SCHEMA_ID,
+    payload,
+  );
+  if (!parsed.accepted) throw new Error('DASHBOARD_RESULT_INVALID');
+  if (
+    parsed.value.dashboardId !== configuration.dashboardId ||
+    parsed.value.snapshotId !== snapshotId
+  ) {
+    throw new Error('DASHBOARD_RESULT_BINDING_MISMATCH');
+  }
+  return Object.freeze(parsed.value);
 }
 
 function isDashboardQueryView(value: unknown): value is DashboardQueryViewV1 {
   if (!isRecord(value) || !Array.isArray(value['rows'])) return false;
   return (
     value['rows'].every(
-      (row) =>
-        isRecord(row) && Object.values(row).every((entry) => typeof entry === 'string'),
+      (row) => isRecord(row) && Object.values(row).every((entry) => typeof entry === 'string'),
     ) &&
     isRecord(value['permissionExpansion']) &&
     Object.values(value['permissionExpansion']).every((entry) => entry === false) &&
@@ -231,6 +286,7 @@ export async function fetchDashboardQueryView(
   snapshotId: string,
   signal?: AbortSignal,
 ): Promise<DashboardQueryViewV1> {
+  const fetcher = sessionFetcher(configuration.baseUrl);
   const init: RequestInit = {
     method: 'POST',
     headers: {
@@ -242,30 +298,20 @@ export async function fetchDashboardQueryView(
     body: JSON.stringify({ snapshotId }),
   };
   if (signal !== undefined) init.signal = signal;
-  const response = await globalThis.fetch(`${configuration.baseUrl}/v1/dda/dashboards/query/view`, init);
+  const response = await fetcher(`${configuration.baseUrl}/v1/dda/dashboards/query/view`, init);
   if (response.status === 401 || response.status === 403) {
     throw new Error('DASHBOARD_RESULT_UNAUTHORIZED');
   }
   if (!response.ok) throw new Error('DASHBOARD_RESULT_UNAVAILABLE');
   const payload: unknown = await response.json();
-  if (!isRecord(payload) || payload['accepted'] !== true || !isDashboardQueryView(payload['value'])) {
+  if (
+    !isRecord(payload) ||
+    payload['accepted'] !== true ||
+    !isDashboardQueryView(payload['value'])
+  ) {
     throw new Error('DASHBOARD_RESULT_INVALID');
   }
   return Object.freeze(payload['value']);
-}
-
-/** Accept creates a draft only; publication remains a separate authorized action (DDA-024). */
-export function acceptDashboardProposal(input: {
-  readonly proposalId: string;
-  readonly dashboardId: string;
-}): Promise<{ readonly draftOnly: true; readonly versionId: string }> {
-  void input;
-  return Promise.resolve(
-    Object.freeze({
-      draftOnly: true as const,
-      versionId: '00000000-0000-4000-8000-000000000011',
-    }),
-  );
 }
 
 export interface PublishDashboardSnapshotInputV1 {
@@ -289,6 +335,7 @@ export interface PublishDashboardSnapshotResultV1 {
 export async function publishDashboardSnapshot(
   input: PublishDashboardSnapshotInputV1,
 ): Promise<PublishDashboardSnapshotResultV1> {
+  const fetcher = sessionFetcher(input.baseUrl);
   const init: RequestInit = {
     method: 'POST',
     headers: { Accept: 'application/json', 'content-type': 'application/json' },
@@ -304,10 +351,7 @@ export async function publishDashboardSnapshot(
     }),
   };
   if (input.signal !== undefined) init.signal = input.signal;
-  const response = await globalThis.fetch(
-    `${input.baseUrl}/v1/dda/dashboards/publication/publish`,
-    init,
-  );
+  const response = await fetcher(`${input.baseUrl}/v1/dda/dashboards/publication/publish`, init);
   if (response.status === 401 || response.status === 403) {
     throw new Error('DASHBOARD_PUBLISH_UNAUTHORIZED');
   }

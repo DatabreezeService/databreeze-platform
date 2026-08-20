@@ -274,12 +274,12 @@ describe('dashboard authoring transport [DDA-020, DDA-026, DDA-043]', () => {
       expect.objectContaining({
         method: 'POST',
         credentials: 'include',
-        headers: expect.objectContaining({
-          Accept: 'application/json',
-          'Idempotency-Key': identifiers.command,
-        }),
       }),
     );
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    const requestHeaders = new Headers(requestInit?.headers);
+    expect(requestHeaders.get('Accept')).toBe('application/json');
+    expect(requestHeaders.get('Idempotency-Key')).toBe(identifiers.command);
 
     fetchMock.mockResolvedValueOnce(
       new Response(

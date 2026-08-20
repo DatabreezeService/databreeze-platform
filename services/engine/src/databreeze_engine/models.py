@@ -17,6 +17,19 @@ from pydantic import (
     model_validator,
 )
 
+from .processors.dda_materialize_query import (
+    DdaMaterializeQueryInput,
+    DdaMaterializeQueryResult,
+    DdaStarterMaterializationInput,
+    DdaStarterMaterializationResult,
+    DdaWidgetMaterializationInput,
+    DdaWidgetMaterializationResult,
+)
+from .processors.dda_materialize_snapshot import (
+    DdaMaterializeSnapshotInput,
+    DdaMaterializeSnapshotResult,
+)
+
 MAX_HANDLES = 32
 
 
@@ -85,6 +98,18 @@ class FoundationMetadataParameters(ClosedModel):
         return self
 
 
+# The dispatcher accepts only these reviewed, closed parameter/result models.  The
+# Foundation member is retained for compatibility with the original sidecar
+# protocol; DDA values are still server/worker supplied and never browser authority.
+EngineParameters = (
+    FoundationMetadataParameters
+    | DdaMaterializeQueryInput
+    | DdaMaterializeSnapshotInput
+    | DdaStarterMaterializationInput
+    | DdaWidgetMaterializationInput
+)
+
+
 class EngineExecutionRequest(ClosedModel):
     protocolVersion: Literal["1.0"]
     requestId: Identifier
@@ -93,7 +118,7 @@ class EngineExecutionRequest(ClosedModel):
     action: ActionReference
     inputHandles: Annotated[list[OpaqueHandle], Field(max_length=MAX_HANDLES)]
     outputHandle: OpaqueHandle
-    parameters: FoundationMetadataParameters
+    parameters: EngineParameters
     deadline: UtcTimestamp
     locale: Literal["vi-VN", "en"]
 
@@ -113,6 +138,15 @@ class FoundationDigestResult(ClosedModel):
     canonicalizationVersion: Literal["foundation-metadata-v1"]
     itemCount: Annotated[StrictInt, Field(ge=1, le=64)]
     tagCount: Annotated[StrictInt, Field(ge=0, le=64)]
+
+
+EngineOutput = (
+    FoundationDigestResult
+    | DdaMaterializeQueryResult
+    | DdaMaterializeSnapshotResult
+    | DdaStarterMaterializationResult
+    | DdaWidgetMaterializationResult
+)
 
 
 class JsonWorkerOutput(ClosedModel):
@@ -188,7 +222,7 @@ class DashboardWidgetSubjectBindings(ClosedModel):
 class EngineResult(ClosedModel):
     attemptId: Identifier
     status: Literal["SUCCEEDED"]
-    output: FoundationDigestResult
+    output: EngineOutput
 
 
 EngineErrorCode = Literal[

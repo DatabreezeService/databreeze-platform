@@ -195,6 +195,13 @@ def _reviewed_dda_definitions() -> tuple[_ActionDefinition, ...]:
             "dda.materialize-snapshot-result.v1",
             _model_handler(dda_materialize_snapshot.materialize_snapshot),
         ),
+        (
+            "dda.materialize.widget-result",
+            "dda_materialize_query.py",
+            "dda.dashboard-widget-result-parameters.v1",
+            "dda.dashboard-widget-result.v4",
+            _model_handler(dda_materialize_query.materialize_widget_result),
+        ),
     )
     resources = ResourceLimits(
         maxInputBytes=16 * 1024 * 1024,

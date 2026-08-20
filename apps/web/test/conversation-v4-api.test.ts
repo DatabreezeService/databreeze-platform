@@ -52,12 +52,10 @@ describe('[DDA-055][DDA-056][DDA-060] v4 Analysis transport', () => {
     expect(result.items).toEqual([summary]);
     expect(fetchMock).toHaveBeenCalledWith(
       'https://api.example.test/v1/dda/conversations?limit=20',
-      {
-        method: 'GET',
-        credentials: 'include',
-        headers: { Accept: 'application/json' },
-      },
+      expect.objectContaining({ method: 'GET', credentials: 'include' }),
     );
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(new Headers(requestInit?.headers).get('Accept')).toBe('application/json');
     expect(JSON.stringify(fetchMock.mock.calls)).not.toMatch(
       /organizationId|workspaceId|tenantScope|memberAuthorized/u,
     );
@@ -137,7 +135,8 @@ describe('[DDA-055][DDA-056][DDA-060] v4 Analysis transport', () => {
     expect(new Headers(request[1].headers).get('idempotency-key')).toBe(
       'turn:00000000-0000-4000-8000-000000000107',
     );
-    expect(JSON.parse(String(request[1].body))).toEqual({
+    if (typeof request[1].body !== 'string') throw new TypeError('Expected a JSON request body');
+    expect(JSON.parse(request[1].body)).toEqual({
       schemaVersion: 4,
       conversationId: CONVERSATION_ID,
       messageId: '00000000-0000-4000-8000-000000000107',

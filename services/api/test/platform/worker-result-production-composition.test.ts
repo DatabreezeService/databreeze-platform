@@ -8,6 +8,7 @@ import type { DynamicModule } from '@nestjs/common';
 import { AppModule } from '../../src/app.module.js';
 import { HmacWorkerCapabilitySignerAdapter } from '../../src/features/iae/adapter/hmac-worker-capability-signer.adapter.js';
 import { PrismaWorkerResultFinalizationAdapter } from '../../src/features/iae/adapter/prisma-worker-result-finalization.adapter.js';
+import { IaeWorkerObjectGrantAuthorityAdapter } from '../../src/features/jra/worker/iae-worker-object-grant-authority.adapter.js';
 import {
   IAE_WORKER_RESULT_ATTESTATION_RESOLVER_PORT,
   IAE_WORKER_RESULT_FINALIZATION_PORT,
@@ -21,6 +22,7 @@ import {
   WORKER_VERIFIED_RESULT_MANIFEST_PORT,
 } from '../../src/features/jra/worker/worker-result-finalization.port.js';
 import { WORKER_RESULT_PREPARATION_PORT } from '../../src/features/jra/worker/worker-result-preparation.port.js';
+import { WORKER_OBJECT_GRANT_AUTHORITY_PORT } from '../../src/features/jra/worker/worker-ports.js';
 import { JraWorkerModule } from '../../src/features/jra/worker/worker.module.js';
 
 function imported(root: DynamicModule, moduleType: unknown): DynamicModule {
@@ -122,5 +124,34 @@ void test('[AUD-001, BUA-023, JRA-032] root enables finalization only when JRA, 
   const jraWorker = imported(root, JraWorkerModule);
   assert.ok(
     providerValue(jraWorker, WORKER_RESULT_FINALIZATION_PORT) instanceof PrismaJraWorkerAdapter,
+  );
+});
+
+void test('[JRA-023, IAE-024] worker capability composition accepts an authenticated epoch seam without class identity coupling', () => {
+  const database = {} as never;
+  const signer = new HmacWorkerCapabilitySignerAdapter(Buffer.alloc(32, 13));
+  const root = AppModule.register({
+    runtimeMode: 'production',
+    workerCapabilitySigner: signer,
+    workerCapabilityDatabase: database,
+    jraWorkerDatabase: database,
+    ddaDatabase: database,
+    approvalDatabase: database,
+    workerAuthenticator: {
+      authenticate: async () => undefined,
+      isCurrent: async () => true,
+    },
+    workerInputObjectResolver: {
+      resolveInputObjects: async () => ({ accepted: false, code: 'INPUT_OBJECTS_UNAVAILABLE' }),
+    },
+    workerOutputObjectResolver: {
+      isResultObjectAllowed: async () => false,
+    },
+  } as never);
+
+  const jraWorker = imported(root, JraWorkerModule);
+  assert.ok(
+    providerValue(jraWorker, WORKER_OBJECT_GRANT_AUTHORITY_PORT) instanceof
+      IaeWorkerObjectGrantAuthorityAdapter,
   );
 });

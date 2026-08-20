@@ -1,4 +1,5 @@
 import type { AnalysisPlanPreviewV1 } from './analysis-plan-review.tsx';
+import { createSessionAwareFetchV1 } from '../auth/auth-session.ts';
 
 export interface AnalysisLiveConfigurationV1 {
   readonly baseUrl: string;
@@ -17,13 +18,19 @@ function configuredString(environment: AnalysisEnvironment, key: string): string
   return value.trim();
 }
 
-/** DDA-015: only propose live analysis plans when an API base is configured. */
+/**
+ * DDA-015: propose live analysis plans through the same-origin API by default.
+ *
+ * Local HMR and the production gateway intentionally proxy `/v1` from the Web
+ * origin, so an absent `VITE_DATABREEZE_API_BASE_URL` is not a missing API. The
+ * explicit demo flag is the only mode that disables the live transport.
+ */
 export function analysisLiveConfiguration(
   environment: AnalysisEnvironment = import.meta.env,
 ): AnalysisLiveConfigurationV1 | undefined {
+  if (environment['VITE_DATABREEZE_DEMO_MODE'] === 'true') return undefined;
   const apiBaseUrl = configuredString(environment, 'VITE_DATABREEZE_API_BASE_URL');
-  if (apiBaseUrl === undefined) return undefined;
-  return Object.freeze({ baseUrl: apiBaseUrl.replace(/\/$/u, '') });
+  return Object.freeze({ baseUrl: (apiBaseUrl ?? '').replace(/\/$/u, '') });
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -53,6 +60,10 @@ export async function proposeAnalysisPlan(input: {
   readonly question: string;
   readonly signal?: AbortSignal;
 }): Promise<AnalysisProposalResultV1> {
+  const fetcher = createSessionAwareFetchV1({
+    apiBaseUrl: input.baseUrl,
+    fetcher: globalThis.fetch.bind(globalThis),
+  });
   const init: RequestInit = {
     method: 'POST',
     headers: { Accept: 'application/json', 'content-type': 'application/json' },
@@ -62,7 +73,7 @@ export async function proposeAnalysisPlan(input: {
     }),
   };
   if (input.signal !== undefined) init.signal = input.signal;
-  const response = await globalThis.fetch(`${input.baseUrl}/v1/dda/analysis/propose`, init);
+  const response = await fetcher(`${input.baseUrl}/v1/dda/analysis/propose`, init);
   if (response.status === 401 || response.status === 403) {
     throw new Error('ANALYSIS_PROPOSAL_UNAUTHORIZED');
   }

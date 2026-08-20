@@ -46,6 +46,10 @@ import {
 } from '../../platform/http/request-tenant-context.port.js';
 import { AnalysisControllerV1 } from './analyst/api/analysis.controller.js';
 import { UnavailableAnalysisCatalogAuthorityAdapterV1 } from './analyst/adapter/analysis-catalog.adapter.js';
+import {
+  loadOpenAiAnalysisConfig,
+  OpenAiAnalysisAdapter,
+} from './analyst/adapter/openai-analysis.adapter.js';
 import type { AnalysisAdapterPortV1 } from './analyst/application/analysis-adapter.port.js';
 import {
   AnalysisCatalogResolverServiceV1,
@@ -180,6 +184,12 @@ import {
   type DataImportRepositoryPortV1,
 } from './etl/application/data-import-repository.port.js';
 import { DataImportServiceV1 } from './etl/application/data-import.service.js';
+import { MappingAssistanceServiceV1 } from './etl/application/mapping-assistance.service.js';
+import {
+  loadOpenAiMappingAssistanceConfig,
+  OpenAiMappingAssistanceAdapter,
+} from './etl/adapter/openai-mapping-assistance.adapter.js';
+import type { MappingAssistancePolicyStoreV1 } from './etl/application/mapping-assistance.service.js';
 import type { EtlProposalResourceResolverPortV1 } from './etl/application/etl-proposal-authority.port.js';
 import { WebIntakeController } from './intake/api/web-intake.controller.js';
 import type {
@@ -301,6 +311,7 @@ import {
   SourceCatalogService,
 } from './source-catalog/application/source-catalog.service.js';
 import { DdaNotificationControllerV1 } from './notification/notification.controller.js';
+import { NotificationPreferencesControllerV1 } from './notification/notification-preferences.controller.js';
 import {
   DDA_NOTIFICATION_REPOSITORY_PORT,
   type NotificationRepositoryPortV1,
@@ -340,6 +351,13 @@ import {
   type NotificationStateCommandPortV1,
 } from './notification/notification-state-command.port.js';
 import { IamNotificationRecipientResolverAdapter } from './notification/iam-notification-recipient-resolver.adapter.js';
+import {
+  DDA_NOTIFICATION_PREFERENCES_PORT,
+  type NotificationPreferencesPortV1,
+} from './notification/notification-preferences.port.js';
+import { PrismaNotificationPreferencesAdapter } from './notification/prisma-notification-preferences.adapter.js';
+import { InMemoryNotificationPreferencesAdapter } from './notification/in-memory-notification-preferences.adapter.js';
+import { UnavailableNotificationPreferencesAdapter } from './notification/unavailable-notification-preferences.adapter.js';
 import type { IamRepositoryPortV1 } from '../iam/application/iam-repository.port.js';
 import type { AccessPresetService } from '../iam/application/access-preset.service.js';
 import type { DatasetVersionRepositoryPortV1 } from '../dsm/application/dataset-version-repository.port.js';
@@ -437,6 +455,9 @@ export interface DdaModuleOptions {
   readonly sourceCatalogRepository?: SourceCatalogRepositoryPortV1;
   /** Server-owned registration used by approved imports to populate DDA-052. */
   readonly sourceCatalogRegistration?: SourceCatalogRegistrationPortV1;
+  /** Governed advisory mapping suggestions; omitted composition stays unavailable. */
+  readonly mappingAssistance?: MappingAssistanceServiceV1;
+  readonly mappingAssistancePolicyStore?: MappingAssistancePolicyStoreV1;
   readonly sourceCatalogAuthorization?: SourceCatalogAuthorizationPortV1;
   readonly originalViewResolver?: OriginalViewResolverPortV1;
   /** IAE public original-view authority; omitted composition remains fail closed for cloud views. */
@@ -447,6 +468,8 @@ export interface DdaModuleOptions {
   readonly receiptMutationAuthorization?: ReceiptMutationAuthorizationPortV1;
   /** Durable committed-event notification projection; omitted composition fails closed. */
   readonly notificationRepository?: NotificationRepositoryPortV1;
+  /** NCO-006 recipient-scoped preference persistence; omitted production composition fails closed. */
+  readonly notificationPreferences?: NotificationPreferencesPortV1;
   /** IAM application port used to resolve active notification recipients. */
   readonly iamRepository?: IamRepositoryPortV1;
   /** Durable committed-event source; defaults to the DDA committed event outbox. */
@@ -689,6 +712,18 @@ export class DdaModule {
         : new PrismaDataImportRepositoryAdapter(
             options.ddaDatabase as unknown as DataImportDatabaseClientV1,
           ));
+    const mappingAssistance =
+      options.mappingAssistance ??
+      new MappingAssistanceServiceV1(
+        new OpenAiMappingAssistanceAdapter(loadOpenAiMappingAssistanceConfig()),
+        {
+          ...(options.mappingAssistancePolicyStore === undefined
+            ? {}
+            : { policyStore: options.mappingAssistancePolicyStore }),
+          bua,
+          aud,
+        },
+      );
     const dataImportService = new DataImportServiceV1({
       imports: dataImportRepository,
       webIntake: webIntakeService,
@@ -705,6 +740,8 @@ export class DdaModule {
         ? {}
         : { artifactIntake: options.artifactIntakeRepository }),
       ...(sourceCatalogRegistration === undefined ? {} : { sourceCatalogRegistration }),
+      ...(options.iaePort === undefined ? {} : { iae: options.iaePort }),
+      mappingAssistance,
     });
     const etlProposalService = new EtlProposalServiceV1(etlProposals);
     const etlAcceptanceAuthorization =
@@ -763,8 +800,13 @@ export class DdaModule {
         },
         deterministicResults,
       });
+    const analysisAdapter =
+      options.analysisAdapter ??
+      (process.env['DATABREEZE_OPENAI_ANALYSIS_ENABLED'] === 'true'
+        ? new OpenAiAnalysisAdapter(loadOpenAiAnalysisConfig())
+        : createFailClosedAnalysisAdapterV1());
     const analysisProposalService = new AnalysisProposalServiceV1(
-      options.analysisAdapter ?? createFailClosedAnalysisAdapterV1(),
+      analysisAdapter,
       analysisCatalogResolver,
     );
     const analysisExecutionService = new AnalysisExecutionServiceV1(deterministicResults);
@@ -867,6 +909,13 @@ export class DdaModule {
       (options.ddaDatabase === undefined
         ? new UnavailableNotificationRepositoryAdapter()
         : new PrismaNotificationRepositoryAdapter(options.ddaDatabase));
+    const notificationPreferences: NotificationPreferencesPortV1 =
+      options.notificationPreferences ??
+      (options.ddaDatabase !== undefined
+        ? new PrismaNotificationPreferencesAdapter(options.ddaDatabase)
+        : options.allowInMemoryAdapters === true || runtimeMode === 'test'
+          ? new InMemoryNotificationPreferencesAdapter()
+          : new UnavailableNotificationPreferencesAdapter());
     const notificationProjectionCheckpoints =
       options.notificationProjectionCheckpoints ??
       (notificationRepository instanceof PrismaNotificationRepositoryAdapter
@@ -1006,6 +1055,9 @@ export class DdaModule {
       authority: agentAuthority,
       usage: agentUsage,
       executor: agentToolExecutor,
+      ...(options.agentIamActionAuthorization === undefined
+        ? {}
+        : { iamActionAuthorization: options.agentIamActionAuthorization }),
     });
 
     return {
@@ -1032,6 +1084,7 @@ export class DdaModule {
         ConversationController,
         AgentTurnController,
         DdaNotificationControllerV1,
+        NotificationPreferencesControllerV1,
       ],
       providers: [
         {
@@ -1066,6 +1119,7 @@ export class DdaModule {
         { provide: WebIntakeServiceV1, useValue: webIntakeService },
         { provide: DATA_IMPORT_REPOSITORY_PORT, useValue: dataImportRepository },
         { provide: DataImportServiceV1, useValue: dataImportService },
+        { provide: MappingAssistanceServiceV1, useValue: mappingAssistance },
         ...(options.intakeUpload === undefined
           ? []
           : [{ provide: INTAKE_IAE_UPLOAD_PORT, useValue: options.intakeUpload }]),
@@ -1157,6 +1211,7 @@ export class DdaModule {
         { provide: AgentTurnService, useValue: agentTurnService },
         { provide: REQUEST_TENANT_CONTEXT, useValue: requestTenantContext },
         { provide: DDA_NOTIFICATION_REPOSITORY_PORT, useValue: notificationRepository },
+        { provide: DDA_NOTIFICATION_PREFERENCES_PORT, useValue: notificationPreferences },
         { provide: DDA_NOTIFICATION_STATE_COMMAND_PORT, useValue: notificationStateCommand },
         {
           provide: DDA_NOTIFICATION_RESOURCE_AUTHORIZATION,
@@ -1247,6 +1302,7 @@ export class DdaModule {
         AGENT_TOOL_EXECUTOR_PORT,
         AgentTurnService,
         DDA_NOTIFICATION_REPOSITORY_PORT,
+        DDA_NOTIFICATION_PREFERENCES_PORT,
         DDA_NOTIFICATION_STATE_COMMAND_PORT,
         DDA_NOTIFICATION_RESOURCE_AUTHORIZATION,
         ...(notificationProjectionConsumer === undefined

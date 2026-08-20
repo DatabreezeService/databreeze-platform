@@ -248,6 +248,84 @@ void test('[DDA-044] valid Vietnamese output sends the exact bounded Responses r
   assert.doesNotMatch(JSON.stringify(captured), new RegExp(API_KEY, 'u'));
 });
 
+void test('[DDA-043][DDA-060] configured provider keeps a casual greeting conversational without tools', async () => {
+  const { result, captured } = await completeWith(
+    responseFor({
+      narrative: 'Chào bạn! Tôi sẵn sàng hỗ trợ phân tích dữ liệu được cấp quyền.',
+      toolCalls: [],
+    }),
+    { input: { userText: 'ayoo wassup' } },
+  );
+
+  assert.deepEqual(result, {
+    accepted: true,
+    value: {
+      narrative: 'Chào bạn! Tôi sẵn sàng hỗ trợ phân tích dữ liệu được cấp quyền.',
+      toolCalls: [],
+    },
+  });
+  const serialized = JSON.stringify(captured);
+  assert.match(serialized, /ayoo wassup/u);
+  assert.doesNotMatch(serialized, /local preview|approved-data preview/iu);
+});
+
+void test('[DDA-043] provider refuses a local path in server context before egress', async () => {
+  for (const label of [
+    'C:\\private\\customer-source.csv',
+    'Imported from C:\\private\\customer-source.csv',
+    'Imported from //server/share/customer-source.csv',
+    'source=C:\\private\\data.csv',
+    'file,C:\\private\\data.csv',
+    'source=\\\\server\\share\\data.csv',
+  ]) {
+    let called = false;
+    const adapter = new TestableAgentProviderAdapter(enabledConfig(), {
+      transport: createTransport(async () => {
+        called = true;
+        return responseFor({ narrative: 'unsafe', toolCalls: [] });
+      }),
+    });
+
+    const result = await adapter.completeTurn(
+      completeInput({
+        contextPackage: contextPackage({
+          datasetBindings: [
+            {
+              datasetId: 'dataset-1',
+              datasetVersionId: 'dataset-version-1',
+              label,
+              schemaFingerprint: 'schema-1',
+            },
+          ],
+        }),
+      }),
+    );
+
+    assert.deepEqual(result, { accepted: false, code: 'PROVIDER_FAILURE' }, label);
+    assert.equal(called, false, label);
+  }
+});
+
+void test('[DDA-043] provider allows an HTTPS URL in bounded server context', async () => {
+  const { result, captured } = await completeWith(responseFor(validPayload()), {
+    input: {
+      contextPackage: contextPackage({
+        datasetBindings: [
+          {
+            datasetId: 'dataset-1',
+            datasetVersionId: 'dataset-version-1',
+            label: 'Imported from https://example.com/customer-source.csv',
+            schemaFingerprint: 'schema-1',
+          },
+        ],
+      }),
+    },
+  });
+
+  assert.equal(result.accepted, true);
+  assert.ok(captured);
+});
+
 void test('[DDA-043] prompt injection remains bounded JSON data under a fixed policy', async () => {
   let captured: Parameters<OpenAiResponsesTransport['create']>[0] | undefined;
   const adapter = new TestableAgentProviderAdapter(enabledConfig(), {

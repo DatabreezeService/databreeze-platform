@@ -47,6 +47,40 @@ void test('[WEB-026] anonymous valid submission is accepted, persisted, and ackn
   }
 });
 
+void test('[WEB-026] seeded feedback does not replace a new user submission', async () => {
+  const intake = new InMemoryLandingFeedbackAdapter([
+    {
+      id: '00000000-0000-4000-8000-000000008900',
+      createdAt: '2026-08-14T09:30:00.000Z',
+      email: 'hoangnnse183190@fpt.edu.vn',
+      name: 'Lê Thanh Hải',
+      organization: 'An Nam Retail Group',
+      role: 'owner',
+      experience: 'active',
+      category: 'product',
+      rating: 5,
+      message: 'Seeded local feedback remains visible alongside new feedback.',
+      contactPermission: true,
+    },
+  ]);
+  const { app } = await createApiApplication({ landingFeedbackIntake: intake });
+  try {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/landing/feedbacks',
+      payload: validCommand,
+    });
+    assert.equal(response.statusCode, 201);
+
+    const stored = await intake.readRecent(200);
+    assert.equal(stored.total, 2);
+    assert.ok(stored.items.some((item) => item.email === validCommand.email));
+    assert.ok(stored.items.some((item) => item.email === 'hoangnnse183190@fpt.edu.vn'));
+  } finally {
+    await app.close();
+  }
+});
+
 void test('[WEB-026] extra fields are rejected without partial storage', async () => {
   const intake = new InMemoryLandingFeedbackAdapter();
   const { app } = await createApiApplication({ landingFeedbackIntake: intake });

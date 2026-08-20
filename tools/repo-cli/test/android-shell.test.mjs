@@ -76,7 +76,7 @@ test('Android shell has durable local state, injected workers, and process-death
   const sync = read('app/src/main/java/com/databreeze/android/sync/SyncPorts.kt');
   const app = read('app/src/main/java/com/databreeze/android/DataBreezeApplication.kt');
   const runtime = read('app/src/main/java/com/databreeze/android/AndroidRuntime.kt');
-  assert.match(localStore, /@Database\(entities = \[SyncQueueEntity::class\]/u);
+  assert.match(localStore, /@Database\([\s\S]*?entities = \[[^\]]*SyncQueueEntity::class/u);
   assert.match(localStore, /primaryKeys = \["accountId", "workspaceId", "mutationId"\]/u);
   assert.match(sync, /ExistingWorkPolicy\.APPEND_OR_REPLACE/u);
   assert.match(sync, /suspend fun reactivate\(scope: AccountWorkspaceScope\)/u);

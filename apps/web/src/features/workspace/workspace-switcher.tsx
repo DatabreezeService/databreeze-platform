@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { ChevronDownIcon } from '../../components/icons';
 
 export interface WorkspaceSwitcherOption {
   readonly id: string;
@@ -78,8 +79,6 @@ export function WorkspaceSwitcher({
   const nameRef = useRef<HTMLInputElement>(null);
   const dialogTitleId = useId();
 
-  if (activeName === undefined) return null;
-
   useEffect(() => {
     if (dialogOpen) nameRef.current?.focus();
   }, [dialogOpen]);
@@ -114,6 +113,9 @@ export function WorkspaceSwitcher({
     };
   }, [dialogOpen, open]);
 
+  if (activeName === undefined && onCreate === undefined) return null;
+  const triggerName = activeName ?? text.choose;
+
   async function switchWorkspace(workspaceId: string) {
     if (workspaceId === currentWorkspaceId || onSwitch === undefined) {
       setOpen(false);
@@ -121,7 +123,12 @@ export function WorkspaceSwitcher({
     }
     setPendingWorkspaceId(workspaceId);
     setError(undefined);
-    const result = await onSwitch(workspaceId);
+    let result: WorkspaceActionResult;
+    try {
+      result = await onSwitch(workspaceId);
+    } catch {
+      result = { accepted: false, message: text.genericError };
+    }
     setPendingWorkspaceId(undefined);
     if (!result.accepted) {
       setError(result.message ?? text.genericError);
@@ -147,7 +154,12 @@ export function WorkspaceSwitcher({
     }
     setCreating(true);
     setError(undefined);
-    const result = await onCreate(normalized);
+    let result: WorkspaceActionResult;
+    try {
+      result = await onCreate(normalized);
+    } catch {
+      result = { accepted: false, message: text.genericError };
+    }
     setCreating(false);
     if (!result.accepted) {
       setError(result.message ?? text.genericError);
@@ -162,7 +174,7 @@ export function WorkspaceSwitcher({
       <button
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label={`${text.choose}: ${activeName}`}
+        aria-label={`${text.choose}: ${triggerName}`}
         className="workspace-switcher__trigger"
         onClick={() => {
           setError(undefined);
@@ -173,11 +185,14 @@ export function WorkspaceSwitcher({
       >
         <span className="workspace-switcher__trigger-copy">
           <span className="workspace-switcher__label">{text.choose}</span>
-          <strong>{activeName}</strong>
+          <strong>{triggerName}</strong>
         </span>
-        <span aria-hidden="true" className={`workspace-switcher__arrow${open ? ' is-open' : ''}`}>
-          ⌄
-        </span>
+        <ChevronDownIcon
+          aria-hidden="true"
+          className={`workspace-switcher__arrow${open ? ' is-open' : ''}`}
+          width={16}
+          height={16}
+        />
       </button>
 
       {open ? (

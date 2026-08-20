@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/iam-profile-update-command",
+  "$comment": "IAM-016/IAM-018/IAM-023: authenticated display-name and locale preferences. Identity, tenant, role, and security authority remain server-owned.",
+  "title": "IAM Profile Update Command",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "displayName", "locale", "expectedRevision"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "displayName": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "locale": { "enum": ["vi-VN", "en"] },
+    "expectedRevision": { "type": "integer", "minimum": 1 }
+  }
+}

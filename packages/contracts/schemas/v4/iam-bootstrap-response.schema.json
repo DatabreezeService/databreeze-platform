@@ -56,8 +56,10 @@
       "required": ["id", "displayName", "locale", "mfaState"],
       "properties": {
         "id": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "email": { "type": "string", "minLength": 3, "maxLength": 254, "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$" },
         "displayName": { "type": "string", "minLength": 1, "maxLength": 200 },
         "locale": { "enum": ["vi-VN", "en"] },
+        "profileRevision": { "type": "integer", "minimum": 1 },
         "mfaState": { "enum": ["ENABLED", "NOT_CONFIGURED"] }
       }
     },

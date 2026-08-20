@@ -201,13 +201,13 @@ const serverFeedbacks = {
   ),
 };
 
-function stubPlatformAdminServer() {
+function stubPlatformAdminServer(feedbacks = serverFeedbacks) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
       if (url.includes('/v1/platform-admin/feedbacks'))
-        return new Response(JSON.stringify(serverFeedbacks), {
+        return new Response(JSON.stringify(feedbacks), {
           status: 200,
           headers: { 'content-type': 'application/json' },
         });
@@ -264,6 +264,52 @@ describe('platform admin feedbacks & reviews [WEB-025, WEB-027, IAM-026]', () =>
     expect(screen.getByText('Sài Gòn Logistics Corp')).toBeTruthy();
     expect(screen.getByText('Lâm Gia Kiệt')).toBeTruthy();
     expect(screen.getByText('Nguyễn Quốc Huy')).toBeTruthy();
+  });
+
+  it('renders stable seeded labels and a short stable label for runtime feedback', async () => {
+    const runtimeId = '9f96d562-70e9-4a7a-b80a-bb737092bca4';
+    stubPlatformAdminServer({
+      ...serverFeedbacks,
+      total: serverFeedbacks.total + 1,
+      feedbacks: [
+        ...serverFeedbacks.feedbacks,
+        {
+          ...serverFeedbacks.feedbacks[0]!,
+          id: runtimeId,
+          email: 'runtime@example.com',
+          name: 'Runtime feedback',
+        },
+      ],
+    });
+    renderPlatformAdmin('/vi-VN/platform-admin?tab=feedbacks');
+
+    expect(await screen.findByText('#FB-01')).toBeTruthy();
+    expect(screen.getByText('#FB-12')).toBeTruthy();
+    expect(screen.getByText('#9F96D562')).toBeTruthy();
+    expect(screen.queryByText(`#${runtimeId}`)).toBeNull();
+    expect(screen.queryByText('#00000000-0000-4000-8000-000000008900')).toBeNull();
+  });
+
+  it('does not render the email address for anonymous feedback', async () => {
+    stubPlatformAdminServer();
+    renderPlatformAdmin('/vi-VN/platform-admin?tab=feedbacks');
+
+    expect(await screen.findByText('Chỉ góp ý ẩn danh')).toBeTruthy();
+    expect(screen.queryByText('huyletran188205@gmail.com')).toBeNull();
+  });
+
+  it('does not make an anonymous email discoverable through search', async () => {
+    stubPlatformAdminServer();
+    const user = userEvent.setup();
+    renderPlatformAdmin('/vi-VN/platform-admin?tab=feedbacks');
+
+    const searchInput = await screen.findByPlaceholderText(
+      'Tìm theo tên, email, công ty, nội dung góp ý…',
+    );
+    await user.type(searchInput, 'huyletran188205@gmail.com');
+
+    expect(screen.getByText('Không tìm thấy góp ý nào phù hợp')).toBeTruthy();
+    expect(screen.queryByText('Lê Trần Gia Huy')).toBeNull();
   });
 
   it('filters server feedbacks dynamically using the search bar', async () => {

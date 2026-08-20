@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/crf-report-create-command",
+  "title": "CRF Report Create Command",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "name", "clientId", "period", "datasetId", "datasetVersionId", "supportedFormats"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "clientId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "period": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "datasetId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "datasetVersionId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+    "supportedFormats": { "type": "array", "minItems": 1, "maxItems": 5, "uniqueItems": true, "items": { "enum": ["DOCX", "PPTX", "XLSX", "PDF", "WEB"] } }
+  }
+}

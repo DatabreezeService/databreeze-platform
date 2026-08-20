@@ -62,7 +62,7 @@ describe('dashboard-local agent panel [DDA-015][DDA-017][DDA-024][WEB-014]', () 
     );
 
     expect(screen.getByText('Cho tôi xem doanh thu theo khu vực')).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: 'Lịch sử hội thoại' }));
+    await user.click(screen.getByRole('button', { name: /Chọn cuộc trò chuyện/u }));
     await user.click(screen.getByRole('option', { name: 'Đơn hàng bất thường' }));
     expect(onSelectConversation).toHaveBeenCalledWith('conversation-orders');
   });
@@ -104,7 +104,7 @@ describe('dashboard-local agent panel [DDA-015][DDA-017][DDA-024][WEB-014]', () 
     await user.click(screen.getByRole('button', { name: 'Gửi' }));
 
     expect(screen.getByRole('alert').textContent).toBe(
-      'Trợ lý AI hiện không khả dụng. Bạn vẫn có thể tạo kế hoạch phân tích có kiểm soát thủ công.',
+      'Trợ lý AI hiện không khả dụng. Hãy mở Dữ liệu hoặc Phân tích để tự tạo kế hoạch có kiểm soát.',
     );
   });
 });

@@ -23,6 +23,8 @@ import { IldModule, type IldModuleOptions } from './features/ild/ild.module.js';
 import { DdaModule, type DdaModuleOptions } from './features/dda/dda.module.js';
 import { JraModule, type JraModuleOptions } from './features/jra/jra.module.js';
 import { MobileModule, type MobileModuleOptions } from './features/mobile/mobile.module.js';
+import { CrfModule, type CrfModuleOptions } from './features/crf/crf.module.js';
+import { PrismaCrfReportRepositoryAdapter } from './features/crf/adapter/prisma-report-repository.adapter.js';
 import {
   PlatformAdminModule,
   type PlatformAdminModuleOptions,
@@ -44,6 +46,7 @@ import { InMemoryLandingFeedbackAdmissionAdapter } from './features/lfb/adapter/
 import { Sha256LandingFeedbackAdmissionDigestAdapter } from './features/lfb/adapter/sha256-landing-feedback-admission-digest.adapter.js';
 import { LfbModule, type LfbModuleOptions } from './features/lfb/lfb.module.js';
 import { PrismaApprovalRepositoryAdapter } from './features/jra/adapter/prisma-approval-repository.adapter.js';
+import { PrismaJobHistoryReadAdapter } from './features/jra/adapter/prisma-job-history-read.adapter.js';
 import { ApprovalService } from './features/jra/application/approval.service.js';
 import { JraDashboardPublicationApprovalAdapter } from './features/dda/dashboard/adapter/jra-dashboard-publication-approval.adapter.js';
 import {
@@ -125,6 +128,8 @@ import {
 } from './features/iam/adapter/prisma-workspace-execution-policy-reference.adapter.js';
 import { DsoWorkspacePolicyAuthorityAdapter } from './platform/dso-workspace-policy.composition.js';
 import { PrismaWorkerResultFinalizationEffects } from './platform/jra-worker-result-effects.composition.js';
+import { PrismaReadyJobQueueRepositoryAdapter } from './features/jra/adapter/prisma-ready-job-queue-repository.adapter.js';
+import type { PrismaReadyJobQueueDatabaseClientV1 } from './features/jra/adapter/prisma-ready-job-queue-repository.adapter.js';
 
 export type AppModuleOptions = SystemModuleOptions &
   IamModuleOptions &
@@ -141,6 +146,7 @@ export type AppModuleOptions = SystemModuleOptions &
   DdaModuleOptions &
   JraModuleOptions &
   MobileModuleOptions &
+  CrfModuleOptions &
   PlatformAdminModuleOptions &
   LfbModuleOptions &
   JraWorkerModuleOptions & {
@@ -466,6 +472,16 @@ export class AppModule {
     const approvalAuthority =
       options.approvalAuthority ??
       (approvalRepository === undefined ? undefined : new ApprovalService(approvalRepository));
+    const jobHistoryRead =
+      options.jobHistoryRead ??
+      (options.jobHistoryDatabase === undefined
+        ? undefined
+        : new PrismaJobHistoryReadAdapter(options.jobHistoryDatabase));
+    const crfReportRepository =
+      options.reportRepository ??
+      (options.reportDatabase === undefined
+        ? undefined
+        : new PrismaCrfReportRepositoryAdapter(options.reportDatabase));
     const dashboardPublicationApprovalInvalidationExecutor =
       options.dashboardPublicationApprovalInvalidationExecutor ??
       (approvalAuthority === undefined
@@ -491,10 +507,15 @@ export class AppModule {
       (workerCredentialLookup === undefined
         ? undefined
         : new ServiceAccountWorkerAuthenticator(workerCredentialLookup));
+    // Keep the security-epoch seam based on its public capability rather than
+    // JavaScript class identity. Local/compiled module graphs can load the same
+    // adapter through different ESM URLs; `instanceof` would then silently
+    // disable IAE worker capabilities while bearer authentication still works.
     const workerSecurityEpoch: WorkerSecurityEpochPortV1 | undefined =
       options.workerSecurityEpoch ??
-      (workerAuthenticator instanceof ServiceAccountWorkerAuthenticator
-        ? workerAuthenticator
+      (workerAuthenticator !== undefined &&
+      typeof (workerAuthenticator as Partial<WorkerSecurityEpochPortV1>).isCurrent === 'function'
+        ? (workerAuthenticator as unknown as WorkerSecurityEpochPortV1)
         : undefined);
     const workerCapabilitySigner =
       options.workerCapabilitySigner ??
@@ -599,8 +620,19 @@ export class AppModule {
             workerSecurityEpoch,
             workerObjectGrantAuthority,
             workerResultFinalizationEffects,
+            options.workerInputObjectResolver,
           )
         : undefined;
+    const readyJobQueueRepository =
+      options.readyJobQueueRepository ??
+      (options.jraWorkerDatabase === undefined
+        ? undefined
+        : new PrismaReadyJobQueueRepositoryAdapter(
+            options.jraWorkerDatabase as unknown as PrismaReadyJobQueueDatabaseClientV1,
+          ));
+    const workerWorkloadEnvelope =
+      options.workerWorkloadEnvelope ??
+      (options.workerInputObjectResolver === undefined ? undefined : jraWorkerAdapter);
     const runtimeMode =
       options.runtimeMode ??
       (process.env['NODE_ENV'] === 'production' ? 'production' : 'development');
@@ -655,6 +687,8 @@ export class AppModule {
       ...(etlProposalAuthority === undefined ? {} : { etlProposalAuthority }),
       ...(approvalRepository === undefined ? {} : { approvalRepository }),
       ...(approvalAuthority === undefined ? {} : { approvalAuthority }),
+      ...(jobHistoryRead === undefined ? {} : { jobHistoryRead }),
+      ...(crfReportRepository === undefined ? {} : { reportRepository: crfReportRepository }),
       ...(dashboardPublicationApprovalInvalidationExecutor === undefined
         ? {}
         : { dashboardPublicationApprovalInvalidationExecutor }),
@@ -701,10 +735,12 @@ export class AppModule {
             workerCompletionTransaction: jraWorkerAdapter,
             workerResultPreparation: jraWorkerAdapter,
             workerVerifiedResultManifests: jraWorkerAdapter,
+            ...(workerWorkloadEnvelope === undefined ? {} : { workerWorkloadEnvelope }),
             ...(workerResultFinalizationEffects === undefined
               ? {}
               : { workerResultFinalization: jraWorkerAdapter }),
           }),
+      ...(readyJobQueueRepository === undefined ? {} : { readyJobQueueRepository }),
     };
     return {
       module: AppModule,
@@ -729,6 +765,7 @@ export class AppModule {
           runtimeMode,
           allowInMemoryAdapters: options.allowInMemoryAdapters ?? runtimeMode !== 'production',
         }),
+        CrfModule.register(composedOptions),
         MobileModule.register({
           ...composedOptions,
           allowInMemoryAdapters: options.allowInMemoryAdapters ?? runtimeMode !== 'production',

@@ -1,10 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsIn, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 
 export class IssueInvitationDto {
-  @ApiProperty({ format: 'uuid' })
+  @ApiProperty({ format: 'uuid', required: false, description: 'Legacy membership reissue path.' })
+  @IsOptional()
   @IsUUID()
-  membershipId!: string;
+  membershipId?: string;
 
   @ApiProperty({ format: 'email', maxLength: 254 })
   @IsEmail()
@@ -12,6 +13,11 @@ export class IssueInvitationDto {
   @MinLength(3)
   @MaxLength(254)
   recipientEmail!: string;
+
+  @ApiProperty({ enum: ['OWNER', 'EDITOR', 'VIEWER'], required: false })
+  @IsOptional()
+  @IsIn(['OWNER', 'EDITOR', 'VIEWER'])
+  accessPreset?: 'OWNER' | 'EDITOR' | 'VIEWER';
 }
 
 export class AcceptInvitationDto {

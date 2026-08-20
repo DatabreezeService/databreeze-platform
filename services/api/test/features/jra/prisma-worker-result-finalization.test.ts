@@ -532,7 +532,7 @@ void test('[JRA-007/JRA-031] preparation is stable and leaves attempt/job non-te
     dashboardVersionId: id('30'),
     datasetVersionId: id('34'),
     engineVersion: 'engine-1.0.0',
-    handlerDigest: 'd'.repeat(64),
+    handlerDigest: `sha256:${'d'.repeat(64)}`,
     locale: 'vi-VN',
     metricVersionId: id('33'),
     inputSelectorHash: '9'.repeat(64),

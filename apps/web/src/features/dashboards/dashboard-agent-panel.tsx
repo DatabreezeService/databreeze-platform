@@ -1,8 +1,6 @@
 import type { SupportedLocaleV1 } from '@databreeze/i18n/v1';
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 
-import { DATABREEZE_MARK_SRC } from '../../app/brand-assets.ts';
-import { XIcon } from '../../components/icons.tsx';
 import { resolveAgentOpenMotion } from '../agent/agent-open-motion.ts';
 import { AgentChatShell } from '../agent/agent-chat-shell.tsx';
 import type {
@@ -32,6 +30,7 @@ export type DashboardAgentResponseV1 =
       readonly proposalId?: string;
       readonly options: readonly DashboardChartProposalOptionV1[];
     }
+  | { readonly kind: 'local-preview'; readonly message: DashboardAgentLocalizedTextV1 }
   | { readonly kind: 'clarification'; readonly message: DashboardAgentLocalizedTextV1 }
   | { readonly kind: 'provider-disabled'; readonly message?: DashboardAgentLocalizedTextV1 }
   | { readonly kind: 'conflict'; readonly message?: DashboardAgentLocalizedTextV1 }
@@ -96,8 +95,6 @@ export function DashboardAgentPanel({
   const questionRef = useRef<HTMLTextAreaElement>(null);
   const priorFocusRef = useRef<HTMLElement | null>(null);
   const wasOpenRef = useRef(open);
-  const titleId = useId();
-
   useEffect(() => {
     if (open && !wasOpenRef.current) {
       const active = globalThis.document.activeElement;
@@ -137,13 +134,23 @@ export function DashboardAgentPanel({
         )
       );
     }
+    if (activeResponse?.kind === 'local-preview') {
+      return (
+        activeMessage ??
+        label(
+          locale,
+          'Đây là nhận định cục bộ từ bản xem nhanh dữ liệu đã duyệt.',
+          'This is a local insight from the approved-data preview.',
+        )
+      );
+    }
     if (activeResponse?.kind === 'provider-disabled') {
       return (
         activeMessage ??
         label(
           locale,
-          'Trợ lý AI hiện không khả dụng. Bạn vẫn có thể tạo kế hoạch phân tích có kiểm soát thủ công.',
-          'The AI assistant is currently unavailable. You can still create a governed manual analysis plan.',
+          'Trợ lý AI hiện không khả dụng. Hãy mở Dữ liệu hoặc Phân tích để tự tạo kế hoạch có kiểm soát.',
+          'The AI assistant is currently unavailable. Open Data or Analysis to create a governed plan manually.',
         )
       );
     }

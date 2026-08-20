@@ -1,7 +1,7 @@
 {
   "version": 1,
   "priorityTotals": {
-    "P0": 521,
+    "P0": 526,
     "P1": 158,
     "P2": 14
   },
@@ -4836,6 +4836,44 @@
       "verifiedPaths": [
         "services/api/test/features/dda/unified-workspace-journey.e2e.test.ts",
         "docs/evidence/dda/unified-workspace-verification.md"
+      ],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "DDA-061",
+      "priority": "P0",
+      "primaryPlan": "425-authoritative-engine-workload-envelope.md",
+      "primaryTask": "1. Contract and admission",
+      "supportingTasks": [
+        "425-authoritative-engine-workload-envelope.md ? 2. Engine typed dispatch",
+        "425-authoritative-engine-workload-envelope.md ? 3. Exact local input/output execution",
+        "425-authoritative-engine-workload-envelope.md ? 4. DDA snapshot integration"
+      ],
+      "codePaths": [
+        "services/api/src/features/jra/application/execution-workload-envelope.ts",
+        "services/api/src/features/jra/adapter/prisma-execution-workload-envelope.adapter.ts",
+        "services/api/src/features/jra/worker/",
+        "services/api/src/features/iae/adapter/local-worker-input-object-resolver.adapter.ts",
+        "services/engine/src/databreeze_engine/"
+      ],
+      "testPaths": [
+        "services/api/test/features/jra/execution-workload-envelope.test.ts",
+        "services/api/test/features/jra/prisma-execution-workload-envelope.test.ts",
+        "services/api/test/features/jra/worker/worker-boundary.test.ts",
+        "services/api/test/features/iae/local-worker-input-object-resolver.adapter.test.ts",
+        "services/engine/tests/test_dispatch.py"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "docs/plans/425-authoritative-engine-workload-envelope.md"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/jra/execution-workload-envelope.test.ts",
+        "services/api/test/features/jra/worker/worker-boundary.test.ts",
+        "services/engine/tests/test_dispatch.py"
       ],
       "releaseStatus": "p0-release-gate"
     },
@@ -11985,6 +12023,68 @@
       "releaseStatus": "p0-release-gate"
     },
     {
+      "requirementId": "IAM-027",
+      "priority": "P0",
+      "primaryPlan": "412-workspace-creation-and-switching.md",
+      "primaryTask": "Task 2: Make workspace creation work end to end",
+      "supportingTasks": [
+        "412-workspace-creation-and-switching.md - Task 1: Add the workspace and scope contracts",
+        "412-workspace-creation-and-switching.md - Task 4: Return the visible workspace tree from bootstrap",
+        "412-workspace-creation-and-switching.md - Task 6: Verify contracts, API, web, and the local journey"
+      ],
+      "codePaths": [
+        "services/api/src/features/iam/",
+        "services/api/src/features/dso/",
+        "packages/contracts/schemas/v4/iam/"
+      ],
+      "testPaths": [
+        "services/api/test/features/iam/hierarchy-controller.test.ts",
+        "services/api/test/features/iam/identity-bootstrap.test.ts",
+        "apps/web/test/workspace-api.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/iam/hierarchy-controller.test.ts",
+        "apps/web/test/workspace-api.test.ts"
+      ],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "IAM-028",
+      "priority": "P0",
+      "primaryPlan": "412-workspace-creation-and-switching.md",
+      "primaryTask": "Task 3: Add the protected scope-switch endpoint",
+      "supportingTasks": [
+        "412-workspace-creation-and-switching.md - Task 1: Add the workspace and scope contracts",
+        "412-workspace-creation-and-switching.md - Task 6: Verify contracts, API, web, and the local journey"
+      ],
+      "codePaths": [
+        "services/api/src/features/iam/",
+        "packages/contracts/schemas/v4/iam/"
+      ],
+      "testPaths": [
+        "services/api/test/features/iam/scope-switch-service.test.ts",
+        "apps/web/test/workspace-auth-api.test.ts",
+        "apps/web/test/workspace-switcher.test.tsx"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/iam/scope-switch-service.test.ts",
+        "apps/web/test/workspace-auth-api.test.ts"
+      ],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
       "requirementId": "ILD-001",
       "priority": "P0",
       "primaryPlan": "200-invoice-leak-detector.md",
@@ -14575,6 +14675,44 @@
       "coverage": "planned",
       "verificationStatus": "not-verified",
       "verifiedPaths": [],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "JRA-033",
+      "priority": "P0",
+      "primaryPlan": "425-authoritative-engine-workload-envelope.md",
+      "primaryTask": "1. Contract and admission",
+      "supportingTasks": [
+        "425-authoritative-engine-workload-envelope.md - 2. Engine typed dispatch",
+        "425-authoritative-engine-workload-envelope.md - 3. Exact local input/output execution",
+        "425-authoritative-engine-workload-envelope.md - 4. DDA snapshot integration"
+      ],
+      "codePaths": [
+        "services/api/src/features/jra/application/execution-workload-envelope.ts",
+        "services/api/src/features/jra/adapter/prisma-execution-workload-envelope.adapter.ts",
+        "services/api/src/features/jra/worker/",
+        "services/api/src/features/iae/adapter/local-worker-input-object-resolver.adapter.ts",
+        "services/engine/src/databreeze_engine/"
+      ],
+      "testPaths": [
+        "services/api/test/features/jra/execution-workload-envelope.test.ts",
+        "services/api/test/features/jra/prisma-execution-workload-envelope.test.ts",
+        "services/api/test/features/jra/worker/worker-boundary.test.ts",
+        "services/api/test/features/iae/local-worker-input-object-resolver.adapter.test.ts",
+        "services/engine/tests/test_dispatch.py"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests",
+        "docs/plans/425-authoritative-engine-workload-envelope.md"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "services/api/test/features/jra/execution-workload-envelope.test.ts",
+        "services/api/test/features/jra/worker/worker-boundary.test.ts",
+        "services/engine/tests/test_dispatch.py"
+      ],
       "releaseStatus": "p0-release-gate"
     },
     {
@@ -21337,6 +21475,38 @@
       "verifiedPaths": [
         "apps/web/test/platform-admin-feedbacks.test.tsx",
         "services/api/test/features/platform-admin/platform-admin.controller.test.ts"
+      ],
+      "releaseStatus": "p0-release-gate"
+    },
+    {
+      "requirementId": "WEB-028",
+      "priority": "P0",
+      "primaryPlan": "412-workspace-creation-and-switching.md",
+      "primaryTask": "Task 5: Deliver the workspace switcher and creation dialog",
+      "supportingTasks": [
+        "412-workspace-creation-and-switching.md - Task 1: Add the workspace and scope contracts",
+        "412-workspace-creation-and-switching.md - Task 6: Verify contracts, API, web, and the local journey"
+      ],
+      "codePaths": [
+        "apps/web/src/components/workspace-topbar.tsx",
+        "apps/web/src/features/workspace/",
+        "apps/web/src/app/messages.ts"
+      ],
+      "testPaths": [
+        "apps/web/test/workspace-switcher.test.tsx",
+        "apps/web/test/workspace-topbar.test.tsx",
+        "apps/web/test/workspace-api.test.ts",
+        "apps/web/test/workspace-auth-api.test.ts"
+      ],
+      "releaseEvidence": [
+        "requirement-linked-tests"
+      ],
+      "status": "partial",
+      "coverage": "partial",
+      "verificationStatus": "partial",
+      "verifiedPaths": [
+        "apps/web/test/workspace-switcher.test.tsx",
+        "apps/web/test/workspace-topbar.test.tsx"
       ],
       "releaseStatus": "p0-release-gate"
     }

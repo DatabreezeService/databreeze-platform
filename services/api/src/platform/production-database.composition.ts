@@ -98,6 +98,7 @@ type DatabaseOptionKey =
   | 'credentialDatabase'
   | 'sessionDatabase'
   | 'identityBootstrapDatabase'
+  | 'profileMutationDatabase'
   | 'mfaDatabase'
   | 'iamDatabase'
   | 'hierarchyDatabase'
@@ -139,6 +140,8 @@ type DatabaseOptionKey =
   | 'entitlementLeaseDatabase'
   | 'spreadsheetAuditDatabase'
   | 'approvalDatabase'
+  | 'jobHistoryDatabase'
+  | 'reportDatabase'
   | 'mobileDatabase'
   | 'jraWorkerDatabase'
   | 'ddaDatabase'
@@ -672,6 +675,7 @@ function optionsFor(
     credentialDatabase: asDatabasePort<'credentialDatabase'>(client),
     sessionDatabase: asDatabasePort<'sessionDatabase'>(client),
     identityBootstrapDatabase: asDatabasePort<'identityBootstrapDatabase'>(client),
+    profileMutationDatabase: asDatabasePort<'profileMutationDatabase'>(client),
     mfaDatabase: asDatabasePort<'mfaDatabase'>(client),
     iamDatabase: asDatabasePort<'iamDatabase'>(client),
     hierarchyDatabase: asDatabasePort<'hierarchyDatabase'>(client),
@@ -714,6 +718,8 @@ function optionsFor(
     entitlementLeaseDatabase: asDatabasePort<'entitlementLeaseDatabase'>(client),
     spreadsheetAuditDatabase: asDatabasePort<'spreadsheetAuditDatabase'>(client),
     approvalDatabase: asDatabasePort<'approvalDatabase'>(client),
+    jobHistoryDatabase: asDatabasePort<'jobHistoryDatabase'>(client),
+    reportDatabase: asDatabasePort<'reportDatabase'>(client),
     mobileDatabase: asDatabasePort<'mobileDatabase'>(client),
     jraWorkerDatabase: asDatabasePort<'jraWorkerDatabase'>(client),
     ddaDatabase: asDatabasePort<'ddaDatabase'>(client),

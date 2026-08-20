@@ -1,6 +1,12 @@
 import type { DatasetCardV1, DatasetRecordV1, DatasetSourceFileV1 } from './data-model.ts';
 import { toDatasetCardV1 } from './data-model.ts';
-import { buildDatasetRecordFromTabular, parseTabularFiles, TabularParseError, type ParsedTabularData, type TabularSourceFileV1 } from './csv-parser.ts';
+import {
+  buildDatasetRecordFromTabular,
+  parseTabularFiles,
+  TabularParseError,
+  type ParsedTabularData,
+  type TabularSourceFileV1,
+} from './csv-parser.ts';
 import {
   DataImportApiError,
   dataImportApi,
@@ -41,6 +47,7 @@ export interface ImportSessionInputV1 {
 export interface ImportApprovedResultV1 {
   readonly dataset: DatasetCardV1;
   readonly starterDashboardId: string | undefined;
+  readonly importId?: string;
   readonly dashboardStatus: 'READY' | 'BUILDING' | 'UNAVAILABLE';
   readonly track: ImportTrackV1;
 }
@@ -84,6 +91,26 @@ export class ImportSession {
     this.stateValue = { status: 'CREATING', track: input.demoMode === true ? 'LOCAL' : 'SERVER' };
   }
 
+  /**
+   * Re-open a server-owned review after a browser reload. The source bytes are
+   * intentionally not reconstructed in the browser; the persisted server
+   * projection is the authority and approval still goes back through the
+   * revisioned API command.
+   */
+  public static resumeServer(record: DataImportRecordV1, locale: 'en' | 'vi-VN'): ImportSession {
+    const session = new ImportSession({
+      destination:
+        record.destination === 'EXISTING_DATASET' && record.datasetId !== undefined
+          ? { kind: 'EXISTING_DATASET', datasetId: record.datasetId }
+          : { kind: 'NEW_DATASET' },
+      datasetName: record.datasetName,
+      files: [],
+      locale,
+    });
+    session.stateValue = { status: 'REVIEW', track: 'SERVER', record };
+    return session;
+  }
+
   public subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -93,6 +120,13 @@ export class ImportSession {
 
   private setState(next: Partial<ImportSessionStateV1>): void {
     this.stateValue = { ...this.stateValue, ...next };
+    for (const listener of this.listeners) listener();
+  }
+
+  private setStateWithoutError(next: Partial<Omit<ImportSessionStateV1, 'error'>>): void {
+    const { error, ...stateWithoutError } = this.stateValue;
+    void error;
+    this.stateValue = { ...stateWithoutError, ...next };
     for (const listener of this.listeners) listener();
   }
 
@@ -156,7 +190,8 @@ export class ImportSession {
       idempotencyKey: `local-import-${crypto.randomUUID()}`,
       sources: await Promise.all(
         parsed.fileSources.map(async (file) => {
-          const source = this.input.files.find((candidate) => candidate.fileName.endsWith(file.fileName)) ??
+          const source =
+            this.input.files.find((candidate) => candidate.fileName.endsWith(file.fileName)) ??
             this.input.files[0]!;
           return Object.freeze({
             sessionId: crypto.randomUUID(),
@@ -184,11 +219,11 @@ export class ImportSession {
     this.setState({ status: 'REVIEW', track: 'LOCAL', record, parsed });
   }
 
-  public async requestRevision(message: string, fieldName?: string): Promise<void> {
+  public async requestRevision(message: string, fieldName?: string): Promise<boolean> {
     const record = this.stateValue.record;
-    if (record === undefined || this.stateValue.status !== 'REVIEW') return;
+    if (record === undefined || this.stateValue.status !== 'REVIEW') return false;
     const trimmed = message.trim();
-    if (trimmed.length === 0) return;
+    if (trimmed.length === 0) return false;
 
     if (this.stateValue.track === 'SERVER') {
       try {
@@ -198,7 +233,8 @@ export class ImportSession {
           trimmed,
           fieldName,
         );
-        this.setState({ record: updated });
+        this.setStateWithoutError({ record: updated });
+        return true;
       } catch (error) {
         this.setState({
           error: {
@@ -206,8 +242,8 @@ export class ImportSession {
             message: error instanceof Error ? error.message : 'unknown',
           },
         });
+        return false;
       }
-      return;
     }
 
     const updated: DataImportRecordV1 = {
@@ -229,13 +265,14 @@ export class ImportSession {
       updatedAt: new Date().toISOString(),
     };
     await localDataStore.putImportRecord(updated);
-    this.setState({ record: updated });
+    this.setStateWithoutError({ record: updated });
+    return true;
   }
 
   public async approve(): Promise<ImportApprovedResultV1 | undefined> {
     const record = this.stateValue.record;
     const parsed = this.stateValue.parsed;
-    if (record === undefined || parsed === undefined || this.stateValue.status !== 'REVIEW') {
+    if (record === undefined || this.stateValue.status !== 'REVIEW') {
       return undefined;
     }
     this.setState({ status: 'APPROVING' });
@@ -250,6 +287,7 @@ export class ImportSession {
         return {
           dataset,
           starterDashboardId: undefined,
+          importId: approved.value.importId,
           dashboardStatus: accepted.dashboardStatus,
           track: 'SERVER',
         };
@@ -263,6 +301,11 @@ export class ImportSession {
         });
         return undefined;
       }
+    }
+
+    if (parsed === undefined) {
+      this.setState({ status: 'REVIEW' });
+      return undefined;
     }
 
     const isNew = this.input.destination.kind === 'NEW_DATASET';

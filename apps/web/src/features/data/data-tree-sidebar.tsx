@@ -1,5 +1,9 @@
 import { useState } from 'react';
-import type { DatasetCleaningStateV1, DatasetRecordV1, LocalProjectRecordV1 } from './data-model.ts';
+import type {
+  DatasetCleaningStateV1,
+  DatasetRecordV1,
+  LocalProjectRecordV1,
+} from './data-model.ts';
 
 export type TreeSelectionV1 =
   | { readonly kind: 'root' }
@@ -17,6 +21,25 @@ export interface DataTreeSidebarProps {
   readonly onDeleteProject: (projectId: string) => void;
   readonly onAddData: (projectId?: string) => void;
   readonly allowProjectManagement?: boolean;
+}
+
+function DataCollectionIcon() {
+  return (
+    <svg
+      className="data-tree__icon data-tree__root-icon"
+      aria-hidden="true"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <ellipse cx="12" cy="5" rx="7.5" ry="3" />
+      <path d="M4.5 5v7c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3V5" />
+      <path d="M4.5 12v7c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3v-7" />
+    </svg>
+  );
 }
 
 function cleaningChip(
@@ -89,9 +112,14 @@ export function DataTreeSidebar({
   }
 
   return (
-    <aside className="data-tree" aria-label={vi ? 'Cây dự án và bộ dữ liệu' : 'Projects and datasets tree'}>
+    <aside
+      className="data-tree"
+      aria-label={vi ? 'Cây dự án và bộ dữ liệu' : 'Projects and datasets tree'}
+    >
       <header className="data-tree__header">
-        <h2>{allowProjectManagement ? (vi ? 'Dự án' : 'Projects') : vi ? 'Bộ dữ liệu' : 'Datasets'}</h2>
+        <h2>
+          {allowProjectManagement ? (vi ? 'Dự án' : 'Projects') : vi ? 'Bộ dữ liệu' : 'Datasets'}
+        </h2>
         {allowProjectManagement ? (
           <button
             type="button"
@@ -124,7 +152,7 @@ export function DataTreeSidebar({
         className={`data-tree__root${selection.kind === 'root' ? ' is-selected' : ''}`}
         onClick={() => onSelect({ kind: 'root' })}
       >
-        <span className="data-tree__icon" aria-hidden="true">🗂️</span>
+        <DataCollectionIcon />
         <span className="data-tree__label">{vi ? 'Tất cả dữ liệu' : 'All data'}</span>
         <span className="data-tree__count">{records.length}</span>
       </button>
@@ -136,10 +164,17 @@ export function DataTreeSidebar({
           const tone = projectTone(members, locale);
           const isRenaming = menuOpenFor === `${project.projectId}:rename`;
           return (
-            <li className="data-tree__project" role="treeitem" key={project.projectId} aria-expanded={isOpen}>
+            <li
+              className="data-tree__project"
+              role="treeitem"
+              key={project.projectId}
+              aria-expanded={isOpen}
+            >
               <div
                 className={`data-tree__project-row${
-                  selection.kind === 'project' && selection.projectId === project.projectId ? ' is-selected' : ''
+                  selection.kind === 'project' && selection.projectId === project.projectId
+                    ? ' is-selected'
+                    : ''
                 }`}
               >
                 <button
@@ -172,7 +207,10 @@ export function DataTreeSidebar({
                     onDoubleClick={() => setMenuOpenFor(`${project.projectId}:rename`)}
                     title={project.label}
                   >
-                    <span className={`data-tree__dot data-tree__dot--${tone.tone}`} aria-hidden="true" />
+                    <span
+                      className={`data-tree__dot data-tree__dot--${tone.tone}`}
+                      aria-hidden="true"
+                    />
                     <span className="data-tree__label">{project.label}</span>
                   </button>
                 )}
@@ -183,7 +221,9 @@ export function DataTreeSidebar({
                   aria-label={vi ? 'Menu dự án' : 'Project menu'}
                   onClick={() =>
                     setMenuOpenFor((current) =>
-                      current === `${project.projectId}:menu` ? undefined : `${project.projectId}:menu`,
+                      current === `${project.projectId}:menu`
+                        ? undefined
+                        : `${project.projectId}:menu`,
                     )
                   }
                 >
@@ -230,7 +270,9 @@ export function DataTreeSidebar({
                 <ul className="data-tree__datasets">
                   {members.length === 0 ? (
                     <li className="data-tree__empty">
-                      {vi ? 'Chưa có bộ dữ liệu — thêm dữ liệu để bắt đầu.' : 'No datasets yet — add data to begin.'}
+                      {vi
+                        ? 'Chưa có bộ dữ liệu — thêm dữ liệu để bắt đầu.'
+                        : 'No datasets yet — add data to begin.'}
                     </li>
                   ) : (
                     members.map((record) => {
@@ -240,14 +282,19 @@ export function DataTreeSidebar({
                           <button
                             type="button"
                             className={`data-tree__dataset${
-                              selection.kind === 'dataset' && selection.datasetId === record.datasetId
+                              selection.kind === 'dataset' &&
+                              selection.datasetId === record.datasetId
                                 ? ' is-selected'
                                 : ''
                             }`}
-                            onClick={() => onSelect({ kind: 'dataset', datasetId: record.datasetId })}
+                            onClick={() =>
+                              onSelect({ kind: 'dataset', datasetId: record.datasetId })
+                            }
                             title={record.label}
                           >
-                            <span className="data-tree__icon" aria-hidden="true">📄</span>
+                            <span className="data-tree__icon" aria-hidden="true">
+                              📄
+                            </span>
                             <span className="data-tree__label">{record.label}</span>
                             <span className={`data-tree__chip data-tree__chip--${chip.tone}`}>
                               {chip.label}
@@ -281,9 +328,13 @@ export function DataTreeSidebar({
                     }`}
                     onClick={() => onSelect({ kind: 'dataset', datasetId: record.datasetId })}
                   >
-                    <span className="data-tree__icon" aria-hidden="true">📄</span>
+                    <span className="data-tree__icon" aria-hidden="true">
+                      📄
+                    </span>
                     <span className="data-tree__label">{record.label}</span>
-                    <span className={`data-tree__chip data-tree__chip--${chip.tone}`}>{chip.label}</span>
+                    <span className={`data-tree__chip data-tree__chip--${chip.tone}`}>
+                      {chip.label}
+                    </span>
                   </button>
                 </li>
               );

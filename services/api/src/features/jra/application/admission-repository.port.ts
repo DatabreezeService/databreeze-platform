@@ -4,6 +4,19 @@ import type { JobV1 } from '@databreeze/domain/jobs/v1';
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type { ExecutionRequestDescriptorV1 } from './execution-request-descriptor.js';
 
+export type JraAdmissionEntitlementResultV1 =
+  | { readonly accepted: true }
+  | { readonly accepted: false; readonly code: string };
+
+/** Root-composed BUA participant; the JRA feature never reads BUA persistence directly. */
+export interface JraAdmissionEntitlementParticipantV1 {
+  admit(
+    transaction: unknown,
+    context: IamTenantContextV1,
+    input: unknown,
+  ): Promise<JraAdmissionEntitlementResultV1>;
+}
+
 export const JRA_ADMISSION_REPOSITORY_PORT = Symbol('JRA_ADMISSION_REPOSITORY_PORT');
 
 export interface JraAdmissionTransactionPortV1 {
@@ -26,6 +39,11 @@ export interface JraAdmissionTransactionPortV1 {
     jobId: JobV1['jobId'],
     idempotencyKey: string,
   ): Promise<JobDispatchRecordV1 | undefined>;
+  /** Optional atomic entitlement reservation/binding participant. */
+  admitEntitlement?: (
+    context: IamTenantContextV1,
+    input: unknown,
+  ) => Promise<JraAdmissionEntitlementResultV1>;
 }
 
 export interface JraAdmissionRepositoryPortV1 {

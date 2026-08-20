@@ -26,6 +26,10 @@ function context() {
 }
 
 function controller(overrides: Record<string, unknown> = {}) {
+  const repositoryOverrides =
+    typeof overrides['repository'] === 'object' && overrides['repository'] !== null
+      ? (overrides['repository'] as Record<string, unknown>)
+      : {};
   const leases = {
     issue: () =>
       Promise.resolve({
@@ -37,7 +41,9 @@ function controller(overrides: Record<string, unknown> = {}) {
   };
   const repository = {
     findSnapshot: () => Promise.resolve(undefined),
+    findCurrentSnapshot: () => Promise.resolve(undefined),
     listUsageState: () => Promise.resolve({ entries: [], reservations: [] }),
+    ...repositoryOverrides,
   };
   const requestContext = { resolve: () => Promise.resolve(context()) };
   return new EntitlementController(repository as never, requestContext, leases as never);
@@ -53,6 +59,71 @@ void test('[BUA-017, BUA-018] controller exposes lease issue and verification en
     await instance.verifyLease({}, leaseId, { snapshotRevision: 4, securityEpoch: 2 }),
     { valid: true },
   );
+});
+
+void test('[BUA-001, BUA-002, BUA-015] summary returns server-authoritative AI credits', async () => {
+  const instance = controller({
+    repository: {
+      findCurrentSnapshot: () =>
+        Promise.resolve({
+          schemaVersion: 1,
+          snapshotId,
+          organizationId,
+          workspaceId,
+          planCode: 'professional-monthly',
+          status: 'ACTIVE',
+          revision: 2,
+          securityEpoch: 1,
+          effectiveAt: '2026-08-18T00:00:00.000Z',
+          features: [],
+          quotas: [{ metric: 'job_count', limit: 100 }],
+        }),
+      listUsageState: () =>
+        Promise.resolve({
+          entries: [
+            {
+              schemaVersion: 1,
+              entryId: actorId,
+              tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+              metric: 'job_count',
+              bucket: 'COMMITTED',
+              deltaUnits: 12,
+              sequence: 1,
+              idempotencyKey: 'summary-entry',
+              occurredAt: '2026-08-18T00:00:00.000Z',
+            },
+          ],
+          reservations: [
+            {
+              reservationId: leaseId,
+              tenantScope: { scopeType: 'workspace', organizationId, workspaceId },
+              metric: 'job_count',
+              reservedUnits: 3,
+              status: 'ACTIVE',
+              createdAt: '2026-08-18T00:00:00.000Z',
+              revision: 1,
+            },
+          ],
+        }),
+    },
+  });
+  assert.deepEqual(await instance.summary({}), {
+    schemaVersion: 4,
+    snapshot: {
+      schemaVersion: 1,
+      snapshotId,
+      organizationId,
+      workspaceId,
+      planCode: 'professional-monthly',
+      status: 'ACTIVE',
+      revision: 2,
+      securityEpoch: 1,
+      effectiveAt: '2026-08-18T00:00:00.000Z',
+      features: [],
+      quotas: [{ metric: 'job_count', limit: 100 }],
+    },
+    aiCredits: { metric: 'job_count', limit: 100, used: 12, reserved: 3, remaining: 85 },
+  });
 });
 
 void test('[BUA-018] controller maps stale and unavailable lease results', async () => {

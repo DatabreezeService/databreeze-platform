@@ -16,7 +16,6 @@ import {
   readSidebarCompactPreference,
   writeSidebarCompactPreference,
 } from './sidebar-preference.ts';
-import { WorkspaceFlowGuide } from './workspace-flow-guide.tsx';
 import { WorkspaceTopbar } from './workspace-topbar.tsx';
 import '../styles/workspace-shell.css';
 
@@ -67,7 +66,7 @@ export function ShellLayout({ accessContext }: { readonly accessContext: WebAcce
   const isDashboardWorkspace = logicalPath === 'dashboards';
   const isAnalysisWorkspace = logicalPath === 'analysis';
   const sidebarCollapsed = !isMobile && (sidebarPreference ?? isTablet);
-  const secondaryKeys = new Set(['inbox', 'reviews', 'administration']);
+  const secondaryKeys = new Set(['inbox', 'reviews']);
   const secondaryItems = filterNavigationItems(accessContext).filter((item) =>
     secondaryKeys.has(item.key),
   );
@@ -93,7 +92,6 @@ export function ShellLayout({ accessContext }: { readonly accessContext: WebAcce
       >
         <WorkspaceTopbar
           {...(bootstrap === undefined ? {} : { bootstrap })}
-          dashboardMode={isDashboardWorkspace}
           isMobile={isMobile}
           locale={locale}
           mobileNavigationOpen={navigationOpen}
@@ -101,7 +99,10 @@ export function ShellLayout({ accessContext }: { readonly accessContext: WebAcce
           onSignOut={async () => {
             try {
               await createAuthApiV1({
-                baseUrl: (import.meta.env as Record<string, unknown>)['VITE_DATABREEZE_API_BASE_URL'] as string ?? '',
+                baseUrl:
+                  ((import.meta.env as Record<string, unknown>)[
+                    'VITE_DATABREEZE_API_BASE_URL'
+                  ] as string) ?? '',
               }).signOut();
             } finally {
               clearAuthSessionV1();
@@ -127,7 +128,6 @@ export function ShellLayout({ accessContext }: { readonly accessContext: WebAcce
           id="main-content"
           tabIndex={-1}
         >
-          <WorkspaceFlowGuide locale={locale} />
           <Outlet />
         </main>
       </div>

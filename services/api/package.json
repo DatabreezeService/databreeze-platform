@@ -15,6 +15,7 @@
     "prisma:generate": "prisma generate --config prisma.config.ts",
     "prisma:validate": "prisma validate --config prisma.config.ts",
     "seed:local": "node --experimental-strip-types scripts/seed-local.mjs",
+    "seed:pilot": "node --experimental-strip-types scripts/seed-pilot.mjs",
     "test": "node --test test/**/*.test.mjs && tsc --project tsconfig.test.json && node --test build/test/test/**/*.test.js",
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },

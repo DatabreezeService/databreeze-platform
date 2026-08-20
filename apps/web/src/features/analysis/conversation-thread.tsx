@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import brandMarkUrl from '@databreeze/design-tokens/brand/generated/web/favicon-32.png';
 
 import type { AnalysisConversationV1, AnalysisChartProposalV1 } from './analysis-model.ts';
@@ -79,12 +80,12 @@ function ChartProposalCard({
           {added ? (
             <div className="analysis-chart-added-group">
               <span className="analysis-chart-added-badge">{text.addedToDashboard}</span>
-              <a
+              <Link
                 className="db-button db-button--secondary db-button--sm"
-                href={`/${locale}/dashboards`}
+                to={`/${locale}/dashboards`}
               >
                 {text.openDashboard}
-              </a>
+              </Link>
             </div>
           ) : (
             <button
@@ -113,10 +114,7 @@ function ChartProposalCard({
                 <div className="analysis-bar-row" key={point.label}>
                   <span className="analysis-bar-label">{point.label}</span>
                   <div className="analysis-bar-track">
-                    <div
-                      className="analysis-bar-fill"
-                      style={{ width: `${pct}%` }}
-                    />
+                    <div className="analysis-bar-fill" style={{ width: `${pct}%` }} />
                   </div>
                   <span className="analysis-bar-value">{point.formatted}</span>
                 </div>
@@ -222,10 +220,7 @@ export function ConversationThread({
               <div className="analysis-conversation-thread__message-content">
                 <p style={{ whiteSpace: 'pre-line' }}>{message.text}</p>
                 {message.chartProposal ? (
-                  <ChartProposalCard
-                    locale={locale}
-                    proposal={message.chartProposal}
-                  />
+                  <ChartProposalCard locale={locale} proposal={message.chartProposal} />
                 ) : null}
               </div>
               {message.createdLabel === undefined ? null : <time>{message.createdLabel}</time>}

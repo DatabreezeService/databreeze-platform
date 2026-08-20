@@ -195,7 +195,12 @@ export function DashboardWorkspace({
           });
         }}
         onCollapsedChange={updateCollapsedPreference}
-        onCreate={() => setFeedback(appMessage(locale, 'history.newAnalysisScoped'))}
+        onCreate={() => {
+          // The history action must take the user to the real analysis creation
+          // flow. A status-only callback made this button appear interactive
+          // while doing nothing beyond changing an inaccessible announcement.
+          void navigate(`/${locale}/analysis?new=1`);
+        }}
         triggerRef={historyTriggerRef}
         {...(activeSubjectId === undefined ? {} : { activeSubjectId })}
         {...(isNarrow ? { onMobileOpenChange: setMobileOpen } : {})}

@@ -32,6 +32,8 @@ public typealias Month = String
 
 public typealias NonNegativeInteger = Long
 
+public typealias OpaqueCursor = String
+
 public typealias PrepareIdempotencyKey = String
 
 public typealias PrepareOpaqueToken = String
@@ -68,6 +70,14 @@ public sealed interface ToolResult {
     public val name: String
 }
 
+public data class AiCredits(
+    public val limit: Long,
+    public val metric: String,
+    public val remaining: Long,
+    public val reserved: Long,
+    public val used: Long,
+)
+
 public data class AnalysisExecuteResult(
     public val result: AnalysisExecuteValue,
     public val toolCallId: ToolCallId,
@@ -99,6 +109,12 @@ public data class AnalysisPlanValue(
 
 public data class AvailablePreview(
     public val available: Boolean,
+)
+
+public data class BuaEntitlementSummary(
+    public val aiCredits: AiCredits,
+    public val schemaVersion: Long,
+    public val snapshot: Snapshot,
 )
 
 public data class BuaPayosCheckoutCommand(
@@ -187,6 +203,12 @@ public data class BuaPayosWebhookEventData(
     public val virtualAccountNumber: String? = null,
 )
 
+public data class Column(
+    public val name: String,
+    public val nullable: Boolean,
+    public val type: String,
+)
+
 public data class ContextEvent(
     public val afterVersionId: Identifier? = null,
     public val beforeVersionId: Identifier? = null,
@@ -206,6 +228,107 @@ public data class CountGroup(
 public data class CountPoint(
     public val count: NonNegativeInteger,
     public val month: Month,
+)
+
+public data class CrfReportCreateAccepted(
+    public val accepted: Boolean,
+    public val report: CrfReportSummary,
+    public val schemaVersion: Long,
+)
+
+public data class CrfReportCreateCommand(
+    public val clientId: Identifier,
+    public val datasetId: Identifier,
+    public val datasetVersionId: Identifier,
+    public val name: String,
+    public val period: String,
+    public val schemaVersion: Long,
+    public val supportedFormats: List<String>,
+)
+
+public data class CrfReportDetailAccepted(
+    public val accepted: Boolean,
+    public val report: CrfReportDetailAcceptedReport,
+    public val schemaVersion: Long,
+)
+
+public data class CrfReportDetailAcceptedReport(
+    public val blockCount: Long,
+    public val clientId: Identifier,
+    public val datasetId: Identifier,
+    public val datasetVersionId: Identifier,
+    public val latestRun: CrfReportDetailAcceptedReportLatestRun? = null,
+    public val latestRunStatus: String? = null,
+    public val name: String,
+    public val period: String,
+    public val reportId: Identifier,
+    public val reportVersion: Long,
+    public val schemaVersion: Long,
+    public val status: String,
+    public val supportedFormats: List<String>,
+    public val templateId: Identifier,
+    public val templateVersion: Long,
+    public val updatedAt: UtcTimestamp,
+)
+
+public data class CrfReportDetailAcceptedReportLatestRun(
+    public val createdAt: UtcTimestamp,
+    public val finishedAt: UtcTimestamp? = null,
+    public val reportVersion: Long,
+    public val runId: Identifier,
+    public val status: String,
+)
+
+public data class CrfReportListAccepted(
+    public val accepted: Boolean,
+    public val items: List<CrfReportSummary>,
+    public val nextCursor: String? = null,
+    public val schemaVersion: Long,
+)
+
+public data class CrfReportRunDetailAccepted(
+    public val accepted: Boolean,
+    public val run: CrfReportRunDetailAcceptedRun,
+    public val schemaVersion: Long,
+)
+
+public data class CrfReportRunDetailAcceptedRun(
+    public val createdAt: UtcTimestamp,
+    public val evidence: CrfReportRunDetailAcceptedRunEvidence,
+    public val finishedAt: UtcTimestamp? = null,
+    public val frozen: Boolean,
+    public val jraBound: Boolean? = null,
+    public val outputs: List<CrfReportRunDetailAcceptedRunOutputsItem>,
+    public val reportId: Identifier,
+    public val reportVersion: Long,
+    public val runId: Identifier,
+    public val status: String,
+)
+
+public data class CrfReportRunDetailAcceptedRunEvidence(
+    public val complete: Boolean,
+    public val factCount: Long,
+    public val referenceCount: Long,
+)
+
+public data class CrfReportRunDetailAcceptedRunOutputsItem(
+    public val failureCode: String? = null,
+    public val format: String,
+    public val state: String,
+)
+
+public data class CrfReportSummary(
+    public val clientId: Identifier,
+    public val datasetId: Identifier,
+    public val datasetVersionId: Identifier,
+    public val latestRunStatus: String? = null,
+    public val name: String,
+    public val period: String,
+    public val reportId: Identifier,
+    public val reportVersion: Long,
+    public val schemaVersion: Long,
+    public val status: String,
+    public val updatedAt: UtcTimestamp,
 )
 
 public data class DashboardApplyConfirmedResult(
@@ -337,6 +460,62 @@ public data class DdaDashboardWidgetResultsAccepted(
     public val widgets: List<WidgetResult>,
 )
 
+public data class DdaDataImportDashboardPreview(
+    public val accepted: Boolean,
+    public val schemaVersion: Long,
+    public val value: Value,
+)
+
+public data class DdaNotificationPreferencesAccepted(
+    public val preferences: List<DdaNotificationPreferencesAcceptedPreferencesItem>,
+    public val revision: Long,
+    public val schemaVersion: Long,
+)
+
+public data class DdaNotificationPreferencesAcceptedPreferencesItem(
+    public val category: String,
+    public val channel: String,
+    public val deliveryMode: String,
+    public val enabled: Boolean,
+    public val mandatory: Boolean,
+    public val minimumUrgency: String,
+    public val quietHours: DdaNotificationPreferencesAcceptedQuietHours,
+    public val timezone: String,
+)
+
+public data class DdaNotificationPreferencesAcceptedQuietHours(
+    public val enabled: Boolean,
+    public val end: String,
+    public val start: String,
+)
+
+public data class DdaNotificationPreferencesCommand(
+    public val expectedRevision: Long,
+    public val preferences: List<DdaNotificationPreferencesCommandPreferencesItem>,
+    public val schemaVersion: Long,
+)
+
+public data class DdaNotificationPreferencesCommandPreferencesItem(
+    public val category: String,
+    public val channel: String,
+    public val deliveryMode: String,
+    public val enabled: Boolean,
+    public val minimumUrgency: String,
+    public val quietHours: DdaNotificationPreferencesCommandQuietHours,
+    public val timezone: String,
+)
+
+public data class DdaNotificationPreferencesCommandQuietHours(
+    public val enabled: Boolean,
+    public val end: String,
+    public val start: String,
+)
+
+public data class Dimension(
+    public val field: String,
+    public val groups: List<Group>,
+)
+
 public data class EtlProposeCorrectionResult(
     public val result: EtlProposeCorrectionValue,
     public val toolCallId: ToolCallId,
@@ -401,6 +580,12 @@ public data class Freshness(
     public val pendingDurationMs: Long? = null,
     public val reasonCode: String? = null,
     public val state: String,
+)
+
+public data class Group(
+    public val count: Long,
+    public val label: String,
+    public val total: Double? = null,
 )
 
 public data class IamAuthSession(
@@ -482,9 +667,11 @@ public data class IamBootstrapResponseRejected(
 
 public data class IamBootstrapUser(
     public val displayName: String,
+    public val email: String? = null,
     public val id: Identifier,
     public val locale: String,
     public val mfaState: String,
+    public val profileRevision: Long? = null,
 )
 
 public data class IamBootstrapValue(
@@ -529,6 +716,25 @@ public data class IamPasswordSignInCommand(
     public val clientPlatform: String,
     public val email: String,
     public val password: String,
+    public val schemaVersion: Long,
+)
+
+public data class IamProfileUpdateAccepted(
+    public val schemaVersion: Long,
+    public val user: IamProfileUpdateAcceptedUser,
+)
+
+public data class IamProfileUpdateAcceptedUser(
+    public val displayName: String,
+    public val id: Identifier,
+    public val locale: String,
+    public val revision: Long,
+)
+
+public data class IamProfileUpdateCommand(
+    public val displayName: String,
+    public val expectedRevision: Long,
+    public val locale: String,
     public val schemaVersion: Long,
 )
 
@@ -578,6 +784,33 @@ public data class IamWorkspaceCreateAcceptedWorkspace(
 
 public data class IamWorkspaceCreateCommand(
     public val name: String,
+    public val schemaVersion: Long,
+)
+
+public data class JraJobHistoryDetailAccepted(
+    public val accepted: Boolean,
+    public val job: JraJobHistoryEntry,
+    public val schemaVersion: Long,
+)
+
+public data class JraJobHistoryEntry(
+    public val actionType: String,
+    public val actionVersion: Long,
+    public val approvalState: String,
+    public val createdAt: UtcTimestamp,
+    public val finishedAt: UtcTimestamp? = null,
+    public val jobId: Identifier,
+    public val resultAvailable: Boolean,
+    public val revision: Long,
+    public val schemaVersion: Long,
+    public val startedAt: UtcTimestamp? = null,
+    public val state: String,
+)
+
+public data class JraJobHistoryListAccepted(
+    public val accepted: Boolean,
+    public val items: List<JraJobHistoryEntry>,
+    public val nextCursor: OpaqueCursor? = null,
     public val schemaVersion: Long,
 )
 
@@ -647,6 +880,14 @@ public data class LfbLandingFeedbackCommand(
     public val rating: Long,
     public val role: String,
     public val schemaVersion: Long,
+)
+
+public data class Measure(
+    public val average: Double,
+    public val field: String,
+    public val maximum: Double,
+    public val minimum: Double,
+    public val sum: Double,
 )
 
 public data class PlatformAdminFeedbacks(
@@ -779,9 +1020,39 @@ public data class RevenuePoint(
     public val revenueVnd: NonNegativeInteger,
 )
 
+public data class SampleCell(
+    public val field: String,
+    public val kind: String,
+    public val value: String,
+)
+
+public data class SampleRow(
+    public val cells: List<SampleCell>,
+)
+
 public data class SchemaField(
     public val field: String,
     public val type: String,
+)
+
+public data class Snapshot(
+    public val effectiveAt: UtcTimestamp,
+    public val expiresAt: UtcTimestamp? = null,
+    public val features: List<String>,
+    public val organizationId: Identifier,
+    public val planCode: String,
+    public val quotas: List<SnapshotQuotasItem>,
+    public val revision: Long,
+    public val schemaVersion: Long,
+    public val securityEpoch: Long,
+    public val snapshotId: Identifier,
+    public val status: String,
+    public val workspaceId: Identifier? = null,
+)
+
+public data class SnapshotQuotasItem(
+    public val limit: Long,
+    public val metric: String,
 )
 
 public data class SourceOpenResult(
@@ -796,6 +1067,22 @@ public data class SourceOpenValue(
     public val iaeContentReferenceId: Identifier? = null,
     public val kind: String,
     public val sourceId: Identifier,
+)
+
+public data class Value(
+    public val columns: List<Column>,
+    public val datasetId: Identifier,
+    public val datasetName: String,
+    public val datasetVersionId: Identifier,
+    public val dimension: Dimension? = null,
+    public val generatedAt: UtcTimestamp,
+    public val importId: Identifier,
+    public val measure: Measure? = null,
+    public val rowCount: Long,
+    public val sampleRows: List<SampleRow>,
+    public val sourceCount: Long,
+    public val sourceHashes: List<String>,
+    public val truncated: Boolean,
 )
 
 public data class WidgetResult(

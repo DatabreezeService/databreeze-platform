@@ -12,7 +12,12 @@ COPY services/engine ./engine
 
 RUN python -m pip wheel --wheel-dir /wheels "hatchling==1.31.0"
 RUN python -m pip wheel --wheel-dir /wheels ./contracts
-RUN python -m pip wheel --no-index --find-links /wheels --wheel-dir /wheels ./engine
+# The engine build runs offline in the next layer.  Install the pinned build
+# backend into the build interpreter and disable a second isolated build env;
+# otherwise pip may try to resolve hatchling from the network even though its
+# wheel was deliberately staged in /wheels.
+RUN python -m pip install --no-cache-dir --no-index --find-links /wheels "hatchling==1.31.0" \
+    && python -m pip wheel --no-build-isolation --no-index --find-links /wheels --wheel-dir /wheels ./engine
 
 FROM docker.io/library/python:3.13.7-slim-bookworm@sha256:adafcc17694d715c905b4c7bebd96907a1fd5cf183395f0ebc4d3428bd22d92d AS runtime
 

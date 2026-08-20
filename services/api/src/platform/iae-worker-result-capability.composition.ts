@@ -59,6 +59,7 @@ export class IaeWorkerResultCapabilityAuthorityBridge
   public async issue(
     identity: WorkerIdentityV1,
     preparation: WorkerPreparedResultV1,
+    attemptLeaseExpiresAt: string,
   ): Promise<readonly WorkerResultWriteCapabilityV1[]> {
     const outputs = preparation.outputs.map(authoritativeOutput);
     if (outputs.some((output) => output === undefined))
@@ -70,6 +71,7 @@ export class IaeWorkerResultCapabilityAuthorityBridge
       tenantScope: preparation.tenantScope,
       executionDescriptorId: preparation.descriptorId,
       executionDescriptorHash: preparation.descriptorHash,
+      attemptLeaseExpiresAt,
       outputPolicyHash: preparation.outputPolicyHash,
       outputs: outputs as readonly IaePreparedWorkerResultOutputAuthorityV1[],
     });

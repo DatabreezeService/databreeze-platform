@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/jra-job-history-list-accepted",
+  "$comment": "JRA-001/JRA-012/JRA-013/JRA-014/JRA-029: permission-filtered, metadata-only job history.",
+  "title": "JRA Job History List Accepted",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "accepted", "items"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "accepted": { "const": true },
+    "items": {
+      "type": "array",
+      "maxItems": 100,
+      "items": { "$ref": "https://schemas.databreeze.dev/contracts/v4/jra-job-history-entry" }
+    },
+    "nextCursor": { "$ref": "#/$defs/opaqueCursor" }
+  },
+  "$defs": {
+    "opaqueCursor": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 512,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    }
+  }
+}

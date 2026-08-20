@@ -6,7 +6,7 @@ describe('local Vite development proxy', () => {
   it('defaults API traffic to the loopback API and covers all API prefixes', () => {
     const proxy = createLocalDevProxy();
 
-    expect(Object.keys(proxy)).toEqual(['/v1', '/v3', '/health']);
+    expect(Object.keys(proxy)).toEqual(['/v1', '/v3', '/v4', '/health']);
     expect(proxy['/v1']).toMatchObject({
       target: 'http://127.0.0.1:3000',
       changeOrigin: false,

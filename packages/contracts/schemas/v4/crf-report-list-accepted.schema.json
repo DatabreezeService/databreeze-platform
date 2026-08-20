@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/crf-report-list-accepted",
+  "title": "CRF Report List Accepted",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "accepted", "items"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "accepted": { "const": true },
+    "items": { "type": "array", "maxItems": 50, "items": { "$ref": "https://schemas.databreeze.dev/contracts/v4/crf-report-summary" } },
+    "nextCursor": { "type": "string", "minLength": 16, "maxLength": 512, "pattern": "^[A-Za-z0-9_-]+$" }
+  }
+}

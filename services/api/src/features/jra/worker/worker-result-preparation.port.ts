@@ -96,6 +96,7 @@ export interface WorkerResultWriteCapabilityAuthorityPortV1 {
   issue(
     identity: WorkerIdentityV1,
     preparation: WorkerPreparedResultV1,
+    attemptLeaseExpiresAt: string,
   ): Promise<readonly WorkerResultWriteCapabilityV1[]>;
 }
 export const WORKER_RESULT_WRITE_CAPABILITY_AUTHORITY_PORT = Symbol(

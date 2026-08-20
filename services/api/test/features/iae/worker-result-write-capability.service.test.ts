@@ -48,6 +48,7 @@ function fixture(current = true) {
     tenantScope: scope,
     executionDescriptorId: id('000000000608'),
     executionDescriptorHash: 'a'.repeat(64),
+    attemptLeaseExpiresAt: '2026-08-14T01:05:00.000Z',
     outputPolicyHash: 'b'.repeat(64),
     expiresAt: '2026-08-14T01:05:00.000Z',
     outputs: Object.freeze([

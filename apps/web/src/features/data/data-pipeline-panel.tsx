@@ -11,6 +11,8 @@ export interface DataPipelinePanelProps {
   readonly locale: 'en' | 'vi-VN';
   readonly onApprove: () => void;
   readonly onOpenAgent: () => void;
+  readonly onOpenOriginal?: (sourceId: string) => void;
+  readonly onViewEvidence?: (sourceId: string) => void;
   readonly agentOpen: boolean;
   /** Server-provided card carrying authoritative display labels, when applicable. */
   readonly displayCard?: DatasetCardV1;
@@ -40,6 +42,8 @@ export function DataPipelinePanel({
   locale,
   onApprove,
   onOpenAgent,
+  onOpenOriginal,
+  onViewEvidence,
   agentOpen,
   displayCard,
 }: DataPipelinePanelProps) {
@@ -52,7 +56,9 @@ export function DataPipelinePanel({
       ? undefined
       : record.sources.find((source) => source.sourceId === selectedSourceId);
   const stage = stageIndex(record);
-  const steps = vi ? ['Nạp', 'Chuẩn hóa', 'Xem xét', 'Duyệt'] : ['Ingest', 'Clean', 'Review', 'Approve'];
+  const steps = vi
+    ? ['Nạp', 'Chuẩn hóa', 'Xem xét', 'Duyệt']
+    : ['Ingest', 'Clean', 'Review', 'Approve'];
   const approved = record.cleaningState === 'APPROVED';
   const revisions = record.appliedRevisions ?? [];
   const warnings = record.preparation?.warnings ?? [];
@@ -67,17 +73,21 @@ export function DataPipelinePanel({
             {typeof card.health === 'object' ? (
               <span className="pipeline-panel__state">{card.health.label}</span>
             ) : null}
-            <span className={`pipeline-panel__state pipeline-panel__state--${(record.cleaningState ?? 'RAW').toLowerCase()}`}>
+            <span
+              className={`pipeline-panel__state pipeline-panel__state--${(record.cleaningState ?? 'RAW').toLowerCase()}`}
+            >
               {approved ? (vi ? '🔒 Đã duyệt' : '🔒 Approved') : (record.cleaningState ?? 'RAW')}
             </span>
-            {record.origin === 'SERVER' ? <span className="pipeline-panel__origin">☁ server</span> : null}
+            {record.origin === 'SERVER' ? (
+              <span className="pipeline-panel__origin">☁ server</span>
+            ) : null}
             {card.refresh?.lastSuccessfulLabel !== undefined ? (
               <span className="pipeline-panel__version">{card.refresh.lastSuccessfulLabel}</span>
             ) : null}
           </div>
         </div>
         <div className="pipeline-panel__actions">
-          {!agentOpen ? (
+          {record.origin === 'LOCAL' && !agentOpen ? (
             <button type="button" className="db-button db-button--secondary" onClick={onOpenAgent}>
               ✦ {vi ? 'Trợ lý dữ liệu' : 'Data agent'}
             </button>
@@ -87,7 +97,11 @@ export function DataPipelinePanel({
               type="button"
               className="db-button db-button--primary"
               onClick={onApprove}
-              disabled={(record.cleaningState ?? 'RAW') === 'RAW' && revisions.length === 0 && (record.quality?.validity ?? 1) < 0.5}
+              disabled={
+                (record.cleaningState ?? 'RAW') === 'RAW' &&
+                revisions.length === 0 &&
+                (record.quality?.validity ?? 1) < 0.5
+              }
             >
               🔒 {vi ? 'Duyệt & khóa phiên bản' : 'Approve & lock version'}
             </button>
@@ -104,17 +118,27 @@ export function DataPipelinePanel({
           >
             <span className="pipeline-stage__dot">{index < stage ? '✓' : index + 1}</span>
             <span className="pipeline-stage__name">{step}</span>
-            {index < steps.length - 1 ? <span className="pipeline-stage__connector" aria-hidden="true" /> : null}
+            {index < steps.length - 1 ? (
+              <span className="pipeline-stage__connector" aria-hidden="true" />
+            ) : null}
           </li>
         ))}
       </ol>
 
-      <nav className="pipeline-panel__tabs" aria-label={vi ? 'Chi tiết bộ dữ liệu' : 'Dataset details'}>
+      <nav
+        className="pipeline-panel__tabs"
+        aria-label={vi ? 'Chi tiết bộ dữ liệu' : 'Dataset details'}
+      >
         {(
           [
             ['overview', vi ? 'Tổng quan' : 'Overview'],
             ['data', vi ? 'Dữ liệu' : 'Data'],
-            ['cleaning', vi ? `Chuẩn hóa${revisions.length > 0 ? ` (${revisions.length})` : ''}` : `Cleaning${revisions.length > 0 ? ` (${revisions.length})` : ''}`],
+            [
+              'cleaning',
+              vi
+                ? `Chuẩn hóa${revisions.length > 0 ? ` (${revisions.length})` : ''}`
+                : `Cleaning${revisions.length > 0 ? ` (${revisions.length})` : ''}`,
+            ],
             ['versions', vi ? 'Phiên bản' : 'Versions'],
           ] as const
         ).map(([key, label]) => (
@@ -132,6 +156,13 @@ export function DataPipelinePanel({
 
       {tab === 'overview' ? (
         <div className="pipeline-panel__body">
+          {record.origin === 'SERVER' ? (
+            <p className="pipeline-server-note" role="status">
+              {vi
+                ? 'Phiên bản này được quản lý bởi máy chủ. Yêu cầu chỉnh sửa được thực hiện trong màn hình Xem xét trước khi phê duyệt; không có trợ lý cục bộ giả mạo ở đây.'
+                : 'This version is server-governed. Request corrections in the Review screen before approval; no local-only assistant is shown here.'}
+            </p>
+          ) : null}
           <div className="pipeline-quality-grid">
             {(
               [
@@ -154,7 +185,9 @@ export function DataPipelinePanel({
           <div className="pipeline-facts">
             <div>
               <small>{vi ? 'Dòng hiện tại' : 'Current rows'}</small>
-              <strong>{record.currentVersion.rowCount.toLocaleString(vi ? 'vi-VN' : 'en-US')}</strong>
+              <strong>
+                {record.currentVersion.rowCount.toLocaleString(vi ? 'vi-VN' : 'en-US')}
+              </strong>
             </div>
             <div>
               <small>{vi ? 'Cột' : 'Columns'}</small>
@@ -190,8 +223,8 @@ export function DataPipelinePanel({
                 <OriginalViewer
                   locale={locale}
                   source={selectedSource}
-                  onOpenOriginal={() => undefined}
-                  onViewEvidence={() => undefined}
+                  {...(onOpenOriginal === undefined ? {} : { onOpenOriginal })}
+                  {...(onViewEvidence === undefined ? {} : { onViewEvidence })}
                 />
               ) : null}
             </div>
@@ -221,7 +254,9 @@ export function DataPipelinePanel({
                     <span className="pipeline-revision__index">#{index + 1}</span>
                     <span>{vi ? revision.summaryVi : revision.summaryEn}</span>
                     {revision.lossy ? (
-                      <span className="pipeline-revision__lossy">{vi ? '⚠ cần xác nhận' : '⚠ confirmed'}</span>
+                      <span className="pipeline-revision__lossy">
+                        {vi ? '⚠ cần xác nhận' : '⚠ confirmed'}
+                      </span>
                     ) : (
                       <span className="pipeline-revision__safe">{vi ? '✓ an toàn' : '✓ safe'}</span>
                     )}
@@ -230,7 +265,8 @@ export function DataPipelinePanel({
                     </time>
                   </div>
                   <small>
-                    {vi ? 'Dòng' : 'Rows'}: {revision.rowCountBefore.toLocaleString(vi ? 'vi-VN' : 'en-US')} →{' '}
+                    {vi ? 'Dòng' : 'Rows'}:{' '}
+                    {revision.rowCountBefore.toLocaleString(vi ? 'vi-VN' : 'en-US')} →{' '}
                     {revision.rowCountAfter.toLocaleString(vi ? 'vi-VN' : 'en-US')}
                   </small>
                 </li>
@@ -244,7 +280,9 @@ export function DataPipelinePanel({
             {[...record.versions].reverse().map((version, index) => (
               <li key={version.versionId}>
                 <span className="pipeline-versions__index">
-                  {vi ? `Phiên bản ${record.versions.length - index}` : `Version ${record.versions.length - index}`}
+                  {vi
+                    ? `Phiên bản ${record.versions.length - index}`
+                    : `Version ${record.versions.length - index}`}
                 </span>
                 <span>
                   {version.rowCount.toLocaleString(vi ? 'vi-VN' : 'en-US')} {vi ? 'hàng' : 'rows'} ·{' '}

@@ -1,4 +1,4 @@
-import { Button, Status } from '@databreeze/ui/v1';
+import { Status } from '@databreeze/ui/v1';
 import { useLocale } from '../../app/locale-context.tsx';
 import { appMessage } from '../../app/messages.ts';
 import { getProductModuleCopy, type ProductModuleRegistration } from './product-module-registry.ts';
@@ -18,9 +18,17 @@ export function ProductModuleWorkbench({ module }: { readonly module: ProductMod
           <h1 id={`${module.slug}-heading`}>{copy.name}</h1>
           <p>{copy.description}</p>
         </div>
-        <Button aria-describedby={readinessDescriptionId} disabled>
-          {copy.action}
-        </Button>
+        <div
+          aria-describedby={readinessDescriptionId}
+          className="product-workbench__action-state"
+          role="status"
+        >
+          <span aria-hidden="true" className="product-workbench__action-dot" />
+          <span>
+            <strong>{copy.action}</strong>
+            <small>{appMessage(locale, 'module.readiness.status')}</small>
+          </span>
+        </div>
       </header>
 
       <section aria-labelledby={`${module.slug}-readiness-heading`} className="module-readiness">

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/crf-report-create-accepted",
+  "title": "CRF Report Create Accepted",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "accepted", "report"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "accepted": { "const": true },
+    "report": { "$ref": "https://schemas.databreeze.dev/contracts/v4/crf-report-summary" }
+  }
+}

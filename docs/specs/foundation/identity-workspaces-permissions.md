@@ -168,7 +168,7 @@ The evaluated tenant identifiers come from trusted server-side resource lookup; 
 | IAM-013 | P0 | Service accounts shall be organization-owned, workspace-scoped, action-scoped, non-interactive, and authenticated with hashed rotating secrets or signed keys that show their last-use time. |
 | IAM-014 | P1 | Project membership may only narrow workspace access unless an explicit project guest policy grants access to that project alone; it shall never imply access to sibling projects. |
 | IAM-015 | P1 | Account recovery shall revoke all refresh-token families and require MFA re-enrollment confirmation before privileged actions resume. |
-| IAM-016 | P1 | User locale shall default to Vietnamese (`vi-VN`) while allowing English (`en`) per user without changing stored business values or audit semantics. |
+| IAM-016 | P1 | User locale shall default to Vietnamese (`vi-VN`) while allowing English (`en`) per user without changing stored business values or audit semantics. Display-name and locale preference updates shall be authenticated, revision-guarded, idempotent, and server-owned. |
 | IAM-017 | P1 | Client applications may use permission hints to hide controls, but all authoritative enforcement shall remain server-side. |
 | IAM-018 | P1 | Bulk membership and policy changes shall use idempotency keys, return per-item outcomes, and never partially apply an ownership transfer. |
 | IAM-019 | P0 | Every tenant-owned record and repository operation shall declare either organization or workspace scope, validate the complete tenant ancestry for nested resources, and reject optional, missing, or mismatched tenant filters before data access. |

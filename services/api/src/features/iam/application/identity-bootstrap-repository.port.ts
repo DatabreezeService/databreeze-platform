@@ -18,7 +18,8 @@ export type IdentityBootstrapVisibleOrganizationV1 = OrganizationIdentityV1 & {
 };
 
 export interface IdentityBootstrapVisibleTreeV1 {
-  readonly user: UserIdentityV1;
+  /** Email is only present on the authenticated actor's own bootstrap view. */
+  readonly user: UserIdentityV1 & { readonly email?: string; readonly profileRevision?: number };
   readonly organizations: readonly IdentityBootstrapVisibleOrganizationV1[];
 }
 

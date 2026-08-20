@@ -67,8 +67,8 @@ def published_intake_profile() -> IntakeProfile:
         ),
         xlsx=IntakeXlsxProfile(macrosAllowed=False, externalLinksAllowed=False),
         limits=IntakeLimits(
-            maxBytes=512_000,
-            maxRows=20_000,
+            maxBytes=100 * 1024 * 1024,
+            maxRows=1_000_000,
             maxColumns=256,
             maxSheets=8,
             maxFormulas=500,
@@ -97,7 +97,9 @@ def _inspect_csv(content: bytes, declared_encoding: str | None, profile: IntakeP
         if len(content) >= 2 and content[0:2] in {b"\xff\xfe", b"\xfe\xff"}:
             raise DdaEtlIntakeError("DDA_INTAKE_MALFORMED_ENCODING")
         text = content.decode("latin-1")
-    lines = [line for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n") if line != ""]
+    lines = [
+        line for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n") if line != ""
+    ]
     if not lines:
         raise DdaEtlIntakeError("DDA_INTAKE_UNSUPPORTED_PROFILE")
     columns = len(lines[0].split(","))

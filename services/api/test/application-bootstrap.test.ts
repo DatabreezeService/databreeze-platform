@@ -41,3 +41,32 @@ void test('boots, serves liveness through Fastify injection, and closes without 
     await created.app.close();
   }
 });
+
+void test('[DDA-002] raises the JSON body limit only for data-import creation', async () => {
+  const createApiApplication = await loadFactory();
+  assert.ok(createApiApplication);
+  const created = await createApiApplication();
+  const oversizedJsonField = 'x'.repeat(70 * 1024);
+
+  try {
+    const dataImport = await created.app.inject({
+      method: 'POST',
+      url: '/v1/dda/data-imports',
+      payload: { oversizedJsonField },
+    });
+    assert.equal(dataImport.statusCode, 400);
+
+    const unrelated = await created.app.inject({
+      method: 'POST',
+      url: '/v1/system/compatibility/check',
+      payload: {
+        clientPlatform: 'web',
+        clientVersion: '1.0.0',
+        oversizedJsonField,
+      },
+    });
+    assert.equal(unrelated.statusCode, 413);
+  } finally {
+    await created.app.close();
+  }
+});

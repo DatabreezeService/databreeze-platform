@@ -4,6 +4,14 @@ export type JsonPrimitive = boolean | number | string | null;
 export type JsonValue = JsonPrimitive | readonly JsonValue[] | JsonObject;
 export type JsonObject = { readonly [key: string]: JsonValue };
 
+export interface AiCredits {
+  readonly limit: number;
+  readonly metric: "job_count";
+  readonly remaining: number;
+  readonly reserved: number;
+  readonly used: number;
+}
+
 export interface AnalysisExecuteResult {
   readonly name: "analysis.execute";
   readonly result: AnalysisExecuteValue;
@@ -33,6 +41,12 @@ export interface AnalysisPlanValue {
 
 export interface AvailablePreview {
   readonly available: true;
+}
+
+export interface BuaEntitlementSummary {
+  readonly aiCredits: AiCredits;
+  readonly schemaVersion: 4;
+  readonly snapshot: Snapshot;
 }
 
 export interface BuaPayosCheckoutCommand {
@@ -121,6 +135,12 @@ export interface BuaPayosWebhookEventData {
   readonly virtualAccountNumber?: string;
 }
 
+export interface Column {
+  readonly name: string;
+  readonly nullable: boolean;
+  readonly type: "TEXT" | "INTEGER" | "DECIMAL" | "BOOLEAN" | "DATE";
+}
+
 export interface ContextEvent {
   readonly afterVersionId?: Identifier;
   readonly beforeVersionId?: Identifier;
@@ -144,6 +164,107 @@ export interface CountGroup {
 export interface CountPoint {
   readonly count: NonNegativeInteger;
   readonly month: Month;
+}
+
+export interface CrfReportCreateAccepted {
+  readonly accepted: true;
+  readonly report: CrfReportSummary;
+  readonly schemaVersion: 4;
+}
+
+export interface CrfReportCreateCommand {
+  readonly clientId: Identifier;
+  readonly datasetId: Identifier;
+  readonly datasetVersionId: Identifier;
+  readonly name: string;
+  readonly period: string;
+  readonly schemaVersion: 4;
+  readonly supportedFormats: readonly ("DOCX" | "PPTX" | "XLSX" | "PDF" | "WEB")[];
+}
+
+export interface CrfReportDetailAccepted {
+  readonly accepted: true;
+  readonly report: CrfReportDetailAcceptedReport;
+  readonly schemaVersion: 4;
+}
+
+export interface CrfReportDetailAcceptedReport {
+  readonly blockCount: number;
+  readonly clientId: Identifier;
+  readonly datasetId: Identifier;
+  readonly datasetVersionId: Identifier;
+  readonly latestRun?: CrfReportDetailAcceptedReportLatestRun;
+  readonly latestRunStatus?: "QUEUED" | "RUNNING" | "BLOCKED" | "REVIEW" | "RELEASED" | "FAILED";
+  readonly name: string;
+  readonly period: string;
+  readonly reportId: Identifier;
+  readonly reportVersion: number;
+  readonly schemaVersion: 4;
+  readonly status: "DRAFT" | "RUNNING" | "REVIEW" | "RELEASED" | "WITHDRAWN" | "BLOCKED";
+  readonly supportedFormats: readonly ("DOCX" | "PPTX" | "XLSX" | "PDF" | "WEB")[];
+  readonly templateId: Identifier;
+  readonly templateVersion: number;
+  readonly updatedAt: UtcTimestamp;
+}
+
+export interface CrfReportDetailAcceptedReportLatestRun {
+  readonly createdAt: UtcTimestamp;
+  readonly finishedAt?: UtcTimestamp;
+  readonly reportVersion: number;
+  readonly runId: Identifier;
+  readonly status: "QUEUED" | "RUNNING" | "BLOCKED" | "REVIEW" | "RELEASED" | "FAILED";
+}
+
+export interface CrfReportListAccepted {
+  readonly accepted: true;
+  readonly items: readonly CrfReportSummary[];
+  readonly nextCursor?: string;
+  readonly schemaVersion: 4;
+}
+
+export interface CrfReportRunDetailAccepted {
+  readonly accepted: true;
+  readonly run: CrfReportRunDetailAcceptedRun;
+  readonly schemaVersion: 4;
+}
+
+export interface CrfReportRunDetailAcceptedRun {
+  readonly createdAt: UtcTimestamp;
+  readonly evidence: CrfReportRunDetailAcceptedRunEvidence;
+  readonly finishedAt?: UtcTimestamp;
+  readonly frozen: true;
+  readonly jraBound?: boolean;
+  readonly outputs: readonly CrfReportRunDetailAcceptedRunOutputsItem[];
+  readonly reportId: Identifier;
+  readonly reportVersion: number;
+  readonly runId: Identifier;
+  readonly status: "QUEUED" | "RUNNING" | "BLOCKED" | "REVIEW" | "RELEASED" | "FAILED";
+}
+
+export interface CrfReportRunDetailAcceptedRunEvidence {
+  readonly complete: boolean;
+  readonly factCount: number;
+  readonly referenceCount: number;
+}
+
+export interface CrfReportRunDetailAcceptedRunOutputsItem {
+  readonly failureCode?: string;
+  readonly format: "DOCX" | "PPTX" | "XLSX" | "PDF" | "WEB";
+  readonly state: "PENDING" | "READY" | "FAILED" | "WITHDRAWN";
+}
+
+export interface CrfReportSummary {
+  readonly clientId: Identifier;
+  readonly datasetId: Identifier;
+  readonly datasetVersionId: Identifier;
+  readonly latestRunStatus?: "QUEUED" | "RUNNING" | "BLOCKED" | "REVIEW" | "RELEASED" | "FAILED";
+  readonly name: string;
+  readonly period: string;
+  readonly reportId: Identifier;
+  readonly reportVersion: number;
+  readonly schemaVersion: 4;
+  readonly status: "DRAFT" | "RUNNING" | "REVIEW" | "RELEASED" | "WITHDRAWN" | "BLOCKED";
+  readonly updatedAt: UtcTimestamp;
 }
 
 export interface DashboardApplyConfirmedResult {
@@ -270,6 +391,62 @@ export interface DdaDashboardWidgetResultsAccepted {
   readonly widgets: readonly WidgetResult[];
 }
 
+export interface DdaDataImportDashboardPreview {
+  readonly accepted: true;
+  readonly schemaVersion: 4;
+  readonly value: Value;
+}
+
+export interface DdaNotificationPreferencesAccepted {
+  readonly preferences: readonly DdaNotificationPreferencesAcceptedPreferencesItem[];
+  readonly revision: number;
+  readonly schemaVersion: 4;
+}
+
+export interface DdaNotificationPreferencesAcceptedPreferencesItem {
+  readonly category: "REVIEWS" | "DATA" | "DASHBOARDS" | "USAGE" | "SECURITY" | "BILLING" | "SYSTEM";
+  readonly channel: "IN_APP" | "EMAIL" | "PUSH" | "DESKTOP";
+  readonly deliveryMode: "IMMEDIATE" | "DIGEST";
+  readonly enabled: boolean;
+  readonly mandatory: boolean;
+  readonly minimumUrgency: "LOW" | "NORMAL" | "HIGH" | "CRITICAL";
+  readonly quietHours: DdaNotificationPreferencesAcceptedQuietHours;
+  readonly timezone: string;
+}
+
+export interface DdaNotificationPreferencesAcceptedQuietHours {
+  readonly enabled: boolean;
+  readonly end: string;
+  readonly start: string;
+}
+
+export interface DdaNotificationPreferencesCommand {
+  readonly expectedRevision: number;
+  readonly preferences: readonly DdaNotificationPreferencesCommandPreferencesItem[];
+  readonly schemaVersion: 4;
+}
+
+export interface DdaNotificationPreferencesCommandPreferencesItem {
+  readonly category: "REVIEWS" | "DATA" | "DASHBOARDS" | "USAGE" | "SECURITY" | "BILLING" | "SYSTEM";
+  readonly channel: "IN_APP" | "EMAIL" | "PUSH" | "DESKTOP";
+  readonly deliveryMode: "IMMEDIATE" | "DIGEST";
+  readonly enabled: boolean;
+  readonly minimumUrgency: "LOW" | "NORMAL" | "HIGH" | "CRITICAL";
+  readonly quietHours: DdaNotificationPreferencesCommandQuietHours;
+  readonly timezone: string;
+}
+
+export interface DdaNotificationPreferencesCommandQuietHours {
+  readonly enabled: boolean;
+  readonly end: string;
+  readonly start: string;
+}
+
+export interface Dimension {
+  readonly field: string;
+  readonly groups: readonly Group[];
+}
+
 export interface EtlProposeCorrectionResult {
   readonly name: "etl.proposeCorrection";
   readonly result: EtlProposeCorrectionValue;
@@ -348,6 +525,12 @@ export interface Freshness {
   readonly pendingDurationMs?: number;
   readonly reasonCode?: string;
   readonly state: "CURRENT" | "PENDING" | "STALE" | "BLOCKED" | "SOURCE_UNAVAILABLE";
+}
+
+export interface Group {
+  readonly count: number;
+  readonly label: string;
+  readonly total?: number;
 }
 
 export type GroupKey = string;
@@ -431,9 +614,11 @@ export type IamBootstrapSession = IamBootstrapOrganizationSession | IamBootstrap
 
 export interface IamBootstrapUser {
   readonly displayName: string;
+  readonly email?: string;
   readonly id: Identifier;
   readonly locale: "vi-VN" | "en";
   readonly mfaState: "ENABLED" | "NOT_CONFIGURED";
+  readonly profileRevision?: number;
 }
 
 export interface IamBootstrapValue {
@@ -476,6 +661,25 @@ export interface IamPasswordSignInCommand {
   readonly clientPlatform: "android" | "desktop" | "web";
   readonly email: string;
   readonly password: string;
+  readonly schemaVersion: 4;
+}
+
+export interface IamProfileUpdateAccepted {
+  readonly schemaVersion: 4;
+  readonly user: IamProfileUpdateAcceptedUser;
+}
+
+export interface IamProfileUpdateAcceptedUser {
+  readonly displayName: string;
+  readonly id: Identifier;
+  readonly locale: "vi-VN" | "en";
+  readonly revision: number;
+}
+
+export interface IamProfileUpdateCommand {
+  readonly displayName: string;
+  readonly expectedRevision: number;
+  readonly locale: "vi-VN" | "en";
   readonly schemaVersion: 4;
 }
 
@@ -529,6 +733,33 @@ export interface IamWorkspaceCreateCommand {
 }
 
 export type Identifier = string;
+
+export interface JraJobHistoryDetailAccepted {
+  readonly accepted: true;
+  readonly job: JraJobHistoryEntry;
+  readonly schemaVersion: 4;
+}
+
+export interface JraJobHistoryEntry {
+  readonly actionType: string;
+  readonly actionVersion: number;
+  readonly approvalState: "NOT_APPLICABLE" | "PENDING" | "APPROVED" | "REJECTED";
+  readonly createdAt: UtcTimestamp;
+  readonly finishedAt?: UtcTimestamp;
+  readonly jobId: Identifier;
+  readonly resultAvailable: boolean;
+  readonly revision: number;
+  readonly schemaVersion: 4;
+  readonly startedAt?: UtcTimestamp;
+  readonly state: "CREATED" | "QUEUED" | "WAITING_FOR_DEVICE" | "DISPATCHED" | "RUNNING" | "NEEDS_REVIEW" | "AWAITING_APPROVAL" | "SUCCEEDED" | "PARTIALLY_SUCCEEDED" | "FAILED" | "CANCEL_REQUESTED" | "CANCELLED" | "EXPIRED";
+}
+
+export interface JraJobHistoryListAccepted {
+  readonly accepted: true;
+  readonly items: readonly JraJobHistoryEntry[];
+  readonly nextCursor?: OpaqueCursor;
+  readonly schemaVersion: 4;
+}
 
 export interface JraWorkerDashboardWidgetResultOutput {
   readonly kind: "DASHBOARD_WIDGET_RESULT";
@@ -598,9 +829,19 @@ export interface LfbLandingFeedbackCommand {
   readonly schemaVersion: 4;
 }
 
+export interface Measure {
+  readonly average: number;
+  readonly field: string;
+  readonly maximum: number;
+  readonly minimum: number;
+  readonly sum: number;
+}
+
 export type Month = string;
 
 export type NonNegativeInteger = number;
+
+export type OpaqueCursor = string;
 
 export interface PlatformAdminFeedbacks {
   readonly feedbacks: readonly Feedback[];
@@ -748,9 +989,39 @@ export interface RevenuePoint {
 
 export type Revision = number;
 
+export interface SampleCell {
+  readonly field: string;
+  readonly kind: "TEXT" | "NUMBER" | "BOOLEAN" | "EMPTY";
+  readonly value: string;
+}
+
+export interface SampleRow {
+  readonly cells: readonly SampleCell[];
+}
+
 export interface SchemaField {
   readonly field: string;
   readonly type: string;
+}
+
+export interface Snapshot {
+  readonly effectiveAt: UtcTimestamp;
+  readonly expiresAt?: UtcTimestamp;
+  readonly features: readonly string[];
+  readonly organizationId: Identifier;
+  readonly planCode: "free" | "development" | "admin_granted" | "personal-monthly" | "personal-annual" | "professional-monthly" | "professional-annual" | "team-monthly" | "team-annual";
+  readonly quotas: readonly SnapshotQuotasItem[];
+  readonly revision: number;
+  readonly schemaVersion: 1;
+  readonly securityEpoch: number;
+  readonly snapshotId: Identifier;
+  readonly status: "ACTIVE" | "SUSPENDED" | "EXPIRED";
+  readonly workspaceId?: Identifier;
+}
+
+export interface SnapshotQuotasItem {
+  readonly limit: number;
+  readonly metric: "artifact_bytes" | "processing_seconds" | "job_count" | "member_count" | "ocr_pages";
 }
 
 export interface SourceOpenResult {
@@ -771,6 +1042,22 @@ export type ToolCallId = string;
 export type ToolResult = DatasetDescribeResult | DatasetSampleResult | AnalysisPlanResult | AnalysisExecuteResult | DashboardProposeResult | DashboardApplyConfirmedResult | DashboardExplainValueResult | EvidenceResolveResult | SourceOpenResult | EtlProposeCorrectionResult;
 
 export type UtcTimestamp = string;
+
+export interface Value {
+  readonly columns: readonly Column[];
+  readonly datasetId: Identifier;
+  readonly datasetName: string;
+  readonly datasetVersionId: Identifier;
+  readonly dimension?: Dimension;
+  readonly generatedAt: UtcTimestamp;
+  readonly importId: Identifier;
+  readonly measure?: Measure;
+  readonly rowCount: number;
+  readonly sampleRows: readonly SampleRow[];
+  readonly sourceCount: number;
+  readonly sourceHashes: readonly string[];
+  readonly truncated: boolean;
+}
 
 export interface WidgetResult {
   readonly resultState: "READY" | "EMPTY" | "SAMPLED" | "TRUNCATED" | "STALE";
@@ -832,7 +1119,7 @@ export interface WorkerResultBinding {
   readonly outputSchemaId: FinalizeSafeName;
 }
 
-export type ContractV4SchemaId = "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-command" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-session" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-payment-status" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-plan-catalog" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-webhook-event" | "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-command" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-list-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-load-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-summary" | "https://schemas.databreeze.dev/contracts/v4/dda-dashboard-widget-results-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-auth-session" | "https://schemas.databreeze.dev/contracts/v4/iam-bootstrap-response" | "https://schemas.databreeze.dev/contracts/v4/iam-email-verification-command" | "https://schemas.databreeze.dev/contracts/v4/iam-password-sign-in-command" | "https://schemas.databreeze.dev/contracts/v4/iam-registration-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-registration-command" | "https://schemas.databreeze.dev/contracts/v4/iam-scope-switch-command" | "https://schemas.databreeze.dev/contracts/v4/iam-workspace-create-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-workspace-create-command" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-dashboard-widget-result-output" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-finalize-accepted" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-finalize-command" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-prepare-accepted" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-prepare-command" | "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-accepted" | "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-command" | "https://schemas.databreeze.dev/contracts/v4/platform-admin-feedbacks" | "https://schemas.databreeze.dev/contracts/v4/platform-admin-overview";
+export type ContractV4SchemaId = "https://schemas.databreeze.dev/contracts/v4/bua-entitlement-summary" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-command" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-session" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-payment-status" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-plan-catalog" | "https://schemas.databreeze.dev/contracts/v4/bua-payos-webhook-event" | "https://schemas.databreeze.dev/contracts/v4/crf-report-create-accepted" | "https://schemas.databreeze.dev/contracts/v4/crf-report-create-command" | "https://schemas.databreeze.dev/contracts/v4/crf-report-detail-accepted" | "https://schemas.databreeze.dev/contracts/v4/crf-report-list-accepted" | "https://schemas.databreeze.dev/contracts/v4/crf-report-run-detail-accepted" | "https://schemas.databreeze.dev/contracts/v4/crf-report-summary" | "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-command" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-list-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-load-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-conversation-summary" | "https://schemas.databreeze.dev/contracts/v4/dda-dashboard-widget-results-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-data-import-dashboard-preview" | "https://schemas.databreeze.dev/contracts/v4/dda-notification-preferences-accepted" | "https://schemas.databreeze.dev/contracts/v4/dda-notification-preferences-command" | "https://schemas.databreeze.dev/contracts/v4/iam-auth-session" | "https://schemas.databreeze.dev/contracts/v4/iam-bootstrap-response" | "https://schemas.databreeze.dev/contracts/v4/iam-email-verification-command" | "https://schemas.databreeze.dev/contracts/v4/iam-password-sign-in-command" | "https://schemas.databreeze.dev/contracts/v4/iam-profile-update-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-profile-update-command" | "https://schemas.databreeze.dev/contracts/v4/iam-registration-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-registration-command" | "https://schemas.databreeze.dev/contracts/v4/iam-scope-switch-command" | "https://schemas.databreeze.dev/contracts/v4/iam-workspace-create-accepted" | "https://schemas.databreeze.dev/contracts/v4/iam-workspace-create-command" | "https://schemas.databreeze.dev/contracts/v4/jra-job-history-detail-accepted" | "https://schemas.databreeze.dev/contracts/v4/jra-job-history-entry" | "https://schemas.databreeze.dev/contracts/v4/jra-job-history-list-accepted" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-dashboard-widget-result-output" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-finalize-accepted" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-finalize-command" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-prepare-accepted" | "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-prepare-command" | "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-accepted" | "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-command" | "https://schemas.databreeze.dev/contracts/v4/platform-admin-feedbacks" | "https://schemas.databreeze.dev/contracts/v4/platform-admin-overview";
 
 export type ContractV4ParseResult<TValue = unknown> =
   | { readonly accepted: true; readonly value: TValue }

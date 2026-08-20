@@ -54,6 +54,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "sa"/);
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "dda"/);
   assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "lfb"/);
+  assert.match(diff.stdout, /CREATE SCHEMA IF NOT EXISTS "crf"/);
   assert.match(diff.stdout, /CREATE TABLE "platform"\."schema_registry"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."users"/);
   assert.match(diff.stdout, /CREATE TABLE "iae"\."artifact_versions"/);
@@ -105,6 +106,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "iam"\."invitation_delivery_failures"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."workspace_dataset_restrictions"/);
   assert.match(diff.stdout, /CREATE TABLE "iam"\."platform_operators"/);
+  assert.match(diff.stdout, /CREATE TABLE "iam"\."profile_mutation_receipts"/);
   assert.match(diff.stdout, /CREATE TABLE "bua"\."entitlement_leases"/);
   assert.match(diff.stdout, /CREATE TABLE "bua"\."result_usage_settlement_bindings"/);
   assert.match(diff.stdout, /CREATE TABLE "bua"\."payment_orders"/);
@@ -114,6 +116,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
   assert.match(diff.stdout, /CREATE TABLE "bua"\."payment_audit_events"/);
   assert.match(diff.stdout, /CREATE TABLE "aud"\."audit_seal_attestations"/);
   assert.match(diff.stdout, /CREATE TABLE "lfb"\."landing_feedbacks"/);
+  assert.match(diff.stdout, /CREATE TABLE "crf"\."report_definitions"/);
 
   const migrationsDirectory = path.join(apiDirectory, 'prisma', 'migrations');
   const inventory = (await readdir(migrationsDirectory)).sort();
@@ -198,6 +201,10 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260815010000_mobile_control_plane',
     '20260816010000_iam_platform_operators',
     '20260817010000_lfb_landing_feedbacks',
+    '20260818010000_crf_report_factory',
+    '20260818020000_iam_profile_mutations',
+    '20260818030000_dda_notification_preferences',
+    '20260819010000_jra_execution_workload_envelopes',
     'migration_lock.toml',
   ]);
   const migration = await readFile(

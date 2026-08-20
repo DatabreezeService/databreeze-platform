@@ -1,5 +1,6 @@
 import {
   tenantScopeContainsV1,
+  tenantScopesEqualV1,
   type EntitlementPlanV1,
   type EntitlementSnapshotV1,
   type TenantScopeV1,
@@ -116,6 +117,28 @@ export class InMemoryEntitlementRepositoryAdapter implements EntitlementReposito
       : undefined;
   }
 
+  async findCurrentSnapshot(
+    context: IamTenantContextV1,
+  ): Promise<EntitlementSnapshotV1 | undefined> {
+    await Promise.resolve();
+    const targetScope =
+      context.tenantScope.scopeType === 'project'
+        ? {
+            scopeType: 'workspace' as const,
+            organizationId: context.tenantScope.organizationId,
+            workspaceId: context.tenantScope.workspaceId,
+          }
+        : context.tenantScope;
+    const snapshot = [...this.snapshots.values()]
+      .filter(
+        (candidate) =>
+          candidate.status === 'ACTIVE' &&
+          tenantScopesEqualV1(snapshotScope(candidate), targetScope),
+      )
+      .sort((left, right) => right.revision - left.revision)[0];
+    return snapshot ? cloneSnapshot(snapshot) : undefined;
+  }
+
   async listUsageState(context: IamTenantContextV1): Promise<UsageLedgerStateV1> {
     await Promise.resolve();
     return cloneState({
@@ -205,6 +228,7 @@ export class InMemoryEntitlementRepositoryAdapter implements EntitlementReposito
         findPlan: this.findPlan.bind(this),
         saveSnapshot: this.saveSnapshot.bind(this),
         findSnapshot: this.findSnapshot.bind(this),
+        findCurrentSnapshot: this.findCurrentSnapshot.bind(this),
         listUsageState: this.listUsageState.bind(this),
         persistUsageState: this.persistUsageState.bind(this),
       });

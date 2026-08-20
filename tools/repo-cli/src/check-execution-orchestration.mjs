@@ -5,7 +5,7 @@ import process from 'node:process';
 const expectedPlans = new Map([
   ['010', ['010-engineering-foundation.md', 0]],
   ['020', ['020-identity-audit-entitlements.md', 67]],
-  ['030', ['030-artifacts-datasets-evidence.md', 47]],
+  ['030', ['030-artifacts-datasets-evidence.md', 49]],
   ['040', ['040-jobs-processing-approvals.md', 30]],
   ['050', ['050-devices-sync-offline.md', 76]],
   ['060', ['060-collaboration-integrations.md', 46]],
@@ -23,7 +23,8 @@ const expectedPlans = new Map([
   ['400', ['400-production-readiness.md', 23]],
   ['500', ['500-post-ga-extensions.md', 13]],
 ]);
-const expectedPriorityTotals = { P0: 455, P1: 154, P2: 13 };
+const expectedPriorityTotals = { P0: 466, P1: 154, P2: 13 };
+const expectedLegacyPriorityTotals = { P0: 470, P1: 154, P2: 13 };
 const expectedReviewPolicy = {
   commitBudget: { hardMaximum: 79, preferredMaximum: 50, preferredMinimum: 30 },
   featurePullRequest: { base: 'dev', codeRabbit: false, mergeAfterHostedChecks: true },
@@ -332,13 +333,13 @@ function run(argumentsList) {
   if (!sameJson(ledger.reviewPolicy, expectedReviewPolicy)) {
     diagnostics.push('reviewPolicy does not preserve the approved dev/main/CodeRabbit flow');
   }
-  if (ledger.requirementTotals?.total !== 622) {
+  if (ledger.requirementTotals?.total !== 633) {
     diagnostics.push(
-      `ledger requirement total is ${ledger.requirementTotals?.total}; expected 622`,
+      `ledger requirement total is ${ledger.requirementTotals?.total}; expected 633`,
     );
   }
   if (!sameJson(ledger.requirementTotals?.byPriority, expectedPriorityTotals)) {
-    diagnostics.push('ledger priority totals differ from P0=455, P1=154, P2=13');
+    diagnostics.push('ledger priority totals differ from P0=466, P1=154, P2=13');
   }
 
   const plans = Array.isArray(ledger.plans) ? ledger.plans : [];
@@ -398,9 +399,9 @@ function run(argumentsList) {
       }
     }
   }
-  if (legacyRequirements.length !== 622)
+  if (legacyRequirements.length !== 637)
     diagnostics.push(`legacy traceability has ${legacyRequirements.length} requirements`);
-  if (!sameJson(priorityCounts, expectedPriorityTotals)) {
+  if (!sameJson(priorityCounts, expectedLegacyPriorityTotals)) {
     diagnostics.push(`traceability priority totals are ${JSON.stringify(priorityCounts)}`);
   }
 

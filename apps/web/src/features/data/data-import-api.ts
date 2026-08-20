@@ -1,4 +1,17 @@
 import { dataApiBaseConfiguration } from './data-api-config.ts';
+import { parseV4Contract, type DdaDataImportDashboardPreview } from '@databreeze/contracts/v4';
+import { createSessionAwareFetchV1 } from '../auth/auth-session.ts';
+
+/** Keep the client response boundary aligned with the server's 100 MiB import limit. */
+export const MAX_DATA_IMPORT_FILE_BYTES = 100 * 1024 * 1024;
+/** Keep the live drawer aligned with the server-owned data-import endpoint. */
+export const MAX_SERVER_TABULAR_FILE_BYTES = MAX_DATA_IMPORT_FILE_BYTES;
+
+/** Divisible by three so independently encoded chunks concatenate to canonical base64. */
+const BASE64_CHUNK_BYTES = 24 * 1024;
+const UTF8_VALIDATION_CHUNK_BYTES = 64 * 1024;
+
+export type DataImportDeclaredEncodingV1 = 'utf-8' | 'utf-8-sig' | 'windows-1258';
 
 export type DataImportDestinationV1 =
   | { readonly kind: 'NEW_DATASET' }
@@ -67,6 +80,27 @@ export interface DataImportRecordV1 {
   readonly updatedAt: string;
 }
 
+export interface DataImportMappingSuggestionV1 {
+  readonly label: string;
+  readonly summary: string;
+  readonly sourceField: string;
+  readonly targetField: string;
+  readonly transformKind: string;
+  readonly alternatives: readonly string[];
+  readonly rationale: string;
+  readonly uncertainty: 'LOW' | 'MEDIUM' | 'HIGH';
+  readonly authoritative: false;
+}
+
+export interface DataImportMappingSuggestionsV1 {
+  readonly importId: string;
+  readonly revision: number;
+  readonly suggestions: readonly DataImportMappingSuggestionV1[];
+  readonly adapterUsed: boolean;
+  readonly authoritative: false;
+  readonly generatedAt: string;
+}
+
 export class DataImportApiError extends Error {
   override readonly cause: 'network' | 'server';
   readonly status: number;
@@ -92,9 +126,13 @@ export interface CreateDataImportInputV1 {
   readonly files: readonly {
     readonly fileName: string;
     readonly claimedMediaType: string;
+    readonly declaredEncoding?: DataImportDeclaredEncodingV1;
     readonly contentBase64: string;
   }[];
 }
+
+const DASHBOARD_PREVIEW_SCHEMA =
+  'https://schemas.databreeze.dev/contracts/v4/dda-data-import-dashboard-preview' as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -131,7 +169,7 @@ function parseSource(value: unknown): DataImportSourceV1 {
     typeof value['byteSize'] !== 'number' ||
     !Number.isSafeInteger(value['byteSize']) ||
     value['byteSize'] < 1 ||
-    value['byteSize'] > 512_000 ||
+    value['byteSize'] > MAX_DATA_IMPORT_FILE_BYTES ||
     typeof value['rowCount'] !== 'number' ||
     !Number.isSafeInteger(value['rowCount']) ||
     value['rowCount'] < 0 ||
@@ -246,6 +284,63 @@ function parseRecord(value: unknown): DataImportRecordV1 {
   });
 }
 
+function parseMappingSuggestions(value: unknown): DataImportMappingSuggestionsV1 {
+  if (
+    !isRecord(value) ||
+    !identifier(value['importId']) ||
+    typeof value['revision'] !== 'number' ||
+    !Number.isSafeInteger(value['revision']) ||
+    value['revision'] < 1 ||
+    !Array.isArray(value['suggestions']) ||
+    typeof value['adapterUsed'] !== 'boolean' ||
+    value['authoritative'] !== false ||
+    !timestamp(value['generatedAt']) ||
+    value['suggestions'].length > 20
+  )
+    throw new DataImportApiError(502, 'DATA_IMPORT_INVALID');
+  const suggestions = value['suggestions'].map((candidate): DataImportMappingSuggestionV1 => {
+    if (
+      !isRecord(candidate) ||
+      !safeText(candidate['label'], 128) ||
+      !safeText(candidate['summary'], 512) ||
+      !safeText(candidate['sourceField'], 128) ||
+      !safeText(candidate['targetField'], 128) ||
+      !safeText(candidate['transformKind'], 64) ||
+      !Array.isArray(candidate['alternatives']) ||
+      candidate['alternatives'].length > 5 ||
+      !candidate['alternatives'].every((item) => safeText(item, 128)) ||
+      !safeText(candidate['rationale'], 512) ||
+      !['LOW', 'MEDIUM', 'HIGH'].includes(String(candidate['uncertainty'])) ||
+      candidate['authoritative'] !== false
+    )
+      throw new DataImportApiError(502, 'DATA_IMPORT_INVALID');
+    return Object.freeze({
+      label: candidate['label'],
+      summary: candidate['summary'],
+      sourceField: candidate['sourceField'],
+      targetField: candidate['targetField'],
+      transformKind: candidate['transformKind'],
+      alternatives: Object.freeze(
+        candidate['alternatives'].map((item) => {
+          if (!safeText(item, 128)) throw new DataImportApiError(502, 'DATA_IMPORT_INVALID');
+          return item;
+        }),
+      ),
+      rationale: candidate['rationale'],
+      uncertainty: candidate['uncertainty'] as DataImportMappingSuggestionV1['uncertainty'],
+      authoritative: false as const,
+    });
+  });
+  return Object.freeze({
+    importId: value['importId'],
+    revision: value['revision'],
+    suggestions: Object.freeze(suggestions),
+    adapterUsed: value['adapterUsed'],
+    authoritative: false as const,
+    generatedAt: value['generatedAt'],
+  });
+}
+
 function parseEnvelope(value: unknown): {
   readonly value: DataImportRecordV1;
   readonly replayed: boolean;
@@ -263,9 +358,13 @@ async function request(
   init: RequestInit,
   baseUrl = dataApiBaseConfiguration().baseUrl,
 ): Promise<unknown> {
+  const fetcher = createSessionAwareFetchV1({
+    apiBaseUrl: baseUrl,
+    fetcher: globalThis.fetch.bind(globalThis),
+  });
   let response: Response;
   try {
-      response = await fetch(`${baseUrl}${path}`, {
+    response = await fetcher(`${baseUrl}${path}`, {
       ...init,
       credentials: 'include',
       headers: {
@@ -277,7 +376,22 @@ async function request(
   } catch {
     throw new DataImportApiError(503, 'DATA_IMPORT_UNAVAILABLE', 'network');
   }
-  if (!response.ok) throw new DataImportApiError(response.status);
+  if (!response.ok) {
+    let code: string | undefined;
+    try {
+      const body: unknown = await response.json();
+      if (
+        isRecord(body) &&
+        typeof body['code'] === 'string' &&
+        /^[A-Z][A-Z0-9_.-]{2,95}$/u.test(body['code'])
+      ) {
+        code = body['code'];
+      }
+    } catch {
+      // Preserve the bounded generic error when the server has no JSON body.
+    }
+    throw new DataImportApiError(response.status, code);
+  }
   try {
     return await response.json();
   } catch {
@@ -369,27 +483,94 @@ export const dataImportApi = Object.freeze({
       }),
     );
   },
+  async dashboardPreview(
+    importId: string,
+    baseUrl = dataApiBaseConfiguration().baseUrl,
+  ): Promise<DdaDataImportDashboardPreview['value']> {
+    if (!identifier(importId)) throw new DataImportApiError(400, 'DATA_IMPORT_INVALID');
+    const raw = await request(
+      `/v1/dda/data-imports/${encodeURIComponent(importId)}/dashboard-preview`,
+      { method: 'GET' },
+      baseUrl,
+    );
+    const parsed = parseV4Contract<DdaDataImportDashboardPreview>(DASHBOARD_PREVIEW_SCHEMA, raw);
+    if (!parsed.accepted) throw new DataImportApiError(502, 'DATA_IMPORT_INVALID');
+    return parsed.value.value;
+  },
+  async mappingSuggestions(
+    importId: string,
+    samplePermissionGranted: boolean,
+    locale: 'vi' | 'en' = 'vi',
+  ): Promise<DataImportMappingSuggestionsV1> {
+    if (!identifier(importId) || typeof samplePermissionGranted !== 'boolean') {
+      throw new DataImportApiError(400, 'DATA_IMPORT_INVALID');
+    }
+    const envelope = await request(
+      `/v1/dda/data-imports/${encodeURIComponent(importId)}/mapping-suggestions`,
+      {
+        method: 'POST',
+        headers: { 'Idempotency-Key': `mapping:${importId}` },
+        body: JSON.stringify({ samplePermissionGranted, locale }),
+      },
+    );
+    if (!isRecord(envelope) || envelope['accepted'] !== true || !isRecord(envelope['value'])) {
+      throw new DataImportApiError(502, 'DATA_IMPORT_INVALID');
+    }
+    return parseMappingSuggestions(envelope['value']);
+  },
 });
 
-export async function filesToDataImportFiles(files: readonly {
-  readonly name: string;
-  readonly type: string;
-  readonly arrayBuffer: () => Promise<ArrayBuffer>;
-}[]) {
+export async function filesToDataImportFiles(
+  files: readonly {
+    readonly name: string;
+    readonly type: string;
+    readonly arrayBuffer: () => Promise<ArrayBuffer>;
+  }[],
+) {
   const result: CreateDataImportInputV1['files'][number][] = [];
   for (const file of files) {
     const bytes = await file.arrayBuffer();
-    let binary = '';
-    for (const value of new Uint8Array(bytes)) binary += String.fromCharCode(value);
+    const byteView = new Uint8Array(bytes);
+    const byteLength = byteView.byteLength;
+    const isXlsx =
+      file.name.toLowerCase().endsWith('.xlsx') ||
+      file.type.toLowerCase().includes('spreadsheetml.sheet');
+    let declaredEncoding: DataImportDeclaredEncodingV1 | undefined;
+    if (!isXlsx) {
+      let validUtf8 = true;
+      try {
+        const decoder = new TextDecoder('utf-8', { fatal: true });
+        for (let offset = 0; offset < byteLength; offset += UTF8_VALIDATION_CHUNK_BYTES) {
+          decoder.decode(
+            byteView.subarray(offset, Math.min(offset + UTF8_VALIDATION_CHUNK_BYTES, byteLength)),
+            { stream: true },
+          );
+        }
+        decoder.decode();
+      } catch {
+        validUtf8 = false;
+      }
+      declaredEncoding = validUtf8
+        ? byteLength >= 3 && byteView[0] === 0xef && byteView[1] === 0xbb && byteView[2] === 0xbf
+          ? 'utf-8-sig'
+          : 'utf-8'
+        : 'windows-1258';
+    }
+    const encodedChunks: string[] = [];
+    for (let offset = 0; offset < byteLength; offset += BASE64_CHUNK_BYTES) {
+      const chunk = byteView.subarray(offset, Math.min(offset + BASE64_CHUNK_BYTES, byteLength));
+      encodedChunks.push(btoa(String.fromCharCode(...chunk)));
+    }
     result.push(
       Object.freeze({
         fileName: file.name,
         claimedMediaType:
           file.type ||
-          (file.name.toLowerCase().endsWith('.xlsx')
+          (isXlsx
             ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             : 'text/csv'),
-        contentBase64: btoa(binary),
+        ...(declaredEncoding === undefined ? {} : { declaredEncoding }),
+        contentBase64: encodedChunks.join(''),
       }),
     );
   }

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 4,
+  "accepted": true,
+  "items": [],
+  "tenantScope": {
+    "scopeType": "workspace",
+    "organizationId": "00000000-0000-4000-8000-000000000902",
+    "workspaceId": "00000000-0000-4000-8000-000000000903"
+  }
+}

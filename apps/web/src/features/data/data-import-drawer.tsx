@@ -20,15 +20,24 @@ export interface DataImportDrawerProps {
   readonly initialFiles?: readonly File[];
   readonly projects?: readonly { readonly projectId: string; readonly label: string }[];
   readonly defaultProjectId?: string;
+  /** Live intake follows the server profile; demo keeps the local parser limit. */
+  readonly maxFileBytes?: number;
 }
 
 const ACCEPTED_EXTENSION = /\.(csv|tsv|tab|xlsx)$/iu;
 
-function copy(locale: 'en' | 'vi-VN') {
+function sizeLabel(bytes: number): string {
+  if (bytes >= 1024 * 1024 && bytes % (1024 * 1024) === 0) return `${bytes / (1024 * 1024)} MB`;
+  return `${Math.round(bytes / 1024)} KB`;
+}
+
+function copy(locale: 'en' | 'vi-VN', maxFileBytes: number) {
+  const limit = sizeLabel(maxFileBytes);
   return locale === 'vi-VN'
     ? {
         title: 'Thêm dữ liệu vào Không gian làm việc',
-        subtitle: 'Tải lên bảng tính CSV hoặc Excel để tự động phân tích cấu trúc, làm sạch và tạo bảng điều khiển.',
+        subtitle:
+          'Tải lên bảng tính CSV hoặc Excel để tự động phân tích cấu trúc, làm sạch và tạo bảng điều khiển.',
         modeLabel: 'Mục tiêu nạp dữ liệu',
         modeNew: 'Tạo bộ dữ liệu mới',
         modeExisting: 'Thêm vào bộ dữ liệu hiện có',
@@ -36,18 +45,20 @@ function copy(locale: 'en' | 'vi-VN') {
         datasetNamePlaceholder: 'Ví dụ: Doanh số Bán lẻ Tháng 8',
         existingDatasetLabel: 'Chọn bộ dữ liệu đích',
         dropzoneTitle: 'Kéo thả tệp CSV hoặc XLSX vào đây',
+        addMoreTitle: 'Thêm tệp CSV hoặc XLSX',
         dropzoneSubtitle: 'hoặc bấm để chọn tệp từ máy tính',
         selectedFiles: 'Tệp đã chọn:',
         submitBtn: 'Tiến hành Chuẩn hóa & Xem xét thay đổi →',
         cancel: 'Hủy',
         errorNoFile: 'Vui lòng chọn ít nhất một tệp CSV, TSV hoặc XLSX.',
         errorType: 'Một tệp không đúng định dạng (.csv, .tsv, .xlsx) đã bị bỏ qua.',
-        errorSize: 'Tệp vượt quá 100 MB: ',
+        errorSize: `Tệp vượt quá ${limit}: `,
         errorNameRequired: 'Vui lòng đặt tên bộ dữ liệu.',
       }
     : {
         title: 'Add Data to Workspace',
-        subtitle: 'Upload CSV or Excel spreadsheets for automatic type inference, cleaning, and dashboard synthesis.',
+        subtitle:
+          'Upload CSV or Excel spreadsheets for automatic type inference, cleaning, and dashboard synthesis.',
         modeLabel: 'Import Target',
         modeNew: 'Create new dataset',
         modeExisting: 'Add to existing dataset',
@@ -55,13 +66,14 @@ function copy(locale: 'en' | 'vi-VN') {
         datasetNamePlaceholder: 'e.g. Retail Sales August',
         existingDatasetLabel: 'Select destination dataset',
         dropzoneTitle: 'Drag & drop CSV or XLSX files here',
+        addMoreTitle: 'Add another CSV or XLSX file',
         dropzoneSubtitle: 'or click to browse from computer',
         selectedFiles: 'Selected files:',
         submitBtn: 'Proceed to Preparation & Review →',
         cancel: 'Cancel',
         errorNoFile: 'Please select at least one CSV, TSV, or XLSX file.',
         errorType: 'A file with an unsupported format (.csv, .tsv, .xlsx only) was skipped.',
-        errorSize: 'File exceeds 100 MB: ',
+        errorSize: `File exceeds ${limit}: `,
         errorNameRequired: 'Please name the dataset.',
       };
 }
@@ -69,10 +81,11 @@ function copy(locale: 'en' | 'vi-VN') {
 function acceptFiles(
   candidates: readonly File[],
   text: ReturnType<typeof copy>,
+  maxFileBytes: number,
 ): { readonly files: readonly File[]; readonly error: string | null } {
   const supported = candidates.filter((file) => ACCEPTED_EXTENSION.test(file.name));
-  const oversized = supported.filter((file) => file.size > MAX_TABULAR_FILE_BYTES);
-  const accepted = supported.filter((file) => file.size <= MAX_TABULAR_FILE_BYTES);
+  const oversized = supported.filter((file) => file.size > maxFileBytes);
+  const accepted = supported.filter((file) => file.size <= maxFileBytes);
   const error =
     oversized.length > 0
       ? `${text.errorSize}${oversized.map((file) => file.name).join(', ')}`
@@ -80,6 +93,23 @@ function acceptFiles(
         ? text.errorType
         : null;
   return { files: accepted, error };
+}
+
+function fileKey(file: File): string {
+  return `${file.name}\u0000${file.size}\u0000${file.lastModified}`;
+}
+
+/** Keep repeated chooser/drop actions additive while avoiding duplicate files. */
+function mergeFiles(existing: readonly File[], additions: readonly File[]): readonly File[] {
+  const seen = new Set<string>();
+  const merged: File[] = [];
+  for (const file of [...existing, ...additions]) {
+    const key = fileKey(file);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(file);
+  }
+  return merged;
 }
 
 export function DataImportDrawer({
@@ -91,8 +121,9 @@ export function DataImportDrawer({
   initialFiles,
   projects,
   defaultProjectId,
+  maxFileBytes = MAX_TABULAR_FILE_BYTES,
 }: DataImportDrawerProps) {
-  const text = copy(locale);
+  const text = copy(locale, maxFileBytes);
   const existingDatasets = datasets;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -111,26 +142,32 @@ export function DataImportDrawer({
 
   useEffect(() => {
     if (!isOpen || initialFiles === undefined || initialFiles.length === 0) return;
-    const { files, error } = acceptFiles(initialFiles, text);
+    const { files, error } = acceptFiles(initialFiles, text, maxFileBytes);
     setSelectedFiles(files);
     setErrorMsg(error);
     if (!datasetName && files[0]) {
       const clean = files[0].name.replace(/\.[^/.]+$/u, '').replace(/[-_]/gu, ' ');
       setDatasetName(clean.charAt(0).toUpperCase() + clean.slice(1));
     }
-  }, [isOpen, initialFiles]);
+  }, [isOpen, initialFiles, maxFileBytes]);
 
   if (!isOpen) return null;
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files.length > 0) {
-      const { files, error } = acceptFiles(Array.from(e.target.files), text);
+      const { files, error } = acceptFiles(
+        mergeFiles(selectedFiles, Array.from(e.target.files)),
+        text,
+        maxFileBytes,
+      );
       setSelectedFiles(files);
       if (!datasetName && files[0]) {
         const clean = files[0].name.replace(/\.[^/.]+$/u, '').replace(/[-_]/gu, ' ');
         setDatasetName(clean.charAt(0).toUpperCase() + clean.slice(1));
       }
       setErrorMsg(error);
+      // Allow the same file to be selected again after it was removed or rejected.
+      e.target.value = '';
     }
   }
 
@@ -150,13 +187,19 @@ export function DataImportDrawer({
         mode === 'existing' && selectedExistingId !== ''
           ? { kind: 'EXISTING_DATASET', datasetId: selectedExistingId }
           : { kind: 'NEW_DATASET' },
-      datasetName: mode === 'existing' ? trimmedName || existingDatasetLabel(selectedExistingId, existingDatasets) : trimmedName,
+      datasetName:
+        mode === 'existing'
+          ? trimmedName || existingDatasetLabel(selectedExistingId, existingDatasets)
+          : trimmedName,
       files: selectedFiles,
       ...(mode === 'new' && projectChoice !== '' ? { projectId: projectChoice } : {}),
     });
   }
 
-  function existingDatasetLabel(datasetId: string, datasets: readonly { datasetId: string; label: string }[]): string {
+  function existingDatasetLabel(
+    datasetId: string,
+    datasets: readonly { datasetId: string; label: string }[],
+  ): string {
     return datasets.find((dataset) => dataset.datasetId === datasetId)?.label ?? '';
   }
 
@@ -168,7 +211,12 @@ export function DataImportDrawer({
             <h3>{text.title}</h3>
             <p>{text.subtitle}</p>
           </div>
-          <button className="data-import-drawer-close" onClick={onClose} type="button" aria-label="Close">
+          <button
+            className="data-import-drawer-close"
+            onClick={onClose}
+            type="button"
+            aria-label="Close"
+          >
             ✕
           </button>
         </header>
@@ -228,7 +276,9 @@ export function DataImportDrawer({
                     value={projectChoice}
                     onChange={(e) => setProjectChoice(e.target.value)}
                   >
-                    <option value="">{locale === 'vi-VN' ? '— Không thuộc dự án —' : '— No project —'}</option>
+                    <option value="">
+                      {locale === 'vi-VN' ? '— Không thuộc dự án —' : '— No project —'}
+                    </option>
                     {projects.map((project) => (
                       <option key={project.projectId} value={project.projectId}>
                         {project.label}
@@ -266,7 +316,11 @@ export function DataImportDrawer({
             onDrop={(e) => {
               e.preventDefault();
               if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                const { files, error } = acceptFiles(Array.from(e.dataTransfer.files), text);
+                const { files, error } = acceptFiles(
+                  mergeFiles(selectedFiles, Array.from(e.dataTransfer.files)),
+                  text,
+                  maxFileBytes,
+                );
                 setSelectedFiles(files);
                 if (!datasetName && files[0]) {
                   const clean = files[0].name.replace(/\.[^/.]+$/u, '').replace(/[-_]/gu, ' ');
@@ -276,8 +330,10 @@ export function DataImportDrawer({
               }
             }}
           >
-            <div className="data-import-dropzone-icon" aria-hidden="true">＋</div>
-            <strong>{text.dropzoneTitle}</strong>
+            <div className="data-import-dropzone-icon" aria-hidden="true">
+              ＋
+            </div>
+            <strong>{selectedFiles.length > 0 ? text.addMoreTitle : text.dropzoneTitle}</strong>
             <small>{text.dropzoneSubtitle}</small>
             <div className="data-import-badge-row">
               <span className="data-import-badge">.CSV</span>

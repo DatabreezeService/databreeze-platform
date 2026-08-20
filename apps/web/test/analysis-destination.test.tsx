@@ -122,10 +122,10 @@ describe('[DDA-055][DDA-056] Analysis destination', () => {
     expect(screen.getByRole('heading', { name: 'Trợ lý DataBreeze' })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Tìm điểm bất thường' }));
 
-    expect(
-      (screen.getByRole('textbox', { name: 'Nhập câu hỏi phân tích' }) as HTMLTextAreaElement)
-        .value,
-    ).toBe('Tìm điểm bất thường trong dữ liệu này');
+    const composer = screen.getByRole<HTMLTextAreaElement>('textbox', {
+      name: 'Nhập câu hỏi phân tích',
+    });
+    expect(composer.value).toBe('Tìm điểm bất thường trong dữ liệu này');
     expect(document.activeElement).toBe(
       screen.getByRole('textbox', { name: 'Nhập câu hỏi phân tích' }),
     );
@@ -148,12 +148,51 @@ describe('[DDA-055][DDA-056] Analysis destination', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Phân tích mới' }));
+    expect(screen.queryByText('Phân tích mới')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Tạo hội thoại mới' }));
     expect(created).toBe(1);
   });
 
-  it('collapses history without removing the active thread', async () => {
+  it('keeps session search compact and filters only after the search control opens', async () => {
     const user = userEvent.setup();
+    render(
+      <AnalysisPage
+        locale="vi-VN"
+        conversations={[
+          {
+            conversationId: 'conversation-revenue',
+            title: 'Doanh thu theo khu vực',
+            datasetContext: [],
+            messages: [],
+          },
+          {
+            conversationId: 'conversation-cost',
+            title: 'Chi phí vận hành',
+            datasetContext: [],
+            messages: [],
+          },
+        ]}
+        onCreateConversation={() => undefined}
+      />,
+    );
+
+    expect(screen.queryByRole('searchbox', { name: 'Tìm lịch sử hội thoại' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Tìm lịch sử hội thoại' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Tạo hội thoại mới' })).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: 'Tìm lịch sử hội thoại' }));
+    const search = screen.getByRole('searchbox', { name: 'Tìm lịch sử hội thoại' });
+    expect(search).toBeTruthy();
+    await user.type(search, 'chi phí');
+
+    expect(screen.getByRole('button', { name: 'Chi phí vận hành' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Doanh thu theo khu vực' })).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Đóng tìm kiếm lịch sử hội thoại' }));
+    expect(screen.queryByRole('searchbox', { name: 'Tìm lịch sử hội thoại' })).toBeNull();
+  });
+
+  it('orders borderless search and create actions without a header collapse control', () => {
     render(
       <AnalysisPage
         locale="en"
@@ -166,13 +205,18 @@ describe('[DDA-055][DDA-056] Analysis destination', () => {
             messages: [],
           },
         ]}
+        onCreateConversation={() => undefined}
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Collapse conversation history' }));
+    const history = screen.getByRole('complementary', { name: 'Conversation history' });
+    const header = history.querySelector('.analysis-conversation-history__header');
+    const labels = Array.from(header?.querySelectorAll('button') ?? []).map((button) =>
+      button.getAttribute('aria-label'),
+    );
 
-    expect(screen.queryByRole('list', { name: 'Conversation history items' })).toBeNull();
-    expect(screen.getByRole('heading', { name: 'Compare regional performance' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Expand conversation history' })).toBeTruthy();
+    expect(labels).toEqual(['Search conversation history', 'Create new conversation']);
+    expect(screen.queryByRole('button', { name: 'Collapse conversation history' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Expand conversation history' })).toBeNull();
   });
 });

@@ -5,17 +5,14 @@ import {
   createPlanV1,
   type EntitlementQuotaV1,
 } from '@databreeze/domain/entitlements/v1';
-import {
-  tenantScopeKeyV1,
-  type TenantScopeV1,
-} from '@databreeze/domain/tenant-scope/v1';
+import { tenantScopeKeyV1, type TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 import type { PermissionV1 } from '@databreeze/domain/permissions/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type {
   PayosPaymentProviderPortV1,
   PayosWebhookVerificationV1,
-} from '../adapter/payos-payment-link.adapter.js';
+} from './payos-payment-provider.port.js';
 import {
   findPayosPlan,
   listPayosPlans,
@@ -106,7 +103,9 @@ export interface PaymentDatabaseClientV1 {
   readonly paymentAuditEventRecord: DelegateV1<Record<string, unknown>>;
   readonly entitlementPlanRecord: DelegateV1<Record<string, unknown>>;
   readonly entitlementSnapshotRecord: DelegateV1<Record<string, unknown>>;
-  $transaction<TValue>(work: (transaction: PaymentDatabaseClientV1) => Promise<TValue>): Promise<TValue>;
+  $transaction<TValue>(
+    work: (transaction: PaymentDatabaseClientV1) => Promise<TValue>,
+  ): Promise<TValue>;
 }
 
 export interface BillingAuthorizationPortV1 {
@@ -140,7 +139,8 @@ export class PayosPaymentProblemError extends Error {
 
 function integerOrderCode(value: bigint | number): number {
   const normalized = typeof value === 'bigint' ? Number(value) : value;
-  if (!Number.isSafeInteger(normalized) || normalized < 1) throw new PayosPaymentProblemError('PAYOS_ORDER_NOT_FOUND');
+  if (!Number.isSafeInteger(normalized) || normalized < 1)
+    throw new PayosPaymentProblemError('PAYOS_ORDER_NOT_FOUND');
   return normalized;
 }
 
@@ -150,9 +150,30 @@ function scopeIsBillable(scope: TenantScopeV1): boolean {
 
 function planQuotas(plan: PayosPlanV1): readonly EntitlementQuotaV1[] {
   return Object.freeze([
-    { metric: 'artifact_bytes', limit: plan.id.startsWith('team-') ? 500_000_000_000 : plan.id.startsWith('professional-') ? 100_000_000_000 : 10_000_000_000 },
-    { metric: 'ocr_pages', limit: plan.id.startsWith('team-') ? 200_000 : plan.id.startsWith('professional-') ? 50_000 : 5_000 },
-    { metric: 'job_count', limit: plan.id.startsWith('team-') ? 100_000 : plan.id.startsWith('professional-') ? 25_000 : 5_000 },
+    {
+      metric: 'artifact_bytes',
+      limit: plan.id.startsWith('team-')
+        ? 500_000_000_000
+        : plan.id.startsWith('professional-')
+          ? 100_000_000_000
+          : 10_000_000_000,
+    },
+    {
+      metric: 'ocr_pages',
+      limit: plan.id.startsWith('team-')
+        ? 200_000
+        : plan.id.startsWith('professional-')
+          ? 50_000
+          : 5_000,
+    },
+    {
+      metric: 'job_count',
+      limit: plan.id.startsWith('team-')
+        ? 100_000
+        : plan.id.startsWith('professional-')
+          ? 25_000
+          : 5_000,
+    },
   ] as EntitlementQuotaV1[]);
 }
 
@@ -161,7 +182,9 @@ function planFeatures(plan: PayosPlanV1): readonly string[] {
     'workspace.dashboard.read',
     'dataset.capture',
     'dataset.analysis',
-    ...(plan.id.startsWith('professional-') || plan.id.startsWith('team-') ? ['workspace.members.manage'] : []),
+    ...(plan.id.startsWith('professional-') || plan.id.startsWith('team-')
+      ? ['workspace.members.manage']
+      : []),
     ...(plan.id.startsWith('team-') ? ['support.priority'] : []),
   ]);
 }
@@ -190,7 +213,8 @@ export class PayosPaymentService {
     private readonly provider: PayosPaymentProviderPortV1,
     private readonly authorization: BillingAuthorizationPortV1,
     private readonly now: () => Date = () => new Date(),
-    private readonly orderCodeGenerator: () => number = () => Date.now() * 1_000 + randomInt(0, 1_000),
+    private readonly orderCodeGenerator: () => number = () =>
+      Date.now() * 1_000 + randomInt(0, 1_000),
   ) {}
 
   public async plans(context: IamTenantContextV1) {
@@ -199,7 +223,8 @@ export class PayosPaymentService {
   }
 
   public async create(context: IamTenantContextV1, planId: unknown): Promise<PayosPaymentSession> {
-    if (!scopeIsBillable(context.tenantScope)) throw new PayosPaymentProblemError('PAYOS_SCOPE_MISMATCH');
+    if (!scopeIsBillable(context.tenantScope))
+      throw new PayosPaymentProblemError('PAYOS_SCOPE_MISMATCH');
     await this.require(context, 'billing.account.manage');
     const plan = findPayosPlan(planId);
     if (plan === undefined) throw new PayosPaymentProblemError('PAYOS_PLAN_NOT_FOUND');
@@ -213,7 +238,8 @@ export class PayosPaymentService {
       return this.session(existing);
     }
     const orderCode = this.orderCodeGenerator();
-    if (!Number.isSafeInteger(orderCode) || orderCode < 1) throw new PayosPaymentProblemError('PAYOS_UNAVAILABLE');
+    if (!Number.isSafeInteger(orderCode) || orderCode < 1)
+      throw new PayosPaymentProblemError('PAYOS_UNAVAILABLE');
     const created = await this.database.paymentOrderRecord.create({
       data: {
         id: randomUUID(),
@@ -222,7 +248,8 @@ export class PayosPaymentService {
         scopeKey,
         scopeType: context.tenantScope.scopeType,
         organizationId: context.tenantScope.organizationId,
-        workspaceId: context.tenantScope.scopeType === 'organization' ? null : context.tenantScope.workspaceId,
+        workspaceId:
+          context.tenantScope.scopeType === 'organization' ? null : context.tenantScope.workspaceId,
         actorId: context.actorId,
         securityEpoch: context.authorizationEpoch,
         planId: plan.id,
@@ -241,26 +268,43 @@ export class PayosPaymentService {
       const link = await this.provider.create(plan, orderCode);
       const updated = await this.database.paymentOrderRecord.update({
         where: { id: created.id },
-        data: { checkoutUrl: link.checkoutUrl, updatedAt: this.now(), revision: created.revision + 1 },
+        data: {
+          checkoutUrl: link.checkoutUrl,
+          updatedAt: this.now(),
+          revision: created.revision + 1,
+        },
       });
       return this.session(updated);
     } catch {
-      await this.database.paymentOrderRecord.update({
-        where: { id: created.id },
-        data: { status: 'FAILED', failureCode: 'PAYOS_CHECKOUT_UNAVAILABLE', updatedAt: this.now(), revision: created.revision + 1 },
-      }).catch(() => undefined);
+      await this.database.paymentOrderRecord
+        .update({
+          where: { id: created.id },
+          data: {
+            status: 'FAILED',
+            failureCode: 'PAYOS_CHECKOUT_UNAVAILABLE',
+            updatedAt: this.now(),
+            revision: created.revision + 1,
+          },
+        })
+        .catch(() => undefined);
       throw new PayosPaymentProblemError('PAYOS_CHECKOUT_UNAVAILABLE');
     }
   }
 
-  public async status(context: IamTenantContextV1, orderCodeInput: number): Promise<PayosPaymentSession> {
+  public async status(
+    context: IamTenantContextV1,
+    orderCodeInput: number,
+  ): Promise<PayosPaymentSession> {
     await this.require(context, 'billing.account.read');
     const orderCode = integerOrderCode(orderCodeInput);
     const row = await this.database.paymentOrderRecord.findUnique({
-      where: { provider_providerOrderCode: { provider: 'PAYOS', providerOrderCode: BigInt(orderCode) } },
+      where: {
+        provider_providerOrderCode: { provider: 'PAYOS', providerOrderCode: BigInt(orderCode) },
+      },
     });
     if (!row) throw new PayosPaymentProblemError('PAYOS_ORDER_NOT_FOUND');
-    if (row.scopeKey !== tenantScopeKeyV1(context.tenantScope)) throw new PayosPaymentProblemError('PAYOS_SCOPE_MISMATCH');
+    if (row.scopeKey !== tenantScopeKeyV1(context.tenantScope))
+      throw new PayosPaymentProblemError('PAYOS_SCOPE_MISMATCH');
     return this.session(row);
   }
 
@@ -273,11 +317,20 @@ export class PayosPaymentService {
         throw new PayosPaymentProblemError('PAYOS_SIGNATURE_INVALID');
       throw new PayosPaymentProblemError('PAYOS_WEBHOOK_INVALID');
     }
-    const envelope = payload !== null && typeof payload === 'object' ? payload as Record<string, unknown> : {};
-    const signature = typeof envelope['signature'] === 'string' ? envelope['signature'] : `mock:${verified.providerEventId}`;
+    const envelope =
+      payload !== null && typeof payload === 'object' ? (payload as Record<string, unknown>) : {};
+    const signature =
+      typeof envelope['signature'] === 'string'
+        ? envelope['signature']
+        : `mock:${verified.providerEventId}`;
     const result = await this.database.$transaction(async (transaction) => {
       const existingInbox = await transaction.paymentWebhookInboxRecord.findUnique({
-        where: { provider_providerEventId: { provider: 'PAYOS', providerEventId: verified.providerEventId } },
+        where: {
+          provider_providerEventId: {
+            provider: 'PAYOS',
+            providerEventId: verified.providerEventId,
+          },
+        },
       });
       if (existingInbox) {
         if (
@@ -287,28 +340,53 @@ export class PayosPaymentService {
           throw new PayosPaymentProblemError('PAYOS_WEBHOOK_INVALID');
         }
         const row = await transaction.paymentOrderRecord.findUnique({
-          where: { provider_providerOrderCode: { provider: 'PAYOS', providerOrderCode: BigInt(verified.orderCode) } },
+          where: {
+            provider_providerOrderCode: {
+              provider: 'PAYOS',
+              providerOrderCode: BigInt(verified.orderCode),
+            },
+          },
         });
         if (!row) return { error: 'PAYOS_ORDER_NOT_FOUND' as const };
         return { row };
       }
       const inbox = await transaction.paymentWebhookInboxRecord.create({
         data: {
-          id: randomUUID(), provider: 'PAYOS', providerEventId: verified.providerEventId,
-          providerOrderCode: BigInt(verified.orderCode), amountVnd: verified.amountVnd,
-          statusFromProvider: verified.status, signature, payload, state: 'RECEIVED', attemptCount: 1,
-          lastError: null, receivedAt: this.now(), processedAt: null,
+          id: randomUUID(),
+          provider: 'PAYOS',
+          providerEventId: verified.providerEventId,
+          providerOrderCode: BigInt(verified.orderCode),
+          amountVnd: verified.amountVnd,
+          statusFromProvider: verified.status,
+          signature,
+          payload,
+          state: 'RECEIVED',
+          attemptCount: 1,
+          lastError: null,
+          receivedAt: this.now(),
+          processedAt: null,
         },
       });
       const row = await transaction.paymentOrderRecord.findUnique({
-        where: { provider_providerOrderCode: { provider: 'PAYOS', providerOrderCode: BigInt(verified.orderCode) } },
+        where: {
+          provider_providerOrderCode: {
+            provider: 'PAYOS',
+            providerOrderCode: BigInt(verified.orderCode),
+          },
+        },
       });
       if (!row) {
-        await transaction.paymentWebhookInboxRecord.update({ where: { id: inbox.id }, data: { state: 'REJECTED', lastError: 'PAYOS_ORDER_NOT_FOUND', processedAt: this.now() } });
+        await transaction.paymentWebhookInboxRecord.update({
+          where: { id: inbox.id },
+          data: { state: 'REJECTED', lastError: 'PAYOS_ORDER_NOT_FOUND', processedAt: this.now() },
+        });
         return { error: 'PAYOS_ORDER_NOT_FOUND' as const };
       }
       if (row.amountVnd !== verified.amountVnd) {
-        await transaction.paymentWebhookInboxRecord.update({ where: { id: inbox.id }, data: { state: 'REJECTED', lastError: 'PAYOS_AMOUNT_MISMATCH', processedAt: this.now() } });
+        await transaction.paymentWebhookInboxRecord.update({
+          where: { id: inbox.id },
+          data: { state: 'REJECTED', lastError: 'PAYOS_AMOUNT_MISMATCH', processedAt: this.now() },
+        });
         return { error: 'PAYOS_AMOUNT_MISMATCH' as const };
       }
       const current = row.status as PayosPaymentStatus;
@@ -318,12 +396,18 @@ export class PayosPaymentService {
         data: {
           status,
           paidAt: status === 'PAID' && row.paidAt === null ? this.now() : row.paidAt,
-          cancelledAt: status === 'CANCELLED' && row.cancelledAt === null ? this.now() : row.cancelledAt,
-          updatedAt: this.now(), revision: row.revision + 1,
+          cancelledAt:
+            status === 'CANCELLED' && row.cancelledAt === null ? this.now() : row.cancelledAt,
+          updatedAt: this.now(),
+          revision: row.revision + 1,
         },
       });
-      if (status === 'PAID' && current !== 'PAID') await this.settlePaid(transaction, updated, verified);
-      await transaction.paymentWebhookInboxRecord.update({ where: { id: inbox.id }, data: { state: 'PROCESSED', processedAt: this.now() } });
+      if (status === 'PAID' && current !== 'PAID')
+        await this.settlePaid(transaction, updated, verified);
+      await transaction.paymentWebhookInboxRecord.update({
+        where: { id: inbox.id },
+        data: { state: 'PROCESSED', processedAt: this.now() },
+      });
       return { row: updated };
     });
     if ('error' in result) throw new PayosPaymentProblemError(result.error);
@@ -358,33 +442,65 @@ export class PayosPaymentService {
         },
       });
     }
-    const previous = await transaction.entitlementSnapshotRecord.findFirst({ where: { scopeKey: tenantScopeKeyV1(scope) }, orderBy: { revision: 'desc' } });
+    const previous = await transaction.entitlementSnapshotRecord.findFirst({
+      where: { scopeKey: tenantScopeKeyV1(scope) },
+      orderBy: { revision: 'desc' },
+    });
     const previousRevision = previous?.['revision'];
     const revision = typeof previousRevision === 'number' ? previousRevision + 1 : 1;
     const snapshot = createEntitlementSnapshotV1({
-      snapshotId: randomUUID(), tenantScope: scope, plan: entitlementPlan, status: 'ACTIVE',
-      revision, securityEpoch: order.securityEpoch, effectiveAt: this.now().toISOString(),
+      snapshotId: randomUUID(),
+      tenantScope: scope,
+      plan: entitlementPlan,
+      status: 'ACTIVE',
+      revision,
+      securityEpoch: order.securityEpoch,
+      effectiveAt: this.now().toISOString(),
     });
     if (!snapshot.accepted) throw new PayosPaymentProblemError('PAYOS_UNAVAILABLE');
     await transaction.entitlementSnapshotRecord.create({
       data: {
-        id: snapshot.value.snapshotId, schemaVersion: 1, scopeKey: tenantScopeKeyV1(scope),
-        scopeType: scope.scopeType, organizationId: scope.organizationId,
+        id: snapshot.value.snapshotId,
+        schemaVersion: 1,
+        scopeKey: tenantScopeKeyV1(scope),
+        scopeType: scope.scopeType,
+        organizationId: scope.organizationId,
         workspaceId: scope.scopeType === 'organization' ? null : scope.workspaceId,
-        planCode: snapshot.value.planCode, status: snapshot.value.status, revision,
-        securityEpoch: order.securityEpoch, effectiveAt: this.now(), expiresAt: null,
-        features: snapshot.value.features, quotas: snapshot.value.quotas,
+        planCode: snapshot.value.planCode,
+        status: snapshot.value.status,
+        revision,
+        securityEpoch: order.securityEpoch,
+        effectiveAt: this.now(),
+        expiresAt: null,
+        features: snapshot.value.features,
+        quotas: snapshot.value.quotas,
       },
     });
     await transaction.subscriptionRecord.upsert({
       where: { scopeKey: order.scopeKey },
       create: {
-        id: randomUUID(), scopeKey: order.scopeKey, scopeType: order.scopeType,
-        organizationId: order.organizationId, workspaceId: order.workspaceId,
-        planId: plan.id, source: 'PAYOS', status: 'ACTIVE', currentOrderId: order.id,
-        startsAt: this.now(), endsAt: null, revision: 1,
+        id: randomUUID(),
+        scopeKey: order.scopeKey,
+        scopeType: order.scopeType,
+        organizationId: order.organizationId,
+        workspaceId: order.workspaceId,
+        planId: plan.id,
+        source: 'PAYOS',
+        status: 'ACTIVE',
+        currentOrderId: order.id,
+        startsAt: this.now(),
+        endsAt: null,
+        revision: 1,
       },
-      update: { planId: plan.id, source: 'PAYOS', status: 'ACTIVE', currentOrderId: order.id, startsAt: this.now(), revision: { increment: 1 }, updatedAt: this.now() },
+      update: {
+        planId: plan.id,
+        source: 'PAYOS',
+        status: 'ACTIVE',
+        currentOrderId: order.id,
+        startsAt: this.now(),
+        revision: { increment: 1 },
+        updatedAt: this.now(),
+      },
     });
     const existingInvoice = await transaction.invoiceRecord.findUnique({
       where: { paymentOrderId: order.id },
@@ -392,23 +508,41 @@ export class PayosPaymentService {
     if (existingInvoice === null) {
       await transaction.invoiceRecord.create({
         data: {
-          id: randomUUID(), paymentOrderId: order.id, scopeKey: order.scopeKey,
-          organizationId: order.organizationId, workspaceId: order.workspaceId,
-          planId: plan.id, amountVnd: verified.amountVnd, currency: 'VND', status: 'PAID',
-          issuedAt: this.now(), paidAt: this.now(),
+          id: randomUUID(),
+          paymentOrderId: order.id,
+          scopeKey: order.scopeKey,
+          organizationId: order.organizationId,
+          workspaceId: order.workspaceId,
+          planId: plan.id,
+          amountVnd: verified.amountVnd,
+          currency: 'VND',
+          status: 'PAID',
+          issuedAt: this.now(),
+          paidAt: this.now(),
         },
       });
     }
     const existingAudit = await transaction.paymentAuditEventRecord.findUnique({
-      where: { paymentOrderId_action: { paymentOrderId: order.id, action: 'billing.payment.settled' } },
+      where: {
+        paymentOrderId_action: { paymentOrderId: order.id, action: 'billing.payment.settled' },
+      },
     });
     if (existingAudit === null) {
       await transaction.paymentAuditEventRecord.create({
         data: {
-          id: randomUUID(), paymentOrderId: order.id, scopeKey: order.scopeKey,
-          organizationId: order.organizationId, workspaceId: order.workspaceId,
-          actorId: order.actorId, action: 'billing.payment.settled',
-          payload: { provider: 'PAYOS', orderCode: verified.orderCode, amountVnd: verified.amountVnd, planId: plan.id },
+          id: randomUUID(),
+          paymentOrderId: order.id,
+          scopeKey: order.scopeKey,
+          organizationId: order.organizationId,
+          workspaceId: order.workspaceId,
+          actorId: order.actorId,
+          action: 'billing.payment.settled',
+          payload: {
+            provider: 'PAYOS',
+            orderCode: verified.orderCode,
+            amountVnd: verified.amountVnd,
+            planId: plan.id,
+          },
         },
       });
     }
@@ -437,11 +571,25 @@ export class PayosPaymentService {
 
 /** The route remains discoverable in OpenAPI, but fails closed until durable payment composition exists. */
 export class UnavailablePayosPaymentService {
-  private unavailable(): never {
-    throw new PayosPaymentProblemError('PAYOS_UNAVAILABLE');
+  private unavailable(): Promise<never> {
+    return Promise.reject(new PayosPaymentProblemError('PAYOS_UNAVAILABLE'));
   }
-  public async plans(_context: IamTenantContextV1): Promise<never> { return this.unavailable(); }
-  public async create(_context: IamTenantContextV1, _planId: unknown): Promise<never> { return this.unavailable(); }
-  public async status(_context: IamTenantContextV1, _orderCode: number): Promise<never> { return this.unavailable(); }
-  public async applyWebhook(_payload: unknown): Promise<never> { return this.unavailable(); }
+  public plans(context: IamTenantContextV1): Promise<never> {
+    void context;
+    return this.unavailable();
+  }
+  public create(context: IamTenantContextV1, planId: unknown): Promise<never> {
+    void context;
+    void planId;
+    return this.unavailable();
+  }
+  public status(context: IamTenantContextV1, orderCode: number): Promise<never> {
+    void context;
+    void orderCode;
+    return this.unavailable();
+  }
+  public applyWebhook(payload: unknown): Promise<never> {
+    void payload;
+    return this.unavailable();
+  }
 }

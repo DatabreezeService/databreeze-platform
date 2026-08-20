@@ -194,7 +194,12 @@ test('[Plan 407 Task 7 / IAE-024 / JRA-023 / JRA-031] worker image is pinned and
   assert.match(dockerfile, /^STOPSIGNAL SIGTERM$/mu);
   assert.match(
     dockerfile,
-    /pip wheel --wheel-dir \/wheels "hatchling==1\.31\.0"[\s\S]*pip wheel --no-index --find-links \/wheels --wheel-dir \/wheels \.\/engine/u,
+    /pip wheel --wheel-dir \/wheels "hatchling==1\.31\.0"[\s\S]*pip wheel --no-build-isolation --no-index --find-links \/wheels --wheel-dir \/wheels \.\/engine/u,
+  );
+  assert.match(
+    dockerfile,
+    /pip install --no-cache-dir --no-index --find-links \/wheels "hatchling==1\.31\.0"[\s\S]*pip wheel --no-build-isolation --no-index --find-links \/wheels --wheel-dir \/wheels \.\/engine/u,
+    'The offline engine build must use the staged build backend instead of resolving it from the network.',
   );
   assert.match(
     dockerfile,

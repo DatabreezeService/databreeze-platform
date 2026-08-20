@@ -279,6 +279,22 @@ function getInitials(name: string): string {
   return `${first[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase();
 }
 
+const SEEDED_FEEDBACK_ID_PREFIX = '00000000-0000-4000-8000-';
+
+function feedbackDisplayId(id: string): string {
+  if (id.startsWith(SEEDED_FEEDBACK_ID_PREFIX)) {
+    const numericSuffix = id.slice(SEEDED_FEEDBACK_ID_PREFIX.length);
+    if (/^\d{12}$/u.test(numericSuffix)) {
+      const seedNumber = Number(numericSuffix);
+      if (seedNumber >= 8_900 && seedNumber <= 8_911) {
+        return `FB-${String(seedNumber - 8_899).padStart(2, '0')}`;
+      }
+    }
+  }
+
+  return id.replaceAll('-', '').slice(0, 8).toUpperCase();
+}
+
 function planLabel(value: string): string {
   return value
     .replace('professional', 'Professional')
@@ -375,7 +391,7 @@ function PlatformAdminFeedbacksView({
         const query = search.trim().toLowerCase();
         const matchesName = (item.name ?? '').toLowerCase().includes(query);
         const matchesOrg = (item.organization ?? '').toLowerCase().includes(query);
-        const matchesEmail = item.email.toLowerCase().includes(query);
+        const matchesEmail = item.contactPermission && item.email.toLowerCase().includes(query);
         const matchesMsg = item.message.toLowerCase().includes(query);
         if (!matchesName && !matchesOrg && !matchesEmail && !matchesMsg) return false;
       }
@@ -631,12 +647,11 @@ function PlatformAdminFeedbacksView({
                         ✕
                       </span>
                       <span>{text.contactDenied}</span>
-                      <span className="pa-muted-email">({item.email})</span>
                     </span>
                   )}
                 </div>
 
-                <span className="pa-feedback-id">#{item.id}</span>
+                <span className="pa-feedback-id">#{feedbackDisplayId(item.id)}</span>
               </div>
             </article>
           ))}

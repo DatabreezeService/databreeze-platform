@@ -6,6 +6,7 @@ import type {
   DdaConversationListAccepted,
   DdaConversationLoadAccepted,
 } from '@databreeze/contracts/v4';
+import { createSessionAwareFetchV1 } from '../auth/auth-session.ts';
 
 const CONVERSATION_LIST_SCHEMA =
   'https://schemas.databreeze.dev/contracts/v4/dda-conversation-list-accepted' as const;
@@ -97,6 +98,13 @@ function endpoint(baseUrl: string | undefined, path: string): string {
   return `${(baseUrl ?? configuredBaseUrl()).replace(/\/+$/u, '')}${path}`;
 }
 
+function sessionFetcher(baseUrl?: string): typeof fetch {
+  return createSessionAwareFetchV1({
+    apiBaseUrl: baseUrl ?? configuredBaseUrl(),
+    fetcher: globalThis.fetch.bind(globalThis),
+  });
+}
+
 function isAbort(error: unknown): boolean {
   return (
     (typeof DOMException !== 'undefined' &&
@@ -161,9 +169,13 @@ function agentTurnStatus(response: Response): void {
   if (!response.ok) throw new AnalysisConversationApiError('AGENT_TURN_UNAVAILABLE');
 }
 
-async function responseJson(response: Response, invalidCode: AnalysisConversationApiErrorCodeV1) {
+async function responseJson(
+  response: Response,
+  invalidCode: AnalysisConversationApiErrorCodeV1,
+): Promise<unknown> {
   try {
-    return await response.json();
+    const body: unknown = await response.json();
+    return body;
   } catch {
     throw new AnalysisConversationApiError(invalidCode);
   }
@@ -175,9 +187,10 @@ export async function fetchAuthorizedConversationHistory(
 ): Promise<DdaConversationListAccepted> {
   const search = new URLSearchParams({ limit: String(input.limit ?? 20) });
   if (input.cursor !== undefined) search.set('cursor', input.cursor);
+  const fetcher = sessionFetcher(input.baseUrl);
   let response: Response;
   try {
-    response = await globalThis.fetch(
+    response = await fetcher(
       endpoint(input.baseUrl, `/v1/dda/conversations?${search.toString()}`),
       requestInit('GET', input.signal),
     );
@@ -216,9 +229,10 @@ function isCreatedConversation(value: unknown): value is CreatedAuthorizedConver
 export async function createAuthorizedConversation(
   input: CreateAuthorizedConversationInputV1,
 ): Promise<CreatedAuthorizedConversationV1> {
+  const fetcher = sessionFetcher(input.baseUrl);
   let response: Response;
   try {
-    response = await globalThis.fetch(
+    response = await fetcher(
       endpoint(input.baseUrl, '/v1/dda/conversations'),
       requestInit(
         'POST',
@@ -254,9 +268,10 @@ export async function fetchAuthorizedConversation(
 ): Promise<DdaConversationLoadAccepted> {
   const search = new URLSearchParams({ limit: String(input.limit ?? 50) });
   if (input.beforeCursor !== undefined) search.set('beforeCursor', input.beforeCursor);
+  const fetcher = sessionFetcher(input.baseUrl);
   let response: Response;
   try {
-    response = await globalThis.fetch(
+    response = await fetcher(
       endpoint(
         input.baseUrl,
         `/v1/dda/conversations/${encodeURIComponent(input.conversationId)}?${search.toString()}`,
@@ -295,9 +310,10 @@ export async function runAuthorizedAgentTurn(
       ? {}
       : { expectedContextRevision: input.expectedContextRevision }),
   };
+  const fetcher = sessionFetcher(input.baseUrl);
   let response: Response;
   try {
-    response = await globalThis.fetch(
+    response = await fetcher(
       endpoint(input.baseUrl, '/v1/dda/agent/turns'),
       requestInit('POST', input.signal, command, input.idempotencyKey),
     );

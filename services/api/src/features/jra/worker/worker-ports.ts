@@ -6,10 +6,16 @@ import type { JobV1 } from '@databreeze/domain/jobs/v1';
 import type { StableIdentifierV1, TenantScopeV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
+import type {
+  ExecutionWorkloadEnvelopeResolverPortV1,
+  ExecutionWorkloadEnvelopeV1,
+} from '../application/execution-workload-envelope.js';
+import type { ExecutionRequestDescriptorV1 } from '../application/execution-request-descriptor.js';
 
 /** JRA-007/JRA-023: the worker operation whose authorization must be current. */
 export type WorkerOperationV1 =
   | 'CLAIM'
+  | 'WORKLOAD'
   | 'HEARTBEAT'
   | 'COMPLETE'
   | 'PREPARE_RESULT'
@@ -49,11 +55,34 @@ export interface WorkerAssignmentV1 {
   readonly descriptorHash: string;
   /** Canonical hash over descriptorHash + exact attempt/job/worker/epoch/lease expiry. */
   readonly attemptBindingHash: string;
+  /** JRA-033: present only when the server persisted the exact attempt-bound workload. */
+  readonly workloadEnvelopeId?: StableIdentifierV1;
+  readonly workloadEnvelopeHash?: string;
   readonly action: WorkerAssignmentActionV1;
 }
 
 export interface WorkerAssignmentPortV1 {
   assign(identity: WorkerIdentityV1, now: string): Promise<WorkerAssignmentV1 | undefined>;
+}
+
+/**
+ * Server-owned workload metadata exposed to the worker boundary. The resolver
+ * returns the immutable envelope only after authenticated attempt checks; it
+ * never accepts a worker-authored envelope or storage authority.
+ */
+export interface WorkerWorkloadEnvelopeAuthorityPortV1
+  extends ExecutionWorkloadEnvelopeResolverPortV1 {
+  readonly createForAttempt?: (input: {
+    readonly identity: WorkerIdentityV1;
+    readonly job: JobV1;
+    readonly attempt: ExecutionAttemptV1;
+    readonly descriptor: ExecutionRequestDescriptorV1;
+    readonly descriptorId: StableIdentifierV1;
+    readonly descriptorHash: string;
+    readonly attemptBindingHash: string;
+    readonly now: string;
+    readonly transaction?: unknown;
+  }) => Promise<ExecutionWorkloadEnvelopeV1 | undefined>;
 }
 
 export const WORKER_AUTHENTICATOR_PORT = Symbol('WORKER_AUTHENTICATOR_PORT');
@@ -81,6 +110,8 @@ export interface WorkerAttemptAuthorizationV1 {
   readonly descriptorId: StableIdentifierV1;
   readonly descriptorHash: string;
   readonly attemptBindingHash: string;
+  /** Descriptor-owned opaque input references, exposed only to server adapters. */
+  readonly descriptorInputObjectIds?: readonly string[];
 }
 
 export const WORKER_ATTEMPT_AUTHORITY_PORT = Symbol('WORKER_ATTEMPT_AUTHORITY_PORT');
@@ -140,6 +171,7 @@ export interface WorkerObjectGrantAuthorityPortV1 {
     identity: WorkerIdentityV1,
     job: JobV1,
     attempt: ExecutionAttemptV1,
+    inputObjectIds?: readonly string[],
   ): Promise<WorkerInputGrantV1>;
   /** Called only by the first successful completion transaction, never by a replay. */
   acceptResultReferences(

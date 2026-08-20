@@ -896,16 +896,16 @@ void test('[DDA-036] the real child process signal lifecycle reaches forced term
   );
 
   try {
-    assert.ok(child.stdout);
-    const childReady = once(child.stdout, 'data') as Promise<[Buffer]>;
+    const childReady = once(child, 'message') as Promise<[unknown]>;
     await once(child, 'spawn');
     const childExit = once(child, 'exit') as Promise<[number | null, string | null]>;
-    await Promise.race([
+    const [readyMessage] = await Promise.race([
       childReady,
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('child did not register signal handlers')), 5_000),
       ),
     ]);
+    assert.equal(readyMessage, 'ready');
     await new Promise<void>((resolveDelay) => setTimeout(resolveDelay, 100));
     if (process.platform === 'win32') {
       child.send?.('SIGTERM');

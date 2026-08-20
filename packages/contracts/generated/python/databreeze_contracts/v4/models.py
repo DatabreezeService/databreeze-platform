@@ -69,6 +69,8 @@ Month: TypeAlias = Annotated[StrictStr, StringConstraints(pattern=r"^[0-9]{4}-(0
 
 NonNegativeInteger: TypeAlias = Annotated[int, Field(strict=True, ge=0, le=9007199254740991)]
 
+OpaqueCursor: TypeAlias = Annotated[StrictStr, StringConstraints(min_length=16, max_length=512, pattern=r"^[A-Za-z0-9_-]+$")]
+
 PrepareIdempotencyKey: TypeAlias = Annotated[StrictStr, StringConstraints(min_length=8, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$")]
 
 PrepareOpaqueToken: TypeAlias = Annotated[StrictStr, StringConstraints(min_length=16, max_length=512, pattern=r"^[A-Za-z0-9][A-Za-z0-9._~-]{15,511}$")]
@@ -88,6 +90,13 @@ Revision: TypeAlias = Annotated[int, Field(strict=True, ge=1)]
 ToolCallId: TypeAlias = Annotated[StrictStr, StringConstraints(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")]
 
 UtcTimestamp: TypeAlias = Annotated[StrictStr, AfterValidator(validate_utc_timestamp)]
+
+class AiCredits(ClosedModel):
+    limit: Annotated[int, Field(strict=True, ge=0)]
+    metric: Literal["job_count"]
+    remaining: Annotated[int, Field(strict=True, ge=0)]
+    reserved: Annotated[int, Field(strict=True, ge=0)]
+    used: Annotated[int, Field(strict=True, ge=0)]
 
 class AnalysisExecuteResult(ClosedModel):
     name: Literal["analysis.execute"]
@@ -114,6 +123,11 @@ class AnalysisPlanValue(ClosedModel):
 
 class AvailablePreview(ClosedModel):
     available: Literal[True]
+
+class BuaEntitlementSummary(ClosedModel):
+    aiCredits: AiCredits
+    schemaVersion: Literal[4]
+    snapshot: Snapshot
 
 class BuaPayosCheckoutCommand(ClosedModel):
     planId: Literal["personal-monthly", "personal-annual", "professional-monthly", "professional-annual", "team-monthly", "team-annual"]
@@ -193,6 +207,11 @@ class BuaPayosWebhookEventData(ClosedModel):
     virtualAccountName: Annotated[StrictStr, StringConstraints(max_length=128)] | None = None
     virtualAccountNumber: Annotated[StrictStr, StringConstraints(max_length=128)] | None = None
 
+class Column(ClosedModel):
+    name: Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]
+    nullable: StrictBool
+    type: Literal["TEXT", "INTEGER", "DECIMAL", "BOOLEAN", "DATE"]
+
 class ContextEvent(ClosedModel):
     afterVersionId: Identifier | None = None
     beforeVersionId: Identifier | None = None
@@ -210,6 +229,96 @@ class CountGroup(ClosedModel):
 class CountPoint(ClosedModel):
     count: NonNegativeInteger
     month: Month
+
+class CrfReportCreateAccepted(ClosedModel):
+    accepted: Literal[True]
+    report: CrfReportSummary
+    schemaVersion: Literal[4]
+
+class CrfReportCreateCommand(ClosedModel):
+    clientId: Identifier
+    datasetId: Identifier
+    datasetVersionId: Identifier
+    name: Annotated[StrictStr, StringConstraints(min_length=1, max_length=200)]
+    period: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    schemaVersion: Literal[4]
+    supportedFormats: Annotated[list[Literal["DOCX", "PPTX", "XLSX", "PDF", "WEB"]], Field(min_length=1, max_length=5)]
+
+class CrfReportDetailAccepted(ClosedModel):
+    accepted: Literal[True]
+    report: CrfReportDetailAcceptedReport
+    schemaVersion: Literal[4]
+
+class CrfReportDetailAcceptedReport(ClosedModel):
+    blockCount: Annotated[int, Field(strict=True, ge=0, le=200)]
+    clientId: Identifier
+    datasetId: Identifier
+    datasetVersionId: Identifier
+    latestRun: CrfReportDetailAcceptedReportLatestRun | None = None
+    latestRunStatus: Literal["QUEUED", "RUNNING", "BLOCKED", "REVIEW", "RELEASED", "FAILED"] | None = None
+    name: Annotated[StrictStr, StringConstraints(min_length=1, max_length=200)]
+    period: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    reportId: Identifier
+    reportVersion: Annotated[int, Field(strict=True, ge=1)]
+    schemaVersion: Literal[4]
+    status: Literal["DRAFT", "RUNNING", "REVIEW", "RELEASED", "WITHDRAWN", "BLOCKED"]
+    supportedFormats: Annotated[list[Literal["DOCX", "PPTX", "XLSX", "PDF", "WEB"]], Field(min_length=1, max_length=5)]
+    templateId: Identifier
+    templateVersion: Annotated[int, Field(strict=True, ge=1)]
+    updatedAt: UtcTimestamp
+
+class CrfReportDetailAcceptedReportLatestRun(ClosedModel):
+    createdAt: UtcTimestamp
+    finishedAt: UtcTimestamp | None = None
+    reportVersion: Annotated[int, Field(strict=True, ge=1)]
+    runId: Identifier
+    status: Literal["QUEUED", "RUNNING", "BLOCKED", "REVIEW", "RELEASED", "FAILED"]
+
+class CrfReportListAccepted(ClosedModel):
+    accepted: Literal[True]
+    items: Annotated[list[CrfReportSummary], Field(max_length=50)]
+    nextCursor: Annotated[StrictStr, StringConstraints(min_length=16, max_length=512, pattern=r"^[A-Za-z0-9_-]+$")] | None = None
+    schemaVersion: Literal[4]
+
+class CrfReportRunDetailAccepted(ClosedModel):
+    accepted: Literal[True]
+    run: CrfReportRunDetailAcceptedRun
+    schemaVersion: Literal[4]
+
+class CrfReportRunDetailAcceptedRun(ClosedModel):
+    createdAt: UtcTimestamp
+    evidence: CrfReportRunDetailAcceptedRunEvidence
+    finishedAt: UtcTimestamp | None = None
+    frozen: Literal[True]
+    jraBound: StrictBool | None = None
+    outputs: Annotated[list[CrfReportRunDetailAcceptedRunOutputsItem], Field(max_length=5)]
+    reportId: Identifier
+    reportVersion: Annotated[int, Field(strict=True, ge=1)]
+    runId: Identifier
+    status: Literal["QUEUED", "RUNNING", "BLOCKED", "REVIEW", "RELEASED", "FAILED"]
+
+class CrfReportRunDetailAcceptedRunEvidence(ClosedModel):
+    complete: StrictBool
+    factCount: Annotated[int, Field(strict=True, ge=0, le=10000)]
+    referenceCount: Annotated[int, Field(strict=True, ge=0, le=100000)]
+
+class CrfReportRunDetailAcceptedRunOutputsItem(ClosedModel):
+    failureCode: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)] | None = None
+    format: Literal["DOCX", "PPTX", "XLSX", "PDF", "WEB"]
+    state: Literal["PENDING", "READY", "FAILED", "WITHDRAWN"]
+
+class CrfReportSummary(ClosedModel):
+    clientId: Identifier
+    datasetId: Identifier
+    datasetVersionId: Identifier
+    latestRunStatus: Literal["QUEUED", "RUNNING", "BLOCKED", "REVIEW", "RELEASED", "FAILED"] | None = None
+    name: Annotated[StrictStr, StringConstraints(min_length=1, max_length=200)]
+    period: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+    reportId: Identifier
+    reportVersion: Annotated[int, Field(strict=True, ge=1)]
+    schemaVersion: Literal[4]
+    status: Literal["DRAFT", "RUNNING", "REVIEW", "RELEASED", "WITHDRAWN", "BLOCKED"]
+    updatedAt: UtcTimestamp
 
 class DashboardApplyConfirmedResult(ClosedModel):
     name: Literal["dashboard.applyConfirmed"]
@@ -317,6 +426,54 @@ class DdaDashboardWidgetResultsAccepted(ClosedModel):
     snapshotId: Identifier
     widgets: Annotated[list[WidgetResult], Field(max_length=256)]
 
+class DdaDataImportDashboardPreview(ClosedModel):
+    accepted: Literal[True]
+    schemaVersion: Literal[4]
+    value: Value
+
+class DdaNotificationPreferencesAccepted(ClosedModel):
+    preferences: Annotated[list[DdaNotificationPreferencesAcceptedPreferencesItem], Field(min_length=1, max_length=64)]
+    revision: Annotated[int, Field(strict=True, ge=1)]
+    schemaVersion: Literal[4]
+
+class DdaNotificationPreferencesAcceptedPreferencesItem(ClosedModel):
+    category: Literal["REVIEWS", "DATA", "DASHBOARDS", "USAGE", "SECURITY", "BILLING", "SYSTEM"]
+    channel: Literal["IN_APP", "EMAIL", "PUSH", "DESKTOP"]
+    deliveryMode: Literal["IMMEDIATE", "DIGEST"]
+    enabled: StrictBool
+    mandatory: StrictBool
+    minimumUrgency: Literal["LOW", "NORMAL", "HIGH", "CRITICAL"]
+    quietHours: DdaNotificationPreferencesAcceptedQuietHours
+    timezone: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_+./:-]{1,64}$")]
+
+class DdaNotificationPreferencesAcceptedQuietHours(ClosedModel):
+    enabled: StrictBool
+    end: Annotated[StrictStr, StringConstraints(pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")]
+    start: Annotated[StrictStr, StringConstraints(pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")]
+
+class DdaNotificationPreferencesCommand(ClosedModel):
+    expectedRevision: Annotated[int, Field(strict=True, ge=1)]
+    preferences: Annotated[list[DdaNotificationPreferencesCommandPreferencesItem], Field(min_length=1, max_length=64)]
+    schemaVersion: Literal[4]
+
+class DdaNotificationPreferencesCommandPreferencesItem(ClosedModel):
+    category: Literal["REVIEWS", "DATA", "DASHBOARDS", "USAGE", "SECURITY", "BILLING", "SYSTEM"]
+    channel: Literal["IN_APP", "EMAIL", "PUSH", "DESKTOP"]
+    deliveryMode: Literal["IMMEDIATE", "DIGEST"]
+    enabled: StrictBool
+    minimumUrgency: Literal["LOW", "NORMAL", "HIGH", "CRITICAL"]
+    quietHours: DdaNotificationPreferencesCommandQuietHours
+    timezone: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_+./:-]{1,64}$")]
+
+class DdaNotificationPreferencesCommandQuietHours(ClosedModel):
+    enabled: StrictBool
+    end: Annotated[StrictStr, StringConstraints(pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")]
+    start: Annotated[StrictStr, StringConstraints(pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")]
+
+class Dimension(ClosedModel):
+    field: Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]
+    groups: Annotated[list[Group], Field(min_length=1, max_length=12)]
+
 class EtlProposeCorrectionResult(ClosedModel):
     name: Literal["etl.proposeCorrection"]
     result: EtlProposeCorrectionValue
@@ -372,6 +529,11 @@ class Freshness(ClosedModel):
     pendingDurationMs: Annotated[int, Field(strict=True, ge=0, le=604800000)] | None = None
     reasonCode: Annotated[StrictStr, StringConstraints(min_length=1, max_length=128, pattern=r"^[A-Z][A-Z0-9_]*$")] | None = None
     state: Literal["CURRENT", "PENDING", "STALE", "BLOCKED", "SOURCE_UNAVAILABLE"]
+
+class Group(ClosedModel):
+    count: Annotated[int, Field(strict=True, ge=1)]
+    label: Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]
+    total: StrictFloat | None = None
 
 class IamAuthSession(ClosedModel):
     accessExpiresAt: UtcTimestamp
@@ -436,9 +598,11 @@ class IamBootstrapResponseRejected(ClosedModel):
 
 class IamBootstrapUser(ClosedModel):
     displayName: Annotated[StrictStr, StringConstraints(min_length=1, max_length=200)]
+    email: Annotated[StrictStr, StringConstraints(min_length=3, max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")] | None = None
     id: Identifier
     locale: Literal["vi-VN", "en"]
     mfaState: Literal["ENABLED", "NOT_CONFIGURED"]
+    profileRevision: Annotated[int, Field(strict=True, ge=1)] | None = None
 
 class IamBootstrapValue(ClosedModel):
     organizations: Annotated[list[IamBootstrapOrganization], Field(min_length=1, max_length=64)]
@@ -475,6 +639,22 @@ class IamPasswordSignInCommand(ClosedModel):
     clientPlatform: Literal["android", "desktop", "web"]
     email: Annotated[StrictStr, StringConstraints(min_length=3, max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")]
     password: Annotated[StrictStr, StringConstraints(min_length=12, max_length=128, pattern=r"^[^\u0000\r\n]+$")]
+    schemaVersion: Literal[4]
+
+class IamProfileUpdateAccepted(ClosedModel):
+    schemaVersion: Literal[4]
+    user: IamProfileUpdateAcceptedUser
+
+class IamProfileUpdateAcceptedUser(ClosedModel):
+    displayName: Annotated[StrictStr, StringConstraints(min_length=1, max_length=200)]
+    id: Identifier
+    locale: Literal["vi-VN", "en"]
+    revision: Annotated[int, Field(strict=True, ge=1)]
+
+class IamProfileUpdateCommand(ClosedModel):
+    displayName: Annotated[StrictStr, StringConstraints(min_length=1, max_length=200)]
+    expectedRevision: Annotated[int, Field(strict=True, ge=1)]
+    locale: Literal["vi-VN", "en"]
     schemaVersion: Literal[4]
 
 class IamRegistrationAccepted(ClosedModel):
@@ -516,6 +696,30 @@ class IamWorkspaceCreateAcceptedWorkspace(ClosedModel):
 
 class IamWorkspaceCreateCommand(ClosedModel):
     name: Annotated[StrictStr, StringConstraints(min_length=1, max_length=200)]
+    schemaVersion: Literal[4]
+
+class JraJobHistoryDetailAccepted(ClosedModel):
+    accepted: Literal[True]
+    job: JraJobHistoryEntry
+    schemaVersion: Literal[4]
+
+class JraJobHistoryEntry(ClosedModel):
+    actionType: Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]
+    actionVersion: Annotated[int, Field(strict=True, ge=1)]
+    approvalState: Literal["NOT_APPLICABLE", "PENDING", "APPROVED", "REJECTED"]
+    createdAt: UtcTimestamp
+    finishedAt: UtcTimestamp | None = None
+    jobId: Identifier
+    resultAvailable: StrictBool
+    revision: Annotated[int, Field(strict=True, ge=1)]
+    schemaVersion: Literal[4]
+    startedAt: UtcTimestamp | None = None
+    state: Literal["CREATED", "QUEUED", "WAITING_FOR_DEVICE", "DISPATCHED", "RUNNING", "NEEDS_REVIEW", "AWAITING_APPROVAL", "SUCCEEDED", "PARTIALLY_SUCCEEDED", "FAILED", "CANCEL_REQUESTED", "CANCELLED", "EXPIRED"]
+
+class JraJobHistoryListAccepted(ClosedModel):
+    accepted: Literal[True]
+    items: Annotated[list[JraJobHistoryEntry], Field(max_length=100)]
+    nextCursor: OpaqueCursor | None = None
     schemaVersion: Literal[4]
 
 class JraWorkerDashboardWidgetResultOutput(ClosedModel):
@@ -578,6 +782,13 @@ class LfbLandingFeedbackCommand(ClosedModel):
     rating: Annotated[int, Field(strict=True, ge=1, le=5)]
     role: Literal["owner", "analyst", "accounting", "operations", "technology", "other"]
     schemaVersion: Literal[4]
+
+class Measure(ClosedModel):
+    average: StrictFloat
+    field: Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]
+    maximum: StrictFloat
+    minimum: StrictFloat
+    sum: StrictFloat
 
 class PlatformAdminFeedbacks(ClosedModel):
     feedbacks: Annotated[list[Feedback], Field(max_length=200)]
@@ -694,9 +905,35 @@ class RevenuePoint(ClosedModel):
     paidOrders: NonNegativeInteger
     revenueVnd: NonNegativeInteger
 
+class SampleCell(ClosedModel):
+    field: Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]
+    kind: Literal["TEXT", "NUMBER", "BOOLEAN", "EMPTY"]
+    value: Annotated[StrictStr, StringConstraints(max_length=8192)]
+
+class SampleRow(ClosedModel):
+    cells: Annotated[list[SampleCell], Field(max_length=32)]
+
 class SchemaField(ClosedModel):
     field: Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]
     type: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
+
+class Snapshot(ClosedModel):
+    effectiveAt: UtcTimestamp
+    expiresAt: UtcTimestamp | None = None
+    features: Annotated[list[Annotated[StrictStr, StringConstraints(min_length=1, max_length=160)]], Field(max_length=128)]
+    organizationId: Identifier
+    planCode: Literal["free", "development", "admin_granted", "personal-monthly", "personal-annual", "professional-monthly", "professional-annual", "team-monthly", "team-annual"]
+    quotas: Annotated[list[SnapshotQuotasItem], Field(max_length=32)]
+    revision: Annotated[int, Field(strict=True, ge=1)]
+    schemaVersion: Literal[1]
+    securityEpoch: Annotated[int, Field(strict=True, ge=1)]
+    snapshotId: Identifier
+    status: Literal["ACTIVE", "SUSPENDED", "EXPIRED"]
+    workspaceId: Identifier | None = None
+
+class SnapshotQuotasItem(ClosedModel):
+    limit: Annotated[int, Field(strict=True, ge=0)]
+    metric: Literal["artifact_bytes", "processing_seconds", "job_count", "member_count", "ocr_pages"]
 
 class SourceOpenResult(ClosedModel):
     name: Literal["source.open"]
@@ -708,6 +945,21 @@ class SourceOpenValue(ClosedModel):
     iaeContentReferenceId: Identifier | None = None
     kind: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
     sourceId: Identifier
+
+class Value(ClosedModel):
+    columns: Annotated[list[Column], Field(min_length=1, max_length=256)]
+    datasetId: Identifier
+    datasetName: Annotated[StrictStr, StringConstraints(min_length=1, max_length=200)]
+    datasetVersionId: Identifier
+    dimension: Dimension | None = None
+    generatedAt: UtcTimestamp
+    importId: Identifier
+    measure: Measure | None = None
+    rowCount: Annotated[int, Field(strict=True, ge=1, le=20000)]
+    sampleRows: Annotated[list[SampleRow], Field(max_length=25)]
+    sourceCount: Annotated[int, Field(strict=True, ge=1, le=8)]
+    sourceHashes: Annotated[list[Annotated[StrictStr, StringConstraints(pattern=r"^[0-9a-f]{64}$")]], Field(min_length=1, max_length=8)]
+    truncated: StrictBool
 
 class WidgetResult(ClosedModel):
     resultState: Literal["READY", "EMPTY", "SAMPLED", "TRUNCATED", "STALE"]
@@ -770,11 +1022,13 @@ IamBootstrapSession: TypeAlias = Annotated[IamBootstrapOrganizationSession | Iam
 
 ToolResult: TypeAlias = Annotated[DatasetDescribeResult | DatasetSampleResult | AnalysisPlanResult | AnalysisExecuteResult | DashboardProposeResult | DashboardApplyConfirmedResult | DashboardExplainValueResult | EvidenceResolveResult | SourceOpenResult | EtlProposeCorrectionResult, Field(discriminator="name")]
 
+AiCredits.model_rebuild()
 AnalysisExecuteResult.model_rebuild()
 AnalysisExecuteValue.model_rebuild()
 AnalysisPlanResult.model_rebuild()
 AnalysisPlanValue.model_rebuild()
 AvailablePreview.model_rebuild()
+BuaEntitlementSummary.model_rebuild()
 BuaPayosCheckoutCommand.model_rebuild()
 BuaPayosCheckoutSession.model_rebuild()
 BuaPayosPaymentStatus.model_rebuild()
@@ -783,9 +1037,21 @@ BuaPayosPlanCatalogAllowances.model_rebuild()
 BuaPayosPlanCatalogPlansItem.model_rebuild()
 BuaPayosWebhookEvent.model_rebuild()
 BuaPayosWebhookEventData.model_rebuild()
+Column.model_rebuild()
 ContextEvent.model_rebuild()
 CountGroup.model_rebuild()
 CountPoint.model_rebuild()
+CrfReportCreateAccepted.model_rebuild()
+CrfReportCreateCommand.model_rebuild()
+CrfReportDetailAccepted.model_rebuild()
+CrfReportDetailAcceptedReport.model_rebuild()
+CrfReportDetailAcceptedReportLatestRun.model_rebuild()
+CrfReportListAccepted.model_rebuild()
+CrfReportRunDetailAccepted.model_rebuild()
+CrfReportRunDetailAcceptedRun.model_rebuild()
+CrfReportRunDetailAcceptedRunEvidence.model_rebuild()
+CrfReportRunDetailAcceptedRunOutputsItem.model_rebuild()
+CrfReportSummary.model_rebuild()
 DashboardApplyConfirmedResult.model_rebuild()
 DashboardApplyConfirmedValue.model_rebuild()
 DashboardExplainValue.model_rebuild()
@@ -804,6 +1070,14 @@ DdaConversationListAccepted.model_rebuild()
 DdaConversationLoadAccepted.model_rebuild()
 DdaConversationSummary.model_rebuild()
 DdaDashboardWidgetResultsAccepted.model_rebuild()
+DdaDataImportDashboardPreview.model_rebuild()
+DdaNotificationPreferencesAccepted.model_rebuild()
+DdaNotificationPreferencesAcceptedPreferencesItem.model_rebuild()
+DdaNotificationPreferencesAcceptedQuietHours.model_rebuild()
+DdaNotificationPreferencesCommand.model_rebuild()
+DdaNotificationPreferencesCommandPreferencesItem.model_rebuild()
+DdaNotificationPreferencesCommandQuietHours.model_rebuild()
+Dimension.model_rebuild()
 EtlProposeCorrectionResult.model_rebuild()
 EtlProposeCorrectionValue.model_rebuild()
 EvidenceRef.model_rebuild()
@@ -812,6 +1086,7 @@ EvidenceResolveResult.model_rebuild()
 EvidenceResolveValue.model_rebuild()
 Feedback.model_rebuild()
 Freshness.model_rebuild()
+Group.model_rebuild()
 IamAuthSession.model_rebuild()
 IamBootstrapOrganization.model_rebuild()
 IamBootstrapOrganizationScope.model_rebuild()
@@ -829,6 +1104,9 @@ IamBootstrapWorkspaceScope.model_rebuild()
 IamBootstrapWorkspaceSession.model_rebuild()
 IamEmailVerificationCommand.model_rebuild()
 IamPasswordSignInCommand.model_rebuild()
+IamProfileUpdateAccepted.model_rebuild()
+IamProfileUpdateAcceptedUser.model_rebuild()
+IamProfileUpdateCommand.model_rebuild()
 IamRegistrationAccepted.model_rebuild()
 IamRegistrationAcceptedValue.model_rebuild()
 IamRegistrationCommand.model_rebuild()
@@ -837,6 +1115,9 @@ IamWorkspaceCreateAccepted.model_rebuild()
 IamWorkspaceCreateAcceptedDefaultProject.model_rebuild()
 IamWorkspaceCreateAcceptedWorkspace.model_rebuild()
 IamWorkspaceCreateCommand.model_rebuild()
+JraJobHistoryDetailAccepted.model_rebuild()
+JraJobHistoryEntry.model_rebuild()
+JraJobHistoryListAccepted.model_rebuild()
 JraWorkerDashboardWidgetResultOutput.model_rebuild()
 JraWorkerResultFinalizeAccepted.model_rebuild()
 JraWorkerResultFinalizeCommand.model_rebuild()
@@ -844,6 +1125,7 @@ JraWorkerResultPrepareAccepted.model_rebuild()
 JraWorkerResultPrepareCommand.model_rebuild()
 LfbLandingFeedbackAccepted.model_rebuild()
 LfbLandingFeedbackCommand.model_rebuild()
+Measure.model_rebuild()
 PlatformAdminFeedbacks.model_rebuild()
 PlatformAdminOverview.model_rebuild()
 PlatformAdminOverviewOperator.model_rebuild()
@@ -859,9 +1141,14 @@ ResultAttestation.model_rebuild()
 ResultProvenance.model_rebuild()
 ResultRow.model_rebuild()
 RevenuePoint.model_rebuild()
+SampleCell.model_rebuild()
+SampleRow.model_rebuild()
 SchemaField.model_rebuild()
+Snapshot.model_rebuild()
+SnapshotQuotasItem.model_rebuild()
 SourceOpenResult.model_rebuild()
 SourceOpenValue.model_rebuild()
+Value.model_rebuild()
 WidgetResult.model_rebuild()
 WorkerDashboardResultProvenance.model_rebuild()
 WorkerDashboardResultRow.model_rebuild()

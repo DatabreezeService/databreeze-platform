@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 4,
+  "plans": [
+    {
+      "id": "personal-monthly",
+      "family": "personal",
+      "billingCycle": "monthly",
+      "amountVnd": 0,
+      "description": "Personal plan",
+      "displayNameVi": "Cá nhân",
+      "displayNameEn": "Personal",
+      "taglineVi": "Bắt đầu",
+      "taglineEn": "Start",
+      "benefitsVi": ["Phân tích"],
+      "benefitsEn": ["Analysis"],
+      "allowances": {
+        "connectedFolders": "unlimited",
+        "ocrPagesPerMonth": 0,
+        "agentCreditsPerMonth": 0,
+        "etlRowsPerMonth": 0,
+        "logicalDatasets": 0,
+        "governedStorageGb": 0,
+        "agentEnabledMembers": 0,
+        "viewerMembers": 0,
+        "workspaces": 0,
+        "refreshMinutes": 1
+      }
+    }
+  ]
+}

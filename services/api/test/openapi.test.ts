@@ -133,6 +133,7 @@ void test('generates deterministic versioned OpenAPI with safe headers, errors, 
           (path) =>
             path.startsWith('/v1/') ||
             path.startsWith('/v3/') ||
+            path.startsWith('/v4/') ||
             path.startsWith('/internal/worker/') ||
             path.startsWith('/internal/iae/'),
         ),

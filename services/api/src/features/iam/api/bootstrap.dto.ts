@@ -4,11 +4,17 @@ export class BootstrapUserDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
 
+  @ApiPropertyOptional({ format: 'email' })
+  email?: string;
+
   @ApiProperty()
   displayName!: string;
 
   @ApiProperty({ enum: ['vi-VN', 'en'] })
   locale!: 'vi-VN' | 'en';
+
+  @ApiProperty({ minimum: 1 })
+  profileRevision!: number;
 
   @ApiProperty({ enum: ['ENABLED', 'NOT_CONFIGURED'] })
   mfaState!: 'ENABLED' | 'NOT_CONFIGURED';

@@ -137,7 +137,13 @@ function createDatabase(): {
 
 void test('[IAM-001, IAM-003, IAM-019] Prisma hierarchy adapter scopes reads and maps rows through domain validation', async () => {
   const state = createDatabase();
-  const adapter = new PrismaIamHierarchyRepositoryAdapter(state.client);
+  const adapter = new PrismaIamHierarchyRepositoryAdapter(state.client, undefined, () => ({
+    provision: async () => ({
+      policyId: stable('00000000-0000-4000-8000-000000000128'),
+      policyVersionId: stable('00000000-0000-4000-8000-000000000129'),
+      dataModeProjection: 'HYBRID' as const,
+    }),
+  }));
   const organization = createOrganizationIdentityV1({
     id: ids.organization,
     name: 'Acme',

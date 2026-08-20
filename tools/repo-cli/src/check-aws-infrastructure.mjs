@@ -101,11 +101,15 @@ if (
 }
 if (
   /resource\s+"aws_s3_bucket_policy"[\s\S]*?Principal\s*=\s*"\*"/u.test(allTerraform) ||
-  balancedBlocks(allTerraform, 'principals').some((block) =>
-    /identifiers\s*=\s*\[[^\]]*"\*"/u.test(block),
+  balancedBlocks(allTerraform, 'statement').some(
+    (statement) =>
+      !/\beffect\s*=\s*"Deny"/u.test(statement) &&
+      balancedBlocks(statement, 'principals').some((principal) =>
+        /identifiers\s*=\s*\[[^\]]*"\*"/u.test(principal),
+      ),
   )
 ) {
-  fail('the Web bucket policy grants a wildcard principal');
+  fail('a bucket policy allows a wildcard principal');
 }
 if (
   /AKIA[0-9A-Z]{16}|aws_secret_access_key\s*=|BEGIN (RSA|OPENSSH) PRIVATE KEY/.test(allTerraform)
