@@ -8,6 +8,7 @@ import {
   type RequestTenantContextPortV1,
 } from './request-tenant-context.port.js';
 import { getRequestContext } from './request-context.js';
+import type { DashboardProjectResolverPortV1 } from './dashboard-project-resolver.port.js';
 
 type HeaderValueV1 = string | readonly string[] | undefined;
 const SAFE_METHODS_V1 = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -96,6 +97,8 @@ export class SessionRequestTenantContextAdapter implements RequestTenantContextP
        * dashboard routes; ordinary workspace APIs keep their workspace scope.
        */
       readonly dashboardProjectId?: string;
+      /** Production projection resolved inside the authenticated workspace. */
+      readonly dashboardProjectResolver?: DashboardProjectResolverPortV1;
     } = {},
   ) {}
 
@@ -145,20 +148,33 @@ export class SessionRequestTenantContextAdapter implements RequestTenantContextP
     } catch {
       throw new RequestTenantContextProblemError('AUTHENTICATION_UNAVAILABLE');
     }
-    const projectId = this.options.dashboardProjectId;
     const requestUrl = typeof input.url === 'string' ? input.url : '';
-    const dashboardRequest =
-      /^\/(?:v1|v3)\/dda\/dashboards(?:\/|$)/u.test(requestUrl) && projectId !== undefined;
+    const dashboardRequest = /^\/(?:v1|v3)\/dda\/dashboards(?:\/|$)/u.test(requestUrl);
+    let projectId = this.options.dashboardProjectId;
+    if (
+      dashboardRequest &&
+      projectId === undefined &&
+      this.options.dashboardProjectResolver !== undefined
+    ) {
+      try {
+        projectId = await this.options.dashboardProjectResolver.resolveDashboardProject(
+          context.value,
+        );
+      } catch {
+        throw new RequestTenantContextProblemError('AUTHENTICATION_UNAVAILABLE');
+      }
+    }
     const resolved = createIamTenantContextV1({
       ...context.value,
-      tenantScope: dashboardRequest
-        ? {
-            scopeType: 'project',
-            organizationId: principal.organizationId,
-            workspaceId: principal.workspaceId,
-            projectId,
-          }
-        : context.value.tenantScope,
+      tenantScope:
+        dashboardRequest && projectId !== undefined
+          ? {
+              scopeType: 'project',
+              organizationId: principal.organizationId,
+              workspaceId: principal.workspaceId,
+              projectId,
+            }
+          : context.value.tenantScope,
       workspaceAuthorizationEpoch,
     });
     if (!resolved.accepted) throw new RequestTenantContextProblemError('CONTEXT_INVALID');

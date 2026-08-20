@@ -44,6 +44,7 @@ const ids = {
   foreignVersion: '00000000-0000-4000-8000-000000000b0a',
   retiredVersion: '00000000-0000-4000-8000-000000000b0b',
   correlation: '00000000-0000-4000-8000-000000000b0c',
+  project: '00000000-0000-4000-8000-000000000b0e',
 };
 
 function stable(value: string): StableIdentifierV1 {
@@ -262,6 +263,77 @@ void test('[IAM-024, DSM-018] production-shaped root selects durable IAM, DSM, a
       IamAgentGrantDatasetTargetValidationAdapter,
   );
   assert.ok(provider(iam, REQUEST_TENANT_CONTEXT) instanceof SessionRequestTenantContextAdapter);
+});
+
+void test('[IAM-002, DDA-013] production root resolves dashboard project from the exact hierarchy database scope', async () => {
+  const projectQueries: unknown[] = [];
+  const hierarchyDatabase = {
+    organizationIdentity: {},
+    workspaceIdentity: {},
+    projectIdentity: {
+      findMany: (input: unknown) => {
+        projectQueries.push(input);
+        return Promise.resolve([
+          {
+            id: ids.project,
+            organizationId: ids.organization,
+            workspaceId: ids.workspace,
+            kind: 'INTERNAL',
+            name: 'Personal project',
+            status: 'ACTIVE',
+            createdAt: new Date('2026-08-21T00:00:00.000Z'),
+          },
+        ]);
+      },
+    },
+    $transaction: () => Promise.reject(new Error('transaction not used by project resolution')),
+  };
+  const root = AppModule.register({
+    runtimeMode: 'production',
+    allowInMemoryAdapters: false,
+    sessions: {
+      findPrincipalByAccessToken: () =>
+        Promise.resolve({
+          userId: ids.owner,
+          organizationId: ids.organization,
+          workspaceId: ids.workspace,
+          securityEpoch: 7,
+          mfaRequired: false,
+          mfaReenrollmentRequired: false,
+        }),
+    } as never,
+    agentGrantRepository: new InMemoryAgentGrantRepositoryAdapter(),
+    hierarchyDatabase: hierarchyDatabase as never,
+    ddaDatabase: {} as never,
+    approvalDatabase: {} as never,
+  });
+  const iam = imported(root, IamModule);
+  const requestContext = provider(
+    iam,
+    REQUEST_TENANT_CONTEXT,
+  ) as SessionRequestTenantContextAdapter;
+
+  const resolved = await requestContext.resolve({
+    method: 'GET',
+    url: '/v3/dda/dashboards/workspace-history',
+    headers: { authorization: 'Bearer opaque-access-token-123456789' },
+  });
+
+  assert.deepEqual(resolved.tenantScope, {
+    scopeType: 'project',
+    organizationId: stable(ids.organization),
+    workspaceId: stable(ids.workspace),
+    projectId: stable(ids.project),
+  });
+  assert.deepEqual(projectQueries, [
+    {
+      where: {
+        organizationId: stable(ids.organization),
+        workspaceId: stable(ids.workspace),
+      },
+      orderBy: { id: 'asc' },
+    },
+  ]);
 });
 
 void test('[IAM-024] root session context is stale immediately after restriction mutation and re-resolves current epoch', async () => {
