@@ -20,8 +20,8 @@ test('DDA orchestration covers every requirement with non-overlapping parallel o
   });
   assert.equal(result.status, 0, result.stderr);
   const output = JSON.parse(result.stdout);
-  assert.equal(output.workPackageCount, 15);
-  assert.equal(output.requirementCount, 60);
+  assert.equal(output.workPackageCount, 16);
+  assert.equal(output.requirementCount, 61);
   assert.equal(output.parallelLaneCount, 5);
   assert.equal(output.nextWorkPackageId, 'DDA-087');
   const ledger = JSON.parse(

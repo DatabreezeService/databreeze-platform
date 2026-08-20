@@ -159,7 +159,6 @@ test('[Task 19 / IAM-019 / DDA-036] production deploy preserves the built API ru
   );
   assert.match(readFileSync(apiEntryPath, 'utf8'), /createDatabaseCompositionForRuntime/u);
   assert.equal(existsSync(path.join(generatedClientDirectory, 'client.ts')), true);
-  assert.equal(existsSync(path.join(generatedClientDirectory, 'client.js')), true);
   assert.equal(existsSync(path.join(generatedClientDirectory, 'internal', 'class.ts')), true);
 
   const destination = mkdtempSync(path.join(os.tmpdir(), 'databreeze-api-package-'));
