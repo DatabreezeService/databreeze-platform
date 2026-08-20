@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 4,
+  "paymentOrderId": "00000000-0000-4000-8000-000000000501",
+  "orderCode": 501,
+  "planId": "personal-monthly",
+  "amountVnd": 199000,
+  "currency": "VND",
+  "status": "PENDING",
+  "checkoutUrl": "https://payos.example/checkout/501"
+}

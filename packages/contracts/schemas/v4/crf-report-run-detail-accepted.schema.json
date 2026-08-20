@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/crf-report-run-detail-accepted",
+  "title": "CRF Report Run Detail Accepted",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "accepted", "run"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "accepted": { "const": true },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runId", "reportId", "reportVersion", "status", "createdAt", "frozen", "outputs", "evidence"],
+      "properties": {
+        "runId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "reportId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "reportVersion": { "type": "integer", "minimum": 1 },
+        "status": { "enum": ["QUEUED", "RUNNING", "BLOCKED", "REVIEW", "RELEASED", "FAILED"] },
+        "createdAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" },
+        "finishedAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" },
+        "frozen": { "const": true },
+        "jraBound": { "type": "boolean" },
+        "outputs": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["format", "state"],
+            "properties": {
+              "format": { "enum": ["DOCX", "PPTX", "XLSX", "PDF", "WEB"] },
+              "state": { "enum": ["PENDING", "READY", "FAILED", "WITHDRAWN"] },
+              "failureCode": { "type": "string", "minLength": 1, "maxLength": 64 }
+            }
+          }
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["factCount", "referenceCount", "complete"],
+          "properties": {
+            "factCount": { "type": "integer", "minimum": 0, "maximum": 10000 },
+            "referenceCount": { "type": "integer", "minimum": 0, "maximum": 100000 },
+            "complete": { "type": "boolean" }
+          }
+        }
+      }
+    }
+  }
+}

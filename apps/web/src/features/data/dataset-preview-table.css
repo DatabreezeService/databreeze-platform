@@ -1,0 +1,212 @@
+.dataset-preview-table-card {
+  margin-top: 1.5rem;
+  background: var(--dw-surface, #0c1030);
+  border: 1px solid var(--dw-line, rgba(219, 223, 255, 0.12));
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.dataset-preview-table-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.dataset-preview-table-card__header h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--dw-ink, #f7f7ff);
+  margin: 0 0 0.25rem 0;
+}
+
+.dataset-preview-table-card__header p {
+  font-size: 0.875rem;
+  color: var(--dw-muted, #a9aed2);
+  margin: 0;
+}
+
+.dataset-preview-table-card__actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.dataset-preview-table-card__toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.dataset-preview-table-card__meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: var(--dw-muted, #a9aed2);
+}
+
+.dataset-preview-meta-item strong {
+  color: var(--dw-ink, #f7f7ff);
+}
+
+.dataset-preview-search-input {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--dw-line, rgba(219, 223, 255, 0.12));
+  border-radius: 6px;
+  min-width: 220px;
+  background: var(--dw-surface-2, #121844);
+  color: var(--dw-ink, #f7f7ff);
+}
+
+.dataset-preview-search-input:focus {
+  outline: 2px solid var(--dw-brand, #3d50ff);
+  border-color: transparent;
+  background: #161e52;
+}
+
+.dataset-preview-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--dw-line, rgba(219, 223, 255, 0.12));
+  border-radius: 8px;
+  max-height: 440px;
+  background: rgba(7, 9, 29, 0.6);
+}
+
+.dataset-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.dataset-preview-th {
+  background: var(--dw-surface-2, #121844);
+  padding: 0.65rem 0.875rem;
+  font-weight: 600;
+  color: var(--dw-ink, #f7f7ff);
+  border-bottom: 1px solid var(--dw-line, rgba(219, 223, 255, 0.12));
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.dataset-preview-th--index {
+  width: 48px;
+  text-align: center;
+  color: var(--dw-dim, #71779f);
+}
+
+.dataset-preview-col-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dataset-preview-type-badge {
+  font-size: 0.6875rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.type-text {
+  background: rgba(85, 214, 255, 0.15);
+  color: #55d6ff;
+  border: 1px solid rgba(85, 214, 255, 0.3);
+}
+
+.type-integer, .type-decimal {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.type-date {
+  background: rgba(255, 207, 90, 0.15);
+  color: #ffcf5a;
+  border: 1px solid rgba(255, 207, 90, 0.3);
+}
+
+.type-boolean {
+  background: rgba(182, 156, 255, 0.15);
+  color: #b69cff;
+  border: 1px solid rgba(182, 156, 255, 0.3);
+}
+
+.dataset-preview-tr {
+  transition: background-color 100ms ease;
+}
+
+.dataset-preview-tr:hover {
+  background: rgba(61, 80, 255, 0.08);
+}
+
+.dataset-preview-td {
+  padding: 0.55rem 0.875rem;
+  border-bottom: 1px solid rgba(219, 223, 255, 0.06);
+  color: var(--dw-ink, #f7f7ff);
+  white-space: nowrap;
+}
+
+.dataset-preview-td--index {
+  text-align: center;
+  color: var(--dw-dim, #71779f);
+  font-size: 0.75rem;
+}
+
+.dataset-preview-null {
+  color: var(--dw-dim, #71779f);
+  font-style: italic;
+}
+
+.dataset-preview-td--empty {
+  text-align: center;
+  padding: 2rem;
+  color: var(--dw-dim, #71779f);
+}
+
+.dataset-preview-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--dw-muted, #a9aed2);
+}
+
+.dataset-preview-pagination-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.dataset-preview-pagination-buttons button {
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--dw-line, rgba(219, 223, 255, 0.12));
+  background: var(--dw-surface-2, #121844);
+  color: var(--dw-ink, #f7f7ff);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.dataset-preview-pagination-buttons button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.dataset-preview-pagination-buttons button:not(:disabled):hover {
+  background: #161e52;
+  border-color: rgba(61, 80, 255, 0.4);
+}

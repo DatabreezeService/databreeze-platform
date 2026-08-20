@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 4,
+  "accepted": true,
+  "job": {
+    "schemaVersion": 4,
+    "jobId": "00000000-0000-4000-8000-000000000901",
+    "actionType": "analysis.execute",
+    "actionVersion": 1,
+    "state": "SUCCEEDED",
+    "revision": 3,
+    "createdAt": "2026-08-13T01:00:00.000Z",
+    "finishedAt": "2026-08-13T01:00:05.000Z",
+    "resultAvailable": true,
+    "approvalState": "NOT_APPLICABLE"
+  }
+}

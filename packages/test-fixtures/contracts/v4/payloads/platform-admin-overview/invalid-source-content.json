@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 4,
+  "generatedAt": "2026-08-16T12:00:00.000Z",
+  "operator": { "role": "PLATFORM_OWNER" },
+  "window": {
+    "days": 30,
+    "startsAt": "2026-07-17T12:00:00.000Z",
+    "endsAt": "2026-08-16T12:00:00.000Z"
+  },
+  "totals": {
+    "users": 1,
+    "activeUsers": 1,
+    "organizations": 1,
+    "workspaces": 1,
+    "activeSessions": 1,
+    "subscriptions": 1,
+    "activeSubscriptions": 1,
+    "subscriberUsers": 1,
+    "settledRevenueVnd": 399000,
+    "paidOrders": 1,
+    "sourcePath": "C:\\private\\customer.xlsx"
+  },
+  "subscriptionStatuses": [],
+  "subscriptionPlans": [],
+  "registrationSeries": [],
+  "revenueSeries": [],
+  "recentUsers": [],
+  "recentSubscriptions": [],
+  "recentPayments": []
+}

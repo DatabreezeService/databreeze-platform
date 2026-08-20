@@ -21,6 +21,10 @@ import type {
   ApprovalTransactionPortV1,
 } from '../application/approval-repository.port.js';
 
+type ApprovalOrderByV1 =
+  | Readonly<Record<string, 'asc' | 'desc'>>
+  | readonly Readonly<Record<string, 'asc' | 'desc'>>[];
+
 export interface ApprovalPolicyDatabaseRowV1 {
   readonly id: string;
   readonly organizationId: string;
@@ -89,7 +93,7 @@ export interface JraApprovalDatabaseClientV1 {
     }): Promise<ApprovalRequestDatabaseRowV1 | null>;
     findMany(input: {
       readonly where: Readonly<Record<string, unknown>>;
-      readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
+      readonly orderBy?: ApprovalOrderByV1;
     }): Promise<readonly ApprovalRequestDatabaseRowV1[]>;
     updateMany(input: {
       readonly where: Readonly<Record<string, unknown>>;
@@ -378,7 +382,9 @@ class PrismaApprovalTransactionAdapter implements ApprovalTransactionPortV1 {
     if (search.statuses !== undefined) where['status'] = { in: search.statuses };
     const rows = await this.client.approvalRequestRecord.findMany({
       where,
-      orderBy: { createdAt: 'desc', id: 'asc' },
+      // Prisma 7 requires an array when more than one ordering is supplied.
+      // Keep the stable createdAt/id keyset order used by the public list.
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
     });
     return rows.map(rowToRequest);
   }

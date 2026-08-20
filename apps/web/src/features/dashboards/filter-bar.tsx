@@ -8,7 +8,9 @@ export interface FilterBarProps {
     readonly operator: string;
     readonly scope: string;
   }[];
-  readonly onChange: (filterId: string, value: string) => void;
+  /** Personal presentation filters are optional for reusable canvas consumers. */
+  readonly onChange?: (filterId: string, value: string) => void;
+  readonly values?: Readonly<Record<string, string>>;
 }
 
 function label(locale: SupportedLocaleV1, vi: string, en: string): string {
@@ -16,7 +18,8 @@ function label(locale: SupportedLocaleV1, vi: string, en: string): string {
 }
 
 /** DDA-023: typed filter bar preserving declared scope. */
-export function FilterBar({ locale, filters, onChange }: FilterBarProps) {
+export function FilterBar({ locale, filters, onChange, values }: FilterBarProps) {
+  const interactive = onChange !== undefined;
   return (
     <section
       className="dda-filter-bar"
@@ -40,10 +43,25 @@ export function FilterBar({ locale, filters, onChange }: FilterBarProps) {
             aria-label={`${filter.field} ${filter.operator}`}
             aria-describedby={filter.filterId + '-details'}
             placeholder={label(locale, 'Tất cả', 'All')}
-            onChange={(event) => onChange(filter.filterId, event.target.value)}
+            disabled={!interactive}
+            onChange={
+              onChange === undefined
+                ? undefined
+                : (event) => onChange(filter.filterId, event.target.value)
+            }
+            {...(values === undefined ? {} : { value: values[filter.filterId] ?? '' })}
           />
         </label>
       ))}
+      {!interactive ? (
+        <p className="dda-filter-bar__notice" role="status">
+          {label(
+            locale,
+            'Bộ lọc cá nhân chưa được kết nối trong bề mặt này.',
+            'Personal filters are not connected on this surface.',
+          )}
+        </p>
+      ) : null}
     </section>
   );
 }

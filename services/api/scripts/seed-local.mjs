@@ -9,6 +9,11 @@ import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { argon2id, hash } from 'argon2';
 
+import {
+  LOCAL_FEEDBACK_EMAILS,
+  LOCAL_PLATFORM_ANALYTICS_IDENTITIES,
+} from './local-feedback-seed.mjs';
+
 const SCRIPT_DIRECTORY = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(SCRIPT_DIRECTORY, '../../..');
 const LOCAL_ENV_PATH = resolve(REPOSITORY_ROOT, 'infrastructure/local/.env');
@@ -36,6 +41,8 @@ const ID = Object.freeze({
   owner: ids(10),
   analyst: ids(11),
   viewer: ids(12),
+  admin: ids(16),
+  platformOwner: ids(7001),
   ownerOrganizationMembership: ids(20),
   ownerWorkspaceMembership: ids(21),
   ownerProjectMembership: ids(22),
@@ -43,6 +50,13 @@ const ID = Object.freeze({
   analystProjectMembership: ids(24),
   viewerWorkspaceMembership: ids(25),
   viewerProjectMembership: ids(26),
+  adminOrganizationMembership: ids(27),
+  adminWorkspaceMembership: ids(28),
+  adminProjectMembership: ids(29),
+  platformOwnerOrganizationMembership: ids(7002),
+  platformOwnerWorkspaceMembership: ids(7003),
+  platformOwnerProjectMembership: ids(7004),
+  workerServiceAccount: ids(7005),
   policy: ids(30),
   policyVersion: ids(31),
   policyActivation: ids(32),
@@ -149,6 +163,15 @@ const ID = Object.freeze({
   publishedKpiWidget: ids(351),
   publishedBarWidget: ids(352),
   dashboardFilter: ids(353),
+  dashboardKpiResultArtifact: ids(250),
+  dashboardKpiResultVersion: ids(251),
+  dashboardKpiResultPlacement: ids(252),
+  dashboardBarResultArtifact: ids(253),
+  dashboardBarResultVersion: ids(254),
+  dashboardBarResultPlacement: ids(255),
+  reportClient: ids(360),
+  reportDefinition: ids(361),
+  reportTemplate: ids(362),
   typedAction: ids(400),
   job: ids(401),
   jobTransitionCreated: ids(402),
@@ -159,8 +182,32 @@ const ID = Object.freeze({
   executionAttempt: ids(406),
   resultManifest: ids(407),
   executionDescriptor: ids(408),
+  kpiResultManifest: ids(410),
+  barResultManifest: ids(411),
+  kpiResultAttempt: ids(412),
+  barResultAttempt: ids(413),
+  kpiAttestation: ids(414),
+  barAttestation: ids(415),
+  kpiFinalization: ids(416),
+  barFinalization: ids(417),
   reservation: ids(500),
   settlementBinding: ids(501),
+  widgetAction: ids(420),
+  // These executable local rows intentionally use a fresh immutable identity
+  // so a reload never tries to mutate an older descriptor or its output object.
+  // The previous 584/588 fixture remains readable as historical local data.
+  widgetJob: ids(684),
+  widgetTransitionCreated: ids(685),
+  widgetTransitionQueued: ids(686),
+  widgetOutbox: ids(687),
+  widgetDescriptor: ids(688),
+  widgetReservation: ids(689),
+  widgetSettlementBinding: ids(690),
+  widgetOutputObject: ids(691),
+  widgetCellOne: ids(530),
+  widgetCellTwo: ids(531),
+  widgetCellThree: ids(532),
+  widgetCellFour: ids(533),
   usageEntry: ids(502),
   entitlementSnapshot: ids(503),
   auditEvent: ids(600),
@@ -186,6 +233,132 @@ function minutesBefore(minutes) {
 
 function minutesAfter(minutes) {
   return new Date(NOW.getTime() + minutes * 60 * 1000);
+}
+
+export function buildPlatformAnalyticsRows() {
+  const organizationNames = [
+    'An Phú Retail',
+    'Minh Long Logistics',
+    'Sông Việt Foods',
+    'Hải Đăng Studio',
+    'Mộc Nhiên Home',
+    'Nam Phương Distribution',
+    'Lotus Field Services',
+    'Blue Harbor Commerce',
+    'Cửu Long Analytics',
+    'Thành Công Trading',
+    'Việt Phú Services',
+    'Ánh Dương Digital',
+    'Đông Nam Commerce',
+    'Khánh Minh Consulting',
+    'Phúc An Distribution',
+    'Trường Hải Operations',
+    'Bảo Tín Solutions',
+    'Quang Huy Studio',
+    'Minh Tâm Retail',
+    'Ngọc Việt Logistics',
+    'Hồng Hà Foods',
+  ];
+  const organizations = organizationNames.map((name, index) => ({
+    id: ids(8_000 + index),
+    name,
+    personal: true,
+    status: 'ACTIVE',
+    createdAt: minutesBefore((18 + index * 29) * 1_440),
+    updatedAt: minutesBefore((3 + index * 7) * 1_440),
+  }));
+  const users = LOCAL_PLATFORM_ANALYTICS_IDENTITIES.map(([email, displayName], index) => {
+    const daysAgo = 4 + index * 4;
+    return {
+      id: ids(8_100 + index),
+      email,
+      displayName,
+      locale: index % 4 === 0 ? 'en' : 'vi-VN',
+      status: 'ACTIVE',
+      securityEpoch: 1,
+      mfaReenrollmentRequired: false,
+      createdAt: minutesBefore(daysAgo * 1_440),
+      updatedAt: minutesBefore(Math.max(1, daysAgo - 1) * 1_440),
+      organizationId: organizations[index % organizations.length].id,
+    };
+  });
+  const paymentOrders = organizations.map((organization, index) => {
+    const createdAt = minutesBefore((7 + index * 5) * 1_440);
+    const paidAt = minutesBefore((7 + index * 5) * 1_440 - 15);
+    return {
+      id: ids(8_300 + index),
+      provider: 'PAYOS',
+      providerOrderCode: BigInt(9_100_000 + index),
+      scopeKey: `organization:${organization.id}`,
+      scopeType: 'organization',
+      organizationId: organization.id,
+      workspaceId: null,
+      actorId: users[index].id,
+      securityEpoch: 1,
+      planId: 'personal-monthly',
+      amountVnd: 149_000,
+      currency: 'VND',
+      status: 'PAID',
+      checkoutUrl: null,
+      idempotencyKey: `local-platform-order-${index + 1}`,
+      failureCode: null,
+      paidAt,
+      cancelledAt: null,
+      createdAt,
+      updatedAt: paidAt,
+      revision: 2,
+    };
+  });
+  const subscriptions = organizations.map((organization, index) => {
+    const payment = paymentOrders[index];
+    return {
+      id: ids(8_200 + index),
+      scopeKey: payment.scopeKey,
+      scopeType: 'organization',
+      organizationId: organization.id,
+      workspaceId: null,
+      planId: 'personal-monthly',
+      source: 'PAYOS',
+      status: 'ACTIVE',
+      currentOrderId: payment.id,
+      startsAt: payment.createdAt,
+      endsAt: null,
+      revision: 2,
+      createdAt: payment.createdAt,
+      updatedAt: payment.updatedAt,
+    };
+  });
+  const invoices = paymentOrders.map((payment, index) => ({
+    id: ids(8_400 + index),
+    paymentOrderId: payment.id,
+    scopeKey: payment.scopeKey,
+    organizationId: payment.organizationId,
+    workspaceId: null,
+    planId: payment.planId,
+    amountVnd: payment.amountVnd,
+    currency: 'VND',
+    status: 'PAID',
+    issuedAt: payment.paidAt,
+    paidAt: payment.paidAt,
+    createdAt: payment.paidAt,
+  }));
+  const memberships = users.map((user, index) => ({
+    id: ids(8_500 + index),
+    principalType: 'USER',
+    principalId: user.id,
+    scopeType: 'ORGANIZATION',
+    organizationId: user.organizationId,
+    workspaceId: null,
+    projectId: null,
+    roleId: index % 3 === 0 ? 'owner' : 'member',
+    status: user.status === 'ACTIVE' ? 'ACTIVE' : 'SUSPENDED',
+    startsAt: user.createdAt,
+    expiresAt: null,
+    revision: 1,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  }));
+  return { organizations, users, memberships, paymentOrders, subscriptions, invoices };
 }
 
 function digest(value) {
@@ -346,14 +519,195 @@ function registerGeneratedClientTypescriptResolver(clientPath) {
   registeredGeneratedClientDirectory = generatedDirectory;
 }
 
-async function loadPrismaClient() {
+export async function loadPrismaClient() {
   const clientPath = generatedClientPath();
   if (clientPath.endsWith('.ts')) registerGeneratedClientTypescriptResolver(clientPath);
   const generated = await import(pathToFileURL(clientPath).href);
   return generated.PrismaClient;
 }
 
-async function upsertRows(client, delegateName, rows, uniqueField = 'id') {
+// WEB-026/WEB-027: deterministic synthetic landing feedback for the local console
+// journey only. Production never creates feedback rows from repository seeds.
+export function buildLandingFeedbackRows() {
+  const rows = [
+    [
+      'Lê Thanh Hải',
+      LOCAL_FEEDBACK_EMAILS[0],
+      'An Nam Retail Group',
+      'owner',
+      'active',
+      'product',
+      5,
+      'DataBreeze giúp chuỗi 18 cửa hàng của chúng tôi hợp nhất toàn bộ dữ liệu bán hàng từ POS và Excel chỉ trong vài phút. Điểm ấn tượng nhất là tính năng AI giải thích doanh thu có kèm nguồn gốc đối chiếu từng dòng, không bị tình trạng bịa số liệu như các công cụ khác.',
+      true,
+      '2026-08-14T09:30:00.000Z',
+    ],
+    [
+      'Duy Đỗ',
+      LOCAL_FEEDBACK_EMAILS[1],
+      'Sài Gòn Logistics Corp',
+      'operations',
+      'active',
+      'feature',
+      5,
+      'Khả năng xử lý các file lịch trình xe và chi phí nhiên liệu hàng ngày rất mượt mà. Đề xuất đội ngũ bổ sung thêm tính năng cảnh báo tự động qua webhook hoặc email khi có chỉ số chi phí đội xe vượt ngưỡng định mức.',
+      true,
+      '2026-08-13T14:15:00.000Z',
+    ],
+    [
+      'Lâm Gia Kiệt',
+      LOCAL_FEEDBACK_EMAILS[2],
+      'Dược Phẩm Thăng Long',
+      'accounting',
+      'trial',
+      'data-trust',
+      5,
+      'Chế độ Hybrid bảo mật cực kỳ ấn tượng! Ban giám đốc bên mình rất khắt khe về bảo mật dữ liệu doanh thu, nhờ DataBreeze giữ nguyên file gốc tại Desktop và chỉ đẩy bản chiếu projection đã duyệt lên Web nên quy trình kiểm toán nội bộ thông qua rất nhanh.',
+      true,
+      '2026-08-12T11:45:00.000Z',
+    ],
+    [
+      'Trần Đặng Minh Quân',
+      LOCAL_FEEDBACK_EMAILS[3],
+      'Fintech Solutions VN',
+      'analyst',
+      'active',
+      'performance',
+      5,
+      'Dataset hơn 200.000 dòng tải vào phân tích và vẽ biểu đồ rất nhanh, độ trễ hầu như bằng 0. Trợ lý AI tóm tắt nguyên nhân tăng trưởng theo từng khu vực địa lý rất chính xác và tiện lợi khi làm slide báo cáo cho ban quản trị.',
+      true,
+      '2026-08-11T16:20:00.000Z',
+    ],
+    [
+      'Mai Nguyễn Duy Khánh',
+      LOCAL_FEEDBACK_EMAILS[4],
+      'Chuỗi F&B Cà Phê Mộc',
+      'owner',
+      'active',
+      'design',
+      5,
+      'Giao diện trực quan, sang trọng và không rườm rà. Các bạn quản lý ca không rành kỹ thuật vẫn tự nhìn dashboard hiểu ngay doanh số giờ cao điểm và tỷ lệ hao hụt nguyên vật liệu.',
+      true,
+      '2026-08-10T08:10:00.000Z',
+    ],
+    [
+      'Hoàng Đức',
+      LOCAL_FEEDBACK_EMAILS[5],
+      'Nông Sản Miền Tây Co.',
+      'technology',
+      'trial',
+      'feature',
+      4,
+      'Kiến trúc client-server và contract JSON Schema của nền tảng rất chặt chẽ. Rất mong DataBreeze sớm mở thêm REST API public để chúng tôi tích hợp trực tiếp dữ liệu từ hệ thống kho ERP nội bộ.',
+      true,
+      '2026-08-09T17:05:00.000Z',
+    ],
+    [
+      'Huỳnh An Khương',
+      LOCAL_FEEDBACK_EMAILS[6],
+      'May Mặc VinaText',
+      'operations',
+      'trial',
+      'product',
+      4,
+      'Dùng thử 2 tuần cho xưởng may thấy tiết kiệm được ít nhất 10 tiếng tổng hợp báo cáo mỗi tuần. Chỉ cần kéo thả file theo dõi sản lượng là các biểu đồ tự động cập nhật snapshot mới.',
+      true,
+      '2026-08-08T10:30:00.000Z',
+    ],
+    [
+      'Nhi Phạm',
+      LOCAL_FEEDBACK_EMAILS[7],
+      'Thời Trang NEM - Chi Nhánh Miền Nam',
+      'analyst',
+      'active',
+      'feature',
+      5,
+      'Rất thích tính năng truy vết lineage nguồn gốc của từng chỉ số KPI. Đề xuất thêm bộ lọc đa chiều hơn cho nhóm thuộc tính SKU (màu sắc, size) để phân tích tồn kho chuyên sâu hơn.',
+      true,
+      '2026-08-07T13:40:00.000Z',
+    ],
+    [
+      'Lê Trần Gia Huy',
+      LOCAL_FEEDBACK_EMAILS[8],
+      'Đại Tín Tax & Accounting',
+      'accounting',
+      'trial',
+      'data-trust',
+      5,
+      'Khả năng đọc và đối soát file hóa đơn chứng từ kèm OCR của DataBreeze chuẩn xác đáng kinh ngạc. Giúp đội ngũ kế toán phát hiện kịp thời các mục chênh lệch đối chiếu.',
+      false,
+      '2026-08-06T15:50:00.000Z',
+    ],
+    [
+      'Nguyễn Phan Mạnh Tú',
+      LOCAL_FEEDBACK_EMAILS[9],
+      'Giao Hàng Express 247',
+      'operations',
+      'exploring',
+      'design',
+      4,
+      'Website landing page trình bày sản phẩm rất ấn tượng và rõ ràng. Video demo và sơ đồ luồng dữ liệu trực quan giúp ban lãnh đạo bên mình dễ dàng hình dung giải pháp trước khi đăng ký demo.',
+      true,
+      '2026-08-05T09:15:00.000Z',
+    ],
+    [
+      'Nguyễn Trần Minh Quân',
+      LOCAL_FEEDBACK_EMAILS[10],
+      'Bảo Hiểm Số AlphaCare',
+      'technology',
+      'trial',
+      'performance',
+      5,
+      'Ứng dụng Desktop chạy Native rất nhẹ, RAM tiêu tốn ít và đồng bộ mượt lên Web app. Bản build bảo đảm an toàn dữ liệu khách hàng theo đúng chuẩn ISO doanh nghiệp.',
+      true,
+      '2026-08-04T11:20:00.000Z',
+    ],
+    [
+      'Nguyễn Quốc Huy',
+      LOCAL_FEEDBACK_EMAILS[11],
+      'Vật Liệu Xây Dựng Tiến Phát',
+      'other',
+      'exploring',
+      'other',
+      4,
+      'Mong muốn được tư vấn gói Team hoặc Professional cho công ty khoảng 25 nhân sự sử dụng đồng thời. Đã để lại thông tin và mong nhận được liên hệ sớm từ đội ngũ DataBreeze!',
+      true,
+      '2026-08-03T16:00:00.000Z',
+    ],
+  ];
+  return rows.map(
+    (
+      [
+        name,
+        email,
+        organization,
+        role,
+        experience,
+        category,
+        rating,
+        message,
+        contactPermission,
+        createdAt,
+      ],
+      index,
+    ) => ({
+      id: ids(8_900 + index),
+      email,
+      name,
+      organization,
+      role,
+      experience,
+      category,
+      rating,
+      message,
+      contactPermission,
+      sourceIpHash: null,
+      createdAt: new Date(createdAt),
+    }),
+  );
+}
+
+export async function upsertRows(client, delegateName, rows, uniqueField = 'id') {
   if (rows.length === 0) return;
   const delegate = client[delegateName];
   if (!delegate || typeof delegate.upsert !== 'function') {
@@ -366,6 +720,111 @@ async function upsertRows(client, delegateName, rows, uniqueField = 'id') {
       create: row,
       update: Object.fromEntries(Object.entries(row).filter(([field]) => field !== uniqueField)),
     });
+  }
+}
+
+// IAM-026/BUA-024/WEB-027: this is the only supported narrow application
+// path for refreshing the local platform-admin fixture. It deliberately
+// excludes credentials, sessions, tenant product data, and every delete API.
+export async function applyPlatformAdminRows(database) {
+  const analytics = buildPlatformAnalyticsRows();
+  const feedbacks = buildLandingFeedbackRows();
+
+  await database.$transaction(async (transaction) => {
+    await upsertRows(transaction, 'organizationIdentity', analytics.organizations);
+    await upsertRows(
+      transaction,
+      'userIdentity',
+      analytics.users.map(({ organizationId, ...identity }) => {
+        void organizationId;
+        return identity;
+      }),
+    );
+    await upsertRows(transaction, 'membershipIdentity', analytics.memberships);
+    await upsertRows(transaction, 'paymentOrderRecord', analytics.paymentOrders);
+    await upsertRows(transaction, 'subscriptionRecord', analytics.subscriptions);
+    await upsertRows(transaction, 'invoiceRecord', analytics.invoices);
+    await upsertRows(transaction, 'landingFeedbackRecord', feedbacks);
+  });
+
+  return Object.freeze({
+    organizations: analytics.organizations.length,
+    users: analytics.users.length,
+    memberships: analytics.memberships.length,
+    paymentOrders: analytics.paymentOrders.length,
+    subscriptions: analytics.subscriptions.length,
+    invoices: analytics.invoices.length,
+    feedbacks: feedbacks.length,
+    paidUsers: new Set(
+      analytics.paymentOrders
+        .filter((order) => order.status === 'PAID')
+        .map((order) => order.actorId),
+    ).size,
+    activeSubscriptions: analytics.subscriptions.filter(
+      (subscription) => subscription.status === 'ACTIVE',
+    ).length,
+    settledRevenueVnd: analytics.invoices
+      .filter((invoice) => invoice.status === 'PAID')
+      .reduce((total, invoice) => total + invoice.amountVnd, 0),
+  });
+}
+
+export async function applyPlatformAdminRowsToConfiguredLocalDatabase() {
+  const environment = localEnvironment();
+  const connectionString = localDatabaseUrl(environment);
+  const prismaConstructor = await loadPrismaClient();
+  const adapter = new PrismaPg({ connectionString });
+  const database = new prismaConstructor({ adapter });
+
+  await database.$connect();
+  try {
+    return await applyPlatformAdminRows(database);
+  } finally {
+    await database.$disconnect();
+  }
+}
+
+export async function readPlatformAdminMetrics(database) {
+  const [totalUsers, paidActors, activeSubscriptions, settled, feedbacks] = await Promise.all([
+    database.userIdentity.count(),
+    database.paymentOrderRecord.groupBy({
+      by: ['actorId'],
+      where: { status: 'PAID' },
+      _count: { _all: true },
+    }),
+    database.subscriptionRecord.count({ where: { status: 'ACTIVE' } }),
+    database.invoiceRecord.aggregate({
+      where: { status: 'PAID' },
+      _sum: { amountVnd: true },
+    }),
+    database.landingFeedbackRecord.count(),
+  ]);
+  const settledRevenueVnd = Number(settled._sum.amountVnd ?? 0);
+  if (!Number.isSafeInteger(settledRevenueVnd) || settledRevenueVnd < 0) {
+    throw new Error('LOCAL_PLATFORM_ADMIN_REVENUE_INVALID');
+  }
+
+  return Object.freeze({
+    totalUsers,
+    paidUsers: paidActors.length,
+    activeSubscriptions,
+    settledRevenueVnd,
+    feedbacks,
+  });
+}
+
+export async function readConfiguredLocalPlatformAdminMetrics() {
+  const environment = localEnvironment();
+  const connectionString = localDatabaseUrl(environment);
+  const prismaConstructor = await loadPrismaClient();
+  const adapter = new PrismaPg({ connectionString });
+  const database = new prismaConstructor({ adapter });
+
+  await database.$connect();
+  try {
+    return await readPlatformAdminMetrics(database);
+  } finally {
+    await database.$disconnect();
   }
 }
 
@@ -1023,6 +1482,101 @@ function buildDatasetRows(metadata) {
   return Object.freeze({ definitions, mappings, rules, versions, quality, profiles, exports });
 }
 
+function sha256Bytes(bytes) {
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
+function stableCanonicalHash(parts) {
+  const input = JSON.stringify(parts, Object.keys(parts).sort());
+  let hashValue = 2166136261;
+  for (let index = 0; index < input.length; index += 1) {
+    hashValue ^= input.charCodeAt(index);
+    hashValue = Math.imul(hashValue, 16777619);
+  }
+  return (hashValue >>> 0).toString(16).padStart(8, '0').repeat(8);
+}
+
+function canonicalJson(value) {
+  if (value === null || typeof value === 'boolean' || typeof value === 'string') {
+    return JSON.stringify(value);
+  }
+  if (typeof value === 'number') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map((item) => canonicalJson(item)).join(',')}]`;
+  return `{${Object.entries(value)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, child]) => `${JSON.stringify(key)}:${canonicalJson(child)}`)
+    .join(',')}}`;
+}
+
+// JRA descriptors use the domain canonicalizer's UTF-16 key ordering. Keep
+// this separate from the legacy fixture hashes above so reseeding does not
+// rewrite unrelated immutable evidence rows.
+function jraDescriptorCanonicalJson(value) {
+  if (value === null || typeof value === 'boolean' || typeof value === 'string') {
+    return JSON.stringify(value);
+  }
+  if (typeof value === 'number') return JSON.stringify(value);
+  if (Array.isArray(value))
+    return `[${value.map((item) => jraDescriptorCanonicalJson(item)).join(',')}]`;
+  return `{${Object.keys(value)
+    .sort()
+    .map((key) => `${JSON.stringify(key)}:${jraDescriptorCanonicalJson(value[key])}`)
+    .join(',')}}`;
+}
+
+function materializationCacheHash(input) {
+  return digest(
+    JSON.stringify({
+      adapterVersion: input.adapterVersion,
+      analysisPlanVersionId: input.analysisPlanVersionId,
+      dashboardVersionId: input.dashboardVersionId,
+      datasetVersionId: input.datasetVersionId,
+      effectivePolicyVersionId: input.effectivePolicyVersionId,
+      engineVersion: input.engineVersion,
+      locale: input.locale,
+      metricVersionId: input.metricVersionId,
+      parameterHash: input.parameterHash,
+      permissionProjectionVersionId: input.permissionProjectionVersionId,
+      semanticVersionId: input.semanticVersionId,
+      tenantScope:
+        'project|00000000-0000-4000-8000-000000000001|00000000-0000-4000-8000-000000000002|00000000-0000-4000-8000-000000000003',
+      timezone: input.timezone,
+      widgetId: input.widgetId,
+    }),
+  );
+}
+
+function snapshotInputSelectorHash(versionId, materializationIds) {
+  return digest(JSON.stringify({ versionId, mats: [...new Set(materializationIds)].sort() }));
+}
+
+function snapshotBaseHash(snapshot) {
+  return stableCanonicalHash({
+    snapshotId: snapshot.id,
+    tenantScope:
+      'project|00000000-0000-4000-8000-000000000001|00000000-0000-4000-8000-000000000002|00000000-0000-4000-8000-000000000003',
+    dashboardVersionId: snapshot.dashboardVersionId,
+    materializationIds: [...snapshot.materializationIds].sort(),
+    inputSelectorHash: snapshot.inputSelectorHash,
+    permissionProjectionVersionId: snapshot.permissionProjectionVersionId,
+    audience: snapshot.audience,
+    freshnessState: snapshot.freshnessState,
+    evidenceState: snapshot.evidenceState,
+    createdAt: snapshot.createdAt,
+  });
+}
+
+function publicationCanonicalHash(snapshot, bindingProof) {
+  return digest(
+    canonicalJson({
+      baseHash: snapshotBaseHash(snapshot),
+      bindingProof: [...bindingProof].sort((left, right) =>
+        left.materializationId.localeCompare(right.materializationId),
+      ),
+    }),
+  );
+}
+
 function buildDashboardRows(metadata) {
   const planHash = digest('analysis-plan-expense-v2');
   const dashboardHash = digest('dashboard-published-expense-v2');
@@ -1120,8 +1674,8 @@ function buildDashboardRows(metadata) {
     },
     timeGrain: 'MONTH',
     joins: [],
-    units: [{ field: 'so_tien', unit: 'VND' }],
-    parameters: [],
+    units: { so_tien: 'VND' },
+    parameters: {},
     output: { form: 'TABLE', maxRows: 100 },
     assumptions: ['Synthetic local fixture; values are deterministic.'],
     estimate: { cpuMs: 100, memoryMb: 64 },
@@ -1186,50 +1740,443 @@ function buildDashboardRows(metadata) {
       createdAt: minutesBefore(9_900),
     }),
   ];
-  const materializationRows = [
-    scopedRow(projectScope, {
-      id: ID.kpiMaterialization,
-      dashboardVersionId: ID.publishedDashboardVersion,
+  const dashboardInputSelectorHash = snapshotInputSelectorHash(ID.publishedDashboardVersion, [
+    ID.kpiMaterialization,
+    ID.barMaterialization,
+  ]);
+  const dashboardResultEngineVersion = 'databreeze-engine-local-seed-1';
+  const dashboardResultHandlerDigest = `sha256:${digest('local-seed-dashboard-handler-v1')}`;
+  const dashboardResultSubjectBindings = (widgetId) => ({
+    dashboardId: ID.dashboard,
+    dashboardVersionId: ID.publishedDashboardVersion,
+    widgetId,
+    planVersionId: ID.analysisPlanVersion,
+    metricVersionId: ID.metricVersion,
+    datasetVersionId: ID.expenseVersionTwo,
+    permissionProjectionVersionId: ID.permissionProjection,
+    policyVersionId: ID.policyVersion,
+    locale: 'vi-VN',
+    timezone: 'Asia/Ho_Chi_Minh',
+    inputSelectorHash: dashboardInputSelectorHash,
+    engineVersion: dashboardResultEngineVersion,
+    handlerDigest: dashboardResultHandlerDigest,
+  });
+  const dashboardResultProvenance = (resultCellId) => ({
+    resultCellId,
+    planVersionId: ID.analysisPlanVersion,
+    metricVersionId: ID.metricVersion,
+    datasetVersionId: ID.expenseVersionTwo,
+    evidenceRefs: [ID.expenseEvidence],
+  });
+  const dashboardKpiOutput = {
+    schemaVersion: 4,
+    kind: 'DASHBOARD_WIDGET_RESULT',
+    widgetResult: {
       widgetId: ID.publishedKpiWidget,
-      analysisPlanVersionId: ID.analysisPlanVersion,
-      resultManifestId: ID.resultManifest,
-      cacheIdentityHash: digest('kpi-cache-expense-v2'),
-      dependencyEntries,
-      createdAt: minutesBefore(9_700),
-    }),
-    scopedRow(projectScope, {
-      id: ID.barMaterialization,
-      dashboardVersionId: ID.publishedDashboardVersion,
+      resultState: 'READY',
+      rows: [
+        {
+          label: 'Tổng chi phí',
+          displayValue: '₫5.090.000',
+          numericValue: 5_090_000,
+          unit: 'VND',
+          provenance: dashboardResultProvenance(ID.widgetCellOne),
+        },
+      ],
+    },
+    subjectBindings: dashboardResultSubjectBindings(ID.publishedKpiWidget),
+  };
+  const dashboardBarOutput = {
+    schemaVersion: 4,
+    kind: 'DASHBOARD_WIDGET_RESULT',
+    widgetResult: {
       widgetId: ID.publishedBarWidget,
-      analysisPlanVersionId: ID.analysisPlanVersion,
-      resultManifestId: ID.resultManifest,
-      cacheIdentityHash: digest('bar-cache-expense-v2'),
-      dependencyEntries,
+      resultState: 'READY',
+      rows: [
+        {
+          label: 'Văn phòng',
+          displayValue: '₫3.390.000',
+          numericValue: 3_390_000,
+          unit: 'VND',
+          provenance: dashboardResultProvenance(ID.widgetCellOne),
+        },
+        {
+          label: 'Di chuyển',
+          displayValue: '₫780.000',
+          numericValue: 780_000,
+          unit: 'VND',
+          provenance: dashboardResultProvenance(ID.widgetCellTwo),
+        },
+        {
+          label: 'Ăn uống',
+          displayValue: '₫920.000',
+          numericValue: 920_000,
+          unit: 'VND',
+          provenance: dashboardResultProvenance(ID.widgetCellThree),
+        },
+      ],
+    },
+    subjectBindings: dashboardResultSubjectBindings(ID.publishedBarWidget),
+  };
+  const outputMetadata = [
+    {
+      key: 'dashboardKpiResult',
+      fileName: 'local-dashboard-kpi-result.json',
+      artifactId: ID.dashboardKpiResultArtifact,
+      versionId: ID.dashboardKpiResultVersion,
+      placementId: ID.dashboardKpiResultPlacement,
+      bytes: Buffer.from(JSON.stringify(dashboardKpiOutput), 'utf8'),
+    },
+    {
+      key: 'dashboardBarResult',
+      fileName: 'local-dashboard-bar-result.json',
+      artifactId: ID.dashboardBarResultArtifact,
+      versionId: ID.dashboardBarResultVersion,
+      placementId: ID.dashboardBarResultPlacement,
+      bytes: Buffer.from(JSON.stringify(dashboardBarOutput), 'utf8'),
+    },
+  ].map((output) => ({
+    ...output,
+    contentSha256: sha256Bytes(output.bytes),
+    byteSize: output.bytes.byteLength,
+    mediaType: 'application/json',
+  }));
+  const materializationInputs = [
+    {
+      id: ID.kpiMaterialization,
+      widgetId: ID.publishedKpiWidget,
+      resultManifestId: ID.kpiResultManifest,
+      parameterHash: digest('local-dashboard-kpi-parameters-v1'),
       createdAt: minutesBefore(9_700),
-    }),
+    },
+    {
+      id: ID.barMaterialization,
+      widgetId: ID.publishedBarWidget,
+      resultManifestId: ID.barResultManifest,
+      parameterHash: digest('local-dashboard-bar-parameters-v1'),
+      createdAt: minutesBefore(9_700),
+    },
   ];
+  const materializationRows = materializationInputs.map((input) => {
+    const cacheIdentityHash = materializationCacheHash({
+      dashboardVersionId: ID.publishedDashboardVersion,
+      widgetId: input.widgetId,
+      analysisPlanVersionId: ID.analysisPlanVersion,
+      datasetVersionId: ID.expenseVersionTwo,
+      semanticVersionId: ID.semanticVersion,
+      metricVersionId: ID.metricVersion,
+      permissionProjectionVersionId: ID.permissionProjection,
+      parameterHash: input.parameterHash,
+      locale: 'vi-VN',
+      timezone: 'Asia/Ho_Chi_Minh',
+      engineVersion: 'databreeze-engine-local-seed-1',
+      adapterVersion: 'local-seed-v1',
+      effectivePolicyVersionId: ID.policyVersion,
+    });
+    return scopedRow(projectScope, {
+      id: input.id,
+      dashboardVersionId: ID.publishedDashboardVersion,
+      widgetId: input.widgetId,
+      analysisPlanVersionId: ID.analysisPlanVersion,
+      resultManifestId: input.resultManifestId,
+      cacheIdentityHash,
+      dependencyEntries,
+      createdAt: input.createdAt,
+    });
+  });
+  const inputSelectorHash = dashboardInputSelectorHash;
+  const bindingProof = materializationInputs.map((input) => ({
+    schemaVersion: 1,
+    materializationId: input.id,
+    tenantScope: projectScope,
+    dashboardVersionId: ID.publishedDashboardVersion,
+    widgetId: input.widgetId,
+    analysisPlanVersionId: ID.analysisPlanVersion,
+    datasetVersionId: ID.expenseVersionTwo,
+    semanticVersionId: ID.semanticVersion,
+    metricVersionId: ID.metricVersion,
+    materializationDefinitionId: input.id,
+    resultManifestId: input.resultManifestId,
+    permissionProjectionVersionId: ID.permissionProjection,
+    parameterHash: input.parameterHash,
+    locale: 'vi-VN',
+    timezone: 'Asia/Ho_Chi_Minh',
+    engineVersion: 'databreeze-engine-local-seed-1',
+    adapterVersion: 'local-seed-v1',
+    effectivePolicyVersionId: ID.policyVersion,
+    cacheIdentityHash: materializationRows.find((row) => row.id === input.id).cacheIdentityHash,
+    materializationCreatedAt: input.createdAt.toISOString(),
+  }));
+  const snapshot = {
+    id: ID.dashboardSnapshot,
+    dashboardVersionId: ID.publishedDashboardVersion,
+    materializationIds: [ID.kpiMaterialization, ID.barMaterialization],
+    inputSelectorHash,
+    permissionProjectionVersionId: ID.permissionProjection,
+    audience: 'WORKSPACE_VIEWERS',
+    freshnessState: 'FRESH',
+    evidenceState: 'AVAILABLE',
+    createdAt: minutesBefore(9_600).toISOString(),
+  };
+  const canonicalHash = publicationCanonicalHash(snapshot, bindingProof);
   const snapshotRows = [
     scopedRow(projectScope, {
-      id: ID.dashboardSnapshot,
-      dashboardVersionId: ID.publishedDashboardVersion,
-      materializationIds: [ID.kpiMaterialization, ID.barMaterialization],
-      bindingProof: {
-        version: 1,
-        dashboardVersionId: ID.publishedDashboardVersion,
-        materializationIds: [ID.kpiMaterialization, ID.barMaterialization],
-        inputSelectorHash: digest('dashboard-input-selector'),
+      id: snapshot.id,
+      dashboardVersionId: snapshot.dashboardVersionId,
+      materializationIds: {
+        ids: snapshot.materializationIds,
+        bindingProofVersion: 1,
+        bindingProof,
+        inputSelectorHash,
       },
+      bindingProof,
       bindingProofVersion: 1,
-      inputSelectorHash: digest('dashboard-input-selector'),
-      permissionProjectionVersionId: ID.permissionProjection,
-      audience: 'WORKSPACE_VIEWERS',
-      freshnessState: 'FRESH',
-      evidenceState: 'AVAILABLE',
+      inputSelectorHash,
+      permissionProjectionVersionId: snapshot.permissionProjectionVersionId,
+      audience: snapshot.audience,
+      freshnessState: snapshot.freshnessState,
+      evidenceState: snapshot.evidenceState,
       evidenceReferenceId: ID.expenseEvidence,
-      canonicalHash: digest('dashboard-snapshot-expense-v2'),
-      createdAt: minutesBefore(9_600),
+      canonicalHash,
+      createdAt: new Date(snapshot.createdAt),
     }),
   ];
+  const resultAttemptRows = [
+    scopedRow(projectScope, {
+      id: ID.kpiResultAttempt,
+      jobId: ID.job,
+      attemptNumber: 2,
+      executorType: 'CLOUD_WORKER',
+      executorId: ID.device,
+      leaseTokenHash: digest('local-seed-kpi-result-lease'),
+      leaseExpiresAt: minutesAfter(42_000),
+      state: 'SUCCEEDED',
+      createdAt: minutesBefore(9_595),
+      heartbeatAt: minutesBefore(9_592),
+      startedAt: minutesBefore(9_594),
+      finishedAt: minutesBefore(9_590),
+      resultManifestHash: digest('local-seed-kpi-result-manifest-v1'),
+      revision: 2,
+    }),
+    scopedRow(projectScope, {
+      id: ID.barResultAttempt,
+      jobId: ID.job,
+      attemptNumber: 3,
+      executorType: 'CLOUD_WORKER',
+      executorId: ID.device,
+      leaseTokenHash: digest('local-seed-bar-result-lease'),
+      leaseExpiresAt: minutesAfter(42_000),
+      state: 'SUCCEEDED',
+      createdAt: minutesBefore(9_595),
+      heartbeatAt: minutesBefore(9_592),
+      startedAt: minutesBefore(9_594),
+      finishedAt: minutesBefore(9_590),
+      resultManifestHash: digest('local-seed-bar-result-manifest-v1'),
+      revision: 2,
+    }),
+  ];
+  const resultManifestRows = [
+    scopedRow(projectScope, {
+      id: ID.kpiResultManifest,
+      jobId: ID.job,
+      attemptId: ID.kpiResultAttempt,
+      sourceArtifactVersionIds: [ID.expenseArtifactVersion],
+      outputIds: [ID.dashboardKpiResultVersion],
+      outputHashes: [outputMetadata[0].contentSha256],
+      evidenceCoverage: 'COMPLETE',
+      handlerDigest: digest('local-seed-dashboard-handler-v1'),
+      engineVersion: 'databreeze-engine-local-seed-1',
+      attemptNumber: 2,
+      reviewerId: null,
+      approvalState: 'NOT_REQUIRED',
+      manifestHash: digest('local-seed-kpi-result-manifest-v1'),
+      generatedAt: minutesBefore(9_590),
+    }),
+    scopedRow(projectScope, {
+      id: ID.barResultManifest,
+      jobId: ID.job,
+      attemptId: ID.barResultAttempt,
+      sourceArtifactVersionIds: [ID.expenseArtifactVersion],
+      outputIds: [ID.dashboardBarResultVersion],
+      outputHashes: [outputMetadata[1].contentSha256],
+      evidenceCoverage: 'COMPLETE',
+      handlerDigest: digest('local-seed-dashboard-handler-v1'),
+      engineVersion: 'databreeze-engine-local-seed-1',
+      attemptNumber: 3,
+      reviewerId: null,
+      approvalState: 'NOT_REQUIRED',
+      manifestHash: digest('local-seed-bar-result-manifest-v1'),
+      generatedAt: minutesBefore(9_590),
+    }),
+  ];
+  const dashboardResultLineageHash = digest('local-seed-dashboard-result-lineage-v1');
+  const dashboardFinalizationRows = [
+    scopedRow(projectScope, {
+      submissionId: ID.kpiFinalization,
+      jobId: ID.job,
+      attemptId: ID.kpiResultAttempt,
+      resultManifestId: ID.kpiResultManifest,
+      workerId: ID.device,
+      securityEpoch: 1,
+      descriptorId: ID.executionDescriptor,
+      descriptorHash: digest('local-seed-kpi-descriptor-binding-v1'),
+      outputSchemaId: 'dda.dashboard-widget-result.v4',
+      engineVersion: dashboardResultEngineVersion,
+      sourceArtifactVersionIds: [ID.expenseArtifactVersion],
+      sourceLineageHash: dashboardResultLineageHash,
+      subjectBindings: dashboardResultSubjectBindings(ID.publishedKpiWidget),
+      attestationReferences: [
+        {
+          attestationId: ID.kpiAttestation,
+          outputName: 'dashboardKpiResult',
+          artifactVersionId: ID.dashboardKpiResultVersion,
+          contentSha256: outputMetadata[0].contentSha256,
+          contentLength: outputMetadata[0].byteSize,
+          mediaType: outputMetadata[0].mediaType,
+        },
+      ],
+      fingerprint: digest('local-seed-kpi-finalization-v1'),
+      resultManifestHash: digest('local-seed-kpi-result-manifest-v1'),
+      attemptRevision: 2,
+      jobRevision: 2,
+      finalizedAt: minutesBefore(9_590),
+    }),
+    scopedRow(projectScope, {
+      submissionId: ID.barFinalization,
+      jobId: ID.job,
+      attemptId: ID.barResultAttempt,
+      resultManifestId: ID.barResultManifest,
+      workerId: ID.device,
+      securityEpoch: 1,
+      descriptorId: ID.executionDescriptor,
+      descriptorHash: digest('local-seed-bar-descriptor-binding-v1'),
+      outputSchemaId: 'dda.dashboard-widget-result.v4',
+      engineVersion: dashboardResultEngineVersion,
+      sourceArtifactVersionIds: [ID.expenseArtifactVersion],
+      sourceLineageHash: dashboardResultLineageHash,
+      subjectBindings: dashboardResultSubjectBindings(ID.publishedBarWidget),
+      attestationReferences: [
+        {
+          attestationId: ID.barAttestation,
+          outputName: 'dashboardBarResult',
+          artifactVersionId: ID.dashboardBarResultVersion,
+          contentSha256: outputMetadata[1].contentSha256,
+          contentLength: outputMetadata[1].byteSize,
+          mediaType: outputMetadata[1].mediaType,
+        },
+      ],
+      fingerprint: digest('local-seed-bar-finalization-v1'),
+      resultManifestHash: digest('local-seed-bar-result-manifest-v1'),
+      attemptRevision: 2,
+      jobRevision: 2,
+      finalizedAt: minutesBefore(9_590),
+    }),
+  ];
+  const dashboardPreparationRows = [
+    scopedRow(projectScope, {
+      submissionId: ID.kpiFinalization,
+      jobId: ID.job,
+      attemptId: ID.kpiResultAttempt,
+      workerId: ID.device,
+      securityEpoch: 1,
+      leaseTokenHash: digest('local-seed-kpi-result-lease'),
+      expectedRevision: 2,
+      descriptorId: ID.executionDescriptor,
+      descriptorHash: digest('local-seed-kpi-descriptor-binding-v1'),
+      attemptBindingHash: digest('local-seed-kpi-attempt-binding-v1'),
+      resultUsageSettlementBindingId: ID.settlementBinding,
+      outputSchemaId: 'dda.dashboard-widget-result.v4',
+      outputPolicy: [
+        {
+          kind: 'JSON_RESULT',
+          outputName: 'dashboardKpiResult',
+          schemaId: 'dda.dashboard-widget-result.v4',
+          mediaType: outputMetadata[0].mediaType,
+          contentSha256: outputMetadata[0].contentSha256,
+          byteLength: outputMetadata[0].byteSize,
+          sourceLineageHash: dashboardResultLineageHash,
+          objectId: outputMetadata[0].versionId,
+          maxBytes: 4 * 1024 * 1024,
+          allowedMediaTypes: [outputMetadata[0].mediaType],
+          sourceArtifactVersionIds: [ID.expenseArtifactVersion],
+          processorVersion: dashboardResultEngineVersion,
+          dataMode: 'Hybrid',
+          payloadClass: 'APPROVED_DERIVED_RESULT',
+        },
+      ],
+      outputPolicyHash: digest('local-seed-kpi-output-policy-v1'),
+      subjectBindings: dashboardResultSubjectBindings(ID.publishedKpiWidget),
+      idempotencyKey: 'local-seed-kpi-result-preparation',
+      fingerprint: digest('local-seed-kpi-result-preparation-v1'),
+      createdAt: minutesBefore(9_590),
+    }),
+    scopedRow(projectScope, {
+      submissionId: ID.barFinalization,
+      jobId: ID.job,
+      attemptId: ID.barResultAttempt,
+      workerId: ID.device,
+      securityEpoch: 1,
+      leaseTokenHash: digest('local-seed-bar-result-lease'),
+      expectedRevision: 2,
+      descriptorId: ID.executionDescriptor,
+      descriptorHash: digest('local-seed-bar-descriptor-binding-v1'),
+      attemptBindingHash: digest('local-seed-bar-attempt-binding-v1'),
+      resultUsageSettlementBindingId: ID.settlementBinding,
+      outputSchemaId: 'dda.dashboard-widget-result.v4',
+      outputPolicy: [
+        {
+          kind: 'JSON_RESULT',
+          outputName: 'dashboardBarResult',
+          schemaId: 'dda.dashboard-widget-result.v4',
+          mediaType: outputMetadata[1].mediaType,
+          contentSha256: outputMetadata[1].contentSha256,
+          byteLength: outputMetadata[1].byteSize,
+          sourceLineageHash: dashboardResultLineageHash,
+          objectId: outputMetadata[1].versionId,
+          maxBytes: 4 * 1024 * 1024,
+          allowedMediaTypes: [outputMetadata[1].mediaType],
+          sourceArtifactVersionIds: [ID.expenseArtifactVersion],
+          processorVersion: dashboardResultEngineVersion,
+          dataMode: 'Hybrid',
+          payloadClass: 'APPROVED_DERIVED_RESULT',
+        },
+      ],
+      outputPolicyHash: digest('local-seed-bar-output-policy-v1'),
+      subjectBindings: dashboardResultSubjectBindings(ID.publishedBarWidget),
+      idempotencyKey: 'local-seed-bar-result-preparation',
+      fingerprint: digest('local-seed-bar-result-preparation-v1'),
+      createdAt: minutesBefore(9_590),
+    }),
+  ];
+  const dashboardOutputArtifactRows = outputMetadata.flatMap((output) => [
+    scopedRow(projectScope, {
+      id: output.versionId,
+      artifactId: output.artifactId,
+      sourceKind: 'GENERATED',
+      dataMode: 'Hybrid',
+      contentSha256: output.contentSha256,
+      byteSize: BigInt(output.byteSize),
+      mediaType: output.mediaType,
+      displayName: output.fileName,
+      createdAt: minutesBefore(9_580),
+      status: 'ACTIVE',
+      scanState: 'CLEAN',
+    }),
+  ]);
+  const dashboardOutputPlacementRows = outputMetadata.map((output) =>
+    scopedRow(projectScope, {
+      id: output.placementId,
+      artifactVersionId: output.versionId,
+      kind: 'CLOUD',
+      opaqueReference: `local-${output.versionId}`,
+      contentSha256: output.contentSha256,
+      payloadClass: 'APPROVED_DERIVED_RESULT',
+      available: true,
+      revision: 1,
+      createdAt: minutesBefore(9_580),
+      updatedAt: minutesBefore(9_580),
+    }),
+  );
   const refreshStateRows = [
     scopedRow(projectScope, {
       id: ID.refreshState,
@@ -1250,7 +2197,7 @@ function buildDashboardRows(metadata) {
       permissionProjectionVersionId: ID.permissionProjection,
       datasetVersionId: ID.expenseVersionTwo,
       definitionIds: [ID.kpiMaterialization, ID.barMaterialization],
-      inputSelectorHash: digest('dashboard-input-selector'),
+      inputSelectorHash,
       sourceEventIds: [ID.refreshEvent],
       clientRequestIds: ['local-seed-refresh-request'],
       folderReplayKeys: [],
@@ -1296,6 +2243,13 @@ function buildDashboardRows(metadata) {
     planRows,
     materializationRows,
     snapshotRows,
+    dashboardOutputArtifactRows,
+    dashboardOutputPlacementRows,
+    dashboardOutputMetadata: outputMetadata,
+    resultAttemptRows,
+    resultManifestRows,
+    dashboardPreparationRows,
+    dashboardFinalizationRows,
     refreshStateRows,
     refreshExecutionRows,
     refreshEventRows,
@@ -1307,7 +2261,7 @@ function buildDashboardRows(metadata) {
   });
 }
 
-function buildConversationAndNotifications() {
+export function buildConversationAndNotifications() {
   const messages = [
     scopedRow(projectScope, {
       id: ID.conversationMessageOne,
@@ -1362,7 +2316,7 @@ function buildConversationAndNotifications() {
       id: ID.conversation,
       title: 'Phân tích chi phí vận hành',
       activeDatasetIds: [ID.expenseDataset],
-      activeDatasetVersionIds: [ID.expenseVersionTwo],
+      activeDatasetVersionIds: { [ID.expenseDataset]: ID.expenseVersionTwo },
       dashboardId: ID.dashboard,
       filterContext: JSON.stringify({ danh_muc: ['an_uong', 'di_lai', 'van_phong'] }),
       retentionState: 'ACTIVE',
@@ -1511,22 +2465,27 @@ async function main() {
   const database = new prismaConstructor({ adapter });
   const fixtures = buildFixtureRows();
   const metadata = fixtures.metadata;
+  const platformAnalytics = buildPlatformAnalyticsRows();
   const placements = skipObjects
     ? fixtures.placements.map((placement) => ({ ...placement, available: false }))
     : fixtures.placements;
-
-  if (!skipObjects) {
-    console.log('Uploading synthetic fixture bytes to local MinIO...');
-    await uploadFixtures(environment, [...metadata.values()]);
-  }
 
   const password =
     environment.DATABREEZE_LOCAL_SEED_PASSWORD?.trim() ||
     `DataBreeze-${randomBytes(18).toString('base64url')}`;
   if (password.length < 12) throw new Error('LOCAL_SEED_PASSWORD_TOO_SHORT');
+  const workerBearer =
+    environment.DATABREEZE_LOCAL_WORKER_BEARER?.trim() ||
+    'databreeze-local-worker-bearer-change-me';
+  if (workerBearer.length < 16 || /[\p{Cc}\s]/u.test(workerBearer))
+    throw new Error('LOCAL_WORKER_BEARER_INVALID');
   const encodedPassword = await hash(password, PASSWORD_HASH_OPTIONS);
   const datasets = buildDatasetRows(metadata);
   const dashboard = buildDashboardRows(metadata);
+  if (!skipObjects) {
+    console.log('Uploading synthetic fixture bytes to local MinIO...');
+    await uploadFixtures(environment, [...metadata.values(), ...dashboard.dashboardOutputMetadata]);
+  }
   const conversations = buildConversationAndNotifications();
   const policyCanonicalInput = {
     schemaVersion: 1,
@@ -1551,13 +2510,142 @@ async function main() {
   const actionHandlerHash = digest('local-seed-analysis-handler');
   const usageScopeKey = `project:${ID.organization}:${ID.workspace}:${ID.project}`;
   const workspaceEntitlementScopeKey = `workspace:${ID.organization}:${ID.workspace}`;
+  // CRF's canonical scopeKey always has four colon-delimited components;
+  // the workspace form therefore ends with the empty project component.
+  const reportWorkspaceScopeKey = `workspace:${ID.organization}:${ID.workspace}:`;
   const executionDescriptorHash = digest('local-seed-execution-descriptor');
-  const auditDigest = digest('local-seed-audit-event');
+  // AUD accepts only the governed action vocabulary and summary keys. Build
+  // the seed digest from the same canonical event shape the repository
+  // verifies after restart, so the audit page is a real immutable chain.
+  const auditCanonicalRecord = JSON.stringify({
+    schemaVersion: 1,
+    eventId: ID.auditEvent,
+    action: 'job.completed',
+    tenantScope: projectScope,
+    actor: { actorType: 'USER', actorId: ID.owner },
+    entityType: 'DASHBOARD',
+    entityId: ID.dashboard,
+    entityRevision: 2,
+    sequence: 1,
+    occurredAt: minutesBefore(6_400).toISOString(),
+    correlationId: ID.refreshCorrelation,
+    idempotencyKey: 'local-seed-audit-event',
+    summary: { resourceType: 'DASHBOARD', status: 'COMPLETED' },
+    previousDigest: null,
+  });
+  const auditDigest = createHash('sha256').update(auditCanonicalRecord, 'utf8').digest('base64url');
+  const auditRootDigest = createHash('sha256').update(auditDigest, 'utf8').digest('base64url');
+  const widgetHandlerHash = '4418b6da9b59b7d3c7694599c2ffd4b5af89c6f097e69fc5160941842200e272';
+  const widgetActionType = 'dda.materialize.widget-result';
+  const widgetInputSchemaId = 'dda.dashboard-widget-result-parameters.v1';
+  const widgetOutputSchemaId = 'dda.dashboard-widget-result.v4';
+  const widgetInputManifestHash = digest({
+    objectId: ID.expenseArtifactVersion,
+    contentSha256: metadata.get('expenseCsv').contentSha256,
+    byteSize: metadata.get('expenseCsv').byteSize,
+  });
+  const widgetParameters = {
+    engineVersion: '0.1.0',
+    dataMode: 'Hybrid',
+    payloadClass: 'APPROVED_DERIVED_RESULT',
+    dashboardId: ID.dashboard,
+    dashboardVersionId: ID.publishedDashboardVersion,
+    widgetId: ID.publishedBarWidget,
+    planVersionId: ID.analysisPlanVersion,
+    metricVersionId: ID.metricVersion,
+    datasetVersionId: ID.expenseVersionTwo,
+    permissionProjectionVersionId: ID.permissionProjection,
+    policyVersionId: ID.policyVersion,
+    inputSelectorHash: dashboard.snapshotRows[0].inputSelectorHash,
+    timezone: 'Asia/Ho_Chi_Minh',
+    unit: 'VND',
+    resultState: 'READY',
+    maximumRows: 100,
+    labelColumn: 'danh_muc',
+    valueColumn: 'so_tien',
+    cellIds: [ID.widgetCellOne, ID.widgetCellTwo, ID.widgetCellThree, ID.widgetCellFour],
+    evidenceRefs: [ID.expenseEvidence],
+  };
+  const widgetOutputObjectId = ID.widgetOutputObject;
+  // Keep the executable local job within the descriptor's 24-hour lifetime
+  // regardless of when the developer reloads the seed. The rest of the
+  // fixture remains deterministic; this job is intentionally runnable now.
+  const widgetCreatedAt = new Date(Math.max(NOW.getTime(), Date.now()));
+  const widgetDeadline = new Date(widgetCreatedAt.getTime() + 12 * 60 * 60 * 1_000);
+  const widgetDescriptorInput = {
+    schemaVersion: 1,
+    descriptorId: ID.widgetDescriptor,
+    resultUsageSettlementBindingId: ID.widgetSettlementBinding,
+    // The domain normalizes workspace scopes by omitting projectId; hash the
+    // normalized shape rather than the database convenience object (which
+    // carries projectId: null).
+    tenantScope: {
+      scopeType: 'workspace',
+      organizationId: ID.organization,
+      workspaceId: ID.workspace,
+    },
+    jobId: ID.widgetJob,
+    stepId: ID.analysisPlanVersion,
+    action: {
+      type: widgetActionType,
+      version: 1,
+      inputSchemaId: widgetInputSchemaId,
+      outputSchemaId: widgetOutputSchemaId,
+      handlerDigest: widgetHandlerHash,
+      requiredCapabilities: ['metadata.read'],
+      sideEffectClass: 'NONE',
+      riskClass: 'READ_ONLY',
+    },
+    inputObjectIds: [ID.expenseArtifactVersion],
+    inputManifestHash: widgetInputManifestHash,
+    parameters: widgetParameters,
+    outputPolicy: {
+      outputObjectId: widgetOutputObjectId,
+      maxBytes: 4 * 1024 * 1024,
+      mediaType: 'application/json',
+    },
+    deadline: widgetDeadline.toISOString(),
+    locale: 'vi-VN',
+    createdAt: widgetCreatedAt.toISOString(),
+  };
+  const widgetDescriptorCanonicalHash = createHash('sha256')
+    .update(jraDescriptorCanonicalJson(widgetDescriptorInput), 'utf8')
+    .digest('hex');
 
   await database.$connect();
   try {
     await database.$transaction(
       async (transaction) => {
+        // A prior local fixture used immutable descriptor 426 with an
+        // already-expired lifetime. Retire its queued job if it is still
+        // present; never mutate the immutable descriptor itself.
+        await transaction.jobRecord.updateMany({
+          where: {
+            id: {
+              in: [
+                ids(421),
+                ids(431),
+                ids(441),
+                ids(451),
+                ids(461),
+                ids(471),
+                ids(481),
+                ids(491),
+                ids(501),
+                ids(511),
+                ids(521),
+                ids(531),
+                ids(541),
+                ids(551),
+                ids(571),
+                ids(577),
+                ids(584),
+              ],
+            },
+            state: { in: ['QUEUED', 'DISPATCHED', 'RUNNING'] },
+          },
+          data: { state: 'CANCELLED', revision: { increment: 1 }, finishedAt: widgetCreatedAt },
+        });
         await upsertRows(transaction, 'organizationIdentity', [
           {
             id: ID.organization,
@@ -1567,6 +2655,7 @@ async function main() {
             createdAt: minutesBefore(13_500),
             updatedAt: minutesBefore(13_500),
           },
+          ...platformAnalytics.organizations,
         ]);
         await upsertRows(transaction, 'userIdentity', [
           {
@@ -1579,6 +2668,28 @@ async function main() {
             mfaReenrollmentRequired: false,
             createdAt: minutesBefore(13_400),
             updatedAt: minutesBefore(13_400),
+          },
+          {
+            id: ID.admin,
+            email: 'admin@databreeze.local',
+            displayName: 'DataBreeze Local Admin',
+            locale: 'vi-VN',
+            status: 'ACTIVE',
+            securityEpoch: 1,
+            mfaReenrollmentRequired: false,
+            createdAt: minutesBefore(13_395),
+            updatedAt: minutesBefore(13_395),
+          },
+          {
+            id: ID.platformOwner,
+            email: 'platform-owner@databreeze.local',
+            displayName: 'DataBreeze Platform Owner',
+            locale: 'vi-VN',
+            status: 'ACTIVE',
+            securityEpoch: 1,
+            mfaReenrollmentRequired: false,
+            createdAt: minutesBefore(90),
+            updatedAt: minutesBefore(90),
           },
           {
             id: ID.analyst,
@@ -1602,12 +2713,50 @@ async function main() {
             createdAt: minutesBefore(13_380),
             updatedAt: minutesBefore(13_380),
           },
+          ...platformAnalytics.users.map((user) => {
+            const { organizationId, ...identity } = user;
+            void organizationId;
+            return identity;
+          }),
+        ]);
+        await upsertRows(transaction, 'serviceAccountRecord', [
+          {
+            id: ID.workerServiceAccount,
+            organizationId: ID.organization,
+            workspaceId: ID.workspace,
+            name: 'Local execution worker',
+            permissions: ['job.execution.run'],
+            status: 'ACTIVE',
+            secretDigest: digest(workerBearer),
+            secretVersion: 1,
+            secretIssuedAt: minutesBefore(13_300),
+            // The domain caps service-account lifetime at 365 days. Derive
+            // expiry from the issued timestamp rather than from seed NOW so
+            // the deterministic fixture remains valid when NOW moves.
+            secretExpiresAt: new Date(minutesBefore(13_300).getTime() + 365 * 24 * 60 * 60 * 1_000),
+            lastUsedAt: null,
+            createdAt: minutesBefore(13_300),
+            revokedAt: null,
+            revision: 1,
+            createdByActorId: ID.owner,
+            createIdempotencyKey: null,
+            createRequestHash: null,
+            createSecretEnvelope: null,
+            createIdempotencyExpiresAt: null,
+            createAccountSnapshot: null,
+          },
         ]);
         await upsertRows(
           transaction,
           'passwordCredential',
-          [ID.owner, ID.analyst, ID.viewer].map((userId, index) => ({
-            id: ids(13 + index),
+          [
+            { id: ids(13), userId: ID.owner },
+            { id: ids(14), userId: ID.analyst },
+            { id: ids(15), userId: ID.viewer },
+            { id: ids(17), userId: ID.admin },
+            { id: ids(7005), userId: ID.platformOwner },
+          ].map(({ id, userId }) => ({
+            id,
             userId,
             algorithm: 'argon2id',
             encodedHash: encodedPassword,
@@ -1616,6 +2765,24 @@ async function main() {
           })),
           'userId',
         );
+        await upsertRows(
+          transaction,
+          'platformOperatorRecord',
+          [
+            {
+              userId: ID.platformOwner,
+              role: 'PLATFORM_OWNER',
+              status: 'ACTIVE',
+              assignedBy: null,
+              assignedAt: minutesBefore(90),
+              revokedAt: null,
+              revision: 1,
+              updatedAt: minutesBefore(90),
+            },
+          ],
+          'userId',
+        );
+        await upsertRows(transaction, 'landingFeedbackRecord', buildLandingFeedbackRows());
         await upsertRows(transaction, 'deviceDataModePolicyRecord', [
           {
             id: ID.policyVersion,
@@ -1743,6 +2910,109 @@ async function main() {
             updatedAt: minutesBefore(13_400),
           },
           {
+            id: ID.adminOrganizationMembership,
+            principalType: 'USER',
+            principalId: ID.admin,
+            scopeType: 'ORGANIZATION',
+            organizationId: ID.organization,
+            workspaceId: null,
+            projectId: null,
+            roleId: 'owner',
+            status: 'ACTIVE',
+            startsAt: minutesBefore(13_395),
+            expiresAt: null,
+            revision: 1,
+            createdAt: minutesBefore(13_395),
+            updatedAt: minutesBefore(13_395),
+          },
+          {
+            id: ID.adminWorkspaceMembership,
+            principalType: 'USER',
+            principalId: ID.admin,
+            scopeType: 'WORKSPACE',
+            organizationId: ID.organization,
+            workspaceId: ID.workspace,
+            projectId: null,
+            // The customer-facing settings projection deliberately maps only
+            // Owner/Editor/Viewer presets. Keep this deterministic fixture
+            // inside that public surface while the account remains an
+            // organization Owner for management tests.
+            roleId: 'analyst',
+            status: 'ACTIVE',
+            startsAt: minutesBefore(13_395),
+            expiresAt: null,
+            revision: 1,
+            createdAt: minutesBefore(13_395),
+            updatedAt: minutesBefore(13_395),
+          },
+          {
+            id: ID.adminProjectMembership,
+            principalType: 'USER',
+            principalId: ID.admin,
+            scopeType: 'PROJECT',
+            organizationId: ID.organization,
+            workspaceId: ID.workspace,
+            projectId: ID.project,
+            roleId: 'analyst',
+            status: 'ACTIVE',
+            startsAt: minutesBefore(13_395),
+            expiresAt: null,
+            revision: 1,
+            createdAt: minutesBefore(13_395),
+            updatedAt: minutesBefore(13_395),
+          },
+          {
+            id: ID.platformOwnerOrganizationMembership,
+            principalType: 'USER',
+            principalId: ID.platformOwner,
+            scopeType: 'ORGANIZATION',
+            organizationId: ID.organization,
+            workspaceId: null,
+            projectId: null,
+            roleId: 'owner',
+            status: 'ACTIVE',
+            startsAt: minutesBefore(90),
+            expiresAt: null,
+            revision: 1,
+            createdAt: minutesBefore(90),
+            updatedAt: minutesBefore(90),
+          },
+          {
+            id: ID.platformOwnerWorkspaceMembership,
+            principalType: 'USER',
+            principalId: ID.platformOwner,
+            scopeType: 'WORKSPACE',
+            organizationId: ID.organization,
+            workspaceId: ID.workspace,
+            projectId: null,
+            // Platform operations are granted by platformOperatorRecord; keep
+            // the synthetic tenant membership on a customer-visible preset so
+            // workspace settings can project every active member safely.
+            roleId: 'analyst',
+            status: 'ACTIVE',
+            startsAt: minutesBefore(90),
+            expiresAt: null,
+            revision: 1,
+            createdAt: minutesBefore(90),
+            updatedAt: minutesBefore(90),
+          },
+          {
+            id: ID.platformOwnerProjectMembership,
+            principalType: 'USER',
+            principalId: ID.platformOwner,
+            scopeType: 'PROJECT',
+            organizationId: ID.organization,
+            workspaceId: ID.workspace,
+            projectId: ID.project,
+            roleId: 'analyst',
+            status: 'ACTIVE',
+            startsAt: minutesBefore(90),
+            expiresAt: null,
+            revision: 1,
+            createdAt: minutesBefore(90),
+            updatedAt: minutesBefore(90),
+          },
+          {
             id: ID.analystWorkspaceMembership,
             principalType: 'USER',
             principalId: ID.analyst,
@@ -1806,6 +3076,7 @@ async function main() {
             createdAt: minutesBefore(13_380),
             updatedAt: minutesBefore(13_380),
           },
+          ...platformAnalytics.memberships,
         ]);
         await upsertRows(transaction, 'workspaceAgentGrant', [
           {
@@ -1900,8 +3171,14 @@ async function main() {
             revision: 1,
           },
         ]);
-        await upsertRows(transaction, 'artifactVersion', fixtures.artifacts);
-        await upsertRows(transaction, 'contentPlacement', placements);
+        await upsertRows(transaction, 'artifactVersion', [
+          ...fixtures.artifacts,
+          ...dashboard.dashboardOutputArtifactRows,
+        ]);
+        await upsertRows(transaction, 'contentPlacement', [
+          ...placements,
+          ...dashboard.dashboardOutputPlacementRows,
+        ]);
         await upsertRows(transaction, 'inboxItem', fixtures.inbox);
         await upsertRows(transaction, 'evidenceReference', [
           scopedRow(workspaceScope, {
@@ -2101,6 +3378,26 @@ async function main() {
             createdAt: minutesBefore(12_300),
           },
         ]);
+        await upsertRows(transaction, 'typedActionDefinitionRecord', [
+          {
+            id: ID.widgetAction,
+            actionType: widgetActionType,
+            version: 1,
+            inputSchemaId: widgetInputSchemaId,
+            outputSchemaId: widgetOutputSchemaId,
+            handlerDigest: widgetHandlerHash,
+            requiredCapabilities: ['metadata.read'],
+            sideEffectClass: 'NONE',
+            riskClass: 'READ_ONLY',
+            defaultTimeoutSeconds: 60,
+            maxAttempts: 3,
+            approvalClass: 'NONE',
+            createdAt: widgetCreatedAt,
+          },
+        ]);
+        await upsertRows(transaction, 'paymentOrderRecord', platformAnalytics.paymentOrders);
+        await upsertRows(transaction, 'subscriptionRecord', platformAnalytics.subscriptions);
+        await upsertRows(transaction, 'invoiceRecord', platformAnalytics.invoices);
         await upsertRows(
           transaction,
           'entitlementPlanRecord',
@@ -2180,6 +3477,44 @@ async function main() {
             revision: 2,
           },
         ]);
+        await upsertRows(transaction, 'usageReservationRecord', [
+          {
+            id: ID.widgetReservation,
+            scopeKey: workspaceEntitlementScopeKey,
+            scopeType: 'workspace',
+            organizationId: ID.organization,
+            workspaceId: ID.workspace,
+            projectId: null,
+            metric: 'job_count',
+            reservedUnits: BigInt(1),
+            status: 'ACTIVE',
+            createdAt: widgetCreatedAt,
+            revision: 1,
+            updatedAt: widgetCreatedAt,
+          },
+        ]);
+        await upsertRows(transaction, 'resultUsageSettlementBindingRecord', [
+          {
+            id: ID.widgetSettlementBinding,
+            schemaVersion: 1,
+            scopeKey: workspaceEntitlementScopeKey,
+            scopeType: 'workspace',
+            organizationId: ID.organization,
+            workspaceId: ID.workspace,
+            projectId: null,
+            jobId: ID.widgetJob,
+            reservationId: ID.widgetReservation,
+            meter: 'job_count',
+            settlementFormula: 'SUCCESSFUL_JOB_UNIT',
+            maximumAdmittedUnits: BigInt(1),
+            entitlementDecisionSubjectHash: digest('local-seed-widget-entitlement-decision'),
+            admissionIdempotencyKey: 'local-seed-widget-result-job-v18',
+            state: 'PREPARED',
+            createdAt: widgetCreatedAt,
+            expiresAt: widgetDeadline,
+            revision: 1,
+          },
+        ]);
         await upsertRows(transaction, 'usageLedgerEntryRecord', [
           {
             id: ID.usageEntry,
@@ -2216,6 +3551,25 @@ async function main() {
             createdAt: minutesBefore(12_000),
             startedAt: minutesBefore(11_990),
             finishedAt: minutesBefore(11_970),
+          },
+        ]);
+        await upsertRows(transaction, 'jobRecord', [
+          {
+            id: ID.widgetJob,
+            scopeType: 'workspace',
+            organizationId: ID.organization,
+            workspaceId: ID.workspace,
+            projectId: null,
+            requestedBy: ID.owner,
+            actionType: widgetActionType,
+            actionVersion: 1,
+            inputManifestHash: widgetInputManifestHash,
+            idempotencyKey: 'local-seed-widget-result-job-v18',
+            state: 'QUEUED',
+            revision: 2,
+            createdAt: widgetCreatedAt,
+            startedAt: null,
+            finishedAt: null,
           },
         ]);
         await upsertRows(transaction, 'jobTransitionRecord', [
@@ -2256,6 +3610,26 @@ async function main() {
             revision: 4,
           },
         ]);
+        await upsertRows(transaction, 'jobTransitionRecord', [
+          {
+            id: ID.widgetTransitionCreated,
+            jobId: ID.widgetJob,
+            fromState: null,
+            toState: 'CREATED',
+            actorId: ID.owner,
+            occurredAt: widgetCreatedAt,
+            revision: 1,
+          },
+          {
+            id: ID.widgetTransitionQueued,
+            jobId: ID.widgetJob,
+            fromState: 'CREATED',
+            toState: 'QUEUED',
+            actorId: ID.owner,
+            occurredAt: widgetCreatedAt,
+            revision: 2,
+          },
+        ]);
         await upsertRows(transaction, 'executionAttemptRecord', [
           {
             id: ID.executionAttempt,
@@ -2278,6 +3652,7 @@ async function main() {
             revision: 2,
           },
         ]);
+        await upsertRows(transaction, 'executionAttemptRecord', dashboard.resultAttemptRows);
         await upsertRows(transaction, 'resultManifestRecord', [
           {
             id: ID.resultManifest,
@@ -2300,6 +3675,19 @@ async function main() {
             generatedAt: minutesBefore(11_970),
           },
         ]);
+        await upsertRows(transaction, 'resultManifestRecord', dashboard.resultManifestRows);
+        await upsertRows(
+          transaction,
+          'workerResultPreparationRecord',
+          dashboard.dashboardPreparationRows,
+          'submissionId',
+        );
+        await upsertRows(
+          transaction,
+          'workerResultFinalizationRecord',
+          dashboard.dashboardFinalizationRows,
+          'submissionId',
+        );
         await createRows(transaction, 'executionRequestDescriptorRecord', [
           {
             id: ID.executionDescriptor,
@@ -2330,6 +3718,36 @@ async function main() {
             createdAt: minutesBefore(11_980),
           },
         ]);
+        await createRows(transaction, 'executionRequestDescriptorRecord', [
+          {
+            id: ID.widgetDescriptor,
+            resultUsageSettlementBindingId: ID.widgetSettlementBinding,
+            jobId: ID.widgetJob,
+            stepId: ID.analysisPlanVersion,
+            scopeType: 'workspace',
+            organizationId: ID.organization,
+            workspaceId: ID.workspace,
+            projectId: null,
+            actionType: widgetActionType,
+            actionVersion: 1,
+            inputSchemaId: widgetInputSchemaId,
+            outputSchemaId: widgetOutputSchemaId,
+            handlerDigest: widgetHandlerHash,
+            requiredCapabilities: ['metadata.read'],
+            sideEffectClass: 'NONE',
+            riskClass: 'READ_ONLY',
+            inputObjectIds: [ID.expenseArtifactVersion],
+            inputManifestHash: widgetInputManifestHash,
+            parameters: widgetParameters,
+            outputObjectId: widgetOutputObjectId,
+            outputMaxBytes: 4 * 1024 * 1024,
+            outputMediaType: 'application/json',
+            deadline: widgetDeadline,
+            locale: 'vi-VN',
+            canonicalHash: widgetDescriptorCanonicalHash,
+            createdAt: widgetCreatedAt,
+          },
+        ]);
         await upsertRows(transaction, 'jobOutboxRecord', [
           {
             id: ID.jobOutbox,
@@ -2338,6 +3756,23 @@ async function main() {
             payload: { jobId: ID.job, state: 'SUCCEEDED', resultManifestId: ID.resultManifest },
             createdAt: minutesBefore(11_960),
             deliveredAt: minutesBefore(11_950),
+          },
+        ]);
+        await upsertRows(transaction, 'jobOutboxRecord', [
+          {
+            id: ID.widgetOutbox,
+            jobId: ID.widgetJob,
+            eventType: 'JOB_QUEUED',
+            payload: {
+              schemaVersion: 1,
+              jobId: ID.widgetJob,
+              actionType: widgetActionType,
+              state: 'QUEUED',
+              descriptorId: ID.widgetDescriptor,
+              descriptorHash: widgetDescriptorCanonicalHash,
+            },
+            createdAt: widgetCreatedAt,
+            deliveredAt: null,
           },
         ]);
         await upsertRows(transaction, 'deviceSyncOperationRecord', [
@@ -2595,6 +4030,30 @@ async function main() {
             completedAt: minutesBefore(6_780),
           }),
         ]);
+        await upsertRows(transaction, 'clientReportDefinitionRecord', [
+          // Reports are listed from the authenticated workspace scope. Keep
+          // the seed row workspace-scoped while retaining the server-owned
+          // client/project reference so the Reports page has a real fixture.
+          scopedRow(workspaceScope, {
+            id: ID.reportDefinition,
+            scopeKey: reportWorkspaceScopeKey,
+            clientId: ID.reportClient,
+            name: 'Báo cáo vận hành chi phí',
+            period: '2026-08',
+            datasetId: ID.expenseDataset,
+            datasetVersionId: ID.expenseVersion,
+            templateId: ID.reportTemplate,
+            templateVersion: 1,
+            supportedFormats: ['WEB', 'PDF'],
+            blocks: [],
+            status: 'DRAFT',
+            reportVersion: 1,
+            idempotencyKey: 'local-seed-report-definition',
+            canonicalHash: digest('local-seed-report-definition'),
+            createdAt: minutesBefore(6_200),
+            updatedAt: minutesBefore(6_200),
+          }),
+        ]);
         await createRows(transaction, 'dashboardAuthoringCommandRecord', [
           {
             commandId: ID.dashboardAuthoringCommand,
@@ -2707,7 +4166,7 @@ async function main() {
           scopedRow(projectScope, {
             id: ID.auditEvent,
             schemaVersion: 1,
-            action: 'LOCAL_SEED_FIXTURE_IMPORTED',
+            action: 'job.completed',
             scopeKey: usageScopeKey,
             actorType: 'USER',
             actorId: ID.owner,
@@ -2718,11 +4177,7 @@ async function main() {
             occurredAt: minutesBefore(6_400),
             correlationId: ID.refreshCorrelation,
             idempotencyKey: 'local-seed-audit-event',
-            summary: {
-              fixture: 'local-comprehensive-v1',
-              synthetic: true,
-              requirementAreas: ['DDA-003', 'DDA-018', 'DDA-025', 'IAM-024'],
-            },
+            summary: { resourceType: 'DASHBOARD', status: 'COMPLETED' },
             previousDigest: null,
             digest: auditDigest,
             createdAt: minutesBefore(6_400),
@@ -2736,7 +4191,7 @@ async function main() {
             firstSequence: 1,
             lastSequence: 1,
             eventCount: 1,
-            rootDigest: auditDigest,
+            rootDigest: auditRootDigest,
             sealedAt: minutesBefore(6_300),
             createdAt: minutesBefore(6_300),
           }),
@@ -2753,12 +4208,18 @@ async function main() {
   console.log(`Organization: ${ID.organization}`);
   console.log(`Workspace:    ${ID.workspace}`);
   console.log(`Project:      ${ID.project}`);
+  console.log('Landing feedbacks: 12 deterministic synthetic rows (lfb.landing_feedbacks)');
+  console.log('Reports:           1 synthetic governed definition (CRF, draft/no run)');
+  console.log(`Executable dashboard job: ${ID.widgetJob} (dda.materialize.widget-result)`);
+  console.log('Run the local worker profile to materialize the seeded dashboard widget.');
   console.log('');
   console.log('Synthetic sign-in accounts (all use the same generated password):');
+  console.log('  platform-owner@databreeze.local PLATFORM_OWNER / internal product overview');
   console.log('  owner@databreeze.local   OWNER / APPLY_CONFIRMED_CHANGES');
+  console.log('  admin@databreeze.local   OWNER org / EDITOR workspace + project');
   console.log('  analyst@databreeze.local ANALYST / PROPOSE_CHANGES');
   console.log('  viewer@databreeze.local  VIEWER / NONE + restricted dataset denied');
-  console.log(`Password: ${password}`);
+  console.log('Password: read DATABREEZE_LOCAL_SEED_PASSWORD from infrastructure/local/.env');
   console.log('');
   console.log(
     skipObjects
@@ -2768,7 +4229,12 @@ async function main() {
   console.log('Use --skip-objects only when MinIO is intentionally unavailable.');
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
-});
+if (
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(resolve(process.argv[1])).href
+) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  });
+}

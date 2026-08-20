@@ -7,6 +7,7 @@ import type {
   DdaDsmPortV1,
   DdaIaePortV1,
 } from '../../application/foundation-ports.js';
+import type { EtlDsmPortV1 } from '../../etl/application/etl-foundation-ports.js';
 import {
   ReceiptValidationService,
   type ReceiptValidationInput,
@@ -57,6 +58,7 @@ export class ReceiptAcceptanceService {
     private readonly iae: DdaIaePortV1,
     private readonly aud: DdaAudComposePortV1,
     private readonly records: ReceiptGovernedRecordPort,
+    private readonly datasetRegistrar?: EtlDsmPortV1,
   ) {}
 
   public hasDatasetVersion(candidateId: string): boolean {
@@ -101,14 +103,27 @@ export class ReceiptAcceptanceService {
       return Object.freeze({ accepted: false, code: 'IAE_FAILURE' as const });
     }
 
-    const datasetVersionId = randomUUID();
-    try {
-      await this.dsm.requireDatasetVersion({
-        id: datasetVersionId,
+    let datasetVersionId: string;
+    if (this.datasetRegistrar !== undefined) {
+      const registered = await this.datasetRegistrar.registerDatasetVersion({
         tenantScope: input.tenantScope,
+        artifactVersionId: input.artifactVersionId,
+        schemaHash: 'receipt-schema-v1',
+        contentHash: input.artifactContentHash,
+        lineageParentIds: [input.artifactVersionId],
       });
-    } catch {
-      return Object.freeze({ accepted: false, code: 'DSM_FAILURE' as const });
+      if (!registered.accepted) return Object.freeze({ accepted: false, code: 'DSM_FAILURE' as const });
+      datasetVersionId = registered.datasetVersionId;
+    } else {
+      datasetVersionId = randomUUID();
+      try {
+        await this.dsm.requireDatasetVersion({
+          id: datasetVersionId,
+          tenantScope: input.tenantScope,
+        });
+      } catch {
+        return Object.freeze({ accepted: false, code: 'DSM_FAILURE' as const });
+      }
     }
 
     const appended = await this.records.appendGovernedRecord({

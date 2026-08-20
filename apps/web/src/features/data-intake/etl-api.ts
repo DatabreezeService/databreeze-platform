@@ -1,4 +1,5 @@
 import type { EtlReviewPageProps } from './etl-review-page.tsx';
+import { createSessionAwareFetchV1 } from '../auth/auth-session.ts';
 
 export interface EtlLiveConfigurationV1 {
   readonly baseUrl: string;
@@ -151,6 +152,10 @@ export async function fetchEtlProposal(
   configuration: EtlLiveConfigurationV1,
   signal?: AbortSignal,
 ): Promise<EtlProposalReviewV1> {
+  const fetcher = createSessionAwareFetchV1({
+    apiBaseUrl: configuration.baseUrl,
+    fetcher: globalThis.fetch.bind(globalThis),
+  });
   const url = `${configuration.baseUrl}/v1/dda/etl-proposals/${encodeURIComponent(configuration.proposalId)}`;
   const init: RequestInit = {
     method: 'GET',
@@ -158,7 +163,7 @@ export async function fetchEtlProposal(
     credentials: 'include',
   };
   if (signal !== undefined) init.signal = signal;
-  const response = await globalThis.fetch(url, init);
+  const response = await fetcher(url, init);
   if (response.status === 401 || response.status === 403) {
     throw new Error('ETL_PROPOSAL_UNAUTHORIZED');
   }
@@ -220,6 +225,10 @@ export function etlAcceptEnabled(input: {
 export async function acceptEtlProposal(
   input: AcceptEtlProposalInputV1,
 ): Promise<AcceptEtlProposalResultV1> {
+  const fetcher = createSessionAwareFetchV1({
+    apiBaseUrl: input.baseUrl,
+    fetcher: globalThis.fetch.bind(globalThis),
+  });
   const init: RequestInit = {
     method: 'POST',
     headers: { Accept: 'application/json', 'content-type': 'application/json' },
@@ -233,7 +242,7 @@ export async function acceptEtlProposal(
     }),
   };
   if (input.signal !== undefined) init.signal = input.signal;
-  const response = await globalThis.fetch(`${input.baseUrl}/v1/dda/etl-acceptances`, init);
+  const response = await fetcher(`${input.baseUrl}/v1/dda/etl-acceptances`, init);
   if (response.status === 401 || response.status === 403) {
     throw new Error('ETL_ACCEPT_UNAUTHORIZED');
   }

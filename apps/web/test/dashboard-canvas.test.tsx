@@ -2,6 +2,7 @@
 
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import { DashboardCanvas } from '../src/features/dashboards/dashboard-canvas.tsx';
@@ -80,7 +81,11 @@ describe('dashboard canvas [DDA-021][DDA-022]', () => {
         'EVIDENCE_NOTE',
       ]),
     );
-    render(<DashboardCanvas locale="en" draft={draft} />);
+    render(
+      <MemoryRouter>
+        <DashboardCanvas locale="en" draft={draft} />
+      </MemoryRouter>,
+    );
     expect(screen.getByRole('table', { name: 'Chart fallback table' })).toBeTruthy();
     expect(screen.getAllByText('Evidence remains visible').length).toBeGreaterThan(0);
     expect(screen.getByText('Data is fresh')).toBeTruthy();
@@ -90,17 +95,19 @@ describe('dashboard canvas [DDA-021][DDA-022]', () => {
     const user = userEvent.setup();
     const onOpenAgent = vi.fn();
     render(
-      <DashboardCanvas
-        locale="en"
-        draft={draft}
-        layouts={layouts}
-        header={{
-          title: { vi: 'Doanh số khu vực', en: 'Regional sales' },
-          dataset: { vi: 'Bán hàng đã cấp quyền', en: 'Authorized sales' },
-          autosave: 'SAVED',
-        }}
-        onOpenAgent={onOpenAgent}
-      />,
+      <MemoryRouter>
+        <DashboardCanvas
+          locale="en"
+          draft={draft}
+          layouts={layouts}
+          header={{
+            title: { vi: 'Doanh số khu vực', en: 'Regional sales' },
+            dataset: { vi: 'Bán hàng đã cấp quyền', en: 'Authorized sales' },
+            autosave: 'SAVED',
+          }}
+          onOpenAgent={onOpenAgent}
+        />
+      </MemoryRouter>,
     );
 
     expect(screen.getByRole('heading', { name: 'Regional sales' })).toBeTruthy();
@@ -119,15 +126,17 @@ describe('dashboard canvas [DDA-021][DDA-022]', () => {
     const onRemoveWidget = vi.fn();
     const onRestoreWidget = vi.fn();
     render(
-      <DashboardCanvas
-        locale="en"
-        draft={draft}
-        breakpoint="mobile"
-        layouts={layouts}
-        onLayoutCommand={onLayoutCommand}
-        onRemoveWidget={onRemoveWidget}
-        onRestoreWidget={onRestoreWidget}
-      />,
+      <MemoryRouter>
+        <DashboardCanvas
+          locale="en"
+          draft={draft}
+          breakpoint="mobile"
+          layouts={layouts}
+          onLayoutCommand={onLayoutCommand}
+          onRemoveWidget={onRemoveWidget}
+          onRestoreWidget={onRestoreWidget}
+        />
+      </MemoryRouter>,
     );
 
     await user.click(screen.getByRole('button', { name: 'Layout actions for Total sales' }));
@@ -158,7 +167,11 @@ describe('dashboard canvas [DDA-021][DDA-022]', () => {
   it('keeps filter scope visible and delegates the typed filter value to its owner', async () => {
     const user = userEvent.setup();
     const onFilterChange = vi.fn();
-    render(<DashboardCanvas locale="en" draft={draft} onFilterChange={onFilterChange} />);
+    render(
+      <MemoryRouter>
+        <DashboardCanvas locale="en" draft={draft} onFilterChange={onFilterChange} />
+      </MemoryRouter>,
+    );
 
     const datasetControl = screen.getByRole('button', { name: 'Protected dataset scope' });
     expect(datasetControl.getAttribute('aria-expanded')).toBe('false');
@@ -175,7 +188,11 @@ describe('dashboard canvas [DDA-021][DDA-022]', () => {
   });
 
   it('replaces canvas widget values when a live draft version arrives without inventing KPIs', () => {
-    const { rerender } = render(<DashboardCanvas locale="en" draft={draft} />);
+    const { rerender } = render(
+      <MemoryRouter>
+        <DashboardCanvas locale="en" draft={draft} />
+      </MemoryRouter>,
+    );
     expect(screen.getAllByText('1,250,000 VND').length).toBeGreaterThan(0);
 
     const liveDraft = {
@@ -191,7 +208,11 @@ describe('dashboard canvas [DDA-021][DDA-022]', () => {
         },
       ],
     };
-    rerender(<DashboardCanvas locale="en" draft={liveDraft} />);
+    rerender(
+      <MemoryRouter>
+        <DashboardCanvas locale="en" draft={liveDraft} />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('governed-amount')).toBeTruthy();
     expect(screen.queryAllByText('1,250,000 VND').length).toBe(0);
   });

@@ -17,6 +17,7 @@ import androidx.work.WorkerParameters
 import com.databreeze.android.storage.AccountWorkspaceScope
 import com.databreeze.android.storage.LocalStorePort
 import com.databreeze.android.storage.SyncQueueEntity
+import com.databreeze.android.storage.DeviceSyncOperationEntity
 import com.databreeze.contracts.v1.Identifier
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -80,6 +81,11 @@ sealed interface SyncTransportResult {
 
 interface SyncTransport {
     suspend fun synchronize(request: SyncRequest, mutations: List<String>): SyncTransportResult
+    suspend fun synchronize(
+        request: SyncRequest,
+        mutations: List<String>,
+        operations: List<DeviceSyncOperationEntity>,
+    ): SyncTransportResult = synchronize(request, mutations)
 }
 
 /**
@@ -197,18 +203,28 @@ class SyncWorker(
         val mutations = store.snapshotQueue(input.scope)
             .filter { it.state != SyncQueueEntity.COMPLETED_STATE }
             .map { it.mutationId }
+        val operations = store.snapshotDeviceOperations(input.scope)
         val outcome = revocationGuard.withPermit(input.scope) {
-            transport.synchronize(SyncRequest(input.scope, input.cursor), mutations)
+            transport.synchronize(SyncRequest(input.scope, input.cursor), mutations, operations)
         } ?: return Result.failure(Data.Builder().putString("reason_code", "scope_revoked").build())
         return when (outcome) {
             SyncTransportResult.Accepted -> {
                 store.deleteBatch(input.scope, mutations)
+                store.deleteDeviceOperations(input.scope, operations.map { it.operationId })
                 Result.success()
             }
             SyncTransportResult.Retryable -> Result.retry()
-            is SyncTransportResult.Rejected -> Result.failure(
-                Data.Builder().putString("reason_code", outcome.code).build(),
-            )
+            is SyncTransportResult.Rejected -> {
+                val nextState = if (outcome.code.contains("CONFLICT", ignoreCase = true) || outcome.code.contains("REVISION", ignoreCase = true)) {
+                    com.databreeze.android.storage.DeviceSyncOperationEntity.CONFLICT_STATE
+                } else {
+                    com.databreeze.android.storage.DeviceSyncOperationEntity.QUARANTINED_STATE
+                }
+                operations.forEach { operation ->
+                    store.updateDeviceOperationState(input.scope, operation.operationId, nextState)
+                }
+                Result.failure(Data.Builder().putString("reason_code", outcome.code).build())
+            }
         }
     }
 }

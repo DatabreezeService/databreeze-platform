@@ -10,6 +10,7 @@ import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js
 import type {
   JraAdmissionRepositoryPortV1,
   JraAdmissionTransactionPortV1,
+  JraAdmissionEntitlementParticipantV1,
 } from '../application/admission-repository.port.js';
 import type { ExecutionRequestDescriptorV1 } from '../application/execution-request-descriptor.js';
 
@@ -48,6 +49,10 @@ export class InMemoryAdmissionRepositoryAdapter implements JraAdmissionRepositor
   private executionRequests = new Map<string, ExecutionRequestDescriptorV1>();
   private dispatches = new Map<string, JobDispatchRecordV1>();
   private transactionTail: Promise<void> = Promise.resolve();
+
+  public constructor(
+    private readonly entitlementParticipant?: JraAdmissionEntitlementParticipantV1,
+  ) {}
 
   private saveJob(context: IamTenantContextV1, job: JobV1): void {
     if (!mutable(context, job.tenantScope)) throw new Error('JRA_SCOPE_NARROWING_REQUIRED');
@@ -163,6 +168,18 @@ export class InMemoryAdmissionRepositoryAdapter implements JraAdmissionRepositor
           await Promise.resolve();
           return this.findDispatchByIdempotency(context, jobId, key);
         },
+        ...(this.entitlementParticipant === undefined
+          ? {}
+          : {
+              admitEntitlement: (operationContext: IamTenantContextV1, input: unknown) => {
+                void operationContext;
+                void input;
+                return Promise.resolve({
+                  accepted: false as const,
+                  code: 'JRA_IN_MEMORY_ENTITLEMENT_PARTICIPANT_UNAVAILABLE',
+                });
+              },
+            }),
       });
     } catch (error) {
       this.jobs = before.jobs;

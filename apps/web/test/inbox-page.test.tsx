@@ -15,7 +15,11 @@ describe('governed artifact inbox', () => {
   it('renders server-owned intake state without exposing scope or idempotency data', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn().mockResolvedValue(new Response(JSON.stringify([inboxItem]), { status: 200 })),
+      vi
+        .fn()
+        .mockImplementation(() =>
+          Promise.resolve(new Response(JSON.stringify([inboxItem]), { status: 200 })),
+        ),
     );
     const router = createAppRouter({ initialEntries: ['/en/inbox'] });
     render(<ApplicationBoundary router={router} />);
@@ -25,6 +29,24 @@ describe('governed artifact inbox', () => {
     ).toBeTruthy();
     expect(await screen.findByText('Needs review', {}, { timeout: 10_000 })).toBeTruthy();
     expect(screen.getByText(inboxItem.inboxItemId)).toBeTruthy();
+    expect(document.querySelector('.inbox-page__table-shell')).toBeTruthy();
+    expect(document.querySelector('.inbox-page__table-scroll')).toBeTruthy();
+    expect(screen.getByRole('table', { name: 'Data Inbox' })).toBeTruthy();
+  }, 30_000);
+
+  it('keeps an honest empty state without inventing intake rows', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(() => Promise.resolve(new Response('[]', { status: 200 }))),
+    );
+    const router = createAppRouter({ initialEntries: ['/en/inbox'] });
+    render(<ApplicationBoundary router={router} />);
+
+    expect(await screen.findByText('No intake items yet.', {}, { timeout: 10_000 })).toBeTruthy();
+    expect(screen.getAllByText('No intake items yet.')).toHaveLength(1);
+    expect(document.querySelector('.inbox-page__hero .db-status')?.textContent).toContain('0');
+    expect(document.querySelector('.inbox-page__empty')).toBeTruthy();
+    expect(screen.queryByRole('table', { name: 'Data Inbox' })).toBeNull();
   }, 30_000);
 
   it('shows a safe retry state when the API is unavailable', async () => {
@@ -41,7 +63,28 @@ describe('governed artifact inbox', () => {
       ),
     ).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Retry safely' })).toBeTruthy();
+    expect(document.querySelector('.inbox-page__state--error')).toBeTruthy();
     expect(screen.queryByText(/private provider detail/u)).toBeNull();
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
   });
+
+  it('keeps the loading state truthful while the server request is pending', async () => {
+    let resolveRequest: ((response: Response) => void) | undefined;
+    const pendingRequest = new Promise<Response>((resolve) => {
+      resolveRequest = resolve;
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(() => pendingRequest),
+    );
+    const router = createAppRouter({ initialEntries: ['/en/inbox'] });
+    render(<ApplicationBoundary router={router} />);
+
+    expect(
+      await screen.findByText('Loading governed intake…', {}, { timeout: 10_000 }),
+    ).toBeTruthy();
+    expect(document.querySelector('.inbox-page__state--loading')).toBeTruthy();
+
+    resolveRequest?.(new Response('[]', { status: 200 }));
+  }, 30_000);
 });

@@ -12,6 +12,56 @@ const baseProperties = {
   onMobileNavigationOpenChange: () => undefined,
 };
 
+const avatarBootstrap = {
+  user: {
+    id: '00000000-0000-4000-8000-000000000001',
+    displayName: 'Mai',
+    locale: 'en',
+    mfaState: 'NOT_CONFIGURED',
+  },
+  organizations: [],
+  recentScopes: [],
+  session: {
+    scopeType: 'organization',
+    organizationId: '00000000-0000-4000-8000-000000000002',
+    authorizationEpoch: 1,
+  },
+  platform: { apiVersion: 'v1' },
+} satisfies NonNullable<ComponentProps<typeof WorkspaceTopbar>['bootstrap']>;
+
+function renderAvatarTopbar(locale: 'en' | 'vi-VN' = 'en') {
+  return render(
+    <MemoryRouter initialEntries={[`/${locale}/dashboards`]}>
+      <WorkspaceTopbar
+        {...baseProperties}
+        bootstrap={avatarBootstrap}
+        locale={locale}
+        notificationState={{ status: 'empty', items: [] }}
+      />
+    </MemoryRouter>,
+  );
+}
+
+function entitlementSummaryResponse(overrides: Record<string, unknown> = {}) {
+  return {
+    schemaVersion: 4,
+    snapshot: {
+      schemaVersion: 1,
+      snapshotId: '00000000-0000-4000-8000-000000000010',
+      organizationId: '00000000-0000-4000-8000-000000000002',
+      planCode: 'development',
+      status: 'ACTIVE',
+      revision: 1,
+      securityEpoch: 1,
+      effectiveAt: '2026-01-01T00:00:00.000Z',
+      features: [],
+      quotas: [{ metric: 'job_count', limit: 100 }],
+    },
+    aiCredits: { metric: 'job_count', limit: 100, used: 12, reserved: 3, remaining: 85 },
+    ...overrides,
+  };
+}
+
 function renderTopbar(
   notificationState: NonNullable<ComponentProps<typeof WorkspaceTopbar>['notificationState']>,
 ) {
@@ -23,13 +73,12 @@ function renderTopbar(
 }
 
 describe('workspace topbar notifications', () => {
-  it('renders the approved dashboard breadcrumb and working presentation controls', async () => {
+  it('renders the unified topbar with workspace switcher and opens the settings dialog', async () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter initialEntries={['/vi-VN/dashboards']}>
         <WorkspaceTopbar
           {...baseProperties}
-          dashboardMode
           locale="vi-VN"
           bootstrap={{
             user: {
@@ -68,19 +117,39 @@ describe('workspace topbar notifications', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByLabelText('Đường dẫn bảng điều khiển').textContent).toContain(
-      'Bright Cloud',
-    );
-    expect(screen.getByText('Bức tranh kinh doanh')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Tự động' }).getAttribute('aria-pressed')).toBe(
-      'true',
-    );
+    expect(screen.getByText('Bright Cloud')).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Tiếng Việt/i })).toBeTruthy();
 
-    await user.click(screen.getByRole('button', { name: 'Dọc' }));
-    expect(screen.getByRole('button', { name: 'Dọc' }).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByRole('button', { name: 'Tự động' }).getAttribute('aria-pressed')).toBe(
-      'false',
+    await user.click(screen.getByRole('button', { name: 'Menu người dùng' }));
+    const settingsAction = screen.getByRole('menuitem', {
+      name: 'Hồ sơ & Cài đặt',
+    });
+    expect(settingsAction.tagName).toBe('BUTTON');
+    await user.click(settingsAction);
+
+    const settingsDialog = screen.getByRole('dialog', { name: 'Cài đặt không gian làm việc' });
+    expect(settingsDialog.getAttribute('aria-modal')).toBe('true');
+    expect(settingsDialog.className).toContain('workspace-settings-dialog');
+    expect(settingsDialog.getAttribute('aria-label')).toBe('Cài đặt không gian làm việc');
+    expect(settingsDialog.querySelector('.workspace-settings-dialog__header')).toBeNull();
+    expect(settingsDialog.textContent).not.toContain(
+      'Chọn một chủ đề để xem và cập nhật các tùy chọn được hỗ trợ.',
     );
+    expect(settingsDialog.querySelector('[data-settings-dialog-panel="true"]')).toBeTruthy();
+    const closeButton = screen.getByRole('button', { name: 'Đóng cài đặt' });
+    expect(closeButton).toBeTruthy();
+    expect(closeButton.getAttribute('data-settings-dialog-close')).toBe('true');
+    expect(settingsDialog.querySelector('.workspace-settings-dialog__controls')).toBeNull();
+    expect(settingsDialog.querySelector('[data-settings-dialog-content="true"]')).toBeTruthy();
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(screen.getByRole('tablist', { name: 'Chủ đề quản trị' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: /Tài khoản/u })).toBeTruthy();
+    expect(document.querySelector('[data-settings-compact-row="change-password"]')).toBeTruthy();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: 'Cài đặt không gian làm việc' })).toBeNull();
+    expect(document.body.style.overflow).toBe('');
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Menu người dùng' }));
   });
 
   it('displays only the organization/workspace/project names derived from authenticated bootstrap', () => {
@@ -133,9 +202,8 @@ describe('workspace topbar notifications', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Server organization')).toBeTruthy();
     expect(screen.getByText('Server workspace')).toBeTruthy();
-    expect(screen.getByText('Server project')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Server workspace/u })).toBeTruthy();
     expect(screen.queryByText('Bright Cloud Organization')).toBeNull();
   });
 
@@ -147,13 +215,30 @@ describe('workspace topbar notifications', () => {
         <WorkspaceTopbar
           {...baseProperties}
           locale="vi-VN"
+          bootstrap={{
+            user: {
+              id: '00000000-0000-4000-8000-000000000001',
+              displayName: 'Mai',
+              locale: 'vi-VN',
+              mfaState: 'NOT_CONFIGURED',
+            },
+            organizations: [],
+            recentScopes: [],
+            session: {
+              scopeType: 'organization',
+              organizationId: '00000000-0000-4000-8000-000000000002',
+              authorizationEpoch: 1,
+            },
+            platform: { apiVersion: 'v1' },
+          }}
           notificationState={{ status: 'empty', items: [] }}
           onSignOut={onSignOut}
         />
       </MemoryRouter>,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Đăng xuất' }));
+    await user.click(screen.getByRole('button', { name: 'Menu người dùng' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Đăng xuất' }));
     expect(onSignOut).toHaveBeenCalledTimes(1);
   });
 
@@ -238,5 +323,84 @@ describe('workspace topbar notifications', () => {
     expect(screen.queryByRole('dialog', { name: 'Notifications' })).toBeNull();
     expect(document.activeElement).toBe(trigger);
     void dialog;
+  });
+
+  it('loads server-authoritative AI credit usage below the upgrade action', async () => {
+    const user = userEvent.setup();
+    let resolveResponse!: (response: Response) => void;
+    const responsePromise = new Promise<Response>((resolve) => {
+      resolveResponse = resolve;
+    });
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockReturnValue(responsePromise);
+    renderAvatarTopbar();
+
+    await user.click(screen.getByRole('button', { name: 'User menu' }));
+    expect(screen.getByRole('status').textContent).toContain('Loading AI credit usage');
+
+    resolveResponse(
+      new Response(JSON.stringify(entitlementSummaryResponse()), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    );
+
+    await waitFor(() => expect(screen.getByRole('group', { name: 'AI credits' })).toBeTruthy());
+    const creditSection = screen.getByRole('group', { name: 'AI credits' });
+    expect(creditSection.textContent).toContain('85');
+    expect(creditSection.textContent).toContain('12 used');
+    expect(creditSection.textContent).toContain('3 reserved');
+    expect(creditSection.textContent).toContain('100 total limit');
+    expect(
+      screen
+        .getByRole('menuitem', { name: 'Upgrade plan' })
+        .compareDocumentPosition(creditSection) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining('/v1/entitlements/summary'),
+      expect.objectContaining({ credentials: 'include' }),
+    );
+  });
+
+  it('keeps unavailable entitlement data truthful and localized', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ENTITLEMENT_UNAVAILABLE'));
+    renderAvatarTopbar('vi-VN');
+
+    await user.click(screen.getByRole('button', { name: 'Menu người dùng' }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('alert').textContent).toContain('Mức sử dụng AI hiện chưa khả dụng.'),
+    );
+    expect(screen.queryByText('1.000')).toBeNull();
+  });
+
+  it('renders the server-provided zero allowance for a Free response without inventing credits', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify(
+          entitlementSummaryResponse({
+            snapshot: {
+              ...entitlementSummaryResponse().snapshot,
+              planCode: 'free',
+              quotas: [],
+            },
+            aiCredits: { metric: 'job_count', limit: 0, used: 0, reserved: 0, remaining: 0 },
+          }),
+        ),
+        { headers: { 'Content-Type': 'application/json' }, status: 200 },
+      ),
+    );
+    renderAvatarTopbar();
+
+    await user.click(screen.getByRole('button', { name: 'User menu' }));
+
+    await waitFor(() => expect(screen.getByRole('group', { name: 'AI credits' })).toBeTruthy());
+    const creditSection = screen.getByRole('group', { name: 'AI credits' });
+    expect(creditSection.textContent).toContain('0 total limit');
+    expect(
+      creditSection.querySelector('.workspace-topbar__avatar-credits-remaining strong')
+        ?.textContent,
+    ).toBe('0');
   });
 });

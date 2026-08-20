@@ -84,12 +84,11 @@ export class PrismaLocalWebIntakeAdapter implements IaeLocalWebIntakePortV1 {
     if (!tenantScopesEqualV1(workspaceScope, input.tenantScope)) {
       return rejected('LOCAL_INTAKE_SCOPE_DENIED');
     }
-    if (
-      !safeFileName(input.fileName) ||
-      input.bytes.byteLength < 1 ||
-      input.bytes.byteLength > 512_000
-    ) {
+    if (!safeFileName(input.fileName) || input.bytes.byteLength < 1) {
       return rejected('LOCAL_INTAKE_INVALID_INPUT');
+    }
+    if (input.bytes.byteLength > 100 * 1024 * 1024) {
+      return rejected('LOCAL_INTAKE_LIMIT_SIZE');
     }
     if (!/^[a-f0-9]{64}$/u.test(input.expectedSha256)) {
       return rejected('LOCAL_INTAKE_INVALID_INPUT');

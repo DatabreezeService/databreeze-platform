@@ -18,6 +18,10 @@ import type { QiModuleOptions } from './features/qi/qi.module.js';
 import type { IldModuleOptions } from './features/ild/ild.module.js';
 import type { DdaModuleOptions } from './features/dda/dda.module.js';
 import type { JraModuleOptions } from './features/jra/jra.module.js';
+import type { MobileModuleOptions } from './features/mobile/mobile.module.js';
+import type { CrfModuleOptions } from './features/crf/crf.module.js';
+import type { PlatformAdminModuleOptions } from './features/platform-admin/platform-admin.module.js';
+import type { LfbModuleOptions } from './features/lfb/lfb.module.js';
 import type { JraWorkerModuleOptions } from './features/jra/worker/worker.module.js';
 import type { ClientCompatibilityPort } from './features/system/application/client-compatibility.port.js';
 import type { ReadinessPort } from './features/system/application/readiness.port.js';
@@ -28,6 +32,8 @@ import {
   type RequestContextOptions,
 } from './platform/http/request-context.js';
 import { createValidationPipe } from './platform/http/validation.js';
+
+const DATA_IMPORT_JSON_BODY_LIMIT_BYTES = 4 * Math.ceil((100 * 1024 * 1024) / 3) + 1 * 1024 * 1024;
 
 export interface ApiApplication {
   readonly app: NestFastifyApplication;
@@ -48,16 +54,29 @@ export interface ApiApplicationOptions
     IldModuleOptions,
     DdaModuleOptions,
     JraModuleOptions,
+    MobileModuleOptions,
+    CrfModuleOptions,
+    PlatformAdminModuleOptions,
+    LfbModuleOptions,
     JraWorkerModuleOptions {
   readonly compatibilityPort?: ClientCompatibilityPort;
   readonly readinessPort?: ReadinessPort;
   readonly requestContext?: RequestContextOptions;
+  /** Local-only server-owned project projection for dashboard routes. */
+  readonly dashboardProjectId?: string;
 }
 
 export async function createApiApplication(
   options: ApiApplicationOptions = {},
 ): Promise<ApiApplication> {
-  const adapter = new FastifyAdapter({ bodyLimit: 65_536, logger: false });
+  // Keep JSON command envelopes small and predictable. Large source/result bytes
+  // use the explicit octet-stream parser below with its own bounded limit.
+  const adapter = new FastifyAdapter({ bodyLimit: 64 * 1024, logger: false });
+  adapter.getInstance().addHook('onRoute', (routeOptions) => {
+    if (routeOptions.method === 'POST' && routeOptions.url === '/v1/dda/data-imports') {
+      routeOptions.bodyLimit = DATA_IMPORT_JSON_BODY_LIMIT_BYTES;
+    }
+  });
   adapter
     .getInstance()
     .addContentTypeParser(

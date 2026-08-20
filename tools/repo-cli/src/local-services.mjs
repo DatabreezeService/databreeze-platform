@@ -21,8 +21,8 @@ const services = [
 const completionServices = ['minio-init'];
 const appServices = ['api', 'web'];
 const appCompletionServices = ['minio-init', 'api-migrate'];
-const logServices = [...services, 'minio-init', ...appServices, 'api-migrate'];
-const appLogServices = ['api', 'web', 'api-migrate'];
+const logServices = [...services, 'minio-init', ...appServices, 'worker', 'api-migrate'];
+const appLogServices = ['api', 'web', 'worker', 'api-migrate'];
 const hostPorts = [
   { service: 'postgres', key: 'POSTGRES_PORT', fallback: 5432 },
   { service: 'redis', key: 'REDIS_PORT', fallback: 6379 },
@@ -340,6 +340,25 @@ async function waitForReady(
   fail(`readiness timeout after ${waitSeconds}s`);
 }
 
+function makeWorkerTrustLocalGateway(values) {
+  // Caddy deliberately creates its private CA tree as 0700/0600. The worker
+  // only needs the public root certificate, so expose that certificate (and
+  // its public parent directories) to the separate non-root worker while
+  // leaving intermediate/root private keys untouched.
+  runDocker(
+    [
+      ...appComposeArgs(values),
+      'exec',
+      '-T',
+      'web',
+      'sh',
+      '-c',
+      'chmod 755 /data/caddy/pki /data/caddy/pki/authorities /data/caddy/pki/authorities/local && chmod 644 /data/caddy/pki/authorities/local/root.crt',
+    ],
+    { timeoutMs: 15_000 },
+  );
+}
+
 function parseArguments(argv, values = environment()) {
   let command = 'smoke';
   const argumentsToParse = [...argv];
@@ -447,7 +466,7 @@ export async function main(argv = process.argv.slice(2)) {
     return;
   }
   if (command === 'app-status') {
-    for (const service of [...services, ...appServices])
+    for (const service of [...services, ...appServices, 'worker'])
       console.log(`${service}: ${inspectHealth(service, values).detail}`);
     for (const service of appCompletionServices)
       console.log(`${service}: ${inspectCompletion(service, values).detail}`);
@@ -475,7 +494,7 @@ export async function main(argv = process.argv.slice(2)) {
     return;
   }
   if (command === 'app-stop') {
-    runDocker([...appComposeArgs(values), 'stop', 'web', 'api', 'api-migrate'], {
+    runDocker([...appComposeArgs(values), 'stop', 'worker', 'web', 'api', 'api-migrate'], {
       timeoutMs: operationTimeoutMs,
     });
     console.log('Local API and Web stopped; dependencies, containers, and volumes were preserved.');
@@ -501,6 +520,7 @@ export async function main(argv = process.argv.slice(2)) {
       [...services, ...appServices],
       appCompletionServices,
     );
+    makeWorkerTrustLocalGateway(values);
     console.log(
       `DataBreeze local app ready at https://localhost:${portValue(appHostPorts[0], values)}. Mailpit: http://localhost:${portValue(hostPorts[5], values)}.`,
     );

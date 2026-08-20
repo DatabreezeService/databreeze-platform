@@ -163,7 +163,7 @@ export function NotificationCenter({
       >
         {copy}
         {resolvedState.status === 'error' && onRetry ? (
-          <button type="button" onClick={onRetry}>
+          <button className="notification-center__retry" type="button" onClick={onRetry}>
             {appMessage(locale, 'notifications.retry')}
           </button>
         ) : null}
@@ -174,9 +174,11 @@ export function NotificationCenter({
             const readState = readStateForItem(item);
             const label = itemLabel(locale, item);
             const content = isSafeNotificationActionRoute(item.actionRoute) ? (
-              <Link to={item.actionRoute}>{label}</Link>
+              <Link className="notification-center__item-labelLink" to={item.actionRoute}>
+                {label}
+              </Link>
             ) : (
-              <span>{label}</span>
+              <span className="notification-center__item-label">{label}</span>
             );
 
             return (
@@ -188,7 +190,7 @@ export function NotificationCenter({
               >
                 {content}
                 {readState ? (
-                  <span>
+                  <span className="notification-center__item-read-state">
                     {readState === 'UNREAD'
                       ? appMessage(locale, 'notifications.unreadState')
                       : appMessage(locale, 'notifications.read')}
@@ -199,9 +201,13 @@ export function NotificationCenter({
                 readState !== 'DISMISSED' &&
                 Number.isSafeInteger(item.revision) &&
                 (item.revision ?? 0) > 0 ? (
-                  <div aria-label={appMessage(locale, 'notifications.label')}>
+                  <div
+                    className="notification-center__item-actions"
+                    aria-label={appMessage(locale, 'notifications.label')}
+                  >
                     {readState === 'UNREAD' ? (
                       <button
+                        className="notification-center__item-action"
                         type="button"
                         onClick={() =>
                           void onStateChange(item.eventId, 'READ', item.revision as number)
@@ -212,6 +218,7 @@ export function NotificationCenter({
                     ) : null}
                     {readState !== 'ARCHIVED' ? (
                       <button
+                        className="notification-center__item-action"
                         type="button"
                         onClick={() =>
                           void onStateChange(item.eventId, 'ARCHIVED', item.revision as number)
@@ -221,6 +228,7 @@ export function NotificationCenter({
                       </button>
                     ) : null}
                     <button
+                      className="notification-center__item-action"
                       type="button"
                       onClick={() =>
                         void onStateChange(item.eventId, 'DISMISSED', item.revision as number)

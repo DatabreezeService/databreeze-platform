@@ -10,6 +10,8 @@ function copy(locale: 'en' | 'vi-VN') {
         safe: 'Mở bản xem an toàn',
         unavailable: 'Bản xem gốc hiện không khả dụng cho tệp này.',
         viewer: 'Bản xem cách ly không thực thi macro, mã hoạt động hoặc làm mới bên ngoài.',
+        actionUnavailable: 'Bản xem an toàn chưa được kết nối cho nguồn này.',
+        evidenceUnavailable: 'Bằng chứng chưa được kết nối trong màn hình này.',
       }
     : {
         evidence: 'View evidence',
@@ -20,6 +22,8 @@ function copy(locale: 'en' | 'vi-VN') {
         unavailable: 'An original view is not available for this file.',
         viewer:
           'The isolated viewer does not execute macros, active content, or external refreshes.',
+        actionUnavailable: 'Safe viewing is not connected for this source yet.',
+        evidenceUnavailable: 'Evidence is not connected on this surface yet.',
       };
 }
 
@@ -53,28 +57,36 @@ export function OriginalViewer({
         <span>{sourceType}</span>
       </div>
       <p>{text.viewer}</p>
-      {source === undefined ? null : safeToView ? (
-        <button onClick={() => onOpenOriginal?.(source.sourceId)} type="button">
+      {source === undefined ? null : safeToView && onOpenOriginal !== undefined ? (
+        <button onClick={() => onOpenOriginal(source.sourceId)} type="button">
           {text.safe}
         </button>
-      ) : openOnDevice ? (
+      ) : openOnDevice && onOpenOriginal !== undefined ? (
         <div className="original-viewer__restricted-action">
           <p>{text.local}</p>
-          <button onClick={() => onOpenOriginal?.(source.sourceId)} type="button">
+          <button onClick={() => onOpenOriginal(source.sourceId)} type="button">
             {text.localAction}
           </button>
         </div>
+      ) : safeToView || openOnDevice ? (
+        <p className="data-section-empty" role="status">
+          {text.actionUnavailable}
+        </p>
       ) : unavailable ? (
         <p className="data-section-empty">{text.unavailable}</p>
       ) : null}
-      {source?.evidenceAvailable ? (
+      {source?.evidenceAvailable && onViewEvidence !== undefined ? (
         <button
           className="original-viewer__evidence"
-          onClick={() => onViewEvidence?.(source.sourceId)}
+          onClick={() => onViewEvidence(source.sourceId)}
           type="button"
         >
           {text.evidence}
         </button>
+      ) : source?.evidenceAvailable ? (
+        <p className="data-section-empty" role="status">
+          {text.evidenceUnavailable}
+        </p>
       ) : null}
     </section>
   );

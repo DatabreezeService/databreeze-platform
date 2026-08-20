@@ -194,6 +194,11 @@ services:
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-databreeze}:${POSTGRES_PASSWORD:-databreeze-local-change-me}@postgres:5432/${POSTGRES_DB:-databreeze}?schema=public
       DATABREEZE_RUNTIME_PROFILE: local
+      # Keep the checked-in seed discoverable even when an older ignored
+      # infrastructure/local/.env predates DATABREEZE_LOCAL_PROJECT_ID.
+      # An explicit empty value still opts into the intentional empty-workspace
+      # test because Compose preserves a supplied empty environment variable.
+      DATABREEZE_LOCAL_PROJECT_ID: ${DATABREEZE_LOCAL_PROJECT_ID-00000000-0000-4000-8000-000000000003}
       DATABREEZE_LOCAL_HTTPS_ORIGIN: https://localhost:${WEB_HTTPS_PORT:-8443}
       DATABREEZE_REDIS_URL: redis://redis:6379
       DATABREEZE_LOCAL_EMAIL_PROVIDER: ${DATABREEZE_LOCAL_EMAIL_PROVIDER:-mailpit}
@@ -204,6 +209,7 @@ services:
       DATABREEZE_IAM_EMAIL_FROM_ADDRESS: ${DATABREEZE_IAM_EMAIL_FROM_ADDRESS:-verify@databreeze.local}
       DATABREEZE_IAM_EMAIL_VERIFICATION_DIGEST_KEY: ${DATABREEZE_IAM_EMAIL_VERIFICATION_DIGEST_KEY:-ERERERERERERERERERERERERERERERERERERERERERE}
       DATABREEZE_IAM_EMAIL_VERIFICATION_ENVELOPE_KEY: ${DATABREEZE_IAM_EMAIL_VERIFICATION_ENVELOPE_KEY:-EhISEhISEhISEhISEhISEhISEhISEhISEhISEhISEhI}
+      DATABREEZE_IAM_INVITATION_DIGEST_KEY: ${DATABREEZE_IAM_INVITATION_DIGEST_KEY:-GRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRkZGRk}
       DATABREEZE_IAM_REGISTRATION_ADMISSION_KEY: ${DATABREEZE_IAM_REGISTRATION_ADMISSION_KEY:-ExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExM}
       DATABREEZE_IAM_RECOVERY_DIGEST_KEY: ${DATABREEZE_IAM_RECOVERY_DIGEST_KEY:-FBUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRUVFRU}
       DATABREEZE_SERVICE_ACCOUNT_SECRET_ENVELOPE_KEY: ${DATABREEZE_SERVICE_ACCOUNT_SECRET_ENVELOPE_KEY:-FBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQ}
@@ -211,6 +217,38 @@ services:
       DATABREEZE_LOCAL_MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-databreeze}
       DATABREEZE_LOCAL_MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-databreeze-local-change-me}
       DATABREEZE_LOCAL_MINIO_BUCKET: ${MINIO_BUCKET_ARTIFACTS:-databreeze-artifacts}
+      DATABREEZE_LOCAL_MINIO_RESULTS_BUCKET: ${MINIO_BUCKET_RESULTS:-databreeze-results}
+      DATABREEZE_IAE_WORKER_CAPABILITY_SIGNING_KEY: ${DATABREEZE_IAE_WORKER_CAPABILITY_SIGNING_KEY:-BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc}
+      # Local uses the deterministic adapter unless PAYOS_PROVIDER=payos is explicitly selected.
+      PAYOS_PROVIDER: ${PAYOS_PROVIDER:-mock}
+      PAYOS_LOCAL_TEST_MODE: ${PAYOS_LOCAL_TEST_MODE:-false}
+      PAYOS_CLIENT_ID: ${PAYOS_CLIENT_ID:-}
+      PAYOS_API_KEY: ${PAYOS_API_KEY:-}
+      PAYOS_CHECKSUM_KEY: ${PAYOS_CHECKSUM_KEY:-}
+      DATABREEZE_WEB_PUBLIC_URL: ${DATABREEZE_WEB_PUBLIC_URL:-https://localhost:8443}
+      DATABREEZE_PAYOS_SUCCESS_URL: ${DATABREEZE_PAYOS_SUCCESS_URL:-https://localhost:8443/vi-VN/billing/success}
+      DATABREEZE_PAYOS_FAILED_URL: ${DATABREEZE_PAYOS_FAILED_URL:-https://localhost:8443/vi-VN/billing/failed}
+      # Optional local-only provider gates. Values come from the ignored
+      # infrastructure/local/.env and are never baked into the image.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DATABREEZE_OPENAI_AGENT_ENABLED: ${DATABREEZE_OPENAI_AGENT_ENABLED:-false}
+      DATABREEZE_OPENAI_AGENT_MODEL: ${DATABREEZE_OPENAI_AGENT_MODEL:-gpt-4o-mini-2024-07-18}
+      DATABREEZE_OPENAI_AGENT_TIMEOUT_MS: ${DATABREEZE_OPENAI_AGENT_TIMEOUT_MS:-30000}
+      DATABREEZE_OPENAI_AGENT_MAX_OUTPUT_TOKENS: ${DATABREEZE_OPENAI_AGENT_MAX_OUTPUT_TOKENS:-1200}
+      DATABREEZE_OPENAI_RECEIPT_ENABLED: ${DATABREEZE_OPENAI_RECEIPT_ENABLED:-false}
+      DATABREEZE_OPENAI_RECEIPT_MODEL: ${DATABREEZE_OPENAI_RECEIPT_MODEL:-gpt-4o-mini-2024-07-18}
+      DATABREEZE_OPENAI_DASHBOARD_ENABLED: ${DATABREEZE_OPENAI_DASHBOARD_ENABLED:-false}
+      DATABREEZE_OPENAI_DASHBOARD_MODEL: ${DATABREEZE_OPENAI_DASHBOARD_MODEL:-gpt-4o-mini-2024-07-18}
+      DATABREEZE_OPENAI_ANALYSIS_ENABLED: ${DATABREEZE_OPENAI_ANALYSIS_ENABLED:-false}
+      DATABREEZE_OPENAI_ANALYSIS_MODEL: ${DATABREEZE_OPENAI_ANALYSIS_MODEL:-gpt-4o-mini-2024-07-18}
+      DATABREEZE_OPENAI_NARRATIVE_ENABLED: ${DATABREEZE_OPENAI_NARRATIVE_ENABLED:-false}
+      DATABREEZE_OPENAI_NARRATIVE_MODEL: ${DATABREEZE_OPENAI_NARRATIVE_MODEL:-gpt-4o-mini-2024-07-18}
+      DATABREEZE_OPENAI_MAPPING_ENABLED: ${DATABREEZE_OPENAI_MAPPING_ENABLED:-false}
+      DATABREEZE_OPENAI_MAPPING_MODEL: ${DATABREEZE_OPENAI_MAPPING_MODEL:-gpt-4o-mini-2024-07-18}
+      DATABREEZE_OPENAI_MAPPING_ALLOW_SAMPLES: ${DATABREEZE_OPENAI_MAPPING_ALLOW_SAMPLES:-false}
+      DATABREEZE_OPENAI_IMAGE_DETAIL: ${DATABREEZE_OPENAI_IMAGE_DETAIL:-high}
+      DATABREEZE_OPENAI_TIMEOUT_MS: ${DATABREEZE_OPENAI_TIMEOUT_MS:-30000}
+      DATABREEZE_OPENAI_MAX_OUTPUT_TOKENS: ${DATABREEZE_OPENAI_MAX_OUTPUT_TOKENS:-1200}
     expose:
       - '3000'
     networks: [local]
@@ -224,6 +262,36 @@ services:
       - ALL
     restart: unless-stopped
 
+  worker:
+    profiles: [app]
+    build:
+      context: ../..
+      dockerfile: infrastructure/containers/worker/Dockerfile
+      target: runtime
+    init: true
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      DATABREEZE_WORKER_API_ENDPOINT: https://web:8443
+      DATABREEZE_WORKER_BEARER_TOKEN: ${DATABREEZE_LOCAL_WORKER_BEARER:-databreeze-local-worker-bearer-change-me}
+      # Caddy's local CA is shared read-only; the worker still performs normal
+      # certificate verification instead of disabling TLS for the gateway.
+      SSL_CERT_FILE: /caddy-data/caddy/pki/authorities/local/root.crt
+    networks: [local]
+    logging: *default-logging
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /home/databreeze:rw,noexec,nosuid,size=16m
+    volumes:
+      - web-caddy-data:/caddy-data:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
+
   web:
     profiles: [app]
     build:
@@ -231,7 +299,9 @@ services:
       dockerfile: infrastructure/containers/web/Dockerfile
       target: runtime
       args:
-        VITE_DATABREEZE_DEMO_MODE: ${VITE_DATABREEZE_DEMO_MODE:-true}
+        VITE_DATABREEZE_DEMO_MODE: ${VITE_DATABREEZE_DEMO_MODE:-false}
+        VITE_DATABREEZE_LOCAL_NAVIGATION_HINTS: ${VITE_DATABREEZE_LOCAL_NAVIGATION_HINTS:-true}
+        VITE_DATABREEZE_LOCAL_PAYMENT_MODE: ${VITE_DATABREEZE_LOCAL_PAYMENT_MODE:-mock}
     init: true
     depends_on:
       api:

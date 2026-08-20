@@ -55,6 +55,15 @@ function hasClientAuthorityField(value: unknown, depth = 0): boolean {
   );
 }
 
+function contractCommand(body: AgentTurnRequestDtoV1): Readonly<Record<string, unknown>> {
+  const candidate: Record<string, unknown> = { ...body };
+  if (candidate['contextRevision'] === undefined) delete candidate['contextRevision'];
+  if (candidate['expectedContextRevision'] === undefined) {
+    delete candidate['expectedContextRevision'];
+  }
+  return candidate;
+}
+
 const SAFE_AGENT_TURN_ERROR = Object.freeze({ error: 'AGENT_TURN_REJECTED' });
 const AGENT_TURN_COMMAND_SCHEMA_ID =
   'https://schemas.databreeze.dev/contracts/v4/dda-agent-turn-command' as const;
@@ -120,7 +129,10 @@ export class AgentTurnController {
     @Res({ passthrough: true }) reply?: FastifyReply,
   ) {
     this.rejectClientAuthority(body, request);
-    const parsedCommand = parseV4Contract<DdaAgentTurnCommand>(AGENT_TURN_COMMAND_SCHEMA_ID, body);
+    const parsedCommand = parseV4Contract<DdaAgentTurnCommand>(
+      AGENT_TURN_COMMAND_SCHEMA_ID,
+      contractCommand(body),
+    );
     if (!parsedCommand.accepted) throw new BadRequestException();
     const command = parsedCommand.value;
     const context = await this.resolveContext(request);

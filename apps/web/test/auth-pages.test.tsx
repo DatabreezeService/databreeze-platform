@@ -71,8 +71,7 @@ describe('auth product surfaces', () => {
 
   it('varies the same cell when the noise seed differs', () => {
     const timeMs = 2000;
-    const withSeed = (seed: number) =>
-      authSquareWaveLevel(4, 2, timeMs, { ...WAVE, seed });
+    const withSeed = (seed: number) => authSquareWaveLevel(4, 2, timeMs, { ...WAVE, seed });
 
     expect(withSeed(1)).not.toBe(withSeed(99));
   });
@@ -93,7 +92,9 @@ describe('auth product surfaces', () => {
     expect(screen.queryByRole('button', { name: /english/i })).toBeNull();
 
     await user.click(screen.getByRole('button', { name: /tiếng việt/i }));
-    expect(screen.getByRole('option', { name: /english/i }).getAttribute('href')).toBe('/en/sign-in');
+    expect(screen.getByRole('option', { name: /english/i }).getAttribute('href')).toBe(
+      '/en/sign-in',
+    );
     expect(screen.getByRole('option', { name: /tiếng việt/i }).getAttribute('href')).toBe(
       '/vi-VN/sign-in',
     );
@@ -106,7 +107,9 @@ describe('auth product surfaces', () => {
     expect(screen.getByRole('link', { name: 'Home' })).toBeTruthy();
     expect(screen.getByRole('button', { name: /english/i })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: /english/i }));
-    expect(screen.getByRole('option', { name: /english/i }).getAttribute('href')).toBe('/en/sign-in');
+    expect(screen.getByRole('option', { name: /english/i }).getAttribute('href')).toBe(
+      '/en/sign-in',
+    );
     expect(screen.getByRole('option', { name: /tiếng việt/i }).getAttribute('href')).toBe(
       '/vi-VN/sign-in',
     );

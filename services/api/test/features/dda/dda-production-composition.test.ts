@@ -77,6 +77,8 @@ import { RefreshAdmissionService } from '../../../src/features/dda/refresh/appli
 import { RefreshOrchestratorService } from '../../../src/features/dda/refresh/application/refresh-orchestrator.service.js';
 import { SnapshotCommitService } from '../../../src/features/dda/refresh/application/snapshot-commit.service.js';
 import { ReceiptAcceptanceService } from '../../../src/features/dda/receipt/application/receipt-acceptance.service.js';
+import { AnalysisProposalServiceV1 } from '../../../src/features/dda/analyst/application/analysis-proposal.service.js';
+import { OpenAiAnalysisAdapter } from '../../../src/features/dda/analyst/adapter/openai-analysis.adapter.js';
 
 function providerValue(module: ReturnType<typeof DdaModule.register>, token: unknown): unknown {
   const providers = (module.providers ?? []) as readonly {
@@ -409,5 +411,24 @@ void test('[DDA-060] omitted agent composition remains fail closed and uses reso
   } finally {
     if (priorNodeEnv === undefined) delete process.env['NODE_ENV'];
     else process.env['NODE_ENV'] = priorNodeEnv;
+  }
+});
+
+void test('[DDA-015][DDA-043] local/server composition selects the opt-in OpenAI analysis adapter', () => {
+  const priorEnabled = process.env['DATABREEZE_OPENAI_ANALYSIS_ENABLED'];
+  const priorKey = process.env['OPENAI_API_KEY'];
+  process.env['DATABREEZE_OPENAI_ANALYSIS_ENABLED'] = 'true';
+  process.env['OPENAI_API_KEY'] = ['sk', 'test', 'analysis-composition-key-cccccccc'].join('-');
+  try {
+    const module = DdaModule.register({ runtimeMode: 'production', allowInMemoryAdapters: true });
+    const proposalService = providerValue(module, AnalysisProposalServiceV1);
+    assert.ok(proposalService instanceof AnalysisProposalServiceV1);
+    const adapter = (proposalService as unknown as { readonly adapter?: unknown }).adapter;
+    assert.ok(adapter instanceof OpenAiAnalysisAdapter);
+  } finally {
+    if (priorEnabled === undefined) delete process.env['DATABREEZE_OPENAI_ANALYSIS_ENABLED'];
+    else process.env['DATABREEZE_OPENAI_ANALYSIS_ENABLED'] = priorEnabled;
+    if (priorKey === undefined) delete process.env['OPENAI_API_KEY'];
+    else process.env['OPENAI_API_KEY'] = priorKey;
   }
 });

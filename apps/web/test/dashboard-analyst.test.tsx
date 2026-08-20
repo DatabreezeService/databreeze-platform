@@ -40,7 +40,11 @@ describe('dashboard analyst [DDA-016][DDA-019]', () => {
   it('renders Vietnamese analyst chrome', () => {
     render(<AnalystPanel locale="vi-VN" preview={preview} />);
     expect(screen.getByRole('heading', { name: 'Hỏi dữ liệu có kiểm soát' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Đề xuất kế hoạch' })).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Luồng phân tích trực tiếp chưa được kết nối. Bạn vẫn có thể xem kế hoạch và bằng chứng bên dưới.',
+      ),
+    ).toBeTruthy();
   });
 
   it('keeps a persistent Vietnamese chart-assistant icon after its first-use invitation is dismissed [DDA-015][DDA-024][WEB-014]', async () => {

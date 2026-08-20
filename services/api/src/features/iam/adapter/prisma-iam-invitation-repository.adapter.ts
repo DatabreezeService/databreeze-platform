@@ -11,7 +11,7 @@ import {
   type StableIdentifierV1,
   type TenantScopeV1,
 } from '@databreeze/domain/tenant-scope/v1';
-import { validateMembershipV1 } from '@databreeze/domain/identity/v1';
+import { validateMembershipV1, type MembershipIdentityV1 } from '@databreeze/domain/identity/v1';
 
 import type {
   IamInvitationRepositoryPortV1,
@@ -211,6 +211,24 @@ function invitationRow(invitation: InvitationTokenV1): IamInvitationDatabaseRowV
   };
 }
 
+function membershipRow(membership: MembershipIdentityV1): IamInvitationMembershipDatabaseRowV1 {
+  return {
+    id: membership.id,
+    principalType: membership.principalType,
+    principalId: membership.principalId,
+    scopeType: membership.scope.scopeType.toUpperCase(),
+    organizationId: membership.scope.organizationId,
+    workspaceId:
+      membership.scope.scopeType === 'organization' ? null : membership.scope.workspaceId,
+    projectId: membership.scope.scopeType === 'project' ? membership.scope.projectId : null,
+    roleId: membership.roleId,
+    status: membership.status,
+    startsAt: membership.startsAt ? new Date(membership.startsAt) : null,
+    expiresAt: membership.expiresAt ? new Date(membership.expiresAt) : null,
+    revision: membership.revision,
+  };
+}
+
 function visibleInScope(context: TenantScopeV1, target: TenantScopeV1): boolean {
   return tenantScopeContainsV1(context, target) || tenantScopeContainsV1(target, context);
 }
@@ -245,6 +263,26 @@ class PrismaIamInvitationTransactionAdapter implements IamInvitationTransactionP
       .filter((membership): membership is IamMembershipRecordV1 => membership !== undefined)
       .filter((membership) => visibleInScope(context.tenantScope, membership.scope));
     return selectAuthoritativeMembership(memberships, context, principalId);
+  }
+
+  public async findInvitedMembershipForPrincipal(
+    context: IamTenantContextV1,
+    principalId: StableIdentifierV1,
+  ): Promise<IamMembershipRecordV1 | undefined> {
+    const rows = await this.client.membershipIdentity.findMany({
+      where: { organizationId: context.tenantScope.organizationId, principalId, status: 'INVITED' },
+    });
+    return rows
+      .map((row) => {
+        try {
+          return membershipFromRow(row);
+        } catch {
+          return undefined;
+        }
+      })
+      .filter((membership): membership is IamMembershipRecordV1 => membership !== undefined)
+      .filter((membership) => visibleInScope(context.tenantScope, membership.scope))
+      .sort((left, right) => left.id.localeCompare(right.id))[0];
   }
 
   public async findMembershipById(
@@ -366,7 +404,16 @@ class PrismaIamInvitationTransactionAdapter implements IamInvitationTransactionP
     const existingRow = await this.client.membershipIdentity.findUnique({
       where: { id: membership.id },
     });
-    if (!existingRow) throw new Error('IAM_REVISION_CONFLICT');
+    if (!existingRow) {
+      if (context.expectedRevision !== undefined) throw new Error('IAM_REVISION_CONFLICT');
+      try {
+        await this.client.membershipIdentity.create({ data: membershipRow(validated.value) });
+      } catch (error) {
+        if (uniqueConstraint(error)) throw new Error('IAM_MEMBERSHIP_CONFLICT');
+        throw error;
+      }
+      return;
+    }
     const existing = membershipFromRow(existingRow);
     if (!visibleInScope(context.tenantScope, existing.scope))
       throw new Error('IAM_REVISION_CONFLICT');

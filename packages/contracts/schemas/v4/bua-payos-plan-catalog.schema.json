@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/bua-payos-plan-catalog",
+  "$comment": "BUA-001: server-owned commercial catalog used by authenticated billing clients.",
+  "title": "BUA PayOS Plan Catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "plans"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "plans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "family", "billingCycle", "amountVnd", "description", "displayNameVi", "displayNameEn", "taglineVi", "taglineEn", "benefitsVi", "benefitsEn", "allowances"],
+        "properties": {
+          "id": { "enum": ["personal-monthly", "personal-annual", "professional-monthly", "professional-annual", "team-monthly", "team-annual"] },
+          "family": { "enum": ["personal", "professional", "team"] },
+          "billingCycle": { "enum": ["monthly", "annual"] },
+          "amountVnd": { "type": "integer", "minimum": 1 },
+          "description": { "type": "string", "minLength": 1, "maxLength": 25 },
+          "displayNameVi": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "displayNameEn": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "taglineVi": { "type": "string", "minLength": 1, "maxLength": 240 },
+          "taglineEn": { "type": "string", "minLength": 1, "maxLength": 240 },
+          "benefitsVi": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "type": "string", "minLength": 1, "maxLength": 160 } },
+          "benefitsEn": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "type": "string", "minLength": 1, "maxLength": 160 } },
+          "allowances": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["connectedFolders", "ocrPagesPerMonth", "agentCreditsPerMonth", "etlRowsPerMonth", "logicalDatasets", "governedStorageGb", "agentEnabledMembers", "viewerMembers", "workspaces", "refreshMinutes"],
+            "properties": {
+              "connectedFolders": { "const": "unlimited" },
+              "ocrPagesPerMonth": { "type": "integer", "minimum": 0 },
+              "agentCreditsPerMonth": { "type": "integer", "minimum": 0 },
+              "etlRowsPerMonth": { "type": "integer", "minimum": 0 },
+              "logicalDatasets": { "type": "integer", "minimum": 0 },
+              "governedStorageGb": { "type": "integer", "minimum": 0 },
+              "agentEnabledMembers": { "type": "integer", "minimum": 0 },
+              "viewerMembers": { "type": "integer", "minimum": 0 },
+              "workspaces": { "type": "integer", "minimum": 0 },
+              "refreshMinutes": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

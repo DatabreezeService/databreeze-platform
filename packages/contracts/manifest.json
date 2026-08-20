@@ -153,6 +153,11 @@
       "path": "schemas/v4/dda-dashboard-widget-results-accepted.schema.json"
     },
     {
+      "name": "dda-data-import-dashboard-preview",
+      "id": "https://schemas.databreeze.dev/contracts/v4/dda-data-import-dashboard-preview",
+      "path": "schemas/v4/dda-data-import-dashboard-preview.schema.json"
+    },
+    {
       "name": "iam-auth-session",
       "id": "https://schemas.databreeze.dev/contracts/v4/iam-auth-session",
       "path": "schemas/v4/iam-auth-session.schema.json"
@@ -161,6 +166,26 @@
       "name": "iam-bootstrap-response",
       "id": "https://schemas.databreeze.dev/contracts/v4/iam-bootstrap-response",
       "path": "schemas/v4/iam-bootstrap-response.schema.json"
+    },
+    {
+      "name": "iam-profile-update-command",
+      "id": "https://schemas.databreeze.dev/contracts/v4/iam-profile-update-command",
+      "path": "schemas/v4/iam-profile-update-command.schema.json"
+    },
+    {
+      "name": "iam-profile-update-accepted",
+      "id": "https://schemas.databreeze.dev/contracts/v4/iam-profile-update-accepted",
+      "path": "schemas/v4/iam-profile-update-accepted.schema.json"
+    },
+    {
+      "name": "dda-notification-preferences-command",
+      "id": "https://schemas.databreeze.dev/contracts/v4/dda-notification-preferences-command",
+      "path": "schemas/v4/dda-notification-preferences-command.schema.json"
+    },
+    {
+      "name": "dda-notification-preferences-accepted",
+      "id": "https://schemas.databreeze.dev/contracts/v4/dda-notification-preferences-accepted",
+      "path": "schemas/v4/dda-notification-preferences-accepted.schema.json"
     },
     {
       "name": "iam-email-verification-command",
@@ -181,6 +206,21 @@
       "name": "iam-registration-command",
       "id": "https://schemas.databreeze.dev/contracts/v4/iam-registration-command",
       "path": "schemas/v4/iam-registration-command.schema.json"
+    },
+    {
+      "name": "iam-scope-switch-command",
+      "id": "https://schemas.databreeze.dev/contracts/v4/iam-scope-switch-command",
+      "path": "schemas/v4/iam-scope-switch-command.schema.json"
+    },
+    {
+      "name": "iam-workspace-create-accepted",
+      "id": "https://schemas.databreeze.dev/contracts/v4/iam-workspace-create-accepted",
+      "path": "schemas/v4/iam-workspace-create-accepted.schema.json"
+    },
+    {
+      "name": "iam-workspace-create-command",
+      "id": "https://schemas.databreeze.dev/contracts/v4/iam-workspace-create-command",
+      "path": "schemas/v4/iam-workspace-create-command.schema.json"
     },
     {
       "name": "jra-worker-dashboard-widget-result-output",
@@ -206,6 +246,41 @@
       "name": "jra-worker-result-prepare-command",
       "id": "https://schemas.databreeze.dev/contracts/v4/jra-worker-result-prepare-command",
       "path": "schemas/v4/jra-worker-result-prepare-command.schema.json"
+    },
+    {
+      "name": "lfb-landing-feedback-accepted",
+      "id": "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-accepted",
+      "path": "schemas/v4/lfb-landing-feedback-accepted.schema.json"
+    },
+    {
+      "name": "lfb-landing-feedback-command",
+      "id": "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-command",
+      "path": "schemas/v4/lfb-landing-feedback-command.schema.json"
+    },
+    {
+      "name": "platform-admin-feedbacks",
+      "id": "https://schemas.databreeze.dev/contracts/v4/platform-admin-feedbacks",
+      "path": "schemas/v4/platform-admin-feedbacks.schema.json"
+    },
+    {
+      "name": "platform-admin-overview",
+      "id": "https://schemas.databreeze.dev/contracts/v4/platform-admin-overview",
+      "path": "schemas/v4/platform-admin-overview.schema.json"
+    },
+    {
+      "name": "jra-job-history-entry",
+      "id": "https://schemas.databreeze.dev/contracts/v4/jra-job-history-entry",
+      "path": "schemas/v4/jra-job-history-entry.schema.json"
+    },
+    {
+      "name": "jra-job-history-list-accepted",
+      "id": "https://schemas.databreeze.dev/contracts/v4/jra-job-history-list-accepted",
+      "path": "schemas/v4/jra-job-history-list-accepted.schema.json"
+    },
+    {
+      "name": "jra-job-history-detail-accepted",
+      "id": "https://schemas.databreeze.dev/contracts/v4/jra-job-history-detail-accepted",
+      "path": "schemas/v4/jra-job-history-detail-accepted.schema.json"
     },
     {
       "name": "dda-refresh-event",
@@ -256,6 +331,66 @@
       "name": "utc-timestamp",
       "id": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp",
       "path": "schemas/v1/utc-timestamp.schema.json"
+    },
+    {
+      "name": "bua-payos-plan-catalog",
+      "id": "https://schemas.databreeze.dev/contracts/v4/bua-payos-plan-catalog",
+      "path": "schemas/v4/bua-payos-plan-catalog.schema.json"
+    },
+    {
+      "name": "bua-payos-checkout-command",
+      "id": "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-command",
+      "path": "schemas/v4/bua-payos-checkout-command.schema.json"
+    },
+    {
+      "name": "bua-payos-checkout-session",
+      "id": "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-session",
+      "path": "schemas/v4/bua-payos-checkout-session.schema.json"
+    },
+    {
+      "name": "bua-payos-payment-status",
+      "id": "https://schemas.databreeze.dev/contracts/v4/bua-payos-payment-status",
+      "path": "schemas/v4/bua-payos-payment-status.schema.json"
+    },
+    {
+      "name": "bua-payos-webhook-event",
+      "id": "https://schemas.databreeze.dev/contracts/v4/bua-payos-webhook-event",
+      "path": "schemas/v4/bua-payos-webhook-event.schema.json"
+    },
+    {
+      "name": "bua-entitlement-summary",
+      "id": "https://schemas.databreeze.dev/contracts/v4/bua-entitlement-summary",
+      "path": "schemas/v4/bua-entitlement-summary.schema.json"
+    },
+    {
+      "name": "crf-report-summary",
+      "id": "https://schemas.databreeze.dev/contracts/v4/crf-report-summary",
+      "path": "schemas/v4/crf-report-summary.schema.json"
+    },
+    {
+      "name": "crf-report-list-accepted",
+      "id": "https://schemas.databreeze.dev/contracts/v4/crf-report-list-accepted",
+      "path": "schemas/v4/crf-report-list-accepted.schema.json"
+    },
+    {
+      "name": "crf-report-detail-accepted",
+      "id": "https://schemas.databreeze.dev/contracts/v4/crf-report-detail-accepted",
+      "path": "schemas/v4/crf-report-detail-accepted.schema.json"
+    },
+    {
+      "name": "crf-report-run-detail-accepted",
+      "id": "https://schemas.databreeze.dev/contracts/v4/crf-report-run-detail-accepted",
+      "path": "schemas/v4/crf-report-run-detail-accepted.schema.json"
+    },
+    {
+      "name": "crf-report-create-command",
+      "id": "https://schemas.databreeze.dev/contracts/v4/crf-report-create-command",
+      "path": "schemas/v4/crf-report-create-command.schema.json"
+    },
+    {
+      "name": "crf-report-create-accepted",
+      "id": "https://schemas.databreeze.dev/contracts/v4/crf-report-create-accepted",
+      "path": "schemas/v4/crf-report-create-accepted.schema.json"
     }
   ]
 }

@@ -19,6 +19,7 @@ export interface AgentStoreV1 {
   readonly selectConversation: (conversationId: string) => void;
   readonly setActiveConversation: (conversation: AgentConversationSummaryV1 | undefined) => void;
   readonly setConversations: (conversations: readonly AgentConversationSummaryV1[]) => void;
+  readonly appendMessage: (conversationId: string, message: AgentMessagePresentationV1) => void;
   readonly isOpen: () => boolean;
   readonly setOpen: (open: boolean) => void;
   readonly getSnapshot: () => AgentStoreSnapshotV1;
@@ -32,10 +33,17 @@ export interface AgentStoreSnapshotV1 {
 }
 
 /** One agent store persists conversation context across destinations. */
-export function createAgentStore(initial?: AgentConversationSummaryV1): AgentStoreV1 {
+export function createAgentStore(
+  initial?: AgentConversationSummaryV1,
+  initialConversations?: readonly AgentConversationSummaryV1[],
+): AgentStoreV1 {
   let active = initial;
   let conversations: readonly AgentConversationSummaryV1[] = Object.freeze(
-    initial === undefined ? [] : [initial],
+    initialConversations !== undefined
+      ? initialConversations
+      : initial === undefined
+        ? []
+        : [initial],
   );
   let open = false;
   let snapshot: AgentStoreSnapshotV1 = Object.freeze({
@@ -96,6 +104,19 @@ export function createAgentStore(initial?: AgentConversationSummaryV1): AgentSto
           conversations.find(
             (conversation) => conversation.conversationId === active?.conversationId,
           ) ?? conversations[0];
+      }
+      emit();
+    },
+    appendMessage: (conversationId, message) => {
+      conversations = Object.freeze(
+        conversations.map((conv) => {
+          if (conv.conversationId !== conversationId) return conv;
+          const messages = Object.freeze([...(conv.messages ?? []), message]);
+          return { ...conv, messages };
+        }),
+      );
+      if (active?.conversationId === conversationId) {
+        active = conversations.find((conv) => conv.conversationId === conversationId);
       }
       emit();
     },

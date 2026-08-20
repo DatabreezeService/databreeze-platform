@@ -1,3 +1,5 @@
+import { createSessionAwareFetchV1 } from '../auth/auth-session.ts';
+
 export interface WebIntakeFinalizeResponseV1 {
   readonly accepted: true;
   readonly sessionId: string;
@@ -60,9 +62,13 @@ function isUploadResponse(value: unknown): value is WebIntakeUploadResponseV1 {
 }
 
 export function createWebIntakeApi(baseUrl = '/v1/dda/web-intake'): WebIntakeApiV1 {
+  const fetcher = createSessionAwareFetchV1({
+    apiBaseUrl: baseUrl,
+    fetcher: globalThis.fetch.bind(globalThis),
+  });
   return {
     async upload(input) {
-      const response = await fetch(`${baseUrl}/upload`, {
+      const response = await fetcher(`${baseUrl}/upload`, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
@@ -87,7 +93,7 @@ export function createWebIntakeApi(baseUrl = '/v1/dda/web-intake'): WebIntakeApi
       return Object.freeze({ ...payload });
     },
     async finalize(input) {
-      const response = await fetch(`${baseUrl}/finalize`, {
+      const response = await fetcher(`${baseUrl}/finalize`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', Accept: 'application/json' },
         credentials: 'include',

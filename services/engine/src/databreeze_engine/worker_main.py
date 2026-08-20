@@ -16,6 +16,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Protocol
 
+from .local_worker_resolver import LocalDashboardWidgetWorkloadResolver
 from .worker_client import WorkerClient, WorkerClientError
 
 
@@ -77,6 +78,12 @@ class WorkerLoop:
             except WorkerClientError as error:
                 if not error.retryable:
                     raise
+                # Keep retryable failures observable without exposing bearer tokens or
+                # request bodies. A silent retry loop makes a local deployment look
+                # healthy while every lease expires; the bounded error text is the
+                # only useful operator signal until structured worker telemetry is
+                # wired.
+                print(f"worker retryable error: {error}", file=sys.stderr, flush=True)
                 self._sleep(self._config.error_backoff_seconds)
 
 
@@ -90,7 +97,10 @@ def main() -> int:
 
         signal.signal(signal.SIGTERM, stop)
         signal.signal(signal.SIGINT, stop)
-        WorkerLoop(config).serve(stopped)
+        WorkerLoop(
+            config,
+            workload_resolver=LocalDashboardWidgetWorkloadResolver(),
+        ).serve(stopped)
         return 0
     except WorkerClientError as error:
         print(str(error), file=sys.stderr)

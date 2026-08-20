@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/dda-notification-preferences-accepted",
+  "$comment": "NCO-006/NCO-018/NCO-024: server-authoritative notification preference snapshot.",
+  "title": "DDA Notification Preferences Accepted",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "revision", "preferences"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "revision": { "type": "integer", "minimum": 1 },
+    "preferences": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "category",
+          "channel",
+          "enabled",
+          "minimumUrgency",
+          "deliveryMode",
+          "quietHours",
+          "timezone",
+          "mandatory"
+        ],
+        "properties": {
+          "category": { "enum": ["REVIEWS", "DATA", "DASHBOARDS", "USAGE", "SECURITY", "BILLING", "SYSTEM"] },
+          "channel": { "enum": ["IN_APP", "EMAIL", "PUSH", "DESKTOP"] },
+          "enabled": { "type": "boolean" },
+          "minimumUrgency": { "enum": ["LOW", "NORMAL", "HIGH", "CRITICAL"] },
+          "deliveryMode": { "enum": ["IMMEDIATE", "DIGEST"] },
+          "quietHours": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["enabled", "start", "end"],
+            "properties": {
+              "enabled": { "type": "boolean" },
+              "start": { "type": "string", "pattern": "^(?:[01][0-9]|2[0-3]):[0-5][0-9]$" },
+              "end": { "type": "string", "pattern": "^(?:[01][0-9]|2[0-3]):[0-5][0-9]$" }
+            }
+          },
+          "timezone": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z0-9_+./:-]{1,64}$" },
+          "mandatory": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

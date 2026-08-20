@@ -23,8 +23,8 @@ import { AUTHENTICATION_USE_CASE } from '../../src/features/iam/application/auth
 import {
   DEVICE_IDENTITY_SERVICE,
   DeviceIdentityService,
-  UnavailableDeviceEnrollmentProofVerifier,
 } from '../../src/features/iam/application/device-identity.service.js';
+import { Ed25519DeviceEnrollmentProofVerifierAdapter } from '../../src/features/iam/adapter/ed25519-device-enrollment-proof-verifier.adapter.js';
 import {
   IAM_INVITATION_SERVICE,
   IAM_PRINCIPAL_EMAIL_LOOKUP_PORT,
@@ -259,7 +259,7 @@ void test('[DDA-036, IAM-022, IAM-023, IAE-003, DSM-001, DDA-003, DDA-004, DDA-0
     );
     assert.ok(
       composition.options.deviceEnrollmentProofVerifier instanceof
-        UnavailableDeviceEnrollmentProofVerifier,
+        Ed25519DeviceEnrollmentProofVerifierAdapter,
     );
     const createdCredential = await composition.options.passwordCredentials.create(
       'production-test-password-123!',
@@ -896,16 +896,16 @@ void test('[DDA-036] the real child process signal lifecycle reaches forced term
   );
 
   try {
-    assert.ok(child.stdout);
-    const childReady = once(child.stdout, 'data') as Promise<[Buffer]>;
+    const childReady = once(child, 'message') as Promise<[unknown]>;
     await once(child, 'spawn');
     const childExit = once(child, 'exit') as Promise<[number | null, string | null]>;
-    await Promise.race([
+    const [readyMessage] = await Promise.race([
       childReady,
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('child did not register signal handlers')), 5_000),
       ),
     ]);
+    assert.equal(readyMessage, 'ready');
     await new Promise<void>((resolveDelay) => setTimeout(resolveDelay, 100));
     if (process.platform === 'win32') {
       child.send?.('SIGTERM');

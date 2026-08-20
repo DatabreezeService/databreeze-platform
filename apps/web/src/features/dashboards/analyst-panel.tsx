@@ -65,12 +65,25 @@ export function AnalystPanel({
         />
       </label>
       <div>
-        <button type="button" onClick={() => onPropose?.(question)}>
-          {label(locale, 'Đề xuất kế hoạch', 'Propose plan')}
-        </button>
-        <button type="button" onClick={() => onExecute?.()}>
-          {label(locale, 'Chạy xác định', 'Execute deterministically')}
-        </button>
+        {onPropose === undefined ? null : (
+          <button type="button" onClick={() => onPropose(question)}>
+            {label(locale, 'Đề xuất kế hoạch', 'Propose plan')}
+          </button>
+        )}
+        {onExecute === undefined ? null : (
+          <button type="button" onClick={() => onExecute()}>
+            {label(locale, 'Chạy xác định', 'Execute deterministically')}
+          </button>
+        )}
+        {onPropose === undefined && onExecute === undefined ? (
+          <p role="status">
+            {label(
+              locale,
+              'Luồng phân tích trực tiếp chưa được kết nối. Bạn vẫn có thể xem kế hoạch và bằng chứng bên dưới.',
+              'The live analysis actions are not connected. You can still review the plan and evidence below.',
+            )}
+          </p>
+        ) : null}
         <button type="button" onClick={() => setEvidenceOpen((value) => !value)}>
           {label(locale, 'Bằng chứng', 'Evidence')}
         </button>
@@ -78,6 +91,7 @@ export function AnalystPanel({
       <AnalysisPlanReview locale={locale} preview={preview} />
       <ResultEvidenceDrawer locale={locale} cells={cells} open={evidenceOpen} />
       <AgentInvitation
+        expanded={agentOpen}
         locale={locale}
         visible={invitationVisible}
         onOpen={() => {

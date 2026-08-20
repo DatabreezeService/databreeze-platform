@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useLocale } from '../../app/locale-context.tsx';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardDemoMode } from '../dashboards/dashboard-api.ts';
@@ -16,24 +17,28 @@ import type { WebIntakeApiV1 } from './intake-api.ts';
 import { UploadPanel } from './upload-panel.tsx';
 
 const DEMO_INTAKE_API: WebIntakeApiV1 = Object.freeze({
-  async upload() {
-    return Object.freeze({
-      accepted: true,
-      sessionId: '00000000-0000-4000-8000-000000000301',
-      artifactVersionId: '00000000-0000-4000-8000-000000000302',
-      status: 'PENDING_REVIEW',
-      profileId: 'dda.web.tabular.v1',
-      replayed: false,
-    });
+  upload() {
+    return Promise.resolve(
+      Object.freeze({
+        accepted: true,
+        sessionId: '00000000-0000-4000-8000-000000000301',
+        artifactVersionId: '00000000-0000-4000-8000-000000000302',
+        status: 'PENDING_REVIEW',
+        profileId: 'dda.web.tabular.v1',
+        replayed: false,
+      }),
+    );
   },
-  async finalize() {
-    return Object.freeze({
-      accepted: true,
-      sessionId: '00000000-0000-4000-8000-000000000301',
-      artifactVersionId: '00000000-0000-4000-8000-000000000302',
-      status: 'FINALIZED',
-      profileId: 'dda.web.tabular.v1',
-    });
+  finalize() {
+    return Promise.resolve(
+      Object.freeze({
+        accepted: true,
+        sessionId: '00000000-0000-4000-8000-000000000301',
+        artifactVersionId: '00000000-0000-4000-8000-000000000302',
+        status: 'FINALIZED',
+        profileId: 'dda.web.tabular.v1',
+      }),
+    );
   },
 });
 
@@ -90,7 +95,10 @@ export function DataPipelinePage({
     retry: false,
   });
   const [acceptStatus, setAcceptStatus] = useState<string | null>(null);
-  const review = etlQuery.data ?? EMPTY_REVIEW;
+  // Only the explicit demo surface may use the illustrative review. A live
+  // route must wait for an authoritative proposal instead of showing example
+  // columns/counts that could be mistaken for the user's data.
+  const review = etlQuery.data ?? (demoMode ? EMPTY_REVIEW : undefined);
   const errorCode = etlQuery.error instanceof Error ? etlQuery.error.message : undefined;
   const statusMessage =
     errorCode === 'ETL_PROPOSAL_UNAUTHORIZED'
@@ -116,6 +124,7 @@ export function DataPipelinePage({
     proposal: etlQuery.data,
   });
   const showFirstImportSummary = etlQuery.data !== undefined && etlQuery.data.state === 'ACCEPTED';
+  const summaryReview = etlQuery.data ?? EMPTY_REVIEW;
 
   async function onAccept() {
     setAcceptStatus(null);
@@ -185,11 +194,18 @@ export function DataPipelinePage({
           </p>
         </div>
         <span className="data-pipeline-page__status-pill">
-          {review.state === 'AWAITING_UPLOAD'
+          {review?.state === 'AWAITING_UPLOAD'
             ? locale === 'vi-VN'
               ? 'Đang chờ tệp'
               : 'Awaiting file'
-            : review.state}
+            : (review?.state ??
+              (etlQuery.isPending && configuration !== undefined
+                ? locale === 'vi-VN'
+                  ? 'Đang tải đề xuất'
+                  : 'Loading proposal'
+                : locale === 'vi-VN'
+                  ? 'Chưa có đề xuất'
+                  : 'No proposal yet'))}
         </span>
       </header>
 
@@ -200,35 +216,103 @@ export function DataPipelinePage({
               {tenantMissingMessage}
             </p>
           ) : null}
-          {tenant !== undefined || demoMode ? (
+          {demoMode || (tenant !== undefined && configuration !== undefined) ? (
             <UploadPanel locale={reviewLocale} {...(demoMode ? { api: DEMO_INTAKE_API } : {})} />
           ) : null}
-          {statusMessage !== null ? (
+          {statusMessage !== null && review !== undefined ? (
             <p className="data-pipeline-page__notice" role="status">
               {statusMessage}
             </p>
           ) : null}
-          <EtlReviewPage locale={reviewLocale} {...review} />
+          {!demoMode && configuration === undefined ? (
+            <div className="data-pipeline-page__notice data-pipeline-page__notice--action">
+              <div>
+                <strong>
+                  {locale === 'vi-VN'
+                    ? 'Dùng Dữ liệu để bắt đầu một lần nạp mới'
+                    : 'Use Data to start a new import'}
+                </strong>
+                <p>
+                  {locale === 'vi-VN'
+                    ? 'Luồng xem xét ETL cũ cần một proposal ID được cấp quyền. Luồng Dữ liệu mới sẽ lưu trạng thái xem xét trên server và có thể mở lại sau khi tải lại trang.'
+                    : 'The legacy ETL review needs an explicitly authorized proposal ID. The Data flow stores server review state and can reopen it after a reload.'}
+                </p>
+              </div>
+              <Link to={`/${locale}/data`}>
+                {locale === 'vi-VN' ? 'Mở Dữ liệu' : 'Open Data'} <span aria-hidden="true">↗</span>
+              </Link>
+            </div>
+          ) : null}
+          {review !== undefined ? (
+            <EtlReviewPage locale={reviewLocale} {...review} />
+          ) : (
+            <section
+              className="data-pipeline-page__review-state"
+              role={configuration !== undefined && !etlQuery.isPending ? 'alert' : 'status'}
+            >
+              <div className="data-pipeline-page__review-state-mark" aria-hidden="true">
+                {configuration !== undefined && !etlQuery.isPending ? '!' : '·'}
+              </div>
+              <div>
+                <h2>
+                  {configuration === undefined
+                    ? locale === 'vi-VN'
+                      ? 'Xem xét sẽ xuất hiện sau lần nạp thật đầu tiên'
+                      : 'Your review appears after the first real import'
+                    : etlQuery.isPending
+                      ? locale === 'vi-VN'
+                        ? 'Đang tải đề xuất ETL'
+                        : 'Loading the ETL proposal'
+                      : locale === 'vi-VN'
+                        ? 'Chưa thể tải đề xuất ETL'
+                        : 'The ETL proposal could not be loaded'}
+                </h2>
+                <p>
+                  {configuration === undefined
+                    ? locale === 'vi-VN'
+                      ? 'Mở Dữ liệu để tải CSV/XLSX. Sau khi máy chủ tạo bản xem xét, bạn có thể kiểm tra từng thay đổi trước khi chấp nhận.'
+                      : 'Open Data to upload a CSV/XLSX. Once the server creates a review, you can inspect each change before accepting it.'
+                    : etlQuery.isPending
+                      ? locale === 'vi-VN'
+                        ? 'Đang lấy bằng chứng và ánh xạ từ máy chủ. Không có dữ liệu mẫu nào được hiển thị.'
+                        : 'We are retrieving server evidence and mappings. No sample data is being invented.'
+                      : (statusMessage ??
+                        (locale === 'vi-VN'
+                          ? 'Không có thay đổi nào được gửi. Hãy thử lại sau khi kiểm tra quyền truy cập.'
+                          : 'No changes were sent. Try again after checking access.'))}
+                </p>
+                {configuration === undefined ? (
+                  <Link className="data-pipeline-page__review-state-link" to={`/${locale}/data`}>
+                    {locale === 'vi-VN' ? 'Mở Dữ liệu' : 'Open Data'}
+                    <span aria-hidden="true">↗</span>
+                  </Link>
+                ) : null}
+              </div>
+            </section>
+          )}
           {showFirstImportSummary ? (
             <PreparationSummaryPanel
               locale={reviewLocale}
               mode="FIRST_IMPORT"
               automaticPolicy="SAFE_NON_LOSSY"
               counts={{
-                input: review.counts.changed + review.counts.unchanged + review.counts.rejected,
-                output: review.counts.changed + review.counts.unchanged,
-                unchanged: review.counts.unchanged,
-                changed: review.counts.changed,
-                rejected: review.counts.rejected,
+                input:
+                  summaryReview.counts.changed +
+                  summaryReview.counts.unchanged +
+                  summaryReview.counts.rejected,
+                output: summaryReview.counts.changed + summaryReview.counts.unchanged,
+                unchanged: summaryReview.counts.unchanged,
+                changed: summaryReview.counts.changed,
+                rejected: summaryReview.counts.rejected,
                 quarantined: 0,
                 unsupported: 0,
               }}
-              transformations={review.orderedSteps}
+              transformations={summaryReview.orderedSteps}
               warnings={[]}
-              healthDimensions={review.qualityEffects}
+              healthDimensions={summaryReview.qualityEffects}
               overallSummary={{
                 formula: 'min(numerator/denominator)',
-                coverage: review.qualityEffects[0]?.coverage ?? 0,
+                coverage: summaryReview.qualityEffects[0]?.coverage ?? 0,
                 provesFactualCorrectness: false,
               }}
             />
@@ -245,18 +329,39 @@ export function DataPipelinePage({
               ? 'Mọi thay đổi đều cần bằng chứng và quyền phù hợp trước khi ghi nhận.'
               : 'Every change needs the right evidence and permission before it is committed.'}
           </p>
-          <button type="button" disabled={!canAccept} onClick={() => void onAccept()}>
-            {locale === 'vi-VN' ? 'Chấp nhận đề xuất ETL' : 'Accept ETL proposal'}
-          </button>
+          {configuration === undefined ? (
+            <Link className="data-pipeline-page__primary-link" to={`/${locale}/data`}>
+              {locale === 'vi-VN' ? 'Mở Dữ liệu để bắt đầu' : 'Open Data to get started'}
+              <span aria-hidden="true">↗</span>
+            </Link>
+          ) : review === undefined && etlQuery.isPending ? (
+            <p className="data-pipeline-page__action-hold" role="status">
+              {locale === 'vi-VN' ? 'Đang tải bằng chứng…' : 'Loading server evidence…'}
+            </p>
+          ) : review === undefined ? (
+            <button type="button" onClick={() => void etlQuery.refetch()}>
+              {locale === 'vi-VN' ? 'Thử tải lại đề xuất' : 'Retry proposal'}
+            </button>
+          ) : canAccept ? (
+            <button type="button" onClick={() => void onAccept()}>
+              {locale === 'vi-VN' ? 'Chấp nhận đề xuất ETL' : 'Accept ETL proposal'}
+            </button>
+          ) : (
+            <p className="data-pipeline-page__action-hold" role="status">
+              {locale === 'vi-VN'
+                ? 'Đang chờ bằng chứng và quyền máy chủ trước khi chấp nhận.'
+                : 'Waiting for server evidence and permission before acceptance.'}
+            </p>
+          )}
           {acceptStatus !== null ? (
             <p className="data-pipeline-page__action-status" role="status">
               {acceptStatus}
             </p>
           ) : null}
-          <a className="data-pipeline-page__dashboard-link" href={`/${locale}/dashboards`}>
+          <Link className="data-pipeline-page__dashboard-link" to={`/${locale}/dashboards`}>
             {locale === 'vi-VN' ? 'Tiếp tục tới bảng điều khiển' : 'Continue to dashboards'}
             <span aria-hidden="true">↗</span>
-          </a>
+          </Link>
         </aside>
       </div>
     </section>

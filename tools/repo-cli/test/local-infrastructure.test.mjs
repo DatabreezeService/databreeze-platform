@@ -73,16 +73,21 @@ test('local compose defines pinned, healthy disposable dependencies', () => {
     assert.match(compose, new RegExp(`^  ${volume}:`, 'm'));
   }
   assert.equal((compose.match(/healthcheck:/g) ?? []).length, 6);
-  assert.equal((compose.match(/^\s{4}init: true$/gmu) ?? []).length, 10);
+  assert.equal((compose.match(/^\s{4}init: true$/gmu) ?? []).length, 11);
   assert.match(compose, /minio-init:[\s\S]*depends_on:[\s\S]*condition: service_healthy/u);
   assert.match(compose, /minio-init:[\s\S]*restart: 'no'/u);
   assert.match(compose, /postgres-data:[\s\S]*name: \$\{COMPOSE_PROJECT_NAME/u);
-  assert.equal((compose.match(/networks: \[local\]/g) ?? []).length, 10);
+  assert.match(
+    compose,
+    /DATABREEZE_IAM_INVITATION_DIGEST_KEY: \$\{DATABREEZE_IAM_INVITATION_DIGEST_KEY:-[A-Za-z0-9_-]{43}\}/u,
+  );
+  assert.match(envExample, /^DATABREEZE_IAM_INVITATION_DIGEST_KEY=[A-Za-z0-9_-]{43}$/m);
+  assert.equal((compose.match(/networks: \[local\]/g) ?? []).length, 11);
   assert.match(compose, /name: \$\{COMPOSE_PROJECT_NAME:-databreeze-local\}-network/u);
   assert.match(compose, /x-default-logging: &default-logging/u);
   assert.match(compose, /max-size: 10m/u);
   assert.match(compose, /max-file: '3'/u);
-  assert.equal((compose.match(/logging: \*default-logging/g) ?? []).length, 10);
+  assert.equal((compose.match(/logging: \*default-logging/g) ?? []).length, 11);
   assert.equal((compose.match(/127\.0\.0\.1:\$\{/g) ?? []).length, 10);
   assert.match(
     read('infrastructure/local/README.md'),
@@ -102,7 +107,7 @@ test('[Task 18 / WEB-002 / WEB-004] app profile migrates before API and serves W
     assert.match(compose, new RegExp(`^  ${service}`, 'm'));
   }
   assert.doesNotMatch(compose, /^ {2}web-health:/m);
-  assert.equal((compose.match(/profiles: \[app\]/g) ?? []).length, 3);
+  assert.equal((compose.match(/profiles: \[app\]/g) ?? []).length, 4);
   assert.match(compose, /api:[\s\S]*api-migrate:[\s\S]*condition: service_completed_successfully/u);
   assert.match(compose, /api-migrate:[\s\S]*target: migration[\s\S]*restart: 'no'/u);
   assert.match(compose, /web:[\s\S]*api:[\s\S]*condition: service_healthy/u);
@@ -114,6 +119,10 @@ test('[Task 18 / WEB-002 / WEB-004] app profile migrates before API and serves W
   assert.match(compose, /cap_drop:[\s\S]*- ALL/u);
   assert.match(compose, /no-new-privileges:true/u);
   assert.match(envExample, /^WEB_HTTPS_PORT=8443$/m);
+  assert.match(
+    compose,
+    /DATABREEZE_LOCAL_PROJECT_ID: \$\{DATABREEZE_LOCAL_PROJECT_ID-00000000-0000-4000-8000-000000000003\}/u,
+  );
 
   assert.match(apiDockerfile, /^FROM build AS migration$/mu);
   assert.match(apiDockerfile, /^ENV COREPACK_HOME=\/pnpm\/corepack$/mu);
@@ -141,8 +150,28 @@ test('[Task 18 / WEB-002 / WEB-004] app profile migrates before API and serves W
   assert.doesNotMatch(webDockerfile, /ARG\s+.*(?:SECRET|TOKEN|PASSWORD|KEY)/iu);
   assert.doesNotMatch(webDockerfile, /ENV\s+.*(?:SECRET|TOKEN|PASSWORD|KEY)/iu);
   assert.match(webDockerfile, /ARG VITE_DATABREEZE_DEMO_MODE=false/u);
-  assert.match(compose, /VITE_DATABREEZE_DEMO_MODE: \$\{VITE_DATABREEZE_DEMO_MODE:-true\}/u);
-  assert.match(envExample, /^VITE_DATABREEZE_DEMO_MODE=true$/m);
+  assert.match(webDockerfile, /ARG VITE_DATABREEZE_LOCAL_NAVIGATION_HINTS=false/u);
+  assert.match(webDockerfile, /ARG VITE_DATABREEZE_LOCAL_PAYMENT_MODE=false/u);
+  assert.match(compose, /VITE_DATABREEZE_DEMO_MODE: \$\{VITE_DATABREEZE_DEMO_MODE:-false\}/u);
+  assert.match(
+    compose,
+    /VITE_DATABREEZE_LOCAL_NAVIGATION_HINTS: \$\{VITE_DATABREEZE_LOCAL_NAVIGATION_HINTS:-true\}/u,
+  );
+  assert.match(
+    compose,
+    /VITE_DATABREEZE_LOCAL_PAYMENT_MODE: \$\{VITE_DATABREEZE_LOCAL_PAYMENT_MODE:-mock\}/u,
+  );
+  assert.match(compose, /OPENAI_API_KEY: \$\{OPENAI_API_KEY:-\}/u);
+  assert.match(
+    compose,
+    /DATABREEZE_OPENAI_MAPPING_ENABLED: \$\{DATABREEZE_OPENAI_MAPPING_ENABLED:-false\}/u,
+  );
+  assert.match(
+    compose,
+    /DATABREEZE_OPENAI_MAPPING_ALLOW_SAMPLES: \$\{DATABREEZE_OPENAI_MAPPING_ALLOW_SAMPLES:-false\}/u,
+  );
+  assert.match(envExample, /^VITE_DATABREEZE_DEMO_MODE=false$/m);
+  assert.match(envExample, /^VITE_DATABREEZE_LOCAL_NAVIGATION_HINTS=true$/m);
   assert.match(webDockerignore, /^\*\*\/node_modules$/m);
   assert.match(webDockerignore, /^\*\*\/dist$/m);
   assert.match(webDockerignore, /^\*\*\/build$/m);
@@ -154,7 +183,7 @@ test('[Task 18 / WEB-002 / WEB-004] app profile migrates before API and serves W
   assert.match(caddy, /handle \{[\s\S]*try_files \{path\} \/index\.html[\s\S]*file_server/u);
   assert.ok(caddy.indexOf('handle @api') < caddy.indexOf('\thandle {'));
   assert.doesNotMatch(caddy, /reverse_proxy @api/u);
-  assert.match(caddy, /@api path \/v1\/\* \/v3\/\* \/health\/\*/u);
+  assert.match(caddy, /@api path \/v1\/\* \/v3\/\* (?:\/v4\/\* )?\/health\/\*/u);
   assert.match(caddy, /try_files \{path\} \/index\.html/u);
   assert.match(caddy, /Content-Security-Policy/u);
   assert.match(caddy, /connect-src 'self'/u);
@@ -343,7 +372,7 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
   } else {
     assert.match(
       `${composeConfig.stdout}\n${composeConfig.stderr}`,
-      /Docker CLI is not installed or not on PATH/u,
+      /Docker CLI is not installed or not on PATH|spawnSync docker EPERM/u,
     );
   }
   const preflight = spawnSync(process.execPath, [helpScript, 'preflight', '--min-free-gib=0'], {
@@ -355,7 +384,7 @@ test('local lifecycle commands fail safely around Docker, ports, disk, and volum
   } else {
     assert.match(
       `${preflight.stdout}\n${preflight.stderr}`,
-      /Docker CLI is not installed or not on PATH/u,
+      /Docker CLI is not installed or not on PATH|spawnSync docker EPERM/u,
     );
   }
   assert.doesNotMatch(script, /redis-cli\s+FLUSH(?:ALL|DB)/iu);

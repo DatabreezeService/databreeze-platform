@@ -45,6 +45,12 @@ export function subscribeWebAuthenticationStateV1(listener: () => void): () => v
   return () => authenticationListeners.delete(listener);
 }
 
+/** Subscribe to session or server-bootstrap replacement, including scope switches. */
+export function subscribeAuthSessionV1(listener: () => void): () => void {
+  authenticationListeners.add(listener);
+  return () => authenticationListeners.delete(listener);
+}
+
 /** IAM-009/WEB-002: bind product context to the exact authenticated server session. */
 export function rememberAuthBootstrapV1(bootstrap: IamBootstrapValue): boolean {
   const session = activeSession;
@@ -73,8 +79,10 @@ export function rememberAuthBootstrapV1(bootstrap: IamBootstrapValue): boolean {
     !projectExists
   )
     return false;
+  const wasSignedIn = authenticationState === 'signed-in';
   activeBootstrap = Object.freeze(bootstrap);
   initializeWebAuthenticationStateV1('signed-in');
+  if (wasSignedIn) notifyAuthenticationListenersV1();
   return true;
 }
 

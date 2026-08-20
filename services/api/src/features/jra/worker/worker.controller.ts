@@ -14,6 +14,7 @@ import {
   WorkerHeartbeatDto,
   WorkerPrepareResultDto,
   WorkerPrepareResultAcceptedDto,
+  WorkerWorkloadDto,
 } from './worker.dto.js';
 
 function correlationId(request: FastifyRequest): string {
@@ -52,6 +53,18 @@ export class WorkerController {
     @Res() reply: FastifyReply,
   ): Promise<void> {
     await this.respond(reply, request, () => this.boundary.claim(request, input));
+  }
+
+  @Post('workload')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Resolve the exact server-authored workload for a leased attempt' })
+  @ApiBody({ type: WorkerWorkloadDto })
+  public async workload(
+    @Req() request: FastifyRequest,
+    @Body() input: WorkerWorkloadDto,
+    @Res() reply: FastifyReply,
+  ): Promise<void> {
+    await this.respond(reply, request, () => this.boundary.workload(request, input));
   }
 
   @Post('heartbeat')

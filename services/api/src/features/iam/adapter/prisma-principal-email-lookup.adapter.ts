@@ -32,4 +32,18 @@ export class PrismaIamPrincipalEmailLookupAdapter implements IamPrincipalEmailLo
     const email = normalizeEmailAddressV1(row.email);
     return email.accepted ? email.value : undefined;
   }
+
+  public async findPrincipalIdByEmail(
+    normalizedEmail: string,
+  ): Promise<StableIdentifierV1 | undefined> {
+    const email = normalizeEmailAddressV1(normalizedEmail);
+    if (!email.accepted) return undefined;
+    const row = await this.client.userIdentity.findUnique({ where: { email: email.value } });
+    if (!row || row.status !== 'ACTIVE') return undefined;
+    const persistedEmail = normalizeEmailAddressV1(row.email);
+    const persistedId = parseStableIdentifierV1(row.id);
+    if (!persistedEmail.accepted || persistedEmail.value !== email.value || !persistedId.accepted)
+      return undefined;
+    return persistedId.value;
+  }
 }

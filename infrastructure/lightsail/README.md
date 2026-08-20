@@ -12,7 +12,8 @@ Lightsail Linux instance runs Caddy, Web, API, PostgreSQL, Redis, and MinIO.
 2. Allow inbound TCP 80 and 443. Allow SSH (22) only from the owner’s IP.
 3. Point the chosen DNS name to the static IPv4 before starting Caddy.
 4. Install Docker Engine and Compose v2 on the instance.
-5. Copy `compose.pilot.yml`, `Caddyfile`, and `.env.example` to `/opt/databreeze`.
+5. Copy `compose.pilot.yml`, `Caddyfile`, `backup.sh`, and `.env.example` to
+   `/opt/databreeze`.
 6. Copy `.env.example` to `/opt/databreeze/.env`, replace every `CHANGE_ME`, and run:
 
 ```bash
@@ -39,8 +40,8 @@ Redis, and MinIO API ports are never published publicly.
 
 ## Pilot limits
 
-- `VITE_DATABREEZE_DEMO_MODE=true` is allowed only for this pilot and is visibly
-  labeled in the Web UI; its numbers are synthetic.
+- The published Web image uses `VITE_DATABREEZE_DEMO_MODE=false`. Pilot data is
+  read from the API and database rather than compiled browser fixtures.
 - Mailpit is the default OTP provider and is suitable for owner testing. To
   send OTPs to real inboxes during this pilot, set the following values in the
   protected `/opt/databreeze/.env` on the server:
@@ -72,12 +73,26 @@ Redis, and MinIO API ports are never published publicly.
   ```
 
   Use SES separately for a wider production rollout.
-- OpenAI is disabled by default. Never copy an API key into this file through
-  source control or a CI log; place it only in the server’s protected secret
-  mechanism after rotating the exposed key.
+- OpenAI is disabled by default. To activate the reviewed server adapters, put
+  `OPENAI_API_KEY` only in `/opt/databreeze/.env`, pin each model variable, and
+  enable only the needed `DATABREEZE_OPENAI_*_ENABLED` switches. Mapping sample
+  rows remain blocked unless `DATABREEZE_OPENAI_MAPPING_ALLOW_SAMPLES=true` is
+  explicitly accepted; those are bounded real rows, not mock data.
+- PayOS requires `PAYOS_PROVIDER=payos`, all three PayOS credentials, and exact
+  public, success, and failure URLs in `/opt/databreeze/.env`. Browser bundles
+  never receive those credentials.
+- The 68-user/21-subscription/12-feedback pilot fixture is opt-in. Set
+  `DATABREEZE_PILOT_SEED_ENABLED=true` together with a server-only operator
+  email, display name, and password for one approved activation. The seed uses
+  bounded upserts, never deletes production rows, and never rotates an existing
+  password credential during replay. Disable the switch after the successful
+  activation.
 - The worker and advanced result-transfer path remain fail-closed until their
   typed workload and transfer gates pass.
-- Back up the named PostgreSQL and MinIO volumes before changing the host.
+- `deploy.sh` runs `backup.sh` before every migration when a current release
+  exists. It writes a PostgreSQL custom-format dump, both MinIO buckets, a
+  manifest, and SHA-256 checksums under `/opt/databreeze/backups`. A failed
+  backup blocks deployment.
 - Stop or delete the instance when the pilot is not being used to control cost.
 
 ## Health check
@@ -100,10 +115,11 @@ path for this profile:
   and Web), pushes them to GHCR, then deploys their `sha256` digests to the
   protected GitHub `pilot` environment.
 - Before invoking the server deploy script, the workflow uploads the current
-  Caddy, Compose, healthcheck, rollback, and deploy scripts. It never replaces
-  `/opt/databreeze/.env`.
-- The server runs the migration before API/Web, checks `/health/ready`, and
-  keeps the previous release file for rollback.
+  Caddy, Compose, backup, healthcheck, rollback, and deploy scripts. It never
+  replaces `/opt/databreeze/.env`.
+- The server backs up the current release, runs the migration, optionally runs
+  the approved pilot seed, starts API/Web, checks `/health/ready`, and keeps the
+  previous release file for rollback.
 
 Create a GitHub environment named `pilot` and add these protected secrets. For
 the first pilot, use the Ubuntu instance user (`ubuntu`) as the deployment
@@ -125,7 +141,7 @@ credentials in an always-run cleanup step. No additional GHCR secret is
 required. Keep SSH restricted to the owner/admin IP. The workflow never sends
 the server `.env` or application secrets to GitHub.
 
-The workflow intentionally leaves OpenAI and worker execution disabled for
-this budget pilot. Mailpit remains the default email provider; enable Gmail
-SMTP only on the protected server after rotating any key that was pasted into
-a chat or terminal.
+All real providers remain controlled by server-only switches. Mailpit remains
+the source-controlled default; Gmail, OpenAI, and PayOS are enabled only in the
+protected host environment. Rotate any credential that was pasted into a chat
+or ordinary terminal before production use.

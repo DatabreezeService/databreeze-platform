@@ -8,6 +8,14 @@ public typealias ConversationListOpaqueCursor = String
 
 public typealias ConversationLoadOpaqueCursor = String
 
+public typealias FeedbackCategory = String
+
+public typealias FeedbackCount = Long
+
+public typealias FeedbackExperience = String
+
+public typealias FeedbackRole = String
+
 public typealias FinalizeIdempotencyKey = String
 
 public typealias FinalizeOpaqueToken = String
@@ -16,7 +24,13 @@ public typealias FinalizeSafeName = String
 
 public typealias FinalizeSha256 = String
 
+public typealias GroupKey = String
+
 public typealias Identifier = String
+
+public typealias Month = String
+
+public typealias NonNegativeInteger = Long
 
 public typealias PrepareIdempotencyKey = String
 
@@ -87,6 +101,92 @@ public data class AvailablePreview(
     public val available: Boolean,
 )
 
+public data class BuaPayosCheckoutCommand(
+    public val planId: String,
+    public val schemaVersion: Long,
+)
+
+public data class BuaPayosCheckoutSession(
+    public val amountVnd: Long,
+    public val checkoutUrl: String? = null,
+    public val currency: String,
+    public val orderCode: Long,
+    public val paymentOrderId: Identifier,
+    public val planId: String,
+    public val schemaVersion: Long,
+    public val status: String,
+)
+
+public data class BuaPayosPaymentStatus(
+    public val amountVnd: Long,
+    public val checkoutUrl: String? = null,
+    public val currency: String,
+    public val orderCode: Long,
+    public val paymentOrderId: Identifier,
+    public val planId: String,
+    public val schemaVersion: Long,
+    public val status: String,
+)
+
+public data class BuaPayosPlanCatalog(
+    public val plans: List<BuaPayosPlanCatalogPlansItem>,
+    public val schemaVersion: Long,
+)
+
+public data class BuaPayosPlanCatalogAllowances(
+    public val agentCreditsPerMonth: Long,
+    public val agentEnabledMembers: Long,
+    public val connectedFolders: String,
+    public val etlRowsPerMonth: Long,
+    public val governedStorageGb: Long,
+    public val logicalDatasets: Long,
+    public val ocrPagesPerMonth: Long,
+    public val refreshMinutes: Long,
+    public val viewerMembers: Long,
+    public val workspaces: Long,
+)
+
+public data class BuaPayosPlanCatalogPlansItem(
+    public val allowances: BuaPayosPlanCatalogAllowances,
+    public val amountVnd: Long,
+    public val benefitsEn: List<String>,
+    public val benefitsVi: List<String>,
+    public val billingCycle: String,
+    public val description: String,
+    public val displayNameEn: String,
+    public val displayNameVi: String,
+    public val family: String,
+    public val id: String,
+    public val taglineEn: String,
+    public val taglineVi: String,
+)
+
+public data class BuaPayosWebhookEvent(
+    public val code: String,
+    public val data: BuaPayosWebhookEventData,
+    public val desc: String,
+    public val signature: String,
+    public val success: Boolean,
+)
+
+public data class BuaPayosWebhookEventData(
+    public val accountNumber: String? = null,
+    public val amount: Long,
+    public val canceledAt: String? = null,
+    public val code: String,
+    public val counterAccountBankId: String? = null,
+    public val counterAccountNumber: String? = null,
+    public val currency: String? = null,
+    public val desc: String? = null,
+    public val description: String? = null,
+    public val orderCode: Long,
+    public val paymentLinkId: String? = null,
+    public val reference: String? = null,
+    public val transactionDateTime: String? = null,
+    public val virtualAccountName: String? = null,
+    public val virtualAccountNumber: String? = null,
+)
+
 public data class ContextEvent(
     public val afterVersionId: Identifier? = null,
     public val beforeVersionId: Identifier? = null,
@@ -96,6 +196,16 @@ public data class ContextEvent(
     public val kind: String,
     public val occurredAt: UtcTimestamp,
     public val sequence: Long,
+)
+
+public data class CountGroup(
+    public val count: NonNegativeInteger,
+    public val key: GroupKey,
+)
+
+public data class CountPoint(
+    public val count: NonNegativeInteger,
+    public val month: Month,
 )
 
 public data class DashboardApplyConfirmedResult(
@@ -269,6 +379,20 @@ public data class EvidenceResolveValue(
     public val reference: EvidenceReference,
 )
 
+public data class Feedback(
+    public val category: FeedbackCategory,
+    public val contactPermission: Boolean,
+    public val createdAt: UtcTimestamp,
+    public val email: String,
+    public val experience: FeedbackExperience,
+    public val id: Identifier,
+    public val message: String,
+    public val name: String? = null,
+    public val organization: String? = null,
+    public val rating: Long,
+    public val role: FeedbackRole,
+)
+
 public data class Freshness(
     public val dashboardVersionId: Identifier,
     public val inputSelectorHash: String,
@@ -426,6 +550,37 @@ public data class IamRegistrationCommand(
     public val schemaVersion: Long,
 )
 
+public data class IamScopeSwitchCommand(
+    public val schemaVersion: Long,
+    public val workspaceId: Identifier,
+)
+
+public data class IamWorkspaceCreateAccepted(
+    public val defaultProject: IamWorkspaceCreateAcceptedDefaultProject,
+    public val schemaVersion: Long,
+    public val workspace: IamWorkspaceCreateAcceptedWorkspace,
+)
+
+public data class IamWorkspaceCreateAcceptedDefaultProject(
+    public val id: Identifier,
+    public val kind: String,
+    public val name: String,
+)
+
+public data class IamWorkspaceCreateAcceptedWorkspace(
+    public val createdAt: UtcTimestamp,
+    public val dataMode: String,
+    public val id: Identifier,
+    public val name: String,
+    public val organizationId: Identifier,
+    public val status: String,
+)
+
+public data class IamWorkspaceCreateCommand(
+    public val name: String,
+    public val schemaVersion: Long,
+)
+
 public data class JraWorkerDashboardWidgetResultOutput(
     public val kind: String,
     public val schemaVersion: Long,
@@ -475,6 +630,70 @@ public data class JraWorkerResultPrepareCommand(
     public val schemaVersion: Long,
 )
 
+public data class LfbLandingFeedbackAccepted(
+    public val receivedAt: UtcTimestamp,
+    public val referenceId: Identifier,
+    public val schemaVersion: Long,
+)
+
+public data class LfbLandingFeedbackCommand(
+    public val category: String,
+    public val contactPermission: Boolean,
+    public val email: String,
+    public val experience: String,
+    public val message: String,
+    public val name: String? = null,
+    public val organization: String? = null,
+    public val rating: Long,
+    public val role: String,
+    public val schemaVersion: Long,
+)
+
+public data class PlatformAdminFeedbacks(
+    public val feedbacks: List<Feedback>,
+    public val generatedAt: UtcTimestamp,
+    public val schemaVersion: Long,
+    public val total: FeedbackCount,
+)
+
+public data class PlatformAdminOverview(
+    public val generatedAt: UtcTimestamp,
+    public val operator: PlatformAdminOverviewOperator,
+    public val recentPayments: List<RecentPayment>,
+    public val recentSubscriptions: List<RecentSubscription>,
+    public val recentUsers: List<RecentUser>,
+    public val registrationSeries: List<CountPoint>,
+    public val revenueSeries: List<RevenuePoint>,
+    public val schemaVersion: Long,
+    public val subscriptionPlans: List<CountGroup>,
+    public val subscriptionStatuses: List<CountGroup>,
+    public val totals: PlatformAdminOverviewTotals,
+    public val window: PlatformAdminOverviewWindow,
+)
+
+public data class PlatformAdminOverviewOperator(
+    public val role: String,
+)
+
+public data class PlatformAdminOverviewTotals(
+    public val activeSessions: NonNegativeInteger,
+    public val activeSubscriptions: NonNegativeInteger,
+    public val activeUsers: NonNegativeInteger,
+    public val organizations: NonNegativeInteger,
+    public val paidOrders: NonNegativeInteger,
+    public val settledRevenueVnd: NonNegativeInteger,
+    public val subscriberUsers: NonNegativeInteger,
+    public val subscriptions: NonNegativeInteger,
+    public val users: NonNegativeInteger,
+    public val workspaces: NonNegativeInteger,
+)
+
+public data class PlatformAdminOverviewWindow(
+    public val days: Long,
+    public val endsAt: UtcTimestamp,
+    public val startsAt: UtcTimestamp,
+)
+
 public data class PreparedOutput(
     public val allowedMediaTypes: List<PreparedMediaType>,
     public val capabilityId: Identifier,
@@ -502,6 +721,39 @@ public data class PublicMessage(
     public val text: String,
 )
 
+public data class RecentPayment(
+    public val amountVnd: NonNegativeInteger,
+    public val createdAt: UtcTimestamp,
+    public val currency: String,
+    public val organizationId: Identifier,
+    public val organizationName: String,
+    public val paidAt: UtcTimestamp? = null,
+    public val paymentOrderId: Identifier,
+    public val planId: GroupKey,
+    public val status: GroupKey,
+)
+
+public data class RecentSubscription(
+    public val endsAt: UtcTimestamp? = null,
+    public val organizationId: Identifier,
+    public val organizationName: String,
+    public val planId: GroupKey,
+    public val source: GroupKey,
+    public val startsAt: UtcTimestamp,
+    public val status: GroupKey,
+    public val subscriptionId: Identifier,
+    public val updatedAt: UtcTimestamp,
+    public val workspaceId: Identifier? = null,
+)
+
+public data class RecentUser(
+    public val createdAt: UtcTimestamp,
+    public val displayName: String,
+    public val email: String,
+    public val status: GroupKey,
+    public val userId: Identifier,
+)
+
 public data class ResultAttestation(
     public val attestationId: Identifier,
     public val outputName: FinalizeSafeName,
@@ -519,6 +771,12 @@ public data class ResultRow(
     public val numericValue: Double,
     public val provenance: Provenance,
     public val unit: String,
+)
+
+public data class RevenuePoint(
+    public val month: Month,
+    public val paidOrders: NonNegativeInteger,
+    public val revenueVnd: NonNegativeInteger,
 )
 
 public data class SchemaField(

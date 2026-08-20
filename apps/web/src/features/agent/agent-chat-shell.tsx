@@ -1,23 +1,30 @@
-import { useId, useState, type FormEvent, type ReactNode, type Ref } from 'react';
-import { Link, useInRouterContext } from 'react-router-dom';
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+  type ReactNode,
+  type Ref,
+} from 'react';
 
+import { DATABREEZE_MARK_SRC } from '../../app/brand-assets.ts';
+import { XIcon } from '../../components/icons.tsx';
 import type { AgentConversationSummaryV1, AgentMessagePresentationV1 } from './agent-store.ts';
-
-function newConversationPath(analysisHref: string, explicitHref?: string): string {
-  if (explicitHref !== undefined) return explicitHref;
-  return `${analysisHref.split('?')[0] ?? analysisHref}?new=1`;
-}
 
 export interface AgentChatShellProperties {
   readonly activeConversationId?: string;
-  readonly analysisHref: string;
+  readonly analysisHref?: string;
   readonly children?: ReactNode;
   readonly composerLabel?: string;
   readonly context?: string;
   readonly conversations: readonly AgentConversationSummaryV1[];
+  readonly headingTitle?: string;
   readonly locale: 'en' | 'vi-VN';
   readonly messages?: readonly AgentMessagePresentationV1[];
   readonly newConversationHref?: string;
+  readonly onClose?: () => void;
   readonly onCreateConversation?: () => void;
   readonly onSelectConversation: (conversationId: string) => void;
   readonly onSubmitMessage?: (message: string) => void | Promise<void>;
@@ -27,7 +34,7 @@ export interface AgentChatShellProperties {
   readonly textareaRef?: Ref<HTMLTextAreaElement>;
 }
 
-/** WEB-024/DDA-055: one content-safe chat presentation shared by compact agent surfaces. */
+/** WEB-024/DDA-055: Notion-style seamless AI chat presentation. */
 export function AgentChatShell({
   activeConversationId,
   analysisHref,
@@ -35,9 +42,11 @@ export function AgentChatShell({
   composerLabel,
   context,
   conversations,
+  headingTitle,
   locale,
   messages = [],
   newConversationHref,
+  onClose,
   onCreateConversation,
   onSelectConversation,
   onSubmitMessage,
@@ -47,34 +56,72 @@ export function AgentChatShell({
   textareaRef,
 }: AgentChatShellProperties) {
   const [draft, setDraft] = useState('');
+  const [conversationMenuOpen, setConversationMenuOpen] = useState(false);
   const composerId = useId();
-  const inRouter = useInRouterContext();
-  const createHref = newConversationPath(analysisHref, newConversationHref);
+  const conversationMenuId = useId();
+  const conversationSelectorRef = useRef<HTMLDivElement>(null);
+  const conversationTriggerRef = useRef<HTMLButtonElement>(null);
+  const conversationMenuRef = useRef<HTMLDivElement>(null);
+
   const text =
     locale === 'vi-VN'
       ? {
-          analysis: 'Mở trong Phân tích',
+          close: 'Đóng trợ lý',
           composer: composerLabel ?? 'Nhập câu hỏi cho trợ lý',
-          empty: 'Chưa có tin nhắn trong hội thoại này.',
-          inputPlaceholder: 'Hỏi về dữ liệu hoặc yêu cầu một biểu đồ…',
-          newConversation: 'Hội thoại mới',
-          noConversation: 'Chưa có hội thoại được cấp quyền.',
+          composerHint: 'Enter để gửi · Shift+Enter để xuống dòng',
+          emptyGreeting: 'Tôi có thể giúp gì cho bạn hôm nay?',
+          emptyHint: 'Chọn một hội thoại hoặc bắt đầu bằng câu hỏi bên dưới.',
+          inputPlaceholder: 'Hỏi bất kỳ điều gì với AI…',
+          openAnalysis: 'Mở Phân tích',
+          newConversation: 'Cuộc trò chuyện mới',
+          noConversation: 'Chưa có hội thoại được cấp quyền',
           send: submitting ? 'Đang gửi…' : 'Gửi',
-          switchConversation: 'Chuyển hội thoại',
+          chooseConversation: 'Chọn cuộc trò chuyện',
+          suggestions: [
+            {
+              label: 'Tóm tắt các chỉ số đang hiển thị',
+              prompt: 'Tóm tắt các chỉ số và điểm đáng chú ý đang hiển thị',
+            },
+            {
+              label: 'Phân tích xu hướng doanh thu',
+              prompt: 'Phân tích xu hướng doanh thu và các yếu tố đang ảnh hưởng',
+            },
+            {
+              label: 'Kiểm tra chất lượng dữ liệu',
+              prompt: 'Kiểm tra chất lượng dữ liệu và nêu các điểm cần xem lại',
+            },
+          ],
         }
       : {
-          analysis: 'Open in Analysis',
+          close: 'Close agent',
           composer: composerLabel ?? 'Ask the agent',
-          empty: 'There are no messages in this conversation yet.',
-          inputPlaceholder: 'Ask about your data or request a chart…',
+          composerHint: 'Enter to send · Shift+Enter for a new line',
+          emptyGreeting: 'How can I help you today?',
+          emptyHint: 'Choose a conversation or start with a question below.',
+          inputPlaceholder: 'Do anything with AI…',
+          openAnalysis: 'Open Analysis',
           newConversation: 'New conversation',
-          noConversation: 'No authorized conversations are available.',
+          noConversation: 'No authorized conversations are available',
           send: submitting ? 'Sending…' : 'Send',
-          switchConversation: 'Switch conversation',
+          chooseConversation: 'Choose conversation',
+          suggestions: [
+            {
+              label: 'Summarize the metrics on screen',
+              prompt: 'Summarize the metrics and notable changes on screen',
+            },
+            {
+              label: 'Analyze revenue trends',
+              prompt: 'Analyze revenue trends and the factors driving them',
+            },
+            {
+              label: 'Check data quality',
+              prompt: 'Check data quality and call out anything that needs review',
+            },
+          ],
         };
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submit(event?: FormEvent<HTMLFormElement>) {
+    if (event) event.preventDefault();
     const message = draft.trim();
     if (message === '' || submitting || onSubmitMessage === undefined) return;
     try {
@@ -85,102 +132,280 @@ export function AgentChatShell({
     }
   }
 
+  function handleSelectChange(val: string) {
+    setConversationMenuOpen(false);
+    if (val === '') {
+      if (onCreateConversation) onCreateConversation();
+      else if (newConversationHref !== undefined) globalThis.location.assign(newConversationHref);
+      else onSelectConversation('');
+    } else {
+      onSelectConversation(val);
+    }
+    conversationTriggerRef.current?.focus();
+  }
+
+  function openConversationMenu() {
+    setConversationMenuOpen(true);
+  }
+
+  function handleConversationTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openConversationMenu();
+      return;
+    }
+    if (event.key === 'Escape') setConversationMenuOpen(false);
+  }
+
+  function handleConversationMenuKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setConversationMenuOpen(false);
+      conversationTriggerRef.current?.focus();
+      return;
+    }
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    event.preventDefault();
+    const options = Array.from(
+      conversationMenuRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? [],
+    );
+    const currentIndex = options.indexOf(event.target as HTMLButtonElement);
+    const nextIndex =
+      event.key === 'ArrowDown'
+        ? Math.min(currentIndex + 1, options.length - 1)
+        : Math.max(currentIndex - 1, 0);
+    options[nextIndex]?.focus();
+  }
+
+  useEffect(() => {
+    if (!conversationMenuOpen) return undefined;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!conversationSelectorRef.current?.contains(event.target as Node)) {
+        setConversationMenuOpen(false);
+      }
+    };
+    globalThis.document.addEventListener('pointerdown', handlePointerDown);
+    return () => globalThis.document.removeEventListener('pointerdown', handlePointerDown);
+  }, [conversationMenuOpen]);
+
+  useEffect(() => {
+    if (!conversationMenuOpen) return;
+    conversationMenuRef.current?.querySelector<HTMLButtonElement>('[role="option"]')?.focus();
+  }, [conversationMenuOpen]);
+
+  const activeConversation = conversations.find((c) => c.conversationId === activeConversationId);
+  const currentTitle = activeConversation?.title ?? text.newConversation;
+  const conversationTriggerLabel = `${text.chooseConversation}: ${currentTitle}`;
+
   return (
-    <div className="agent-chat-shell">
-      <div className="agent-chat-shell__toolbar">
-        <label>
-          <span>{text.switchConversation}</span>
-          <select
-            aria-label={text.switchConversation}
-            disabled={conversations.length === 0}
-            onChange={(event) => onSelectConversation(event.target.value)}
-            value={activeConversationId ?? ''}
+    <div className="notion-ai-chat">
+      {/* Accessible heading for screen readers */}
+      <h2 className="dda-sr-only">{headingTitle ?? 'Trợ lý DataBreeze'}</h2>
+
+      {/* Chat-first header: the title is the only conversation navigation affordance. */}
+      <header className="notion-ai-header">
+        <div className="notion-ai-header__selector" ref={conversationSelectorRef}>
+          <button
+            aria-controls={conversationMenuId}
+            aria-expanded={conversationMenuOpen}
+            aria-haspopup="listbox"
+            aria-label={conversationTriggerLabel}
+            className="notion-ai-header__trigger"
+            onClick={() => setConversationMenuOpen((open) => !open)}
+            onKeyDown={handleConversationTriggerKeyDown}
+            ref={conversationTriggerRef}
+            type="button"
           >
-            {activeConversationId === undefined ? (
-              <option value="">
-                {conversations.length === 0 ? text.noConversation : text.switchConversation}
-              </option>
-            ) : null}
-            {conversations.map((conversation) => (
-              <option key={conversation.conversationId} value={conversation.conversationId}>
-                {conversation.title}
-              </option>
-            ))}
-          </select>
-        </label>
-        {onCreateConversation === undefined ? (
-          inRouter ? (
-            <Link className="agent-chat-shell__new" to={createHref}>
-              {text.newConversation}
-            </Link>
-          ) : (
-            <a className="agent-chat-shell__new" href={createHref}>
-              {text.newConversation}
-            </a>
-          )
-        ) : (
-          <button className="agent-chat-shell__new" onClick={onCreateConversation} type="button">
-            {text.newConversation}
+            <span className="notion-ai-header__display-title">
+              <span className="notion-ai-header__current-title">{currentTitle}</span>
+              <svg
+                aria-hidden="true"
+                className="notion-ai-header__chevron"
+                fill="none"
+                height="14"
+                viewBox="0 0 24 24"
+                width="14"
+              >
+                <path
+                  d="m6 9 6 6 6-6"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                />
+              </svg>
+            </span>
           </button>
-        )}
-      </div>
-
-      {context === undefined ? null : <p className="agent-chat-shell__context">{context}</p>}
-
-      <div aria-live="polite" className="agent-chat-shell__messages" role="log">
-        {messages.length === 0 ? (
-          <p className="agent-chat-shell__empty">{text.empty}</p>
-        ) : (
-          messages.map((message) => (
-            <article
-              className={`agent-chat-shell__message agent-chat-shell__message--${message.role.toLowerCase()}`}
-              key={message.messageId}
+          {conversationMenuOpen ? (
+            <div
+              aria-label={text.chooseConversation}
+              className="notion-ai-header__menu"
+              id={conversationMenuId}
+              onKeyDown={handleConversationMenuKeyDown}
+              ref={conversationMenuRef}
+              role="listbox"
             >
-              <p>{message.text}</p>
-              {message.createdLabel === undefined ? null : <time>{message.createdLabel}</time>}
-            </article>
-          ))
+              <button
+                aria-selected={activeConversationId === undefined}
+                className="notion-ai-header__option"
+                onClick={() => handleSelectChange('')}
+                role="option"
+                type="button"
+              >
+                <span>{text.newConversation}</span>
+                {activeConversationId === undefined ? (
+                  <span aria-hidden="true" className="notion-ai-header__option-check">
+                    ✓
+                  </span>
+                ) : null}
+              </button>
+              {conversations.map((conv) => {
+                const selected = conv.conversationId === activeConversationId;
+                return (
+                  <button
+                    aria-selected={selected}
+                    className="notion-ai-header__option"
+                    key={conv.conversationId}
+                    onClick={() => handleSelectChange(conv.conversationId)}
+                    role="option"
+                    type="button"
+                  >
+                    <span className="notion-ai-header__option-title">{conv.title}</span>
+                    {selected ? (
+                      <span aria-hidden="true" className="notion-ai-header__option-check">
+                        ✓
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+              {conversations.length === 0 ? (
+                <p className="notion-ai-header__menu-empty">{text.noConversation}</p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="notion-ai-header__actions">
+          {onClose !== undefined && (
+            <button
+              aria-label={text.close}
+              className="notion-ai-header__icon-btn"
+              onClick={onClose}
+              title={text.close}
+              type="button"
+            >
+              <XIcon />
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* Context Badge if attached */}
+      {context !== undefined ? (
+        <div className="notion-ai-context">
+          <span>{context}</span>
+        </div>
+      ) : null}
+
+      {/* Main Content Area */}
+      <div className="notion-ai-body">
+        {messages.length === 0 ? (
+          <div className="notion-ai-empty">
+            <div className="notion-ai-empty__avatar">
+              <img alt="DataBreeze AI" src={DATABREEZE_MARK_SRC} />
+            </div>
+            <h3 className="notion-ai-empty__greeting">{text.emptyGreeting}</h3>
+            <p className="notion-ai-empty__hint">{text.emptyHint}</p>
+            <div className="notion-ai-empty__suggestions">
+              {text.suggestions.map((item) => (
+                <button
+                  className="notion-ai-empty__suggestion-item"
+                  key={item.prompt}
+                  onClick={() => {
+                    if (onSubmitMessage) void onSubmitMessage(item.prompt);
+                    else setDraft(item.prompt);
+                  }}
+                  type="button"
+                >
+                  <span className="notion-ai-empty__suggestion-label">{item.label}</span>
+                  <span aria-hidden="true" className="notion-ai-empty__suggestion-arrow">
+                    →
+                  </span>
+                </button>
+              ))}
+            </div>
+            {analysisHref !== undefined ? (
+              <a className="notion-ai-empty__analysis-link" href={analysisHref}>
+                {text.openAnalysis}
+              </a>
+            ) : null}
+          </div>
+        ) : (
+          <div aria-live="polite" className="notion-ai-messages" role="log">
+            {messages.map((message) => (
+              <article
+                className={`notion-ai-message notion-ai-message--${message.role.toLowerCase()}`}
+                key={message.messageId}
+              >
+                {message.role === 'ASSISTANT' ? (
+                  <div aria-hidden="true" className="notion-ai-message__avatar">
+                    <img alt="" src={DATABREEZE_MARK_SRC} />
+                  </div>
+                ) : null}
+                <div className="notion-ai-message__content">
+                  <p>{message.text}</p>
+                  {message.createdLabel !== undefined ? <time>{message.createdLabel}</time> : null}
+                </div>
+              </article>
+            ))}
+          </div>
         )}
+
+        {children}
+
+        {stateMessage !== undefined ? (
+          <p className="notion-ai-state" role={stateTone}>
+            {stateMessage}
+          </p>
+        ) : null}
       </div>
-      {children}
 
-      {stateMessage === undefined ? null : (
-        <p className="agent-chat-shell__state" role={stateTone}>
-          {stateMessage}
-        </p>
-      )}
-
-      <form className="agent-chat-shell__composer" onSubmit={(event) => void submit(event)}>
-        <label htmlFor={composerId}>{text.composer}</label>
-        <div>
+      {/* Notion-style Composer */}
+      <form className="notion-ai-composer" onSubmit={(event) => void submit(event)}>
+        <label className="dda-sr-only" htmlFor={composerId}>
+          {text.composer}
+        </label>
+        <div className="notion-ai-composer__box">
           <textarea
             aria-label={text.composer}
             disabled={onSubmitMessage === undefined}
             id={composerId}
             onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                void submit();
+              }
+            }}
             placeholder={text.inputPlaceholder}
             ref={textareaRef}
-            rows={3}
+            rows={1}
             value={draft}
           />
-          <button
-            disabled={draft.trim() === '' || submitting || onSubmitMessage === undefined}
-            type="submit"
-          >
-            {text.send}
-          </button>
+          <div className="notion-ai-composer__footer">
+            <span className="notion-ai-composer__hint">{text.composerHint}</span>
+            <button
+              aria-label={text.send}
+              className="notion-ai-composer__send-btn"
+              disabled={draft.trim() === '' || submitting || onSubmitMessage === undefined}
+              type="submit"
+            >
+              <span aria-hidden="true">↑</span>
+            </button>
+          </div>
         </div>
       </form>
-
-      {inRouter ? (
-        <Link className="agent-chat-shell__analysis-link" to={analysisHref}>
-          {text.analysis}
-        </Link>
-      ) : (
-        <a className="agent-chat-shell__analysis-link" href={analysisHref}>
-          {text.analysis}
-        </a>
-      )}
     </div>
   );
 }

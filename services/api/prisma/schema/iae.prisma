@@ -167,28 +167,28 @@ model EvidenceGrantRecord {
 /// The record stores opaque references and policy metadata only; it never stores content bytes,
 /// database credentials, local paths, or provider URLs.
 model WorkerObjectCapabilityRecord {
-  id             String    @id @db.Uuid
-  grantType      String    @map("grant_type") @db.VarChar(16)
-  attemptId      String    @map("attempt_id") @db.Uuid
-  jobId          String    @map("job_id") @db.Uuid
-  workerId       String    @map("worker_id") @db.Uuid
-  scopeType      String    @map("scope_type") @db.VarChar(24)
-  organizationId String    @map("organization_id") @db.Uuid
-  workspaceId    String?   @map("workspace_id") @db.Uuid
-  projectId      String?   @map("project_id") @db.Uuid
-  objectId       String?   @map("object_id") @db.VarChar(256)
-  objectIds      Json      @map("object_ids")
-  objectBindings Json      @map("object_bindings")
-  resultFinalizationBinding Json? @map("result_finalization_binding")
-  action         String    @db.VarChar(16)
-  securityEpoch  Int       @map("security_epoch")
-  maxBytes       BigInt    @map("max_bytes")
-  issuedAt       DateTime  @map("issued_at") @db.Timestamptz(6)
-  expiresAt      DateTime  @map("expires_at") @db.Timestamptz(6)
-  revokedAt      DateTime? @map("revoked_at") @db.Timestamptz(6)
-  contentSha256  String?   @map("content_sha256") @db.Char(64)
-  contentLength  BigInt?   @map("content_length")
-  transferredAt  DateTime? @map("transferred_at") @db.Timestamptz(6)
+  id                        String    @id @db.Uuid
+  grantType                 String    @map("grant_type") @db.VarChar(16)
+  attemptId                 String    @map("attempt_id") @db.Uuid
+  jobId                     String    @map("job_id") @db.Uuid
+  workerId                  String    @map("worker_id") @db.Uuid
+  scopeType                 String    @map("scope_type") @db.VarChar(24)
+  organizationId            String    @map("organization_id") @db.Uuid
+  workspaceId               String?   @map("workspace_id") @db.Uuid
+  projectId                 String?   @map("project_id") @db.Uuid
+  objectId                  String?   @map("object_id") @db.VarChar(256)
+  objectIds                 Json      @map("object_ids")
+  objectBindings            Json      @map("object_bindings")
+  resultFinalizationBinding Json?     @map("result_finalization_binding")
+  action                    String    @db.VarChar(16)
+  securityEpoch             Int       @map("security_epoch")
+  maxBytes                  BigInt    @map("max_bytes")
+  issuedAt                  DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt                 DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt                 DateTime? @map("revoked_at") @db.Timestamptz(6)
+  contentSha256             String?   @map("content_sha256") @db.Char(64)
+  contentLength             BigInt?   @map("content_length")
+  transferredAt             DateTime? @map("transferred_at") @db.Timestamptz(6)
 
   @@unique([attemptId, grantType, objectId], map: "worker_object_capabilities_attempt_output_key")
   @@index([jobId, attemptId], map: "worker_object_capabilities_job_attempt_idx")

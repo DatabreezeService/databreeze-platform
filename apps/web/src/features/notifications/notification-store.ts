@@ -13,6 +13,7 @@ import {
   parseStableIdentifierBrowser,
   parseStrictUtcTimestampBrowser,
 } from '../../lib/browser-validation.ts';
+import { createSessionAwareFetchV1 } from '../auth/auth-session.ts';
 
 export type NotificationStoreStatus = 'loading' | 'error' | 'ready' | 'confirmed-empty';
 
@@ -234,7 +235,10 @@ function errorState(previous: NotificationStoreState, error: unknown): Notificat
 export function createNotificationStore(options: NotificationStoreOptions = {}): NotificationStore {
   const baseUrl = (options.baseUrl ?? configuredBaseUrl()).replace(/\/$/u, '');
   const pageSize = Math.min(50, Math.max(1, Math.floor(options.pageSize ?? 20)));
-  const fetcher = options.fetcher ?? globalThis.fetch.bind(globalThis);
+  const fetcher = createSessionAwareFetchV1({
+    apiBaseUrl: baseUrl,
+    fetcher: options.fetcher ?? globalThis.fetch.bind(globalThis),
+  });
   const listeners = new Set<() => void>();
   let state = initialState();
   let loading = false;
@@ -254,7 +258,6 @@ export function createNotificationStore(options: NotificationStoreOptions = {}):
       ...(state.nextCursor === undefined ? {} : { nextCursor: state.nextCursor }),
     });
     try {
-      if (baseUrl === '') throw new Error('NOTIFICATION_API_UNAVAILABLE');
       const query = new URLSearchParams({ limit: String(pageSize) });
       if (cursor !== undefined) query.set('cursor', cursor);
       const response = await fetcher(`${baseUrl}/v3/notifications?${query.toString()}`, {
@@ -327,7 +330,6 @@ export function createNotificationStore(options: NotificationStoreOptions = {}):
         command.expectedRevision >= 1 &&
         /^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/u.test(command.idempotencyKey);
       if (
-        baseUrl === '' ||
         idempotencyKey.length > 200 ||
         !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/u.test(idempotencyKey) ||
         !parsedCommand

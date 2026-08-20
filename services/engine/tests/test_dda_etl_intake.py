@@ -42,13 +42,15 @@ def _xlsx(*, macro: bool = False, formulas: int = 0, sheets: int = 1) -> bytes:
                 + "</Relationships>"
             ),
         )
-        formula_cells = "".join(f'<c r="A{i}"><f>SUM(1)</f><v>1</v></c>' for i in range(1, formulas + 1))
+        formula_cells = "".join(
+            f'<c r="A{i}"><f>SUM(1)</f><v>1</v></c>' for i in range(1, formulas + 1)
+        )
         for i in range(1, sheets + 1):
             archive.writestr(
                 f"xl/worksheets/sheet{i}.xml",
                 (
                     '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-                    f"<sheetData><row r=\"1\">{formula_cells}<c r=\"B1\"><v>1</v></c></row></sheetData>"
+                    f'<sheetData><row r="1">{formula_cells}<c r="B1"><v>1</v></c></row></sheetData>'
                     "</worksheet>"
                 ),
             )
@@ -60,12 +62,42 @@ def _xlsx(*, macro: bool = False, formulas: int = 0, sheets: int = 1) -> bytes:
 def test_published_profile_exposes_explicit_v1_limits() -> None:
     profile = published_intake_profile()
     assert profile.profileId == "dda.web.tabular.v1"
-    assert profile.limits.maxBytes == 512_000
-    assert profile.limits.maxRows == 20_000
+    assert profile.limits.maxBytes == 100 * 1024 * 1024
+    assert profile.limits.maxRows == 1_000_000
     assert profile.limits.maxColumns == 256
     assert profile.limits.maxSheets == 8
     assert profile.limits.maxFormulas == 500
     assert profile.xlsx.macrosAllowed is False
+
+
+def test_published_csv_row_ceiling_is_exactly_one_million() -> None:
+    maximum = published_intake_profile().limits.maxRows
+
+    assert maximum >= 1_000_000
+    assert maximum < 1_000_001
+
+
+def test_enforces_the_100_mib_size_boundary() -> None:
+    maximum = 100 * 1024 * 1024
+    for size in (maximum - 1, maximum, maximum + 1):
+        content = b"a" * size
+        if size > maximum:
+            with pytest.raises(DdaEtlIntakeError) as error:
+                inspect_tabular_bytes(
+                    file_name="large.csv",
+                    claimed_media_type="text/csv",
+                    expected_sha256=_sha(content),
+                    content=content,
+                )
+            assert error.value.code == "DDA_INTAKE_LIMIT_SIZE"
+        else:
+            result = inspect_tabular_bytes(
+                file_name="large.csv",
+                claimed_media_type="text/csv",
+                expected_sha256=_sha(content),
+                content=content,
+            )
+            assert result.byteSize == size
 
 
 def test_rejects_renamed_executable_and_malformed_encoding() -> None:

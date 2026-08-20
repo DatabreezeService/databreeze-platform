@@ -69,7 +69,10 @@ export class ArtifactIntakeService {
       );
       if (!next.accepted)
         return Object.freeze({ accepted: false, code: 'INVALID_TRANSITION' as const });
-      await transaction.save(context, next.value);
+      // The admission command does not expose a client revision. Bind the
+      // compare-and-swap to the authoritative row we just read so the
+      // server cannot accidentally perform a last-write-wins transition.
+      await transaction.save(Object.freeze({ ...context, expectedRevision: item.revision }), next.value);
       return Object.freeze({
         accepted: true,
         value: Object.freeze({ item: next.value, ...admission.value }),

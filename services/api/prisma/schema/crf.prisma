@@ -1,0 +1,98 @@
+/// CRF-001..CRF-020: workspace-scoped report definitions and immutable run projections.
+/// Dataset/JRA/IAE identifiers are opaque references; report rows never own source bytes.
+model ClientReportDefinitionRecord {
+  id               String   @id @db.Uuid
+  scopeType        String   @map("scope_type") @db.VarChar(24)
+  organizationId   String   @map("organization_id") @db.Uuid
+  workspaceId      String?  @map("workspace_id") @db.Uuid
+  projectId        String?  @map("project_id") @db.Uuid
+  scopeKey         String   @map("scope_key") @db.VarChar(160)
+  clientId         String   @map("client_id") @db.Uuid
+  name             String   @db.VarChar(200)
+  period           String   @db.VarChar(64)
+  datasetId        String   @map("dataset_id") @db.Uuid
+  datasetVersionId String   @map("dataset_version_id") @db.Uuid
+  templateId       String   @map("template_id") @db.Uuid
+  templateVersion  Int      @map("template_version")
+  supportedFormats Json     @map("supported_formats")
+  blocks           Json
+  status           String   @db.VarChar(24)
+  reportVersion    Int      @default(1) @map("report_version")
+  idempotencyKey   String   @map("idempotency_key") @db.VarChar(200)
+  canonicalHash    String   @map("canonical_hash") @db.Char(64)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, projectId, id], map: "crf_report_definitions_scope_id_key")
+  @@unique([organizationId, workspaceId, projectId, idempotencyKey], map: "crf_report_definitions_scope_idempotency_key")
+  @@unique([scopeKey, idempotencyKey], map: "crf_report_definitions_scope_key_idempotency_key")
+  @@index([organizationId, workspaceId, projectId, updatedAt], map: "crf_report_definitions_scope_updated_idx")
+  @@index([organizationId, workspaceId, projectId, datasetVersionId], map: "crf_report_definitions_dataset_idx")
+  @@map("report_definitions")
+  @@schema("crf")
+}
+
+/// CRF-004/013/015: a run freezes the exact report version and external result bindings.
+model ClientReportRunRecord {
+  id               String    @id @db.Uuid
+  definitionId     String    @map("definition_id") @db.Uuid
+  scopeType        String    @map("scope_type") @db.VarChar(24)
+  organizationId   String    @map("organization_id") @db.Uuid
+  workspaceId      String?   @map("workspace_id") @db.Uuid
+  projectId        String?   @map("project_id") @db.Uuid
+  reportVersion    Int       @map("report_version")
+  status           String    @db.VarChar(24)
+  manifest         Json?
+  jraJobId         String?   @map("jra_job_id") @db.Uuid
+  resultManifestId String?   @map("result_manifest_id") @db.Uuid
+  contentHash      String?   @map("content_hash") @db.Char(64)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  finishedAt       DateTime? @map("finished_at") @db.Timestamptz(6)
+
+  @@unique([definitionId, reportVersion], map: "crf_report_runs_definition_version_key")
+  @@unique([organizationId, workspaceId, projectId, id], map: "crf_report_runs_scope_id_key")
+  @@index([organizationId, workspaceId, projectId, createdAt], map: "crf_report_runs_scope_created_idx")
+  @@index([definitionId, createdAt], map: "crf_report_runs_definition_created_idx")
+  @@map("report_runs")
+  @@schema("crf")
+}
+
+/// CRF-017/018: output readiness is per format and never silently substituted.
+model ClientReportOutputRecord {
+  id                String   @id @db.Uuid
+  runId             String   @map("run_id") @db.Uuid
+  scopeType         String   @map("scope_type") @db.VarChar(24)
+  organizationId    String   @map("organization_id") @db.Uuid
+  workspaceId       String?  @map("workspace_id") @db.Uuid
+  projectId         String?  @map("project_id") @db.Uuid
+  format            String   @db.VarChar(8)
+  state             String   @db.VarChar(24)
+  contentHash       String?  @map("content_hash") @db.Char(64)
+  artifactVersionId String?  @map("artifact_version_id") @db.Uuid
+  failureCode       String?  @map("failure_code") @db.VarChar(64)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([runId, format], map: "crf_report_outputs_run_format_key")
+  @@index([organizationId, workspaceId, projectId, runId], map: "crf_report_outputs_scope_run_idx")
+  @@map("report_outputs")
+  @@schema("crf")
+}
+
+/// CRF-008/026: evidence references are content-free and scoped to one frozen fact.
+model ClientReportEvidenceRecord {
+  id             String   @id @db.Uuid
+  runId          String   @map("run_id") @db.Uuid
+  scopeType      String   @map("scope_type") @db.VarChar(24)
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String?  @map("workspace_id") @db.Uuid
+  projectId      String?  @map("project_id") @db.Uuid
+  factId         String   @map("fact_id") @db.VarChar(128)
+  sourceId       String   @map("source_id") @db.Uuid
+  locator        String   @db.VarChar(256)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([runId, factId, sourceId, locator], map: "crf_report_evidence_fact_source_key")
+  @@index([organizationId, workspaceId, projectId, runId], map: "crf_report_evidence_scope_run_idx")
+  @@map("report_evidence")
+  @@schema("crf")
+}

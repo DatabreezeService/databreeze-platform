@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/lfb-landing-feedback-command",
+  "$comment": "WEB-026: bounded anonymous landing feedback request. Submission identity fields are visitor-owned and optional; admission and persistence are server-owned.",
+  "title": "Landing Feedback Command",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "email",
+    "role",
+    "experience",
+    "category",
+    "rating",
+    "message",
+    "contactPermission"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "email": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 160,
+      "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+    },
+    "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "organization": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "role": {
+      "enum": ["owner", "analyst", "accounting", "operations", "technology", "other"]
+    },
+    "experience": { "enum": ["exploring", "trial", "active"] },
+    "category": {
+      "enum": ["product", "feature", "data-trust", "design", "performance", "other"]
+    },
+    "rating": { "type": "integer", "minimum": 1, "maximum": 5 },
+    "message": { "type": "string", "minLength": 10, "maxLength": 1200, "pattern": "^[^\\u0000]+$" },
+    "contactPermission": { "type": "boolean" }
+  }
+}

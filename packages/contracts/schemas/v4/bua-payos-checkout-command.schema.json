@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/bua-payos-checkout-command",
+  "$comment": "BUA-001/002: clients choose an immutable server-owned plan and idempotency key; amount is never client supplied.",
+  "title": "BUA PayOS Checkout Command",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "planId"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "planId": {
+      "type": "string",
+      "enum": ["personal-monthly", "personal-annual", "professional-monthly", "professional-annual", "team-monthly", "team-annual"]
+    }
+  }
+}

@@ -48,6 +48,19 @@ describe('notification store', () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
+  it('uses the same-origin API on local HMR when no API base URL is configured', async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(response({ ...page, items: [], unreadCount: 0 }));
+    const store = createNotificationStore({ baseUrl: '', fetcher });
+
+    await store.load();
+
+    expect(store.getState().status).toBe('confirmed-empty');
+    expect(fetcher.mock.calls[0]?.[0]).toBe('/v3/notifications?limit=20');
+    expect(fetcher.mock.calls[0]?.[1]?.credentials).toBe('include');
+  });
+
   it('keeps the server unread count independent of the first page and paginates with an opaque cursor', async () => {
     const fetcher = vi
       .fn<typeof fetch>()

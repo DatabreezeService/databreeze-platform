@@ -4,6 +4,7 @@ data class DatasetOption(
     val datasetId: String,
     val displayName: String,
     val health: String,
+    val versionId: String = "",
 )
 
 data class DatasetPickerUiState(

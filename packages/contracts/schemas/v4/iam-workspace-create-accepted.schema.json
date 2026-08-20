@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/iam-workspace-create-accepted",
+  "$comment": "IAM-027: closed workspace creation acceptance. Exposes the created workspace and its default private project; policy internals stay ID/projection-only.",
+  "title": "IAM Workspace Create Accepted",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "workspace", "defaultProject"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "workspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "organizationId", "name", "status", "dataMode", "createdAt"],
+      "properties": {
+        "id": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "organizationId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "status": { "enum": ["ACTIVE"] },
+        "dataMode": { "enum": ["LOCAL", "HYBRID", "CLOUD"] },
+        "createdAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" }
+      }
+    },
+    "defaultProject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "name"],
+      "properties": {
+        "id": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "kind": { "const": "INTERNAL" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 }
+      }
+    }
+  }
+}

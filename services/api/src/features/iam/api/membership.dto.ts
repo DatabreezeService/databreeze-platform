@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsIn,
+  IsEmail,
   IsInt,
   IsOptional,
   IsUUID,
@@ -78,18 +79,33 @@ export class MembershipScopeDto {
 }
 
 export class InviteMembershipDto {
-  @ApiProperty({ format: 'uuid' })
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Existing principal id. Prefer recipientEmail for the UI.',
+  })
+  @IsOptional()
   @IsUUID()
-  principalId!: string;
+  principalId?: string;
 
-  @ApiProperty({ type: MembershipScopeDto })
+  @ApiPropertyOptional({ format: 'email', maxLength: 254 })
+  @IsOptional()
+  @IsEmail()
+  recipientEmail?: string;
+
+  @ApiPropertyOptional({
+    type: MembershipScopeDto,
+    description:
+      'Legacy compatibility only. When omitted, the server uses the authenticated request scope.',
+  })
+  @IsOptional()
   @ValidateNested()
   @Type(() => MembershipScopeDto)
-  scope!: MembershipScopeDto;
+  scope?: MembershipScopeDto;
 
-  @ApiProperty({ enum: MEMBERSHIP_ROLE_IDS })
+  @ApiPropertyOptional({ enum: MEMBERSHIP_ROLE_IDS })
+  @IsOptional()
   @IsIn(MEMBERSHIP_ROLE_IDS)
-  roleId!: MembershipRoleIdDtoV1;
+  roleId?: MembershipRoleIdDtoV1;
 
   @ApiPropertyOptional({ enum: MEMBERSHIP_ACCESS_PRESETS })
   @IsOptional()

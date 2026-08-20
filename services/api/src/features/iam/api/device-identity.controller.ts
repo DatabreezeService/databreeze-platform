@@ -1,6 +1,18 @@
-import { Body, Controller, Get, Headers, HttpCode, Inject, Param, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  Inject,
+  Optional,
+  Param,
+  Post,
+  Req,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
+import { PERMISSIONS_V1, roleHasPermissionV1 } from '@databreeze/domain/permissions/v1';
 
 import {
   DEVICE_IDENTITY_SERVICE,
@@ -12,6 +24,14 @@ import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
 } from '../../../platform/http/request-tenant-context.port.js';
+import {
+  IAM_REPOSITORY_PORT,
+  type IamRepositoryPortV1,
+} from '../application/iam-repository.port.js';
+import {
+  createIamTenantContextV1,
+  type IamTenantContextV1,
+} from '../application/tenant-context.js';
 import {
   DeviceRevisionDto,
   EnrollDeviceDto,
@@ -28,7 +48,53 @@ export class DeviceIdentityController {
     private readonly devices: DeviceIdentityService,
     @Inject(REQUEST_TENANT_CONTEXT)
     private readonly requestContext: RequestTenantContextPortV1,
+    @Optional()
+    @Inject(IAM_REPOSITORY_PORT)
+    private readonly iam?: IamRepositoryPortV1,
   ) {}
+
+  /**
+   * Device inventory is organization-scoped, while the normal Web session is
+   * workspace-scoped. Derive the wider scope only from the authenticated
+   * actor's organization membership; never trust the route id as authority.
+   * The optional repository keeps the existing organization-scoped test seam
+   * and fails closed when production cannot prove that membership.
+   */
+  private async organizationReadContext(
+    context: IamTenantContextV1,
+    organizationId: string,
+  ): Promise<IamTenantContextV1> {
+    if (context.tenantScope.organizationId !== organizationId) {
+      throw new DeviceIdentityProblemError('DEVICE_SCOPE_DENIED');
+    }
+    if (context.tenantScope.scopeType === 'organization') return context;
+    if (this.iam === undefined) throw new DeviceIdentityProblemError('DEVICE_SCOPE_DENIED');
+    const organizationContext = createIamTenantContextV1({
+      ...(context.sessionId === undefined ? {} : { sessionId: context.sessionId }),
+      tenantScope: { scopeType: 'organization', organizationId },
+      actorId: context.actorId,
+      correlationId: context.correlationId,
+      idempotencyKey: context.idempotencyKey,
+      authorizationEpoch: context.authorizationEpoch,
+      ...(context.mfaRequired === undefined ? {} : { mfaRequired: context.mfaRequired }),
+      mfaReenrollmentRequired: context.mfaReenrollmentRequired,
+    });
+    if (!organizationContext.accepted) throw new DeviceIdentityProblemError('DEVICE_SCOPE_DENIED');
+    let membership;
+    try {
+      membership = await this.iam.findMembership(organizationContext.value, context.actorId);
+    } catch {
+      throw new DeviceIdentityProblemError('DEVICE_UNAVAILABLE');
+    }
+    if (
+      membership === undefined ||
+      membership.status !== 'ACTIVE' ||
+      !roleHasPermissionV1(membership.roleId, PERMISSIONS_V1.DEVICE_IDENTITY_READ)
+    ) {
+      throw new DeviceIdentityProblemError('DEVICE_SCOPE_DENIED');
+    }
+    return organizationContext.value;
+  }
 
   private async execute<TValue>(
     work: () => Promise<DeviceIdentityApplicationResultV1<TValue>>,
@@ -94,13 +160,9 @@ export class DeviceIdentityController {
   ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
     const parsed = parseStableIdentifierV1(organizationId);
-    if (
-      !parsed.accepted ||
-      context.tenantScope.scopeType !== 'organization' ||
-      parsed.value !== context.tenantScope.organizationId
-    )
-      throw new DeviceIdentityProblemError('DEVICE_SCOPE_DENIED');
-    return this.execute(() => this.devices.list(context));
+    if (!parsed.accepted) throw new DeviceIdentityProblemError('DEVICE_SCOPE_DENIED');
+    const organizationContext = await this.organizationReadContext(context, parsed.value);
+    return this.execute(() => this.devices.list(organizationContext));
   }
 
   @Post('devices/:deviceId/revoke')

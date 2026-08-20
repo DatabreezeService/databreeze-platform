@@ -4,6 +4,7 @@ import {
   parseStableIdentifierBrowser,
   parseStrictUtcTimestampBrowser,
 } from '../../lib/browser-validation.ts';
+import { createSessionAwareFetchV1 } from '../auth/auth-session.ts';
 
 const inboxStates = [
   'NEW',
@@ -72,7 +73,10 @@ export async function listInbox(signal?: AbortSignal): Promise<readonly InboxLis
     credentials: 'include',
   };
   if (signal !== undefined) requestInit.signal = signal;
-  const response = await fetch(`${apiBaseUrl()}/v1/artifacts/inbox`, requestInit);
+  const response = await createSessionAwareFetchV1({
+    apiBaseUrl: apiBaseUrl(),
+    fetcher: globalThis.fetch.bind(globalThis),
+  })(`${apiBaseUrl()}/v1/artifacts/inbox`, requestInit);
   if (!response.ok) throw new Error('INBOX_REQUEST_FAILED');
   const payload: unknown = await response.json();
   if (!Array.isArray(payload)) throw new Error('INBOX_RESPONSE_INVALID');

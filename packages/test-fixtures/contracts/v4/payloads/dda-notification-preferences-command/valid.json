@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 4,
+  "expectedRevision": 1,
+  "preferences": [
+    {
+      "category": "REVIEWS",
+      "channel": "IN_APP",
+      "enabled": true,
+      "minimumUrgency": "NORMAL",
+      "deliveryMode": "IMMEDIATE",
+      "quietHours": { "enabled": false, "start": "22:00", "end": "07:00" },
+      "timezone": "Asia/Ho_Chi_Minh"
+    },
+    {
+      "category": "SECURITY",
+      "channel": "EMAIL",
+      "enabled": false,
+      "minimumUrgency": "CRITICAL",
+      "deliveryMode": "IMMEDIATE",
+      "quietHours": { "enabled": false, "start": "22:00", "end": "07:00" },
+      "timezone": "Asia/Ho_Chi_Minh"
+    }
+  ]
+}

@@ -12,7 +12,7 @@ export function prepareTeammateLandingMarkup(
   html: string,
   input: {
     readonly locale: 'en' | 'vi-VN';
-    readonly registerHref: string;
+    readonly billingHref: string;
     readonly signInHref: string;
     readonly signInLabel: string;
     readonly downloadsHref: string;
@@ -48,7 +48,7 @@ export function prepareTeammateLandingMarkup(
     )
     .replace(
       PRICING_SLOT_PATTERN,
-      renderLandingPricingSection({ locale: input.locale, registerHref: input.registerHref }),
+      renderLandingPricingSection({ locale: input.locale, billingHref: input.billingHref }),
     );
 }
 

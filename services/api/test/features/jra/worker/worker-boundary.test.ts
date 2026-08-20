@@ -4,6 +4,7 @@ import test from 'node:test';
 
 import {
   parseStableIdentifierV1,
+  parseStrictUtcTimestampV1,
   parseTenantScopeV1,
   type StableIdentifierV1,
   type TenantScopeV1,
@@ -12,6 +13,10 @@ import {
 import { InMemoryExecutionAttemptRepositoryAdapter } from '../../../../src/features/jra/adapter/in-memory-execution-attempt-repository.adapter.js';
 import { InMemoryJobRepositoryAdapter } from '../../../../src/features/jra/adapter/in-memory-job-repository.adapter.js';
 import { ExecutionAttemptService } from '../../../../src/features/jra/application/execution-attempt.service.js';
+import {
+  executionWorkloadEnvelopeCanonicalHashV1,
+  type ExecutionWorkloadEnvelopeV1,
+} from '../../../../src/features/jra/application/execution-workload-envelope.js';
 import { JobService } from '../../../../src/features/jra/application/job.service.js';
 import { WorkerBoundary } from '../../../../src/features/jra/worker/worker-boundary.js';
 import { workerAttemptDescriptorBindingHashV1 } from '../../../../src/features/jra/worker/execution-descriptor-binding.js';
@@ -22,6 +27,7 @@ import type {
   WorkerCompletionTransactionResultV1,
   WorkerIdentityV1,
   WorkerObjectGrantAuthorityPortV1,
+  WorkerWorkloadEnvelopeAuthorityPortV1,
 } from '../../../../src/features/jra/worker/worker-ports.js';
 
 const scopeResult = parseTenantScopeV1({
@@ -34,6 +40,11 @@ const scope: TenantScopeV1 = scopeResult.value;
 const sid = (value: string): StableIdentifierV1 => {
   const parsed = parseStableIdentifierV1(value);
   if (!parsed.accepted) throw new Error('invalid test identifier');
+  return parsed.value;
+};
+const utc = (value: string) => {
+  const parsed = parseStrictUtcTimestampV1(value);
+  if (!parsed.accepted) throw new Error('invalid test timestamp');
   return parsed.value;
 };
 const workerId = sid('00000000-0000-4000-8000-000000000003');
@@ -316,6 +327,7 @@ function boundaryFor(
     readonly identity?: WorkerIdentityV1 | undefined;
     readonly authority?: WorkerAttemptAuthorityPortV1;
     readonly grants?: WorkerObjectGrantAuthorityPortV1;
+    readonly workloadEnvelope?: WorkerWorkloadEnvelopeAuthorityPortV1;
     readonly counter?: { issue: number; accept: number };
   } = {},
 ): WorkerBoundary {
@@ -328,9 +340,78 @@ function boundaryFor(
     ),
     grants: objectGrants,
     completion: completionTransaction(seeded, objectGrants),
+    ...(options.workloadEnvelope === undefined
+      ? {}
+      : { workloadEnvelope: options.workloadEnvelope }),
     now: () => now,
   });
 }
+
+void test('[JRA-033] workload resolution is lease-bound and returns only the server envelope', async () => {
+  const seeded = await seed();
+  const withoutHash = {
+    schemaVersion: 1 as const,
+    workloadId: sid('00000000-0000-4000-8000-000000000020'),
+    descriptorId,
+    descriptorHash,
+    attemptId,
+    attemptBindingHash: bindingHash(),
+    tenantScope: scope,
+    jobId,
+    action: {
+      type: 'typed.test',
+      version: 1,
+      handlerDigest: `sha256:${'a'.repeat(64)}`,
+      inputSchemaId: 'input.v1',
+      outputSchemaId: 'output.v1',
+      requiredCapabilities: ['metadata.read'],
+      sideEffectClass: 'NONE' as const,
+      riskClass: 'READ_ONLY' as const,
+    },
+    inputHandles: [
+      {
+        objectId: '00000000-0000-4000-8000-000000000007',
+        schemaId: 'input.v1',
+        contentSha256: 'c'.repeat(64),
+        byteLength: 12,
+      },
+    ],
+    inputManifestHash: manifestHash,
+    parameters: {},
+    outputPolicy: {
+      outputObjectId: '00000000-0000-4000-8000-000000000008',
+      maxBytes: 1024,
+      mediaType: 'application/json',
+    },
+    deadline: utc('2026-08-13T00:10:00.000Z'),
+    locale: 'vi-VN' as const,
+    timezone: 'UTC',
+    subjectBindings: { dashboardId: 'dashboard-1' },
+    createdAt: utc(now),
+  } satisfies Omit<ExecutionWorkloadEnvelopeV1, 'canonicalHash'>;
+  const envelope: ExecutionWorkloadEnvelopeV1 = {
+    ...withoutHash,
+    canonicalHash: executionWorkloadEnvelopeCanonicalHashV1(withoutHash),
+  };
+  const boundary = boundaryFor(seeded, {
+    workloadEnvelope: {
+      resolve: async () => ({ accepted: true as const, value: envelope }),
+    },
+  });
+  await boundary.claim({}, claimInput());
+  const resolved = await boundary.workload(
+    {},
+    {
+      ...claimInput(2),
+    },
+  );
+  assert.equal(resolved.workloadId, envelope.workloadId);
+  assert.equal(resolved.parameters['unexpected'], undefined);
+  await assert.rejects(
+    boundary.workload({}, { ...claimInput(1) }),
+    /WORKER_STALE_LEASE|WORKER_ATTEMPT_REJECTED/,
+  );
+});
 
 void test('rejects unauthenticated, revoked, cross-scope, and superseded workers uniformly', async () => {
   const seeded = await seed();

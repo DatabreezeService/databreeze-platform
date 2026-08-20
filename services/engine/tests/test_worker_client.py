@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import time
 from datetime import UTC, datetime, timedelta
 from threading import Event
@@ -102,6 +104,9 @@ class AssignmentTransport(FakeTransport):
                     .isoformat(timespec="milliseconds")
                     .replace("+00:00", "Z"),
                     "expectedRevision": 1,
+                    "descriptorId": "descriptor-1",
+                    "descriptorHash": "a" * 64,
+                    "attemptBindingHash": "b" * 64,
                     "action": {
                         "type": "foundation.metadata-digest",
                         "version": 1,
@@ -128,6 +133,9 @@ class RunnableAssignmentTransport(AssignmentTransport):
                     "leaseToken": "lease-token",
                     "leaseExpiresAt": self.claim_expiry,
                     "expectedRevision": 1,
+                    "descriptorId": "descriptor-1",
+                    "descriptorHash": "a" * 64,
+                    "attemptBindingHash": "b" * 64,
                     "action": {
                         "type": "foundation.metadata-digest",
                         "version": 1,
@@ -140,6 +148,67 @@ class RunnableAssignmentTransport(AssignmentTransport):
                     },
                 }
             }
+        return super().request(method, path, payload)
+
+
+class WorkloadTransport(FakeTransport):
+    def __init__(self, *, tamper: bool = False) -> None:
+        super().__init__()
+        without_hash: dict[str, object] = {
+            "schemaVersion": 1,
+            "workloadId": "workload-1",
+            "descriptorId": "descriptor-1",
+            "descriptorHash": "a" * 64,
+            "attemptId": "attempt-1",
+            "attemptBindingHash": "b" * 64,
+            "tenantScope": {
+                "scopeType": "workspace",
+                "organizationId": "organization-1",
+                "workspaceId": "workspace-1",
+            },
+            "jobId": "job-1",
+            "action": {
+                "type": "foundation.metadata-digest",
+                "version": 1,
+                "handlerDigest": "sha256:" + "c" * 64,
+                "inputSchemaId": "foundation.metadata-fixture.v1",
+                "outputSchemaId": "foundation.metadata-digest-result.v1",
+                "requiredCapabilities": ["metadata.read"],
+                "sideEffectClass": "NONE",
+                "riskClass": "READ_ONLY",
+            },
+            "inputHandles": [
+                {
+                    "objectId": "object-1",
+                    "schemaId": "foundation.metadata-fixture.v1",
+                    "contentSha256": "d" * 64,
+                    "byteLength": 12,
+                }
+            ],
+            "inputManifestHash": "e" * 64,
+            "parameters": {"limit": 100},
+            "outputPolicy": {
+                "outputObjectId": "object-out",
+                "maxBytes": 1024,
+                "mediaType": "application/json",
+            },
+            "deadline": "2099-01-01T00:10:00.000Z",
+            "locale": "vi-VN",
+            "timezone": "UTC",
+            "subjectBindings": {"dashboardId": "dashboard-1"},
+            "createdAt": "2026-08-19T00:00:00.000Z",
+        }
+        canonical = hashlib.sha256(
+            json.dumps(
+                without_hash, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+            ).encode("utf-8")
+        ).hexdigest()
+        self.response = {**without_hash, "canonicalHash": "f" * 64 if tamper else canonical}
+
+    def request(self, method: str, path: str, payload: dict[str, object]) -> dict[str, object]:
+        if path.endswith("/workload"):
+            self.calls.append((method, path, payload))
+            return self.response
         return super().request(method, path, payload)
 
 
@@ -197,6 +266,47 @@ def test_accepts_the_complete_signed_job_bound_input_grant() -> None:
     assert isinstance(grant, dict)
     assert grant["actions"] == ["READ"]
     assert grant["signedCapability"] == "signed-capability-token"
+
+
+def test_resolves_only_the_exact_server_authored_workload_and_rejects_tamper() -> None:
+    transport = WorkloadTransport()
+    client = WorkerClient("https://worker.internal", "secret", transport)
+    workload = client.workload(
+        attempt_id="attempt-1",
+        lease_token="lease-token",
+        expected_revision=2,
+        descriptor_id="descriptor-1",
+        descriptor_hash="a" * 64,
+        attempt_binding_hash="b" * 64,
+    )
+    assert workload["parameters"] == {"limit": 100}
+    assert transport.calls == [
+        (
+            "POST",
+            "/internal/worker/workload",
+            {
+                "attemptId": "attempt-1",
+                "leaseToken": "lease-token",
+                "expectedRevision": 2,
+                "descriptorId": "descriptor-1",
+                "descriptorHash": "a" * 64,
+                "attemptBindingHash": "b" * 64,
+            },
+        )
+    ]
+    with pytest.raises(WorkerClientError, match="workload"):
+        WorkerClient(
+            "https://worker.internal",
+            "secret",
+            WorkloadTransport(tamper=True),
+        ).workload(
+            attempt_id="attempt-1",
+            lease_token="lease-token",
+            expected_revision=2,
+            descriptor_id="descriptor-1",
+            descriptor_hash="a" * 64,
+            attempt_binding_hash="b" * 64,
+        )
 
 
 def test_runs_only_a_closed_registry_assignment_through_claim_heartbeat_and_completion() -> None:
@@ -572,9 +682,7 @@ def test_result_v2_stops_heartbeat_then_prepares_transfers_and_finalizes_typed_o
     )
 
     assert result.outcome == "SUCCEEDED"
-    assert transferred == [
-        ("20000000-0000-4000-8000-000000000001", "primary", "primary")
-    ]
+    assert transferred == [("20000000-0000-4000-8000-000000000001", "primary", "primary")]
     assert transport.heartbeat_after_prepare == 0
     prepare_payload = next(
         payload for _, path, payload in transport.calls if path.endswith("/results/prepare")
@@ -631,3 +739,117 @@ def test_result_v2_rejects_malformed_prepare_binding_and_never_transfers() -> No
             finalize_idempotency_key="result-finalize-10000000",
         )
     assert transferred is False
+
+
+class BinaryTransferTransport:
+    def __init__(self, *, tamper_digest: bool = False) -> None:
+        self.calls: list[tuple[str, str, dict[str, str], bytes]] = []
+        self.content = b'{"value":1}'
+        self.tamper_digest = tamper_digest
+
+    def request(self, method: str, path: str, payload: dict[str, object]) -> dict[str, object]:
+        self.calls.append((method, path, {"payload": repr(payload)}, b""))
+        if path.endswith("/results/finalize"):
+            return {
+                "schemaVersion": 1,
+                "accepted": True,
+                "attestation": {
+                    "attestationId": "attestation-1",
+                    "contentSha256": payload["contentSha256"],
+                    "contentLength": payload["contentLength"],
+                    "mediaType": payload["mediaType"],
+                },
+            }
+        raise AssertionError(path)
+
+    def request_bytes(
+        self,
+        method: str,
+        path: str,
+        headers: dict[str, str],
+        body: bytes = b"",
+        *,
+        max_response_bytes: int = 64 * 1024 * 1024,
+    ) -> tuple[bytes, dict[str, str]]:
+        self.calls.append((method, path, headers, body))
+        if method == "GET":
+            digest = hashlib.sha256(self.content).hexdigest()
+            if self.tamper_digest:
+                digest = "0" * 64
+            return self.content, {
+                "x-content-sha256": digest,
+                "content-length": str(len(self.content)),
+            }
+        if method == "PUT":
+            assert body == self.content
+            assert headers["x-content-sha256"] == hashlib.sha256(body).hexdigest()
+            return (
+                b'{"schemaVersion":1,"accepted":true,"receipt":{"contentSha256":"'
+                + headers["x-content-sha256"].encode("ascii")
+                + b'","contentLength":11}}',
+                {"content-type": "application/json"},
+            )
+        raise AssertionError(path)
+
+
+def test_transfers_exact_worker_bytes_and_finalizes_only_an_attestation_reference() -> None:
+    transport = BinaryTransferTransport()
+    client = WorkerClient("https://worker.internal", "secret", transport)
+
+    content, digest = client.read_object(
+        object_id="input-object",
+        signed_capability="signed-input-capability",
+        attempt_id="attempt-1",
+    )
+    assert content == transport.content
+    assert digest == hashlib.sha256(content).hexdigest()
+
+    receipt = client.write_object(
+        object_id="output-object",
+        signed_capability="signed-output-capability",
+        attempt_id="attempt-1",
+        content=content,
+        media_type="application/json",
+    )
+    assert receipt["contentLength"] == len(content)
+
+    attestation_id = client.finalize_object(
+        submission_id="submission-1",
+        signed_capability="signed-output-capability",
+        attempt_id="attempt-1",
+        execution_descriptor_id="descriptor-1",
+        object_id="output-object",
+        content_sha256=digest,
+        content_length=len(content),
+        media_type="application/json",
+    )
+    assert attestation_id == "attestation-1"
+    assert [call[1] for call in transport.calls] == [
+        "/internal/iae/worker/objects/input-object",
+        "/internal/iae/worker/objects/output-object",
+        "/internal/iae/worker/results/finalize",
+    ]
+    serialized = repr(transport.calls).lower()
+    assert "s3://" not in serialized
+    assert "database" not in serialized
+
+
+def test_rejects_tampered_binary_digest_and_unavailable_binary_transport() -> None:
+    client = WorkerClient(
+        "https://worker.internal",
+        "secret",
+        BinaryTransferTransport(tamper_digest=True),
+    )
+    with pytest.raises(WorkerClientError, match="digest"):
+        client.read_object(
+            object_id="input-object",
+            signed_capability="signed-input-capability",
+            attempt_id="attempt-1",
+        )
+
+    with pytest.raises(WorkerClientError, match="unavailable"):
+        WorkerClient("https://worker.internal", "secret", FakeTransport()).read_object(
+            object_id="input-object",
+            signed_capability="signed-input-capability",
+            attempt_id="attempt-1",
+        )

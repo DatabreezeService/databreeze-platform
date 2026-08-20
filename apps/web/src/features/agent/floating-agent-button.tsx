@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
-import brandMarkUrl from '@databreeze/design-tokens/brand/generated/web/favicon-32.png';
 
+import { DATABREEZE_MARK_SRC } from '../../app/brand-assets.ts';
 import type { AgentStoreV1 } from './agent-store.ts';
 
 export function FloatingAgentButton({
@@ -11,15 +11,18 @@ export function FloatingAgentButton({
   readonly locale: 'en' | 'vi-VN';
 }) {
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
+  const label = locale === 'vi-VN' ? 'Mở trợ lý' : 'Open agent';
   return (
     <button
       aria-expanded={snapshot.open}
+      aria-label={label}
       className="floating-agent-button"
+      data-shape="circle"
       type="button"
       onClick={() => store.setOpen(!snapshot.open)}
     >
-      <img alt="" aria-hidden="true" src={brandMarkUrl} />
-      <span>{locale === 'vi-VN' ? 'Mở trợ lý' : 'Open agent'}</span>
+      <img alt="" aria-hidden="true" src={DATABREEZE_MARK_SRC} />
+      <span className="sr-only">{label}</span>
     </button>
   );
 }

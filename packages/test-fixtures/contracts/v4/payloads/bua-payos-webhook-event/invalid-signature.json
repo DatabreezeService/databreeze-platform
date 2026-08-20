@@ -1,0 +1,7 @@
+{
+  "code": "00",
+  "desc": "success",
+  "success": true,
+  "data": { "orderCode": 501, "amount": 199000, "code": "00" },
+  "signature": "not-a-signature"
+}

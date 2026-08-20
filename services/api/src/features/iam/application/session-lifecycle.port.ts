@@ -13,6 +13,10 @@ export type SessionRefreshFailureCodeV1 =
   | 'REVOKED_FAMILY'
   | 'EXPIRED';
 
+export type SessionScopeSwitchResultV1 =
+  | { readonly accepted: true; readonly value: AuthenticationSessionV1 }
+  | { readonly accepted: false; readonly code: 'INVALID_SESSION' | 'UNAVAILABLE' };
+
 export type SessionRefreshResultV1 =
   | {
       readonly accepted: true;
@@ -24,6 +28,12 @@ export type SessionRefreshResultV1 =
     };
 
 export interface SessionLifecyclePortV1 extends SessionIssuerPortV1 {
+  /** Atomically replaces a live session with a new workspace-scoped session. */
+  switchScope?(
+    currentSessionId: unknown,
+    principal: AuthenticatedPrincipalV1,
+    clientPlatform: 'android' | 'desktop' | 'web',
+  ): Promise<SessionScopeSwitchResultV1>;
   refresh(
     refreshToken: unknown,
     clientPlatform: 'android' | 'desktop' | 'web',
@@ -32,6 +42,11 @@ export interface SessionLifecyclePortV1 extends SessionIssuerPortV1 {
   /** Revokes every active refresh family for the user. Returns revoked session count. */
   revokeAllForUser?(userId: unknown): Promise<number>;
   findPrincipal(sessionId: unknown): Promise<AuthenticatedPrincipalV1 | undefined>;
+  findSessionByAccessToken?(
+    accessToken: unknown,
+  ): Promise<
+    { readonly sessionId: string; readonly principal: AuthenticatedPrincipalV1 } | undefined
+  >;
   /** Optional until a host enables authenticated request-context resolution. */
   findPrincipalByAccessToken?(accessToken: unknown): Promise<AuthenticatedPrincipalV1 | undefined>;
 }

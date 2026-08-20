@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import type { DdaDataImportDashboardPreview } from '@databreeze/contracts/v4';
+import type { DdaDashboardWidgetResultsAccepted } from '@databreeze/contracts/v4';
 
 import { useLocale } from '../../app/locale-context.tsx';
+import { currentAuthBootstrapV1 } from '../auth/auth-session.ts';
 import { workspaceAgentStore } from '../agent/workspace-agent-store.ts';
 import type { AgentMessagePresentationV1 } from '../agent/agent-store.ts';
 import { AgentInvitation } from './agent-invitation.tsx';
@@ -18,9 +21,15 @@ import { DashboardCanvas } from './dashboard-canvas.tsx';
 import {
   applyDashboardAuthoringCommand,
   DashboardAuthoringApiErrorV1,
+  fetchDashboardWorkspaceHistory,
   proposeDashboardCharts,
   type DdaDashboardChartProposal,
 } from './dashboard-authoring-api.ts';
+import { executeAnalysisWithAgent } from '../analysis/local-analysis-engine.ts';
+import { dataImportApi, type DataImportRecordV1 } from '../data/data-import-api.ts';
+import { fetchEntitlementSummary, type EntitlementSummaryV1 } from '../usage/entitlement-api.ts';
+import { DataDashboardPreviewPage } from './data-dashboard-preview-page.tsx';
+import { dashboardPinnedStore } from './dashboard-pinned-store.ts';
 import {
   DashboardAuthoringCommandQueueV1,
   type DashboardAuthoringCommandSaveResultV1,
@@ -34,7 +43,9 @@ import {
 import {
   dashboardDemoMode,
   dashboardLiveConfiguration,
+  fetchDashboardFreshness,
   fetchDashboardDraft,
+  fetchDashboardWidgetResults,
   type DashboardDraftFixtureV1,
 } from './dashboard-api.ts';
 
@@ -68,28 +79,28 @@ const DEMO_DASHBOARD: DashboardDraftFixtureV1 = Object.freeze({
       type: 'KPI',
       pageId: '00000000-0000-4000-8000-00000000001c',
       title: Object.freeze({ vi: 'Doanh thu (YTD)', en: 'Revenue (YTD)' }),
-      values: Object.freeze([Object.freeze({ label: 'Doanh thu', value: '₫1,24 tỷ' })]),
+      values: Object.freeze([Object.freeze({ label: 'Doanh thu', value: '$10.67M (₫1,24 tỷ)' })]),
     }),
     Object.freeze({
       widgetId: '00000000-0000-4000-8000-000000000022',
       type: 'KPI',
       pageId: '00000000-0000-4000-8000-00000000001c',
       title: Object.freeze({ vi: 'Đơn hàng', en: 'Orders' }),
-      values: Object.freeze([Object.freeze({ label: 'Đơn hàng', value: '3.842' })]),
+      values: Object.freeze([Object.freeze({ label: 'Đơn hàng', value: '19.960' })]),
     }),
     Object.freeze({
       widgetId: '00000000-0000-4000-8000-000000000023',
       type: 'KPI',
       pageId: '00000000-0000-4000-8000-00000000001c',
       title: Object.freeze({ vi: 'Giá trị đơn hàng TB', en: 'Average order value' }),
-      values: Object.freeze([Object.freeze({ label: 'Giá trị TB', value: '₫323K' })]),
+      values: Object.freeze([Object.freeze({ label: 'Giá trị TB', value: '$534,40' })]),
     }),
     Object.freeze({
       widgetId: '00000000-0000-4000-8000-000000000024',
       type: 'KPI',
       pageId: '00000000-0000-4000-8000-00000000001c',
       title: Object.freeze({ vi: 'Tỷ lệ hoàn thành', en: 'Completion rate' }),
-      values: Object.freeze([Object.freeze({ label: 'Hoàn thành', value: '96,4%' })]),
+      values: Object.freeze([Object.freeze({ label: 'Hoàn thành', value: '98,4%' })]),
     }),
     Object.freeze({
       widgetId: '00000000-0000-4000-8000-000000000025',
@@ -119,6 +130,113 @@ const DEMO_DASHBOARD: DashboardDraftFixtureV1 = Object.freeze({
 });
 
 type DashboardWidgetV1 = DashboardDraftFixtureV1['widgets'][number];
+type ApprovedDataPreviewV1 = DdaDataImportDashboardPreview['value'];
+
+function latestReadyImport(
+  imports: readonly DataImportRecordV1[] | undefined,
+): DataImportRecordV1 | undefined {
+  return [...(imports ?? [])]
+    .filter((record) => record.state === 'READY' && record.accepted !== undefined)
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
+}
+
+function formatApprovedPreviewNumber(value: number, locale: 'vi-VN' | 'en'): string {
+  return new Intl.NumberFormat(locale === 'vi-VN' ? 'vi-VN' : 'en-US', {
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function approvedPreviewAssistantResponse(
+  preview: ApprovedDataPreviewV1,
+  locale: 'vi-VN' | 'en',
+): DashboardAgentResponseV1 {
+  const measure = preview.measure;
+  const topGroup = [...(preview.dimension?.groups ?? [])].sort(
+    (left, right) => (right.total ?? right.count) - (left.total ?? left.count),
+  )[0];
+  const total =
+    measure === undefined ? undefined : formatApprovedPreviewNumber(measure.sum, locale);
+  const groupText =
+    topGroup === undefined
+      ? undefined
+      : locale === 'vi-VN'
+        ? `Nhóm nổi bật là “${topGroup.label}” với ${formatApprovedPreviewNumber(topGroup.total ?? topGroup.count, locale)}.`
+        : `The leading group is “${topGroup.label}” at ${formatApprovedPreviewNumber(topGroup.total ?? topGroup.count, locale)}.`;
+  const vi = [
+    `Nhận định cục bộ từ bản xem nhanh dữ liệu đã duyệt “${preview.datasetName}”.`,
+    measure === undefined
+      ? `Bộ dữ liệu có ${preview.rowCount.toLocaleString('vi-VN')} dòng; chưa tìm thấy cột số để tính tổng.`
+      : `Tổng cột ${measure.field} là ${total}; trung bình ${formatApprovedPreviewNumber(measure.average, locale)}.`,
+    groupText,
+    'Đây là bản xem nhanh, chưa phải snapshot chứng nhận. Mở Phân tích để đặt câu hỏi nhiều bước hoặc bật dashboard được cấp quyền.',
+  ]
+    .filter((line): line is string => line !== undefined)
+    .join(' ');
+  const en = [
+    `Local insight from the approved-data preview “${preview.datasetName}”.`,
+    measure === undefined
+      ? `The dataset has ${preview.rowCount.toLocaleString('en-US')} rows; no numeric column was found for a total.`
+      : `The ${measure.field} total is ${total}; the average is ${formatApprovedPreviewNumber(measure.average, locale)}.`,
+    groupText,
+    'This is a preview, not a certified snapshot. Open Analysis for multi-step questions or use an authorized dashboard when available.',
+  ]
+    .filter((line): line is string => line !== undefined)
+    .join(' ');
+  return {
+    kind: 'local-preview',
+    message: { vi, en },
+  };
+}
+
+function verifiedWidgetResults(
+  draft: DashboardDraftFixtureV1,
+  accepted: DdaDashboardWidgetResultsAccepted | undefined,
+  locale: 'vi-VN' | 'en',
+): Readonly<Record<string, import('./dashboard-canvas.tsx').DashboardWidgetResultV1>> | undefined {
+  if (accepted === undefined) return undefined;
+  const byWidgetId = new Map(accepted.widgets.map((widget) => [widget.widgetId, widget]));
+  const results: Record<string, import('./dashboard-canvas.tsx').DashboardWidgetResultV1> = {};
+  for (const widget of draft.widgets) {
+    const verified = byWidgetId.get(widget.widgetId);
+    if (verified === undefined) {
+      results[widget.widgetId] = {
+        rows: [],
+        summary:
+          locale === 'vi-VN'
+            ? 'Chưa có kết quả đã xác minh cho tiện ích này.'
+            : 'No verified result is available for this widget.',
+        resultState: 'STALE',
+      };
+      continue;
+    }
+    results[widget.widgetId] = {
+      rows: verified.rows.map((row) => ({
+        rowId: row.provenance.resultCellId,
+        label: row.label,
+        numericValue: row.numericValue,
+        displayValue: row.displayValue,
+        unit: row.unit,
+        provenance: {
+          planId: row.provenance.planVersionId,
+          metricId: row.provenance.metricVersionId,
+          ...(row.provenance.evidenceRefs[0] === undefined
+            ? {}
+            : { evidenceRef: row.provenance.evidenceRefs[0] }),
+        },
+      })),
+      summary:
+        verified.resultState === 'READY'
+          ? locale === 'vi-VN'
+            ? 'Kết quả đã xác minh từ snapshot gần nhất.'
+            : 'Verified result from the latest snapshot.'
+          : locale === 'vi-VN'
+            ? `Kết quả đã xác minh: ${verified.resultState.toLowerCase()}.`
+            : `Verified result: ${verified.resultState.toLowerCase()}.`,
+      resultState: verified.resultState,
+    };
+  }
+  return Object.freeze(results);
+}
 
 function authoringView(draft: DashboardDraftFixtureV1): DashboardAuthoringViewV1 {
   return Object.freeze({
@@ -278,14 +396,96 @@ function canonicalChartOptions(
   }));
 }
 
+function planLabel(locale: ReturnType<typeof useLocale>, planCode: string): string {
+  const family = planCode.replace(/-monthly$/u, '').toLowerCase();
+  const labels: Record<string, { readonly vi: string; readonly en: string }> = {
+    personal: { vi: 'Cá nhân', en: 'Personal' },
+    professional: { vi: 'Professional', en: 'Professional' },
+    team: { vi: 'Nhóm', en: 'Team' },
+    enterprise: { vi: 'Doanh nghiệp', en: 'Enterprise' },
+  };
+  const label = labels[family] ?? { vi: planCode, en: planCode };
+  return locale === 'vi-VN' ? label.vi : label.en;
+}
+
+function entitlementStatusLabel(locale: ReturnType<typeof useLocale>, status: string): string {
+  if (status === 'ACTIVE') return locale === 'vi-VN' ? 'Đang hoạt động' : 'Active';
+  if (status === 'PAST_DUE') return locale === 'vi-VN' ? 'Cần thanh toán' : 'Payment due';
+  return locale === 'vi-VN' ? 'Đang kiểm tra' : 'Checking';
+}
+
 /** DDA-020..024/DDA-050: premium canvas with explicit, previewed agent changes. */
 export function DashboardPage() {
   const locale = useLocale();
   const location = useLocation();
   const routeDashboardId = new URLSearchParams(location.search).get('dashboard') ?? undefined;
-  const configuration = dashboardLiveConfiguration(import.meta.env, routeDashboardId);
+  const pinnedConfiguration = dashboardLiveConfiguration(import.meta.env, routeDashboardId);
   const analysisConfiguration = analysisLiveConfiguration();
   const demoMode = dashboardDemoMode();
+  const activeSession = currentAuthBootstrapV1()?.session;
+  const activeWorkspaceId =
+    activeSession !== undefined && activeSession.scopeType !== 'organization'
+      ? activeSession.workspaceId
+      : undefined;
+  // DDA-020: without an explicitly pinned dashboard, discover the workspace's own
+  // authorized dashboard from content-safe history instead of guessing an identifier.
+  const discoveryQuery = useQuery({
+    queryKey: ['dda', 'dashboard-discovery'],
+    queryFn: ({ signal }) => fetchDashboardWorkspaceHistory({ baseUrl: '' }, signal),
+    enabled: !demoMode && pinnedConfiguration === undefined,
+    retry: false,
+  });
+  const approvedImportsQuery = useQuery({
+    queryKey: ['dda', 'approved-imports', activeWorkspaceId ?? 'organization'],
+    queryFn: () => dataImportApi.list(50),
+    enabled: !demoMode,
+    retry: false,
+    staleTime: 30_000,
+  });
+  const entitlementQuery = useQuery<EntitlementSummaryV1>({
+    queryKey: ['bua', 'entitlement-summary', activeWorkspaceId ?? 'organization'],
+    queryFn: ({ signal }) => fetchEntitlementSummary({}, signal),
+    enabled: !demoMode,
+    retry: false,
+    staleTime: 30_000,
+  });
+  const readyImport = latestReadyImport(approvedImportsQuery.data);
+
+  const discoveredDashboardId = discoveryQuery.data?.items.find(
+    (item) => item.kind === 'DASHBOARD',
+  )?.subjectId;
+  const configuration =
+    pinnedConfiguration ??
+    (discoveredDashboardId === undefined
+      ? undefined
+      : Object.freeze({ baseUrl: '', dashboardId: discoveredDashboardId }));
+  const workspaceDashboardMissing =
+    !demoMode &&
+    configuration === undefined &&
+    !discoveryQuery.isPending &&
+    discoveryQuery.error === null;
+  const dashboardDiscoveryUnavailable =
+    !demoMode &&
+    configuration === undefined &&
+    !discoveryQuery.isPending &&
+    discoveryQuery.error !== null;
+  const isDashboardDiscoveryUnavailableState =
+    workspaceDashboardMissing || dashboardDiscoveryUnavailable;
+  const isEmptyDashboard = isDashboardDiscoveryUnavailableState && readyImport === undefined;
+  const approvedPreviewQuery = useQuery({
+    queryKey: ['dda', 'data-dashboard-preview', readyImport?.importId],
+    queryFn: () => {
+      if (readyImport === undefined) throw new Error('DATA_IMPORT_UNAVAILABLE');
+      return dataImportApi.dashboardPreview(readyImport.importId);
+    },
+    // Keep the bounded approved-data preview available even when an authorized
+    // dashboard already exists. If the server-side analysis provider is
+    // unavailable, the agent can still offer a clearly labelled local insight
+    // without inventing a metric or mutating the dashboard.
+    enabled: readyImport !== undefined,
+    retry: false,
+    staleTime: 30_000,
+  });
   const dashboardQuery = useQuery({
     queryKey: ['dda', 'dashboard-draft', configuration?.baseUrl, configuration?.dashboardId],
     queryFn: ({ signal }) => {
@@ -295,6 +495,61 @@ export function DashboardPage() {
     enabled: !demoMode && configuration !== undefined,
     retry: false,
   });
+  const freshnessQuery = useQuery({
+    queryKey: ['dda', 'dashboard-freshness', configuration?.baseUrl, configuration?.dashboardId],
+    queryFn: ({ signal }) => {
+      if (configuration === undefined) throw new Error('DASHBOARD_CONFIGURATION_UNAVAILABLE');
+      return fetchDashboardFreshness(configuration, signal);
+    },
+    enabled: !demoMode && configuration !== undefined,
+    retry: false,
+  });
+  const resultQuery = useQuery({
+    queryKey: [
+      'dda',
+      'dashboard-result',
+      configuration?.baseUrl,
+      configuration?.dashboardId,
+      freshnessQuery.data?.lastGoodSnapshotId,
+    ],
+    queryFn: ({ signal }) => {
+      if (configuration === undefined || freshnessQuery.data?.lastGoodSnapshotId === undefined) {
+        throw new Error('DASHBOARD_RESULT_UNAVAILABLE');
+      }
+      return fetchDashboardWidgetResults(
+        configuration,
+        freshnessQuery.data.lastGoodSnapshotId,
+        signal,
+      );
+    },
+    enabled:
+      !demoMode &&
+      configuration !== undefined &&
+      freshnessQuery.data?.lastGoodSnapshotId !== undefined,
+    retry: false,
+  });
+  // Do not mount the canvas shell until the authorized draft and its freshness
+  // boundary have resolved. In live mode, rendering an empty draft while the
+  // snapshot query is still in flight looks like a broken/blank dashboard and
+  // can briefly expose fixture-shaped fallbacks before the result arrives.
+  const liveSnapshotPending =
+    !demoMode &&
+    dashboardQuery.data !== undefined &&
+    (!freshnessQuery.isFetched ||
+      (freshnessQuery.data?.lastGoodSnapshotId !== undefined && !resultQuery.isFetched));
+  const liveSnapshotUnavailable =
+    !demoMode &&
+    dashboardQuery.data !== undefined &&
+    freshnessQuery.isFetched &&
+    (freshnessQuery.error !== null ||
+      freshnessQuery.data?.lastGoodSnapshotId === undefined ||
+      resultQuery.error !== null);
+  const hasRenderableDashboard =
+    demoMode ||
+    (dashboardQuery.data !== undefined &&
+      !liveSnapshotPending &&
+      !liveSnapshotUnavailable &&
+      resultQuery.data !== undefined);
   const [agentOpen, setAgentOpen] = useState(false);
   const agentSnapshot = useSyncExternalStore(
     workspaceAgentStore.subscribe,
@@ -304,16 +559,57 @@ export function DashboardPage() {
   const [invitationVisible, setInvitationVisible] = useState(true);
   const [agentResponse, setAgentResponse] = useState<DashboardAgentResponseV1>();
   const [canonicalProposal, setCanonicalProposal] = useState<DdaDashboardChartProposal>();
+  const [personalFilterValues, setPersonalFilterValues] = useState<
+    Readonly<Record<string, string>>
+  >({});
   const [acceptedWidgets, setAcceptedWidgets] = useState<readonly DashboardWidgetV1[]>([]);
   const [pendingWidgetFocusId, setPendingWidgetFocusId] = useState<string>();
   const [autosave, setAutosave] = useState<'SAVED' | 'SAVING' | 'FAILED'>('SAVED');
   const [conflictNoticeVisible, setConflictNoticeVisible] = useState(false);
   const [canvasResetToken, setCanvasResetToken] = useState(0);
 
+  const customPinnedWidgets = useSyncExternalStore(
+    dashboardPinnedStore.subscribe,
+    () => dashboardPinnedStore.getCustomWidgets(),
+    () => dashboardPinnedStore.getCustomWidgets(),
+  );
+
   const sourceDraft = demoMode ? DEMO_DASHBOARD : (dashboardQuery.data ?? EMPTY_DASHBOARD);
-  const draft = useMemo<DashboardDraftFixtureV1>(
-    () => ({ ...sourceDraft, widgets: [...sourceDraft.widgets, ...acceptedWidgets] }),
-    [acceptedWidgets, sourceDraft],
+  const draft = useMemo<DashboardDraftFixtureV1>(() => {
+    const freshness = freshnessQuery.data;
+    const warning =
+      freshness?.freshnessState === 'CURRENT'
+        ? locale === 'vi-VN'
+          ? 'Đã xác minh bằng snapshot mới nhất từ dữ liệu được duyệt.'
+          : 'Verified against the latest snapshot from approved data.'
+        : freshnessQuery.error !== null
+          ? locale === 'vi-VN'
+            ? 'Chưa có snapshot hoàn chỉnh; dữ liệu vẫn được giữ an toàn.'
+            : 'No complete snapshot is available; your data remains safe.'
+          : sourceDraft.warning;
+    const freshnessLabel = freshness
+      ? `${freshness.freshnessState} · ${freshness.lastSuccessfulRefreshAt ?? '—'}`
+      : sourceDraft.freshness;
+    return {
+      ...sourceDraft,
+      widgets: [...sourceDraft.widgets, ...acceptedWidgets, ...customPinnedWidgets],
+      freshness: freshnessLabel,
+      warning,
+    };
+  }, [
+    acceptedWidgets,
+    customPinnedWidgets,
+    freshnessQuery.data,
+    freshnessQuery.error,
+    locale,
+    sourceDraft,
+  ]);
+  useEffect(() => {
+    setPersonalFilterValues({});
+  }, [draft.dashboardId, draft.versionId]);
+  const liveResults = useMemo(
+    () => (demoMode ? undefined : verifiedWidgetResults(draft, resultQuery.data, locale)),
+    [demoMode, draft, locale, resultQuery.data],
   );
   useEffect(() => {
     if (pendingWidgetFocusId === undefined) return;
@@ -582,6 +878,28 @@ export function DashboardPage() {
     return conversationId;
   }
 
+  async function localApprovedPreviewResponse(
+    question: string,
+  ): Promise<DashboardAgentResponseV1 | undefined> {
+    if (readyImport === undefined) return undefined;
+    let preview = approvedPreviewQuery.data;
+    if (preview === undefined && approvedPreviewQuery.isPending) {
+      const refreshed = await approvedPreviewQuery.refetch();
+      preview = refreshed.data;
+    }
+    if (preview === undefined) return undefined;
+    const conversationId = ensureDashboardConversation(question);
+    appendAgentMessage(conversationId, {
+      messageId: crypto.randomUUID(),
+      role: 'USER',
+      text: question,
+      createdLabel: locale === 'vi-VN' ? 'Bây giờ' : 'Now',
+    });
+    const response = approvedPreviewAssistantResponse(preview, locale);
+    setAgentResponse(response);
+    return recordAgentResponse(conversationId, response);
+  }
+
   function recordAgentResponse(
     conversationId: string,
     response: DashboardAgentResponseV1,
@@ -606,23 +924,30 @@ export function DashboardPage() {
 
   async function askForChart(question: string): Promise<DashboardAgentResponseV1> {
     setAgentResponse(undefined);
-    const conversationId = ensureDashboardConversation(question);
-    appendAgentMessage(conversationId, {
-      messageId: crypto.randomUUID(),
-      role: 'USER',
-      text: question,
-      createdLabel: locale === 'vi-VN' ? 'Bây giờ' : 'Now',
-    });
+    if (!demoMode && configuration === undefined && readyImport !== undefined) {
+      const response = await localApprovedPreviewResponse(question);
+      if (response !== undefined) return response;
+    }
     if (!demoMode && (analysisConfiguration === undefined || configuration === undefined)) {
       const response: DashboardAgentResponseV1 = {
         kind: 'provider-disabled',
         message: {
-          vi: 'Kết nối phân tích chưa được cấu hình. Dữ liệu và bảng điều khiển hiện tại vẫn an toàn.',
-          en: 'Analysis is not configured yet. Your current data and dashboard remain unchanged.',
+          vi: 'Trợ lý biểu đồ cần một dashboard và kế hoạch phân tích đã được máy chủ cấp quyền. Hãy mở Dữ liệu hoặc Phân tích để chọn dữ liệu trước.',
+          en: 'The chart assistant needs a server-authorized dashboard and analysis plan. Open Data or Analysis to choose data first.',
         },
       };
       setAgentResponse(response);
-      return recordAgentResponse(conversationId, response);
+      return response;
+    }
+
+    const conversationId = demoMode ? ensureDashboardConversation(question) : undefined;
+    if (conversationId !== undefined) {
+      appendAgentMessage(conversationId, {
+        messageId: crypto.randomUUID(),
+        role: 'USER',
+        text: question,
+        createdLabel: locale === 'vi-VN' ? 'Bây giờ' : 'Now',
+      });
     }
 
     try {
@@ -673,7 +998,7 @@ export function DashboardPage() {
           options: canonicalChartOptions(proposal, preview, question),
         };
         setAgentResponse(response);
-        return recordAgentResponse(conversationId, response);
+        return response;
       }
       const response: DashboardAgentResponseV1 = {
         kind: 'proposals',
@@ -681,21 +1006,44 @@ export function DashboardPage() {
         options: chartOptions(preview, page.pageId, question),
       };
       setAgentResponse(response);
-      return recordAgentResponse(conversationId, response);
-    } catch {
-      const response: DashboardAgentResponseV1 = { kind: 'error' };
+      return recordAgentResponse(conversationId!, response);
+    } catch (error: unknown) {
+      if (!demoMode) {
+        const providerUnavailable =
+          (error instanceof DashboardAuthoringApiErrorV1 && error.code === 'UNAVAILABLE') ||
+          (error instanceof Error &&
+            error.message !== 'ANALYSIS_PROPOSAL_UNAUTHORIZED' &&
+            error.message !== 'ANALYSIS_PROPOSAL_INVALID');
+        if (providerUnavailable) {
+          const localResponse = await localApprovedPreviewResponse(question);
+          if (localResponse !== undefined) return localResponse;
+        }
+        const response: DashboardAgentResponseV1 = {
+          kind: 'error',
+          message: {
+            vi: 'Không thể tạo đề xuất từ máy chủ. Không có thay đổi nào được gửi.',
+            en: 'The server could not create a proposal. No changes were sent.',
+          },
+        };
+        setAgentResponse(response);
+        return response;
+      }
+      const localRes = await executeAnalysisWithAgent(question, undefined, locale);
+      const response: DashboardAgentResponseV1 = {
+        kind: 'clarification',
+        message: {
+          vi: localRes.answerText,
+          en: localRes.answerText,
+        },
+      };
       setAgentResponse(response);
-      return recordAgentResponse(conversationId, response);
+      return recordAgentResponse(conversationId!, response);
     }
   }
 
   async function acceptCharts(selectedOptionIds: readonly string[]) {
     if (agentResponse?.kind !== 'proposals') return;
-    if (!demoMode) {
-      if (canonicalProposal === undefined) {
-        setAutosave('FAILED');
-        return;
-      }
+    if (!demoMode && canonicalProposal !== undefined) {
       const selected = [...selectedOptionIds];
       for (const optionId of selected) {
         if (!authoringStateRef.current.selectedOptionIds.includes(optionId)) {
@@ -716,13 +1064,17 @@ export function DashboardPage() {
     const selected = agentResponse.options.filter((option) =>
       selectedOptionIds.includes(option.optionId),
     );
-    const nextWidgets = selected.map<DashboardWidgetV1>((option) => ({
-      widgetId: crypto.randomUUID(),
-      pageId: page.pageId,
-      type: option.chartType,
-      title: option.title,
-      values: [],
-    }));
+    const nextWidgets = selected.map<DashboardWidgetV1>((option) => {
+      const w: DashboardWidgetV1 = {
+        widgetId: crypto.randomUUID(),
+        pageId: page.pageId,
+        type: option.chartType,
+        title: option.title,
+        values: [],
+      };
+      dashboardPinnedStore.addWidget(w);
+      return w;
+    });
     setAcceptedWidgets((current) => [...current, ...nextWidgets]);
     setPendingWidgetFocusId(nextWidgets[0]?.widgetId);
     setAgentResponse(undefined);
@@ -742,12 +1094,173 @@ export function DashboardPage() {
   }
 
   return (
-    <section className="dda-dashboard-page">
+    <section
+      className={`dda-dashboard-page${isEmptyDashboard ? ' dda-dashboard-page--empty' : ''}`}
+    >
       <h1 className="sr-only">{locale === 'vi-VN' ? 'Bảng điều khiển' : 'Dashboards'}</h1>
-      {!demoMode && dashboardQuery.data === undefined ? (
+      {!demoMode && dashboardQuery.data === undefined && !isDashboardDiscoveryUnavailableState ? (
         <p className="dda-dashboard-page__notice" role="status">
-          {failClosedMessage(locale, errorCode)}
+          {configuration === undefined && discoveryQuery.isPending
+            ? locale === 'vi-VN'
+              ? 'Đang tìm bảng điều khiển trong không gian làm việc...'
+              : 'Finding the workspace dashboard...'
+            : dashboardDiscoveryUnavailable
+              ? locale === 'vi-VN'
+                ? 'Không thể tìm bảng điều khiển trong không gian làm việc lúc này.'
+                : 'The workspace dashboard could not be found right now.'
+              : failClosedMessage(locale, errorCode)}
         </p>
+      ) : null}
+      {entitlementQuery.data !== undefined ? (
+        <section
+          aria-label={locale === 'vi-VN' ? 'Gói và tín dụng AI' : 'Plan and AI credits'}
+          className="dda-dashboard-entitlement"
+          data-testid="dashboard-entitlement"
+        >
+          <div className="dda-dashboard-entitlement__plan" data-testid="dashboard-plan">
+            <span className="dda-dashboard-entitlement__eyebrow">
+              {locale === 'vi-VN' ? 'Gói hiện tại' : 'Current plan'}
+            </span>
+            <strong>
+              {locale === 'vi-VN' ? 'Gói ' : 'Plan '}
+              {planLabel(locale, entitlementQuery.data.snapshot.planCode)}
+            </strong>
+            <span className="dda-dashboard-entitlement__status">
+              {entitlementStatusLabel(locale, entitlementQuery.data.snapshot.status)}
+            </span>
+          </div>
+          <div className="dda-dashboard-entitlement__credits" data-testid="dashboard-ai-credits">
+            <span className="dda-dashboard-entitlement__eyebrow">
+              {locale === 'vi-VN' ? 'Tín dụng AI' : 'AI credits'}
+            </span>
+            <strong>{entitlementQuery.data.aiCredits.remaining.toLocaleString(locale)}</strong>
+            <span>{locale === 'vi-VN' ? 'còn lại trong kỳ này' : 'remaining this cycle'}</span>
+          </div>
+          <Link className="dda-dashboard-entitlement__upgrade" to={`/${locale}/billing`}>
+            {locale === 'vi-VN' ? 'Nâng cấp gói' : 'Upgrade plan'}
+          </Link>
+        </section>
+      ) : null}
+      {isEmptyDashboard ? (
+        <section className="dda-dashboard-page__empty" data-testid="dashboard-empty-state">
+          <img
+            alt="DataBreeze"
+            className="dda-dashboard-page__empty-logo"
+            src="/landing/assets/databreeze-mark.png"
+            width="48"
+            height="48"
+          />
+          <p className="dda-dashboard-page__empty-text">
+            {locale === 'vi-VN'
+              ? 'Tải dữ liệu lên để bắt đầu xây dựng bảng điều khiển của bạn.'
+              : 'Upload your data to start building your dashboard.'}
+          </p>
+          <Link className="dda-dashboard-page__empty-action" to={`/${locale}/data`}>
+            {locale === 'vi-VN' ? 'Tải dữ liệu lên' : 'Upload data'}
+          </Link>
+          {dashboardDiscoveryUnavailable ? (
+            <p
+              aria-label={
+                locale === 'vi-VN'
+                  ? 'Không thể tìm bảng điều khiển trong không gian làm việc lúc này.'
+                  : 'The workspace dashboard could not be found right now.'
+              }
+              className="dda-dashboard-page__empty-notice"
+              role="alert"
+            >
+              {locale === 'vi-VN'
+                ? 'Không thể tìm bảng điều khiển trong không gian làm việc lúc này.'
+                : 'The workspace dashboard could not be found right now.'}
+            </p>
+          ) : null}
+        </section>
+      ) : null}
+      {isDashboardDiscoveryUnavailableState && readyImport !== undefined ? (
+        <section
+          aria-label={locale === 'vi-VN' ? 'Dashboard xem nhanh' : 'Dashboard preview'}
+          className="dda-dashboard-page__approved-preview"
+          data-testid="dashboard-approved-preview"
+        >
+          <DataDashboardPreviewPage embedded importId={readyImport.importId} />
+          <div className="dda-dashboard-page__approved-preview-actions">
+            <Link to={`/${locale}/data`}>
+              {locale === 'vi-VN' ? 'Quản lý dữ liệu' : 'Manage data'}
+            </Link>
+            {readyImport.datasetId === undefined ? null : (
+              <Link to={`/${locale}/analysis?dataset=${encodeURIComponent(readyImport.datasetId)}`}>
+                {locale === 'vi-VN' ? 'Mở Phân tích' : 'Open Analysis'}
+              </Link>
+            )}
+          </div>
+        </section>
+      ) : null}
+      {liveSnapshotPending ? (
+        <p className="dda-dashboard-page__notice" role="status">
+          {locale === 'vi-VN'
+            ? 'Đang tải snapshot đã được cấp quyền để hiển thị số liệu…'
+            : 'Loading the authorized snapshot before showing metrics…'}
+        </p>
+      ) : null}
+      {liveSnapshotUnavailable ? (
+        <>
+          <section
+            aria-labelledby="dashboard-snapshot-empty-heading"
+            className="dda-dashboard-page__empty dda-dashboard-page__empty--snapshot"
+            data-testid="dashboard-snapshot-empty"
+          >
+            <div className="dda-dashboard-page__empty-mark" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
+            <div>
+              <p className="dda-dashboard-page__empty-eyebrow">
+                {locale === 'vi-VN' ? 'Snapshot đầu tiên' : 'First snapshot'}
+              </p>
+              <h2 id="dashboard-snapshot-empty-heading">
+                {locale === 'vi-VN'
+                  ? 'Bảng điều khiển đang chờ số liệu đã được xác minh.'
+                  : 'Your dashboard is waiting for verified metrics.'}
+              </h2>
+              <p>
+                {locale === 'vi-VN'
+                  ? 'Bản nháp đã sẵn sàng, nhưng chưa có snapshot hoàn chỉnh để hiển thị. Hãy duyệt dữ liệu hoặc mở Phân tích; DataBreeze sẽ giữ nguyên màn hình an toàn thay vì hiển thị số liệu chưa xác minh.'
+                  : 'The draft is ready, but no complete snapshot is available yet. Approve data or open Analysis; DataBreeze keeps this safe state instead of showing unverified numbers.'}
+              </p>
+              <div className="dda-dashboard-page__empty-actions">
+                <Link to={`/${locale}/data`}>
+                  {locale === 'vi-VN' ? 'Mở Dữ liệu' : 'Open Data'}
+                </Link>
+                <Link to={`/${locale}/analysis`}>
+                  {locale === 'vi-VN' ? 'Mở Phân tích' : 'Open Analysis'}
+                </Link>
+              </div>
+            </div>
+          </section>
+          {readyImport !== undefined ? (
+            <section
+              aria-label={
+                locale === 'vi-VN' ? 'Bản xem nhanh từ dữ liệu đã duyệt' : 'Approved data preview'
+              }
+              className="dda-dashboard-page__approved-preview dda-dashboard-page__approved-preview--snapshot-fallback"
+              data-testid="dashboard-approved-preview-fallback"
+            >
+              <DataDashboardPreviewPage embedded importId={readyImport.importId} />
+              <div className="dda-dashboard-page__approved-preview-actions">
+                <Link to={`/${locale}/data`}>
+                  {locale === 'vi-VN' ? 'Quản lý dữ liệu' : 'Manage data'}
+                </Link>
+                {readyImport.datasetId === undefined ? null : (
+                  <Link
+                    to={`/${locale}/analysis?dataset=${encodeURIComponent(readyImport.datasetId)}`}
+                  >
+                    {locale === 'vi-VN' ? 'Mở Phân tích' : 'Open Analysis'}
+                  </Link>
+                )}
+              </div>
+            </section>
+          ) : null}
+        </>
       ) : null}
       {conflictNoticeVisible ? (
         <p
@@ -766,175 +1279,356 @@ export function DashboardPage() {
       <span className="sr-only" data-testid="dashboard-evidence-warning">
         {draft.warning}
       </span>
-      <DashboardCanvas
-        key={`${draft.dashboardId}:${draft.versionId}:${canvasResetToken}`}
-        locale={locale}
-        draft={draft}
-        header={{
-          title: page.title,
-          dataset: { vi: 'Tất cả dữ liệu đã chọn', en: 'All selected data' },
-          autosave,
-        }}
-        onOpenAgent={() => {
-          setInvitationVisible(false);
-          setAgentOpen(true);
-        }}
-        onLayoutCommand={(command) => {
-          const layout = { breakpoint: command.breakpoint, cells: command.cells };
-          dispatchAuthoring({ type: 'LAYOUT_CHANGED', layout });
-          setConflictNoticeVisible(false);
-          setAutosave('SAVING');
-          if (demoMode) return;
-          commandQueue.scheduleLayout(layout);
-        }}
-        onRemoveWidget={(widgetId) => void persistWidgetVisibility('REMOVE_WIDGET', widgetId)}
-        onRestoreWidget={(widgetId) => void persistWidgetVisibility('RESTORE_WIDGET', widgetId)}
-        {...(demoMode
-          ? {
-              layouts: {
-                desktop: [
-                  { widgetId: '00000000-0000-4000-8000-00000000001d', x: 0, y: 0, w: 3, h: 3 },
-                  { widgetId: '00000000-0000-4000-8000-000000000022', x: 3, y: 0, w: 3, h: 3 },
-                  { widgetId: '00000000-0000-4000-8000-000000000023', x: 6, y: 0, w: 3, h: 3 },
-                  { widgetId: '00000000-0000-4000-8000-000000000024', x: 9, y: 0, w: 3, h: 3 },
-                  { widgetId: '00000000-0000-4000-8000-000000000025', x: 0, y: 3, w: 6, h: 6 },
-                  { widgetId: '00000000-0000-4000-8000-000000000026', x: 6, y: 3, w: 6, h: 6 },
-                ],
-                tablet: [],
-                mobile: [],
-              },
-            }
-          : {})}
-        {...(demoMode
-          ? {
-              widgetResults: {
-                '00000000-0000-4000-8000-00000000001d': {
-                  rows: [
-                    {
-                      rowId: 'demo-total-sales',
-                      label: 'so với cùng kỳ · +12,5%',
-                      numericValue: 1_240_000_000,
-                      displayValue: '₫1,24 tỷ',
-                      unit: 'VND',
-                    },
+      {hasRenderableDashboard ? (
+        <DashboardCanvas
+          key={`${draft.dashboardId}:${draft.versionId}:${canvasResetToken}`}
+          locale={locale}
+          draft={draft}
+          header={{
+            title: page.title,
+            dataset: { vi: 'Tất cả dữ liệu đã chọn', en: 'All selected data' },
+            autosave,
+          }}
+          onOpenAgent={() => {
+            setInvitationVisible(false);
+            setAgentOpen(true);
+          }}
+          onLayoutCommand={(command) => {
+            const layout = { breakpoint: command.breakpoint, cells: command.cells };
+            dispatchAuthoring({ type: 'LAYOUT_CHANGED', layout });
+            setConflictNoticeVisible(false);
+            setAutosave('SAVING');
+            if (demoMode) return;
+            commandQueue.scheduleLayout(layout);
+          }}
+          onRemoveWidget={(widgetId) => void persistWidgetVisibility('REMOVE_WIDGET', widgetId)}
+          onRestoreWidget={(widgetId) => void persistWidgetVisibility('RESTORE_WIDGET', widgetId)}
+          filterValues={personalFilterValues}
+          onFilterChange={(filterId, value) => {
+            setPersonalFilterValues((current) => {
+              const trimmed = value.trim();
+              if (trimmed.length === 0) {
+                const next = { ...current };
+                delete next[filterId];
+                return next;
+              }
+              return { ...current, [filterId]: value };
+            });
+          }}
+          {...(liveResults === undefined ? {} : { widgetResults: liveResults })}
+          {...(demoMode
+            ? {
+                layouts: {
+                  desktop: [
+                    { widgetId: '00000000-0000-4000-8000-00000000001d', x: 0, y: 0, w: 3, h: 3 },
+                    { widgetId: '00000000-0000-4000-8000-000000000022', x: 3, y: 0, w: 3, h: 3 },
+                    { widgetId: '00000000-0000-4000-8000-000000000023', x: 6, y: 0, w: 3, h: 3 },
+                    { widgetId: '00000000-0000-4000-8000-000000000024', x: 9, y: 0, w: 3, h: 3 },
+                    { widgetId: '00000000-0000-4000-8000-000000000025', x: 0, y: 3, w: 6, h: 7 },
+                    { widgetId: '00000000-0000-4000-8000-000000000026', x: 6, y: 3, w: 6, h: 7 },
                   ],
-                  summary: 'Total sales for the selected governed dataset',
+                  tablet: [],
+                  mobile: [],
                 },
-                '00000000-0000-4000-8000-000000000022': {
-                  rows: [
-                    {
-                      rowId: 'demo-orders',
-                      label: 'so với cùng kỳ · +8,7%',
-                      numericValue: 3_842,
-                      displayValue: '3.842',
-                    },
-                  ],
-                  summary: 'Orders for the selected governed dataset',
+              }
+            : {})}
+          {...(demoMode
+            ? {
+                widgetResults: {
+                  '00000000-0000-4000-8000-00000000001d': {
+                    rows: [
+                      {
+                        rowId: 'demo-total-sales',
+                        label: 'so với cùng kỳ · +18,4%',
+                        numericValue: 10_666_685,
+                        displayValue: '$10.67M',
+                        unit: 'USD',
+                      },
+                    ],
+                    summary: 'Total revenue from Online Retail data.csv',
+                  },
+                  '00000000-0000-4000-8000-000000000022': {
+                    rows: [
+                      {
+                        rowId: 'demo-orders',
+                        label: 'so với cùng kỳ · +12,3%',
+                        numericValue: 19_960,
+                        displayValue: '19.960',
+                      },
+                    ],
+                    summary: 'Total unique invoice orders',
+                  },
+                  '00000000-0000-4000-8000-000000000023': {
+                    rows: [
+                      {
+                        rowId: 'demo-quantity',
+                        label: 'so với cùng kỳ · +9,7%',
+                        numericValue: 5_588_376,
+                        displayValue: '5.588.376',
+                      },
+                    ],
+                    summary: 'Total items sold across all transactions',
+                  },
+                  '00000000-0000-4000-8000-000000000024': {
+                    rows: [
+                      {
+                        rowId: 'demo-aov',
+                        label: 'so với cùng kỳ · +5,5%',
+                        numericValue: 534.4,
+                        displayValue: '$534,40',
+                        unit: 'USD',
+                      },
+                    ],
+                    summary: 'Average order value per transaction',
+                  },
+                  '00000000-0000-4000-8000-000000000027': {
+                    rows: [
+                      {
+                        rowId: 'c-uk',
+                        label: 'UK',
+                        numericValue: 9_025_222,
+                        displayValue: '$9.03M',
+                        unit: 'USD',
+                      },
+                      {
+                        rowId: 'c-nl',
+                        label: 'Netherlands',
+                        numericValue: 285_446,
+                        displayValue: '$285K',
+                        unit: 'USD',
+                      },
+                      {
+                        rowId: 'c-ie',
+                        label: 'EIRE',
+                        numericValue: 283_454,
+                        displayValue: '$283K',
+                        unit: 'USD',
+                      },
+                      {
+                        rowId: 'c-de',
+                        label: 'Germany',
+                        numericValue: 228_867,
+                        displayValue: '$229K',
+                        unit: 'USD',
+                      },
+                      {
+                        rowId: 'c-fr',
+                        label: 'France',
+                        numericValue: 209_715,
+                        displayValue: '$210K',
+                        unit: 'USD',
+                      },
+                      {
+                        rowId: 'c-au',
+                        label: 'Australia',
+                        numericValue: 138_521,
+                        displayValue: '$139K',
+                        unit: 'USD',
+                      },
+                    ],
+                    summary: 'Revenue breakdown by country',
+                  },
+                  '00000000-0000-4000-8000-000000000025': {
+                    rows: [
+                      {
+                        rowId: 'm-1',
+                        label: 'T12',
+                        numericValue: 748_957,
+                        displayValue: '$749K',
+                        unit: 'USD',
+                      },
+                      {
+                        rowId: 'm-2',
+                        label: 'T1',
+                        numericValue: 560_000,
+                        displayValue: '$560K',
+                        unit: 'USD',
+                      },
+                      {
+                        rowId: 'm-3',
+                        label: 'T2',
+                        numericValue: 498_062,
+                        displayValue: '$498K',
+                        unit: 'USD',
+                      },
+                      {
+                        rowId: 'm-4',
+                        label: 'T3',
+                        numericValue: 683_265,
+                        displayValue: '$683K',
+                        unit: 'USD',
+                      },
+                      {
+                        rowId: 'm-5',
+                        label: 'T4',
+                        numericValue: 493_207,
+                        displayValue: '$493K',
+                        unit: 'USD',
+                      },
+                      {
+                        rowId: 'm-6',
+                        label: 'T5',
+                        numericValue: 723_333,
+                        displayValue: '$723K',
+                        unit: 'USD',
+                      },
+                      {
+                        rowId: 'm-7',
+                        label: 'T6',
+                        numericValue: 691_123,
+                        displayValue: '$691K',
+                        unit: 'USD',
+                      },
+                      {
+                        rowId: 'm-8',
+                        label: 'T7',
+                        numericValue: 681_300,
+                        displayValue: '$681K',
+                        unit: 'USD',
+                      },
+                      {
+                        rowId: 'm-9',
+                        label: 'T8',
+                        numericValue: 682_680,
+                        displayValue: '$683K',
+                        unit: 'USD',
+                      },
+                      {
+                        rowId: 'm-10',
+                        label: 'T9',
+                        numericValue: 1_019_687,
+                        displayValue: '$1.02M',
+                        unit: 'USD',
+                      },
+                      {
+                        rowId: 'm-11',
+                        label: 'T10',
+                        numericValue: 1_070_704,
+                        displayValue: '$1.07M',
+                        unit: 'USD',
+                      },
+                      {
+                        rowId: 'm-12',
+                        label: 'T11',
+                        numericValue: 1_461_756,
+                        displayValue: '$1.46M',
+                        unit: 'USD',
+                      },
+                    ],
+                    summary: 'Monthly revenue trend',
+                  },
+                  '00000000-0000-4000-8000-000000000026': {
+                    rows: [
+                      {
+                        rowId: 's-uk',
+                        label: 'United Kingdom',
+                        numericValue: 84.6,
+                        displayValue: '84,6%',
+                      },
+                      {
+                        rowId: 's-nl',
+                        label: 'Netherlands',
+                        numericValue: 2.7,
+                        displayValue: '2,7%',
+                      },
+                      {
+                        rowId: 's-ie',
+                        label: 'EIRE (Ireland)',
+                        numericValue: 2.7,
+                        displayValue: '2,7%',
+                      },
+                      {
+                        rowId: 's-de',
+                        label: 'Germany',
+                        numericValue: 2.1,
+                        displayValue: '2,1%',
+                      },
+                      {
+                        rowId: 's-fr',
+                        label: 'France',
+                        numericValue: 2.0,
+                        displayValue: '2,0%',
+                      },
+                      {
+                        rowId: 's-other',
+                        label: 'Khác (Others)',
+                        numericValue: 5.9,
+                        displayValue: '5,9%',
+                      },
+                    ],
+                    summary: 'Market share breakdown',
+                  },
+                  '00000000-0000-4000-8000-000000000028': {
+                    rows: [
+                      {
+                        rowId: 'q-1',
+                        label: 'Q1',
+                        numericValue: 4_210,
+                        displayValue: '4.210 đơn',
+                      },
+                      {
+                        rowId: 'q-2',
+                        label: 'Q2',
+                        numericValue: 4_890,
+                        displayValue: '4.890 đơn',
+                      },
+                      {
+                        rowId: 'q-3',
+                        label: 'Q3',
+                        numericValue: 5_120,
+                        displayValue: '5.120 đơn',
+                      },
+                      {
+                        rowId: 'q-4',
+                        label: 'Q4',
+                        numericValue: 5_740,
+                        displayValue: '5.740 đơn',
+                      },
+                    ],
+                    summary: 'Quarterly order volume',
+                  },
+                  '00000000-0000-4000-8000-000000000029': {
+                    rows: [
+                      {
+                        rowId: 'category-home',
+                        label: 'Gia dụng',
+                        numericValue: 37.8,
+                        displayValue: '37,8%',
+                      },
+                      {
+                        rowId: 'category-gifts',
+                        label: 'Quà tặng',
+                        numericValue: 26.4,
+                        displayValue: '26,4%',
+                      },
+                      {
+                        rowId: 'category-decor',
+                        label: 'Trang trí',
+                        numericValue: 18.9,
+                        displayValue: '18,9%',
+                      },
+                      {
+                        rowId: 'category-accessories',
+                        label: 'Phụ kiện',
+                        numericValue: 10.7,
+                        displayValue: '10,7%',
+                      },
+                      {
+                        rowId: 'category-other',
+                        label: 'Khác',
+                        numericValue: 6.2,
+                        displayValue: '6,2%',
+                      },
+                    ],
+                    summary: 'Revenue contribution by product category',
+                  },
                 },
-                '00000000-0000-4000-8000-000000000023': {
-                  rows: [
-                    {
-                      rowId: 'demo-average-order',
-                      label: 'so với cùng kỳ · +3,2%',
-                      numericValue: 323_000,
-                      displayValue: '₫323K',
-                      unit: 'VND',
-                    },
-                  ],
-                  summary: 'Average order value for the selected governed dataset',
-                },
-                '00000000-0000-4000-8000-000000000024': {
-                  rows: [
-                    {
-                      rowId: 'demo-completion-rate',
-                      label: 'so với cùng kỳ · +1,1%',
-                      numericValue: 96.4,
-                      displayValue: '96,4%',
-                    },
-                  ],
-                  summary: 'Completion rate for the selected governed dataset',
-                },
-                '00000000-0000-4000-8000-000000000025': {
-                  rows: [
-                    {
-                      rowId: 't1',
-                      label: 'T1',
-                      numericValue: 200_000_000,
-                      displayValue: '200M',
-                      unit: 'VND',
-                    },
-                    {
-                      rowId: 't2',
-                      label: 'T2',
-                      numericValue: 330_000_000,
-                      displayValue: '330M',
-                      unit: 'VND',
-                    },
-                    {
-                      rowId: 't3',
-                      label: 'T3',
-                      numericValue: 430_000_000,
-                      displayValue: '430M',
-                      unit: 'VND',
-                    },
-                    {
-                      rowId: 't4',
-                      label: 'T4',
-                      numericValue: 470_000_000,
-                      displayValue: '470M',
-                      unit: 'VND',
-                    },
-                    {
-                      rowId: 't5',
-                      label: 'T5',
-                      numericValue: 690_000_000,
-                      displayValue: '690M',
-                      unit: 'VND',
-                    },
-                    {
-                      rowId: 't6',
-                      label: 'T6',
-                      numericValue: 610_000_000,
-                      displayValue: '610M',
-                      unit: 'VND',
-                    },
-                  ],
-                  summary: 'Revenue over time',
-                },
-                '00000000-0000-4000-8000-000000000026': {
-                  rows: [
-                    {
-                      rowId: 'south',
-                      label: 'Miền Nam',
-                      numericValue: 45.6,
-                      displayValue: '45,6%',
-                    },
-                    {
-                      rowId: 'north',
-                      label: 'Miền Bắc',
-                      numericValue: 28.3,
-                      displayValue: '28,3%',
-                    },
-                    {
-                      rowId: 'central',
-                      label: 'Miền Trung',
-                      numericValue: 16.7,
-                      displayValue: '16,7%',
-                    },
-                    {
-                      rowId: 'west',
-                      label: 'Miền Tây',
-                      numericValue: 9.4,
-                      displayValue: '9,4%',
-                    },
-                  ],
-                  summary: 'Revenue mix',
-                },
-              },
-            }
-          : {})}
-      />
+              }
+            : {})}
+        />
+      ) : null}
       <AgentInvitation
+        expanded={agentOpen}
         locale={locale}
         visible={invitationVisible}
         onOpen={() => {

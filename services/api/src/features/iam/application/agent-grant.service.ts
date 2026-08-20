@@ -156,24 +156,38 @@ export class AgentGrantService {
   private async resolveMember(
     context: IamTenantContextV1,
     memberId: StableIdentifierV1,
+    allowOrganizationActor = false,
   ): Promise<
     | {
         readonly accepted: true;
         readonly membershipId: StableIdentifierV1;
         readonly principalId: StableIdentifierV1;
         readonly preset: MembershipAccessPresetV1;
+        readonly membershipScopeType: 'workspace' | 'organization';
       }
     | { readonly accepted: false; readonly code: 'NOT_FOUND' | 'UNAVAILABLE' }
   > {
     try {
       const memberships = await this.memberships.listMemberships(context);
-      const membership = memberships.find(
+      const matchingMemberships = memberships.filter(
         (item) =>
-          item.status === 'ACTIVE' &&
-          (item.id === memberId || item.principalId === memberId) &&
-          item.scope.scopeType === 'workspace',
+          item.status === 'ACTIVE' && (item.id === memberId || item.principalId === memberId),
       );
+      const membership =
+        matchingMemberships.find((item) => item.scope.scopeType === 'workspace') ??
+        (allowOrganizationActor
+          ? matchingMemberships.find(
+              (item) =>
+                item.scope.scopeType === 'organization' &&
+                item.scope.organizationId === context.tenantScope.organizationId &&
+                item.principalId === context.actorId,
+            )
+          : undefined);
       if (!membership) return { accepted: false, code: 'NOT_FOUND' };
+      const membershipScopeType = membership.scope.scopeType;
+      if (membershipScopeType !== 'workspace' && membershipScopeType !== 'organization') {
+        return { accepted: false, code: 'NOT_FOUND' };
+      }
       const preset = this.accessPresets.presetForRoleId(membership.roleId);
       if (!preset) return { accepted: false, code: 'NOT_FOUND' };
       return {
@@ -181,6 +195,7 @@ export class AgentGrantService {
         membershipId: membership.id,
         principalId: membership.principalId,
         preset,
+        membershipScopeType,
       };
     } catch {
       return { accepted: false, code: 'UNAVAILABLE' };
@@ -445,21 +460,25 @@ export class AgentGrantService {
       const contextEpoch =
         input.context.workspaceAuthorizationEpoch ?? input.context.authorizationEpoch;
       if (currentEpoch !== contextEpoch) return rejected('STALE_AUTHORIZATION');
-      const member = await this.resolveMember(input.context, memberId.value);
+      const member = await this.resolveMember(input.context, memberId.value, true);
       if (!member.accepted) return rejected(member.code);
-      const restrictions = await this.grants.findDatasetRestrictions(
-        input.context,
-        member.membershipId,
-      );
-      const deniedDatasetIds = restrictions?.deniedDatasetIds ?? [];
-      if (restrictions) {
-        const denied = new Set(deniedDatasetIds);
-        if (resourceIds.some((resourceId) => denied.has(resourceId))) {
-          return rejected('NOT_FOUND');
+      let deniedDatasetIds: readonly StableIdentifierV1[] = Object.freeze([]);
+      let storedLevel = defaultAgentGrantLevelForPresetV1(member.preset);
+      if (member.membershipScopeType === 'workspace') {
+        const restrictions = await this.grants.findDatasetRestrictions(
+          input.context,
+          member.membershipId,
+        );
+        deniedDatasetIds = restrictions?.deniedDatasetIds ?? [];
+        if (restrictions) {
+          const denied = new Set(deniedDatasetIds);
+          if (resourceIds.some((resourceId) => denied.has(resourceId))) {
+            return rejected('NOT_FOUND');
+          }
         }
+        const stored = await this.grants.findGrant(input.context, member.membershipId);
+        storedLevel = stored?.level ?? storedLevel;
       }
-      const stored = await this.grants.findGrant(input.context, member.membershipId);
-      const storedLevel = stored?.level ?? defaultAgentGrantLevelForPresetV1(member.preset);
       const capacity = maxAgentGrantLevelForPresetV1(member.preset);
       const effectiveLevel = lesserAgentGrantLevelV1(
         lesserAgentGrantLevelV1(storedLevel, capacity),

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/iam-profile-update-accepted",
+  "$comment": "IAM-016/IAM-018/IAM-023: server-accepted revisioned profile projection.",
+  "title": "IAM Profile Update Accepted",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "user"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "user": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "displayName", "locale", "revision"],
+      "properties": {
+        "id": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "locale": { "enum": ["vi-VN", "en"] },
+        "revision": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

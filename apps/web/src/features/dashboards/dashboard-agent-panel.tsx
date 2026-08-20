@@ -1,7 +1,7 @@
 import type { SupportedLocaleV1 } from '@databreeze/i18n/v1';
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 
-import { XIcon } from '../../components/icons.tsx';
+import { resolveAgentOpenMotion } from '../agent/agent-open-motion.ts';
 import { AgentChatShell } from '../agent/agent-chat-shell.tsx';
 import type {
   AgentConversationSummaryV1,
@@ -30,6 +30,7 @@ export type DashboardAgentResponseV1 =
       readonly proposalId?: string;
       readonly options: readonly DashboardChartProposalOptionV1[];
     }
+  | { readonly kind: 'local-preview'; readonly message: DashboardAgentLocalizedTextV1 }
   | { readonly kind: 'clarification'; readonly message: DashboardAgentLocalizedTextV1 }
   | { readonly kind: 'provider-disabled'; readonly message?: DashboardAgentLocalizedTextV1 }
   | { readonly kind: 'conflict'; readonly message?: DashboardAgentLocalizedTextV1 }
@@ -94,8 +95,6 @@ export function DashboardAgentPanel({
   const questionRef = useRef<HTMLTextAreaElement>(null);
   const priorFocusRef = useRef<HTMLElement | null>(null);
   const wasOpenRef = useRef(open);
-  const titleId = useId();
-
   useEffect(() => {
     if (open && !wasOpenRef.current) {
       const active = globalThis.document.activeElement;
@@ -109,9 +108,6 @@ export function DashboardAgentPanel({
   if (!open) return null;
 
   const localizedKey = locale === 'vi-VN' ? 'vi' : 'en';
-  const targetText = target.widgetTitle
-    ? `${target.pageTitle[localizedKey]} · ${target.widgetTitle[localizedKey]}`
-    : target.pageTitle[localizedKey];
   const activeResponse = responseFromParent ?? response;
   const activeOptions =
     proposalOptions ?? (activeResponse?.kind === 'proposals' ? activeResponse.options : undefined);
@@ -138,13 +134,23 @@ export function DashboardAgentPanel({
         )
       );
     }
+    if (activeResponse?.kind === 'local-preview') {
+      return (
+        activeMessage ??
+        label(
+          locale,
+          'Đây là nhận định cục bộ từ bản xem nhanh dữ liệu đã duyệt.',
+          'This is a local insight from the approved-data preview.',
+        )
+      );
+    }
     if (activeResponse?.kind === 'provider-disabled') {
       return (
         activeMessage ??
         label(
           locale,
-          'Trợ lý AI hiện không khả dụng. Bạn vẫn có thể tạo kế hoạch phân tích có kiểm soát thủ công.',
-          'The AI assistant is currently unavailable. You can still create a governed manual analysis plan.',
+          'Trợ lý AI hiện không khả dụng. Hãy mở Dữ liệu hoặc Phân tích để tự tạo kế hoạch có kiểm soát.',
+          'The AI assistant is currently unavailable. Open Data or Analysis to create a governed plan manually.',
         )
       );
     }
@@ -219,27 +225,14 @@ export function DashboardAgentPanel({
 
   return (
     <aside
-      aria-labelledby={titleId}
+      aria-label={label(locale, 'Trợ lý biểu đồ', 'Chart assistant')}
       aria-modal="true"
       className="dda-dashboard-agent-panel"
+      data-open-motion={resolveAgentOpenMotion()}
       onKeyDown={onKeyDown}
       ref={dialogRef}
       role="dialog"
     >
-      <header className="dda-dashboard-agent-panel__header">
-        <div>
-          <p className="dda-dashboard-agent-panel__eyebrow">DataBreeze Agent</p>
-          <h2 id={titleId}>{label(locale, 'Trợ lý biểu đồ', 'Chart assistant')}</h2>
-        </div>
-        <button
-          aria-label={label(locale, 'Đóng trợ lý biểu đồ', 'Close chart assistant')}
-          onClick={onClose}
-          type="button"
-        >
-          <XIcon />
-        </button>
-      </header>
-
       <AgentChatShell
         {...(currentStateMessage === undefined ? {} : { stateMessage: currentStateMessage })}
         {...(activeConversationId === undefined ? {} : { activeConversationId })}
@@ -250,11 +243,12 @@ export function DashboardAgentPanel({
           'Câu hỏi cho trợ lý biểu đồ',
           'Question for the chart assistant',
         )}
-        context={`${label(locale, 'Mục tiêu', 'Target')}: ${targetText}`}
         conversations={conversations}
+        headingTitle={label(locale, 'Trợ lý biểu đồ', 'Chart assistant')}
         locale={locale}
         messages={messages}
         newConversationHref={`/${locale}/analysis?new=1`}
+        onClose={onClose}
         onSelectConversation={onSelectConversation}
         onSubmitMessage={submitQuestion}
         stateTone={nonAnswer ? 'alert' : 'status'}

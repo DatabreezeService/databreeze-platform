@@ -24,6 +24,7 @@ import type {
   GovernedDatasetAuthorizationPortV1,
   GovernedDatasetAuthorizationResultV1,
 } from '../features/dsm/application/governed-dataset-authorization.port.js';
+import type { GovernedDatasetRepositoryPortV1 } from '../features/dsm/application/governed-dataset-repository.port.js';
 
 const OPENAI_SERVER_SECRET_PATTERN = /^sk-[a-z0-9_-]{8,}$/iu;
 const SYSTEM_ACTOR_ID = '00000000-0000-4000-8000-0000000000a0';
@@ -175,6 +176,67 @@ export class DsmConversationContextVersionAuthorityAdapter
     if (
       !tenantScopeContainsV1(input.context.tenantScope, version.tenantScope) &&
       !tenantScopeContainsV1(version.tenantScope, input.context.tenantScope)
+    ) {
+      return { allowed: false, code: 'INVALID_SCOPE' };
+    }
+    return { allowed: true };
+  }
+}
+
+/**
+ * The public analysis picker is backed by DSM governed definitions: each
+ * published definition's immutable `versionId` is the version sent by the
+ * client. Keep the conversation re-check on that same authority instead of
+ * silently switching to the separate materialized-manifest repository.
+ */
+export class GovernedDatasetConversationContextVersionAuthorityAdapter
+  implements ConversationContextVersionAuthorityPortV1
+{
+  public constructor(
+    private readonly authorization: GovernedDatasetAuthorizationPortV1,
+    private readonly definitions: GovernedDatasetRepositoryPortV1,
+  ) {}
+
+  public async authorizeDatasetVersion(input: {
+    readonly context: IamTenantContextV1;
+    readonly datasetId: string;
+    readonly datasetVersionId: string;
+  }): Promise<ConversationContextVersionAuthorityDecisionV1> {
+    const datasetId = parseStableIdentifierV1(input.datasetId);
+    const datasetVersionId = parseStableIdentifierV1(input.datasetVersionId);
+    if (!datasetId.accepted || !datasetVersionId.accepted) {
+      return { allowed: false, code: 'INVALID_SCOPE' };
+    }
+
+    let decision: GovernedDatasetAuthorizationResultV1;
+    try {
+      decision = await this.authorization.authorize(input.context, {
+        action: 'READ_VERSION',
+        datasetId: datasetId.value,
+        versionId: datasetVersionId.value,
+      });
+    } catch {
+      return { allowed: false, code: 'AUTHORIZATION_UNAVAILABLE' };
+    }
+    const authorizationFailure = mapAuthorizationDecision(decision);
+    if (authorizationFailure !== undefined) return authorizationFailure;
+
+    let definition;
+    try {
+      definition = await this.definitions.find(input.context, datasetVersionId.value);
+    } catch {
+      return { allowed: false, code: 'AUTHORIZATION_UNAVAILABLE' };
+    }
+    if (definition === undefined) return { allowed: false, code: 'NOT_FOUND' };
+    if (
+      definition.datasetId !== datasetId.value ||
+      definition.status !== 'PUBLISHED'
+    ) {
+      return { allowed: false, code: 'VERSION_DATASET_MISMATCH' };
+    }
+    if (
+      !tenantScopeContainsV1(input.context.tenantScope, definition.tenantScope) &&
+      !tenantScopeContainsV1(definition.tenantScope, input.context.tenantScope)
     ) {
       return { allowed: false, code: 'INVALID_SCOPE' };
     }

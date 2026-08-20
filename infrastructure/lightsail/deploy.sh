@@ -68,10 +68,21 @@ load_release "${RELEASE_FILE}"
 
 readonly COMPOSE=(docker compose --env-file "${ENV_FILE}" --project-name "${COMPOSE_PROJECT_NAME:-databreeze-pilot}" --file "${COMPOSE_FILE}")
 
+backup_current_release() {
+  local previous_release="$1"
+  if [[ -n "${previous_release}" && -r "${previous_release}" ]]; then
+    "${ROOT_DIR}/backup.sh" "$(basename -- "${previous_release}" .env)"
+  fi
+}
+
 run_stack() {
-  "${COMPOSE[@]}" pull api-migrate api web
+  local seed_mode="${1:-false}"
+  "${COMPOSE[@]}" pull api-migrate api-seed api web
   "${COMPOSE[@]}" up -d postgres redis minio mailpit minio-init
   "${COMPOSE[@]}" run --rm api-migrate
+  if [[ "${seed_mode}" == 'true' && "${DATABREEZE_PILOT_SEED_ENABLED:-false}" == 'true' ]]; then
+    "${COMPOSE[@]}" run --rm api-seed
+  fi
   "${COMPOSE[@]}" up -d api web
   "${ROOT_DIR}/healthcheck.sh"
 }
@@ -96,12 +107,14 @@ if [[ -L "${CURRENT_RELEASE}" ]]; then
   previous_release="$(realpath -- "${CURRENT_RELEASE}")"
 fi
 
-if ! run_stack; then
+backup_current_release "${previous_release}"
+
+if ! run_stack true; then
   print_failure_diagnostics
   echo 'New pilot release failed. Restoring the previous release if one exists.' >&2
   if [[ -n "${previous_release}" && -r "${previous_release}" ]]; then
     load_release "${previous_release}"
-    run_stack || true
+    run_stack false || true
   else
     "${COMPOSE[@]}" down --remove-orphans || true
   fi

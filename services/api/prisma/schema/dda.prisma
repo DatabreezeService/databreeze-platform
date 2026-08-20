@@ -254,6 +254,35 @@ model EtlProposalRecord {
   @@schema("dda")
 }
 
+/// DDA-053/WEB-021: durable multi-source import review and approval metadata.
+/// Source bytes remain owned by IAE; this row stores only bounded, content-safe
+/// profile/review metadata and opaque references to the uploaded artifacts.
+model DataImportRecord {
+  id                 String   @id @db.Uuid
+  scopeType          String   @map("scope_type") @db.VarChar(24)
+  organizationId     String   @map("organization_id") @db.Uuid
+  workspaceId        String?  @map("workspace_id") @db.Uuid
+  projectId          String?  @map("project_id") @db.Uuid
+  revision           Int
+  state              String   @db.VarChar(32)
+  destination        String   @db.VarChar(32)
+  datasetId          String?  @map("dataset_id") @db.Uuid
+  datasetName        String   @map("dataset_name") @db.VarChar(200)
+  idempotencyKey     String   @map("idempotency_key") @db.VarChar(200)
+  payloadFingerprint String   @map("payload_fingerprint") @db.Char(64)
+  sourceDocument     Json     @map("source_document")
+  reviewDocument     Json     @map("review_document")
+  acceptedDocument   Json?    @map("accepted_document")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, projectId, idempotencyKey], map: "data_imports_scope_idempotency_key")
+  @@index([organizationId, workspaceId, projectId, createdAt], map: "data_imports_scope_created_idx")
+  @@index([organizationId, workspaceId, projectId, state], map: "data_imports_scope_state_idx")
+  @@map("data_imports")
+  @@schema("dda")
+}
+
 /// DDA-053: one durable acceptance owner per exact proposal revision and tenant.
 model EtlAcceptanceCommandRecord {
   id                 String    @id @db.Uuid
@@ -778,6 +807,67 @@ model DdaNotificationStateCommandReceipt {
   @@unique([organizationId, workspaceId, recipientId, notificationId, idempotencyKey], map: "notification_state_receipts_idempotency_key")
   @@index([organizationId, workspaceId, recipientId, notificationId], map: "notification_state_receipts_notification_idx")
   @@map("notification_state_command_receipts")
+  @@schema("dda")
+}
+
+/// NCO-006/NCO-018: one authenticated recipient's workspace preference set.
+/// The set revision is the optimistic-concurrency boundary; individual rows
+/// stay normalized so delivery workers can query category/channel policy safely.
+model DdaNotificationPreferenceSet {
+  id             String   @id @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  recipientId    String   @map("recipient_id") @db.Uuid
+  revision       Int      @default(1)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, recipientId], map: "notification_preference_sets_scope_key")
+  @@index([organizationId, workspaceId, recipientId, updatedAt], map: "notification_preference_sets_updated_idx")
+  @@map("notification_preference_sets")
+  @@schema("dda")
+}
+
+/// NCO-006/NCO-018: normalized, content-free preference rows.
+model DdaNotificationPreference {
+  id             String   @id @db.Uuid
+  setId          String   @map("set_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  workspaceId    String   @map("workspace_id") @db.Uuid
+  recipientId    String   @map("recipient_id") @db.Uuid
+  category       String   @db.VarChar(32)
+  channel        String   @db.VarChar(16)
+  enabled        Boolean
+  minimumUrgency String   @map("minimum_urgency") @db.VarChar(16)
+  deliveryMode   String   @map("delivery_mode") @db.VarChar(16)
+  quietHours     Json     @map("quiet_hours")
+  timezone       String   @db.VarChar(64)
+  mandatory      Boolean  @default(false)
+  revision       Int      @default(1)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([setId, category, channel], map: "notification_preferences_set_category_channel_key")
+  @@index([organizationId, workspaceId, recipientId, category, channel], map: "notification_preferences_scope_key")
+  @@map("notification_preferences")
+  @@schema("dda")
+}
+
+/// NCO-024: idempotent, exact-scope preference replacement result.
+model DdaNotificationPreferenceCommandReceipt {
+  id               String   @id @db.Uuid
+  organizationId   String   @map("organization_id") @db.Uuid
+  workspaceId      String   @map("workspace_id") @db.Uuid
+  recipientId      String   @map("recipient_id") @db.Uuid
+  expectedRevision Int      @map("expected_revision")
+  idempotencyKey   String   @map("idempotency_key") @db.VarChar(200)
+  fingerprint      String   @db.Char(64)
+  resultDocument   Json     @map("result_document")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, workspaceId, recipientId, idempotencyKey], map: "notification_preference_receipts_scope_key")
+  @@index([organizationId, workspaceId, recipientId, createdAt], map: "notification_preference_receipts_created_idx")
+  @@map("notification_preference_command_receipts")
   @@schema("dda")
 }
 

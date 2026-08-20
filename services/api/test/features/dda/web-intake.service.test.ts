@@ -355,31 +355,24 @@ void test('[DDA-002] rejects macro-enabled workbooks', async () => {
   if (!result.accepted) assert.equal(result.code, 'DDA_INTAKE_MACRO_ENABLED');
 });
 
-void test('[DDA-002] rejects excessive rows columns sheets and size', async () => {
+void test('[DDA-002] enforces the 100 MiB size boundary and non-row profile limits', async () => {
   const { service } = createService();
-  const oversized = Buffer.alloc(600_000, 0x61);
-  const sizeResult = await service.finalizeUpload({
-    tenantScope,
-    sessionId: '00000000-0000-4000-8000-000000000105',
-    fileName: 'big.csv',
-    claimedMediaType: 'text/csv',
-    expectedSha256: sha256(oversized),
-    bytes: oversized,
-  });
-  assert.equal(sizeResult.accepted, false);
-  if (!sizeResult.accepted) assert.equal(sizeResult.code, 'DDA_INTAKE_LIMIT_SIZE');
-
-  const manyRows = Buffer.from(`a,b\n${'1,2\n'.repeat(20_001)}`, 'utf8');
-  const rowResult = await service.finalizeUpload({
-    tenantScope,
-    sessionId: '00000000-0000-4000-8000-000000000106',
-    fileName: 'rows.csv',
-    claimedMediaType: 'text/csv',
-    expectedSha256: sha256(manyRows),
-    bytes: manyRows,
-  });
-  assert.equal(rowResult.accepted, false);
-  if (!rowResult.accepted) assert.equal(rowResult.code, 'DDA_INTAKE_LIMIT_ROWS');
+  const maxBytes = service.publishedProfile().limits.maxBytes;
+  for (const [index, size] of [maxBytes - 1, maxBytes, maxBytes + 1].entries()) {
+    const bytes = Buffer.alloc(size, 0x61);
+    const result = await service.finalizeUpload({
+      tenantScope,
+      sessionId: `00000000-0000-4000-8000-${String(105 + index).padStart(12, '0')}`,
+      fileName: 'big.csv',
+      claimedMediaType: 'text/csv',
+      expectedSha256: sha256(bytes),
+      bytes,
+    });
+    assert.equal(result.accepted, size <= maxBytes);
+    if (size > maxBytes && !result.accepted) {
+      assert.equal(result.code, 'DDA_INTAKE_LIMIT_SIZE');
+    }
+  }
 
   const manyCols = Buffer.from(
     `${Array.from({ length: 257 }, (_, i) => `c${i}`).join(',')}\n1\n`,
@@ -568,13 +561,40 @@ void test('[DDA-002] publishes explicit V1 intake profile limits', () => {
   const profile = service.publishedProfile();
   assert.equal(profile.profileId, 'dda.web.tabular.v1');
   assert.deepEqual(profile.csv.encodings, ['utf-8', 'utf-8-sig', 'windows-1258']);
-  assert.equal(profile.limits.maxBytes, 512_000);
-  assert.equal(profile.limits.maxRows, 20_000);
+  assert.equal(profile.limits.maxBytes, 100 * 1024 * 1024);
+  assert.equal(profile.limits.maxRows, 1_000_000);
+  assert.equal(profile.limits.maxXmlRows, 1_000_000);
   assert.equal(profile.limits.maxColumns, 256);
   assert.equal(profile.limits.maxSheets, 8);
   assert.equal(profile.limits.maxFormulas, 500);
   assert.equal(profile.xlsx.macrosAllowed, false);
   assert.equal(profile.xlsx.externalLinksAllowed, false);
+});
+
+void test('[DDA-002] accepts exactly 1,000,000 CSV rows and rejects 1,000,001', async () => {
+  const { service } = createService();
+  const maximum = Buffer.from(`value\n${'1\n'.repeat(1_000_000)}`, 'utf8');
+  const overLimit = Buffer.concat([maximum, Buffer.from('1\n', 'utf8')]);
+
+  const accepted = await service.finalizeUpload({
+    tenantScope,
+    sessionId: '00000000-0000-4000-8000-000000000123',
+    fileName: 'row-boundary.csv',
+    claimedMediaType: 'text/csv',
+    expectedSha256: sha256(maximum),
+    bytes: maximum,
+  });
+  assert.equal(accepted.accepted, true);
+
+  const rejected = await service.finalizeUpload({
+    tenantScope,
+    sessionId: '00000000-0000-4000-8000-000000000124',
+    fileName: 'row-boundary.csv',
+    claimedMediaType: 'text/csv',
+    expectedSha256: sha256(overLimit),
+    bytes: overLimit,
+  });
+  assert.deepEqual(rejected, { accepted: false, code: 'DDA_INTAKE_LIMIT_ROWS' });
 });
 
 void test('[DDA-002] rejects a forged ZIP size header before trusting the entry', async () => {
@@ -649,11 +669,11 @@ void test('[DDA-002] distinguishes the last valid Excel column XFD from invalid 
   assert.deepEqual(xfe, { accepted: false, code: 'DDA_INTAKE_UNSUPPORTED_PROFILE' });
 });
 
-void test('[DDA-002] rejects sparse cells beyond the published row bound', async () => {
+void test('[DDA-002] rejects a sparse XLSX row reference above the row ceiling', async () => {
   const { service } = createService();
   const bytes = zipEntry(
     'xl/worksheets/sheet1.xml',
-    Buffer.from('<worksheet><sheetData><c r="A1048576"><v>1</v></c></sheetData></worksheet>'),
+    Buffer.from('<worksheet><sheetData><c r="A1000001"><v>1</v></c></sheetData></worksheet>'),
   );
   const result = await service.finalizeUpload({
     tenantScope,

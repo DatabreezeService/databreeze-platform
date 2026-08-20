@@ -1,0 +1,234 @@
+.add-widget-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 4, 15, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.add-widget-modal-container {
+  width: 100%;
+  max-width: 560px;
+  background: #0c1030;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(219, 223, 255, 0.14);
+  overflow: hidden;
+  animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  color: #f7f7ff;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.add-widget-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(219, 223, 255, 0.12);
+  flex-shrink: 0;
+  background: #090d26;
+}
+
+.add-widget-modal-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 650;
+  color: #f7f7ff;
+}
+
+.add-widget-modal-header p {
+  margin: 4px 0 0;
+  font-size: 0.8125rem;
+  color: #a9aed2;
+}
+
+.add-widget-modal-close {
+  background: transparent;
+  border: 0;
+  font-size: 1.125rem;
+  color: #a9aed2;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.add-widget-modal-close:hover {
+  background: rgba(219, 223, 255, 0.1);
+  color: #ffffff;
+}
+
+.add-widget-modal-form {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.add-widget-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.add-widget-form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.add-widget-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #f7f7ff;
+}
+
+.add-widget-type-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.add-widget-type-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid rgba(219, 223, 255, 0.14);
+  background: #121844;
+  color: #a9aed2;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.add-widget-type-btn:hover {
+  border-color: rgba(61, 80, 255, 0.4);
+  background: #161e52;
+  color: #f7f7ff;
+}
+
+.add-widget-type-btn.is-active {
+  border-color: #3d50ff;
+  background: rgba(61, 80, 255, 0.2);
+  color: #ffffff;
+}
+
+.add-widget-input,
+.add-widget-select {
+  padding: 8px 12px;
+  border: 1px solid rgba(219, 223, 255, 0.14);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #f7f7ff;
+  background: #121844;
+}
+
+.add-widget-input:focus,
+.add-widget-select:focus {
+  border-color: #3d50ff;
+  outline: 2px solid rgba(61, 80, 255, 0.25);
+}
+
+.add-widget-preview-box {
+  background: #121844;
+  border: 1px dashed rgba(219, 223, 255, 0.2);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.add-widget-preview-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #a9aed2;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.add-widget-preview-card h4 {
+  margin: 0 0 8px 0;
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: #f7f7ff;
+}
+
+.add-widget-preview-kpi strong {
+  font-size: 1.5rem;
+  color: #55d6ff;
+  font-weight: 700;
+}
+
+.add-widget-preview-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.add-widget-preview-bar-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 60px;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+}
+
+.add-widget-preview-bar-row span {
+  color: #a9aed2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.add-widget-preview-bar-track {
+  height: 8px;
+  background: rgba(7, 9, 29, 0.7);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.add-widget-preview-bar-track div {
+  height: 100%;
+  background: #3d50ff;
+  border-radius: 4px;
+}
+
+.add-widget-preview-bar-row small {
+  text-align: right;
+  font-weight: 600;
+  color: #f7f7ff;
+}
+
+.add-widget-preview-note {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #a9aed2;
+  font-style: italic;
+}
+
+.add-widget-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(219, 223, 255, 0.12);
+}

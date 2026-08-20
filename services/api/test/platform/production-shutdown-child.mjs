@@ -5,4 +5,4 @@ registerProductionShutdownHandlers(() => new Promise(() => {}), {
   forceTerminate: () => process.exit(73),
 });
 process.on('message', (signal) => process.emit(signal));
-process.stdout.write('ready\n');
+process.send?.('ready');

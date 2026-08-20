@@ -120,7 +120,7 @@ jobs:
           IMAGE: ${{ env.IMAGE_PREFIX }}/databreeze-web:${{ github.sha }}
         run: |
           docker build --file infrastructure/containers/web/Dockerfile --target runtime \
-            --build-arg VITE_DATABREEZE_DEMO_MODE=true --tag "$IMAGE" .
+            --build-arg VITE_DATABREEZE_DEMO_MODE=false --tag "$IMAGE" .
           docker push "$IMAGE" >/dev/null
       - name: Write immutable release manifest
         id: manifest
@@ -209,6 +209,7 @@ jobs:
             "install -d -m 0700 /tmp/databreeze-${GITHUB_SHA}"
           scp -i "$RUNNER_TEMP/lightsail-key" \
             infrastructure/lightsail/Caddyfile \
+            infrastructure/lightsail/backup.sh \
             infrastructure/lightsail/compose.pilot.yml \
             infrastructure/lightsail/deploy.sh \
             infrastructure/lightsail/healthcheck.sh \
@@ -245,6 +246,7 @@ jobs:
             "set -e
             sudo install -m 0644 /tmp/databreeze-${GITHUB_SHA}/Caddyfile /opt/databreeze/Caddyfile
             sudo install -m 0640 /tmp/databreeze-${GITHUB_SHA}/compose.pilot.yml /opt/databreeze/compose.pilot.yml
+            sudo install -m 0750 /tmp/databreeze-${GITHUB_SHA}/backup.sh /opt/databreeze/backup.sh
             sudo install -m 0750 /tmp/databreeze-${GITHUB_SHA}/deploy.sh /opt/databreeze/deploy.sh
             sudo install -m 0750 /tmp/databreeze-${GITHUB_SHA}/healthcheck.sh /opt/databreeze/healthcheck.sh
             sudo install -m 0750 /tmp/databreeze-${GITHUB_SHA}/rollback.sh /opt/databreeze/rollback.sh

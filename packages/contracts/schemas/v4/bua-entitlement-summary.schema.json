@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.databreeze.dev/contracts/v4/bua-entitlement-summary",
+  "$comment": "BUA-001/BUA-002/BUA-015/WEB-019: server-authoritative plan and AI-credit summary for an authenticated workspace.",
+  "title": "BUA Entitlement Summary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "snapshot", "aiCredits"],
+  "properties": {
+    "schemaVersion": { "const": 4 },
+    "snapshot": { "$ref": "#/$defs/snapshot" },
+    "aiCredits": { "$ref": "#/$defs/aiCredits" }
+  },
+  "$defs": {
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "snapshotId", "organizationId", "planCode", "status", "revision", "securityEpoch", "effectiveAt", "features", "quotas"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "snapshotId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "organizationId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "workspaceId": { "$ref": "https://schemas.databreeze.dev/contracts/v1/identifier" },
+        "planCode": { "enum": ["free", "development", "admin_granted", "personal-monthly", "personal-annual", "professional-monthly", "professional-annual", "team-monthly", "team-annual"] },
+        "status": { "enum": ["ACTIVE", "SUSPENDED", "EXPIRED"] },
+        "revision": { "type": "integer", "minimum": 1 },
+        "securityEpoch": { "type": "integer", "minimum": 1 },
+        "effectiveAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" },
+        "expiresAt": { "$ref": "https://schemas.databreeze.dev/contracts/v1/utc-timestamp" },
+        "features": { "type": "array", "maxItems": 128, "items": { "type": "string", "minLength": 1, "maxLength": 160 } },
+        "quotas": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["metric", "limit"],
+            "properties": {
+              "metric": { "enum": ["artifact_bytes", "processing_seconds", "job_count", "member_count", "ocr_pages"] },
+              "limit": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    "aiCredits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "limit", "used", "reserved", "remaining"],
+      "properties": {
+        "metric": { "const": "job_count" },
+        "limit": { "type": "integer", "minimum": 0 },
+        "used": { "type": "integer", "minimum": 0 },
+        "reserved": { "type": "integer", "minimum": 0 },
+        "remaining": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

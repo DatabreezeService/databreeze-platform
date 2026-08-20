@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 4,
+  "generatedAt": "2026-08-17T09:30:00.000Z",
+  "total": 3,
+  "feedbacks": [
+    {
+      "id": "c9bf9e57-1685-4c89-bafb-ff5af830be8a",
+      "createdAt": "2026-08-14T04:10:00.000Z",
+      "email": "le.thi.mai@example.vn",
+      "name": "Lê Thị Mai",
+      "organization": "Xưởng Dữ liệu Sài Gòn",
+      "role": "analyst",
+      "experience": "active",
+      "category": "data-trust",
+      "rating": 5,
+      "message": "Truy vết bằng chứng tới từng ô dữ liệu giúp tôi tự tin trình bày với ban giám đốc.",
+      "contactPermission": true
+    },
+    {
+      "id": "a1b2c3d4-5678-4e90-abcd-ef0123456789",
+      "createdAt": "2026-08-12T10:24:00.000Z",
+      "email": "tran.quang.bao@example.com",
+      "role": "accounting",
+      "experience": "exploring",
+      "category": "performance",
+      "rating": 3,
+      "message": "Bảng 200 nghìn dòng hơi chậm khi lọc kết hợp nhiều cột trên máy cũ của tôi.",
+      "contactPermission": false
+    },
+    {
+      "id": "0f8a1c2d-3e4f-4a5b-8c9d-0e1f2a3b4c5d",
+      "createdAt": "2026-08-10T16:45:00.000Z",
+      "email": "pham.hoang.long@example.vn",
+      "name": "Phạm Hoàng Long",
+      "role": "technology",
+      "experience": "trial",
+      "category": "feature",
+      "rating": 4,
+      "message": "Cần thêm xuất tự động theo lịch cho báo cáo tuần của phòng kinh doanh.",
+      "contactPermission": true
+    }
+  ]
+}

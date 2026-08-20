@@ -20,7 +20,7 @@ model DeviceSyncOperationRecord {
   createdAt        DateTime  @map("created_at") @db.Timestamptz(6)
   acknowledgedAt   DateTime? @map("acknowledged_at") @db.Timestamptz(6)
   idempotencyKey   String    @map("idempotency_key") @db.VarChar(200)
-  syncSequence     Int       @default(autoincrement()) @unique(map: "device_sync_operations_sync_sequence_key") @map("sync_sequence")
+  syncSequence     Int       @unique(map: "device_sync_operations_sync_sequence_key") @default(autoincrement()) @map("sync_sequence")
 
   @@index([organizationId, workspaceId, projectId, status], map: "device_sync_operations_scope_status_idx")
   @@index([deviceId, createdAt], map: "device_sync_operations_device_created_idx")
@@ -220,15 +220,15 @@ model WorkspaceDataModePolicyRecord {
 
 /// DSO-027: immutable idempotency receipt for one atomic publish-and-activate command.
 model WorkspacePolicyActivationRecord {
-  id                    String   @id @default(uuid()) @db.Uuid
-  organizationId        String   @map("organization_id") @db.Uuid
-  workspaceId           String   @map("workspace_id") @db.Uuid
-  idempotencyKey         String   @map("idempotency_key") @db.VarChar(200)
-  requestHash            String   @map("request_hash") @db.Char(64)
-  policySnapshot         Json     @map("policy_snapshot")
-  aggregateRevision      Int      @map("aggregate_revision")
-  authorizationEpoch     Int      @map("authorization_epoch")
-  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                 String   @id @default(uuid()) @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  workspaceId        String   @map("workspace_id") @db.Uuid
+  idempotencyKey     String   @map("idempotency_key") @db.VarChar(200)
+  requestHash        String   @map("request_hash") @db.Char(64)
+  policySnapshot     Json     @map("policy_snapshot")
+  aggregateRevision  Int      @map("aggregate_revision")
+  authorizationEpoch Int      @map("authorization_epoch")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@unique([organizationId, workspaceId, idempotencyKey], map: "workspace_policy_activations_idempotency_key")
   @@index([organizationId, workspaceId, createdAt], map: "workspace_policy_activations_scope_idx")

@@ -512,11 +512,13 @@ export class WebIntakeServiceV1 {
             ? 'DDA_INTAKE_LOCAL_POLICY_UNAVAILABLE'
             : uploaded.code === 'LOCAL_INTAKE_DATA_MODE_DENIED'
               ? 'DDA_INTAKE_LOCAL_DATA_MODE_DENIED'
-              : uploaded.code === 'LOCAL_INTAKE_IDEMPOTENCY_CONFLICT'
-                ? 'DDA_INTAKE_LOCAL_IDEMPOTENCY_CONFLICT'
-                : uploaded.code === 'LOCAL_INTAKE_INVALID_INPUT'
-                  ? 'DDA_INTAKE_CHECKSUM_MISMATCH'
-                  : 'DDA_INTAKE_LOCAL_UNAVAILABLE';
+              : uploaded.code === 'LOCAL_INTAKE_LIMIT_SIZE'
+                ? 'DDA_INTAKE_LIMIT_SIZE'
+                : uploaded.code === 'LOCAL_INTAKE_IDEMPOTENCY_CONFLICT'
+                  ? 'DDA_INTAKE_LOCAL_IDEMPOTENCY_CONFLICT'
+                  : uploaded.code === 'LOCAL_INTAKE_INVALID_INPUT'
+                    ? 'DDA_INTAKE_CHECKSUM_MISMATCH'
+                    : 'DDA_INTAKE_LOCAL_UNAVAILABLE';
       return rejected(code);
     }
     return Object.freeze({

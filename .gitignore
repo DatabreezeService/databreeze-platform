@@ -10,6 +10,7 @@ secrets/
 
 # Node, Vite, Electron, and Turborepo
 node_modules/
+.pnpm-store/
 .turbo/
 dist/
 out/
@@ -62,6 +63,8 @@ runtime/
 uploads/
 artifacts/
 reports/
+!apps/web/src/features/reports/
+!apps/web/src/features/reports/**
 /marketing-materials/
 *.db
 *.sqlite
@@ -72,3 +75,5 @@ reports/
 
 # Local mentor-demo state (087)
 .demo-state/
+.impeccable/
+.zcode/

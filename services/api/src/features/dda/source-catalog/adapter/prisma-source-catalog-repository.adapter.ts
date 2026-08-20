@@ -14,6 +14,7 @@ import type {
   SourceCatalogStatusV1,
   SourceCatalogHealthV1,
 } from '../application/source-catalog-repository.port.js';
+import type { SourceCatalogRegistrationPortV1 } from '../application/source-catalog-registration.port.js';
 
 const SOURCE_TYPES = new Set<SourceCatalogSourceTypeV1>([
   'CSV',
@@ -94,12 +95,20 @@ interface SourceCatalogDelegateV1 {
   findFirst(input: {
     readonly where: Readonly<Record<string, unknown>>;
   }): Promise<SourceCatalogDatabaseRowV1 | null>;
+  create?(input: {
+    readonly data: Readonly<Record<string, unknown>>;
+  }): Promise<SourceCatalogDatabaseRowV1>;
 }
 
 interface SourceCatalogAssignmentDelegateV1 {
   findMany(input: {
     readonly where: Readonly<Record<string, unknown>>;
   }): Promise<readonly SourceCatalogAssignmentDatabaseRowV1[]>;
+  upsert?(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+    readonly create: Readonly<Record<string, unknown>>;
+    readonly update: Readonly<Record<string, unknown>>;
+  }): Promise<SourceCatalogAssignmentDatabaseRowV1>;
 }
 
 export interface SourceCatalogDatabaseClientV1 {
@@ -255,8 +264,82 @@ function activeAssignmentMatches(
 }
 
 /** Prisma adapter for DDA-052 dataset source catalog metadata. */
-export class PrismaSourceCatalogRepositoryAdapter implements SourceCatalogRepositoryPortV1 {
+export class PrismaSourceCatalogRepositoryAdapter
+  implements SourceCatalogRepositoryPortV1, SourceCatalogRegistrationPortV1
+{
   public constructor(private readonly db: SourceCatalogDatabaseClientV1) {}
+
+  public async register(
+    context: IamTenantContextV1,
+    record: SourceCatalogRecordV1,
+  ): Promise<void> {
+    if (
+      context.tenantScope.scopeType !== 'workspace' ||
+      record.organizationId !== context.tenantScope.organizationId ||
+      record.workspaceId !== context.tenantScope.workspaceId ||
+      record.projectId !== undefined
+    ) {
+      throw new Error('SOURCE_CATALOG_SCOPE_CONFLICT');
+    }
+    if (this.db.ddaDatasetSource.create === undefined || this.db.ddaSourceAssignment.upsert === undefined) {
+      throw new Error('SOURCE_CATALOG_REGISTRATION_UNAVAILABLE');
+    }
+    const existing = await this.db.ddaDatasetSource.findFirst({ where: { id: record.id } });
+    if (existing !== null) {
+      if (
+        existing.organizationId !== record.organizationId ||
+        existing.workspaceId !== record.workspaceId ||
+        existing.dsmDatasetId !== record.dsmDatasetId ||
+        existing.iaeArtifactVersionId !== record.iaeArtifactVersionId
+      ) {
+        throw new Error('SOURCE_CATALOG_ID_CONFLICT');
+      }
+    } else {
+      await this.db.ddaDatasetSource.create({
+        data: {
+          id: record.id,
+          organizationId: record.organizationId,
+          workspaceId: record.workspaceId,
+          projectId: null,
+          dsmDatasetId: record.dsmDatasetId,
+          iaeArtifactVersionId: record.iaeArtifactVersionId,
+          sourceType: record.sourceType,
+          safeDisplayLabel: record.safeDisplayLabel,
+          status: record.status,
+          health: record.health,
+          dataMode: record.dataMode,
+          revision: record.revision,
+          createdAt: new Date(record.updatedAt),
+          updatedAt: new Date(record.updatedAt),
+        },
+      });
+    }
+    await this.db.ddaSourceAssignment.upsert({
+      where: {
+        organizationId_workspaceId_sourceId_dsmDatasetId: {
+          organizationId: record.organizationId,
+          workspaceId: record.workspaceId,
+          sourceId: record.id,
+          dsmDatasetId: record.dsmDatasetId,
+        },
+      },
+      create: {
+        id: record.id,
+        organizationId: record.organizationId,
+        workspaceId: record.workspaceId,
+        projectId: null,
+        sourceId: record.id,
+        dsmDatasetId: record.dsmDatasetId,
+        status: 'ACTIVE',
+        createdAt: new Date(record.updatedAt),
+        updatedAt: new Date(record.updatedAt),
+      },
+      update: {
+        status: 'ACTIVE',
+        updatedAt: new Date(record.updatedAt),
+      },
+    });
+  }
 
   public async listByDataset(
     context: IamTenantContextV1,

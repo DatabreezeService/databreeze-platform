@@ -23,7 +23,12 @@ import {
   type DdaWorkspaceMemberSettings,
   type MemberSettingsMember,
 } from '@databreeze/contracts/v3';
-import { PERMISSIONS_V1, roleHasPermissionV1 } from '@databreeze/domain/permissions/v1';
+import {
+  defaultAgentGrantLevelForPresetV1,
+  PERMISSIONS_V1,
+  roleHasPermissionV1,
+} from '@databreeze/domain/permissions/v1';
+import { tenantScopeContainsV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import {
   IAM_ACCESS_PRESET_SERVICE,
@@ -37,6 +42,7 @@ import {
   IAM_MEMBERSHIP_SERVICE,
   type IamMembershipService,
 } from '../application/membership.service.js';
+import { selectAuthoritativeMembership } from '../application/membership-authority.js';
 import {
   REQUEST_TENANT_CONTEXT,
   RequestTenantContextProblemError,
@@ -180,37 +186,52 @@ export class WorkspaceSettingsController {
       throw new HttpException('HTTP_503', HttpStatus.SERVICE_UNAVAILABLE);
     }
     if (!membershipResult.accepted) return mapApplicationCode(membershipResult.code);
-    const workspaceMembers = membershipResult.value.filter(
+    const governingMemberships = membershipResult.value.filter(
       (membership) =>
-        membership.status === 'ACTIVE' &&
-        membership.scope.scopeType === 'workspace' &&
-        membership.scope.organizationId === tenantScope.organizationId &&
-        membership.scope.workspaceId === tenantScope.workspaceId,
+        membership.status === 'ACTIVE' && tenantScopeContainsV1(membership.scope, tenantScope),
     );
-    const actorMembership = workspaceMembers.find(
-      (membership) => membership.principalId === context.actorId,
+    if (governingMemberships.length > 10_000)
+      throw new HttpException('HTTP_503', HttpStatus.SERVICE_UNAVAILABLE);
+    const effectiveMemberships = new Map<string, (typeof governingMemberships)[number]>();
+    for (const membership of governingMemberships) {
+      const authoritative = selectAuthoritativeMembership(
+        governingMemberships,
+        context,
+        membership.principalId,
+      );
+      if (authoritative !== undefined)
+        effectiveMemberships.set(authoritative.principalId, authoritative);
+    }
+    const workspaceMembers = [...effectiveMemberships.values()];
+    const actorMembership = selectAuthoritativeMembership(
+      governingMemberships,
+      context,
+      context.actorId,
     );
     if (
       actorMembership === undefined ||
       !roleHasPermissionV1(actorMembership.roleId, PERMISSIONS_V1.WORKSPACE_SETTINGS_MANAGE)
     )
       throw new ForbiddenException('HTTP_403');
-    if (workspaceMembers.length > 10_000)
-      throw new HttpException('HTTP_503', HttpStatus.SERVICE_UNAVAILABLE);
     const members: MemberSettingsMember[] = [];
     for (const membership of [...workspaceMembers].sort((left, right) =>
       left.id.localeCompare(right.id),
     )) {
       const preset = this.accessPresets.presetForRoleId(membership.roleId);
       if (preset === undefined) throw new HttpException('HTTP_503', HttpStatus.SERVICE_UNAVAILABLE);
-      let grant;
-      try {
-        grant = await this.grants.getEffectiveGrantProjection(context, {
-          memberId: membership.id,
-        });
-      } catch {
-        throw new HttpException('HTTP_503', HttpStatus.SERVICE_UNAVAILABLE);
-      }
+      const grant =
+        membership.scope.scopeType === 'organization'
+          ? {
+              accepted: true as const,
+              value: {
+                level: defaultAgentGrantLevelForPresetV1(preset),
+                revision: 0,
+              },
+            }
+          : await this.grants
+              .getEffectiveGrantProjection(context, { memberId: membership.id })
+              .catch(() => undefined);
+      if (grant === undefined) throw new HttpException('HTTP_503', HttpStatus.SERVICE_UNAVAILABLE);
       if (!grant.accepted) return mapApplicationCode(grant.code);
       if (preset === 'VIEWER' && !['NONE', 'ANALYZE'].includes(grant.value.level)) {
         throw new HttpException('HTTP_503', HttpStatus.SERVICE_UNAVAILABLE);

@@ -157,7 +157,8 @@
         "UDW-WEB",
         "UDW-DESKTOP",
         "UDW-ANDROID",
-        "UDW-INTEGRATION"
+        "UDW-INTEGRATION",
+        "UDW-WORKLOAD"
       ],
       "evidence": [
         "docs/plans/406-unified-data-workspace-implementation.md",
@@ -941,6 +942,49 @@
         "8b96c76b"
       ],
       "notes": "Tasks 4/13/17/18 agent-owned verification deepened. Task 19 owner gates remain blocked; productionReady/G5 false."
+    },
+    {
+      "workPackageId": "UDW-WORKLOAD",
+      "name": "authoritative-engine-workload-envelope",
+      "plan": "docs/plans/425-authoritative-engine-workload-envelope.md",
+      "status": "partial",
+      "dependsOn": [
+        "DDA-084",
+        "UDW-INTEGRATION"
+      ],
+      "parallelGroup": null,
+      "branch": "codex/dda-400-production",
+      "tasks": [
+        "1. Contract and admission",
+        "2. Engine typed dispatch",
+        "3. Exact local input/output execution",
+        "4. DDA snapshot integration",
+        "5. Verification and release evidence"
+      ],
+      "requirements": [
+        "DDA-061"
+      ],
+      "writePaths": [
+        "docs/plans/425-authoritative-engine-workload-envelope.md",
+        "services/api/src/features/jra/application/execution-workload-envelope.ts",
+        "services/api/src/features/jra/adapter/prisma-execution-workload-envelope.adapter.ts",
+        "services/api/src/features/jra/worker",
+        "services/api/src/features/iae/adapter/local-worker-input-object-resolver.adapter.ts",
+        "services/engine/src/databreeze_engine"
+      ],
+      "requiredChecks": [
+        "corepack pnpm --filter @databreeze/api test",
+        "cd services/engine; uv run pytest",
+        "corepack pnpm --filter @databreeze/contracts contract:check"
+      ],
+      "evidence": [
+        "services/api/test/features/jra/execution-workload-envelope.test.ts",
+        "services/api/test/features/jra/worker/worker-boundary.test.ts",
+        "services/api/test/features/iae/local-worker-input-object-resolver.adapter.test.ts",
+        "services/engine/tests/test_dispatch.py",
+        "docs/plans/425-authoritative-engine-workload-envelope.md"
+      ],
+      "notes": "Envelope persistence, typed dispatch, and exact local input metadata are implemented and tested. Certified DDA snapshot publication remains partial until a local worker/admission path produces verified IAE/JRA attestations."
     }
   ],
   "integrationOrder": [
@@ -958,7 +1002,8 @@
     "UDW-WEB",
     "UDW-DESKTOP",
     "UDW-ANDROID",
-    "UDW-INTEGRATION"
+    "UDW-INTEGRATION",
+    "UDW-WORKLOAD"
   ],
   "deferred": [
     {

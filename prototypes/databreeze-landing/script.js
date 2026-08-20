@@ -449,8 +449,6 @@
   const feedbackMessage = document.querySelector('[data-feedback-message]');
   const characterCount = document.querySelector('[data-character-count]');
   const feedbackStatus = document.querySelector('[data-feedback-status]');
-  const feedbackSubmit = document.querySelector('[data-feedback-submit]');
-  const formStatusMark = feedbackForm?.querySelector('.form-status-mark');
 
   const updateCharacterCount = () => {
     if (!feedbackMessage || !characterCount) return;
@@ -471,24 +469,9 @@
         feedbackStatus.classList.add('error');
       }
       feedbackForm.reportValidity();
-      return;
     }
-
-    if (feedbackSubmit) feedbackSubmit.disabled = true;
-    if (feedbackStatus) feedbackStatus.textContent = 'Đang kiểm tra nội dung…';
-
-    window.setTimeout(
-      () => {
-        if (feedbackSubmit) feedbackSubmit.disabled = false;
-        if (feedbackStatus) {
-          feedbackStatus.textContent =
-            'Nội dung hợp lệ. Đây là bản prototype nên góp ý chưa được gửi hoặc lưu ra máy chủ.';
-          feedbackStatus.classList.add('success');
-        }
-        if (formStatusMark) formStatusMark.innerHTML = '<i></i>Đã kiểm tra';
-      },
-      reducedMotion ? 1 : 520,
-    );
+    // Valid submissions are transmitted by the React host through the closed
+    // v4 landing feedback command contract (WEB-026).
   });
 
   class ParticleField {

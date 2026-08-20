@@ -44,7 +44,7 @@ function renderRoute(path = `/vi-VN/analysis?conversation=${CONVERSATION_ID}`) {
 
 function liveFetchMock(options: { readonly turnStatus?: number } = {}) {
   return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = String(input);
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     if (url.endsWith('/v1/dda/conversations?limit=20')) {
       return jsonResponse({ schemaVersion: 4, accepted: true, items: [summary] });
     }
@@ -152,5 +152,221 @@ describe('[WEB-024][DDA-055][DDA-056] live Analysis route', () => {
       }),
     ).toBeTruthy();
     await waitFor(() => expect(composer).toHaveProperty('value', 'So sánh với tháng trước'));
+  });
+
+  it('uses the approved-data preview when the external agent provider is unavailable', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      if (url.includes('/v1/datasets')) {
+        return jsonResponse({
+          accepted: true,
+          value: {
+            datasets: [
+              {
+                datasetId: DATASET_ID,
+                versionId: DATASET_VERSION_ID,
+                label: 'Bán hàng đã duyệt',
+                status: 'PUBLISHED',
+                versionLabel: 'Phiên bản hiện tại',
+                publishedAt: '2026-08-13T00:00:00.000Z',
+                fieldCount: 2,
+                fieldTypes: ['DECIMAL', 'TEXT'],
+                health: 'HEALTHY',
+                readiness: 'READY',
+              },
+            ],
+            page: { limit: 25 },
+          },
+        });
+      }
+      if (url.endsWith('/v1/dda/data-imports?limit=50')) {
+        return jsonResponse({
+          accepted: true,
+          value: {
+            imports: [
+              {
+                importId: '00000000-0000-4000-8000-000000000220',
+                revision: 1,
+                state: 'READY',
+                destination: 'NEW_DATASET',
+                datasetId: DATASET_ID,
+                datasetName: 'Bán hàng đã duyệt',
+                idempotencyKey: 'analysis-preview-import',
+                sources: [],
+                review: {
+                  beforeSample: [],
+                  afterSample: [],
+                  counts: { input: 2, output: 2, changed: 0, rejected: 0 },
+                  quality: { completeness: 1, validity: 1, uniqueness: 1, consistency: 1 },
+                  warnings: [],
+                  corrections: [],
+                  reviewRequired: true,
+                },
+                accepted: {
+                  datasetId: DATASET_ID,
+                  datasetVersionId: DATASET_VERSION_ID,
+                  definitionVersionId: '00000000-0000-4000-8000-000000000221',
+                  dashboardStatus: 'UNAVAILABLE',
+                  approvedAt: '2026-08-13T00:00:00.000Z',
+                },
+                createdAt: '2026-08-13T00:00:00.000Z',
+                updatedAt: '2026-08-13T00:00:00.000Z',
+              },
+            ],
+          },
+        });
+      }
+      if (url.includes('/dashboard-preview')) {
+        return jsonResponse({
+          schemaVersion: 4,
+          accepted: true,
+          value: {
+            importId: '00000000-0000-4000-8000-000000000220',
+            datasetId: DATASET_ID,
+            datasetVersionId: DATASET_VERSION_ID,
+            datasetName: 'Bán hàng đã duyệt',
+            sourceCount: 1,
+            rowCount: 2,
+            truncated: false,
+            sourceHashes: ['a'.repeat(64)],
+            columns: [
+              { name: 'revenue', type: 'DECIMAL', nullable: false },
+              { name: 'region', type: 'TEXT', nullable: false },
+            ],
+            measure: { field: 'revenue', sum: 300, average: 150, minimum: 100, maximum: 200 },
+            dimension: { field: 'region', groups: [{ label: 'Miền Nam', count: 2, total: 300 }] },
+            sampleRows: [
+              {
+                cells: [
+                  { field: 'revenue', value: '100', kind: 'NUMBER' },
+                  { field: 'region', value: 'Miền Nam', kind: 'TEXT' },
+                ],
+              },
+            ],
+            generatedAt: '2026-08-13T00:00:00.000Z',
+          },
+        });
+      }
+      if (url.endsWith('/v1/dda/agent/turns') && init?.method === 'POST') {
+        return new Response('', { status: 503 });
+      }
+      if (url.endsWith('/v1/dda/conversations?limit=20')) {
+        return jsonResponse({ schemaVersion: 4, accepted: true, items: [summary] });
+      }
+      if (url.includes(`/v1/dda/conversations/${CONVERSATION_ID}?limit=50`)) {
+        return jsonResponse({
+          schemaVersion: 4,
+          accepted: true,
+          conversation: summary,
+          messages: [],
+          contextEvents: [],
+        });
+      }
+      return new Response('', { status: 404 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderRoute();
+    const composer = await screen.findByRole('textbox', { name: 'Nhập câu hỏi phân tích' });
+    await user.type(composer, 'Tóm tắt doanh thu');
+    await user.click(screen.getByRole('button', { name: 'Gửi câu hỏi' }));
+
+    expect(await screen.findByText(/Nhận định cục bộ từ bản xem nhanh/u)).toBeTruthy();
+    expect(
+      await screen.findByText((content) => content.includes('Tổng **revenue** là')),
+    ).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('creates the first conversation from authorized datasets when none exists yet', async () => {
+    const user = userEvent.setup();
+    const CREATED_CONVERSATION_ID = '00000000-0000-4000-8000-000000000210';
+    const createdSummary = Object.freeze({
+      ...summary,
+      conversationId: CREATED_CONVERSATION_ID,
+      title: 'Phân tích mới',
+    });
+    let conversationCreated = false;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+      if (url.includes('/v1/datasets')) {
+        return jsonResponse({
+          accepted: true,
+          value: {
+            datasets: [
+              {
+                datasetId: DATASET_ID,
+                versionId: DATASET_VERSION_ID,
+                label: 'Chi phí vận hành',
+                status: 'PUBLISHED',
+                versionLabel: '2026-08-13T00:00:00.000Z',
+                publishedAt: '2026-08-13T00:00:00.000Z',
+                fieldCount: 3,
+                fieldTypes: ['DATE', 'DECIMAL', 'TEXT'],
+                health: 'UNKNOWN',
+                readiness: 'READY',
+              },
+            ],
+            page: { limit: 25 },
+          },
+        });
+      }
+      if (url.endsWith('/v1/dda/conversations') && init?.method === 'POST') {
+        if (typeof init.body !== 'string') throw new TypeError('Expected a JSON request body');
+        const body = JSON.parse(init.body) as {
+          readonly datasetIds: readonly string[];
+          readonly datasetVersionIds: Readonly<Record<string, string>>;
+        };
+        expect(body.datasetIds).toEqual([DATASET_ID]);
+        expect(body.datasetVersionIds).toEqual({ [DATASET_ID]: DATASET_VERSION_ID });
+        conversationCreated = true;
+        return jsonResponse({
+          accepted: true,
+          conversationId: CREATED_CONVERSATION_ID,
+          title: 'Phân tích mới',
+          activeDatasetIds: [DATASET_ID],
+        });
+      }
+      if (url.endsWith('/v1/dda/conversations?limit=20')) {
+        return jsonResponse({
+          schemaVersion: 4,
+          accepted: true,
+          // Keep the list response stale to prove creation does not depend on
+          // a refetch racing the server's history projection.
+          items: [],
+        });
+      }
+      if (url.includes(`/v1/dda/conversations/${CREATED_CONVERSATION_ID}?limit=50`)) {
+        return jsonResponse({
+          schemaVersion: 4,
+          accepted: true,
+          conversation: createdSummary,
+          messages: [],
+          contextEvents: [],
+        });
+      }
+      return new Response('', { status: 404 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderRoute('/vi-VN/analysis');
+
+    expect(
+      await screen.findByText('Chưa có hội thoại được cấp quyền trong không gian làm việc này.'),
+    ).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Tạo hội thoại mới' }));
+
+    await waitFor(() => expect(conversationCreated).toBe(true));
+    expect(
+      await screen.findByText('Phân tích mới', {
+        selector: '.analysis-conversation-history__item-title',
+      }),
+    ).toBeTruthy();
+    await waitFor(() =>
+      expect(workspaceAgentStore.getActiveConversation()?.conversationId).toBe(
+        CREATED_CONVERSATION_ID,
+      ),
+    );
   });
 });

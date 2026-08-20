@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 4,
+  "workspace": {
+    "id": "3f2d9a41-7f55-4c1e-9a30-5b8e2d6f1a74",
+    "organizationId": "00000000-0000-4000-8000-000000000020",
+    "name": "Chi nhánh Hà Nội",
+    "status": "ACTIVE",
+    "dataMode": "HYBRID",
+    "createdAt": "2026-08-17T09:00:00.000Z"
+  },
+  "defaultProject": {
+    "id": "6c1e4b28-93d1-4f7a-8b52-2e9f0a7c3d15",
+    "kind": "INTERNAL",
+    "name": "Private project"
+  }
+}

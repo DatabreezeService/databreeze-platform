@@ -1,6 +1,7 @@
 import {
   AGENT_GRANT_LEVELS_V1,
   isAgentGrantLevelV1,
+  isMembershipAccessPresetV1,
   type AgentGrantLevelV1,
   type MembershipAccessPresetV1,
 } from '@databreeze/domain/permissions/v1';
@@ -11,6 +12,7 @@ export type MemberAccessRow = {
   readonly preset: MembershipAccessPresetV1 | 'Owner' | 'Editor' | 'Viewer';
   readonly agentGrant?: AgentGrantLevelV1;
   readonly agentGrantRevision?: number;
+  readonly membershipRevision?: number;
 };
 
 export type MemberAccessTableProperties = {
@@ -20,6 +22,11 @@ export type MemberAccessTableProperties = {
   readonly onAgentGrantChange?: (
     memberId: string,
     level: AgentGrantLevelV1,
+    expectedRevision: number,
+  ) => void;
+  readonly onAccessPresetChange?: (
+    memberId: string,
+    preset: MembershipAccessPresetV1,
     expectedRevision: number,
   ) => void;
 };
@@ -66,6 +73,7 @@ export function MemberAccessTable({
   rows,
   canManage = false,
   onAgentGrantChange,
+  onAccessPresetChange,
 }: MemberAccessTableProperties) {
   const label = locale === 'vi-VN' ? 'Bảng quyền thành viên' : 'Member access table';
   return (
@@ -92,7 +100,46 @@ export function MemberAccessTable({
                 </span>
                 <strong>{row.displayName}</strong>
               </td>
-              <td>{PRESET_LABELS[locale][preset]}</td>
+              <td>
+                {canManage && onAccessPresetChange && preset !== 'OWNER' ? (
+                  <>
+                    <label className="sr-only" htmlFor={`member-preset-${row.memberId}`}>
+                      {locale === 'vi-VN'
+                        ? `Quyền truy cập của ${row.displayName}`
+                        : `Access preset for ${row.displayName}`}
+                    </label>
+                    <select
+                      aria-label={
+                        locale === 'vi-VN'
+                          ? `Quyền truy cập của ${row.displayName}`
+                          : `Access preset for ${row.displayName}`
+                      }
+                      id={`member-preset-${row.memberId}`}
+                      onChange={(event) => {
+                        if (!isMembershipAccessPresetV1(event.target.value)) return;
+                        onAccessPresetChange(
+                          row.memberId,
+                          event.target.value,
+                          row.membershipRevision && row.membershipRevision > 0
+                            ? row.membershipRevision
+                            : 1,
+                        );
+                      }}
+                      value={preset}
+                    >
+                      {(['EDITOR', 'VIEWER'] as const).map((option) => (
+                        <option key={option} value={option}>
+                          {PRESET_LABELS[locale][option]}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                ) : (
+                  <span className="member-access-table__preset">
+                    {PRESET_LABELS[locale][preset]}
+                  </span>
+                )}
+              </td>
               <td>
                 {AGENT_GRANT_LABELS[locale][row.agentGrant ?? 'NONE']}
                 {canManage && onAgentGrantChange ? (

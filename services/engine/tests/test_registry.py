@@ -154,6 +154,7 @@ def test_registry_fails_closed_for_unknown_action_version_and_digest() -> None:
         ("dda.folder.intake", "dda_folder_intake.py"),
         ("dda.materialize.query", "dda_materialize_query.py"),
         ("dda.materialize.snapshot", "dda_materialize_snapshot.py"),
+        ("dda.materialize.widget-result", "dda_materialize_query.py"),
     ],
 )
 def test_registry_enrolls_reviewed_dda_handlers_with_pinned_digests(

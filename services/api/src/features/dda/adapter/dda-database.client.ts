@@ -12,6 +12,82 @@ import type { SourceCatalogDatabaseClientV1 } from '../source-catalog/adapter/pr
 import type { DdaAgentConsequentialCommandDatabaseClientV1 } from '../agent/adapter/prisma-agent-consequential-command.adapter.js';
 import type { NotificationStateV1 } from '../notification/notification-repository.port.js';
 
+export interface DdaNotificationPreferenceSetRowV1 {
+  readonly id: string;
+  readonly organizationId: string;
+  readonly workspaceId: string;
+  readonly recipientId: string;
+  readonly revision: number;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+}
+
+export interface DdaNotificationPreferenceRowV1 {
+  readonly id: string;
+  readonly setId: string;
+  readonly organizationId: string;
+  readonly workspaceId: string;
+  readonly recipientId: string;
+  readonly category: string;
+  readonly channel: string;
+  readonly enabled: boolean;
+  readonly minimumUrgency: string;
+  readonly deliveryMode: string;
+  readonly quietHours: unknown;
+  readonly timezone: string;
+  readonly mandatory: boolean;
+  readonly revision: number;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+}
+
+export interface DdaNotificationPreferenceCommandReceiptRowV1 {
+  readonly id: string;
+  readonly organizationId: string;
+  readonly workspaceId: string;
+  readonly recipientId: string;
+  readonly expectedRevision: number;
+  readonly idempotencyKey: string;
+  readonly fingerprint: string;
+  readonly resultDocument: unknown;
+  readonly createdAt: Date;
+}
+
+export interface DdaNotificationPreferenceDatabaseClientV1 {
+  readonly ddaNotificationPreferenceSet: {
+    findFirst(input: {
+      readonly where: Record<string, unknown>;
+    }): Promise<DdaNotificationPreferenceSetRowV1 | null>;
+    create(input: {
+      readonly data: DdaNotificationPreferenceSetRowV1;
+    }): Promise<DdaNotificationPreferenceSetRowV1>;
+    updateMany(input: {
+      readonly where: Record<string, unknown>;
+      readonly data: Record<string, unknown>;
+    }): Promise<{ readonly count: number }>;
+  };
+  readonly ddaNotificationPreference: {
+    findMany(input: {
+      readonly where: Record<string, unknown>;
+      readonly orderBy?: readonly Record<string, 'asc' | 'desc'>[];
+    }): Promise<readonly DdaNotificationPreferenceRowV1[]>;
+    createMany(input: {
+      readonly data: readonly DdaNotificationPreferenceRowV1[];
+    }): Promise<{ readonly count: number }>;
+    deleteMany(input: {
+      readonly where: Record<string, unknown>;
+    }): Promise<{ readonly count: number }>;
+  };
+  readonly ddaNotificationPreferenceCommandReceipt: {
+    findFirst(input: {
+      readonly where: Record<string, unknown>;
+    }): Promise<DdaNotificationPreferenceCommandReceiptRowV1 | null>;
+    create(input: {
+      readonly data: DdaNotificationPreferenceCommandReceiptRowV1;
+    }): Promise<DdaNotificationPreferenceCommandReceiptRowV1>;
+  };
+}
+
 export interface DdaNotificationIntentRowV1 {
   readonly id: string;
   readonly eventId: string;
@@ -261,6 +337,7 @@ export type DdaDatabaseClientV1 = Omit<DdaDashboardDatabaseClientV1, '$transacti
   Omit<DdaDependencyDatabaseClientV1, '$transaction'> &
   Omit<DdaRefreshEventDatabaseClientV1, '$transaction'> &
   Omit<DdaNotificationIntentDatabaseClientV1, '$transaction'> &
+  Partial<DdaNotificationPreferenceDatabaseClientV1> &
   SourceCatalogDatabaseClientV1 &
   Partial<DdaUnifiedWorkspaceDatabaseClientV1> & {
     readonly $transaction: <T>(

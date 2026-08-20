@@ -114,6 +114,40 @@ void test('[IAM-004] duplicate principal and scope invitations are rejected', as
   });
 });
 
+void test('[IAM-010, IAM-025] owner resolves an existing principal email and maps the access preset', async () => {
+  const value = repository();
+  const principalEmails = {
+    findEmail: async () => 'person@example.com',
+    findPrincipalIdByEmail: async (email: string) =>
+      email === 'person@example.com' ? stable(ids.invited) : undefined,
+  };
+  const service = new IamMembershipService(value, idsFrom(ids.invitation), clock, principalEmails);
+  const result = await service.invite(context('membership-service-email-001'), {
+    recipientEmail: 'PERSON@example.com',
+    scope: { scopeType: 'organization', organizationId: ids.organization },
+    accessPreset: 'VIEWER',
+  });
+  assert.equal(result.accepted, true);
+  if (!result.accepted) return;
+  assert.equal(result.value.principalId, stable(ids.invited));
+  assert.equal(result.value.roleId, 'viewer');
+});
+
+void test('[IAM-004] invitation without a body scope uses the authenticated server scope', async () => {
+  const value = repository();
+  const service = new IamMembershipService(value, idsFrom(ids.invitation), clock);
+  const result = await service.invite(context('membership-service-server-scope'), {
+    principalId: ids.invited,
+    roleId: 'viewer',
+  });
+  assert.equal(result.accepted, true);
+  if (!result.accepted) return;
+  assert.deepEqual(result.value.scope, {
+    scopeType: 'organization',
+    organizationId: stable(ids.organization),
+  });
+});
+
 void test('[IAM-003, IAM-004] viewer and out-of-scope invitations are denied', async () => {
   const viewer = repository('viewer');
   const service = new IamMembershipService(viewer, idsFrom(ids.invitation), clock);

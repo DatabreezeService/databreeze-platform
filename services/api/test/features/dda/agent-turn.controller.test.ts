@@ -11,6 +11,7 @@ import {
   AgentTurnProblemError,
   agentTurnProblemStatus,
 } from '../../../src/features/dda/agent/api/agent-turn.controller.js';
+import { AgentTurnRequestDtoV1 } from '../../../src/features/dda/agent/api/agent-turn.dto.js';
 import { AgentTurnService } from '../../../src/features/dda/agent/application/agent-turn.service.js';
 import type { AgentTurnProblemCodeV1 } from '../../../src/features/dda/agent/application/agent-tool.types.js';
 import type { IamTenantContextV1 } from '../../../src/features/iam/application/tenant-context.js';
@@ -19,11 +20,11 @@ import type { RequestTenantContextPortV1 } from '../../../src/platform/http/requ
 const context = {
   tenantScope: {
     scopeType: 'workspace',
-    organizationId: '00000000-0000-0000-0000-000000000001',
-    workspaceId: '00000000-0000-0000-0000-000000000002',
+    organizationId: '00000000-0000-4000-8000-000000000001',
+    workspaceId: '00000000-0000-4000-8000-000000000002',
   },
-  actorId: '00000000-0000-0000-0000-000000000003',
-  correlationId: '00000000-0000-0000-0000-000000000004',
+  actorId: '00000000-0000-4000-8000-000000000003',
+  correlationId: '00000000-0000-4000-8000-000000000004',
   idempotencyKey: 'request-1',
   authorizationEpoch: 1,
   mfaReenrollmentRequired: false,
@@ -61,8 +62,8 @@ void test('[DDA-060][IAM-017] turn controller resolves tenant authority from req
     { headers: { authorization: 'Bearer token' } },
     {
       schemaVersion: 4,
-      conversationId: '00000000-0000-0000-0000-000000000010',
-      messageId: '00000000-0000-0000-0000-000000000011',
+      conversationId: '00000000-0000-4000-8000-000000000010',
+      messageId: '00000000-0000-4000-8000-000000000011',
       text: 'hello',
       idempotencyKey: 'turn-0001',
       locale: 'en',
@@ -81,8 +82,8 @@ void test('[DDA-060][IAM-017] turn controller resolves tenant authority from req
   assert.deepEqual(calls, [
     {
       context,
-      conversationId: '00000000-0000-0000-0000-000000000010',
-      messageId: '00000000-0000-0000-0000-000000000011',
+      conversationId: '00000000-0000-4000-8000-000000000010',
+      messageId: '00000000-0000-4000-8000-000000000011',
       text: 'hello',
       idempotencyKey: 'turn-0001',
       locale: 'en',
@@ -90,6 +91,45 @@ void test('[DDA-060][IAM-017] turn controller resolves tenant authority from req
       expectedContextRevision: 2,
     },
   ]);
+});
+
+void test('[DDA-060][HTTP] accepts the transformed live v4 command when optional revisions are omitted', async () => {
+  const { controller, calls } = createController();
+  const runTurn = controller.runTurn.bind(controller) as unknown as (
+    ...args: unknown[]
+  ) => Promise<unknown>;
+  const body = Object.assign(new AgentTurnRequestDtoV1(), {
+    schemaVersion: 4,
+    conversationId: '00000000-0000-4000-8000-000000000010',
+    messageId: '00000000-0000-4000-8000-000000000011',
+    text: 'hello',
+    idempotencyKey: 'turn-0001',
+    locale: 'en',
+  });
+
+  const response = await runTurn(
+    {
+      id: 'request-agent-turn-1',
+      method: 'POST',
+      url: '/v1/dda/agent/turns',
+      headers: {
+        authorization: 'Bearer opaque-access-token-123456789',
+        'idempotency-key': 'turn-0001',
+      },
+      body,
+      query: {},
+      params: {},
+    },
+    body,
+  );
+
+  assert.deepEqual(response, {
+    schemaVersion: 4,
+    accepted: true,
+    narrative: 'ok',
+    toolResults: [],
+  });
+  assert.equal(calls.length, 1);
 });
 
 void test('[DDA-060][IAM-017] turn controller rejects browser authority fields', async () => {
@@ -103,8 +143,8 @@ void test('[DDA-060][IAM-017] turn controller rejects browser authority fields',
       {},
       {
         schemaVersion: 4,
-        conversationId: '00000000-0000-0000-0000-000000000010',
-        messageId: '00000000-0000-0000-0000-000000000011',
+        conversationId: '00000000-0000-4000-8000-000000000010',
+        messageId: '00000000-0000-4000-8000-000000000011',
         text: 'escalate',
         idempotencyKey: 'turn-2',
         locale: 'en',
@@ -132,8 +172,8 @@ void test('[DDA-060][IAM-017] authority fields in the transport request body are
       },
       {
         schemaVersion: 4,
-        conversationId: '00000000-0000-0000-0000-000000000010',
-        messageId: '00000000-0000-0000-0000-000000000011',
+        conversationId: '00000000-0000-4000-8000-000000000010',
+        messageId: '00000000-0000-4000-8000-000000000011',
         text: 'hello',
         idempotencyKey: 'turn-3',
         locale: 'en',
@@ -153,10 +193,10 @@ void test('[DDA-060][IAM-017] deterministic tool input is allowed but authority 
     execute(
       {},
       {
-        conversationId: '00000000-0000-0000-0000-000000000010',
+        conversationId: '00000000-0000-4000-8000-000000000010',
         toolName: 'dataset.describe',
         idempotencyKey: 'tool-1',
-        input: { datasetId: '00000000-0000-0000-0000-000000000012' },
+        input: { datasetId: '00000000-0000-4000-8000-000000000012' },
         agentLevel: 'APPLY_CONFIRMED_CHANGES',
       },
     ),
@@ -228,8 +268,8 @@ void test('[DDA-060][HTTP] provider rejection from the turn route is not surface
     {},
     {
       schemaVersion: 4,
-      conversationId: '00000000-0000-0000-0000-000000000010',
-      messageId: '00000000-0000-0000-0000-000000000011',
+      conversationId: '00000000-0000-4000-8000-000000000010',
+      messageId: '00000000-0000-4000-8000-000000000011',
       text: 'hello',
       idempotencyKey: 'turn-provider-failure',
       locale: 'en',
@@ -266,8 +306,8 @@ void test('[DDA-060] malformed accepted service output fails closed instead of e
       {},
       {
         schemaVersion: 4,
-        conversationId: '00000000-0000-0000-0000-000000000010',
-        messageId: '00000000-0000-0000-0000-000000000011',
+        conversationId: '00000000-0000-4000-8000-000000000010',
+        messageId: '00000000-0000-4000-8000-000000000011',
         text: 'hello',
         idempotencyKey: 'turn-malformed-result',
         locale: 'en',

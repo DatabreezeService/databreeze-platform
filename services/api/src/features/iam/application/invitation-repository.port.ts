@@ -11,6 +11,11 @@ export interface IamInvitationTransactionPortV1 {
     context: IamTenantContextV1,
     principalId: StableIdentifierV1,
   ): Promise<IamMembershipRecordV1 | undefined>;
+  /** Find a prior invited membership so a failed delivery can be retried without creating a duplicate identity. */
+  findInvitedMembershipForPrincipal?(
+    context: IamTenantContextV1,
+    principalId: StableIdentifierV1,
+  ): Promise<IamMembershipRecordV1 | undefined>;
   findMembershipById(
     context: IamTenantContextV1,
     membershipId: StableIdentifierV1,

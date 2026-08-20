@@ -1,7 +1,9 @@
 import { useRef, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import brandMarkUrl from '@databreeze/design-tokens/brand/generated/web/favicon-32.png';
 
-import type { AnalysisConversationV1 } from './analysis-model.ts';
+import type { AnalysisConversationV1, AnalysisChartProposalV1 } from './analysis-model.ts';
+import { dashboardPinnedStore } from '../dashboards/dashboard-pinned-store.ts';
 
 function copy(locale: 'en' | 'vi-VN') {
   return locale === 'vi-VN'
@@ -14,11 +16,15 @@ function copy(locale: 'en' | 'vi-VN') {
         placeholder: 'Hỏi về dữ liệu đã chọn…',
         prompts: [
           ['Tóm tắt xu hướng chính', 'Tóm tắt các xu hướng chính trong dữ liệu này'],
+          ['So sánh với kỳ trước', 'So sánh các chỉ số chính với kỳ trước'],
           ['Tìm điểm bất thường', 'Tìm điểm bất thường trong dữ liệu này'],
-          ['So sánh với kỳ trước', 'So sánh kết quả hiện tại với kỳ trước'],
         ] as const,
         send: 'Gửi câu hỏi',
         unavailable: 'Chưa có lệnh gửi được ủy quyền cho hội thoại này.',
+        addToDashboard: '➕ Thêm vào Bảng điều khiển',
+        addedToDashboard: '✓ Đã ghim vào Bảng điều khiển',
+        openDashboard: 'Xem trên Canvas →',
+        chartPreview: 'Biểu đồ trực quan đề xuất',
       }
     : {
         composer: 'Enter an analysis question',
@@ -29,11 +35,15 @@ function copy(locale: 'en' | 'vi-VN') {
         placeholder: 'Ask about the selected data…',
         prompts: [
           ['Summarize key trends', 'Summarize the key trends in this data'],
+          ['Compare with previous period', 'Compare key metrics with the previous period'],
           ['Find anomalies', 'Find anomalies in this data'],
-          ['Compare with prior period', 'Compare the current result with the prior period'],
         ] as const,
         send: 'Send question',
         unavailable: 'No authorized send command is available for this conversation.',
+        addToDashboard: '➕ Add to Dashboard',
+        addedToDashboard: '✓ Pinned to Dashboard',
+        openDashboard: 'View on Canvas →',
+        chartPreview: 'Suggested Chart Preview',
       };
 }
 
@@ -44,13 +54,86 @@ function messageRoleLabel(locale: 'en' | 'vi-VN', role: 'USER' | 'AGENT' | 'SYST
   return role === 'USER' ? 'You' : role === 'AGENT' ? 'Agent' : 'System';
 }
 
+function ChartProposalCard({
+  proposal,
+  locale,
+}: {
+  readonly proposal: AnalysisChartProposalV1;
+  readonly locale: 'en' | 'vi-VN';
+}) {
+  const text = copy(locale);
+  const [added, setAdded] = useState(false);
+
+  function handleAdd() {
+    dashboardPinnedStore.addFromAnalysisProposal(proposal);
+    setAdded(true);
+  }
+
+  return (
+    <div className="analysis-chart-proposal-card">
+      <div className="analysis-chart-proposal-card__header">
+        <div>
+          <small className="analysis-chart-type-tag">{proposal.type}</small>
+          <h4>{proposal.title}</h4>
+        </div>
+        <div className="analysis-chart-proposal-card__actions">
+          {added ? (
+            <div className="analysis-chart-added-group">
+              <span className="analysis-chart-added-badge">{text.addedToDashboard}</span>
+              <Link
+                className="db-button db-button--secondary db-button--sm"
+                to={`/${locale}/dashboards`}
+              >
+                {text.openDashboard}
+              </Link>
+            </div>
+          ) : (
+            <button
+              className="db-button db-button--primary db-button--sm"
+              onClick={handleAdd}
+              type="button"
+            >
+              {text.addToDashboard}
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="analysis-chart-preview-body">
+        {proposal.type === 'KPI' ? (
+          <div className="analysis-kpi-preview">
+            <span className="analysis-kpi-value">{proposal.aggregateValue ?? '0'}</span>
+            <span className="analysis-kpi-label">{proposal.summary}</span>
+          </div>
+        ) : (
+          <div className="analysis-bars-preview">
+            {proposal.dataPoints.slice(0, 5).map((point) => {
+              const maxVal = Math.max(...proposal.dataPoints.map((p) => p.value), 1);
+              const pct = Math.max(8, Math.min(100, (point.value / maxVal) * 100));
+              return (
+                <div className="analysis-bar-row" key={point.label}>
+                  <span className="analysis-bar-label">{point.label}</span>
+                  <div className="analysis-bar-track">
+                    <div className="analysis-bar-fill" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="analysis-bar-value">{point.formatted}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export interface ConversationThreadProps {
   readonly conversation: AnalysisConversationV1;
   readonly locale: 'en' | 'vi-VN';
   readonly onSendMessage?: (message: string) => void | Promise<void>;
 }
 
-/** DDA-055: renders only message records supplied by the authorized conversation loader. */
+/** DDA-055: renders message records and interactive chart proposals */
 export function ConversationThread({
   conversation,
   locale,
@@ -71,8 +154,7 @@ export function ConversationThread({
       await onSendMessage(normalized);
       setDraft('');
     } catch {
-      // The parent owns localized, permission-safe failure copy. Preserve the
-      // draft so the user can retry after authority or context is corrected.
+      // The parent owns localized failure copy. Preserve draft.
     } finally {
       setSending(false);
     }
@@ -135,7 +217,12 @@ export function ConversationThread({
               <span className="analysis-conversation-thread__message-role">
                 {messageRoleLabel(locale, message.role)}
               </span>
-              <p>{message.text}</p>
+              <div className="analysis-conversation-thread__message-content">
+                <p style={{ whiteSpace: 'pre-line' }}>{message.text}</p>
+                {message.chartProposal ? (
+                  <ChartProposalCard locale={locale} proposal={message.chartProposal} />
+                ) : null}
+              </div>
               {message.createdLabel === undefined ? null : <time>{message.createdLabel}</time>}
             </li>
           ))}
@@ -145,6 +232,21 @@ export function ConversationThread({
         className="analysis-conversation-thread__composer"
         onSubmit={(event) => void submit(event)}
       >
+        <div className="analysis-composer-followup-chips">
+          {text.prompts.map(([lbl, prompt]) => (
+            <button
+              key={lbl}
+              type="button"
+              className="analysis-followup-chip"
+              onClick={() => {
+                setDraft(prompt);
+                composerRef.current?.focus();
+              }}
+            >
+              💬 {lbl}
+            </button>
+          ))}
+        </div>
         <label className="sr-only" htmlFor={`analysis-composer-${conversation.conversationId}`}>
           {text.composer}
         </label>
@@ -152,9 +254,15 @@ export function ConversationThread({
           disabled={!canSend || sending}
           id={`analysis-composer-${conversation.conversationId}`}
           onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+              void submit(event as unknown as FormEvent<HTMLFormElement>);
+            }
+          }}
           placeholder={text.placeholder}
           ref={composerRef}
-          rows={3}
+          rows={2}
           value={draft}
         />
         <div>

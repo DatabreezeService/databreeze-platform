@@ -9,7 +9,7 @@
 {$DATABREEZE_PILOT_DOMAIN} {
 	encode zstd gzip
 
-	@api path /v1/* /v3/* /health/*
+	@api path /v1/* /v3/* /v4/* /health/*
 	handle @api {
 		reverse_proxy api:3000
 	}

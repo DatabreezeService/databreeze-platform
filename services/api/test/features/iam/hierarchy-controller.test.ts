@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
+import { HttpException } from '@nestjs/common';
 
 import { IamHierarchyController } from '../../../src/features/iam/api/hierarchy.controller.js';
 import type { IamHierarchyService } from '../../../src/features/iam/application/hierarchy.service.js';
@@ -49,7 +50,21 @@ void test('[IAM-001, IAM-003] hierarchy controller forwards authenticated contex
     },
     createWorkspace: async (...input: unknown[]) => {
       calls.push(input);
-      return { accepted: true as const, value: { id: ids.workspace } };
+      return {
+        accepted: true as const,
+        value: {
+          workspace: {
+            id: ids.workspace,
+            organizationId: ids.organization,
+            name: 'Operations',
+            status: 'ACTIVE',
+            dataMode: 'HYBRID',
+            createdAt: '2026-08-17T09:00:00.000Z',
+          },
+          defaultProject: { id: ids.project, kind: 'INTERNAL', name: 'Private project' },
+          dataMode: 'HYBRID' as const,
+        },
+      };
     },
     getWorkspace: async (...input: unknown[]) => {
       calls.push(input);
@@ -83,10 +98,30 @@ void test('[IAM-001, IAM-003] hierarchy controller forwards authenticated contex
   });
   assert.deepEqual(
     await controller.createWorkspace({}, ids.organization, {
+      schemaVersion: 4,
+      name: 'Operations',
+    }),
+    {
+      schemaVersion: 4,
+      workspace: {
+        id: ids.workspace,
+        organizationId: ids.organization,
+        name: 'Operations',
+        status: 'ACTIVE',
+        dataMode: 'HYBRID',
+        createdAt: '2026-08-17T09:00:00.000Z',
+      },
+      defaultProject: { id: ids.project, kind: 'INTERNAL', name: 'Private project' },
+    },
+  );
+  // IAM-027: the closed command contract rejects body identity/policy fields outright.
+  await assert.rejects(
+    controller.createWorkspace({}, ids.organization, {
+      schemaVersion: 4,
       name: 'Operations',
       organizationId: 'body-must-not-be-used',
-    } as unknown as { readonly name: string }),
-    { accepted: true, value: { id: ids.workspace } },
+    } as never),
+    (error: unknown) => error instanceof HttpException && error.getStatus() === 400,
   );
   assert.deepEqual(await controller.getWorkspace({}, ids.workspace), {
     accepted: true,

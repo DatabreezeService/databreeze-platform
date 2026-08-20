@@ -2,8 +2,14 @@ import type {
   DatasetCardV1,
   DatasetHealthV1,
   DatasetSourceFileV1,
+  DatasetPreviewRowV1,
   GovernedFieldTypeV1,
 } from './data-model.ts';
+import { dataApiBaseConfiguration } from './data-api-config.ts';
+export { dataApiBaseConfiguration } from './data-api-config.ts';
+export type { DataApiBaseConfigurationV1 } from './data-api-config.ts';
+import { dataImportApi, DataImportApiError, type DataImportRecordV1 } from './data-import-api.ts';
+import { createSessionAwareFetchV1 } from '../auth/auth-session.ts';
 
 type DataApiErrorCodeV1 =
   | 'DATASETS_UNAUTHORIZED'
@@ -20,10 +26,6 @@ export class DataApiError extends Error {
     super(code);
     this.name = 'DataApiError';
   }
-}
-
-export interface DataApiBaseConfigurationV1 {
-  readonly baseUrl: string;
 }
 
 export interface FetchAuthorizedDataIndexInputV1 {
@@ -136,25 +138,6 @@ function validLimit(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 1 && value <= 100;
 }
 
-function configuredString(
-  environment: Readonly<Record<string, unknown>>,
-  key: string,
-): string | undefined {
-  const value = environment[key];
-  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
-}
-
-export function dataApiBaseConfiguration(
-  environment: Readonly<Record<string, unknown>> = import.meta.env,
-): DataApiBaseConfigurationV1 {
-  return Object.freeze({
-    baseUrl: (configuredString(environment, 'VITE_DATABREEZE_API_BASE_URL') ?? '').replace(
-      /\/$/u,
-      '',
-    ),
-  });
-}
-
 function endpoint(baseUrl: string, path: string): string {
   return `${baseUrl.replace(/\/$/u, '')}${path}`;
 }
@@ -179,15 +162,20 @@ function isAbort(error: unknown): boolean {
 
 async function getJson(
   url: string,
+  baseUrl: string,
   signal: AbortSignal | undefined,
   unauthorizedCode: 'DATASETS_UNAUTHORIZED' | 'SOURCES_UNAUTHORIZED',
   unavailableCode: 'DATASETS_UNAVAILABLE' | 'SOURCES_UNAVAILABLE',
   invalidCode: 'DATASETS_INVALID' | 'SOURCES_INVALID',
   abortedCode: 'DATASETS_ABORTED' | 'SOURCES_ABORTED',
 ): Promise<unknown> {
+  const fetcher = createSessionAwareFetchV1({
+    apiBaseUrl: baseUrl,
+    fetcher: globalThis.fetch.bind(globalThis),
+  });
   let response: Response;
   try {
-    response = await globalThis.fetch(url, requestInit(signal));
+    response = await fetcher(url, requestInit(signal));
   } catch (error) {
     if (isAbort(error)) throw new DataApiError(abortedCode);
     throw new DataApiError(unavailableCode);
@@ -405,6 +393,7 @@ async function fetchSourcePage(
 ): Promise<SourceCatalogPageV1> {
   const value = await getJson(
     endpoint(baseUrl, `/v1/dda/datasets/${encodeURIComponent(datasetId)}/sources?limit=5`),
+    baseUrl,
     signal,
     'SOURCES_UNAUTHORIZED',
     'SOURCES_UNAVAILABLE',
@@ -422,6 +411,7 @@ export async function fetchAuthorizedDataIndexPage(
   const baseUrl = input.baseUrl ?? dataApiBaseConfiguration().baseUrl;
   const value = await getJson(
     endpoint(baseUrl, `/v1/datasets?limit=${encodeURIComponent(String(limit))}`),
+    baseUrl,
     input.signal,
     'DATASETS_UNAUTHORIZED',
     'DATASETS_UNAVAILABLE',
@@ -435,6 +425,22 @@ export async function fetchAuthorizedDataIndex(
   input: FetchAuthorizedDataIndexInputV1,
 ): Promise<readonly DatasetCardV1[]> {
   const page = await fetchAuthorizedDataIndexPage(input);
+  let imports: readonly DataImportRecordV1[] = [];
+  try {
+    imports = await dataImportApi.list(50, input.baseUrl ?? dataApiBaseConfiguration().baseUrl);
+  } catch (error) {
+    if (error instanceof DataImportApiError && error.cause === 'network') {
+      // The governed dataset index remains useful if the optional workflow
+      // history endpoint is temporarily unavailable.
+    } else if (error instanceof DataImportApiError && error.status === 401) {
+      throw new DataApiError('DATASETS_UNAUTHORIZED');
+    }
+  }
+  const approvedImports = new Map(
+    imports
+      .filter((record) => record.state === 'READY' && record.accepted !== undefined)
+      .map((record) => [record.accepted?.datasetId, record] as const),
+  );
   const datasets = await Promise.all(
     page.datasets.map(async (dataset): Promise<DatasetCardV1> => {
       let sources: readonly DatasetSourceFileV1[] = [];
@@ -450,6 +456,22 @@ export async function fetchAuthorizedDataIndex(
         if (error instanceof DataApiError && error.code === 'SOURCES_ABORTED') throw error;
         // The dataset index is authoritative. A denied or unavailable source page stays empty.
       }
+      const approved = approvedImports.get(dataset.datasetId);
+      const importSources =
+        approved?.sources.map((source): DatasetSourceFileV1 => {
+          const isXlsx = source.fileName.toLowerCase().endsWith('.xlsx');
+          return Object.freeze({
+            sourceId: source.artifactVersionId,
+            label: source.fileName,
+            sourceType: isXlsx ? ('XLSX' as const) : ('CSV' as const),
+            statusLabel: input.locale === 'vi-VN' ? 'Đang hoạt động' : 'Active',
+            healthLabel: input.locale === 'vi-VN' ? 'Đã kiểm tra' : 'Verified',
+            originalAction: 'NONE' as const,
+            evidenceAvailable: false,
+          });
+        }) ?? [];
+      const mergedSources = sources.length > 0 ? sources : importSources;
+      const sourceFields = approved?.sources.flatMap((source) => source.fields) ?? [];
       return Object.freeze({
         datasetId: dataset.datasetId,
         versionId: dataset.versionId,
@@ -460,8 +482,26 @@ export async function fetchAuthorizedDataIndex(
         fieldTypes: dataset.fieldTypes,
         readiness: dataset.readiness,
         versionLabel: dataset.versionLabel,
-        health: datasetHealth(input.locale),
-        sources: Object.freeze(sources),
+        health:
+          approved === undefined
+            ? datasetHealth(input.locale)
+            : Object.freeze({
+                label: input.locale === 'vi-VN' ? 'Sẵn sàng phân tích' : 'Ready for analysis',
+                tone: 'HEALTHY' as const,
+              }),
+        ...(approved === undefined
+          ? {}
+          : {
+              rowCount: approved.review.counts.output,
+              quality: approved.review.quality,
+              fieldNames: Object.freeze(sourceFields.map((field) => field.name)),
+              previewRows: Object.freeze(
+                approved.sources
+                  .flatMap((source) => source.sampleRows)
+                  .slice(0, 100) as readonly DatasetPreviewRowV1[],
+              ),
+            }),
+        sources: Object.freeze(mergedSources),
       });
     }),
   );

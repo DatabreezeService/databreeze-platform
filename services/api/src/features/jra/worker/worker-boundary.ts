@@ -16,6 +16,12 @@ import {
   type IamTenantContextV1,
 } from '../../iam/application/tenant-context.js';
 import { workerAttemptDescriptorBindingHashV1 } from './execution-descriptor-binding.js';
+import {
+  verifyExecutionWorkloadEnvelopeV1,
+  type ExecutionWorkloadEnvelopeResultV1,
+  type ExecutionWorkloadEnvelopeV1,
+  type ExecutionWorkloadEnvelopeResolverInputV1,
+} from '../application/execution-workload-envelope.js';
 import type {
   WorkerPreparedResultResponseV1,
   WorkerResultPreparationPortV1,
@@ -44,6 +50,7 @@ import {
   type WorkerObjectGrantAuthorityPortV1,
   type WorkerOperationV1,
   type WorkerOutputGrantV1,
+  type WorkerWorkloadEnvelopeAuthorityPortV1,
 } from './worker-ports.js';
 
 const MAX_TOKEN_LENGTH = 512;
@@ -55,6 +62,11 @@ const STRICT_UTC_TIMESTAMP = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/u;
 const OPAQUE_REFERENCE = /^[A-Za-z0-9][A-Za-z0-9._~-]{0,255}$/u;
 const SAFE_NAME = /^[a-z][a-z0-9_.-]{0,127}$/u;
 const IDEMPOTENCY_KEY = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/u;
+
+function localWorkerDiagnostic(message: string): void {
+  if (process.env['DATABREEZE_RUNTIME_PROFILE'] === 'local')
+    console.error(`worker result diagnostic: ${message.slice(0, 240)}`);
+}
 
 export type WorkerProblemStatus = 400 | 401 | 403 | 409 | 413 | 503;
 
@@ -637,6 +649,9 @@ export interface WorkerLeaseResponseV1 {
   readonly leaseExpiresAt: string;
   readonly revision: number;
   readonly inputGrant: WorkerInputGrantV1;
+  /** JRA-033: immutable attempt-bound workload identity, never workload contents. */
+  readonly workloadEnvelopeId?: StableIdentifierV1;
+  readonly workloadEnvelopeHash?: string;
 }
 
 export interface WorkerHeartbeatResponseV1 {
@@ -658,6 +673,17 @@ export interface WorkerBoundaryPortV1 {
       readonly attemptBindingHash: unknown;
     },
   ): Promise<WorkerLeaseResponseV1>;
+  workload(
+    request: unknown,
+    input: {
+      readonly attemptId: unknown;
+      readonly leaseToken: unknown;
+      readonly expectedRevision: unknown;
+      readonly descriptorId: unknown;
+      readonly descriptorHash: unknown;
+      readonly attemptBindingHash: unknown;
+    },
+  ): Promise<ExecutionWorkloadEnvelopeV1>;
   heartbeat(
     request: unknown,
     input: {
@@ -710,6 +736,7 @@ export interface WorkerBoundaryDependenciesV1 {
   readonly authenticator: WorkerAuthenticatorPortV1;
   readonly grants: WorkerObjectGrantAuthorityPortV1;
   readonly completion: WorkerCompletionTransactionPortV1;
+  readonly workloadEnvelope?: WorkerWorkloadEnvelopeAuthorityPortV1;
   readonly preparation?: WorkerResultPreparationPortV1;
   readonly resultCapabilities?: WorkerResultWriteCapabilityAuthorityPortV1;
   readonly finalization?: WorkerResultFinalizationPortV1;
@@ -749,7 +776,14 @@ export class WorkerBoundary implements WorkerBoundaryPortV1 {
     let value: WorkerAssignmentV1 | undefined;
     try {
       value = await this.dependencies.assignment.assign(identity, now);
-    } catch {
+    } catch (error: unknown) {
+      // Local diagnostics must make an unavailable assignment actionable while
+      // keeping the public problem response generic and never logging tokens or
+      // request payloads. Production retains the fail-closed response only.
+      if (process.env['DATABREEZE_RUNTIME_PROFILE'] === 'local') {
+        const detail = error instanceof Error ? `${error.name}:${error.message}` : typeof error;
+        console.error(`worker assignment failed: ${detail.slice(0, 240)}`);
+      }
       throw new WorkerProblemError('WORKER_ASSIGNMENT_UNAVAILABLE', 503);
     }
     if (value === undefined) return undefined;
@@ -804,6 +838,17 @@ export class WorkerBoundary implements WorkerBoundaryPortV1 {
     });
     if (value.attemptBindingHash !== expectedBindingHash)
       throw new WorkerProblemError('WORKER_ASSIGNMENT_UNAVAILABLE', 503);
+    const workloadEnvelopeId =
+      value.workloadEnvelopeId === undefined
+        ? undefined
+        : stableIdentifier(value.workloadEnvelopeId);
+    const workloadEnvelopeHash = value.workloadEnvelopeHash;
+    if (
+      (value.workloadEnvelopeId !== undefined && workloadEnvelopeId === undefined) ||
+      (value.workloadEnvelopeId === undefined && workloadEnvelopeHash !== undefined) ||
+      (workloadEnvelopeHash !== undefined && !/^[a-f0-9]{64}$/u.test(workloadEnvelopeHash))
+    )
+      throw new WorkerProblemError('WORKER_ASSIGNMENT_UNAVAILABLE', 503);
     return Object.freeze({
       attemptId,
       jobId,
@@ -813,6 +858,9 @@ export class WorkerBoundary implements WorkerBoundaryPortV1 {
       descriptorId,
       descriptorHash: value.descriptorHash,
       attemptBindingHash: value.attemptBindingHash,
+      ...(workloadEnvelopeId === undefined
+        ? {}
+        : { workloadEnvelopeId, workloadEnvelopeHash: workloadEnvelopeHash! }),
       action: Object.freeze({
         ...action,
         requiredCapabilities: Object.freeze([...action.requiredCapabilities]),
@@ -978,18 +1026,124 @@ export class WorkerBoundary implements WorkerBoundaryPortV1 {
         identity,
         authorized.value.job,
         startedAttempt,
+        authorized.value.descriptorInputObjectIds,
       );
     } catch {
       throw new WorkerProblemError('WORKER_OBJECT_GRANT_UNAVAILABLE', 503);
     }
-    validateInputGrant(grant, identity, authorized.value, startedAttempt, now);
+    // IAE stamps a newly issued capability at the moment it signs it. The
+    // grant call can cross the millisecond boundary after the authorization
+    // snapshot above; validate against a fresh server timestamp so a valid
+    // capability is not rejected as "issued in the future".
+    validateInputGrant(grant, identity, authorized.value, startedAttempt, this.now());
+    let workloadEnvelopeId: StableIdentifierV1 | undefined;
+    let workloadEnvelopeHash: string | undefined;
+    if (this.dependencies.workloadEnvelope !== undefined) {
+      let resolved: Awaited<ReturnType<WorkerWorkloadEnvelopeAuthorityPortV1['resolve']>>;
+      try {
+        resolved = await this.dependencies.workloadEnvelope.resolve({
+          identity,
+          attemptId,
+          descriptorId,
+          descriptorHash,
+          attemptBindingHash,
+          now,
+        });
+      } catch {
+        throw new WorkerProblemError('WORKER_WORKLOAD_UNAVAILABLE', 503);
+      }
+      if (!resolved.accepted) throw new WorkerProblemError('WORKER_WORKLOAD_UNAVAILABLE', 503);
+      workloadEnvelopeId = resolved.value.workloadId;
+      workloadEnvelopeHash = resolved.value.canonicalHash;
+    }
     return Object.freeze({
       attemptId,
       jobId: authorized.value.job.jobId,
       leaseExpiresAt: startedAttempt.leaseExpiresAt,
       revision: startedAttempt.revision,
       inputGrant: grant,
+      ...(workloadEnvelopeId === undefined
+        ? {}
+        : { workloadEnvelopeId, workloadEnvelopeHash: workloadEnvelopeHash! }),
     });
+  }
+
+  /**
+   * Resolves the immutable server-authored workload only after rechecking the
+   * current worker identity, lease, revision, descriptor binding, and deadline.
+   * No worker-authored parameters or object references are accepted here.
+   */
+  public async workload(
+    request: unknown,
+    input: {
+      attemptId: unknown;
+      leaseToken: unknown;
+      expectedRevision: unknown;
+      descriptorId: unknown;
+      descriptorHash: unknown;
+      attemptBindingHash: unknown;
+    },
+  ): Promise<ExecutionWorkloadEnvelopeV1> {
+    const identity = await this.identity(request);
+    if (this.dependencies.workloadEnvelope === undefined)
+      throw new WorkerProblemError('WORKER_WORKLOAD_UNAVAILABLE', 503);
+    const attemptId = requestId(input.attemptId);
+    const leaseTokenHash = tokenHash(input.leaseToken);
+    const expectedRevision = revision(input.expectedRevision);
+    const descriptorId = requestId(input.descriptorId);
+    const descriptorHash = sha256(input.descriptorHash);
+    const attemptBindingHash = sha256(input.attemptBindingHash);
+    const authorized = await this.authorize(
+      identity,
+      'WORKLOAD',
+      attemptId,
+      leaseTokenHash,
+      expectedRevision,
+    );
+    if (
+      authorized.value.attempt.state !== 'RUNNING' ||
+      authorized.value.descriptorId !== descriptorId ||
+      authorized.value.descriptorHash !== descriptorHash ||
+      authorized.value.attemptBindingHash !== attemptBindingHash
+    )
+      throw new WorkerProblemError('WORKER_DESCRIPTOR_BINDING_REJECTED', 409);
+    const now = this.now();
+    if (!strictTimestamp(now)) throw new WorkerProblemError('WORKER_BOUNDARY_UNAVAILABLE', 503);
+    let resolved: ExecutionWorkloadEnvelopeResultV1;
+    try {
+      const resolverInput: ExecutionWorkloadEnvelopeResolverInputV1 = {
+        identity,
+        attemptId,
+        descriptorId,
+        descriptorHash,
+        attemptBindingHash,
+        now,
+      };
+      resolved = await this.dependencies.workloadEnvelope.resolve(resolverInput);
+    } catch {
+      throw new WorkerProblemError('WORKER_WORKLOAD_UNAVAILABLE', 503);
+    }
+    if (!resolved.accepted) {
+      if (resolved.code === 'JRA_WORKLOAD_DESCRIPTOR_MISMATCH')
+        throw new WorkerProblemError('WORKER_DESCRIPTOR_BINDING_REJECTED', 409);
+      if (resolved.code === 'JRA_WORKLOAD_ENVELOPE_INVALID')
+        throw new WorkerProblemError('WORKER_WORKLOAD_REJECTED', 409);
+      throw new WorkerProblemError('WORKER_WORKLOAD_UNAVAILABLE', 503);
+    }
+    const envelope = resolved.value;
+    if (
+      envelope.jobId !== authorized.value.job.jobId ||
+      !verifyExecutionWorkloadEnvelopeV1(envelope, {
+        identity,
+        descriptorId,
+        descriptorHash,
+        attemptId,
+        attemptBindingHash,
+        now,
+      })
+    )
+      throw new WorkerProblemError('WORKER_WORKLOAD_REJECTED', 409);
+    return envelope;
   }
 
   public async heartbeat(
@@ -1100,13 +1254,14 @@ export class WorkerBoundary implements WorkerBoundaryPortV1 {
       now,
     });
     if (!result.accepted) {
+      localWorkerDiagnostic(`preparation result=${result.code}`);
       if (result.code === 'CONFLICT')
         throw new WorkerProblemError('WORKER_IDEMPOTENCY_CONFLICT', 409);
       if (result.code === 'STALE_ATTEMPT') throw new WorkerProblemError('WORKER_STALE_LEASE', 409);
       throw new WorkerProblemError('WORKER_RESULT_PREPARATION_UNAVAILABLE', 503);
     }
     const prepared = result.preparation;
-    if (
+    const preparedValid = !(
       prepared.attemptId !== attemptId ||
       prepared.jobId !== authorized.value.job.jobId ||
       prepared.descriptorId !== authorized.value.descriptorId ||
@@ -1118,21 +1273,31 @@ export class WorkerBoundary implements WorkerBoundaryPortV1 {
       !/^[0-9a-f]{64}$/u.test(prepared.outputPolicyHash) ||
       prepared.outputs.length === 0 ||
       prepared.outputs.length > MAX_ATTESTATIONS
-    )
-      throw new WorkerProblemError('WORKER_RESULT_PREPARATION_UNAVAILABLE', 503);
-    let capabilities: readonly import('./worker-result-preparation.port.js').WorkerResultWriteCapabilityV1[];
-    try {
-      capabilities = await this.dependencies.resultCapabilities.issue(identity, prepared);
-    } catch {
+    );
+    if (!preparedValid) {
+      localWorkerDiagnostic('prepared response validation failed');
       throw new WorkerProblemError('WORKER_RESULT_PREPARATION_UNAVAILABLE', 503);
     }
-    if (
+    let capabilities: readonly import('./worker-result-preparation.port.js').WorkerResultWriteCapabilityV1[];
+    try {
+      capabilities = await this.dependencies.resultCapabilities.issue(
+        identity,
+        prepared,
+        authorized.value.attempt.leaseExpiresAt,
+      );
+    } catch (error: unknown) {
+      localWorkerDiagnostic(
+        `capability issuer failed:${error instanceof Error ? error.name : typeof error}`,
+      );
+      throw new WorkerProblemError('WORKER_RESULT_PREPARATION_UNAVAILABLE', 503);
+    }
+    const capabilitiesValid = !(
       capabilities.length !== prepared.outputs.length ||
       capabilities.some((capability, index) => {
         const policy = prepared.outputs[index];
         return (
           !policy ||
-          !stableIdentifier(capability.objectId) ||
+          !safeOpaqueReference(capability.objectId) ||
           capability.objectId !== policy.objectId ||
           capability.maxBytes !== policy.maxBytes ||
           capability.outputName !== policy.outputName ||
@@ -1152,8 +1317,45 @@ export class WorkerBoundary implements WorkerBoundaryPortV1 {
           !safeCapabilityToken(capability.signedCapability)
         );
       })
-    )
+    );
+    if (!capabilitiesValid) {
+      if (process.env['DATABREEZE_RUNTIME_PROFILE'] === 'local') {
+        const mismatch = [
+          ...(capabilities.length !== prepared.outputs.length
+            ? [`count:${capabilities.length}/${prepared.outputs.length}`]
+            : []),
+          ...capabilities.map((capability, index) => {
+            const policy = prepared.outputs[index];
+            if (!policy) return 'missing-policy';
+            const failures = [
+              !safeOpaqueReference(capability.objectId) && 'object-format',
+              capability.objectId !== policy.objectId && 'object',
+              capability.maxBytes !== policy.maxBytes && 'maxBytes',
+              capability.outputName !== policy.outputName && 'name',
+              capability.contentSha256 !== policy.contentSha256 && 'sha',
+              capability.byteLength !== policy.byteLength && 'length',
+              JSON.stringify(capability.sourceArtifactVersionIds) !==
+                JSON.stringify(policy.sourceArtifactVersionIds) && 'sources',
+              capability.processorVersion !== policy.processorVersion && 'processor',
+              capability.dataMode !== policy.dataMode && 'mode',
+              capability.payloadClass !== policy.payloadClass && 'payload',
+              JSON.stringify(capability.allowedMediaTypes) !==
+                JSON.stringify(policy.allowedMediaTypes) && 'media',
+              !stableIdentifier(capability.capabilityId) && 'capabilityId',
+              !strictTimestamp(capability.issuedAt) && 'issuedAt',
+              !strictTimestamp(capability.expiresAt) && 'expiresAt',
+              Date.parse(capability.expiresAt) >
+                Date.parse(authorized.value.attempt.leaseExpiresAt) && 'lease',
+              !safeCapabilityToken(capability.signedCapability) && 'signature',
+            ].filter((value): value is string => Boolean(value));
+            return failures.join(',') || 'unknown';
+          }),
+        ];
+        localWorkerDiagnostic(`capability mismatch:${mismatch.join('|')}`);
+      }
+      localWorkerDiagnostic('capability response validation failed');
       throw new WorkerProblemError('WORKER_RESULT_PREPARATION_UNAVAILABLE', 503);
+    }
     return Object.freeze({
       schemaVersion: 4 as const,
       accepted: true as const,
@@ -1432,6 +1634,10 @@ export class UnavailableWorkerBoundary implements WorkerBoundaryPortV1 {
   }
 
   public claim(): Promise<never> {
+    return Promise.reject(new WorkerProblemError('WORKER_BOUNDARY_UNAVAILABLE', 503));
+  }
+
+  public workload(): Promise<never> {
     return Promise.reject(new WorkerProblemError('WORKER_BOUNDARY_UNAVAILABLE', 503));
   }
 

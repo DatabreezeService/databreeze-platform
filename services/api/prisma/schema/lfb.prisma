@@ -1,0 +1,22 @@
+/// LFB-owned records. Landing feedback is anonymous public marketing data with no tenant
+/// scope, no artifacts, and no raw network identifiers — only admission digests.
+/// WEB-026: captured through the closed v4 landing feedback command contract.
+model LandingFeedbackRecord {
+  id                String   @id @db.Uuid
+  email             String   @db.VarChar(160)
+  name              String?  @db.VarChar(80)
+  organization      String?  @db.VarChar(120)
+  role              String   @db.VarChar(24)
+  experience        String   @db.VarChar(16)
+  category          String   @db.VarChar(24)
+  rating            Int
+  message           String   @db.VarChar(1200)
+  contactPermission Boolean  @map("contact_permission")
+  sourceIpHash      String?  @map("source_ip_hash") @db.Char(64)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([createdAt(sort: Desc)], map: "landing_feedbacks_created_at_idx")
+  @@index([email], map: "landing_feedbacks_email_idx")
+  @@map("landing_feedbacks")
+  @@schema("lfb")
+}

@@ -3,6 +3,16 @@ export type AnalysisMessageRoleV1 = 'USER' | 'AGENT' | 'SYSTEM';
 export interface AnalysisDatasetContextV1 {
   readonly datasetLabel: string;
   readonly datasetVersionLabel: string;
+  readonly datasetId?: string;
+}
+
+export interface AnalysisChartProposalV1 {
+  readonly optionId: string;
+  readonly type: 'BAR' | 'LINE' | 'DONUT' | 'KPI' | 'TABLE';
+  readonly title: string;
+  readonly summary: string;
+  readonly dataPoints: readonly { readonly label: string; readonly value: number; readonly formatted: string }[];
+  readonly aggregateValue?: string;
 }
 
 export interface AnalysisConversationMessageV1 {
@@ -10,6 +20,7 @@ export interface AnalysisConversationMessageV1 {
   readonly role: AnalysisMessageRoleV1;
   readonly text: string;
   readonly createdLabel?: string;
+  readonly chartProposal?: AnalysisChartProposalV1;
 }
 
 /**
@@ -23,6 +34,7 @@ export interface AnalysisConversationV1 {
   readonly datasetContext: readonly AnalysisDatasetContextV1[];
   readonly messages: readonly AnalysisConversationMessageV1[];
   readonly updatedLabel?: string;
+  readonly datasetId?: string;
 }
 
 export type AnalysisContextChangeKindV1 =

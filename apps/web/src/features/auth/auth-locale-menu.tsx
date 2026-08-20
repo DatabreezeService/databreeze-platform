@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { LocaleFlag } from '../../components/locale-flag.tsx';
 
 const LOCALES = ['en', 'vi-VN'] as const;
 type AuthLocale = (typeof LOCALES)[number];
@@ -16,39 +17,6 @@ export function authLocaleHref(nextLocale: AuthLocale, pathname?: string): strin
     return `/${[nextLocale, ...segments.slice(1)].join('/')}`;
   }
   return `/${nextLocale}/sign-in`;
-}
-
-function LocaleFlag({ locale }: { readonly locale: AuthLocale }) {
-  if (locale === 'vi-VN') {
-    return (
-      <svg
-        className="auth-locale__flag"
-        viewBox="0 0 18 12"
-        width="18"
-        height="12"
-        aria-hidden="true"
-      >
-        <rect width="18" height="12" fill="#da251d" />
-        <polygon
-          fill="#ff0"
-          points="9,1.55 10.08,5.08 13.8,5.08 10.8,7.2 11.88,10.7 9,8.55 6.12,10.7 7.2,7.2 4.2,5.08 7.92,5.08"
-        />
-      </svg>
-    );
-  }
-
-  return (
-    <svg className="auth-locale__flag" viewBox="0 0 18 12" width="18" height="12" aria-hidden="true">
-      <rect width="18" height="12" fill="#b22234" />
-      <rect y="1" width="18" height="1" fill="#fff" />
-      <rect y="3" width="18" height="1" fill="#fff" />
-      <rect y="5" width="18" height="1" fill="#fff" />
-      <rect y="7" width="18" height="1" fill="#fff" />
-      <rect y="9" width="18" height="1" fill="#fff" />
-      <rect y="11" width="18" height="1" fill="#fff" />
-      <rect width="8" height="6.5" fill="#3c3b6e" />
-    </svg>
-  );
 }
 
 export function AuthLocaleMenu({ locale }: { readonly locale: AuthLocale }) {

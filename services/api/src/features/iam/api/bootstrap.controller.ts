@@ -10,7 +10,9 @@ import {
   type RequestTenantContextPortV1,
 } from '../../../platform/http/request-tenant-context.port.js';
 import { BootstrapResponseDto } from './bootstrap.dto.js';
-import type { IamBootstrapResponse } from '@databreeze/contracts/v4';
+import type { IamBootstrapResponse, IamBootstrapScope } from '@databreeze/contracts/v4';
+
+type UserIdentityWithProfileRevision = { readonly profileRevision?: unknown };
 
 /** IAM-001/IAM-009: bootstrap is derived from the authenticated principal, never request scope. */
 @ApiTags('identity')
@@ -32,10 +34,48 @@ export class IamBootstrapController {
     const context = await this.requestContext.resolve(request);
     if (this.identityBootstrap === undefined)
       return Object.freeze({ schemaVersion: 4, outcome: 'REJECTED', code: 'UNAVAILABLE' });
-    const result = await this.identityBootstrap.find(context.actorId);
+    const legacyIdentityBootstrap = this.identityBootstrap as IdentityBootstrapService & {
+      readonly listVisible?: IdentityBootstrapService['listVisible'];
+    };
+    const result =
+      legacyIdentityBootstrap.listVisible !== undefined
+        ? await legacyIdentityBootstrap.listVisible(context.actorId)
+        : await this.identityBootstrap.find(context.actorId).then((legacy) =>
+            legacy.accepted
+              ? Object.freeze({
+                  accepted: true as const,
+                  value: Object.freeze({
+                    user: legacy.value.user,
+                    organizations: Object.freeze([
+                      Object.freeze({
+                        ...legacy.value.organization,
+                        workspaces: Object.freeze([
+                          Object.freeze({
+                            ...legacy.value.workspace,
+                            projects: Object.freeze([legacy.value.project]),
+                          }),
+                        ]),
+                      }),
+                    ]),
+                  }),
+                })
+              : legacy,
+          );
     if (!result.accepted)
       return Object.freeze({ schemaVersion: 4, outcome: 'REJECTED', code: result.code });
     const value = result.value;
+    const userEmail =
+      'email' in value.user && typeof value.user.email === 'string' ? value.user.email : undefined;
+    const profileRevisionCandidate =
+      'profileRevision' in value.user
+        ? (value.user as UserIdentityWithProfileRevision).profileRevision
+        : undefined;
+    const profileRevision =
+      typeof profileRevisionCandidate === 'number' &&
+      Number.isSafeInteger(profileRevisionCandidate) &&
+      profileRevisionCandidate >= 1
+        ? profileRevisionCandidate
+        : 1;
     const session =
       context.tenantScope.scopeType === 'organization'
         ? Object.freeze({
@@ -57,48 +97,69 @@ export class IamBootstrapController {
               projectId: context.tenantScope.projectId,
               authorizationEpoch: context.authorizationEpoch,
             });
+    const recentScopes: IamBootstrapScope[] = [];
+    for (const organization of value.organizations) {
+      for (const workspace of organization.workspaces) {
+        const project = workspace.projects[0];
+        if (project !== undefined) {
+          recentScopes.push({
+            scopeType: 'project',
+            organizationId: organization.id,
+            workspaceId: workspace.id,
+            projectId: project.id,
+          });
+        } else {
+          recentScopes.push({
+            scopeType: 'workspace',
+            organizationId: organization.id,
+            workspaceId: workspace.id,
+          });
+        }
+      }
+    }
     return Object.freeze({
       schemaVersion: 4 as const,
       outcome: 'ACCEPTED' as const,
       value: Object.freeze({
         user: Object.freeze({
           id: value.user.id,
+          ...(userEmail === undefined ? {} : { email: userEmail }),
           displayName: value.user.displayName,
           locale: value.user.locale,
+          profileRevision,
           mfaState:
             context.mfaRequired === true ? ('ENABLED' as const) : ('NOT_CONFIGURED' as const),
         }),
-        organizations: Object.freeze([
-          Object.freeze({
-            id: value.organization.id,
-            name: value.organization.name,
-            personal: value.organization.personal,
-            status: value.organization.status,
-            workspaces: Object.freeze([
-              Object.freeze({
-                id: value.workspace.id,
-                name: value.workspace.name,
-                status: value.workspace.status,
-                projects: Object.freeze([
+        organizations: Object.freeze(
+          value.organizations.map((organization) =>
+            Object.freeze({
+              id: organization.id,
+              name: organization.name,
+              personal: organization.personal,
+              status: organization.status,
+              workspaces: Object.freeze(
+                organization.workspaces.map((workspace) =>
                   Object.freeze({
-                    id: value.project.id,
-                    name: value.project.name,
-                    kind: value.project.kind,
-                    status: value.project.status,
+                    id: workspace.id,
+                    name: workspace.name,
+                    status: workspace.status,
+                    projects: Object.freeze(
+                      workspace.projects.map((project) =>
+                        Object.freeze({
+                          id: project.id,
+                          name: project.name,
+                          kind: project.kind,
+                          status: project.status,
+                        }),
+                      ),
+                    ),
                   }),
-                ]),
-              }),
-            ]),
-          }),
-        ]),
-        recentScopes: Object.freeze([
-          Object.freeze({
-            scopeType: 'project' as const,
-            organizationId: value.organization.id,
-            workspaceId: value.workspace.id,
-            projectId: value.project.id,
-          }),
-        ]),
+                ),
+              ),
+            }),
+          ),
+        ),
+        recentScopes: Object.freeze(recentScopes),
         session,
         platform: Object.freeze({ apiVersion: 'v1' as const }),
       }),

@@ -30,11 +30,18 @@ import {
 } from '@databreeze/domain/result-manifest/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
+import type { IaeWorkerInputObjectResolverPortV1 } from '../../iae/application/worker-object-capability.port.js';
 import {
   createExecutionRequestDescriptorV1,
   executionRequestDescriptorMatchesJobV1,
   type ExecutionRequestDescriptorV1,
 } from '../application/execution-request-descriptor.js';
+import {
+  createExecutionWorkloadEnvelopeV1,
+  type ExecutionWorkloadEnvelopeResolverInputV1,
+  type ExecutionWorkloadEnvelopeResultV1,
+  type ExecutionWorkloadEnvelopeV1,
+} from '../application/execution-workload-envelope.js';
 import { workerAttemptDescriptorBindingHashV1 } from './execution-descriptor-binding.js';
 import type {
   WorkerPreparedResultV1,
@@ -67,7 +74,13 @@ import type {
   WorkerOperationV1,
   WorkerOutputGrantV1,
   WorkerSecurityEpochPortV1,
+  WorkerWorkloadEnvelopeAuthorityPortV1,
 } from './worker-ports.js';
+import {
+  PrismaExecutionWorkloadEnvelopeAdapter,
+  type ExecutionWorkloadEnvelopeDatabaseClientV1,
+  type ExecutionWorkloadEnvelopeDatabaseRowV1,
+} from '../adapter/prisma-execution-workload-envelope.adapter.js';
 
 export interface JraWorkerActionDatabaseRowV1 {
   readonly id: string;
@@ -280,11 +293,22 @@ interface JraWorkerDelegate<TValue> {
   }): Promise<{ readonly count: number }>;
 }
 
+interface JraWorkerWorkloadEnvelopeDelegateV1 {
+  findFirst(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+  }): Promise<ExecutionWorkloadEnvelopeDatabaseRowV1 | null>;
+  create(input: {
+    readonly data: Readonly<Record<string, unknown>>;
+  }): Promise<ExecutionWorkloadEnvelopeDatabaseRowV1>;
+}
+
 export interface JraWorkerDatabaseClientV1 {
   readonly typedActionDefinitionRecord: JraWorkerDelegate<JraWorkerActionDatabaseRowV1>;
   readonly jobRecord: JraWorkerDelegate<JraWorkerJobDatabaseRowV1>;
   readonly executionAttemptRecord: JraWorkerDelegate<JraWorkerAttemptDatabaseRowV1>;
   readonly executionRequestDescriptorRecord: JraWorkerDelegate<JraWorkerExecutionRequestDatabaseRowV1>;
+  /** Optional until the root composes the exact local/cloud workload authority. */
+  readonly executionWorkloadEnvelopeRecord?: JraWorkerWorkloadEnvelopeDelegateV1;
   readonly workerCompletionRecord: JraWorkerDelegate<JraWorkerCompletionDatabaseRowV1>;
   readonly workerResultPreparationRecord?: JraWorkerDelegate<JraWorkerResultPreparationDatabaseRowV1>;
   readonly workerResultFinalizationRecord?: JraWorkerDelegate<JraWorkerResultFinalizationDatabaseRowV1>;
@@ -659,7 +683,7 @@ function descriptorSubjectBindings(
 ): Readonly<Record<string, string>> {
   const bindings: Record<string, string> = {
     locale: descriptor.locale,
-    handlerDigest: descriptor.action.handlerDigest,
+    handlerDigest: `sha256:${descriptor.action.handlerDigest}`,
   };
   for (const [key, value] of Object.entries(descriptor.parameters)) {
     if (RESULT_SUBJECT_BINDINGS.has(key) && typeof value === 'string') bindings[key] = value;
@@ -1096,14 +1120,127 @@ export class PrismaJraWorkerAdapter
     WorkerCompletionTransactionPortV1,
     WorkerResultPreparationPortV1,
     WorkerResultFinalizationPortV1,
-    WorkerVerifiedResultManifestPortV1
+    WorkerVerifiedResultManifestPortV1,
+    WorkerWorkloadEnvelopeAuthorityPortV1
 {
   public constructor(
     private readonly client: JraWorkerDatabaseClientV1,
     private readonly securityEpoch: WorkerSecurityEpochPortV1,
     private readonly grants: WorkerObjectGrantAuthorityPortV1,
     private readonly finalizationEffects?: WorkerResultFinalizationEffectsPortV1,
+    private readonly workloadInputResolver?: IaeWorkerInputObjectResolverPortV1,
   ) {}
+
+  private workloadPersistence(
+    transaction?: unknown,
+  ): PrismaExecutionWorkloadEnvelopeAdapter | undefined {
+    const database = (transaction ?? this.client) as JraWorkerDatabaseClientV1;
+    return database.executionWorkloadEnvelopeRecord === undefined
+      ? undefined
+      : new PrismaExecutionWorkloadEnvelopeAdapter(
+          database as unknown as ExecutionWorkloadEnvelopeDatabaseClientV1,
+        );
+  }
+
+  /** JRA-033: create the immutable envelope only after the exact attempt exists. */
+  public async createForAttempt(input: {
+    readonly identity: WorkerIdentityV1;
+    readonly job: JobV1;
+    readonly attempt: ExecutionAttemptV1;
+    readonly descriptor: ExecutionRequestDescriptorV1;
+    readonly descriptorId: StableIdentifierV1;
+    readonly descriptorHash: string;
+    readonly attemptBindingHash: string;
+    readonly now: string;
+    readonly transaction?: unknown;
+  }): Promise<ExecutionWorkloadEnvelopeV1 | undefined> {
+    if (this.workloadInputResolver === undefined) return undefined;
+    const persistence = this.workloadPersistence(input.transaction);
+    if (persistence === undefined) return undefined;
+    const resolved = await this.workloadInputResolver.resolveInputObjects({
+      tenantScope: input.identity.tenantScope,
+      job: input.job,
+      attempt: input.attempt,
+      inputObjectIds: input.descriptor.inputObjectIds,
+    });
+    if (
+      !resolved.accepted ||
+      resolved.value.objects.length !== input.descriptor.inputObjectIds.length
+    )
+      return undefined;
+    const handles = input.descriptor.inputObjectIds.map((objectId, index) => {
+      const binding = resolved.value.objects[index];
+      if (
+        binding === undefined ||
+        binding.objectId !== objectId ||
+        binding.contentSha256 === undefined ||
+        binding.contentLength === undefined
+      )
+        return undefined;
+      return Object.freeze({
+        objectId,
+        schemaId: input.descriptor.action.inputSchemaId,
+        contentSha256: binding.contentSha256,
+        byteLength: binding.contentLength,
+      });
+    });
+    if (handles.some((handle) => handle === undefined)) return undefined;
+    const parameterTimezone = input.descriptor.parameters['timezone'];
+    const timezone = typeof parameterTimezone === 'string' ? parameterTimezone : 'UTC';
+    const parameterBindings = input.descriptor.parameters['subjectBindings'];
+    const subjectBindings =
+      typeof parameterBindings === 'object' &&
+      parameterBindings !== null &&
+      !Array.isArray(parameterBindings) &&
+      Object.values(parameterBindings as Record<string, unknown>).every(
+        (value) => typeof value === 'string',
+      )
+        ? (parameterBindings as Record<string, string>)
+        : {
+            jobId: input.job.jobId,
+            descriptorId: input.descriptor.descriptorId,
+            actionType: input.descriptor.action.type,
+            inputManifestHash: input.descriptor.inputManifestHash,
+            outputObjectId: input.descriptor.outputPolicy.outputObjectId,
+          };
+    const workloadId = parseStableIdentifierV1(randomUUID());
+    if (!workloadId.accepted) return undefined;
+    const created = createExecutionWorkloadEnvelopeV1({
+      workloadId: workloadId.value,
+      descriptor: input.descriptor,
+      attemptId: input.attempt.attemptId,
+      attemptBindingHash: input.attemptBindingHash,
+      inputHandles: handles as NonNullable<(typeof handles)[number]>[],
+      timezone,
+      subjectBindings,
+    });
+    if (!created.accepted) return undefined;
+    const saved = await persistence.save(created.value);
+    if (saved === 'CONFLICT') return undefined;
+    if (saved === 'SAVED') return created.value;
+    return persistence.find({
+      identity: input.identity,
+      attemptId: input.attempt.attemptId,
+      descriptorId: input.descriptorId,
+      descriptorHash: input.descriptorHash,
+      attemptBindingHash: input.attemptBindingHash,
+      now: input.now,
+    });
+  }
+
+  public async resolve(
+    input: ExecutionWorkloadEnvelopeResolverInputV1,
+  ): Promise<ExecutionWorkloadEnvelopeResultV1> {
+    if (!(await this.current(input.identity)))
+      return Object.freeze({ accepted: false, code: 'JRA_WORKLOAD_INPUTS_UNAVAILABLE' });
+    const persistence = this.workloadPersistence();
+    if (persistence === undefined)
+      return Object.freeze({ accepted: false, code: 'JRA_WORKLOAD_INPUTS_UNAVAILABLE' });
+    const envelope = await persistence.find(input);
+    return envelope === undefined
+      ? Object.freeze({ accepted: false, code: 'JRA_WORKLOAD_ENVELOPE_INVALID' })
+      : Object.freeze({ accepted: true, value: envelope });
+  }
 
   public async assign(
     identity: WorkerIdentityV1,
@@ -1116,7 +1253,8 @@ export class PrismaJraWorkerAdapter
         if (!(await this.current(identity))) return undefined;
         const scope = databaseScope(identity.tenantScope);
         let retryingExpired = false;
-        let latestAttempt = await transaction.executionAttemptRecord.findFirst({
+        let latestAttempt: JraWorkerAttemptDatabaseRowV1 | null = null;
+        const activeAttempts = await transaction.executionAttemptRecord.findMany({
           where: {
             ...scope,
             OR: [{ state: 'CLAIMED' }, { state: 'RUNNING' }],
@@ -1124,21 +1262,28 @@ export class PrismaJraWorkerAdapter
           orderBy: { leaseExpiresAt: 'asc' },
         });
         let jobRowValue: JraWorkerJobDatabaseRowV1 | null = null;
-        if (latestAttempt && latestAttempt.leaseExpiresAt.getTime() < Date.parse(now)) {
+        // Expired attempts for terminal jobs are historical debris, not a
+        // reason to starve newer work. Walk the bounded active-attempt scan
+        // until we find the first current retryable lease; preserve the
+        // existing ordering so a live lease still wins over later retries.
+        for (const candidate of activeAttempts) {
+          if (candidate.leaseExpiresAt.getTime() >= Date.parse(now)) break;
           const newestForJob = await transaction.executionAttemptRecord.findFirst({
-            where: { jobId: latestAttempt.jobId, ...scope },
+            where: { jobId: candidate.jobId, ...scope },
             orderBy: { attemptNumber: 'desc' },
           });
           const retryJob = await transaction.jobRecord.findFirst({
-            where: { id: latestAttempt.jobId, ...scope },
+            where: { id: candidate.jobId, ...scope },
           });
           if (
-            newestForJob?.id === latestAttempt.id &&
+            newestForJob?.id === candidate.id &&
             retryJob &&
             (retryJob.state === 'DISPATCHED' || retryJob.state === 'RUNNING')
           ) {
             retryingExpired = true;
+            latestAttempt = candidate;
             jobRowValue = retryJob;
+            break;
           }
         }
         if (!retryingExpired) {
@@ -1266,6 +1411,21 @@ export class PrismaJraWorkerAdapter
           securityEpoch: identity.securityEpoch,
           leaseExpiresAt: attempt.value.leaseExpiresAt,
         });
+        const workload =
+          this.workloadInputResolver === undefined
+            ? undefined
+            : await this.createForAttempt({
+                identity,
+                job,
+                attempt: attempt.value,
+                descriptor,
+                descriptorId: descriptor.descriptorId,
+                descriptorHash: descriptor.canonicalHash,
+                attemptBindingHash,
+                now,
+                transaction,
+              });
+        if (this.workloadInputResolver !== undefined && workload === undefined) return undefined;
         await transaction.jobOutboxRecord.create({
           data: {
             id: randomUUID(),
@@ -1280,6 +1440,12 @@ export class PrismaJraWorkerAdapter
               descriptorId: descriptor.descriptorId,
               descriptorHash: descriptor.canonicalHash,
               attemptBindingHash,
+              ...(workload === undefined
+                ? {}
+                : {
+                    workloadEnvelopeId: workload.workloadId,
+                    workloadEnvelopeHash: workload.canonicalHash,
+                  }),
             },
             createdAt: new Date(now),
             deliveredAt: null,
@@ -1294,6 +1460,12 @@ export class PrismaJraWorkerAdapter
           descriptorId: descriptor.descriptorId,
           descriptorHash: descriptor.canonicalHash,
           attemptBindingHash,
+          ...(workload === undefined
+            ? {}
+            : {
+                workloadEnvelopeId: workload.workloadId,
+                workloadEnvelopeHash: workload.canonicalHash,
+              }),
           action: Object.freeze({
             type: job.action.actionType,
             version: job.action.version,
@@ -1340,6 +1512,7 @@ export class PrismaJraWorkerAdapter
       workerSecurityEpoch: identity.securityEpoch,
       descriptorId: loaded.descriptor.descriptorId,
       descriptorHash: loaded.descriptor.canonicalHash,
+      descriptorInputObjectIds: Object.freeze([...loaded.descriptor.inputObjectIds]),
       attemptBindingHash: workerAttemptDescriptorBindingHashV1({
         descriptorHash: loaded.descriptor.canonicalHash,
         attemptId: loaded.attempt.attemptId,

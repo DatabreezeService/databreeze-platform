@@ -30,6 +30,7 @@ import {
   CreateDeviceTransferReceiptDto,
   CreateStrictLocalPackageDto,
   PullDeviceSyncDto,
+  BootstrapDeviceSyncCursorDto,
   PushDeviceSyncDto,
   TransitionDeviceSyncOperationDto,
 } from './device-sync.dto.js';
@@ -71,6 +72,15 @@ export class DeviceSyncController {
   async pull(@Req() request: unknown, @Body() input: PullDeviceSyncDto): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
     return this.sync.pull(context, { ...input, signer: this.cursorSigner });
+  }
+
+  @Post('sync/cursors/bootstrap')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Issue the first signed device synchronization cursor' })
+  @ApiBody({ type: BootstrapDeviceSyncCursorDto })
+  async bootstrapCursor(@Req() request: unknown, @Body() input: BootstrapDeviceSyncCursorDto): Promise<unknown> {
+    const context = await this.requestContext.resolve(request);
+    return this.sync.bootstrapCursor(context, input, this.cursorSigner);
   }
 
   @Post('sync/push')

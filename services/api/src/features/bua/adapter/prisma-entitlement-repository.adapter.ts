@@ -14,6 +14,7 @@ import {
   parseStrictUtcTimestampV1,
   parseTenantScopeV1,
   tenantScopeContainsV1,
+  tenantScopesEqualV1,
   tenantScopeKeyV1,
   type TenantScopeV1,
 } from '@databreeze/domain/tenant-scope/v1';
@@ -32,7 +33,17 @@ import {
   validUsageReservationTransitionV1,
 } from '../application/entitlement-equality.js';
 
-const planCodes = new Set(['free', 'development', 'admin_granted']);
+const planCodes = new Set([
+  'free',
+  'development',
+  'admin_granted',
+  'personal-monthly',
+  'personal-annual',
+  'professional-monthly',
+  'professional-annual',
+  'team-monthly',
+  'team-annual',
+]);
 const statuses = new Set(['ACTIVE', 'SUSPENDED', 'EXPIRED']);
 const metrics = new Set([
   'artifact_bytes',
@@ -124,7 +135,10 @@ interface DelegateV1<TRow, TCreate> {
   findUnique(input: {
     readonly where: { readonly id?: string; readonly planCode?: string };
   }): Promise<TRow | null>;
-  findFirst(input: { readonly where: Readonly<Record<string, unknown>> }): Promise<TRow | null>;
+  findFirst(input: {
+    readonly where: Readonly<Record<string, unknown>>;
+    readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
+  }): Promise<TRow | null>;
   findMany(input: {
     readonly where: Readonly<Record<string, unknown>>;
     readonly orderBy?: Readonly<Record<string, 'asc' | 'desc'>>;
@@ -445,6 +459,16 @@ function visible(context: TenantScopeV1, candidate: TenantScopeV1): boolean {
   return tenantScopeContainsV1(context, candidate) || tenantScopeContainsV1(candidate, context);
 }
 
+function snapshotScope(snapshot: EntitlementSnapshotV1): TenantScopeV1 {
+  return snapshot.workspaceId
+    ? {
+        scopeType: 'workspace',
+        organizationId: snapshot.organizationId,
+        workspaceId: snapshot.workspaceId,
+      }
+    : { scopeType: 'organization', organizationId: snapshot.organizationId };
+}
+
 function inheritedUsageScopeKeys(scope: TenantScopeV1): readonly string[] | undefined {
   if (scope.scopeType === 'organization') return undefined;
   const inherited = [
@@ -534,6 +558,34 @@ class PrismaEntitlementTransactionAdapter implements EntitlementTransactionPortV
         }
       : { scopeType: 'organization' as const, organizationId: snapshot.organizationId };
     return visible(context.tenantScope, scope) ? snapshot : undefined;
+  }
+
+  public async findCurrentSnapshot(
+    context: IamTenantContextV1,
+  ): Promise<EntitlementSnapshotV1 | undefined> {
+    const scope =
+      context.tenantScope.scopeType === 'project'
+        ? {
+            scopeType: 'workspace' as const,
+            organizationId: context.tenantScope.organizationId,
+            workspaceId: context.tenantScope.workspaceId,
+          }
+        : databaseScope(context.tenantScope);
+    const row = await this.client.entitlementSnapshotRecord.findFirst({
+      where: { ...scope, status: 'ACTIVE' },
+      orderBy: { revision: 'desc' },
+    });
+    if (row === null) return undefined;
+    const snapshot = persistedSnapshot(row);
+    const expectedScope =
+      context.tenantScope.scopeType === 'project'
+        ? {
+            scopeType: 'workspace' as const,
+            organizationId: context.tenantScope.organizationId,
+            workspaceId: context.tenantScope.workspaceId,
+          }
+        : context.tenantScope;
+    return tenantScopesEqualV1(snapshotScope(snapshot), expectedScope) ? snapshot : undefined;
   }
 
   public async listUsageState(context: IamTenantContextV1): Promise<UsageLedgerStateV1> {
@@ -668,6 +720,12 @@ export class PrismaEntitlementRepositoryAdapter implements EntitlementRepository
     snapshotId: EntitlementSnapshotV1['snapshotId'],
   ): Promise<EntitlementSnapshotV1 | undefined> {
     return new PrismaEntitlementTransactionAdapter(this.client).findSnapshot(context, snapshotId);
+  }
+
+  public findCurrentSnapshot(
+    context: IamTenantContextV1,
+  ): Promise<EntitlementSnapshotV1 | undefined> {
+    return new PrismaEntitlementTransactionAdapter(this.client).findCurrentSnapshot(context);
   }
 
   public listUsageState(context: IamTenantContextV1): Promise<UsageLedgerStateV1> {

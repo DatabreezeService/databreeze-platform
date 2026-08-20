@@ -63,6 +63,7 @@ describe('[DDA-052][WEB-024] authorized data transport', () => {
     const fetchMock = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(jsonResponse(datasetIndex()))
+      .mockResolvedValueOnce(jsonResponse({ accepted: true, value: { imports: [] } }))
       .mockResolvedValueOnce(jsonResponse(sourcePage()));
     vi.stubGlobal('fetch', fetchMock);
 

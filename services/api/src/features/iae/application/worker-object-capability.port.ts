@@ -234,6 +234,8 @@ export interface IaeWorkerInputObjectResolverPortV1 {
     readonly tenantScope: TenantScopeV1;
     readonly job: JobV1;
     readonly attempt: ExecutionAttemptV1;
+    /** Server-owned descriptor references; never accepted from the worker body. */
+    readonly inputObjectIds?: readonly string[];
   }): Promise<IaeWorkerInputObjectResolutionResultV1>;
 }
 

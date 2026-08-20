@@ -8,6 +8,7 @@ import type {
   DdaDashboardChartProposal as DdaDashboardChartProposalV3,
   DdaDashboardWorkspaceHistory as DdaDashboardWorkspaceHistoryV3,
 } from '@databreeze/contracts/v3';
+import { createSessionAwareFetchV1 } from '../auth/auth-session.ts';
 
 export type DashboardWorkspaceHistoryEntryV1 = DdaDashboardWorkspaceHistoryV3['items'][number];
 export type DashboardWorkspaceHistoryV1 = DdaDashboardWorkspaceHistoryV3;
@@ -463,10 +464,24 @@ async function apiErrorFor(response: Response): Promise<DashboardAuthoringApiErr
 }
 
 function workspaceHistoryUrl(configuration: DashboardWorkspaceHistoryConfigurationV1): string {
-  const url = new URL('/v3/dda/dashboards/workspace-history', configuration.baseUrl);
-  if (configuration.cursor !== undefined) url.searchParams.set('cursor', configuration.cursor);
-  if (configuration.limit !== undefined) url.searchParams.set('limit', String(configuration.limit));
+  const path = '/v3/dda/dashboards/workspace-history';
+  const parameters = new URLSearchParams();
+  if (configuration.cursor !== undefined) parameters.set('cursor', configuration.cursor);
+  if (configuration.limit !== undefined) parameters.set('limit', String(configuration.limit));
+  const query = parameters.toString();
+  // An empty base URL targets the same origin (dev proxy / Caddy front) and must
+  // stay a relative URL; `new URL` would reject it as an invalid base.
+  if (configuration.baseUrl === '') return query === '' ? path : `${path}?${query}`;
+  const url = new URL(path, configuration.baseUrl);
+  if (query !== '') url.search = query;
   return url.toString();
+}
+
+function sessionFetcher(baseUrl: string): typeof fetch {
+  return createSessionAwareFetchV1({
+    apiBaseUrl: baseUrl,
+    fetcher: globalThis.fetch.bind(globalThis),
+  });
 }
 
 /** DDA-026/DDA-043: request only the current-session, content-safe history page. */
@@ -481,7 +496,10 @@ export async function fetchDashboardWorkspaceHistory(
   };
   if (signal !== undefined) init.signal = signal;
 
-  const response = await globalThis.fetch(workspaceHistoryUrl(configuration), init);
+  const response = await sessionFetcher(configuration.baseUrl)(
+    workspaceHistoryUrl(configuration),
+    init,
+  );
   if (!response.ok) throw await apiErrorFor(response);
 
   const payload: unknown = await response.json();
@@ -512,7 +530,7 @@ export async function proposeDashboardCharts(
     `/v3/dda/dashboards/${encodeURIComponent(input.dashboardId)}/proposals`,
     input.baseUrl,
   );
-  const response = await globalThis.fetch(url.toString(), init);
+  const response = await sessionFetcher(input.baseUrl)(url.toString(), init);
   if (!response.ok) throw await apiErrorFor(response);
 
   const payload: unknown = await response.json();
@@ -545,7 +563,7 @@ export async function applyDashboardAuthoringCommand(
     `/v3/dda/dashboards/${encodeURIComponent(input.command.dashboardId)}/authoring-commands`,
     input.baseUrl,
   );
-  const response = await globalThis.fetch(url.toString(), init);
+  const response = await sessionFetcher(input.baseUrl)(url.toString(), init);
   if (!response.ok) throw await apiErrorFor(response);
 
   const payload: unknown = await response.json();

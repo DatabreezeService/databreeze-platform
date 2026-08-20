@@ -70,8 +70,15 @@ export class IaeWorkerObjectGrantAuthorityAdapter implements WorkerObjectGrantAu
     worker: WorkerIdentityV1,
     job: JobV1,
     attempt: ExecutionAttemptV1,
+    inputObjectIds?: readonly string[],
   ): Promise<WorkerInputGrantV1> {
-    const result = await this.capabilities.issueInputGrant(identity(worker), job, attempt);
+    const result = await this.capabilities.issueInputGrant(
+      identity(worker),
+      job,
+      attempt,
+      undefined,
+      inputObjectIds === undefined ? undefined : { inputObjectIds },
+    );
     if (!result.accepted) return failureCode(result);
     return inputGrant(result.value);
   }

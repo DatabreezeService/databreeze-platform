@@ -29,9 +29,12 @@ const ids = {
   ownerMembership: '00000000-0000-4000-8000-000000000314',
   invitedMembership: '00000000-0000-4000-8000-000000000315',
   invitation: '00000000-0000-4000-8000-000000000316',
+  invitationRetry: '00000000-0000-4000-8000-000000000319',
+  newInvitee: '00000000-0000-4000-8000-000000000318',
 };
 const now = new Date('2026-08-03T00:00:00.000Z');
 const RAW_TOKEN = 'raw-token-abcdefghijklmnopqrstuvwxyz123456';
+const RAW_TOKEN_RETRY = 'retry-token-abcdefghijklmnopqrstuvwxyz123456';
 
 function stable(value: string) {
   const parsed = parseStableIdentifierV1(value);
@@ -105,6 +108,13 @@ class Repository implements IamInvitationRepositoryPortV1 {
               membership.principalId === principalId && membership.status === 'ACTIVE',
           );
         },
+        findInvitedMembershipForPrincipal: async (_context, principalId) => {
+          await Promise.resolve();
+          return this.memberships.find(
+            (membership) =>
+              membership.principalId === principalId && membership.status === 'INVITED',
+          );
+        },
         findMembershipById: async (_context, id) => {
           await Promise.resolve();
           return this.memberships.find((membership) => membership.id === id);
@@ -138,7 +148,19 @@ class Repository implements IamInvitationRepositoryPortV1 {
           await Promise.resolve();
           if (this.saveMembershipError) throw new Error(this.saveMembershipError);
           const index = this.memberships.findIndex((item) => item.id === membership.id);
-          if (index < 0 || this.memberships[index]?.revision !== membership.revision - 1)
+          if (index < 0) {
+            if (
+              this.memberships.some(
+                (item) =>
+                  item.principalId === membership.principalId &&
+                  item.scope.organizationId === membership.scope.organizationId,
+              )
+            )
+              throw new Error('IAM_MEMBERSHIP_CONFLICT');
+            this.memberships.push(membership);
+            return;
+          }
+          if (this.memberships[index]?.revision !== membership.revision - 1)
             throw new Error('IAM_REVISION_CONFLICT');
           this.memberships[index] = membership;
         },
@@ -156,7 +178,17 @@ class Repository implements IamInvitationRepositoryPortV1 {
 class EmailLookup implements IamPrincipalEmailLookupPortV1 {
   async findEmail(principalId: string): Promise<string | undefined> {
     await Promise.resolve();
-    return principalId === ids.invitee ? 'invitee@example.com' : 'owner@example.com';
+    if (principalId === ids.invitee) return 'invitee@example.com';
+    if (principalId === ids.newInvitee) return 'new-invitee@example.com';
+    return 'owner@example.com';
+  }
+
+  async findPrincipalIdByEmail(email: string) {
+    await Promise.resolve();
+    if (email === 'invitee@example.com') return stable(ids.invitee);
+    if (email === 'new-invitee@example.com') return stable(ids.newInvitee);
+    if (email === 'owner@example.com') return stable(ids.owner);
+    return undefined;
   }
 }
 
@@ -185,14 +217,26 @@ class Delivery implements IamInvitationDeliveryPortV1 {
   }
 }
 
-function service(repository: Repository, delivery: IamInvitationDeliveryPortV1 = new Delivery()) {
-  const idsQueue: string[] = [ids.invitation, ids.invitation];
+function service(
+  repository: Repository,
+  delivery: IamInvitationDeliveryPortV1 = new Delivery(),
+  tokenValues: readonly string[] = [RAW_TOKEN],
+  invitationIds: readonly string[] = [ids.invitation, ids.invitationRetry],
+) {
+  const idsQueue: string[] = [...invitationIds];
+  let tokenIndex = 0;
   const idGenerator: IamInvitationIdGeneratorV1 = () => {
     const next = idsQueue.shift();
     if (!next) throw new Error('invitation id generator exhausted');
     return next;
   };
-  const tokenGenerator: IamInvitationTokenGeneratorV1 = () => RAW_TOKEN;
+  const tokenGenerator: IamInvitationTokenGeneratorV1 = () => {
+    if (tokenValues.length === 1) return tokenValues[0]!;
+    const token = tokenValues[tokenIndex];
+    tokenIndex += 1;
+    if (token === undefined) throw new Error('token generator exhausted');
+    return token;
+  };
   return {
     service: new IamInvitationService(
       repository,
@@ -220,6 +264,25 @@ void test('[IAM-010] issuing an invitation delivers a raw token but returns only
   assert.equal('rawToken' in result.value, false);
   assert.equal('tokenDigest' in result.value, false);
   assert.deepEqual(composed.delivery.sent, [{ token: RAW_TOKEN, email: 'invitee@example.com' }]);
+});
+
+void test('[IAM-010] email invitation atomically creates the invited membership and token', async () => {
+  const repository = new Repository();
+  const composed = service(repository);
+  const result = await composed.service.issueForEmail(
+    context(ids.owner, 'invitation-email-atomic'),
+    { recipientEmail: 'new-invitee@example.com', accessPreset: 'VIEWER' },
+  );
+  assert.equal(result.accepted, true);
+  if (!result.accepted) return;
+  const createdMembership = repository.memberships.find(
+    (membership) => membership.principalId === stable(ids.newInvitee),
+  );
+  assert.equal(createdMembership?.status, 'INVITED');
+  assert.equal(createdMembership?.roleId, 'viewer');
+  assert.equal(createdMembership?.revision, 1);
+  assert.equal(result.value.membershipId, createdMembership?.id);
+  assert.equal(repository.invitations[0]?.membershipId, createdMembership?.id);
 });
 
 void test('[IAM-010] invitation persistence commits before raw-token delivery', async () => {
@@ -284,6 +347,44 @@ void test('[IAM-010] email mismatch and non-owner issuance are denied without pe
     { accepted: false, code: 'SCOPE_DENIED' },
   );
   assert.equal(repository.invitations.length, 0);
+});
+
+void test('[IAM-010] a failed email delivery can be retried without duplicating the membership', async () => {
+  const repository = new Repository();
+  const failedDelivery = {
+    deliver: async () => {
+      await Promise.resolve();
+      throw new Error('provider unavailable');
+    },
+  } satisfies IamInvitationDeliveryPortV1;
+  const first = service(repository, failedDelivery, [RAW_TOKEN, RAW_TOKEN_RETRY]);
+  const firstResult = await first.service.issueForEmail(
+    context(ids.owner, 'invitation-retry-first'),
+    { recipientEmail: 'new-invitee@example.com', accessPreset: 'VIEWER' },
+  );
+  assert.deepEqual(firstResult, { accepted: false, code: 'DELIVERY_UNAVAILABLE' });
+  const originalMembership = repository.memberships.find(
+    (membership) => membership.principalId === stable(ids.newInvitee),
+  );
+  assert.equal(originalMembership?.status, 'INVITED');
+  assert.equal(repository.invitations[0]?.status, 'REVOKED');
+
+  const retriedDelivery = new Delivery();
+  const retried = service(repository, retriedDelivery, [RAW_TOKEN_RETRY], [ids.invitationRetry]);
+  const retriedResult = await retried.service.issueForEmail(
+    context(ids.owner, 'invitation-retry-second'),
+    { recipientEmail: 'new-invitee@example.com', accessPreset: 'VIEWER' },
+  );
+  assert.equal(retriedResult.accepted, true);
+  if (!retriedResult.accepted || originalMembership === undefined) return;
+  assert.equal(retriedResult.value.membershipId, originalMembership.id);
+  assert.equal(
+    repository.memberships.find((membership) => membership.id === originalMembership.id)?.revision,
+    2,
+  );
+  assert.deepEqual(retriedDelivery.sent, [
+    { token: RAW_TOKEN_RETRY, email: 'new-invitee@example.com' },
+  ]);
 });
 
 void test('[IAM-010] invitation invariant conflicts map to a stable conflict outcome', async () => {

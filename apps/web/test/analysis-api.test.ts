@@ -10,8 +10,9 @@ describe('analysis live API [DDA-015]', () => {
     vi.unstubAllGlobals();
   });
 
-  it('requires an API base URL before proposing live analysis plans', () => {
-    expect(analysisLiveConfiguration({})).toBeUndefined();
+  it('uses the same-origin API by default and disables transport only for explicit demo mode', () => {
+    expect(analysisLiveConfiguration({})).toEqual({ baseUrl: '' });
+    expect(analysisLiveConfiguration({ VITE_DATABREEZE_DEMO_MODE: 'true' })).toBeUndefined();
     expect(
       analysisLiveConfiguration({
         VITE_DATABREEZE_API_BASE_URL: 'https://api.example.test/',

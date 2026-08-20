@@ -1,8 +1,14 @@
 import {
+  createOrganizationIdentityV1,
+  createProjectIdentityV1,
   createUserIdentityV1,
+  createWorkspaceIdentityV1,
   validateMembershipV1,
+  type OrganizationIdentityV1,
   type PersonalOrganizationBootstrapV1,
+  type ProjectIdentityV1,
   type UserIdentityV1,
+  type WorkspaceIdentityV1,
 } from '@databreeze/domain/identity/v1';
 import {
   parseStableIdentifierV1,
@@ -14,6 +20,7 @@ import {
 import type {
   IdentityBootstrapRepositoryPortV1,
   IdentityBootstrapTransactionPortV1,
+  IdentityBootstrapVisibleTreeV1,
 } from '../application/identity-bootstrap-repository.port.js';
 import type { InitialWorkspacePolicyProvisionerPortV1 } from '../application/initial-workspace-policy-provisioner.port.js';
 
@@ -24,6 +31,7 @@ export interface UserIdentityDatabaseRowV1 {
   readonly locale: string;
   readonly status: string;
   readonly securityEpoch: number;
+  readonly profileRevision?: number;
   readonly createdAt: Date;
 }
 
@@ -164,6 +172,45 @@ function userFromRow(row: UserIdentityDatabaseRowV1): UserIdentityV1 {
     createdAt: timestamp(row.createdAt),
   });
   if (!created.accepted) throw new Error('IAM_PERSISTED_USER_INVALID');
+  return created.value;
+}
+
+function organizationFromRow(row: OrganizationIdentityDatabaseRowV1): OrganizationIdentityV1 {
+  const created = createOrganizationIdentityV1({
+    id: row.id,
+    name: row.name,
+    personal: row.personal,
+    status: row.status,
+    createdAt: timestamp(row.createdAt),
+  });
+  if (!created.accepted) throw new Error('IAM_PERSISTED_ORGANIZATION_INVALID');
+  return created.value;
+}
+
+function workspaceFromRow(row: WorkspaceIdentityDatabaseRowV1): WorkspaceIdentityV1 {
+  const created = createWorkspaceIdentityV1({
+    id: row.id,
+    organizationId: row.organizationId,
+    name: row.name,
+    status: row.status,
+    authorizationEpoch: row.authorizationEpoch,
+    createdAt: timestamp(row.createdAt),
+  });
+  if (!created.accepted) throw new Error('IAM_PERSISTED_WORKSPACE_INVALID');
+  return created.value;
+}
+
+function projectFromRow(row: ProjectIdentityDatabaseRowV1): ProjectIdentityV1 {
+  const created = createProjectIdentityV1({
+    id: row.id,
+    organizationId: row.organizationId,
+    workspaceId: row.workspaceId,
+    kind: row.kind,
+    name: row.name,
+    status: row.status,
+    createdAt: timestamp(row.createdAt),
+  });
+  if (!created.accepted) throw new Error('IAM_PERSISTED_PROJECT_INVALID');
   return created.value;
 }
 
@@ -341,6 +388,121 @@ export class PrismaIdentityBootstrapTransactionAdapter
     return bootstrapFromRows(user, organization, workspace, project, membershipRow);
   }
 
+  /** IAM-002/IAM-027: return only active hierarchy rows covered by the actor's memberships. */
+  public async listVisibleByUserId(
+    userId: StableIdentifierV1,
+  ): Promise<IdentityBootstrapVisibleTreeV1 | undefined> {
+    const userRow = await this.client.userIdentity.findUnique({ where: { id: userId } });
+    if (!userRow) return undefined;
+    const profileRevisionCandidate = userRow.profileRevision;
+    const profileRevision =
+      Number.isSafeInteger(profileRevisionCandidate) && (profileRevisionCandidate ?? 0) >= 1
+        ? (profileRevisionCandidate ?? 1)
+        : 1;
+    const user = Object.freeze({ ...userFromRow(userRow), email: userRow.email, profileRevision });
+    const memberships = await this.client.membershipIdentity.findMany({
+      where: { principalId: user.id, status: 'ACTIVE' },
+    });
+    if (memberships.length === 0) return undefined;
+    const organizationIds = [
+      ...new Set(
+        memberships
+          .map((membership) => stableId(membership.organizationId))
+          .filter((id): id is StableIdentifierV1 => id !== undefined),
+      ),
+    ];
+    if (organizationIds.length === 0) return undefined;
+    const [organizationRows, workspaceRows, projectRows] = await Promise.all([
+      this.client.organizationIdentity.findMany({
+        where: { id: { in: organizationIds }, status: 'ACTIVE' },
+      }),
+      this.client.workspaceIdentity.findMany({ where: { status: 'ACTIVE' } }),
+      this.client.projectIdentity.findMany({ where: { status: 'ACTIVE' } }),
+    ]);
+    const activeMemberships = memberships.filter(
+      (membership) =>
+        membership.status === 'ACTIVE' && stableId(membership.organizationId) !== undefined,
+    );
+    const organizations = [...organizationRows]
+      .sort(compareCreatedIdentity)
+      .map((organizationRow) => {
+        const organization = organizationFromRow(organizationRow);
+        const scopedMemberships = activeMemberships.filter(
+          (membership) => membership.organizationId === organization.id,
+        );
+        const organizationMember = scopedMemberships.some(
+          (membership) =>
+            membership.scopeType === 'ORGANIZATION' &&
+            membership.workspaceId === null &&
+            membership.projectId === null,
+        );
+        const visibleWorkspaceIds = new Set(
+          scopedMemberships
+            .filter(
+              (membership) =>
+                (membership.scopeType === 'WORKSPACE' || membership.scopeType === 'PROJECT') &&
+                membership.workspaceId !== null,
+            )
+            .map((membership) => membership.workspaceId as string),
+        );
+        const visibleWorkspaces = [...workspaceRows]
+          .filter(
+            (workspaceRow) =>
+              workspaceRow.organizationId === organization.id &&
+              (organizationMember || visibleWorkspaceIds.has(workspaceRow.id)),
+          )
+          .sort(compareCreatedIdentity)
+          .map((workspaceRow) => {
+            const workspace = workspaceFromRow(workspaceRow);
+            const workspaceMember = scopedMemberships.some(
+              (membership) =>
+                membership.scopeType === 'WORKSPACE' &&
+                membership.workspaceId === workspace.id &&
+                membership.projectId === null,
+            );
+            const projectMembershipIds = new Set(
+              scopedMemberships
+                .filter(
+                  (membership) =>
+                    membership.scopeType === 'PROJECT' &&
+                    membership.workspaceId === workspace.id &&
+                    membership.projectId !== null,
+                )
+                .map((membership) => membership.projectId as string),
+            );
+            const projects = [...projectRows]
+              .filter(
+                (projectRow) =>
+                  projectRow.organizationId === organization.id &&
+                  projectRow.workspaceId === workspace.id &&
+                  (organizationMember ||
+                    workspaceMember ||
+                    projectMembershipIds.has(projectRow.id)),
+              )
+              .sort(compareCreatedIdentity)
+              .map((projectRow) => projectFromRow(projectRow));
+            return projects.length === 0
+              ? undefined
+              : Object.freeze({ ...workspace, projects: Object.freeze(projects) });
+          })
+          .filter(
+            (workspace): workspace is NonNullable<typeof workspace> => workspace !== undefined,
+          );
+        return visibleWorkspaces.length === 0
+          ? undefined
+          : Object.freeze({
+              ...organization,
+              workspaces: Object.freeze(visibleWorkspaces),
+            });
+      })
+      .filter(
+        (organization): organization is NonNullable<typeof organization> =>
+          organization !== undefined,
+      );
+    if (organizations.length === 0) return undefined;
+    return Object.freeze({ user, organizations: Object.freeze(organizations) });
+  }
+
   public async save(bootstrap: PersonalOrganizationBootstrapV1): Promise<void> {
     const userRow = await this.client.userIdentity.findUnique({ where: { id: bootstrap.user.id } });
     if (!userRow) throw new Error('IAM_USER_NOT_FOUND');
@@ -422,6 +584,10 @@ export class PrismaIdentityBootstrapRepositoryAdapter implements IdentityBootstr
 
   public findByUserId(userId: PersonalOrganizationBootstrapV1['user']['id']) {
     return new PrismaIdentityBootstrapTransactionAdapter(this.client).findByUserId(userId);
+  }
+
+  public listVisibleByUserId(userId: StableIdentifierV1) {
+    return new PrismaIdentityBootstrapTransactionAdapter(this.client).listVisibleByUserId(userId);
   }
 
   public save(bootstrap: PersonalOrganizationBootstrapV1) {

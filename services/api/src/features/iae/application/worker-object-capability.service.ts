@@ -36,6 +36,7 @@ export interface IaeWorkerObjectCapabilityPortV1 {
     job: JobV1,
     attempt: ExecutionAttemptV1,
     nowInput?: unknown,
+    options?: { readonly inputObjectIds?: readonly string[] },
   ): Promise<IaeWorkerCapabilityResultV1<IaeWorkerInputObjectGrantV1>>;
   acceptResultReferences(
     identity: IaeWorkerIdentityV1,
@@ -266,6 +267,7 @@ export class IaeWorkerObjectCapabilityService implements IaeWorkerObjectCapabili
     job: JobV1,
     attempt: ExecutionAttemptV1,
     nowInput: unknown = this.clock(),
+    options?: { readonly inputObjectIds?: readonly string[] },
   ): Promise<IaeWorkerCapabilityResultV1<IaeWorkerInputObjectGrantV1>> {
     const issuedAt = now(nowInput);
     if (!issuedAt) return rejected('INVALID_TIMESTAMP');
@@ -310,6 +312,9 @@ export class IaeWorkerObjectCapabilityService implements IaeWorkerObjectCapabili
         tenantScope: identity.tenantScope,
         job,
         attempt,
+        ...(options?.inputObjectIds === undefined
+          ? {}
+          : { inputObjectIds: options.inputObjectIds }),
       });
       if (!resolved.accepted) return rejected(resolved.code);
       const objectBindings = resolved.value.objects.map((binding) => Object.freeze({ ...binding }));

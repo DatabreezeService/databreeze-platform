@@ -10,6 +10,8 @@ import notificationContract from '@databreeze/contracts/v3/dda-notification' wit
 import notificationPageContract from '@databreeze/contracts/v3/dda-notification-page' with { type: 'json' };
 import notificationStateCommandContract from '@databreeze/contracts/v3/dda-notification-state-command' with { type: 'json' };
 import workspaceMemberSettingsContract from '@databreeze/contracts/v3/dda-workspace-member-settings' with { type: 'json' };
+import notificationPreferencesCommandContract from '@databreeze/contracts/v4/dda-notification-preferences-command' with { type: 'json' };
+import notificationPreferencesAcceptedContract from '@databreeze/contracts/v4/dda-notification-preferences-accepted' with { type: 'json' };
 import { DocumentBuilder, SwaggerModule, type OpenAPIObject } from '@nestjs/swagger';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 
@@ -44,6 +46,10 @@ const contractReferences: Readonly<Record<string, string>> = {
     '#/components/schemas/DdaNotificationStateCommand',
   'https://schemas.databreeze.dev/contracts/v3/dda-workspace-member-settings':
     '#/components/schemas/DdaWorkspaceMemberSettings',
+  'https://schemas.databreeze.dev/contracts/v4/dda-notification-preferences-command':
+    '#/components/schemas/DdaNotificationPreferencesCommand',
+  'https://schemas.databreeze.dev/contracts/v4/dda-notification-preferences-accepted':
+    '#/components/schemas/DdaNotificationPreferencesAccepted',
 };
 
 function safeContractSchema(contract: object): Record<string, unknown> {
@@ -125,6 +131,14 @@ function addSafetyMetadata(document: OpenAPIObject): OpenAPIObject {
   document.components.schemas['DdaWorkspaceMemberSettings'] = safeGeneratedContractSchema(
     'DdaWorkspaceMemberSettings',
     workspaceMemberSettingsContract,
+  );
+  document.components.schemas['DdaNotificationPreferencesCommand'] = safeGeneratedContractSchema(
+    'DdaNotificationPreferencesCommand',
+    notificationPreferencesCommandContract,
+  );
+  document.components.schemas['DdaNotificationPreferencesAccepted'] = safeGeneratedContractSchema(
+    'DdaNotificationPreferencesAccepted',
+    notificationPreferencesAcceptedContract,
   );
   const compatibility = document.components.schemas['ClientCompatibilityDto'];
   if (compatibility !== undefined && !('$ref' in compatibility)) {

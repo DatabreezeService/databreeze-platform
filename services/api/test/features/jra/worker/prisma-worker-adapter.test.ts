@@ -782,3 +782,40 @@ void test('[JRA-007/JRA-013] an expired latest lease is recorded and replaced by
   assert.equal(database.jobs[0]?.revision, 3);
   assert.equal(database.outbox.length, 1);
 });
+
+void test('[JRA-023] an expired attempt for a terminal job cannot starve a newer queued job', async () => {
+  const database = new FakeWorkerDatabase();
+  const staleJobId = '00000000-0000-4000-8000-000000000014';
+  const staleAttemptId = '00000000-0000-4000-8000-000000000015';
+  database.jobs = [
+    {
+      ...jobRow('CANCELLED', 2),
+      id: staleJobId,
+      finishedAt: new Date('2026-08-12T23:59:00.000Z'),
+    },
+    jobRow('QUEUED', 1),
+  ];
+  database.attempts = [
+    attemptRow({
+      id: staleAttemptId,
+      jobId: staleJobId,
+      leaseExpiresAt: new Date('2026-08-12T23:59:00.000Z'),
+    }),
+  ];
+  const adapter = new PrismaJraWorkerAdapter(
+    database.client,
+    epochPort(() => 4),
+    grants({ count: 0 }),
+  );
+
+  const assignment = await adapter.assign(identity(), now);
+
+  assert.ok(assignment);
+  assert.equal(database.attempts.length, 2);
+  assert.equal(database.attempts[0]?.id, staleAttemptId);
+  assert.equal(database.attempts[0]?.state, 'RUNNING');
+  assert.equal(database.jobs[0]?.state, 'CANCELLED');
+  assert.equal(database.jobs[1]?.state, 'DISPATCHED');
+  assert.equal(database.jobs[1]?.revision, 2);
+  assert.equal(database.outbox.length, 1);
+});

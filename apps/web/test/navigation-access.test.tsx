@@ -57,24 +57,25 @@ describe('build-time governed navigation', () => {
 
       const navigation = await screen.findByRole('navigation', { name: 'Primary navigation' });
       expect(navigation.getAttribute('data-collapsed')).toBe('true');
-      expect(navigation.querySelector('.application-rail__brand-wordmark')).toBeTruthy();
+      expect(navigation.querySelector('.application-rail__brand-wordmark')).toBeNull();
       expect(navigation.querySelector('.application-rail__brand-icon')).toBeTruthy();
+      expect(navigation.querySelector('.application-rail__brand-icon')?.getAttribute('src')).toBe(
+        '/landing/assets/databreeze-mark.png',
+      );
+      const expandHandle = screen.getByRole('button', { name: 'Expand sidebar' });
+      expect(expandHandle.querySelector('.application-rail__collapse-dots')).toBeNull();
       expect(
-        navigation.querySelector('.application-rail__brand-icon')?.getAttribute('src'),
-      ).toContain('install-icon-192');
+        expandHandle.querySelector('.application-rail__collapse-arrow')?.getAttribute('data-point'),
+      ).toBe('right');
     } finally {
       globalThis.matchMedia = originalMatchMedia;
     }
   });
 
-  it('presents the dashboard breadcrumb as semantic content instead of inert controls', async () => {
+  it('presents the unified topbar with workspace switcher on dashboard route', async () => {
     const router = createAppRouter({ initialEntries: ['/en/dashboards'] });
     render(<ApplicationBoundary router={router} />);
 
-    expect(await screen.findByRole('navigation', { name: 'Dashboard breadcrumb' })).toBeTruthy();
-    expect(screen.getByText('Bright Cloud')).toBeTruthy();
-    expect(screen.getByText('Business overview')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /Bright Cloud/u })).toBeNull();
-    expect(screen.queryByRole('button', { name: /Business overview/u })).toBeNull();
+    expect(await screen.findByRole('button', { name: /Choose workspace/u })).toBeTruthy();
   });
 });

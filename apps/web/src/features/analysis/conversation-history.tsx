@@ -1,26 +1,26 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+
+import { SearchIcon } from '../../components/icons.tsx';
 
 import type { AnalysisConversationV1 } from './analysis-model.ts';
 
 function copy(locale: 'en' | 'vi-VN') {
   return locale === 'vi-VN'
     ? {
-        collapse: 'Thu gọn lịch sử hội thoại',
         context: 'Ngữ cảnh dữ liệu',
+        closeSearch: 'Đóng tìm kiếm lịch sử hội thoại',
         empty: 'Chưa có hội thoại được cấp quyền trong không gian làm việc này.',
-        expand: 'Mở rộng lịch sử hội thoại',
         heading: 'Lịch sử hội thoại',
-        create: 'Phân tích mới',
+        create: 'Tạo hội thoại mới',
         search: 'Tìm lịch sử hội thoại',
         searchPlaceholder: 'Tìm theo tiêu đề hội thoại',
       }
     : {
-        collapse: 'Collapse conversation history',
         context: 'Dataset context',
+        closeSearch: 'Close conversation history search',
         empty: 'No authorized conversations are available in this workspace.',
-        expand: 'Expand conversation history',
         heading: 'Conversation history',
-        create: 'New analysis',
+        create: 'Create new conversation',
         search: 'Search conversation history',
         searchPlaceholder: 'Search conversation titles',
       };
@@ -48,17 +48,29 @@ export function ConversationHistory({
   collapsed = false,
   items,
   locale,
-  onCollapsedChange,
   onCreate,
   onSelectConversation,
 }: ConversationHistoryProps) {
   const [query, setQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const text = copy(locale);
   const normalizedQuery = query.trim().toLocaleLowerCase(locale);
   const matchingItems = useMemo(
     () => items.filter((item) => item.title.toLocaleLowerCase(locale).includes(normalizedQuery)),
     [items, locale, normalizedQuery],
   );
+
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
+
+  function toggleSearch(): void {
+    setSearchOpen((current) => {
+      if (current) setQuery('');
+      return !current;
+    });
+  }
 
   return (
     <aside
@@ -67,49 +79,65 @@ export function ConversationHistory({
       data-collapsed={collapsed ? 'true' : 'false'}
     >
       <div className="analysis-conversation-history__header">
-        <h2>{text.heading}</h2>
-        <button
-          aria-controls="analysis-conversation-history-items"
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? text.expand : text.collapse}
-          className="analysis-conversation-history__collapse"
-          onClick={() => onCollapsedChange?.(!collapsed)}
-          type="button"
-        >
-          <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
-            <path d={collapsed ? 'm9 18 6-6-6-6' : 'm15 18-6-6 6-6'} />
-          </svg>
-        </button>
+        <div className="analysis-conversation-history__header-main">
+          <h2>{text.heading}</h2>
+        </div>
+        <div className="analysis-conversation-history__header-actions">
+          {collapsed ? null : (
+            <button
+              aria-controls="analysis-history-search-panel"
+              aria-expanded={searchOpen}
+              aria-label={searchOpen ? text.closeSearch : text.search}
+              className="analysis-conversation-history__search-toggle"
+              onClick={toggleSearch}
+              title={searchOpen ? text.closeSearch : text.search}
+              type="button"
+            >
+              <SearchIcon height={17} width={17} />
+            </button>
+          )}
+          {collapsed || onCreate === undefined ? null : (
+            <button
+              aria-label={text.create}
+              className="analysis-conversation-history__create"
+              onClick={() => onCreate()}
+              title={text.create}
+              type="button"
+            >
+              <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
       {collapsed ? null : (
         <>
-          {onCreate === undefined ? null : (
-            <button
-              className="analysis-conversation-history__create"
-              onClick={() => onCreate()}
-              type="button"
+          {searchOpen ? (
+            <div
+              className="analysis-conversation-history__search-panel"
+              id="analysis-history-search-panel"
             >
-              {text.create}
-            </button>
-          )}
-          <label
-            className="analysis-conversation-history__search-label"
-            htmlFor="analysis-history-search"
-          >
-            {text.search}
-          </label>
-          <input
-            className="analysis-conversation-history__search"
-            id="analysis-history-search"
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={text.searchPlaceholder}
-            type="search"
-            value={query}
-          />
+              <label
+                className="analysis-conversation-history__search-label"
+                htmlFor="analysis-history-search"
+              >
+                {text.search}
+              </label>
+              <input
+                ref={searchInputRef}
+                aria-label={text.search}
+                className="analysis-conversation-history__search"
+                id="analysis-history-search"
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={text.searchPlaceholder}
+                type="search"
+                value={query}
+              />
+            </div>
+          ) : null}
           {matchingItems.length === 0 ? (
-            <p className="analysis-conversation-history__empty" role="status">
-              {text.empty}
-            </p>
+            <p className="analysis-conversation-history__empty">{text.empty}</p>
           ) : (
             <ul
               aria-label={

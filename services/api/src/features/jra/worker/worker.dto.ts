@@ -62,6 +62,22 @@ export class WorkerClaimDto extends WorkerAttemptRequestDto {
   attemptBindingHash!: string;
 }
 
+export class WorkerWorkloadDto extends WorkerAttemptRequestDto {
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
+  descriptorId!: string;
+
+  @ApiProperty({ minLength: 64, maxLength: 64 })
+  @IsString()
+  @Matches(/^[0-9a-f]{64}$/u)
+  descriptorHash!: string;
+
+  @ApiProperty({ minLength: 64, maxLength: 64 })
+  @IsString()
+  @Matches(/^[0-9a-f]{64}$/u)
+  attemptBindingHash!: string;
+}
+
 export class WorkerHeartbeatDto extends WorkerAttemptRequestDto {
   @ApiProperty({ format: 'date-time', pattern: strictTimestampPattern.source })
   @IsString()

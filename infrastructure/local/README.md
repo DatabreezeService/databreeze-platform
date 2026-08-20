@@ -35,15 +35,113 @@ pnpm local:seed
 ```
 
 The seed is idempotent, creates tenant-scoped records, and uploads fixture bytes
-to local MinIO. It prints three local sign-in accounts and a generated password;
-set `DATABREEZE_LOCAL_SEED_PASSWORD` in the ignored
-`infrastructure/local/.env` first if you need a stable password.
+to local MinIO. It also creates one fresh queued `dda.materialize.widget-result`
+workload so the local worker can exercise the typed CSV → verified result path.
+It prints five local sign-in accounts, including an `admin`
+account with organization ownership plus workspace/project administration memberships and a separate
+`platform-owner@databreeze.local` account for the internal product overview. It also creates synthetic
+organizations, users, subscriptions, PayOS payment outcomes, invoices, and monthly revenue history. All
+accounts use `DATABREEZE_LOCAL_SEED_PASSWORD`; the `.env.example` value is only a placeholder. Set the
+local credential in the ignored `infrastructure/local/.env` before seeding. The seed reports the variable
+name, never the password value.
 
 The full seed expects MinIO to be healthy. If you intentionally want metadata
 only, generate the client once and run
 `corepack pnpm --filter @databreeze/api seed:local -- --skip-objects`; those
 placements are marked unavailable so the UI does not claim that source bytes
 exist.
+
+## Authenticated product walkthrough
+
+Use the HMR URL when you want source edits to reload immediately. Use the
+HTTPS gateway when you want the production-shaped cookie and gateway path.
+
+1. Sign in with one of the seeded accounts and the value of
+   `DATABREEZE_LOCAL_SEED_PASSWORD` from the ignored `infrastructure/local/.env`.
+2. Open **Dữ liệu → Thêm dữ liệu** and choose one or more CSV/XLSX files. Use
+   the same add-data control again when you want to append another file batch;
+   the drawer keeps the accumulated selection and removes duplicate choices.
+   Review the server preparation, inspect the preview, then approve it. The approved record is
+   visible in the dataset table; unavailable/certified-worker states are shown
+   explicitly instead of being replaced with fake metrics.
+3. Open **Bảng điều khiển** or **Phân tích**. Select the approved dataset(s),
+   then use the dashboard/agent actions. A dashboard preview from an approved
+   import is labeled as a preview until a certified snapshot exists.
+   The secondary **Reviews** entry is reserved for an explicitly configured
+   project ETL proposal; without one, it links back to **Dữ liệu** so the
+   reloadable import review is not bypassed.
+4. Open **Cài đặt**. First verify the account section (server-derived identity,
+   email, locale, MFA posture, password-recovery link, and current session).
+   From the workspace switcher, create a workspace; in the member section,
+   change the Owner/Editor/Viewer preset or independent agent grant. Invite an
+   existing seeded account, then open Mailpit and use the single-use invitation
+   link to accept it. The member table is owner-managed; lower roles remain
+   read-only or unavailable according to the server permission projection.
+5. Open **Usage** to read the server entitlement snapshot and AI-credit ledger.
+   From **Billing** (or the dashboard **Nâng cấp gói** action), select a plan.
+   In local mode the API creates a real pending payment order and the local
+   mock checkout settles it through the signed webhook path; no browser amount
+   or redirect query is trusted. HMR keeps the checkout on its current origin.
+6. Reload each route and sign out/in again. This verifies that settings,
+   workspace scope, entitlements, payment status, and approved imports survive
+   a browser reload rather than living only in React state.
+
+The local worker/certified dashboard-result path is limited to the seeded widget
+action and requires the app profile plus MinIO. The cloud worker/certified result
+path, advanced OpenAI providers,
+and external PayOS checkout remain intentionally unavailable until their
+approved production adapters and owner secrets are supplied. The UI reports
+those boundaries as actionable states.
+
+### Optional local AI mapping suggestions
+
+The upload review screen can request bounded, advisory column-mapping
+suggestions. It is disabled by default and never applies a model suggestion or
+approves an import automatically. To exercise it locally, put a rotated key in
+the ignored `infrastructure/local/.env` file and set all three values before
+starting the API:
+
+```dotenv
+DATABREEZE_OPENAI_MAPPING_ENABLED=true
+DATABREEZE_OPENAI_MAPPING_ALLOW_SAMPLES=true
+OPENAI_API_KEY=replace-with-a-rotated-local-key
+```
+
+After restarting the API, open **Dữ liệu → Thêm dữ liệu**, finish the server
+preparation step, and use **Gợi ý ánh xạ bằng AI** in the review screen. The
+checkbox is an explicit per-import consent to send at most 20 bounded sample
+rows. Suggestions remain advisory; use **Dùng làm yêu cầu chỉnh sửa** to put a
+suggestion into the correction composer, inspect it, and submit it yourself.
+Keep both flags `false` when testing the no-egress path. Never put a key in the
+Web bundle, source control, chat, or a committed `.env` file.
+
+### Optional local AI assistant and analysis provider
+
+The assistant chat and provider-backed analysis are separately gated. To test
+those real calls locally, put a newly rotated key only in the ignored
+`infrastructure/local/.env` file, enable the specific surfaces, and restart the
+API/Web profile:
+
+```dotenv
+OPENAI_API_KEY=replace-with-a-rotated-local-key
+DATABREEZE_OPENAI_AGENT_ENABLED=true
+DATABREEZE_OPENAI_ANALYSIS_ENABLED=true
+DATABREEZE_OPENAI_DASHBOARD_ENABLED=true
+```
+
+Receipt OCR is an additional egress surface; enable it only when you have
+approved the receipt corpus and want to test that path:
+
+```dotenv
+DATABREEZE_OPENAI_RECEIPT_ENABLED=true
+```
+
+The API keeps the key server-side, pins the configured model snapshot, disables
+provider storage and tools, and validates every response before it reaches the
+Web UI. If an exact dataset/object or certified worker dependency is not
+available, the UI will show an unavailable or preview state rather than invent
+metrics. Do not use a key copied from chat or source control; rotate any key
+that has been exposed.
 
 Caddy creates a local-only certificate authority in the named
 `web-caddy-data` volume. A browser may require one explicit trust/continue step
@@ -124,6 +222,7 @@ or free space is below the configured threshold (`--min-free-gib=N`).
 | OpenTelemetry Collector | Receives OTLP traces, metrics, and logs | OTLP gRPC `4317`, HTTP `4318` |
 | API | Durable local control plane; reachable only through the HTTPS gateway | internal `api:3000` |
 | Web gateway | Static Web SPA and same-origin API reverse proxy | `https://localhost:8443` |
+| Worker | Authenticated typed local workload loop; no database/storage credentials | internal `worker` |
 
 The PostgreSQL init script creates the module schemas only. It contains no
 credentials and runs only when the database volume is first initialized.
@@ -149,17 +248,27 @@ certificate-validated TLS and never accepts a normal Gmail password or
 plaintext external SMTP. Never commit `.env` or place the App Password in the
 Web bundle.
 
-The local Web image also defaults `VITE_DATABREEZE_DEMO_MODE=true` so the
-dashboard, data, and analysis routes have an immediately inspectable synthetic
-presentation dataset. The top bar labels this mode as `Bản demo cục bộ`; it is
-never enabled by the production Web Dockerfile default and must not be used as
+The local Web image defaults `VITE_DATABREEZE_DEMO_MODE=false`, so the
+dashboard, data, analysis, settings, usage, and billing routes use the running
+API/database and the authenticated workspace. Local builds also default
+`VITE_DATABREEZE_LOCAL_NAVIGATION_HINTS=true`, which keeps registered areas such
+as Reviews, Inbox, Administration, Usage, Settings, and Billing discoverable in
+the shell while you test them. This is presentation-only: every API request is
+still authorized server-side. Set the hint to `false` to mirror the restrained
+production navigation. Set demo mode to `true` only when you
+intentionally want an immediately inspectable synthetic presentation dataset;
+the top bar labels that mode as `Bản demo cục bộ`, and it must not be used as
 evidence of live customer metrics.
 Production startup validation is not relaxed or inferred from `DATABASE_URL`.
 MinIO still starts as a foundation dependency. Governed Web CSV/XLSX intake is
 available locally through the local MinIO adapter and can be exercised from
-`/vi-VN/reviews`; the cloud worker and general IAE object-transfer paths remain
-fail-closed until their production-grade local endpoint seam is approved. The
-UI must not represent those advanced paths as usable.
+**Dữ liệu → Thêm dữ liệu** (`/vi-VN/data`). **Reviews** (`/vi-VN/reviews`) is
+the separate ETL-proposal surface and remains unavailable unless its governed
+resource resolver is composed; the UI keeps that boundary explicit instead of
+pretending an import is an ETL proposal. The cloud worker and general IAE
+object-transfer paths remain fail-closed until their production-grade local
+endpoint seam is approved. The UI must not represent those advanced paths as
+usable.
 
 ## Safety and troubleshooting
 

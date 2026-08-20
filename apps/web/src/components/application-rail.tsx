@@ -1,5 +1,3 @@
-import wordmarkUrl from '@databreeze/design-tokens/brand/generated/web/navigation-wordmark-blue-204x50.png';
-import brandMarkUrl from '@databreeze/design-tokens/brand/generated/web/install-icon-192.png';
 import { formatMessageV1 } from '@databreeze/i18n/v1';
 import { useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
@@ -10,7 +8,15 @@ import {
   udwPrimaryNavLabelV1,
   type UdwPrimaryNavItemV1,
 } from '../app/unified-primary-navigation.ts';
-import { BellIcon, MenuIcon, SearchIcon, XIcon } from './icons.tsx';
+import { DATABREEZE_MARK_SRC } from '../app/brand-assets.ts';
+import {
+  BellIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  MenuIcon,
+  SearchIcon,
+  XIcon,
+} from './icons.tsx';
 
 export interface ApplicationRailProperties {
   readonly collapsed?: boolean;
@@ -126,22 +132,14 @@ export function ApplicationRail({
           className="application-rail__brand"
           to={`/${locale}/dashboards`}
         >
-          <span className="application-rail__brand-mark" aria-hidden="true">
-            <img
-              alt=""
-              className="application-rail__brand-wordmark"
-              height="50"
-              src={wordmarkUrl}
-              width="204"
-            />
-            <img
-              alt=""
-              className="application-rail__brand-icon"
-              height="192"
-              src={brandMarkUrl}
-              width="192"
-            />
-          </span>
+          <img
+            alt=""
+            className="application-rail__brand-icon"
+            height="28"
+            src={DATABREEZE_MARK_SRC}
+            width="28"
+          />
+          <span className="application-rail__brand-name">DataBreeze</span>
         </Link>
         {!isMobile ? (
           <button
@@ -152,7 +150,13 @@ export function ApplicationRail({
             title={collapseLabel}
             type="button"
           >
-            <MenuIcon />
+            <span
+              aria-hidden="true"
+              className="application-rail__collapse-arrow"
+              data-point={effectivelyCollapsed ? 'right' : 'left'}
+            >
+              {effectivelyCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+            </span>
           </button>
         ) : null}
       </div>

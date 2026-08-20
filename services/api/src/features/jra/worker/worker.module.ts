@@ -18,6 +18,7 @@ import {
   type WorkerAuthenticatorPortV1,
   type WorkerCompletionTransactionPortV1,
   type WorkerObjectGrantAuthorityPortV1,
+  type WorkerWorkloadEnvelopeAuthorityPortV1,
 } from './worker-ports.js';
 import { WORKER_BOUNDARY } from './worker-ports.js';
 import type { WorkerSecurityEpochPortV1 } from './worker-ports.js';
@@ -52,6 +53,7 @@ export interface JraWorkerModuleOptions {
   readonly workerAttemptAuthority?: WorkerAttemptAuthorityPortV1;
   readonly workerObjectGrantAuthority?: WorkerObjectGrantAuthorityPortV1;
   readonly workerCompletionTransaction?: WorkerCompletionTransactionPortV1;
+  readonly workerWorkloadEnvelope?: WorkerWorkloadEnvelopeAuthorityPortV1;
   readonly workerResultPreparation?: WorkerResultPreparationPortV1;
   readonly workerResultWriteCapabilities?: WorkerResultWriteCapabilityAuthorityPortV1;
   readonly workerResultFinalization?: WorkerResultFinalizationPortV1;
@@ -84,6 +86,9 @@ function composeBoundary(options: JraWorkerModuleOptions): WorkerBoundaryPortV1 
           authority: options.workerAttemptAuthority,
           grants: options.workerObjectGrantAuthority,
           completion: options.workerCompletionTransaction,
+          ...(options.workerWorkloadEnvelope === undefined
+            ? {}
+            : { workloadEnvelope: options.workerWorkloadEnvelope }),
           ...(options.workerResultPreparation === undefined
             ? {}
             : { preparation: options.workerResultPreparation }),

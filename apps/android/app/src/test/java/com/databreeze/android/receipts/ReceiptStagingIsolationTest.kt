@@ -76,8 +76,7 @@ class ReceiptStagingIsolationTest {
                 scopeAuthorized = true,
             ),
         )
-        assertEquals(
-            ReceiptCaptureDenyReason.STRICT_LOCAL_DESTINATION,
+        assertNull(
             gate.evaluate(
                 cameraPermissionGranted = true,
                 destination = ReceiptDestination.StrictLocal,

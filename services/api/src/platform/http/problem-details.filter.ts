@@ -11,12 +11,15 @@ import { AuthenticationProblemError } from '../../features/iam/application/authe
 import { SessionProblemError } from '../../features/iam/application/session-problem.error.js';
 import { MfaProblemError } from '../../features/iam/application/mfa-problem.error.js';
 import { EntitlementProblemError } from '../../features/bua/application/entitlement-problem.error.js';
+import { PayosPaymentProblemError } from '../../features/bua/application/payos-payment.service.js';
 import { DeviceIdentityProblemError } from '../../features/iam/application/device-identity-problem.error.js';
 import { InvitationProblemError } from '../../features/iam/application/invitation-problem.error.js';
 import { RegistrationProblemError } from '../../features/iam/application/registration-problem.error.js';
 import { RecoveryProblemError } from '../../features/iam/application/recovery-problem.error.js';
 import { AuditProblemError } from '../../features/aud/application/audit-problem.error.js';
 import { ArtifactExportProblemError } from '../../features/iae/application/artifact-export-problem.error.js';
+import { PlatformAdminProblemError } from '../../features/platform-admin/application/platform-admin.service.js';
+import { LandingFeedbackProblemError } from '../../features/lfb/application/landing-feedback.service.js';
 import { RequestTenantContextProblemError } from './request-tenant-context.port.js';
 import { NotReadyError } from '../../features/system/application/not-ready.error.js';
 import { InputValidationException } from './input-validation.exception.js';
@@ -27,6 +30,14 @@ function frameworkStatus(error: unknown): number | undefined {
   if (typeof error !== 'object' || error === null) return undefined;
   if ('statusCode' in error && typeof error.statusCode === 'number') return error.statusCode;
   return undefined;
+}
+
+function explicitHttpCode(error: unknown): string | undefined {
+  if (!(error instanceof HttpException)) return undefined;
+  const response = error.getResponse();
+  if (typeof response !== 'object' || response === null || Array.isArray(response)) return undefined;
+  const code = (response as Record<string, unknown>)['code'];
+  return typeof code === 'string' && /^DDA_[A-Z0-9_]{2,80}$/u.test(code) ? code : undefined;
 }
 
 function describe(error: unknown, correlationId: string): ProblemInput {
@@ -88,6 +99,25 @@ function describe(error: unknown, correlationId: string): ProblemInput {
         : notFound
           ? HttpStatus.NOT_FOUND
           : HttpStatus.BAD_REQUEST,
+    };
+  }
+  if (error instanceof PayosPaymentProblemError) {
+    const status =
+      error.code === 'PAYOS_UNAUTHORIZED'
+        ? HttpStatus.FORBIDDEN
+        : error.code === 'PAYOS_ORDER_NOT_FOUND' || error.code === 'PAYOS_SCOPE_MISMATCH'
+          ? HttpStatus.NOT_FOUND
+          : error.code === 'PAYOS_IDEMPOTENCY_CONFLICT'
+            ? HttpStatus.CONFLICT
+            : error.code === 'PAYOS_CHECKOUT_UNAVAILABLE' || error.code === 'PAYOS_UNAVAILABLE'
+              ? HttpStatus.SERVICE_UNAVAILABLE
+              : HttpStatus.BAD_REQUEST;
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: `api.error.${error.code.toLowerCase()}`,
+      retryable: status === HttpStatus.SERVICE_UNAVAILABLE,
+      status,
     };
   }
   if (error instanceof DeviceIdentityProblemError) {
@@ -198,6 +228,37 @@ function describe(error: unknown, correlationId: string): ProblemInput {
       status: notFound ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST,
     };
   }
+  if (error instanceof PlatformAdminProblemError) {
+    const unavailable = error.code === 'PLATFORM_ADMIN_UNAVAILABLE';
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: unavailable
+        ? 'api.error.platform_admin_unavailable'
+        : 'api.error.platform_admin_forbidden',
+      retryable: unavailable,
+      status: unavailable ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.FORBIDDEN,
+    };
+  }
+  if (error instanceof LandingFeedbackProblemError) {
+    const unavailable = error.code === 'LANDING_FEEDBACK_UNAVAILABLE';
+    const rateLimited = error.code === 'LANDING_FEEDBACK_RATE_LIMITED';
+    return {
+      code: error.code,
+      correlationId,
+      messageKey: unavailable
+        ? 'api.error.landing_feedback_unavailable'
+        : rateLimited
+          ? 'api.error.landing_feedback_rate_limited'
+          : 'api.error.landing_feedback_command_invalid',
+      retryable: unavailable,
+      status: unavailable
+        ? HttpStatus.SERVICE_UNAVAILABLE
+        : rateLimited
+          ? HttpStatus.TOO_MANY_REQUESTS
+          : HttpStatus.BAD_REQUEST,
+    };
+  }
   if (error instanceof RequestTenantContextProblemError) {
     const invalidContext = error.code === 'CONTEXT_INVALID';
     const unavailable = error.code === 'AUTHENTICATION_UNAVAILABLE';
@@ -242,6 +303,7 @@ function describe(error: unknown, correlationId: string): ProblemInput {
   }
 
   const status = error instanceof HttpException ? error.getStatus() : frameworkStatus(error);
+  const explicitCode = explicitHttpCode(error);
   if (status === HttpStatus.NOT_FOUND) {
     return {
       code: 'ROUTE_NOT_FOUND',
@@ -260,9 +322,18 @@ function describe(error: unknown, correlationId: string): ProblemInput {
       status,
     };
   }
+  if (status === HttpStatus.SERVICE_UNAVAILABLE) {
+    return {
+      code: explicitCode ?? 'SERVICE_UNAVAILABLE',
+      correlationId,
+      messageKey: 'api.error.service_unavailable',
+      retryable: true,
+      status,
+    };
+  }
   if (status !== undefined && status >= 400 && status < 500) {
     return {
-      code: 'BAD_REQUEST',
+      code: explicitCode ?? 'BAD_REQUEST',
       correlationId,
       messageKey: 'api.error.bad_request',
       retryable: false,

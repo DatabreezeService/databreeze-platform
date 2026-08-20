@@ -127,7 +127,12 @@ export class MappingAssistanceServiceV1 {
       }
     }
 
-    const available = await this.adapter.isAvailable();
+    let available: boolean;
+    try {
+      available = await this.adapter.isAvailable();
+    } catch {
+      available = false;
+    }
     if (!available) {
       if (reservationId && this.options.bua) {
         await this.options.bua.finalizeReservation({
@@ -139,7 +144,26 @@ export class MappingAssistanceServiceV1 {
       return rejected('ADAPTER_UNAVAILABLE');
     }
 
-    const proposed = await this.adapter.suggestMappings(request);
+    let proposed: Awaited<ReturnType<MappingAssistancePortV1['suggestMappings']>>;
+    try {
+      proposed = await this.adapter.suggestMappings(request);
+    } catch {
+      if (reservationId && this.options.bua) {
+        await this.options.bua.finalizeReservation({
+          reservationId,
+          reference: { id: request.schemaVersionId, tenantScope: request.tenantScope },
+          outcome: 'FAILED',
+        });
+      }
+      await this.options.aud?.emitContentSafeSummary({
+        tenantScope: request.tenantScope,
+        action: 'DDA_MAPPING_ASSISTANCE',
+        outcome: 'FAILED',
+        correlationId: request.schemaVersionId,
+        references: [request.schemaVersionId, request.profileVersionId],
+      });
+      return rejected('ADAPTER_UNAVAILABLE');
+    }
     if (proposed.status !== 'PROPOSED') {
       if (reservationId && this.options.bua) {
         await this.options.bua.finalizeReservation({

@@ -20,6 +20,12 @@ import type {
   IamHierarchyTransactionPortV1,
 } from '../application/hierarchy-repository.port.js';
 import type { IamTenantContextV1 } from '../application/tenant-context.js';
+import type { InitialWorkspacePolicyProvisionerPortV1 } from '../application/initial-workspace-policy-provisioner.port.js';
+
+/** IAM-027: creation provisions the initial policy through the caller's transaction client. */
+export type IamHierarchyPolicyProvisionerFactoryV1 = (
+  transaction: unknown,
+) => InitialWorkspacePolicyProvisionerPortV1;
 
 /** The fields owned by the IAM hierarchy tables. Updated timestamps are deliberately excluded. */
 export interface OrganizationIdentityDatabaseRowV1 {
@@ -36,6 +42,9 @@ export interface WorkspaceIdentityDatabaseRowV1 {
   readonly name: string;
   readonly status: string;
   readonly authorizationEpoch: number;
+  readonly dataModePolicyId: string;
+  readonly currentDataModePolicyVersionId: string;
+  readonly dataModeProjection: string;
   readonly createdAt: Date;
 }
 
@@ -145,13 +154,23 @@ function organizationRow(value: OrganizationIdentityV1): OrganizationIdentityDat
   };
 }
 
-function workspaceRow(value: WorkspaceIdentityV1): WorkspaceIdentityDatabaseRowV1 {
+function workspaceRow(
+  value: WorkspaceIdentityV1,
+  policy: {
+    readonly policyId: string;
+    readonly policyVersionId: string;
+    readonly dataModeProjection: string;
+  },
+): WorkspaceIdentityDatabaseRowV1 {
   return {
     id: value.id,
     organizationId: value.organizationId,
     name: value.name,
     status: value.status,
     authorizationEpoch: value.authorizationEpoch,
+    dataModePolicyId: policy.policyId,
+    currentDataModePolicyVersionId: policy.policyVersionId,
+    dataModeProjection: policy.dataModeProjection,
     createdAt: new Date(value.createdAt),
   };
 }
@@ -192,6 +211,14 @@ function organizationVisible(
   organizationId: StableIdentifierV1,
 ): boolean {
   return tenantScopesEqualV1(context.tenantScope, organizationScope(organizationId));
+}
+
+/** IAM-027: a session scoped anywhere inside an organization may address that organization. */
+function organizationInContextScope(
+  context: IamTenantContextV1,
+  organizationId: StableIdentifierV1,
+): boolean {
+  return context.tenantScope.organizationId === organizationId;
 }
 
 function workspaceVisible(
@@ -281,13 +308,14 @@ class PrismaIamHierarchyTransactionAdapter implements IamHierarchyTransactionPor
   public constructor(
     private readonly client: IamHierarchyDatabaseClientV1,
     private readonly diagnostics: IamHierarchyDiagnosticsV1,
+    private readonly policyProvisionerFactory?: IamHierarchyPolicyProvisionerFactoryV1,
   ) {}
 
   public async findOrganization(
     context: IamTenantContextV1,
     organizationId: StableIdentifierV1,
   ): Promise<OrganizationIdentityV1 | undefined> {
-    if (!organizationVisible(context, organizationId)) return undefined;
+    if (!organizationInContextScope(context, organizationId)) return undefined;
     const row = await this.client.organizationIdentity.findUnique({
       where: { id: organizationId },
     });
@@ -321,7 +349,7 @@ class PrismaIamHierarchyTransactionAdapter implements IamHierarchyTransactionPor
     context: IamTenantContextV1,
     organizationId: StableIdentifierV1,
   ): Promise<readonly WorkspaceIdentityV1[]> {
-    if (!organizationVisible(context, organizationId)) return [];
+    if (!organizationInContextScope(context, organizationId)) return [];
     const rows = await this.client.workspaceIdentity.findMany({
       where: { organizationId },
       orderBy: { id: 'asc' },
@@ -377,16 +405,29 @@ class PrismaIamHierarchyTransactionAdapter implements IamHierarchyTransactionPor
   ): Promise<void> {
     const validated = createWorkspaceIdentityV1(value);
     if (!validated.accepted) throw new Error(`IAM_${validated.code}`);
-    if (!organizationVisible(context, validated.value.organizationId))
+    if (!organizationInContextScope(context, validated.value.organizationId))
       throw new Error('IAM_SCOPE_DENIED');
     const parent = await this.client.organizationIdentity.findUnique({
       where: { id: validated.value.organizationId },
     });
     if (!parent) throw new Error('IAM_PARENT_NOT_FOUND');
     organizationFromRowWithDiagnostics(parent, this.diagnostics);
+    // IAM-027: creation publishes the same server-owned initial HYBRID policy the
+    // IAM-022 registration bootstrap provisions; no client policy fields exist.
+    if (this.policyProvisionerFactory === undefined)
+      throw new Error('IAM_INITIAL_WORKSPACE_POLICY_UNAVAILABLE');
+    const provisioner: InitialWorkspacePolicyProvisionerPortV1 =
+      this.policyProvisionerFactory(this.client);
+    const policy = await provisioner.provision({
+      organizationId: validated.value.organizationId,
+      workspaceId: validated.value.id,
+      publishedAt: validated.value.createdAt,
+    });
+    if (policy.dataModeProjection !== 'HYBRID')
+      throw new Error('IAM_INITIAL_WORKSPACE_POLICY_INVALID');
     await this.saveImmutable(
       this.client.workspaceIdentity,
-      workspaceRow(validated.value),
+      workspaceRow(validated.value, policy),
       'IAM_HIERARCHY_CONFLICT',
     );
   }
@@ -394,7 +435,9 @@ class PrismaIamHierarchyTransactionAdapter implements IamHierarchyTransactionPor
   public async saveProject(context: IamTenantContextV1, value: ProjectIdentityV1): Promise<void> {
     const validated = createProjectIdentityV1(value);
     if (!validated.accepted) throw new Error(`IAM_${validated.code}`);
-    if (!workspaceVisible(context, validated.value.organizationId, validated.value.workspaceId))
+    // IAM-027: creation writes may target any workspace of the session's organization;
+    // per-endpoint service checks still constrain which workspace accepts a mutation.
+    if (!organizationInContextScope(context, validated.value.organizationId))
       throw new Error('IAM_SCOPE_DENIED');
     const parent = await this.client.workspaceIdentity.findUnique({
       where: { id: validated.value.workspaceId },
@@ -436,12 +479,17 @@ export class PrismaIamHierarchyRepositoryAdapter implements IamHierarchyReposito
   public constructor(
     private readonly client: IamHierarchyDatabaseClientV1,
     diagnostics: IamHierarchyDiagnosticsV1 = {},
+    private readonly policyProvisionerFactory?: IamHierarchyPolicyProvisionerFactoryV1,
   ) {
     this.diagnostics = diagnostics;
   }
 
   private transaction(): PrismaIamHierarchyTransactionAdapter {
-    return new PrismaIamHierarchyTransactionAdapter(this.client, this.diagnostics);
+    return new PrismaIamHierarchyTransactionAdapter(
+      this.client,
+      this.diagnostics,
+      this.policyProvisionerFactory,
+    );
   }
 
   public findOrganization(context: IamTenantContextV1, organizationId: StableIdentifierV1) {
@@ -470,7 +518,7 @@ export class PrismaIamHierarchyRepositoryAdapter implements IamHierarchyReposito
 
   public saveOrganization(context: IamTenantContextV1, value: OrganizationIdentityV1) {
     return this.client.$transaction((transaction) =>
-      new PrismaIamHierarchyTransactionAdapter(transaction, this.diagnostics).saveOrganization(
+      new PrismaIamHierarchyTransactionAdapter(transaction, this.diagnostics, this.policyProvisionerFactory).saveOrganization(
         context,
         value,
       ),
@@ -479,7 +527,7 @@ export class PrismaIamHierarchyRepositoryAdapter implements IamHierarchyReposito
 
   public saveWorkspace(context: IamTenantContextV1, value: WorkspaceIdentityV1) {
     return this.client.$transaction((transaction) =>
-      new PrismaIamHierarchyTransactionAdapter(transaction, this.diagnostics).saveWorkspace(
+      new PrismaIamHierarchyTransactionAdapter(transaction, this.diagnostics, this.policyProvisionerFactory).saveWorkspace(
         context,
         value,
       ),
@@ -488,7 +536,7 @@ export class PrismaIamHierarchyRepositoryAdapter implements IamHierarchyReposito
 
   public saveProject(context: IamTenantContextV1, value: ProjectIdentityV1) {
     return this.client.$transaction((transaction) =>
-      new PrismaIamHierarchyTransactionAdapter(transaction, this.diagnostics).saveProject(
+      new PrismaIamHierarchyTransactionAdapter(transaction, this.diagnostics, this.policyProvisionerFactory).saveProject(
         context,
         value,
       ),
@@ -500,7 +548,7 @@ export class PrismaIamHierarchyRepositoryAdapter implements IamHierarchyReposito
     work: (transaction: IamHierarchyTransactionPortV1) => Promise<TValue>,
   ): Promise<TValue> {
     return this.client.$transaction((transaction) =>
-      work(new PrismaIamHierarchyTransactionAdapter(transaction, this.diagnostics)),
+      work(new PrismaIamHierarchyTransactionAdapter(transaction, this.diagnostics, this.policyProvisionerFactory)),
     );
   }
 }

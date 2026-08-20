@@ -31,6 +31,12 @@ function listenPort(): number {
 }
 
 function startupErrorMessage(error: unknown): string {
+  if (
+    (error as { code?: string })?.code === 'EADDRINUSE' ||
+    (error instanceof Error && error.message.includes('EADDRINUSE'))
+  ) {
+    return `PORT_IN_USE: Port ${listenPort()} is already in use by another process.`;
+  }
   if (process.env['NODE_ENV'] === 'production') {
     if (
       error instanceof Error &&

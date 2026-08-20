@@ -200,6 +200,44 @@ void test('exposes assignment plus all attempt-scoped authenticated worker endpo
         expiresAt: expiry,
       },
     }),
+    workload: async () => ({
+      schemaVersion: 1,
+      workloadId: '00000000-0000-4000-8000-000000000021',
+      descriptorId,
+      descriptorHash,
+      attemptId,
+      attemptBindingHash,
+      tenantScope: {
+        scopeType: 'workspace' as const,
+        organizationId: '00000000-0000-4000-8000-000000000001',
+        workspaceId: '00000000-0000-4000-8000-000000000002',
+      },
+      jobId,
+      action: {
+        type: 'foundation.metadata-digest',
+        version: 1,
+        handlerDigest: `sha256:${'a'.repeat(64)}`,
+        inputSchemaId: 'foundation.metadata-fixture.v1',
+        outputSchemaId: 'foundation.metadata-digest-result.v1',
+        requiredCapabilities: ['metadata.read'],
+        sideEffectClass: 'NONE' as const,
+        riskClass: 'READ_ONLY' as const,
+      },
+      inputHandles: [],
+      inputManifestHash: 'c'.repeat(64),
+      parameters: {},
+      outputPolicy: {
+        outputObjectId: '00000000-0000-4000-8000-000000000022',
+        maxBytes: 1024,
+        mediaType: 'application/json',
+      },
+      deadline: '2026-08-13T00:10:00.000Z',
+      locale: 'vi-VN' as const,
+      timezone: 'UTC',
+      subjectBindings: { dashboardId: 'dashboard-1' },
+      createdAt: '2026-08-13T00:00:00.000Z',
+      canonicalHash: 'd'.repeat(64),
+    }),
     heartbeat: async () => ({ revision: 3, leaseExpiresAt: '2026-08-13T00:10:00.000Z' }),
     complete: async () => ({
       attemptId,
@@ -221,6 +259,12 @@ void test('exposes assignment plus all attempt-scoped authenticated worker endpo
     const claim = await app.inject({
       method: 'POST',
       url: '/internal/worker/claim',
+      headers,
+      payload: claimPayload(),
+    });
+    const workload = await app.inject({
+      method: 'POST',
+      url: '/internal/worker/workload',
       headers,
       payload: claimPayload(),
     });
@@ -251,6 +295,7 @@ void test('exposes assignment plus all attempt-scoped authenticated worker endpo
     assert.equal(assignment.statusCode, 200);
     assert.equal(assignment.json().assignment.attemptId, attemptId);
     assert.equal(claim.statusCode, 200);
+    assert.equal(workload.statusCode, 200);
     assert.equal(heartbeat.statusCode, 200);
     assert.equal(complete.statusCode, 200);
   });

@@ -8,7 +8,12 @@ import { MfaController } from './api/mfa.controller.js';
 import { IamHierarchyController } from './api/hierarchy.controller.js';
 import { IamMembershipController } from './api/membership.controller.js';
 import { IamBootstrapController } from './api/bootstrap.controller.js';
+import { ProfileController } from './api/profile.controller.js';
 import { AuthenticationService } from './application/authentication.service.js';
+import {
+  IAM_SCOPE_SWITCH_SERVICE,
+  IamScopeSwitchService,
+} from './application/scope-switch.service.js';
 import {
   AUTHENTICATION_USE_CASE,
   CREDENTIAL_LOOKUP_PORT,
@@ -27,6 +32,11 @@ import {
   IDENTITY_BOOTSTRAP_SERVICE,
   IdentityBootstrapService,
 } from './application/identity-bootstrap.service.js';
+import {
+  IAM_PROFILE_MUTATION_SERVICE,
+  type ProfileMutationPortV1,
+} from './application/profile-mutation.port.js';
+import { ProfileMutationService } from './application/profile-mutation.service.js';
 import {
   MFA_REPOSITORY_PORT,
   type MfaRepositoryPortV1,
@@ -93,6 +103,10 @@ import {
   type IdentityBootstrapDatabaseClientV1,
   type IdentityBootstrapPolicyProvisionerFactoryV1,
 } from './adapter/prisma-identity-bootstrap-repository.adapter.js';
+import {
+  PrismaProfileMutationAdapter,
+  type ProfileMutationDatabaseClientV1,
+} from './adapter/prisma-profile-mutation.adapter.js';
 import {
   PrismaMfaRepositoryAdapter,
   type MfaDatabaseClientV1,
@@ -245,11 +259,15 @@ export interface IamModuleOptions {
   readonly credentialDatabase?: CredentialLookupDatabaseClientV1;
   readonly passwordCredentials?: PasswordCredentialService;
   readonly sessions?: SessionLifecyclePortV1;
+  readonly scopeSwitchService?: IamScopeSwitchService;
   readonly sessionDatabase?: SessionLifecycleDatabaseClientV1;
   readonly identityBootstrapRepository?: IdentityBootstrapRepositoryPortV1;
   readonly identityBootstrapDatabase?: IdentityBootstrapDatabaseClientV1;
   readonly identityBootstrapPolicyProvisionerFactory?: IdentityBootstrapPolicyProvisionerFactoryV1;
   readonly identityBootstrapService?: IdentityBootstrapService;
+  readonly profileMutation?: ProfileMutationPortV1;
+  readonly profileMutationDatabase?: ProfileMutationDatabaseClientV1;
+  readonly profileMutationService?: ProfileMutationService;
   readonly mfaRepository?: MfaRepositoryPortV1;
   readonly mfaDatabase?: MfaDatabaseClientV1;
   readonly mfaService?: MfaService;
@@ -382,6 +400,16 @@ export class IamModule {
       (identityBootstrapRepository === undefined
         ? undefined
         : new IdentityBootstrapService(identityBootstrapRepository));
+    const profileMutationPort =
+      options.profileMutation ??
+      (options.profileMutationDatabase === undefined
+        ? undefined
+        : new PrismaProfileMutationAdapter(options.profileMutationDatabase));
+    const profileMutationService =
+      options.profileMutationService ??
+      (profileMutationPort === undefined
+        ? undefined
+        : new ProfileMutationService(profileMutationPort));
     const mfaRepository =
       options.mfaRepository ??
       (options.mfaDatabase === undefined
@@ -408,13 +436,29 @@ export class IamModule {
       options.hierarchyRepository ??
       (options.hierarchyDatabase === undefined
         ? new InMemoryIamHierarchyRepositoryAdapter()
-        : new PrismaIamHierarchyRepositoryAdapter(options.hierarchyDatabase));
+        : new PrismaIamHierarchyRepositoryAdapter(
+            options.hierarchyDatabase,
+            {},
+            options.identityBootstrapPolicyProvisionerFactory === undefined
+              ? undefined
+              : (transaction: unknown) =>
+                  options.identityBootstrapPolicyProvisionerFactory!(
+                    transaction as IdentityBootstrapDatabaseClientV1,
+                  ),
+          ));
     const hierarchyService =
       options.hierarchyService ??
       new IamHierarchyService(hierarchyRepository, undefined, undefined, iamRepository);
+    const invitationPrincipalEmails =
+      options.invitationPrincipalEmails ??
+      (options.invitationPrincipalEmailDatabase === undefined
+        ? undefined
+        : new PrismaIamPrincipalEmailLookupAdapter(options.invitationPrincipalEmailDatabase));
     const membershipService =
       options.membershipService ??
-      (iamRepository === undefined ? undefined : new IamMembershipService(iamRepository));
+      (iamRepository === undefined
+        ? undefined
+        : new IamMembershipService(iamRepository, undefined, undefined, invitationPrincipalEmails));
     const accessPresetService = options.accessPresetService ?? new AccessPresetService();
     const agentGrantRepository =
       options.agentGrantRepository ??
@@ -438,11 +482,6 @@ export class IamModule {
       (options.invitationDigestKey === undefined
         ? undefined
         : new HmacSha256IamInvitationDigestAdapter(options.invitationDigestKey));
-    const invitationPrincipalEmails =
-      options.invitationPrincipalEmails ??
-      (options.invitationPrincipalEmailDatabase === undefined
-        ? undefined
-        : new PrismaIamPrincipalEmailLookupAdapter(options.invitationPrincipalEmailDatabase));
     const invitationService =
       options.invitationService ??
       (invitationRepository &&
@@ -596,6 +635,11 @@ export class IamModule {
       (credentials && sessions
         ? composeAuthenticationUseCase({ ...options, credentials, sessions })
         : composeAuthenticationUseCase(options));
+    const scopeSwitchService =
+      options.scopeSwitchService ??
+      (sessions && iamRepository
+        ? new IamScopeSwitchService(sessions, iamRepository, hierarchyRepository)
+        : undefined);
     const deviceIdentityRepository =
       options.deviceIdentityRepository ??
       (options.deviceIdentityDatabase === undefined
@@ -644,8 +688,10 @@ export class IamModule {
     ];
     if (credentials) exports.unshift(CREDENTIAL_LOOKUP_PORT);
     if (sessions) exports.unshift(SESSION_LIFECYCLE_PORT);
+    if (scopeSwitchService) exports.unshift(IAM_SCOPE_SWITCH_SERVICE);
     if (identityBootstrapRepository) exports.unshift(IDENTITY_BOOTSTRAP_REPOSITORY_PORT);
     if (identityBootstrapService) exports.unshift(IDENTITY_BOOTSTRAP_SERVICE);
+    if (profileMutationService) exports.unshift(IAM_PROFILE_MUTATION_SERVICE);
     if (mfaRepository) exports.unshift(MFA_REPOSITORY_PORT);
     if (mfaService) exports.unshift(MFA_SERVICE);
     if (iamRepository) exports.unshift(IAM_REPOSITORY_PORT);
@@ -680,6 +726,7 @@ export class IamModule {
         RegistrationController,
         RecoveryController,
         IamBootstrapController,
+        ProfileController,
         ServiceAccountController,
       ],
       providers: [
@@ -703,6 +750,14 @@ export class IamModule {
               },
             ]
           : []),
+        ...(scopeSwitchService
+          ? [
+              {
+                provide: IAM_SCOPE_SWITCH_SERVICE,
+                useValue: scopeSwitchService,
+              },
+            ]
+          : []),
         ...(identityBootstrapRepository
           ? [
               {
@@ -716,6 +771,14 @@ export class IamModule {
               {
                 provide: IDENTITY_BOOTSTRAP_SERVICE,
                 useValue: identityBootstrapService,
+              },
+            ]
+          : []),
+        ...(profileMutationService
+          ? [
+              {
+                provide: IAM_PROFILE_MUTATION_SERVICE,
+                useValue: profileMutationService,
               },
             ]
           : []),

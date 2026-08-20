@@ -61,6 +61,37 @@ void test('derives a workspace tenant context from a bearer session and never ac
   });
 });
 
+void test('derives the configured local project only for dashboard routes', async () => {
+  const adapter = new SessionRequestTenantContextAdapter(
+    { findPrincipalByAccessToken: () => Promise.resolve(principal) },
+    workspaceEpoch(),
+    { dashboardProjectId: '00000000-0000-4000-8000-000000000004' },
+  );
+
+  const dashboard = await adapter.resolve({
+    method: 'GET',
+    url: '/v3/dda/dashboards/workspace-history',
+    headers: { authorization: 'Bearer opaque-access-token-123456789' },
+  });
+  assert.deepEqual(dashboard.tenantScope, {
+    scopeType: 'project',
+    organizationId: principal.organizationId,
+    workspaceId: principal.workspaceId,
+    projectId: '00000000-0000-4000-8000-000000000004',
+  });
+
+  const data = await adapter.resolve({
+    method: 'GET',
+    url: '/v1/datasets',
+    headers: { authorization: 'Bearer opaque-access-token-123456789' },
+  });
+  assert.deepEqual(data.tenantScope, {
+    scopeType: 'workspace',
+    organizationId: principal.organizationId,
+    workspaceId: principal.workspaceId,
+  });
+});
+
 void test('rejects missing, ambiguous, malformed, and unknown bearer credentials', async () => {
   const adapter = new SessionRequestTenantContextAdapter(
     {

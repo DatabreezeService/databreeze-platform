@@ -20,6 +20,7 @@ import './styles.css';
 import './styles/dashboard-canvas.css';
 import './styles/dashboard-agent.css';
 import './styles/data-intake.css';
+import './styles/agent-chat.css';
 
 const rootElement = globalThis.document.querySelector('#root');
 if (!(rootElement instanceof HTMLElement)) throw new Error('WEB_ROOT_MISSING');
@@ -38,6 +39,8 @@ installSessionAwareFetchV1({ apiBaseUrl, fetcher: browserFetch });
 await startWebApplicationV1({
   api: createAuthApiV1({ baseUrl: apiBaseUrl, fetcher: browserFetch }),
   pathname: globalThis.location.pathname,
+  search: globalThis.location.search,
+  hash: globalThis.location.hash,
   replace: (pathname) => globalThis.location.replace(pathname),
   mount: () => {
     createRoot(rootElement).render(

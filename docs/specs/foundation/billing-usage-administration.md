@@ -3,7 +3,7 @@
 | Metadata | Value |
 |---|---|
 | Status | Product specification |
-| Version | 1.1 |
+| Version | 1.2 |
 | Requirement prefix | `BUA` |
 | Dependencies | `IAM` Identity, Workspaces, and Permissions; `NCO` Notifications and Collaboration; composed with `JRA` persistence by the application-layer `ExecutionAdmissionCoordinator` |
 
@@ -108,6 +108,8 @@ Cancellation stops renewal but does not initiate retention deletion. After paid 
 
 Organization Owners manage billing, exports, and deletion. Admins may view plan and usage and manage operational limits only when delegated, but cannot change payment instruments or ownership by default. Internal support can see provider/reference status and aggregate usage, not source content; any account-affecting support action is time-bound, reasoned, and audited.
 
+An authorized internal platform operator may read a content-minimized product overview built from authoritative IAM identities and BUA subscription, invoice, and payment projections. The overview may include aggregate users, organizations, workspaces, active sessions, subscriptions by plan/state, settled revenue, payment outcomes, and bounded recent account/subscription rows. Provider dashboards, browser counters, and demo fixtures are never authoritative. The read-only overview exposes no source artifacts, dataset values, payment credentials, webhook payloads, tax identifiers, or provider secrets, and access is denied unless IAM confirms a current platform assignment.
+
 ## Functional requirements
 
 | ID | Priority | Requirement |
@@ -135,6 +137,7 @@ Organization Owners manage billing, exports, and deletion. Admins may view plan 
 | BUA-021 | P0 | The foundation shall issue signed, Device- and workspace-bound offline entitlement leases that expire within 24 hours, bind plan/entitlement and authorization revisions plus allowed action limits, cannot authorize cloud or external effects, and fail closed after expiry or revocation is observed. |
 | BUA-022 | P0 | Every deployment shall support provider-independent `BUILT_IN_FREE`, `DEVELOPMENT`, or `ADMIN_GRANTED` subscription sources; provider absence or outage shall not block creating or enforcing one of those sources, and all sources shall use the same immutable PlanVersion, EntitlementSnapshot, reservation, usage, and authorization contracts. |
 | BUA-023 | P0 | Job admission shall create a BUA-owned immutable `ResultUsageSettlementBinding` in the same transaction as its quota reservation and JRA admission. The binding shall be exact to TenantScope, Job, reservation, meter, server-owned settlement formula, maximum admitted units, entitlement decision subject and idempotency identity; JRA shall persist and return only its opaque stable ID. Successful result finalization shall pass that ID plus verified result facts to a BUA transaction participant, which shall resolve the binding, compute the authoritative quantity, consume or release the exact reservation and append idempotent usage in the same transaction as terminal JRA result commit. A missing, mismatched, expired, already-conflicted or unavailable binding shall roll back finalization. Completion code shall never invent a reservation, meter, formula or billable quantity from worker assertions. |
+| BUA-024 | P0 | The platform shall provide a read-only, content-minimized internal product overview for currently authorized IAM platform operators, derived from authoritative IAM and BUA records and bounded to aggregate identity, organization, workspace, session, subscription, invoice, and payment metadata; it shall not trust provider dashboards or client counters, expose tenant source content or payment/provider secrets, or allow a platform assignment to substitute for tenant authorization. |
 
 ## Domain and data contracts
 

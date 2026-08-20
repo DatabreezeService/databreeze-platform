@@ -1,7 +1,7 @@
 # DataBreeze Data-to-Dashboard Agent
 
 **Status:** Product specification<br>
-**Version:** 1.3<br>
+**Version:** 1.4<br>
 **Requirement prefix:** `DDA`<br>
 **Dependencies:** IAM identity/authorization; IAE intake, immutable artifacts, evidence, retention, and deletion; DSM datasets, schemas, mappings, transformations, rules, metrics, profiling, validation, and lineage; JRA typed jobs, review tasks, findings, and approvals; DSO Device capabilities, data modes, transfer, synchronization, and offline queues; NCO notifications/collaboration; BUA entitlements/usage; AUD canonical audit ledger; Web, Windows Desktop, and Android platform contracts; shared Python processing engine; provider-neutral OCR and AI adapters
 
@@ -191,6 +191,9 @@ Priorities are `P0` (required for the capability's first production release or s
 | DDA-058 | P0 | V1 DashboardSnapshot audiences shall be Owner, Workspace members, or Project members only; public, anonymous, bearer-link, and external guest resolution shall be rejected. |
 | DDA-059 | P0 | A Desktop folder can be Web-usable only through an explicitly consented Cloud or Hybrid projection whose preview declares original transfer, safe label metadata, bytes, classification, destination, and evidence consequences; `LOCAL` shall remain non-transferable. |
 | DDA-060 | P0 | The workspace agent may invoke only registered typed tools over authorized resource IDs; each tool shall resolve tenant scope server-side, enforce the independent agent grant, admit usage, return bounded structured results and evidence, and audit proposals or effects. |
+| DDA-061 | P0 | Dashboard materialization admission shall create a server-owned `ExecutionWorkloadEnvelope` for every required typed processor, binding the exact dashboard/version/widget/plan/metric/dataset/projection/policy subject, authorized input handles, bounded parameters, output policy, deadline, locale/timezone, engine/handler versions, and canonical hash. Local and cloud executors shall resolve the same envelope through authenticated scoped APIs; no client or worker assertion may become a dashboard value, and a missing, stale, revoked, or hash-mismatched envelope shall preserve the last good snapshot. |
+
+The published V1 Web CSV/XLSX intake profile sets a 100 MiB file cap and a maximum row ceiling of exactly 1,000,000 data rows, subject to its independent size, column, worksheet, formula, ZIP, cell, and XML safety bounds. The exact 1,000,000-row acceptance fixture is CSV. Dashboard preview and materialization row bounds are separate output limits and do not reduce this intake ceiling.
 
 ## 7. Data model extensions
 

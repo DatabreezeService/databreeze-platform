@@ -15,11 +15,17 @@ const SAFE_METHODS_V1 = new Set(['GET', 'HEAD', 'OPTIONS']);
 interface RequestLikeV1 {
   readonly id?: unknown;
   readonly method?: unknown;
+  readonly url?: unknown;
   readonly headers?: Readonly<Record<string, HeaderValueV1>>;
 }
 
 export interface SessionPrincipalLookupV1 {
   findPrincipalByAccessToken(accessToken: unknown): Promise<AuthenticatedPrincipalV1 | undefined>;
+  findSessionByAccessToken?(
+    accessToken: unknown,
+  ): Promise<
+    { readonly sessionId: string; readonly principal: AuthenticatedPrincipalV1 } | undefined
+  >;
 }
 
 export class UnavailableWorkspaceAuthorizationEpochResolverAdapter
@@ -84,6 +90,13 @@ export class SessionRequestTenantContextAdapter implements RequestTenantContextP
   public constructor(
     private readonly sessions: SessionPrincipalLookupV1,
     private readonly workspaceEpoch: WorkspaceAuthorizationEpochResolverPortV1 = new UnavailableWorkspaceAuthorizationEpochResolverAdapter(),
+    private readonly options: {
+      /**
+       * Local-only server-owned project projection. It is applied only to
+       * dashboard routes; ordinary workspace APIs keep their workspace scope.
+       */
+      readonly dashboardProjectId?: string;
+    } = {},
   ) {}
 
   public async resolve(request: unknown) {
@@ -93,8 +106,15 @@ export class SessionRequestTenantContextAdapter implements RequestTenantContextP
       throw new RequestTenantContextProblemError('AUTHENTICATION_FAILED');
     }
     let principal: AuthenticatedPrincipalV1 | undefined;
+    let sessionId: string | undefined;
     try {
-      principal = await this.sessions.findPrincipalByAccessToken(token);
+      if (this.sessions.findSessionByAccessToken !== undefined) {
+        const binding = await this.sessions.findSessionByAccessToken(token);
+        principal = binding?.principal;
+        sessionId = binding?.sessionId;
+      } else {
+        principal = await this.sessions.findPrincipalByAccessToken(token);
+      }
     } catch {
       throw new RequestTenantContextProblemError('AUTHENTICATION_UNAVAILABLE');
     }
@@ -103,6 +123,7 @@ export class SessionRequestTenantContextAdapter implements RequestTenantContextP
     if (typeof principal.mfaReenrollmentRequired !== 'boolean')
       throw new RequestTenantContextProblemError('CONTEXT_INVALID');
     const context = createIamTenantContextV1({
+      ...(sessionId === undefined ? {} : { sessionId }),
       tenantScope: {
         scopeType: 'workspace',
         organizationId: principal.organizationId,
@@ -124,8 +145,20 @@ export class SessionRequestTenantContextAdapter implements RequestTenantContextP
     } catch {
       throw new RequestTenantContextProblemError('AUTHENTICATION_UNAVAILABLE');
     }
+    const projectId = this.options.dashboardProjectId;
+    const requestUrl = typeof input.url === 'string' ? input.url : '';
+    const dashboardRequest =
+      /^\/(?:v1|v3)\/dda\/dashboards(?:\/|$)/u.test(requestUrl) && projectId !== undefined;
     const resolved = createIamTenantContextV1({
       ...context.value,
+      tenantScope: dashboardRequest
+        ? {
+            scopeType: 'project',
+            organizationId: principal.organizationId,
+            workspaceId: principal.workspaceId,
+            projectId,
+          }
+        : context.value.tenantScope,
       workspaceAuthorizationEpoch,
     });
     if (!resolved.accepted) throw new RequestTenantContextProblemError('CONTEXT_INVALID');

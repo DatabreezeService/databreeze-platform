@@ -1,19 +1,19 @@
-const ACCEPTED = '.csv,.xlsx,.png,.jpg,.jpeg,.pdf';
+const ACCEPTED = '.csv,.xlsx';
 
 function copy(locale: 'en' | 'vi-VN') {
   return locale === 'vi-VN'
     ? {
         connect: 'Kết nối nguồn',
         description:
-          'Tải CSV, XLSX, ảnh hoặc PDF sau khi máy chủ xác nhận ngữ cảnh và giới hạn áp dụng.',
-        heading: 'Thêm nguồn',
+          'Thêm CSV hoặc XLSX. Trợ lý sẽ lập hồ sơ an toàn để bạn kiểm tra trước khi duyệt.',
+        heading: 'Thêm dữ liệu',
         upload: 'Chọn tệp để tải lên',
       }
     : {
         connect: 'Connect source',
         description:
-          'Upload CSV, XLSX, images, or PDFs only after the server confirms applicable context and limits.',
-        heading: 'Add source',
+          'Add CSV or XLSX files. The assistant prepares a review for you before approval.',
+        heading: 'Add data',
         upload: 'Choose files to upload',
       };
 }
@@ -31,6 +31,14 @@ export function SourceUploadPanel({
   onSelectFiles,
 }: SourceUploadPanelProps) {
   const text = copy(locale);
+  const canUpload = onSelectFiles !== undefined;
+  const canConnect = onConnectSource !== undefined;
+
+  // Do not render a dead-looking panel when the current authorized route has
+  // no intake command. An unavailable action is represented by the parent
+  // page's honest status copy, never by a disabled premium-looking button.
+  if (!canUpload && !canConnect) return null;
+
   return (
     <section aria-label={text.heading} className="source-upload-panel">
       <div>
@@ -38,21 +46,25 @@ export function SourceUploadPanel({
         <p>{text.description}</p>
       </div>
       <div className="source-upload-panel__actions">
-        <label className="source-upload-panel__upload">
-          <span>{text.upload}</span>
-          <input
-            accept={ACCEPTED}
-            disabled={onSelectFiles === undefined}
-            multiple
-            onChange={(event) => {
-              if (event.target.files !== null) onSelectFiles?.(event.target.files);
-            }}
-            type="file"
-          />
-        </label>
-        <button disabled={onConnectSource === undefined} onClick={onConnectSource} type="button">
-          {text.connect}
-        </button>
+        {canUpload ? (
+          <label className="source-upload-panel__upload">
+            <span>{text.upload}</span>
+            <input
+              aria-label={locale === 'vi-VN' ? 'Chọn tệp để tải lên' : 'Choose files to upload'}
+              accept={ACCEPTED}
+              multiple
+              onChange={(event) => {
+                if (event.target.files !== null) onSelectFiles?.(event.target.files);
+              }}
+              type="file"
+            />
+          </label>
+        ) : null}
+        {canConnect ? (
+          <button onClick={onConnectSource} type="button">
+            {text.connect}
+          </button>
+        ) : null}
       </div>
     </section>
   );

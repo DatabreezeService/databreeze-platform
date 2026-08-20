@@ -22,7 +22,31 @@ import { QiModule, type QiModuleOptions } from './features/qi/qi.module.js';
 import { IldModule, type IldModuleOptions } from './features/ild/ild.module.js';
 import { DdaModule, type DdaModuleOptions } from './features/dda/dda.module.js';
 import { JraModule, type JraModuleOptions } from './features/jra/jra.module.js';
+import { MobileModule, type MobileModuleOptions } from './features/mobile/mobile.module.js';
+import { CrfModule, type CrfModuleOptions } from './features/crf/crf.module.js';
+import { PrismaCrfReportRepositoryAdapter } from './features/crf/adapter/prisma-report-repository.adapter.js';
+import {
+  PlatformAdminModule,
+  type PlatformAdminModuleOptions,
+} from './features/platform-admin/platform-admin.module.js';
+import {
+  PrismaPlatformOperatorAuthorityAdapter,
+  type PlatformOperatorDatabaseClientV1,
+} from './features/iam/adapter/prisma-platform-operator-authority.adapter.js';
+import {
+  PrismaPlatformIdentityAnalyticsAdapter,
+  type PlatformIdentityAnalyticsDatabaseClientV1,
+} from './features/iam/adapter/prisma-platform-identity-analytics.adapter.js';
+import {
+  PrismaPlatformBillingAnalyticsAdapter,
+  type PlatformBillingAnalyticsDatabaseClientV1,
+} from './features/bua/adapter/prisma-platform-billing-analytics.adapter.js';
+import { PrismaLandingFeedbackAdapter } from './features/lfb/adapter/prisma-landing-feedback.adapter.js';
+import { InMemoryLandingFeedbackAdmissionAdapter } from './features/lfb/adapter/in-memory-landing-feedback-admission.adapter.js';
+import { Sha256LandingFeedbackAdmissionDigestAdapter } from './features/lfb/adapter/sha256-landing-feedback-admission-digest.adapter.js';
+import { LfbModule, type LfbModuleOptions } from './features/lfb/lfb.module.js';
 import { PrismaApprovalRepositoryAdapter } from './features/jra/adapter/prisma-approval-repository.adapter.js';
+import { PrismaJobHistoryReadAdapter } from './features/jra/adapter/prisma-job-history-read.adapter.js';
 import { ApprovalService } from './features/jra/application/approval.service.js';
 import { JraDashboardPublicationApprovalAdapter } from './features/dda/dashboard/adapter/jra-dashboard-publication-approval.adapter.js';
 import {
@@ -50,7 +74,7 @@ import { IamReceiptMutationAuthorizationAdapter } from './features/dda/receipt/a
 import { IamGovernedDatasetAuthorizationAdapter } from './features/dsm/adapter/iam-governed-dataset-authorization.adapter.js';
 import { IamSourceCatalogAuthorizationAdapter } from './features/dda/source-catalog/adapter/iam-source-catalog-authorization.adapter.js';
 import { roleHasPermissionV1 } from '@databreeze/domain/permissions/v1';
-import { tenantScopesEqualV1 } from '@databreeze/domain/tenant-scope/v1';
+import { tenantScopeContainsV1, tenantScopesEqualV1 } from '@databreeze/domain/tenant-scope/v1';
 import {
   JraWorkerModule,
   type JraWorkerModuleOptions,
@@ -81,6 +105,7 @@ import { IaeWorkerResultFinalizationService } from './features/iae/application/w
 import {
   composeAgentAuditPortFromLedger,
   DsmConversationContextVersionAuthorityAdapter,
+  GovernedDatasetConversationContextVersionAuthorityAdapter,
 } from './platform/agent-production.composition.js';
 import {
   composeDdaBuaPortFromAdmissionService,
@@ -103,6 +128,8 @@ import {
 } from './features/iam/adapter/prisma-workspace-execution-policy-reference.adapter.js';
 import { DsoWorkspacePolicyAuthorityAdapter } from './platform/dso-workspace-policy.composition.js';
 import { PrismaWorkerResultFinalizationEffects } from './platform/jra-worker-result-effects.composition.js';
+import { PrismaReadyJobQueueRepositoryAdapter } from './features/jra/adapter/prisma-ready-job-queue-repository.adapter.js';
+import type { PrismaReadyJobQueueDatabaseClientV1 } from './features/jra/adapter/prisma-ready-job-queue-repository.adapter.js';
 
 export type AppModuleOptions = SystemModuleOptions &
   IamModuleOptions &
@@ -118,9 +145,15 @@ export type AppModuleOptions = SystemModuleOptions &
   IldModuleOptions &
   DdaModuleOptions &
   JraModuleOptions &
+  MobileModuleOptions &
+  CrfModuleOptions &
+  PlatformAdminModuleOptions &
+  LfbModuleOptions &
   JraWorkerModuleOptions & {
     /** AUD/BUA participant that writes through the exact JRA serializable transaction. */
     readonly workerResultFinalizationEffects?: WorkerResultFinalizationEffectsPortV1;
+    /** Local-only server-owned project projection for dashboard routes. */
+    readonly dashboardProjectId?: string;
   };
 
 @Module({})
@@ -255,10 +288,43 @@ export class AppModule {
         ? new SessionRequestTenantContextAdapter(
             {
               findPrincipalByAccessToken: sessions.findPrincipalByAccessToken.bind(sessions),
+              ...(typeof sessions.findSessionByAccessToken === 'function'
+                ? { findSessionByAccessToken: sessions.findSessionByAccessToken.bind(sessions) }
+                : {}),
             },
             workspaceEpochResolver,
+            options.dashboardProjectId === undefined
+              ? {}
+              : { dashboardProjectId: options.dashboardProjectId },
           )
         : undefined);
+    const platformOperatorAuthority =
+      options.platformOperatorAuthority ??
+      (options.iamDatabase === undefined
+        ? undefined
+        : new PrismaPlatformOperatorAuthorityAdapter(
+            options.iamDatabase as unknown as PlatformOperatorDatabaseClientV1,
+          ));
+    const platformIdentityAnalytics =
+      options.platformIdentityAnalytics ??
+      (options.iamDatabase === undefined
+        ? undefined
+        : new PrismaPlatformIdentityAnalyticsAdapter(
+            options.iamDatabase as unknown as PlatformIdentityAnalyticsDatabaseClientV1,
+          ));
+    const platformBillingAnalytics =
+      options.platformBillingAnalytics ??
+      (options.paymentDatabase === undefined
+        ? undefined
+        : new PrismaPlatformBillingAnalyticsAdapter(
+            options.paymentDatabase as unknown as PlatformBillingAnalyticsDatabaseClientV1,
+          ));
+    const landingFeedbackPersistence =
+      options.landingFeedbackDatabase === undefined
+        ? undefined
+        : new PrismaLandingFeedbackAdapter(options.landingFeedbackDatabase);
+    const landingFeedbackIntake = options.landingFeedbackIntake ?? landingFeedbackPersistence;
+    const platformFeedbacks = options.platformFeedbacks ?? landingFeedbackPersistence;
     const agentAuthority =
       options.agentAuthority ??
       (agentGrantService === undefined
@@ -275,12 +341,19 @@ export class AppModule {
           ));
     const conversationContextVersionAuthority =
       options.conversationContextVersionAuthority ??
-      (governedDatasetAuthorization === undefined || datasetVersionRepository === undefined
+      (governedDatasetAuthorization === undefined
         ? undefined
-        : new DsmConversationContextVersionAuthorityAdapter(
-            governedDatasetAuthorization,
-            datasetVersionRepository,
-          ));
+        : governedDatasetRepository !== undefined
+          ? new GovernedDatasetConversationContextVersionAuthorityAdapter(
+              governedDatasetAuthorization,
+              governedDatasetRepository,
+            )
+          : datasetVersionRepository === undefined
+            ? undefined
+            : new DsmConversationContextVersionAuthorityAdapter(
+                governedDatasetAuthorization,
+                datasetVersionRepository,
+              ));
     const iaePort =
       options.iaePort ??
       (artifactRepository === undefined
@@ -332,6 +405,37 @@ export class AppModule {
               };
             },
           };
+    const billingAuthorization =
+      options.billingAuthorization ??
+      (iamActionSource === undefined
+        ? undefined
+        : {
+            // Billing is organization-owned. A workspace session is therefore
+            // authorized by an active organization/workspace ancestor membership,
+            // while unrelated tenants still fail closed.
+            authorize: async ({
+              context,
+              permission,
+            }: {
+              readonly context: import('./features/iam/application/tenant-context.js').IamTenantContextV1;
+              readonly permission: import('@databreeze/domain/permissions/v1').PermissionV1;
+            }) =>
+              iamRepository === undefined
+                ? { allowed: false }
+                : {
+                    allowed: await (async () => {
+                      const membership = await iamRepository.findMembership(
+                        context,
+                        context.actorId,
+                      );
+                      return (
+                        membership?.status === 'ACTIVE' &&
+                        tenantScopeContainsV1(membership.scope, context.tenantScope) &&
+                        roleHasPermissionV1(membership.roleId, permission)
+                      );
+                    })(),
+                  },
+          });
     const agentIamActionAuthorization =
       options.agentIamActionAuthorization ??
       (iamActionSource === undefined
@@ -368,6 +472,16 @@ export class AppModule {
     const approvalAuthority =
       options.approvalAuthority ??
       (approvalRepository === undefined ? undefined : new ApprovalService(approvalRepository));
+    const jobHistoryRead =
+      options.jobHistoryRead ??
+      (options.jobHistoryDatabase === undefined
+        ? undefined
+        : new PrismaJobHistoryReadAdapter(options.jobHistoryDatabase));
+    const crfReportRepository =
+      options.reportRepository ??
+      (options.reportDatabase === undefined
+        ? undefined
+        : new PrismaCrfReportRepositoryAdapter(options.reportDatabase));
     const dashboardPublicationApprovalInvalidationExecutor =
       options.dashboardPublicationApprovalInvalidationExecutor ??
       (approvalAuthority === undefined
@@ -393,10 +507,15 @@ export class AppModule {
       (workerCredentialLookup === undefined
         ? undefined
         : new ServiceAccountWorkerAuthenticator(workerCredentialLookup));
+    // Keep the security-epoch seam based on its public capability rather than
+    // JavaScript class identity. Local/compiled module graphs can load the same
+    // adapter through different ESM URLs; `instanceof` would then silently
+    // disable IAE worker capabilities while bearer authentication still works.
     const workerSecurityEpoch: WorkerSecurityEpochPortV1 | undefined =
       options.workerSecurityEpoch ??
-      (workerAuthenticator instanceof ServiceAccountWorkerAuthenticator
-        ? workerAuthenticator
+      (workerAuthenticator !== undefined &&
+      typeof (workerAuthenticator as Partial<WorkerSecurityEpochPortV1>).isCurrent === 'function'
+        ? (workerAuthenticator as unknown as WorkerSecurityEpochPortV1)
         : undefined);
     const workerCapabilitySigner =
       options.workerCapabilitySigner ??
@@ -501,11 +620,32 @@ export class AppModule {
             workerSecurityEpoch,
             workerObjectGrantAuthority,
             workerResultFinalizationEffects,
+            options.workerInputObjectResolver,
           )
         : undefined;
+    const readyJobQueueRepository =
+      options.readyJobQueueRepository ??
+      (options.jraWorkerDatabase === undefined
+        ? undefined
+        : new PrismaReadyJobQueueRepositoryAdapter(
+            options.jraWorkerDatabase as unknown as PrismaReadyJobQueueDatabaseClientV1,
+          ));
+    const workerWorkloadEnvelope =
+      options.workerWorkloadEnvelope ??
+      (options.workerInputObjectResolver === undefined ? undefined : jraWorkerAdapter);
     const runtimeMode =
       options.runtimeMode ??
       (process.env['NODE_ENV'] === 'production' ? 'production' : 'development');
+    // WEB-026: anonymous intake stays admitted everywhere. Production compositions pass
+    // shared bounded adapters explicitly; local/dev defaults stay in-memory.
+    const landingFeedbackIpAdmission =
+      options.landingFeedbackIpAdmission ??
+      (runtimeMode === 'production' ? undefined : new InMemoryLandingFeedbackAdmissionAdapter());
+    const landingFeedbackAdmissionDigest =
+      options.landingFeedbackAdmissionDigest ??
+      (runtimeMode === 'production'
+        ? undefined
+        : new Sha256LandingFeedbackAdmissionDigestAdapter());
     const composedOptions = {
       ...options,
       ...(sessions === undefined ? {} : { sessions }),
@@ -519,10 +659,18 @@ export class AppModule {
       ...(auditRepository === undefined ? {} : { auditRepository }),
       ...(auditLedgerService === undefined ? {} : { auditLedgerService }),
       ...(requestTenantContext === undefined ? {} : { requestTenantContext }),
+      ...(platformOperatorAuthority === undefined ? {} : { platformOperatorAuthority }),
+      ...(platformIdentityAnalytics === undefined ? {} : { platformIdentityAnalytics }),
+      ...(platformBillingAnalytics === undefined ? {} : { platformBillingAnalytics }),
+      ...(platformFeedbacks === undefined ? {} : { platformFeedbacks }),
+      ...(landingFeedbackIntake === undefined ? {} : { landingFeedbackIntake }),
+      ...(landingFeedbackIpAdmission === undefined ? {} : { landingFeedbackIpAdmission }),
+      ...(landingFeedbackAdmissionDigest === undefined ? {} : { landingFeedbackAdmissionDigest }),
       ...(iamRepository === undefined ? {} : { iamRepository }),
       ...(iaeAuthorization === undefined ? {} : { iaeAuthorization }),
       ...(iaeOriginalViewPort === undefined ? {} : { iaeOriginalViewPort }),
       accessPresetService,
+      ...(billingAuthorization === undefined ? {} : { billingAuthorization }),
       ...(agentGrantRepository === undefined ? {} : { agentGrantRepository }),
       ...(executionRouteWorkspacePolicyAuthority === undefined
         ? {}
@@ -539,6 +687,8 @@ export class AppModule {
       ...(etlProposalAuthority === undefined ? {} : { etlProposalAuthority }),
       ...(approvalRepository === undefined ? {} : { approvalRepository }),
       ...(approvalAuthority === undefined ? {} : { approvalAuthority }),
+      ...(jobHistoryRead === undefined ? {} : { jobHistoryRead }),
+      ...(crfReportRepository === undefined ? {} : { reportRepository: crfReportRepository }),
       ...(dashboardPublicationApprovalInvalidationExecutor === undefined
         ? {}
         : { dashboardPublicationApprovalInvalidationExecutor }),
@@ -585,10 +735,12 @@ export class AppModule {
             workerCompletionTransaction: jraWorkerAdapter,
             workerResultPreparation: jraWorkerAdapter,
             workerVerifiedResultManifests: jraWorkerAdapter,
+            ...(workerWorkloadEnvelope === undefined ? {} : { workerWorkloadEnvelope }),
             ...(workerResultFinalizationEffects === undefined
               ? {}
               : { workerResultFinalization: jraWorkerAdapter }),
           }),
+      ...(readyJobQueueRepository === undefined ? {} : { readyJobQueueRepository }),
     };
     return {
       module: AppModule,
@@ -600,6 +752,8 @@ export class AppModule {
         DsoModule.register(composedOptions),
         AudModule.register(composedOptions),
         BuaModule.register(composedOptions),
+        PlatformAdminModule.register(composedOptions),
+        LfbModule.register(composedOptions),
         SaModule.register(composedOptions),
         FaModule.register(composedOptions),
         DqgModule.register(composedOptions),
@@ -609,6 +763,11 @@ export class AppModule {
         JraModule.register({
           ...composedOptions,
           runtimeMode,
+          allowInMemoryAdapters: options.allowInMemoryAdapters ?? runtimeMode !== 'production',
+        }),
+        CrfModule.register(composedOptions),
+        MobileModule.register({
+          ...composedOptions,
           allowInMemoryAdapters: options.allowInMemoryAdapters ?? runtimeMode !== 'production',
         }),
         JraWorkerModule.register(composedOptions as JraWorkerModuleOptions),

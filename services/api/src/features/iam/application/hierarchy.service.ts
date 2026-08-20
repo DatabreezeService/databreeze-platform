@@ -18,7 +18,7 @@ import { roleHasPermissionV1, PERMISSIONS_V1 } from '@databreeze/domain/permissi
 
 import type { IamRepositoryPortV1 } from './iam-repository.port.js';
 import type { IamHierarchyRepositoryPortV1 } from './hierarchy-repository.port.js';
-import type { IamTenantContextV1 } from './tenant-context.js';
+import { createIamTenantContextV1, type IamTenantContextV1 } from './tenant-context.js';
 
 export const IAM_HIERARCHY_SERVICE = Symbol('IAM_HIERARCHY_SERVICE');
 
@@ -37,6 +37,13 @@ export type IamHierarchyApplicationResultV1<TValue> =
 
 export type IamHierarchyIdGeneratorV1 = () => string;
 export type IamHierarchyClockV1 = () => Date;
+
+/** IAM-027: the created workspace plus its server-provisioned default private project. */
+export interface IamCreatedWorkspaceV1 {
+  readonly workspace: WorkspaceIdentityV1;
+  readonly defaultProject: ProjectIdentityV1;
+  readonly dataMode: 'HYBRID';
+}
 
 function accepted<TValue>(value: TValue): IamHierarchyApplicationResultV1<TValue> {
   return Object.freeze({ accepted: true, value });
@@ -134,10 +141,9 @@ export class IamHierarchyService {
   ): Promise<IamHierarchyApplicationResultV1<readonly WorkspaceIdentityV1[]>> {
     const organizationId = parseId(organizationIdInput);
     if (!organizationId.accepted) return rejected(organizationId.code);
-    if (
-      context.tenantScope.scopeType !== 'organization' ||
-      context.tenantScope.organizationId !== organizationId.value
-    )
+    // IAM-027: every session inside the organization sees its workspace list;
+    // the underlying membership visibility stays enforced per request context.
+    if (context.tenantScope.organizationId !== organizationId.value)
       return rejected('SCOPE_DENIED');
     try {
       return accepted(await this.repository.listWorkspaces(context, organizationId.value));
@@ -164,13 +170,12 @@ export class IamHierarchyService {
     context: IamTenantContextV1,
     organizationIdInput: unknown,
     nameInput: unknown,
-  ): Promise<IamHierarchyApplicationResultV1<WorkspaceIdentityV1>> {
+  ): Promise<IamHierarchyApplicationResultV1<IamCreatedWorkspaceV1>> {
     const organizationId = parseId(organizationIdInput);
     if (!organizationId.accepted) return rejected(organizationId.code);
-    if (
-      context.tenantScope.scopeType !== 'organization' ||
-      context.tenantScope.organizationId !== organizationId.value
-    )
+    // IAM-027: a session scoped anywhere inside the target organization may attempt
+    // creation; the permission check below remains the authority.
+    if (context.tenantScope.organizationId !== organizationId.value)
       return rejected('SCOPE_DENIED');
     const createdAt = isoNow(this.clock);
     if (!createdAt) return rejected('UNAVAILABLE');
@@ -181,9 +186,17 @@ export class IamHierarchyService {
     );
     if (authorization !== 'ALLOWED')
       return rejected(authorization === 'UNAVAILABLE' ? 'UNAVAILABLE' : 'SCOPE_DENIED');
+    const organizationContext = createIamTenantContextV1({
+      ...context,
+      tenantScope: { scopeType: 'organization', organizationId: organizationId.value },
+    });
+    if (!organizationContext.accepted) return rejected('UNAVAILABLE');
     try {
-      return await this.repository.withTransaction(context, async (transaction) => {
-        const parent = await transaction.findOrganization(context, organizationId.value);
+      return await this.repository.withTransaction(organizationContext.value, async (transaction) => {
+        const parent = await transaction.findOrganization(
+          organizationContext.value,
+          organizationId.value,
+        );
         if (!parent) return rejected('NOT_FOUND');
         const candidate = createWorkspaceIdentityV1({
           id: this.idGenerator(),
@@ -192,8 +205,22 @@ export class IamHierarchyService {
           createdAt,
         });
         if (!candidate.accepted) return rejected(identityCode(candidate.code));
-        await transaction.saveWorkspace(context, candidate.value);
-        return accepted(candidate.value);
+        await transaction.saveWorkspace(organizationContext.value, candidate.value);
+        const project = createProjectIdentityV1({
+          id: this.idGenerator(),
+          organizationId: parent.id,
+          workspaceId: candidate.value.id,
+          kind: 'INTERNAL',
+          name: 'Private project',
+          createdAt,
+        });
+        if (!project.accepted) return rejected(identityCode(project.code));
+        await transaction.saveProject(organizationContext.value, project.value);
+        return accepted({
+          workspace: candidate.value,
+          defaultProject: project.value,
+          dataMode: 'HYBRID',
+        });
       });
     } catch (error) {
       return rejected(applicationError(error));
