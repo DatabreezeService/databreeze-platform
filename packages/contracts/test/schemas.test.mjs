@@ -26,6 +26,7 @@ const ids = {
   conversationListAccepted: `${schemaBaseV4}/dda-conversation-list-accepted`,
   conversationLoadAccepted: `${schemaBaseV4}/dda-conversation-load-accepted`,
   conversationSummary: `${schemaBaseV4}/dda-conversation-summary`,
+  iamAuthSession: `${schemaBaseV4}/iam-auth-session`,
   iamBootstrapResponse: `${schemaBaseV4}/iam-bootstrap-response`,
   iamScopeSwitchCommand: `${schemaBaseV4}/iam-scope-switch-command`,
   iamWorkspaceCreateAccepted: `${schemaBaseV4}/iam-workspace-create-accepted`,
@@ -70,6 +71,25 @@ function loadContracts() {
 
   return { ajv, manifest, schemas };
 }
+
+test('[IAM-005][IAM-026] auth sessions distinguish tenant and platform-only scope', () => {
+  const validate = validatorFor(ids.iamAuthSession);
+  const base = {
+    schemaVersion: 4,
+    sessionId: actorId,
+    userId: actorId,
+    accessToken: 'a'.repeat(80),
+    accessExpiresAt: '2026-08-21T12:15:00.000Z',
+    securityEpoch: 2,
+    mfaRequired: false,
+    mfaReenrollmentRequired: false,
+  };
+
+  assert.equal(validate({ ...base, scopeType: 'TENANT', organizationId, workspaceId }), true);
+  assert.equal(validate({ ...base, scopeType: 'PLATFORM' }), true);
+  assert.equal(validate({ ...base, scopeType: 'TENANT', organizationId }), false);
+  assert.equal(validate({ ...base, scopeType: 'PLATFORM', organizationId, workspaceId }), false);
+});
 
 function validatorFor(id) {
   const { ajv } = loadContracts();

@@ -7,11 +7,12 @@ import type {
 } from '../iam/application/platform-administration.port.js';
 import type { PlatformBillingAnalyticsPortV1 } from '../bua/application/platform-billing-analytics.port.js';
 import type { LandingFeedbackListPortV1 } from '../lfb/application/landing-feedback-intake.port.js';
+import { type RequestTenantContextPortV1 } from '../../platform/http/request-tenant-context.port.js';
 import {
-  REQUEST_TENANT_CONTEXT,
-  type RequestTenantContextPortV1,
-  UnavailableRequestTenantContextAdapter,
-} from '../../platform/http/request-tenant-context.port.js';
+  REQUEST_AUTHENTICATED_ACTOR,
+  type RequestAuthenticatedActorPortV1,
+  UnavailableRequestAuthenticatedActorAdapter,
+} from '../../platform/http/request-authenticated-actor.port.js';
 import {
   PLATFORM_ADMIN_SERVICE,
   PlatformAdminService,
@@ -54,6 +55,7 @@ export interface PlatformAdminModuleOptions {
   readonly platformFeedbacks?: LandingFeedbackListPortV1;
   readonly platformAdminClock?: () => Date;
   readonly requestTenantContext?: RequestTenantContextPortV1;
+  readonly requestAuthenticatedActor?: RequestAuthenticatedActorPortV1;
 }
 
 @Module({})
@@ -66,14 +68,31 @@ export class PlatformAdminModule {
       feedbacks: options.platformFeedbacks ?? new UnavailableLandingFeedbackList(),
       ...(options.platformAdminClock === undefined ? {} : { now: options.platformAdminClock }),
     });
+    const requestActor =
+      options.requestAuthenticatedActor ??
+      (options.requestTenantContext === undefined
+        ? new UnavailableRequestAuthenticatedActorAdapter()
+        : {
+            resolve: async (request: unknown) => {
+              const context = await options.requestTenantContext!.resolve(request);
+              return Object.freeze({
+                sessionId: context.sessionId ?? 'tenant-session',
+                actorId: context.actorId,
+                scopeType: 'TENANT' as const,
+                securityEpoch: context.authorizationEpoch,
+                mfaRequired: context.mfaRequired ?? false,
+                mfaReenrollmentRequired: context.mfaReenrollmentRequired,
+              });
+            },
+          });
     return {
       module: PlatformAdminModule,
       controllers: [PlatformAdminController],
       providers: [
         { provide: PLATFORM_ADMIN_SERVICE, useValue: service },
         {
-          provide: REQUEST_TENANT_CONTEXT,
-          useValue: options.requestTenantContext ?? new UnavailableRequestTenantContextAdapter(),
+          provide: REQUEST_AUTHENTICATED_ACTOR,
+          useValue: requestActor,
         },
       ],
     };

@@ -23,6 +23,7 @@ describe('tenant live configuration [IAM-009][DDA-002][DDA-006]', () => {
   it('derives tenant scope from authenticated bootstrap while retaining an optional intake id', () => {
     const session = {
       schemaVersion: 4 as const,
+      scopeType: 'TENANT' as const,
       sessionId: '00000000-0000-4000-8000-000000000001',
       userId: '00000000-0000-4000-8000-000000000002',
       organizationId: '00000000-0000-4000-8000-000000000003',

@@ -27,6 +27,7 @@ import {
 
 import {
   AUTHENTICATION_USE_CASE,
+  isPlatformPrincipalV1,
   type AuthenticationUseCaseV1,
 } from '../application/authentication.port.js';
 import { AuthenticationProblemError } from '../application/authentication-problem.error.js';
@@ -58,6 +59,10 @@ import {
   REQUEST_TENANT_CONTEXT,
   type RequestTenantContextPortV1,
 } from '../../../platform/http/request-tenant-context.port.js';
+import {
+  REQUEST_AUTHENTICATED_ACTOR,
+  type RequestAuthenticatedActorPortV1,
+} from '../../../platform/http/request-authenticated-actor.port.js';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
 @ApiTags('auth')
@@ -71,6 +76,9 @@ export class AuthenticationController {
     private readonly sessions?: SessionLifecyclePortV1,
     @Inject(REQUEST_TENANT_CONTEXT)
     private readonly requestContext?: RequestTenantContextPortV1,
+    @Optional()
+    @Inject(REQUEST_AUTHENTICATED_ACTOR)
+    private readonly requestAuthenticatedActor?: RequestAuthenticatedActorPortV1,
     @Optional()
     @Inject(IAM_SCOPE_SWITCH_SERVICE)
     private readonly scopeSwitch?: IamScopeSwitchService,
@@ -124,10 +132,15 @@ export class AuthenticationController {
     }
     return {
       schemaVersion: 4,
+      scopeType: isPlatformPrincipalV1(result.value.principal) ? 'PLATFORM' : 'TENANT',
       sessionId: result.value.session.sessionId,
       userId: result.value.principal.userId,
-      organizationId: result.value.principal.organizationId,
-      workspaceId: result.value.principal.workspaceId,
+      ...(isPlatformPrincipalV1(result.value.principal)
+        ? {}
+        : {
+            organizationId: result.value.principal.organizationId,
+            workspaceId: result.value.principal.workspaceId,
+          }),
       accessToken: result.value.session.accessToken,
       ...(input.clientPlatform === 'web'
         ? {}
@@ -199,10 +212,12 @@ export class AuthenticationController {
     }
     return {
       schemaVersion: 4,
+      scopeType: isPlatformPrincipalV1(principal) ? 'PLATFORM' : 'TENANT',
       sessionId: result.value.sessionId,
       userId: principal.userId,
-      organizationId: principal.organizationId,
-      workspaceId: principal.workspaceId,
+      ...(isPlatformPrincipalV1(principal)
+        ? {}
+        : { organizationId: principal.organizationId, workspaceId: principal.workspaceId }),
       accessToken: result.value.accessToken,
       accessExpiresAt: result.value.accessExpiresAt,
       ...(input.clientPlatform === 'web' ? {} : { refreshToken: result.value.refreshToken }),
@@ -261,6 +276,7 @@ export class AuthenticationController {
     ]);
     return {
       schemaVersion: 4,
+      scopeType: 'TENANT',
       sessionId: session.sessionId,
       userId: context.actorId,
       organizationId: context.tenantScope.organizationId,
@@ -286,18 +302,11 @@ export class AuthenticationController {
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<void> {
     if (this.sessions === undefined) throw new SessionProblemError('SESSION_UNAVAILABLE');
-    if (this.requestContext === undefined) throw new SessionProblemError('SESSION_UNAVAILABLE');
-    const context = await this.requestContext.resolve(request);
+    if (this.requestAuthenticatedActor === undefined)
+      throw new SessionProblemError('SESSION_UNAVAILABLE');
+    const actor = await this.requestAuthenticatedActor.resolve(request);
     try {
-      const principal = await this.sessions.findPrincipal(input.sessionId);
-      if (
-        !principal ||
-        principal.userId !== context.actorId ||
-        principal.organizationId !== context.tenantScope.organizationId ||
-        (context.tenantScope.scopeType !== 'organization' &&
-          principal.workspaceId !== context.tenantScope.workspaceId)
-      )
-        throw new SessionProblemError('SESSION_INVALID');
+      if (input.sessionId !== actor.sessionId) throw new SessionProblemError('SESSION_INVALID');
       await this.sessions.revoke(input.sessionId);
     } catch (error) {
       if (error instanceof SessionProblemError) throw error;

@@ -22,6 +22,7 @@ import {
   type WebAccessContext,
 } from './navigation.ts';
 import {
+  currentAuthSessionScopeV1,
   currentWebAuthenticationStateV1,
   initializeWebAuthenticationStateV1,
   subscribeWebAuthenticationStateV1,
@@ -201,11 +202,28 @@ function AuthenticationGate({ publicRoute }: { readonly publicRoute: boolean }) 
     currentWebAuthenticationStateV1,
     currentWebAuthenticationStateV1,
   );
+  const sessionScope = useSyncExternalStore(
+    subscribeWebAuthenticationStateV1,
+    currentAuthSessionScopeV1,
+    currentAuthSessionScopeV1,
+  );
   const { locale: routeLocale } = useParams();
   const location = useLocation();
   const locale = normalizeRouteLocale(routeLocale);
   if (publicRoute && authenticationState === 'signed-in')
-    return <Navigate replace to={`/${locale}/data`} />;
+    return (
+      <Navigate
+        replace
+        to={`/${locale}/${sessionScope === 'PLATFORM' ? 'platform-admin' : 'data'}`}
+      />
+    );
+  if (
+    !publicRoute &&
+    authenticationState === 'signed-in' &&
+    sessionScope === 'PLATFORM' &&
+    !location.pathname.startsWith(`/${locale}/platform-admin`)
+  )
+    return <Navigate replace to={`/${locale}/platform-admin`} />;
   if (!publicRoute && authenticationState === 'signed-out')
     return (
       <Navigate

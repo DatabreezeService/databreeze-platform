@@ -535,19 +535,6 @@ class Group(ClosedModel):
     label: Annotated[StrictStr, StringConstraints(min_length=1, max_length=128)]
     total: StrictFloat | None = None
 
-class IamAuthSession(ClosedModel):
-    accessExpiresAt: UtcTimestamp
-    accessToken: Annotated[StrictStr, StringConstraints(min_length=80, max_length=4096, pattern=r"^[A-Za-z0-9._~-]+$")]
-    mfaReenrollmentRequired: StrictBool
-    mfaRequired: StrictBool
-    organizationId: Identifier
-    refreshToken: Annotated[StrictStr, StringConstraints(min_length=80, max_length=4096, pattern=r"^[A-Za-z0-9._~-]+$")] | None = None
-    schemaVersion: Literal[4]
-    securityEpoch: Annotated[int, Field(strict=True, ge=1)]
-    sessionId: Identifier
-    userId: Identifier
-    workspaceId: Identifier
-
 class IamBootstrapOrganization(ClosedModel):
     id: Identifier
     name: Annotated[StrictStr, StringConstraints(min_length=1, max_length=200)]
@@ -830,6 +817,18 @@ class PlatformAdminOverviewWindow(ClosedModel):
     endsAt: UtcTimestamp
     startsAt: UtcTimestamp
 
+class PlatformSession(ClosedModel):
+    accessExpiresAt: UtcTimestamp
+    accessToken: Annotated[StrictStr, StringConstraints(min_length=80, max_length=4096, pattern=r"^[A-Za-z0-9._~-]+$")]
+    mfaReenrollmentRequired: StrictBool
+    mfaRequired: StrictBool
+    refreshToken: Annotated[StrictStr, StringConstraints(min_length=80, max_length=4096, pattern=r"^[A-Za-z0-9._~-]+$")] | None = None
+    schemaVersion: Literal[4]
+    scopeType: Literal["PLATFORM"]
+    securityEpoch: Annotated[int, Field(strict=True, ge=1)]
+    sessionId: Identifier
+    userId: Identifier
+
 class PreparedOutput(ClosedModel):
     allowedMediaTypes: Annotated[list[PreparedMediaType], Field(min_length=1, max_length=16)]
     capabilityId: Identifier
@@ -946,6 +945,20 @@ class SourceOpenValue(ClosedModel):
     kind: Annotated[StrictStr, StringConstraints(min_length=1, max_length=64)]
     sourceId: Identifier
 
+class TenantSession(ClosedModel):
+    accessExpiresAt: UtcTimestamp
+    accessToken: Annotated[StrictStr, StringConstraints(min_length=80, max_length=4096, pattern=r"^[A-Za-z0-9._~-]+$")]
+    mfaReenrollmentRequired: StrictBool
+    mfaRequired: StrictBool
+    organizationId: Identifier
+    refreshToken: Annotated[StrictStr, StringConstraints(min_length=80, max_length=4096, pattern=r"^[A-Za-z0-9._~-]+$")] | None = None
+    schemaVersion: Literal[4]
+    scopeType: Literal["TENANT"]
+    securityEpoch: Annotated[int, Field(strict=True, ge=1)]
+    sessionId: Identifier
+    userId: Identifier
+    workspaceId: Identifier
+
 class Value(ClosedModel):
     columns: Annotated[list[Column], Field(min_length=1, max_length=256)]
     datasetId: Identifier
@@ -1013,6 +1026,8 @@ class WorkerResultBinding(ClosedModel):
     kind: Literal["OUTPUT_SET"]
     outputNames: Annotated[list[FinalizeSafeName], Field(min_length=1, max_length=32)]
     outputSchemaId: FinalizeSafeName
+
+IamAuthSession: TypeAlias = Annotated[TenantSession | PlatformSession, Field(discriminator="scopeType")]
 
 IamBootstrapResponse: TypeAlias = Annotated[IamBootstrapResponseAccepted | IamBootstrapResponseRejected, Field(discriminator="outcome")]
 
@@ -1087,7 +1102,6 @@ EvidenceResolveValue.model_rebuild()
 Feedback.model_rebuild()
 Freshness.model_rebuild()
 Group.model_rebuild()
-IamAuthSession.model_rebuild()
 IamBootstrapOrganization.model_rebuild()
 IamBootstrapOrganizationScope.model_rebuild()
 IamBootstrapOrganizationSession.model_rebuild()
@@ -1131,6 +1145,7 @@ PlatformAdminOverview.model_rebuild()
 PlatformAdminOverviewOperator.model_rebuild()
 PlatformAdminOverviewTotals.model_rebuild()
 PlatformAdminOverviewWindow.model_rebuild()
+PlatformSession.model_rebuild()
 PreparedOutput.model_rebuild()
 Provenance.model_rebuild()
 PublicMessage.model_rebuild()
@@ -1148,6 +1163,7 @@ Snapshot.model_rebuild()
 SnapshotQuotasItem.model_rebuild()
 SourceOpenResult.model_rebuild()
 SourceOpenValue.model_rebuild()
+TenantSession.model_rebuild()
 Value.model_rebuild()
 WidgetResult.model_rebuild()
 WorkerDashboardResultProvenance.model_rebuild()

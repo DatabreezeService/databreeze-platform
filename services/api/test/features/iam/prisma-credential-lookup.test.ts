@@ -140,6 +140,36 @@ void test('[IAM-001, IAM-002] lookup does not authenticate users without an acti
   assert.equal(await adapter.findCredential('user@example.com'), undefined);
 });
 
+void test('[IAM-026] active platform operators authenticate without receiving tenant scope', async () => {
+  const client = database({
+    membershipIdentity: { findMany: async () => [] },
+  }) as CredentialLookupDatabaseClientV1 & {
+    readonly platformOperatorRecord: {
+      findUnique(input: { readonly where: { readonly userId: string } }): Promise<{
+        readonly userId: string;
+        readonly role: string;
+        readonly status: string;
+      } | null>;
+    };
+  };
+  Object.assign(client, {
+    platformOperatorRecord: {
+      findUnique: async () => ({ userId, role: 'PLATFORM_OWNER', status: 'ACTIVE' }),
+    },
+  });
+  const adapter = new PrismaCredentialLookupAdapter(client);
+
+  const result = await adapter.findCredential('user@example.com');
+
+  assert.deepEqual(result?.principal, {
+    scopeType: 'PLATFORM',
+    userId,
+    securityEpoch: 3,
+    mfaRequired: true,
+    mfaReenrollmentRequired: false,
+  });
+});
+
 void test('[IAM-001, IAM-009] an organization owner resolves the canonical active workspace', async () => {
   const adapter = new PrismaCredentialLookupAdapter(
     database({
@@ -160,8 +190,18 @@ void test('[IAM-001, IAM-009] an organization owner resolves the canonical activ
   );
 
   const result = await adapter.findCredential('user@example.com');
-  assert.equal(result?.principal.organizationId, organizationId);
-  assert.equal(result?.principal.workspaceId, workspaceId);
+  assert.equal(
+    result !== undefined && 'organizationId' in result.principal
+      ? result.principal.organizationId
+      : undefined,
+    organizationId,
+  );
+  assert.equal(
+    result !== undefined && 'workspaceId' in result.principal
+      ? result.principal.workspaceId
+      : undefined,
+    workspaceId,
+  );
 });
 
 void test('[IAM-002] workspace membership selection is deterministic', async () => {
@@ -194,5 +234,10 @@ void test('[IAM-002] workspace membership selection is deterministic', async () 
   );
 
   const result = await adapter.findCredential('user@example.com');
-  assert.equal(result?.principal.workspaceId, workspaceId);
+  assert.equal(
+    result !== undefined && 'workspaceId' in result.principal
+      ? result.principal.workspaceId
+      : undefined,
+    workspaceId,
+  );
 });

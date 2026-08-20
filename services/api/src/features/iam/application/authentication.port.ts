@@ -5,6 +5,7 @@ export const AUTHENTICATION_USE_CASE = Symbol('AUTHENTICATION_USE_CASE');
 export const CREDENTIAL_LOOKUP_PORT = Symbol('CREDENTIAL_LOOKUP_PORT');
 
 export interface AuthenticatedPrincipalV1 {
+  readonly scopeType?: 'TENANT';
   readonly userId: string;
   readonly organizationId: string;
   readonly workspaceId: string;
@@ -14,10 +15,26 @@ export interface AuthenticatedPrincipalV1 {
   readonly mfaReenrollmentRequired: boolean;
 }
 
+export interface PlatformAuthenticatedPrincipalV1 {
+  readonly scopeType: 'PLATFORM';
+  readonly userId: string;
+  readonly securityEpoch: number;
+  readonly mfaRequired: boolean;
+  readonly mfaReenrollmentRequired: boolean;
+}
+
+export type SessionPrincipalV1 = AuthenticatedPrincipalV1 | PlatformAuthenticatedPrincipalV1;
+
+export function isPlatformPrincipalV1(
+  principal: SessionPrincipalV1,
+): principal is PlatformAuthenticatedPrincipalV1 {
+  return principal.scopeType === 'PLATFORM';
+}
+
 export interface CredentialLookupPortV1 {
   findCredential(email: string): Promise<
     | {
-        readonly principal: AuthenticatedPrincipalV1;
+        readonly principal: SessionPrincipalV1;
         readonly credential: { readonly algorithm: 'argon2id'; readonly encodedHash: string };
       }
     | undefined
@@ -26,7 +43,7 @@ export interface CredentialLookupPortV1 {
 
 export interface SessionIssuerPortV1 {
   issue(
-    principal: AuthenticatedPrincipalV1,
+    principal: SessionPrincipalV1,
     clientPlatform: 'android' | 'desktop' | 'web',
   ): Promise<{
     readonly sessionId: string;
@@ -54,7 +71,7 @@ export interface AuthenticationSessionV1 {
 }
 
 export interface AuthenticationValueV1 {
-  readonly principal: AuthenticatedPrincipalV1;
+  readonly principal: SessionPrincipalV1;
   readonly session: AuthenticationSessionV1;
 }
 

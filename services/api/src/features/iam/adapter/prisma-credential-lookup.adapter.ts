@@ -2,8 +2,8 @@ import { normalizeEmailAddressV1 } from '@databreeze/domain/identity/v1';
 import { parseStableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type {
-  AuthenticatedPrincipalV1,
   CredentialLookupPortV1,
+  SessionPrincipalV1,
 } from '../application/authentication.port.js';
 
 export interface UserIdentityDatabaseRowV1 {
@@ -46,6 +46,12 @@ export interface MfaFactorDatabaseRowV1 {
   readonly id: string;
 }
 
+export interface PlatformOperatorDatabaseRowV1 {
+  readonly userId: string;
+  readonly role: string;
+  readonly status: string;
+}
+
 interface UniqueDelegateV1<TRow> {
   findUnique(input: { readonly where: Readonly<Record<string, unknown>> }): Promise<TRow | null>;
 }
@@ -71,6 +77,7 @@ export interface CredentialLookupDatabaseClientV1 {
   readonly workspaceIdentity: WorkspaceLookupDelegateV1;
   readonly organizationIdentity: UniqueDelegateV1<OrganizationIdentityDatabaseRowV1>;
   readonly mfaFactor: ListDelegateV1<MfaFactorDatabaseRowV1>;
+  readonly platformOperatorRecord?: UniqueDelegateV1<PlatformOperatorDatabaseRowV1>;
 }
 
 interface ActiveMembershipV1 {
@@ -110,7 +117,7 @@ export class PrismaCredentialLookupAdapter implements CredentialLookupPortV1 {
 
   public async findCredential(emailInput: string): Promise<
     | {
-        readonly principal: AuthenticatedPrincipalV1;
+        readonly principal: SessionPrincipalV1;
         readonly credential: { readonly algorithm: 'argon2id'; readonly encodedHash: string };
       }
     | undefined
@@ -123,12 +130,15 @@ export class PrismaCredentialLookupAdapter implements CredentialLookupPortV1 {
     if (!userId || !Number.isSafeInteger(user.securityEpoch) || user.securityEpoch < 1)
       return undefined;
 
-    const [credential, memberships] = await Promise.all([
+    const [credential, memberships, platformOperator, factors] = await Promise.all([
       this.client.passwordCredential.findUnique({ where: { userId } }),
       this.client.membershipIdentity.findMany({
         where: { principalId: userId, status: 'ACTIVE' },
         orderBy: { createdAt: 'asc' },
       }),
+      this.client.platformOperatorRecord?.findUnique({ where: { userId } }) ??
+        Promise.resolve(null),
+      this.client.mfaFactor.findMany({ where: { userId, status: 'ACTIVE' } }),
     ]);
     if (
       !credential ||
@@ -139,6 +149,27 @@ export class PrismaCredentialLookupAdapter implements CredentialLookupPortV1 {
       credential.encodedHash.length > 768
     )
       return undefined;
+
+    if (
+      platformOperator?.userId === userId &&
+      platformOperator.status === 'ACTIVE' &&
+      (platformOperator.role === 'PLATFORM_OWNER' || platformOperator.role === 'PLATFORM_SUPPORT')
+    ) {
+      if (typeof user.mfaReenrollmentRequired !== 'boolean') return undefined;
+      return Object.freeze({
+        principal: Object.freeze({
+          scopeType: 'PLATFORM' as const,
+          userId,
+          securityEpoch: user.securityEpoch,
+          mfaRequired: factors.length > 0,
+          mfaReenrollmentRequired: user.mfaReenrollmentRequired,
+        }),
+        credential: Object.freeze({
+          algorithm: 'argon2id' as const,
+          encodedHash: credential.encodedHash,
+        }),
+      });
+    }
 
     const selected = memberships
       .map((membership) => activeMembership(membership, userId))
@@ -151,10 +182,9 @@ export class PrismaCredentialLookupAdapter implements CredentialLookupPortV1 {
       .at(0);
     if (!selected) return undefined;
 
-    const [organization, factors] = await Promise.all([
-      this.client.organizationIdentity.findUnique({ where: { id: selected.organizationId } }),
-      this.client.mfaFactor.findMany({ where: { userId, status: 'ACTIVE' } }),
-    ]);
+    const organization = await this.client.organizationIdentity.findUnique({
+      where: { id: selected.organizationId },
+    });
     let workspaceId = selected.workspaceId;
     if (!workspaceId) {
       if (!this.client.workspaceIdentity.findMany) return undefined;

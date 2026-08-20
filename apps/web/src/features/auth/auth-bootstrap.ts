@@ -2,6 +2,8 @@ import type { AuthApiV1 } from './auth-api.ts';
 import { createSignInRedirect } from './auth-redirect.ts';
 import {
   clearAuthSessionV1,
+  confirmPlatformAuthSessionV1,
+  currentAuthSessionScopeV1,
   rememberAuthBootstrapV1,
   type WebAuthenticationStateV1,
 } from './auth-session.ts';
@@ -23,6 +25,7 @@ export interface RecoverSessionBeforeAppStartInputV1 {
   readonly search?: string;
   readonly hash?: string;
   readonly replace: (pathname: string) => void;
+  readonly confirmPlatformAccess?: () => Promise<boolean>;
 }
 
 export interface StartWebApplicationInputV1 extends RecoverSessionBeforeAppStartInputV1 {
@@ -47,6 +50,17 @@ export async function recoverSessionBeforeAppStartV1(
     recovered = false;
   }
   if (recovered) {
+    if (currentAuthSessionScopeV1() === 'PLATFORM') {
+      try {
+        if ((await input.confirmPlatformAccess?.()) === true && confirmPlatformAuthSessionV1()) {
+          const route = routeV1(input.pathname);
+          if (route.section !== 'platform-admin') input.replace(`/${route.locale}/platform-admin`);
+          return 'signed-in';
+        }
+      } catch {
+        // Platform authority must be confirmed live before the console can mount.
+      }
+    }
     try {
       const bootstrap = await input.api.loadBootstrap();
       if (bootstrap.accepted && rememberAuthBootstrapV1(bootstrap.value)) return 'signed-in';

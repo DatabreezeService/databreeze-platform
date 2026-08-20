@@ -25,6 +25,21 @@ export function rememberAuthSessionV1(session: IamAuthSession): void {
   activeSession = Object.freeze(publicSession);
 }
 
+export function currentAuthSessionScopeV1(): 'TENANT' | 'PLATFORM' | undefined {
+  if (activeSession === undefined) return undefined;
+  return activeSession.scopeType;
+}
+
+/** IAM-026: establish an identity-only platform session after live authority confirmation. */
+export function confirmPlatformAuthSessionV1(): boolean {
+  if (currentAuthSessionScopeV1() !== 'PLATFORM') return false;
+  const wasSignedIn = authenticationState === 'signed-in';
+  activeBootstrap = undefined;
+  initializeWebAuthenticationStateV1('signed-in');
+  if (wasSignedIn) notifyAuthenticationListenersV1();
+  return true;
+}
+
 function notifyAuthenticationListenersV1(): void {
   for (const listener of authenticationListeners) listener();
 }
@@ -57,6 +72,7 @@ export function rememberAuthBootstrapV1(bootstrap: IamBootstrapValue): boolean {
   const scope = bootstrap.session;
   if (
     session === undefined ||
+    session.scopeType !== 'TENANT' ||
     bootstrap.user.id !== session.userId ||
     scope.organizationId !== session.organizationId ||
     scope.authorizationEpoch !== session.securityEpoch ||

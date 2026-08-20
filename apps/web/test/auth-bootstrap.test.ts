@@ -18,6 +18,7 @@ afterEach(() => {
 describe('Web authentication bootstrap [IAM-023, WEB-002, WEB-004]', () => {
   const session = {
     schemaVersion: 4 as const,
+    scopeType: 'TENANT' as const,
     sessionId: '00000000-0000-4000-8000-000000000401',
     userId: '00000000-0000-4000-8000-000000000402',
     organizationId: '00000000-0000-4000-8000-000000000403',
@@ -67,9 +68,22 @@ describe('Web authentication bootstrap [IAM-023, WEB-002, WEB-004]', () => {
     platform: { apiVersion: 'v1' as const },
   };
 
+  const platformSession = {
+    schemaVersion: 4 as const,
+    scopeType: 'PLATFORM' as const,
+    sessionId: '00000000-0000-4000-8000-000000000411',
+    userId: '00000000-0000-4000-8000-000000000412',
+    accessToken: 'p'.repeat(80),
+    accessExpiresAt: '2026-08-13T00:15:00.000Z',
+    securityEpoch: 1,
+    mfaRequired: false,
+    mfaReenrollmentRequired: false,
+  };
+
   it('installs the memory-only credential transport for shared API clients', async () => {
     rememberAuthSessionV1({
       schemaVersion: 4,
+      scopeType: 'TENANT',
       sessionId: '00000000-0000-4000-8000-000000000401',
       userId: '00000000-0000-4000-8000-000000000402',
       organizationId: '00000000-0000-4000-8000-000000000403',
@@ -116,6 +130,27 @@ describe('Web authentication bootstrap [IAM-023, WEB-002, WEB-004]', () => {
         replace,
       }),
     ).resolves.toBe('signed-in');
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it('[IAM-026][WEB-025] recovers a server-confirmed platform-only session without tenant bootstrap', async () => {
+    const replace = vi.fn();
+    const loadBootstrap = vi.fn();
+    await expect(
+      recoverSessionBeforeAppStartV1({
+        api: {
+          recoverWebSession: vi.fn(async () => {
+            rememberAuthSessionV1(platformSession);
+            return { accepted: true as const };
+          }),
+          loadBootstrap,
+        },
+        confirmPlatformAccess: vi.fn(async () => true),
+        pathname: '/vi-VN/platform-admin',
+        replace,
+      }),
+    ).resolves.toBe('signed-in');
+    expect(loadBootstrap).not.toHaveBeenCalled();
     expect(replace).not.toHaveBeenCalled();
   });
 

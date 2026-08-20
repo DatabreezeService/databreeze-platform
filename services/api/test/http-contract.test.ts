@@ -328,6 +328,7 @@ void test('sign-in returns a session DTO and maps authentication failures withou
       assert.equal(response.statusCode, 200);
       assert.deepEqual(response.json(), {
         schemaVersion: 4,
+        scopeType: 'TENANT',
         sessionId: '00000000-0000-4000-8000-000000000010',
         userId: '00000000-0000-4000-8000-000000000001',
         organizationId: '00000000-0000-4000-8000-000000000002',
@@ -388,6 +389,51 @@ void test('sign-in returns a session DTO and maps authentication failures withou
   });
 });
 
+void test('[IAM-026] platform sign-in returns identity-only scope with no tenant identifiers', async () => {
+  await withApp(
+    {
+      authentication: {
+        signIn: () =>
+          Promise.resolve({
+            accepted: true as const,
+            value: {
+              principal: {
+                scopeType: 'PLATFORM' as const,
+                userId: '00000000-0000-4000-8000-000000000001',
+                securityEpoch: 3,
+                mfaRequired: false,
+                mfaReenrollmentRequired: false,
+              },
+              session: {
+                sessionId: '00000000-0000-4000-8000-000000000012',
+                accessToken: 'platform-access-token',
+                refreshToken: 'platform-refresh-token',
+                accessExpiresAt: '2026-01-01T00:15:00.000Z',
+              },
+            },
+          }),
+      },
+    },
+    async (app) => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/v1/auth/sign-in',
+        payload: {
+          schemaVersion: 4,
+          email: 'operator@example.com',
+          password: 'correct horse battery staple',
+          clientPlatform: 'web',
+        },
+      });
+      assert.equal(response.statusCode, 200);
+      const body = response.json<Record<string, unknown>>();
+      assert.equal(body['scopeType'], 'PLATFORM');
+      assert.equal('organizationId' in body, false);
+      assert.equal('workspaceId' in body, false);
+    },
+  );
+});
+
 void test('[IAM-023] refresh returns the identity-bound v4 session, rotates Web cookies, and preserves native delivery', async () => {
   const refreshed = {
     sessionId: '00000000-0000-4000-8000-000000000020',
@@ -431,6 +477,7 @@ void test('[IAM-023] refresh returns the identity-bound v4 session, rotates Web 
       assert.equal(web.statusCode, 200);
       assert.deepEqual(web.json(), {
         schemaVersion: 4,
+        scopeType: 'TENANT',
         sessionId: refreshed.sessionId,
         userId: principal.userId,
         organizationId: principal.organizationId,
@@ -559,7 +606,26 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
               : signOutPrincipal,
           ),
         findPrincipalByAccessToken: (token) =>
-          Promise.resolve(token === 'sign-out-access-token' ? signOutPrincipal : undefined),
+          Promise.resolve(typeof token === 'string' ? signOutPrincipal : undefined),
+        findSessionByAccessToken: (token) =>
+          Promise.resolve(
+            token === 'sign-out-current-web-token'
+              ? {
+                  sessionId: '00000000-0000-4000-8000-000000000010',
+                  principal: signOutPrincipal,
+                }
+              : token === 'sign-out-current-native-token'
+                ? {
+                    sessionId: '00000000-0000-4000-8000-000000000011',
+                    principal: signOutPrincipal,
+                  }
+                : token === 'sign-out-access-token'
+                  ? {
+                      sessionId: '00000000-0000-4000-8000-000000000010',
+                      principal: signOutPrincipal,
+                    }
+                  : undefined,
+          ),
       },
     },
     async (app) => {
@@ -570,7 +636,7 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
           cookie: `databreeze_refresh=current-refresh-token; databreeze_csrf=${csrfToken}`,
           'x-csrf-token': csrfToken,
           origin: 'http://localhost:3000',
-          authorization: 'Bearer sign-out-access-token',
+          authorization: 'Bearer sign-out-current-web-token',
           'idempotency-key': 'sign-out-web-001',
         },
         payload: {
@@ -592,7 +658,7 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
         method: 'POST',
         url: '/v1/auth/sign-out',
         headers: {
-          authorization: 'Bearer sign-out-access-token',
+          authorization: 'Bearer sign-out-current-native-token',
           'idempotency-key': 'sign-out-native-001',
         },
         payload: {
@@ -632,6 +698,15 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
         findPrincipal: () => Promise.resolve(signOutPrincipal),
         findPrincipalByAccessToken: (token) =>
           Promise.resolve(token === 'sign-out-access-token' ? signOutPrincipal : undefined),
+        findSessionByAccessToken: (token) =>
+          Promise.resolve(
+            token === 'sign-out-access-token'
+              ? {
+                  sessionId: '00000000-0000-4000-8000-000000000011',
+                  principal: signOutPrincipal,
+                }
+              : undefined,
+          ),
       },
     },
     async (app) => {
@@ -653,7 +728,7 @@ void test('sign-out revokes idempotently and clears browser credentials', async 
 
   await withApp(
     {
-      requestTenantContext: {
+      requestAuthenticatedActor: {
         resolve: () =>
           Promise.reject(new RequestTenantContextProblemError('AUTHENTICATION_FAILED')),
       },

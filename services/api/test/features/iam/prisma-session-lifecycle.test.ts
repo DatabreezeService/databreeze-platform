@@ -129,7 +129,12 @@ function createDatabase(): {
       },
     },
     userIdentity: {
-      findUnique: async () => ({ id: userId, status: 'ACTIVE', securityEpoch: 4 }),
+      findUnique: async () => ({
+        id: userId,
+        status: 'ACTIVE',
+        securityEpoch: 4,
+        mfaReenrollmentRequired: false,
+      }),
     },
     membershipIdentity: {
       findMany: async ({ where }: { readonly where: Readonly<Record<string, unknown>> }) => {
@@ -316,10 +321,50 @@ void test('[IAM-005, IAM-019] persisted sessions retain the exact sign-in tenant
 
   assert.equal(sessions.get(session.sessionId)?.organizationId, organizationId);
   assert.equal(sessions.get(session.sessionId)?.workspaceId, workspaceId);
-  assert.equal((await adapter.findPrincipal(session.sessionId))?.workspaceId, workspaceId);
+  const resolved = await adapter.findPrincipal(session.sessionId);
+  assert.equal(
+    resolved !== undefined && 'workspaceId' in resolved ? resolved.workspaceId : undefined,
+    workspaceId,
+  );
   assert.deepEqual(membershipQueries.at(-1), {
     principalId: userId,
     organizationId,
     status: 'ACTIVE',
   });
+});
+
+void test('[IAM-005][IAM-026] platform-only sessions persist and refresh without tenant scope', async () => {
+  const { client, sessions } = createDatabase();
+  const platformClient = client as SessionLifecycleDatabaseClientV1 & {
+    readonly platformOperatorRecord: {
+      findUnique(input: { readonly where: { readonly userId: string } }): Promise<{
+        readonly userId: string;
+        readonly role: string;
+        readonly status: string;
+      } | null>;
+    };
+  };
+  Object.assign(platformClient, {
+    platformOperatorRecord: {
+      findUnique: async () => ({ userId, role: 'PLATFORM_OWNER', status: 'ACTIVE' }),
+    },
+  });
+  const adapter = new PrismaSessionLifecycleAdapter(platformClient, {
+    clock: () => new Date('2026-01-01T00:00:00.000Z'),
+  });
+  const platformPrincipal = {
+    scopeType: 'PLATFORM',
+    userId,
+    securityEpoch: 4,
+    mfaRequired: true,
+    mfaReenrollmentRequired: false,
+  } as unknown as Parameters<PrismaSessionLifecycleAdapter['issue']>[0];
+
+  const issued = await adapter.issue(platformPrincipal, 'web');
+  const row = sessions.get(issued.sessionId);
+  assert.equal(row?.principalKind, 'PLATFORM');
+  assert.equal(row?.organizationId, null);
+  assert.equal(row?.workspaceId, null);
+  assert.equal((await adapter.findPrincipal(issued.sessionId))?.scopeType, 'PLATFORM');
+  assert.equal((await adapter.refresh(issued.refreshToken, 'web')).accepted, true);
 });

@@ -53,6 +53,7 @@ import {
   SessionRequestTenantContextAdapter,
   UnavailableWorkspaceAuthorizationEpochResolverAdapter,
 } from './platform/http/session-tenant-context.adapter.js';
+import { SessionRequestActorAdapter } from './platform/http/session-request-actor.adapter.js';
 import { IamHierarchyDashboardProjectResolverAdapter } from './platform/http/iam-hierarchy-dashboard-project-resolver.adapter.js';
 import { PrismaSessionLifecycleAdapter } from './features/iam/adapter/prisma-session-lifecycle.adapter.js';
 import { PrismaIamRepositoryAdapter } from './features/iam/adapter/prisma-iam-repository.adapter.js';
@@ -321,6 +322,13 @@ export class AppModule {
               ...(dashboardProjectResolver === undefined ? {} : { dashboardProjectResolver }),
             },
           )
+        : undefined);
+    const requestAuthenticatedActor =
+      options.requestAuthenticatedActor ??
+      (typeof sessions?.findSessionByAccessToken === 'function'
+        ? new SessionRequestActorAdapter({
+            findSessionByAccessToken: sessions.findSessionByAccessToken.bind(sessions),
+          })
         : undefined);
     const platformOperatorAuthority =
       options.platformOperatorAuthority ??
@@ -683,6 +691,7 @@ export class AppModule {
       ...(auditRepository === undefined ? {} : { auditRepository }),
       ...(auditLedgerService === undefined ? {} : { auditLedgerService }),
       ...(requestTenantContext === undefined ? {} : { requestTenantContext }),
+      ...(requestAuthenticatedActor === undefined ? {} : { requestAuthenticatedActor }),
       ...(platformOperatorAuthority === undefined ? {} : { platformOperatorAuthority }),
       ...(platformIdentityAnalytics === undefined ? {} : { platformIdentityAnalytics }),
       ...(platformBillingAnalytics === undefined ? {} : { platformBillingAnalytics }),

@@ -9,6 +9,7 @@ import {
 
 const currentSession = {
   schemaVersion: 4 as const,
+  scopeType: 'TENANT' as const,
   sessionId: '00000000-0000-4000-8000-000000000601',
   userId: '00000000-0000-4000-8000-000000000602',
   organizationId: '00000000-0000-4000-8000-000000000603',

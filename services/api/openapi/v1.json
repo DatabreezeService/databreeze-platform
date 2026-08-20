@@ -19340,6 +19340,7 @@
         "type": "object",
         "properties": {
           "schemaVersion": { "type": "number", "enum": [4] },
+          "scopeType": { "type": "string", "enum": ["TENANT", "PLATFORM"] },
           "sessionId": { "type": "string", "format": "uuid" },
           "userId": { "type": "string", "format": "uuid" },
           "organizationId": { "type": "string", "format": "uuid" },
@@ -19353,10 +19354,9 @@
         },
         "required": [
           "schemaVersion",
+          "scopeType",
           "sessionId",
           "userId",
-          "organizationId",
-          "workspaceId",
           "accessToken",
           "accessExpiresAt",
           "securityEpoch",

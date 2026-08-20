@@ -205,6 +205,7 @@ test('the schema diff and centrally ordered migration inventory establish platfo
     '20260818020000_iam_profile_mutations',
     '20260818030000_dda_notification_preferences',
     '20260819010000_jra_execution_workload_envelopes',
+    '20260821010000_iam_platform_only_sessions',
     'migration_lock.toml',
   ]);
   const migration = await readFile(

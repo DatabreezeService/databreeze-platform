@@ -71,6 +71,7 @@ export class EmailVerificationController {
     }
     return {
       schemaVersion: 4,
+      scopeType: 'TENANT',
       sessionId: result.value.session.sessionId,
       userId: result.value.principal.userId,
       organizationId: result.value.principal.organizationId,

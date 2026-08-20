@@ -20,7 +20,7 @@
 - Build and deploy immutable image digests; never deploy `latest`.
 - Run a verified PostgreSQL and MinIO backup before the first migration for every existing release.
 - Run migrations before the opt-in seed and run the seed before API/Web activation.
-- `DATABREEZE_PILOT_SEED_ENABLED=false` remains the default. Enabling it requires a protected operator email and password on the host.
+- `DATABREEZE_PILOT_SEED_ENABLED=false` remains the default. Enabling it requires a protected operator email and password on the host. Replaying the seed preserves an existing credential; credential replacement is a separate explicit one-shot rotation that consumes the protected host value, increments the user's security epoch, and revokes existing sessions.
 - The platform operator is created or assigned only from the protected host configuration. Repository defaults never grant production platform authority.
 - Synthetic users, subscriptions, invoices, payments, and feedback remain content-minimized and carry no customer source data, paths, OCR text, credentials, provider payloads, or webhook bodies.
 - OpenAI and PayOS remain fail-closed when their protected settings are absent or invalid.
@@ -40,7 +40,7 @@
 
 - [ ] **Step 1: Add a failing deployment behavior test** that runs the shell-contract harness and proves deployment invokes `backup.sh` before `api-migrate`, invokes `api-seed` only after migration when enabled, and never prints protected values.
 - [ ] **Step 2: Add failing Compose/workflow assertions** for `VITE_DATABREEZE_DEMO_MODE=false`, required OpenAI/PayOS/public-URL mappings, an `api-seed` one-shot service, disabled seed defaults, and no committed secret value.
-- [ ] **Step 3: Add failing seed tests** using a fake Prisma boundary. The tests must prove disabled execution rejects, missing operator configuration rejects, a new explicit operator receives one Argon2id credential and one active `PLATFORM_OWNER` assignment, an existing credential is not rotated, replay preserves row counts, and no delete delegate is called.
+- [ ] **Step 3: Add failing seed tests** using a fake Prisma boundary. The tests must prove disabled execution rejects, missing operator configuration rejects, a new explicit operator receives one Argon2id credential and one active `PLATFORM_OWNER` assignment, an existing credential is not rotated by seed replay, replay preserves row counts, and no delete delegate is called. Add a separate explicit credential-rotation test proving the protected password replaces the hash atomically, increments the security epoch, revokes active sessions, and never prints protected material.
 - [ ] **Step 4: Run `node --test tools/repo-cli/test/lightsail-deployment.test.mjs services/api/test/seed-local.test.mjs`** and confirm failures name the missing provider, backup, and pilot-seed behavior.
 
 ### Task 2: Implement the opt-in pilot seed

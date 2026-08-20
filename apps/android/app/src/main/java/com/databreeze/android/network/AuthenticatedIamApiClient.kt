@@ -1,6 +1,7 @@
 package com.databreeze.android.network
 
 import com.databreeze.contracts.v4.IamAuthSession
+import com.databreeze.contracts.v4.TenantSession
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -152,6 +153,9 @@ class AuthenticatedIamApiClient(
         previous: ProtectedAuthenticatedApiSession? = null,
     ): IamApiResult<ProtectedAuthenticatedApiSession> = runCatching {
         val value = mapper.readValue(body, IamAuthSession::class.java)
+        if (value !is TenantSession) {
+            return IamApiResult.Rejected("auth_response_invalid")
+        }
         if (value.schemaVersion != 4L || value.refreshToken.isNullOrBlank()) {
             return IamApiResult.Rejected("auth_response_invalid")
         }
