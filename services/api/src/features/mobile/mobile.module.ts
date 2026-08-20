@@ -3,8 +3,14 @@ import { MobileController } from './api/mobile.controller.js';
 import { InMemoryMobileRepositoryAdapter } from './adapter/in-memory-mobile-repository.adapter.js';
 import { PrismaMobileRepositoryAdapter } from './adapter/prisma-mobile-repository.adapter.js';
 import { MOBILE_REPOSITORY_PORT } from './application/mobile-repository.port.js';
-import type { MobileDatabaseClientV1, MobileRepositoryPortV1 } from './application/mobile-repository.port.js';
-import { REQUEST_TENANT_CONTEXT, UnavailableRequestTenantContextAdapter } from '../../platform/http/request-tenant-context.port.js';
+import type {
+  MobileDatabaseClientV1,
+  MobileRepositoryPortV1,
+} from './application/mobile-repository.port.js';
+import {
+  REQUEST_TENANT_CONTEXT,
+  UnavailableRequestTenantContextAdapter,
+} from '../../platform/http/request-tenant-context.port.js';
 import type { RequestTenantContextPortV1 } from '../../platform/http/request-tenant-context.port.js';
 
 export interface MobileModuleOptions {

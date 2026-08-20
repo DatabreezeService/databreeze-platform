@@ -67,7 +67,9 @@
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 6px;
-  transition: background-color 140ms ease, color 140ms ease;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
 }
 
 .add-widget-modal-close:hover {

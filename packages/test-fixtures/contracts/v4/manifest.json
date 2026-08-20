@@ -209,6 +209,13 @@
       "covers": ["iam.profile-preferences"]
     },
     {
+      "id": "v4.iam-profile-update-accepted.invalid-missing-revision",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/iam-profile-update-accepted",
+      "expectedAcceptance": false,
+      "source": "payloads/iam-profile-update-accepted/invalid-missing-revision.json",
+      "covers": ["iam.server-revision"]
+    },
+    {
       "id": "v4.dda-notification-preferences-command.valid",
       "schemaId": "https://schemas.databreeze.dev/contracts/v4/dda-notification-preferences-command",
       "expectedAcceptance": true,
@@ -227,6 +234,13 @@
       "schemaId": "https://schemas.databreeze.dev/contracts/v4/dda-notification-preferences-accepted",
       "expectedAcceptance": true,
       "source": "payloads/dda-notification-preferences-accepted/valid.json",
+      "covers": ["nco.preference-snapshot"]
+    },
+    {
+      "id": "v4.dda-notification-preferences-accepted.invalid-empty-preferences",
+      "schemaId": "https://schemas.databreeze.dev/contracts/v4/dda-notification-preferences-accepted",
+      "expectedAcceptance": false,
+      "source": "payloads/dda-notification-preferences-accepted/invalid-empty-preferences.json",
       "covers": ["nco.preference-snapshot"]
     },
     {

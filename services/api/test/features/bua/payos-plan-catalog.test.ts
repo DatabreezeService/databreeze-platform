@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { findPayosPlan, listPayosPlans } from '../../../src/features/bua/application/payos-plan-catalog.js';
+import {
+  findPayosPlan,
+  listPayosPlans,
+} from '../../../src/features/bua/application/payos-plan-catalog.js';
 
-test('[BUA-001/002] marketing catalog prices remain server-owned and complete', () => {
+void test('[BUA-001/002] marketing catalog prices remain server-owned and complete', () => {
   const plans = listPayosPlans();
   assert.deepEqual(
     plans.map((plan) => [plan.id, plan.amountVnd]),

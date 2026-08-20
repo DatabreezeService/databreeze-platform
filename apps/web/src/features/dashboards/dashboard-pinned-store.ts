@@ -5,6 +5,28 @@ export type DashboardWidgetV1 = DashboardDraftFixtureV1['widgets'][number];
 
 const PINNED_STORAGE_KEY = 'databreeze:pinned_widgets:v1';
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isDashboardWidget(value: unknown): value is DashboardWidgetV1 {
+  if (!isRecord(value) || !isRecord(value['title']) || !Array.isArray(value['values'])) {
+    return false;
+  }
+  const type = value['type'];
+  return (
+    typeof value['widgetId'] === 'string' &&
+    typeof value['pageId'] === 'string' &&
+    (type === 'KPI' || type === 'BAR' || type === 'LINE' || type === 'DONUT' || type === 'TABLE') &&
+    typeof value['title']['vi'] === 'string' &&
+    typeof value['title']['en'] === 'string' &&
+    value['values'].every(
+      (item: unknown) =>
+        isRecord(item) && typeof item['label'] === 'string' && typeof item['value'] === 'string',
+    )
+  );
+}
+
 export class DashboardPinnedStore {
   private customWidgets: DashboardWidgetV1[] = [];
   private listeners: Set<() => void> = new Set();
@@ -15,9 +37,11 @@ export class DashboardPinnedStore {
 
   private load(): void {
     try {
-      const stored = typeof window !== 'undefined' ? window.localStorage.getItem(PINNED_STORAGE_KEY) : null;
+      const stored =
+        typeof window !== 'undefined' ? window.localStorage.getItem(PINNED_STORAGE_KEY) : null;
       if (stored) {
-        this.customWidgets = JSON.parse(stored);
+        const parsed: unknown = JSON.parse(stored);
+        this.customWidgets = Array.isArray(parsed) ? parsed.filter(isDashboardWidget) : [];
       }
     } catch {
       this.customWidgets = [];
@@ -55,7 +79,10 @@ export class DashboardPinnedStore {
     this.persist();
   }
 
-  public addFromAnalysisProposal(proposal: LocalAnalysisChartProposal, pageId = 'overview'): DashboardWidgetV1 {
+  public addFromAnalysisProposal(
+    proposal: LocalAnalysisChartProposal,
+    pageId = 'overview',
+  ): DashboardWidgetV1 {
     const widget: DashboardWidgetV1 = {
       widgetId: crypto.randomUUID(),
       pageId,
@@ -64,12 +91,13 @@ export class DashboardPinnedStore {
         vi: proposal.title,
         en: proposal.title,
       },
-      values: proposal.type === 'KPI'
-        ? [{ label: proposal.title, value: proposal.aggregateValue ?? '0' }]
-        : proposal.dataPoints.map((dp) => ({
-            label: dp.label,
-            value: dp.formatted,
-          })),
+      values:
+        proposal.type === 'KPI'
+          ? [{ label: proposal.title, value: proposal.aggregateValue ?? '0' }]
+          : proposal.dataPoints.map((dp) => ({
+              label: dp.label,
+              value: dp.formatted,
+            })),
     };
 
     this.addWidget(widget);

@@ -538,7 +538,12 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
     const userId = parseStableIdentifierV1(principal.userId);
     const organizationId = parseStableIdentifierV1(principal.organizationId);
     const workspaceId = parseStableIdentifierV1(principal.workspaceId);
-    if (!currentSessionId.accepted || !userId.accepted || !organizationId.accepted || !workspaceId.accepted)
+    if (
+      !currentSessionId.accepted ||
+      !userId.accepted ||
+      !organizationId.accepted ||
+      !workspaceId.accepted
+    )
       return { accepted: false, code: 'INVALID_SESSION' };
     const policy = sessionPolicyForPlatformV1(clientPlatform);
     const now = this.clock();
@@ -658,7 +663,9 @@ export class PrismaSessionLifecycleAdapter implements SessionLifecyclePortV1 {
 
   public async findSessionByAccessToken(
     accessTokenInput: unknown,
-  ): Promise<{ readonly sessionId: string; readonly principal: AuthenticatedPrincipalV1 } | undefined> {
+  ): Promise<
+    { readonly sessionId: string; readonly principal: AuthenticatedPrincipalV1 } | undefined
+  > {
     if (typeof accessTokenInput !== 'string' || accessTokenInput.length < 80) return undefined;
     const row = await this.client.accessTokenRecord.findUnique({
       where: { tokenDigest: digestToken(accessTokenInput) },

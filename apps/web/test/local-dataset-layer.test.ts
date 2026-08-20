@@ -42,7 +42,10 @@ describe('[DDA-053] csv parser correctness', () => {
   });
 
   it('parses Vietnamese-formatted numbers with dot thousands and comma decimals', () => {
-    const parsed = parseCsvContent('vi.csv', 'item,doanh_thu\nA,"1.234,56"\nB,"9.876,50"\nC,"500,25"\n');
+    const parsed = parseCsvContent(
+      'vi.csv',
+      'item,doanh_thu\nA,"1.234,56"\nB,"9.876,50"\nC,"500,25"\n',
+    );
     const revenue = parsed.columns.find((column) => column.name === 'doanh_thu');
     expect(revenue?.type).toBe('DECIMAL');
     expect(parsed.rows[0]?.['doanh_thu']).toBe(1234.56);
@@ -106,7 +109,9 @@ describe('[DDA-053] multi-file parsing', () => {
   });
 
   it('produces honest quality metadata from the parsed payload', async () => {
-    const parsed = await parseTabularFiles([csvFile('q.csv', 'region,revenue\nNorth,100\n,200\nSouth,\n')]);
+    const parsed = await parseTabularFiles([
+      csvFile('q.csv', 'region,revenue\nNorth,100\n,200\nSouth,\n'),
+    ]);
     const record = buildDatasetRecordFromTabular(parsed, 'vi-VN');
     expect(record.quality?.completeness).toBeLessThan(1);
     expect(record.quality?.completeness).toBeGreaterThan(0);
@@ -221,9 +226,7 @@ describe('[DDA-053] native xlsx parser', () => {
   });
 
   it('feeds the shared inference pipeline through parseTabularFiles', async () => {
-    const parsed = await parseTabularFiles([
-      { fileName: 'catalog.xlsx', bytes: buildTestXlsx() },
-    ]);
+    const parsed = await parseTabularFiles([{ fileName: 'catalog.xlsx', bytes: buildTestXlsx() }]);
     expect(parsed.headers).toEqual(['Name', 'Price', 'When']);
     expect(parsed.columns[1]?.type).toBe('DECIMAL');
     expect(parsed.rows[0]?.['Price']).toBe(2.55);
@@ -315,7 +318,9 @@ describe('[DDA-052] local dataset store', () => {
     const store = new LocalDataStore(repository);
     await store.initialize();
 
-    expect(store.getDatasetRecord('00000000-0000-4000-8000-0000000000aa')?.label).toBe('Legacy Sales');
+    expect(store.getDatasetRecord('00000000-0000-4000-8000-0000000000aa')?.label).toBe(
+      'Legacy Sales',
+    );
     expect(window.localStorage.getItem('databreeze:local_datasets:v1')).toBeNull();
     expect(window.localStorage.getItem('databreeze:local_tabular:v1')).toBeNull();
   });
@@ -327,7 +332,10 @@ describe('[WEB-021][DDA-053] import session dual-track', () => {
   });
 
   it('uses the local track only when explicit demo mode is enabled', async () => {
-    vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('offline'))));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new Error('offline'))),
+    );
     const session = new ImportSession({
       destination: { kind: 'NEW_DATASET' },
       datasetName: 'Offline Import',
@@ -356,7 +364,9 @@ describe('[WEB-021][DDA-053] import session dual-track', () => {
       session.getState().record!.importId,
     );
     expect(persisted?.state).toBe('READY');
-    expect(singletonModule.localDataStore.getDatasetRecord(result!.dataset.datasetId)?.origin).toBe('LOCAL');
+    expect(singletonModule.localDataStore.getDatasetRecord(result!.dataset.datasetId)?.origin).toBe(
+      'LOCAL',
+    );
   });
 
   it('keeps server-approved datasets out of the browser-local repository', async () => {
@@ -386,7 +396,12 @@ describe('[WEB-021][DDA-053] import session dual-track', () => {
             rowCount: 2,
             fields: [
               { fieldId, name: 'region', type: 'TEXT', nullable: false },
-              { fieldId: '0d1e2f3a-4b5c-4860-8a9b-6f7a8b9cadb2', name: 'revenue', type: 'INTEGER', nullable: false },
+              {
+                fieldId: '0d1e2f3a-4b5c-4860-8a9b-6f7a8b9cadb2',
+                name: 'revenue',
+                type: 'INTEGER',
+                nullable: false,
+              },
             ],
             sampleRows: [],
           },
@@ -461,7 +476,10 @@ describe('[WEB-021][DDA-053] import session dual-track', () => {
   });
 
   it('fails closed on a live network outage instead of creating browser-local data', async () => {
-    vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('offline'))));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new Error('offline'))),
+    );
     const session = new ImportSession({
       destination: { kind: 'NEW_DATASET' },
       datasetName: 'Live import',

@@ -30,6 +30,7 @@ def main() -> int:
         expected_console_entries = {
             "databreeze-engine-cloud": "databreeze_engine.cloud:main",
             "databreeze-engine-sidecar": "databreeze_engine.sidecar:main",
+            "databreeze-engine-worker": "databreeze_engine.worker_main:main",
         }
         actual_console_entries = (
             dict(parser["console_scripts"]) if parser.has_section("console_scripts") else {}
@@ -61,7 +62,7 @@ def main() -> int:
     )
     if result.returncode != 0:
         raise SystemExit("isolated built-wheel import failed")
-    print(f"verified build inventory: {wheel.name}, {source.name}, 2 console entries")
+    print(f"verified build inventory: {wheel.name}, {source.name}, 3 console entries")
     return 0
 
 

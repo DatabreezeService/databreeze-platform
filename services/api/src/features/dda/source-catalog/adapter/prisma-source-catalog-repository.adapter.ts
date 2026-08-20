@@ -269,10 +269,7 @@ export class PrismaSourceCatalogRepositoryAdapter
 {
   public constructor(private readonly db: SourceCatalogDatabaseClientV1) {}
 
-  public async register(
-    context: IamTenantContextV1,
-    record: SourceCatalogRecordV1,
-  ): Promise<void> {
+  public async register(context: IamTenantContextV1, record: SourceCatalogRecordV1): Promise<void> {
     if (
       context.tenantScope.scopeType !== 'workspace' ||
       record.organizationId !== context.tenantScope.organizationId ||
@@ -281,7 +278,10 @@ export class PrismaSourceCatalogRepositoryAdapter
     ) {
       throw new Error('SOURCE_CATALOG_SCOPE_CONFLICT');
     }
-    if (this.db.ddaDatasetSource.create === undefined || this.db.ddaSourceAssignment.upsert === undefined) {
+    if (
+      this.db.ddaDatasetSource.create === undefined ||
+      this.db.ddaSourceAssignment.upsert === undefined
+    ) {
       throw new Error('SOURCE_CATALOG_REGISTRATION_UNAVAILABLE');
     }
     const existing = await this.db.ddaDatasetSource.findFirst({ where: { id: record.id } });

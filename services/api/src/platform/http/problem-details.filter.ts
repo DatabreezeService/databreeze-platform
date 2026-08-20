@@ -35,7 +35,8 @@ function frameworkStatus(error: unknown): number | undefined {
 function explicitHttpCode(error: unknown): string | undefined {
   if (!(error instanceof HttpException)) return undefined;
   const response = error.getResponse();
-  if (typeof response !== 'object' || response === null || Array.isArray(response)) return undefined;
+  if (typeof response !== 'object' || response === null || Array.isArray(response))
+    return undefined;
   const code = (response as Record<string, unknown>)['code'];
   return typeof code === 'string' && /^DDA_[A-Z0-9_]{2,80}$/u.test(code) ? code : undefined;
 }

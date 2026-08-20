@@ -28,7 +28,11 @@ class FakeDatabase {
   private readonly delegate = (kind: keyof FakeDatabase) => ({
     create: async ({ data }: { readonly data: Row }) => {
       const map = this.map(kind);
-      const row = { ...data, createdAt: data.createdAt ?? new Date(), updatedAt: data.updatedAt ?? new Date() };
+      const row = {
+        ...data,
+        createdAt: data.createdAt ?? new Date(),
+        updatedAt: data.updatedAt ?? new Date(),
+      };
       const key = this.createKey(kind, row);
       if (map.has(key)) throw new Error('P2002');
       map.set(key, row);
@@ -37,7 +41,8 @@ class FakeDatabase {
     findUnique: async ({ where }: { readonly where: Row }) => this.find(kind, where),
     findFirst: async ({ where, orderBy }: { readonly where: Row; readonly orderBy?: Row }) => {
       const rows = [...this.map(kind).values()].filter((row) => this.matches(row, where));
-      if (orderBy?.['revision'] === 'desc') rows.sort((a, b) => (b.revision ?? 0) - (a.revision ?? 0));
+      if (orderBy?.['revision'] === 'desc')
+        rows.sort((a, b) => (b.revision ?? 0) - (a.revision ?? 0));
       return rows[0] ?? null;
     },
     update: async ({ where, data }: { readonly where: Row; readonly data: Row }) => {
@@ -49,16 +54,32 @@ class FakeDatabase {
       this.map(kind).set(this.createKey(kind, next), next);
       return next;
     },
-    upsert: async ({ where, create, update }: { readonly where: Row; readonly create: Row; readonly update: Row }) => {
+    upsert: async ({
+      where,
+      create,
+      update,
+    }: {
+      readonly where: Row;
+      readonly create: Row;
+      readonly update: Row;
+    }) => {
       const existing = this.find(kind, where);
       if (existing) {
         const next = { ...existing, ...update, updatedAt: update.updatedAt ?? new Date() };
-        if (update.revision && typeof update.revision === 'object' && 'increment' in update.revision)
+        if (
+          update.revision &&
+          typeof update.revision === 'object' &&
+          'increment' in update.revision
+        )
           next.revision = existing.revision + update.revision.increment;
         this.map(kind).set(this.createKey(kind, next), next);
         return next;
       }
-      const row = { ...create, createdAt: create.createdAt ?? new Date(), updatedAt: create.updatedAt ?? new Date() };
+      const row = {
+        ...create,
+        createdAt: create.createdAt ?? new Date(),
+        updatedAt: create.updatedAt ?? new Date(),
+      };
       this.map(kind).set(this.createKey(kind, row), row);
       return row;
     },
@@ -93,18 +114,23 @@ class FakeDatabase {
   private matches(row: Row, where: Row): boolean {
     return Object.entries(where).every(([key, value]) => {
       if (key.includes('_')) {
-        return Object.entries(value as Row).every(([nestedKey, nestedValue]) => String(row[nestedKey]) === String(nestedValue));
+        return Object.entries(value as Row).every(
+          ([nestedKey, nestedValue]) => String(row[nestedKey]) === String(nestedValue),
+        );
       }
       return String(row[key]) === String(value);
     });
   }
 
-  private find(kind: keyof FakeDatabase, where: Row): Row | null {
+  private find(kind: keyof FakeDatabase, where: Row): Row {
     return [...this.map(kind).values()].find((row) => this.matches(row, where)) ?? null;
   }
 }
 
-function context(idempotencyKey: string, scope: { readonly organizationId?: string; readonly workspaceId?: string } = {}) {
+function context(
+  idempotencyKey: string,
+  scope: { readonly organizationId?: string; readonly workspaceId?: string } = {},
+) {
   const result = createIamTenantContextV1({
     tenantScope: {
       scopeType: 'workspace',
@@ -136,7 +162,10 @@ void test('[BUA-001, BUA-002, BUA-004] checkout is durable, server-priced, tenan
   const database = new FakeDatabase();
   const first = await service(database).create(context('same-key'), 'personal-monthly');
   const second = await service(database).create(context('same-key'), 'personal-monthly');
-  const otherScope = await service(database).create(context('same-key', { workspaceId: '00000000-0000-4000-8000-000000000003' }), 'personal-monthly');
+  const otherScope = await service(database).create(
+    context('same-key', { workspaceId: '00000000-0000-4000-8000-000000000003' }),
+    'personal-monthly',
+  );
   assert.equal(first.paymentOrderId, second.paymentOrderId);
   assert.notEqual(first.paymentOrderId, otherScope.paymentOrderId);
   assert.equal(first.amountVnd, 149_000);
@@ -147,7 +176,12 @@ void test('[BUA-007, BUA-008, BUA-009, BUA-010] webhook settlement is amount-che
   const database = new FakeDatabase();
   const payments = service(database);
   const order = await payments.create(context('paid-key'), 'professional-monthly');
-  const payload = { eventId: 'event-1', orderCode: order.orderCode, amountVnd: order.amountVnd, status: 'PAID' };
+  const payload = {
+    eventId: 'event-1',
+    orderCode: order.orderCode,
+    amountVnd: order.amountVnd,
+    status: 'PAID',
+  };
   const settled = await payments.applyWebhook(payload);
   const replay = await payments.applyWebhook(payload);
   assert.equal(settled.status, 'PAID');
@@ -165,8 +199,14 @@ void test('[BUA-007] webhook amount mismatch is rejected and never settles entit
   const payments = service(database);
   const order = await payments.create(context('wrong-amount'), 'team-monthly');
   await assert.rejects(
-    payments.applyWebhook({ eventId: 'event-wrong', orderCode: order.orderCode, amountVnd: order.amountVnd - 1, status: 'PAID' }),
-    (error: unknown) => error instanceof PayosPaymentProblemError && error.code === 'PAYOS_AMOUNT_MISMATCH',
+    payments.applyWebhook({
+      eventId: 'event-wrong',
+      orderCode: order.orderCode,
+      amountVnd: order.amountVnd - 1,
+      status: 'PAID',
+    }),
+    (error: unknown) =>
+      error instanceof PayosPaymentProblemError && error.code === 'PAYOS_AMOUNT_MISMATCH',
   );
   assert.equal(database.invoices.size, 0);
   assert.equal(database.audits.size, 0);
@@ -175,5 +215,9 @@ void test('[BUA-007] webhook amount mismatch is rejected and never settles entit
 
 void test('[BUA-004] billing routes fail closed without permission', async () => {
   const payments = service(new FakeDatabase(), false);
-  await assert.rejects(payments.plans(context('forbidden')), (error: unknown) => error instanceof PayosPaymentProblemError && error.code === 'PAYOS_UNAUTHORIZED');
+  await assert.rejects(
+    payments.plans(context('forbidden')),
+    (error: unknown) =>
+      error instanceof PayosPaymentProblemError && error.code === 'PAYOS_UNAUTHORIZED',
+  );
 });

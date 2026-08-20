@@ -82,9 +82,9 @@ describe('[DDA-053] cleaning engine', () => {
       tabular: parseCsvContent('b.csv', 'ma_hang,ton\nX1,10\nX3,2\n'),
     };
     const report = coherenceCheck([a, b]);
-    expect(
-      report.findings.some((finding) => finding.textVi.includes('1 giá trị trùng')),
-    ).toBe(true);
+    expect(report.findings.some((finding) => finding.textVi.includes('1 giá trị trùng'))).toBe(
+      true,
+    );
   });
 });
 
@@ -142,8 +142,16 @@ describe('[DDA-053] agent chat-to-clean loop', () => {
 
     const thread = cleaningAgentStore.getThread(datasetId);
     expect(thread.messages.some((message) => message.role === 'applied')).toBe(true);
-    expect(thread.messages.some((message) => message.role === 'proposal' && message.status === 'pending')).toBe(false);
-    expect(thread.messages.some((message) => message.role === 'agent' && (message.text ?? '').includes('sẵn sàng'))).toBe(true);
+    expect(
+      thread.messages.some(
+        (message) => message.role === 'proposal' && message.status === 'pending',
+      ),
+    ).toBe(false);
+    expect(
+      thread.messages.some(
+        (message) => message.role === 'agent' && (message.text ?? '').includes('sẵn sàng'),
+      ),
+    ).toBe(true);
     expect(localDataStore.getDatasetRecord(datasetId)?.cleaningState).toBe('REVIEW');
   });
 

@@ -45,7 +45,7 @@ jobs:
     env:
       IMAGE: databreeze-api:${{ github.sha }}
       DATABASE_URL: postgresql://databreeze:databreeze-ci@127.0.0.1:5432/databreeze
-      CONTAINER_DATABASE_URL: postgresql://databreeze:databreeze-ci@host.docker.internal:5432/databreeze
+      CONTAINER_DATABASE_URL: postgresql://databreeze:databreeze-ci@127.0.0.1:5432/databreeze
       DATABREEZE_CSRF_ALLOWED_ORIGINS: https://app.databreeze.example
     services:
       postgres:
@@ -59,6 +59,12 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U databreeze -d databreeze" --health-interval 2s
           --health-timeout 3s --health-retries 30
+      redis:
+        image: redis:7.4.5-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 2s --health-timeout 3s --health-retries 30
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -118,12 +124,22 @@ jobs:
           docker run --detach --read-only \
             --tmpfs /tmp:rw,noexec,nosuid,size=64m \
             --name "$container_name" \
-            --add-host host.docker.internal:host-gateway \
-            --publish 127.0.0.1:3100:3100 \
+            --network host \
             --env NODE_ENV=production \
             --env PORT=3100 \
             --env DATABASE_URL="$CONTAINER_DATABASE_URL" \
-            --env DATABREEZE_CSRF_ALLOWED_ORIGINS \
+            --env DATABREEZE_RUNTIME_PROFILE=pilot \
+            --env DATABREEZE_PILOT_HTTPS_ORIGIN=https://pilot.databreeze.example \
+            --env DATABREEZE_REDIS_URL=redis://127.0.0.1:6379 \
+            --env DATABREEZE_LOCAL_EMAIL_PROVIDER=mailpit \
+            --env DATABREEZE_IAM_SMTP_HOST=127.0.0.1 \
+            --env DATABREEZE_IAM_SMTP_PORT=1025 \
+            --env DATABREEZE_IAM_EMAIL_FROM_ADDRESS=verify@databreeze.example \
+            --env DATABREEZE_IAM_EMAIL_VERIFICATION_DIGEST_KEY="$service_account_key" \
+            --env DATABREEZE_IAM_EMAIL_VERIFICATION_ENVELOPE_KEY="$service_account_key" \
+            --env DATABREEZE_IAM_INVITATION_DIGEST_KEY="$service_account_key" \
+            --env DATABREEZE_IAM_REGISTRATION_ADMISSION_KEY="$service_account_key" \
+            --env DATABREEZE_IAM_RECOVERY_DIGEST_KEY="$service_account_key" \
             --env DATABREEZE_SERVICE_ACCOUNT_SECRET_ENVELOPE_KEY="$service_account_key" \
             --health-interval 1s \
             --health-timeout 3s \

@@ -416,8 +416,9 @@ class PrismaIamHierarchyTransactionAdapter implements IamHierarchyTransactionPor
     // IAM-022 registration bootstrap provisions; no client policy fields exist.
     if (this.policyProvisionerFactory === undefined)
       throw new Error('IAM_INITIAL_WORKSPACE_POLICY_UNAVAILABLE');
-    const provisioner: InitialWorkspacePolicyProvisionerPortV1 =
-      this.policyProvisionerFactory(this.client);
+    const provisioner: InitialWorkspacePolicyProvisionerPortV1 = this.policyProvisionerFactory(
+      this.client,
+    );
     const policy = await provisioner.provision({
       organizationId: validated.value.organizationId,
       workspaceId: validated.value.id,
@@ -518,28 +519,31 @@ export class PrismaIamHierarchyRepositoryAdapter implements IamHierarchyReposito
 
   public saveOrganization(context: IamTenantContextV1, value: OrganizationIdentityV1) {
     return this.client.$transaction((transaction) =>
-      new PrismaIamHierarchyTransactionAdapter(transaction, this.diagnostics, this.policyProvisionerFactory).saveOrganization(
-        context,
-        value,
-      ),
+      new PrismaIamHierarchyTransactionAdapter(
+        transaction,
+        this.diagnostics,
+        this.policyProvisionerFactory,
+      ).saveOrganization(context, value),
     );
   }
 
   public saveWorkspace(context: IamTenantContextV1, value: WorkspaceIdentityV1) {
     return this.client.$transaction((transaction) =>
-      new PrismaIamHierarchyTransactionAdapter(transaction, this.diagnostics, this.policyProvisionerFactory).saveWorkspace(
-        context,
-        value,
-      ),
+      new PrismaIamHierarchyTransactionAdapter(
+        transaction,
+        this.diagnostics,
+        this.policyProvisionerFactory,
+      ).saveWorkspace(context, value),
     );
   }
 
   public saveProject(context: IamTenantContextV1, value: ProjectIdentityV1) {
     return this.client.$transaction((transaction) =>
-      new PrismaIamHierarchyTransactionAdapter(transaction, this.diagnostics, this.policyProvisionerFactory).saveProject(
-        context,
-        value,
-      ),
+      new PrismaIamHierarchyTransactionAdapter(
+        transaction,
+        this.diagnostics,
+        this.policyProvisionerFactory,
+      ).saveProject(context, value),
     );
   }
 
@@ -548,7 +552,13 @@ export class PrismaIamHierarchyRepositoryAdapter implements IamHierarchyReposito
     work: (transaction: IamHierarchyTransactionPortV1) => Promise<TValue>,
   ): Promise<TValue> {
     return this.client.$transaction((transaction) =>
-      work(new PrismaIamHierarchyTransactionAdapter(transaction, this.diagnostics, this.policyProvisionerFactory)),
+      work(
+        new PrismaIamHierarchyTransactionAdapter(
+          transaction,
+          this.diagnostics,
+          this.policyProvisionerFactory,
+        ),
+      ),
     );
   }
 }

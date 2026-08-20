@@ -66,7 +66,7 @@ export function createWorkspaceApi(options: WorkspaceApiOptions = {}) {
       } catch {
         throw new WorkspaceApiError('WORKSPACE_REQUEST_FAILED');
       }
-      const payload = await response.json().catch(() => undefined);
+      const payload: unknown = await response.json().catch(() => undefined);
       if (!response.ok) {
         const body = payload as { readonly code?: unknown } | undefined;
         throw new WorkspaceApiError(

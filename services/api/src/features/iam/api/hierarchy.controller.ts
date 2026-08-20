@@ -143,10 +143,7 @@ export class IamHierarchyController {
         name: result.value.defaultProject.name,
       },
     };
-    const parsedResponse = parseV4Contract(
-      WORKSPACE_CREATE_ACCEPTED_SCHEMA,
-      response,
-    );
+    const parsedResponse = parseV4Contract(WORKSPACE_CREATE_ACCEPTED_SCHEMA, response);
     if (!parsedResponse.accepted)
       throw new HttpException({ code: 'IAM_HIERARCHY_INVALID_RESPONSE' }, HttpStatus.BAD_REQUEST);
     return parsedResponse.value;

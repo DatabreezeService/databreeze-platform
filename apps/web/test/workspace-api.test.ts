@@ -9,7 +9,8 @@ afterEach(() => {
 describe('workspace creation transport [IAM-027, WEB-028]', () => {
   it('sends only the closed name command and validates the accepted response', async () => {
     const fetcher = vi.fn(async (_url: string, init?: RequestInit) => {
-      expect(JSON.parse(String(init?.body))).toEqual({
+      if (typeof init?.body !== 'string') throw new Error('expected a JSON request body');
+      expect(JSON.parse(init.body)).toEqual({
         schemaVersion: 4,
         name: 'Client projects',
       });

@@ -78,7 +78,10 @@ export class DeviceSyncController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Issue the first signed device synchronization cursor' })
   @ApiBody({ type: BootstrapDeviceSyncCursorDto })
-  async bootstrapCursor(@Req() request: unknown, @Body() input: BootstrapDeviceSyncCursorDto): Promise<unknown> {
+  async bootstrapCursor(
+    @Req() request: unknown,
+    @Body() input: BootstrapDeviceSyncCursorDto,
+  ): Promise<unknown> {
     const context = await this.requestContext.resolve(request);
     return this.sync.bootstrapCursor(context, input, this.cursorSigner);
   }

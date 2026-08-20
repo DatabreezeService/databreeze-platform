@@ -311,8 +311,15 @@ export class BootstrapDeviceSyncCursorDto {
   @ApiProperty({ format: 'uuid' }) @IsUUID() grantId!: string;
   @ApiProperty({ format: 'uuid' }) @IsUUID() deviceId!: string;
   @ApiProperty({ format: 'date-time' }) @IsISO8601() now!: string;
-  @ApiPropertyOptional({ enum: ['Local', 'Hybrid', 'Cloud'] }) @IsOptional() @IsIn(['Local', 'Hybrid', 'Cloud']) dataMode?: 'Local' | 'Hybrid' | 'Cloud';
-  @ApiPropertyOptional({ maxLength: 32 }) @IsOptional() @IsString() @MaxLength(32) protocolVersion?: string;
+  @ApiPropertyOptional({ enum: ['Local', 'Hybrid', 'Cloud'] })
+  @IsOptional()
+  @IsIn(['Local', 'Hybrid', 'Cloud'])
+  dataMode?: 'Local' | 'Hybrid' | 'Cloud';
+  @ApiPropertyOptional({ maxLength: 32 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  protocolVersion?: string;
 }
 
 export class PushDeviceSyncDto {

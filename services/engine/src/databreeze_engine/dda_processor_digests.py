@@ -12,12 +12,12 @@ from importlib.resources import files
 
 # sha256 digests of reviewed processor source bytes (computed 2026-08-12).
 DDA_PROCESSOR_DIGESTS: dict[str, str] = {
-    "dda_etl_execute.py": "sha256:a3506729ef6a6f324151b57432a930e06fb486abfa567d4c0b151406a79a3953",
-    "dda_etl_intake.py": "sha256:d354320fce2a33d6b24226398be23c18ebc6ecaaf6b84e8485fca81f2b68e0ab",
+    "dda_etl_execute.py": "sha256:5b9bb2148286c767d5b32b00b2686df77981692aeab6711d97554ccf5ab0a76e",
+    "dda_etl_intake.py": "sha256:2852ac22e1ce885c9765eab2f14dd30a4fbcc2389564c3b16e7300583230a083",
     "dda_etl_preview.py": "sha256:f22b59a952cbe7ed810410c9929a8cfedf8bf1954be9d27733ca911fd0671dc9",
     "dda_etl_profile.py": "sha256:5a6f4d8daf6ac886e62bd909465c6edbc3e2ca027a9762f2542ac7044c02c063",
     "dda_folder_intake.py": (
-        "sha256:8b497ed6731a1eb9f6ad379f08e11b209d87472b437bc16e0fd4d1a8ac3d795b"
+        "sha256:89893d80e9dcf38ef5b6d6a618e38e980ecf65f1a52c4b256111bada5246bca2"
     ),
     "dda_materialize_query.py": (
         "sha256:4418b6da9b59b7d3c7694599c2ffd4b5af89c6f097e69fc5160941842200e272"

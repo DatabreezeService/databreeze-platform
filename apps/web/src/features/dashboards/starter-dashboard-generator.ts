@@ -21,7 +21,6 @@ export function generateStarterDashboard(
   const textCols = columns.filter((c) => c.type === 'TEXT' || c.type === 'DATE');
 
   const primaryMeasure = numericCols[0]?.name;
-  const secondaryMeasure = numericCols[1]?.name;
   const primaryDim = textCols[0]?.name;
 
   const dashboardId = `starter-${dataset.datasetId}`;
@@ -34,9 +33,12 @@ export function generateStarterDashboard(
       const val = r[primaryMeasure];
       if (typeof val === 'number') sum += val;
     }
-    const formattedSum = sum >= 1_000_000
-      ? (sum / 1_000_000).toLocaleString(locale === 'vi-VN' ? 'vi-VN' : 'en-US', { maximumFractionDigits: 1 }) + (locale === 'vi-VN' ? ' triệu' : 'M')
-      : sum.toLocaleString(locale === 'vi-VN' ? 'vi-VN' : 'en-US');
+    const formattedSum =
+      sum >= 1_000_000
+        ? (sum / 1_000_000).toLocaleString(locale === 'vi-VN' ? 'vi-VN' : 'en-US', {
+            maximumFractionDigits: 1,
+          }) + (locale === 'vi-VN' ? ' triệu' : 'M')
+        : sum.toLocaleString(locale === 'vi-VN' ? 'vi-VN' : 'en-US');
 
     widgets.push({
       widgetId: `${dashboardId}-kpi-sum`,
@@ -46,7 +48,12 @@ export function generateStarterDashboard(
         vi: `Tổng ${primaryMeasure}`,
         en: `Total ${primaryMeasure}`,
       },
-      values: [{ label: `Tổng ${primaryMeasure}`, value: locale === 'vi-VN' ? `₫${formattedSum}` : formattedSum }],
+      values: [
+        {
+          label: `Tổng ${primaryMeasure}`,
+          value: locale === 'vi-VN' ? `₫${formattedSum}` : formattedSum,
+        },
+      ],
     });
   }
 
@@ -59,7 +66,12 @@ export function generateStarterDashboard(
       vi: 'Tổng số bản ghi',
       en: 'Total records',
     },
-    values: [{ label: 'Bản ghi hợp lệ', value: rows.length.toLocaleString(locale === 'vi-VN' ? 'vi-VN' : 'en-US') }],
+    values: [
+      {
+        label: 'Bản ghi hợp lệ',
+        value: rows.length.toLocaleString(locale === 'vi-VN' ? 'vi-VN' : 'en-US'),
+      },
+    ],
   });
 
   // 3. KPI Widget: Average or Secondary Measure
@@ -70,7 +82,9 @@ export function generateStarterDashboard(
       if (typeof val === 'number') sum += val;
     }
     const avg = sum / rows.length;
-    const formattedAvg = avg.toLocaleString(locale === 'vi-VN' ? 'vi-VN' : 'en-US', { maximumFractionDigits: 0 });
+    const formattedAvg = avg.toLocaleString(locale === 'vi-VN' ? 'vi-VN' : 'en-US', {
+      maximumFractionDigits: 0,
+    });
 
     widgets.push({
       widgetId: `${dashboardId}-kpi-avg`,
@@ -80,7 +94,12 @@ export function generateStarterDashboard(
         vi: `Trung bình ${primaryMeasure}`,
         en: `Average ${primaryMeasure}`,
       },
-      values: [{ label: `Trung bình / dòng`, value: locale === 'vi-VN' ? `₫${formattedAvg}` : formattedAvg }],
+      values: [
+        {
+          label: `Trung bình / dòng`,
+          value: locale === 'vi-VN' ? `₫${formattedAvg}` : formattedAvg,
+        },
+      ],
     });
   }
 
@@ -89,15 +108,21 @@ export function generateStarterDashboard(
     const aggMap = new Map<string, number>();
     for (const r of rows) {
       const dimVal = String(r[primaryDim] ?? (locale === 'vi-VN' ? 'Khác' : 'Other'));
-      const numVal = typeof r[primaryMeasure] === 'number' ? (r[primaryMeasure] as number) : 0;
+      const measure = r[primaryMeasure];
+      const numVal = typeof measure === 'number' ? measure : 0;
       aggMap.set(dimVal, (aggMap.get(dimVal) ?? 0) + numVal);
     }
-    const sorted = Array.from(aggMap.entries()).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    const sorted = Array.from(aggMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6);
     const barValues = sorted.map(([lbl, val]) => ({
       label: lbl,
-      value: val >= 1_000_000
-        ? (val / 1_000_000).toLocaleString(locale === 'vi-VN' ? 'vi-VN' : 'en-US', { maximumFractionDigits: 1 }) + (locale === 'vi-VN' ? ' tr' : 'M')
-        : val.toLocaleString(locale === 'vi-VN' ? 'vi-VN' : 'en-US'),
+      value:
+        val >= 1_000_000
+          ? (val / 1_000_000).toLocaleString(locale === 'vi-VN' ? 'vi-VN' : 'en-US', {
+              maximumFractionDigits: 1,
+            }) + (locale === 'vi-VN' ? ' tr' : 'M')
+          : val.toLocaleString(locale === 'vi-VN' ? 'vi-VN' : 'en-US'),
     }));
 
     widgets.push({
@@ -119,7 +144,9 @@ export function generateStarterDashboard(
       const dimVal = String(r[primaryDim] ?? (locale === 'vi-VN' ? 'Khác' : 'Other'));
       countMap.set(dimVal, (countMap.get(dimVal) ?? 0) + 1);
     }
-    const sortedCounts = Array.from(countMap.entries()).sort((a, b) => b[1] - a[1]).slice(0, 4);
+    const sortedCounts = Array.from(countMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4);
     const total = rows.length;
     const donutValues = sortedCounts.map(([lbl, cnt]) => ({
       label: lbl,

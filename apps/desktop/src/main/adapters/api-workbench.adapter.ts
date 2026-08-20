@@ -83,7 +83,7 @@ function parseSignInSession(value: unknown, accountLabel: string): ProtectedDesk
     accessExpiresAt === null ||
     typeof record['securityEpoch'] !== 'number' ||
     !Number.isSafeInteger(record['securityEpoch']) ||
-    (record['securityEpoch'] as number) < 1 ||
+    record['securityEpoch'] < 1 ||
     typeof record['mfaRequired'] !== 'boolean' ||
     typeof record['mfaReenrollmentRequired'] !== 'boolean'
   ) {
@@ -153,7 +153,7 @@ function datasetRecords(value: unknown): readonly WorkbenchDatasetRecord[] | nul
         health:
           health === 'READY' || health === 'ATTENTION' || health === 'BLOCKED'
             ? health
-            : ('ATTENTION' as const),
+            : 'ATTENTION',
       }),
     );
   }
@@ -185,7 +185,7 @@ async function safeJson(response: Response): Promise<unknown> {
     unavailable('WORKBENCH_API_UNAVAILABLE');
   }
   try {
-    return (await response.json()) as unknown;
+    return await response.json();
   } catch {
     unavailable('WORKBENCH_API_UNAVAILABLE');
   }
@@ -275,24 +275,26 @@ export function createApiWorkbenchPort(input: ApiWorkbenchPortInput): WorkbenchM
         recentAnalyses,
       });
     },
-    async readOriginalDescriptor() {
+    readOriginalDescriptor() {
       unavailable('WORKBENCH_ORIGINAL_UNAVAILABLE');
     },
-    async decideFolderReview() {
+    decideFolderReview() {
       unavailable('WORKBENCH_REVIEW_UNAVAILABLE');
     },
-    async runAgentTurn() {
+    runAgentTurn() {
       unavailable('WORKBENCH_AGENT_UNAVAILABLE');
     },
-    async getSyncStatus(): Promise<WorkbenchSyncStatus> {
-      return Object.freeze({
-        folderMonitoring: 'unavailable',
-        syncQueue: 0,
-        engineHealth: 'not-installed',
-        pendingReviewCount: 0,
-      });
+    getSyncStatus(): Promise<WorkbenchSyncStatus> {
+      return Promise.resolve(
+        Object.freeze({
+          folderMonitoring: 'unavailable',
+          syncQueue: 0,
+          engineHealth: 'not-installed',
+          pendingReviewCount: 0,
+        }),
+      );
     },
-    async importSource() {
+    importSource() {
       unavailable('WORKBENCH_IMPORT_UNAVAILABLE');
     },
     async signInWithPassword(request) {
@@ -322,10 +324,10 @@ export function createApiWorkbenchPort(input: ApiWorkbenchPortInput): WorkbenchM
       await input.sessionStore.save(session);
       return sessionSnapshot(session);
     },
-    async verifyOtp() {
+    verifyOtp() {
       unavailable('WORKBENCH_OTP_UNAVAILABLE');
     },
-    async startGoogleOidc() {
+    startGoogleOidc() {
       unavailable('WORKBENCH_GOOGLE_OIDC_UNAVAILABLE');
     },
     async getAccessToken() {

@@ -1,4 +1,14 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Inject, Param, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Param,
+  Post,
+  Req,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -34,7 +44,20 @@ const PLAN_CATALOG_SCHEMA = {
       type: 'array',
       items: {
         type: 'object',
-        required: ['id', 'family', 'billingCycle', 'amountVnd', 'description', 'displayNameVi', 'displayNameEn', 'taglineVi', 'taglineEn', 'benefitsVi', 'benefitsEn', 'allowances'],
+        required: [
+          'id',
+          'family',
+          'billingCycle',
+          'amountVnd',
+          'description',
+          'displayNameVi',
+          'displayNameEn',
+          'taglineVi',
+          'taglineEn',
+          'benefitsVi',
+          'benefitsEn',
+          'allowances',
+        ],
         properties: {
           id: { type: 'string' },
           family: { type: 'string', enum: ['personal', 'professional', 'team'] },
@@ -45,11 +68,32 @@ const PLAN_CATALOG_SCHEMA = {
           displayNameEn: { type: 'string', minLength: 1, maxLength: 80 },
           taglineVi: { type: 'string', minLength: 1, maxLength: 240 },
           taglineEn: { type: 'string', minLength: 1, maxLength: 240 },
-          benefitsVi: { type: 'array', minItems: 1, maxItems: 8, items: { type: 'string', minLength: 1, maxLength: 160 } },
-          benefitsEn: { type: 'array', minItems: 1, maxItems: 8, items: { type: 'string', minLength: 1, maxLength: 160 } },
+          benefitsVi: {
+            type: 'array',
+            minItems: 1,
+            maxItems: 8,
+            items: { type: 'string', minLength: 1, maxLength: 160 },
+          },
+          benefitsEn: {
+            type: 'array',
+            minItems: 1,
+            maxItems: 8,
+            items: { type: 'string', minLength: 1, maxLength: 160 },
+          },
           allowances: {
             type: 'object',
-            required: ['connectedFolders', 'ocrPagesPerMonth', 'agentCreditsPerMonth', 'etlRowsPerMonth', 'logicalDatasets', 'governedStorageGb', 'agentEnabledMembers', 'viewerMembers', 'workspaces', 'refreshMinutes'],
+            required: [
+              'connectedFolders',
+              'ocrPagesPerMonth',
+              'agentCreditsPerMonth',
+              'etlRowsPerMonth',
+              'logicalDatasets',
+              'governedStorageGb',
+              'agentEnabledMembers',
+              'viewerMembers',
+              'workspaces',
+              'refreshMinutes',
+            ],
             properties: {
               connectedFolders: { type: 'string', enum: ['unlimited'] },
               ocrPagesPerMonth: { type: 'integer', minimum: 0 },
@@ -74,7 +118,15 @@ const PLAN_CATALOG_SCHEMA = {
 
 const PAYMENT_SESSION_SCHEMA = {
   type: 'object',
-  required: ['schemaVersion', 'paymentOrderId', 'orderCode', 'planId', 'amountVnd', 'currency', 'status'],
+  required: [
+    'schemaVersion',
+    'paymentOrderId',
+    'orderCode',
+    'planId',
+    'amountVnd',
+    'currency',
+    'status',
+  ],
   properties: {
     schemaVersion: { type: 'integer', enum: [4] },
     paymentOrderId: { type: 'string', format: 'uuid' },
@@ -135,7 +187,14 @@ export class PayosController {
   @Post('checkout-sessions')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create an idempotent, tenant-scoped PayOS checkout session' })
-  @ApiBody({ schema: { type: 'object', required: ['schemaVersion', 'planId'], properties: { schemaVersion: { type: 'integer', enum: [4] }, planId: { type: 'string' } }, additionalProperties: false } })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['schemaVersion', 'planId'],
+      properties: { schemaVersion: { type: 'integer', enum: [4] }, planId: { type: 'string' } },
+      additionalProperties: false,
+    },
+  })
   @ApiCreatedResponse({ schema: PAYMENT_SESSION_SCHEMA })
   @ApiBadRequestResponse({ description: 'The requested plan is invalid.' })
   @ApiConflictResponse({ description: 'The idempotency key was already used for another plan.' })

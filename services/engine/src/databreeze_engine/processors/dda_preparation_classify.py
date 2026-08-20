@@ -14,13 +14,10 @@ SAFE_KINDS = {
 
 
 def _accounting_complete(counts: dict[str, Any]) -> bool:
-    return (
-        int(counts.get("unchanged", -1))
-        + int(counts.get("changed", -1))
-        + int(counts.get("rejected", -1))
-        + int(counts.get("quarantined", -1))
-        + int(counts.get("unsupported", -1))
-        == int(counts.get("input", -2))
+    return int(counts.get("unchanged", -1)) + int(counts.get("changed", -1)) + int(
+        counts.get("rejected", -1)
+    ) + int(counts.get("quarantined", -1)) + int(counts.get("unsupported", -1)) == int(
+        counts.get("input", -2)
     )
 
 

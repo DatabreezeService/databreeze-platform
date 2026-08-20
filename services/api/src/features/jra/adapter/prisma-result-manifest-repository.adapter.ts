@@ -2,10 +2,7 @@ import {
   createResultManifestV1,
   type ResultManifestV1,
 } from '@databreeze/domain/result-manifest/v1';
-import {
-  tenantScopeContainsV1,
-  type StableIdentifierV1,
-} from '@databreeze/domain/tenant-scope/v1';
+import { tenantScopeContainsV1, type StableIdentifierV1 } from '@databreeze/domain/tenant-scope/v1';
 
 import type { IamTenantContextV1 } from '../../iam/application/tenant-context.js';
 import type {
@@ -54,9 +51,7 @@ function scopeWhere(context: IamTenantContextV1): Readonly<Record<string, unknow
     scopeType: context.tenantScope.scopeType,
     organizationId: context.tenantScope.organizationId,
     workspaceId:
-      context.tenantScope.scopeType === 'organization'
-        ? null
-        : context.tenantScope.workspaceId,
+      context.tenantScope.scopeType === 'organization' ? null : context.tenantScope.workspaceId,
     projectId: context.tenantScope.scopeType === 'project' ? context.tenantScope.projectId : null,
   };
 }
@@ -178,8 +173,7 @@ export class PrismaResultManifestRepositoryAdapter implements ResultManifestRepo
     work: (transaction: ResultManifestTransactionPortV1) => Promise<TValue>,
   ): Promise<TValue> {
     return this.client.$transaction(
-      async (transaction) =>
-        work(new PrismaResultManifestRepositoryAdapter(transaction)),
+      async (transaction) => work(new PrismaResultManifestRepositoryAdapter(transaction)),
       { isolationLevel: 'Serializable' },
     );
   }

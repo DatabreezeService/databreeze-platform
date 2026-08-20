@@ -139,9 +139,10 @@ const EN_THOUSANDS = /^-?\d{1,3}(,\d{3})+(\.\d+)?$/u;
 const EN_DECIMAL = /^-?\d+\.\d+$/u;
 const PLAIN_INTEGER = /^-?\d+$/u;
 
-function detectNumberConvention(
-  values: readonly string[],
-): { readonly convention: NumberConventionV1; readonly numericRatio: number } {
+function detectNumberConvention(values: readonly string[]): {
+  readonly convention: NumberConventionV1;
+  readonly numericRatio: number;
+} {
   let viCount = 0;
   let enCount = 0;
   let plainCount = 0;
@@ -245,7 +246,9 @@ function coerceValue(
   if (type === 'DECIMAL') {
     const clean = trimmed.replace(/[₫$\s]/gu, '');
     const normalized =
-      convention === 'VI' ? clean.replace(/\./gu, '').replace(/,/gu, '.') : clean.replace(/,/gu, '');
+      convention === 'VI'
+        ? clean.replace(/\./gu, '').replace(/,/gu, '.')
+        : clean.replace(/,/gu, '');
     const num = parseFloat(normalized);
     return Number.isNaN(num) ? null : num;
   }
@@ -267,10 +270,7 @@ function fileKind(fileName: string): 'csv' | 'tsv' | 'xlsx' {
   if (lower.endsWith('.xlsx')) return 'xlsx';
   if (lower.endsWith('.tsv') || lower.endsWith('.tab')) return 'tsv';
   if (lower.endsWith('.csv') || lower.endsWith('.txt')) return 'csv';
-  throw new TabularParseError(
-    'UNSUPPORTED_FORMAT',
-    fileName,
-  );
+  throw new TabularParseError('UNSUPPORTED_FORMAT', fileName);
 }
 
 export function tabularFileName(fileName: string): string {
@@ -338,9 +338,7 @@ export async function parseTabularFiles(
           'HEADER_MISMATCH',
           [
             cleanName,
-            missing.length > 0
-              ? `missing: ${missing.slice(0, 5).join(', ')}`
-              : undefined,
+            missing.length > 0 ? `missing: ${missing.slice(0, 5).join(', ')}` : undefined,
             extra.length > 0 ? `unexpected: ${extra.slice(0, 5).join(', ')}` : undefined,
           ]
             .filter((part) => part !== undefined)
@@ -424,9 +422,7 @@ export function inferTabular(
     return record;
   });
   if (columns.some((col) => col.convention === 'MIXED')) {
-    warnings.push(
-      'Mixed number formats detected — check columns before trusting totals',
-    );
+    warnings.push('Mixed number formats detected — check columns before trusting totals');
   }
 
   return {
@@ -488,7 +484,9 @@ export function computeQuality(parsed: ParsedTabularData): DatasetQualityV1 {
     else seen.add(key);
   }
   const uniqueness =
-    parsed.totalRows === 0 ? 1 : Math.max(0, Math.min(1, (parsed.totalRows - duplicateRows) / parsed.totalRows));
+    parsed.totalRows === 0
+      ? 1
+      : Math.max(0, Math.min(1, (parsed.totalRows - duplicateRows) / parsed.totalRows));
 
   const mixedColumns = parsed.columns.filter((col) => col.convention === 'MIXED').length;
   const consistency =
@@ -629,11 +627,17 @@ export function buildDatasetRecordFromTabular(
       }),
     ]),
     overallSummary: Object.freeze({
-      formula: locale === 'vi-VN' ? 'trung bình có trọng số theo phạm vi kiểm tra' : 'weighted average over checked scope',
+      formula:
+        locale === 'vi-VN'
+          ? 'trung bình có trọng số theo phạm vi kiểm tra'
+          : 'weighted average over checked scope',
       coverage: Number(((completeness + validity) / 2).toFixed(4)),
       provesFactualCorrectness: false as const,
     }),
-    datasetVersionLabel: locale === 'vi-VN' ? `Phiên bản ${version.versionId.replace(/^v(\d+)-.*$/u, '$1')}` : `Version ${version.versionId.replace(/^v(\d+)-.*$/u, '$1')}`,
+    datasetVersionLabel:
+      locale === 'vi-VN'
+        ? `Phiên bản ${version.versionId.replace(/^v(\d+)-.*$/u, '$1')}`
+        : `Version ${version.versionId.replace(/^v(\d+)-.*$/u, '$1')}`,
     engineVersionLabel: 'DataBreeze In-Browser Engine 1.1',
   });
 

@@ -117,8 +117,19 @@ test('publishes the complete deterministic registry and compiles every real sche
       'dda-dashboard-widget-results-accepted',
       `${schemaBaseV4}/dda-dashboard-widget-results-accepted`,
     ],
+    ['dda-data-import-dashboard-preview', `${schemaBaseV4}/dda-data-import-dashboard-preview`],
     ['iam-auth-session', `${schemaBaseV4}/iam-auth-session`],
     ['iam-bootstrap-response', `${schemaBaseV4}/iam-bootstrap-response`],
+    ['iam-profile-update-command', `${schemaBaseV4}/iam-profile-update-command`],
+    ['iam-profile-update-accepted', `${schemaBaseV4}/iam-profile-update-accepted`],
+    [
+      'dda-notification-preferences-command',
+      `${schemaBaseV4}/dda-notification-preferences-command`,
+    ],
+    [
+      'dda-notification-preferences-accepted',
+      `${schemaBaseV4}/dda-notification-preferences-accepted`,
+    ],
     ['iam-email-verification-command', `${schemaBaseV4}/iam-email-verification-command`],
     ['iam-password-sign-in-command', `${schemaBaseV4}/iam-password-sign-in-command`],
     ['iam-registration-accepted', `${schemaBaseV4}/iam-registration-accepted`],
@@ -138,6 +149,9 @@ test('publishes the complete deterministic registry and compiles every real sche
     ['lfb-landing-feedback-command', `${schemaBaseV4}/lfb-landing-feedback-command`],
     ['platform-admin-feedbacks', `${schemaBaseV4}/platform-admin-feedbacks`],
     ['platform-admin-overview', `${schemaBaseV4}/platform-admin-overview`],
+    ['jra-job-history-entry', `${schemaBaseV4}/jra-job-history-entry`],
+    ['jra-job-history-list-accepted', `${schemaBaseV4}/jra-job-history-list-accepted`],
+    ['jra-job-history-detail-accepted', `${schemaBaseV4}/jra-job-history-detail-accepted`],
     ['dda-refresh-event', `${schemaBase}/dda-refresh-event`],
     ['dda-source-catalog', `${schemaBase}/dda-source-catalog`],
     ['dda-starter-dashboard-event', `${schemaBase}/dda-starter-dashboard-event`],
@@ -153,6 +167,13 @@ test('publishes the complete deterministic registry and compiles every real sche
     ['bua-payos-checkout-session', `${schemaBaseV4}/bua-payos-checkout-session`],
     ['bua-payos-payment-status', `${schemaBaseV4}/bua-payos-payment-status`],
     ['bua-payos-webhook-event', `${schemaBaseV4}/bua-payos-webhook-event`],
+    ['bua-entitlement-summary', `${schemaBaseV4}/bua-entitlement-summary`],
+    ['crf-report-summary', `${schemaBaseV4}/crf-report-summary`],
+    ['crf-report-list-accepted', `${schemaBaseV4}/crf-report-list-accepted`],
+    ['crf-report-detail-accepted', `${schemaBaseV4}/crf-report-detail-accepted`],
+    ['crf-report-run-detail-accepted', `${schemaBaseV4}/crf-report-run-detail-accepted`],
+    ['crf-report-create-command', `${schemaBaseV4}/crf-report-create-command`],
+    ['crf-report-create-accepted', `${schemaBaseV4}/crf-report-create-accepted`],
   ];
 
   assert.equal(manifest.draft, 'https://json-schema.org/draft/2020-12/schema');
@@ -220,8 +241,13 @@ test('exports only declared registry schema and generated TypeScript entry point
     './v4/dda-conversation-load-accepted',
     './v4/dda-conversation-summary',
     './v4/dda-dashboard-widget-results-accepted',
+    './v4/dda-data-import-dashboard-preview',
     './v4/iam-auth-session',
     './v4/iam-bootstrap-response',
+    './v4/iam-profile-update-command',
+    './v4/iam-profile-update-accepted',
+    './v4/dda-notification-preferences-command',
+    './v4/dda-notification-preferences-accepted',
     './v4/iam-email-verification-command',
     './v4/iam-password-sign-in-command',
     './v4/iam-registration-accepted',
@@ -238,11 +264,21 @@ test('exports only declared registry schema and generated TypeScript entry point
     './v4/lfb-landing-feedback-command',
     './v4/platform-admin-feedbacks',
     './v4/platform-admin-overview',
+    './v4/jra-job-history-entry',
+    './v4/jra-job-history-list-accepted',
+    './v4/jra-job-history-detail-accepted',
     './v4/bua-payos-plan-catalog',
     './v4/bua-payos-checkout-command',
     './v4/bua-payos-checkout-session',
     './v4/bua-payos-payment-status',
     './v4/bua-payos-webhook-event',
+    './v4/bua-entitlement-summary',
+    './v4/crf-report-summary',
+    './v4/crf-report-list-accepted',
+    './v4/crf-report-detail-accepted',
+    './v4/crf-report-run-detail-accepted',
+    './v4/crf-report-create-command',
+    './v4/crf-report-create-accepted',
   ]);
   for (const target of Object.values(packageJson.exports)) {
     const paths = typeof target === 'string' ? [target] : Object.values(target);
@@ -413,7 +449,10 @@ test('[IAM-026 / WEB-027] platform admin feedbacks read is closed and omits netw
   );
   assert.equal(validate(feedbacks), true, JSON.stringify(validate.errors));
   assert.equal(
-    validate({ ...feedbacks, feedbacks: [{ ...feedbacks.feedbacks[0], sourceIpHash: 'a'.repeat(64) }] }),
+    validate({
+      ...feedbacks,
+      feedbacks: [{ ...feedbacks.feedbacks[0], sourceIpHash: 'a'.repeat(64) }],
+    }),
     false,
   );
   assert.equal(

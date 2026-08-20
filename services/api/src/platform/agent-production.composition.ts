@@ -228,10 +228,7 @@ export class GovernedDatasetConversationContextVersionAuthorityAdapter
       return { allowed: false, code: 'AUTHORIZATION_UNAVAILABLE' };
     }
     if (definition === undefined) return { allowed: false, code: 'NOT_FOUND' };
-    if (
-      definition.datasetId !== datasetId.value ||
-      definition.status !== 'PUBLISHED'
-    ) {
+    if (definition.datasetId !== datasetId.value || definition.status !== 'PUBLISHED') {
       return { allowed: false, code: 'VERSION_DATASET_MISMATCH' };
     }
     if (

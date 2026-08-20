@@ -118,7 +118,9 @@ def preview_original(*, source_type: str, payload: dict[str, Any]) -> OriginalPr
 
     if source_type == "XLSX":
         worksheets = payload.get("worksheets")
-        if not isinstance(worksheets, list) or not all(isinstance(item, str) for item in worksheets):
+        if not isinstance(worksheets, list) or not all(
+            isinstance(item, str) for item in worksheets
+        ):
             raise DdaOriginalPreviewError("DDA_ORIGINAL_UNSUPPORTED")
         raw_cells = payload.get("cells", [])
         if not isinstance(raw_cells, list):
@@ -132,8 +134,12 @@ def preview_original(*, source_type: str, payload: dict[str, Any]) -> OriginalPr
                     sheet=str(item.get("sheet", "Sheet1")),
                     row=int(item.get("row", 0)),
                     column=int(item.get("column", 0)),
-                    displayValue=None if item.get("displayValue") is None else str(item["displayValue"]),
-                    formulaText=None if item.get("formulaText") is None else str(item["formulaText"]),
+                    displayValue=None
+                    if item.get("displayValue") is None
+                    else str(item["displayValue"]),
+                    formulaText=None
+                    if item.get("formulaText") is None
+                    else str(item["formulaText"]),
                     executed=False,
                 )
             )

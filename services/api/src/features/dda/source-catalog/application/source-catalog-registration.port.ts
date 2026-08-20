@@ -9,8 +9,5 @@ import type { SourceCatalogRecordV1 } from './source-catalog-repository.port.js'
 export const SOURCE_CATALOG_REGISTRATION_PORT = Symbol('SOURCE_CATALOG_REGISTRATION_PORT');
 
 export interface SourceCatalogRegistrationPortV1 {
-  register(
-    context: IamTenantContextV1,
-    record: SourceCatalogRecordV1,
-  ): Promise<void>;
+  register(context: IamTenantContextV1, record: SourceCatalogRecordV1): Promise<void>;
 }

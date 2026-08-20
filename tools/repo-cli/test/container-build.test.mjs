@@ -144,15 +144,39 @@ test('[Task 19 / IAM-019 / DDA-036] build context and release command exclude se
   assert.match(workflow, /NODE_ENV=production/u);
   assert.match(workflow, /PRODUCTION_DATABASE_URL_INVALID/u);
   assert.match(workflow, /image:\s+(?:docker\.io\/library\/)?postgres:17\.5-alpine/u);
+  assert.match(workflow, /image:\s+(?:docker\.io\/library\/)?redis:7\.4\.5-alpine/u);
   assert.match(workflow, /pnpm --filter @databreeze\/api exec prisma migrate deploy/u);
   assert.match(workflow, /docker run --detach --read-only/u);
-  assert.match(workflow, /--add-host host\.docker\.internal:host-gateway/u);
+  assert.match(workflow, /--network host/u);
   assert.match(workflow, /--env PORT=3100/u);
   assert.match(workflow, /randomBytes\(32\)\.toString\(['"]base64url['"]\)/u);
   assert.match(
     workflow,
     /--env DATABREEZE_SERVICE_ACCOUNT_SECRET_ENVELOPE_KEY="\$service_account_key"/u,
   );
+  assert.match(workflow, /--env DATABREEZE_RUNTIME_PROFILE=pilot/u);
+  assert.match(workflow, /--env DATABREEZE_REDIS_URL=redis:\/\/127\.0\.0\.1:6379/u);
+  for (const managedKey of [
+    'DATABREEZE_IAM_EMAIL_VERIFICATION_DIGEST_KEY',
+    'DATABREEZE_IAM_EMAIL_VERIFICATION_ENVELOPE_KEY',
+    'DATABREEZE_IAM_INVITATION_DIGEST_KEY',
+    'DATABREEZE_IAM_REGISTRATION_ADMISSION_KEY',
+    'DATABREEZE_IAM_RECOVERY_DIGEST_KEY',
+  ]) {
+    assert.match(
+      workflow,
+      new RegExp(`--env ${managedKey}="\\$service_account_key"`, 'u'),
+      `The positive smoke must provide ${managedKey}.`,
+    );
+  }
+  assert.match(
+    workflow,
+    /--env DATABREEZE_PILOT_HTTPS_ORIGIN=https:\/\/pilot\.databreeze\.example/u,
+  );
+  assert.match(workflow, /--env DATABREEZE_LOCAL_EMAIL_PROVIDER=mailpit/u);
+  assert.match(workflow, /--env DATABREEZE_IAM_SMTP_HOST=127\.0\.0\.1/u);
+  assert.match(workflow, /--env DATABREEZE_IAM_SMTP_PORT=1025/u);
+  assert.match(workflow, /--env DATABREEZE_IAM_EMAIL_FROM_ADDRESS=verify@databreeze\.example/u);
   assert.match(workflow, /\.State\.Health\.Status/u);
   assert.match(
     workflow,

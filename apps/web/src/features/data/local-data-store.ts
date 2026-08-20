@@ -64,11 +64,16 @@ export class IndexedDbDatasetRepository implements LocalDatasetRepository {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
       request.onupgradeneeded = () => {
         const db = request.result;
-        if (!db.objectStoreNames.contains('datasets')) db.createObjectStore('datasets', { keyPath: 'datasetId' });
-        if (!db.objectStoreNames.contains('tabular')) db.createObjectStore('tabular', { keyPath: 'datasetId' });
-        if (!db.objectStoreNames.contains('imports')) db.createObjectStore('imports', { keyPath: 'importId' });
-        if (!db.objectStoreNames.contains('projects')) db.createObjectStore('projects', { keyPath: 'projectId' });
-        if (!db.objectStoreNames.contains('agent_threads')) db.createObjectStore('agent_threads', { keyPath: 'datasetId' });
+        if (!db.objectStoreNames.contains('datasets'))
+          db.createObjectStore('datasets', { keyPath: 'datasetId' });
+        if (!db.objectStoreNames.contains('tabular'))
+          db.createObjectStore('tabular', { keyPath: 'datasetId' });
+        if (!db.objectStoreNames.contains('imports'))
+          db.createObjectStore('imports', { keyPath: 'importId' });
+        if (!db.objectStoreNames.contains('projects'))
+          db.createObjectStore('projects', { keyPath: 'projectId' });
+        if (!db.objectStoreNames.contains('agent_threads'))
+          db.createObjectStore('agent_threads', { keyPath: 'datasetId' });
       };
       request.onsuccess = () => {
         this.database = request.result;
@@ -118,9 +123,7 @@ export class IndexedDbDatasetRepository implements LocalDatasetRepository {
   }
 
   public putTabular(datasetId: string, tabular: ParsedTabularData): Promise<void> {
-    return this.request<void>('tabular', 'readwrite', (store) =>
-      store.put({ datasetId, tabular }),
-    );
+    return this.request<void>('tabular', 'readwrite', (store) => store.put({ datasetId, tabular }));
   }
 
   public deleteTabular(datasetId: string): Promise<void> {
@@ -138,9 +141,7 @@ export class IndexedDbDatasetRepository implements LocalDatasetRepository {
   }
 
   public async loadProjects(): Promise<LocalProjectRecordV1[]> {
-    return this.request<LocalProjectRecordV1[]>('projects', 'readonly', (store) =>
-      store.getAll(),
-    );
+    return this.request<LocalProjectRecordV1[]>('projects', 'readonly', (store) => store.getAll());
   }
 
   public putProject(project: LocalProjectRecordV1): Promise<void> {
@@ -246,32 +247,236 @@ const DEMO_TABULAR_DATA: ParsedTabularData = {
     'Quốc gia',
   ],
   columns: [
-    { name: 'Mã hóa đơn', type: 'TEXT', nullCount: 0, invalidCount: 0, convention: 'NONE', sampleValues: ['536365', '536366', '536367'] },
-    { name: 'Mã hàng', type: 'TEXT', nullCount: 0, invalidCount: 0, convention: 'NONE', sampleValues: ['85123A', '71053', '84406B'] },
-    { name: 'Mô tả sản phẩm', type: 'TEXT', nullCount: 0, invalidCount: 0, convention: 'NONE', sampleValues: ['WHITE HANGING HEART T-LIGHT HOLDER', 'WHITE METAL LANTERN', 'CREAM CUPID HEARTS COAT HANGER'] },
-    { name: 'Số lượng', type: 'INTEGER', nullCount: 0, invalidCount: 0, convention: 'EN', sampleValues: ['6', '8', '32'] },
-    { name: 'Đơn giá ($)', type: 'DECIMAL', nullCount: 0, invalidCount: 0, convention: 'EN', sampleValues: ['2.55', '3.39', '2.75'] },
-    { name: 'Ngày giao dịch', type: 'DATE', nullCount: 0, invalidCount: 0, convention: 'NONE', sampleValues: ['12/1/2010 8:26', '12/2/2010 8:28'] },
-    { name: 'Mã khách hàng', type: 'TEXT', nullCount: 0, invalidCount: 0, convention: 'NONE', sampleValues: ['17850', '13047', '12583'] },
-    { name: 'Quốc gia', type: 'TEXT', nullCount: 0, invalidCount: 0, convention: 'NONE', sampleValues: ['United Kingdom', 'France', 'Germany'] },
+    {
+      name: 'Mã hóa đơn',
+      type: 'TEXT',
+      nullCount: 0,
+      invalidCount: 0,
+      convention: 'NONE',
+      sampleValues: ['536365', '536366', '536367'],
+    },
+    {
+      name: 'Mã hàng',
+      type: 'TEXT',
+      nullCount: 0,
+      invalidCount: 0,
+      convention: 'NONE',
+      sampleValues: ['85123A', '71053', '84406B'],
+    },
+    {
+      name: 'Mô tả sản phẩm',
+      type: 'TEXT',
+      nullCount: 0,
+      invalidCount: 0,
+      convention: 'NONE',
+      sampleValues: [
+        'WHITE HANGING HEART T-LIGHT HOLDER',
+        'WHITE METAL LANTERN',
+        'CREAM CUPID HEARTS COAT HANGER',
+      ],
+    },
+    {
+      name: 'Số lượng',
+      type: 'INTEGER',
+      nullCount: 0,
+      invalidCount: 0,
+      convention: 'EN',
+      sampleValues: ['6', '8', '32'],
+    },
+    {
+      name: 'Đơn giá ($)',
+      type: 'DECIMAL',
+      nullCount: 0,
+      invalidCount: 0,
+      convention: 'EN',
+      sampleValues: ['2.55', '3.39', '2.75'],
+    },
+    {
+      name: 'Ngày giao dịch',
+      type: 'DATE',
+      nullCount: 0,
+      invalidCount: 0,
+      convention: 'NONE',
+      sampleValues: ['12/1/2010 8:26', '12/2/2010 8:28'],
+    },
+    {
+      name: 'Mã khách hàng',
+      type: 'TEXT',
+      nullCount: 0,
+      invalidCount: 0,
+      convention: 'NONE',
+      sampleValues: ['17850', '13047', '12583'],
+    },
+    {
+      name: 'Quốc gia',
+      type: 'TEXT',
+      nullCount: 0,
+      invalidCount: 0,
+      convention: 'NONE',
+      sampleValues: ['United Kingdom', 'France', 'Germany'],
+    },
   ],
   rows: [
-    { 'Mã hóa đơn': '536365', 'Mã hàng': '85123A', 'Mô tả sản phẩm': 'WHITE HANGING HEART T-LIGHT HOLDER', 'Số lượng': 6, 'Đơn giá ($)': 2.55, 'Ngày giao dịch': '12/1/2010 8:26', 'Mã khách hàng': '17850', 'Quốc gia': 'United Kingdom' },
-    { 'Mã hóa đơn': '536365', 'Mã hàng': '71053', 'Mô tả sản phẩm': 'WHITE METAL LANTERN', 'Số lượng': 6, 'Đơn giá ($)': 3.39, 'Ngày giao dịch': '12/1/2010 8:26', 'Mã khách hàng': '17850', 'Quốc gia': 'United Kingdom' },
-    { 'Mã hóa đơn': '536365', 'Mã hàng': '84406B', 'Mô tả sản phẩm': 'CREAM CUPID HEARTS COAT HANGER', 'Số lượng': 8, 'Đơn giá ($)': 2.75, 'Ngày giao dịch': '12/1/2010 8:26', 'Mã khách hàng': '17850', 'Quốc gia': 'United Kingdom' },
-    { 'Mã hóa đơn': '536365', 'Mã hàng': '84029G', 'Mô tả sản phẩm': 'KNITTED UNION FLAG HOT WATER BOTTLE', 'Số lượng': 6, 'Đơn giá ($)': 3.39, 'Ngày giao dịch': '12/1/2010 8:26', 'Mã khách hàng': '17850', 'Quốc gia': 'United Kingdom' },
-    { 'Mã hóa đơn': '536365', 'Mã hàng': '84029E', 'Mô tả sản phẩm': 'RED WOOLLY HOTTIE WHITE HEART.', 'Số lượng': 6, 'Đơn giá ($)': 3.39, 'Ngày giao dịch': '12/1/2010 8:26', 'Mã khách hàng': '17850', 'Quốc gia': 'United Kingdom' },
-    { 'Mã hóa đơn': '536365', 'Mã hàng': '22752', 'Mô tả sản phẩm': 'SET 7 BABUSHKA NESTING BOXES', 'Số lượng': 2, 'Đơn giá ($)': 7.65, 'Ngày giao dịch': '12/1/2010 8:26', 'Mã khách hàng': '17850', 'Quốc gia': 'United Kingdom' },
-    { 'Mã hóa đơn': '536365', 'Mã hàng': '21730', 'Mô tả sản phẩm': 'GLASS STAR FROSTED T-LIGHT HOLDER', 'Số lượng': 6, 'Đơn giá ($)': 4.25, 'Ngày giao dịch': '12/1/2010 8:26', 'Mã khách hàng': '17850', 'Quốc gia': 'United Kingdom' },
-    { 'Mã hóa đơn': '536366', 'Mã hàng': '22633', 'Mô tả sản phẩm': 'HAND WARMER UNION JACK', 'Số lượng': 6, 'Đơn giá ($)': 1.85, 'Ngày giao dịch': '12/1/2010 8:28', 'Mã khách hàng': '17850', 'Quốc gia': 'United Kingdom' },
-    { 'Mã hóa đơn': '536366', 'Mã hàng': '22632', 'Mô tả sản phẩm': 'HAND WARMER RED POLKA DOT', 'Số lượng': 6, 'Đơn giá ($)': 1.85, 'Ngày giao dịch': '12/1/2010 8:28', 'Mã khách hàng': '17850', 'Quốc gia': 'United Kingdom' },
-    { 'Mã hóa đơn': '536367', 'Mã hàng': '84879', 'Mô tả sản phẩm': 'ASSORTED COLOUR BIRD ORNAMENT', 'Số lượng': 32, 'Đơn giá ($)': 1.69, 'Ngày giao dịch': '12/1/2010 8:34', 'Mã khách hàng': '13047', 'Quốc gia': 'United Kingdom' },
-    { 'Mã hóa đơn': '536367', 'Mã hàng': '22745', 'Mô tả sản phẩm': "POPPY'S PLAYHOUSE BEDROOM", 'Số lượng': 6, 'Đơn giá ($)': 2.10, 'Ngày giao dịch': '12/1/2010 8:34', 'Mã khách hàng': '13047', 'Quốc gia': 'United Kingdom' },
-    { 'Mã hóa đơn': '536370', 'Mã hàng': '22728', 'Mô tả sản phẩm': 'ALARM CLOCK BAKELIKE PINK', 'Số lượng': 24, 'Đơn giá ($)': 3.75, 'Ngày giao dịch': '12/1/2010 8:45', 'Mã khách hàng': '12583', 'Quốc gia': 'France' },
-    { 'Mã hóa đơn': '536370', 'Mã hàng': '22727', 'Mô tả sản phẩm': 'ALARM CLOCK BAKELIKE RED', 'Số lượng': 24, 'Đơn giá ($)': 3.75, 'Ngày giao dịch': '12/1/2010 8:45', 'Mã khách hàng': '12583', 'Quốc gia': 'France' },
-    { 'Mã hóa đơn': '536370', 'Mã hàng': '22726', 'Mô tả sản phẩm': 'ALARM CLOCK BAKELIKE GREEN', 'Số lượng': 12, 'Đơn giá ($)': 3.75, 'Ngày giao dịch': '12/1/2010 8:45', 'Mã khách hàng': '12583', 'Quốc gia': 'France' },
-    { 'Mã hóa đơn': '536370', 'Mã hàng': '22629', 'Mô tả sản phẩm': 'SPACEBOY LUNCH BOX', 'Số lượng': 24, 'Đơn giá ($)': 1.95, 'Ngày giao dịch': '12/1/2010 8:45', 'Mã khách hàng': '12583', 'Quốc gia': 'France' },
-    { 'Mã hóa đơn': '536370', 'Mã hàng': '22659', 'Mô tả sản phẩm': 'LUNCH BOX I LOVE LONDON', 'Số lượng': 24, 'Đơn giá ($)': 1.95, 'Ngày giao dịch': '12/1/2010 8:45', 'Mã khách hàng': '12583', 'Quốc gia': 'France' },
+    {
+      'Mã hóa đơn': '536365',
+      'Mã hàng': '85123A',
+      'Mô tả sản phẩm': 'WHITE HANGING HEART T-LIGHT HOLDER',
+      'Số lượng': 6,
+      'Đơn giá ($)': 2.55,
+      'Ngày giao dịch': '12/1/2010 8:26',
+      'Mã khách hàng': '17850',
+      'Quốc gia': 'United Kingdom',
+    },
+    {
+      'Mã hóa đơn': '536365',
+      'Mã hàng': '71053',
+      'Mô tả sản phẩm': 'WHITE METAL LANTERN',
+      'Số lượng': 6,
+      'Đơn giá ($)': 3.39,
+      'Ngày giao dịch': '12/1/2010 8:26',
+      'Mã khách hàng': '17850',
+      'Quốc gia': 'United Kingdom',
+    },
+    {
+      'Mã hóa đơn': '536365',
+      'Mã hàng': '84406B',
+      'Mô tả sản phẩm': 'CREAM CUPID HEARTS COAT HANGER',
+      'Số lượng': 8,
+      'Đơn giá ($)': 2.75,
+      'Ngày giao dịch': '12/1/2010 8:26',
+      'Mã khách hàng': '17850',
+      'Quốc gia': 'United Kingdom',
+    },
+    {
+      'Mã hóa đơn': '536365',
+      'Mã hàng': '84029G',
+      'Mô tả sản phẩm': 'KNITTED UNION FLAG HOT WATER BOTTLE',
+      'Số lượng': 6,
+      'Đơn giá ($)': 3.39,
+      'Ngày giao dịch': '12/1/2010 8:26',
+      'Mã khách hàng': '17850',
+      'Quốc gia': 'United Kingdom',
+    },
+    {
+      'Mã hóa đơn': '536365',
+      'Mã hàng': '84029E',
+      'Mô tả sản phẩm': 'RED WOOLLY HOTTIE WHITE HEART.',
+      'Số lượng': 6,
+      'Đơn giá ($)': 3.39,
+      'Ngày giao dịch': '12/1/2010 8:26',
+      'Mã khách hàng': '17850',
+      'Quốc gia': 'United Kingdom',
+    },
+    {
+      'Mã hóa đơn': '536365',
+      'Mã hàng': '22752',
+      'Mô tả sản phẩm': 'SET 7 BABUSHKA NESTING BOXES',
+      'Số lượng': 2,
+      'Đơn giá ($)': 7.65,
+      'Ngày giao dịch': '12/1/2010 8:26',
+      'Mã khách hàng': '17850',
+      'Quốc gia': 'United Kingdom',
+    },
+    {
+      'Mã hóa đơn': '536365',
+      'Mã hàng': '21730',
+      'Mô tả sản phẩm': 'GLASS STAR FROSTED T-LIGHT HOLDER',
+      'Số lượng': 6,
+      'Đơn giá ($)': 4.25,
+      'Ngày giao dịch': '12/1/2010 8:26',
+      'Mã khách hàng': '17850',
+      'Quốc gia': 'United Kingdom',
+    },
+    {
+      'Mã hóa đơn': '536366',
+      'Mã hàng': '22633',
+      'Mô tả sản phẩm': 'HAND WARMER UNION JACK',
+      'Số lượng': 6,
+      'Đơn giá ($)': 1.85,
+      'Ngày giao dịch': '12/1/2010 8:28',
+      'Mã khách hàng': '17850',
+      'Quốc gia': 'United Kingdom',
+    },
+    {
+      'Mã hóa đơn': '536366',
+      'Mã hàng': '22632',
+      'Mô tả sản phẩm': 'HAND WARMER RED POLKA DOT',
+      'Số lượng': 6,
+      'Đơn giá ($)': 1.85,
+      'Ngày giao dịch': '12/1/2010 8:28',
+      'Mã khách hàng': '17850',
+      'Quốc gia': 'United Kingdom',
+    },
+    {
+      'Mã hóa đơn': '536367',
+      'Mã hàng': '84879',
+      'Mô tả sản phẩm': 'ASSORTED COLOUR BIRD ORNAMENT',
+      'Số lượng': 32,
+      'Đơn giá ($)': 1.69,
+      'Ngày giao dịch': '12/1/2010 8:34',
+      'Mã khách hàng': '13047',
+      'Quốc gia': 'United Kingdom',
+    },
+    {
+      'Mã hóa đơn': '536367',
+      'Mã hàng': '22745',
+      'Mô tả sản phẩm': "POPPY'S PLAYHOUSE BEDROOM",
+      'Số lượng': 6,
+      'Đơn giá ($)': 2.1,
+      'Ngày giao dịch': '12/1/2010 8:34',
+      'Mã khách hàng': '13047',
+      'Quốc gia': 'United Kingdom',
+    },
+    {
+      'Mã hóa đơn': '536370',
+      'Mã hàng': '22728',
+      'Mô tả sản phẩm': 'ALARM CLOCK BAKELIKE PINK',
+      'Số lượng': 24,
+      'Đơn giá ($)': 3.75,
+      'Ngày giao dịch': '12/1/2010 8:45',
+      'Mã khách hàng': '12583',
+      'Quốc gia': 'France',
+    },
+    {
+      'Mã hóa đơn': '536370',
+      'Mã hàng': '22727',
+      'Mô tả sản phẩm': 'ALARM CLOCK BAKELIKE RED',
+      'Số lượng': 24,
+      'Đơn giá ($)': 3.75,
+      'Ngày giao dịch': '12/1/2010 8:45',
+      'Mã khách hàng': '12583',
+      'Quốc gia': 'France',
+    },
+    {
+      'Mã hóa đơn': '536370',
+      'Mã hàng': '22726',
+      'Mô tả sản phẩm': 'ALARM CLOCK BAKELIKE GREEN',
+      'Số lượng': 12,
+      'Đơn giá ($)': 3.75,
+      'Ngày giao dịch': '12/1/2010 8:45',
+      'Mã khách hàng': '12583',
+      'Quốc gia': 'France',
+    },
+    {
+      'Mã hóa đơn': '536370',
+      'Mã hàng': '22629',
+      'Mô tả sản phẩm': 'SPACEBOY LUNCH BOX',
+      'Số lượng': 24,
+      'Đơn giá ($)': 1.95,
+      'Ngày giao dịch': '12/1/2010 8:45',
+      'Mã khách hàng': '12583',
+      'Quốc gia': 'France',
+    },
+    {
+      'Mã hóa đơn': '536370',
+      'Mã hàng': '22659',
+      'Mô tả sản phẩm': 'LUNCH BOX I LOVE LONDON',
+      'Số lượng': 24,
+      'Đơn giá ($)': 1.95,
+      'Ngày giao dịch': '12/1/2010 8:45',
+      'Mã khách hàng': '12583',
+      'Quốc gia': 'France',
+    },
   ],
   totalRows: 16,
   malformedRowCount: 0,
@@ -386,7 +591,10 @@ export function datasetRecordFromCard(
   });
 }
 
-function recordFromLegacyCard(card: DatasetCardV1, tabular: ParsedTabularData | undefined): DatasetRecordV1 {
+function recordFromLegacyCard(
+  card: DatasetCardV1,
+  tabular: ParsedTabularData | undefined,
+): DatasetRecordV1 {
   const fieldTypes = card.fieldTypes ?? tabular?.columns.map((column) => column.type) ?? [];
   const rowCount = card.rowCount ?? tabular?.totalRows ?? 0;
   const version = {
@@ -394,7 +602,7 @@ function recordFromLegacyCard(card: DatasetCardV1, tabular: ParsedTabularData | 
     createdAt: card.publishedAt ?? new Date().toISOString(),
     rowCount,
     schema: fieldTypes.map((type, index) => ({
-       name: card.fieldNames?.[index] ?? tabular?.headers[index] ?? `Cột_${index + 1}`,
+      name: card.fieldNames?.[index] ?? tabular?.headers[index] ?? `Cột_${index + 1}`,
       type,
       nullable: true,
     })),
@@ -421,7 +629,9 @@ function recordFromLegacyCard(card: DatasetCardV1, tabular: ParsedTabularData | 
 export class LocalDataStore {
   private records: DatasetRecordV1[] = [...DEFAULT_DEMO_RECORDS];
   private projects: LocalProjectRecordV1[] = [];
-  private tabularData: Map<string, ParsedTabularData> = new Map([[DEMO_DATASET_ID, DEMO_TABULAR_DATA]]);
+  private tabularData: Map<string, ParsedTabularData> = new Map([
+    [DEMO_DATASET_ID, DEMO_TABULAR_DATA],
+  ]);
   private listeners: Set<() => void> = new Set();
   private cardsCache: Map<'en' | 'vi-VN', readonly DatasetCardV1[]> = new Map();
   private repository: LocalDatasetRepository;
@@ -617,7 +827,10 @@ export class LocalDataStore {
     return this.records.find((record) => record.datasetId === datasetId);
   }
 
-  public getDataset(datasetId: string, locale: 'en' | 'vi-VN' = 'vi-VN'): DatasetCardV1 | undefined {
+  public getDataset(
+    datasetId: string,
+    locale: 'en' | 'vi-VN' = 'vi-VN',
+  ): DatasetCardV1 | undefined {
     const record = this.getDatasetRecord(datasetId);
     return record === undefined ? undefined : toDatasetCardV1(record, locale);
   }
@@ -786,7 +999,10 @@ export class LocalDataStore {
     if (tabular.totalRows > MAX_TABULAR_ROWS) {
       throw new LocalStoreError('LIMIT_EXCEEDED', `dataset exceeds ${MAX_TABULAR_ROWS} rows`);
     }
-    this.records = [record, ...this.records.filter((existing) => existing.datasetId !== record.datasetId)];
+    this.records = [
+      record,
+      ...this.records.filter((existing) => existing.datasetId !== record.datasetId),
+    ];
     this.tabularData.set(record.datasetId, tabular);
     this.invalidateCaches();
     this.notify();
@@ -800,20 +1016,14 @@ export class LocalDataStore {
    * The incoming headers must include every existing column; new columns are
    * additive-compatible and backfilled with null for prior rows.
    */
-  public appendDatasetVersion(
-    datasetId: string,
-    tabular: ParsedTabularData,
-  ): DatasetRecordV1 {
+  public appendDatasetVersion(datasetId: string, tabular: ParsedTabularData): DatasetRecordV1 {
     const existing = this.getDatasetRecord(datasetId);
     if (existing === undefined) throw new LocalStoreError('NOT_FOUND', datasetId);
     const existingHeaders = existing.currentVersion.schema.map((field) => field.name);
     const newHeaders = tabular.headers;
     const missing = existingHeaders.filter((header) => !newHeaders.includes(header));
     if (missing.length > 0) {
-      throw new LocalStoreError(
-        'SCHEMA_INCOMPATIBLE',
-        missing.slice(0, 5).join(', '),
-      );
+      throw new LocalStoreError('SCHEMA_INCOMPATIBLE', missing.slice(0, 5).join(', '));
     }
     const mergedRowCount = existing.currentVersion.rowCount + tabular.totalRows;
     if (mergedRowCount > MAX_TABULAR_ROWS) {
@@ -852,8 +1062,7 @@ export class LocalDataStore {
       columns: tabular.columns,
       rows: mergedRows,
       totalRows: mergedRows.length,
-      malformedRowCount:
-        (existingTabular?.malformedRowCount ?? 0) + tabular.malformedRowCount,
+      malformedRowCount: (existingTabular?.malformedRowCount ?? 0) + tabular.malformedRowCount,
       rawTextSnippet: existingTabular?.rawTextSnippet ?? tabular.rawTextSnippet,
       warnings: [...(existingTabular?.warnings ?? []), ...tabular.warnings],
       fileSources: [...(existingTabular?.fileSources ?? []), ...tabular.fileSources],
@@ -863,16 +1072,19 @@ export class LocalDataStore {
       ...existing,
       currentVersion: version,
       versions: [...existing.versions, version],
-      sources: [...existing.sources, ...tabular.fileSources.map((file) => ({
-        sourceId: crypto.randomUUID(),
-        label: file.fileName,
-        sourceType: 'CSV' as const,
-        versionLabel: `Bản gốc · ${file.rowCount.toLocaleString('vi-VN')} hàng`,
-        statusLabel: 'Đã nhập',
-        healthLabel: 'Không có lỗi chặn',
-        originalAction: 'VIEW_SAFE' as const,
-        evidenceAvailable: true,
-      }))],
+      sources: [
+        ...existing.sources,
+        ...tabular.fileSources.map((file) => ({
+          sourceId: crypto.randomUUID(),
+          label: file.fileName,
+          sourceType: 'CSV' as const,
+          versionLabel: `Bản gốc · ${file.rowCount.toLocaleString('vi-VN')} hàng`,
+          statusLabel: 'Đã nhập',
+          healthLabel: 'Không có lỗi chặn',
+          originalAction: 'VIEW_SAFE' as const,
+          evidenceAvailable: true,
+        })),
+      ],
     };
     this.records = this.records.map((record) =>
       record.datasetId === datasetId ? updated : record,

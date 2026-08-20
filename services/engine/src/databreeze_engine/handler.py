@@ -45,9 +45,7 @@ ResultT = TypeVar("ResultT", bound=BaseModel, covariant=True)
 class ActionHandler(Protocol[ParametersT, ResultT]):
     """Typed handler contract for a reviewed action definition."""
 
-    def __call__(
-        self, context: HandlerContext, parameters: ParametersT
-    ) -> ResultT: ...
+    def __call__(self, context: HandlerContext, parameters: ParametersT) -> ResultT: ...
 
 
 AnyActionHandler = ActionHandler[Any, BaseModel]

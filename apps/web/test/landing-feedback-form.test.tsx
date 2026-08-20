@@ -23,7 +23,7 @@ function renderLanding(locale: 'vi-VN' | 'en' = 'vi-VN') {
 
 async function fillFeedbackForm() {
   const user = userEvent.setup();
-  const form = document.querySelector('[data-feedback-form]') as HTMLFormElement | null;
+  const form = document.querySelector<HTMLFormElement>('[data-feedback-form]');
   if (form === null) throw new Error('feedback form missing from landing markup');
 
   await user.type(
@@ -79,7 +79,9 @@ describe('landing feedback form submission [WEB-026]', () => {
     expect(calls.length).toBe(1);
     expect(calls[0]?.url).toBe('/v1/landing/feedbacks');
     expect(calls[0]?.init?.method).toBe('POST');
-    const body = JSON.parse(String(calls[0]?.init?.body)) as Record<string, unknown>;
+    const requestBody = calls[0]?.init?.body;
+    if (typeof requestBody !== 'string') throw new Error('expected a JSON request body');
+    const body = JSON.parse(requestBody) as Record<string, unknown>;
     expect(body).toMatchObject({
       schemaVersion: 4,
       email: 'nguyen.van.an@example.vn',

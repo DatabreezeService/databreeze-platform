@@ -38,7 +38,8 @@ describe('authenticated workspace switching [IAM-028, WEB-002]', () => {
     globalThis.document.cookie = `databreeze_csrf=${'c'.repeat(43)}; Path=/`;
     const fetcher = vi.fn(async (url: string, init?: RequestInit) => {
       if (url.endsWith('/v1/auth/scope')) {
-        expect(JSON.parse(String(init?.body))).toEqual({
+        if (typeof init?.body !== 'string') throw new Error('expected a JSON request body');
+        expect(JSON.parse(init.body)).toEqual({
           schemaVersion: 4,
           workspaceId: switchedSession.workspaceId,
         });
