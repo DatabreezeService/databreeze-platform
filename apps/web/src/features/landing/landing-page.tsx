@@ -87,6 +87,10 @@ export function LandingPage({
     [locale],
   );
   const feedbackApi = useMemo(() => createLandingFeedbackApi(), []);
+  // Keep the innerHTML prop stable while only the route hash changes. The
+  // landing script progressively adds reveal state and interaction layers to
+  // this DOM; replacing it on every navbar jump would discard that state.
+  const markupProperty = useMemo(() => ({ __html: markup }), [markup]);
 
   useEffect(() => {
     if (import.meta.env.MODE === 'test') return undefined;
@@ -244,15 +248,18 @@ export function LandingPage({
               ? copy.invalid
               : copy.failed;
     };
+    const handleSubmitEvent = (event: SubmitEvent) => {
+      void handleSubmit(event);
+    };
 
-    root.addEventListener('submit', handleSubmit);
-    return () => root.removeEventListener('submit', handleSubmit);
+    root.addEventListener('submit', handleSubmitEvent);
+    return () => root.removeEventListener('submit', handleSubmitEvent);
   }, [locale, markup, feedbackApi]);
 
   return (
     <>
       <link data-teammate-landing-stylesheet href={TEAMMATE_LANDING_STYLESHEET} rel="stylesheet" />
-      <div className="teammate-landing-root" dangerouslySetInnerHTML={{ __html: markup }} />
+      <div className="teammate-landing-root" dangerouslySetInnerHTML={markupProperty} />
     </>
   );
 }

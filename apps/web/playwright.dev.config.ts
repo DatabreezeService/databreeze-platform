@@ -18,7 +18,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: `corepack pnpm dev --host 127.0.0.1 --port ${devPort} --strictPort`,
+    command: `pnpm dev --host 127.0.0.1 --port ${devPort} --strictPort`,
     env: { VITE_DATABREEZE_DEMO_MODE: 'true' },
     reuseExistingServer: false,
     timeout: 120_000,

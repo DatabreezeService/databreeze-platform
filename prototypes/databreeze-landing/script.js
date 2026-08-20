@@ -1,6 +1,10 @@
 (() => {
   'use strict';
 
+  const landingRoot = document.querySelector('.teammate-landing-root') ?? document.body;
+  if (landingRoot.dataset.landingEnhanced === 'true') return;
+  landingRoot.dataset.landingEnhanced = 'true';
+
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const header = document.querySelector('[data-header]');
   const revealItems = document.querySelectorAll('[data-reveal]');
