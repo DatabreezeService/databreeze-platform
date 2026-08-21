@@ -252,6 +252,15 @@ function platformAnalyticsRegistrationDate(index) {
   return new Date(Date.UTC(2026, monthIndex, day, 8 + (index % 9), (index * 11) % 60));
 }
 
+// BUA-024: keep settled pilot revenue in the same July/August story as the
+// synthetic customer cohort. Five July payments establish the smaller opening
+// month; sixteen payments land before 14 August.
+function platformAnalyticsPaymentDate(index) {
+  const monthIndex = index < 5 ? 6 : 7;
+  const day = index < 5 ? 5 + index * 6 : 1 + Math.floor(((index - 5) * 13) / 16);
+  return new Date(Date.UTC(2026, monthIndex, day, 9 + (index % 7), (index * 13) % 60));
+}
+
 export function buildPlatformAnalyticsRows() {
   const organizationNames = [
     'An Phú Retail',
@@ -300,8 +309,8 @@ export function buildPlatformAnalyticsRows() {
     };
   });
   const paymentOrders = organizations.map((organization, index) => {
-    const createdAt = minutesBefore((7 + index * 5) * 1_440);
-    const paidAt = minutesBefore((7 + index * 5) * 1_440 - 15);
+    const paidAt = platformAnalyticsPaymentDate(index);
+    const createdAt = new Date(paidAt.getTime() - 15 * 60 * 1_000);
     return {
       id: ids(8_300 + index),
       provider: 'PAYOS',
