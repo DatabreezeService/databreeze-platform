@@ -254,6 +254,31 @@ test('[IAM-026][BUA-024] platform overview seed models 21 distinct paid actors a
   assert.equal(paidInvoices.length, 21);
 });
 
+test('[BUA-024] platform overview revenue uses a smaller July cohort and a larger pre-August-14 cohort', () => {
+  const paidOrders = buildPlatformAnalyticsRows().paymentOrders.filter(
+    (order) => order.status === 'PAID',
+  );
+  const paymentsByMonth = Object.fromEntries(
+    ['2026-07', '2026-08'].map((month) => [
+      month,
+      paidOrders.filter((order) => order.paidAt?.toISOString().startsWith(month)).length,
+    ]),
+  );
+
+  assert.deepEqual(paymentsByMonth, {
+    '2026-07': 5,
+    '2026-08': 16,
+  });
+  assert.ok(
+    paidOrders.every(
+      (order) =>
+        order.paidAt !== null &&
+        order.paidAt >= new Date('2026-07-01T00:00:00.000Z') &&
+        order.paidAt < new Date('2026-08-14T00:00:00.000Z'),
+    ),
+  );
+});
+
 test('[IAM-026][BUA-024] platform overview seed has 21 active Personal monthly subscriptions and 68 total users', () => {
   const analytics = buildPlatformAnalyticsRows();
   // owner, admin, platform owner, analyst, and viewer are seeded outside the analytics model.

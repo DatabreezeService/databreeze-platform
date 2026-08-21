@@ -709,17 +709,21 @@ function RevenueChart({
   readonly currency: Intl.NumberFormat;
   readonly label: string;
 }) {
+  const firstRevenueIndex = series.findIndex((point) => point.revenueVnd > 0);
+  const displaySeries = firstRevenueIndex > 0 ? series.slice(firstRevenueIndex) : series;
   const width = 720;
   const height = 292;
   const left = 62;
   const right = 680;
   const top = 20;
   const bottom = 250;
-  const maximum = Math.max(1, ...series.map((point) => point.revenueVnd));
+  const maximum = Math.max(1, ...displaySeries.map((point) => point.revenueVnd));
   const x = (index: number) =>
-    series.length <= 1 ? left : left + (index / (series.length - 1)) * (right - left);
+    displaySeries.length <= 1 ? left : left + (index / (displaySeries.length - 1)) * (right - left);
   const y = (value: number) => bottom - (value / maximum) * (bottom - top);
-  const points = series.map((point, index) => `${x(index)},${y(point.revenueVnd)}`).join(' ');
+  const points = displaySeries
+    .map((point, index) => `${x(index)},${y(point.revenueVnd)}`)
+    .join(' ');
   const area = `${left},${bottom} ${points} ${right},${bottom}`;
   const ticks = [0, 0.25, 0.5, 0.75, 1];
   return (
@@ -738,7 +742,7 @@ function RevenueChart({
         })}
         <polygon className="pa-revenue-area" points={area} />
         <polyline className="pa-revenue-line" points={points} />
-        {series.map((point, index) => (
+        {displaySeries.map((point, index) => (
           <g key={point.month}>
             <circle className="pa-revenue-point" cx={x(index)} cy={y(point.revenueVnd)} r="3.5">
               <title>{`${point.month}: ${currency.format(point.revenueVnd)}`}</title>

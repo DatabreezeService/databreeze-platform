@@ -274,6 +274,29 @@ describe('platform admin feedbacks & reviews [WEB-025, WEB-027, IAM-026]', () =>
     expect(chart.textContent).toContain('2026-08');
   });
 
+  it('starts the revenue chart at the first month with settled revenue', async () => {
+    const overview = {
+      ...validOverview,
+      revenueSeries: [
+        { month: '2026-02', revenueVnd: 0, paidOrders: 0 },
+        { month: '2026-03', revenueVnd: 0, paidOrders: 0 },
+        { month: '2026-04', revenueVnd: 0, paidOrders: 0 },
+        { month: '2026-05', revenueVnd: 0, paidOrders: 0 },
+        { month: '2026-06', revenueVnd: 0, paidOrders: 0 },
+        { month: '2026-07', revenueVnd: 745_000, paidOrders: 5 },
+        { month: '2026-08', revenueVnd: 2_384_000, paidOrders: 16 },
+      ],
+    };
+    stubPlatformAdminServer(serverFeedbacks, overview);
+    renderPlatformAdmin('/vi-VN/platform-admin');
+
+    const chart = await screen.findByRole('img', { name: 'Doanh thu theo tháng' });
+    expect(chart.textContent).not.toContain('2026-02');
+    expect(chart.textContent).not.toContain('2026-06');
+    expect(chart.textContent).toContain('2026-07');
+    expect(chart.textContent).toContain('2026-08');
+  });
+
   it('renders navigation links with the server-authoritative feedback count badge', async () => {
     stubPlatformAdminServer();
     renderPlatformAdmin('/vi-VN/platform-admin');
