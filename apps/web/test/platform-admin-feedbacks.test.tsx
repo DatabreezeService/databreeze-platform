@@ -251,6 +251,29 @@ describe('platform admin feedbacks & reviews [WEB-025, WEB-027, IAM-026]', () =>
     expect(await screen.findAllByText('3.129.000 ₫')).toHaveLength(2);
   });
 
+  it('starts the registration chart at the first month with users', async () => {
+    const overview = {
+      ...validOverview,
+      registrationSeries: [
+        { month: '2026-02', count: 0 },
+        { month: '2026-03', count: 0 },
+        { month: '2026-04', count: 0 },
+        { month: '2026-05', count: 0 },
+        { month: '2026-06', count: 8 },
+        { month: '2026-07', count: 39 },
+        { month: '2026-08', count: 26 },
+      ],
+    };
+    stubPlatformAdminServer(serverFeedbacks, overview);
+    renderPlatformAdmin('/vi-VN/platform-admin');
+
+    const chart = await screen.findByRole('img', { name: 'Người dùng mới' });
+    expect(chart.textContent).not.toContain('2026-03');
+    expect(chart.textContent).toContain('2026-06');
+    expect(chart.textContent).toContain('2026-07');
+    expect(chart.textContent).toContain('2026-08');
+  });
+
   it('renders navigation links with the server-authoritative feedback count badge', async () => {
     stubPlatformAdminServer();
     renderPlatformAdmin('/vi-VN/platform-admin');

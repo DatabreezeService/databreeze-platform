@@ -762,14 +762,16 @@ function RegistrationChart({
   readonly number: Intl.NumberFormat;
   readonly label: string;
 }) {
+  const firstRegistrationIndex = series.findIndex((point) => point.count > 0);
+  const displaySeries = firstRegistrationIndex > 0 ? series.slice(firstRegistrationIndex) : series;
   const width = 460;
   const height = 292;
   const left = 44;
   const right = 448;
   const top = 20;
   const bottom = 250;
-  const maximum = Math.max(1, ...series.map((point) => point.count));
-  const slot = (right - left) / Math.max(1, series.length);
+  const maximum = Math.max(1, ...displaySeries.map((point) => point.count));
+  const slot = (right - left) / Math.max(1, displaySeries.length);
   const barWidth = Math.max(10, slot * 0.58);
   const ticks = [0, 0.5, 1];
   return (
@@ -786,7 +788,7 @@ function RegistrationChart({
             </g>
           );
         })}
-        {series.map((point, index) => {
+        {displaySeries.map((point, index) => {
           const barHeight = (point.count / maximum) * (bottom - top);
           const barX = left + index * slot + (slot - barWidth) / 2;
           return (
@@ -807,7 +809,7 @@ function RegistrationChart({
                 x={barX + barWidth / 2}
                 y={bottom + 25}
               >
-                {index % 2 === 0 || series.length <= 7 ? point.month : ''}
+                {index % 2 === 0 || displaySeries.length <= 7 ? point.month : ''}
               </text>
             </g>
           );
