@@ -235,22 +235,18 @@ function minutesAfter(minutes) {
   return new Date(NOW.getTime() + minutes * 60 * 1000);
 }
 
-// IAM-026/BUA-024: keep the synthetic customer-growth story bounded to the
-// June-August 2026 pilot window. July carries the majority of registrations,
-// while only four customer identities land after August 14.
+// IAM-026/BUA-024: keep the synthetic customer-growth story bounded to July
+// and the first thirteen days of August 2026. August carries roughly three
+// times July's registrations, matching the requested pilot-dashboard shape.
 function platformAnalyticsRegistrationDate(index) {
   let monthIndex;
   let day;
-  if (index < 8) {
-    monthIndex = 5;
-    day = 2 + index * 4;
-  } else if (index < 47) {
+  if (index < 16) {
     monthIndex = 6;
-    day = 1 + Math.floor(((index - 8) * 31) / 39);
+    day = 1 + Math.floor((index * 31) / 16);
   } else {
     monthIndex = 7;
-    const augustIndex = index - 47;
-    day = augustIndex < 12 ? augustIndex + 1 : 15 + (augustIndex - 12) * 2;
+    day = 1 + Math.floor(((index - 16) * 13) / 47);
   }
 
   return new Date(Date.UTC(2026, monthIndex, day, 8 + (index % 9), (index * 11) % 60));

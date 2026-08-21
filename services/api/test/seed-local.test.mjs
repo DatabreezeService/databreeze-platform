@@ -217,24 +217,25 @@ test('[IAM-026][BUA-024] platform overview seed uses 63 valid, unique supplied c
   assert.equal(new Set(analytics.users.map((user) => user.email)).size, 63);
 });
 
-test('[IAM-026][BUA-024] platform overview registrations start in June, peak in July, and leave only four customers after August 14', () => {
+test('[IAM-026][BUA-024] platform overview registrations use a smaller July cohort and a larger pre-August-14 cohort', () => {
   const { users } = buildPlatformAnalyticsRows();
   const registrationsByMonth = Object.fromEntries(
-    ['2026-06', '2026-07', '2026-08'].map((month) => [
+    ['2026-07', '2026-08'].map((month) => [
       month,
       users.filter((user) => user.createdAt.toISOString().startsWith(month)).length,
     ]),
   );
 
   assert.deepEqual(registrationsByMonth, {
-    '2026-06': 8,
-    '2026-07': 39,
-    '2026-08': 16,
+    '2026-07': 16,
+    '2026-08': 47,
   });
-  assert.ok(users.every((user) => user.createdAt >= new Date('2026-06-01T00:00:00.000Z')));
-  assert.equal(
-    users.filter((user) => user.createdAt >= new Date('2026-08-15T00:00:00.000Z')).length,
-    4,
+  assert.ok(
+    users.every(
+      (user) =>
+        user.createdAt >= new Date('2026-07-01T00:00:00.000Z') &&
+        user.createdAt < new Date('2026-08-14T00:00:00.000Z'),
+    ),
   );
 });
 
