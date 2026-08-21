@@ -885,16 +885,6 @@ export function PlatformAdminRoutePage() {
     () => new Intl.NumberFormat(locale, { style: 'currency', currency: 'VND' }),
     [locale],
   );
-  const compactCurrency = useMemo(
-    () =>
-      new Intl.NumberFormat(locale, {
-        style: 'currency',
-        currency: 'VND',
-        notation: 'compact',
-        maximumFractionDigits: 1,
-      }),
-    [locale],
-  );
   const dateTime = useMemo(
     () => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }),
     [locale],
@@ -965,7 +955,7 @@ export function PlatformAdminRoutePage() {
           {[
             [
               text.revenue,
-              compactCurrency.format(totals.settledRevenueVnd),
+              currency.format(totals.settledRevenueVnd),
               `${number.format(totals.paidOrders)} ${text.paidOrders.toLowerCase()}`,
             ],
             [
@@ -1012,7 +1002,7 @@ export function PlatformAdminRoutePage() {
                 <span>BUA</span>
                 <h2>{text.revenueTrend}</h2>
               </div>
-              <strong>{compactCurrency.format(totals.settledRevenueVnd)}</strong>
+              <strong>{currency.format(totals.settledRevenueVnd)}</strong>
             </div>
             <RevenueChart
               compactNumber={compactNumber}
