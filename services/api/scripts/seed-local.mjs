@@ -235,6 +235,27 @@ function minutesAfter(minutes) {
   return new Date(NOW.getTime() + minutes * 60 * 1000);
 }
 
+// IAM-026/BUA-024: keep the synthetic customer-growth story bounded to the
+// June-August 2026 pilot window. July carries the majority of registrations,
+// while only four customer identities land after August 14.
+function platformAnalyticsRegistrationDate(index) {
+  let monthIndex;
+  let day;
+  if (index < 8) {
+    monthIndex = 5;
+    day = 2 + index * 4;
+  } else if (index < 47) {
+    monthIndex = 6;
+    day = 1 + Math.floor(((index - 8) * 31) / 39);
+  } else {
+    monthIndex = 7;
+    const augustIndex = index - 47;
+    day = augustIndex < 12 ? augustIndex + 1 : 15 + (augustIndex - 12) * 2;
+  }
+
+  return new Date(Date.UTC(2026, monthIndex, day, 8 + (index % 9), (index * 11) % 60));
+}
+
 export function buildPlatformAnalyticsRows() {
   const organizationNames = [
     'An Phú Retail',
@@ -268,7 +289,7 @@ export function buildPlatformAnalyticsRows() {
     updatedAt: minutesBefore((3 + index * 7) * 1_440),
   }));
   const users = LOCAL_PLATFORM_ANALYTICS_IDENTITIES.map(([email, displayName], index) => {
-    const daysAgo = 4 + index * 4;
+    const createdAt = platformAnalyticsRegistrationDate(index);
     return {
       id: ids(8_100 + index),
       email,
@@ -277,8 +298,8 @@ export function buildPlatformAnalyticsRows() {
       status: 'ACTIVE',
       securityEpoch: 1,
       mfaReenrollmentRequired: false,
-      createdAt: minutesBefore(daysAgo * 1_440),
-      updatedAt: minutesBefore(Math.max(1, daysAgo - 1) * 1_440),
+      createdAt,
+      updatedAt: new Date(createdAt.getTime() + 6 * 60 * 60 * 1000),
       organizationId: organizations[index % organizations.length].id,
     };
   });
