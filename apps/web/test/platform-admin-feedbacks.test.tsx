@@ -201,7 +201,10 @@ const serverFeedbacks = {
   ),
 };
 
-function stubPlatformAdminServer(feedbacks = serverFeedbacks) {
+function stubPlatformAdminServer(
+  feedbacks = serverFeedbacks,
+  overview: Record<string, unknown> = validOverview,
+) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL) => {
@@ -211,7 +214,7 @@ function stubPlatformAdminServer(feedbacks = serverFeedbacks) {
           status: 200,
           headers: { 'content-type': 'application/json' },
         });
-      return new Response(JSON.stringify(validOverview), {
+      return new Response(JSON.stringify(overview), {
         status: 200,
         headers: { 'content-type': 'application/json' },
       });
@@ -234,6 +237,20 @@ function renderPlatformAdmin(initialEntry: string) {
 }
 
 describe('platform admin feedbacks & reviews [WEB-025, WEB-027, IAM-026]', () => {
+  it('shows the full settled revenue amount in every overview summary', async () => {
+    const overview = {
+      ...validOverview,
+      totals: {
+        ...(validOverview['totals'] as Record<string, unknown>),
+        settledRevenueVnd: 3_129_000,
+      },
+    };
+    stubPlatformAdminServer(serverFeedbacks, overview);
+    renderPlatformAdmin('/vi-VN/platform-admin');
+
+    expect(await screen.findAllByText('3.129.000 ₫')).toHaveLength(2);
+  });
+
   it('renders navigation links with the server-authoritative feedback count badge', async () => {
     stubPlatformAdminServer();
     renderPlatformAdmin('/vi-VN/platform-admin');
